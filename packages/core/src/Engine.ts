@@ -20,7 +20,7 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ResourceManager } from "./asset/ResourceManager";
-import { EventDispatcher, Logger, Time } from "./base";
+import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { InputManager } from "./input";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
@@ -68,6 +68,12 @@ export class Engine extends EventDispatcher {
   _batcherManager: BatcherManager;
 
   _particleBufferUtils: ParticleBufferUtils;
+  /** @internal */
+  _frameInProcess = false;
+  /** @internal */
+  _pendingDestroyObjects: EngineObject[] = [];
+  /** @internal */
+  _processingPendingDestroys = false;
   /** @internal */
   _physicsInitialized: boolean = false;
   /** @internal */
@@ -123,7 +129,6 @@ export class Engine extends EventDispatcher {
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
-  private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
@@ -368,22 +373,19 @@ export class Engine extends EventDispatcher {
       this._render(scenes);
     }
 
+    // Process pending destroys
+    this._processPendingDestroyObjects();
+
+    this._frameInProcess = false;
+
     if (this._waitingDestroy) {
       this._destroy();
-    } else {
-      // Handling invalid scripts and fire `onDestroy`
-      for (let i = 0; i < sceneCount; i++) {
-        const scene = scenes[i];
-        if (!scene.isActive || scene.destroyed) continue;
-        scene._componentsManager.handlingInvalidScripts();
-      }
     }
 
     if (this._waitingGC) {
       this._gc();
       this._waitingGC = false;
     }
-    this._frameInProcess = false;
   }
 
   /**
@@ -473,7 +475,20 @@ export class Engine extends EventDispatcher {
     return this._activePostProcessPasses;
   }
 
+  private _processPendingDestroyObjects(): void {
+    const pending = this._pendingDestroyObjects;
+    this._processingPendingDestroys = true;
+    for (let i = 0, n = pending.length; i < n; i++) {
+      pending[i].destroy();
+    }
+    pending.length = 0;
+    this._processingPendingDestroys = false;
+  }
+
   private _destroy(): void {
+    this._destroyed = true;
+    this._waitingDestroy = false;
+
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
 
@@ -489,8 +504,6 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-    this._waitingDestroy = false;
-    this._destroyed = true;
   }
 
   /**

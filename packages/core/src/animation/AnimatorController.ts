@@ -112,6 +112,7 @@ export class AnimatorController extends ReferResource {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
+    layer._setEngine(this._engine);
     this._updateFlagManager.dispatch();
   }
 
@@ -142,6 +143,16 @@ export class AnimatorController extends ReferResource {
    */
   _registerChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
+   * @internal
+   */
+  _setEngine(engine: Engine): void {
+    const { _layers: layers } = this;
+    for (let i = 0, n = layers.length; i < n; i++) {
+      layers[i]._setEngine(engine);
+    }
   }
 
   private _addParameter(

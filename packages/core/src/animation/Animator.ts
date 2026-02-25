@@ -81,6 +81,7 @@ export class Animator extends Component {
       if (animatorController) {
         this._addResourceReferCount(animatorController, 1);
         this._controllerUpdateFlag = animatorController._registerChangeFlag();
+        animatorController._setEngine(this.engine);
       }
       this._animatorController = animatorController;
     }
@@ -1524,27 +1525,6 @@ export class Animator extends Component {
     }
   }
 
-  private _callAnimatorScriptOnEnter(state: AnimatorState, layerIndex: number): void {
-    const scripts = state._onStateEnterScripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      scripts[i].onStateEnter(this, state, layerIndex);
-    }
-  }
-
-  private _callAnimatorScriptOnUpdate(state: AnimatorState, layerIndex: number): void {
-    const scripts = state._onStateUpdateScripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      scripts[i].onStateUpdate(this, state, layerIndex);
-    }
-  }
-
-  private _callAnimatorScriptOnExit(state: AnimatorState, layerIndex: number): void {
-    const scripts = state._onStateExitScripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      scripts[i].onStateExit(this, state, layerIndex);
-    }
-  }
-
   private _checkAnyAndEntryState(layerData: AnimatorLayerData, remainDeltaTime: number, aniUpdate: boolean): void {
     const { stateMachine } = layerData.layer;
     const { _anyStateTransitionCollection: anyStateTransitions, _entryTransitionCollection: entryTransitions } =
@@ -1588,12 +1568,12 @@ export class Animator extends Component {
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
+      state._callOnEnter(this, layerIndex);
     }
     if (lastPlayState !== AnimatorStatePlayState.Finished && playData.playState === AnimatorStatePlayState.Finished) {
-      this._callAnimatorScriptOnExit(state, layerIndex);
+      state._callOnExit(this, layerIndex);
     } else {
-      this._callAnimatorScriptOnUpdate(state, layerIndex);
+      state._callOnUpdate(this, layerIndex);
     }
   }
 

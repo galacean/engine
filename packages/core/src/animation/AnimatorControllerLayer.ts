@@ -1,3 +1,4 @@
+import { Engine } from "../Engine";
 import { AnimatorStateMachine } from "./AnimatorStateMachine";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorLayerMask } from "./AnimatorLayerMask";
@@ -20,5 +21,12 @@ export class AnimatorControllerLayer {
    */
   constructor(public readonly name: string) {
     this.stateMachine = new AnimatorStateMachine();
+  }
+
+  /**
+   * @internal
+   */
+  _setEngine(engine: Engine): void {
+    this.stateMachine._setEngine(engine);
   }
 }

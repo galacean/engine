@@ -1705,6 +1705,49 @@ describe("Physics Test", () => {
       expect(newScene.destroyed).eq(true);
     });
 
+    // @see https://github.com/galacean/engine/issues/2877
+    it("destroy entity in onTriggerEnter should not crash", () => {
+      const physicsMgr = enginePhysX.sceneManager.scenes[0].physics;
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
+      const entity1 = root.createChild("triggerA");
+      const entity2 = root.createChild("triggerB");
+
+      // Both at origin to guarantee overlap
+      setColliderProps(entity1, false, true, false);
+      setColliderProps(entity2, true, false, false);
+
+      const onTriggerEnter = vi.fn((other: ColliderShape) => {
+        entity2.destroy();
+      });
+      const onTriggerEnterB = vi.fn();
+
+      entity1.addComponent(
+        class extends Script {
+          onTriggerEnter(other: ColliderShape): void {
+            onTriggerEnter(other);
+          }
+        }
+      );
+      entity2.addComponent(
+        class extends Script {
+          onTriggerEnter(other: ColliderShape): void {
+            onTriggerEnterB(other);
+          }
+        }
+      );
+
+      // Simulate being inside Engine.update() where _frameInProcess = true
+      // @ts-ignore
+      enginePhysX._frameInProcess = true;
+      expect(() => updatePhysics(physicsMgr)).not.toThrow();
+      // @ts-ignore
+      enginePhysX._frameInProcess = false;
+
+      expect(onTriggerEnter).toHaveBeenCalled();
+      expect(entity2.pendingDestroy).eq(true);
+      expect(entity2.destroyed).eq(false);
+    });
+
     afterEach(() => {
       const root = enginePhysX.sceneManager.activeScene.findEntityByName("root");
       root?.destroy();

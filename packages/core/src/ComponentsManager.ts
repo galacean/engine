@@ -11,33 +11,30 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  */
 export class ComponentsManager {
   /* @internal */
-  _cameraNeedSorting: boolean = false;
+  _cameraNeedSorting = false;
   /** @internal */
-  _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
+  _activeCameras = new DisorderedArray<Camera>();
   /** @internal */
-  _renderers: DisorderedArray<Renderer> = new DisorderedArray();
+  _renderers = new DisorderedArray<Renderer>();
 
   /** @internal */
-  _overlayCanvases: DisorderedArray<IUICanvas> = new DisorderedArray();
+  _overlayCanvases = new DisorderedArray<IUICanvas>();
   /* @internal */
-  _overlayCanvasesSortingDirty: boolean = false;
+  _overlayCanvasesSortingDirty = false;
   /** @internal */
-  _canvases: DisorderedArray<IUICanvas> = new DisorderedArray();
+  _canvases = new DisorderedArray<IUICanvas>();
 
   // Script
-  private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-
-  private _pendingDestroyScripts: Script[] = [];
-  private _disposeDestroyScripts: Script[] = [];
+  private _onStartScripts = new DisorderedArray<Script>();
+  private _onUpdateScripts = new DisorderedArray<Script>();
+  private _onLateUpdateScripts = new DisorderedArray<Script>();
+  private _onPhysicsUpdateScripts = new DisorderedArray<Script>();
 
   // Animation
-  private _onUpdateAnimations: DisorderedArray<Animator> = new DisorderedArray();
+  private _onUpdateAnimations = new DisorderedArray<Animator>();
 
   // Render
-  private _onUpdateRenderers: DisorderedArray<Renderer> = new DisorderedArray();
+  private _onUpdateRenderers = new DisorderedArray<Renderer>();
 
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
@@ -179,10 +176,6 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
-  addPendingDestroyScript(component: Script): void {
-    this._pendingDestroyScripts.push(component);
-  }
-
   callScriptOnStart(): void {
     const onStartScripts = this._onStartScripts;
     if (onStartScripts.length > 0) {
@@ -253,19 +246,6 @@ export class ComponentsManager {
         element._onUpdateIndex = index;
       }
     );
-  }
-
-  handlingInvalidScripts(): void {
-    const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
-    this._disposeDestroyScripts = disposeDestroyScripts;
-    this._pendingDestroyScripts = pendingDestroyScripts;
-    const length = disposeDestroyScripts.length;
-    if (length > 0) {
-      for (let i = length - 1; i >= 0; i--) {
-        disposeDestroyScripts[i].onDestroy();
-      }
-      disposeDestroyScripts.length = 0;
-    }
   }
 
   callCameraOnBeginRender(camera: Camera): void {
