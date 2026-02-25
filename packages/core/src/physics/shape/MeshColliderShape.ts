@@ -51,6 +51,8 @@ export class MeshColliderShape extends ColliderShape {
         this._destroyNativeShape();
         if (this._extractMeshData(mesh)) {
           this._createNativeMesh();
+        } else {
+          this._clearMeshData();
         }
       }
     }
@@ -73,8 +75,7 @@ export class MeshColliderShape extends ColliderShape {
       if (value && this._extractMeshData(value)) {
         this._createNativeMesh();
       } else {
-        this._positions = null;
-        this._indices = null;
+        this._clearMeshData();
       }
     }
   }
@@ -99,6 +100,10 @@ export class MeshColliderShape extends ColliderShape {
       this._mesh._addReferCount(-1);
       this._mesh = null;
     }
+    this._clearMeshData();
+  }
+
+  private _clearMeshData(): void {
     this._positions = null;
     this._indices = null;
   }
