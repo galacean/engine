@@ -406,16 +406,45 @@ describe("Entity", async () => {
     it("isRoot", () => {
       const parent = scene.createRootEntity("parent");
       const child = scene.createRootEntity("child");
+
+      // addChild should remove child from rootEntities
       parent.addChild(child);
+      // @ts-ignore
+      expect(child._isRoot).eq(false);
+      expect(scene.rootEntities).not.toContain(child);
+      expect(child.parent).eq(parent);
+
+      // addRootEntity should restore root status
       scene.addRootEntity(child);
       // @ts-ignore
       expect(child._isRoot).eq(true);
+      expect(scene.rootEntities).toContain(child);
+
+      // parent setter should remove child from rootEntities
       child.parent = parent;
       // @ts-ignore
       expect(child._isRoot).eq(false);
+      expect(scene.rootEntities).not.toContain(child);
+      expect(child.parent).eq(parent);
+
+      // addRootEntity should restore root status again
       scene.addRootEntity(child);
       // @ts-ignore
       expect(child._isRoot).eq(true);
+      expect(scene.rootEntities).toContain(child);
+    });
+
+    it("removeChild guard", () => {
+      const parentA = scene.createRootEntity("parentA");
+      const parentB = scene.createRootEntity("parentB");
+      const child = new Entity(engine, "child");
+      parentA.addChild(child);
+      expect(child.parent).eq(parentA);
+
+      // removeChild on wrong parent should be no-op
+      parentB.removeChild(child);
+      expect(child.parent).eq(parentA);
+      expect(parentA.children).toContain(child);
     });
 
     it("InActiveAndActive", () => {
