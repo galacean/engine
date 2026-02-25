@@ -15,11 +15,7 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
-  /**
-   * Create a renderbuffer, bindRenderbuffer, bindStorage and bindFramebuffer attachment.
-   * Automatically selects MSAA or regular storage based on target.antiAliasing.
-   * @internal
-   */
+  /** @internal */
   static _createRenderBuffer(
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     target: RenderTarget,
@@ -42,10 +38,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     return renderBuffer;
   }
 
-  /**
-   * Check framebuffer completeness and throw descriptive errors.
-   * @internal
-   */
+  /** @internal */
   static _checkFrameBufferStatus(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 
