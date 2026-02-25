@@ -66,6 +66,8 @@ export class MeshColliderShape extends ColliderShape {
 
   set mesh(value: ModelMesh) {
     if (this._mesh !== value) {
+      this._mesh?._addReferCount(-1);
+      value?._addReferCount(1);
       this._mesh = value;
       this._destroyNativeShape();
       if (value && this._extractMeshData(value)) {
@@ -90,7 +92,10 @@ export class MeshColliderShape extends ColliderShape {
    */
   override _destroy() {
     super._destroy();
-    this._mesh = null;
+    if (this._mesh) {
+      this._mesh._addReferCount(-1);
+      this._mesh = null;
+    }
     this._positions = null;
     this._indices = null;
   }
