@@ -19,6 +19,9 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
+  /** @internal */
+  static _tempComponentConstructors: ComponentConstructor[] = [];
+
   /**
    * @internal
    */
@@ -508,7 +511,13 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this.engine, this.name);
+    const componentConstructors = Entity._tempComponentConstructors;
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      componentConstructors[i] = components[i].constructor as ComponentConstructor;
+    }
+    const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
+    componentConstructors.length = 0;
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -520,10 +529,6 @@ export class Entity extends EngineObject {
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());
-    }
-    const components = this._components;
-    for (let i = 0, n = components.length; i < n; i++) {
-      cloneEntity.addComponent(<ComponentConstructor>components[i].constructor);
     }
     return cloneEntity;
   }
