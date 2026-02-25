@@ -1,31 +1,45 @@
 import { IMeshColliderShape } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
-import { Mesh } from "../../graphic/Mesh";
-import { VertexAttribute } from "../../mesh/enums/VertexAttribute";
 import { ModelMesh } from "../../mesh/ModelMesh";
+import { Vector3 } from "@galacean/engine-math";
+import { DynamicCollider } from "../DynamicCollider";
+import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
 import { ColliderShape } from "./ColliderShape";
 
 /**
- * Physical collider shape for mesh.
- * @remarks
- * - Triangle mesh (isConvex=false) works with StaticCollider or kinematic DynamicCollider
- * - Convex mesh (isConvex=true) works with both StaticCollider and DynamicCollider
- * @see https://nvidia-omniverse.github.io/PhysX/physx/5.4.1/docs/Geometry.html#triangle-meshes
+ * Collider shape based on mesh geometry, supporting both convex hull and triangle mesh modes.
  */
 export class MeshColliderShape extends ColliderShape {
-  private _isConvex: boolean = false;
-  private _vertices: Float32Array = null;
-  private _indices: Uint16Array | Uint32Array | null = null;
-  private _doubleSided: boolean = false;
-  private _tightBounds: boolean = true;
-  private _indicesU16Cache: Uint16Array = null;
+  private _mesh: ModelMesh = null;
+  private _isConvex = false;
+  private _positions: Vector3[] = null;
+  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
+  private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
+  private _isShapeAttached = false;
+
+  /**
+   * Cooking flags for this mesh collider shape.
+   */
+  get cookingFlags(): MeshColliderShapeCookingFlag {
+    return this._cookingFlags;
+  }
+
+  set cookingFlags(value: MeshColliderShapeCookingFlag) {
+    if (this._cookingFlags !== value) {
+      this._cookingFlags = value;
+      if (this._nativeShape) {
+        this._updateNativeShapeData();
+      } else if (this._mesh && this._extractMeshData(this._mesh)) {
+        this._createNativeShape();
+      }
+    }
+  }
 
   /**
    * Whether to use convex mesh mode.
    * @remarks
-   * - Convex mesh: Works with all collider types, PhysX auto-computes convex hull
-   * - Triangle mesh: Works with StaticCollider or kinematic DynamicCollider, requires indices
-   * - After changing this property, you must call {@link setMesh} or {@link setMeshData} again to apply the change
+   * - When true, generates a convex hull from the mesh vertices. Works with all collider types.
+   * - When false, uses the original triangle mesh. Only works with StaticCollider or kinematic DynamicCollider, and the mesh must have indices.
    */
   get isConvex(): boolean {
     return this._isConvex;
@@ -34,225 +48,167 @@ export class MeshColliderShape extends ColliderShape {
   set isConvex(value: boolean) {
     if (this._isConvex !== value) {
       this._isConvex = value;
-      if (this._vertices && this._nativeShape) {
-        this._updateNativeMesh();
+      const mesh = this._mesh;
+      if (mesh) {
+        // PxShape.setGeometry requires matching geometry type, so recreate when isConvex changes
+        this._destroyNativeShape();
+        if (this._extractMeshData(mesh)) {
+          this._createNativeShape();
+        } else {
+          this._clearMeshData();
+        }
       }
     }
   }
 
   /**
-   * Whether the triangle mesh should be double-sided for collision detection.
-   * @remarks Only applies to triangle mesh (non-convex).
+   * The mesh used for collision detection.
+   * @remarks The mesh must have accessible data (not released after upload).
    */
-  get doubleSided(): boolean {
-    return this._doubleSided;
+  get mesh(): ModelMesh {
+    return this._mesh;
   }
 
-  set doubleSided(value: boolean) {
-    if (this._doubleSided !== value) {
-      this._doubleSided = value;
-      (<IMeshColliderShape>this._nativeShape)?.setDoubleSided(value);
-    }
-  }
-
-  /**
-   * Whether to use tight bounds for convex mesh.
-   * @remarks Only applies to convex mesh.
-   */
-  get tightBounds(): boolean {
-    return this._tightBounds;
-  }
-
-  set tightBounds(value: boolean) {
-    if (this._tightBounds !== value) {
-      this._tightBounds = value;
-      (<IMeshColliderShape>this._nativeShape)?.setTightBounds(value);
-    }
-  }
-
-  /**
-   * Create a MeshColliderShape.
-   * @param isConvex - Whether to use convex mesh mode (default: false)
-   */
-  constructor(isConvex: boolean = false) {
-    super();
-    this._isConvex = isConvex;
-    // Native shape is created lazily when mesh data is set
-    this._nativeShape = null;
-  }
-
-  /**
-   * Set mesh data directly from arrays.
-   * @param vertices - Vertex positions as Float32Array (x, y, z per vertex)
-   * @param indices - Triangle indices (required for triangle mesh, optional for convex)
-   */
-  setMeshData(vertices: Float32Array, indices?: Uint16Array | Uint32Array): void {
-    this._vertices = vertices;
-    this._indices = indices || null;
-    this._updateNativeMesh();
-  }
-
-  /**
-   * Set mesh data from a Mesh object.
-   * @param mesh - The mesh to extract vertex and index data from
-   * @remarks The mesh must have accessible data (not released after upload)
-   */
-  setMesh(mesh: Mesh): void {
-    if (mesh instanceof ModelMesh) {
-      if (this._extractMeshData(mesh)) {
-        this._updateNativeMesh();
+  set mesh(value: ModelMesh) {
+    if (this._mesh !== value) {
+      this._mesh?._addReferCount(-1);
+      value?._addReferCount(1);
+      this._mesh = value;
+      if (value && this._extractMeshData(value)) {
+        if (this._nativeShape) {
+          this._updateNativeShapeData();
+        } else {
+          this._createNativeShape();
+        }
+      } else {
+        this._destroyNativeShape();
+        this._clearMeshData();
       }
-    } else {
-      console.warn("MeshColliderShape: Only ModelMesh is supported");
     }
   }
 
-  protected override _syncNative(): void {
-    if (this._nativeShape) {
-      super._syncNative();
-      (<IMeshColliderShape>this._nativeShape).setDoubleSided(this._doubleSided);
-      (<IMeshColliderShape>this._nativeShape).setTightBounds(this._tightBounds);
+  /**
+   * {@inheritDoc ColliderShape.getClosestPoint}
+   */
+  override getClosestPoint(point: Vector3, outClosestPoint: Vector3): number {
+    if (!this._nativeShape) {
+      console.warn("MeshColliderShape: Cannot get closest point. Ensure mesh has been set with valid data.");
+      return -1;
     }
+    return super.getClosestPoint(point, outClosestPoint);
   }
 
   /**
    * @internal
    */
   override _destroy() {
+    super._destroy();
+    if (this._mesh) {
+      this._mesh._addReferCount(-1);
+      this._mesh = null;
+    }
+    this._clearMeshData();
+  }
+
+  private _clearMeshData(): void {
+    this._positions = null;
+    this._indices = null;
+  }
+
+  private _destroyNativeShape(): void {
     if (this._nativeShape) {
+      if (this._isShapeAttached) {
+        this._detachFromCollider();
+      }
       this._nativeShape.destroy();
       this._nativeShape = null;
     }
-    delete Engine._physicalObjectsMap[this._id];
-    this._vertices = null;
-    this._indices = null;
-    this._indicesU16Cache = null;
   }
 
   private _extractMeshData(mesh: ModelMesh): boolean {
-    // @ts-ignore: Access internal property for performance optimization
-    const primitive = mesh._primitive;
-    const vertexElement = primitive._vertexElementMap?.[VertexAttribute.Position];
-
-    if (!vertexElement) {
-      console.warn("MeshColliderShape: Mesh has no position attribute");
+    if (!mesh.accessible) {
+      console.warn("MeshColliderShape: Mesh data is not accessible. Set 'keepMeshData' before uploading.");
       return false;
     }
 
-    const bufferBinding = primitive.vertexBufferBindings[vertexElement.bindingIndex];
-    const buffer = bufferBinding?.buffer;
-
-    if (!buffer) {
-      console.warn("MeshColliderShape: Position buffer not found");
+    const positions = mesh.getPositions();
+    if (!positions || positions.length === 0) {
+      console.warn("MeshColliderShape: Mesh has no position data.");
       return false;
     }
 
-    if (!buffer.readable) {
-      console.warn("MeshColliderShape: Buffer is not readable");
-      return false;
-    }
+    this._positions = positions;
+    this._indices = null;
 
-    const vertexCount = mesh.vertexCount;
-    const byteOffset = vertexElement.offset;
-    const byteStride = bufferBinding.stride;
-    const bufferData = buffer.data;
-
-    // Reuse or create Float32Array
-    if (!this._vertices || this._vertices.length !== vertexCount * 3) {
-      this._vertices = new Float32Array(vertexCount * 3);
-    }
-
-    // Create Float32Array view to read source data
-    const sourceData = new Float32Array(bufferData.buffer, bufferData.byteOffset, bufferData.byteLength / 4);
-
-    // Choose optimal copy method based on stride
-    if (byteStride === 12 && byteOffset === 0) {
-      // Tightly packed: direct copy
-      this._vertices.set(sourceData.subarray(0, vertexCount * 3));
-    } else {
-      // Interleaved: copy per vertex with optimized indexing
-      const floatStride = byteStride / 4;
-      const floatOffset = byteOffset / 4;
-      const vertices = this._vertices;
-      for (let i = 0, srcIdx = floatOffset, dstIdx = 0; i < vertexCount; i++, srcIdx += floatStride, dstIdx += 3) {
-        vertices[dstIdx] = sourceData[srcIdx];
-        vertices[dstIdx + 1] = sourceData[srcIdx + 1];
-        vertices[dstIdx + 2] = sourceData[srcIdx + 2];
-      }
-    }
-
-    // Extract indices for triangle mesh
     if (!this._isConvex) {
-      this._extractIndices(mesh);
-      if (!this._indices) {
-        console.warn("MeshColliderShape: Triangle mesh requires indices");
+      const indices = mesh.getIndices();
+      if (!indices) {
+        console.warn("MeshColliderShape: Non-convex mesh requires indices.");
         return false;
       }
+      this._indices = indices;
     }
 
     return true;
   }
 
-  private _extractIndices(mesh: ModelMesh): void {
-    const indices = mesh.getIndices();
-    if (!indices) {
-      this._indices = null;
-      return;
-    }
-
-    // PhysX only supports Uint16 and Uint32 indices, convert Uint8 to Uint16
-    if (indices instanceof Uint8Array) {
-      const len = indices.length;
-      if (!this._indicesU16Cache || this._indicesU16Cache.length < len) {
-        this._indicesU16Cache = new Uint16Array(len);
+  private _updateNativeShapeData(): void {
+    if (
+      (<IMeshColliderShape>this._nativeShape).setMeshData(
+        this._positions,
+        this._indices,
+        this._isConvex,
+        this._cookingFlags
+      )
+    ) {
+      // Re-add to collider if previously removed due to cooking failure
+      if (this._collider && !this._isShapeAttached) {
+        this._attachToCollider();
       }
-      this._indicesU16Cache.set(indices);
-      // Use subarray to ensure correct length (cache may be larger than needed)
-      this._indices = this._indicesU16Cache.subarray(0, len);
-    } else {
-      this._indices = indices;
+    } else if (this._isShapeAttached) {
+      this._detachFromCollider();
     }
   }
 
-  private _updateNativeMesh(): void {
-    if (!this._vertices || this._vertices.length === 0) {
+  private _detachFromCollider(): void {
+    this._collider._nativeCollider.removeShape(this._nativeShape);
+    this._isShapeAttached = false;
+  }
+
+  private _attachToCollider(): void {
+    this._collider._nativeCollider.addShape(this._nativeShape);
+    this._isShapeAttached = true;
+  }
+
+  private _createNativeShape(): void {
+    // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
+    if (!this._isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
+      console.error("MeshColliderShape: Non-convex mesh is not supported on non-kinematic DynamicCollider.");
       return;
     }
 
-    const vertexCount = this._vertices.length / 3;
+    const nativeShape = Engine._nativePhysics.createMeshColliderShape(
+      this._id,
+      this._positions,
+      this._indices,
+      this._isConvex,
+      this._material._nativeMaterial,
+      this._cookingFlags
+    );
 
-    // Validate triangle mesh has indices
-    if (!this._isConvex && !this._indices) {
-      console.warn("MeshColliderShape: Triangle mesh requires indices, skipping update");
+    if (!nativeShape) {
       return;
     }
 
-    if (this._nativeShape) {
-      // Update existing shape
-      (<IMeshColliderShape>this._nativeShape).setMeshData(this._vertices, vertexCount, this._indices, this._isConvex);
-    } else {
-      // Create new shape
-      this._nativeShape = Engine._nativePhysics.createMeshColliderShape(
-        this._id,
-        this._vertices,
-        vertexCount,
-        this._indices,
-        this._isConvex,
-        this._material._nativeMaterial
-      );
-      Engine._physicalObjectsMap[this._id] = this;
+    this._nativeShape = nativeShape;
 
-      // Sync doubleSided and tightBounds to newly created native shape
-      (<IMeshColliderShape>this._nativeShape).setDoubleSided(this._doubleSided);
-      (<IMeshColliderShape>this._nativeShape).setTightBounds(this._tightBounds);
-      // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
-      super._syncNative();
+    // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
+    super._syncNative();
 
-      // If already attached to a collider, add the newly created native shape to it
-      if (this._collider) {
-        this._nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
-        this._collider._nativeCollider.addShape(this._nativeShape);
-      }
+    // If already attached to a collider, add the newly created native shape to it
+    if (this._collider) {
+      nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
+      this._attachToCollider();
     }
   }
 }

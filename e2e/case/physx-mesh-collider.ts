@@ -3,58 +3,27 @@
  * @category Physics
  */
 import {
-  WebGLEngine,
-  Vector3,
-  MeshRenderer,
-  PointLight,
-  Camera,
-  StaticCollider,
-  DynamicCollider,
-  CollisionDetectionMode,
-  PBRMaterial,
   AmbientLight,
   AssetType,
-  Entity,
-  ModelMesh,
-  MeshColliderShape,
-  GLTFResource,
-  SphereColliderShape,
   BoxColliderShape,
+  Camera,
+  CollisionDetectionMode,
+  Color,
+  DynamicCollider,
+  Entity,
+  GLTFResource,
+  MeshColliderShape,
+  MeshRenderer,
+  ModelMesh,
+  PBRMaterial,
+  PointLight,
   PrimitiveMesh,
-  Color
+  StaticCollider,
+  Vector3,
+  WebGLEngine
 } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
-
-// Create a sphere that falls into the pot
-function createFallingSphere(
-  engine: WebGLEngine,
-  rootEntity: Entity,
-  position: Vector3,
-  radius: number,
-  color: Color
-): Entity {
-  const entity = rootEntity.createChild("sphere");
-  entity.transform.setPosition(position.x, position.y, position.z);
-
-  // Visual
-  const renderer = entity.addComponent(MeshRenderer);
-  renderer.mesh = PrimitiveMesh.createSphere(engine, radius, 16);
-  const material = new PBRMaterial(engine);
-  material.baseColor.copyFrom(color);
-  material.roughness = 0.5;
-  material.metallic = 0.3;
-  renderer.setMaterial(material);
-
-  // Physics - sphere collider with CCD to prevent tunneling
-  const collider = entity.addComponent(DynamicCollider);
-  collider.collisionDetectionMode = CollisionDetectionMode.Continuous;
-  const shape = new SphereColliderShape();
-  shape.radius = radius;
-  collider.addShape(shape);
-
-  return entity;
-}
 
 // Create a box that falls into the pot
 function createFallingBox(
@@ -66,7 +35,6 @@ function createFallingBox(
 ): Entity {
   const entity = rootEntity.createChild("box");
   entity.transform.setPosition(position.x, position.y, position.z);
-  entity.transform.rotate(new Vector3(15, 30, 10)); // Random rotation
 
   // Visual
   const renderer = entity.addComponent(MeshRenderer);
@@ -87,7 +55,8 @@ function createFallingBox(
   return entity;
 }
 
-WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engine) => {
+const physics = new PhysXPhysics(PhysXRuntimeMode.WebAssemblySIMD);
+WebGLEngine.create({ canvas: "canvas", physics }).then((engine) => {
   engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("root");
@@ -99,7 +68,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   // Note: pot is NOT scaled (to keep physics mesh aligned), so camera is closer
   const cameraEntity = rootEntity.createChild("camera");
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.transform.setPosition(0, 0.5, 1);
+  cameraEntity.transform.setPosition(0, 10, 10);
   cameraEntity.transform.lookAt(new Vector3(0, 0.07, 0));
 
   // Light
@@ -112,7 +81,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
     engine.resourceManager.load<GLTFResource>({
       url: "https://mdn.alipayobjects.com/rms/afts/file/A*UZO7RaRQa2kAAAAAgDAAAAgAehQnAQ/pot.glb",
       type: AssetType.GLTF,
-      params: { keepMeshData: true } // Required for MeshColliderShape.setMesh()
+      params: { keepMeshData: true } // Required for MeshColliderShape.mesh
     }),
     engine.resourceManager.load<AmbientLight>({
       type: AssetType.Env,
@@ -154,13 +123,15 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
           // Add collider to the RENDERER'S entity, not root
           const meshEntity = renderer.entity;
+          // Scale 20 can expose penetration issues in non-SIMD mode
+          meshEntity.transform.setScale(20, 20, 20);
           let collider = meshEntity.getComponent(StaticCollider);
           if (!collider) {
             collider = meshEntity.addComponent(StaticCollider);
           }
 
-          const meshShape = new MeshColliderShape(false); // isConvex = false for concave pot
-          meshShape.setMesh(mesh);
+          const meshShape = new MeshColliderShape();
+          meshShape.mesh = mesh;
           collider.addShape(meshShape);
         }
       }
@@ -179,18 +150,10 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
     const actualMinY = validBounds ? minY : 0;
     const actualMaxY = validBounds ? maxY : 0.05;
 
-    // Add ground plane to catch falling objects (in case pot has no bottom)
-    const ground = rootEntity.createChild("ground");
-    ground.transform.setPosition(0, actualMinY - 0.01, 0);
-    const groundCollider = ground.addComponent(StaticCollider);
-    const groundShape = new BoxColliderShape();
-    groundShape.size = new Vector3(2, 0.02, 2);
-    groundCollider.addShape(groundShape);
-
     // Create falling objects - use pot bounds to position correctly
     // Objects should be above pot and sized relative to pot
     const sphereRadius = actualPotWidth * 0.15; // 15% of pot width
-    const boxSize = actualPotWidth * 0.12;
+    const boxSize = actualPotWidth * 0.9;
     const dropHeight = actualMaxY + actualPotWidth * 2; // Drop from above pot
 
     // 3 spheres with different colors
@@ -208,10 +171,6 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
       new Vector3(offset, dropHeight + 0.2, -offset)
     ];
 
-    for (let i = 0; i < spherePositions.length; i++) {
-      createFallingSphere(engine, rootEntity, spherePositions[i], sphereRadius, sphereColors[i]);
-    }
-
     // 1 box - orange
     createFallingBox(
       engine,
@@ -223,7 +182,6 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
 
     console.log(`Objects: sphereRadius=${sphereRadius.toFixed(3)}, dropHeight=${dropHeight.toFixed(3)}`);
 
-    // Run physics simulation
     updateForE2E(engine, 80, 50);
     initScreenshot(engine, camera);
   });

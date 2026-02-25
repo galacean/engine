@@ -19,7 +19,7 @@ import {
   ModelMesh,
   MeshColliderShape
 } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 // Create wavy terrain mesh for visualization
@@ -72,36 +72,15 @@ function createWavyTerrain(engine: WebGLEngine, rootEntity: Entity) {
   const gridSize = 10;
   const scale = 2;
 
-  // Generate vertex data for physics
-  const vertices: number[] = [];
-  const indices: number[] = [];
-
-  for (let z = 0; z <= gridSize; z++) {
-    for (let x = 0; x <= gridSize; x++) {
-      const px = (x - gridSize / 2) * scale;
-      const pz = (z - gridSize / 2) * scale;
-      const py = Math.sin(x * 0.5) * Math.cos(z * 0.5) * 1.5;
-      vertices.push(px, py, pz);
-    }
-  }
-
-  for (let z = 0; z < gridSize; z++) {
-    for (let x = 0; x < gridSize; x++) {
-      const i = z * (gridSize + 1) + x;
-      indices.push(i, i + gridSize + 1, i + 1);
-      indices.push(i + 1, i + gridSize + 1, i + gridSize + 2);
-    }
-  }
+  // Create mesh (shared for physics and visual)
+  const terrainMesh = createTerrainMesh(engine, gridSize, scale);
 
   // Create MeshColliderShape (triangle mesh for static)
   const meshShape = new MeshColliderShape();
-  meshShape.setMeshData(new Float32Array(vertices), new Uint16Array(indices));
+  meshShape.mesh = terrainMesh;
 
   const collider = entity.addComponent(StaticCollider);
   collider.addShape(meshShape);
-
-  // Visual mesh
-  const terrainMesh = createTerrainMesh(engine, gridSize, scale);
   const renderer = entity.addComponent(MeshRenderer);
   renderer.mesh = terrainMesh;
 
@@ -186,24 +165,19 @@ function createConvexObject(
   const h = size * Math.sqrt(2 / 3);
   const r = size * Math.sqrt(1 / 3);
 
-  // Tetrahedron vertices for physics (convex hull)
-  const vertices = new Float32Array([
-    0,
-    h * 0.75,
-    0, // top
-    -size * 0.5,
-    -h * 0.25,
-    -r * 0.5, // back left
-    size * 0.5,
-    -h * 0.25,
-    -r * 0.5, // back right
-    0,
-    -h * 0.25,
-    r // front
+  // Create physics mesh for convex hull (4 tetrahedron vertices, no indices needed for convex)
+  const physicsMesh = new ModelMesh(engine);
+  physicsMesh.setPositions([
+    new Vector3(0, h * 0.75, 0), // top
+    new Vector3(-size * 0.5, -h * 0.25, -r * 0.5), // back left
+    new Vector3(size * 0.5, -h * 0.25, -r * 0.5), // back right
+    new Vector3(0, -h * 0.25, r) // front
   ]);
+  physicsMesh.uploadData(false);
 
-  const meshShape = new MeshColliderShape(true); // isConvex = true
-  meshShape.setMeshData(vertices);
+  const meshShape = new MeshColliderShape();
+  meshShape.isConvex = true;
+  meshShape.mesh = physicsMesh;
 
   const collider = entity.addComponent(DynamicCollider);
   collider.addShape(meshShape);

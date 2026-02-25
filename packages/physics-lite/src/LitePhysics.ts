@@ -138,12 +138,12 @@ export class LitePhysics implements IPhysics {
    */
   createMeshColliderShape(
     uniqueID: number,
-    vertices: Float32Array,
-    vertexCount: number,
-    indices: Uint16Array | Uint32Array | null,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: LitePhysicsMaterial
-  ): IMeshColliderShape {
+    material: LitePhysicsMaterial,
+    cookingFlags: number
+  ): IMeshColliderShape | null {
     throw new Error("Physics-lite doesn't support MeshColliderShape. Use Physics-PhysX instead!");
   }
 

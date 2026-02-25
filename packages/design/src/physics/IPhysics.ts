@@ -126,20 +126,20 @@ export interface IPhysics {
   /**
    * Create mesh collider shape.
    * @param uniqueID - Shape unique id
-   * @param vertices - Vertex positions (Float32Array, 3 floats per vertex)
-   * @param vertexCount - Number of vertices
+   * @param positions - Vertex positions
    * @param indices - Index array (null for convex mesh)
    * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
    * @param material - The material of this shape
+   * @param cookingFlags - Cooking flags
    */
   createMeshColliderShape(
     uniqueID: number,
-    vertices: Float32Array,
-    vertexCount: number,
-    indices: Uint16Array | Uint32Array | null,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: IPhysicsMaterial
-  ): IMeshColliderShape;
+    material: IPhysicsMaterial,
+    cookingFlags: number
+  ): IMeshColliderShape | null;
 
   /**
    * Create fixed joint.

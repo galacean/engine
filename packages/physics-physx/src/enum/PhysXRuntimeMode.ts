@@ -2,10 +2,10 @@
  * PhysX runtime mode.
  */
 export enum PhysXRuntimeMode {
-  /** Use webAssembly mode first, if WebAssembly mode is not supported, roll back to JavaScript mode.  */
+  /** Use WebAssembly SIMD mode first, then WebAssembly as fallback. */
   Auto,
   /** WebAssembly mode. */
   WebAssembly,
-  /** JavaScript mode. */
-  JavaScript
+  /** WebAssembly SIMD mode. */
+  WebAssemblySIMD
 }

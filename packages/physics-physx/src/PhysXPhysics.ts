@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, SystemInfo, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
@@ -47,10 +47,7 @@ export class PhysXPhysics implements IPhysics {
   _pxPhysics: any;
   /** @internal PhysX cooking object for mesh colliders */
   _pxCooking: any;
-  /**
-   * @internal PhysX cooking params.
-   * @remarks Do not delete after PxCreateCooking - still needed for runtime modification via setCookingParams().
-   */
+  /** @internal PhysX cooking params */
   _pxCookingParams: any;
 
   private _runTimeMode: PhysXRuntimeMode;
@@ -59,22 +56,22 @@ export class PhysXPhysics implements IPhysics {
   private _defaultErrorCallback: any;
   private _allocator: any;
   private _tolerancesScale: any;
+  private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
-  private _downgradeModeUrl: string;
 
   /**
    * Create a PhysXPhysics instance.
-   * @param runtimeMode - Runtime use WebAssembly mode or downgrade JavaScript mode, `Auto` prefers webAssembly mode if supported @see {@link PhysXRuntimeMode}
-   * @param runtimeUrls - Manually specify the `PhysXRuntimeMode.WebAssembly` mode and `PhysXRuntimeMode.JavaScript` mode URL
+   * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
+   * @param runtimeUrls - Manually specify the runtime URLs
    */
   constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
+    this._wasmSIMDModeUrl =
+      runtimeUrls?.wasmSIMDModeUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*G14CSagrlvsAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*8pf0QJKeUXsAAAAASWAAAAgAehQnAQ/physx.release.js";
-    this._downgradeModeUrl =
-      runtimeUrls?.javaScriptModeUrl ??
-      "https://mdn.alipayobjects.com/rms/afts/file/A*PLtBTLf8Sm0AAAAAgFAAAAgAehQnAQ/physx.release.downgrade.js";
+      "https://mdn.alipayobjects.com/rms/afts/file/A*7nOBR41_LhUAAAAAQ4AAAAgAehQnAQ/physx.release.js";
   }
 
   /**
@@ -89,6 +86,7 @@ export class PhysXPhysics implements IPhysics {
       return this._initializePromise;
     }
 
+    this._initializeState = InitializeState.Initializing;
     let runtimeMode = this._runTimeMode;
     const scriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
@@ -97,26 +95,14 @@ export class PhysXPhysics implements IPhysics {
       script.onload = resolve;
       script.onerror = reject;
       if (runtimeMode == PhysXRuntimeMode.Auto) {
-        const supported = (() => {
-          try {
-            if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
-              const wasmModule = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-              if (wasmModule instanceof WebAssembly.Module)
-                return new WebAssembly.Instance(wasmModule) instanceof WebAssembly.Instance;
-            }
-          } catch (e) {}
-          return false;
-        })();
-        if (supported) {
-          runtimeMode = PhysXRuntimeMode.WebAssembly;
-        } else {
-          runtimeMode = PhysXRuntimeMode.JavaScript;
-        }
+        runtimeMode = (SystemInfo as any)._detectSIMDSupported()
+          ? PhysXRuntimeMode.WebAssemblySIMD
+          : PhysXRuntimeMode.WebAssembly;
       }
 
-      if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = this._downgradeModeUrl;
-      } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
+      if (runtimeMode == PhysXRuntimeMode.WebAssemblySIMD) {
+        script.src = this._wasmSIMDModeUrl;
+      } else {
         script.src = this._wasmModeUrl;
       }
     });
@@ -126,6 +112,7 @@ export class PhysXPhysics implements IPhysics {
         .then(
           () =>
             (<any>window).PHYSX().then((PHYSX: any) => {
+              this._runTimeMode = runtimeMode;
               this._init(PHYSX);
               this._initializeState = InitializeState.Initialized;
               this._initializePromise = null;
@@ -153,25 +140,6 @@ export class PhysXPhysics implements IPhysics {
     this._defaultErrorCallback.delete();
     this._allocator.delete();
     this._tolerancesScale.delete();
-  }
-
-  /**
-   * Set cooking parameters for mesh colliders.
-   * @param params - Cooking parameters
-   */
-  setCookingParams(params: {
-    /** Mesh weld tolerance. If mesh welding is enabled, this controls the distance at which vertices are welded. */
-    meshWeldTolerance?: number;
-    /** Mesh preprocessing flags (bitwise OR of MeshPreprocessingFlag values). */
-    meshPreprocessParams?: number;
-  }): void {
-    const cp = this._pxCookingParams;
-    if (params.meshWeldTolerance !== undefined) {
-      cp.meshWeldTolerance = params.meshWeldTolerance;
-    }
-    if (params.meshPreprocessParams !== undefined) {
-      this._physX.setCookingMeshPreprocessParams(cp, params.meshPreprocessParams);
-    }
   }
 
   /**
@@ -278,13 +246,14 @@ export class PhysXPhysics implements IPhysics {
    */
   createMeshColliderShape(
     uniqueID: number,
-    vertices: Float32Array,
-    vertexCount: number,
-    indices: Uint16Array | Uint32Array | null,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
     isConvex: boolean,
-    material: PhysXPhysicsMaterial
-  ): IMeshColliderShape {
-    return new PhysXMeshColliderShape(this, uniqueID, vertices, vertexCount, indices, isConvex, material);
+    material: PhysXPhysicsMaterial,
+    cookingFlags: number
+  ): IMeshColliderShape | null {
+    const shape = new PhysXMeshColliderShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags);
+    return shape._pxShape ? shape : null;
   }
 
   /**
@@ -334,9 +303,12 @@ export class PhysXPhysics implements IPhysics {
 
     // Initialize cooking for mesh colliders
     const cookingParams = new physX.PxCookingParams(tolerancesScale);
-    // Set default cooking params (WeldVertices + small tolerance)
-    physX.setCookingMeshPreprocessParams(cookingParams, 1); // WeldVertices = 1
+    physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
     cookingParams.meshWeldTolerance = 0.001;
+    // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
+    if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
+      physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
+    }
     const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
 
     this._physX = physX;
@@ -359,6 +331,6 @@ enum InitializeState {
 interface PhysXRuntimeUrls {
   /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
   wasmModeUrl?: string;
-  /*** The URL of `PhysXRuntimeMode.JavaScript` mode. */
-  javaScriptModeUrl?: string;
+  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
+  wasmSIMDModeUrl?: string;
 }

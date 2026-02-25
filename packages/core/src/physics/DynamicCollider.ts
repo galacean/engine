@@ -270,13 +270,15 @@ export class DynamicCollider extends Collider {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
-      // Block switching to non-kinematic if triangle mesh is attached
       if (!value) {
+        // Block switching to non-kinematic if non-convex MeshColliderShape is attached
         const shapes = this._shapes;
         for (let i = 0, n = shapes.length; i < n; i++) {
           const shape = shapes[i];
           if (shape instanceof MeshColliderShape && !shape.isConvex) {
-            console.error("DynamicCollider: Cannot set isKinematic=false when triangle mesh is attached.");
+            console.error(
+              "DynamicCollider: Cannot set isKinematic=false when non-convex MeshColliderShape is attached."
+            );
             return;
           }
         }
@@ -285,10 +287,9 @@ export class DynamicCollider extends Collider {
       this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
 
-      // Resync when switching back to dynamic
+      // Resync properties that PhysX ignores/resets during kinematic mode
       if (!value) {
         (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
-        // Recalculate mass/inertia that was skipped in kinematic mode
         if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
           this._setMassAndUpdateInertia();
         }
@@ -367,27 +368,33 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
+   * Moves the kinematic collider to the specified position.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
    */
   move(position: Vector3): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(rotation: Quaternion): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified position and rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
     if (!this._isKinematic) {
-      console.warn("DynamicCollider.move() should only be called when isKinematic is true.");
+      console.warn("DynamicCollider: move() is only supported when isKinematic is true.");
       return;
     }
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
@@ -420,7 +427,7 @@ export class DynamicCollider extends Collider {
    */
   override addShape(shape: ColliderShape): void {
     if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
-      console.error("DynamicCollider: triangle mesh is not supported on non-kinematic DynamicCollider.");
+      console.error("DynamicCollider: Non-convex MeshColliderShape is not supported on non-kinematic DynamicCollider.");
       return;
     }
     super.addShape(shape);
