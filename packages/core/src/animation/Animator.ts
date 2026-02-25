@@ -748,6 +748,10 @@ export class Animator extends Component {
     const { state: destState } = destPlayData;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, destState, deltaTime, aniUpdate)) {
+      return;
+    }
+
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;
     const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
@@ -872,8 +876,11 @@ export class Animator extends Component {
   ) {
     const { destPlayData } = layerData;
     const { state } = destPlayData;
-
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
+
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, state, deltaTime, aniUpdate)) {
+      return;
+    }
 
     const playSpeed = state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
@@ -1081,7 +1088,7 @@ export class Animator extends Component {
     const endTime = state.clipEndTime * clipDuration;
 
     if (transitionCollection.noExitTimeCount) {
-      targetTransition = this._checkNoExitTimeTransition(layerData, transitionCollection, aniUpdate);
+      targetTransition = this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate);
       if (targetTransition) {
         return targetTransition;
       }
@@ -1155,13 +1162,37 @@ export class Animator extends Component {
     return targetTransition;
   }
 
-  private _checkNoExitTimeTransition(
+  private _tryCrossFadeInterrupt(
+    layerData: AnimatorLayerData,
+    transitionDuration: number,
+    currentDestState: AnimatorState,
+    deltaTime: number,
+    aniUpdate: boolean
+  ): boolean {
+    if (transitionDuration > 0) {
+      const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
+      if (
+        anyStateTransitions.noExitTimeCount &&
+        this._checkNoExitTimeTransitions(layerData, anyStateTransitions, aniUpdate, currentDestState)
+      ) {
+        this._updateState(layerData, deltaTime, aniUpdate);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private _checkNoExitTimeTransitions(
     layerData: AnimatorLayerData,
     transitionCollection: AnimatorStateTransitionCollection,
-    aniUpdate: boolean
+    aniUpdate: boolean,
+    excludeDestState?: AnimatorState
   ): AnimatorStateTransition {
-    for (let i = 0, n = transitionCollection.count; i < n; ++i) {
+    for (let i = 0, n = transitionCollection.noExitTimeCount; i < n; ++i) {
       const transition = transitionCollection.get(i);
+      // Skip if destination is same as current state (equivalent to Unity's canTransitionToSelf=false)
+      // TODO: Support canTransitionToSelf option on AnimatorStateTransition
+      if (excludeDestState && transition.destinationState === excludeDestState) continue;
       if (
         transition.mute ||
         (transitionCollection.isSoloMode && !transition.solo) ||
