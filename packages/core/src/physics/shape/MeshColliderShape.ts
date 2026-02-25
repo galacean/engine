@@ -74,10 +74,14 @@ export class MeshColliderShape extends ColliderShape {
       this._mesh?._addReferCount(-1);
       value?._addReferCount(1);
       this._mesh = value;
-      this._destroyNativeShape();
       if (value && this._extractMeshData(value)) {
-        this._createNativeMesh();
+        if (this._nativeShape) {
+          this._updateNativeMeshData();
+        } else {
+          this._createNativeMesh();
+        }
       } else {
+        this._destroyNativeShape();
         this._clearMeshData();
       }
     }
