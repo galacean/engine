@@ -15,8 +15,7 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
-  /** @internal */
-  static _createRenderBuffer(
+  private static _createRenderBuffer(
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     target: RenderTarget,
     internalFormat: GLenum,
@@ -38,8 +37,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     return renderBuffer;
   }
 
-  /** @internal */
-  static _checkFrameBufferStatus(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
+  private static _checkFrameBufferStatus(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
     const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
 
     switch (e) {
