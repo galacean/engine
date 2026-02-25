@@ -15,55 +15,6 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
  * The render target in WebGL platform is used for off-screen rendering.
  */
 export class GLRenderTarget implements IPlatformRenderTarget {
-  private static _createRenderBuffer(
-    gl: WebGLRenderingContext & WebGL2RenderingContext,
-    target: RenderTarget,
-    internalFormat: GLenum,
-    attachment: GLenum
-  ): WebGLRenderbuffer {
-    const renderBuffer = gl.createRenderbuffer();
-    const { width, height, antiAliasing } = target;
-
-    gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
-
-    if (antiAliasing > 1) {
-      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
-    } else {
-      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
-    }
-
-    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderBuffer);
-
-    return renderBuffer;
-  }
-
-  private static _checkFrameBufferStatus(gl: WebGLRenderingContext | WebGL2RenderingContext): void {
-    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-
-    switch (e) {
-      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-        throw new Error(
-          "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
-        );
-      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-        throw new Error("There is no attachment");
-      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
-        throw new Error("Height and width of the attachment are not the same.");
-      case gl.FRAMEBUFFER_UNSUPPORTED:
-        // #5.14.3 Event Types in https://registry.khronos.org/webgl/specs/1.0.0/
-        if (!gl.isContextLost()) {
-          throw new Error(
-            "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
-          );
-        }
-        break;
-      case (gl as WebGL2RenderingContext).FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
-        throw new Error(
-          "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
-        );
-    }
-  }
-
   private _gl: WebGLRenderingContext & WebGL2RenderingContext;
   private _isWebGL2: boolean;
   private _target: RenderTarget;
@@ -303,7 +254,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         );
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
-        this._depthRenderBuffer = GLRenderTarget._createRenderBuffer(gl, this._target, internalFormat, attachment);
+        this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment);
       }
     }
 
@@ -329,12 +280,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       const internalFormat = /** @ts-ignore */
         (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat;
 
-      this._MSAAColorRenderBuffers[i] = GLRenderTarget._createRenderBuffer(
-        gl,
-        this._target,
-        internalFormat,
-        gl.COLOR_ATTACHMENT0 + i
-      );
+      this._MSAAColorRenderBuffers[i] = this._createRenderBuffer(internalFormat, gl.COLOR_ATTACHMENT0 + i);
     }
     gl.drawBuffers(this._oriDrawBuffers);
 
@@ -346,11 +292,57 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             (_depth._platformTexture as GLTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
 
-      this._MSAADepthRenderBuffer = GLRenderTarget._createRenderBuffer(gl, this._target, internalFormat, attachment);
+      this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment);
     }
 
-    GLRenderTarget._checkFrameBufferStatus(gl);
+    this._checkFrameBuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+
+  private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer {
+    const gl = this._gl;
+    const { width, height, antiAliasing } = this._target;
+    const renderBuffer = gl.createRenderbuffer();
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
+
+    if (antiAliasing > 1) {
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
+    } else {
+      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
+    }
+
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderBuffer);
+
+    return renderBuffer;
+  }
+
+  private _checkFrameBuffer(): void {
+    const gl = this._gl;
+    const e = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+
+    switch (e) {
+      case gl.FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
+        throw new Error(
+          "The attachment types are mismatched or not all framebuffer attachment points are framebuffer attachment complete"
+        );
+      case gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
+        throw new Error("There is no attachment");
+      case gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS:
+        throw new Error(" Height and width of the attachment are not the same.");
+      case gl.FRAMEBUFFER_UNSUPPORTED:
+        // #5.14.3 Event Types in https://registry.khronos.org/webgl/specs/1.0.0/
+        if (!gl.isContextLost()) {
+          throw new Error(
+            "The format of the attachment is not supported or if depth and stencil attachments are not the same renderbuffer"
+          );
+        }
+        break;
+      case gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: // Only for WebGL2
+        throw new Error(
+          "The values of gl.RENDERBUFFER_SAMPLES are different among attached renderbuffers, or are non-zero if the attached images are a mix of renderbuffers and textures."
+        );
+    }
   }
 }
