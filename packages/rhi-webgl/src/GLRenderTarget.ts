@@ -277,7 +277,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     for (let i = 0; i < colorTextureCount; i++) {
       this._blitDrawBuffers[i] = gl.NONE;
 
-      const internalFormat = /** @ts-ignore */
+      const internalFormat =
+        /** @ts-ignore */
         (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat;
 
       this._MSAAColorRenderBuffers[i] = this._createRenderBuffer(internalFormat, gl.COLOR_ATTACHMENT0 + i);
