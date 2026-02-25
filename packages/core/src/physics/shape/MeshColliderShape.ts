@@ -28,9 +28,9 @@ export class MeshColliderShape extends ColliderShape {
     if (this._cookingFlags !== value) {
       this._cookingFlags = value;
       if (this._nativeShape) {
-        this._updateNativeMeshData();
+        this._updateNativeShapeData();
       } else if (this._mesh && this._extractMeshData(this._mesh)) {
-        this._createNativeMesh();
+        this._createNativeShape();
       }
     }
   }
@@ -53,7 +53,7 @@ export class MeshColliderShape extends ColliderShape {
         // PxShape.setGeometry requires matching geometry type, so recreate when isConvex changes
         this._destroyNativeShape();
         if (this._extractMeshData(mesh)) {
-          this._createNativeMesh();
+          this._createNativeShape();
         } else {
           this._clearMeshData();
         }
@@ -76,9 +76,9 @@ export class MeshColliderShape extends ColliderShape {
       this._mesh = value;
       if (value && this._extractMeshData(value)) {
         if (this._nativeShape) {
-          this._updateNativeMeshData();
+          this._updateNativeShapeData();
         } else {
-          this._createNativeMesh();
+          this._createNativeShape();
         }
       } else {
         this._destroyNativeShape();
@@ -152,7 +152,7 @@ export class MeshColliderShape extends ColliderShape {
     return true;
   }
 
-  private _updateNativeMeshData(): void {
+  private _updateNativeShapeData(): void {
     if (
       (<IMeshColliderShape>this._nativeShape).setMeshData(
         this._positions,
@@ -180,7 +180,7 @@ export class MeshColliderShape extends ColliderShape {
     this._isShapeAttached = true;
   }
 
-  private _createNativeMesh(): void {
+  private _createNativeShape(): void {
     // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
     if (!this._isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
       console.error("MeshColliderShape: Non-convex mesh is not supported on non-kinematic DynamicCollider.");
