@@ -1,12 +1,13 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@galacean/engine-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager, TextAsset } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.Text, ["txt"], false)
-class TextLoader extends Loader<string> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<string> {
+@resourceLoader(AssetType.Text, ["txt"])
+class TextLoader extends Loader<TextAsset> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextAsset> {
     // @ts-ignore
-    return resourceManager._request(item.url, {
-      ...item,
-      type: "text"
+    return resourceManager._request<string>(item.url, { ...item, type: "text" }).then((text) => {
+      const asset = new TextAsset(resourceManager.engine);
+      asset.text = text;
+      return asset;
     });
   }
 }
