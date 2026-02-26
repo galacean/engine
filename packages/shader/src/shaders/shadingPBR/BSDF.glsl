@@ -444,6 +444,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
 
     // Environment BRDF and multi-scattering energy compensation
     // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
+    // Ref: Lagarde & Golubev 2018, simplified multiplier approach
     vec2 dfg = envDFGApprox(bsdfData.roughness, surfaceData.dotNV);
     bsdfData.envSpecularDFG = bsdfData.specularF0 * dfg.x + bsdfData.specularF90 * dfg.y;
     bsdfData.energyCompensation = 1.0 + bsdfData.specularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);

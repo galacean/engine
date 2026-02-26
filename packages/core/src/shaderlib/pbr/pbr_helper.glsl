@@ -163,6 +163,7 @@ void initMaterial(out Material material, inout Geometry geometry){
         material.diffuseColor = baseColor.rgb * (1.0 - metal) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
         // Environment BRDF and multi-scattering energy compensation
         // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
+        // Ref: Lagarde & Golubev 2018, simplified multiplier approach
         vec2 dfg = envDFGApprox(material.roughness, geometry.dotNV);
         material.envSpecularDFG = material.specularF0 * dfg.x + material.specularF90 * dfg.y;
         material.energyCompensation = 1.0 + material.specularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
