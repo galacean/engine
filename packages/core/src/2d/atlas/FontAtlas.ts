@@ -52,7 +52,6 @@ export class FontAtlas extends ReferResource {
     if (width > 0 && height > 0 && data) {
       charInfo.bufferOffset = new Vector2(this._curX, this._curY);
       texture.setPixelBuffer(data, 0, this._curX, this._curY, width, height);
-      texture.generateMipmaps();
     }
 
     const textureSizeReciprocal = 1.0 / textureSize;

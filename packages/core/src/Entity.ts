@@ -349,7 +349,7 @@ export class Entity extends EngineObject {
     if (typeof indexOrChild === "number") {
       index = indexOrChild;
     } else {
-      index = undefined;
+    index = undefined;
       child = indexOrChild;
     }
     child._setParent(this, index);

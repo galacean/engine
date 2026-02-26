@@ -115,7 +115,6 @@ export class SubFont {
               texture.setPixelBuffer(data, 0, bufferOffset.x, bufferOffset.y, charInfo.w, charInfo.h);
             }
           }
-          texture.generateMipmaps();
         }
       })()
     );

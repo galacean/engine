@@ -1,4 +1,3 @@
-#include <common>
 uniform sampler2D renderElement_TextTexture;
 
 varying vec2 v_uv;
