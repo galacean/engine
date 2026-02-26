@@ -1,0 +1,16 @@
+---
+title: 生命周期力模块
+---
+
+ForceOverLifetime 继承自 `ParticleGeneratorModule`，用于对粒子添加加速度效果，通常用于模拟 3 维力场效果，比如风。
+
+<Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*UsPoQp-ZJGwAAAAAQLAAAAgAeteEAQ/fmt.webp" alt="ForceOverLifetime" />
+
+## 属性
+
+| 属性 | 释义 |
+| ---- | ---- |
+| [space](/apis/core/#ParticleSimulationSpace)     | 选择力变化的空间，可以是世界空间或本地空间                                                        |
+| forceX | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 x 轴力 |
+| forceY | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 y 轴力 |
+| forceZ | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示粒子在其生命周期内的 z 轴力 |

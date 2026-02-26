@@ -1,11 +1,11 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem } from "@galacean/engine-core";
+import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager } from "@galacean/engine-core";
 
 function isBase64(url) {
   return /^data:(.+?);base64,/.test(url);
 }
 @resourceLoader(AssetType.Buffer, ["bin", "r3bin"], false)
 class BufferLoader extends Loader<ArrayBuffer> {
-  load(item: LoadItem): AssetPromise<ArrayBuffer> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ArrayBuffer> {
     const url = item.url;
     if (isBase64(url)) {
       return new AssetPromise((resolve) => {
@@ -14,7 +14,8 @@ class BufferLoader extends Loader<ArrayBuffer> {
         resolve(result.buffer);
       });
     }
-    return this.request(url, {
+    // @ts-ignore
+    return resourceManager._request(url, {
       ...item,
       type: "arraybuffer"
     });

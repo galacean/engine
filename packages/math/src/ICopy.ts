@@ -7,4 +7,10 @@ export interface ICopy<S, T> {
    * @returns This object
    */
   copyFrom(source: S): T;
+
+  /**
+   * Copy to target object.
+   * @returns This target object
+   */
+  copyTo?(target: S): S;
 }

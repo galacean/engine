@@ -1,4 +1,5 @@
 import { ShaderData, ShaderProperty } from "..";
+import { RenderStateElementMap } from "../../BasicResources";
 import { Engine } from "../../Engine";
 import { deepClone } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
@@ -35,20 +36,22 @@ export class RenderState {
     engine: Engine,
     frontFaceInvert: boolean,
     renderStateDataMap: Record<number, ShaderProperty>,
-    shaderData: ShaderData
+    shaderData: ShaderData,
+    customRenderStates?: RenderStateElementMap
   ): void {
     // @todo: Should merge when we can delete material render state
     renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     const context = engine._renderContext;
-    this.blendState._apply(hardwareRenderer, lastRenderState);
-    this.depthState._apply(hardwareRenderer, lastRenderState);
-    this.stencilState._apply(hardwareRenderer, lastRenderState);
+    this.blendState._apply(hardwareRenderer, lastRenderState, customRenderStates);
+    this.depthState._apply(hardwareRenderer, lastRenderState, customRenderStates);
+    this.stencilState._apply(hardwareRenderer, lastRenderState, customRenderStates);
     this.rasterState._apply(
       hardwareRenderer,
       lastRenderState,
-      context.flipProjection ? !frontFaceInvert : frontFaceInvert
+      context.flipProjection ? !frontFaceInvert : frontFaceInvert,
+      customRenderStates
     );
   }
 
@@ -56,10 +59,15 @@ export class RenderState {
    * @internal
    * @todo Should merge when we can delete material render state
    */
-  _applyRenderQueueByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+  _getRenderQueueByShaderData(
+    renderStateDataMap: Record<number, ShaderProperty>,
+    shaderData: ShaderData
+  ): RenderQueueType {
     const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (renderQueueType !== undefined) {
-      this.renderQueueType = shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    if (renderQueueType === undefined) {
+      return this.renderQueueType;
+    } else {
+      return shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
     }
   }
 

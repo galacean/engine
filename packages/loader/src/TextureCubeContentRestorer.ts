@@ -1,5 +1,11 @@
-import { AssetPromise, ContentRestorer, request, TextureCube, TextureCubeFace } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
+import {
+  AssetPromise,
+  ContentRestorer,
+  RequestConfig,
+  TextureCube,
+  TextureCubeFace,
+  request
+} from "@galacean/engine-core";
 
 /**
  * @internal

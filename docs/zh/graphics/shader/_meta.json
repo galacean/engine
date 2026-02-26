@@ -1,9 +1,0 @@
-{
-  "intro": { "title": "着色器简介" },
-  "class": { "title": "Shader 对象" },
-  "builtins": { "title": "内置着色器" },
-  "custom": { "title": "自定义着色器" },
-  "assets": { "title": "Shader 资产" },
-  "shaderLab": { "title": "ShaderLab" },
-  "shaderAPI": { "title": "Shader API【实验】" }
-}

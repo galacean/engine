@@ -1,16 +1,13 @@
 import { Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
-import { ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ShadowType } from "../shadow";
 
 /**
  * Light base class.
  */
 export abstract class Light extends Component {
-  /** Light Intensity */
-  intensity = 1;
-
   /**
    * Culling mask - which layers the light affect.
    * @remarks Support bit manipulation, corresponding to `Layer`.
@@ -23,18 +20,23 @@ export abstract class Light extends Component {
   shadowBias = 1;
   /** Shadow mapping normal-based bias. */
   shadowNormalBias = 1;
-  /** Near plane value to use for shadow frustums. */
+
+  /**
+   * @deprecated
+   * Please use `shadowNearPlaneOffset` instead.
+   */
   shadowNearPlane = 0.1;
 
   /** @internal */
   @ignoreClone
   _lightIndex = -1;
-  /** @internal */
-  _lightColor = new Color();
 
   private _shadowStrength = 1.0;
+  @deepClone
   private _color = new Color(1, 1, 1, 1);
+  @ignoreClone
   private _viewMat: Matrix;
+  @ignoreClone
   private _inverseViewMat: Matrix;
 
   /** Shadow intensity, the larger the value, the clearer and darker the shadow, range [0,1]. */
@@ -75,22 +77,5 @@ export abstract class Light extends Component {
     if (!this._inverseViewMat) this._inverseViewMat = new Matrix();
     Matrix.invert(this.viewMatrix, this._inverseViewMat);
     return this._inverseViewMat;
-  }
-
-  /**
-   * @internal
-   */
-  abstract get _shadowProjectionMatrix(): Matrix;
-
-  /**
-   * Light Color, include intensity.
-   * @internal
-   */
-  _getLightIntensityColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
   }
 }

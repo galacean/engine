@@ -8,11 +8,13 @@ import {
   ResourceManager
 } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.Font, ["font"], false)
+@resourceLoader(AssetType.Font, ["font"])
 class FontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, { ...item, type: "json" })
+      resourceManager
+        // @ts-ignore
+        ._request<any>(item.url, { ...item, type: "json" })
         .then((data) => {
           const { fontName, fontUrl } = data;
 

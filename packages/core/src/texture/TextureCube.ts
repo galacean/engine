@@ -16,18 +16,12 @@ export class TextureCube extends Texture {
    * @param size - Texture size. texture width must be equal to height in cube texture
    * @param format - Texture format,default TextureFormat.R8G8B8A8
    * @param mipmap - Whether to use multi-level texture
+   * @param isSRGBColorSpace - Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true`
    */
-  constructor(engine: Engine, size: number, format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {
-    super(engine);
-
-    this._mipmap = mipmap;
-    this._width = size;
-    this._height = size;
-    this._format = format;
-    this._mipmapCount = this._getMipmapCount();
+  constructor(engine: Engine, size: number, format = TextureFormat.R8G8B8A8, mipmap = true, isSRGBColorSpace = true) {
+    super(engine, size, size, format, mipmap, isSRGBColorSpace);
 
     this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
-
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
   }

@@ -1,13 +1,21 @@
-import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "@galacean/engine";
-import { ICharacterController, IPhysicsScene } from "@galacean/engine-design";
-import { DisorderedArray } from "./DisorderedArray";
+import {
+  BoundingBox,
+  BoundingSphere,
+  CollisionUtil,
+  DisorderedArray,
+  Quaternion,
+  Ray,
+  Vector3
+} from "@galacean/engine";
+import { ICharacterController, ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
+import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LiteHitResult } from "./LiteHitResult";
+import { LiteStaticCollider } from "./LiteStaticCollider";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
-import { LiteStaticCollider } from "./LiteStaticCollider";
-import { LiteDynamicCollider } from "./LiteDynamicCollider";
+import { LitePhysics } from "./LitePhysics";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -18,9 +26,9 @@ export class LitePhysicsScene implements IPhysicsScene {
   private static _currentHit: LiteHitResult = new LiteHitResult();
   private static _hitResult: LiteHitResult = new LiteHitResult();
 
-  private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
-  private readonly _onContactExit?: (obj1: number, obj2: number) => void;
-  private readonly _onContactStay?: (obj1: number, obj2: number) => void;
+  private readonly _onContactEnter?: (collision: ICollision) => void;
+  private readonly _onContactExit?: (collision: ICollision) => void;
+  private readonly _onContactStay?: (collision: ICollision) => void;
   private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
@@ -33,15 +41,18 @@ export class LitePhysicsScene implements IPhysicsScene {
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
   private _eventPool: TriggerEvent[] = [];
+  private _physics: LitePhysics;
 
   constructor(
-    onContactEnter?: (obj1: number, obj2: number) => void,
-    onContactExit?: (obj1: number, obj2: number) => void,
-    onContactStay?: (obj1: number, obj2: number) => void,
+    physics: LitePhysics,
+    onContactEnter?: (collision: ICollision) => void,
+    onContactExit?: (collision: ICollision) => void,
+    onContactStay?: (collision: ICollision) => void,
     onTriggerEnter?: (obj1: number, obj2: number) => void,
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ) {
+    this._physics = physics;
     this._onContactEnter = onContactEnter;
     this._onContactExit = onContactExit;
     this._onContactStay = onContactStay;
@@ -49,63 +60,70 @@ export class LitePhysicsScene implements IPhysicsScene {
     this._onTriggerExit = onTriggerExit;
     this._onTriggerStay = onTriggerStay;
   }
+  overlapBox(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Method not implemented.");
+  }
+  overlapSphere(
+    center: Vector3,
+    radius: number,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Method not implemented.");
+  }
+  overlapCapsule(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number) => void
+  ): boolean {
+    throw new Error("Method not implemented.");
+  }
 
   /**
-   * {@inheritDoc IPhysicsManager.setGravity }
+   * {@inheritDoc IPhysicsScene.setGravity }
    */
   setGravity(value: Vector3): void {
     console.log("Physics-lite don't support gravity. Use Physics-PhysX instead!");
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addColliderShape }
-   */
-  addColliderShape(colliderShape: LiteColliderShape): void {
-    this._eventMap[colliderShape._id] = {};
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.removeColliderShape }
-   */
-  removeColliderShape(colliderShape: LiteColliderShape): void {
-    const { _eventPool: eventPool, _currentEvents: currentEvents, _eventMap: eventMap } = this;
-    const { _id: id } = colliderShape;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
-      if (event.index1 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-      } else if (event.index2 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-        // If the shape is big index, should clear from the small index shape subMap
-        eventMap[event.index1][id] = undefined;
-      }
-    }
-    delete eventMap[id];
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.addCollider }
+   * {@inheritDoc IPhysicsScene.addCollider }
    */
   addCollider(actor: LiteCollider): void {
+    actor._scene = this;
     const colliders = actor._isStaticCollider ? this._staticColliders : this._dynamicColliders;
     colliders.push(actor);
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.removeCollider }
-   */
-  removeCollider(collider: LiteCollider): void {
-    const colliders = collider._isStaticCollider ? this._staticColliders : this._dynamicColliders;
-    const index = colliders.indexOf(collider);
-    if (index !== -1) {
-      colliders.splice(index, 1);
+    const shapes = actor._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._addColliderShape(shapes[i]);
     }
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.update }
+   * {@inheritDoc IPhysicsScene.removeCollider }
+   */
+  removeCollider(collider: LiteCollider): void {
+    collider._scene = null;
+    const colliders = collider._isStaticCollider ? this._staticColliders : this._dynamicColliders;
+    const index = colliders.indexOf(collider);
+    index > -1 && colliders.splice(index, 1);
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._removeColliderShape(shapes[i]);
+    }
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.update }
    */
   update(deltaTime: number): void {
     const dynamicColliders = this._dynamicColliders;
@@ -118,7 +136,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.raycast }
+   * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
     ray: Ray,
@@ -155,17 +173,126 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCharacterController }
+   * {@inheritDoc IPhysicsScene.addCharacterController }
    */
   addCharacterController(characterController: ICharacterController): void {
-    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support addCharacterController. Use Physics-PhysX instead!");
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   * {@inheritDoc IPhysicsScene.removeCharacterController }
    */
   removeCharacterController(characterController: ICharacterController): void {
-    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support removeCharacterController. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.boxCast }
+   */
+  boxCast(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support boxCast. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.sphereCast }
+   */
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support sphereCast. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.capsuleCast }
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    throw new Error("Physics-lite doesn't support capsuleCast. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapBoxAll }
+   */
+  overlapBoxAll(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    throw new Error("Physics-lite doesn't support overlapBoxAll. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapSphereAll }
+   */
+  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[] {
+    throw new Error("Physics-lite doesn't support overlapSphereAll. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapCapsuleAll }
+   */
+  overlapCapsuleAll(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    throw new Error("Physics-lite doesn't support overlapCapsuleAll. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.destroy }
+   */
+  destroy(): void {}
+
+  /**
+   * @internal
+   */
+  _addColliderShape(colliderShape: LiteColliderShape): void {
+    this._eventMap[colliderShape._id] = {};
+  }
+
+  /**
+   * @internal
+   */
+  _removeColliderShape(colliderShape: LiteColliderShape): void {
+    const { _eventPool: eventPool, _currentEvents: currentEvents, _eventMap: eventMap } = this;
+    const { _id: id } = colliderShape;
+    currentEvents.forEach((event, i) => {
+      if (event.index1 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
+      }
+    });
+    delete eventMap[id];
   }
 
   /**
@@ -210,7 +337,14 @@ export class LitePhysicsScene implements IPhysicsScene {
       if (myShape instanceof LiteBoxColliderShape) {
         LitePhysicsScene._updateWorldBox(myShape, this._box);
         for (let j = 0, len = colliders.length; j < len; j++) {
-          const colliderShape = colliders[j]._shapes;
+          const collider = colliders[j];
+          const colliderShape = collider._shapes;
+
+          // Skip collision check if layers can't collide
+          if (!this._checkColliderCollide(collider, myCollider)) {
+            continue;
+          }
+
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];
             const index1 = shape._id;
@@ -237,7 +371,14 @@ export class LitePhysicsScene implements IPhysicsScene {
       } else if (myShape instanceof LiteSphereColliderShape) {
         LitePhysicsScene._upWorldSphere(myShape, this._sphere);
         for (let j = 0, len = colliders.length; j < len; j++) {
-          const colliderShape = colliders[j]._shapes;
+          const collider = colliders[j];
+          const colliderShape = collider._shapes;
+
+          // Skip collision check if layers can't collide
+          if (!this._checkColliderCollide(collider, myCollider)) {
+            continue;
+          }
+
           for (let k = 0, len = colliderShape.length; k < len; k++) {
             const shape = colliderShape[k];
             const index1 = shape._id;
@@ -267,8 +408,7 @@ export class LitePhysicsScene implements IPhysicsScene {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
+    currentEvents.forEach((event, i) => {
       if (!event.alreadyInvoked) {
         if (event.state == TriggerEventState.Enter) {
           this._onTriggerEnter(event.index1, event.index2);
@@ -281,12 +421,11 @@ export class LitePhysicsScene implements IPhysicsScene {
         event.state = TriggerEventState.Exit;
         this._eventMap[event.index1][event.index2] = undefined;
 
-        this._onTriggerExit(event.index1, event.index2);
-
         currentEvents.deleteByIndex(i);
+        this._onTriggerExit(event.index1, event.index2);
         eventPool.push(event);
       }
-    }
+    });
   }
 
   private _boxCollision(other: LiteColliderShape): boolean {
@@ -340,6 +479,17 @@ export class LitePhysicsScene implements IPhysicsScene {
     }
 
     return isHit;
+  }
+
+  private _checkColliderCollide(collider1: LiteCollider, collider2: LiteCollider): boolean {
+    const group1 = collider1._collisionLayer;
+    const group2 = collider2._collisionLayer;
+
+    if (group1 === group2) {
+      return true;
+    }
+
+    return this._physics.getColliderLayerCollision(group1, group2);
   }
 }
 

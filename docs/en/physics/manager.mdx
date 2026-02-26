@@ -1,0 +1,73 @@
+---
+order: 2
+title: Physics Manager
+type: Physics
+label: Physics
+---
+
+The PhysicsScene ([PhysicsScene](/apis/core/#PhysicsScene)) manages all physics components in the scene and communicates with the physics backend, implementing global operations related to the PhysicsScene, such as updates and ray casting. In multi-scene projects, each [Scene](/apis/core/Scene) has its own PhysicsScene, and physics systems between Scenes are isolated and do not affect each other.
+
+## Physics Update
+
+The PhysicsScene and rendering scene are independent but continuously synchronize their data during program execution. Therefore, like [scripts](/en/docs/script/script), the timing of synchronization is also very important. The update frequency of the PhysicsScene differs from the rendering scene and is controlled by the following parameter:
+```typescript
+/** The fixed update time step (seconds) of the PhysicsScene */
+fixedTimeStep: number = 1 / 60;
+```
+
+### Update Mechanism
+
+- In each rendering frame, the physics engine updates according to the fixed time step [fixedTimeStep](/apis/core/#PhysicsScene-fixedTimeStep)
+- If the actual frame interval is greater than `fixedTimeStep`:
+  - Multiple physics updates will be performed until catching up with the actual time
+  - The maximum update time per frame is limited by `engine.time.maximumDeltaTime`
+- If the actual frame interval is less than `fixedTimeStep`, it accumulates to the next frame
+
+### Physics Update Callback
+
+For physics component updates, you need to use a dedicated callback function in [scripts](/en/docs/script/script):
+```typescript
+export class Script extends Component {
+  /**
+   * Called before physics calculations, the number of calls depends on the physics update frequency
+   */
+  onPhysicsUpdate(): void {}
+}
+```
+
+The position of the physics update in the entire update process can be referred to in the figure below 
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*_8C-TJP2UIgAAAAAAAAAAAAAARQnAQ" />
+
+### Internal Update Process of the Physics System
+
+The execution order when the PhysicsScene is updated:
+
+1. Execute user logic in `onPhysicsUpdate`
+2. `callColliderOnUpdate` synchronizes the modified [Entity](/apis/core/#Entity) `Transform` data to the physics collider
+3. Update the PhysicsScene
+4. `callColliderOnLateUpdate` synchronizes the updated positions of all [colliders](/en/docs/physics/collider/overview) to the corresponding `Entity`
+
+## Setting Scene Gravity
+
+The PhysicsScene allows customization of gravity direction and magnitude. Gravity affects all [dynamic colliders](/en/docs/physics/collider/dynamicCollider) with gravity enabled in the scene.
+
+```typescript
+// Get the gravity value of the PhysicsScene
+const gravity = scene.physics.gravity;
+
+// Modify gravity - set gravity to 0
+scene.physics.gravity.set(0, 0, 0);
+
+// Modify gravity - set to Earth's gravitational acceleration (default value)
+scene.physics.gravity.set(0, -9.81, 0);
+```
+
+## Spatial Query Functions
+
+The physics scene provides various spatial query functions for detecting and analyzing spatial relationships between objects in the scene:
+
+- **[Raycasting](/en/docs/physics/query/raycast)** - Precise point-to-point detection, suitable for picking and aiming scenarios
+- **[Shape Casting](/en/docs/physics/query/sweep)** - Cast geometric shapes along directions, suitable for movement prediction and path planning
+- **[Overlap Detection](/en/docs/physics/query/overlap)** - Detect overlapping objects within regions, suitable for triggers and area attacks
+

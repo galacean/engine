@@ -1,0 +1,58 @@
+---
+order: 2
+title: Cube Texture
+type: Graphics
+group: Texture
+label: Graphics/Texture
+---
+
+Cube textures ([TextureCube](/apis/core/#TextureCube)) differ from 2D textures in that they have six faces, composed of six 2D textures to form a cube texture.
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*Omw8Qo0WzfYAAAAAAAAAAAAAARQnAQ" />
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*r-XPSaUTEnEAAAAAAAAAAAAAARQnAQ" />
+
+The underlying sampling method of cube textures is slightly different from that of 2D textures. While 2D textures use 2D coordinates for sampling, cube textures use 3D coordinates, i.e., a _direction vector_ for sampling. For example, using an orange direction vector to sample a texture value from a cube texture would look like this:
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*X752S5pQSB0AAAAAAAAAAAAAARQnAQ" />
+
+Due to this sampling characteristic, cube textures can be used to implement effects such as skyboxes and environmental reflections.
+
+## Creation
+
+The editor supports generating cube textures by uploading HDR images. This method allows for HDR color gamut representation and is relatively convenient.
+
+<Callout type="info">
+  You can download free HDR images from [Poly Haven](https://polyhaven.com/) or [BimAnt HDRI](http://hdri.bimant.com/).
+</Callout>
+
+After preparing the HDR image, follow the steps:  
+**[Assets Panel](/en/docs/assets/interface)** -> **Right-click Upload** -> **Select TextureCube (.hdr)** -> **Choose the corresponding HDR image** -> **Cube texture asset creation is complete**.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original" />
+
+Of course, you can also create a cube texture in scripts by loading six textures in the corresponding order.
+
+```typescript
+const cubeTextureResource = {
+  type: AssetType.TextureCube,
+  urls: [
+    "px - right image url",
+    "nx - left image url",
+    "py - top image url",
+    "ny - bottom image url",
+    "pz - front image url",
+    "nz - back image url",
+  ],
+};
+
+engine.resourceManager.load(cubeTextureResource).then((resource) => {
+  // Cube texture supported by the engine
+  const cubeTexture = resource;
+  // The texture can now be applied to materials or used for other operations
+});
+```
+
+## Usage
+
+Cube textures are primarily used in skyboxes. For more details, refer to [Sky Background](/en/docs/graphics/background/sky/).

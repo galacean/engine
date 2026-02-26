@@ -1,7 +1,7 @@
 import { Sprite, SpriteRenderer, Texture2D, SpriteMask } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeEach, expect, it } from "vitest";
 
 describe("Sprite", async () => {
   const canvas = document.createElement("canvas");
@@ -164,19 +164,6 @@ describe("Sprite", async () => {
     expect(uvs[1]).to.deep.eq(new Vector2(0, 0.5));
     expect(uvs[2]).to.deep.eq(new Vector2(0.25, 0.25));
     expect(uvs[3]).to.deep.eq(new Vector2(0.25, 0.25));
-  });
-
-  it("_getBounds", () => {
-    const sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
-    // @ts-ignore
-    let bounds = sprite._getBounds();
-    expect(bounds.min).to.deep.eq(new Vector3(0, 0, 0));
-    expect(bounds.max).to.deep.eq(new Vector3(1, 1, 0));
-    sprite.region = new Rect(0, 0, 0.5, 0.5);
-    // @ts-ignore
-    bounds = sprite._getBounds();
-    expect(bounds.min).to.deep.eq(new Vector3(0, 0, 0));
-    expect(bounds.max).to.deep.eq(new Vector3(1, 1, 0));
   });
 
   it("destroy", () => {

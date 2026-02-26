@@ -1,14 +1,14 @@
 import { IPhysicsMaterial } from "@galacean/engine-design";
-import { PhysicsScene } from "./PhysicsScene";
+import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
  * Material class to represent a set of surface properties.
  */
 export class PhysicsMaterial {
-  private _bounciness: number = 0.1;
-  private _dynamicFriction: number = 0.1;
-  private _staticFriction: number = 0.1;
+  private _bounciness = 0;
+  private _dynamicFriction = 0.6;
+  private _staticFriction = 0.6;
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _destroyed: boolean;
@@ -17,7 +17,7 @@ export class PhysicsMaterial {
   _nativeMaterial: IPhysicsMaterial;
 
   constructor() {
-    this._nativeMaterial = PhysicsScene._nativePhysics.createPhysicsMaterial(
+    this._nativeMaterial = Engine._nativePhysics.createPhysicsMaterial(
       this._staticFriction,
       this._dynamicFriction,
       this._bounciness,
@@ -27,7 +27,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * The coefficient of bounciness.
+   * The coefficient of bounciness, ranging from 0 to 1.
    */
   get bounciness(): number {
     return this._bounciness;
@@ -97,9 +97,9 @@ export class PhysicsMaterial {
   }
 
   /**
-   * @internal
+   * Destroy the material when the material is no be used by any shape.
    */
-  _destroy() {
+  destroy() {
     !this._destroyed && this._nativeMaterial.destroy();
     this._destroyed = true;
   }

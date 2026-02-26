@@ -1,15 +1,13 @@
 export { ShaderLab } from "./ShaderLab";
 
-// #if _EDITOR
-export { Preprocessor } from "./preprocessor";
-// #endif
+export * from "./GSError";
 
 //@ts-ignore
 export const version = `__buildVersion`;
 
 let mode = "Release";
-// #if _EDITOR
-mode = "Editor";
+// #if _VERBOSE
+mode = "Verbose";
 // #endif
 
-console.log(`Galacean ShaderLab version: ${version}. mode: ${mode}`);
+console.log(`Galacean Engine ShaderLab Version: ${version} | Mode: ${mode}`);

@@ -1,0 +1,26 @@
+{
+  "overall": {
+    "title": "物理总览",
+    "order": 0
+  },
+  "collider": {
+    "title": "碰撞器",
+    "order": 1
+  },
+  "joint": {
+    "title": "关节",
+    "order": 2
+  },
+  "manager": {
+    "title": "物理场景",
+    "order": 3
+  },
+  "query": {
+    "title": "空间查询",
+    "order": 4
+  },
+  "debug": {
+    "title": "物理调试",
+    "order": 5
+  }
+}

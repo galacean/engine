@@ -23,6 +23,8 @@ export enum AssetType {
   TextureCube = "TextureCube",
   /** Material. */
   Material = "Material",
+  /** Shader. */
+  Shader = "Shader",
   /** Mesh. */
   Mesh = "Mesh",
   /** AnimationClip. */
@@ -53,8 +55,12 @@ export enum AssetType {
   HDR = "HDR",
   /** Font. */
   Font = "Font",
-  /** Source Font, include ttf、 otf and woff. */
+  /** Source Font, include ttf, otf and woff. */
   SourceFont = "SourceFont",
+  /** AudioClip, include ogg, wav and mp3. */
+  Audio = "Audio",
   /** Project asset. */
-  Project = "project"
+  Project = "project",
+  /** PhysicsMaterial. */
+  PhysicsMaterial = "PhysicsMaterial"
 }

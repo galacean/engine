@@ -1,0 +1,240 @@
+---
+title: 渲染状态控制
+---
+
+渲染状态决定了GPU如何处理几何体，包括混合、深度测试、面剔除等。本教程通过对比不透明和透明物体，学习渲染状态的配置，通过本教程，你将学会：
+- 渲染状态的基本概念
+- BlendState 的配置和混合公式
+- DepthState 的深度测试和写入控制
+- 不透明和透明物体的不同处理方式
+- 常见混合模式的应用场景
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*cKkoT57kv5kAAAAAQYAAAAgAeuuHAQ/original"
+/>
+
+
+## 什么是渲染状态
+
+渲染状态是告诉GPU"如何渲染"的一系列设置，主要包括：
+- **BlendState**：控制颜色混合
+- **DepthState**：控制深度测试和写入
+- **RasterState**：控制光栅化过程
+- **StencilState**：控制模板测试
+
+<Callout type="info">
+前往 [渲染状态](/docs/graphics/material/shader/#渲染状态规范) 了解可配置的所有渲染状态。
+</Callout>
+
+## BlendState - 混合状态
+
+混合状态控制新绘制的像素如何与已有像素混合：
+
+### 不透明物体
+```glsl
+BlendState customBlendState {
+  Enabled = false;           // 关闭混合
+}
+```
+
+不透明物体不需要混合，直接覆盖背景色。
+
+### 透明物体
+```glsl
+ BlendState customBlendState {
+    Enabled = true;                    // 开启混合
+    SourceColorBlendFactor = BlendFactor.SourceAlpha;
+    DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+    SourceAlphaBlendFactor = BlendFactor.One;
+    DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+}
+```
+
+**混合公式**：
+```
+最终颜色 = 源颜色 × SrcAlpha + 目标颜色 × (1 - SrcAlpha)
+```
+
+**常用混合因子**：
+- `SrcAlpha`：源像素的透明度
+- `OneMinusSrcAlpha`：1减去源像素的透明度
+- `One`：1.0
+- `Zero`：0.0
+
+## DepthState - 深度状态
+
+深度状态控制深度缓冲区的使用：
+
+### 不透明物体
+```glsl
+DepthState customDepthState {
+    WriteEnabled = true;        // 开启深度写入（透明物体通常不写深度）
+    CompareFunction = CompareFunction.LessEqual;       // 但仍然进行深度测试
+}
+
+// 指定不透明队列
+RenderQueueType = Opaque;
+```
+
+### 透明物体
+```glsl
+DepthState customDepthState {
+    WriteEnabled = false;        // 关闭深度写入（透明物体通常不写深度）
+    CompareFunction = CompareFunction.LessEqual;       // 但仍然进行深度测试
+}
+
+// 指定透明队列
+RenderQueueType = Transparent;
+```
+
+**为什么透明物体要关闭深度写入？**
+- 透明物体后面可能还有其他物体
+- 如果写入深度，会阻挡后面的物体渲染
+- 但仍需要深度测试来确定渲染顺序
+
+**深度测试函数**：
+- `Less`：小于时通过测试
+- `LessEqual`：小于等于时通过测试
+- `Greater`：大于时通过测试
+- `Always`：总是通过测试
+- `Never`：从不通过测试
+
+## 完整着色器对比
+
+### 不透明 Shader
+```glsl
+Shader "Tutorial/02-Opaque" {
+  SubShader "Default" {
+    Pass "Forward" {
+      // 渲染状态：不透明物体的标准设置
+      BlendState customBlendState {
+        Enabled = false;           // 关闭混合
+      }
+      
+      DepthState customDepthState {
+        WriteEnabled = true;       // 开启深度写入
+        CompareFunction = CompareFunction.LessEqual; // 深度测试函数
+      }
+      
+      BlendState = customBlendState;
+      DepthState = customDepthState;
+      RenderQueueType = Opaque;
+      
+      mat4 renderer_MVPMat;
+      vec4 material_BaseColor;
+      
+      struct Attributes {
+        vec4 POSITION;
+      };
+      
+      VertexShader = vert;
+      FragmentShader = frag;
+      
+      
+      void vert(Attributes attr) {
+        gl_Position = renderer_MVPMat * attr.POSITION;
+      }
+      
+      void frag() {
+        gl_FragColor = material_BaseColor;
+      }
+    }
+  }
+}
+```
+
+### 透明 Shader
+```glsl
+Shader "Tutorial/02-Transparent" {
+  SubShader "Default" {
+    Pass "Forward" {
+      // 渲染状态：透明物体的标准设置
+      BlendState customBlendState {
+        Enabled = true;                    // 开启混合
+        SourceColorBlendFactor = BlendFactor.SourceAlpha;
+        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        SourceAlphaBlendFactor = BlendFactor.One;
+        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      }
+      
+      DepthState customDepthState {
+        WriteEnabled = false;        // 关闭深度写入（透明物体通常不写深度）
+        CompareFunction = CompareFunction.LessEqual;       // 但仍然进行深度测试
+      }
+
+      BlendState = customBlendState;
+      DepthState = customDepthState;
+      RenderQueueType = Transparent;
+      
+      mat4 renderer_MVPMat;
+      vec4 material_BaseColor;
+      float material_Alpha;
+      
+      struct Attributes {
+        vec4 POSITION;
+      };
+      
+      VertexShader = vert;
+      FragmentShader = frag;
+      
+      void vert(Attributes attr) {
+        gl_Position = renderer_MVPMat * attr.POSITION;
+      }
+      
+      void frag() {
+        vec4 color = material_BaseColor;
+        color.a = material_Alpha; // 使用自定义的透明度
+        gl_FragColor = color;
+      }
+    }
+  }
+}
+```
+
+## 透明度控制
+
+在片元着色器中控制透明度：
+
+```glsl
+void frag() {
+  vec4 color = material_BaseColor;
+  color.a = material_Alpha; // 设置透明度
+  gl_FragColor = color;
+}
+```
+
+
+## 渲染顺序的重要性
+
+透明物体的渲染顺序很重要：
+1. **先渲染不透明物体**：写入深度缓冲区
+2. **后渲染透明物体**：从后往前渲染，不写入深度
+
+```glsl
+// 引擎会自动处理渲染顺序，但你需要正确设置渲染状态
+RenderQueueType = **;
+```
+
+## 其他混合模式
+
+### 加法混合（发光效果）
+```glsl
+ BlendState customBlendState {
+        Enabled = true;                    // 开启混合
+        SourceColorBlendFactor = BlendFactor.SourceAlpha;
+        DestinationColorBlendFactor = BlendFactor.One;
+        SourceAlphaBlendFactor = BlendFactor.Zero;
+        DestinationAlphaBlendFactor = BlendFactor.One;
+      }
+```
+
+
+## 运行效果
+
+
+1. 左侧绿色平面：不透明渲染状态（关闭混合，开启深度写入）
+2. 右侧红色平面：透明渲染状态（开启混合，关闭深度写入）
+3. 展示了 BlendState 和 DepthState 的配置
+4. 透明度会动态变化，观察混合效果
+
+前往 [游乐场](/examples/shaderlab-02-render-state)

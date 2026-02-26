@@ -54,14 +54,9 @@ varying vec3 v_SkyColor;
 	varying vec3 v_SunColor;
 #endif
 
-#if defined(ENGINE_IS_COLORSPACE_GAMMA)
-	#define COLOR_2_GAMMA(color) color
-	#define COLOR_2_LINEAR(color) color*color
-#else
-	#define GAMMA 2.2
-	#define COLOR_2_GAMMA(color) pow(color,vec3(1.0/GAMMA))
-	#define COLOR_2_LINEAR(color) color
-#endif
+#define GAMMA 2.2
+#define COLOR_2_GAMMA(color) pow(color,vec3(1.0/GAMMA))
+#define COLOR_2_LINEAR(color) color
 
 // Calculates the Rayleigh phase function
 float getRayleighPhase(vec3 light, vec3 ray) 

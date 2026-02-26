@@ -1,5 +1,5 @@
 import { MathUtil } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("MathUtil test", () => {
   it("clamp", () => {

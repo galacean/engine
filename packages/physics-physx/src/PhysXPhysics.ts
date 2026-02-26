@@ -1,11 +1,13 @@
-import { Quaternion, Vector3, version } from "@galacean/engine";
+import { Quaternion, SystemInfo, Vector3 } from "@galacean/engine";
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
+  ICollision,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
+  IMeshColliderShape,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
@@ -28,6 +30,7 @@ import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { PhysXMeshColliderShape } from "./shape/PhysXMeshColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
 
@@ -42,13 +45,33 @@ export class PhysXPhysics implements IPhysics {
   _pxFoundation: any;
   /** @internal PhysX physics object */
   _pxPhysics: any;
+  /** @internal PhysX cooking object for mesh colliders */
+  _pxCooking: any;
+  /** @internal PhysX cooking params */
+  _pxCookingParams: any;
 
   private _runTimeMode: PhysXRuntimeMode;
   private _initializeState: InitializeState = InitializeState.Uninitialized;
   private _initializePromise: Promise<void>;
+  private _defaultErrorCallback: any;
+  private _allocator: any;
+  private _tolerancesScale: any;
+  private _wasmSIMDModeUrl: string;
+  private _wasmModeUrl: string;
 
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto) {
+  /**
+   * Create a PhysXPhysics instance.
+   * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
+   * @param runtimeUrls - Manually specify the runtime URLs
+   */
+  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
     this._runTimeMode = runtimeMode;
+    this._wasmSIMDModeUrl =
+      runtimeUrls?.wasmSIMDModeUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*G14CSagrlvsAAAAAQ4AAAAgAehQnAQ/physx.release.simd.js";
+    this._wasmModeUrl =
+      runtimeUrls?.wasmModeUrl ??
+      "https://mdn.alipayobjects.com/rms/afts/file/A*7nOBR41_LhUAAAAAQ4AAAAgAehQnAQ/physx.release.js";
   }
 
   /**
@@ -63,6 +86,7 @@ export class PhysXPhysics implements IPhysics {
       return this._initializePromise;
     }
 
+    this._initializeState = InitializeState.Initializing;
     let runtimeMode = this._runTimeMode;
     const scriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
@@ -71,27 +95,15 @@ export class PhysXPhysics implements IPhysics {
       script.onload = resolve;
       script.onerror = reject;
       if (runtimeMode == PhysXRuntimeMode.Auto) {
-        const supported = (() => {
-          try {
-            if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
-              const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-              if (module instanceof WebAssembly.Module)
-                return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
-            }
-          } catch (e) {}
-          return false;
-        })();
-        if (supported) {
-          runtimeMode = PhysXRuntimeMode.WebAssembly;
-        } else {
-          runtimeMode = PhysXRuntimeMode.JavaScript;
-        }
+        runtimeMode = (SystemInfo as any)._detectSIMDSupported()
+          ? PhysXRuntimeMode.WebAssemblySIMD
+          : PhysXRuntimeMode.WebAssembly;
       }
 
-      if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*rnDeR58NNGoAAAAAAAAAAAAAARQnAQ/physx.release.js.js`;
-      } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = `https://mdn.alipayobjects.com/rms/afts/file/A*nA97QLQehRMAAAAAAAAAAAAAARQnAQ/physx.release.js`;
+      if (runtimeMode == PhysXRuntimeMode.WebAssemblySIMD) {
+        script.src = this._wasmSIMDModeUrl;
+      } else {
+        script.src = this._wasmModeUrl;
       }
     });
 
@@ -99,7 +111,8 @@ export class PhysXPhysics implements IPhysics {
       scriptPromise
         .then(
           () =>
-            (<any>window).PHYSX().then((PHYSX) => {
+            (<any>window).PHYSX().then((PHYSX: any) => {
+              this._runTimeMode = runtimeMode;
               this._init(PHYSX);
               this._initializeState = InitializeState.Initialized;
               this._initializePromise = null;
@@ -118,13 +131,15 @@ export class PhysXPhysics implements IPhysics {
   /**
    * Destroy PhysXPhysics.
    */
-  public destroy(): void {
+  destroy(): void {
+    this._pxCooking.release();
+    this._pxCookingParams.delete();
     this._physX.PxCloseExtensions();
     this._pxPhysics.release();
     this._pxFoundation.release();
-    this._physX = null;
-    this._pxFoundation = null;
-    this._pxPhysics = null;
+    this._defaultErrorCallback.delete();
+    this._allocator.delete();
+    this._tolerancesScale.delete();
   }
 
   /**
@@ -139,14 +154,14 @@ export class PhysXPhysics implements IPhysics {
    */
   createPhysicsScene(
     physicsManager: PhysXPhysicsManager,
-    onContactBegin?: (obj1: number, obj2: number) => void,
-    onContactEnd?: (obj1: number, obj2: number) => void,
-    onContactStay?: (obj1: number, obj2: number) => void,
+    onContactBegin?: (collision: ICollision) => void,
+    onContactEnd?: (collision: ICollision) => void,
+    onContactStay?: (collision: ICollision) => void,
     onTriggerBegin?: (obj1: number, obj2: number) => void,
     onTriggerEnd?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ): IPhysicsScene {
-    const manager = new PhysXPhysicsScene(
+    const scene = new PhysXPhysicsScene(
       this,
       physicsManager,
       onContactBegin,
@@ -156,7 +171,7 @@ export class PhysXPhysics implements IPhysics {
       onTriggerEnd,
       onTriggerStay
     );
-    return manager;
+    return scene;
   }
 
   /**
@@ -227,6 +242,21 @@ export class PhysXPhysics implements IPhysics {
   }
 
   /**
+   * {@inheritDoc IPhysics.createMeshColliderShape }
+   */
+  createMeshColliderShape(
+    uniqueID: number,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
+    isConvex: boolean,
+    material: PhysXPhysicsMaterial,
+    cookingFlags: number
+  ): IMeshColliderShape | null {
+    const shape = new PhysXMeshColliderShape(this, uniqueID, positions, indices, isConvex, material, cookingFlags);
+    return shape._pxShape ? shape : null;
+  }
+
+  /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
   createFixedJoint(collider: PhysXCollider): IFixedJoint {
@@ -247,17 +277,48 @@ export class PhysXPhysics implements IPhysics {
     return new PhysXSpringJoint(this, collider);
   }
 
+  /**
+   * {@inheritDoc IPhysics.getColliderLayerCollision }
+   */
+  getColliderLayerCollision(layer1: number, layer2: number): boolean {
+    return this._physX.getGroupCollisionFlag(layer1, layer2);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.setColliderLayerCollision }
+   */
+  setColliderLayerCollision(layer1: number, layer2: number, isCollide: boolean): void {
+    this._physX.setGroupCollisionFlag(layer1, layer2, isCollide);
+  }
+
   private _init(physX: any): void {
     const version = physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
-    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, new physX.PxTolerancesScale(), false, null);
+    const tolerancesScale = new physX.PxTolerancesScale();
+    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
+
+    // Initialize cooking for mesh colliders
+    const cookingParams = new physX.PxCookingParams(tolerancesScale);
+    physX.setCookingMeshPreprocessParams(cookingParams, 1); // eWELD_VERTICES
+    cookingParams.meshWeldTolerance = 0.001;
+    // BVH34 midphase requires SSE2; SIMD WASM provides SSE2 via WASM SIMD
+    if (this._runTimeMode === PhysXRuntimeMode.WebAssemblySIMD) {
+      physX.setCookingMidphaseType(cookingParams, 1); // eBVH34
+    }
+    const pxCooking = physX.PxCreateCooking(version, pxFoundation, cookingParams);
+
     this._physX = physX;
     this._pxFoundation = pxFoundation;
     this._pxPhysics = pxPhysics;
+    this._pxCooking = pxCooking;
+    this._pxCookingParams = cookingParams;
+    this._defaultErrorCallback = defaultErrorCallback;
+    this._allocator = allocator;
+    this._tolerancesScale = tolerancesScale;
   }
 }
 
@@ -265,4 +326,11 @@ enum InitializeState {
   Uninitialized,
   Initializing,
   Initialized
+}
+
+interface PhysXRuntimeUrls {
+  /*** The URL of `PhysXRuntimeMode.WebAssembly` mode. */
+  wasmModeUrl?: string;
+  /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
+  wasmSIMDModeUrl?: string;
 }

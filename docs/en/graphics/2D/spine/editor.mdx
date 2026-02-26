@@ -1,0 +1,72 @@
+---
+order: 1
+title: Using in the Editor
+type: Graphics
+group: Spine
+label: Graphics/2D/Spine/editor
+---
+
+This section introduces how to import Spine animation assets into the Galacean editor.  
+
+> For details on Spine and engine version compatibility, see: [Version/Performance Section](/en/docs/graphics/2D/spine/other)  
+
+---
+
+## 1. Export Assets from Spine Editor  
+The first step is to export your Spine animation assets from the Spine editor. Complete steps can be found in the [Spine User Guide](https://zh.esotericsoftware.com/spine-user-guide):  
+
+1. [Export skeleton and animation data](https://zh.esotericsoftware.com/spine-export)  
+2. [Export texture atlases containing skeleton images](https://zh.esotericsoftware.com/spine-texture-packer)  
+
+Below is a brief workflow for exporting Spine assets:  
+
+1. After completing your animation, click **Spine Menu** > **Export** to open the export window.  
+   <Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*AhJWTLotiKUAAAAAAAAAAAAADvX8AQ/original" width="203" alt="Export panel in Spine editor" />  
+
+2. Select **Binary** in the top-left corner of the export window (Recommended: Binary format reduces file size and improves loading speed compared to JSON).  
+   <Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*SLgpQr7P8FIAAAAAAAAAAAAADvX8AQ/original" width="551" alt="Export window in Spine editor" />  
+
+3. Check the **Texture Atlas Packing** checkbox.  
+   <Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*lryOSrLjzEYAAAAAAAAAAAAADvX8AQ/original" width="549" alt="Click packing texture atlas button in Export window" />  
+
+4. Click **Pack Settings**.  
+   This refers to texture packing settings. For configuration details, refer to the [official documentation](https://zh.esotericsoftware.com/spine-texture-packer). After configuring, click **OK**.  
+   <Image src="https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*fpulR7_CCisAAAAAAAAAAAAADsp6AQ/original" width="521" alt="Texture pack window in Spine Editor" />  
+
+5. Return to the export window, select an export folder, then click **Export**.  
+   <Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*Tv0uRpXYT-gAAAAAAAAAAAAADvX8AQ/original" width="519" alt="Click export button in texture pack window" />  
+
+6. After exporting, you will get three files:  
+   <Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*2eL6R51ITuAAAAAAAAAAAAAADvX8AQ/original" width="406" alt="Spine assets in folder" />  
+
+   - **spineboy.skel**: Contains skeleton structure and animation data, the core information for binding animations to bones.  
+   - **spineboy.atlas**: Stores texture atlas information, including position and size details for each texture in the atlas.  
+   - **Texture images**: May include multiple pages of images representing the atlas for rendering the character’s visual content.  
+
+---
+
+## 2. Import Assets into Galacean Editor  
+
+After opening the editor, drag the exported files directly into the [Asset Panel](/en/docs/assets/interface/) to complete the upload, as shown in the following animation:  
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*u-FHQYyaXlgAAAAAAAAAAAAADvX8AQ/original" width="992" alt="Drag spine assets into Galacean editor"/>  
+
+After uploading, the asset panel will display the uploaded Spine assets, including: **SpineSkeletonData asset**, **SpineAtlas asset**, and texture assets.  
+
+### SpineSkeletonData Asset  
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-U5CRKWiRlsAAAAAAAAAAAAADvX8AQ/original" width="110" alt="Spine skeleton data asset icon" />  
+
+The **SpineSkeletonData** asset stores skeleton data and references the generated **SpineAtlas** asset.  
+Clicking the asset allows you to preview the Spine animation in the inspector, where you can switch between **skins** and **animation clips**:  
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*AXsDRognlqMAAAAAAAAAAAAADvX8AQ/original" width="478" alt="Spine skeleton data preview" />  
+
+### SpineAtlas Asset  
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*OGNbSaCYQlwAAAAAAAAAAAAADvX8AQ/original" width="108" alt="Spine atlas asset" />  
+
+The **SpineAtlas** asset stores the texture atlas file and references required **Texture** assets.  
+Clicking the asset allows you to view its referenced textures and Spine atlas information in the inspector:  
+<Image src="https://mdn.alipayobjects.com/huamei_irlgws/afts/img/A*-j8aSq7wSVAAAAAAAAAAAAAADvX8AQ/original" width="468" alt="Spine atlas preview" />  
+
+### Asset Updates  
+To update your Spine assets, re-export them from the Spine editor and re-import into the Galacean editor to overwrite existing files.  
+
+Next Section: [Adding and Using](/en/docs/graphics/2D/spine/add-and-use)

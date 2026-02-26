@@ -1,12 +1,14 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
+import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ICustomClone } from "../clone/ComponentCloner";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
+import { Layer } from "../Layer";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
-import { ICustomClone } from "../clone/ComponentCloner";
+import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 
 /**
  * Base class for all colliders.
@@ -24,6 +26,7 @@ export class Collider extends Component implements ICustomClone {
   protected _updateFlag: BoolUpdateFlag;
   @deepClone
   protected _shapes: ColliderShape[] = [];
+  protected _collisionLayerIndex: number = 0;
 
   /**
    * The shapes of this collider.
@@ -33,11 +36,31 @@ export class Collider extends Component implements ICustomClone {
   }
 
   /**
+   * The collision layer of this collider, only support single layer.
+   *
+   * @defaultValue `Layer.Layer0`
+   */
+  get collisionLayer(): Layer {
+    return (1 << this._collisionLayerIndex) as Layer;
+  }
+
+  set collisionLayer(value: Layer) {
+    // Check if value is a single layer (power of 2)
+    const index = Math.log2(value);
+    if (!Number.isInteger(index)) {
+      throw new Error("Collision layer must be a single layer (Layer.Layer0 to Layer.Layer31)");
+    }
+
+    this._collisionLayerIndex = index;
+    this._nativeCollider.setCollisionLayer(index);
+  }
+
+  /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
-    this._updateFlag = this.entity.transform.registerWorldChangeFlag();
+    this._updateFlag = entity.registerWorldChangeFlag();
   }
 
   /**
@@ -50,11 +73,9 @@ export class Collider extends Component implements ICustomClone {
       if (oldCollider) {
         oldCollider.removeShape(shape);
       }
-
       this._shapes.push(shape);
-      shape._collider = this;
-      this._nativeCollider.addShape(shape._nativeShape);
-      this._phasedActiveInScene && this.scene.physics._addColliderShape(shape);
+      this._addNativeShape(shape);
+      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
     }
   }
 
@@ -66,9 +87,8 @@ export class Collider extends Component implements ICustomClone {
     const index = this._shapes.indexOf(shape);
     if (index !== -1) {
       this._shapes.splice(index, 1);
-      this._phasedActiveInScene && this.scene.physics._removeColliderShape(shape);
-      shape._collider = null;
-      this._nativeCollider.removeShape(shape._nativeShape);
+      this._removeNativeShape(shape);
+      this._handleShapesChanged(ColliderShapeChangeFlag.Count);
     }
   }
 
@@ -78,12 +98,10 @@ export class Collider extends Component implements ICustomClone {
   clearShapes(): void {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      const shape = shapes[i];
-      this._phasedActiveInScene && this.scene.physics._removeColliderShape(shape);
-      shape._destroy();
-      this._nativeCollider.removeShape(shape._nativeShape);
+      this._removeNativeShape(shapes[i]);
     }
     shapes.length = 0;
+    this._handleShapesChanged(ColliderShapeChangeFlag.Count);
   }
 
   /**
@@ -98,8 +116,9 @@ export class Collider extends Component implements ICustomClone {
       );
 
       const worldScale = transform.lossyWorldScale;
-      for (let i = 0, n = this.shapes.length; i < n; i++) {
-        this.shapes[i]._nativeShape.setWorldScale(worldScale);
+      const shapes = this._shapes;
+      for (let i = 0, n = shapes.length; i < n; i++) {
+        shapes[i]._nativeShape?.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
     }
@@ -114,34 +133,37 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   override _onEnableInScene(): void {
-    const physics = this.scene.physics;
-    physics._addCollider(this);
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._addColliderShape(shapes[i]);
-    }
+    this.scene.physics._addCollider(this);
   }
 
   /**
    * @internal
    */
   override _onDisableInScene(): void {
-    const physics = this.scene.physics;
-    physics._removeCollider(this);
-    const shapes = this.shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      physics._removeColliderShape(shapes[i]);
-    }
+    this.scene.physics._removeCollider(this);
   }
 
   /**
    * @internal
    */
   _cloneTo(target: Collider): void {
-    const shapes = target._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      target._addPhysicsShape(shapes[i]);
+    target._syncNative();
+  }
+
+  /**
+   * @internal
+   */
+  _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
+    if (changeType & ColliderShapeChangeFlag.Count) {
+      this._setCollisionLayer();
     }
+  }
+
+  protected _syncNative(): void {
+    for (let i = 0, n = this.shapes.length; i < n; i++) {
+      this._addNativeShape(this.shapes[i]);
+    }
+    this._setCollisionLayer();
   }
 
   /**
@@ -149,14 +171,32 @@ export class Collider extends Component implements ICustomClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this.clearShapes();
+    const shapes = this._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      const shape = shapes[i];
+      this._removeNativeShape(shape);
+      shape._destroy();
+    }
+    shapes.length = 0;
     this._nativeCollider.destroy();
   }
 
-  protected _addPhysicsShape(shape: ColliderShape): void {
+  protected _addNativeShape(shape: ColliderShape): void {
     shape._collider = this;
+    if (shape._nativeShape) {
+      shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
+      this._nativeCollider.addShape(shape._nativeShape);
+    }
+  }
 
-    this._nativeCollider.addShape(shape._nativeShape);
-    this._phasedActiveInScene && this.scene.physics._addColliderShape(shape);
+  protected _removeNativeShape(shape: ColliderShape): void {
+    shape._collider = null;
+    if (shape._nativeShape) {
+      this._nativeCollider.removeShape(shape._nativeShape);
+    }
+  }
+
+  private _setCollisionLayer(): void {
+    this._nativeCollider.setCollisionLayer(this._collisionLayerIndex);
   }
 }

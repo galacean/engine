@@ -96,7 +96,7 @@ export class SkyBoxMaterial extends Material {
 
   override clone(): SkyBoxMaterial {
     const dest = new SkyBoxMaterial(this._engine);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 }

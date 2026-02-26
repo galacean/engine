@@ -20,9 +20,6 @@
   "material": {
     "title": "材质"
   },
-  "shader": {
-    "title": "着色器"
-  },
   "texture": {
     "title": "纹理"
   },
@@ -34,5 +31,8 @@
   },
   "postProcess": {
     "title": "后处理"
+  },
+  "quality": {
+    "title": "图形质量"
   }
 }

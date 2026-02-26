@@ -1,0 +1,63 @@
+---
+order: 6
+title: Coordinate System
+type: Core
+label: Core
+---
+
+The coordinate system plays a crucial role in a rendering engine, ensuring the accuracy of rendering results and interactions. By reading this document, you can understand most of the coordinate systems involved in Galacean. It is important to note that the definitions of various spaces differ between rendering engines; this document discusses only the spatial standards within Galacean.
+
+This document will compare various coordinate spaces in terms of `definition of space` and `coordinate system type`. The `coordinate system type` specifically refers to the `left-handed coordinate system` and `right-handed coordinate system`, as shown in the image below:
+
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*YBAmSamxy_0AAAAAAAAAAAAADleLAQ/original"  />
+
+Defining a system as `left-handed` or `right-handed` affects the direction of `forward` and the direction of rotation (clockwise or counterclockwise). For the definition of direction, you can imagine overlapping your right hand with `+X`, and the top of your head with `+Y`. The direction your face points is `forward`. You can compare the differences between Galacean and Unity:
+
+- Unity's local and world coordinate systems are `left-handed`. Rotation during transformations is done clockwise, and the `forward` direction corresponds to `+Z`. Therefore, the camera's direction (viewing direction) is `+Z`.
+
+- Galacean's local and world coordinate systems are `right-handed`. Rotation during transformations is done counterclockwise, and the `forward` direction corresponds to `-Z`. Therefore, the camera's direction (viewing direction) is `-Z`.
+
+## Local Space
+
+Local space is relative, using the object's own position as the reference coordinate system. It is usually described as "a point in the local space of node A". Local space uses a `right-handed coordinate system`. The `Transform` component automatically calculates the position of each point in world space using the following formula.
+
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*4ZLrSLEJPigAAAAAAAAAAAAADleLAQ/original" width="100%" height="100%" />
+
+## World Space
+
+World space is absolute. The root node is placed in `world space`, and its child nodes inherit its spatial relationships. Like `local space`, `world space` also uses a `right-handed coordinate system`. When two nodes are not in the same `local space`, they can be converted to world space for comparison of relative positional relationships.
+
+## Editor Usage
+
+<Image src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*vU40Rb-2s5QAAAAAAAAAAAAADtKFAQ/original" alt="merge" style={{zoom: "50%"}} />
+
+Determine the gizmo's orientation in the scene:
+
+| Icon                                                                                                                              | Option      | Description                                               |
+| :-------------------------------------------------------------------------------------------------------------------------------- | :---------- | :-------------------------------------------------------- |
+| <Image src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*of8ATKP_4u0AAAAAAAAAAAAADtKFAQ/original" width="24" height="24" /> | `Local Coordinates` | Keep the Gizmo's rotation relative to the selected entity |
+| <Image src="https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*Okm5S64_LqEAAAAAAAAAAAAADtKFAQ/original" width="24" height="24" /> | `Global Coordinates` | Fix the Gizmo's orientation to align with the world space direction, consistent with the grid direction in the scene |
+
+## View Space
+
+`View space` is the local space of the camera. Taking a perspective camera as an example:
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*isMHSpe21ZMAAAAAAAAAAAAAARQnAQ"  />
+
+## Screen Space
+
+The definition of screen space is consistent with front-end specifications; it is a 2D coordinate system with the top-left corner of the canvas as the origin. The value range within the space is consistent with the dimensions of the canvas and is frequently used in interaction and screen space conversion.
+
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*qG0eTrkP4MUAAAAAAAAAAAAADleLAQ/original"  style={{zoom: "50%"}} />
+
+## Viewport Space
+
+The definition of viewport space is consistent with front-end specifications. By setting the camera's viewport, you can control the target area of rendering.
+
+<Image src="https://mdn.alipayobjects.com/huamei_jvf0dp/afts/img/A*ZxwVQYgXLooAAAAAAAAAAAAADleLAQ/original"  style={{zoom: "50%"}} />
+
+## 2D Sprites
+
+When rendering sprites or masks and other 2D elements, they are by default placed on the XoY plane in the local coordinate system:
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*_5fjTp0r2KEAAAAAAAAAAAAAARQnAQ" style={{zoom: "50%"}} />

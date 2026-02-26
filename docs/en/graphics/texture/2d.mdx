@@ -1,0 +1,84 @@
+---
+order: 1
+title: 2D Texture
+type: Graphics
+group: Texture
+label: Graphics/Texture
+---
+
+2D textures are the most commonly used artistic resources, sampled using two-dimensional UV coordinates.
+
+## Editor Usage
+
+Drag a 2D image (*jpg*, *png*, *webp*) into the [Asset Panel](/docs/assets/interface) to create a 2D texture. Assign the created texture to the corresponding properties of the material to enable different rendering features. For example, adding a base color texture can determine the basic tone of the model. In the editor, simply select the corresponding texture for the respective property.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/563886ca-d682-487c-a74e-437a9c7df7c3/image-20250603142201774.png" style={{zoom: "50%"}} />
+
+## Script Usage
+
+In a script, you can load an image with [ResourceManager](/apis/core/#ResourceManager) to create a corresponding 2D texture:
+
+```typescript
+engine.resourceManager
+  .load({
+     type: AssetType.Texture2D,
+     url: `image url`,
+  })
+  .then((texture) => {
+    // Next, you can apply the texture to a material or perform other operations
+    const material = new PBRMaterial(engine);
+    const texture = generateTexture();
+
+    material.baseTexture = texture;
+  });
+```
+
+Textures include the following methods:
+
+| Method          | Description           |
+| :-------------- | :-------------------- |
+| setImageSource  | Set the image data source of the texture |
+| setPixelBuffer  | Modify the image data of the texture object |
+| getPixelBuffer  | Retrieve the image data of the texture object |
+
+### setImageSource
+
+As mentioned earlier, image-related data sources such as pictures, canvas, and videos can be used as textures. For instance, a video can be uploaded to texture through the [setImageSource](/apis/core/#Texture2D-setImageSource) interface:
+
+```typescript
+// Get the video tag, i.e., HTMLVideoElement
+const video = document.getElementsByTagName("video")[0];
+
+// Load into texture
+texture.setImageSource(video);
+```
+
+<Callout type="info">
+`setImageSource` can only synchronize the data of that frame, but the video changes frame by frame. If the texture needs to change synchronously, execution in the script's onUpdate hook is required.
+For scenarios such as video that require frequent updates to texture content, it is necessary to disable mipmap and set the texture usage mode to Dynamic when creating the texture to obtain better performance.
+</Callout>
+
+### setPixelBuffer
+
+The underlying texture actually corresponds to the color value of each pixel, i.e., RGBA channels. We can manually fill in the color values of these channels and then pass them to the texture through the [setPixelBuffer](/apis/core/#Texture2D-setPixelBuffer) interface:
+
+```typescript
+const texture = new Texture2D(engine, 1, 1);
+// Set this pixel to red, i.e., R channel is 255.
+const data = new Uint8Array([255, 0, 0, 255]);
+texture.setPixelBuffer(data);
+```
+
+### getPixelBuffer
+
+Likewise, we can read these color channel data:
+
+```typescript
+const texture = new Texture2D(engine, width, height);
+// Apply a series of processes to the texture
+// ···
+// Array to save color information, its size equals the data amount to be read
+const data = new Uint8Array(width * height * 4);
+texture.getPixelBuffer(0, 0, width, height, 0, data);
+```
+

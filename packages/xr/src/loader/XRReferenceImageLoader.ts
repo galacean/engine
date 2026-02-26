@@ -5,7 +5,9 @@ import { XRReferenceImage } from "../feature/trackable/image/XRReferenceImage";
 export class XRReferenceImageLoader extends Loader<XRReferenceImage> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<XRReferenceImage> {
     return new AssetPromise((resolve, reject) => {
-      this.request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
+      resourceManager
+        // @ts-ignore
+        ._request<ArrayBuffer>(item.url, { ...item, type: "arraybuffer" })
         .then((data) => {
           decode<XRReferenceImage>(data, resourceManager.engine).then((referenceImage) => {
             resolve(referenceImage);

@@ -1,0 +1,141 @@
+---
+order: 4
+title: 文字渲染器
+type: 图形
+group: 2D
+label: Graphics/2D
+---
+
+[TextRenderer](/apis/core/#TextRenderer) 组件用于在 3D/2D 场景中显示文字，支持动态文本、自定义字体、多行显示、对齐方式等特性。
+
+## 编辑器使用
+
+### 添加文本组件
+1. 在场景中选择目标实体。
+2. 通过实体属性面板添加 **TextRenderer** 组件。
+3. 配置组件参数以定义文本样式。
+
+<Image 
+  src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*3d5AQYTtcNkAAAAAAAAAAAAADjCHAQ/original" 
+  alt="添加TextRenderer组件操作示意图" 
+/>
+
+### 参数说明
+选中带有 TextRenderer 组件的实体，在右侧 Inspector 面板中配置以下属性：
+
+<Image 
+  src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*9XKjSYHZQWsAAAAAAAAAAAAADjCHAQ/original" 
+  alt="TextRenderer组件属性面板示意图" 
+/>
+
+| 属性                | 说明                                                                 |
+|---------------------|--------------------------------------------------------------------|
+| **Text**            | 显示的文本内容（支持多行输入）                                      |
+| **Color**           | 文本颜色（RGBA格式）                                               |
+| **FontSize**        | 字体大小（单位：像素）                                             |
+| **Font**            | 自定义字体资源（默认使用系统字体）                                  |
+| **Width**           | 文本设计宽度（影响换行和布局，单位：场景单位）                    |
+| **Height**          | 文本设计高度（影响截断和布局，单位：场景单位）                    |
+| **LineSpacing**     | 行间距（单位：像素）                                    |
+| **FontStyle**       | 字体样式：`None`（默认）/ `Bold`（加粗）/ `Italic`（斜体）          |
+| **HorizontalAlignment** | 水平对齐：`Left`（左）/ `Center`（中）/ `Right`（右）            |
+| **VerticalAlignment**   | 垂直对齐：`Top`（顶）/ `Center`（中）/ `Bottom`（底）            |
+| **EnableWrapping**  | 是否启用自动换行（需设置有效`Width`）                               |
+| **OverflowMode**    | 溢出处理：`Overflow`（显示溢出内容）/ `Truncate`（截断超出部分）    |
+| **Mask Interaction** | 遮罩交互模式（与SpriteMask配合使用）                               |
+| **Mask Layer**      | 遮罩层级（默认`Everything`匹配所有层）                             |
+| **Priority**        | 渲染优先级（值越小越优先渲染）                                      |
+
+<Callout type="info">`Width` 和 `Height` 属性仅用于定义文本的布局范围（如换行和对齐），并非实际渲染尺寸。如需获取文本在三维空间中的真实包围盒尺寸，请通过 `TextRenderer.bounds` 属性读取。</Callout>
+
+### 基础操作示例
+
+#### 设置文本内容
+1. 在 **Text** 属性字段输入目标文本。
+2. 支持多行文本直接换行输入。
+
+<Image 
+  src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*J6nKTJOOm4kAAAAAAAAAAAAADjCHAQ/original" 
+  alt="设置文本内容示意图" 
+/>
+
+#### 使用自定义字体
+1. 准备字体文件（支持 `.ttf`、`.otf`、`.woff` 格式）。
+2. 将字体文件拖拽至编辑器资源面板。
+3. 在 **Font** 属性中选择已上传的字体。
+
+<Image 
+  src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*CgA5S5vneeMAAAAAAAAAAAAADjCHAQ/original" 
+  alt="自定义字体设置示意图" 
+/>
+
+## 脚本开发指南
+
+### 基础用法
+```typescript
+import { TextRenderer, Font, Color } from "@galacean/engine";
+
+// 创建文本实体并添加组件
+const textEntity = rootEntity.createChild("text");
+const textRenderer = textEntity.addComponent(TextRenderer);
+
+// 设置基础属性
+textRenderer.text = "Galacean Text Rendering";  // 文本内容
+textRenderer.fontSize = 24;                   // 字体大小（像素）
+textRenderer.color = new Color(1, 0, 0, 1);    // 红色文本
+```
+
+### 高级功能
+
+#### 1. 自定义字体加载
+```typescript
+// 方式1：使用系统字体
+textRenderer.font = Font.createFromOS(engine, "Arial");
+
+// 方式2：加载外部字体文件
+engine.resourceManager.load({ url: "fonts/Avelia.otf" }).then((font) => {
+  textRenderer.font = font;
+});
+```
+
+#### 2. 布局与换行
+```typescript
+// 设置包围盒尺寸（单位：场景单位）
+textRenderer.width = 5;   // 控制自动换行宽度
+textRenderer.height = 3;  // 影响截断高度
+
+// 启用自动换行
+textRenderer.enableWrapping = true;
+
+// 设置行间距
+textRenderer.lineSpacing = 0.5;
+```
+
+#### 3. 溢出与截断
+```typescript
+// 溢出模式设置
+textRenderer.overflowMode = OverflowMode.Truncate; // 或 OverflowMode.Overflow
+
+// 对齐方式（需结合宽高使用）
+textRenderer.horizontalAlignment = TextHorizontalAlignment.Center;
+textRenderer.verticalAlignment = TextVerticalAlignment.Top;
+```
+
+#### 4. 字体样式组合
+```typescript
+// 同时应用加粗和斜体
+textRenderer.fontStyle = FontStyle.Bold | FontStyle.Italic;
+```
+
+## 注意事项
+1. **宽高为0的陷阱**：若启用换行（`enableWrapping=true`）但未设置有效宽高，文本将不渲染。
+2. **字体兼容性**：部分复杂字体（如含异体字）可能存在渲染异常，建议测试验证。
+3. **性能优化**：频繁更新文本内容可能影响性能，建议对静态文本启用合批。
+
+## API 参考
+| 类/枚举                  | 关键属性/值                              | 说明                          |
+|--------------------------|----------------------------------------|-----------------------------|
+| `TextRenderer`           | `text`, `font`, `fontSize`             | 文本渲染器主类               |
+| `TextHorizontalAlignment`| `Left`, `Center`, `Right`              | 水平对齐模式                 |
+| `TextVerticalAlignment`  | `Top`, `Center`, `Bottom`              | 垂直对齐模式                 |
+| `FontStyle`              | `None`, `Bold`, `Italic`               | 字体样式组合                 |

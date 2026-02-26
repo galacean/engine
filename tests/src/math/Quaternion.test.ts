@@ -1,5 +1,5 @@
 import { MathUtil, Quaternion, Vector3, Matrix3x3, Matrix } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 function toString(q: Quaternion): string {
   return `quat(${q.x}, ${q.y}, ${q.z}, ${q.w})`;
@@ -258,6 +258,13 @@ describe("Quaternion test", () => {
     const a = new Quaternion(3, 4, 5, 0);
     const out = new Quaternion();
     out.copyFrom(a);
+    expect(toString(a)).to.eq(toString(out));
+  });
+
+  it("copyTo", () => {
+    const a = new Quaternion(3, 4, 5, 0);
+    const out = new Quaternion();
+    a.copyTo(out);
     expect(toString(a)).to.eq(toString(out));
   });
 

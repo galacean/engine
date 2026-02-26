@@ -1,0 +1,136 @@
+---
+order: 5
+title: Sprite Atlas
+type: Graphics
+group: 2D
+label: Graphics/2D
+---
+
+[SpriteAtlas](/apis/core/#SpriteAtlas) is a texture atlas resource designed to optimize 2D rendering performance by merging multiple sprite textures for **batch rendering**. Key benefits include:  
+
+✅ **Performance Boost**: Reduce Draw Calls and improve rendering efficiency  
+✅ **Resource Optimization**: Consolidate fragmented textures to minimize network requests  
+✅ **Memory Management**: Decrease GPU memory overhead caused by frequent texture switching  
+
+## Editor Usage  
+
+### Create a Sprite Atlas  
+1. **Path**: Assets Panel > Right-click Context Menu > `Create` > `Sprite Atlas`  
+2. **Action**: A blank atlas asset will be created and can be configured in the Inspector.  
+
+<Image  
+  src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*W-HZSrvAiG8AAAAAAAAAAAAADjCHAQ/original"  
+  alt="Sprite Atlas creation demo"  
+  style={{zoom:"50%"}}  
+/>  
+
+### Manage Sprites  
+
+#### Add Sprites  
+| Method                      | Steps                                                                 |  
+|-----------------------------|-----------------------------------------------------------------------|  
+| **Via Sprite Asset**         | 1. Select target sprite 2. Inspector > `Packaging` > Choose atlas |  
+| **Via Atlas Asset (Batch)**  | 1. Select target atlas 2. Inspector > Click `Add Sprites` (Supports folder batch operations) |  
+
+<Image  
+  src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*G_utQZfPYPoAAAAAAAAAAAAADjCHAQ/original"  
+  alt="Adding sprites via sprite asset"  
+  style={{zoom:"67%"}}  
+/>  
+
+#### Remove Sprites  
+| Method                      | Steps                                                                 |  
+|-----------------------------|-----------------------------------------------------------------------|  
+| **Via Sprite Asset**         | Inspector > `Packaging` > Click remove icon                          |  
+| **Via Atlas Asset**          | Inspector > Sprite List > Locate target sprite > Click remove icon   |  
+
+### Atlas Configuration  
+
+#### Packing Settings  
+<Image  
+  src="https://gw.alipayobjects.com/zos/OasisHub/81a2044b-c1b7-449d-96cf-1e098b72a1be/image-20231208165843716.png"  
+  alt="Atlas packing settings interface"  
+  style={{zoom:"50%"}}  
+/>  
+
+| Parameter               | Description                                                                 | Valid Range       |  
+|-------------------------|-----------------------------------------------------------------------------|-------------------|  
+| **Max Texture Width**   | Output texture width constraint (Must be power of 2)                        | (1, 2048]         |  
+| **Max Texture Height**  | Output texture height constraint (Must be power of 2)                       | (1, 2048]         |  
+| **Padding**             | Empty pixels between sprites to prevent edge bleeding                       | ≥0                |  
+| **Allow Rotation**      | Rotate sprites to improve space utilization *(Experimental, disabled)*      | `true`/`false`    |  
+| **Trim Transparency**   | Automatically remove transparent areas *(Experimental, disabled)*          | `true`/`false`    |  
+
+<Callout type="warning">**Oversize Warning**: If packed size exceeds limits, adjust max width/height or reorganize sprites.</Callout>  
+
+#### Texture Parameters  
+<Image  
+  src="https://gw.alipayobjects.com/zos/OasisHub/1f4302b8-d485-4d3e-b508-36b570f5a883/image-20231208165430415.png"  
+  alt="Texture parameter settings interface"  
+  style={{zoom:"50%"}}  
+/>  
+
+| Parameter                  | Options                                                              |  
+|----------------------------|----------------------------------------------------------------------|  
+| **Wrap Mode U/V**          | `Clamp` / `Repeat` / `Mirror`                                       |  
+| **Filter Mode**            | `Point` / `Bilinear` / `Trilinear`                                  |  
+| **Anisotropic Level**      | Anisotropic filtering level (1-16)                                  |  
+| **Generate Mipmaps**       | Enable Mipmap chain generation                                      |  
+
+## Scripting Guide  
+
+### CLI Packaging Tool  
+```bash  
+# Install globally  
+npm i @galacean/tools-atlas -g  
+
+# Package assets (Example: input dir=assets, output name=ui_atlas)  
+galacean-tool-atlas p assets -o ui_atlas  
+```  
+
+| Parameter           | Description                                      | Default       |  
+|---------------------|--------------------------------------------------|---------------|  
+| `-f/--format`       | Output format (`galacean` only)                  | `galacean`    |  
+| `-mw/--maxWidth`    | Max texture width                                | 1024          |  
+| `-mh/--maxHeight`   | Max texture height                               | 1024          |  
+| `-p/--padding`      | Pixel padding between sprites                    | 1             |  
+
+> 📘 [Full Parameter Docs](https://github.com/galacean/tools/blob/main/packages/atlas/README.md)  
+
+### Runtime Loading & Usage  
+```typescript  
+// Load atlas  
+engine.resourceManager.load<SpriteAtlas>({  
+  url: "https://cdn.com/ui_atlas.atlas",  
+  type: AssetType.SpriteAtlas  
+}).then((atlas) => {  
+  // Get all sprites  
+  const allSprites = atlas.sprites;  
+
+  // Retrieve by exact name  
+  const heroSprite = atlas.getSprite("hero_idle");  
+
+  // Batch retrieve duplicates  
+  const coinSprites = atlas.getSprites("coin", []);  
+});  
+```  
+
+<Callout type="info">Ensure atlas files (`.atlas` and `.png`) reside in the same CDN directory, e.g., `https://cdnDir/atlasName.atlas` and `https://cdnDir/atlasName.png`.</Callout>  
+
+## Best Practices  
+
+### Optimization Tips  
+1. **Size Planning**: Set reasonable max dimensions (e.g., 1024x1024) to avoid oversizing.  
+2. **Preview Utilization**: Use `Pack & Preview` to check space efficiency (Aim ≥80%).  
+
+<Image  
+  src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*lyhRSY63HJgAAAAAAAAAAAAADjCHAQ/original"  
+  alt="Atlas utilization preview"  
+/>  
+
+## API Reference  
+| Core Class       | Key Methods/Properties               | Description                          |  
+|------------------|--------------------------------------|--------------------------------------|  
+| `SpriteAtlas`    | `sprites: Sprite[]`                  | All sprites in the atlas             |  
+|                  | `getSprite(name: string)`            | Get first sprite by name             |  
+|                  | `getSprites(name: string)`           | Get all sprites with matching name   |  

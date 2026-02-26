@@ -1,15 +1,19 @@
-import { Grammar } from "./Grammar";
-import { ENonTerminal, GrammarSymbol } from "./GrammarSymbol";
-import { BaseToken } from "../common/BaseToken";
+import { Logger } from "@galacean/engine";
 import { ETokenType } from "../common";
+import { BaseToken } from "../common/BaseToken";
+import { GSError, GSErrorName } from "../GSError";
+import { LALR1 } from "../lalr";
+import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
+import { MacroDefineList } from "../Preprocessor";
+import { ParserUtils } from "../ParserUtils";
+import { ShaderLab } from "../ShaderLab";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 import { ASTNode, TreeNode } from "./AST";
+import { Grammar } from "./Grammar";
+import { GrammarSymbol, NoneTerminal } from "./GrammarSymbol";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { TraceStackItem } from "./types";
-import { addTranslationRule, createGrammar } from "../lalr/CFG";
-import { LALR1 } from "../lalr";
-import { ParserUtils } from "../Utils";
-import { Logger } from "@galacean/engine";
 
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
@@ -30,6 +34,13 @@ export class ShaderTargetParser {
   private get stateGotoTable() {
     return this.gotoTable.get(this.curState);
   }
+
+  // #if _VERBOSE
+  /** @internal */
+  get errors() {
+    return this.sematicAnalyzer.errors;
+  }
+  // #endif
 
   static _singleton: ShaderTargetParser;
 
@@ -52,8 +63,8 @@ export class ShaderTargetParser {
     this.sematicAnalyzer = new SematicAnalyzer();
   }
 
-  parse(tokens: Generator<BaseToken, BaseToken>): ASTNode.GLShaderProgram | null {
-    this.sematicAnalyzer.reset();
+  parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
+    this.sematicAnalyzer.reset(macroDefineList);
     const start = performance.now();
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
@@ -70,7 +81,7 @@ export class ShaderTargetParser {
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
         Logger.info(
-          `[pass compilation - parser] Accept! State automata run ${loopCount} times! cost time ${
+          `[Task - AST compilation] Accept! State automata run ${loopCount} times! cost time ${
             performance.now() - start
           }ms`
         );
@@ -103,17 +114,25 @@ export class ShaderTargetParser {
         traceBackStack.push(nextState);
         continue;
       } else {
-        Logger.error(token.location, `parse error token ${token.lexeme}`);
+        const error = ShaderLabUtils.createGSError(
+          `Unexpected token ${token.lexeme}`,
+          GSErrorName.CompilationError,
+          ShaderLab._processingPassText,
+          token.location
+        );
+        // #if _VERBOSE
+        this.sematicAnalyzer.errors.push(<GSError>error);
+        // #endif
         return null;
       }
     }
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   private _printStack(nextToken: BaseToken) {
     let str = "";
     for (let i = 0; i < this._traceBackStack.length - 1; i++) {
-      const state = <ENonTerminal>this._traceBackStack[i++];
+      const state = <NoneTerminal>this._traceBackStack[i++];
       const token = this._traceBackStack[i];
       str += `State${state} - ${(<BaseToken>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
     }

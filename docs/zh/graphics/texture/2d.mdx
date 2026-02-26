@@ -1,0 +1,84 @@
+---
+order: 1
+title: 2D 纹理
+type: 图形
+group: 纹理
+label: Graphics/Texture
+---
+
+2D 纹理是最常用的美术资源，使用二维 UV 坐标进行采样。
+
+## 编辑器使用
+
+在[资产面板](/docs/assets/interface)中拖入一张 2D 图片 (*jpg*、*png*、*webp*)即可完成 2D 纹理的创建。 将创建好的纹理赋予材质球的相应属性，可以开启不同的渲染功能，如添加基础颜色纹理，可以决定模型的基本色调。在编辑器中，只需在对应属性选择相应纹理即可。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/563886ca-d682-487c-a74e-437a9c7df7c3/image-20250603142201774.png" style={{zoom: "50%"}} />
+
+## 脚本使用
+
+在脚本中可以通过 [ResourceManager](/apis/core/#ResourceManager) 加载图片创建对应的 2D 纹理：
+
+```typescript
+engine.resourceManager
+  .load({
+     type: AssetType.Texture2D,
+     url: `图片url`,
+  })
+  .then((texture) => {
+    // 接下来可以将纹理应用到材质上或者进行其他操作
+    const material = new PBRMaterial(engine);
+    const texture = 生成纹理();
+
+    material.baseTexture = texture;
+  });
+```
+
+纹理包含以下方法：
+
+| 方法           | 解释                   |
+| :------------- | :--------------------- |
+| setImageSource | 设置纹理的图像数据源头 |
+| setPixelBuffer | 修改纹理对象的图像数据 |
+| getPixelBuffer | 获取纹理对象的图像数据 |
+
+### setImageSource
+
+前面提到过，图片、canvas 画布、视频等跟图像相关的数据源都可以用来当作纹理。比如视频就可以通过 [setImageSource](/apis/core/#Texture2D-setImageSource) 接口上传到纹理：
+
+```typescript
+// 拿到视频标签，即 HTMLVideoElement
+const video = document.getElementsByTagName("video")[0];
+
+// 加载到纹理
+texture.setImageSource(video);
+```
+
+<Callout type="info">
+`setImageSource` 只能同步那一帧的数据，但是视频每一帧都在变化，如果需要纹理同步变化，则要在脚本 onUpdate 钩子里面执行。
+对于视频这类需要频繁更新纹理内容的使用场景，创建纹理的时候需要关闭 mipmap 并设置纹理使用方式为 Dynamic，以获得更好的性能。
+</Callout>
+
+
+### setPixelBuffer
+
+纹理底层其实对应着每个像素的颜色值，即 RGBA 通道，我们可以手动填写这些颜色通道的颜色数值，然后通过 [setPixelBuffer](/apis/core/#Texture2D-setPixelBuffer) 接口传到纹理中：
+
+```typescript
+const texture = new Texture2D(engine, 1, 1);
+// 将该像素设置为红色，即 R 通道为 255。
+const data = new Uint8Array([255, 0, 0, 255]);
+texture.setPixelBuffer(data);
+```
+
+### getPixelBuffer
+
+同样的，我们可以读取这些颜色通道的颜色数据：
+
+```typescript
+const texture = new Texture2D(engine, width, height);
+// 对纹理做了一系列处理
+// ···
+// 用来保存颜色信息的数组，它的大小和要读取的数据量相等
+const data = new Uint8Array(width * height * 4);
+texture.getPixelBuffer(0, 0, width, height, 0, data);
+```

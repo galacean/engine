@@ -2,33 +2,45 @@ import { Matrix } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
-import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
+import { EntityModifyFlags } from "./enums/EntityModifyFlags";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
+  /** @internal */
+  static _tempComponentConstructors: ComponentConstructor[] = [];
+
   /**
    * @internal
    */
-  static _findChildByName(root: Entity, name: string): Entity {
-    const children = root._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name === name) {
-        return child;
+  static _findChildByName(entity: Entity, childIndex: number, paths: string[], pathIndex: number): Entity {
+    const searchPath = paths[pathIndex];
+    const isEndPath = pathIndex === paths.length - 1;
+    const children = entity._children;
+    for (const n = children.length; childIndex < n; childIndex++) {
+      const child = children[childIndex];
+      if (child.name === searchPath) {
+        // Search success if end path, or downward search
+        return isEndPath ? child : Entity._findChildByName(child, 0, paths, pathIndex + 1);
       }
     }
-    return null;
+
+    // Search failed if first path, or upward search
+    return pathIndex === 0
+      ? null
+      : Entity._findChildByName(entity.parent, entity.siblingIndex + 1, paths, pathIndex - 1);
   }
 
   /**
@@ -69,12 +81,47 @@ export class Entity extends EngineObject {
     return entity;
   }
 
+  /**
+   * @internal
+   */
+  static _removeFromChildren(children: Entity[], entity: Entity): void {
+    const count = children.length - 1;
+    for (let i = entity._siblingIndex; i < count; i++) {
+      const child = children[i + 1];
+      children[i] = child;
+      child._siblingIndex = i;
+    }
+    children.length = count;
+    entity._siblingIndex = -1;
+  }
+
+  /**
+   * @internal
+   */
+  static _addToChildren(children: Entity[], entity: Entity, index?: number): void {
+    const childCount = children.length;
+    children.length = childCount + 1;
+    if (index === undefined) {
+      children[childCount] = entity;
+      entity._siblingIndex = childCount;
+    } else {
+      if (index < 0 || index > childCount) {
+        throw `The index ${index} is out of child list bounds ${childCount}`;
+      }
+      for (let i = childCount; i > index; i--) {
+        const swapChild = children[i - 1];
+        swapChild._siblingIndex = i;
+        children[i] = swapChild;
+      }
+      entity._siblingIndex = index;
+      children[index] = entity;
+    }
+  }
+
   /** The name of entity. */
   name: string;
   /** The layer the entity belongs to. */
   layer: Layer = Layer.Layer0;
-  /** Transform component. */
-  readonly transform: Transform;
 
   /** @internal */
   _isActiveInHierarchy: boolean = false;
@@ -94,13 +141,23 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
-
   /** @internal */
   _isTemplate: boolean = false;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
+  private _modifyFlagManager: UpdateFlagManager;
+
+  /**
+   * The transform of this entity.
+   */
+  get transform(): Transform {
+    return this._transform;
+  }
 
   /**
    * Whether to activate locally.
@@ -186,18 +243,29 @@ export class Entity extends EngineObject {
       throw `The entity ${this.name} is not in the hierarchy`;
     }
 
-    this._setSiblingIndex(this._isRoot ? this._scene._rootEntities : this._parent._children, value);
+    if (this._isRoot) {
+      this._setSiblingIndex(this._scene._rootEntities, value);
+    } else {
+      const parent = this._parent;
+      this._setSiblingIndex(parent._children, value);
+      parent._dispatchModify(EntityModifyFlags.Child, parent);
+    }
   }
 
   /**
    * Create a entity.
    * @param engine - The engine the entity belongs to
+   * @param name - The name of the entity
+   * @param components - The types of components you wish to add
    */
-  constructor(engine: Engine, name?: string) {
+  constructor(engine: Engine, name?: string, ...components: ComponentConstructor[]) {
     super(engine);
-    this.name = name;
-    this.transform = this.addComponent(Transform);
-    this._inverseWorldMatFlag = this.transform.registerWorldChangeFlag();
+    this.name = name ?? "Entity";
+    for (let i = 0, n = components.length; i < n; i++) {
+      this.addComponent(components[i]);
+    }
+    !this._transform && this.addComponent(Transform);
+    this._inverseWorldMatFlag = this.registerWorldChangeFlag();
   }
 
   /**
@@ -206,13 +274,13 @@ export class Entity extends EngineObject {
    * @param args - The arguments of the component
    * @returns	The component which has been added
    */
-  addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
-    type: T,
-    ...args: ComponentArguments<T>
-  ): InstanceType<T> {
+  addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
+
+    // @todo: temporary solution
+    if (component instanceof Transform) this._setTransform(component);
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -222,7 +290,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
+  getComponent<T extends Component>(type: ComponentConstructor<T>): T | null {
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
@@ -239,7 +307,7 @@ export class Entity extends EngineObject {
    * @param results - The components which match type
    * @returns	The components which match type
    */
-  getComponents<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+  getComponents<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -257,7 +325,7 @@ export class Entity extends EngineObject {
    * @param results - The components collection
    * @returns	The components collection which match the type
    */
-  getComponentsIncludeChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+  getComponentsIncludeChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
     this._getComponentsInChildren<T>(type, results);
     return results;
@@ -284,51 +352,7 @@ export class Entity extends EngineObject {
       index = undefined;
       child = indexOrChild;
     }
-
-    if (child._isRoot) {
-      child._scene._removeFromEntityList(child);
-      child._isRoot = false;
-
-      this._addToChildrenList(index, child);
-      child._parent = this;
-
-      const oldScene = child._scene;
-      const newScene = this._scene;
-
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      if (!this._isActiveInHierarchy) {
-        child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      if (child._isActiveInScene) {
-        if (this._isActiveInScene) {
-          // Cross scene should inActive first and then active
-          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        } else {
-          inActiveChangeFlag |= ActiveChangeFlag.Scene;
-        }
-      }
-
-      inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
-
-      if (child._scene !== newScene) {
-        Entity._traverseSetOwnerScene(child, newScene);
-      }
-
-      let activeChangeFlag = ActiveChangeFlag.None;
-      if (child._isActive) {
-        if (this._isActiveInHierarchy) {
-          !child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-        }
-        if (this._isActiveInScene) {
-          (!child._isActiveInScene || oldScene !== newScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-        }
-      }
-      activeChangeFlag && child._processActive(activeChangeFlag);
-
-      child._setTransformDirty();
-    } else {
-      child._setParent(this, index);
-    }
+    child._setParent(this, index);
   }
 
   /**
@@ -336,6 +360,7 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be removed
    */
   removeChild(child: Entity): void {
+    if (child._parent !== this) return;
     child._setParent(null);
   }
 
@@ -370,22 +395,16 @@ export class Entity extends EngineObject {
 
   /**
    * Find the entity by path.
-   * @param path - The path fo the entity eg: /entity
+   * @param path - The path of the entity eg: /entity
    * @returns The component which be found
    */
   findByPath(path: string): Entity {
-    const splits = path.split("/");
-    let entity: Entity = this;
-    for (let i = 0, length = splits.length; i < length; ++i) {
-      const split = splits[i];
-      if (split) {
-        entity = Entity._findChildByName(entity, split);
-        if (!entity) {
-          return null;
-        }
-      }
+    const splits = path.split("/").filter(Boolean);
+    if (!splits.length) {
+      return this;
     }
-    return entity;
+
+    return Entity._findChildByName(this, 0, splits, 0);
   }
 
   /**
@@ -394,7 +413,10 @@ export class Entity extends EngineObject {
    * @returns The child entity
    */
   createChild(name?: string): Entity {
-    const child = new Entity(this.engine, name);
+    const transform = this._transform;
+    const child = transform
+      ? new Entity(this.engine, name, transform.constructor as ComponentConstructor)
+      : new Entity(this.engine, name);
     child.layer = this.layer;
     child.parent = this;
     return child;
@@ -430,6 +452,14 @@ export class Entity extends EngineObject {
   }
 
   /**
+   * Listen for changes in the world pose of this `Entity`.
+   * @returns Change flag
+   */
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
    * @internal
    */
   _markAsTemplate(templateResource: ReferResource): void {
@@ -438,8 +468,13 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this._engine, this.name);
-
+    const componentConstructors = Entity._tempComponentConstructors;
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      componentConstructors[i] = components[i].constructor as ComponentConstructor;
+    }
+    const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
+    componentConstructors.length = 0;
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -448,12 +483,6 @@ export class Entity extends EngineObject {
 
     cloneEntity.layer = this.layer;
     cloneEntity._isActive = this._isActive;
-    const { transform: cloneTransform } = cloneEntity;
-    const { transform: srcTransform } = this;
-    cloneTransform.position = srcTransform.position;
-    cloneTransform.rotation = srcTransform.rotation;
-    cloneTransform.scale = srcTransform.scale;
-
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());
@@ -476,11 +505,7 @@ export class Entity extends EngineObject {
 
     const components = src._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      const sourceComp = components[i];
-      if (!(sourceComp instanceof Transform)) {
-        const targetComp = target.addComponent(<new (entity: Entity) => Component>sourceComp.constructor);
-        ComponentCloner.cloneComponent(sourceComp, targetComp, srcRoot, targetRoot, deepInstanceMap);
-      }
+      ComponentCloner.cloneComponent(components[i], target._components[i], srcRoot, targetRoot, deepInstanceMap);
     }
   }
 
@@ -488,11 +513,10 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   override destroy(): void {
-    if (this._destroyed) {
+    super.destroy();
+    if (!this._destroyed) {
       return;
     }
-
-    super.destroy();
 
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);
@@ -523,7 +547,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeComponent(component: Component): void {
-    ComponentsDependencies._removeCheck(this, component.constructor as any);
+    ComponentsDependencies._removeCheck(this, component.constructor as ComponentConstructor);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
   }
@@ -551,14 +575,9 @@ export class Entity extends EngineObject {
   _removeFromParent(): void {
     const oldParent = this._parent;
     if (oldParent != null) {
-      const oldSibling = oldParent._children;
-      let index = this._siblingIndex;
-      oldSibling.splice(index, 1);
-      for (let n = oldSibling.length; index < n; index++) {
-        oldSibling[index]._siblingIndex--;
-      }
+      Entity._removeFromChildren(oldParent._children, this);
       this._parent = null;
-      this._siblingIndex = -1;
+      oldParent._dispatchModify(EntityModifyFlags.Child, oldParent);
     }
   }
 
@@ -589,40 +608,46 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _setTransformDirty() {
-    if (this.transform) {
-      this.transform._parentChange();
-    } else {
-      for (let i = 0, len = this._children.length; i < len; i++) {
-        this._children[i]._setTransformDirty();
-      }
-    }
+  _setParentChange() {
+    this._transform._parentChange();
+    this._dispatchModify(EntityModifyFlags.Parent, this);
+  }
+
+  /**
+   * @internal
+   */
+  _registerModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    (this._modifyFlagManager ||= new UpdateFlagManager()).addListener(onChange);
+  }
+
+  /**
+   * @internal
+   */
+  _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
+    this._modifyFlagManager?.removeListener(onChange);
+  }
+
+  private _dispatchModify(flag: EntityModifyFlags, param?: any): void {
+    this._modifyFlagManager?.dispatch(flag, param);
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
-    const children = this._children;
-    const childCount = children.length;
-    if (index === undefined) {
-      child._siblingIndex = childCount;
-      children.push(child);
-    } else {
-      if (index < 0 || index > childCount) {
-        throw `The index ${index} is out of child list bounds ${childCount}`;
-      }
-      child._siblingIndex = index;
-      children.splice(index, 0, child);
-      for (let i = index + 1, n = childCount + 1; i < n; i++) {
-        children[i]._siblingIndex++;
-      }
-    }
+    Entity._addToChildren(this._children, child, index);
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   private _setParent(parent: Entity, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
-      this._removeFromParent();
+      if (this._isRoot) {
+        Entity._removeFromChildren(this._scene._rootEntities, this);
+        this._isRoot = false;
+      } else {
+        this._removeFromParent();
+      }
       this._parent = parent;
       if (parent) {
+        this._isRoot = false;
         parent._addToChildrenList(siblingIndex, this);
 
         const oldScene = this._scene;
@@ -665,11 +690,15 @@ export class Entity extends EngineObject {
           Entity._traverseSetOwnerScene(this, null);
         }
       }
-      this._setTransformDirty();
+      this._setParentChange();
+    } else {
+      if (parent && siblingIndex !== undefined) {
+        this.siblingIndex = siblingIndex;
+      }
     }
   }
 
-  private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
+  private _getComponentsInChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): void {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -743,6 +772,15 @@ export class Entity extends EngineObject {
     }
   }
 
+  private _setTransform(value: Transform): void {
+    this._transform?.destroy();
+    this._transform = value;
+    const children = this._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i].transform?._parentChange();
+    }
+  }
+
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _invModelMatrix: Matrix = new Matrix();
   private _inverseWorldMatFlag: BoolUpdateFlag;
@@ -752,16 +790,18 @@ export class Entity extends EngineObject {
    */
   getInvModelMatrix(): Matrix {
     if (this._inverseWorldMatFlag.flag) {
-      Matrix.invert(this.transform.worldMatrix, this._invModelMatrix);
+      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
       this._inverseWorldMatFlag.flag = false;
     }
     return this._invModelMatrix;
   }
 }
 
-type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
+export type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,
   ...args: infer P
 ) => Component
   ? P
   : never;
+
+export type ComponentConstructor<T extends Component = Component> = new (entity: Entity, ...args: any[]) => T;

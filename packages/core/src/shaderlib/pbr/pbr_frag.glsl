@@ -11,63 +11,58 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
 // IBL diffuse
 #ifdef SCENE_USE_SH
     vec3 irradiance = getLightProbeIrradiance(scene_EnvSH, geometry.normal);
-    #ifdef ENGINE_IS_COLORSPACE_GAMMA
-        irradiance = linearToGamma(vec4(irradiance, 1.0)).rgb;
-    #endif
     irradiance *= scene_EnvMapLight.diffuseIntensity;
 #else
    vec3 irradiance = scene_EnvMapLight.diffuse * scene_EnvMapLight.diffuseIntensity;
    irradiance *= PI;
 #endif
 
-reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+reflectedLight.indirectDiffuse += material.diffuseAO * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 // IBL specular
 vec3 radiance = getLightProbeRadiance(geometry, geometry.normal, material.roughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity);
 float radianceAttenuation = 1.0;
 
+// IBL Clear Coat
 #ifdef MATERIAL_ENABLE_CLEAR_COAT
     vec3 clearCoatRadiance = getLightProbeRadiance( geometry, geometry.clearCoatNormal, material.clearCoatRoughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity );
 
-    reflectedLight.indirectSpecular += clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
-    radianceAttenuation -= material.clearCoat * F_Schlick(material.f0, geometry.clearCoatDotNV);
+    reflectedLight.indirectSpecular += material.specularAO * clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), 1.0, material.clearCoatRoughness, geometry.clearCoatDotNV);
+    radianceAttenuation -= material.clearCoat * F_Schlick(0.04, 1.0, geometry.clearCoatDotNV);
 #endif
 
-reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
-
-
-// Occlusion
-#ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
-    vec2 aoUV = v_uv;
-    #ifdef RENDERER_HAS_UV1
-        if(material_OcclusionTextureCoord == 1.0){
-            aoUV = v_uv1;
-        }
-    #endif
-    float ambientOcclusion = (texture2D(material_OcclusionTexture, aoUV).r - 1.0) * material_OcclusionIntensity + 1.0;
-    reflectedLight.indirectDiffuse *= ambientOcclusion;
-    #ifdef SCENE_USE_SPECULAR_ENV
-        reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, geometry.dotNV);
-    #endif
+#ifdef MATERIAL_ENABLE_IRIDESCENCE
+    vec3 speculaColor = mix(material.specularF0, material.iridescenceSpecularColor, material.iridescenceFactor);
+#else
+    vec3 speculaColor = material.specularF0;
 #endif
+
+reflectedLight.indirectSpecular += material.specularAO * radianceAttenuation * radiance * envBRDFApprox(speculaColor, material.specularF90, material.roughness, geometry.dotNV);
+
+
+// IBL Sheen
+evaluateSheenIBL(geometry, material, radianceAttenuation, reflectedLight.indirectDiffuse, reflectedLight.indirectSpecular);
+
+
+// Final color
+vec3 totalDiffuseColor = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse;
+vec3 totalSpecularColor = reflectedLight.directSpecular + reflectedLight.indirectSpecular;
+
+#ifdef MATERIAL_ENABLE_TRANSMISSION 
+    vec3 refractionTransmitted = evaluateTransmission(geometry, material);
+    totalDiffuseColor = mix(totalDiffuseColor, refractionTransmitted, material.transmission);
+#endif
+
+vec4 finalColor = vec4(totalDiffuseColor + totalSpecularColor, material.opacity);
 
 
 // Emissive
 vec3 emissiveRadiance = material_EmissiveColor;
 #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-    vec4 emissiveColor = texture2D(material_EmissiveTexture, v_uv);
-    #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        emissiveColor = gammaToLinear(emissiveColor);
-    #endif
-    emissiveRadiance *= emissiveColor.rgb;
+    emissiveRadiance *= texture2DSRGB(material_EmissiveTexture, v_uv).rgb;
 #endif
 
-// Total
-vec3 totalRadiance =    reflectedLight.directDiffuse + 
-                        reflectedLight.indirectDiffuse + 
-                        reflectedLight.directSpecular + 
-                        reflectedLight.indirectSpecular + 
-                        emissiveRadiance;
+finalColor.rgb += emissiveRadiance;
 
-vec4 targetColor =vec4(totalRadiance, material.opacity);
-gl_FragColor = targetColor;
+
+gl_FragColor = finalColor;

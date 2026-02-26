@@ -5,6 +5,8 @@ export { HitResult } from "./HitResult";
 export { PhysicsMaterial } from "./PhysicsMaterial";
 export { PhysicsScene } from "./PhysicsScene";
 export { StaticCollider } from "./StaticCollider";
+export { Collision } from "./Collision";
+export { ContactPoint } from "./ContactPoint";
 export * from "./enums";
 export * from "./joint";
 export * from "./shape";

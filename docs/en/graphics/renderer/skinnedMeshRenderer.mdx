@@ -1,0 +1,22 @@
+---
+order: 2
+title: Skinned Mesh Renderer
+type: Graphics
+group: Renderer
+label: Graphics/Renderer
+---
+
+The **Skinned Mesh Renderer** inherits from the [Mesh Renderer](/en/docs/graphics/renderer/meshRenderer/) and adds encapsulation for **skeletal animation** and **Blend Shape**, enabling more natural and realistic animation effects for rendered objects.
+
+## Properties
+
+The Skinned Mesh Renderer extends the properties of the [Mesh Renderer](/en/docs/graphics/renderer/meshRenderer/) with additional skeletal-related information.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*AVGwRpqT35sAAAAAQQAAAAgAehuCAQ/original" alt="image-20231007153753006" style={{ zoom: "50%" }} />
+
+| Property          | Description                          |
+| :---------------- | :----------------------------------- |
+| `rootBone`        | The root bone node of the skinned mesh renderer |
+| `localBounds`     | The local bounding box of the skinned mesh renderer |
+
+<Callout type="info">In rare cases where unavoidable, adjusting the local bounding box can prevent the renderer from being clipped by the camera</Callout>

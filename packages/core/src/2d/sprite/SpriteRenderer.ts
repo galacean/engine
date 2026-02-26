@@ -8,8 +8,8 @@ import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
+import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
@@ -18,11 +18,12 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 
 /**
  * Renders a Sprite for 2D graphics.
  */
-export class SpriteRenderer extends Renderer {
+export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
@@ -32,7 +33,7 @@ export class SpriteRenderer extends Renderer {
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @assignmentClone
+  @ignoreClone
   private _assembler: ISpriteAssembler;
   @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
@@ -81,7 +82,7 @@ export class SpriteRenderer extends Renderer {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
     }
   }
 
@@ -96,7 +97,7 @@ export class SpriteRenderer extends Renderer {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
       }
     }
   }
@@ -113,7 +114,7 @@ export class SpriteRenderer extends Renderer {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.VertexData;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
       }
     }
   }
@@ -178,7 +179,7 @@ export class SpriteRenderer extends Renderer {
       this._customWidth = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.VertexData
+          ? SpriteRendererUpdateFlags.WorldVolumeUVAndColor
           : RendererUpdateFlags.WorldVolume;
     }
   }
@@ -204,7 +205,7 @@ export class SpriteRenderer extends Renderer {
       this._customHeight = value;
       this._dirtyUpdateFlag |=
         this._drawMode === SpriteDrawMode.Tiled
-          ? SpriteRendererUpdateFlags.VertexData
+          ? SpriteRendererUpdateFlags.WorldVolumeUVAndColor
           : RendererUpdateFlags.WorldVolume;
     }
   }
@@ -240,11 +241,11 @@ export class SpriteRenderer extends Renderer {
   /**
    * The mask layer the sprite renderer belongs to.
    */
-  get maskLayer(): number {
+  get maskLayer(): SpriteMaskLayer {
     return this._maskLayer;
   }
 
-  set maskLayer(value: number) {
+  set maskLayer(value: SpriteMaskLayer) {
     this._maskLayer = value;
   }
 
@@ -257,7 +258,6 @@ export class SpriteRenderer extends Renderer {
 
   set maskInteraction(value: SpriteMaskInteraction) {
     if (this._maskInteraction !== value) {
-      this._updateStencilState(this._maskInteraction, value);
       this._maskInteraction = value;
     }
   }
@@ -269,7 +269,7 @@ export class SpriteRenderer extends Renderer {
     super(entity);
     this.drawMode = SpriteDrawMode.Simple;
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
-    this.setMaterial(this._engine._spriteDefaultMaterial);
+    this.setMaterial(this._engine._basicResources.spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
@@ -288,7 +288,6 @@ export class SpriteRenderer extends Renderer {
    */
   override _cloneTo(target: SpriteRenderer, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
-    target._assembler.resetData(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }
@@ -315,16 +314,27 @@ export class SpriteRenderer extends Renderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (this.sprite) {
-      this._assembler.updatePositions(this);
+    const sprite = this._sprite;
+    if (sprite) {
+      this._assembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
     }
   }
 
   protected override _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+    const { _sprite: sprite } = this;
+    if (!sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -334,12 +344,20 @@ export class SpriteRenderer extends Renderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
-      material = this._engine._spriteDefaultMaterials[this._maskInteraction];
+      material = this._engine._basicResources.spriteDefaultMaterial;
     }
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      this._assembler.updatePositions(this);
+      this._assembler.updatePositions(
+        this,
+        this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY
+      );
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
@@ -351,7 +369,7 @@ export class SpriteRenderer extends Renderer {
 
     // Update color
     if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.Color) {
-      this._assembler.updateColor(this);
+      this._assembler.updateColor(this, 1);
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.Color;
     }
 
@@ -395,28 +413,6 @@ export class SpriteRenderer extends Renderer {
     this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
   }
 
-  private _updateStencilState(from: SpriteMaskInteraction, to: SpriteMaskInteraction): void {
-    const material = this.getMaterial();
-    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this._engine;
-    if (material === spriteDefaultMaterials[from]) {
-      this.setMaterial(spriteDefaultMaterials[to]);
-    } else {
-      const { stencilState } = material.renderState;
-      if (to === SpriteMaskInteraction.None) {
-        stencilState.enabled = false;
-        stencilState.writeMask = 0xff;
-        stencilState.referenceValue = 0;
-        stencilState.compareFunctionFront = stencilState.compareFunctionBack = CompareFunction.Always;
-      } else {
-        stencilState.enabled = true;
-        stencilState.writeMask = 0x00;
-        stencilState.referenceValue = 1;
-        stencilState.compareFunctionFront = stencilState.compareFunctionBack =
-          to === SpriteMaskInteraction.VisibleInsideMask ? CompareFunction.LessEqual : CompareFunction.Greater;
-      }
-    }
-  }
-
   @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
@@ -424,23 +420,37 @@ export class SpriteRenderer extends Renderer {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        const { _drawMode: drawMode } = this;
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AutomaticSize;
-        if (this._drawMode === SpriteDrawMode.Sliced) {
+        if (this._customWidth === undefined || this._customHeight === undefined) {
           this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-        } else if (drawMode === SpriteDrawMode.Tiled) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
-        } else {
-          // When the width and height of `SpriteRenderer` are `undefined`,
-          // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
-          if (this._customWidth === undefined || this._customHeight === undefined) {
+        }
+        switch (this._drawMode) {
+          case SpriteDrawMode.Simple:
+            // When the width and height of `SpriteRenderer` are `undefined`,
+            // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
+            if (this._customWidth === undefined || this._customHeight === undefined) {
+              this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+            }
+            break;
+          case SpriteDrawMode.Sliced:
             this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-          }
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
+            break;
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced &&
-          (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV);
+        switch (this._drawMode) {
+          case SpriteDrawMode.Sliced:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+            break;
+          case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
+            break;
+          default:
+            break;
+        }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
@@ -465,7 +475,7 @@ export class SpriteRenderer extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteRendererUpdateFlags {
   /** UV. */
@@ -474,10 +484,11 @@ enum SpriteRendererUpdateFlags {
   Color = 0x4,
   /** Automatic Size. */
   AutomaticSize = 0x8,
+
   /** WorldVolume and UV. */
-  WorldVolumeAndUV = RendererUpdateFlags.WorldVolume | SpriteRendererUpdateFlags.UV,
-  /** Vertex data.*/
-  VertexData = SpriteRendererUpdateFlags.WorldVolumeAndUV | SpriteRendererUpdateFlags.Color,
+  WorldVolumeAndUV = 0x3,
+  /** WorldVolume, UV and Color. */
+  WorldVolumeUVAndColor = 0x7,
   /** All. */
   All = 0xf
 }

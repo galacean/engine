@@ -20,9 +20,6 @@
   "material": {
     "title": "Material"
   },
-  "shader": {
-    "title": "Shader"
-  },
   "texture": {
     "title": "Texture"
   },
@@ -34,5 +31,8 @@
   },
   "postProcess": {
     "title": "Post Process"
+  },
+  "quality": {
+    "title": "Graphic Quality"
   }
 }

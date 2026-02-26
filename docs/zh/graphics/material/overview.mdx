@@ -1,0 +1,77 @@
+---
+title: 材质概述
+---
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*Iq8iRKWPAqgAAAAAAAAAAAAADgDwAQ/original" />
+
+材质（Material）是 3D 渲染中的核心概念，它决定了物体表面的视觉效果。在 Galacean 引擎中，材质由三个核心部分组成：
+
+## 核心组成
+
+### 🎨 着色器（Shader）
+着色器是运行在 GPU 上的程序，负责计算每个像素的最终颜色。Galacean 提供了强大的着色器语言，让你能够：
+- 使用熟悉的 GLSL 语法
+- 享受高级抽象和管理特性
+- 轻松定义材质属性和渲染配置
+
+参考 [Shader 介绍](/docs/graphics/material/shader) 了解 Shader 语法。
+
+### 📊 着色器数据（ShaderData）
+着色器数据包含了渲染所需的各种参数，如：
+- **材质属性**：颜色、纹理、粗糙度等
+- **内置变量**：时间、相机位置、光照信息等
+- **宏开关**：控制着色器功能的开启和关闭
+
+参考 [内置变量文档](/docs/graphics/material/variables) 了解可用的内置变量。
+
+### ⚙️ 渲染状态（RenderStates）
+渲染状态控制 GPU 如何处理几何体，包括：
+- **混合状态**：控制透明度和颜色混合
+- **深度状态**：控制深度测试和写入
+- **模板状态**：实现复杂的遮罩效果
+- **光栅状态**：控制面剔除和多边形模式
+
+参考 [渲染状态](/docs/graphics/material/shader/#渲染状态规范) 了解可配置的所有渲染状态。
+
+## 快速开始
+<Callout type="info">
+如果你还不了解如何创建材质、使用材质，可以先前往 [材质的基本使用](/docs/graphics/material/baseUse) 了解基础使用。
+</Callout>
+
+### 使用内置着色器
+Galacean 提供了多种开箱即用的着色器：
+
+| 着色器类型 | 适用场景 | 特点 |
+|-----------|---------|------|
+| [PBR](/docs/graphics/material/builtinShaders/pbr) | 真实感渲染 | 基于物理，遵循能量守恒 |
+| [Unlit](/docs/graphics/material/builtinShaders/unlit) | 烘焙模型 | 不受光照影响，性能优秀 |
+| [Blinn Phong](/docs/graphics/material/builtinShaders/blinnPhong) | 经典光照 | 高效的传统光照模型 |
+
+### 创建自定义着色器
+当内置着色器无法满足需求时，你可以创建自定义着色器：
+
+```ts
+// 创建材质
+const material = new Material(engine, shader);
+
+// 设置材质属性
+material.shaderData.setColor("material_BaseColor", new Color(1, 0, 0, 1));
+material.shaderData.setTexture("material_BaseTexture", texture);
+```
+
+<Callout type="info">
+想要快速上手？直接跳转到 [自定义 Shader 实战教程](/docs/graphics/material/examples/shaderlab-01-basic-shader) 开始你的第一个自定义着色器！
+</Callout>
+
+## 推荐学习顺序
+
+1. **了解基础**：阅读本概述，理解材质的核心概念
+2. **体验内置**：尝试使用 [内置着色器](/docs/graphics/material/builtinShaders)
+3. **动手实践**：跟随 [实战教程](/docs/graphics/material/examples/shaderlab-01-basic-shader) 创建第一个自定义着色器
+4. **深入学习**：查阅 [着色器介绍](/docs/graphics/material/shader) 了解完整语法
+5. **解决问题**：使用 [Shader 内置变量](/docs/graphics/material/variables) 和 [Shader API](/docs/graphics/material/shaderAPI)
+
+
+<Callout type="info">
+更多实际案例请查看 [在线示例](/examples/shaderlab-01-basic-shader)。
+</Callout>

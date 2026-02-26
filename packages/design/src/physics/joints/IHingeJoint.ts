@@ -11,11 +11,6 @@ export interface IHingeJoint extends IJoint {
   setAxis(value: Vector3): void;
 
   /**
-   * The swing offset.
-   */
-  setSwingOffset(value: Vector3): void;
-
-  /**
    * The current angle in degrees of the joint relative to its rest position.
    */
   getAngle(): number;

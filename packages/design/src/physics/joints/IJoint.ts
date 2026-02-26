@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "../ICollider";
 
 /**
@@ -17,22 +17,33 @@ export interface IJoint {
   setConnectedAnchor(value: Vector3): void;
 
   /**
-   *  The scale to apply to the inverse mass of collider 0 for resolving this constraint.
+   * The anchor position.
+   */
+  setAnchor(value: Vector3): void;
+
+  /**
+   *  The scale to apply to the inverse mass of collider1 for resolving this constraint.
    */
   setConnectedMassScale(value: number): void;
 
   /**
-   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
+   * The rotation of the joint.
+   * @param value The rotation of the joint.
    */
-  setConnectedInertiaScale(value: number): void;
+  setRotation(value: Quaternion): void;
 
   /**
-   * The scale to apply to the inverse mass of collider 1 for resolving this constraint.
+   * The scale to apply to the inverse mass of collider0 for resolving this constraint.
    */
   setMassScale(value: number): void;
 
   /**
    * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
+   */
+  setConnectedInertiaScale(value: number): void;
+
+  /**
+   * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
    */
   setInertiaScale(value: number): void;
 
@@ -45,4 +56,9 @@ export interface IJoint {
    * The maximum torque the joint can apply before breaking.
    */
   setBreakTorque(value: number): void;
+
+  /**
+   * Destroy the joint.
+   */
+  destroy(): void;
 }

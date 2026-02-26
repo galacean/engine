@@ -2,7 +2,7 @@ import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/en
 import { Camera } from "../Camera";
 import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
-import { RenderContext, ContextRendererUpdateFlag } from "../RenderPipeline/RenderContext";
+import { ContextRendererUpdateFlag, RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { PipelineStage } from "../RenderPipeline/index";
 import { GLCapabilityType } from "../base/Constant";
@@ -119,6 +119,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         format,
         true,
         false,
+        false,
         1,
         TextureWrapMode.Clamp,
         TextureFilterMode.Bilinear
@@ -132,6 +133,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         height,
         format,
         null,
+        false,
         false,
         false,
         1,
@@ -149,7 +151,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
     this._depthTexture = shadowTexture;
 
     // @todo: shouldn't set viewport and scissor in activeRenderTarget
-    rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, context.flipProjection, 0);
+    context.setRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
     if (this._supportDepthTexture) {
       rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
     } else {
@@ -187,7 +189,7 @@ export class CascadedShadowCasterPass extends PipelinePass {
         lightSide,
         lightForward,
         j,
-        light.shadowNearPlane,
+        light.shadowNearPlaneOffset,
         shadowTileResolution,
         shadowSliceData,
         shadowMatrices
@@ -385,7 +387,10 @@ export class CascadedShadowCasterPass extends PipelinePass {
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
     // Every light use self virtual camera
-    context.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+    const { opaqueQueue, alphaTestQueue } = context.camera._renderPipeline._cullingResults;
+    opaqueQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+    alphaTestQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.viewProjectionMatrix;
+
     context.applyVirtualCamera(virtualCamera, true);
   }
 }

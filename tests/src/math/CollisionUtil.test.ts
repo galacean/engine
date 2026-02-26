@@ -10,7 +10,7 @@ import {
   Ray,
   Vector3
 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("CollisionUtil", () => {
   const plane = new Plane(new Vector3(0, 1, 0), -5);

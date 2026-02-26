@@ -19,9 +19,10 @@ import {
   Texture2D,
   Texture2DArray,
   TextureCube,
-  TextureCubeFace
+  TextureCubeFace,
+  TextureFormat
 } from "@galacean/engine-core";
-import { IHardwareRenderer, IPlatformPrimitive } from "@galacean/engine-design";
+import { IHardwareRenderer, IPlatformPrimitive, IPlatformShaderProgram } from "@galacean/engine-design";
 import { Color, Vector4 } from "@galacean/engine-math";
 import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
@@ -51,7 +52,7 @@ export enum WebGLMode {
 /**
  * WebGL graphic device options.
  */
-export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
+export interface WebGLGraphicDeviceOptions {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
 
@@ -68,6 +69,16 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
    * @remarks large count maybe cause performance issue.
    */
   _maxAllowSkinUniformVectorCount?: number;
+
+  alpha?: boolean;
+  depth?: boolean;
+  desynchronized?: boolean;
+  failIfMajorPerformanceCaveat?: boolean;
+  powerPreference?: WebGLPowerPreference;
+  premultipliedAlpha?: boolean;
+  preserveDrawingBuffer?: boolean;
+  stencil?: boolean;
+  xrCompatible?: boolean;
 }
 
 /**
@@ -88,6 +99,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _currentBindShaderProgram: any;
 
   private _options: WebGLGraphicDeviceOptions;
+  private _webGLOptions: WebGLContextAttributes;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _extensions;
@@ -136,13 +148,22 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   }
 
   constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
-    const options = {
+    const options = <WebGLGraphicDeviceOptions>{
       webGLMode: WebGLMode.Auto,
-      stencil: true,
       _forceFlush: false,
       _maxAllowSkinUniformVectorCount: 256,
+      alpha: true,
+      depth: true,
+      stencil: true,
+      failIfMajorPerformanceCaveat: false,
+      powerPreference: "default",
+      premultipliedAlpha: true,
+      preserveDrawingBuffer: false,
+      desynchronized: false,
+      xrCompatible: false,
       ...initializeOptions
     };
+
     if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
       const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
       if (version) {
@@ -155,14 +176,27 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     }
     this._options = options;
 
+    // Force disable stencil, antialias and depth, we configure them in internal render target
+    this._webGLOptions = {
+      antialias: false,
+      depth: false,
+      stencil: false,
+      alpha: options.alpha,
+      failIfMajorPerformanceCaveat: options.failIfMajorPerformanceCaveat,
+      powerPreference: options.powerPreference,
+      premultipliedAlpha: options.premultipliedAlpha,
+      preserveDrawingBuffer: options.preserveDrawingBuffer,
+      desynchronized: options.desynchronized,
+      xrCompatible: options.xrCompatible
+    };
+
     this._onWebGLContextLost = this._onWebGLContextLost.bind(this);
     this._onWebGLContextRestored = this._onWebGLContextRestored.bind(this);
   }
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
-    const options = this._options;
     const webCanvas = (canvas as WebCanvas)._webCanvas;
-    const webGLMode = options.webGLMode;
+    const webGLMode = this._options.webGLMode;
 
     this._onDeviceLost = onDeviceLost;
     this._onDeviceRestored = onDeviceRestored;
@@ -172,15 +206,16 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     this._webCanvas = webCanvas;
 
+    const webGLOptions = this._webGLOptions;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", options);
+      gl = webCanvas.getContext("webgl2", webGLOptions);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", options);
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
       }
       this._isWebGL2 = true;
 
-      // Prevent weird browsers to lie (such as safari!)
+      // Prevent weird browsers to lie (such as safari!)ƒ
       if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
         this._isWebGL2 = false;
       }
@@ -188,9 +223,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
 
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", options);
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
         if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", options);
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
         }
         this._isWebGL2 = false;
       }
@@ -277,7 +312,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._gl.colorMask(r, g, b, a);
   }
 
-  clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
+  clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor?: Color) {
     const gl = this._gl;
 
     const {
@@ -287,7 +322,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       // @ts-ignore
     } = engine._lastRenderState;
     let clearFlag = 0;
-    if (clearFlags & CameraClearFlags.Color) {
+    if (clearFlags & CameraClearFlags.Color && clearColor) {
       clearFlag |= gl.COLOR_BUFFER_BIT;
 
       const lc = this._lastClearColor;
@@ -319,7 +354,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
-  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: any) {
+  drawPrimitive(primitive: GLPrimitive, subPrimitive: SubMesh, shaderProgram: IPlatformShaderProgram) {
     // todo: VAO not support morph animation
     if (primitive) {
       primitive.draw(shaderProgram, subPrimitive);
@@ -340,7 +375,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     renderTarget: RenderTarget,
     viewport: Vector4,
     isFlipProjection: boolean,
-    mipLevel: number,
+    mipLevel?: number,
     faceIndex?: TextureCubeFace
   ) {
     let bufferWidth: number, bufferHeight: number;
@@ -367,6 +402,103 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const y = isFlipProjection ? viewport.y * bufferHeight : bufferHeight - viewport.y * bufferHeight - height;
     this.viewport(x, y, width, height);
     this.scissor(x, y, width, height);
+  }
+
+  blitInternalRTByBlitFrameBuffer(
+    srcRT: RenderTarget,
+    destRT: RenderTarget,
+    clearFlags: CameraClearFlags,
+    viewport: Vector4
+  ) {
+    if (!this._isWebGL2) {
+      Logger.warn("WebGL1.0 not support blit frame buffer.");
+      return;
+    }
+    const gl = this._gl;
+    // @ts-ignore
+    const srcFrameBuffer = srcRT ? srcRT._platformRenderTarget._frameBuffer : null;
+    // @ts-ignore
+    const destFrameBuffer = destRT ? destRT._platformRenderTarget._frameBuffer : null;
+    const bufferWidth = this.getMainFrameBufferWidth();
+    const bufferHeight = this.getMainFrameBufferHeight();
+    const srcWidth = srcRT ? srcRT.width : bufferWidth;
+    const srcHeight = srcRT ? srcRT.height : bufferHeight;
+    const blitWidth = destRT.width;
+    const blitHeight = destRT.height;
+    const needFlipY = !srcRT;
+    const needBlitColor = (clearFlags & CameraClearFlags.Color) === 0;
+    const needBlitDepth = (clearFlags & CameraClearFlags.Depth) === 0;
+    const needBlitStencil = (clearFlags & CameraClearFlags.Stencil) === 0;
+
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, srcFrameBuffer);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, destFrameBuffer);
+
+    let blitMask = needBlitColor ? gl.COLOR_BUFFER_BIT : 0;
+
+    if (needBlitDepth || needBlitStencil) {
+      // @ts-ignore
+      const depthFormat = destRT._depthFormat;
+
+      if (needBlitDepth) {
+        if (
+          depthFormat === TextureFormat.Depth ||
+          (depthFormat >= TextureFormat.DepthStencil && depthFormat <= TextureFormat.Depth32Stencil8)
+        ) {
+          blitMask |= gl.DEPTH_BUFFER_BIT;
+        } else {
+          Logger.warn(`Do not clear depth, or set depth format of target which is ${TextureFormat[depthFormat]} now.`);
+        }
+      }
+
+      if (needBlitStencil) {
+        if (
+          depthFormat === TextureFormat.Stencil ||
+          depthFormat === TextureFormat.DepthStencil ||
+          depthFormat >= TextureFormat.Depth24Stencil8 ||
+          depthFormat >= TextureFormat.Depth32Stencil8
+        ) {
+          blitMask |= gl.STENCIL_BUFFER_BIT;
+        } else {
+          Logger.warn(
+            `Do not clear stencil, or set stencil format of target which is ${TextureFormat[depthFormat]} now.`
+          );
+        }
+      }
+    }
+
+    const xStart = viewport.x * srcWidth;
+    const xEnd = xStart + blitWidth;
+    const yStart = needFlipY ? srcHeight - viewport.y * srcHeight : srcHeight - viewport.y * srcHeight - blitHeight;
+    const yEnd = needFlipY ? yStart - blitHeight : yStart + blitHeight;
+
+    gl.blitFramebuffer(xStart, yStart, xEnd, yEnd, 0, 0, blitWidth, blitHeight, blitMask, gl.NEAREST);
+  }
+
+  copyRenderTargetToSubTexture(srcRT: RenderTarget, grabTexture: Texture2D, viewport: Vector4) {
+    const gl = this._gl;
+    const bufferWidth = this.getMainFrameBufferWidth();
+    const bufferHeight = this.getMainFrameBufferHeight();
+    const srcWidth = srcRT ? srcRT.width : bufferWidth;
+    const srcHeight = srcRT ? srcRT.height : bufferHeight;
+    const copyWidth = grabTexture.width;
+    const copyHeight = grabTexture.height;
+    const flipY = !srcRT;
+
+    const xStart = viewport.x * srcWidth;
+    const yStart = flipY ? srcHeight - viewport.y * srcHeight - copyHeight : viewport.y * srcHeight;
+
+    // @ts-ignore
+    const frameBuffer = srcRT?._platformRenderTarget._frameBuffer ?? this._mainFrameBuffer;
+
+    // @ts-ignore
+    gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+
+    // @ts-ignore
+    const glTexture = grabTexture._platformTexture;
+
+    glTexture._bind();
+
+    gl.copyTexSubImage2D(glTexture._target, 0, 0, 0, xStart, yStart, copyWidth, copyHeight);
   }
 
   activeTexture(textureID: number): void {
@@ -408,6 +540,14 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   forceRestoreDevice(): void {
     const extension = this.requireExtension(GLCapabilityType.WEBGL_lose_context);
     extension.restoreContext();
+  }
+
+  /**
+   * @remarks
+   * WebGL context loss and restore can happen at any GPU execution point. refs to: https://www.khronos.org/webgl/wiki/HandlingContextLost
+   */
+  isContextLost() {
+    return this.gl.isContextLost();
   }
 
   resetState(): void {

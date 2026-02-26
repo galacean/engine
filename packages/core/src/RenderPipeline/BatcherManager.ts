@@ -8,19 +8,37 @@ import { SubRenderElement } from "./SubRenderElement";
  * @internal
  */
 export class BatcherManager {
-  primitiveChunkManager2D: PrimitiveChunkManager;
-  primitiveChunkManagerMask: PrimitiveChunkManager;
+  private _primitiveChunkManager2D: PrimitiveChunkManager;
+  private _primitiveChunkManagerMask: PrimitiveChunkManager;
+  private _primitiveChunkManagerUI: PrimitiveChunkManager;
 
-  constructor(engine: Engine) {
-    this.primitiveChunkManager2D = new PrimitiveChunkManager(engine);
-    this.primitiveChunkManagerMask = new PrimitiveChunkManager(engine, 128);
+  constructor(public engine: Engine) {}
+
+  get primitiveChunkManager2D(): PrimitiveChunkManager {
+    return (this._primitiveChunkManager2D ||= new PrimitiveChunkManager(this.engine));
+  }
+
+  get primitiveChunkManagerMask(): PrimitiveChunkManager {
+    return (this._primitiveChunkManagerMask ||= new PrimitiveChunkManager(this.engine, 128));
+  }
+
+  get primitiveChunkManagerUI(): PrimitiveChunkManager {
+    return (this._primitiveChunkManagerUI ||= new PrimitiveChunkManager(this.engine));
   }
 
   destroy() {
-    this.primitiveChunkManager2D.destroy();
-    this.primitiveChunkManagerMask.destroy();
-    this.primitiveChunkManager2D = null;
-    this.primitiveChunkManagerMask = null;
+    if (this._primitiveChunkManager2D) {
+      this._primitiveChunkManager2D.destroy();
+      this._primitiveChunkManager2D = null;
+    }
+    if (this._primitiveChunkManagerMask) {
+      this._primitiveChunkManagerMask.destroy();
+      this._primitiveChunkManagerMask = null;
+    }
+    if (this._primitiveChunkManagerUI) {
+      this._primitiveChunkManagerUI.destroy();
+      this._primitiveChunkManagerUI = null;
+    }
   }
 
   batch(renderQueue: RenderQueue): void {
@@ -65,7 +83,8 @@ export class BatcherManager {
   }
 
   uploadBuffer() {
-    this.primitiveChunkManager2D.uploadBuffer();
-    this.primitiveChunkManagerMask.uploadBuffer();
+    this._primitiveChunkManager2D?.uploadBuffer();
+    this._primitiveChunkManagerMask?.uploadBuffer();
+    this._primitiveChunkManagerUI?.uploadBuffer();
   }
 }

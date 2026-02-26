@@ -1,0 +1,158 @@
+---
+order: 6
+title: Lottie
+type: Graphics
+group: 2D
+label: Graphics/2D
+---
+
+**[Lottie](https://airbnb.io/lottie/)** is a cross-platform animation solution released by Airbnb around 2017, supporting iOS, Android, React Native, and web. It uses the Bodymovin plugin to parse [Adobe After Effects (AE)](https://www.adobe.com/products/aftereffects.html) animations and exports JSON files for rendering animations on mobile and web platforms. Designers create animations in AE, export JSON files via Bodymovin, and developers use these JSON files to achieve 100% faithful animation reproduction.
+
+In Galacean, users can easily handle Lottie assets and add components.
+
+<Callout type="warning">Vector animations and masks are currently not supported.</Callout>
+
+### **Asset Upload**
+
+Designers are advised to export Lottie files with images embedded in Base64 format within the JSON file. Developers should upload the `.json` file to Galacean Editor via the **Assets Panel**:
+
+1. Click the **Upload** button in the Assets Panel.  
+2. Select **Lottie** as the asset type.  
+3. Choose a local [Lottie JSON file](https://github.com/galacean/galacean.github.io/files/14106485/_Lottie.3.json) and upload it.  
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*UQ1LTI_mYv4AAAAAAAAAAAAADjCHAQ/original" />  
+
+### **Adding Components**
+
+1. Select an entity and add the **Lottie component**.  
+2. Assign the `resource` property to the uploaded asset to display and play the Lottie animation.  
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ehFMT7vBaCAAAAAAAAAAAAAADjCHAQ/original" />  
+
+Adjust parameters in the Properties Panel for customization:  
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*OswOQI837OkAAAAAAAAAAAAADjCHAQ/original" />  
+
+| Property       | Description                                                                 |
+|----------------|-----------------------------------------------------------------------------|
+| `resource`     | Select Lottie asset.                                                        |
+| `autoPlay`     | Auto-play on load. Default: `true`.                                         |
+| `isLooping`    | Loop animation. Default: `true`.                                            |
+| `speed`        | Playback speed. `1` = original speed. Higher values = faster.               |
+| `priority`     | Rendering priority. Lower values = higher priority.                         |
+
+#### **Runtime Configuration**  
+To dynamically configure Lottie during runtime:  
+```typescript
+// Get the Lottie component from the entity
+const lottie = lottieEntity.getComponent(LottieAnimation);
+// Set properties
+lottie.speed = 2;
+```
+
+To dynamically create a Lottie component:  
+```typescript
+// Load Lottie resource
+const lottieResource = await engine.resourceManager.load({ 
+  url: '/光球.json', 
+  type: 'EditorLottie' 
+});
+// Add Lottie component to an entity
+const lottie = entity.addComponent(LottieAnimation);
+lottie.resource = lottieResource;
+```
+
+#### **API Methods**  
+| Method     | Description                                  |
+|------------|----------------------------------------------|
+| `play()`   | Play animation. Accepts clip names.         |
+| `pause()`  | Pause animation.                            |
+
+### **Animation End Event**  
+Use the `Promise` returned by `play()` to detect animation completion:  
+```typescript
+const lottie = lottieEntity.getComponent(LottieAnimation);
+await lottie.play();
+// Execute follow-up logic...
+```
+
+### **Clip Slicing**  
+The editor supports slicing animations into segments by defining `name`, `start`, and `end` frames. This adds a `lolitaAnimations` field to the Lottie JSON:  
+
+```json
+"lolitaAnimations": [
+  { "name": "clip1", "start": 0, "end": 30 },
+  { "name": "clip2", "start": 50, "end": 100 }
+]
+```
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*skjbSZjSpYoAAAAAAAAAAAAADjCHAQ/original" />  
+
+### **Dependency Installation**  
+Install the required package:  
+```bash
+npm i @galacean/engine-lottie --save
+```
+
+### **Pro Code Development**  
+For Pro Code workflows, use [tools-atlas-lottie](https://www.npmjs.com/package/@galacean/tools-atlas-lottie) to generate an `.atlas` file from the JSON:  
+
+```typescript
+import { LottieAnimation } from "@galacean/engine-lottie";
+
+engine.resourceManager.load({
+  urls: [
+    "https://gw.alipayobjects.com/os/bmw-prod/b46be138-e48b-4957-8071-7229661aba53.json",
+    "https://gw.alipayobjects.com/os/bmw-prod/6447fc36-db32-4834-9579-24fe33534f55.atlas"
+  ],
+  type: 'lottie'
+}).then((lottieEntity) => {
+  root.addChild(lottieEntity);
+  const lottie = lottieEntity.getComponent(LottieAnimation);
+  lottie.isLooping = true;
+  lottie.speed = 1;
+  lottie.play();
+});
+```
+
+### **3D Transformations**  
+Galacean supports 3D rotations (X/Y/Z axes), unlike traditional `lottie-web` solutions limited to Z-axis rotations.  
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*qVYxTaEdVBgAAAAAAAAAAAAAARQnAQ" alt="3D rotation" style={{zoom:"50%"}} />  
+
+### **Version Compatibility**  
+| Engine Version | Lottie Version       |
+|----------------|----------------------|
+| 1.2.x          | 1.1.0-beta.0        |
+| 1.3.x          | engine-1.3          |
+| 1.4.x          | engine-1.4          |
+| 1.5.x          | engine-1.5          |
+
+## **Performance Recommendations**  
+
+### **Asset Optimization**  
+1. Prioritize shape layers (SVG/AI conversions) and remove redundant vector nodes.  
+2. Keep single-cycle animations and control loops via code.  
+3. Use PNGs for static elements and `transform` for dynamic elements.  
+
+### **Animation Design**  
+1. Simplify keyframes (≤30 fps).  
+2. Minimize path animations; prefer translation/rotation.  
+3. Limit duration to ≤3 seconds with overlapping actions.  
+
+### **Layer Management**  
+1. Keep layers ≤20.  
+2. Merge duplicates into pre-composed components.  
+3. Remove hidden layers and unused properties.  
+
+### **Production Guidelines**  
+1. Design canvas to fit target screens.  
+2. Match design and export dimensions.  
+3. Use English AE with standardized layer names.  
+
+### **Export Requirements**  
+1. Export 1x assets only.  
+2. Remove redundant AI group data.  
+3. Avoid particle effects and large vector areas.  
+
+<Callout type="info">Optimizations must preserve core visual quality.</Callout>  

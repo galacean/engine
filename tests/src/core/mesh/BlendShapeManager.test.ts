@@ -3,18 +3,13 @@ import {
   Entity,
   BlendShape,
   SkinnedMeshRenderer,
-  Shader,
   PrimitiveMesh,
   BlendShapeFrame,
-  VertexBufferBinding,
-  Buffer,
-  BufferBindFlag,
-  BufferUsage,
   UnlitMaterial
 } from "@galacean/engine-core";
 import { WebGLEngine, WebGLMode } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("BlendShapeManager", () => {
   let engineWebGL2: WebGLEngine;
@@ -22,11 +17,10 @@ describe("BlendShapeManager", () => {
   let rootEntity1: Entity;
   let rootEntity2: Entity;
 
-  before(async () => {
+  beforeAll(async () => {
     engineWebGL2 = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
-    engineWebGL2.canvas.resizeByClientSize();
 
     rootEntity1 = engineWebGL2.sceneManager.activeScene.createRootEntity("root");
     const cameraEntity = rootEntity1.createChild("camera");
@@ -42,7 +36,6 @@ describe("BlendShapeManager", () => {
         webGLMode: WebGLMode.WebGL1
       }
     });
-    engineWebGL1.canvas.resizeByClientSize();
 
     rootEntity2 = engineWebGL1.sceneManager.activeScene.createRootEntity("root");
     const cameraEntity2 = rootEntity2.createChild("camera");

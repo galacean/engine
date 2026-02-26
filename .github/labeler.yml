@@ -1,5 +1,5 @@
 documentation:
 - changed-files:
   - any-glob-to-any-file:
-    - docs/*
-    - examples/*
+    - docs/**
+    - examples/**

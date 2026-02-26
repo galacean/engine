@@ -2,7 +2,6 @@ import {
   AssetPromise,
   AssetType,
   BackgroundMode,
-  BloomEffect,
   DiffuseMode,
   Font,
   Loader,
@@ -11,19 +10,34 @@ import {
   Mesh,
   resourceLoader,
   ResourceManager,
-  Scene,
-  TonemappingEffect
+  Scene
 } from "@galacean/engine-core";
-import { IClassObject, IScene, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
+import {
+  IClass,
+  IScene,
+  ParserContext,
+  ParserType,
+  ReflectionParser,
+  SceneParser,
+  SpecularMode
+} from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
-    return new AssetPromise((resolve, reject) => {
-      this.request<IScene>(item.url, { ...item, type: "json" })
-        .then((data) => {
-          return SceneParser.parse(engine, data).then((scene) => {
+    return new AssetPromise((resolve, reject, setTaskCompleteProgress) => {
+      resourceManager
+        // @ts-ignore
+        ._request<IScene>(item.url, { ...item, type: "json" })
+        .then((data: IScene) => {
+          const scene = new Scene(engine, data.name ?? "");
+          const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+          const parser = new SceneParser(data, context, scene);
+          parser._collectDependentAssets(data);
+          context._setTaskCompleteProgress = setTaskCompleteProgress;
+          parser.start();
+          return parser.promise.then(() => {
             const promises = [];
             // parse ambient light
             const ambient = data.scene.ambient;
@@ -127,29 +141,23 @@ class SceneLoader extends Loader<Scene> {
             // Post Process
             const postProcessData = data.scene.postProcess;
             if (postProcessData) {
-              // @ts-ignore
-              const postProcessManager = scene._postProcessManager;
-              const bloomEffect = postProcessManager._bloomEffect as BloomEffect;
-              const tonemappingEffect = postProcessManager._tonemappingEffect as TonemappingEffect;
+              Logger.warn(
+                "Post Process is not supported in scene yet, please add PostProcess component in entity instead."
+              );
+            }
 
-              postProcessManager.isActive = postProcessData.isActive;
-              bloomEffect.enabled = postProcessData.bloom.enabled;
-              bloomEffect.downScale = postProcessData.bloom.downScale;
-              bloomEffect.threshold = postProcessData.bloom.threshold;
-              bloomEffect.scatter = postProcessData.bloom.scatter;
-              bloomEffect.intensity = postProcessData.bloom.intensity;
-              bloomEffect.tint.copyFrom(postProcessData.bloom.tint);
-              bloomEffect.dirtIntensity = postProcessData.bloom.dirtIntensity;
-              tonemappingEffect.enabled = postProcessData.tonemapping.enabled;
-              tonemappingEffect.mode = postProcessData.tonemapping.mode;
-              if (postProcessData.bloom.dirtTexture) {
-                // @ts-ignore
-                // prettier-ignore
-                const dirtTexturePromise = resourceManager.getResourceByRef<any>(postProcessData.bloom.dirtTexture).then((texture) => {
-                    bloomEffect.dirtTexture = texture;
-                });
-                promises.push(dirtTexturePromise);
-              }
+            // Ambient Occlusion
+            const ambientOcclusion = data.scene.ambientOcclusion;
+            if (ambientOcclusion) {
+              const sceneAmbientOcclusion = scene.ambientOcclusion;
+              sceneAmbientOcclusion.enabled = ambientOcclusion.enabledAmbientOcclusion;
+              sceneAmbientOcclusion.intensity = ambientOcclusion.intensity;
+              sceneAmbientOcclusion.radius = ambientOcclusion.radius;
+              sceneAmbientOcclusion.bias = ambientOcclusion.bias;
+              sceneAmbientOcclusion.power = ambientOcclusion.power;
+              sceneAmbientOcclusion.quality = ambientOcclusion.quality;
+              sceneAmbientOcclusion.bilateralThreshold = ambientOcclusion.bilateralThreshold;
+              sceneAmbientOcclusion.minHorizonAngle = ambientOcclusion.minHorizonAngle;
             }
 
             return Promise.all(promises).then(() => {
@@ -162,14 +170,11 @@ class SceneLoader extends Loader<Scene> {
   }
 }
 
-ReflectionParser.registerCustomParseComponent(
-  "TextRenderer",
-  async (instance: any, item: Omit<IClassObject, "class">) => {
-    const { props } = item;
-    if (!props.font) {
-      // @ts-ignore
-      instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
-    }
-    return instance;
+ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: Omit<IClass, "class">) => {
+  const { props } = item;
+  if (!props.font) {
+    // @ts-ignore
+    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
   }
-);
+  return instance;
+});

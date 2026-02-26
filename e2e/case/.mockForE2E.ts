@@ -1,4 +1,4 @@
-import { Camera, Engine, RenderTarget, Texture2D } from "@galacean/engine-core";
+import { Camera, Engine, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 
 export const updateForE2E = (engine, deltaTime = 100, loopTime = 10) => {
   engine._vSyncCount = Infinity;
@@ -19,7 +19,7 @@ let flipYCanvas: HTMLCanvasElement = null;
 
 export function initScreenshot(
   engine: Engine,
-  camera: Camera,
+  camera: Camera | Camera[],
   width: number = 1200,
   height: number = 800,
   flipY = false,
@@ -38,15 +38,25 @@ export function initScreenshot(
   const isPaused = engine.isPaused;
   engine.pause();
 
-  const originalTarget = camera.renderTarget;
+  const cameras = Array.isArray(camera) ? camera : [camera];
+  const callbacks = [];
   const renderColorTexture = new Texture2D(engine, width, height);
   const renderTargetData = new Uint8Array(width * height * 4);
-  const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, undefined, 1);
+  const renderTarget = new RenderTarget(engine, width, height, renderColorTexture, TextureFormat.Depth24Stencil8, 1);
 
-  // render to off-screen
-  camera.renderTarget = renderTarget;
-  camera.aspectRatio = width / height;
-  camera.render();
+  cameras.forEach((camera) => {
+    const originalTarget = camera.renderTarget;
+
+    // render to off-screen
+    camera.renderTarget = renderTarget;
+    camera.aspectRatio = width / height;
+    camera.render();
+
+    callbacks.push(() => {
+      camera.renderTarget = originalTarget;
+      camera.resetAspectRatio();
+    });
+  });
 
   renderColorTexture.getPixelBuffer(0, 0, width, height, 0, renderTargetData);
 
@@ -82,20 +92,27 @@ export function initScreenshot(
       const imageName = `${category}_${caseFileName}.jpg`;
       a.href = url;
       a.download = imageName;
-      a.id = "screenshot";
+      a.dataset.testid = "screenshot";
+      a.textContent = "Download Screenshot";
+      a.style.cssText = `
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 9999;
+        background: #007bff;
+        color: white;
+        padding: 8px 16px;
+        border-radius: 4px;
+        text-decoration: none;
+        font-family: Arial, sans-serif;
+        font-size: 14px;
+        border: none;
+        cursor: pointer;
+      `;
       document.body.appendChild(a);
 
-      a.addEventListener("click", () => {
-        if (a.parentElement) {
-          a.parentElement.removeChild(a);
-        }
-      });
-
-      // window.URL.revokeObjectURL(url);
-
       // revert
-      camera.renderTarget = originalTarget;
-      camera.resetAspectRatio();
+      callbacks.forEach((cb) => cb());
       !isPaused && engine.resume();
     },
     isPNG ? "image/png" : "image/jpeg",

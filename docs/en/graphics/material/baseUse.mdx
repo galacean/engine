@@ -1,0 +1,85 @@
+---
+title: Basic Material Usage
+---
+
+## Creating Materials
+
+There are generally 3 ways to create materials:
+
+### 1. Manual Creation
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/b01b0ee2-317e-4acb-8c2f-e07736179d67/image-20240206163405147.png" />
+
+### 2. Materials from Models
+
+Refer to the [Model Import and Usage](/en/docs/graphics/model/use/) tutorial. We can first import the model into the editor. Generally, the model is automatically bound with materials, and users don't need to do anything.
+
+#### 2.1. Remap Materials
+
+If you want to modify model materials, we can click the `duplicate and remap` button to generate a copy of that material. Note that Remap will modify the model preset, and all model instances will be affected as shown below:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/4a41f66e-5523-43f0-a9b5-4028b9d14cbc/2025-01-24%25252015.30.31.gif" />
+
+#### 2.2. Incremental Modification
+
+If you only want to modify the material of a specific model, you can use the incremental modification feature:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/5d2409f2-a7b2-4b5e-9e6a-9845c3358af3/2025-01-24%25252015.32.04.gif" />
+
+### 3. Binding Materials
+
+We can directly drag materials into the scene to bind them.
+
+## Switching Shaders
+
+You can select materials in the editor and switch shaders to observe real-time rendering effect changes.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/cd87c11a-7a68-4cde-a19a-40cff943e878/2025-02-10%25252017.05.33.gif" />
+
+Each shader has different rendering effects and application scenarios. For more details, refer to [Built-in Shader Tutorial](/en/docs/graphics/material/builtinShaders/pbr/) and [Custom Shader Tutorial](/en/docs/graphics/material/examples/shaderlab-01-basic-shader).
+
+## Creating Custom Shaders
+If built-in shaders cannot meet your needs, we can create a custom shader. In the editor asset panel, create a new Shader and choose PBR template or Unlit template:
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/9abd1026-4e4d-4994-b36a-f964375c38cb/image-20240731105324320.png"
+  style={{ zoom: "50%" }}
+/>
+
+The editor will automatically help us create the Shader file and [UIScript](/en/docs/graphics/material/shader/#uiscript-script-system) file.
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/6351fa81-5159-4469-bd95-8f21a8f2f4ac/image-20250124162909194.png"
+  style={{ zoom: "50%" }}
+/>
+
+<Callout type="info">
+For specific shader content writing, you can quickly get started with [Custom Shader Tutorial](/en/docs/graphics/material/examples/shaderlab-01-basic-shader).
+</Callout>
+
+## Shader Data Transfer
+
+Like other programming languages, we also use many variables when writing shaders. First, the engine has many [built-in variables](/en/docs/graphics/material/variables), which we don't need to set manually and can be used directly in shaders. Next, let's see how to set and use custom data.
+
+### Declaring Variables
+```glsl showLineNumbers
+...
+Pass "Forward" {
+    // Declare custom variables
+    vec4 u_color;
+
+    // Declare engine built-in variables
+    mat4 renderer_MVPMat;
+
+    // Through including code fragments
+    #include "Transform.glsl"
+}
+...
+```
+
+## Next Steps
+- [Custom Shader](/en/docs/graphics/material/examples/shaderlab-01-basic-shader) - Start your shader creation journey from scratch
+- [Shader Syntax Deep Learning](/en/docs/graphics/material/shader) - Complete syntax reference
+- [Shader Built-in Variables Reference](/en/docs/graphics/material/variables) - All built-in variables provided by the engine
+- [Shader Built-in API Reference](/en/docs/graphics/material/shaderAPI) - All Shader APIs provided by the engine
+- [Lighting System](/en/docs/graphics/light/light) - Implement more realistic lighting effects

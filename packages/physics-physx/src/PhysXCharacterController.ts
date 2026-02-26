@@ -3,7 +3,7 @@ import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsScene } from "./PhysXPhysicsScene";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
-import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { ColliderShapeUpAxis, PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
@@ -12,6 +12,8 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 export class PhysXCharacterController implements ICharacterController {
   private static _tempVec = new Vector3();
 
+  /** @internal  */
+  _scene: PhysXPhysicsScene = null;
   /** @internal */
   _id: number;
   /** @internal */
@@ -79,17 +81,21 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setSlopeLimit }
    */
   setSlopeLimit(slopeLimit: number): void {
-    this._pxController?.setSlopeLimit(slopeLimit);
+    this._pxController?.setSlopeLimit(Math.cos((slopeLimit * Math.PI) / 180));
   }
 
   /**
    * {@inheritDoc ICharacterController.addShape }
    */
   addShape(shape: PhysXColliderShape): void {
+    // Add shape should sync latest position and world scale to pxController
+    this._updateShapePosition(shape._position, shape._worldScale);
     // When CharacterController is disabled, set shape property need check pxController whether exist because of this._pxManager is null and won't create pxController
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
     shape._controllers.add(this);
+    this._pxController?.setContactOffset(shape._contractOffset);
+    this._scene?._addColliderShape(shape._id);
   }
 
   /**
@@ -99,6 +105,18 @@ export class PhysXCharacterController implements ICharacterController {
     this._destroyPXController();
     this._shape = null;
     shape._controllers.delete(this);
+    this._scene?._removeColliderShape(shape._id);
+  }
+
+  /**
+   * {@inheritDoc ICollider.setCollisionLayer }
+   */
+  setCollisionLayer(layer: number): void {
+    const actor = this._pxController?.getActor();
+
+    if (actor) {
+      this._physXPhysics._physX.setGroup(actor, layer);
+    }
   }
 
   /**
@@ -115,22 +133,35 @@ export class PhysXCharacterController implements ICharacterController {
     let desc: any;
     if (shape instanceof PhysXBoxColliderShape) {
       desc = new this._physXPhysics._physX.PxBoxControllerDesc();
-      desc.halfHeight = shape._halfSize.x;
-      desc.halfSideExtent = shape._halfSize.y;
+      desc.halfHeight = shape._halfSize.y;
+      desc.halfSideExtent = shape._halfSize.x;
       desc.halfForwardExtent = shape._halfSize.z;
+      if (shape._rotation.lengthSquared() > 0) {
+        console.warn("Box character controller `rotation` is not supported in PhysX and will be ignored");
+      }
     } else if (shape instanceof PhysXCapsuleColliderShape) {
       desc = new this._physXPhysics._physX.PxCapsuleControllerDesc();
       desc.radius = shape._radius;
       desc.height = shape._halfHeight * 2;
       desc.climbingMode = 1; // constraint mode
+
+      if (shape._rotation.lengthSquared() > 0) {
+        console.warn("Capsule character controller `rotation` is not supported in PhysX and will be ignored");
+      }
+      if (shape._upAxis !== ColliderShapeUpAxis.Y) {
+        console.warn("Capsule character controller `upAxis` is not supported in PhysX and will be ignored");
+      }
     } else {
       throw "unsupported shape type";
     }
 
     desc.setMaterial(shape._pxMaterial);
-
     this._pxController = pxManager._getControllerManager().createController(desc);
+    desc.delete();
+
     this._pxController.setUUID(shape._id);
+
+    this._updateNativePosition();
   }
 
   /**
@@ -151,7 +182,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._updateNativePosition();
   }
 
-  private _updateNativePosition() {
+  private _updateNativePosition(): void {
     const worldPosition = this._worldPosition;
     if (this._pxController && worldPosition) {
       Vector3.add(worldPosition, this._shapeScaledPosition, PhysXCharacterController._tempVec);

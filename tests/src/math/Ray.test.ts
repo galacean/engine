@@ -1,5 +1,5 @@
 import { BoundingBox, BoundingSphere, Plane, Ray, Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 describe("Ray test", () => {
   it("ray-plane", () => {

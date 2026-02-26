@@ -15,7 +15,7 @@ import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInst
  * @internal
  */
 export class ParticleBufferUtils {
-  static readonly instanceVertexStride = 152;
+  static readonly instanceVertexStride = 168;
   static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 
   static readonly startLifeTimeOffset = 3;
@@ -46,7 +46,8 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.Random1, 92, VertexElementFormat.Vector4, 1, 1),
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 1, 1), //TODO:local模式下可省去内存
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 1, 1),
-    new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1)
+    new VertexElement(ParticleInstanceVertexAttribute.SimulationUV, 136, VertexElementFormat.Vector4, 1, 1),
+    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 1, 1)
   ];
 
   readonly billboardVertexBufferBinding: VertexBufferBinding;

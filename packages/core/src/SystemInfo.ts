@@ -1,15 +1,25 @@
+import { AssetPromise } from "./asset/AssetPromise";
+import { GLCapabilityType } from "./base/Constant";
+import { Engine } from "./Engine";
 import { Platform } from "./Platform";
+import { TextureFormat } from "./texture";
 
 /**
- * System info.
+ * Access operating system, platform and hardware information.
  */
 export class SystemInfo {
   /** The platform is running on. */
   static platform: Platform = Platform.Unknown;
   /** The operating system is running on. */
   static operatingSystem: string = "";
+
+  /** @internal */
+  static _isBrowser = true;
+
   /** Whether the system support SIMD. */
   private static _simdSupported: boolean | null = null;
+
+  private static _webpSupported: AssetPromise<boolean> | null = null;
 
   /**
    * The pixel ratio of the device.
@@ -18,12 +28,23 @@ export class SystemInfo {
     return window.devicePixelRatio;
   }
 
+  private static _parseAppleMobileOSVersion(userAgent: string, osPrefix: string): string {
+    // Since iOS 26, Safari freezes UA OS version at 18.6, so Version/xx is more reliable
+    // Use Version/ if available, otherwise fallback to OS version
+    let v = userAgent.match(/Version\/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+    if (v) return `${osPrefix} ${v[1]}.${v[2] || 0}.${v[3] || 0}`;
+
+    v = userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/);
+    return v ? `${osPrefix} ${v[1]}.${v[2]}.${v[3] || 0}` : osPrefix;
+  }
+
   /**
    * @internal
    */
   static _initialize(): void {
     {
       if (typeof navigator == "undefined") {
+        SystemInfo._isBrowser = false;
         return;
       }
 
@@ -42,12 +63,10 @@ export class SystemInfo {
       let v: RegExpMatchArray;
       switch (SystemInfo.platform) {
         case Platform.IPhone:
-          v = userAgent.match(/OS (\d+)_?(\d+)?_?(\d+)?/);
-          this.operatingSystem = v ? `iPhone OS ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "iPhone OS";
+          this.operatingSystem = this._parseAppleMobileOSVersion(userAgent, "iPhone OS");
           break;
         case Platform.IPad:
-          v = userAgent.match(/OS (\d+)_?(\d+)?_?(\d+)?/);
-          this.operatingSystem = v ? `iPad OS ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "iPad OS";
+          this.operatingSystem = this._parseAppleMobileOSVersion(userAgent, "iPad OS");
           break;
         case Platform.Android:
           v = userAgent.match(/Android (\d+).?(\d+)?.?(\d+)?/);
@@ -74,6 +93,68 @@ export class SystemInfo {
       );
     }
     return this._simdSupported;
+  }
+
+  static _checkWebpSupported(): AssetPromise<boolean> {
+    if (!this._webpSupported) {
+      this._webpSupported = new AssetPromise((resolve) => {
+        if (this._isBrowser) {
+          const img = new Image();
+          img.onload = function () {
+            const result = img.width > 0 && img.height > 0;
+            resolve(result);
+          };
+          img.onerror = function () {
+            resolve(false);
+          };
+          img.src =
+            "data:image/webp;base64,UklGRhACAABXRUJQVlA4WAoAAAAwAAAAAAAAAAAASUNDUMgBAAAAAAHIAAAAAAQwAABtbnRyUkdCIFhZWiAH4AABAAEAAAAAAABhY3NwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAA9tYAAQAAAADTLQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAlkZXNjAAAA8AAAACRyWFlaAAABFAAAABRnWFlaAAABKAAAABRiWFlaAAABPAAAABR3dHB0AAABUAAAABRyVFJDAAABZAAAAChnVFJDAAABZAAAAChiVFJDAAABZAAAAChjcHJ0AAABjAAAADxtbHVjAAAAAAAAAAEAAAAMZW5VUwAAAAgAAAAcAHMAUgBHAEJYWVogAAAAAAAAb6IAADj1AAADkFhZWiAAAAAAAABimQAAt4UAABjaWFlaIAAAAAAAACSgAAAPhAAAts9YWVogAAAAAAAA9tYAAQAAAADTLXBhcmEAAAAAAAQAAAACZmYAAPKnAAANWQAAE9AAAApbAAAAAAAAAABtbHVjAAAAAAAAAAEAAAAMZW5VUwAAACAAAAAcAEcAbwBvAGcAbABlACAASQBuAGMALgAgADIAMAAxADZBTFBIAgAAAAAAVlA4IBgAAAAwAQCdASoBAAEAAUAmJaQAA3AA/v02aAA=";
+        } else {
+          resolve(false);
+        }
+      });
+    }
+    return this._webpSupported;
+  }
+
+  /**
+   * Checks whether the system supports the given texture format.
+   * @param format - The texture format
+   * @returns Whether support the texture format
+   */
+  static supportsTextureFormat(engine: Engine, format: TextureFormat): boolean {
+    const rhi = engine._hardwareRenderer;
+    rhi.canIUse(GLCapabilityType.depthTexture);
+    switch (format) {
+      case TextureFormat.R16G16B16A16:
+        if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
+          return false;
+        }
+        break;
+      case TextureFormat.R32G32B32A32:
+        if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
+          return false;
+        }
+        break;
+      case TextureFormat.Depth16:
+      case TextureFormat.Depth24Stencil8:
+      case TextureFormat.Depth:
+      case TextureFormat.DepthStencil:
+        if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
+          return false;
+        }
+        break;
+      case TextureFormat.R11G11B10_UFloat:
+      case TextureFormat.R32G32B32A32_UInt:
+      case TextureFormat.Depth24:
+      case TextureFormat.Depth32:
+      case TextureFormat.Depth32Stencil8:
+      case TextureFormat.R8:
+      case TextureFormat.R8G8:
+        return rhi.isWebGL2;
+    }
+
+    return true;
   }
 }
 

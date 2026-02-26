@@ -14,7 +14,7 @@ import {
 import { AtlasConfig, AtlasSprite } from "@galacean/engine-core/types/2d/atlas/types";
 import { Rect, Vector2, Vector4 } from "@galacean/engine-math";
 
-@resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
+@resourceLoader(AssetType.SpriteAtlas, ["atlas"])
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempRect: Rect = new Rect();
   private _tempVec2: Vector2 = new Vector2();
@@ -27,7 +27,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           chainPromises[i].cancel();
         }
       });
-      const configPromise = this.request<AtlasConfig>(item.url, {
+      // @ts-ignore
+      const configPromise = resourceManager._request<AtlasConfig>(item.url, {
         ...item,
         type: "json"
       });
@@ -103,8 +104,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       }
       config.atlasRotated && (sprite.atlasRotated = true);
     }
-    isNaN(width) || (sprite.width = width);
-    isNaN(height) || (sprite.height = height);
+    width === undefined || (sprite.width = width);
+    height === undefined || (sprite.height = height);
     return sprite;
   }
 }

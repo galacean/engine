@@ -11,11 +11,13 @@ import { ShaderMacro } from "../shader/ShaderMacro";
  * MeshRenderer Component.
  */
 export class MeshRenderer extends Renderer {
+  /** @internal */
+  static _enableVertexColorMacro = ShaderMacro.getByName("RENDERER_ENABLE_VERTEXCOLOR");
+
   private static _uvMacro = ShaderMacro.getByName("RENDERER_HAS_UV");
   private static _uv1Macro = ShaderMacro.getByName("RENDERER_HAS_UV1");
   private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
   private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
-  private static _enableVertexColorMacro = ShaderMacro.getByName("RENDERER_ENABLE_VERTEXCOLOR");
 
   private _enableVertexColor: boolean = false;
 
@@ -102,11 +104,11 @@ export class MeshRenderer extends Renderer {
     const mesh = this._mesh;
     if (mesh) {
       const localBounds = mesh.bounds;
-      const worldMatrix = this._entity.transform.worldMatrix;
-      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+      BoundingBox.transform(localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      const { worldPosition } = this._transformEntity.transform;
+      worldBounds.min.copyFrom(worldPosition);
+      worldBounds.max.copyFrom(worldPosition);
     }
   }
 
@@ -158,7 +160,7 @@ export class MeshRenderer extends Renderer {
         continue;
       }
       if (material.destroyed || material.shader.destroyed) {
-        material = this.engine._meshMagentaMaterial;
+        material = this.engine._basicResources.meshMagentaMaterial;
       }
 
       const subRenderElement = subRenderElementPool.get();
@@ -190,7 +192,7 @@ export class MeshRenderer extends Renderer {
 }
 
 /**
- * @remarks Extends `RendererUpdateFlag`.
+ * @remarks Extends `RendererUpdateFlags`.
  */
 enum MeshRendererUpdateFlags {
   /** VertexElementMacro. */

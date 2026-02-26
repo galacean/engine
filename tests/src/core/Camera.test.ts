@@ -1,7 +1,7 @@
 import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { beforeAll, describe, expect, it } from "vitest";
 
 describe("camera test", function () {
   const canvasDOM = new OffscreenCanvas(256, 256);
@@ -10,8 +10,7 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix = new Matrix();
 
-  before(async function () {
-    this.timeout(10000);
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });
     rootEntity = engine.sceneManager.scenes[0].createRootEntity();
     camera = rootEntity.addComponent(Camera);
@@ -117,11 +116,13 @@ describe("camera test", function () {
   it("enable HDR", () => {
     // get enableHDR
     expect(camera.enableHDR).to.eq(false);
-    expect(camera.independentCanvasEnabled).to.eq(false);
+    // @ts-ignore
+    expect(camera._isIndependentCanvasEnabled()).to.eq(true);// Because sRGB pass
     // set enableHDR
     camera.enableHDR = true;
     expect(camera.enableHDR).to.eq(true);
-    expect(camera.independentCanvasEnabled).to.eq(true);
+    // @ts-ignore
+    expect(camera._isIndependentCanvasEnabled()).to.eq(true);
   });
 
   it("view matrix", () => {
@@ -358,6 +359,20 @@ describe("camera test", function () {
       )
     );
   });
+
+  it("clone", () => {
+    camera.isOrthographic = true;
+    camera.nearClipPlane = 1;
+    camera.farClipPlane = 255;
+    const cloneCamera = camera.entity.clone().getComponent(Camera);
+    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic)
+    expect(cloneCamera.nearClipPlane).to.eq(camera.nearClipPlane);
+    expect(cloneCamera.farClipPlane).to.eq(camera.farClipPlane);
+    expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
+    expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
+    // @ts-ignore
+    expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
+  })
 
   it("destroy test", () => {
     camera.destroy();

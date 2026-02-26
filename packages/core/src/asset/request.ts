@@ -16,6 +16,12 @@ const defaultRetryCount = 1;
 const defaultTimeout = Infinity;
 const defaultInterval = 500;
 
+/**
+ * Configuration options for `request`.
+ * @remarks
+ * This type extends the standard `RequestInit` options with additional
+ * properties for handling retries, timeouts, and custom response types.
+ */
 export type RequestConfig = {
   type?: XMLHttpRequestResponseType | "image";
   retryCount?: number;
@@ -24,9 +30,10 @@ export type RequestConfig = {
 } & RequestInit;
 
 /**
- * Web request.
- * @param url - The link
- * @param config - Load configuration
+ * Sends a request to the specified URL and returns a promise for the response.
+ * @param url - The URL to send the request to
+ * @param config - Configuration options for the request
+ * @returns A promise that resolves with the response of type `T`
  */
 export function request<T>(url: string, config: RequestConfig = {}): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
@@ -47,16 +54,22 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject, setTaskCompleteProgress, setTaskDetailProgress) => {
     const xhr = new XMLHttpRequest();
     const isImg = config.type === "image";
-
     xhr.timeout = config.timeout;
     config.method = config.method ?? "get";
-
+    xhr.withCredentials = config.credentials === "include";
+    // @ts-ignore
+    xhr.responseType = isImg ? "blob" : config.type;
     xhr.onload = () => {
       if (xhr.status < 200 || xhr.status >= 300) {
-        reject(new Error(`request failed from: ${url}`));
+        reject(new Error(`Request failed from: ${url}`));
         return;
       }
-      const result = xhr.response ?? xhr.responseText;
+      const result = xhr.response;
+      // For example, if the response body is a document but responseType is set to JSON, it returns null.
+      if (!result) {
+        reject(new Error(`Request ${url} response is empty, please check the config.`));
+        return;
+      }
       if (isImg) {
         const img = new Image();
 
@@ -98,9 +111,6 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
       }
     };
     xhr.open(config.method, url, true);
-    xhr.withCredentials = config.credentials === "include";
-    // @ts-ignore
-    xhr.responseType = isImg ? "blob" : config.type;
     const headers = config.headers;
     if (headers) {
       Object.keys(headers).forEach((name) => {

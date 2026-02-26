@@ -1,0 +1,321 @@
+---
+order: 0
+title: 射线检测
+type: 物理
+label: Physics
+---
+
+射线检测（Raycasting）是物理引擎中最基础的空间查询功能。射线可以理解成 3D 世界中一个点向一个方向发射的一条无终点的线。射线投射在 3D 应用中应用非常广泛，是实现精确点选和碰撞检测的核心工具。
+
+## 概述
+
+射线检测通过投射一条无限细的线来检测与场景中碰撞器的第一个交点，提供精确的点对点检测能力。
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ" />
+（_图片来源于网络_）
+
+## 应用场景
+
+射线检测在游戏开发中的典型应用：
+
+- **物体拾取** - 用户点击屏幕时拾取3D场景中的物体
+- **射击检测** - 在射击游戏中判断子弹能否射中目标
+- **视线检测** - 检测物体之间的可视性和遮挡关系
+- **地面检测** - 检测角色脚下的地面位置
+- **瞄准辅助** - 实现精确的瞄准和定位功能
+
+## 基本用法
+
+### 函数签名
+
+```typescript
+raycast(
+  ray: Ray,
+  distance: number = Number.MAX_VALUE,
+  layerMask: Layer = Layer.Everything,
+  outHitResult?: HitResult
+): boolean
+```
+
+### 参数说明
+
+- **ray** - 射线对象，定义起点和方向
+- **distance** - 射线检测的最大距离（默认为无限远）
+- **layerMask** - 层遮罩，用于过滤特定层的碰撞器
+- **outHitResult** - 可选的输出参数，存储命中详细信息
+
+### 使用步骤
+
+使用射线检测需要以下步骤：
+
+1. 引入 [Ray](/apis/math/Ray) 等必要的模块
+2. 创建射线（可以自定义或通过 [camera.screenPointToRay](/apis/core/#Camera-screenPointToRay) 生成）
+3. 调用 [`raycast`](/apis/core/#PhysicsScene-raycast) 方法进行检测
+
+## 使用示例
+
+### 示例1: 基础射线检测
+
+```typescript
+import { WebGLEngine, HitResult, Ray, Vector3, Vector2 } from "@galacean/engine";
+import { LitePhysics } from "@galacean/engine-physics-lite";
+
+const engine = await WebGLEngine.create({
+  canvas: "canvas",
+  physics: new LitePhysics()
+});
+engine.canvas.resizeByClientSize();
+const scene = engine.scenes[0];
+
+// 创建一条从原点向下的射线
+const ray = new Ray(new Vector3(0, 10, 0), new Vector3(0, -1, 0));
+
+// 基础检测
+if (scene.physics.raycast(ray)) {
+  console.log("射线击中了物体！");
+}
+```
+
+### 示例2: 获取详细击中信息
+
+```typescript
+// 创建 HitResult 对象存储击中信息
+const hitResult = new HitResult();
+
+if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hitResult)) {
+  console.log(`击中实体: ${hitResult.entity.name}`);
+  console.log(`击中距离: ${hitResult.distance}`);
+  console.log(`击中点: ${hitResult.point.toString()}`);
+  console.log(`击中法线: ${hitResult.normal.toString()}`);
+  console.log(`击中形状: ${hitResult.shape.constructor.name}`);
+}
+```
+
+### 示例3: 鼠标点击拾取
+
+```typescript
+// 将屏幕输入转换成Ray
+document.getElementById("canvas").addEventListener("click", (e) => {
+  const ratio = window.devicePixelRatio;
+  const ray = new Ray();
+  const screenPoint = new Vector2(e.offsetX * ratio, e.offsetY * ratio);
+  
+  // 将屏幕坐标转换为射线
+  camera.screenPointToRay(screenPoint, ray);
+  
+  const hit = new HitResult();
+  if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit)) {
+    console.log(`选中了: ${hit.entity.name}`);
+    selectObject(hit.entity);
+  }
+});
+```
+
+### 示例4: 射击检测
+
+```typescript
+// 射击检测函数
+function fireBullet(startPosition: Vector3, direction: Vector3): Entity | null {
+  const ray = new Ray(startPosition, direction);
+  const hitResult = new HitResult();
+  const maxRange = 100.0; // 射程限制
+  const targetLayer = Layer.Layer2 | Layer.Layer1;
+  
+  if (scene.physics.raycast(ray, maxRange, targetLayer, hitResult)) {
+    // 击中目标，应用伤害或效果
+    const target = hitResult.entity;
+    const distance = hitResult.distance;
+    
+    console.log(`击中目标: ${target.name}，距离: ${distance.toFixed(2)}m`);
+    
+    // 在击中点创建弹孔或特效
+    createImpactEffect(hitResult.point, hitResult.normal);
+    
+    return target;
+  }
+  
+  return null; // 未击中任何目标
+}
+```
+
+### 示例5: 地面检测
+
+```typescript
+// 角色地面检测
+function checkGroundBelow(characterPosition: Vector3): number | null {
+  const rayOrigin = characterPosition.clone().add(new Vector3(0, 0.1, 0)); // 稍微高一点开始
+  const ray = new Ray(
+    rayOrigin,
+    new Vector3(0, -1, 0) // 向下检测
+  );
+  
+  const hit = new HitResult();
+  const maxDistance = 5.0; // 最大检测距离
+  
+  if (scene.physics.raycast(ray, maxDistance, Layer.Layer1, hit)) {
+    return hit.point.y; // 返回地面高度
+  }
+  
+  return null; // 没有检测到地面
+}
+
+// 使用示例
+const groundHeight = checkGroundBelow(player.transform.position);
+if (groundHeight !== null) {
+  console.log(`地面高度: ${groundHeight}`);
+  // 调整角色位置到地面
+  player.transform.position.y = groundHeight;
+}
+```
+
+### 示例6: 视线检测
+
+```typescript
+// 检查两个物体之间是否有视线阻挡
+function hasLineOfSight(from: Vector3, to: Vector3, obstacleLayer: Layer = Layer.Layer1): boolean {
+  const direction = to.clone().subtract(from).normalize();
+  const distance = Vector3.distance(from, to);
+  const ray = new Ray(from, direction);
+  
+  // 如果射线在目标距离内击中了障碍物，则视线被阻挡
+  return !scene.physics.raycast(ray, distance, obstacleLayer);
+}
+
+// 使用示例
+const playerPos = player.transform.position;
+const enemyPos = enemy.transform.position;
+
+if (hasLineOfSight(playerPos, enemyPos)) {
+  console.log("敌人可以看到玩家");
+  enemy.startChasing();
+} else {
+  console.log("视线被阻挡");
+}
+```
+
+## 性能优化建议
+
+1. **限制检测距离** - 根据实际需求设置合理的最大距离
+2. **使用层遮罩过滤** - 通过 layerMask 只检测相关的碰撞器层
+3. **重用 HitResult 对象** - 避免频繁创建新的 HitResult 实例
+4. **批量处理** - 将相似的射线检测批量处理以提高效率
+
+```typescript
+// 性能优化示例
+class RaycastManager {
+  private static readonly _hitResult = new HitResult();
+  private static readonly _commonRay = new Ray();
+  
+  // 快速地面检测
+  static checkGround(position: Vector3, maxDistance: number = 2.0): number | null {
+    this._commonRay.origin.copyFrom(position);
+    this._commonRay.direction.set(0, -1, 0);
+    
+    if (scene.physics.raycast(
+      this._commonRay, 
+      maxDistance, 
+      Layer.Layer1, 
+      this._hitResult
+    )) {
+      return this._hitResult.point.y;
+    }
+    return null;
+  }
+  
+  // 快速障碍物检测
+  static checkObstacle(from: Vector3, to: Vector3): boolean {
+    const direction = to.clone().subtract(from);
+    const distance = direction.length();
+    direction.normalize();
+    
+    this._commonRay.origin.copyFrom(from);
+    this._commonRay.direction.copyFrom(direction);
+    
+    return scene.physics.raycast(this._commonRay, distance, Layer.Layer1);
+  }
+}
+```
+
+## 注意事项
+
+1. **碰撞器要求** - Entity 必须添加 [碰撞器组件](/docs/physics/collider/overview) 才能被射线检测到
+2. **射线方向** - 射线方向向量应该是标准化的单位向量
+3. **相同距离处理** - 当射线命中多个相同距离的 [碰撞形状](/docs/physics/collider/colliderShape) 时，会返回先添加的碰撞形状所在的 Entity
+4. **世界坐标系** - 射线的起点和方向都是基于世界坐标系
+
+## 与其他查询方法的对比
+
+| 特性 | 射线检测 | 形状投射 | 重叠检测 |
+|------|----------|----------|----------|
+| 检测精度 | 点精度 | 体积精度 | 区域精度 |
+| 返回结果 | 第一个命中 | 第一个命中 | 所有重叠 |
+| 适用场景 | 点选、瞄准 | 移动预测 | 区域触发 |
+| 性能消耗 | 低 | 中等 | 中等 |
+| 实现复杂度 | 简单 | 中等 | 中等 |
+
+## 与 InputManager 的结合使用
+
+建议结合 [InputManager](/docs/input/input/) 来处理输入事件，它提供了便捷的输入查询方式：
+
+### 方式1: 在脚本中处理输入事件
+
+```typescript
+import { Script, PointerEventData, Ray, HitResult, Layer } from "@galacean/engine";
+
+export class ClickDetectionScript extends Script {
+  onPointerUp(eventData: PointerEventData): void {
+    const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
+    const ray = new Ray();
+    
+    // 使用事件数据中的世界坐标位置
+    camera.screenPointToRay(eventData.pointer.position, ray);
+    
+    const hit = new HitResult();
+    if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
+      console.log(`点击了: ${hit.entity.name}`);
+      this.handleObjectClick(hit.entity);
+    }
+  }
+  
+  private handleObjectClick(entity: Entity): void {
+    // 处理点击逻辑
+  }
+}
+```
+
+### 方式2: 轮询 InputManager 状态
+
+```typescript
+import { Script, PointerButton, Ray, HitResult, Layer, Vector2 } from "@galacean/engine";
+
+export class InputPollingScript extends Script {
+  onUpdate(): void {
+    const inputManager = this.engine.inputManager;
+    
+    // 检测鼠标左键是否在当前帧释放
+    if (inputManager.isPointerUp(PointerButton.Primary)) {
+      // 获取第一个指针的位置
+      const pointers = inputManager.pointers;
+      if (pointers.length > 0) {
+        const pointer = pointers[0];
+        const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
+        const ray = new Ray();
+        
+        camera.screenPointToRay(pointer.position, ray);
+        
+        const hit = new HitResult();
+        if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
+          console.log(`点击了: ${hit.entity.name}`);
+          this.handleObjectClick(hit.entity);
+        }
+      }
+    }
+  }
+  
+  private handleObjectClick(entity: Entity): void {
+    // 处理点击逻辑
+  }
+}
+```
+
+射线检测是物理引擎中最常用的查询功能，为精确的点对点检测提供了高效的解决方案。掌握射线检测的正确使用方法对于实现高质量的交互体验至关重要。

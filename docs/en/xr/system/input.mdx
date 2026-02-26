@@ -1,0 +1,65 @@
+---
+order: 3  
+title: Input Manager  
+type: XR  
+label: XR  
+---  
+
+The input manager is part of the `XRManager` instance and can be accessed via `xrManager.inputManager`. It manages all input devices, including but not limited to:  
+
+- Controllers  
+- Head-mounted displays (HMDs)  
+- Hands  
+- ...  
+
+---
+
+## Methods  
+
+| Method                          | Description                                                                 |
+| :------------------------------ | :-------------------------------------------------------------------------- |  
+| getTrackedDevice                | Retrieve a device by type using `XRTrackedInputDevice` to specify the target device. |  
+| addTrackedDeviceChangedListener | Add a listener for device changes. The callback will be triggered when devices are added or removed, with the added/removed device lists as parameters. |  
+| removeTrackedDeviceChangedListener | Remove a device change listener. |  
+
+Currently supported input devices include:  
+
+| Enumeration                          | Description                                  |  
+| :----------------------------------- | :------------------------------------------- |  
+| XRTrackedInputDevice.Camera          | Typically the camera on AR devices           |  
+| XRTrackedInputDevice.LeftCamera      | Typically the left eye of VR HMDs            |  
+| XRTrackedInputDevice.RightCamera     | Typically the right eye of VR HMDs           |  
+| XRTrackedInputDevice.Control         | Typically the remote control for AR devices  |  
+| XRTrackedInputDevice.LeftController  | Typically the left controller for VR devices |  
+| XRTrackedInputDevice.RightController | Typically the right controller for VR devices |  
+
+---
+
+## Usage  
+
+Use the following code to listen for device update events:  
+
+```typescript  
+const { inputManager } = xrManager.inputManager;  
+inputManager.addTrackedDeviceChangedListener((added: readonly XRInput[], removed: readonly XRInput[]) => {  
+  // Add your logic to handle newly added or removed devices here  
+});  
+```  
+
+Use the following code to retrieve the pose of the left controller:  
+
+```typescript  
+const controller = inputManager.getTrackedDevice<XRController>(XRTrackedInputDevice.LeftController);  
+// Controller pose  
+controller.gripPose.position;  
+controller.gripPose.rotation;  
+controller.gripPose.matrix;  
+// Check if the Select button is pressed  
+controller.isButtonDown(XRInputButton.Select);  
+// Check if the Select button is released  
+controller.isButtonUp(XRInputButton.Select);  
+// Check if the Select button is held down  
+controller.isButtonHeldDown(XRInputButton.Select);  
+```  
+
+> `XRInputButton.Select` corresponds to the native WebXR event `XRInputSourceEventType.selectXXX`. `XRInputButton.Squeeze` corresponds to the native WebXR event `XRInputSourceEventType.squeezeXXX`.

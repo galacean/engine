@@ -1,4 +1,4 @@
-import { IShaderContent } from "@galacean/engine-design";
+import { IShaderSource } from "@galacean/engine-design";
 
 export type IRenderState = [
   /** Constant RenderState. */
@@ -7,6 +7,6 @@ export type IRenderState = [
   Record<number, string>
 ];
 
-export type ITag = IShaderContent["subShaders"][number]["tags"];
+export type ITag = IShaderSource["subShaders"][number]["tags"];
 
 export type ICodeSegment = { text: string; index: number };

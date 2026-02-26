@@ -1,0 +1,179 @@
+---
+title: 多Pass渲染
+---
+
+多Pass渲染允许一个物体被渲染多次，每次使用不同的渲染逻辑。本教程通过实现描边效果，学习多Pass渲染的原理和应用。
+
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*h7mASJQZe5wAAAAATUAAAAgAeuuHAQ/original"
+/>
+
+## 什么是多Pass渲染
+
+多Pass渲染是指在一次绘制调用中，对同一个物体执行多个渲染通道：
+
+```glsl
+SubShader "Default" {
+  Pass "Outline" {
+    // 第一个Pass：渲染描边
+  }
+  
+  Pass "Main" {
+    // 第二个Pass：渲染物体本身
+  }
+}
+```
+
+**执行顺序**：引擎会按照Pass的声明顺序依次执行。
+
+## 描边效果原理
+
+描边效果通过两个Pass实现：
+1. **描边Pass**：渲染放大的背面，产生描边
+2. **主体Pass**：正常渲染物体正面
+
+## 完整着色器示例
+
+```glsl
+Shader "Tutorial/04-Outline" {
+  SubShader "Default" {
+    // Pass 1: 描边Pass - 先渲染放大的背面
+    Pass "Outline" {
+      // 渲染状态：只渲染正面，用于描边
+      RasterState customRasterState {
+        CullMode = CullMode.Front;  // 剔除正面，只渲染背面
+      }
+      
+      DepthState customDepthState {
+        WriteEnabled = true;
+        CompareFunction = CompareFunction.LessEqual;
+      }
+
+      RasterState = customRasterState;
+      DepthState = customDepthState;
+
+      
+      mat4 renderer_MVPMat;
+      vec4 material_OutlineColor;
+      float material_OutlineWidth;
+      
+      struct a2v {
+        vec4 POSITION;
+        vec3 NORMAL;
+      };
+      
+      VertexShader = outlineVert;
+      FragmentShader = outlineFrag;
+      
+      // 描边顶点着色器：沿法线方向扩展顶点
+      void outlineVert(a2v input) {
+        // 将顶点沿法线方向外扩
+        vec4 pos = input.POSITION;
+        pos.xyz += input.NORMAL * material_OutlineWidth;
+        
+        gl_Position = renderer_MVPMat * pos;
+      }
+      
+      // 描边片元着色器：输出描边颜色
+      void outlineFrag() {
+        gl_FragColor = material_OutlineColor;
+      }
+    }
+    
+    // Pass 2: 主体Pass - 渲染物体本身
+    Pass "Main" {
+      // 渲染状态：正常渲染背面
+      RasterState customRasterState {
+        CullMode = CullMode.Back;   // 剔除背面，渲染正面
+      }
+      
+      DepthState customDepthState {
+        WriteEnabled = true;
+        CompareFunction = CompareFunction.LessEqual;
+      }
+      
+      RasterState = customRasterState;
+      DepthState = customDepthState;
+
+      mat4 renderer_MVPMat;
+      vec4 material_BaseColor;
+      vec3 camera_Position;
+      
+      struct a2v {
+        vec4 POSITION;
+        vec3 NORMAL;
+      };
+      
+      struct v2f {
+        vec3 worldNormal;
+        vec3 worldPos;
+      };
+      
+      VertexShader = mainVert;
+      FragmentShader = mainFrag;
+      
+      // 主体顶点着色器
+      v2f mainVert(a2v input) {
+        v2f output;
+        
+        gl_Position = renderer_MVPMat * input.POSITION;
+        
+        // 传递世界空间法线和位置（简化处理）
+        output.worldNormal = input.NORMAL;
+        output.worldPos = input.POSITION.xyz;
+        
+        return output;
+      }
+      
+      // 主体片元着色器：简单的Lambert光照
+      void mainFrag(v2f input) {
+        vec3 normal = normalize(input.worldNormal);
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0)); // 固定光源方向
+        
+        // Lambert漫反射
+        float NdotL = max(dot(normal, lightDir), 0.0);
+        vec3 diffuse = material_BaseColor.rgb * NdotL;
+        
+        // 添加环境光
+        vec3 ambient = material_BaseColor.rgb * 0.3;
+        
+        gl_FragColor = vec4(diffuse + ambient, material_BaseColor.a);
+      }
+    }
+  }
+}
+```
+
+## 多Pass渲染的常用应用场景
+
+### 1. 描边效果
+- 第一个Pass渲染描边
+- 第二个Pass渲染物体本身
+
+### 2. 阴影渲染
+- 第一个Pass生成阴影贴图
+- 第二个Pass使用阴影贴图渲染
+
+### 3. 后处理效果
+- 多个Pass实现复杂的后处理链
+
+### 4. 多层材质
+- 每个Pass渲染不同的材质层
+
+## 性能考虑
+
+多Pass渲染会增加绘制调用次数：
+- **优点**：实现复杂效果，逻辑清晰
+- **缺点**：性能开销较大
+- **建议**：注意深度写入等渲染状态相关的问题
+
+## 运行效果
+
+这个着色器会：
+1. 第一个Pass渲染黑色描边（放大的背面）
+2. 第二个Pass渲染正常的纹理物体
+3. 两个Pass叠加产生描边效果
+4. 可以调整描边宽度和颜色
+
+前往 [游乐场](/examples/shaderlab-04-multi-pass)

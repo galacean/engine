@@ -1,7 +1,7 @@
-import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Platform } from "../../Platform";
 import { SystemInfo } from "../../SystemInfo";
+import { DisorderedArray } from "../../utils/DisorderedArray";
 import { Keys } from "../enums/Keys";
 import { IInput } from "../interface/IInput";
 

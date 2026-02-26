@@ -4,6 +4,7 @@ import rotation_over_lifetime_module from "./rotation_over_lifetime_module.glsl"
 import size_over_lifetime_module from "./size_over_lifetime_module.glsl";
 import color_over_lifetime_module from "./color_over_lifetime_module.glsl";
 import texture_sheet_animation_module from "./texture_sheet_animation_module.glsl";
+import force_over_lifetime_module from "./force_over_lifetime_module.glsl";
 
 import sphere_billboard from "./sphere_billboard.glsl";
 import stretched_billboard from "./stretched_billboard.glsl";
@@ -18,6 +19,7 @@ export default {
   size_over_lifetime_module,
   color_over_lifetime_module,
   texture_sheet_animation_module,
+  force_over_lifetime_module,
 
   sphere_billboard,
   stretched_billboard,

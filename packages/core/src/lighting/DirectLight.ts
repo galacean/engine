@@ -1,5 +1,5 @@
-import { Color, Matrix, Vector3 } from "@galacean/engine-math";
-import { ColorSpace } from "../enums/ColorSpace";
+import { Vector3 } from "@galacean/engine-math";
+import { ignoreClone } from "../clone/CloneManager";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -21,6 +21,13 @@ export class DirectLight extends Light {
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
 
+  /**
+   * The offset distance in the opposite direction of light direction when generating shadows.
+   * @remarks Increasing this value can avoid the holes in the shadow caused by low polygon models.
+   */
+  shadowNearPlaneOffset = 0.1;
+
+  @ignoreClone
   private _reverseDirection: Vector3 = new Vector3();
 
   /**
@@ -41,33 +48,20 @@ export class DirectLight extends Light {
   /**
    * @internal
    */
-  override get _shadowProjectionMatrix(): Matrix {
-    throw "Unknown!";
-  }
-
-  /**
-   * @internal
-   */
   _appendData(lightIndex: number, data: IDirectLightShaderData): void {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
-    const lightColor = this._getLightIntensityColor();
-    const direction = this.direction;
+    const { color, direction } = this;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
-      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
-      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
-      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
-    } else {
-      data.color[colorStart] = lightColor.r;
-      data.color[colorStart + 1] = lightColor.g;
-      data.color[colorStart + 2] = lightColor.b;
-    }
+    data.color[colorStart] = color.r;
+    data.color[colorStart + 1] = color.g;
+    data.color[colorStart + 2] = color.b;
+
     data.direction[directionStart] = direction.x;
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;

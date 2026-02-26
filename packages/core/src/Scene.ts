@@ -3,23 +3,22 @@ import { Background } from "./Background";
 import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { MaskManager } from "./RenderPipeline/MaskManager";
 import { SceneManager } from "./SceneManager";
 import { EngineObject, Logger } from "./base";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
-import { DirectLight } from "./lighting";
+import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
-import { _PostProcessManager } from "./postProcess";
+import { PostProcessManager } from "./postProcess";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
-import { MaskManager } from "./RenderPipeline/MaskManager";
 
 /**
  * Scene.
@@ -27,6 +26,7 @@ import { MaskManager } from "./RenderPipeline/MaskManager";
 export class Scene extends EngineObject {
   private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
   private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
+  private static _prefilterdDFGProperty = ShaderProperty.getByName("scene_PrefilteredDFG");
 
   /** Scene name. */
   name: string;
@@ -50,6 +50,17 @@ export class Scene extends EngineObject {
    */
   shadowFadeBorder: number = 0.1;
 
+  /** Post process manager. */
+  readonly postProcessManager = new PostProcessManager(this);
+
+  /**
+   * Ambient Occlusion settings.
+   * @remarks
+   * Darkens areas where objects are close together to simulate natural light blocking,
+   * such as corners, crevices, and contact points between surfaces.
+   */
+  readonly ambientOcclusion = new AmbientOcclusion(this);
+
   /* @internal */
   _lightManager: LightManager = new LightManager();
   /* @internal */
@@ -61,18 +72,14 @@ export class Scene extends EngineObject {
   /** @internal */
   _sceneManager: SceneManager;
   /** @internal */
-  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
   _rootEntities: Entity[] = [];
-  /** @internal */
-  _postProcessManager = new _PostProcessManager(this);
 
   private _background: Background = new Background(this._engine);
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
   private _fogMode: FogMode = FogMode.None;
-  private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
+  private _fogColor: Color = new Color(0.21404114048223255, 0.21404114048223255, 0.21404114048223255, 1.0);
   private _fogStart: number = 0;
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
@@ -284,6 +291,7 @@ export class Scene extends EngineObject {
     shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
+    shaderData.setTexture(Scene._prefilterdDFGProperty, engine._basicResources.prefilteredDFGTexture);
 
     this._computeLinearFogParams(this._fogStart, this._fogEnd);
     this._computeExponentialFogParams(this._fogDensity);
@@ -327,18 +335,18 @@ export class Scene extends EngineObject {
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
-      entity._setTransformDirty();
+      entity._setParentChange();
     }
 
     // Add or remove from scene's rootEntities
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
-        oldScene._removeFromEntityList(entity);
+        Entity._removeFromChildren(oldScene._rootEntities, entity);
       }
-      this._addToRootEntityList(index, entity);
+      Entity._addToChildren(this._rootEntities, entity, index);
     } else if (!isRoot) {
-      this._addToRootEntityList(index, entity);
+      Entity._addToChildren(this._rootEntities, entity, index);
     }
 
     // Process entity active/inActive
@@ -372,9 +380,8 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
-      this._removeFromEntityList(entity);
+      Entity._removeFromChildren(this._rootEntities, entity);
       entity._isRoot = false;
-
       let inActiveChangeFlag = ActiveChangeFlag.None;
       this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
       entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
@@ -415,12 +422,22 @@ export class Scene extends EngineObject {
    */
   findEntityByPath(path: string): Entity | null {
     const splits = path.split("/").filter(Boolean);
+    if (!splits.length) {
+      return null;
+    }
+
+    const searchRootName = splits.shift();
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       let findEntity = this.getRootEntity(i);
-      if (findEntity.name != splits[0]) continue;
-      for (let j = 1, m = splits.length; j < m; ++j) {
-        findEntity = Entity._findChildByName(findEntity, splits[j]);
-        if (!findEntity) break;
+      if (findEntity.name !== searchRootName) {
+        continue;
+      }
+
+      if (splits.length) {
+        findEntity = Entity._findChildByName(findEntity, 0, splits, 0);
+        if (!findEntity) {
+          continue;
+        }
       }
       return findEntity;
     }
@@ -460,7 +477,7 @@ export class Scene extends EngineObject {
 
     if (sunlight) {
       lightManager._updateSunlightIndex(sunlight);
-      shaderData.setColor(LightManager._sunlightColorProperty, sunlight._lightColor);
+      shaderData.setColor(LightManager._sunlightColorProperty, sunlight.color);
       shaderData.setVector3(LightManager._sunlightDirectionProperty, sunlight.direction);
     } else {
       // @ts-ignore
@@ -472,26 +489,6 @@ export class Scene extends EngineObject {
     } else {
       shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
-
-    // union scene and camera macro.
-    ShaderMacroCollection.unionCollection(
-      this.engine._macroCollection,
-      shaderData._macroCollection,
-      this._globalShaderMacro
-    );
-  }
-
-  /**
-   * @internal
-   */
-  _removeFromEntityList(entity: Entity): void {
-    const rootEntities = this._rootEntities;
-    let index = entity._siblingIndex;
-    rootEntities.splice(index, 1);
-    for (let n = rootEntities.length; index < n; index++) {
-      rootEntities[index]._siblingIndex--;
-    }
-    entity._siblingIndex = -1;
   }
 
   /**
@@ -510,29 +507,12 @@ export class Scene extends EngineObject {
     this.background.destroy();
     this._ambientLight && this._ambientLight._removeFromScene(this);
     this.shaderData._addReferCount(-1);
-    this._componentsManager.handlingInvalidScripts();
     this._maskManager.destroy();
 
     const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
-  }
 
-  private _addToRootEntityList(index: number, rootEntity: Entity): void {
-    const rootEntities = this._rootEntities;
-    const rootEntityCount = rootEntities.length;
-    if (index === undefined) {
-      rootEntity._siblingIndex = rootEntityCount;
-      rootEntities.push(rootEntity);
-    } else {
-      if (index < 0 || index > rootEntityCount) {
-        throw `The index ${index} is out of child list bounds ${rootEntityCount}`;
-      }
-      rootEntity._siblingIndex = index;
-      rootEntities.splice(index, 0, rootEntity);
-      for (let i = index + 1, n = rootEntityCount + 1; i < n; i++) {
-        rootEntities[i]._siblingIndex++;
-      }
-    }
+    this.physics._destroy();
   }
 
   private _computeLinearFogParams(fogStart: number, fogEnd: number): void {

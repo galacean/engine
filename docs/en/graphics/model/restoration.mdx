@@ -1,0 +1,135 @@
+---
+order: 5
+title: Restoring Artistic Effects in the Editor
+type: Graphics
+group: Model
+label: Graphics/Model
+---
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/5dd84590-7c37-4156-bb1a-498207880c75/1635493348596-92184a82-6aaa-4ab8-95e5-2d88762df213.png" />
+
+## Background
+
+The Galacean engine currently has 3 ways to debug materials:
+
+1. Modify material properties through code, refer to [tutorial](/en/docs/graphics/material/material).
+
+2. Visual debugging through the Galacean Editor, refer to [tutorial](/en/docs/graphics/material/material).
+
+3. **Export from 3D modeling software after adjusting [glTF](/en/docs/graphics/model/glTF/)**
+
+The first two methods directly use the engine for rendering, providing a WYSIWYG experience with no visual differences.
+
+However, designers generally use the 3rd method, which involves adjusting the visual effects in modeling software like C4D, Blender, etc., and then exporting to the engine for preview. They often find that the rendering results are inconsistent or even significantly different. The main reasons are:
+
+- **Different rendering algorithms in different software.**
+
+- **Different lighting conditions.**
+
+- **Some assets cannot be exported to glTF files.**
+
+To address these differences, you can achieve the highest degree of visual fidelity through the following methods:
+
+- **Export Unlit materials to the engine through baked maps.**
+
+- **Use the same environment maps (usually HDRI files), direct lighting, and other variables.**
+
+- **Only adjust properties and assets in the modeling software that can be exported to glTF.**
+
+If you encounter the above issues, you can refer to this tutorial to identify the specific reasons and then follow the corresponding solutions. If the problem persists, you can contact our team, and we will continuously improve this tutorial.
+
+## Reasons
+
+### Differences in Rendering Algorithms
+
+Currently, the most widely used algorithm in real-time rendering is the PBR algorithm, which has advantages like energy conservation, physical correctness, and ease of use. However, the specific implementation algorithms in different software are different, resulting in different rendering outcomes. Galacean uses the **Cook-Torrance BRDF** reflectance equation, optimized for mobile devices.
+
+It is worth mentioning that although different algorithms can cause some visual differences, their physical principles are consistent. For example, the higher the metallicity, the stronger the environmental reflection and the weaker the diffuse reflection; the higher the roughness, the more blurred the environmental reflection, as shown below:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ddfe44e2-c9ab-4692-b62f-b43b8965ee4c/1635432936926-b26c9652-6d95-4160-9743-b954025dfe32.png" />
+
+### Differences in Lighting
+
+Like the real world, 3D scenes can also add [direct and ambient light](/en/docs/graphics/light/light/). By default, Galacean scenes have **no** light sources, only a blue-tinted [solid color diffuse](/apis/core/#AmbientLight-diffuseSolidColor), as shown in the first image on the left; whereas many modeling software come with built-in light sources:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/391e9bd9-945d-474d-b3fb-8cb0490e2b6f/1635434650361-60d7f40f-9f22-4e48-8865-141415d638f9.png" />
+
+Ambient light based on [cube textures](/en/docs/graphics/texture/cube) enables IBL mode, requiring an HDRI map to simulate the surrounding environment, which can be [downloaded online](https://polyhaven.com/hdris). By default, Galacean scenes do not have an HDRI map bound, whereas many modeling software come with a visually appealing surrounding environment:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/61c2287b-0793-4763-a5f5-70567fcdf106/1635477315862-08b0c680-029b-400b-8600-1d8cf7a20c60.png" />
+
+### Differences in glTF Support
+
+The connection channel between the Galacean engine and modeling software is the [glTF file](/en/docs/graphics/model/glTF/). glTF supports standard [PBR properties](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material-pbrmetallicroughness) and [general material properties](https://www.khronos.org/registry/glTF/specs/2.0/glTF-2.0.html#reference-material), and supports plugins like [ClearCoat](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_clearcoat), as shown below. Therefore, as long as the operations in the modeling software can be exported to glTF, the engine can load them through the loader. However, those additional operations, such as some parameters of [vRay](https://www.chaosgroup.com/cn/vray/3ds-max) materials, cannot be exported to glTF files.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/2010b748-ab8b-4e46-8b15-3aee4daa71f9/1635434775734-f8454efe-d268-4f80-87ab-40f1cddf96ea.png" />
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/acd35018-dc09-404b-a735-85a981384df1/1635434736607-cc408f27-a7d7-4a30-a7ea-e083f209d2c9.png" />
+
+## Solution
+
+The primary prerequisite for ensuring visual fidelity is to debug the material in the same scene, i.e., the same lighting, the same ambient light, etc., and then choose either a real-time rendering solution or a baking solution.
+
+### Unified Lighting
+
+- Direct Light
+
+As mentioned earlier, the engine does not come with direct light by default. The simplest way to maintain fidelity is to delete the lights in the modeling software, ensuring that both the modeling software and the Galacean engine only have ambient light (best performance).
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/dc228a19-8ca7-4ffa-ae0f-6634d0aad373/1635493208445-f1a4f6ac-28bf-4e22-8067-552ad88411b6.png" alt="image.png" style={{zoom: "50%"}} />
+
+If some scenes indeed require adding direct light, please ensure that the modeling software can export the [glTF light plugin](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_lights_punctual) (Google search keyword "\***\* modeling software KHR_lights_punctual" ), such as selecting **Punctual Lights** when exporting glTF from Blender.
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/63a252d3-7f24-4b58-bfcd-45201c479b3c/1635494985124-29f86a28-2793-435a-8230-c9fea61bb60d.png" alt="image.png" style={{zoom: "50%"}} />
+
+If the modeling software does not support exporting this lighting plugin, you can transfer it to Blender for export, or verbally describe the lighting data to the developers.
+
+- Ambient Light
+
+As mentioned earlier, the engine does not come with an environment map, i.e., HDRI map, by default, but modeling software usually does, such as Blender:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/f1683b34-c991-490f-835a-918693debbdf/1635495607766-f7f7deea-656a-4f7b-90cd-1ebf2364f6a7.png" alt="image.png" style={{zoom: "50%"}} />
+
+We can first [download](https://polyhaven.com/hdris) our favorite HDRI images from the internet, then debug them in the modeling software. Once satisfied, deliver the final HDRI to the developers (since glTF does not support exporting HDR).
+
+Binding an environment map in the modeling software is very simple. You can Google search the keyword "\*\*\* modeling software environment IBL". Taking Blender as an example:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/52e54319-7c7f-42a5-bf16-e7bca854734c/1635496231128-2b912395-f1eb-48cd-b5e9-323cb28c8c49.png" alt="image.png" style={{zoom: "50%"}} />
+
+### Real-time Rendering Solution
+
+- Rendering Solution
+
+After unifying the lighting, we can choose the rendering solution. If you want the material to be affected by lighting, interact with light and shadow in real-time, or have some transparency and refraction requirements, then you should choose the real-time rendering solution, i.e., the engine's PBR solution.
+
+- Debugging Material
+
+As mentioned earlier, Galacean PBR uses the **Cook-Torrance BRDF** reflectance equation, which is relatively close to the Principled BSDF - GGX algorithm in Blender:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/623b429e-b731-4c00-85ab-fd2cd270e695/1635496608900-f47ae7b7-e917-475a-9b24-74a91d485e8e.png" alt="image.png" style={{zoom: "50%"}} />
+
+You can refer to the [Blender official tutorial](https://docs.blender.org/manual/en/2.80/addons/io_scene_gltf2.html#) to debug the material parameters that can be exported to glTF. The same applies to other modeling software; you can Google the keyword “\*\*\* modeling software export glTF”.
+
+Another relatively simple reference method is to import the glTF demo in the modeling software ([click to download](https://gw.alipayobjects.com/os/bmw-prod/85faf9f8-8030-45b2-8ba3-09a61b3db0c3.glb)). The PBR properties in this demo are quite comprehensive and can be used as a reference for debugging. For example, after importing into Blender, the material panel displays as follows:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/6643f12a-6226-490f-b853-f962a38cb09b/1635499476109-753aae7a-5ffa-4d52-ace1-4eaaef81919f.png" />
+
+- Export Verification
+
+After exporting the glTF, you can drag the file into the [glTF Viewer](https://galacean.antgroup.com/engine/gltf-viewer) to check whether the corresponding colors, textures, parameters, etc., are correct:
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/a76d35e6-e222-4877-89a4-c44a117a1284/1635499678001-f7df3dc2-2219-4516-887b-fc5d51dc3521.png" alt="image.png" style={{zoom: "50%"}} />
+
+### Baking Solution
+
+Unlike real-time rendering, if your rendering scene is completely static, does not require light and shadow interaction, refraction, transparency, etc., then using a baking solution will better meet your artistic creation needs. This is because the baking solution can ignore the lighting, glTF support issues mentioned above; you can safely use the built-in renderer of the modeling software, powerful plugins like [vRay](https://www.chaosgroup.com/cn/vray/3ds-max), and finally export to [glTF Unlit plugin](https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Khronos/KHR_materials_unlit) through baked maps.
+
+We also provide several tutorials for the baking solution. You can also Google keywords like “\*\*\* modeling software baking KHR_materials_unlit” to learn more details:
+
+- [《C4D Baking Tutorial》](/en/docs/art/bake-c4d/)
+
+- [《Blender Baking Tutorial》](/en/docs/art/bake-blender)
+
+### Galacean Preview Plugin (Planned)
+
+In the future, we will also invest in plugin developers to embed the Galacean preview plugin in various modeling software to ensure WYSIWYG, eliminating the steps of glTF file verification.

@@ -1,5 +1,6 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
+import { RenderStateElementMap } from "../../BasicResources";
 import { GLCapabilityType } from "../../base/Constant";
 import { deepClone } from "../../clone/CloneManager";
 import { ShaderData } from "../ShaderData";
@@ -148,15 +149,19 @@ export class BlendState {
    * @internal
    * Apply the current blend state by comparing with the last blend state.
    */
-  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
-    this._platformApply(hardwareRenderer, lastRenderState.blendState);
+  _apply(
+    hardwareRenderer: IHardwareRenderer,
+    lastRenderState: RenderState,
+    customStates?: RenderStateElementMap
+  ): void {
+    this._platformApply(hardwareRenderer, lastRenderState.blendState, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: BlendState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: BlendState, customStates?: RenderStateElementMap): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const lastTargetBlendState = lastState.targetBlendState;
 
-    const {
+    let {
       enabled,
       colorBlendOperation,
       alphaBlendOperation,
@@ -166,6 +171,11 @@ export class BlendState {
       destinationAlphaBlendFactor,
       colorWriteMask
     } = this.targetBlendState;
+
+    if (customStates) {
+      const colorWriteMaskState = customStates[RenderStateElementKey.BlendStateColorWriteMask0];
+      colorWriteMaskState !== undefined && (colorWriteMask = <ColorWriteMask>colorWriteMaskState);
+    }
 
     if (enabled !== lastTargetBlendState.enabled) {
       if (enabled) {

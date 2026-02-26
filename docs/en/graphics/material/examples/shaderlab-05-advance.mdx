@@ -1,0 +1,274 @@
+---
+title: Advanced Features and Code Reuse
+---
+
+This tutorial, using a simple skeletal animation demo, will teach you:
+- Using the `#include` directive to reuse code snippets
+- Registering engine-built-in and custom code snippets
+- Using engine-built-in variables
+- Calling engine-built-in functions
+- Debugging and development techniques
+
+
+
+
+<Image
+src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*YPhHTr6_96AAAAAAQ-AAAAgAeuuHAQ/original"
+/>
+
+
+## The `#include` Directive
+
+The `#include` directive allows you to reference external code snippets, enabling code reuse:
+
+```glsl
+#include "Common.glsl"      // Common functions
+#include "Skin.glsl"        // Skeletal animation
+```
+
+**Benefits:**
+- Avoid code duplication
+- Modular development
+- Reuse engine-optimized code
+
+## Engine-Built-in Code Snippets
+
+The Galacean engine provides a rich set of built-in code snippets:
+
+<Callout type="info">
+These snippets are registered by default in the editor.  Learn more about the API in the [Shader API](/en/docs/graphics/material/shaderAPI) documentation.
+</Callout>
+
+### Commonly Used Built-in Snippets
+
+#### Common.glsl - Common Functions
+```glsl
+#include "Common.glsl"
+
+// Provides common mathematical functions and constants
+float value = pow2(0.5);    // Square function
+vec4 linearColor = sRGBToLinear(color); // sRGB to linear color conversion
+```
+
+#### Skin.glsl - Skeletal Animation
+```glsl
+#include "Skin.glsl"
+
+// Provides skeletal animation-related functions
+mat4 skinMatrix = getSkinMatrix(attr);
+```
+
+
+## Skeletal Animation Shader
+
+Skeletal animation requires processing vertex transformations:
+
+### Vertex Data Structure
+```glsl
+struct Attributes {
+vec4 POSITION;
+vec2 TEXCOORD_0;
+#ifdef RENDERER_HAS_SKIN
+vec4 JOINTS_0;    // Bone index
+vec4 WEIGHTS_0;   // Bone weight
+#endif
+};
+``` Skeleton Transformation Calculation
+```glsl
+#include "Skin.glsl"
+
+Varyings vert(Attributes Attribute) {
+Varyings output;
+
+// Perform skeleton transformation using engine-provided functions
+// The getSkinMatrix function is from Skin.glsl
+mat4 skinMatrix = getSkinMatrix(attr);
+
+// Apply skeleton transformation
+vec4 skinnedPosition = skinMatrix * attr.POSITION;
+
+// MVP transformation
+gl_Position = renderer_MVPMat * skinnedPosition;
+
+output.uv = attr.TEXCOORD_0;
+return output;
+}
+```
+
+## Complete Skinned Animation Shader
+
+```glsl showLineNumbers
+Shader "Tutorial/05-SkinnedUnlit" {
+SubShader "Default" {
+Pass "Forward" {
+// Engine-provided variables and matrices
+#include "Transform.glsl"
+
+// Material properties
+vec4 material_BaseColor;
+sampler2D material_BaseTexture;
+
+struct Attributes {
+vec4 POSITION;
+vec2 TEXCOORD_0;
+#ifdef RENDERER_HAS_SKIN
+vec4 JOINTS_0;    // Bone indices
+vec4 WEIGHTS_0;   // Bone weights
+#endif
+};
+
+struct Varyings {
+vec2 uv;
+};
+
+// Include engine-provided skinned animation code snippet
+#include "Skin.glsl"
+
+VertexShader = vert;
+FragmentShader = frag;
+
+Varyings vert(Attributes attr) {
+Varyings output;
+
+// Perform skeleton transformation using engine-provided functions
+// The getSkinMatrix function is from Skin.glsl
+mat4 skinMatrix = getSkinMatrix(attr);
+
+// Apply skeleton transformation
+vec4 skinnedPosition = skinMatrix * attr.POSITION;
+
+// MVP transformation
+gl_Position = renderer_MVPMat * skinnedPosition;
+
+// Pass UV coordinates
+output.uv = attr.TEXCOORD_0;
+
+return output;
+}
+
+void frag(Varyings varying) {
+// Simple Unlit shading
+vec4 texColor = texture2D(material_BaseTexture, varying.uv);
+vec4 finalColor = texColor * material_BaseColor;
+
+gl_FragColor = finalColor;
+}
+}
+}
+```
+
+
+## Custom Shader Fragments
+
+If the built-in shader fragments don't meet your needs, you can create your own:
+
+### Registering Custom Fragments
+```typescript
+import { ShaderFactory } from '@galacean/engine';
+
+const customShaderCode = `
+vec3 customLighting(vec3 normal, vec3 lightDir) {
+float NdotL = max(dot(normal, lightDir), 0.0);
+return vec3(NdotL);
+}
+`;
+
+ShaderFactory.registerInclude('CustomLighting', customShaderCode);
+```
+
+### Using Custom Fragments
+```glsl
+#include "CustomLighting"
+
+void frag() {
+vec3 lighting = customLighting(normal, lightDir);
+gl_FragColor = vec4(lighting, 1.0);
+}
+```
+
+## Engine Built-in Variable System
+
+The engine provides a rich set of built-in variables that can be used directly, such as transformation matrix variables:
+```glsl
+mat4 renderer_LocalMat;    // Local transformation matrix
+mat4 renderer_ModelMat;    // Model matrix
+mat4 renderer_MVMat;       // Model-view matrix
+mat4 renderer_MVPMat;      // MVP matrix
+mat4 renderer_NormalMat;   // Normal transformation matrix
+```
+
+<Callout type="info">
+Go to [Shader Built-in Variables](/en/docs/graphics/material/variables) to learn more about available variables.
+</Callout>
+
+
+## Debugging and Development Tips
+
+### 1. Incremental Development
+```glsl
+// First, implement basic functionality
+void frag() {
+gl_FragColor = material_BaseColor;
+}
+
+// Then, gradually add complex features
+void frag() {
+vec4 color = material_BaseColor;
+
+#ifdef USE_TEXTURE
+color *= texture2D(material_BaseTexture, uv);
+#endif
+
+#ifdef USE_LIGHTING
+color.rgb *= lighting;
+#endif
+
+gl_FragColor = color;
+}
+```
+
+### 2. Using Debug Colors
+```glsl
+// Debug UV coordinates
+gl_FragColor = vec4(uv, 0.0, 1.0);
+
+// Debugging normals
+gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
+```
+
+
+### 3. Leveraging the Advantages of Macros
+During compilation, ShaderLab will remove unused code blocks. Therefore, using macros appropriately can significantly improve performance.
+
+```glsl
+// Without macros: Every pixel needs to be checked
+void frag() {
+vec4 color = material_BaseColor;
+
+if (useTexture > 0.5) {  // Runtime check, poor performance
+color *= texture2D(material_BaseTexture, uv);
+}
+
+gl_FragColor = color;
+}
+
+// With macros: If the macro condition is not met, the code block is removed during compilation, resulting in better performance
+void frag() {
+vec4 color = material_BaseColor;
+
+#ifdef USE_TEXTURE  // Determined at compile time, better performance
+color *= texture2D(material_BaseTexture, uv);
+#endif
+
+gl_FragColor = color;
+}
+```
+
+## Running Results
+
+This shader will:
+1. Demonstrate the declaration of skeleton-related structures
+2. Use the engine's built-in `Skin.glsl` fragment shader to implement skeletal animation
+3. Achieve efficient skeletal animation rendering
+
+Go to [Playground](/examples/shaderlab-05-advance)

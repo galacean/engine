@@ -1,6 +1,5 @@
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion, Vector3, DisorderedArray, Vector4, MathUtil } from "@galacean/engine";
 import { IColliderShape } from "@galacean/engine-design";
-import { DisorderedArray } from "../DisorderedArray";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -27,26 +26,33 @@ export abstract class PhysXColliderShape implements IColliderShape {
     rotation: null
   };
 
+  protected static _tempVector4 = new Vector4();
+
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
+  /** @internal */
+  _contractOffset: number = 0.02;
 
-  protected _physXPhysics: PhysXPhysics;
-  protected _worldScale: Vector3 = new Vector3(1, 1, 1);
-  protected _position: Vector3 = new Vector3();
-  protected _rotation: Vector3 = null;
-  protected _axis: Quaternion = null;
-  protected _physXRotation: Quaternion = new Quaternion();
-
-  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
-
+  /** @internal */
+  _worldScale: Vector3 = new Vector3(1, 1, 1);
+  /** @internal */
+  _position: Vector3 = new Vector3();
   /** @internal */
   _pxMaterial: any;
   /** @internal */
   _pxShape: any;
   /** @internal */
-  _pxGeometry: any;
   /** @internal */
   _id: number;
+  /** @internal */
+  _rotation: Vector3 = new Vector3();
+
+  protected _physXPhysics: PhysXPhysics;
+  protected _pxGeometry: any;
+  protected _axis: Quaternion = null;
+  protected _physXRotation: Quaternion = new Quaternion();
+
+  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;
@@ -56,8 +62,12 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setRotation }
    */
   setRotation(value: Vector3): void {
-    this._rotation = value;
-    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._physXRotation);
+    const rotation = this._rotation.set(
+      MathUtil.degreeToRadian(value.x),
+      MathUtil.degreeToRadian(value.y),
+      MathUtil.degreeToRadian(value.z)
+    );
+    Quaternion.rotationYawPitchRoll(rotation.y, rotation.x, rotation.z, this._physXRotation);
     this._axis && Quaternion.multiply(this._physXRotation, this._axis, this._physXRotation);
     this._physXRotation.normalize();
     this._setLocalPose();
@@ -82,7 +92,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    this._worldScale.copyFrom(scale);
+    this._worldScale.set(Math.abs(scale.x), Math.abs(scale.y), Math.abs(scale.z));
     this._setLocalPose();
 
     const controllers = this._controllers;
@@ -96,11 +106,14 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._pxShape.setContactOffset(offset);
-
+    this._contractOffset = offset;
     const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController?.setContactOffset(offset);
+    if (controllers.length) {
+      for (let i = 0, n = controllers.length; i < n; i++) {
+        controllers.get(i)._pxController?.setContactOffset(offset);
+      }
+    } else {
+      this._pxShape.setContactOffset(offset);
     }
   }
 
@@ -122,10 +135,22 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
+   * {@inheritDoc IColliderShape.pointDistance }
+   */
+  pointDistance(point: Vector3): Vector4 {
+    const info = this._pxGeometry.pointDistance(this._pxShape.getGlobalPose(), point);
+    const closestPoint = info.closestPoint;
+    const res = PhysXColliderShape._tempVector4;
+    res.set(closestPoint.x, closestPoint.y, closestPoint.z, info.distance);
+    return res;
+  }
+
+  /**
    * {@inheritDoc IColliderShape.destroy }
    */
   destroy(): void {
     this._pxShape.release();
+    this._pxGeometry?.delete();
   }
 
   /**
@@ -133,7 +158,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   _setShapeFlags(flags: ShapeFlag) {
     this._shapeFlags = flags;
-    this._pxShape.setFlags(new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags));
+    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
+    this._pxShape.setFlags(shapeFlags);
+    shapeFlags.delete();
   }
 
   protected _setLocalPose(): void {
@@ -146,12 +173,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
     this._id = id;
     this._pxMaterial = material._pxMaterial;
-    this._pxShape = this._physXPhysics._pxPhysics.createShape(
-      this._pxGeometry,
-      material._pxMaterial,
-      true,
-      new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags)
-    );
+    const shapeFlags = new this._physXPhysics._physX.PxShapeFlags(this._shapeFlags);
+    this._pxShape = this._physXPhysics._pxPhysics.createShape(this._pxGeometry, material._pxMaterial, true, shapeFlags);
+    shapeFlags.delete();
     this._pxShape.setUUID(id);
   }
 

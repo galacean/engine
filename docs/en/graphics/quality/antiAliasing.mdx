@@ -1,0 +1,50 @@
+---
+order: 0
+title: Anti Aliasing
+---
+
+Anti-Aliasing (AA) is an image processing technique that aims to reduce the "aliasing" edges in images and make them smoother and more natural.
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*i_i6TJFeLV8AAAAAAAAAAAAAegDwAQ/original"
+  leftText="OFF"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*41n8SZdM8jYAAAAAAAAAAAAAegDwAQ/original"
+  rightText="FXAA + MSAA"
+/>
+
+## FXAA (Fast Approximate Anti-Aliasing)
+[Fast Approximate Anti-Aliasing (FXAA)](https://en.wikipedia.org/wiki/Fast_approximate_anti-aliasing) is screen-space anti-aliasing mode applied after the camera renders the final image,it can smooth all pixels, including by `shader-generated specular`, `alpha-cutoff edge`.
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*oTb9Trh4Y9sAAAAAAAAAAAAAegDwAQ/original"
+  leftText="FXAA OFF"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*my-aSI1FnpoAAAAAAAAAAAAAegDwAQ/original"
+  rightText="FXAA ON"
+/>
+
+Galacean turns off 'FXAA' by default, which you can configure via 'antiAliasing' under the Camera or call [antiAliasing](/apis/core/#Camera-antiAliasing) interface.
+
+## MSAA (Multiple Sampling Anti-Aliasing)
+[Multiple Sampling Anti-Aliasing (MSAA)](https://en.wikipedia.org/wiki/Multisample_anti-aliasing) is a hardware-level anti-aliasing technology, mainly addressing the jagged edges of geometric shapes. Since jagged edges caused by materials, textures, and transparency and other non-geometric objects are not affected by `MSAA`, this means that you can use `MSAA` and `FXAA` together.
+
+<Callout type="info">
+Materials, textures, and transparent surfaces are not affected by MSAA, which means you can use MSAA with FXAA.
+</Callout>
+
+<Comparison
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*oTb9Trh4Y9sAAAAAAAAAAAAAegDwAQ/original"
+  leftText="MSAA OFF"
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*9T8LSJ2ORscAAAAAAAAAAAAAegDwAQ/original"
+  rightText="MSAA 4x"
+/>
+
+<Callout type="warning">It can be seen that in this scenario, the leaves with transparent clipping (alphaCutoff) are not affected by MSAA, and the opaque bones are affected by MSAA.</Callout>
+
+In Galacean, the default 'msaaSamples' under the camera is' 4x'. You can modify the 'msaaSamples' to customize the 'MSAA' quality. Or directly call [msaaSamples](/apis/core/#Camera-msaaSamples) interface Settings.
+
+## How to use it in the editor?
+
+To see the anti-aliasing effect, preview through the camera window:
+
+![image](https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*-fwHQJ6nC90AAAAAAAAAAAAAegDwAQ/original) 
+![image](https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*dgVPSrM27dcAAAAAAAAAAAAAegDwAQ/original) 
