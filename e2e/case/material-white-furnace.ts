@@ -31,11 +31,18 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
   const camera = cameraEntity.addComponent(Camera);
 
+  // Exact sRGB to linear transfer function matching GPU hardware (IEC 61966-2-1)
+  function sRGBToLinear(value: number): number {
+    return value <= 0.04045 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+  }
+
   // White Furnace Test:
   // Uniform environment with 100% reflective material (white baseColor)
   // If energy is conserved, spheres should be indistinguishable from the background
   // Environment color can be any uniform value; baseColor must be white (F0=1 for metal)
-  const envLinear = 0.5;
+  // Use a linear value that round-trips exactly through sRGB 8-bit quantization
+  const sRGBByte = 186;
+  const envLinear = sRGBToLinear(sRGBByte / 255);
   const envColor = new Color(envLinear, envLinear, envLinear, 1);
   const whiteColor = new Color(1, 1, 1, 1);
 
@@ -45,9 +52,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   // Create a uniform specular cubemap for specular IBL
   // sRGB texture: hardware auto-converts sRGB->Linear on sampling
-  // Store sRGB-encoded value: pow(linearValue, 1/2.2) * 255
   const cubeSize = 64;
-  const furnaceValue = Math.round(Math.pow(envLinear, 1.0 / 2.2) * 255);
+  const furnaceValue = sRGBByte;
   const grayCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true, true);
   const grayPixels = new Uint8Array(cubeSize * cubeSize * 4);
   for (let i = 0; i < grayPixels.length; i += 4) {
