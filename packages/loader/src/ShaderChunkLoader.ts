@@ -29,6 +29,7 @@ export class ShaderChunkLoader extends Loader<void[]> {
 
     return Promise.all(
       shaderChunkPaths.map((chunkPath) => {
+        // @ts-ignore
         return resourceManager.load<void>({
           type: "ShaderChunk",
           url: chunkPath
