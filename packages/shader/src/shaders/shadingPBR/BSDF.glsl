@@ -85,6 +85,7 @@ struct BSDFData{
     float diffuseAO;
     vec3  specularF0;
     float specularF90;
+    vec3  energyCompensation; // Multi-scattering energy compensation factor
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
@@ -370,20 +371,19 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 
 // ------------------------Indirect Specular------------------------
 // ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
-vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
 
+// Returns raw DFG approximation coefficients (split-sum LUT approximation)
+vec2 envDFGApprox(float roughness, float dotNV) {
     const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
-
     const vec4 c1 = vec4( 1, 0.0425, 1.04, - 0.04 );
-
     vec4 r = roughness * c0 + c1;
-
     float a004 = min( r.x * r.x, exp2( - 9.28 * dotNV ) ) * r.x + r.y;
+    return vec2( -1.04, 1.04 ) * a004 + r.zw;
+}
 
-    vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
-
+vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
+    vec2 AB = envDFGApprox(roughness, dotNV);
     return f0 * AB.x + f90 * AB.y;
-
 }
 
 #ifdef MATERIAL_ENABLE_TRANSMISSION 
@@ -441,7 +441,12 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     bsdfData.diffuseColor = albedoColor * (1.0-metallic) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
     
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularF0,  bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV);
+
+    // Pre-compute environment BRDF and multi-scattering energy compensation
+    // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
+    vec2 dfg = envDFGApprox(bsdfData.roughness, surfaceData.dotNV);
+    bsdfData.envSpecularDFG = bsdfData.specularF0 * dfg.x + bsdfData.specularF90 * dfg.y;
+    bsdfData.energyCompensation = 1.0 + bsdfData.specularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
    
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 
