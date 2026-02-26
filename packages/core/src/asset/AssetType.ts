@@ -2,20 +2,11 @@
  * Asset Type.
  */
 export enum AssetType {
-  /**
-   * Plain text.
-   * @remarks Will not be cached based on url in ResourceManager.
-   */
+  /** Plain text. */
   Text = "Text",
-  /**
-   * JSON.
-   * @remarks Will not be cached based on url in ResourceManager.
-   */
+  /** JSON. */
   JSON = "JSON",
-  /**
-   * ArrayBuffer.
-   * @remarks Will not be cached based on url in ResourceManager.
-   */
+  /** ArrayBuffer. */
   Buffer = "Buffer",
   /** 2D Texture. */
   Texture2D = "Texture2D",
