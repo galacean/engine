@@ -119,9 +119,9 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.12
     },
-    "energy-compensation": {
+    "white-furnace": {
       category: "Material",
-      caseFileName: "material-energy-compensation",
+      caseFileName: "material-white-furnace",
       threshold: 0,
       diffPercentage: 0.0016
     },
