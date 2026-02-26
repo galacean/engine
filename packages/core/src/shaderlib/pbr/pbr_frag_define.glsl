@@ -146,6 +146,7 @@ struct Material {
     float diffuseAO;
     float specularAO;
     vec3  envSpecularDFG;
+    vec3  energyCompensation; // Multi-scattering energy compensation factor
     float IOR;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
