@@ -420,9 +420,9 @@ export class TextUtils {
         // Extract alpha channel only for Alpha8 texture format.
         const alphaPixelCount = size * integerW;
         data = new Uint8Array(alphaPixelCount);
-        const start = top * integerW;
-        for (let i = 0; i < alphaPixelCount; i++) {
-          data[i] = colorData[(start + i) * 4 + 3];
+        let offset = top * integerW * 4 + 3;
+        for (let i = 0; i < alphaPixelCount; i++, offset += 4) {
+          data[i] = colorData[offset];
         }
       }
       return {
