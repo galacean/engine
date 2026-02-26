@@ -31,41 +31,44 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
   const camera = cameraEntity.addComponent(Camera);
 
-  // White Furnace Test:
-  // Pure white uniform environment (no directional light, only solid color ambient)
-  // Pure white metallic spheres (metallic=1, baseColor=white)
-  // If energy is conserved, spheres should be indistinguishable from the white background
+  // White Furnace Test (using gray to better visualize):
+  // Uniform gray environment, gray baseColor, gray background
+  // If energy is conserved, spheres should be indistinguishable from the background
+  const furnaceColor = new Color(1, 1, 1, 1);
+
   scene.ambientLight.diffuseMode = DiffuseMode.SolidColor;
-  scene.ambientLight.diffuseSolidColor = new Color(1, 1, 1, 1);
+  scene.ambientLight.diffuseSolidColor = furnaceColor;
   scene.ambientLight.diffuseIntensity = 1.0;
 
-  // Create a pure white specular cubemap for uniform specular IBL
+  // Create a uniform gray specular cubemap for specular IBL
+  // sRGB texture: hardware auto-converts sRGB->Linear on sampling
   const cubeSize = 64;
-  const whiteCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true);
-  const whitePixels = new Uint8Array(cubeSize * cubeSize * 4);
-  for (let i = 0; i < whitePixels.length; i += 4) {
-    whitePixels[i] = 255;
-    whitePixels[i + 1] = 255;
-    whitePixels[i + 2] = 255;
-    whitePixels[i + 3] = 255;
+  const furnaceValue = 255; // 1.0 linear -> sRGB = 255
+  const grayCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true, true);
+  const grayPixels = new Uint8Array(cubeSize * cubeSize * 4);
+  for (let i = 0; i < grayPixels.length; i += 4) {
+    grayPixels[i] = furnaceValue;
+    grayPixels[i + 1] = furnaceValue;
+    grayPixels[i + 2] = furnaceValue;
+    grayPixels[i + 3] = 255;
   }
   for (let face = 0; face < 6; face++) {
-    whiteCube.setPixelBuffer(face as TextureCubeFace, whitePixels);
+    grayCube.setPixelBuffer(face as TextureCubeFace, grayPixels);
   }
-  whiteCube.generateMipmaps();
-  whiteCube.filterMode = TextureFilterMode.Trilinear;
-  whiteCube.wrapModeU = TextureWrapMode.Clamp;
-  whiteCube.wrapModeV = TextureWrapMode.Clamp;
+  grayCube.generateMipmaps();
+  grayCube.filterMode = TextureFilterMode.Trilinear;
+  grayCube.wrapModeU = TextureWrapMode.Clamp;
+  grayCube.wrapModeV = TextureWrapMode.Clamp;
 
-  scene.ambientLight.specularTexture = whiteCube;
+  scene.ambientLight.specularTexture = grayCube;
   scene.ambientLight.specularIntensity = 1.0;
 
-  // Set white background
-  scene.background.solidColor = new Color(1, 1, 1, 1);
+  // Set gray background
+  scene.background.solidColor = furnaceColor;
 
-  // Row 1: White metal spheres (metallic=1), roughness 0.0 ~ 1.0
-  // Row 2: White metal spheres (metallic=1), roughness 0.0 ~ 1.0
-  // Row 3: White dielectric spheres (metallic=0), roughness 0.0 ~ 1.0
+  // Row 1: Gray metal spheres (metallic=1), roughness 0.0 ~ 1.0
+  // Row 2: Gray metal spheres (metallic=1), roughness 0.0 ~ 1.0
+  // Row 3: Gray dielectric spheres (metallic=0), roughness 0.0 ~ 1.0
   const cols = 7;
   const rows = 3;
   const spacing = 1.2;
@@ -73,9 +76,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const offsetY = ((rows - 1) * spacing) / 2;
 
   const rowConfigs = [
-    { metallic: 1.0, baseColor: new Color(1, 1, 1, 1) },
-    { metallic: 1.0, baseColor: new Color(1, 1, 1, 1) },
-    { metallic: 0.0, baseColor: new Color(1, 1, 1, 1) }
+    { metallic: 1.0, baseColor: furnaceColor },
+    { metallic: 1.0, baseColor: furnaceColor },
+    { metallic: 0.0, baseColor: furnaceColor }
   ];
 
   for (let row = 0; row < rows; row++) {
