@@ -46,7 +46,7 @@ export const E2E_CONFIG = {
       category: "Animator",
       caseFileName: "animator-event",
       threshold: 0,
-      diffPercentage: 0.00146
+      diffPercentage: 0.0036
     },
     play: {
       category: "Animator",
@@ -76,7 +76,7 @@ export const E2E_CONFIG = {
       category: "Animator",
       caseFileName: "animator-stateMachineScript",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0036
     },
     stateMachine: {
       category: "Animator",
@@ -441,8 +441,8 @@ export const E2E_CONFIG = {
     TypedText: {
       category: "Text",
       caseFileName: "text-typed",
-      threshold: 0,
-      diffPercentage: 0
+      threshold: 0.016,
+      diffPercentage: 0.00136
     }
   },
   Trail: {

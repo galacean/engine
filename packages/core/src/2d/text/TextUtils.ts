@@ -404,8 +404,6 @@ export class TextUtils {
         if (y > bottom) {
           bottom = y;
         }
-      } else {
-        colorData[i] = colorData[i + 1] = colorData[i + 2] = 255;
       }
     }
 
@@ -419,9 +417,13 @@ export class TextUtils {
     if (isChar) {
       let data = null;
       if (size > 0) {
-        const lineIntegerW = integerW * 4;
-        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
-        data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
+        // Extract alpha channel only for Alpha8 texture format.
+        const alphaPixelCount = size * integerW;
+        data = new Uint8Array(alphaPixelCount);
+        let offset = top * integerW * 4 + 3;
+        for (let i = 0; i < alphaPixelCount; i++, offset += 4) {
+          data[i] = colorData[offset];
+        }
       }
       return {
         char: measureString,
