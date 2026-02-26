@@ -1,6 +1,5 @@
 import { RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { GLRenderTarget } from "@galacean/engine-rhi-webgl/src/GLRenderTarget";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("GLRenderTarget", () => {
@@ -17,7 +16,7 @@ describe("GLRenderTarget", () => {
       const renderTarget = new RenderTarget(engine, 512, 512, colorTexture, TextureFormat.Depth16, 1);
 
       // @ts-ignore
-      const glRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
+      const glRenderTarget = renderTarget._platformRenderTarget as any;
 
       expect(() => {
         glRenderTarget.activeRenderTarget(0);
@@ -32,7 +31,7 @@ describe("GLRenderTarget", () => {
       const renderTarget = new RenderTarget(engine, 512, 512, colorTexture, TextureFormat.Depth16, 4);
 
       // @ts-ignore
-      const glRenderTarget = renderTarget._platformRenderTarget as GLRenderTarget;
+      const glRenderTarget = renderTarget._platformRenderTarget as any;
 
       expect(() => {
         glRenderTarget.activeRenderTarget(0);
