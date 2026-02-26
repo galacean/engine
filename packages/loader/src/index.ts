@@ -16,6 +16,7 @@ import "./ProjectLoader";
 import "./SourceFontLoader";
 import "./SpriteAtlasLoader";
 import "./SpriteLoader";
+import "./TextLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./AudioLoader";
