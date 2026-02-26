@@ -16,14 +16,11 @@ export class FontAtlas extends ReferResource {
   private _curX: number = 1;
   private _curY: number = 1;
   private _nextY: number = 1;
-  private _preSize: number = 0;
-  private _curSize: number = 128;
 
   constructor(engine: Engine) {
     super(engine);
     this.isGCIgnored = true;
-    const size = this._curSize;
-    const texture = new Texture2D(engine, size, size, TextureFormat.R8G8B8A8, false);
+    const texture = new Texture2D(engine, 512, 512, TextureFormat.Alpha8, false);
     texture.filterMode = TextureFilterMode.Bilinear;
     texture.isGCIgnored = true;
     this.texture = texture;
@@ -35,30 +32,21 @@ export class FontAtlas extends ReferResource {
     const textureSize = texture.width;
     const offsetWidth = width + space;
     const offsetHeight = height + space;
-    const tempCurX = this._curX;
-    const tempNextY = this._nextY;
+    if (1 + offsetWidth >= textureSize || 1 + offsetHeight >= textureSize) {
+      throw Error("The char fontSize is too large.");
+    }
 
-    const endX = tempCurX + offsetWidth;
+    const endX = this._curX + offsetWidth;
     if (endX >= textureSize) {
-      this._curX = space + (tempNextY > this._preSize ? 0 : this._preSize);
-      this._curY = tempNextY + space;
+      this._curX = space;
+      this._curY = this._nextY + space;
     }
     const endY = this._curY + offsetHeight;
-    if (endY > tempNextY) {
+    if (endY > this._nextY) {
       this._nextY = endY;
     }
-    // Exceed cur texture size.
     if (endY >= textureSize) {
-      if (textureSize >= 1024) {
-        console.warn("Exceed max size.");
-        return false;
-      } else {
-        this._curX = textureSize + space;
-        this._curY = space;
-        this._nextY = space;
-        this._resizeTexture();
-        return this.uploadCharTexture(charInfo);
-      }
+      return false;
     }
 
     if (width > 0 && height > 0 && data) {
@@ -105,34 +93,5 @@ export class FontAtlas extends ReferResource {
     this.texture.destroy();
     this.texture = null;
     this._charInfoMap = {};
-  }
-
-  private _resizeTexture(): void {
-    const curSize = (this._preSize = this._curSize);
-    const newSize = (this._curSize *= 2);
-    const resizeTexture = new Texture2D(this.engine, newSize, newSize, TextureFormat.R8G8B8A8, false);
-    resizeTexture.filterMode = TextureFilterMode.Bilinear;
-    resizeTexture.isGCIgnored = true;
-    const texture = this.texture;
-    this.texture = resizeTexture;
-
-    // Write data from texture to resize texture.
-    const data = new Uint8Array(curSize * curSize * 4);
-    texture.getPixelBuffer(data);
-    resizeTexture.setPixelBuffer(data, 0, 0, 0, curSize, curSize);
-    resizeTexture.generateMipmaps();
-
-    // Reset uvs
-    const map = this._charInfoMap;
-    for (const key in map) {
-      const charInfo = map[key];
-      const uvs = charInfo.uvs;
-      uvs[0].scale(0.5);
-      uvs[1].scale(0.5);
-      uvs[2].scale(0.5);
-      uvs[3].scale(0.5);
-    }
-
-    texture.destroy();
   }
 }
