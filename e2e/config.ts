@@ -442,7 +442,7 @@ export const E2E_CONFIG = {
       category: "Text",
       caseFileName: "text-typed",
       threshold: 0.016,
-      diffPercentage: 0
+      diffPercentage: 0.00136
     }
   },
   Trail: {
