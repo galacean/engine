@@ -1,4 +1,12 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager, TextAsset } from "@galacean/engine-core";
+import {
+  resourceLoader,
+  Loader,
+  AssetPromise,
+  AssetType,
+  LoadItem,
+  ResourceManager,
+  TextAsset
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Text, ["txt"])
 class TextLoader extends Loader<TextAsset> {

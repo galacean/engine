@@ -1,4 +1,12 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager, JSONAsset } from "@galacean/engine-core";
+import {
+  resourceLoader,
+  Loader,
+  AssetPromise,
+  AssetType,
+  LoadItem,
+  ResourceManager,
+  JSONAsset
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.JSON, ["json"])
 class JSONLoader extends Loader<JSONAsset> {

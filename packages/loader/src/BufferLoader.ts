@@ -1,4 +1,12 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, ResourceManager, BufferAsset } from "@galacean/engine-core";
+import {
+  resourceLoader,
+  Loader,
+  AssetPromise,
+  AssetType,
+  LoadItem,
+  ResourceManager,
+  BufferAsset
+} from "@galacean/engine-core";
 
 const base64Regex = /^data:(.+?);base64,/;
 
