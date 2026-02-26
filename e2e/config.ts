@@ -123,7 +123,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-white-furnace",
       threshold: 0,
-      diffPercentage: 0.0016
+      diffPercentage: 0.0
     },
     "pbr-specular": {
       category: "Material",

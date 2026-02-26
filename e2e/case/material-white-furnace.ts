@@ -31,19 +31,23 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
   const camera = cameraEntity.addComponent(Camera);
 
-  // White Furnace Test (using gray to better visualize):
-  // Uniform gray environment, gray baseColor, gray background
+  // White Furnace Test:
+  // Uniform environment with 100% reflective material (white baseColor)
   // If energy is conserved, spheres should be indistinguishable from the background
-  const furnaceColor = new Color(1, 1, 1, 1);
+  // Environment color can be any uniform value; baseColor must be white (F0=1 for metal)
+  const envLinear = 0.5;
+  const envColor = new Color(envLinear, envLinear, envLinear, 1);
+  const whiteColor = new Color(1, 1, 1, 1);
 
   scene.ambientLight.diffuseMode = DiffuseMode.SolidColor;
-  scene.ambientLight.diffuseSolidColor = furnaceColor;
+  scene.ambientLight.diffuseSolidColor = envColor;
   scene.ambientLight.diffuseIntensity = 1.0;
 
-  // Create a uniform gray specular cubemap for specular IBL
+  // Create a uniform specular cubemap for specular IBL
   // sRGB texture: hardware auto-converts sRGB->Linear on sampling
+  // Store sRGB-encoded value: pow(linearValue, 1/2.2) * 255
   const cubeSize = 64;
-  const furnaceValue = 255; // 1.0 linear -> sRGB = 255
+  const furnaceValue = Math.round(Math.pow(envLinear, 1.0 / 2.2) * 255);
   const grayCube = new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true, true);
   const grayPixels = new Uint8Array(cubeSize * cubeSize * 4);
   for (let i = 0; i < grayPixels.length; i += 4) {
@@ -63,12 +67,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   scene.ambientLight.specularTexture = grayCube;
   scene.ambientLight.specularIntensity = 1.0;
 
-  // Set gray background
-  scene.background.solidColor = furnaceColor;
+  // Set background to same color
+  scene.background.solidColor = envColor;
 
-  // Row 1: Gray metal spheres (metallic=1), roughness 0.0 ~ 1.0
-  // Row 2: Gray metal spheres (metallic=1), roughness 0.0 ~ 1.0
-  // Row 3: Gray dielectric spheres (metallic=0), roughness 0.0 ~ 1.0
+  // Row 1: Metal spheres (metallic=1), roughness 0.0 ~ 1.0
+  // Row 2: Metal spheres (metallic=1), roughness 0.0 ~ 1.0
+  // Row 3: Dielectric spheres (metallic=0), roughness 0.0 ~ 1.0
   const cols = 7;
   const rows = 3;
   const spacing = 1.2;
@@ -76,9 +80,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const offsetY = ((rows - 1) * spacing) / 2;
 
   const rowConfigs = [
-    { metallic: 1.0, baseColor: furnaceColor },
-    { metallic: 1.0, baseColor: furnaceColor },
-    { metallic: 0.0, baseColor: furnaceColor }
+    { metallic: 1.0, baseColor: whiteColor },
+    { metallic: 1.0, baseColor: whiteColor },
+    { metallic: 0.0, baseColor: whiteColor }
   ];
 
   for (let row = 0; row < rows; row++) {
