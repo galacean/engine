@@ -442,7 +442,7 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
 
-    // Pre-compute environment BRDF and multi-scattering energy compensation
+    // Environment BRDF and multi-scattering energy compensation
     // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
     vec2 dfg = envDFGApprox(bsdfData.roughness, surfaceData.dotNV);
     bsdfData.envSpecularDFG = bsdfData.specularF0 * dfg.x + bsdfData.specularF90 * dfg.y;
