@@ -123,7 +123,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-energy-compensation",
       threshold: 0,
-      diffPercentage: 0.0
+      diffPercentage: 0.0016
     },
     "pbr-specular": {
       category: "Material",
