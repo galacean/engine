@@ -31,7 +31,7 @@ float radianceAttenuation = 1.0;
     radianceAttenuation -= material.clearCoat * F_Schlick(0.04, 1.0, geometry.clearCoatDotNV);
 #endif
 
-reflectedLight.indirectSpecular += material.specularAO * radianceAttenuation * radiance * envBRDFApprox(material.effectiveSpecularF0, material.specularF90, material.roughness, geometry.dotNV) * material.energyCompensation;
+reflectedLight.indirectSpecular += material.specularAO * radianceAttenuation * radiance * envBRDFApprox(material.resolvedSpecularF0, material.specularF90, material.roughness, geometry.dotNV) * material.energyCompensation;
 
 
 // IBL Sheen

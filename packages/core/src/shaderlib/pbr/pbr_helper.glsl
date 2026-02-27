@@ -158,7 +158,7 @@ void initMaterial(out Material material, inout Geometry geometry){
 
         material.specularF0 = mix(dielectricF0, baseColor.rgb, metal);
         material.specularF90 = mix(dielectricF90, 1.0, metal);
-        material.effectiveSpecularF0 = material.specularF0;
+        material.resolvedSpecularF0 = material.specularF0;
 
         // Simplify: albedoColor * mix((1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b)), 0.0, metallic);
         material.diffuseColor = baseColor.rgb * (1.0 - metal) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
@@ -228,16 +228,16 @@ void initMaterial(out Material material, inout Geometry geometry){
             #ifdef MATERIAL_ENABLE_IRIDESCENCE
                 float topIOR = 1.0;
                 material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularF0, material.specularF90, material.iridescenceThickness);
-                material.effectiveSpecularF0 = mix(material.effectiveSpecularF0, material.iridescenceSpecularColor, material.iridescenceFactor);
+                material.resolvedSpecularF0 = mix(material.resolvedSpecularF0, material.iridescenceSpecularColor, material.iridescenceFactor);
             #endif
         #endif
 
-        material.envSpecularDFG = material.effectiveSpecularF0 * dfg.x + material.specularF90 * dfg.y;
+        material.envSpecularDFG = material.resolvedSpecularF0 * dfg.x + material.specularF90 * dfg.y;
 
         // Multi-scattering energy compensation
         // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
         // Ref: Lagarde & Golubev 2018, simplified multiplier approach
-        material.energyCompensation = 1.0 + material.effectiveSpecularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
+        material.energyCompensation = 1.0 + material.resolvedSpecularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
 
         // Transmission
         #ifdef MATERIAL_ENABLE_TRANSMISSION 
@@ -255,5 +255,4 @@ void initMaterial(out Material material, inout Geometry geometry){
             #endif    
         #endif
 }
-
 
