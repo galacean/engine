@@ -90,6 +90,7 @@ Shader "PBRShaderName" {
         
     SubShader "Default" {
       UsePass "pbr/Default/ShadowCaster"
+      UsePass "pbr/Default/DepthOnly"
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 

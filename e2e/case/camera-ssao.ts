@@ -4,8 +4,10 @@
  */
 import {
   AmbientLight,
+  AmbientOcclusionQuality,
   AssetType,
   BackgroundMode,
+  BlendFactor,
   Camera,
   Color,
   DirectLight,
@@ -13,20 +15,32 @@ import {
   MeshRenderer,
   PBRMaterial,
   PrimitiveMesh,
+  RenderQueueType,
+  Shader,
   SkyBoxMaterial,
-  AmbientOcclusionQuality,
   Vector3,
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
-import { initScreenshot, updateForE2E } from "./.mockForE2E";
+import { PBRSource, registerIncludes } from "@galacean/engine-shader";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 } }).then((engine) => {
+
+registerIncludes();
+
+// Create engine
+WebGLEngine.create({
+  canvas: "canvas",
+  shaderLab: new ShaderLab(),
+  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 }
+}).then((engine) => {
   engine.canvas.resizeByClientSize(2);
+
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  const { ambientLight, background } = scene;
+
+  const pbrShader = Shader.create(PBRSource);
 
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");
@@ -34,46 +48,62 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLM
   const camera = cameraEntity.addComponent(Camera);
 
   scene.ambientOcclusion.enabled = true;
-  // scene.ambientOcclusion.radius = 0.4;
-  // scene.ambientOcclusion.intensity = 3;
-  // scene.ambientOcclusion.power = 1.0;
-  // scene.ambientOcclusion.bias = 0.0005;
-  // scene.ambientOcclusion.bilateralThreshold = 0.01;
   scene.ambientOcclusion.quality = AmbientOcclusionQuality.High;
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(1, 1, 1);
   lightNode.transform.rotate(new Vector3(-45, 60, 0));
 
+  const { background } = scene;
   const sky = background.sky;
   const skyMaterial = new SkyBoxMaterial(engine);
   background.mode = BackgroundMode.Sky;
   sky.material = skyMaterial;
   sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
+  // Sphere
   const sphereMaterial = new PBRMaterial(engine);
   sphereMaterial.baseColor = new Color(1, 1, 1, 1);
+  sphereMaterial.shader = pbrShader;
+  sphereMaterial.shaderData.setInt("depthWriteEnabled", 1);
   const sphere = rootEntity.createChild("sphere");
-  const { transform } = sphere;
-  transform.setPosition(0, 1, 0);
-  transform.setRotation(45, 45, 0);
+  sphere.transform.setPosition(0, 1, 0);
+  sphere.transform.setRotation(45, 45, 0);
   const meshRenderer = sphere.addComponent(MeshRenderer);
   meshRenderer.mesh = PrimitiveMesh.createSubdivisionSurfaceSphere(engine);
   meshRenderer.setMaterial(sphereMaterial);
 
-  const box = rootEntity.createChild("box");
+  // Box
   const boxMaterial = new PBRMaterial(engine);
   boxMaterial.baseColor = new Color(1, 1, 1, 1);
+  boxMaterial.shader = pbrShader;
+  boxMaterial.shaderData.setInt("depthWriteEnabled", 1);
+  const box = rootEntity.createChild("box");
   box.transform.setPosition(1, 0.9, 0.1);
   box.transform.setRotation(30, 30, 0);
   const boxMeshRenderer = box.addComponent(MeshRenderer);
   boxMeshRenderer.mesh = PrimitiveMesh.createCuboid(engine);
   boxMeshRenderer.setMaterial(boxMaterial);
 
-  const capsule = rootEntity.createChild("capsule");
+  // Capsule (transparent)
   const capsuleMaterial = new PBRMaterial(engine);
-  capsuleMaterial.isTransparent = true;
   capsuleMaterial.baseColor = new Color(1, 1, 1, 0.5);
+  capsuleMaterial.isTransparent = true;
+  capsuleMaterial.shader = pbrShader;
+  {
+    const shaderData = capsuleMaterial.shaderData;
+    shaderData.setInt("depthWriteEnabled", 1);
+    shaderData.setInt("blendEnabled", 1);
+    shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
+    shaderData.enableMacro("MATERIAL_IS_TRANSPARENT");
+
+    shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
+    shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
+    shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
+    shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
+  }
+
+  const capsule = rootEntity.createChild("capsule");
   capsule.transform.setPosition(1, 0.9, 0.1);
   capsule.transform.setRotation(30, 30, 0);
   const capsuleMeshRenderer = capsule.addComponent(MeshRenderer);

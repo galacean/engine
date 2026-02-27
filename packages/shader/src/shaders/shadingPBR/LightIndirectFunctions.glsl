@@ -45,10 +45,10 @@ vec3 getLightProbeRadiance(SurfaceData surfaceData, vec3 normal, float roughness
 
 float evaluateSpecularOcclusion(float dotNV, float diffuseAO, float roughness){
     float specularAOFactor = 1.0;
-        #if defined(MATERIAL_HAS_OCCLUSION_TEXTURE) && defined(SCENE_USE_SPECULAR_ENV) 
+        #if (defined(MATERIAL_HAS_OCCLUSION_TEXTURE) || defined(SCENE_ENABLE_AMBIENT_OCCLUSION)) && defined(SCENE_USE_SPECULAR_ENV)
             specularAOFactor = saturate( pow(dotNV + diffuseAO, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + diffuseAO );
         #endif
     return specularAOFactor;
-}   
+}
 
 #endif
