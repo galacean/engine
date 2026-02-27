@@ -84,6 +84,7 @@ struct BSDFData{
     vec3 envSpecularDFG;
     float diffuseAO;
     vec3  specularF0;
+    vec3  resolvedSpecularF0;
     float specularF90;
     vec3  energyCompensation; // Multi-scattering energy compensation factor
 
@@ -447,16 +448,18 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
         bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularF0, bsdfData.specularF90 , surfaceData.iridescenceThickness);
     #endif
 
+    // Use a single effective F0 basis to keep IBL, transmission and compensation consistent.
+    bsdfData.resolvedSpecularF0 = bsdfData.specularF0;
+    #ifdef MATERIAL_ENABLE_IRIDESCENCE
+        bsdfData.resolvedSpecularF0 = mix(bsdfData.resolvedSpecularF0, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
+    #endif
+
     // Environment BRDF and multi-scattering energy compensation
     // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
     // Ref: Lagarde & Golubev 2018, simplified multiplier approach
     vec2 dfg = envDFGApprox(bsdfData.roughness, surfaceData.dotNV);
-    bsdfData.envSpecularDFG = bsdfData.specularF0 * dfg.x + bsdfData.specularF90 * dfg.y;
-    vec3 compensationF0 = bsdfData.specularF0;
-    #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        compensationF0 = mix(compensationF0, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
-    #endif
-    bsdfData.energyCompensation = 1.0 + compensationF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
+    bsdfData.envSpecularDFG = bsdfData.resolvedSpecularF0 * dfg.x + bsdfData.specularF90 * dfg.y;
+    bsdfData.energyCompensation = 1.0 + bsdfData.resolvedSpecularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
 
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 

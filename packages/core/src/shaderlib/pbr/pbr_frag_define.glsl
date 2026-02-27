@@ -139,6 +139,7 @@ struct Material {
     vec3  diffuseColor;
     float roughness;
     vec3  specularF0;
+    vec3  resolvedSpecularF0;
     float specularF90;
     float specularIntensity;
     vec3  specularColor;
