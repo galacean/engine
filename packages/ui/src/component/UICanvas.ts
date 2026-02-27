@@ -550,8 +550,7 @@ export class UICanvas extends Component implements IElement {
   }
 
   private _updateCameraObserver(): void {
-    const camera =
-      this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? this._camera : null;
+    const camera = this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? this._camera : null;
     const preCamera = this._cameraObserver;
     if (preCamera !== camera) {
       this._cameraObserver = camera;
