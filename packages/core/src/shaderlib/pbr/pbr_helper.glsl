@@ -161,12 +161,9 @@ void initMaterial(out Material material, inout Geometry geometry){
 
         // Simplify: albedoColor * mix((1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b)), 0.0, metallic);
         material.diffuseColor = baseColor.rgb * (1.0 - metal) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
-        // Environment BRDF and multi-scattering energy compensation
-        // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
-        // Ref: Lagarde & Golubev 2018, simplified multiplier approach
+        // Environment BRDF
         vec2 dfg = envDFGApprox(material.roughness, geometry.dotNV);
         material.envSpecularDFG = material.specularF0 * dfg.x + material.specularF90 * dfg.y;
-        material.energyCompensation = 1.0 + material.specularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
 
         // AO
         float diffuseAO = 1.0;
@@ -230,9 +227,18 @@ void initMaterial(out Material material, inout Geometry geometry){
              
             #ifdef MATERIAL_ENABLE_IRIDESCENCE
                 float topIOR = 1.0;
-                material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularF0, material.specularF90, material.iridescenceThickness);   
+                material.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, geometry.dotNV, material.iridescenceIOR, material.specularF0, material.specularF90, material.iridescenceThickness);
             #endif
         #endif
+
+        // Multi-scattering energy compensation
+        // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
+        // Ref: Lagarde & Golubev 2018, simplified multiplier approach
+        vec3 compensationF0 = material.specularF0;
+        #ifdef MATERIAL_ENABLE_IRIDESCENCE
+            compensationF0 = mix(compensationF0, material.iridescenceSpecularColor, material.iridescenceFactor);
+        #endif
+        material.energyCompensation = 1.0 + compensationF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
 
         // Transmission
         #ifdef MATERIAL_ENABLE_TRANSMISSION 

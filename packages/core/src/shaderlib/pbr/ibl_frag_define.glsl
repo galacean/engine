@@ -21,8 +21,6 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 
 // ------------------------Specular------------------------
 
-// ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
-
 // Returns raw DFG approximation coefficients (split-sum LUT approximation)
 vec2 envDFGApprox(float roughness, float dotNV) {
     const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
@@ -32,6 +30,7 @@ vec2 envDFGApprox(float roughness, float dotNV) {
     return vec2( -1.04, 1.04 ) * a004 + r.zw;
 }
 
+// ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
 vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
     vec2 AB = envDFGApprox(roughness, dotNV);
     return f0 * AB.x + f90 * AB.y;
