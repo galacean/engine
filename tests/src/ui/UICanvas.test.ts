@@ -299,73 +299,37 @@ describe("UICanvas", async () => {
     const anoCloneEntity = canvasEntity.clone();
     const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);
     expect(anoCloneCanvas.renderCamera).to.eq(anoCloneEntity.findByName("camera").getComponent(Camera));
-  });
 
-  it("EventCamera for WorldSpace", () => {
+    // WorldSpace: clone with camera set
     rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
-    
-    // @ts-ignore
-    expect(rootCanvas.eventCamera).to.be.null;
-    
-    // @ts-ignore
-    rootCanvas.eventCamera = camera;
-    // @ts-ignore
-    expect(rootCanvas.eventCamera).to.eq(camera);
-    
-    // @ts-ignore
-    rootCanvas.eventCamera = null;
-    // @ts-ignore
-    expect(rootCanvas.eventCamera).to.be.null;
+    rootCanvas.renderCamera = cameraNeedClone;
+    const wsCloneEntity = canvasEntity.clone();
+    const wsCloneCanvas = wsCloneEntity.getComponent(UICanvas);
+    expect(wsCloneCanvas.renderMode).to.eq(CanvasRenderMode.WorldSpace);
+    expect(wsCloneCanvas.renderCamera).to.eq(wsCloneEntity.findByName("camera").getComponent(Camera));
   });
 
-  it("_canProcessEvent with eventCamera in WorldSpace", () => {
+  it("_canProcessEvent with renderCamera", () => {
     const camera2 = root.createChild("camera3").addComponent(Camera);
-    
+
+    // WorldSpace: no renderCamera, all cameras can process events
     rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
-    // @ts-ignore
-    rootCanvas.eventCamera = camera;
-    
-    // @ts-ignore
-    expect(rootCanvas._canProcessEvent(camera)).to.be.true;
-    // @ts-ignore
-    expect(rootCanvas._canProcessEvent(camera2)).to.be.false;
-    
-    // @ts-ignore
-    rootCanvas.eventCamera = null;
+    rootCanvas.renderCamera = null;
     // @ts-ignore
     expect(rootCanvas._canProcessEvent(camera)).to.be.true;
     // @ts-ignore
     expect(rootCanvas._canProcessEvent(camera2)).to.be.true;
-  });
 
-  it("Clone with eventCamera", () => {
-    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    // WorldSpace: with renderCamera, only that camera can process events
+    rootCanvas.renderCamera = camera;
     // @ts-ignore
-    rootCanvas.eventCamera = camera;
-    
-    const cloneEntity = canvasEntity.clone();
-    const cloneCanvas = cloneEntity.getComponent(UICanvas);
-    
+    expect(rootCanvas._canProcessEvent(camera)).to.be.true;
     // @ts-ignore
-    expect(cloneCanvas.eventCamera).to.eq(camera);
-    
-    const localEventCamera = canvasEntity.createChild('eventCamera').addComponent(Camera);
-    // @ts-ignore
-    rootCanvas.eventCamera = localEventCamera;
-    
-    const localCloneEntity = canvasEntity.clone();
-    const localCloneCanvas = localCloneEntity.getComponent(UICanvas);
-    
-    // @ts-ignore
-    expect(localCloneCanvas.eventCamera).to.eq(localCloneEntity.findByName("eventCamera").getComponent(Camera));
-  });
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.false;
 
-  it("_canProcessEvent with ScreenSpaceCamera mode", () => {
-    const camera2 = root.createChild("cameraSSC").addComponent(Camera);
-    
+    // ScreenSpaceCamera: only renderCamera can process events
     rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
     rootCanvas.renderCamera = camera;
-    
     // @ts-ignore
     expect(rootCanvas._canProcessEvent(camera)).to.be.true;
     // @ts-ignore

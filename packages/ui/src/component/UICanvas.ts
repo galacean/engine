@@ -80,9 +80,7 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
   @ignoreClone
-  private _renderCamera: Camera;
-  @ignoreClone
-  private _eventCamera: Camera | null = null;
+  private _camera: Camera;
   @ignoreClone
   private _cameraObserver: Camera;
   @assignmentClone
@@ -142,33 +140,30 @@ export class UICanvas extends Component implements IElement {
     const preMode = this._renderMode;
     if (preMode !== mode) {
       this._renderMode = mode;
-      // Clear eventCamera when renderMode changes away from WorldSpace
-      if (preMode === CanvasRenderMode.WorldSpace && mode !== CanvasRenderMode.WorldSpace && this._eventCamera) {
-        Logger.warn("EventCamera has been cleared because render mode is no longer WorldSpace.");
-        this._eventCamera = null;
-      }
       this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
     }
   }
 
   /**
-   * The camera used to render the UI canvas in `ScreenSpaceCamera` mode.
-   * @remarks If set `ScreenSpaceCamera` but no corresponding camera is assigned, the actual rendering mode defaults to `ScreenSpaceOverlay`.
+   * The camera associated with this canvas.
+   * @remarks
+   * - `ScreenSpaceCamera` mode: Used for rendering adaptation. Defaults to `ScreenSpaceOverlay` if not assigned.
+   * - `WorldSpace` mode: Used for event detection. If not assigned, events are handled by the highest-priority camera.
    */
-  get renderCamera(): Camera {
-    return this._renderCamera;
+  get camera(): Camera {
+    return this._camera;
   }
 
-  set renderCamera(value: Camera) {
-    const preCamera = this._renderCamera;
+  set camera(value: Camera) {
+    const preCamera = this._camera;
     if (preCamera !== value) {
       if (value && this._isSameOrChildEntity(value.entity)) {
         Logger.warn(
           "Camera entity matching or nested within the canvas entity disables canvas auto-adaptation in ScreenSpaceCamera mode."
         );
       }
-      this._renderCamera = value;
+      this._camera = value;
       this._updateCameraObserver();
       const preRenderMode = this._realRenderMode;
       const curRenderMode = this._getRealRenderMode();
@@ -184,29 +179,14 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * The camera used for event detection in `WorldSpace` mode.
-   * @remarks If not set, all cameras will be used for event detection. Only effective in `WorldSpace` render mode.
+   * @deprecated Use {@link camera} instead.
    */
-  get eventCamera(): Camera | null {
-    return this._eventCamera;
+  get renderCamera(): Camera {
+    return this.camera;
   }
 
-  set eventCamera(value: Camera | null) {
-    if (this._eventCamera !== value) {
-      if (value) {
-        if (this._renderMode !== CanvasRenderMode.WorldSpace) {
-          Logger.warn(
-            "EventCamera is only effective in WorldSpace render mode. Current render mode is not WorldSpace."
-          );
-        }
-        if (this._isSameOrChildEntity(value.entity)) {
-          Logger.warn(
-            "Event camera entity matching or nested within the canvas entity may cause unexpected behavior in WorldSpace mode."
-          );
-        }
-      }
-      this._eventCamera = value;
-    }
+  set renderCamera(value: Camera) {
+    this.camera = value;
   }
 
   /**
@@ -307,18 +287,14 @@ export class UICanvas extends Component implements IElement {
    * @internal
    */
   _canRender(camera: Camera): boolean {
-    return this._renderMode !== CanvasRenderMode.ScreenSpaceCamera || this._renderCamera === camera;
+    return this._renderMode !== CanvasRenderMode.ScreenSpaceCamera || this._camera === camera;
   }
 
   /**
-   * Check if this camera can process UI events for this canvas.
    * @internal
    */
   _canProcessEvent(camera: Camera): boolean {
-    if (this._renderMode === CanvasRenderMode.WorldSpace && this._eventCamera) {
-      return this._eventCamera === camera;
-    }
-    return this._canRender(camera);
+    return !this._camera || this._camera === camera;
   }
 
   /**
@@ -433,26 +409,17 @@ export class UICanvas extends Component implements IElement {
    */
   _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
     target.renderMode = this._renderMode;
-    target.renderCamera = this._cloneCamera(this._renderCamera, srcRoot, targetRoot);
-    target.eventCamera = this._cloneCamera(this._eventCamera, srcRoot, targetRoot);
-  }
-
-  /**
-   * @internal
-   * Clone camera reference for entity cloning
-   */
-  private _cloneCamera(camera: Camera, srcRoot: Entity, targetRoot: Entity): Camera {
-    if (!camera) {
-      return camera;
+    const camera = this._camera;
+    if (camera) {
+      const paths = UICanvas._targetTempPath;
+      // @ts-ignore
+      const success = Entity._getEntityHierarchyPath(srcRoot, camera.entity, paths);
+      // @ts-ignore
+      target.camera = success
+        ? // @ts-ignore
+          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
+        : camera;
     }
-    const paths = UICanvas._targetTempPath;
-    // @ts-ignore
-    const success = Entity._getEntityHierarchyPath(srcRoot, camera.entity, paths);
-    // @ts-ignore
-    return success
-      ? // @ts-ignore
-        Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
-      : camera;
   }
 
   private _getRenderers(): UIRenderer[] {
@@ -471,7 +438,7 @@ export class UICanvas extends Component implements IElement {
     const transform = this.entity.transform;
     const realRenderMode = this._realRenderMode;
     if (realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
-      const cameraEntity = this._renderCamera.entity;
+      const cameraEntity = this._camera.entity;
       if (!this._isSameOrChildEntity(cameraEntity)) {
         const { transform: cameraTransform } = cameraEntity;
         const { worldPosition: cameraWorldPosition, worldForward: cameraWorldForward } = cameraTransform;
@@ -497,11 +464,11 @@ export class UICanvas extends Component implements IElement {
     let curWidth: number;
     let curHeight: number;
     if (realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
-      const renderCamera = this._renderCamera;
-      curHeight = renderCamera.isOrthographic
-        ? renderCamera.orthographicSize * 2
-        : 2 * (Math.tan(MathUtil.degreeToRadian(renderCamera.fieldOfView * 0.5)) * this._distance);
-      curWidth = renderCamera.aspectRatio * curHeight;
+      const camera = this._camera;
+      curHeight = camera.isOrthographic
+        ? camera.orthographicSize * 2
+        : 2 * (Math.tan(MathUtil.degreeToRadian(camera.fieldOfView * 0.5)) * this._distance);
+      curWidth = camera.aspectRatio * curHeight;
     } else {
       const canvas = this.engine.canvas;
       curHeight = canvas.height;
@@ -580,7 +547,7 @@ export class UICanvas extends Component implements IElement {
 
   private _updateCameraObserver(): void {
     const camera =
-      this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? this._renderCamera : null;
+      this._isRootCanvas && this._renderMode === CanvasRenderMode.ScreenSpaceCamera ? this._camera : null;
     const preCamera = this._cameraObserver;
     if (preCamera !== camera) {
       this._cameraObserver = camera;
@@ -608,10 +575,10 @@ export class UICanvas extends Component implements IElement {
           this._adapterSizeInScreenSpace();
           break;
         case CameraModifyFlags.FieldOfView:
-          !this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
+          !this._camera.isOrthographic && this._adapterSizeInScreenSpace();
           break;
         case CameraModifyFlags.OrthographicSize:
-          this._renderCamera.isOrthographic && this._adapterSizeInScreenSpace();
+          this._camera.isOrthographic && this._adapterSizeInScreenSpace();
           break;
         case CameraModifyFlags.DisableInScene:
           this._setRealRenderMode(CanvasRenderMode.ScreenSpaceOverlay);
@@ -698,7 +665,7 @@ export class UICanvas extends Component implements IElement {
   private _getRealRenderMode(): number {
     if (this._isRootCanvas) {
       const mode = this._renderMode;
-      if (mode === CanvasRenderMode.ScreenSpaceCamera && !this._renderCamera?.enabled) {
+      if (mode === CanvasRenderMode.ScreenSpaceCamera && !this._camera?.enabled) {
         return CanvasRenderMode.ScreenSpaceOverlay;
       } else {
         return mode;
