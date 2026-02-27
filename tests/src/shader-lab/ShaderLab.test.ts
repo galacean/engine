@@ -34,17 +34,18 @@ describe("ShaderLab", async () => {
     const shader = shaderLabVerbose._parseShaderSource(PBRSource);
     const subShader = shader.subShaders[0];
     const passList = subShader.passes;
-    const pass1 = passList[1];
+    const pass1 = passList[2];
 
     // shader name
     expect(shader.name).to.equal("PBRShaderName");
     expect(subShader.name).to.equal("Default");
     expect(pass1.name).to.equal("Forward Pass");
-    expect(passList.length).to.eq(2);
+    expect(passList.length).to.eq(3);
 
     // Pass
     expect(passList[0].isUsePass).to.be.true;
-    expect(passList[1].name).eq("Forward Pass");
+    expect(passList[1].isUsePass).to.be.true;
+    expect(passList[2].name).eq("Forward Pass");
 
     // renderState
     expect(pass1.renderStates).not.be.null;
