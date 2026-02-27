@@ -163,11 +163,11 @@ export class UICanvas extends Component implements IElement {
   set renderCamera(value: Camera) {
     const preCamera = this._renderCamera;
     if (preCamera !== value) {
-      value &&
-        this._isSameOrChildEntity(value.entity) &&
+      if (value && this._isSameOrChildEntity(value.entity)) {
         Logger.warn(
           "Camera entity matching or nested within the canvas entity disables canvas auto-adaptation in ScreenSpaceCamera mode."
         );
+      }
       this._renderCamera = value;
       this._updateCameraObserver();
       const preRenderMode = this._realRenderMode;
@@ -192,18 +192,19 @@ export class UICanvas extends Component implements IElement {
   }
 
   set eventCamera(value: Camera | null) {
-    const preEventCamera = this._eventCamera;
-    if (preEventCamera !== value) {
-      if (value && this._renderMode !== CanvasRenderMode.WorldSpace) {
-        Logger.warn(
-          "EventCamera is only effective in WorldSpace render mode. Current render mode is not WorldSpace."
-        );
+    if (this._eventCamera !== value) {
+      if (value) {
+        if (this._renderMode !== CanvasRenderMode.WorldSpace) {
+          Logger.warn(
+            "EventCamera is only effective in WorldSpace render mode. Current render mode is not WorldSpace."
+          );
+        }
+        if (this._isSameOrChildEntity(value.entity)) {
+          Logger.warn(
+            "Event camera entity matching or nested within the canvas entity may cause unexpected behavior in WorldSpace mode."
+          );
+        }
       }
-      value &&
-        this._isSameOrChildEntity(value.entity) &&
-        Logger.warn(
-          "Event camera entity matching or nested within the canvas entity may cause unexpected behavior in WorldSpace mode."
-        );
       this._eventCamera = value;
     }
   }
@@ -310,22 +311,14 @@ export class UICanvas extends Component implements IElement {
   }
 
   /**
-   * Check if this camera can process UI events for this canvas
+   * Check if this camera can process UI events for this canvas.
    * @internal
    */
   _canProcessEvent(camera: Camera): boolean {
-    // WorldSpace mode: if eventCamera is set, only that camera can process events
     if (this._renderMode === CanvasRenderMode.WorldSpace && this._eventCamera) {
       return this._eventCamera === camera;
     }
-    
-    // ScreenSpaceCamera mode: only renderCamera can process events (consistent with _canRender)
-    if (this._renderMode === CanvasRenderMode.ScreenSpaceCamera && this._renderCamera) {
-      return this._renderCamera === camera;
-    }
-    
-    // ScreenSpaceOverlay mode and WorldSpace without eventCamera: all cameras can process events
-    return true;
+    return this._canRender(camera);
   }
 
   /**
