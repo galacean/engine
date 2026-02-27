@@ -139,6 +139,7 @@ struct Material {
     vec3  diffuseColor;
     float roughness;
     vec3  specularF0;
+    vec3  resolvedSpecularF0;
     float specularF90;
     float specularIntensity;
     vec3  specularColor;
@@ -146,6 +147,7 @@ struct Material {
     float diffuseAO;
     float specularAO;
     vec3  envSpecularDFG;
+    vec3  energyCompensation; // Multi-scattering energy compensation factor
     float IOR;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT

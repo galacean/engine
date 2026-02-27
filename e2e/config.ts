@@ -119,6 +119,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.12
     },
+    "white-furnace": {
+      category: "Material",
+      caseFileName: "material-white-furnace",
+      threshold: 0,
+      diffPercentage: 0.0
+    },
     "pbr-specular": {
       category: "Material",
       caseFileName: "material-pbr-specular",
@@ -199,7 +205,7 @@ export const E2E_CONFIG = {
       category: "Shadow",
       caseFileName: "shadow-transparent",
       threshold: 0,
-      diffPercentage: 0.046
+      diffPercentage: 0.0552
     }
   },
   Primitive: {
@@ -295,7 +301,7 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.112
+      diffPercentage: 0.1137
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
@@ -414,7 +420,7 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-HDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0.066
+      diffPercentage: 0.072
     },
     LDRBloomNeutral: {
       category: "PostProcess",

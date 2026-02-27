@@ -84,7 +84,9 @@ struct BSDFData{
     vec3 envSpecularDFG;
     float diffuseAO;
     vec3  specularF0;
+    vec3  resolvedSpecularF0;
     float specularF90;
+    vec3  energyCompensation; // Multi-scattering energy compensation factor
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3  clearCoatSpecularColor;
@@ -262,8 +264,6 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
         return (vec3(1.0) + sqrtF0) / (vec3(1.0) - sqrtF0);
     }
 
-    // Fresnel equations for dielectric/dielectric interfaces.
-    // Ref: https://belcour.github.io/blog/research/publication/2017/05/01/brdf-thin-film.html
     // Evaluation XYZ sensitivity curves in Fourier space
     vec3 evalSensitivity(float opd, vec3 shift){
         // Use Gaussian fits, given by 3 parameters: val, pos and var
@@ -282,7 +282,9 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
         return rgb;
     }
 
-    vec3 evalIridescenceSpecular(float outsideIOR, float dotNV, float thinIOR, vec3 baseF0, float baseF90, float iridescenceThickness){ 
+    // Fresnel equations for dielectric/dielectric interfaces.
+    // Ref: https://belcour.github.io/blog/research/publication/2017/05/01/brdf-thin-film.html
+    vec3 evalIridescenceSpecular(float outsideIOR, float dotNV, float thinIOR, vec3 baseF0, float baseF90, float iridescenceThickness){
         vec3 iridescence = vec3(1.0);
         // Force iridescenceIOR -> outsideIOR when thinFilmThickness -> 0.0
         float iridescenceIOR = mix( outsideIOR, thinIOR, smoothstep( 0.0, 0.03, iridescenceThickness ) );
@@ -369,21 +371,20 @@ vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor) {
 #endif
 
 // ------------------------Indirect Specular------------------------
+
+// Returns raw DFG approximation coefficients (split-sum LUT approximation)
+vec2 envDFGApprox(float roughness, float dotNV) {
+    const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
+    const vec4 c1 = vec4( 1, 0.0425, 1.04, - 0.04 );
+    vec4 r = roughness * c0 + c1;
+    float a004 = min( r.x * r.x, exp2( - 9.28 * dotNV ) ) * r.x + r.y;
+    return vec2( -1.04, 1.04 ) * a004 + r.zw;
+}
+
 // ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
 vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
-
-    const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
-
-    const vec4 c1 = vec4( 1, 0.0425, 1.04, - 0.04 );
-
-    vec4 r = roughness * c0 + c1;
-
-    float a004 = min( r.x * r.x, exp2( - 9.28 * dotNV ) ) * r.x + r.y;
-
-    vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
-
+    vec2 AB = envDFGApprox(roughness, dotNV);
     return f0 * AB.x + f90 * AB.y;
-
 }
 
 #ifdef MATERIAL_ENABLE_TRANSMISSION 
@@ -441,18 +442,30 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     bsdfData.diffuseColor = albedoColor * (1.0-metallic) * (1.0 - max(max(dielectricF0.r,dielectricF0.g),dielectricF0.b));
     
     bsdfData.roughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(roughness + getAARoughnessFactor(surfaceData.normal), 1.0));
-    bsdfData.envSpecularDFG = envBRDFApprox(bsdfData.specularF0,  bsdfData.specularF90 , bsdfData.roughness, surfaceData.dotNV);
-   
+
+    #ifdef MATERIAL_ENABLE_IRIDESCENCE
+        float topIOR = 1.0;
+        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularF0, bsdfData.specularF90 , surfaceData.iridescenceThickness);
+    #endif
+
+    // Use a single effective F0 basis to keep IBL, transmission and compensation consistent.
+    bsdfData.resolvedSpecularF0 = bsdfData.specularF0;
+    #ifdef MATERIAL_ENABLE_IRIDESCENCE
+        bsdfData.resolvedSpecularF0 = mix(bsdfData.resolvedSpecularF0, bsdfData.iridescenceSpecularColor, surfaceData.iridescenceFactor);
+    #endif
+
+    // Environment BRDF and multi-scattering energy compensation
+    // Ref: Kulla & Conty 2017, "Revisiting Physically Based Shading at Imageworks"
+    // Ref: Lagarde & Golubev 2018, simplified multiplier approach
+    vec2 dfg = envDFGApprox(bsdfData.roughness, surfaceData.dotNV);
+    bsdfData.envSpecularDFG = bsdfData.resolvedSpecularF0 * dfg.x + bsdfData.specularF90 * dfg.y;
+    bsdfData.energyCompensation = 1.0 + bsdfData.resolvedSpecularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
+
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         bsdfData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
         bsdfData.clearCoatSpecularColor = vec3(0.04);
-    #endif
-
-    #ifdef MATERIAL_ENABLE_IRIDESCENCE
-        float topIOR = 1.0;
-        bsdfData.iridescenceSpecularColor = evalIridescenceSpecular(topIOR, surfaceData.dotNV, surfaceData.iridescenceIOR, bsdfData.specularF0, bsdfData.specularF90 , surfaceData.iridescenceThickness);   
     #endif
 
     #ifdef MATERIAL_ENABLE_SHEEN
