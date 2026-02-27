@@ -181,9 +181,9 @@ export class ScrollView extends Script {
         while (deltaTime > 0) {
             const timeSlice = deltaTime > inertiaBaseTimeInterval ? inertiaBaseTimeInterval : deltaTime;
             velocity.scale(Math.pow(decelerationRate, timeSlice));
-            dx += velocity.x * inertiaBaseTimeInterval;
-            dy += velocity.y * inertiaBaseTimeInterval;
-            deltaTime -= inertiaBaseTimeInterval;
+            dx += velocity.x * timeSlice;
+            dy += velocity.y * timeSlice;
+            deltaTime -= timeSlice;
         }
         this._updateRect();
         if (this._movementType !== MovementType.Unrestricted) {

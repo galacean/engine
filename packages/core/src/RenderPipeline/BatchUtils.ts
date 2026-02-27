@@ -19,6 +19,35 @@ export class BatchUtils {
     const rendererA = <SpriteRenderer>elementA.component;
     const rendererB = <SpriteRenderer>elementB.component;
     const maskInteractionA = rendererA.maskInteraction;
+    const rendererAAny = rendererA as any;
+    const rendererBAny = rendererB as any;
+    const rectMaskEnabledA = rendererAAny._rectMaskEnabled;
+    if (rectMaskEnabledA !== rendererBAny._rectMaskEnabled) {
+      return false;
+    }
+    if (rectMaskEnabledA) {
+      const rectMaskRectA = rendererAAny._rectMaskRect;
+      const rectMaskRectB = rendererBAny._rectMaskRect;
+      const rectMaskSoftnessA = rendererAAny._rectMaskSoftness;
+      const rectMaskSoftnessB = rendererBAny._rectMaskSoftness;
+      if (
+        !rectMaskRectA ||
+        !rectMaskRectB ||
+        !rectMaskSoftnessA ||
+        !rectMaskSoftnessB ||
+        rectMaskRectA.x !== rectMaskRectB.x ||
+        rectMaskRectA.y !== rectMaskRectB.y ||
+        rectMaskRectA.z !== rectMaskRectB.z ||
+        rectMaskRectA.w !== rectMaskRectB.w ||
+        rectMaskSoftnessA.x !== rectMaskSoftnessB.x ||
+        rectMaskSoftnessA.y !== rectMaskSoftnessB.y ||
+        rectMaskSoftnessA.z !== rectMaskSoftnessB.z ||
+        rectMaskSoftnessA.w !== rectMaskSoftnessB.w ||
+        rendererAAny._rectMaskHardClip !== rendererBAny._rectMaskHardClip
+      ) {
+        return false;
+      }
+    }
 
     // Compare mask, texture and material
     return (

@@ -1,6 +1,5 @@
-import { BoundingBox } from "@galacean/engine-math";
+import { BoundingBox, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
-import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
@@ -15,6 +14,7 @@ import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
+import { SpriteMaskUtils } from "./SpriteMaskUtils";
 
 /**
  * A component for masking Sprites.
@@ -27,7 +27,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
-  influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
+  private _influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
   /** @internal */
   @ignoreClone
   _renderElement: RenderElement;
@@ -57,6 +57,22 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
   @assignmentClone
   private _alphaCutoff: number = 0.5;
+
+  /**
+   * The mask layers the sprite mask influence to.
+   */
+  get influenceLayers(): SpriteMaskLayer {
+    return this._influenceLayers;
+  }
+
+  set influenceLayers(value: SpriteMaskLayer) {
+    if (this._influenceLayers !== value) {
+      this._influenceLayers = value;
+      if (this._phasedActiveInScene) {
+        this.scene._maskManager.onMaskInfluenceLayersChange();
+      }
+    }
+  }
 
   /**
    * Render width (in world coordinates).
@@ -140,22 +156,14 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   }
 
   set sprite(value: Sprite | null) {
-    const lastSprite = this._sprite;
-    if (lastSprite !== value) {
-      if (lastSprite) {
-        this._addResourceReferCount(lastSprite, -1);
-        lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
-      }
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
-      if (value) {
-        this._addResourceReferCount(value, 1);
-        value._updateFlagManager.addListener(this._onSpriteChange);
-        this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
-      } else {
-        this.shaderData.setTexture(SpriteMask._textureProperty, null);
-      }
-      this._sprite = value;
-    }
+    this._sprite = SpriteMaskUtils.setSprite(
+      this,
+      this._sprite,
+      value,
+      this._onSpriteChange,
+      SpriteMask._textureProperty,
+      SpriteMaskUpdateFlags.All
+    );
   }
 
   /**
@@ -238,23 +246,39 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     return this.engine._batcherManager.primitiveChunkManagerMask;
   }
 
+  /**
+   * @internal
+   */
+  _containsWorldPoint(worldPoint: Vector3): boolean {
+    const { _sprite: sprite } = this;
+    return SpriteMaskUtils.containsWorldPoint(
+      worldPoint,
+      sprite,
+      this._transformEntity.transform.worldMatrix,
+      this.width,
+      this.height,
+      sprite?.pivot,
+      this._flipX,
+      this._flipY,
+      this._alphaCutoff
+    );
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const sprite = this._sprite;
-    if (sprite) {
-      SimpleSpriteAssembler.updatePositions(
-        this,
-        this._transformEntity.transform.worldMatrix,
-        this.width,
-        this.height,
-        sprite.pivot,
-        this._flipX,
-        this._flipY
-      );
-    } else {
-      const { worldPosition } = this._transformEntity.transform;
-      worldBounds.min.copyFrom(worldPosition);
-      worldBounds.max.copyFrom(worldPosition);
-    }
+    const transform = this._transformEntity.transform;
+    SpriteMaskUtils.updateBounds(
+      this,
+      sprite,
+      worldBounds,
+      transform.worldMatrix,
+      transform.worldPosition,
+      this.width,
+      this.height,
+      sprite?.pivot,
+      this._flipX,
+      this._flipY
+    );
   }
 
   /**
@@ -278,7 +302,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
     // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SimpleSpriteAssembler.updatePositions(
+      SpriteMaskUtils.updatePositions(
         this,
         this._transformEntity.transform.worldMatrix,
         this.width,
@@ -292,30 +316,24 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
     // Update uv
     if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV) {
-      SimpleSpriteAssembler.updateUVs(this);
+      SpriteMaskUtils.updateUVs(this);
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
-
-    const renderElement = this._renderElement;
-    const subRenderElement = renderElement.subRenderElements[0];
-    renderElement.set(this.priority, this._distanceForSort);
-
-    const subChunk = this._subChunk;
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-    renderElement.addSubRenderElement(subRenderElement);
+    SpriteMaskUtils.setupRenderElement(
+      this._renderElement,
+      this,
+      material,
+      this._subChunk,
+      this.sprite.texture,
+      this._distanceForSort
+    );
   }
 
   /**
    * @inheritdoc
    */
   protected override _onDestroy(): void {
-    const sprite = this._sprite;
-    if (sprite) {
-      this._addResourceReferCount(sprite, -1);
-      sprite._updateFlagManager.removeListener(this._onSpriteChange);
-    }
+    SpriteMaskUtils.releaseSprite(this, this._sprite, this._onSpriteChange);
 
     super._onDestroy();
 

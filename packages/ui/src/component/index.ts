@@ -1,6 +1,7 @@
 export { Button } from "./advanced/Button";
 export { Image } from "./advanced/Image";
 export { Mask } from "./advanced/Mask";
+export { RectMask2D } from "./advanced/RectMask2D";
 export { ScrollView } from "./advanced/ScrollView";
 export { Text } from "./advanced/Text";
 export { ColorTransition } from "./interactive/transition/ColorTransition";

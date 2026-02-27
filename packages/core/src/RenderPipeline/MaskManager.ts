@@ -1,4 +1,5 @@
-import { SpriteMask } from "../2d";
+import { Vector3 } from "@galacean/engine-math";
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Material } from "../material";
@@ -7,8 +8,20 @@ import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { StencilOperation } from "../shader/enums/StencilOperation";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { RenderContext } from "./RenderContext";
+import { RenderElement } from "./RenderElement";
 import { RenderQueue } from "./RenderQueue";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
+
+/**
+ * @internal
+ */
+export interface IMask {
+  influenceLayers: SpriteMaskLayer;
+  _renderElement: RenderElement;
+  _maskIndex: number;
+
+  _containsWorldPoint(worldPoint: Vector3): boolean;
+}
 
 /**
  * @internal
@@ -28,17 +41,49 @@ export class MaskManager {
   hasStencilWritten = false;
 
   private _preMaskLayer = SpriteMaskLayer.Nothing;
-  private _allSpriteMasks = new DisorderedArray<SpriteMask>();
+  private _allSpriteMasks = new DisorderedArray<IMask>();
+  private _filteredMasksByLayer = new Map<SpriteMaskLayer, IMask[]>();
+  private _isFilteredMasksDirty = true;
 
-  addSpriteMask(mask: SpriteMask): void {
+  addSpriteMask(mask: IMask): void {
     mask._maskIndex = this._allSpriteMasks.length;
     this._allSpriteMasks.add(mask);
+    this._setFilteredMasksDirty();
   }
 
-  removeSpriteMask(mask: SpriteMask): void {
+  removeSpriteMask(mask: IMask): void {
     const replaced = this._allSpriteMasks.deleteByIndex(mask._maskIndex);
     replaced && (replaced._maskIndex = mask._maskIndex);
     mask._maskIndex = -1;
+    this._setFilteredMasksDirty();
+  }
+
+  onMaskInfluenceLayersChange(): void {
+    this._setFilteredMasksDirty();
+  }
+
+  isVisibleByMask(maskInteraction: SpriteMaskInteraction, maskLayer: SpriteMaskLayer, worldPoint: Vector3): boolean {
+    if (maskInteraction === SpriteMaskInteraction.None) {
+      return true;
+    }
+
+    const masks = this._getMasksByLayer(maskLayer);
+    let insideMask = false;
+    for (let i = 0, n = masks.length; i < n; i++) {
+      if (masks[i]._containsWorldPoint(worldPoint)) {
+        insideMask = true;
+        break;
+      }
+    }
+
+    switch (maskInteraction) {
+      case SpriteMaskInteraction.VisibleInsideMask:
+        return insideMask;
+      case SpriteMaskInteraction.VisibleOutsideMask:
+        return !insideMask;
+      default:
+        return true;
+    }
   }
 
   drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
@@ -118,6 +163,38 @@ export class MaskManager {
     const allSpriteMasks = this._allSpriteMasks;
     allSpriteMasks.length = 0;
     allSpriteMasks.garbageCollection();
+    this._filteredMasksByLayer.clear();
+    this._isFilteredMasksDirty = true;
+  }
+
+  private _setFilteredMasksDirty(): void {
+    this._isFilteredMasksDirty = true;
+  }
+
+  private _getMasksByLayer(maskLayer: SpriteMaskLayer): IMask[] {
+    if (maskLayer === SpriteMaskLayer.Nothing) {
+      return [];
+    }
+
+    if (this._isFilteredMasksDirty) {
+      this._filteredMasksByLayer.clear();
+      this._isFilteredMasksDirty = false;
+    }
+
+    let filteredMasks = this._filteredMasksByLayer.get(maskLayer);
+    if (!filteredMasks) {
+      filteredMasks = [];
+      const allMasks = this._allSpriteMasks;
+      const maskElements = allMasks._elements;
+      for (let i = 0, n = allMasks.length; i < n; i++) {
+        const mask = maskElements[i];
+        if (mask.influenceLayers & maskLayer) {
+          filteredMasks.push(mask);
+        }
+      }
+      this._filteredMasksByLayer.set(maskLayer, filteredMasks);
+    }
+    return filteredMasks;
   }
 
   private _buildMaskRenderElement(
