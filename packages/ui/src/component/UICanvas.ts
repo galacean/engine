@@ -298,7 +298,8 @@ export class UICanvas extends Component implements IElement {
     if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
       return true;
     }
-    return !this._camera || this._camera === camera;
+    const assignedCamera = this._camera;
+    return !assignedCamera || !assignedCamera.enabled || assignedCamera === camera;
   }
 
   /**
