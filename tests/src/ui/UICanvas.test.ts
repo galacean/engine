@@ -334,5 +334,12 @@ describe("UICanvas", async () => {
     expect(rootCanvas._canProcessEvent(camera)).to.be.true;
     // @ts-ignore
     expect(rootCanvas._canProcessEvent(camera2)).to.be.false;
+
+    // ScreenSpaceCamera fallback to ScreenSpaceOverlay: all cameras can process events
+    rootCanvas.renderCamera = null;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.true;
   });
 });

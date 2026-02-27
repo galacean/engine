@@ -294,6 +294,10 @@ export class UICanvas extends Component implements IElement {
    * @internal
    */
   _canProcessEvent(camera: Camera): boolean {
+    const realMode = this._realRenderMode;
+    if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
+      return true;
+    }
     return !this._camera || this._camera === camera;
   }
 
