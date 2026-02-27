@@ -341,5 +341,15 @@ describe("UICanvas", async () => {
     expect(rootCanvas._canProcessEvent(camera)).to.be.true;
     // @ts-ignore
     expect(rootCanvas._canProcessEvent(camera2)).to.be.true;
+
+    // WorldSpace: camera disabled, fallback to all cameras
+    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    rootCanvas.renderCamera = camera;
+    camera.enabled = false;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.true;
+    camera.enabled = true;
+    // @ts-ignore
+    expect(rootCanvas._canProcessEvent(camera2)).to.be.false;
   });
 });
