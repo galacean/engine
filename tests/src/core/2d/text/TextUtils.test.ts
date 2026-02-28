@@ -139,7 +139,8 @@ describe("TextUtils", () => {
       textRendererTruncate,
       textRendererTruncate.width * _pixelsPerUnit,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(100);
@@ -172,7 +173,8 @@ describe("TextUtils", () => {
       textRendererTruncate,
       textRendererTruncate.width * _pixelsPerUnit,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(100);
@@ -200,7 +202,8 @@ describe("TextUtils", () => {
       textRendererTruncate,
       textRendererTruncate.width * _pixelsPerUnit,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(100);
