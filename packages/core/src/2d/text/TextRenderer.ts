@@ -172,7 +172,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 
   /**
-   * The space between two lines, in world units.
+   * The space between two lines, in em (ratio of fontSize).
    */
   get lineSpacing(): number {
     return this._lineSpacing;
@@ -532,13 +532,13 @@ export class TextRenderer extends Renderer implements ITextRenderer {
           this,
           this.width * _pixelsPerUnit,
           this.height * _pixelsPerUnit,
-          this._lineSpacing * _pixelsPerUnit,
+          this._lineSpacing * this._fontSize,
           characterSpacing
         )
       : TextUtils.measureTextWithoutWrap(
           this,
           this.height * _pixelsPerUnit,
-          this._lineSpacing * _pixelsPerUnit,
+          this._lineSpacing * this._fontSize,
           characterSpacing
         );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
