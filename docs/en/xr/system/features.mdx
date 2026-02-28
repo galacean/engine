@@ -1,0 +1,128 @@
+---
+order: 5  
+title: XR Features  
+type: XR  
+label: XR  
+---  
+
+Galacean XR currently supports the following features:  
+
+| Feature            | Description     |  
+| :----------------- | :-------------- |  
+| Anchor Tracking    | Anchor tracking |  
+| Plane Tracking     | Plane tracking  |  
+| Image Tracking     | Image tracking  |  
+| Hit Test           | Collision detection |  
+
+---
+
+## Anchor Tracking  
+
+| Property            | Description                       |  
+| :------------------ | :-------------------------------- |  
+| trackingAnchors     | (Read-only) Get anchors requested for tracking |  
+| trackedAnchors      | (Read-only) Get successfully tracked anchors |  
+
+| Method                  | Description                   |  
+| :---------------------- | :---------------------------- |  
+| addAnchor               | Add a specific anchor         |  
+| removeAnchor            | Remove a specific anchor      |  
+| clearAnchors            | Remove all anchors            |  
+| addChangedListener      | Add listener for anchor changes |  
+| removeChangedListener   | Remove anchor change listener |  
+
+Example code to add an anchor in XR space:  
+
+```typescript  
+const anchorTracking = xrManager.getFeature(XRAnchorTracking);  
+const position = new Vector3();  
+const rotation = new Quaternion();  
+// Add an anchor  
+const anchor = anchorTracking.addAnchor(position, rotation);  
+// Remove this anchor  
+anchorTracking.removeAnchor(anchor);  
+// Listen for anchor changes  
+anchorTracking.addChangedListener(  
+  (added: readonly XRAnchor[], updated: readonly XRAnchor[], removed: readonly XRAnchor[]) => {  
+    // Handle added, updated, and removed anchors here  
+  }  
+);  
+```  
+
+---
+
+## Plane Tracking  
+
+| Property          | Description                                       |  
+| :---------------- | :----------------------------------------- |  
+| detectionMode     | (Read-only) Plane detection type (horizontal, vertical, or all) |  
+| trackedPlanes     | (Read-only) Get successfully tracked planes |  
+
+| Method                  | Description                   |  
+| :---------------------- | :---------------------------- |  
+| addChangedListener      | Add listener for plane changes |  
+| removeChangedListener   | Remove plane change listener |  
+
+> Note: Plane detection type must be specified when enabling this feature.  
+
+```typescript  
+// Set plane detection mode to "All" during initialization  
+xrManager.addFeature(XRPlaneTracking, XRPlaneMode.EveryThing);  
+```  
+
+You can detect real-world planes and mark them with transparent grids and coordinate systems.  
+
+---
+
+## Image Tracking  
+
+| Property           | Description                                             |  
+| :----------------- | :------------------------------------------------------ |  
+| trackingImages     | (Read-only) Array of images requested for tracking (contains name, source, and size) |  
+| trackedImages      | (Read-only) Get successfully tracked images |  
+
+| Method                  | Description                   |  
+| :---------------------- | :---------------------------- |  
+| addChangedListener      | Add listener for image changes |  
+| removeChangedListener   | Remove image change listener |  
+
+Note: Image tracking requires pre-defined reference images. In the engine, these are represented by `XRReferenceImage` objects:  
+
+| Property          | Description                                                                                                 |  
+| :---------------- | :---------------------------------------------------------------------------------------------------------- |  
+| name              | Name of the reference image (unique identifier)                                                             |  
+| imageSource       | Source of the image (typically an `HtmlImageElement`)                                                       |  
+| physicalWidth     | Physical size of the image in the real world (default in meters, e.g., `0.08` means 8 cm)                  |  
+
+> In WebXR, the same image will only be tracked once.  
+
+```typescript  
+const image = new Image();  
+image.onload = () => {  
+  // Create reference image  
+  const refImage = new XRReferenceImage("test", image, 0.08);  
+  // Enable image tracking and specify reference image  
+  xrManager.addFeature(XRImageTracking, [refImage]);  
+};  
+image.src = "Image URL";  
+```  
+
+---
+
+## Hit Test  
+
+| Method          | Description                                         |  
+| :-------------- | :------------------------------------------- |  
+| hitTest         | Perform collision detection by casting a ray against real-world planes |  
+| screenHitTest   | Perform collision detection using screen space coordinates |  
+
+```typescript  
+const pointer = engine.inputManager.pointers[0];  
+// Get plane hit point  
+if (pointer) {  
+  const hitTest = xrManager.getFeature(XRHitTest);  
+  const { position } = pointer;  
+  // Perform screen-to-world collision detection  
+  const result = hitTest.screenHitTest(position.x, position.y, TrackableType.Plane);  
+}  
+```

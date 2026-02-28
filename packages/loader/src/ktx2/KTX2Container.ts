@@ -1,14 +1,15 @@
 import { Utils } from "@galacean/engine-core";
 import { BufferReader } from "../resource-deserialize/utils/BufferReader";
 
-enum DFDTransferFunction {
+export enum DFDTransferFunction {
   linear = 1,
   sRGB = 2
 }
 
-enum ColorModel {
+export enum ColorModel {
   ETC1S = 163,
-  UASTC = 166
+  UASTC_LDR_4X4 = 166,
+  UASTC_HDR_4X4 = 167
 }
 
 export enum SupercompressionScheme {
@@ -52,8 +53,8 @@ export class KTX2Container {
     return this.dataFormatDescriptor.transferFunction === DFDTransferFunction.sRGB;
   }
 
-  get isUASTC() {
-    return this.dataFormatDescriptor.colorModel === ColorModel.UASTC;
+  get colorModel(): ColorModel {
+    return this.dataFormatDescriptor.colorModel;
   }
 
   private parse(data: Uint8Array) {

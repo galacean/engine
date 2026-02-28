@@ -4,22 +4,33 @@ import { Engine } from "../Engine";
 /**
  * EngineObject.
  */
-export abstract class EngineObject {
-  private static _instanceIdCounter: number = 0;
-
-  /** Engine unique id. */
-  @ignoreClone
-  readonly instanceId: number = ++EngineObject._instanceIdCounter;
+export class EngineObject {
+  private static _instanceIdCounter = 0;
 
   @ignoreClone
-  protected _engine: Engine;
-  protected _destroyed: boolean = false;
+  readonly instanceId = ++EngineObject._instanceIdCounter;
+  /** @internal */
+  @ignoreClone
+  _engine: Engine;
+  /** @internal */
+  _pendingDestroy = false;
+
+  protected _destroyed = false;
 
   /**
    * Get the engine which the object belongs.
    */
   get engine(): Engine {
     return this._engine;
+  }
+
+  /**
+   * Whether this object is pending destruction.
+   * @remarks `destroy()` has been called but the actual destruction is deferred until end of frame,
+   * during this period all properties are still accessible.
+   */
+  get pendingDestroy(): boolean {
+    return this._pendingDestroy;
   }
 
   /**
@@ -38,13 +49,26 @@ export abstract class EngineObject {
    */
   destroy(): void {
     if (this._destroyed) return;
-    this._onDestroy();
-    this._destroyed = true;
+
+    const engine = this._engine;
+    if (engine?._frameInProcess && !engine._processingPendingDestroys) {
+      if (!this._pendingDestroy) {
+        this._pendingDestroy = true;
+        engine._pendingDestroyObjects.push(this);
+      }
+    } else {
+      this._pendingDestroy = false;
+      this._destroyed = true;
+      this._onDestroy();
+    }
   }
 
   protected _onDestroy(): void {
-    const { resourceManager } = this._engine;
-    resourceManager._deleteAsset(this);
-    resourceManager._deleteContentRestorer(this);
+    const engine = this._engine;
+    if (engine) {
+      const { resourceManager } = engine;
+      resourceManager._deleteAsset(this);
+      resourceManager._deleteContentRestorer(this);
+    }
   }
 }

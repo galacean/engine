@@ -1,4 +1,3 @@
-import { expect } from "chai";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import {
   TextRenderer,
@@ -13,6 +12,7 @@ import {
   SpriteMaskLayer
 } from "@galacean/engine-core";
 import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
+import { describe, beforeAll, expect, it, afterAll } from "vitest";
 
 describe("TextRenderer", () => {
   let engine: WebGLEngine;
@@ -20,11 +20,10 @@ describe("TextRenderer", () => {
   let textRendererEntity: Entity;
   let textRenderer: TextRenderer;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
     });
-    engine.canvas.resizeByClientSize();
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
 
@@ -375,7 +374,7 @@ describe("TextRenderer", () => {
     expect(() => renderer.destroy()).not.to.throw("TextRenderer destroy error.");
   });
 
-  after(() => {
+  afterAll(() => {
     engine.destroy();
   });
 });

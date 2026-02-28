@@ -1,10 +1,9 @@
 import { Vector2 } from "@galacean/engine-math";
-import { Engine } from "../../Engine";
 import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
 import { CharInfo } from "./CharInfo";
+import { ITextRenderer } from "./ITextRenderer";
 import { SubFont } from "./SubFont";
-import { TextRenderer } from "./TextRenderer";
 
 /**
  * @internal
@@ -96,7 +95,13 @@ export class TextUtils {
     return <CharInfo>TextUtils._measureFontOrChar(fontString, char, true);
   }
 
-  static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
+  static measureTextWithWrap(
+    renderer: ITextRenderer,
+    rendererWidth: number,
+    rendererHeight: number,
+    lineSpacing: number,
+    letterSpacing: number
+  ): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -106,10 +111,7 @@ export class TextUtils {
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
 
-    const pixelsPerUnit = Engine._pixelsPerUnit;
-    const lineHeight = fontSizeInfo.size + renderer.lineSpacing * pixelsPerUnit;
-    const wrapWidth = renderer.width * pixelsPerUnit;
-    const letterSpacing = renderer.letterSpacing * pixelsPerUnit;
+    const lineHeight = fontSizeInfo.size + lineSpacing;
     let textWidth = 0;
 
     subFont.nativeFontString = fontString;
@@ -153,7 +155,7 @@ export class TextUtils {
         if (unableFromWord) {
           // If it is a word before, need to handle the previous word and line
           if (word.length > 0) {
-            if (lineWidth + wordWidth > wrapWidth) {
+            if (lineWidth + wordWidth > rendererWidth) {
               // Push if before line is not empty
               if (lineWidth > 0) {
                 lineWidth -= letterSpacing;
@@ -179,7 +181,7 @@ export class TextUtils {
 
           // Handle char
           // At least one char in a line
-          if (lineWidth + w > wrapWidth && lineWidth > 0) {
+          if (lineWidth + w > rendererWidth && lineWidth > 0) {
             lineWidth -= letterSpacing;
             this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
             textWidth = Math.max(textWidth, lineWidth);
@@ -200,7 +202,7 @@ export class TextUtils {
             lineMaxDescent = Math.max(lineMaxDescent, descent);
           }
         } else {
-          if (wordWidth + charInfo.w > wrapWidth) {
+          if (wordWidth + charInfo.w > rendererWidth) {
             if (lineWidth > 0) {
               lineWidth -= letterSpacing;
               this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
@@ -231,7 +233,7 @@ export class TextUtils {
 
       if (wordWidth > 0) {
         // If the total width from line and word exceed wrap width
-        if (lineWidth + wordWidth > wrapWidth) {
+        if (lineWidth + wordWidth > rendererWidth) {
           // Push chars to a single line
           if (lineWidth > 0) {
             lineWidth -= letterSpacing;
@@ -262,7 +264,7 @@ export class TextUtils {
       }
     }
 
-    let height = renderer.height * pixelsPerUnit;
+    let height = rendererHeight;
     if (renderer.overflowMode === OverflowMode.Overflow) {
       height = lineHeight * lines.length;
     }
@@ -277,7 +279,12 @@ export class TextUtils {
     };
   }
 
-  static measureTextWithoutWrap(renderer: TextRenderer): TextMetrics {
+  static measureTextWithoutWrap(
+    renderer: ITextRenderer,
+    rendererHeight: number,
+    lineSpacing: number,
+    letterSpacing: number
+  ): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -286,9 +293,7 @@ export class TextUtils {
     const lines = new Array<string>();
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
-    const { _pixelsPerUnit } = Engine;
-    const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
-    const letterSpacing = renderer.letterSpacing * _pixelsPerUnit;
+    const lineHeight = fontSizeInfo.size + lineSpacing;
 
     let width = 0;
     subFont.nativeFontString = fontString;
@@ -316,7 +321,7 @@ export class TextUtils {
       }
     }
 
-    let height = renderer.height * _pixelsPerUnit;
+    let height = rendererHeight;
     if (renderer.overflowMode === OverflowMode.Overflow) {
       height = lineHeight * lines.length;
     }
@@ -412,8 +417,6 @@ export class TextUtils {
         if (y > bottom) {
           bottom = y;
         }
-      } else {
-        colorData[i] = colorData[i + 1] = colorData[i + 2] = 255;
       }
     }
 
@@ -427,9 +430,13 @@ export class TextUtils {
     if (isChar) {
       let data = null;
       if (size > 0) {
-        const lineIntegerW = integerW * 4;
-        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
-        data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
+        // Extract alpha channel only for Alpha8 texture format.
+        const alphaPixelCount = size * integerW;
+        data = new Uint8Array(alphaPixelCount);
+        let offset = top * integerW * 4 + 3;
+        for (let i = 0; i < alphaPixelCount; i++, offset += 4) {
+          data[i] = colorData[offset];
+        }
       }
       return {
         char: measureString,

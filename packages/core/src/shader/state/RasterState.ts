@@ -1,4 +1,5 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
+import { RenderStateElementMap } from "../../BasicResources";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CullMode } from "../enums/CullMode";
@@ -44,13 +45,28 @@ export class RasterState {
   /**
    * @internal
    */
-  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState, frontFaceInvert: boolean): void {
-    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert);
+  _apply(
+    hardwareRenderer: IHardwareRenderer,
+    lastRenderState: RenderState,
+    frontFaceInvert: boolean,
+    customStates?: RenderStateElementMap
+  ): void {
+    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert, customStates);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: RasterState, frontFaceInvert: boolean): void {
+  private _platformApply(
+    rhi: IHardwareRenderer,
+    lastState: RasterState,
+    frontFaceInvert: boolean,
+    customStates?: RenderStateElementMap
+  ): void {
     const gl = <WebGLRenderingContext>rhi.gl;
-    const { cullMode, depthBias, slopeScaledDepthBias } = this;
+    let { cullMode, depthBias, slopeScaledDepthBias } = this;
+
+    if (customStates) {
+      const cullModeState = customStates[RenderStateElementKey.RasterStateCullMode];
+      cullModeState !== undefined && (cullMode = <CullMode>cullModeState);
+    }
 
     const cullFaceEnable = cullMode !== CullMode.Off;
     if (cullFaceEnable !== lastState._cullFaceEnable) {

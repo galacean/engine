@@ -1,18 +1,14 @@
+import { EShaderStage } from "../common/enums/ShaderStage";
 import { ASTNode } from "../parser/AST";
-import { SymbolType } from "../parser/types";
-import { BaseToken as Token } from "../common/BaseToken";
-import { EKeyword, ETokenType, ShaderPosition } from "../common";
+import { ShaderData } from "../parser/ShaderInfo";
+import { StructProp } from "../parser/types";
 import { GLESVisitor } from "./GLESVisitor";
-import { EShaderStage } from "../common/Enums";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
-import { ShaderLab } from "../ShaderLab";
 
 const V3_GL_FragColor = "GS_glFragColor";
 
 export class GLES300Visitor extends GLESVisitor {
-  override _versionText: string = "#version 300 es";
-
   private static _singleton: GLES300Visitor;
   static getVisitor(): GLES300Visitor {
     if (!this._singleton) {
@@ -21,79 +17,105 @@ export class GLES300Visitor extends GLESVisitor {
     return this._singleton;
   }
 
-  override getAttributeDeclare(): ICodeSegment[] {
-    const ret: ICodeSegment[] = [];
-    for (const item of Object.values(VisitorContext.context._referencedAttributeList)) {
-      ret.push({
-        text: `in ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-        index: item.ident.location.start.index
-      });
-    }
-    return ret;
+  private _otherCodeArray: ICodeSegment[] = [];
+  private _fragColorVariableRegistered = false;
+
+  override reset(): void {
+    super.reset();
+
+    this._otherCodeArray.length = 0;
+    this._fragColorVariableRegistered = false;
   }
 
-  override getVaryingDeclare(): ICodeSegment[] {
-    const ret: ICodeSegment[] = [];
-    const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
-    const values = Object.values(VisitorContext.context._referencedVaryingList);
-    for (let i = 0; i < values.length; i++) {
-      const item = values[i];
-      ret.push({
-        text: `${item.qualifier ?? qualifier} ${item.typeInfo.typeLexeme} ${item.ident.lexeme};`,
-        index: item.ident.location.start.index
-      });
+  override getOtherGlobal(data: ShaderData, out: ICodeSegment[]): void {
+    super.getOtherGlobal(data, out);
+
+    for (let i = 0, n = this._otherCodeArray.length; i < n; i++) {
+      out.push(this._otherCodeArray[i]);
     }
-    return ret;
+  }
+
+  override getAttributeProp(prop: StructProp): string {
+    return `in ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
+  }
+
+  override getVaryingProp(prop: StructProp): string {
+    const qualifier = VisitorContext.context.stage === EShaderStage.FRAGMENT ? "in" : "out";
+    return `${qualifier} ${prop.typeInfo.typeLexeme} ${prop.ident.lexeme};`;
+  }
+
+  override getMRTProp(prop: StructProp): string {
+    return `layout(location = ${prop.mrtIndex}) out vec4 ${prop.ident.lexeme};`;
   }
 
   override visitFunctionIdentifier(node: ASTNode.FunctionIdentifier): string {
-    const typeSpecifier = node.children[0] as ASTNode.TypeSpecifier;
+    const children = node.children;
+    const typeSpecifier = children[0] as ASTNode.TypeSpecifier;
     if (typeSpecifier.children.length !== 1) {
-      return this.defaultCodeGen(node.children);
+      return this.defaultCodeGen(children);
     }
     let ident = node.lexeme;
-    if (node.ident === "texture2D" || node.ident === "textureCube") {
-      ident = "texture";
-    } else if (node.ident === "texture2DProj") {
-      ident = "textureProj";
-    } else if (VisitorContext.context.stage === EShaderStage.FRAGMENT) {
-      switch (node.ident) {
-        case "texture2DLodEXT":
-        case "textureCubeLodEXT":
-          ident = "textureLod";
-          break;
-        case "texture2DGradEXT":
-        case "textureCubeGradEXT":
-          ident = "textureGrad";
-          break;
-        case "texture2DProjLodEXT":
-          ident = "textureProjLod";
-          break;
-        case "texture2DProjGradEXT":
-          ident = "textureProjGrad";
-          break;
-        case "gl_FragDepthEXT":
-          ident = "gl_FragDepth";
-          break;
-      }
+    switch (node.ident) {
+      case "texture2D":
+      case "textureCube":
+        ident = "texture";
+        break;
+      case "texture2DProj":
+        ident = "textureProj";
+        break;
+      case "texture2DLodEXT":
+      case "textureCubeLodEXT":
+        ident = "textureLod";
+        break;
+      case "texture2DGradEXT":
+      case "textureCubeGradEXT":
+        ident = "textureGrad";
+        break;
+      case "texture2DProjLodEXT":
+        ident = "textureProjLod";
+        break;
+      case "texture2DProjGradEXT":
+        ident = "textureProjGrad";
+        break;
+      case "gl_FragDepthEXT":
+        ident = "gl_FragDepth";
+        break;
     }
     return ident;
   }
 
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
-    if (VisitorContext.context.stage === EShaderStage.FRAGMENT && node.lexeme === "gl_FragColor") {
-      if (!VisitorContext.context._referencedVaryingList[V3_GL_FragColor]) {
-        const token = Token.pool.get();
-        token.set(ETokenType.ID, V3_GL_FragColor, ShaderLab.createPosition(0, 0, 0));
-        VisitorContext.context._referencedVaryingList[V3_GL_FragColor] = {
-          ident: token,
-          typeInfo: new SymbolType(EKeyword.VEC4, "vec4"),
-          qualifier: "out",
-          astNode: node
-        };
+    const { context } = VisitorContext;
+    if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
+      if (context.mrtStructs.length) {
+        this._reportError(node.location, "gl_FragColor cannot be used with MRT (Multiple Render Targets).");
+        return;
       }
+      this._registerFragColorVariable();
       return V3_GL_FragColor;
     }
     return super.visitVariableIdentifier(node);
+  }
+
+  override visitJumpStatement(node: ASTNode.JumpStatement): string {
+    if (node.isFragReturnStatement) {
+      if (VisitorContext.context.mrtStructs.length) {
+        return "";
+      }
+      this._registerFragColorVariable();
+
+      const expression = node.children[1] as ASTNode.Expression;
+      return `${V3_GL_FragColor} = ${expression.codeGen(this)};`;
+    }
+    return super.visitJumpStatement(node);
+  }
+
+  private _registerFragColorVariable() {
+    if (this._fragColorVariableRegistered) return;
+    this._otherCodeArray.push({
+      text: `out vec4 ${V3_GL_FragColor};`,
+      index: 0
+    });
+    this._fragColorVariableRegistered = true;
   }
 }

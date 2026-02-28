@@ -1,0 +1,26 @@
+---
+title: Blinn Phong
+---
+
+The [BlinnPhongMaterial](/apis/core/#BlinnPhongMaterial) is a classic material. Although not based on physically-based rendering (PBR), its efficient rendering algorithm and comprehensive optical properties make it still applicable in many scenarios today.
+
+## Editor Usage
+
+<img src="https://gw.alipayobjects.com/zos/OasisHub/eaa93827-29a4-46ad-b9d3-f179fa200c57/blinn.gif" alt="blinn" />
+
+## Parameter Overview
+
+| Parameter | Description |
+| :-- | :-- |
+| [baseColor](/apis/core/#BlinnPhongMaterial-baseColor) | Base color. **Base Color * Base Texture = Final Base Color** |
+| [baseTexture](/apis/core/#BlinnPhongMaterial-baseTexture) | Base texture. Multiplied with base color. |
+| [specularColor](/apis/core/#BlinnPhongMaterial-specularColor) | Specular color. **Specular Color * Specular Texture = Final Specular Color** |
+| [specularTexture](/apis/core/#BlinnPhongMaterial-specularTexture) | Specular texture. Multiplied with specular color. |
+| [normalTexture](/apis/core/#BlinnPhongMaterial-normalTexture) | Normal texture. Creates surface detail with a bump map, and controls depth via normal intensity. |
+| [normalIntensity](/apis/core/#BlinnPhongMaterial-normalIntensity) | Normal intensity. Controls the strength of surface detail. |
+| [emissiveColor](/apis/core/#BlinnPhongMaterial-emissiveColor) | Emissive color. **Emissive Color * Emissive Texture = Final Emissive Color** (renders color even without lighting). |
+| [emissiveTexture](/apis/core/#BlinnPhongMaterial-emissiveTexture) | Emissive texture. Multiplied with emissive color. |
+| [shininess](/apis/core/#BlinnPhongMaterial-shininess) | Shininess coefficient. Higher values produce more concentrated specular highlights. |
+| [tilingOffset](/apis/core/#BlinnPhongMaterial-tilingOffset) | Texture tiling and offset. A Vector4 value controlling UV scale and offset (see [example](/embed/tiling-offset)). |
+
+For script-based material usage, refer to the [material usage tutorial](/en/docs/graphics/material/examples/create/#4-script-based-method).

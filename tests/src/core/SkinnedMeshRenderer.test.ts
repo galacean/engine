@@ -1,13 +1,13 @@
 import { BlendShape, Entity, ModelMesh, Skin, SkinnedMeshRenderer } from "@galacean/engine-core";
 import { BoundingBox, Matrix, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("SkinnedMeshRenderer", async () => {
   let engine: WebGLEngine;
   let rootEntity: Entity;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
     rootEntity = scene.createRootEntity();

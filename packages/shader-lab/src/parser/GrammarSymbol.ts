@@ -2,7 +2,7 @@ import { TokenType } from "../common";
 
 export type Terminal = TokenType;
 
-export enum ENonTerminal {
+export enum NoneTerminal {
   START = 2000,
   // galacean
   gs_shader_program,
@@ -10,6 +10,8 @@ export enum ENonTerminal {
   // glsl
   global_declaration,
   variable_declaration,
+  variable_declaration_list,
+  variable_declaration_statement,
   array_specifier_list,
   array_specifier,
   ext_builtin_type_specifier_nonarray,
@@ -72,6 +74,7 @@ export enum ENonTerminal {
   struct_specifier,
   struct_declaration_list,
   struct_declaration,
+  layout_qualifier,
   struct_declarator_list,
   struct_declarator,
   identifier_list,
@@ -104,9 +107,33 @@ export enum ENonTerminal {
   scope_brace,
   scope_end_brace,
 
+  // Macro
+  macro_undef,
+  macro_push_context,
+  macro_pop_context,
+  macro_elif_expression,
+  macro_else_expression,
+  global_macro_if_statement,
+  global_macro_declaration,
+  global_macro_branch,
+  macro_struct_declaration,
+  macro_struct_branch,
+  macro_if_statement,
+  macro_branch,
+  macro_param_case_list,
+  macro_param_block,
+  macro_parameter_branch,
+  macro_call_arg_case_list,
+  macro_call_arg_block,
+  macro_call_arg_branch,
+
+  // Macro call
+  macro_call_symbol,
+  macro_call_function,
+
   _ignore
 }
 
-export type GrammarSymbol = Terminal | ENonTerminal;
+export type GrammarSymbol = Terminal | NoneTerminal;
 
 export type Derivation = GrammarSymbol[];

@@ -1,0 +1,76 @@
+---
+title: Material Overview
+---
+
+<Image src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*Iq8iRKWPAqgAAAAAAAAAAAAADgDwAQ/original" />
+
+Material is a core concept in 3D rendering that determines the visual appearance of object surfaces. In the Galacean engine, materials consist of three core components:
+
+## Core Components
+
+### 🎨 Shader
+Shaders are programs that run on the GPU, responsible for calculating the final color of each pixel. Galacean provides a powerful shader language that allows you to:
+- Use familiar GLSL syntax
+- Enjoy advanced abstraction and management features
+- Easily define material properties and rendering configurations
+
+Refer to [Shader Introduction](/en/docs/graphics/material/shader) to learn about Shader syntax.
+
+### 📊 Shader Data (ShaderData)
+Shader data contains various parameters required for rendering, such as:
+- **Material Properties**: color, texture, roughness, etc.
+- **Built-in Variables**: time, camera position, lighting information, etc.
+- **Macro Switches**: control the enabling and disabling of shader features
+
+Refer to [Built-in Variables Documentation](/en/docs/graphics/material/variables) to learn about available built-in variables.
+
+### ⚙️ Render States (RenderStates)
+Render states control how the GPU processes geometry, including:
+- **Blend State**: controls transparency and color blending
+- **Depth State**: controls depth testing and writing
+- **Stencil State**: implements complex masking effects
+- **Raster State**: controls face culling and polygon mode
+
+Refer to [Render States](/en/docs/graphics/material/shader/#render-state-specification) to learn about all configurable render states.
+
+## Quick Start
+<Callout type="info">
+If you're not familiar with creating and using materials, you can first go to [Basic Material Usage](/en/docs/graphics/material/baseUse) to learn the basics.
+</Callout>
+
+### Using Built-in Shaders
+Galacean provides various ready-to-use shaders:
+
+| Shader Type | Use Case | Features |
+|-----------|---------|------|
+| [PBR](/en/docs/graphics/material/builtinShaders/pbr) | Realistic rendering | Physics-based, follows energy conservation |
+| [Unlit](/en/docs/graphics/material/builtinShaders/unlit) | Baked models | Unaffected by lighting, excellent performance |
+| [Blinn Phong](/en/docs/graphics/material/builtinShaders/blinnPhong) | Classic lighting | Efficient traditional lighting model |
+
+### Creating Custom Shaders
+When built-in shaders cannot meet your needs, you can create custom shaders:
+
+```ts
+// Create material
+const material = new Material(engine, shader);
+
+// Set material properties
+material.shaderData.setColor("material_BaseColor", new Color(1, 0, 0, 1));
+material.shaderData.setTexture("material_BaseTexture", texture);
+```
+
+<Callout type="info">
+Want to get started quickly? Jump directly to [Custom Shader Tutorial](/en/docs/graphics/material/examples/shaderlab-01-basic-shader) to start your first custom shader!
+</Callout>
+
+## Recommended Learning Path
+
+1. **Understand Basics**: Read this overview to understand core material concepts
+2. **Experience Built-ins**: Try using [Built-in Shaders](/en/docs/graphics/material/builtinShaders)
+3. **Hands-on Practice**: Follow the [Tutorial](/en/docs/graphics/material/examples/shaderlab-01-basic-shader) to create your first custom shader
+4. **Deep Learning**: Check [Shader Introduction](/en/docs/graphics/material/shader) for complete syntax
+5. **Problem Solving**: Use [Shader Built-in Variables](/en/docs/graphics/material/variables) and [Shader API](/en/docs/graphics/material/shaderAPI)
+
+<Callout type="info">
+For more practical examples, check [Online Examples](/examples/shaderlab-01-basic-shader).
+</Callout>

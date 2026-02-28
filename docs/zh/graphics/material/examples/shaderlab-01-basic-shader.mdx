@@ -1,0 +1,208 @@
+---
+title: 基础着色器语法
+---
+
+本教程将通过一个简单的纹理渲染着色器，介绍 ShaderLab 的基础语法结构，通过这个基础示例，你将学会：
+- ShaderLab 的基本结构
+- 如何声明变量和结构体
+- 顶点着色器的基本变换
+- 片元着色器的纹理采样
+- UV 坐标的传递和使用
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*Ykx2T7IuiAIAAAAAT0AAAAgAeuuHAQ/original"
+/>
+
+## 着色器结构
+
+ShaderLab 采用三层嵌套结构：`Shader` → `SubShader` → `Pass`
+
+```glsl
+Shader "Tutorial/01-BasicShader" {
+  SubShader "Default" {
+    Pass "Forward" {
+      // 着色器代码写在这里
+    }
+  }
+}
+```
+
+- **Shader**：着色器的根节点，定义着色器名称
+- **SubShader**：着色器的变体，可以有多个，引擎会选择最适合的
+- **Pass**：渲染通道，定义具体的渲染逻辑
+
+## 变量声明
+
+在 Pass 中，我们需要声明着色器使用的变量：
+
+```glsl
+// 引擎内置变量：MVP 变换矩阵
+mat4 renderer_MVPMat;
+
+// 自定义材质属性
+vec4 material_BaseColor;      // 基础颜色
+sampler2D material_BaseTexture; // 纹理采样器
+```
+
+## 结构体定义
+
+使用结构体定义顶点数据和传递数据：
+
+```glsl
+// 顶点着色器输入（从网格获取）
+struct Attributes {
+  vec4 POSITION;    // 顶点位置
+  vec2 TEXCOORD_0;  // UV 坐标
+};
+
+// 顶点着色器输出 / 片元着色器输入
+struct Varyings {
+  vec2 uv;          // 传递给片元着色器的 UV 坐标
+};
+```
+
+**内置顶点属性**：
+- `POSITION`：顶点位置
+- `TEXCOORD_0`：第一套UV坐标
+- `NORMAL`：顶点法线
+- `COLOR_0`：顶点颜色
+
+## 着色器入口函数
+
+指定顶点着色器和片元着色器的入口函数：
+
+```glsl
+VertexShader = vert;    // 顶点着色器入口
+FragmentShader = frag;  // 片元着色器入口
+```
+
+## 顶点着色器
+
+顶点着色器负责处理每个顶点的变换：
+
+```glsl
+Varyings vert(Attributes attr) {
+  Varyings output;
+  
+  // MVP 变换：将顶点从模型空间变换到裁剪空间
+  gl_Position = renderer_MVPMat * attr.POSITION;
+  
+  // 传递 UV 坐标给片元着色器
+  output.uv = attr.TEXCOORD_0;
+  
+  return output;
+}
+```
+
+**关键点**：
+- `gl_Position` 是内置输出变量，必须赋值
+- 返回的结构体数据会传递给片元着色器
+
+## 片元着色器
+
+片元着色器负责计算每个像素的颜色：
+
+```glsl
+void frag(Varyings varying) {
+  // 从纹理中采样颜色
+  vec4 texColor = texture2D(material_BaseTexture, varying.uv);
+  
+  // 与材质基础颜色相乘
+  vec4 finalColor = texColor * material_BaseColor;
+  
+  // 输出最终颜色
+  gl_FragColor = finalColor;
+}
+```
+
+**关键点**：
+- `texture2D()` 函数用于纹理采样
+- `gl_FragColor` 是内置输出变量，表示像素最终颜色
+- 颜色运算支持向量运算
+
+## 纹理采样
+
+纹理采样是着色器中的常见操作：
+
+```glsl
+// 声明纹理采样器
+sampler2D material_BaseTexture;
+
+// 在片元着色器中采样
+vec4 texColor = texture2D(material_BaseTexture, uv);
+```
+
+**采样参数**：
+- 第一个参数：纹理采样器
+- 第二个参数：UV坐标（vec2类型）
+
+## 完整示例解析
+
+让我们分析完整的着色器代码：
+
+```glsl showLineNumbers {}
+Shader "Tutorial/01-BasicShader" {
+  SubShader "Default" {
+    // Pass 是渲染通道，定义具体的渲染逻辑
+    Pass "Forward" {
+      // 引擎内置的 MVP 矩阵，用于顶点变换
+      mat4 renderer_MVPMat;
+      
+      // 自定义的材质属性
+      vec4 material_BaseColor;
+      sampler2D material_BaseTexture;
+      
+      // 顶点着色器输入结构体 (Attributes)
+      struct Attributes {
+        vec4 POSITION;    // 顶点位置
+        vec2 TEXCOORD_0;  // UV 坐标
+      };
+      
+      // 顶点着色器输出 / 片元着色器输入结构体 (Varyings)
+      struct Varyings {
+        vec2 uv;          // 传递给片元着色器的 UV 坐标
+      };
+      
+      // 指定着色器入口函数
+      VertexShader = vert;
+      FragmentShader = frag;
+      
+      // 顶点着色器：处理顶点变换和数据传递
+      Varyings vert(Attributes attr) {
+        Varyings output;
+        
+        // 将顶点从模型空间变换到裁剪空间
+        gl_Position = renderer_MVPMat * attr.POSITION;
+        
+        // 传递 UV 坐标给片元着色器
+        output.uv = attr.TEXCOORD_0;
+        
+        return output;
+      }
+      
+      // 片元着色器：计算每个像素的最终颜色
+      void frag(Varyings varying) {
+        // 从纹理中采样颜色
+        vec4 texColor = texture2D(material_BaseTexture, varying.uv);
+        
+        // 与材质基础颜色相乘
+        vec4 finalColor = texColor * material_BaseColor;
+        
+        // 输出最终颜色
+        gl_FragColor = finalColor;
+      }
+    }
+  }
+}
+```
+
+## 运行效果
+
+这个着色器会：
+1. 将3D模型的顶点变换到屏幕空间
+2. 传递UV坐标到片元着色器
+3. 对纹理进行采样
+4. 将纹理颜色与基础颜色相乘得到最终颜色
+
+
+前往 [游乐场](/examples/shaderlab-01-basic-shader)

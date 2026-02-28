@@ -1,0 +1,14 @@
+{
+  "raycast": {
+    "title": "射线检测",
+    "order": 0
+  },
+  "sweep": {
+    "title": "形状投射",
+    "order": 1
+  },
+  "overlap": {
+    "title": "重叠检测",
+    "order": 2
+  }
+}

@@ -8,6 +8,9 @@ import ibl_frag_define from "./ibl_frag_define.glsl";
 
 import pbr_frag from "./pbr_frag.glsl";
 
+import btdf from "./btdf.glsl";
+import refraction from "./refraction.glsl";
+
 export default {
   pbr_frag_define,
 
@@ -16,5 +19,8 @@ export default {
   direct_irradiance_frag_define,
   ibl_frag_define,
 
-  pbr_frag
+  pbr_frag,
+
+  btdf,
+  refraction
 };

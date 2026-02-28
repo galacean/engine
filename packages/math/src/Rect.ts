@@ -23,7 +23,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set x(value: number) {
     this._x = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -35,7 +35,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set y(value: number) {
     this._y = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -47,7 +47,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set width(value: number) {
     this._width = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -59,7 +59,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
 
   set height(value: number) {
     this._height = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
   }
 
   /**
@@ -89,7 +89,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
     this._y = y;
     this._width = width;
     this._height = height;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
     return this;
   }
 
@@ -111,7 +111,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
     this._y = source.y;
     this._width = source.width;
     this._height = source.height;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged?.();
     return this;
   }
 }

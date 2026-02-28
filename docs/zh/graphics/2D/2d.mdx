@@ -1,0 +1,56 @@
+---
+order: 0
+title: 2D 总览
+type: 图形
+group: 2D
+label: Graphics/2D
+---
+
+## 创建
+
+Galacean 提供两种方式快速启动 2D 互动开发：
+
+### 通过模版创建
+
+1. 在编辑器主页的 **菜单视图** 侧，点击 **模版** -> **像素小鸟**
+
+2. 直接体验完整的 2D 互动示例项目
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*YYyxRZ2nyukAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
+
+### 创建空白项目
+
+1. 在编辑器主页的 **项目视图** 侧，点击 **新建项目** -> **2D Project**
+
+2. 生成基础 2D 项目配置与结构
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*R8_XTL8PX-UAAAAAAAAAAAAADhuCAQ/original" alt="image.png" style={{zoom:"50%"}} />
+
+## 特性
+
+新创建的 2D 项目已预配置以下特性：
+
+| 配置项        | 说明                                                                 |
+|---------------|--------------------------------------------------------------------|
+| **场景设置**  | 展示 2D 项目特有的场景，且关闭天空盒，后处理等不需要的配置                          |
+| **资源**     | 删除 2D 模式下不会使用的内置资源                         |
+| **相机操作**  | 将场景相机的操作设置为 2D 模式                           |
+
+<Callout type="info">以上设置亦可在创建项目后自行修改</Callout>
+
+## 2D 开发链路
+
+Galacean 提供较为完整的 2D 开发工具链：
+
+### 基础渲染资产与组件
+- [精灵资产](/docs/graphics/2D/sprite/)：确定精灵渲染器与精灵遮罩的显示结果
+- [精灵渲染器](/docs/graphics/2D/spriteRenderer/)：挂载组件后绑定精灵资产，实现图像渲染
+- [文字渲染器](/docs/graphics/2D/text/)：支持位图字体渲染
+
+### 高级效果
+- [精灵遮罩](/docs/graphics/2D/spriteMask/)：为精灵与文字渲染器提供遮挡效果
+- [Spine](/docs/graphics/2D/spine/overview)：专业 2D 骨骼动画，支持复杂动画
+- [Lottie](/docs/graphics/2D/lottie/)：适合 UI 动效
+
+### 性能优化
+- [精灵图集](/docs/graphics/2D/spriteAtlas/)：合并零散精灵为图集，减少 Draw Call 与资源请求次数

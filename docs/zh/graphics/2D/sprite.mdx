@@ -1,0 +1,71 @@
+---
+order: 1
+title: 精灵
+type: 图形
+group: 2D
+label: Graphics/2D
+---
+
+Sprite 是 2D 项目的核心资产，通过以下方式驱动渲染与交互：
+- **数据源**：基于 [Texture2D](/docs/graphics/texture/2d/) 提取图形数据
+- **渲染控制**：通过属性配置（如 `region`、`pivot`）定制显示效果
+- **组件联动**：
+  - 赋予 **[SpriteRenderer](/apis/core/#SpriteRenderer)**：在 3D 空间中渲染 2D 图像
+  - 赋予 **[SpriteMask](/docs/graphics/2D/spriteMask/)**：实现遮罩效果
+
+## 属性
+
+在编辑器中可以方便地查看与调试 Sprite 资产的相关属性：
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lAqBSqfFVmMAAAAAAAAAAAAAehuCAQ/original" alt="Region属性效果示意图" style={{zoom:"50%"}} />
+
+| 属性名              | 类型                     | 描述                                                                 | 默认值               |
+|---------------------|--------------------------|--------------------------------------------------------------------|---------------------|
+| `texture`           | [Texture2D](/apis/core/#Texture2D) | 关联的纹理资源引用                                                   | `null`              |
+| `width`             | Number                   | 精灵宽度，未设置时自动计算为 **纹理像素宽度 / 100**（世界空间单位）                    | `texture.width/100` |
+| `height`            | Number                   | 精灵高度，未设置时自动计算为 **纹理像素高度 / 100**（世界空间单位）                    | `texture.height/100`|
+| `region`            | [Rect](/apis/math/#Rect)  | 纹理采样区域（归一化坐标，范围 `0~1`）                                | `(0,0,1,1)`         |
+| `pivot`             | [Vector2](/apis/math/#Vector2) | 中心点相对于 `region` 的位置（左下角为 `(0,0)`，右上角为 `(1,1)`）    | `(0.5,0.5)`         |
+| `border`            | [Vector4](/apis/math/#Vector4) | 九宫格/平铺模式下的边界距离（左、下、右、上）                         | `(0,0,0,0)`         |
+| `belongs to`        | [SpriteAtlas](/apis/core/#SpriteAtlas) | 此精灵属于哪些图集，此处仅做展示用                         | null         |
+
+### 区域裁剪（Region）
+- **功能**：从纹理中截取矩形区域显示  
+- **示例**：设置 `region: (0.15, 0.3, 0.55, 0.5)` 表示从纹理 15% 宽度、30 %高度处截取 55% 宽、50% 高的区域
+  <Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*ABvvTJnUgpsAAAAAAAAAAAAAARQnAQ" alt="Region属性效果示意图" style={{zoom:"50%"}} />
+
+### 锚点（Pivot）
+- **坐标系**：左下角 `(0,0)` → 右上角 `(1,1)`  
+- **应用场景**：控制旋转/缩放锚点、对齐元素  
+  <Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*6RyQTpqE4dMAAAAAAAAAAAAAARQnAQ" alt="Pivot中心点示意图" style={{zoom:"50%"}} />
+
+## 使用
+
+### 创建 Sprite 资产
+#### 上传图片生成
+1. 在 **[资产面板](/docs/assets/interface/)** 空白处 **右键**  
+2. 选择 **Upload → Sprite**  
+3. 上传图片后自动生成：  
+   - 纹理资产：`图片名.png`  
+   - 精灵资产：`图片名-spr.png`  
+   <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*bRghQqoN1GAAAAAAAAAAAAAADhuCAQ/original" alt="上传生成Sprite流程示意图" />
+
+#### 创建空白精灵
+1. 在资产面板 **右键 → Create → Sprite**  
+2. 手动绑定纹理后使用  
+   <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Gv96TrKvRkEAAAAAAAAAAAAADhuCAQ/original" alt="创建空白Sprite示意图" />
+
+#### 脚本动态创建
+```typescript
+// 创建空白精灵
+const sprite = new Sprite(engine);
+
+// 基于现有纹理创建
+const spriteWithTexture = new Sprite(engine, texture2D);
+```
+
+### 设置 Pivot
+
+你既可以使用编辑器提供的常用锚点配置（如居中、四角等），也可以点击 **Custom** 输入归一化的坐标。
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*84hTTLJBccQAAAAAAAAAAAAAehuCAQ/original" alt="预设Pivot选项示意图" />

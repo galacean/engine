@@ -4,11 +4,11 @@ import {
   Buffer,
   ContentRestorer,
   ModelMesh,
-  request,
+  RequestConfig,
   Texture2D,
-  TypedArray
+  TypedArray,
+  request
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
 import type { AccessorComponentType, IBufferView } from "./gltf/GLTFSchema";

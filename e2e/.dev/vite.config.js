@@ -45,7 +45,8 @@ module.exports = {
   server: {
     open: true,
     host: "0.0.0.0",
-    port: 5175
+    port: 5175,
+    strictPort: true
   },
   resolve: {
     dedupe: ["@galacean/engine"]
@@ -56,6 +57,7 @@ module.exports = {
       "@galacean/engine-draco",
       "@galacean/engine-lottie",
       "@galacean/engine-spine",
+      "@galacean/engine-shaderlab",
       "@galacean/tools-baker",
       "@galacean/engine-toolkit",
       "@galacean/engine-toolkit-auxiliary-lines",

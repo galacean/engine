@@ -1,0 +1,71 @@
+---
+order: 3
+title: 动画混合
+type: 动画
+group: 指南和示例
+label: Animation/Examples
+---
+
+本示例展示了如何在 Galacean 编辑器中实现动画的多层混合。通过简单的步骤，你将学习如何让一个模型混合播放多个动画。
+如果你是第一次使用动画编辑器，建议先阅读前面几篇文档：
+
+[1.播放模型中的动画](/docs/animation/examples/playAnimation/)
+
+[2.动画复用](/docs/animation/examples/reuseAnimation/)
+
+[3.动画过渡](/docs/animation/examples/crossFade/)
+
+## 0. 准备工作
+
+1. 在开始之前，我们需要有一个有动画的模型并且它需要包含一个适合混合的动画。如果你没有模型，可以在点此下载 [模型](https://mdn.alipayobjects.com/oasis_be/afts/file/A*N99IQYh_g5YAAAAAAAAAAAAADkp5AQ/player.glb)。
+然后我们将其拖入到场景中。
+
+2. 我们要有一个已编辑好的 `动画控制器` 。请参考：[编辑动画控制器](/docs/animation/examples/crossFade/#3-编辑动画控制器)。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*dsGnQ4JIC7MAAAAAAAAAAAAADsJ_AQ/original" />
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*1x7zS7WqTasAAAAAAAAAAAAADsJ_AQ/original" />
+
+## 1. 添加一个动画层
+
+想要对动画进行混合播放，需要在动画控制器中添加一个 `动画层` 。当 `动画控制组件` 运行时，所有的 `动画层` 都会一起运行，多个 `动画层` 通过不同的权重来实现动画的混合。
+关于 `动画层` 的详细介绍请参考 [动画层](/docs/animation/layer) 文档。
+
+在 `Layers` 面板点击 `+` 添加一个 `动画层`
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*GWQ4Tr2rhY4AAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 2. 编辑动画层
+添加一个 `动画状态`（如果你不知道如何添加，请参考：[播放模型中的动画](/docs/animation/examples/playAnimation/)），绑定模型中的 **"shakeHead"** `动画片段`，并从 `entry` 连接到这个 `动画状态`，可以根据需要调整 `entry` 到这个 `动画状态`的过渡时间。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*sdC9TbG6-VgAAAAAAAAAAAAADsJ_AQ/original" />
+
+编辑之后为模型绑定此 `动画控制器` 。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*mUWWRqdmjAAAAAAAAAAAAAAADsJ_AQ/original" />
+
+
+## 3. 调整动画层权重
+
+新添加的 `动画层` 的默认混合模式是 `Override`，我们先预览下效果。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*37UZRpesQywAAAAAAAAAAAAADsJ_AQ/original" />
+
+可以看到我们之前在 `Base` 动画层添加的 `动画状态` 都失效了，因为混合模式是 `Override`，它会覆盖掉它下面的所有 `动画层` ，我们可以调整 `Layer1` 的权重看看权重对其的影响。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*fI18TKITqSUAAAAAAAAAAAAADsJ_AQ/original" />
+
+可以看到随着权重减少 `Layer1` 对动画的影响越小，而 `Base` 对动画的影响越大。
+
+## 4. 调整混合模式
+
+在本示例中，我们不希望 `Layer1` 的权重影响到 `Base` 动画层，因此我们将 `Layer1` 的混合模式修改为 `Additive`。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*Tt8sQKnTDq4AAAAAAAAAAAAADsJ_AQ/original" />
+
+这样 `Layer1` 的动画会叠加到 `Base` 动画层上，它的权重修改只影响自身，而不会影响 `Base` 层的动画。
+为了更好的观察 `Additve` 的效果，我们删掉 `Base` 层 `run` 到 `exit` 的过渡。
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*oZY8RaivVWMAAAAAAAAAAAAADsJ_AQ/original" />
+

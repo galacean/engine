@@ -72,6 +72,11 @@ export class GLCapability {
     return this._maxAntiAliasing;
   }
 
+  get isFragmentHighPrecision(): boolean {
+    const gl = this._rhi.gl;
+    return gl.getShaderPrecisionFormat(gl.FRAGMENT_SHADER, gl.HIGH_FLOAT).precision !== 0;
+  }
+
   get rhi() {
     return this._rhi;
   }
@@ -158,6 +163,7 @@ export class GLCapability {
 
       astc,
       astc_webkit,
+      astc_hdr,
       etc,
       etc_webkit,
       etc1,
@@ -167,6 +173,7 @@ export class GLCapability {
       s3tc,
       s3tc_webkit,
       bptc,
+      s3tc_srgb,
 
       textureFloat,
       textureHalfFloat,
@@ -176,7 +183,9 @@ export class GLCapability {
       colorBufferFloat,
       colorBufferHalfFloat,
       textureFilterAnisotropic,
-      fragDepth
+      fragDepth,
+
+      sRGB
     } = GLCapabilityType;
     cap.set(shaderVertexID, isWebGL2);
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
@@ -203,12 +212,18 @@ export class GLCapability {
     cap.set(textureFilterAnisotropic, !!requireExtension(textureFilterAnisotropic));
     cap.set(fragDepth, isWebGL2 || !!requireExtension(fragDepth));
 
-    cap.set(astc, !!(requireExtension(astc) || requireExtension(astc_webkit)));
     cap.set(etc, !!(requireExtension(etc) || requireExtension(etc_webkit)));
     cap.set(etc1, !!(requireExtension(etc1) || requireExtension(etc1_webkit)));
     cap.set(pvrtc, !!(requireExtension(pvrtc) || requireExtension(pvrtc_webkit)));
     cap.set(s3tc, !!(requireExtension(s3tc) || requireExtension(s3tc_webkit)));
+    cap.set(s3tc_srgb, !!requireExtension(s3tc_srgb));
     cap.set(bptc, !!requireExtension(bptc));
+
+    const astcExtension = requireExtension(astc) || requireExtension(astc_webkit);
+    cap.set(astc, !!astcExtension);
+    cap.set(astc_hdr, !!astcExtension?.getSupportedProfiles().includes("hdr"));
+
+    cap.set(sRGB, isWebGL2 || !!requireExtension(sRGB));
   }
 
   /**
@@ -249,7 +264,8 @@ export class GLCapability {
       textureHalfFloat,
       colorBufferHalfFloat,
       WEBGL_colorBufferFloat,
-      blendMinMax
+      blendMinMax,
+      sRGB
     } = GLCapabilityType;
     const { isWebGL2 } = this.rhi;
 
@@ -295,6 +311,10 @@ export class GLCapability {
       });
       this._compatibleInterface(WEBGL_colorBufferFloat, {
         RGBA32F: "RBGA32F_EXT"
+      });
+      this._compatibleInterface(sRGB, {
+        SRGB8: "SRGB_EXT",
+        SRGB8_ALPHA8: "SRGB_ALPHA_EXT"
       });
     }
 

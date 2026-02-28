@@ -1,6 +1,7 @@
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { BaseMaterial } from "../material/BaseMaterial";
 import blitFs from "../shaderlib/extra/Blit.fs.glsl";
+import blitScreenFs from "../shaderlib/extra/BlitScreen.fs.glsl";
 import blitVs from "../shaderlib/extra/Blit.vs.glsl";
 import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
 import skyProceduralVs from "../shaderlib/extra/SkyProcedural.vs.glsl";
@@ -25,6 +26,8 @@ import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
 import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
 import textFs from "../shaderlib/extra/text.fs.glsl";
 import textVs from "../shaderlib/extra/text.vs.glsl";
+import trailFs from "../shaderlib/extra/trail.fs.glsl";
+import trailVs from "../shaderlib/extra/trail.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { Shader } from "./Shader";
@@ -48,6 +51,9 @@ export class ShaderPool {
     const depthOnlyPass = new ShaderPass("DepthOnly", depthOnlyVs, depthOnlyFs, {
       pipelineStage: PipelineStage.DepthOnly
     });
+    depthOnlyPass._renderState = new RenderState();
+    depthOnlyPass._renderStateDataMap[RenderStateElementKey.RenderQueueType] = BaseMaterial._depthOnlyRenderQueueProp;
+
     const basePasses = [shadowCasterPass, depthOnlyPass];
 
     const forwardPassTags = {
@@ -63,10 +69,12 @@ export class ShaderPool {
     Shader.create("unlit", [new ShaderPass("Forward", unlitVs, unlitFs, forwardPassTags), ...basePasses]);
 
     Shader.create("blit", [new ShaderPass("Forward", blitVs, blitFs, forwardPassTags)]);
+    Shader.create("blit-screen", [new ShaderPass("Forward", blitVs, blitScreenFs, forwardPassTags)]);
     Shader.create("skybox", [new ShaderPass("Forward", skyboxVs, skyboxFs, forwardPassTags)]);
     Shader.create("SkyProcedural", [new ShaderPass("Forward", skyProceduralVs, skyProceduralFs, forwardPassTags)]);
 
     Shader.create("particle-shader", [new ShaderPass("Forward", particleVs, particleFs, forwardPassTags)]);
+    Shader.create("trail", [new ShaderPass("Forward", trailVs, trailFs, forwardPassTags)]);
     Shader.create("SpriteMask", [new ShaderPass("Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)]);
     Shader.create("Sprite", [new ShaderPass("Forward", spriteVs, spriteFs, forwardPassTags)]);
     Shader.create("Text", [new ShaderPass("Forward", textVs, textFs, forwardPassTags)]);

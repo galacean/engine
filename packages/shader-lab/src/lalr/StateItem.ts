@@ -1,5 +1,5 @@
 import { ETokenType } from "../common";
-import { ENonTerminal, Terminal } from "../parser/GrammarSymbol";
+import { NoneTerminal, Terminal } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import GrammarUtils from "./Utils";
 
@@ -59,18 +59,18 @@ export default class StateItem {
   }
 
   advance() {
-    // #if _EDITOR
+    // #if _VERBOSE
     if (this.canReduce()) throw `Error: advance reduce-able parsing state item`;
     // #endif
     return new StateItem(this.production, this.position + 1, this.lookaheadSet);
   }
 
-  // #if _EDITOR
+  // #if _VERBOSE
   toString() {
     const coreItem = this.production.derivation.map((item) => GrammarUtils.toString(item));
     coreItem[this.position] = "." + (coreItem[this.position] ?? "");
 
-    return `${ENonTerminal[this.production.goal]} :=> ${coreItem.join("|")} ;${Array.from(this.lookaheadSet)
+    return `${NoneTerminal[this.production.goal]} :=> ${coreItem.join("|")} ;${Array.from(this.lookaheadSet)
       .map((item) => GrammarUtils.toString(item))
       .join("/")}`;
   }

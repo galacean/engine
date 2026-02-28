@@ -9,7 +9,7 @@ Galacean is a **web-first** and **mobile-first** high-performance real-time inte
 
 ## Features
 
-- 🖥  &nbsp;**Platform** - Suppport HTML5 and Alipay miniprogram
+- 🖥  &nbsp;**Platform** - Suppport HTML5 and wechat minigame
 - 🔮  &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
 - 🏃  &nbsp;**Animation** - Powerful animation system
 - 🧱  &nbsp;**Physics** - Powerful and easy-to-use physical features

@@ -1,0 +1,309 @@
+---
+title: Render State Control
+---
+
+Render states control how the GPU processes geometry during rendering. This tutorial will teach you how to use various render states to achieve different visual effects, including transparency, depth testing, face culling, etc.
+
+## What are Render States
+
+Render states are a series of GPU configuration parameters that control:
+- **Blend State**: How new pixels blend with existing pixels
+- **Depth State**: Depth testing and writing behavior
+- **Stencil State**: Stencil buffer operations
+- **Raster State**: Face culling, polygon mode, etc.
+
+## Blend State - Achieving Transparency
+
+Blend state controls how fragment shader output colors blend with framebuffer colors.
+
+### Basic Transparency Effect
+
+```glsl
+Shader "Tutorial/02-Transparent" {
+  SubShader "Default" {
+    Pass "Forward" {
+      // Blend state configuration
+      BlendState {
+        Enabled = true;
+        SourceColorBlendFactor = SourceAlpha;
+        DestinationColorBlendFactor = OneMinusSourceAlpha;
+        SourceAlphaBlendFactor = One;
+        DestinationAlphaBlendFactor = OneMinusSourceAlpha;
+      }
+      
+      // Material properties
+      vec4 material_BaseColor;
+      sampler2D material_BaseTexture;
+      
+      // Vertex and fragment shader code...
+      void frag(v2f input) {
+        vec4 texColor = texture2D(material_BaseTexture, input.uv);
+        vec4 finalColor = texColor * material_BaseColor;
+        
+        // Alpha channel controls transparency
+        gl_FragColor = finalColor;
+      }
+    }
+  }
+}
+```
+
+### Common Blend Modes
+
+```glsl
+// Alpha blending (standard transparency)
+BlendState {
+  Enabled = true;
+  SourceColorBlendFactor = SourceAlpha;
+  DestinationColorBlendFactor = OneMinusSourceAlpha;
+}
+
+// Additive blending (glow effect)
+BlendState {
+  Enabled = true;
+  SourceColorBlendFactor = One;
+  DestinationColorBlendFactor = One;
+}
+
+// Multiplicative blending (shadow effect)
+BlendState {
+  Enabled = true;
+  SourceColorBlendFactor = DestinationColor;
+  DestinationColorBlendFactor = Zero;
+}
+```
+
+## Depth State - Controlling Depth Testing
+
+Depth state controls depth buffer behavior, determining pixel visibility.
+
+### Basic Depth Testing
+
+```glsl
+Pass "Forward" {
+  // Depth state configuration
+  DepthState {
+    Enabled = true;           // Enable depth testing
+    WriteEnabled = true;      // Enable depth writing
+    CompareFunction = Less;   // Depth comparison function
+  }
+  
+  // Shader code...
+}
+```
+
+### Depth State Parameters
+
+| Parameter | Description | Common Values |
+|-----------|-------------|---------------|
+| `Enabled` | Enable depth testing | `true`/`false` |
+| `WriteEnabled` | Enable depth writing | `true`/`false` |
+| `CompareFunction` | Depth comparison function | `Less`, `LessEqual`, `Greater`, `Always` |
+
+### Practical Applications
+
+```glsl
+// Standard opaque objects
+DepthState {
+  Enabled = true;
+  WriteEnabled = true;
+  CompareFunction = LessEqual;
+}
+
+// Transparent objects (no depth writing)
+DepthState {
+  Enabled = true;
+  WriteEnabled = false;  // Don't write depth to avoid sorting issues
+  CompareFunction = LessEqual;
+}
+
+// Always render on top
+DepthState {
+  Enabled = false;       // Disable depth testing
+  WriteEnabled = false;
+}
+```
+
+## Stencil State - Implementing Masking Effects
+
+Stencil state uses the stencil buffer to implement complex masking and selection effects.
+
+### Basic Stencil Masking
+
+```glsl
+// First pass: Write stencil mask
+Pass "StencilWrite" {
+  StencilState {
+    Enabled = true;
+    ReferenceValue = 1;
+    CompareFunction = Always;
+    PassOperation = Replace;  // Write reference value when test passes
+  }
+  
+  // Only write to stencil buffer, don't output color
+  ColorMask = 0;
+}
+
+// Second pass: Use stencil mask for rendering
+Pass "StencilTest" {
+  StencilState {
+    Enabled = true;
+    ReferenceValue = 1;
+    CompareFunction = Equal;  // Only render where stencil equals 1
+  }
+  
+  // Normal rendering code...
+}
+```
+
+### Stencil Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `Enabled` | Enable stencil testing |
+| `ReferenceValue` | Reference value for comparison |
+| `CompareFunction` | Stencil comparison function |
+| `PassOperation` | Operation when stencil test passes |
+| `FailOperation` | Operation when stencil test fails |
+| `ZFailOperation` | Operation when depth test fails |
+
+## Raster State - Controlling Rasterization
+
+Raster state controls how geometry is rasterized.
+
+### Face Culling
+
+```glsl
+Pass "Forward" {
+  RasterState {
+    CullMode = Back;    // Cull back faces (default)
+    // CullMode = Front; // Cull front faces
+    // CullMode = Off;   // No culling (render both sides)
+  }
+}
+```
+
+### Wireframe Mode
+
+```glsl
+Pass "Wireframe" {
+  RasterState {
+    FillMode = Wireframe;  // Wireframe rendering
+    CullMode = Off;        // Show both sides
+  }
+}
+```
+
+## Complete Example - Glass Effect
+
+Combining multiple render states to create a glass effect:
+
+```glsl
+Shader "Tutorial/02-Glass" {
+  SubShader "Default" {
+    // First pass: Render back faces (inner surface)
+    Pass "BackFace" {
+      RasterState {
+        CullMode = Front;  // Only render back faces
+      }
+      
+      BlendState {
+        Enabled = true;
+        SourceColorBlendFactor = SourceAlpha;
+        DestinationColorBlendFactor = OneMinusSourceAlpha;
+      }
+      
+      DepthState {
+        Enabled = true;
+        WriteEnabled = false;  // Don't write depth
+        CompareFunction = LessEqual;
+      }
+      
+      vec4 material_GlassColor;
+      float material_GlassAlpha;
+      
+      void frag() {
+        vec4 color = material_GlassColor;
+        color.a = material_GlassAlpha * 0.3;  // Inner surface is more transparent
+        gl_FragColor = color;
+      }
+    }
+    
+    // Second pass: Render front faces (outer surface)
+    Pass "FrontFace" {
+      RasterState {
+        CullMode = Back;   // Only render front faces
+      }
+      
+      BlendState {
+        Enabled = true;
+        SourceColorBlendFactor = SourceAlpha;
+        DestinationColorBlendFactor = OneMinusSourceAlpha;
+      }
+      
+      DepthState {
+        Enabled = true;
+        WriteEnabled = true;   // Write depth
+        CompareFunction = LessEqual;
+      }
+      
+      void frag() {
+        vec4 color = material_GlassColor;
+        color.a = material_GlassAlpha;
+        gl_FragColor = color;
+      }
+    }
+  }
+}
+```
+
+## Render Queue and Sorting
+
+Different render states require different rendering orders:
+
+```glsl
+// Opaque objects - render first
+Tags { "Queue" = "Opaque" }
+
+// Transparent objects - render last, back to front
+Tags { "Queue" = "Transparent" }
+
+// Overlay objects - render on top
+Tags { "Queue" = "Overlay" }
+```
+
+## Performance Considerations
+
+### State Switching Overhead
+- Minimize render state changes
+- Group objects with similar states
+- Use state sorting to reduce GPU state switches
+
+### Transparency Performance
+- Transparent objects require sorting
+- Overdraw affects performance
+- Consider using alpha testing instead of alpha blending
+
+### Best Practices
+
+```glsl
+// Good: Minimize state changes
+Pass "Efficient" {
+  // Set all required states once
+  BlendState { /* ... */ }
+  DepthState { /* ... */ }
+  RasterState { /* ... */ }
+}
+
+// Avoid: Frequent state switching in loops
+```
+
+## Running Effect
+
+This shader demonstrates:
+1. Different blend modes creating various transparency effects
+2. Depth state controlling object visibility relationships
+3. Face culling showing different surfaces
+4. Stencil masking implementing complex selection effects
+
+Go to [Playground](/examples/shaderlab-02-render-state) to experience the effect.

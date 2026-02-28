@@ -1,8 +1,8 @@
-import { Color, Matrix, Vector3 } from "@galacean/engine-math";
-import { ColorSpace } from "../enums/ColorSpace";
+import { Matrix, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
+import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * Spot light.
@@ -36,8 +36,8 @@ export class SpotLight extends Light {
   /** Angle, in radians, from falloff begins to ends. */
   penumbra: number = Math.PI / 12;
 
+  @ignoreClone
   private _inverseDirection: Vector3 = new Vector3();
-  private _projectMatrix: Matrix = new Matrix();
 
   /**
    * Get light position.
@@ -64,16 +64,6 @@ export class SpotLight extends Light {
   /**
    * @internal
    */
-  override get _shadowProjectionMatrix(): Matrix {
-    const matrix = this._projectMatrix;
-    const fov = Math.min(Math.PI / 2, this.angle * 2 * Math.sqrt(2));
-    Matrix.perspective(fov, 1, this.shadowNearPlane, this.distance + this.shadowNearPlane, matrix);
-    return matrix;
-  }
-
-  /**
-   * @internal
-   */
   _appendData(lightIndex: number, data: ISpotLightShaderData): void {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
@@ -82,24 +72,16 @@ export class SpotLight extends Light {
     const distanceStart = lightIndex;
     const penumbraCosStart = lightIndex;
     const angleCosStart = lightIndex;
-
-    const lightColor = this._getLightIntensityColor();
-    const position = this.position;
-    const direction = this.direction;
+    const { color, position, direction } = this;
 
     const cullingMask = this.cullingMask;
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
-      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
-      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
-      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
-    } else {
-      data.color[colorStart] = lightColor.r;
-      data.color[colorStart + 1] = lightColor.g;
-      data.color[colorStart + 2] = lightColor.b;
-    }
+    data.color[colorStart] = color.r;
+    data.color[colorStart + 1] = color.g;
+    data.color[colorStart + 2] = color.b;
+
     data.position[positionStart] = position.x;
     data.position[positionStart + 1] = position.y;
     data.position[positionStart + 2] = position.z;

@@ -27,10 +27,8 @@ class KHR_lights_punctual extends GLTFExtensionParser {
     }
 
     if (color) {
-      light.color.set(color[0], color[1], color[2], 1);
+      light.color.set(color[0] * intensity, color[1] * intensity, color[2] * intensity, 1);
     }
-
-    light.intensity = intensity;
 
     if (range && !(light instanceof DirectLight)) {
       light.distance = range;

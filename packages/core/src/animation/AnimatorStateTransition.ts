@@ -1,30 +1,34 @@
-import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
-import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 import { AnimatorCondition } from "./AnimatorCondition";
+import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
+import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
+import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
 /**
  * Transitions define when and how the state machine switch from on state to another. AnimatorTransition always originate from a StateMachine or a StateMachine entry.
  */
 export class AnimatorStateTransition {
-  /** The duration of the transition. This is represented in normalized time. */
-  duration: number = 0;
+  /** The duration of the transition. The duration is in normalized time by default. To set it to be in seconds, set isFixedDuration to true. */
+  duration = 0;
   /** The time at which the destination state will start. This is represented in normalized time. */
-  offset: number = 0;
+  offset = 0;
   /** ExitTime represents the exact time at which the transition can take effect. This is represented in normalized time. */
-  exitTime: number = 1.0;
+  exitTime = 1.0;
   /** The destination state of the transition. */
   destinationState: AnimatorState;
   /** Mutes the transition. The transition will never occur. */
-  mute: boolean = false;
+  mute = false;
+  /** Determines whether the duration of the transition is reported in a fixed duration in seconds or as a normalized time. */
+  isFixedDuration = false;
 
   /** @internal */
-  _srcState: AnimatorState;
+  _collection: AnimatorStateTransitionCollection;
   /** @internal */
-  _isExit: boolean = false;
+  _isExit = false;
 
   private _conditions: AnimatorCondition[] = [];
   private _solo = false;
+  private _hasExitTime = true;
 
   /**
    * Is the transition destination the exit of the current state machine.
@@ -43,7 +47,7 @@ export class AnimatorStateTransition {
   set solo(value: boolean) {
     if (this._solo === value) return;
     this._solo = value;
-    this._srcState?._updateSoloTransition(value ? true : undefined);
+    this._collection?.updateTransitionSolo(value);
   }
   /**
    * The conditions in the transition.
@@ -53,14 +57,27 @@ export class AnimatorStateTransition {
   }
 
   /**
+   * When active the transition will have an exit time condition.
+   */
+  get hasExitTime(): boolean {
+    return this._hasExitTime;
+  }
+
+  set hasExitTime(value: boolean) {
+    if (this._hasExitTime === value) return;
+    this._hasExitTime = value;
+    this._collection?.updateTransitionsIndex(this, value);
+  }
+
+  /**
    * Add a condition to a transition.
-   * @param mode - The AnimatorCondition mode of the condition
    * @param parameterName - The name of the parameter
+   * @param mode - The AnimatorCondition mode of the condition
    * @param threshold - The threshold value of the condition
    */
   addCondition(
-    mode: AnimatorConditionMode,
     parameterName: string,
+    mode?: AnimatorConditionMode,
     threshold?: AnimatorControllerParameterValue
   ): AnimatorCondition;
 
@@ -71,8 +88,8 @@ export class AnimatorStateTransition {
   addCondition(animatorCondition: AnimatorCondition): AnimatorCondition;
 
   addCondition(
-    param: AnimatorConditionMode | AnimatorCondition,
-    parameterName?: string,
+    param: string | AnimatorCondition,
+    mode?: AnimatorConditionMode,
     threshold?: AnimatorControllerParameterValue
   ): AnimatorCondition {
     if (typeof param === "object") {
@@ -80,8 +97,8 @@ export class AnimatorStateTransition {
       return param;
     } else {
       const condition = new AnimatorCondition();
-      condition.mode = param;
-      condition.parameterName = parameterName;
+      condition.parameterName = param;
+      condition.mode = mode ?? AnimatorConditionMode.If;
       condition.threshold = threshold;
       this._conditions.push(condition);
       return condition;
@@ -95,5 +112,12 @@ export class AnimatorStateTransition {
   removeCondition(condition: AnimatorCondition) {
     const index = this._conditions.indexOf(condition);
     index !== -1 && this._conditions.splice(index, 1);
+  }
+
+  /**
+   * @internal
+   */
+  _getFixedDuration(): number {
+    return this.isFixedDuration ? this.duration : this.duration * this.destinationState._getDuration();
   }
 }

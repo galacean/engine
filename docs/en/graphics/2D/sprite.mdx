@@ -1,0 +1,72 @@
+---
+order: 1
+title: Sprite
+type: Graphics
+group: 2D
+label: Graphics/2D
+---
+
+Sprite is the core asset of 2D projects, driving rendering and interaction through:
+
+- **Data Source**: Extracts graphic data from [Texture2D](/en/docs/graphics/texture/2d/)
+- **Rendering Control**: Customizes display effects via property configurations (e.g., `region`, `pivot`)
+- **Component Integration**:
+  - Powers **[SpriteRenderer](/apis/core/#SpriteRenderer)**: Renders 2D images in 3D space
+  - Powers **[SpriteMask](/en/docs/graphics/2D/spriteMask/)**: Implements masking effects
+
+## Properties
+
+View and debug Sprite asset properties conveniently in the editor:
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*lAqBSqfFVmMAAAAAAAAAAAAAehuCAQ/original" alt="Region Property Effect Diagram" style={{zoom:"50%"}} />
+
+| Property           | Type                     | Description                                                                 | Default Value       |
+|--------------------|--------------------------|-----------------------------------------------------------------------------|---------------------|
+| `texture`          | [Texture2D](/apis/core/#Texture2D) | Reference to the associated texture resource                                | `null`              |
+| `width`            | Number                   | Sprite width. Automatically calculated as **texture pixel width / 100** (world space units) when unset | `texture.width/100` |
+| `height`           | Number                   | Sprite height. Automatically calculated as **texture pixel height / 100** (world space units) when unset | `texture.height/100`|
+| `region`           | [Rect](/apis/math/#Rect)  | Texture sampling area (normalized coordinates, range `0~1`)                 | `(0,0,1,1)`         |
+| `pivot`            | [Vector2](/apis/math/#Vector2) | Pivot point relative to `region` (bottom-left: `(0,0)`, top-right: `(1,1)`) | `(0.5,0.5)`         |
+| `border`           | [Vector4](/apis/math/#Vector4) | Border distances for nine-slice/tiling modes (left, bottom, right, top)     | `(0,0,0,0)`         |
+| `belongs to`       | [SpriteAtlas](/apis/core/#SpriteAtlas) | Atlas containing this sprite (read-only)                          | `null`              |
+
+### Region Cropping
+- **Function**: Crop a rectangular area from the texture for display  
+- **Example**: `region: (0.15, 0.3, 0.55, 0.5)` crops an area starting at 15% width and 30% height of the texture, with 55% width and 50% height  
+  <Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*ABvvTJnUgpsAAAAAAAAAAAAAARQnAQ" alt="Region Property Effect Diagram" style={{zoom:"50%"}} />
+
+### Pivot Point
+- **Coordinate System**: Bottom-left `(0,0)` → Top-right `(1,1)`  
+- **Use Cases**: Control rotation/scaling anchors, align elements  
+  <Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*6RyQTpqE4dMAAAAAAAAAAAAAARQnAQ" alt="Pivot Point Diagram" style={{zoom:"50%"}} />
+
+## Usage
+
+### Creating Sprite Assets
+#### Generate from Uploaded Image
+1. **Right-click** in the **[Assets panel](/en/docs/assets/interface/)** blank area  
+2. Select **Upload → Sprite**  
+3. Upload an image to auto-generate:  
+   - Texture asset: `image-name.png`  
+   - Sprite asset: `image-name-spr.png`  
+   <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*bRghQqoN1GAAAAAAAAAAAAAADhuCAQ/original" alt="Sprite Upload Workflow" />
+
+#### Create Blank Sprite
+1. **Right-click** in Assets panel → **Create → Sprite**  
+2. Manually bind a texture for usage  
+   <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Gv96TrKvRkEAAAAAAAAAAAAADhuCAQ/original" alt="Create Blank Sprite" />
+
+#### Scripted Creation
+```typescript
+// Create blank sprite
+const sprite = new Sprite(engine);
+
+// Create from existing texture
+const spriteWithTexture = new Sprite(engine, texture2D);
+```
+
+### Configuring Pivot
+
+Use preset anchor configurations (e.g., center, corners) provided by the editor, or click **Custom** to input normalized coordinates.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*84hTTLJBccQAAAAAAAAAAAAAehuCAQ/original" alt="Preset Pivot Options" />

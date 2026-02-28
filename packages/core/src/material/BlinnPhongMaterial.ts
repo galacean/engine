@@ -177,7 +177,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
 
   override clone(): BlinnPhongMaterial {
     var dest: BlinnPhongMaterial = new BlinnPhongMaterial(this._engine);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 }

@@ -9,41 +9,42 @@ import { AnimatorStateData } from "./AnimatorStateData";
 export class AnimatorStatePlayData {
   state: AnimatorState;
   stateData: AnimatorStateData;
-  frameTime: number;
+  playedTime: number;
   playState: AnimatorStatePlayState;
   clipTime: number;
   currentEventIndex: number;
-  currentTransitionIndex: number;
-  isForwards = true;
+  isForward = true;
+  offsetFrameTime: number;
 
   private _changedOrientation = false;
 
   reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
     this.state = state;
-    this.frameTime = offsetFrameTime;
+    this.playedTime = 0;
+    this.offsetFrameTime = offsetFrameTime;
     this.stateData = stateData;
     this.playState = AnimatorStatePlayState.UnStarted;
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
-    this.currentTransitionIndex = 0;
-    this.isForwards = true;
+    this.isForward = true;
+    this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 
   updateOrientation(deltaTime: number): void {
     if (deltaTime !== 0) {
-      const lastIsForwards = this.isForwards;
-      this.isForwards = deltaTime > 0;
-      if (this.isForwards !== lastIsForwards) {
+      const lastIsForward = this.isForward;
+      this.isForward = deltaTime > 0;
+      if (this.isForward !== lastIsForward) {
         this._changedOrientation = true;
-        this.isForwards || this._correctTime();
+        this.isForward || this._correctTime();
       }
     }
   }
 
   update(deltaTime: number): void {
-    this.frameTime += deltaTime;
+    this.playedTime += deltaTime;
     const state = this.state;
-    let time = this.frameTime;
+    let time = this.playedTime + this.offsetFrameTime;
     const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
     if (state.wrapMode === WrapMode.Loop) {
@@ -59,7 +60,7 @@ export class AnimatorStatePlayData {
     this.clipTime = time + state.clipStartTime * state.clip.length;
 
     if (this._changedOrientation) {
-      !this.isForwards && this._correctTime();
+      !this.isForward && this._correctTime();
       this._changedOrientation = false;
     }
   }

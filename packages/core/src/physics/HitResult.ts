@@ -1,5 +1,5 @@
-import { Entity } from "../Entity";
 import { Vector3 } from "@galacean/engine-math";
+import { Entity } from "../Entity";
 import { ColliderShape } from "./shape";
 
 /**

@@ -1,35 +1,40 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
 import { Animator } from "./animation";
+import { IUICanvas } from "./ui/IUICanvas";
+import { DisorderedArray } from "./utils/DisorderedArray";
 
 /**
  * The manager of the components.
  */
 export class ComponentsManager {
   /* @internal */
-  _cameraNeedSorting: boolean = false;
+  _cameraNeedSorting = false;
   /** @internal */
-  _activeCameras: DisorderedArray<Camera> = new DisorderedArray();
+  _activeCameras = new DisorderedArray<Camera>();
   /** @internal */
-  _renderers: DisorderedArray<Renderer> = new DisorderedArray();
+  _renderers = new DisorderedArray<Renderer>();
+
+  /** @internal */
+  _overlayCanvases = new DisorderedArray<IUICanvas>();
+  /* @internal */
+  _overlayCanvasesSortingDirty = false;
+  /** @internal */
+  _canvases = new DisorderedArray<IUICanvas>();
 
   // Script
-  private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-
-  private _pendingDestroyScripts: Script[] = [];
-  private _disposeDestroyScripts: Script[] = [];
+  private _onStartScripts = new DisorderedArray<Script>();
+  private _onUpdateScripts = new DisorderedArray<Script>();
+  private _onLateUpdateScripts = new DisorderedArray<Script>();
+  private _onPhysicsUpdateScripts = new DisorderedArray<Script>();
 
   // Animation
-  private _onUpdateAnimations: DisorderedArray<Animator> = new DisorderedArray();
+  private _onUpdateAnimations = new DisorderedArray<Animator>();
 
   // Render
-  private _onUpdateRenderers: DisorderedArray<Renderer> = new DisorderedArray();
+  private _onUpdateRenderers = new DisorderedArray<Renderer>();
 
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
@@ -67,6 +72,42 @@ export class ComponentsManager {
     const replaced = this._renderers.deleteByIndex(renderer._rendererIndex);
     replaced && (replaced._rendererIndex = renderer._rendererIndex);
     renderer._rendererIndex = -1;
+  }
+
+  addUICanvas(uiCanvas: IUICanvas, isOverlay: boolean) {
+    let canvases: DisorderedArray<IUICanvas>;
+    if (isOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingDirty = true;
+    } else {
+      canvases = this._canvases;
+    }
+    uiCanvas._canvasIndex = canvases.length;
+    canvases.add(uiCanvas);
+  }
+
+  removeUICanvas(uiCanvas: IUICanvas, isOverlay: boolean) {
+    let canvases: DisorderedArray<IUICanvas>;
+    if (isOverlay) {
+      canvases = this._overlayCanvases;
+      this._overlayCanvasesSortingDirty = true;
+    } else {
+      canvases = this._canvases;
+    }
+    const replaced = canvases.deleteByIndex(uiCanvas._canvasIndex);
+    replaced && (replaced._canvasIndex = uiCanvas._canvasIndex);
+    uiCanvas._canvasIndex = -1;
+  }
+
+  sortOverlayUICanvases(): void {
+    if (this._overlayCanvasesSortingDirty) {
+      const overlayCanvases = this._overlayCanvases;
+      overlayCanvases.sort((a, b) => a.sortOrder - b.sortOrder);
+      for (let i = 0, n = overlayCanvases.length; i < n; i++) {
+        overlayCanvases.get(i)._canvasIndex = i;
+      }
+      this._overlayCanvasesSortingDirty = false;
+    }
   }
 
   addOnStartScript(script: Script) {
@@ -133,10 +174,6 @@ export class ComponentsManager {
     const replaced = this._onUpdateRenderers.deleteByIndex(renderer._onUpdateIndex);
     replaced && (replaced._onUpdateIndex = renderer._onUpdateIndex);
     renderer._onUpdateIndex = -1;
-  }
-
-  addPendingDestroyScript(component: Script): void {
-    this._pendingDestroyScripts.push(component);
   }
 
   callScriptOnStart(): void {
@@ -211,19 +248,6 @@ export class ComponentsManager {
     );
   }
 
-  handlingInvalidScripts(): void {
-    const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
-    this._disposeDestroyScripts = disposeDestroyScripts;
-    this._pendingDestroyScripts = pendingDestroyScripts;
-    const length = disposeDestroyScripts.length;
-    if (length > 0) {
-      for (let i = length - 1; i >= 0; i--) {
-        disposeDestroyScripts[i].onDestroy();
-      }
-      disposeDestroyScripts.length = 0;
-    }
-  }
-
   callCameraOnBeginRender(camera: Camera): void {
     camera.entity._scripts.forEach(
       (element: Script) => {
@@ -267,5 +291,7 @@ export class ComponentsManager {
     this._onUpdateAnimations.garbageCollection();
     this._onUpdateRenderers.garbageCollection();
     this._activeCameras.garbageCollection();
+    this._overlayCanvases.garbageCollection();
+    this._canvases.garbageCollection();
   }
 }

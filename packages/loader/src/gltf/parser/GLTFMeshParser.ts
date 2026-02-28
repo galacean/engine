@@ -1,4 +1,12 @@
-import { BlendShape, Buffer, BufferBindFlag, BufferUsage, ModelMesh, VertexElement } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  BlendShape,
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
+  ModelMesh,
+  VertexElement
+} from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import {
   BlendShapeDataRestoreInfo,
@@ -26,7 +34,7 @@ export class GLTFMeshParser extends GLTFParser {
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     keepMeshData: boolean
-  ): Promise<ModelMesh> {
+  ): AssetPromise<ModelMesh> {
     const { accessors } = gltf;
     const { attributes, targets, indices, mode } = gltfPrimitive;
     const engine = mesh.engine;
@@ -35,7 +43,7 @@ export class GLTFMeshParser extends GLTFParser {
     let vertexCount: number;
     let bufferBindIndex = 0;
 
-    const promises = new Array<Promise<void>>();
+    const promises = new Array<AssetPromise<void>>();
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const promise = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor).then((accessorBuffer) => {
@@ -121,7 +129,7 @@ export class GLTFMeshParser extends GLTFParser {
       promises.push(promise);
     }
 
-    return Promise.all(promises).then(() => {
+    return AssetPromise.all(promises).then(() => {
       mesh.setVertexElements(vertexElements);
 
       // Indices
@@ -155,7 +163,7 @@ export class GLTFMeshParser extends GLTFParser {
     context: GLTFParserContext,
     glTF: IGLTF,
     accessor: IAccessor
-  ): Promise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }> {
+  ): AssetPromise<{ vertices: Vector3[]; restoreInfo: BlendShapeDataRestoreInfo }> {
     return GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).then((bufferInfo) => {
       const buffer = bufferInfo.data;
       const byteOffset = bufferInfo.interleaved ? (accessor.byteOffset ?? 0) % bufferInfo.stride : 0;
@@ -186,11 +194,11 @@ export class GLTFMeshParser extends GLTFParser {
     glTFTargets: {
       [name: string]: number;
     }[]
-  ): Promise<void> {
+  ): AssetPromise<void> {
     const glTF = context.glTF;
     const accessors = glTF.accessors;
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
-    let promises = new Array<Promise<void>>();
+    let promises = new Array<AssetPromise<void>>();
 
     const blendShapeCount = glTFTargets.length;
     const blendShapeCollection = new Array<BlendShapeData>(blendShapeCount);
@@ -206,13 +214,12 @@ export class GLTFMeshParser extends GLTFParser {
       const hasNormal = normalTarget !== undefined;
       const hasTangent = tangentTarget !== undefined;
 
-      const promise = Promise.all([
+      const promise = AssetPromise.all([
         this._getBlendShapeData(context, glTF, accessors[targets["POSITION"]]),
         hasNormal ? this._getBlendShapeData(context, glTF, accessors[normalTarget]) : null,
         hasTangent ? this._getBlendShapeData(context, glTF, accessors[tangentTarget]) : null
       ]).then((vertices) => {
         const [positionData, normalData, tangentData] = vertices;
-
         const blendShape = new BlendShape(name);
         blendShape.addFrame(
           1.0,
@@ -232,7 +239,7 @@ export class GLTFMeshParser extends GLTFParser {
       promises.push(promise);
     }
 
-    return Promise.all(promises).then(() => {
+    return AssetPromise.all(promises).then(() => {
       for (const blendShape of blendShapeCollection) {
         mesh.addBlendShape(blendShape.blendShape);
         meshRestoreInfo.blendShapes.push(blendShape.restoreInfo);
@@ -240,18 +247,17 @@ export class GLTFMeshParser extends GLTFParser {
     });
   }
 
-  parse(context: GLTFParserContext, index: number): Promise<ModelMesh[]> {
+  parse(context: GLTFParserContext, index: number): AssetPromise<ModelMesh[]> {
     const meshInfo = context.glTF.meshes[index];
 
     const { glTF, glTFResource } = context;
     const engine = glTFResource.engine;
-    const primitivePromises = new Array<Promise<ModelMesh>>();
+    const primitivePromises = new Array<AssetPromise<ModelMesh>>();
 
     for (let i = 0, length = meshInfo.primitives.length; i < length; i++) {
       const gltfPrimitive = meshInfo.primitives[i];
-
-      primitivePromises[i] = new Promise((resolve) => {
-        const mesh = <ModelMesh | Promise<ModelMesh>>(
+      primitivePromises[i] = new AssetPromise((resolve, reject) => {
+        const mesh = <ModelMesh | AssetPromise<ModelMesh>>(
           GLTFParser.executeExtensionsCreateAndParse(gltfPrimitive.extensions, context, gltfPrimitive, meshInfo)
         );
 
@@ -284,12 +290,12 @@ export class GLTFMeshParser extends GLTFParser {
             gltfPrimitive,
             glTF,
             context.params.keepMeshData
-          ).then(resolve);
+          ).then(resolve, reject);
         }
       });
     }
 
-    return Promise.all(primitivePromises);
+    return AssetPromise.all(primitivePromises);
   }
 }
 

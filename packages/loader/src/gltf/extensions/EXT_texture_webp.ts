@@ -1,4 +1,4 @@
-import { Texture2D } from "@galacean/engine-core";
+import { AssetPromise, SystemInfo, Texture2D } from "@galacean/engine-core";
 import type { ITexture } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
@@ -11,32 +11,24 @@ interface EXTWebPSchema {
 
 @registerGLTFExtension("EXT_texture_webp", GLTFExtensionMode.CreateAndParse)
 class EXT_texture_webp extends GLTFExtensionParser {
-  private _supportWebP = false;
-
-  constructor() {
-    super();
-    const testCanvas = document.createElement("canvas");
-
-    testCanvas.width = testCanvas.height = 1;
-    this._supportWebP = testCanvas.toDataURL("image/webp").indexOf("data:image/webp") == 0;
-  }
-
-  override async createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: EXTWebPSchema,
     textureInfo: ITexture,
-    textureIndex: number
-  ): Promise<Texture2D> {
+    textureIndex: number,
+    isSRGBColorSpace: boolean
+  ): AssetPromise<Texture2D> {
     const webPIndex = schema.source;
     const { sampler, source: fallbackIndex = 0, name: textureName } = textureInfo;
-    const texture = GLTFTextureParser._parseTexture(
-      context,
-      this._supportWebP ? webPIndex : fallbackIndex,
-      textureIndex,
-      sampler,
-      textureName
-    );
-
-    return texture;
+    return SystemInfo._checkWebpSupported().then((supportWebP) => {
+      return GLTFTextureParser._parseTexture(
+        context,
+        supportWebP ? webPIndex : fallbackIndex,
+        textureIndex,
+        sampler,
+        textureName,
+        isSRGBColorSpace
+      );
+    });
   }
 }

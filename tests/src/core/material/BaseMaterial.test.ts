@@ -1,10 +1,10 @@
 import { BaseMaterial, BlendMode, CullMode, RenderFace, Shader } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("BaseMaterial", () => {
   let engine: WebGLEngine;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 

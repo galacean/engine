@@ -1,6 +1,9 @@
+import { Engine } from "../Engine";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
+import type { Animator } from "./Animator";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
+import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { WrapMode } from "./enums/WrapMode";
 import { StateMachineScript } from "./StateMachineScript";
 
@@ -14,26 +17,23 @@ export class AnimatorState {
   wrapMode: WrapMode = WrapMode.Loop;
 
   /** @internal */
-  _onStateEnterScripts: StateMachineScript[] = [];
-  /** @internal */
-  _onStateUpdateScripts: StateMachineScript[] = [];
-  /** @internal */
-  _onStateExitScripts: StateMachineScript[] = [];
-  /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   /** @internal */
-  _hasSoloTransition: boolean = false;
+  _transitionCollection: AnimatorStateTransitionCollection = new AnimatorStateTransitionCollection();
 
-  private _clipStartTime: number = 0;
-  private _clipEndTime: number = 1;
+  private _onStateEnterScripts: StateMachineScript[] = [];
+  private _onStateUpdateScripts: StateMachineScript[] = [];
+  private _onStateExitScripts: StateMachineScript[] = [];
+  private _engine: Engine;
+  private _clipStartTime = 0;
+  private _clipEndTime = 1;
   private _clip: AnimationClip;
-  private _transitions: AnimatorStateTransition[] = [];
 
   /**
    * The transitions that are going out of the state.
    */
   get transitions(): Readonly<AnimatorStateTransition[]> {
-    return this._transitions;
+    return this._transitionCollection.transitions;
   }
 
   /**
@@ -64,7 +64,7 @@ export class AnimatorState {
   /**
    * The normalized start time of the clip, the range is 0 to 1, default is 0.
    */
-  get clipStartTime() {
+  get clipStartTime(): number {
     return this._clipStartTime;
   }
 
@@ -75,7 +75,7 @@ export class AnimatorState {
   /**
    * The normalized end time of the clip, the range is 0 to 1, default is 1.
    */
-  get clipEndTime() {
+  get clipEndTime(): number {
     return this._clipEndTime;
   }
 
@@ -102,29 +102,7 @@ export class AnimatorState {
   addTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
   addTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
-    let transition: AnimatorStateTransition;
-    if (transitionOrAnimatorState instanceof AnimatorState) {
-      transition = new AnimatorStateTransition();
-      transition.destinationState = transitionOrAnimatorState;
-    } else {
-      transition = transitionOrAnimatorState;
-    }
-    transition._srcState = this;
-    const transitions = this._transitions;
-    const count = transitions.length;
-    const time = transition.exitTime;
-    const maxExitTime = count ? transitions[count - 1].exitTime : 0;
-    if (time >= maxExitTime) {
-      transitions.push(transition);
-    } else {
-      let index = count;
-      while (--index >= 0 && time < transitions[index].exitTime);
-      transitions.splice(index + 1, 0, transition);
-    }
-
-    transition.solo && !this._hasSoloTransition && this._updateSoloTransition(true);
-
-    return transition;
+    return this._transitionCollection.add(transitionOrAnimatorState);
   }
 
   /**
@@ -133,22 +111,20 @@ export class AnimatorState {
    */
   addExitTransition(exitTime: number = 1.0): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
-    transition._srcState = this;
     transition._isExit = true;
     transition.exitTime = exitTime;
 
-    return this.addTransition(transition);
+    return this._transitionCollection.add(transition);
   }
   /**
    * Remove a transition from the state.
    * @param transition - The transition
    */
   removeTransition(transition: AnimatorStateTransition): void {
-    const index = this._transitions.indexOf(transition);
-    index !== -1 && this._transitions.splice(index, 1);
-    transition._srcState = null;
-
-    this._updateSoloTransition();
+    this._transitionCollection.remove(transition);
+    if (transition._isExit) {
+      transition._isExit = false;
+    }
   }
 
   /**
@@ -157,6 +133,7 @@ export class AnimatorState {
    */
   addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
     const script = new scriptType();
+    script._engine = this._engine;
     script._state = this;
 
     const { prototype } = StateMachineScript;
@@ -177,7 +154,37 @@ export class AnimatorState {
    * Clears all transitions from the state.
    */
   clearTransitions(): void {
-    this._transitions.length = 0;
+    this._transitionCollection.clear();
+  }
+
+  /**
+   * @internal
+   */
+  _callOnEnter(animator: Animator, layerIndex: number): void {
+    const scripts = this._onStateEnterScripts;
+    for (let i = 0, n = scripts.length; i < n; i++) {
+      scripts[i].onStateEnter(animator, this, layerIndex);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _callOnUpdate(animator: Animator, layerIndex: number): void {
+    const scripts = this._onStateUpdateScripts;
+    for (let i = 0, n = scripts.length; i < n; i++) {
+      scripts[i].onStateUpdate(animator, this, layerIndex);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _callOnExit(animator: Animator, layerIndex: number): void {
+    const scripts = this._onStateExitScripts;
+    for (let i = 0, n = scripts.length; i < n; i++) {
+      scripts[i].onStateExit(animator, this, layerIndex);
+    }
   }
 
   /**
@@ -219,17 +226,35 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _updateSoloTransition(hasSolo?: boolean): void {
-    if (hasSolo !== undefined) {
-      this._hasSoloTransition = hasSolo;
-    } else {
-      this._hasSoloTransition = false;
-      for (let i = 0, n = this.transitions.length; i < n; ++i) {
-        if (this.transitions[i].solo) {
-          this._hasSoloTransition = true;
-          return;
-        }
-      }
+  _getClipActualStartTime(): number {
+    return this._clipStartTime * this.clip.length;
+  }
+
+  /**
+   * @internal
+   */
+  _getClipActualEndTime(): number {
+    return this._clipEndTime * this.clip.length;
+  }
+
+  /**
+   * @internal
+   */
+  _setEngine(engine: Engine): void {
+    this._engine = engine;
+    const {
+      _onStateEnterScripts: enterScripts,
+      _onStateUpdateScripts: updateScripts,
+      _onStateExitScripts: exitScripts
+    } = this;
+    for (let i = 0, n = enterScripts.length; i < n; i++) {
+      enterScripts[i]._engine = engine;
+    }
+    for (let i = 0, n = updateScripts.length; i < n; i++) {
+      updateScripts[i]._engine = engine;
+    }
+    for (let i = 0, n = exitScripts.length; i < n; i++) {
+      exitScripts[i]._engine = engine;
     }
   }
 }

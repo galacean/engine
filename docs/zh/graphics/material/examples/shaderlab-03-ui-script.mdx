@@ -1,0 +1,215 @@
+---
+title: UIScript 脚本
+---
+
+UIScript 让着色器具备智能的属性面板交互能力，而宏定义则实现着色器的条件编译。本教程展示如何结合两者创建灵活的着色器, 通过本教程，你将学会：
+- Editor 模块的属性定义语法
+- 各种属性类型的使用方法
+- 宏定义的条件编译语法
+- UIScript 的属性联动逻辑
+
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*5WoAR7VBZtcAAAAAS9AAAAgAeuuHAQ/original"
+/>
+
+
+## Editor 模块
+
+Editor 模块定义材质在编辑器中的属性面板：
+
+```glsl
+Editor {
+  Properties {
+    // 基础属性定义
+    material_BaseColor("Base Color", Color) = (1, 1, 1, 1);
+    material_BaseTexture("Base Texture", Texture2D);
+    
+    // 分组显示
+    Header("Effects") {
+      material_UseTexture("Use Texture", Boolean) = true;
+      material_Brightness("Brightness", Range(0, 2, 0.01)) = 1.0;
+    }
+  }
+}
+```
+
+<Callout type="info">
+前往 [Shader 介绍](/docs/graphics/material/shader/#2-editor-模块) 了解更多属性
+</Callout>
+
+
+## 宏定义系统
+
+宏定义实现着色器的条件编译，根据不同条件生成不同的着色器变体：
+
+### 基础宏定义
+```glsl
+#ifdef USE_TEXTURE
+  // 当 USE_TEXTURE 宏被定义时，这段代码才会编译
+  vec4 texColor = texture2D(material_BaseTexture, input.uv);
+  color *= texColor;
+#endif
+```
+
+### 宏的开启和关闭
+```typescript
+// 在代码中控制宏
+material.shaderData.enableMacro("USE_TEXTURE");   // 开启宏
+material.shaderData.disableMacro("USE_TEXTURE");  // 关闭宏
+```
+
+## 条件编译语法
+
+### #ifdef - 如果定义了宏
+```glsl
+#ifdef USE_TEXTURE
+  vec4 texColor = texture2D(material_BaseTexture, uv);
+  color *= texColor;
+#endif
+```
+
+### #ifndef - 如果没有定义宏
+```glsl
+#ifndef USE_TEXTURE
+  // 当没有定义 USE_TEXTURE 时执行
+  color = material_BaseColor;
+#endif
+```
+
+### #if defined - 更复杂的条件
+```glsl
+#if defined(USE_TEXTURE) && defined(USE_NORMAL_MAP)
+  // 同时定义了两个宏时执行
+#endif
+```
+
+### #else 和 #endif
+```glsl
+#ifdef USE_TEXTURE
+  vec4 texColor = texture2D(material_BaseTexture, uv);
+  color *= texColor;
+#else
+  color = material_BaseColor;
+#endif
+```
+
+## UIScript 交互逻辑
+
+UIScript 实现属性间的联动（仅在编辑器中生效）：
+
+```typescript
+export default class UIScriptDemo extends ShaderUIScript {
+  constructor() {
+    super();
+    
+    // 监听属性变化
+    this.onPropertyChanged("material_UseTexture", (value) => {
+      const { material: { shaderData } } = this;
+      
+      if (value) {
+        // 开启纹理时
+        shaderData.enableMacro("USE_TEXTURE");
+      } else {
+        // 关闭纹理时
+        shaderData.disableMacro("USE_TEXTURE");
+      }
+    });
+  }
+}
+```
+
+## 完整着色器示例
+
+```glsl
+Shader "Tutorial/03-UIScript" {
+  // Editor 模块定义材质面板的属性和交互
+  Editor {
+    Properties {
+      // 基础属性
+      material_BaseColor("Base Color", Color) = (1, 1, 1, 1);
+      material_BaseTexture("Base Texture", Texture2D);
+      
+      // 分组显示
+      Header("Effects") {
+        material_UseTexture("Use Texture", Boolean) = true;
+        material_Brightness("Brightness", Range(0, 2, 0.01)) = 1.0;
+        material_Contrast("Contrast", Range(0, 2, 0.01)) = 1.0;
+      }
+      
+      Header("Animation") {
+        material_EnableAnimation("Enable Animation", Boolean) = false;
+        material_AnimSpeed("Animation Speed", Range(0, 5, 0.1)) = 1.0;
+      }
+    }
+  }
+  
+  SubShader "Default" {
+    Pass "Forward" {
+      mat4 renderer_MVPMat;
+      float renderer_Time;
+      
+      vec4 material_BaseColor;
+      sampler2D material_BaseTexture;
+      float material_Brightness;
+      float material_Contrast;
+      float material_AnimSpeed;
+      
+      struct a2v {
+        vec4 POSITION;
+        vec2 TEXCOORD_0;
+      };
+      
+      struct v2f {
+        vec2 uv;
+      };
+      
+      VertexShader = vert;
+      FragmentShader = frag;
+      
+      v2f vert(a2v input) {
+        v2f output;
+        
+        vec4 pos = input.POSITION;
+        
+        // 如果启用动画，添加顶点动画效果
+        #ifdef ENABLE_ANIMATION
+          pos.y += sin(pos.x * 3.0 + renderer_Time * material_AnimSpeed) * 0.2;
+        #endif
+        
+        gl_Position = renderer_MVPMat * pos;
+        output.uv = input.TEXCOORD_0;
+        
+        return output;
+      }
+      
+      void frag(v2f input) {
+        vec4 color = material_BaseColor;
+        
+        // 如果启用纹理，进行纹理采样
+        #ifdef USE_TEXTURE
+          vec4 texColor = texture2D(material_BaseTexture, input.uv);
+          color *= texColor;
+        #endif
+        
+        // 应用亮度和对比度调整
+        color.rgb *= material_Brightness;
+        color.rgb = (color.rgb - 0.5) * material_Contrast + 0.5;
+        
+        gl_FragColor = color;
+      }
+    }
+  }
+}
+```
+
+
+## 运行效果
+
+1. 展示了 Editor Properties 的定义和分组
+2. 演示了宏定义的条件编译（#ifdef USE_TEXTURE, ENABLE_ANIMATION）
+3. 模拟了 UIScript 中的属性联动逻辑
+4. 观察纹理和动画的开关效果，以及亮度对比度的动态变化
+
+前往 [游乐场](/examples/shaderlab-03-ui-script)
+

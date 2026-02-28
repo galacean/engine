@@ -1,5 +1,5 @@
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { CompareFunction, Material, ModelMesh, Shader } from ".";
+import { CompareFunction, ContentRestorer, Material, ModelMesh, Shader } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
@@ -10,19 +10,15 @@ import { Texture2D } from "./texture";
  * Background of scene.
  */
 export class Background {
+  /** @internal */
+  static _premultiplySolidColor = new Color();
+
   /**
    * Background mode.
    * @defaultValue `BackgroundMode.SolidColor`
    * @remarks If using `BackgroundMode.Sky` mode and material or mesh of the `sky` is not defined, it will downgrade to `BackgroundMode.SolidColor`.
    */
   mode: BackgroundMode = BackgroundMode.SolidColor;
-
-  /**
-   * Background solid color.
-   * @defaultValue `new Color(0.25, 0.25, 0.25, 1.0)`
-   * @remarks When `mode` is `BackgroundMode.SolidColor`, the property will take effects.
-   */
-  solidColor: Color = new Color(0.25, 0.25, 0.25, 1.0);
 
   /**
    * Background sky.
@@ -38,7 +34,23 @@ export class Background {
   /** @internal */
   _material: Material;
 
+  private _solidColor = new Color(0.05087608817155679, 0.05087608817155679, 0.05087608817155679, 1.0);
   private _texture: Texture2D = null;
+
+  /**
+   * Background solid color.
+   * @defaultValue `new Color(0.05, 0.05, 0.05, 1.0)`
+   * @remarks When `mode` is `BackgroundMode.SolidColor`, the property will take effects.
+   */
+  get solidColor(): Color {
+    return this._solidColor;
+  }
+
+  set solidColor(value: Color) {
+    if (value !== this._solidColor) {
+      this._solidColor.copyFrom(value);
+    }
+  }
 
   /**
    * Background texture.
@@ -83,7 +95,6 @@ export class Background {
     this._mesh = null;
     this._material._addReferCount(-1);
     this._material = null;
-    this.solidColor = null;
     this.sky.destroy();
   }
 
@@ -134,7 +145,20 @@ export class Background {
   }
 
   private _initMesh(engine: Engine): void {
-    this._mesh = this._createPlane(engine);
+    const mesh = (this._mesh = this._createPlane(engine));
+    engine.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<ModelMesh> {
+        constructor() {
+          super(mesh);
+        }
+        restoreContent() {
+          mesh.setPositions(mesh.getPositions());
+          mesh.setUVs(mesh.getUVs());
+          mesh.setIndices(mesh.getIndices());
+          mesh.uploadData(false);
+        }
+      })()
+    );
     this._mesh._addReferCount(1);
   }
 

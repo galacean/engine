@@ -3,21 +3,25 @@ export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export { Canvas } from "./Canvas";
 
+export { DisorderedArray } from "./utils/DisorderedArray";
+
 export { Scene } from "./Scene";
 export { SceneManager } from "./SceneManager";
 
 export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
-export { Renderer } from "./Renderer";
+export { Renderer, RendererUpdateFlags } from "./Renderer";
 export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
-export { Transform } from "./Transform";
+export { Transform, TransformModifyFlags } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
+export type { ComponentConstructor } from "./Entity";
 
 export { request } from "./asset/request";
+export type { RequestConfig } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
@@ -25,6 +29,9 @@ export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { ReferResource } from "./asset/ReferResource";
+export { TextAsset } from "./asset/TextAsset";
+export { JSONAsset } from "./asset/JSONAsset";
+export { BufferAsset } from "./asset/BufferAsset";
 
 export * from "./RenderPipeline/index";
 export * from "./base";
@@ -35,11 +42,13 @@ export { DepthTextureMode } from "./enums/DepthTextureMode";
 export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { CameraType } from "./enums/CameraType";
+export { CameraModifyFlags } from "./enums/CameraModifyFlags";
+export { EntityModifyFlags } from "./enums/EntityModifyFlags";
 export { MSAASamples } from "./enums/MSAASamples";
 export { ReplacementFailureStrategy } from "./enums/ReplacementFailureStrategy";
 export { Downsampling } from "./enums/Downsampling";
-export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { XRManager } from "./xr/XRManager";
 export * from "./utils/index";
 export * from "./input/index";
@@ -62,7 +71,13 @@ export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
+export * from "./audio/index";
+import { Polyfill } from "./Polyfill";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 export * from "./postProcess";
+
+export { AntiAliasing } from "./enums/AntiAliasing";
+
+Polyfill.registerPolyfill();

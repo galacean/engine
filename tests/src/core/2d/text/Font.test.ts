@@ -1,15 +1,14 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Camera, Font, TextRenderer, Entity } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it, afterAll } from "vitest";
 
 describe("Font", function () {
   let engine: WebGLEngine;
   let textRendererEntity: Entity;
 
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-    engine.canvas.resizeByClientSize();
 
     const rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
     const camera = rootEntity.addComponent(Camera);
@@ -56,7 +55,7 @@ describe("Font", function () {
     expect(textRendererEntity.destroy()).not.to.throw;
   });
 
-  after(() => {
+  afterAll(() => {
     engine.destroy();
   });
 });

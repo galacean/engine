@@ -73,7 +73,7 @@ export class UnlitMaterial extends BaseMaterial {
    */
   override clone(): UnlitMaterial {
     const dest = new UnlitMaterial(this._engine);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 }

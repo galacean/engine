@@ -1,0 +1,14 @@
+{
+  "license": "MIT",
+  "main": "../dist/main.verbose.js",
+  "module": "../dist/module.verbose.js",
+  "browser": "../dist/browser.verbose.min.js",
+  "debug": "../src/index.ts",
+  "types": "../types/index.d.ts",
+  "umd": {
+    "name": "Galacean.ShaderLab",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  }
+}

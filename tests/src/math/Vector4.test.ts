@@ -1,5 +1,5 @@
 import { MathUtil, Vector4, Quaternion, Matrix } from "@galacean/engine-math";
-import { expect } from "chai";
+import { describe, expect, it } from "vitest";
 
 function toString(v: Vector4): string {
   return `vec4(${v.x}, ${v.y}, ${v.z}, ${v.w})`;
@@ -155,6 +155,13 @@ describe("Vector4 test", () => {
     const a = new Vector4(3, 4, 5, 0);
     const out = new Vector4();
     out.copyFrom(a);
+    expect(toString(a)).to.eq(toString(out));
+  });
+
+  it("copyTo", () => {
+    const a = new Vector4(3, 4, 5, 0);
+    const out = new Vector4();
+    a.copyTo(out);
     expect(toString(a)).to.eq(toString(out));
   });
 

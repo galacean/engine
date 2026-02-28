@@ -1,0 +1,61 @@
+---
+order: 4
+title: 纹理压缩
+type: 图形
+group: 纹理
+label: Graphics/Texture
+---
+
+<Callout>
+**[KTX2](https://www.khronos.org/ktx/)**(Khronos Texture Container version 2.0) 是 Khronos 推出最新的纹理压缩方案，KTX2 会根据设备平台支持运行时转码到对应格式的压缩纹理(BC/PVRTC/ETC/ASTC)。glTF 中使用 ktx2 需要包含 [KHR_texture_basisu](https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md) 扩展。
+Galacean 自 1.1 版本开始已经支持 KTX2。
+</Callout>
+
+## 编辑器使用
+
+可以在[项目导出](/docs/platform/platform/)环节进行全局配置，**KTX2** 表示开启纹理压缩，**Original** 表示不压缩。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/ea6cf83b-e55c-4ff5-ae3b-c37073636df7/image-20250603113737512.png" style={{zoom: "50%"}}/>
+
+也可以独立对某个纹理资源配置不同的压缩格式。在编辑器的纹理面板下勾选 **overwrite** 可以覆盖全局配置：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/b8627078-4aeb-4b03-947e-c48e96a05528/image-20250603114018740.png" style={{zoom: "50%"}} />
+
+选择 **KTX2** 后可以选择不同的压缩格式：
+
+| 格式  | 解释                                                         |
+| ----- | ------------------------------------------------------------ |
+| ETC1S | 尺寸小，内存极小，但是质量较低，适合 albedo, specular 等贴图，可以通过 **Quality** 来设置压缩质量(值越大，渲染质量越好) |
+| UASTC | 尺寸大，质量高，适合 normal 这类贴图 |
+
+## 脚本使用
+
+使用 `resourceManager` 加载即可：
+
+```typescript
+engine.resourceManager.load("xxx.ktx2");
+// 或
+engine.resourceManager
+  .load<Texture2D>({
+    type: AssetType.KTX2,
+    url: "xxx.ktx2"
+  })
+  .then((tex) => {
+    material.baseTexture = tex;
+  });
+```
+
+## 兼容性
+
+需要特别注意的是：
+
+- KTX2 转码使用到了 WebAssembly 技术，需要保证使用 Chrome 57+，和 iOS 11.3+（11.0 ~ 11.2.以下的 WebAssembly 存在 [bug](https://bugs.webkit.org/show_bug.cgi?id=181781)）
+
+- 引擎会默认开启 worker 解析 KTX2 文件，但在 IOS 16 以下系统在通过 worker 加载必要的 KTX2 解析文件时会概率发生无返回的情况，此时可以通过 IOS 不走 worker 绕过去：
+
+```typescript
+// 判断 IOS 系统
+const isIOS = SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad;
+// 将 IOS 环境下的 worker 数量设置为 0
+webGlEngine.create({ canvas: "canvas", ktx2Loader: { workerCount: isIOS ? 0 : 4 } });
+```

@@ -1,0 +1,180 @@
+---
+order: 6
+title: Lottie
+type: 图形
+group: 2D
+label: Graphics/2D
+---
+
+[lottie](https://airbnb.io/lottie/) 是 Airbnb 于 2017 年前后发布的一款跨平台的动画解决方案，可应用于 iOS，Android，React Native 和 web，通过 Bodymovin 插件解析 [AE](https://www.adobe.com/products/aftereffects.html) 动画，并导出可在移动端和 web 端渲染动画的 json 文件。设计师通过 AE 来制作动画，再用 Bodymovin 导出相应的 json 文件给到前端，前端可以使用这个 json 文件直接生成 100% 还原的动画。
+
+用户可以在 Galacean 中轻松完成 Lottie 资产的处理和组件添加。
+
+<Callout type="warning">暂不支持矢量动画与遮罩</Callout>
+
+### 资源上传
+
+建议设计师在 AE 中导出 lottie 文件的时候，图片采用 base64 格式写入 lottie 的 json 文件中。
+
+开发者拿到 `.json` 文件后，首先需要把 `.json` 文件上传到 Galacean Editor。通过资产面板的上传按钮选择 “lottie” 资产，选择本地一个 [lottie json](https://github.com/galacean/galacean.github.io/files/14106485/_Lottie.3.json) 文件，然后上传：
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*UQ1LTI_mYv4AAAAAAAAAAAAADjCHAQ/original"   />
+
+### 添加组件
+
+选择一个实体，添加 Lottie 组件，选择 resource 为上一步上传的资产，即可显示并且播放 Lottie 特效：
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*ehFMT7vBaCAAAAAAAAAAAAAADjCHAQ/original" />
+
+开发者可以通过调整属性面板中的各个参数来对 Lottie 进行相关设置：
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*OswOQI837OkAAAAAAAAAAAAADjCHAQ/original" />
+
+
+| 属性 | 功能说明 |
+| :--- | :--- |
+| `resource` | 选择 Lottie 资产 |
+| `autoPlay` | 是否自动播放，默认自动 |
+| `isLooping` | 是否循环播放，默认循环 |
+| `speed` | 播放速度，`1` 为原速度播放，数值越大播放约快 |
+| `priority` | 渲染优先级，值越小，渲染优先级越高，越优先被渲染 |
+
+有时候开发者可能需要在运行时动态对 Lottie 进行设置，在脚本组件中添加代码如下：
+```typescript
+// 先找到 Lottie 所在的实体 lottieEntity，然后获取 Lottie 组件
+const lottie = lottieEntity.getComponent(LottieAnimation);
+// 设置 lottie 属性
+lottie.speed = 2;
+```
+有时候开发者在编辑器中仅上传 Lottie 资源，需要的时候才动态的创建 Lottie 组件，使用方式如下：
+```typescript
+// 动态加载编辑器中的 Lottie 资源
+const lottieResource = await engine.resourceManager.load({url: '/光球.json', type: 'EditorLottie'});
+// 给一个实体添加 Lottie 组件
+const lottie = entity.addComponent(LottieAnimation);
+// 给 Lottie 组件设置 Lottie 资源
+lottie.resource = lottieResource;
+```
+
+另外，Lottie 组件还提供了 2 个 API 来控制动画的播放和暂停，如下：
+
+| 方法 |  描述 |
+| :--- | :--- |
+| `play` | 播放动画，传入动画片段名参数会播放特定的动画片段 |
+| `pause` | 暂停动画 |
+
+### 监听播放结束
+
+很多时候我们有监听 Lottie 动画播放结束的需求，比如在动画结束的时候运行一些业务逻辑。`LottieAnimation` 的 `play` 方法会返回一个 `Promise`，所以可以很方便地监听动画结束的时机：
+
+```typescript
+const lottie = lottieEntity.getComponent(LottieAnimation);
+await lottie.play();
+// do something next..
+```
+
+### 切片功能
+
+编辑器提供了动画切片的功能，可以把设计师提供的整个片段切成多段，每个片段需要定义片段名、开始帧、结束帧三个字段。
+
+<Image src="https://mdn.alipayobjects.com/huamei_w6ifet/afts/img/A*skjbSZjSpYoAAAAAAAAAAAAADjCHAQ/original" />
+
+该操作会在 Lottie 协议中添加 `lolitaAnimations` 字段实现动画的切片：
+
+```json
+"lolitaAnimations": [
+  {
+    "name": "clip1",
+    "start": 0,
+    "end": 30
+  },
+  {
+    "name": "clip2",
+    "start": 50,
+    "end": 100
+  },
+]
+```
+
+
+### 安装依赖包
+
+<a href="https://www.npmjs.com/package/@galacean/engine-lottie" target="_blank">@galacean/engine-lottie</a> 是 Galacean Engine 的二方包，项目中用到了 Lottie 的时候，需要确保项目中安装了该包：
+
+```bash
+npm i @galacean/engine-lottie --save
+```
+
+### pro code 开发模式
+
+在进行 `Pro Code` 开发的时候，需要一个 `json` 文件和一个 `atlas` 文件来实现 `lottie` 动画，通常美术同学通过 `AE` 导出的给到开发的只有 `json` 文件，此时需要使用 [tools-atlas-lottie](https://www.npmjs.com/package/@galacean/tools-atlas-lottie) `CLI` 工具生成 `atlas` 文件。
+
+```typescript
+import { LottieAnimation } from "@galacean/engine-lottie";
+
+// Load lottie json、atlas file with engine's `resourceManager`
+engine.resourceManager.load({
+  urls: [
+    "https://gw.alipayobjects.com/os/bmw-prod/b46be138-e48b-4957-8071-7229661aba53.json",
+    "https://gw.alipayobjects.com/os/bmw-prod/6447fc36-db32-4834-9579-24fe33534f55.atlas"
+  ],
+  type: 'lottie'
+}).then((lottieEntity) => {
+  // Add lottie entity created to scene 
+  root.addChild(lottieEntity);
+
+  // Get `LottieAnimation` component and play the animation
+  const lottie = lottieEntity.getComponent(LottieAnimation);
+  lottie.isLooping = true;
+  lottie.speed = 1;
+  lottie.play();
+});
+```
+
+### 3D 变换
+
+业务场景中经常会出现 3D 变换的需求，比如一些弹窗的入场动画。以旋转为例，由于传统的 lottie-web 方案只能沿着 **Z轴** 旋转（也就是说垂直于屏幕法线方向旋转），即使我们在 AE 中实现了沿着 **X轴** 或 **Y轴** 的旋转效果，使用 lottie-web  播放时也会被忽略。
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*qVYxTaEdVBgAAAAAAAAAAAAAARQnAQ" alt="3D rotation" style={{zoom:"50%"}} />
+
+### 版本依赖
+| 引擎版本 |  Lottie 版本 |
+| :--- | :--- |
+| 1.2.x | 1.1.0-beta.0 |
+| 1.3.x | engine-1.3 |
+| 1.4.x | engine-1.4 |
+| 1.5.x | engine-1.5 |
+
+## 性能方面的建议
+
+### 资源优化
+
+1. 优先使用形状图层（SVG/AI转制），删除冗余矢量节点
+2. 循环动画只保留单周期，由代码控制循环次数
+3. 静态元素用PNG代替矢量，动态元素用transform属性
+
+### 动画设计
+
+1. 简化关键帧：控制30fps以内，减少非必要关键帧
+2. 路径动画最小化，优先使用位移动画
+3. 保持动画时长≤3秒，重叠动作编排
+
+### 图层管理
+
+1. 图层数控制在20层以内
+2. 合并重复元素为预合成组件
+3. 清除隐藏图层和无效属性
+
+### 制作规范
+
+1. 画布尺寸适配屏幕，元素铺满不留白
+2. 统一设计稿与导出尺寸
+3. 使用英文版AE，图层命名规范
+
+### 输出要求
+
+1. 仅导出1x资源
+2. 删除AI冗余编组信息
+3. 规避粒子特效和大面积矢量
+
+<Callout type="info">所有优化需以**保证基础视觉效果**为前提</Callout>

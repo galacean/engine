@@ -26,11 +26,11 @@ export interface IKHRLightsPunctual {
  * Interfaces from the KHR_materials_clearcoat extension
  */
 export interface IKHRMaterialsClearcoat {
-  clearcoatFactor: number;
-  clearcoatTexture: ITextureInfo;
-  clearcoatRoughnessFactor: number;
-  clearcoatRoughnessTexture: ITextureInfo;
-  clearcoatNormalTexture: IMaterialNormalTextureInfo;
+  clearcoatFactor?: number;
+  clearcoatTexture?: ITextureInfo;
+  clearcoatRoughnessFactor?: number;
+  clearcoatRoughnessTexture?: ITextureInfo;
+  clearcoatNormalTexture?: IMaterialNormalTextureInfo;
 }
 
 /**
@@ -46,17 +46,6 @@ export interface IKHRMaterialsIor {
 export interface IKHRMaterialsUnlit {}
 
 /**
- * Interfaces from the KHR_materials_pbrSpecularGlossiness extension
- */
-export interface IKHRMaterialsPbrSpecularGlossiness {
-  diffuseFactor: number[];
-  diffuseTexture: ITextureInfo;
-  specularFactor: number[];
-  glossinessFactor: number;
-  specularGlossinessTexture: ITextureInfo;
-}
-
-/**
  * Interfaces from the KHR_materials_sheen extension
  */
 export interface IKHRMaterialsSheen {
@@ -70,9 +59,10 @@ export interface IKHRMaterialsSheen {
  * Interfaces from the KHR_materials_specular extension
  */
 export interface IKHRMaterialsSpecular {
-  specularFactor: number;
-  specularColorFactor: number[];
-  specularTexture: ITextureInfo;
+  specularFactor?: number;
+  specularColorFactor?: number[];
+  specularTexture?: ITextureInfo;
+  specularColorTexture?: ITextureInfo;
 }
 
 /**
@@ -176,12 +166,33 @@ export interface IGalaceanAnimation {
   }[];
 }
 
+/**
+ * Interfaces from the KHR_materials_iridescence extension
+ */
+export interface IKHRMaterialsIridescence {
+  iridescenceFactor?: number;
+  iridescenceTexture?: ITextureInfo;
+  iridescenceIor?: number;
+  iridescenceThicknessMinimum?: number;
+  iridescenceThicknessMaximum?: number;
+  iridescenceThicknessTexture?: ITextureInfo;
+}
+
+/**
+ * Interfaces from the KHR_materials_volume extension
+ */
+export interface IKHRMaterialsVolume {
+  thicknessFactor?: number;
+  thicknessTexture?: ITextureInfo;
+  attenuationDistance?: number;
+  attenuationColor?: number[];
+}
+
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRMaterialsClearcoat
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
-  | IKHRMaterialsPbrSpecularGlossiness
   | IKHRMaterialsSheen
   | IKHRMaterialsSpecular
   | IKHRMaterialsTransmission
@@ -194,4 +205,6 @@ export type GLTFExtensionSchema =
   | IKHRXmp
   | IKHRXmp_Node
   | IGalaceanAnimation
+  | IKHRMaterialsIridescence
+  | IKHRMaterialsVolume
   | Object;

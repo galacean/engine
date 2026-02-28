@@ -21,20 +21,19 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 
 // ------------------------Specular------------------------
 
-// ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
-vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
-
+// Returns raw DFG approximation coefficients (split-sum LUT approximation)
+vec2 envDFGApprox(float roughness, float dotNV) {
     const vec4 c0 = vec4( - 1, - 0.0275, - 0.572, 0.022 );
-
     const vec4 c1 = vec4( 1, 0.0425, 1.04, - 0.04 );
-
     vec4 r = roughness * c0 + c1;
-
     float a004 = min( r.x * r.x, exp2( - 9.28 * dotNV ) ) * r.x + r.y;
+    return vec2( -1.04, 1.04 ) * a004 + r.zw;
+}
 
-    vec2 AB = vec2( -1.04, 1.04 ) * a004 + r.zw;
-
-    return specularColor * AB.x + AB.y;
+// ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
+vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
+    vec2 AB = envDFGApprox(roughness, dotNV);
+    return f0 * AB.x + f90 * AB.y;
 }
 
 
@@ -70,17 +69,23 @@ vec3 getLightProbeRadiance(Geometry geometry, vec3 normal, float roughness, int 
 
         #ifdef SCENE_IS_DECODE_ENV_RGBM
             envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
-            #ifdef ENGINE_IS_COLORSPACE_GAMMA
-                envMapColor = linearToGamma(envMapColor);
-            #endif
-        #else
-             #ifndef ENGINE_IS_COLORSPACE_GAMMA
-                envMapColor = gammaToLinear(envMapColor);
-            #endif
+        #elif defined(ENGINE_NO_SRGB)
+            envMapColor = sRGBToLinear(envMapColor);
         #endif
         
         return envMapColor.rgb * specularIntensity;
 
     #endif
 
+}
+
+
+void evaluateSheenIBL(Geometry geometry, Material material, float radianceAttenuation, inout vec3 diffuseColor, inout vec3 specularColor){
+    #ifdef MATERIAL_ENABLE_SHEEN
+        diffuseColor *= material.sheenScaling;
+        specularColor *= material.sheenScaling;
+
+        vec3 reflectance = material.specularAO * radianceAttenuation * material.approxIBLSheenDG * material.sheenColor;
+        specularColor += reflectance;
+    #endif
 }

@@ -1,11 +1,11 @@
 import { BackgroundMode, Engine, Entity, Scene, TextureFormat, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("Scene", () => {
   let engine: Engine;
   let scene: Scene;
-  before(async function () {
+  beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
 
     engine.run();

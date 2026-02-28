@@ -1,0 +1,31 @@
+---
+title: Skin
+---
+
+The skin shader uses the **Spherical Gaussian model**, allowing flexible customization of different **Diffusion Profiles** to simulate human skin or standard subsurface scattering effects.
+
+<img src="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*ynWiSp_2n90AAAAAAAAAAAAADgDwAQ/original"   />
+
+## Importing Examples
+
+Galacean provides skin material examples to help you get started. [Click here](https://galacean.antgroup.com/editor/projects) to find this example.
+
+1. Navigate to the editor homepage in Galacean.
+2. Select the **Templates** panel, browse the template interface, preview, and download the skin example to your **Project**.
+
+## Material Properties
+
+|       Parameter        |             Description             |
+| :--------------------: | :---------------------------------: |
+| **SSS Color**          | Adjust the skin scattering color    |
+| **Curvature Texture**  | Curvature map controlling scattering areas |
+| **Curvature Power**    | Curvature intensity (best range between `0-1`) |
+
+## Detail Comparison  
+The following demonstration compares PBR vs. skin material rendering effects:  
+<Comparison  
+  leftSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*NLyOR71_nj4AAAAAAAAAAAAADgDwAQ/original"  
+  leftText="PBR"  
+  rightSrc="https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*xfl_Ra0oj0AAAAAAAAAAAAAADgDwAQ/original"  
+  rightText="SSS"  
+/>

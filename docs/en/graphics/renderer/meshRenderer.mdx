@@ -1,0 +1,52 @@
+---
+order: 1
+title: Mesh Renderer
+type: Graphics
+group: Renderer
+label: Graphics/Renderer
+---
+
+The [MeshRenderer](/apis/core/#MeshRenderer) is a mesh renderer component that uses mesh objects (e.g., cuboids) as the geometry data source. When an entity is equipped with a mesh renderer component, simply set its `mesh` and `material` to render the object.
+
+## Usage
+
+In the editor **[Hierarchy Panel](/en/docs/interface/hierarchy)**, you can quickly create a node with a cuboid mesh renderer attached ( **Hierarchy Panel** -> **Right-click** -> **3D Object** -> **Cuboid** ).
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Pca9RZvOsNMAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
+
+Alternatively, you can manually attach a mesh renderer to an existing node in the scene and assign any [mesh](/en/docs/graphics/mesh/mesh/) and [material](/en/docs/graphics/material/material/) ( **Select Node** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Add Component** -> **Mesh Renderer** ).
+
+<img src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*UHfjTYk0b4sAAAAAAAAAAAAADhuCAQ/original" alt="image-20231007153753006"  />
+
+Here's how to use it in code:
+
+```typescript
+const cubeEntity = rootEntity.createChild("cube");
+const cube = cubeEntity.addComponent(MeshRenderer);
+cube.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
+cube.setMaterial(new BlinnPhongMaterial(engine));
+```
+
+## Properties
+
+In the editor, you can conveniently configure properties of the mesh renderer.
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*A5SWQ5v-QKwAAAAAAAAAAAAAehuCAQ/original" alt="image-20231007153753006" style={{ zoom: "50%" }} />
+
+| Property             | Description                                               |
+| :------------------- | :-------------------------------------------------------- |
+| `material`           | [Material](/en/docs/graphics/material/material/) information for the object to be rendered   |
+| `mesh`               | [Mesh](/en/docs/graphics/mesh/mesh/) information for the object to be rendered       |
+| `receiveShadows`     | Whether to receive shadows                                |
+| `castShadows`        | Whether to cast shadows                                   |
+| `priority`           | Render priority. Lower values indicate higher priority. Default is 0 |
+
+Compared to the basic [Renderer](/en/docs/graphics/renderer/renderer/), the mesh renderer also supports vertex color settings (vertex color data is included in the mesh's vertex information).
+
+| Property                | Description           |
+| :---------------------- | :-------------------- |
+| [enableVertexColor](/apis/core/#MeshRenderer-enableVertexColor) | Whether to support vertex colors |
+
+## Methods
+
+The mesh renderer does **not add** any new methods. However, note that a mesh often contains **multiple sub-meshes**. If you want each sub-mesh to use **different materials**, specify the corresponding **mesh index** during setup. Otherwise, the same material will be applied to all sub-meshes by default.

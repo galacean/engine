@@ -6,8 +6,6 @@ import {
   IShaderLab,
   IXRDevice
 } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
-import { SpriteMaskInteraction } from "./2d";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
 import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
@@ -22,28 +20,22 @@ import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { ResourceManager } from "./asset/ResourceManager";
-import { EventDispatcher, Logger, Time } from "./base";
+import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
-import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
-import { Material } from "./material/Material";
 import { ParticleBufferUtils } from "./particle/ParticleBufferUtils";
-import { PhysicsScene } from "./physics/PhysicsScene";
 import { ColliderShape } from "./physics/shape/ColliderShape";
-import { CompareFunction } from "./shader";
+import { PostProcessPass } from "./postProcess/PostProcessPass";
+import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
-import { BlendFactor } from "./shader/enums/BlendFactor";
-import { BlendOperation } from "./shader/enums/BlendOperation";
-import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
-import { CullMode } from "./shader/enums/CullMode";
-import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
+import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
@@ -55,11 +47,17 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_IS_COLORSPACE_GAMMA");
+  static _noDepthTextureMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
+  static _noSRGBSupportMacro = ShaderMacro.getByName("ENGINE_NO_SRGB");
+  /** @internal */
+  static _outputSRGBCorrectMacro = ShaderMacro.getByName("ENGINE_OUTPUT_SRGB_CORRECT");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
+  /** @internal */
+  static _physicalObjectsMap: Record<number, ColliderShape> = {};
+  /** @internal */
+  static _nativePhysics: IPhysics;
 
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
@@ -71,9 +69,13 @@ export class Engine extends EventDispatcher {
 
   _particleBufferUtils: ParticleBufferUtils;
   /** @internal */
-  _physicsInitialized: boolean = false;
+  _frameInProcess = false;
   /** @internal */
-  _physicalObjectsMap: Record<number, ColliderShape> = {};
+  _pendingDestroyObjects: EngineObject[] = [];
+  /** @internal */
+  _processingPendingDestroys = false;
+  /** @internal */
+  _physicsInitialized: boolean = false;
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
   /* @internal */
@@ -93,22 +95,10 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _basicResources: BasicResources;
   /* @internal */
-  _spriteDefaultMaterial: Material;
-  /** @internal */
-  _spriteDefaultMaterials: Material[] = [];
-  /* @internal */
-  _textDefaultMaterial: Material;
-  /* @internal */
-  _spriteMaskDefaultMaterial: Material;
-  /* @internal */
   _textDefaultFont: Font;
   /* @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
-  _meshMagentaMaterial: Material;
-  /* @internal */
-  _particleMagentaMaterial: Material;
   /* @internal */
   _depthTexture2D: Texture2D;
 
@@ -118,8 +108,11 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
-  /** @internal @todo: temporary solution */
-  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _macroCollection = new ShaderMacroCollection();
+
+  /** @internal */
+  _postProcessPassNeedRefresh = false;
 
   /** @internal */
   protected _canvas: Canvas;
@@ -136,10 +129,10 @@ export class Engine extends EventDispatcher {
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
-  private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
-  private _isDeviceLost: boolean = false;
   private _waitingGC: boolean = false;
+  private _postProcessPasses = new Array<PostProcessPass>();
+  private _activePostProcessPasses = new Array<PostProcessPass>();
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -226,6 +219,13 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * All post process passes.
+   */
+  get postProcessPasses(): ReadonlyArray<PostProcessPass> {
+    return this._postProcessPasses;
+  }
+
+  /**
    * Indicates whether the engine is destroyed.
    */
   get destroyed(): boolean {
@@ -239,18 +239,6 @@ export class Engine extends EventDispatcher {
 
     this._canvas = canvas;
 
-    const { _spriteDefaultMaterials: spriteDefaultMaterials } = this;
-    this._spriteDefaultMaterial = spriteDefaultMaterials[SpriteMaskInteraction.None] = this._createSpriteMaterial(
-      SpriteMaskInteraction.None
-    );
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleInsideMask] = this._createSpriteMaterial(
-      SpriteMaskInteraction.VisibleInsideMask
-    );
-    spriteDefaultMaterials[SpriteMaskInteraction.VisibleOutsideMask] = this._createSpriteMaterial(
-      SpriteMaskInteraction.VisibleOutsideMask
-    );
-    this._textDefaultMaterial = this._createTextMaterial();
-    this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
     this._textDefaultFont.isGCIgnored = true;
 
@@ -266,28 +254,20 @@ export class Engine extends EventDispatcher {
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
     } else {
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false, false);
       depthTexture2D.isGCIgnored = true;
       this._depthTexture2D = depthTexture2D;
     }
 
-    const meshMagentaMaterial = new Material(this, Shader.find("unlit"));
-    meshMagentaMaterial.isGCIgnored = true;
-    meshMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._meshMagentaMaterial = meshMagentaMaterial;
-
-    const particleMagentaMaterial = new Material(this, Shader.find("particle-shader"));
-    particleMagentaMaterial.isGCIgnored = true;
-    particleMagentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    this._particleMagentaMaterial = particleMagentaMaterial;
-
-    const innerSettings = this._settings;
-    const colorSpace = configuration.colorSpace || ColorSpace.Linear;
-    colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
-    innerSettings.colorSpace = colorSpace;
+    if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
+      this._macroCollection.enable(Engine._noSRGBSupportMacro);
+    }
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
+
+    const uberPass = new PostProcessUberPass(this);
+    this.addPostProcessPass(uberPass);
   }
 
   /**
@@ -342,6 +322,7 @@ export class Engine extends EventDispatcher {
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
+    this._refreshActivePostProcessPasses();
     const scenes = this._sceneManager._scenes.getLoopArray();
     const sceneCount = scenes.length;
 
@@ -364,7 +345,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire `onPointerXX`
-    physicsInitialized && inputManager._firePointerScript(scenes);
+    inputManager._firePointerScript(scenes);
 
     // Fire `onUpdate`
     for (let i = 0; i < sceneCount; i++) {
@@ -388,26 +369,23 @@ export class Engine extends EventDispatcher {
     }
 
     // Render scene and fire `onBeginRender` and `onEndRender`
-    if (!this._isDeviceLost) {
+    if (!this._hardwareRenderer.isContextLost()) {
       this._render(scenes);
     }
 
+    // Process pending destroys
+    this._processPendingDestroyObjects();
+
+    this._frameInProcess = false;
+
     if (this._waitingDestroy) {
       this._destroy();
-    } else {
-      // Handling invalid scripts and fire `onDestroy`
-      for (let i = 0; i < sceneCount; i++) {
-        const scene = scenes[i];
-        if (!scene.isActive || scene.destroyed) continue;
-        scene._componentsManager.handlingInvalidScripts();
-      }
     }
 
     if (this._waitingGC) {
       this._gc();
       this._waitingGC = false;
     }
-    this._frameInProcess = false;
   }
 
   /**
@@ -434,12 +412,85 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.forceRestoreDevice();
   }
 
-  private _destroy(): void {
-    this._sceneManager._destroyAllScene();
+  /**
+   * Add a post process pass.
+   * @param pass - Post process pass to add
+   */
+  addPostProcessPass(pass: PostProcessPass): void {
+    if (pass.engine !== this) {
+      throw "The pass is not belong to this engine.";
+    }
 
+    const passes = this._postProcessPasses;
+    if (passes.indexOf(pass) === -1) {
+      passes.push(pass);
+      pass.isActive && (this._postProcessPassNeedRefresh = true);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _removePostProcessPass(pass: PostProcessPass): void {
+    const passes = this._postProcessPasses;
+    const index = passes.indexOf(pass);
+    if (index !== -1) {
+      passes.splice(index, 1);
+
+      pass.isActive && (this._postProcessPassNeedRefresh = true);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _refreshActivePostProcessPasses(): void {
+    if (this._postProcessPassNeedRefresh) {
+      this._postProcessPassNeedRefresh = false;
+
+      const postProcessPasses = this._postProcessPasses;
+      const activePostProcesses = this._activePostProcessPasses;
+      activePostProcesses.length = 0;
+
+      // Filter
+      for (let i = 0, n = postProcessPasses.length; i < n; i++) {
+        const pass = postProcessPasses[i];
+        if (pass.isActive) {
+          activePostProcesses.push(pass);
+        }
+      }
+
+      // Sort
+      if (activePostProcesses.length) {
+        activePostProcesses.sort((a, b) => a.event - b.event);
+      }
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getActivePostProcessPasses(): ReadonlyArray<PostProcessPass> {
+    this._refreshActivePostProcessPasses();
+    return this._activePostProcessPasses;
+  }
+
+  private _processPendingDestroyObjects(): void {
+    const pending = this._pendingDestroyObjects;
+    this._processingPendingDestroys = true;
+    for (let i = 0, n = pending.length; i < n; i++) {
+      pending[i].destroy();
+    }
+    pending.length = 0;
+    this._processingPendingDestroys = false;
+  }
+
+  private _destroy(): void {
+    this._destroyed = true;
+    this._waitingDestroy = false;
+
+    this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
-    this._textDefaultFont = null;
-    this._fontMap = null;
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
@@ -449,18 +500,10 @@ export class Engine extends EventDispatcher {
     // Cancel animation
     this.pause();
 
+    Shader._clear(this);
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-
-    this._animate = null;
-    this._sceneManager = null;
-    this._resourceManager = null;
-    this._canvas = null;
-    this._time = null;
-
-    this._waitingDestroy = false;
-    this._destroyed = true;
   }
 
   /**
@@ -491,7 +534,7 @@ export class Engine extends EventDispatcher {
       if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
-      shaderProgramPools[index] = pool = new ShaderProgramPool();
+      shaderProgramPools[index] = pool = new ShaderProgramPool(this);
       shaderPass._shaderProgramPools.push(pool);
     }
     return pool;
@@ -514,29 +557,45 @@ export class Engine extends EventDispatcher {
     for (let i = 0, n = scenes.length; i < n; i++) {
       const scene = scenes[i];
       if (!scene.isActive || scene.destroyed) continue;
-      const cameras = scene._componentsManager._activeCameras;
+
+      const componentsManager = scene._componentsManager;
+      const cameras = componentsManager._activeCameras;
 
       if (cameras.length === 0) {
         Logger.debug("No active camera in scene.");
-        continue;
+      } else {
+        cameras.forEach(
+          (camera: Camera) => {
+            componentsManager.callCameraOnBeginRender(camera);
+
+            const { pixelViewport } = camera;
+            // `pixelViewport` width or height is `0` will cause internal render target create error and return can save performance
+            if (pixelViewport.width !== 0 && pixelViewport.height !== 0) {
+              // Update post process manager
+              scene.postProcessManager._update(camera);
+              camera.render();
+            } else {
+              Logger.warn("Camera pixelViewport width or height is 0.");
+            }
+
+            componentsManager.callCameraOnEndRender(camera);
+
+            // Temp solution for webgl implement bug
+            if (this._hardwareRenderer._options._forceFlush) {
+              this._hardwareRenderer.flush();
+            }
+          },
+          (camera: Camera, index: number) => {
+            camera._cameraIndex = index;
+          }
+        );
       }
 
-      cameras.forEach(
-        (camera: Camera) => {
-          const componentsManager = scene._componentsManager;
-          componentsManager.callCameraOnBeginRender(camera);
-          camera.render();
-          componentsManager.callCameraOnEndRender(camera);
-
-          // Temp solution for webgl implement bug
-          if (this._hardwareRenderer._options._forceFlush) {
-            this._hardwareRenderer.flush();
-          }
-        },
-        (camera: Camera, index: number) => {
-          camera._cameraIndex = index;
-        }
-      );
+      const uiCanvas = componentsManager._overlayCanvases;
+      if (uiCanvas.length > 0) {
+        componentsManager.sortOverlayUICanvases();
+        UIUtils.renderOverlay(this, scene, uiCanvas);
+      }
     }
   }
 
@@ -565,7 +624,12 @@ export class Engine extends EventDispatcher {
     if (physics) {
       initializePromises.push(
         physics.initialize().then(() => {
-          PhysicsScene._nativePhysics = physics;
+          if (Engine._nativePhysics) {
+            console.warn(
+              "A physics engine has already been configured. All physics operations will now be handled by the newly specified physics engine."
+            );
+          }
+          Engine._nativePhysics = physics;
           this._nativePhysicsManager = physics.createPhysicsManager();
           this._physicsInitialized = true;
           return this;
@@ -578,69 +642,12 @@ export class Engine extends EventDispatcher {
       const loader = loaders[key];
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }
+
+    initializePromises.push(this._basicResources._initialize());
     return Promise.all(initializePromises).then(() => this);
   }
 
-  private _createSpriteMaterial(maskInteraction: SpriteMaskInteraction): Material {
-    const material = new Material(this, Shader.find("Sprite"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    if (maskInteraction !== SpriteMaskInteraction.None) {
-      const stencilState = renderState.stencilState;
-      stencilState.enabled = true;
-      stencilState.writeMask = 0x00;
-      stencilState.referenceValue = 1;
-      const compare =
-        maskInteraction === SpriteMaskInteraction.VisibleInsideMask
-          ? CompareFunction.LessEqual
-          : CompareFunction.Greater;
-      stencilState.compareFunctionFront = compare;
-      stencilState.compareFunctionBack = compare;
-    }
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
-
-  private _createSpriteMaskMaterial(): Material {
-    const material = new Material(this, Shader.find("SpriteMask"));
-    const renderState = material.renderState;
-    renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.stencilState.enabled = true;
-    renderState.depthState.enabled = false;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
-
-  private _createTextMaterial(): Material {
-    const material = new Material(this, Shader.find("Text"));
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
-    material.isGCIgnored = true;
-    return material;
-  }
-
   private _onDeviceLost(): void {
-    this._isDeviceLost = true;
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
     console.log("Device lost.");
@@ -651,6 +658,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
     // Clear shader pools
+    Shader._clear(this);
     this._shaderProgramPools.length = 0;
 
     const { resourceManager } = this;
@@ -664,7 +672,6 @@ export class Engine extends EventDispatcher {
       .then(() => {
         console.log("Graphic resource content restored.\n\n" + "Device restored.");
         this.dispatch("devicerestored", this);
-        this._isDeviceLost = false;
       })
       .catch((error) => {
         console.error(error);
@@ -695,8 +702,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** XR Device. */
   xrDevice?: IXRDevice;
-  /** Color space. */
-  colorSpace?: ColorSpace;
   /** Shader lab. */
   shaderLab?: IShaderLab;
   /** Input options. */

@@ -1,11 +1,9 @@
-import { Ray, Vector3 } from "@galacean/engine";
-import { IPhysicsScene } from "@galacean/engine-design";
-import { DisorderedArray } from "./DisorderedArray";
+import { Ray, Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
+import { ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * A manager is a collection of colliders and constraints which can interact.
@@ -15,7 +13,18 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   _pxControllerManager: any = null;
 
   private static _tempPosition: Vector3 = new Vector3();
+  private static _tempQuaternion: Quaternion = new Quaternion();
   private static _tempNormal: Vector3 = new Vector3();
+  private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
+    translation: new Vector3(),
+    rotation: new Quaternion()
+  };
+  private static _tempShapeIDs: number[] = [];
+
+  // Cached geometry objects for reuse
+  private _boxGeometry: any = null;
+  private _sphereGeometry: any = null;
+  private _capsuleGeometry: any = null;
 
   private _physXPhysics: PhysXPhysics;
   private _physXManager: PhysXPhysicsManager;
@@ -23,13 +32,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxFilterData: any;
 
   private _pxScene: any;
+  private _physXSimulationCallbackInstance: any;
 
-  private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
-  private readonly _onContactExit?: (obj1: number, obj2: number) => void;
-  private readonly _onContactStay?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
+  private readonly _onContactEnter?: (collision: ICollision) => void;
+  private readonly _onContactExit?: (collision: ICollision) => void;
+  private readonly _onContactStay?: (collision: ICollision) => void;
+  private readonly _onTriggerEnter?: (index1: number, index2: number) => void;
+  private readonly _onTriggerExit?: (index1: number, index2: number) => void;
+  private readonly _onTriggerStay?: (index1: number, index2: number) => void;
 
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
 
@@ -38,9 +48,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   constructor(
     physXPhysics: PhysXPhysics,
     physicsManager: PhysXPhysicsManager,
-    onContactEnter?: (obj1: number, obj2: number) => void,
-    onContactExit?: (obj1: number, obj2: number) => void,
-    onContactStay?: (obj1: number, obj2: number) => void,
+    onContactEnter?: (collision: ICollision) => void,
+    onContactExit?: (collision: ICollision) => void,
+    onContactStay?: (collision: ICollision) => void,
     onTriggerEnter?: (obj1: number, obj2: number) => void,
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
@@ -62,14 +72,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (index1, index2) => {
-        this._onContactEnter(index1, index2);
+      onContactBegin: (collision) => {
+        this._onContactEnter(collision);
       },
-      onContactEnd: (index1, index2) => {
-        this._onContactExit(index1, index2);
+      onContactEnd: (collision) => {
+        this._onContactExit(collision);
       },
-      onContactPersist: (index1, index2) => {
-        this._onContactStay(index1, index2);
+      onContactPersist: (collision) => {
+        this._onContactStay(collision);
       },
       onTriggerBegin: (index1, index2) => {
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
@@ -92,65 +102,53 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     };
 
     const pxPhysics = physXPhysics._pxPhysics;
-    const physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
-    const sceneDesc = physX.getDefaultSceneDesc(pxPhysics.getTolerancesScale(), 0, physXSimulationCallbackInstance);
+    this._physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
+    const sceneDesc = physX.getDefaultSceneDesc(
+      pxPhysics.getTolerancesScale(),
+      0,
+      this._physXSimulationCallbackInstance
+    );
     this._pxScene = pxPhysics.createScene(sceneDesc);
+    sceneDesc.delete();
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.setGravity }
+   * {@inheritDoc IPhysicsScene.setGravity }
    */
   setGravity(value: Vector3) {
     this._pxScene.setGravity(value);
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addColliderShape }
-   */
-  addColliderShape(colliderShape: PhysXColliderShape) {
-    this._physXManager._eventMap[colliderShape._id] = {};
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.removeColliderShape }
-   */
-  removeColliderShape(colliderShape: PhysXColliderShape) {
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    const { _id: id } = colliderShape;
-    const { _eventMap: eventMap } = this._physXManager;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
-      if (event.index1 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-      } else if (event.index2 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
-        // If the shape is big index, should clear from the small index shape subMap
-        eventMap[event.index1][id] = undefined;
-      }
-    }
-    delete eventMap[id];
-  }
-
-  /**
-   * {@inheritDoc IPhysicsManager.addCollider }
+   * {@inheritDoc IPhysicsScene.addCollider }
    */
   addCollider(collider: PhysXCollider): void {
+    collider._scene = this;
     this._pxScene.addActor(collider._pxActor, null);
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._addColliderShape(shapes[i]._id);
+    }
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCollider }
+   * {@inheritDoc IPhysicsScene.removeCollider }
    */
   removeCollider(collider: PhysXCollider): void {
+    collider._scene = null;
     this._pxScene.removeActor(collider._pxActor, true);
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._removeColliderShape(shapes[i]._id);
+    }
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.addCharacterController }
+   * {@inheritDoc IPhysicsScene.addCharacterController }
    */
   addCharacterController(characterController: PhysXCharacterController): void {
+    characterController._scene = this;
+
     // Physx have no API to remove/readd cct into scene.
     if (!characterController._pxController) {
       const shape = characterController._shape;
@@ -160,20 +158,25 @@ export class PhysXPhysicsScene implements IPhysicsScene {
           lastPXManager && characterController._destroyPXController();
           characterController._createPXController(this, shape);
         }
+        this._addColliderShape(shape._id);
       }
     }
     characterController._pxManager = this;
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   * {@inheritDoc IPhysicsScene.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
+    characterController._scene = null;
     characterController._pxManager = null;
+    characterController._destroyPXController();
+    const shape = characterController._shape;
+    shape && this._removeColliderShape(shape._id);
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.update }
+   * {@inheritDoc IPhysicsScene.update }
    */
   update(elapsedTime: number): void {
     this._simulate(elapsedTime);
@@ -182,7 +185,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.raycast }
+   * {@inheritDoc IPhysicsScene.raycast }
    */
   raycast(
     ray: Ray,
@@ -191,7 +194,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const { _pxRaycastHit: pxHitResult } = this;
-    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physX raycast.
 
     const raycastCallback = {
       preFilter: (filterData, index, actor) => {
@@ -200,18 +203,20 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           return 0; // eNONE
         }
-      },
-      postFilter: (filterData, hit) => {}
+      }
     };
 
+    const pxRaycastCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback);
     const result = this._pxScene.raycastSingle(
       ray.origin,
       ray.direction,
       distance,
       pxHitResult,
       this._pxFilterData,
-      this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
+      pxRaycastCallback
     );
+
+    pxRaycastCallback.delete();
 
     if (result && hit != undefined) {
       const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
@@ -225,6 +230,156 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.boxCast }
+   */
+  boxCast(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    if (!this._boxGeometry) {
+      this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
+    } else {
+      this._boxGeometry.halfExtents = halfExtents;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._sweepSingle(this._boxGeometry, pose, direction, distance, onSweep, outHitResult);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.sphereCast }
+   */
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    if (!this._sphereGeometry) {
+      this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius);
+    } else {
+      this._sphereGeometry.radius = radius;
+    }
+
+    const tempQuat = PhysXPhysicsScene._tempQuaternion;
+    tempQuat.set(0, 0, 0, 1); // Identity quaternion
+    const pose = { translation: center, rotation: tempQuat };
+    return this._sweepSingle(this._sphereGeometry, pose, direction, distance, onSweep, outHitResult);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.capsuleCast }
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    if (!this._capsuleGeometry) {
+      this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, height * 0.5);
+    } else {
+      this._capsuleGeometry.radius = radius;
+      this._capsuleGeometry.halfHeight = height * 0.5;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._sweepSingle(this._capsuleGeometry, pose, direction, distance, onSweep, outHitResult);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapBoxAll }
+   */
+  overlapBoxAll(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    if (!this._boxGeometry) {
+      this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
+    } else {
+      this._boxGeometry.halfExtents = halfExtents;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._overlapMultiple(this._boxGeometry, pose, onOverlap);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapSphereAll }
+   */
+  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[] {
+    if (!this._sphereGeometry) {
+      this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius);
+    } else {
+      this._sphereGeometry.radius = radius;
+    }
+
+    const tempQuat = PhysXPhysicsScene._tempQuaternion;
+    tempQuat.set(0, 0, 0, 1);
+    const pose = { translation: center, rotation: tempQuat };
+    return this._overlapMultiple(this._sphereGeometry, pose, onOverlap);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapCapsuleAll }
+   */
+  overlapCapsuleAll(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    if (!this._capsuleGeometry) {
+      this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, height * 0.5);
+    } else {
+      this._capsuleGeometry.radius = radius;
+      this._capsuleGeometry.halfHeight = height * 0.5;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._overlapMultiple(this._capsuleGeometry, pose, onOverlap);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.destroy }
+   */
+  destroy(): void {
+    this._boxGeometry?.delete();
+    this._sphereGeometry?.delete();
+    this._capsuleGeometry?.delete();
+
+    this._physXSimulationCallbackInstance.delete();
+    this._pxRaycastHit.delete();
+    this._pxFilterData.flags.delete();
+    this._pxFilterData.delete();
+    // Need to release the controller manager before release the scene.
+    this._pxControllerManager?.release();
+    this._pxScene.release();
+  }
+
+  /**
    * @internal
    */
   _getControllerManager(): any {
@@ -233,6 +388,112 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       this._pxControllerManager = pxControllerManager = this._pxScene.createControllerManager();
     }
     return pxControllerManager;
+  }
+
+  /**
+   * @internal
+   */
+  _addColliderShape(id: number) {
+    this._physXManager._eventMap[id] = Object.create(null);
+  }
+
+  /**
+   * @internal
+   */
+  _removeColliderShape(id: number) {
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    const { _eventMap: eventMap } = this._physXManager;
+    currentEvents.forEach((event, i) => {
+      if (event.index1 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      } else if (event.index2 == id) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        // If the shape is big index, should clear from the small index shape subMap
+        eventMap[event.index1][id] = undefined;
+      }
+    });
+    delete eventMap[id];
+  }
+
+  private _sweepSingle(
+    geometry: any,
+    pose: { translation: Vector3; rotation: Quaternion },
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
+
+    const sweepCallback = {
+      preFilter: (filterData, index, actor) => {
+        if (onSweep(index)) {
+          return 2; // eBLOCK
+        } else {
+          return 0; // eNONE
+        }
+      }
+    };
+
+    const pxSweepCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(sweepCallback);
+    const pxSweepHit = new this._physXPhysics._physX.PxSweepHit();
+    const result = this._pxScene.sweepSingle(
+      geometry,
+      pose,
+      direction,
+      distance,
+      pxSweepHit,
+      this._pxFilterData,
+      pxSweepCallback
+    );
+
+    if (result && outHitResult != undefined) {
+      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
+      const { position: pxPosition, normal: pxNormal } = pxSweepHit;
+      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+      outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
+    }
+
+    pxSweepCallback.delete();
+    pxSweepHit.delete();
+
+    return result;
+  }
+
+  private _overlapMultiple(
+    geometry: any,
+    pose: { translation: Vector3; rotation: Quaternion },
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    const overlapCallback = {
+      preFilter: (filterData, index, actor) => (onOverlap(index) ? 2 : 0)
+    };
+
+    const pxOverlapCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(overlapCallback);
+    const maxHits = 256;
+    const hits: any = (this._pxScene as any).overlapMultiple(
+      geometry,
+      pose,
+      maxHits,
+      this._pxFilterData,
+      pxOverlapCallback
+    );
+
+    const result = PhysXPhysicsScene._tempShapeIDs;
+    result.length = 0;
+    if (hits) {
+      // PhysX overlapMultiple returns a collection with size() method
+      for (let i = 0, n = hits.size(); i < n; i++) {
+        result.push(hits.get(i).getShape().getUUID());
+      }
+    }
+
+    pxOverlapCallback.delete();
+    hits?.delete();
+    return result;
   }
 
   private _simulate(elapsedTime: number): void {
@@ -258,19 +519,18 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = currentEvents.length - 1; i >= 0; i--) {
-      const event = currentEvents.get(i);
+    currentEvents.forEach((event, i) => {
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);
         event.state = TriggerEventState.Stay;
       } else if (event.state == TriggerEventState.Stay) {
         this._onTriggerStay(event.index1, event.index2);
       } else if (event.state == TriggerEventState.Exit) {
-        this._onTriggerExit(event.index1, event.index2);
         currentEvents.deleteByIndex(i);
+        this._onTriggerExit(event.index1, event.index2);
         eventPool.push(event);
       }
-    }
+    });
   }
 }
 

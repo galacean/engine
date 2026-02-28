@@ -1,5 +1,7 @@
 import {
+  AssetPromise,
   IndexFormat,
+  Logger,
   Texture2D,
   TextureFilterMode,
   TypedArray,
@@ -132,7 +134,7 @@ export class GLTFUtils {
     context: GLTFParserContext,
     bufferViews: IBufferView[],
     accessor: IAccessor
-  ): Promise<BufferInfo> {
+  ): AssetPromise<BufferInfo> {
     const componentType = accessor.componentType;
     const TypedArray = GLTFUtils.getComponentType(componentType);
     const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
@@ -140,47 +142,51 @@ export class GLTFUtils {
     const elementStride = dataElementSize * dataElementBytes;
     const accessorCount = accessor.count;
 
-    let promise: Promise<BufferInfo>;
+    let promise: AssetPromise<BufferInfo>;
 
     if (accessor.bufferView !== undefined) {
       const bufferViewIndex = accessor.bufferView;
       const bufferView = bufferViews[bufferViewIndex];
+      promise = context
+        .get<Uint8Array>(GLTFParserType.BufferView, accessor.bufferView)
+        .then((bufferViewData) => {
+          const bufferIndex = bufferView.buffer;
+          const bufferByteOffset = bufferViewData.byteOffset ?? 0;
+          const byteOffset = accessor.byteOffset ?? 0;
 
-      promise = context.get<Uint8Array>(GLTFParserType.BufferView, accessor.bufferView).then((bufferViewData) => {
-        const bufferIndex = bufferView.buffer;
-        const bufferByteOffset = bufferViewData.byteOffset ?? 0;
-        const byteOffset = accessor.byteOffset ?? 0;
+          const bufferStride = bufferView.byteStride;
 
-        const bufferStride = bufferView.byteStride;
-
-        let bufferInfo: BufferInfo;
-        // According to the glTF official documentation only byteStride not undefined is allowed
-        if (bufferStride !== undefined && bufferStride !== elementStride) {
-          const bufferSlice = Math.floor(byteOffset / bufferStride);
-          const bufferCacheKey = bufferViewIndex + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
-          const accessorBufferCache = context.accessorBufferCache;
-          bufferInfo = accessorBufferCache[bufferCacheKey];
-          if (!bufferInfo) {
-            const offset = bufferByteOffset + bufferSlice * bufferStride;
-            const count = accessorCount * (bufferStride / dataElementBytes);
+          let bufferInfo: BufferInfo;
+          // According to the glTF official documentation only byteStride not undefined is allowed
+          if (bufferStride !== undefined && bufferStride !== elementStride) {
+            const bufferSlice = Math.floor(byteOffset / bufferStride);
+            const bufferCacheKey = bufferViewIndex + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
+            const accessorBufferCache = context.accessorBufferCache;
+            bufferInfo = accessorBufferCache[bufferCacheKey];
+            if (!bufferInfo) {
+              const offset = bufferByteOffset + bufferSlice * bufferStride;
+              const count = accessorCount * (bufferStride / dataElementBytes);
+              const data = new TypedArray(bufferViewData.buffer, offset, count);
+              accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+              bufferInfo.restoreInfo = new BufferDataRestoreInfo(
+                new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
+              );
+            }
+          } else {
+            const offset = bufferByteOffset + byteOffset;
+            const count = accessorCount * dataElementSize;
             const data = new TypedArray(bufferViewData.buffer, offset, count);
-            accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+            bufferInfo = new BufferInfo(data, false, elementStride);
             bufferInfo.restoreInfo = new BufferDataRestoreInfo(
               new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
             );
           }
-        } else {
-          const offset = bufferByteOffset + byteOffset;
-          const count = accessorCount * dataElementSize;
-          const data = new TypedArray(bufferViewData.buffer, offset, count);
-          bufferInfo = new BufferInfo(data, false, elementStride);
-          bufferInfo.restoreInfo = new BufferDataRestoreInfo(
-            new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
-          );
-        }
 
-        return bufferInfo;
-      });
+          return bufferInfo;
+        })
+        .catch((e) => {
+          Logger.error("GLTFUtil getAccessorBuffer error", e);
+        });
     } else {
       const count = accessorCount * dataElementSize;
       const data = new TypedArray(count);
@@ -189,7 +195,7 @@ export class GLTFUtils {
         new RestoreDataAccessor(undefined, TypedArray, undefined, count)
       );
 
-      promise = Promise.resolve(bufferInfo);
+      promise = AssetPromise.resolve(bufferInfo);
     }
 
     return accessor.sparse
@@ -240,47 +246,50 @@ export class GLTFUtils {
     const indicesBufferView = bufferViews[indices.bufferView];
     const valuesBufferView = bufferViews[values.bufferView];
 
-    return Promise.all([
+    return AssetPromise.all([
       context.get<Uint8Array>(GLTFParserType.BufferView, indices.bufferView),
       context.get<Uint8Array>(GLTFParserType.BufferView, values.bufferView)
-    ]).then(([indicesUint8Array, valuesUin8Array]) => {
-      const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesUint8Array.byteOffset ?? 0);
-      const indicesByteLength = indicesUint8Array.byteLength;
-      const valuesByteOffset = (values.byteOffset ?? 0) + (valuesUin8Array.byteOffset ?? 0);
-      const valuesByteLength = valuesUin8Array.byteLength;
+    ])
+      .then(([indicesUint8Array, valuesUin8Array]) => {
+        const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesUint8Array.byteOffset ?? 0);
+        const indicesByteLength = indicesUint8Array.byteLength;
+        const valuesByteOffset = (values.byteOffset ?? 0) + (valuesUin8Array.byteOffset ?? 0);
+        const valuesByteLength = valuesUin8Array.byteLength;
 
-      restoreInfo.typeSize = accessorTypeSize;
-      restoreInfo.sparseCount = count;
+        restoreInfo.typeSize = accessorTypeSize;
+        restoreInfo.sparseCount = count;
 
-      const IndexTypeArray = GLTFUtils.getComponentType(indices.componentType);
+        const IndexTypeArray = GLTFUtils.getComponentType(indices.componentType);
+        const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
+        const indicesArray = new IndexTypeArray(indicesUint8Array.buffer, indicesByteOffset, indexLength);
+        restoreInfo.sparseIndices = new RestoreDataAccessor(
+          indicesBufferView.buffer,
+          IndexTypeArray,
+          indicesByteOffset,
+          indexLength
+        );
 
-      const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
-      const indicesArray = new IndexTypeArray(indicesUint8Array.buffer, indicesByteOffset, indexLength);
-      restoreInfo.sparseIndices = new RestoreDataAccessor(
-        indicesBufferView.buffer,
-        IndexTypeArray,
-        indicesByteOffset,
-        indexLength
-      );
+        const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
+        const valuesArray = new TypedArray(valuesUin8Array.buffer, valuesByteOffset, valueLength);
+        restoreInfo.sparseValues = new RestoreDataAccessor(
+          valuesBufferView.buffer,
+          TypedArray,
+          valuesByteOffset,
+          valueLength
+        );
 
-      const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
-      const valuesArray = new TypedArray(valuesUin8Array.buffer, valuesByteOffset, valueLength);
-      restoreInfo.sparseValues = new RestoreDataAccessor(
-        valuesBufferView.buffer,
-        TypedArray,
-        valuesByteOffset,
-        valueLength
-      );
-
-      for (let i = 0; i < count; i++) {
-        const replaceIndex = indicesArray[i];
-        for (let j = 0; j < accessorTypeSize; j++) {
-          data[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
+        for (let i = 0; i < count; i++) {
+          const replaceIndex = indicesArray[i];
+          for (let j = 0; j < accessorTypeSize; j++) {
+            data[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
+          }
         }
-      }
 
-      bufferInfo.data = data;
-    });
+        bufferInfo.data = data;
+      })
+      .catch((e) => {
+        Logger.error("GLTFUtil processingSparseData error", e);
+      });
   }
 
   static getIndexFormat(type: AccessorComponentType): IndexFormat {
@@ -350,7 +359,7 @@ export class GLTFUtils {
   /**
    * Load image buffer
    */
-  static loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
+  static loadImageBuffer(imageBuffer: TypedArray, type: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer], { type });
       const img = new Image();
@@ -389,31 +398,32 @@ export class GLTFUtils {
 
     const dataView = new DataView(originBuffer);
 
-    // read header
+    // Read header
     const header = {
       magic: dataView.getUint32(0, true),
       version: dataView.getUint32(UINT32_LENGTH, true),
       length: dataView.getUint32(2 * UINT32_LENGTH, true)
     };
 
+    // Return the original buffer if it is not a glb
     if (header.magic !== GLB_HEADER_MAGIC) {
       return { originBuffer };
     }
 
-    // read main data
+    // Read main data
     let chunkLength = dataView.getUint32(GLB_HEADER_LENGTH, true);
     let chunkType = dataView.getUint32(GLB_HEADER_LENGTH + UINT32_LENGTH, true);
 
-    // read glTF json
+    // Read glTF json
     if (chunkType !== GLB_CHUNK_TYPES.JSON) {
       console.error("Invalid glb chunk type. Expected 0x4E4F534A, found 0x" + chunkType.toString(16));
       return null;
     }
 
     const glTFData = new Uint8Array(originBuffer, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
-    const glTF: IGLTF = JSON.parse(Utils.decodeText(glTFData));
+    const glTF = <IGLTF>JSON.parse(Utils.decodeText(glTFData));
 
-    // read all buffers
+    // Read all buffers
     const buffers: ArrayBuffer[] = [];
     let byteOffset = GLB_HEADER_LENGTH + 2 * UINT32_LENGTH + chunkLength;
 

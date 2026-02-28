@@ -10,6 +10,8 @@ import { Material } from "./Material";
 export class BaseMaterial extends Material {
   /** @internal */
   static _shadowCasterRenderQueueProp = ShaderProperty.getByName("material_ShadowCasterRenderQueue");
+  /** @internal */
+  static _depthOnlyRenderQueueProp = ShaderProperty.getByName("material_DepthOnlyRenderQueue");
 
   protected static _baseTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_BASETEXTURE");
   protected static _normalTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_NORMALTEXTURE");
@@ -24,11 +26,11 @@ export class BaseMaterial extends Material {
   protected static _emissiveColorProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveColor");
   protected static _emissiveTextureProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveTexture");
 
-  private static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
+  protected static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_IS_ALPHA_CUTOFF");
 
   private _renderFace: RenderFace = RenderFace.Front;
-  private _isTransparent: boolean = false;
+  protected _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
 
   /**
@@ -73,24 +75,7 @@ export class BaseMaterial extends Material {
   }
 
   set isTransparent(value: boolean) {
-    if (value !== this._isTransparent) {
-      this.setIsTransparent(0, value);
-
-      const { shaderData } = this;
-      if (value) {
-        // Use alpha test queue to simulate transparent shadow
-        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-      } else {
-        const alphaCutoff = shaderData.getFloat(BaseMaterial._alphaCutoffProp);
-        if (alphaCutoff) {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-        } else {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
-        }
-      }
-
-      this._isTransparent = value;
-    }
+    this._seIsTransparent(value);
   }
 
   /**
@@ -119,35 +104,7 @@ export class BaseMaterial extends Material {
   }
 
   set alphaCutoff(value: number) {
-    const { shaderData } = this;
-    if (shaderData.getFloat(BaseMaterial._alphaCutoffProp) !== value) {
-      if (value) {
-        shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
-        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-      } else {
-        shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
-        if (this._isTransparent) {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
-        } else {
-          shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
-        }
-      }
-
-      const { renderStates } = this;
-      for (let i = 0, n = renderStates.length; i < n; i++) {
-        const renderState = renderStates[i];
-        if (value > 0) {
-          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
-            ? RenderQueueType.Transparent
-            : RenderQueueType.AlphaTest;
-        } else {
-          renderState.renderQueueType = renderState.blendState.targetBlendState.enabled
-            ? RenderQueueType.Transparent
-            : RenderQueueType.Opaque;
-        }
-      }
-      shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
-    }
+    this._setAlphaCutoff(value);
   }
 
   /**
@@ -175,6 +132,7 @@ export class BaseMaterial extends Material {
     const { shaderData } = this;
     shaderData.setFloat(BaseMaterial._alphaCutoffProp, 0);
     shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
+    shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Opaque);
   }
 
   /**
@@ -229,8 +187,8 @@ export class BaseMaterial extends Material {
       case BlendMode.Additive:
         target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
         target.destinationColorBlendFactor = BlendFactor.One;
-        target.sourceAlphaBlendFactor = BlendFactor.One;
-        target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        target.sourceAlphaBlendFactor = BlendFactor.Zero;
+        target.destinationAlphaBlendFactor = BlendFactor.One;
         target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
         break;
     }
@@ -265,7 +223,7 @@ export class BaseMaterial extends Material {
    */
   override clone(): BaseMaterial {
     const dest = new BaseMaterial(this._engine, this.shader);
-    this.cloneTo(dest);
+    this._cloneToAndModifyName(dest);
     return dest;
   }
 
@@ -278,5 +236,61 @@ export class BaseMaterial extends Material {
     target._renderFace = this._renderFace;
     target._isTransparent = this._isTransparent;
     target._blendMode = this._blendMode;
+  }
+
+  protected _seIsTransparent(value: boolean): void {
+    if (value !== this._isTransparent) {
+      // Forward pass
+      this.setIsTransparent(0, value);
+
+      // Shadow caster pass and depth only pass
+      const { shaderData } = this;
+      if (value) {
+        // Shadow caster render queue, use alpha test queue to simulate transparent shadow
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+        // Depth only render queue
+        shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Transparent);
+      } else {
+        const alphaCutoff = shaderData.getFloat(BaseMaterial._alphaCutoffProp);
+        const renderQueueType = alphaCutoff ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
+        // Shadow caster render queue
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, renderQueueType);
+        // Depth only render queue
+        shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, renderQueueType);
+      }
+
+      this._isTransparent = value;
+    }
+  }
+
+  protected _setAlphaCutoff(value: number): void {
+    const { shaderData, _isTransparent: isTransparent } = this;
+
+    if (shaderData.getFloat(BaseMaterial._alphaCutoffProp) !== value) {
+      if (value) {
+        shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
+
+        // Forward render queue
+        const forwardQueue = isTransparent ? RenderQueueType.Transparent : RenderQueueType.AlphaTest;
+        this.renderStates[0].renderQueueType = forwardQueue;
+        // Shadow caster render queue
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
+        // Depth only render queue
+        shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, forwardQueue);
+      } else {
+        shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
+
+        // Forward render queue
+        const forwardQueue = isTransparent ? RenderQueueType.Transparent : RenderQueueType.Opaque;
+        this.renderStates[0].renderQueueType = forwardQueue;
+        // Shadow caster render queue
+        const shadowCasterQueue = isTransparent ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
+        shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, shadowCasterQueue);
+        // Depth only render queue
+        shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, forwardQueue);
+      }
+
+      shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
+    }
   }
 }

@@ -1,0 +1,214 @@
+---
+title: UIScript System
+---
+
+UIScript enables intelligent property panel interaction for shaders, while macro definitions allow for conditional compilation of shaders. This tutorial demonstrates how to combine these two features to create flexible shaders. By completing this tutorial, you will learn:
+- The syntax for defining properties in the Editor module
+- How to use various property types
+- Conditional compilation syntax using macro definitions
+- The logic for property binding in UIScript
+
+
+<Image
+src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*5WoAR7VBZtcAAAAAS9AAAAgAeuuHAQ/original"
+/>
+
+
+## Editor Module
+
+The Editor module defines the property panel for materials in the editor:
+
+```glsl
+Editor {
+Properties {
+// Basic property definition
+material_BaseColor("Base Color", Color) = (1, 1, 1, 1);
+material_BaseTexture("Base Texture", Texture2D);
+
+// Grouping properties
+Header("Effects") {
+material_UseTexture("Use Texture", Boolean) = true;
+material_Brightness("Brightness", Range(0, 2, 0.01)) = 1.0;
+}
+}
+}
+```
+
+<Callout type="info">
+Go to [Shader Introduction](/en/docs/graphics/material/shader/#2-editor-module) to learn more about properties
+</Callout>
+
+
+## Macro Definition System
+
+Macro definitions implement conditional compilation for shaders, generating different shader variants based on different conditions:
+
+### Basic Macro Definition
+```glsl
+#ifdef USE_TEXTURE
+// This code will only compile when the USE_TEXTURE macro is defined
+vec4 texColor = texture2D(material_BaseTexture, input.uv);
+color *= texColor;
+#endif
+```
+
+### Enabling and Disabling Macros
+```typescript
+// Control macros in code
+material.shaderData.enableMacro("USE_TEXTURE");   // Enable macro
+material.shaderData.disableMacro("USE_TEXTURE");  // Disable macro
+```
+
+## Conditional Compilation Syntax
+
+### #ifdef - If the macro is defined
+```glsl
+#ifdef USE_TEXTURE
+vec4 texColor = texture2D(material_BaseTexture, uv);
+color *= texColor;
+#endif
+```
+
+### #ifndef - If the macro is not defined
+```glsl
+#ifndef USE_TEXTURE
+// This code will execute when USE_TEXTURE is not defined
+color = material_BaseColor;
+#endif
+```
+
+### #if defined - More Complex Conditions
+```glsl
+#if defined(USE_TEXTURE) && defined(USE_NORMAL_MAP)
+// This code will execute when both macros are defined
+#endif
+```
+
+### #else and #endif
+```glsl
+#ifdef USE_TEXTURE
+vec4 texColor = texture2D(material_BaseTexture, uv);
+color *= texColor;
+#else
+color = material_BaseColor;
+#endif
+```
+
+## UIScript Interaction Logic
+
+UIScript implements property binding (only works in the editor):
+
+```typescript
+export default class UIScriptDemo extends ShaderUIScript {
+constructor() {
+super();
+
+// Listen for property changes
+this.onPropertyChanged("material_UseTexture", (value) => {
+const { material: { shaderData } } = this;
+
+if (value) {
+// When texture is enabled
+shaderData.enableMacro("USE_TEXTURE");
+} else {
+// When texture is disabled
+shaderData.disableMacro("USE_TEXTURE");
+}
+});
+}
+}
+```
+
+## Complete Shader Example
+
+```glsl
+Shader "Tutorial/03-UIScript" {
+// The Editor module defines the material panel properties and interactions
+Editor {
+Properties {
+// Basic properties
+material_BaseColor("Base Color", Color) = (1, 1, 1, 1);
+material_BaseTexture("Base Texture", Texture2D);
+
+// Grouped properties
+Header("Effects") {
+material_UseTexture("Use Texture", Boolean) = true;
+material_Brightness("Brightness", Range(0, 2, 0.01)) = 1.0;
+material_Contrast("Contrast", Range(0, 2, 0.01)) = 1.0;
+}
+
+Header("Animation") {
+material_EnableAnimation("Enable Animation", Boolean) = false;
+material_AnimSpeed("Animation Speed", Range(0, 5, 0.1)) = 1.0;
+}
+}
+}
+
+SubShader
+``` "Default" {
+Pass "Forward" {
+mat4 renderer_MVPMat;
+float renderer_Time;
+
+vec4 material_BaseColor;
+sampler2D material_BaseTexture;
+float material_Brightness;
+float material_Contrast;
+float material_AnimSpeed;
+
+struct a2v {
+vec4 POSITION;
+vec2 TEXCOORD_0;
+};
+
+struct v2f {
+vec2 uv;
+};
+
+VertexShader = vert;
+FragmentShader = frag;
+
+v2f vert(a2v input) {
+v2f output;
+
+vec4 pos = input.POSITION;
+
+// Add vertex animation effect if animation is enabled
+#ifdef ENABLE_ANIMATION
+pos.y += sin(pos.x * 3.0 + renderer_Time * material_AnimSpeed) * 0.2;
+#endif
+
+gl_Position = renderer_MVPMat * pos;
+output.uv = input.TEXCOORD_0;
+
+return output;
+}
+
+void frag(v2f input) {
+vec4 color = material_BaseColor;
+
+// Sample texture if texture is enabled
+#ifdef USE_TEXTURE
+vec4 texColor = texture2D(material_BaseTexture, input.uv);
+color *= texColor;
+#endif
+
+// Apply brightness and contrast adjustments
+color.rgb *= material_Brightness;
+color.rgb = (color.rgb - 0.5) * material_Contrast + 0.5;
+
+gl_FragColor = color;
+}
+}
+}
+}
+```
+
+## Demo Effects
+
+1. Demonstrates the definition and grouping of Editor Properties
+2. Shows conditional compilation using macros (#ifdef USE_TEXTURE, ENABLE_ANIMATION)
+3. Simulates the property binding logic in UIScript
+4. Observe the effects of enabling/disabling texture and animation, and the dynamic changes in brightness and contrast
+
+Go to [Playground](/examples/shaderlab-03-ui-script)

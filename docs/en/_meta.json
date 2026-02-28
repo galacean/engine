@@ -23,6 +23,12 @@
       "collapse": true
     }
   },
+  "AI": {
+    "title": "AI",
+    "theme": {
+      "collapse": true
+    }
+  },
   "graphics": {
     "title": "Graphics",
     "theme": {
@@ -47,14 +53,32 @@
       "collapse": true
     }
   },
+  "UI": {
+    "title": "UI",
+    "theme": {
+      "collapse": true
+    }
+  },
   "xr": {
     "title": "XR",
     "theme": {
       "collapse": true
     }
   },
+  "audio": {
+    "title": "Audio",
+    "theme": {
+      "collapse": true
+    }
+  },
   "input": {
     "title": "Input",
+    "theme": {
+      "collapse": true
+    }
+  },
+  "platform": {
+    "title": "Platform",
     "theme": {
       "collapse": true
     }
@@ -67,12 +91,6 @@
   },
   "performance": {
     "title": "Performance",
-    "theme": {
-      "collapse": true
-    }
-  },
-  "miniProgram": {
-    "title": "Mini Program",
     "theme": {
       "collapse": true
     }

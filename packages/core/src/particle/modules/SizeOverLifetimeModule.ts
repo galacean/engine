@@ -169,11 +169,4 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     this._isCurveMacro = this._enableMacro(shaderData, this._isCurveMacro, isCurveMacro);
     this._isRandomTwoMacro = this._enableMacro(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
   }
-
-  private _onCompositeCurveChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
-    const renderer = this._generator._renderer;
-    lastValue?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-    value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
-    renderer._onGeneratorParamsChanged();
-  }
 }

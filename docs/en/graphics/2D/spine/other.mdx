@@ -1,0 +1,30 @@
+---
+order: 4
+title: Version and Performance
+type: Graphics
+group: Spine
+label: Graphics/2D/Spine/other
+---
+
+### Spine and Editor Version Compatibility Table  
+
+| Galacean Version | Spine Version | @galacean/engine-spine Version |
+|------------------|---------------|-------------------------------|
+| ≤ 1.2            | Spine 3.8     | 1.2.0                         |
+| 1.3              | Spine 4.2     | engine-1.3                    |
+| 1.4              | Spine 4.2     | engine-1.4                    |
+| 1.5              | Spine 4.2     | engine-1.5                    |  
+
+---
+
+### Performance Recommendations  
+1. **Use binary files (`.skel`)** for exporting skeletons. Binary files are smaller in size and load faster.  
+2. **Minimize the number of atlas pages** by packing attachments into as few texture atlases as possible. Organize attachments in atlas pages according to rendering order to avoid unnecessary material switches. Refer to: [Spine Texture Packer - Folder Structure](https://zh.esotericsoftware.com/spine-texture-packer#%E6%96%87%E4%BB%B6%E5%A4%B9%E7%BB%93%E6%9E%84) for guidance on arranging atlas regions in your Spine atlas.  
+3. **Avoid using clipping features**. Spine's clipping is implemented via dynamic triangle trimming, which is computationally expensive.  
+4. **Limit the use of atlas page textures**. Aim to keep the number of exported texture images to a minimum (ideally one).  
+5. **Share a single atlas texture across multiple skeletons** when possible. For example, add multiple skeletons to the same Spine project and select a single atlas during export. This allows multiple skeletons to reference the same atlas texture.  
+
+---
+
+### Questions  
+For any questions about Spine, feel free to [create an issue](https://github.com/galacean/engine-spine/issues/new) in the `@galacean/engine-spine` repository.

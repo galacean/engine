@@ -1,6 +1,6 @@
 import { Camera, dependentComponents, DependentMode, Entity, MeshRenderer, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -9,7 +9,7 @@ canvasDOM.height = 1024;
 describe("Component dependencies test", function () {
   let entity: Entity;
   let camera: Camera;
- before(async function () {
+  beforeAll(async function () {
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
     entity = engine.sceneManager.activeScene.createRootEntity();
     camera = entity.addComponent(Camera);
@@ -26,7 +26,7 @@ describe("Component dependencies test", function () {
       const meshRenderer = entity.addComponent(MeshRenderer);
       entity.addComponent(CustomScriptB);
       meshRenderer.destroy();
-    }).throw("Should remove CustomScriptA before adding MeshRenderer");
+    }).throw("Should remove CustomScriptA before remove MeshRenderer");
   });
 });
 

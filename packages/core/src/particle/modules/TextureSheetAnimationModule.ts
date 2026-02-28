@@ -8,6 +8,7 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
+import { ParticleGenerator } from "../ParticleGenerator";
 
 /**
  * Texture sheet animation module.
@@ -16,14 +17,12 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   private static readonly _frameCurveMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_CURVE");
   private static readonly _frameRandomCurvesMacro = ShaderMacro.getByName("RENDERER_TSA_FRAME_RANDOM_CURVES");
 
-  private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
-  private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
   private static readonly _frameMinCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMinCurve");
   private static readonly _frameMaxCurveProperty = ShaderProperty.getByName("renderer_TSAFrameMaxCurve");
 
-  /** Start frame of the texture sheet. */
-  @deepClone
-  readonly startFrame = new ParticleCompositeCurve(0);
+  private static readonly _cycleCountProperty = ShaderProperty.getByName("renderer_TSACycles");
+  private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
+
   /** Frame over time curve of the texture sheet. */
   @deepClone
   readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
@@ -42,7 +41,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   @deepClone
   private _tiling = new Vector2(1, 1);
   @ignoreClone
-  private _textureSheetMacro: ShaderMacro;
+  private _frameCurveMacro: ShaderMacro;
 
   /**
    * Tiling of the texture sheet.
@@ -52,8 +51,13 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   }
 
   set tiling(value: Vector2) {
-    this._tiling = value;
-    this._tillingInfo.set(1.0 / value.x, 1.0 / value.y, value.x * value.y);
+    value !== this._tiling && this._tiling.copyFrom(value);
+  }
+
+  constructor(generator: ParticleGenerator) {
+    super(generator);
+    // @ts-ignore
+    this._tiling._onValueChanged = this._onTilingChanged.bind(this);
   }
 
   /**
@@ -78,7 +82,7 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
       }
     }
 
-    this._textureSheetMacro = this._enableMacro(shaderData, this._textureSheetMacro, frameMacro);
+    this._frameCurveMacro = this._enableMacro(shaderData, this._frameCurveMacro, frameMacro);
   }
 
   /**
@@ -86,6 +90,12 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(randomSeed: number): void {
     this._frameOverTimeRand.reset(randomSeed, ParticleRandomSubSeeds.TextureSheetAnimation);
+  }
+
+  @ignoreClone
+  private _onTilingChanged(): void {
+    const tiling = this.tiling;
+    this._tillingInfo.set(1.0 / tiling.x, 1.0 / tiling.y, tiling.x * tiling.y);
   }
 }
 

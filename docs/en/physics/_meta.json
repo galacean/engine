@@ -1,0 +1,26 @@
+{
+  "overall": {
+    "title": "Physics Overview",
+    "order": 0
+  },
+  "collider": {
+    "title": "Collider",
+    "order": 1
+  },
+  "joint": {
+    "title": "Joint",
+    "order": 2
+  },
+  "manager": {
+    "title": "Physics Scene",
+    "order": 3
+  },
+  "query": {
+    "title": "Spatial Queries",
+    "order": 4
+  },
+  "debug": {
+    "title": "Physics Debug",
+    "order": 5
+  }
+}

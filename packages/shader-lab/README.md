@@ -1,13 +1,13 @@
 ## Installation
 
 ```sh
-npm install @galacean/engine-shader-lab
+npm install @galacean/engine-shaderlab
 ```
 
 ## Usage
 
 ```typescript
-import { ShaderLab } from "@galacean/engine-shader-lab";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 
 // Create ShaderLab
 const shaderLab = new ShaderLab();
@@ -24,6 +24,14 @@ const shader = Shader.create(galaceanShaderCode);
 
 // Run engine
 engine.run()
+```
+
+There are two versions of ShaderLab: `Release` and `Verbose`. The `Verbose` version offers more user-friendly diagnostic information for debug ShaderLab compilation errors, while the Release version provides superior performance.
+
+you can use `Verbose` version by import:
+
+```ts
+import { ShaderLab } from "@galacean/engine-shaderlab/verbose";
 ```
 
 ## CFG Grammar conflict detection

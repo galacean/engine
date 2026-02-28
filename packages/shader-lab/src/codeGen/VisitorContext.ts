@@ -1,10 +1,16 @@
-import { Logger } from "@galacean/engine";
-import { EShaderStage } from "../common/Enums";
-import { ASTNode } from "../parser/AST";
-import { ESymbolType, SymbolTable, SymbolInfo } from "../parser/symbolTable";
-import { IParamInfo } from "../parser/types";
+import { BaseToken } from "../common/BaseToken";
+import { EShaderStage } from "../common/enums/ShaderStage";
+import { SymbolTable } from "../common/SymbolTable";
+import { GSErrorName } from "../GSError";
+import { ASTNode, TreeNode } from "../parser/AST";
+import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
+import { StructProp } from "../parser/types";
+import { ShaderLab } from "../ShaderLab";
+import { ShaderLabUtils } from "../ShaderLabUtils";
 
+/** @internal */
 export class VisitorContext {
+  private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _singleton: VisitorContext;
   static get context() {
     return this._singleton;
@@ -17,31 +23,39 @@ export class VisitorContext {
     this._singleton.reset();
   }
 
-  attributeList: IParamInfo[] = [];
   attributeStructs: ASTNode.StructSpecifier[] = [];
-  varyingStruct?: ASTNode.StructSpecifier;
+  attributeList: StructProp[] = [];
+  varyingStructs: ASTNode.StructSpecifier[] = [];
+  varyingList: StructProp[] = [];
+  mrtStructs: ASTNode.StructSpecifier[] = [];
+  mrtList: StructProp[] = [];
 
   stage: EShaderStage;
+  stageEntry: string;
 
-  _referencedAttributeList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
-  _referencedGlobals: Record<string, SymbolInfo | ASTNode.PrecisionSpecifier> = Object.create(null);
-  _referencedVaryingList: Record<string, IParamInfo & { qualifier?: string }> = Object.create(null);
+  _referencedAttributeList: Record<string, StructProp[]>;
+  _referencedVaryingList: Record<string, StructProp[]>;
+  _referencedMRTList: Record<string, StructProp[]>;
+  _referencedGlobals: Record<string, SymbolInfo[]>;
+  _referencedGlobalMacroASTs: TreeNode[] = [];
 
-  _curFn?: ASTNode.FunctionProtoType;
+  _passSymbolTable: SymbolTable<SymbolInfo>;
 
-  _passSymbolTable: SymbolTable;
-  get passSymbolTable() {
-    return this._passSymbolTable;
-  }
+  reset(resetAll = true) {
+    if (resetAll) {
+      this.attributeStructs.length = 0;
+      this.attributeList.length = 0;
+      this.varyingStructs.length = 0;
+      this.varyingList.length = 0;
+      this.mrtStructs.length = 0;
+      this.mrtList.length = 0;
+    }
 
-  private constructor() {}
-
-  reset() {
-    this.attributeList.length = 0;
-    this.attributeStructs.length = 0;
     this._referencedAttributeList = Object.create(null);
-    this._referencedGlobals = Object.create(null);
     this._referencedVaryingList = Object.create(null);
+    this._referencedMRTList = Object.create(null);
+    this._referencedGlobals = Object.create(null);
+    this._referencedGlobalMacroASTs.length = 0;
   }
 
   isAttributeStruct(type: string) {
@@ -49,45 +63,68 @@ export class VisitorContext {
   }
 
   isVaryingStruct(type: string) {
-    return this.varyingStruct?.ident?.lexeme === type;
+    return this.varyingStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
   }
 
-  referenceAttribute(ident: string) {
-    if (this._referencedAttributeList[ident]) return;
+  isMRTStruct(type: string) {
+    return this.mrtStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
+  }
 
-    const prop = this.attributeList.find((item) => item.ident.lexeme === ident);
-    if (!prop) {
-      Logger.error("referenced attribute not found:", ident);
-      return;
+  referenceAttribute(ident: BaseToken): Error | void {
+    const lexeme = ident.lexeme;
+    if (this._referencedAttributeList[lexeme]) return;
+
+    const props = this.attributeList.filter((item) => item.ident.lexeme === lexeme);
+    if (!props.length) {
+      return ShaderLabUtils.createGSError(
+        `referenced attribute not found: ${lexeme}`,
+        GSErrorName.CompilationError,
+        ShaderLab._processingPassText,
+        ident.location
+      );
     }
-    this._referencedAttributeList[ident] = prop;
+    this._referencedAttributeList[lexeme] = props;
   }
 
-  referenceVarying(ident: string) {
-    if (this._referencedVaryingList[ident]) return;
+  referenceVarying(ident: BaseToken): Error | void {
+    const lexeme = ident.lexeme;
+    if (this._referencedVaryingList[lexeme]) return;
 
-    const prop = this.varyingStruct?.propList.find((item) => item.ident.lexeme === ident);
-    if (!prop) {
-      Logger.error("referenced varying not found:", ident);
-      return;
+    const props = this.varyingList.filter((item) => item.ident.lexeme === lexeme);
+    if (!props.length) {
+      return ShaderLabUtils.createGSError(
+        `referenced varying not found: ${lexeme}`,
+        GSErrorName.CompilationError,
+        ShaderLab._processingPassText,
+        ident.location
+      );
     }
-    this._referencedVaryingList[ident] = prop;
+    this._referencedVaryingList[lexeme] = props;
   }
 
-  referenceGlobal(ident: string, type: ESymbolType) {
+  referenceMRTProp(ident: BaseToken): Error | void {
+    const lexeme = ident.lexeme;
+    if (this._referencedMRTList[lexeme]) return;
+
+    const props = this.mrtList.filter((item) => item.ident.lexeme === lexeme);
+    if (!props.length) {
+      return ShaderLabUtils.createGSError(
+        `referenced mrt not found: ${lexeme}`,
+        GSErrorName.CompilationError,
+        ShaderLab._processingPassText,
+        ident.location
+      );
+    }
+    this._referencedMRTList[lexeme] = props;
+  }
+
+  referenceGlobal(ident: string, type: ESymbolType): void {
     if (this._referencedGlobals[ident]) return;
 
-    if (type === ESymbolType.FN) {
-      const fnEntries = this._passSymbolTable.getAllFnSymbols(ident);
-      for (let i = 0; i < fnEntries.length; i++) {
-        const key = i === 0 ? ident : ident + i;
-        this._referencedGlobals[key] = fnEntries[i];
-      }
-      return;
-    }
-    const sm = this.passSymbolTable.lookup({ ident, symbolType: type });
-    if (sm) {
-      this._referencedGlobals[ident] = sm;
-    }
+    this._referencedGlobals[ident] = [];
+
+    const lookupSymbol = VisitorContext._lookupSymbol;
+    lookupSymbol.set(ident, type);
+    this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
   }
 }

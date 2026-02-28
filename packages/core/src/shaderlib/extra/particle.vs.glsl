@@ -3,9 +3,11 @@
 #endif
 
 #ifdef RENDERER_MODE_MESH
-    attribute vec3 a_MeshPosition;
-    attribute vec4 a_MeshColor;
-    attribute vec2 a_MeshTextureCoordinate;
+    attribute vec3 POSITION;
+    #ifdef RENDERER_ENABLE_VERTEXCOLOR
+        attribute vec4 COLOR_0;
+    #endif
+    attribute vec2 TEXCOORD_0;
     varying vec4 v_MeshColor;
 #endif
 
@@ -20,7 +22,7 @@ attribute float a_StartSpeed;
     attribute vec4 a_Random0;
 //#endif
 
-#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
+#if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO)
     attribute vec4 a_Random1; // x:texture sheet animation random
 #endif
 
@@ -59,22 +61,69 @@ uniform int renderer_SimulationSpace;
 
 #include <particle_common>
 #include <velocity_over_lifetime_module>
+#include <force_over_lifetime_module>
 #include <color_over_lifetime_module>
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
 #include <texture_sheet_animation_module>
 
+vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
+    vec3 startPosition;
+    float lastTime = min(startVelocity.x / dragData.x, age); // todo 0/0
+    startPosition = lastTime * (startVelocity - 0.5 * dragData * lastTime);
+    return startPosition;
+}
+
+vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, inout vec3 localVelocity, inout vec3 worldVelocity) {
+    vec3 startPosition = getStartPosition(startVelocity, age, dragData);
+
+    vec3 finalPosition;
+    vec3 localPositionOffset = startPosition;
+    vec3 worldPositionOffset;
+
+    #ifdef _VOL_MODULE_ENABLED
+        vec3 lifeVelocity;      
+        vec3 velocityPositionOffset = computeVelocityPositionOffset(normalizedAge, age, lifeVelocity);
+        if (renderer_VOLSpace == 0) {
+            localVelocity += lifeVelocity;
+            localPositionOffset += velocityPositionOffset;
+        } else {
+            worldVelocity += lifeVelocity;
+            worldPositionOffset += velocityPositionOffset;
+        }
+    #endif
+
+    #ifdef _FOL_MODULE_ENABLED
+        vec3 forceVelocity;
+        vec3 forcePositionOffset = computeForcePositionOffset(normalizedAge, age, forceVelocity);
+        if (renderer_FOLSpace == 0) {
+            localVelocity += forceVelocity;
+            localPositionOffset += forcePositionOffset;
+        } else {
+            worldVelocity += forceVelocity;
+            worldPositionOffset += forcePositionOffset;
+        }
+    #endif
+
+    finalPosition = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz + localPositionOffset, worldRotation) + worldPositionOffset;
+
+    if (renderer_SimulationSpace == 0) {
+        finalPosition = finalPosition + renderer_WorldPosition;
+    } else if (renderer_SimulationSpace == 1) {
+	    finalPosition = finalPosition + a_SimulationWorldPosition;
+	}
+
+    finalPosition += 0.5 * gravityVelocity * age;
+
+    return finalPosition;
+}
+
 void main() {
     float age = renderer_CurrentTime - a_DirectionTime.w;
     float normalizedAge = age / a_ShapePositionStartLifeTime.w;
-    vec3 lifeVelocity;
     if (normalizedAge < 1.0) {
         vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
-        #if defined(RENDERER_VOL_CONSTANT) || defined(RENDERER_VOL_CURVE) || defined(RENDERER_VOL_RANDOM_CONSTANT) || defined(RENDERER_VOL_RANDOM_CURVE)
-            lifeVelocity = computeParticleLifeVelocity(normalizedAge); 
-        #endif
-        
-        vec3 gravityVelocity = renderer_Gravity * age;
+        vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
 
         vec4 worldRotation;
         if (renderer_SimulationSpace == 0) {
@@ -83,9 +132,12 @@ void main() {
             worldRotation = a_SimulationWorldRotation;
         }
 
+        vec3 localVelocity = startVelocity;
+        vec3 worldVelocity = gravityVelocity;
+
         //drag
         vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
-        vec3 center = computeParticlePosition(startVelocity, lifeVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData); //计算粒子位置
+        vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, localVelocity, worldVelocity);
 
         #include <sphere_billboard>
         #include <stretched_billboard>
@@ -103,7 +155,7 @@ void main() {
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
             #ifdef RENDERER_MODE_MESH
-                simulateUV = a_SimulationUV.xy + a_MeshTextureCoordinate * a_SimulationUV.zw;
+                simulateUV = a_SimulationUV.zw + TEXCOORD_0 * a_SimulationUV.xy;
                 v_TextureCoordinate = computeParticleUV(simulateUV, normalizedAge);
             #endif
         #endif

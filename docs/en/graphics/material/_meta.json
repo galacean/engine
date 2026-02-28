@@ -1,6 +1,10 @@
 {
-  "material": { "title": " Material Overview" },
-  "composition": { "title": "Material Composition" },
-  "editor": { "title": "Using the Editor" },
-  "script": { "title": "Script Usage" }
+  "overview": "Material Overview",
+  "baseUse": "Basic Material Usage",
+  "builtinShaders": "Built-in Shaders",
+  "examples": "Custom Shader Tutorial",
+  "shader": "Shader Introduction",
+  "variables": "Shader Built-in Variables",
+  "shaderAPI": "Shader API"
 }
+

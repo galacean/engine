@@ -1,8 +1,10 @@
 import { ICollider } from "@galacean/engine-design";
-import { Quaternion, Ray, Vector3 } from "@galacean/engine";
+import { Layer, Quaternion, Ray, Vector3 } from "@galacean/engine";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteTransform } from "./LiteTransform";
+import { LitePhysicsScene } from "./LitePhysicsScene";
+import { LitePhysics } from "./LitePhysics";
 
 /**
  * Abstract class of physical collider.
@@ -10,14 +12,20 @@ import { LiteTransform } from "./LiteTransform";
 export abstract class LiteCollider implements ICollider {
   /** @internal */
   abstract readonly _isStaticCollider: boolean;
+  private _litePhysics: LitePhysics;
 
+  /** @internal  */
+  _scene: LitePhysicsScene;
   /** @internal */
   _shapes: LiteColliderShape[] = [];
   /** @internal */
   _transform: LiteTransform = new LiteTransform();
+  /** @internal */
+  _collisionLayer: number;
 
-  protected constructor() {
+  protected constructor(litePhysics: LitePhysics) {
     this._transform.owner = this;
+    this._litePhysics = litePhysics;
   }
 
   /**
@@ -31,6 +39,7 @@ export abstract class LiteCollider implements ICollider {
       }
       this._shapes.push(shape);
       shape._collider = this;
+      this._scene?._addColliderShape(shape);
     }
   }
 
@@ -42,6 +51,7 @@ export abstract class LiteCollider implements ICollider {
     if (index !== -1) {
       this._shapes.splice(index, 1);
       shape._collider = null;
+      this._scene?._removeColliderShape(shape);
     }
   }
 
@@ -60,6 +70,13 @@ export abstract class LiteCollider implements ICollider {
     const { position, rotationQuaternion } = this._transform;
     outPosition.set(position.x, position.y, position.z);
     outRotation.set(rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w);
+  }
+
+  /**
+   * {@inheritDoc ICollider.setCollisionLayer }
+   */
+  setCollisionLayer(collisionLayer: Layer): void {
+    this._litePhysics.setColliderLayer(this, collisionLayer);
   }
 
   /**

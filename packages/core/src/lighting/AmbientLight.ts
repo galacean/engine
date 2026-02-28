@@ -1,12 +1,12 @@
 import { Color, SphericalHarmonics3 } from "@galacean/engine-math";
+import { ReferResource } from "../asset/ReferResource";
+import { Engine } from "../Engine";
 import { Scene } from "../Scene";
 import { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
-import { ReferResource } from "../asset/ReferResource";
-import { Engine } from "../Engine";
 
 /**
  * Ambient light.
@@ -28,7 +28,7 @@ export class AmbientLight extends ReferResource {
   private static _mipLevelProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.mipMapLevel");
 
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
-  private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
+  private _diffuseSolidColor: Color = new Color(0.03696758874771872, 0.0421494543549785, 0.05455383078270364);
   private _diffuseIntensity: number = 1.0;
   private _specularTexture: TextureCube;
   private _specularIntensity: number = 1.0;

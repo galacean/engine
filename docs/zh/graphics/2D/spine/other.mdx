@@ -1,0 +1,28 @@
+---
+order: 4
+title: 版本与性能
+type: 图形
+group: Spine
+label: Graphics/2D/Spine/other
+---
+
+### Spine 与编辑器版本对应表
+
+| Galacean 版本 | Spine 版本  | @galacean/engine-spine 版本         |
+|---------------------|--------------------------|--------------------------|
+| 小于等于 1.2      | Spine 3.8    |   1.2.0        |
+| 1.3             | Spine 4.2     |   engine-1.3   |
+| 1.4             | Spine 4.2     |   engine-1.4   |
+| 1.5             | Spine 4.2     |   engine-1.5   |
+
+
+### 性能建议
+1. 使用二进制文件（.skel）的形式导出 skeleton，二进制文件的体积更小，加载更快。
+2. 建议将附件打包到尽可能少的atlas页中, 并根据绘制顺序将附件分组置入atlas页以防止多余的 material 切换. 请参考：[Spine 纹理打包：文件夹结构](https://zh.esotericsoftware.com/spine-texture-packer#%E6%96%87%E4%BB%B6%E5%A4%B9%E7%BB%93%E6%9E%84)了解如何在你的Spine atlas中编排 atlas 区域。
+3. 少用裁减功能。Spine 的裁减实现是通过动态裁减三角形实现的，性能开销很大。
+4. 尽可能少地使用atlas page textures。即，导出是贴图的数量尽可能控制在一张。。
+5. 尽量尝试用一个 atlas texture 覆盖多个骨架。比如，可以在同一个 Spine 工程里添加多个骨架，导出时，选择单一图集。这样多个骨架会对应同一个 atlas texture。
+
+
+### 提问
+对于 Spine 有任何问题，欢迎在 @galacean/engine-spine [创建 issue](https://github.com/galacean/engine-spine/issues/new)

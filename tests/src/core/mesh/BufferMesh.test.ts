@@ -12,13 +12,13 @@ import {
   VertexElementFormat
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { expect } from "chai";
+import { describe, beforeAll, expect, it } from "vitest";
 
 describe("BufferMesh", () => {
   let engine: WebGLEngine;
   let rootEntity: Entity;
 
-  before(async () => {
+  beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
     rootEntity = scene.createRootEntity();

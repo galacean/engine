@@ -1,0 +1,62 @@
+---
+order: 3
+title: 精灵遮罩
+type: 图形
+group: 2D
+label: Graphics/2D
+---
+
+精灵遮罩组件用于对 3D/2D 场景中的[精灵渲染器](/docs/graphics/2D/spriteRenderer/)和[文字渲染器](/docs/graphics/2D/text/)实现遮罩效果。
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*J1Q9T5biHWgAAAAAAAAAAAAAehuCAQ/original" alt="070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F" style={{zoom: "67%"}} />
+
+| 参数            | 类型   | 说明                                                                                             |
+| :-------------- | :----- | :----------------------------------------------------------------------------------------------- |
+| sprite          | number | 使用精灵的引用  |
+| alphaCutoff     | number | 当前 mask 有效 alpha 值的下限(范围：0~1)，即 sprite 的纹理中 alpha 值小于 alphaCutoff 的将被丢弃 |
+| influenceLayers | number | 当前 mask 影响的遮罩层，默认值为 Everything，表示对所有遮罩层都有影响            |
+
+<Callout type="warning">目前仅支持传入精灵定义遮罩形状</Callout>
+
+精灵遮罩与受遮罩影响的组件之间的层级关系一般分为以下三种：
+
+| influenceLayers | maskLayer   | 是否生效                                                                                          |
+| :-------------- | :----- | :----------------------------------------------------------------------------------------------- |
+| Layer0   | Layer0 | 相等，生效  |
+| Layer1,Layer2   | Layer2,Layer3 | 有交集，生效  |
+| Layer4          | Layer5 | 无交集，不生效 |
+
+<Callout type="info">[influenceLayers](/apis/core/#SpriteMask-influenceLayers) ：精灵遮罩影响的层级，[maskLayer](/apis/core/#SpriteRenderer-maskLayer) ：精灵渲染器或文字渲染器的遮罩层级</Callout>
+<Callout type="info">调整完层级后，若遮罩还是没有任何效果，可能是因为受遮罩影响的组件的遮罩类型还是默认的(None)，此时设置对应的 [SpriteMaskInteraction](/apis/core/#SpriteMaskInteraction) 即可</Callout>
+
+## 使用
+
+在 **[层级面板](/docs/interface/hierarchy)** 依次 **右键** -> **2D Object** -> **Sprite Mask** 即可快速创建一个包含精灵遮罩的节点。
+
+<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*MnTWQ58Gr_QAAAAAAAAAAAAAehuCAQ/original" alt="070C8B9F-14E2-4A9A-BFEC-4BC3F2BB564F" style={{zoom: "67%"}} />
+
+在脚本中可以用如下代码使用精灵遮罩：
+
+```typescript
+// 创建一个遮罩实体
+const spriteEntity = rootEntity.createChild(`spriteMask`);
+// 给实体添加 SpriteMask 组件
+const spriteMask = spriteEntity.addComponent(SpriteMask);
+// 通过 texture 创建 sprite 对象
+const sprite = new Sprite(engine, texture);
+// 设置 sprite
+spriteMask.sprite = sprite;
+// mask 的 sprite 中纹理 alpha 小于 0.5 的将被丢弃
+spriteMask.alphaCutoff = 0.5;
+// mask 对所有遮罩层的精灵都生效
+spriteMask.influenceLayers = SpriteMaskLayer.Everything;
+// mask 只对处于遮罩层 Layer0 的精灵有效
+spriteMask.influenceLayers = SpriteMaskLayer.Layer0;
+// mask 对处于遮罩层 Layer0 和 Layer1 的精灵有效
+spriteMask.influenceLayers = SpriteMaskLayer.Layer0 | SpriteMaskLayer.Layer1;
+
+// 设置遮罩类型
+spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+// 设置精灵处于哪个遮罩层
+spriteRenderer.maskLayer = SpriteMaskLayer.Layer0;
+```

@@ -1,16 +1,17 @@
 import {
   AssetPromise,
   AssetType,
-  Loader,
   LoadItem,
-  resourceLoader,
+  Loader,
+  RequestConfig,
   ResourceManager,
   Texture2D,
   TextureFilterMode,
   TextureFormat,
-  TextureWrapMode
+  TextureUtils,
+  TextureWrapMode,
+  resourceLoader
 } from "@galacean/engine-core";
-import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
@@ -22,13 +23,33 @@ class Texture2DLoader extends Loader<Texture2D> {
         ...item,
         type: "image"
       };
-      this.request<HTMLImageElement>(url, requestConfig)
+      resourceManager
+        // @ts-ignore
+        ._request<HTMLImageElement>(url, requestConfig)
         .onProgress(setTaskCompleteProgress, setTaskDetailProgress)
         .then((image) => {
-          const { format, mipmap, anisoLevel, wrapModeU, wrapModeV, filterMode } =
-            (item.params as Partial<Texture2DParams>) ?? {};
+          const {
+            format = TextureFormat.R8G8B8A8,
+            anisoLevel,
+            wrapModeU,
+            wrapModeV,
+            filterMode,
+            isSRGBColorSpace = true,
+            mipmap = true
+          } = (item.params as Partial<Texture2DParams>) ?? {};
+          const { width, height } = image;
+          const engine = resourceManager.engine;
 
-          const texture = new Texture2D(resourceManager.engine, image.width, image.height, format, mipmap);
+          const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+            engine,
+            width,
+            height,
+            format,
+            mipmap,
+            isSRGBColorSpace
+          );
+
+          const texture = new Texture2D(engine, width, height, format, generateMipmap, isSRGBColorSpace);
 
           texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
           texture.filterMode = filterMode ?? texture.filterMode;
@@ -36,7 +57,7 @@ class Texture2DLoader extends Loader<Texture2D> {
           texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
 
           texture.setImageSource(image);
-          texture.generateMipmaps();
+          generateMipmap && texture.generateMipmaps();
 
           if (url.indexOf("data:") !== 0) {
             const index = url.lastIndexOf("/");
@@ -69,4 +90,6 @@ export interface Texture2DParams {
   filterMode: TextureFilterMode;
   /** Anisotropic level for texture. */
   anisoLevel: number;
+  /** Whether the texture data is in sRGB color space, otherwise is linear color space. @defaultValue `true` */
+  isSRGBColorSpace: boolean;
 }

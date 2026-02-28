@@ -1,43 +1,41 @@
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneManager";
-import { ICustomClone } from "../clone/ComponentCloner";
+import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { PhysicsScene } from "./PhysicsScene";
+import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
+import { ColliderShape } from "./shape/ColliderShape";
+import { MeshColliderShape } from "./shape/MeshColliderShape";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
-  @ignoreClone
-  private _linearDamping: number = 0;
-  @ignoreClone
-  private _angularDamping: number = 0.05;
+  private static _tempVector3 = new Vector3();
+  private static _tempQuat = new Quaternion();
+
+  private _linearDamping = 0;
+  private _angularDamping = 0.05;
   @ignoreClone
   private _linearVelocity = new Vector3();
   @ignoreClone
   private _angularVelocity = new Vector3();
-  @ignoreClone
-  private _mass: number = 1.0;
+  private _mass = 1.0;
   @ignoreClone
   private _centerOfMass = new Vector3();
   @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
-  @ignoreClone
-  private _maxAngularVelocity: number = 100;
-  @ignoreClone
-  private _maxDepenetrationVelocity: number = 1000;
-  @ignoreClone
-  private _solverIterations: number = 4;
-  @ignoreClone
-  private _isKinematic: boolean = false;
-  @ignoreClone
+  private _maxAngularVelocity = 18000 / Math.PI;
+  private _maxDepenetrationVelocity = 1.0000000331813535e32;
+  private _solverIterations = 4;
+  private _useGravity = true;
+  private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
-  @ignoreClone
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
-  @ignoreClone
-  private _sleepThreshold: number = 5e-3;
+  private _sleepThreshold = 5e-3;
+  private _automaticCenterOfMass = true;
+  private _automaticInertiaTensor = true;
 
   /**
    * The linear damping of the dynamic collider.
@@ -71,6 +69,11 @@ export class DynamicCollider extends Collider {
    * The linear velocity vector of the dynamic collider measured in world unit per second.
    */
   get linearVelocity(): Vector3 {
+    //@ts-ignore
+    this._linearVelocity._onValueChanged = null;
+    (<IDynamicCollider>this._nativeCollider).getLinearVelocity(this._linearVelocity);
+    //@ts-ignore
+    this._linearVelocity._onValueChanged = this._setLinearVelocity;
     return this._linearVelocity;
   }
 
@@ -81,9 +84,14 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * The angular velocity vector of the dynamic collider measured in radians per second.
+   * The angular velocity vector of the dynamic collider measured in degrees per second.
    */
   get angularVelocity(): Vector3 {
+    //@ts-ignore
+    this._angularVelocity._onValueChanged = null;
+    (<IDynamicCollider>this._nativeCollider).getAngularVelocity(this._angularVelocity);
+    //@ts-ignore
+    this._angularVelocity._onValueChanged = this._setAngularVelocity;
     return this._angularVelocity;
   }
 
@@ -103,14 +111,41 @@ export class DynamicCollider extends Collider {
   set mass(value: number) {
     if (this._mass !== value) {
       this._mass = value;
-      (<IDynamicCollider>this._nativeCollider).setMass(value);
+      if (this._automaticInertiaTensor || this._automaticCenterOfMass) {
+        this._setMassAndUpdateInertia();
+      } else {
+        (<IDynamicCollider>this._nativeCollider).setMass(value);
+      }
+    }
+  }
+
+  /**
+   * Whether or not to calculate the center of mass automatically, if true, the center of mass will be calculated based on the associated shapes.
+   * @remarks Affected by the position, rotation of the shapes.
+   */
+  get automaticCenterOfMass(): boolean {
+    return this._automaticCenterOfMass;
+  }
+
+  set automaticCenterOfMass(value: boolean) {
+    if (this._automaticCenterOfMass !== value) {
+      this._automaticCenterOfMass = value;
+      if (value) {
+        this._setMassAndUpdateInertia();
+      }
     }
   }
 
   /**
    * The center of mass relative to the transform's origin.
+   * @remarks The center of mass is automatically calculated, if you want to set it manually, please set automaticCenterOfMass to false.
    */
   get centerOfMass(): Vector3 {
+    // @ts-ignore
+    this._centerOfMass._onValueChanged = null;
+    (<IDynamicCollider>this._nativeCollider).getCenterOfMass(this._centerOfMass);
+    // @ts-ignore
+    this._centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
     return this._centerOfMass;
   }
 
@@ -121,9 +156,32 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * Whether or not to calculate the inertia tensor automatically, if true, the inertia tensor will be calculated based on the associated shapes and mass.
+   * @remarks Affected by the position, rotation of the shapes and the mass of the collider.
+   */
+  get automaticInertiaTensor(): boolean {
+    return this._automaticInertiaTensor;
+  }
+
+  set automaticInertiaTensor(value: boolean) {
+    if (this._automaticInertiaTensor !== value) {
+      this._automaticInertiaTensor = value;
+      if (value) {
+        this._setMassAndUpdateInertia();
+      }
+    }
+  }
+
+  /**
    * The diagonal inertia tensor of mass relative to the center of mass.
+   * @remarks The inertia tensor is automatically calculated, if you want to set it manually, please set automaticInertiaTensor to false.
    */
   get inertiaTensor(): Vector3 {
+    // @ts-ignore
+    this._inertiaTensor._onValueChanged = null;
+    (<IDynamicCollider>this._nativeCollider).getInertiaTensor(this._inertiaTensor);
+    // @ts-ignore
+    this._inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
     return this._inertiaTensor;
   }
 
@@ -134,7 +192,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }.
+   * The maximum angular velocity of the collider measured in degrees per second.
    */
   get maxAngularVelocity(): number {
     return this._maxAngularVelocity;
@@ -190,6 +248,20 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * Controls whether gravity affects the dynamic collider.
+   */
+  get useGravity(): boolean {
+    return this._useGravity;
+  }
+
+  set useGravity(value: boolean) {
+    if (this._useGravity !== value) {
+      this._useGravity = value;
+      (<IDynamicCollider>this._nativeCollider).setUseGravity(value);
+    }
+  }
+
+  /**
    * Controls whether physics affects the dynamic collider.
    */
   get isKinematic(): boolean {
@@ -198,8 +270,30 @@ export class DynamicCollider extends Collider {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
+      if (!value) {
+        // Block switching to non-kinematic if non-convex MeshColliderShape is attached
+        const shapes = this._shapes;
+        for (let i = 0, n = shapes.length; i < n; i++) {
+          const shape = shapes[i];
+          if (shape instanceof MeshColliderShape && !shape.isConvex) {
+            console.error(
+              "DynamicCollider: Cannot set isKinematic=false when non-convex MeshColliderShape is attached."
+            );
+            return;
+          }
+        }
+      }
+
       this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+
+      // Resync properties that PhysX ignores/resets during kinematic mode
+      if (!value) {
+        (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
+        if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+          this._setMassAndUpdateInertia();
+        }
+      }
     }
   }
 
@@ -237,24 +331,24 @@ export class DynamicCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
-    this._nativeCollider = PhysicsScene._nativePhysics.createDynamicCollider(
+    this._nativeCollider = Engine._nativePhysics.createDynamicCollider(
       transform.worldPosition,
       transform.worldRotationQuaternion
     );
 
     this._setLinearVelocity = this._setLinearVelocity.bind(this);
     this._setAngularVelocity = this._setAngularVelocity.bind(this);
-    this._setCenterOfMass = this._setCenterOfMass.bind(this);
-    this._setInertiaTensor = this._setInertiaTensor.bind(this);
+    this._handleCenterOfMassChanged = this._handleCenterOfMassChanged.bind(this);
+    this._handleInertiaTensorChanged = this._handleInertiaTensorChanged.bind(this);
 
     //@ts-ignore
     this._linearVelocity._onValueChanged = this._setLinearVelocity;
     //@ts-ignore
     this._angularVelocity._onValueChanged = this._setAngularVelocity;
     //@ts-ignore
-    this._centerOfMass._onValueChanged = this._setCenterOfMass;
+    this._centerOfMass._onValueChanged = this._handleCenterOfMassChanged;
     //@ts-ignore
-    this._inertiaTensor._onValueChanged = this._setInertiaTensor;
+    this._inertiaTensor._onValueChanged = this._handleInertiaTensorChanged;
   }
 
   /**
@@ -262,7 +356,7 @@ export class DynamicCollider extends Collider {
    * @param force - The force make the collider move
    */
   applyForce(force: Vector3): void {
-    (<IDynamicCollider>this._nativeCollider).addForce(force);
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).addForce(force);
   }
 
   /**
@@ -270,30 +364,40 @@ export class DynamicCollider extends Collider {
    * @param torque - The force make the collider rotate
    */
   applyTorque(torque: Vector3): void {
-    (<IDynamicCollider>this._nativeCollider).addTorque(torque);
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).addTorque(torque);
   }
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
+   * Moves the kinematic collider to the specified position.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
    */
   move(position: Vector3): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(rotation: Quaternion): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified position and rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
-    (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
+    if (!this._isKinematic) {
+      console.warn("DynamicCollider: move() is only supported when isKinematic is true.");
+      return;
+    }
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
   }
 
   /**
@@ -304,10 +408,29 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * Returns whether the collider is sleeping.
+   * @returns True if the collider is sleeping, false otherwise.
+   */
+  isSleeping(): boolean {
+    return (<IDynamicCollider>this._nativeCollider).isSleeping();
+  }
+
+  /**
    * Forces a collider to wake up.
    */
   wakeUp(): void {
     (<IDynamicCollider>this._nativeCollider).wakeUp();
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override addShape(shape: ColliderShape): void {
+    if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
+      console.error("DynamicCollider: Non-convex MeshColliderShape is not supported on non-kinematic DynamicCollider.");
+      return;
+    }
+    super.addShape(shape);
   }
 
   /**
@@ -316,7 +439,16 @@ export class DynamicCollider extends Collider {
   override _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
-    (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
+    const outPosition = DynamicCollider._tempVector3;
+    const outRotation = DynamicCollider._tempQuat;
+    (<IDynamicCollider>this._nativeCollider).getWorldTransform(outPosition, outRotation);
+    // To resolve the issue where onValueChanged is triggered even though the values are equal
+    if (!Vector3.equals(outPosition, worldPosition)) {
+      worldPosition.copyFrom(outPosition);
+    }
+    if (!Quaternion.equals(outRotation, worldRotationQuaternion)) {
+      worldRotationQuaternion.copyFrom(outRotation);
+    }
     this._updateFlag.flag = false;
   }
 
@@ -324,37 +456,88 @@ export class DynamicCollider extends Collider {
    * @internal
    */
   override _cloneTo(target: DynamicCollider): void {
+    target._linearVelocity.copyFrom(this.linearVelocity);
+    target._angularVelocity.copyFrom(this.angularVelocity);
+    target._centerOfMass.copyFrom(this.centerOfMass);
+    target._inertiaTensor.copyFrom(this.inertiaTensor);
     super._cloneTo(target);
-    target.linearDamping = this.linearDamping;
-    target.angularDamping = this.angularDamping;
-    target.linearVelocity = this.linearVelocity;
-    target.angularVelocity = this.angularVelocity;
-    target.mass = this.mass;
-    target.centerOfMass = this.centerOfMass;
-    target.inertiaTensor = this.inertiaTensor;
-    target.maxAngularVelocity = this.maxAngularVelocity;
-    target.maxDepenetrationVelocity = this.maxDepenetrationVelocity;
-    target.sleepThreshold = this.sleepThreshold;
-    target.solverIterations = this.solverIterations;
-    target.isKinematic = this.isKinematic;
-    target.constraints = this.constraints;
-    target.collisionDetectionMode = this.collisionDetectionMode;
   }
 
+  /**
+   * @internal
+   */
+  override _handleShapesChanged(changeType: ColliderShapeChangeFlag): void {
+    super._handleShapesChanged(changeType);
+
+    if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+      this._setMassAndUpdateInertia();
+    }
+  }
+
+  protected override _syncNative(): void {
+    super._syncNative();
+    (<IDynamicCollider>this._nativeCollider).setLinearDamping(this._linearDamping);
+    (<IDynamicCollider>this._nativeCollider).setAngularDamping(this._angularDamping);
+    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
+    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
+    if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+      this._setMassAndUpdateInertia();
+    } else {
+      (<IDynamicCollider>this._nativeCollider).setMass(this._mass);
+      (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+      (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+    }
+    (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(this._maxAngularVelocity);
+    (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
+    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
+    (<IDynamicCollider>this._nativeCollider).setUseGravity(this._useGravity);
+    (<IDynamicCollider>this._nativeCollider).setIsKinematic(this._isKinematic);
+    (<IDynamicCollider>this._nativeCollider).setConstraints(this._constraints);
+    (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
+  }
+
+  private _setMassAndUpdateInertia(): void {
+    // Kinematic bodies don't need mass/inertia computation (PhysX doc: mass is not used in kinematic mode)
+    if (this._isKinematic) {
+      return;
+    }
+    (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
+
+    this._automaticCenterOfMass || (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+    this._automaticInertiaTensor || (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+  }
+
+  @ignoreClone
   private _setLinearVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
+  @ignoreClone
   private _setAngularVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
-  private _setCenterOfMass(): void {
-    (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+  @ignoreClone
+  private _handleCenterOfMassChanged(): void {
+    if (this._automaticCenterOfMass) {
+      console.warn(
+        "The center of mass is automatically calculated, please set automaticCenterOfMass to false if you want to set it manually."
+      );
+    } else {
+      (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+    }
   }
 
-  private _setInertiaTensor(): void {
-    (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+  @ignoreClone
+  private _handleInertiaTensorChanged(): void {
+    if (this._automaticInertiaTensor) {
+      console.warn(
+        "The inertia tensor is automatically calculated, please set automaticInertiaTensor to false if you want to set it manually."
+      );
+    } else {
+      (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
+    }
   }
 }
 

@@ -1,6 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { ReferResource } from "../../asset/ReferResource";
+import { TextureFilterMode, TextureFormat } from "../../texture";
 import { Texture2D } from "../../texture/Texture2D";
 import { CharInfo } from "../text/CharInfo";
 
@@ -18,6 +19,12 @@ export class FontAtlas extends ReferResource {
 
   constructor(engine: Engine) {
     super(engine);
+    this.isGCIgnored = true;
+    const format = engine._hardwareRenderer.isWebGL2 ? TextureFormat.R8 : TextureFormat.Alpha8;
+    const texture = new Texture2D(engine, 512, 512, format, false);
+    texture.filterMode = TextureFilterMode.Bilinear;
+    texture.isGCIgnored = true;
+    this.texture = texture;
   }
 
   uploadCharTexture(charInfo: CharInfo): boolean {
@@ -46,7 +53,6 @@ export class FontAtlas extends ReferResource {
     if (width > 0 && height > 0 && data) {
       charInfo.bufferOffset = new Vector2(this._curX, this._curY);
       texture.setPixelBuffer(data, 0, this._curX, this._curY, width, height);
-      texture.generateMipmaps();
     }
 
     const textureSizeReciprocal = 1.0 / textureSize;

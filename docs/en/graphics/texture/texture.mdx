@@ -1,0 +1,66 @@
+---
+order: 0
+title: Texture Overview
+type: Graphics
+group: Texture
+label: Graphics/Texture
+---
+Textures are one of the most commonly used resources in 3D rendering. Through textures, we can set the color values for each fragment of a model, thereby achieving richer artistic effects. The main functions include:
+
+- Material Properties: Textures can be used to define the material properties of objects, such as base color and patterns, glossiness, metallic feel, and roughness.
+- Environmental Effects: Realizing effects like [skyboxes](/docs/graphics/background/sky/) and environmental reflections.
+
+The Galacean engine supports all WebGL standard textures. Textures can originate from images, canvas, raw data, videos, and more.
+
+## Types
+
+| Type                                    | Description                                                        |
+| :-------------------------------------- | :----------------------------------------------------------------- |
+| [2D Texture](/docs/graphics/texture/2d/) | The most commonly used artistic resource, sampled using 2D UV coordinates |
+| [Cube Texture](/docs/graphics/texture/cube/) | Composed of 6 2D textures, used for effects like skyboxes and environmental reflections |
+| [2D Texture Array](/apis/core/#Texture2DArray) | Occupies only one texture unit, ideal for implementing texture atlas switching needs |
+
+## Properties
+
+<Image src ="https://gw.alipayobjects.com/zos/OasisHub/c4945cc8-8cba-48a7-85ae-f6f2903fcfe1/image-20250529143945756.png" />
+
+### sRGB
+Determines whether the texture data is in the sRGB color space. The default is `true`. If the data is linear, like normal textures, this should be turned off. More details can be found in the [Color Space](/docs/core/color/) documentation.
+
+### mipmap
+
+**The engine enables [mipmap](/apis/core/#Texture-generateMipmaps) by default**, which improves performance and precision when sampling high-resolution textures on low-resolution screens. WebGL 2.0 supports textures of any resolution, but in the WebGL 1.0 environment, you need to upload **power-of-two textures** (such as 1024x512), or mipmaps will be automatically disabled.
+
+<Image src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*mTBvTJ7Czt4AAAAAAAAAAAAAARQnAQ" />
+
+### Filter Mode
+
+Texture pixels and screen pixels often do not correspond exactly. The filter mode can control the sampling method when magnifying (Mag) or minifying (Min):
+
+| Sampling Filter Mode | Description                                           |
+| :------------------- | :---------------------------------------------------- |
+| Point                | Uses the texel closest to the sampling point          |
+| Bilinear             | Uses the average value of the nearest 2\*2 texel matrix |
+| Trilinear            | In addition to bilinear filtering, averages across mipmap levels |
+
+### Wrap Mode
+
+The range of texture sampling is `[0,1]`. When UV coordinates exceed the range, wrap mode can control the sampling method:
+
+| Sampling Wrap Mode | Description                      |
+| :----------------- | :------------------------------- |
+| Clamp              | Samples edge texel if out of range |
+| Repeat             | Resamples from [0,1] if out of range |
+| Mirror             | Mirrors sampling from [1,0] if out of range |
+
+### Anisotropic Filtering Level
+
+Anisotropic filtering makes textures appear clearer when viewed at an angle. Levels range from 1 to 16, depending on device support.
+
+### Color Dilation
+
+To address the issue of black edges appearing at sudden changes in alpha values in images with transparent pixels, the editor has a built-in color dilation feature. This function removes black edges by rewriting the RGB values of all transparent pixels in the image to match the RGB values of their nearest non-fully transparent pixels.
+
+### Texture Compression
+
+Compressed textures can effectively reduce memory usage and improve image decoding speed. For more details, see [Compressed Textures](/docs/graphics/texture/compression/).

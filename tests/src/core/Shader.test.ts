@@ -9,16 +9,14 @@ import {
   ShaderFactory,
   ShaderMacro,
   ShaderPass,
+  ShaderLanguage,
   ShaderProperty,
   ShaderTagKey,
   SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { ShaderLab } from "@galacean/engine-shader-lab";
-import chai, { expect } from "chai";
-import spies from "chai-spies";
-
-chai.use(spies);
+import { ShaderLab } from "@galacean/engine-shaderlab";
+import { vi, describe, expect, it } from "vitest";
 
 const shaderLab = new ShaderLab();
 
@@ -31,19 +29,14 @@ describe("Shader", () => {
       customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
 
       // Create same name shader
-      const errorSpy = chai.spy.on(console, "error");
+      const errorSpy = vi.spyOn(console, "error");
       Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
-      expect(errorSpy).to.have.been.called.with('Shader named "custom" already exists.');
-      chai.spy.restore(console, "error");
+      expect(errorSpy).toHaveBeenCalledWith('Shader named "custom" already exists.');
+      vi.resetAllMocks();
 
       // Create shader by empty SubShader array
       expect(() => {
         Shader.create("customByEmptySubShader", []);
-      }).to.throw();
-
-      // Create shader by empty string
-      expect(() => {
-        Shader.create("customByEmptyString", "", "");
       }).to.throw();
 
       // Create shader by empty pass
@@ -134,7 +127,6 @@ describe("Shader", () => {
       const lightEntity = rootEntity.createChild("Light");
       const directLight = lightEntity.addComponent(DirectLight);
       lightEntity.transform.setRotation(-45, -45, 0);
-      directLight.intensity = 0.4;
 
       // Create camera
       const cameraEntity = rootEntity.createChild("Camera");
@@ -159,10 +151,12 @@ describe("Shader", () => {
       });
 
       // Test that shader created successfully, if use shaderLab.
-      let shader = Shader.create(testShaderLabCode);
+      let shader = Shader.create(testShaderLabCode, ShaderLanguage.GLSLES300);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
+      // @ts-ignore
+      expect(shader.subShaders[0].passes[1]._platformTarget).to.equal(ShaderLanguage.GLSLES300);
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
       // Test that throw error, if shader was created with same name in shaderLab.
@@ -264,11 +258,11 @@ describe("Shader", () => {
           true
         )
       ).to.be.equal(
-        `
+        `out vec4 glFragColor;\n
         in vec2 v_uv; 
         uniform sampler2D u_texture;
         uniform samplerCube u_textureCube;\n
-        out vec4 glFragColor;\nvoid main(){
+        void main(){
           glFragColor = texture(u_texture, v_uv);
           vec4 color1 = texture(u_textureCube, vec3(1));
           vec4 color2 = textureProj(u_textureCube, vec3(1));
@@ -379,9 +373,7 @@ void main() {
 
     #ifdef MATERIAL_HAS_BASETEXTURE
         vec4 textureColor = texture2D(material_BaseTexture, v_uv);
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
-            textureColor = gammaToLinear(textureColor);
-        #endif
+        textureColor = gammaToLinear(textureColor);
         baseColor *= textureColor;
     #endif
 
@@ -399,9 +391,7 @@ void main() {
 
     #include <FogFragment>
 
-     #ifndef ENGINE_IS_COLORSPACE_GAMMA
-        gl_FragColor = linearToGamma(gl_FragColor);
-    #endif
+    gl_FragColor = linearToGamma(gl_FragColor);
 }
 `;
 

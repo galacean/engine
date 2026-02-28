@@ -1,11 +1,13 @@
-import { Entity, Script } from "@galacean/engine-core";
+import { Quaternion } from "@galacean/engine";
+import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import chai, { expect } from "chai";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class TestComponent extends Script {}
+class TestComponent extends Script { }
 
 describe("Entity", async () => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
   const scene = engine.sceneManager.activeScene;
   engine.run();
   beforeEach(() => {
@@ -14,20 +16,38 @@ describe("Entity", async () => {
 
   describe("scene.findByPath", () => {
     it("normal", () => {
+      const parentX = new Entity(engine, "parent");
       const parent = new Entity(engine, "parent");
+      const parentY = new Entity(engine, "parent");
 
-      parent.parent = scene.getRootEntity();
+      const root = scene.getRootEntity();
+      parentX.parent = root;
+      parent.parent = root;
+      parentY.parent = root;
+
       const child = new Entity(engine, "child");
-      child.parent = parent;
+      child.parent = parentX;
+      const child1 = new Entity(engine, "child1");
+      child1.parent = parent;
+      const child2 = new Entity(engine, "child2");
+      child2.parent = parentY;
 
-      expect(scene.findEntityByPath("root/parent")).eq(parent);
+      expect(scene.findEntityByPath("")).eq(null);
 
+      expect(scene.findEntityByPath("root")).eq(root);
+
+      expect(scene.findEntityByPath("root/parent")).eq(parentX);
+
+      expect(scene.findEntityByPath("root/parent/null")).eq(null);
+
+      expect(scene.findEntityByPath("root/parent/child1")).eq(child1);
       expect(scene.findEntityByPath("root/parent/child")).eq(child);
+      expect(scene.findEntityByPath("root/parent/child2")).eq(child2);
     });
     it("not found", () => {
       const parent = new Entity(engine, "parent");
-
       parent.parent = scene.getRootEntity();
+
       const child = new Entity(engine, "child");
       child.parent = parent;
 
@@ -232,6 +252,11 @@ describe("Entity", async () => {
       parent.addChild(child);
       expect(child.parent).eq(parent);
       expect(child.scene).eq(scene);
+
+      const childAno = new Entity(engine, "childAno");
+      childAno.parent = parent;
+      parent.addChild(0, childAno);
+      expect(childAno.siblingIndex).eq(0);
     });
 
     it("removeChild", () => {
@@ -281,10 +306,18 @@ describe("Entity", async () => {
       parent.parent = scene.getRootEntity();
       const child = new Entity(engine, "child");
       child.parent = parent;
-      const child2 = new Entity(engine, "child2");
+      const child2 = new Entity(engine, "child");
       child2.parent = parent;
+      const child3 = new Entity(engine, "child");
+      child3.parent = parent;
+
+      const grandson = new Entity(engine, "grandsonX");
+      grandson.parent = child;
+      const grandson2 = new Entity(engine, "grandson");
+      grandson2.parent = child2;
+
       expect(parent.findByPath("/child")).eq(child);
-      expect(parent.findByPath("child2")).eq(child2);
+      expect(parent.findByPath("child/grandson")).eq(grandson2);
     });
 
     it("clearChildren", () => {
@@ -369,6 +402,147 @@ describe("Entity", async () => {
       };
       expect(lonelyBadFn).to.throw();
     });
+
+    it("isRoot", () => {
+      const parent = scene.createRootEntity("parent");
+      const child = scene.createRootEntity("child");
+
+      // addChild should remove child from rootEntities
+      parent.addChild(child);
+      // @ts-ignore
+      expect(child._isRoot).eq(false);
+      expect(scene.rootEntities).not.toContain(child);
+      expect(child.parent).eq(parent);
+
+      // addRootEntity should restore root status
+      scene.addRootEntity(child);
+      // @ts-ignore
+      expect(child._isRoot).eq(true);
+      expect(scene.rootEntities).toContain(child);
+
+      // parent setter should remove child from rootEntities
+      child.parent = parent;
+      // @ts-ignore
+      expect(child._isRoot).eq(false);
+      expect(scene.rootEntities).not.toContain(child);
+      expect(child.parent).eq(parent);
+
+      // addRootEntity should restore root status again
+      scene.addRootEntity(child);
+      // @ts-ignore
+      expect(child._isRoot).eq(true);
+      expect(scene.rootEntities).toContain(child);
+    });
+
+    it("removeChild guard", () => {
+      const parentA = scene.createRootEntity("parentA");
+      const parentB = scene.createRootEntity("parentB");
+      const child = new Entity(engine, "child");
+      parentA.addChild(child);
+      expect(child.parent).eq(parentA);
+
+      // removeChild on wrong parent should be no-op
+      parentB.removeChild(child);
+      expect(child.parent).eq(parentA);
+      expect(parentA.children).toContain(child);
+    });
+
+    it("InActiveAndActive", () => {
+      const parentA = scene.createRootEntity("parentA");
+      const parentB = new Entity(engine, "parentB");
+      const parentC = scene.createRootEntity("parentC");
+      const sceneA = new Scene(engine, "sceneA");
+      const sceneB = new Scene(engine, "sceneB");
+      const child = new Entity(engine, "child");
+
+      let enableCount = 0;
+      let disableCount = 0;
+      let enableInSceneCount = 0;
+      let disableInSceneCount = 0;
+
+      child.addComponent(
+        class extends Script {
+          _onEnable(): void {
+            ++enableCount;
+          }
+
+          _onDisable(): void {
+            ++disableCount;
+          }
+
+          _onEnableInScene(): void {
+            ++enableInSceneCount;
+          }
+
+          _onDisableInScene(): void {
+            ++disableInSceneCount;
+          }
+        }
+      );
+
+      expect(child.isActive).eq(true);
+      expect(child.isActiveInHierarchy).eq(false);
+      child.isActive = false;
+      expect(child.isActive).eq(false);
+
+      parentB.addChild(child);
+      expect(child.isActive).eq(false);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(0);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(0);
+      expect(disableInSceneCount).eq(0);
+      child.isActive = true;
+      expect(child.isActive).eq(true);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(0);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(0);
+      expect(disableInSceneCount).eq(0);
+
+      parentA.addChild(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(1);
+      expect(disableInSceneCount).eq(0);
+
+      parentA.addChild(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(1);
+      expect(disableInSceneCount).eq(0);
+
+      parentC.addChild(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(0);
+      expect(enableInSceneCount).eq(1);
+      expect(disableInSceneCount).eq(0);
+
+      sceneA.addRootEntity(child);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(1);
+      expect(disableCount).eq(1);
+      expect(enableInSceneCount).eq(2);
+      expect(disableInSceneCount).eq(1);
+
+      engine.sceneManager.addScene(sceneB);
+      sceneB.addRootEntity(child);
+      expect(child.isActiveInHierarchy).eq(true);
+      expect(enableCount).eq(2);
+      expect(disableCount).eq(1);
+      expect(enableInSceneCount).eq(3);
+      expect(disableInSceneCount).eq(2);
+
+      sceneB.removeRootEntity(child);
+      expect(child.isActiveInHierarchy).eq(false);
+      expect(enableCount).eq(2);
+      expect(disableCount).eq(2);
+      expect(enableInSceneCount).eq(3);
+      expect(disableInSceneCount).eq(3);
+    });
   });
 
   describe("clone", () => {
@@ -382,6 +556,78 @@ describe("Entity", async () => {
       expect(cloneParent.children.length).eq(parent.children.length);
       expect(cloneParent.findByName("child").name).eq(child.name);
       expect(cloneParent.findByName("child")).eq(cloneParent.getChild(0));
+
+      // Transform
+      const entityParent = new Entity(engine, "parent");
+      const entityChild = entityParent.createChild("child");
+      const entityGrandson = entityChild.createChild("grandson");
+      entityGrandson.transform.rotation.set(90, 0, 0);
+      // DynamicCollider 组件在构造函数中会获取 worldRotationQuaternion
+      entityGrandson.addComponent(DynamicCollider);
+      const entityChildClone = entityParent.clone().children[0];
+      const entityGrandsonClone = entityChildClone.children[0];
+      // @ts-ignore
+      expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
+      expect(Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)).eq(true);
+    });
+  });
+
+  describe("modify", () => {
+    it("ParentAndChild", () => {
+      const parentA = scene.createRootEntity("parentA");
+      const parentB = scene.createRootEntity("parentB");
+      const child = new Entity(engine, "child");
+
+      let modifyParentACount = [0, 0, 0];
+      let modifyParentBCount = [0, 0, 0];
+      let modifyChildCount = [0, 0, 0];
+
+      const modifyParentA = (flag: EntityModifyFlags, child: Entity) => {
+        ++modifyParentACount[flag];
+      };
+      const modifyParentB = (flag: EntityModifyFlags, child: Entity) => {
+        ++modifyParentBCount[flag];
+      };
+      const modifyChild = (flag: EntityModifyFlags, child: Entity) => {
+        ++modifyChildCount[flag];
+      };
+      // @ts-ignore
+      parentA._registerModifyListener(modifyParentA);
+      // @ts-ignore
+      parentB._registerModifyListener(modifyParentB);
+      // @ts-ignore
+      child._registerModifyListener(modifyChild);
+
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(0);
+      parentA.addChild(child);
+
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(1);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(1);
+
+      child.siblingIndex = 2;
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(2);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(1);
+
+      parentB.addChild(child);
+      expect(modifyParentACount[EntityModifyFlags.Child]).eq(3);
+      expect(modifyParentACount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyParentBCount[EntityModifyFlags.Child]).eq(1);
+      expect(modifyParentBCount[EntityModifyFlags.Parent]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Child]).eq(0);
+      expect(modifyChildCount[EntityModifyFlags.Parent]).eq(2);
     });
   });
 
@@ -409,11 +655,11 @@ describe("Entity", async () => {
 
     it("addChildAfterDestroy", () => {
       class DestroyScript extends Script {
-        onDisable(): void {}
-        onDestroy(): void {}
+        onDisable(): void { }
+        onDestroy(): void { }
       }
-      DestroyScript.prototype.onDisable = chai.spy(DestroyScript.prototype.onDisable);
-      DestroyScript.prototype.onDestroy = chai.spy(DestroyScript.prototype.onDestroy);
+      DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
+      DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
 
       const root = scene.createRootEntity("root");
       const entity = root.createChild("entity");
@@ -423,7 +669,7 @@ describe("Entity", async () => {
       expect(entity.isActiveInHierarchy).eq(false);
       expect(entity.parent).eq(null);
       expect(entity.scene).eq(null);
-      expect(script.onDisable).to.have.been.called.exactly(1);
+      expect(script.onDisable).toHaveBeenCalledTimes(1);
 
       expect(entity.createChild("child0").isActiveInHierarchy).eq(false);
       root.destroy();
@@ -432,7 +678,7 @@ describe("Entity", async () => {
       expect(root.createChild("child1").isActiveInHierarchy).eq(false);
 
       engine.update();
-      expect(script.onDestroy).to.have.been.called.exactly(1);
+      expect(script.onDestroy).toHaveBeenCalledTimes(1);
     });
   });
 });

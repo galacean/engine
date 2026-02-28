@@ -45,7 +45,7 @@ export class WebXRDevice implements IXRDevice {
   requestSession(rhi: IHardwareRenderer, mode: XRSessionMode, platformFeatures: WebXRFeature[]): Promise<WebXRSession> {
     return new Promise((resolve, reject) => {
       const sessionMode = parseXRMode(mode);
-      const options: XRSessionInit = { requiredFeatures: ["local"] };
+      const options: XRSessionInit = { requiredFeatures: ["local"], optionalFeatures: [] };
       const promiseArr = [];
       for (let i = 0, n = platformFeatures.length; i < n; i++) {
         const promise = platformFeatures[i]._assembleOptions(options);
