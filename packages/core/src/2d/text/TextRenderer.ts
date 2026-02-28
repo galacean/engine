@@ -186,7 +186,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 
   /**
-   * The space between two characters, in world units.
+   * The space between two characters, in em (ratio of fontSize).
    */
   get characterSpacing(): number {
     return this._characterSpacing;
@@ -526,7 +526,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
     const charFont = this._getSubFont();
-    const characterSpacing = this._characterSpacing * _pixelsPerUnit;
+    const characterSpacing = this._characterSpacing * this._fontSize;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(
           this,
