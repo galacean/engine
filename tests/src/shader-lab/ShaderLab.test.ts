@@ -179,6 +179,38 @@ describe("ShaderLab", async () => {
     });
   });
 
+  it("render state error - bitwise OR on non-bitmask enum", async () => {
+    const shaderSource = `Shader "test" {
+      SubShader "Default" {
+        Pass "0" {
+          DepthState = {
+            CompareFunction = CompareFunction.Less | CompareFunction.Greater;
+          }
+        }
+      }
+    }`;
+    const result = shaderLabVerbose._parseShaderSource(shaderSource);
+    const pass = result.subShaders[0].passes[0];
+    // CompareFunction should not appear in constantMap because bitwise OR is not allowed on non-bitmask enums
+    expect(pass.renderStates.constantMap[RenderStateElementKey.DepthStateCompareFunction]).to.be.undefined;
+  });
+
+  it("render state error - invalid syntax after bitwise OR", async () => {
+    const shaderSource = `Shader "test" {
+      SubShader "Default" {
+        Pass "0" {
+          BlendState = {
+            ColorWriteMask[0] = ColorWriteMask.Red | ;
+          }
+        }
+      }
+    }`;
+    const result = shaderLabVerbose._parseShaderSource(shaderSource);
+    const pass = result.subShaders[0].passes[0];
+    // ColorWriteMask should not appear in constantMap due to invalid syntax after '|'
+    expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
+  });
+
   it("No frag shader args", async () => {
     const demoShader = await readFile("./shaders/noFragArgs.shader");
     glslValidate(engine, demoShader, shaderLabRelease);

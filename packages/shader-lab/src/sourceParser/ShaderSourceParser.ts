@@ -288,22 +288,34 @@ export class ShaderSourceParser {
       } else if (lexer.getCurChar() === ".") {
         propertyValue = this._scanEnumConstValue(valueToken.lexeme);
         if (propertyValue == undefined) return;
-        // Support bitwise OR: ColorWriteMask.Red | ColorWriteMask.Green
+        // Support bitwise OR only for bitmask enums (e.g. ColorWriteMask)
         lexer.skipCommentsAndSpace();
-        while (lexer.getCurChar() === "|") {
-          lexer.advance(1);
-          const nextEnumToken = lexer.scanToken();
-          if (nextEnumToken == undefined || lexer.getCurChar() !== ".") {
-            this._createCompileError(`Invalid syntax after '|', expect 'EnumType.Value'`, nextEnumToken?.location);
+        if (lexer.getCurChar() === "|") {
+          if (valueToken.lexeme !== "ColorWriteMask") {
+            this._createCompileError(
+              `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this`,
+              valueToken.location
+            );
             // #if _VERBOSE
             lexer.scanToCharacter(";");
             // #endif
             return;
           }
-          const nextValue = this._scanEnumConstValue(nextEnumToken.lexeme);
-          if (nextValue == undefined) return;
-          propertyValue = (<number>propertyValue) | (<number>nextValue);
-          lexer.skipCommentsAndSpace();
+          while (lexer.getCurChar() === "|") {
+            lexer.advance(1);
+            const nextEnumToken = lexer.scanToken();
+            if (nextEnumToken == undefined || lexer.getCurChar() !== ".") {
+              this._createCompileError(`Invalid syntax after '|', expect 'EnumType.Value'`, nextEnumToken?.location);
+              // #if _VERBOSE
+              lexer.scanToCharacter(";");
+              // #endif
+              return;
+            }
+            const nextValue = this._scanEnumConstValue(nextEnumToken.lexeme);
+            if (nextValue == undefined) return;
+            propertyValue = (<number>propertyValue) | (<number>nextValue);
+            lexer.skipCommentsAndSpace();
+          }
         }
       } else {
         propertyValue = valueToken.lexeme;
