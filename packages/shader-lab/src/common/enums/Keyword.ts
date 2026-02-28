@@ -76,6 +76,7 @@ export enum Keyword {
   LeftBrace,
   RightBrace,
   Equal,
+  BitwiseOr,
 
   // Source Parser Tokens
   GSRenderQueueType,
@@ -99,6 +100,7 @@ export enum Keyword {
   GSCompareFunction,
   GSStencilOperation,
   GSCullMode,
+  GSColorWriteMask,
   GSUsePass,
 
   // Macros

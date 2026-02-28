@@ -34,7 +34,7 @@ Shader "render-state-test" {
         // Pass-level BlendState (overrides inherited SubShader BlendState)
         BlendState customBlendState {
           Enabled[0] = true;  // Pass constant (overrides inherited "subShaderBlendEnabled" variable)
-          ColorWriteMask[0] = 0.8;  // New property at Pass level
+          ColorWriteMask[0] = ColorWriteMask.Red | ColorWriteMask.Green | ColorWriteMask.Blue;  // Bitwise OR
           BlendColor = Color(1.0, 1.0, 1.0, 1.0);  // New property at Pass level
           AlphaBlendOperation = BlendOperation.Max;  // New property at Pass level
         }
@@ -57,6 +57,7 @@ Shader "render-state-test" {
       Pass "Syntax Sugar Pass" {
         // Pass-level variables
         Bool depthWriteEnabled2;
+        ColorWriteMask colorWriteMaskVar;
 
         // Syntax sugar: direct assignment (overrides inherited DepthState)
         DepthState = {
@@ -71,6 +72,7 @@ Shader "render-state-test" {
           Enabled = true;  // Pass constant (overrides inherited "subShaderBlendEnabled" variable)
           SourceColorBlendFactor = BlendFactor.SourceAlpha;  // Pass constant (same as inherited)
           DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;  // New property at Pass level
+          ColorWriteMask[0] = colorWriteMaskVar;  // ColorWriteMask variable
         }
         // Result: Enabled = true (Pass override), SourceColorBlendFactor = SourceAlpha (Pass override), plus new property
       }

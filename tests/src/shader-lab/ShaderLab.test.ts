@@ -1,6 +1,7 @@
 import {
   BlendFactor,
   BlendOperation,
+  ColorWriteMask,
   CompareFunction,
   CullMode,
   RenderStateElementKey,
@@ -107,7 +108,7 @@ describe("ShaderLab", async () => {
       [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha,
       // Pass level (traditional syntax)
       [RenderStateElementKey.BlendStateEnabled0]: true, // Pass overrides inherited "subShaderBlendEnabled"
-      [RenderStateElementKey.BlendStateColorWriteMask0]: 0.8,
+      [RenderStateElementKey.BlendStateColorWriteMask0]: ColorWriteMask.Red | ColorWriteMask.Green | ColorWriteMask.Blue,
       [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
       [RenderStateElementKey.StencilStateEnabled]: true,
       [RenderStateElementKey.StencilStateMask]: 1.3,
@@ -139,7 +140,9 @@ describe("ShaderLab", async () => {
     });
 
     expect(variableMap1).include({
-      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled2" // Pass overrides inherited "globalDepthWrite"
+      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled2", // Pass overrides inherited "globalDepthWrite"
+      // ColorWriteMask variable declaration
+      [RenderStateElementKey.BlendStateColorWriteMask0]: "colorWriteMaskVar"
     });
 
     // Test comprehensive override behavior (third pass)

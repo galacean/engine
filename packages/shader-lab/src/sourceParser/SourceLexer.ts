@@ -32,6 +32,7 @@ export default class SourceLexer extends BaseLexer {
     CompareFunction: Keyword.GSCompareFunction,
     StencilOperation: Keyword.GSStencilOperation,
     CullMode: Keyword.GSCullMode,
+    ColorWriteMask: Keyword.GSColorWriteMask,
     UsePass: Keyword.GSUsePass,
 
     true: Keyword.True,
@@ -41,7 +42,8 @@ export default class SourceLexer extends BaseLexer {
   private static _symbolLexemeTable = <Record<string, Keyword>>{
     "{": Keyword.LeftBrace,
     "}": Keyword.RightBrace,
-    "=": Keyword.Equal
+    "=": Keyword.Equal,
+    "|": Keyword.BitwiseOr
   };
 
   private static _isWordSeparatorChar(charCode: number): boolean {
@@ -52,7 +54,8 @@ export default class SourceLexer extends BaseLexer {
       charCode === 59 || // ;
       charCode === 46 || // .   CullMode.Back
       charCode === 91 || // [   Enabled[0],
-      charCode === 40 // (      Color(1.0, 1.0, 1.0, 1.0);
+      charCode === 40 || // (      Color(1.0, 1.0, 1.0, 1.0);
+      charCode === 124 // |      ColorWriteMask.Red | ColorWriteMask.Green
     );
   }
 

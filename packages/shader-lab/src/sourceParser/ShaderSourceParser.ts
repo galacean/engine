@@ -2,6 +2,7 @@ import {
   BlendFactor,
   BlendOperation,
   Color,
+  ColorWriteMask,
   CompareFunction,
   CullMode,
   Logger,
@@ -37,7 +38,8 @@ export class ShaderSourceParser {
     StencilOperation,
     BlendOperation,
     BlendFactor,
-    CullMode
+    CullMode,
+    ColorWriteMask
   };
   private static _symbolTableStack = new SymbolTableStack<ShaderSourceSymbol, SymbolTable<ShaderSourceSymbol>>();
   private static _lexer = new SourceLexer();
@@ -216,6 +218,23 @@ export class ShaderSourceParser {
     // #endif
   }
 
+  private static _scanEnumConstValue(enumName: string): number | undefined {
+    const lexer = this._lexer;
+    lexer.advance(1);
+    const constValueToken = lexer.scanToken();
+    const value = this._renderStateConstMap[enumName]?.[constValueToken.lexeme] as number;
+    if (value == undefined) {
+      this._createCompileError(
+        `Invalid engine constant: ${enumName}.${constValueToken.lexeme}`,
+        constValueToken.location
+      );
+      // #if _VERBOSE
+      lexer.scanToCharacter(";");
+      // #endif
+    }
+    return value;
+  }
+
   private static _parseRenderStateProperty(stateLexeme: string, out: IRenderStates): void {
     const lexer = this._lexer;
     const propertyToken = lexer.scanToken();
@@ -267,18 +286,24 @@ export class ShaderSourceParser {
       } else if (valueTokenType === Keyword.GSColor) {
         propertyValue = lexer.scanColor();
       } else if (lexer.getCurChar() === ".") {
-        lexer.advance(1);
-        const constValueToken = lexer.scanToken();
-        propertyValue = this._renderStateConstMap[valueToken.lexeme]?.[constValueToken.lexeme];
-        if (propertyValue == undefined) {
-          this._createCompileError(
-            `Invalid engine constant: ${valueToken.lexeme}.${constValueToken.lexeme}`,
-            constValueToken.location
-          );
-          // #if _VERBOSE
-          lexer.scanToCharacter(";");
-          return;
-          // #endif
+        propertyValue = this._scanEnumConstValue(valueToken.lexeme);
+        if (propertyValue == undefined) return;
+        // Support bitwise OR: ColorWriteMask.Red | ColorWriteMask.Green
+        lexer.skipCommentsAndSpace();
+        while (lexer.getCurChar() === "|") {
+          lexer.advance(1);
+          const nextEnumToken = lexer.scanToken();
+          if (nextEnumToken == undefined || lexer.getCurChar() !== ".") {
+            this._createCompileError(`Invalid syntax after '|', expect 'EnumType.Value'`, nextEnumToken?.location);
+            // #if _VERBOSE
+            lexer.scanToCharacter(";");
+            // #endif
+            return;
+          }
+          const nextValue = this._scanEnumConstValue(nextEnumToken.lexeme);
+          if (nextValue == undefined) return;
+          propertyValue = (<number>propertyValue) | (<number>nextValue);
+          lexer.skipCommentsAndSpace();
         }
       } else {
         propertyValue = valueToken.lexeme;
@@ -523,6 +548,7 @@ export class ShaderSourceParser {
       case Keyword.GSCompareFunction:
       case Keyword.GSStencilOperation:
       case Keyword.GSCullMode:
+      case Keyword.GSColorWriteMask:
         this._addPendingContents(start, token.lexeme.length, outGlobalContents);
         this._parseVariableDeclaration();
         start = this._lexer.getShaderPosition(0);
