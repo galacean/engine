@@ -311,6 +311,16 @@ export class ShaderSourceParser {
               // #endif
               return;
             }
+            if (nextEnumToken.lexeme !== valueToken.lexeme) {
+              this._createCompileError(
+                `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}'`,
+                nextEnumToken.location
+              );
+              // #if _VERBOSE
+              lexer.scanToCharacter(";");
+              // #endif
+              return;
+            }
             const nextValue = this._scanEnumConstValue(nextEnumToken.lexeme);
             if (nextValue == undefined) return;
             propertyValue = (<number>propertyValue) | (<number>nextValue);

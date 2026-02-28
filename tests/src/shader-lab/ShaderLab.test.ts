@@ -195,6 +195,22 @@ describe("ShaderLab", async () => {
     expect(pass.renderStates.constantMap[RenderStateElementKey.DepthStateCompareFunction]).to.be.undefined;
   });
 
+  it("render state error - mixed enum types in bitwise OR", async () => {
+    const shaderSource = `Shader "test" {
+      SubShader "Default" {
+        Pass "0" {
+          BlendState = {
+            ColorWriteMask[0] = ColorWriteMask.Red | BlendFactor.One;
+          }
+        }
+      }
+    }`;
+    const result = shaderLabVerbose._parseShaderSource(shaderSource);
+    const pass = result.subShaders[0].passes[0];
+    // Mixed enum types should be rejected
+    expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
+  });
+
   it("render state error - invalid syntax after bitwise OR", async () => {
     const shaderSource = `Shader "test" {
       SubShader "Default" {
