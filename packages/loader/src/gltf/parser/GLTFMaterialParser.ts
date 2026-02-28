@@ -3,7 +3,6 @@ import {
   Logger,
   Material,
   PBRMaterial,
-  PBRSpecularMaterial,
   RenderFace,
   Texture2D,
   TextureCoordinate,
@@ -32,7 +31,7 @@ export class GLTFMaterialParser extends GLTFParser {
    */
   static _parseStandardProperty(
     context: GLTFParserContext,
-    material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial,
+    material: UnlitMaterial | PBRMaterial,
     materialInfo: IMaterial
   ) {
     const {
@@ -87,7 +86,7 @@ export class GLTFMaterialParser extends GLTFParser {
       }
     }
 
-    if (material.constructor === PBRMaterial || material.constructor === PBRSpecularMaterial) {
+    if (material.constructor === PBRMaterial) {
       if (emissiveTexture) {
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
         context

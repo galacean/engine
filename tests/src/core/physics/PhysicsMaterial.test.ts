@@ -134,7 +134,7 @@ describe("PhysicsMaterial", () => {
 
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(2);
-    expect(formatValue(boxEntity.transform.position.y)).eq(5.1645);
+    expect(formatValue(boxEntity.transform.position.y)).eq(5.16451);
   });
 
   it("bounceCombine Multiply", () => {

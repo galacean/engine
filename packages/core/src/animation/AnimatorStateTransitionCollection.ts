@@ -74,9 +74,13 @@ export class AnimatorStateTransitionCollection {
     this._soloCount += isModifiedSolo ? 1 : -1;
   }
 
-  updateTransitionsIndex(transition: AnimatorStateTransition, hasExitTime: boolean): void {
+  updateTransitionsIndex(transition: AnimatorStateTransition, newHasExitTime: boolean): void {
     const transitions = this.transitions;
     transitions.splice(transitions.indexOf(transition), 1);
+    // newHasExitTime=true means transition was noExitTime before, so decrement
+    if (newHasExitTime) {
+      this.noExitTimeCount--;
+    }
     this._addTransition(transition);
   }
 
@@ -101,13 +105,14 @@ export class AnimatorStateTransitionCollection {
     }
 
     const { exitTime } = transition;
+    const { noExitTimeCount } = this;
     const count = transitions.length;
-    const maxExitTime = count ? transitions[count - 1].exitTime : 0;
+    const maxExitTime = count > noExitTimeCount ? transitions[count - 1].exitTime : 0;
     if (exitTime >= maxExitTime) {
       transitions.push(transition);
     } else {
       let index = count;
-      while (--index >= 0 && exitTime < transitions[index].exitTime);
+      while (--index >= noExitTimeCount && exitTime < transitions[index].exitTime);
       transitions.splice(index + 1, 0, transition);
     }
   }

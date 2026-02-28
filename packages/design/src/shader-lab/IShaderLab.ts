@@ -1,5 +1,5 @@
 import { IShaderProgramSource } from "./IShaderProgramSource";
-import { IShaderContent } from "./shaderContent/IShaderContent";
+import { IShaderSource } from "./shaderSource/IShaderSource";
 
 /**
  * Shader lab interface.
@@ -7,9 +7,9 @@ import { IShaderContent } from "./shaderContent/IShaderContent";
 export interface IShaderLab {
   /**
    * @internal
-   * Parse shader source to get the structure of shader.
+   * Parse shader source code to get the source structure of shader.
    */
-  _parseShaderContent(shaderSource: string): IShaderContent;
+  _parseShaderSource(sourceCode: string): IShaderSource;
 
   /**
    * @internal
@@ -20,9 +20,9 @@ export interface IShaderLab {
     shaderPassSource: string,
     vertexEntry: string,
     fragmentEntry: string,
-    macros: any[],
-    backend: number,
-    platformMacros: string[],
+    backend: any,
     basePathForIncludeKey: string
   ): IShaderProgramSource;
+
+  _parseMacros(context: string, macros: Array<{ name: string; value: string }>): string;
 }

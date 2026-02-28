@@ -1,8 +1,8 @@
+import { AssetPromise } from "./asset/AssetPromise";
 import { GLCapabilityType } from "./base/Constant";
 import { Engine } from "./Engine";
 import { Platform } from "./Platform";
 import { TextureFormat } from "./texture";
-import { AssetPromise } from "./asset/AssetPromise";
 
 /**
  * Access operating system, platform and hardware information.
@@ -26,6 +26,16 @@ export class SystemInfo {
    */
   static get devicePixelRatio(): number {
     return window.devicePixelRatio;
+  }
+
+  private static _parseAppleMobileOSVersion(userAgent: string, osPrefix: string): string {
+    // Since iOS 26, Safari freezes UA OS version at 18.6, so Version/xx is more reliable
+    // Use Version/ if available, otherwise fallback to OS version
+    let v = userAgent.match(/Version\/(\d+)(?:\.(\d+))?(?:\.(\d+))?/);
+    if (v) return `${osPrefix} ${v[1]}.${v[2] || 0}.${v[3] || 0}`;
+
+    v = userAgent.match(/OS (\d+)_(\d+)(?:_(\d+))?/);
+    return v ? `${osPrefix} ${v[1]}.${v[2]}.${v[3] || 0}` : osPrefix;
   }
 
   /**
@@ -53,12 +63,10 @@ export class SystemInfo {
       let v: RegExpMatchArray;
       switch (SystemInfo.platform) {
         case Platform.IPhone:
-          v = userAgent.match(/OS (\d+)_?(\d+)?_?(\d+)?/);
-          this.operatingSystem = v ? `iPhone OS ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "iPhone OS";
+          this.operatingSystem = this._parseAppleMobileOSVersion(userAgent, "iPhone OS");
           break;
         case Platform.IPad:
-          v = userAgent.match(/OS (\d+)_?(\d+)?_?(\d+)?/);
-          this.operatingSystem = v ? `iPad OS ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "iPad OS";
+          this.operatingSystem = this._parseAppleMobileOSVersion(userAgent, "iPad OS");
           break;
         case Platform.Android:
           v = userAgent.match(/Android (\d+).?(\d+)?.?(\d+)?/);

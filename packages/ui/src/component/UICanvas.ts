@@ -37,6 +37,7 @@ import { UIInteractive } from "./interactive/UIInteractive";
 export class UICanvas extends Component implements IElement {
   /** @internal */
   static _hierarchyCounter: number = 1;
+  private static _targetTempPath: number[] = [];
   private static _tempGroupAbleList: IGroupAble[] = [];
   private static _tempVec3: Vector3 = new Vector3();
   private static _tempMat: Matrix = new Matrix();
@@ -78,7 +79,7 @@ export class UICanvas extends Component implements IElement {
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @assignmentClone
+  @ignoreClone
   private _renderCamera: Camera;
   @ignoreClone
   private _cameraObserver: Camera;
@@ -388,6 +389,17 @@ export class UICanvas extends Component implements IElement {
    */
   _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
     target.renderMode = this._renderMode;
+    const renderCamera = this._renderCamera;
+    if (renderCamera) {
+      const paths = UICanvas._targetTempPath;
+      // @ts-ignore
+      const success = Entity._getEntityHierarchyPath(srcRoot, renderCamera.entity, paths);
+      // @ts-ignore
+      target.renderCamera = success
+        ? // @ts-ignore
+          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
+        : renderCamera;
+    }
   }
 
   private _getRenderers(): UIRenderer[] {

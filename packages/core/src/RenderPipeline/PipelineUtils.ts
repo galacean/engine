@@ -85,19 +85,20 @@ export class PipelineUtils {
     textureFilterMode: TextureFilterMode
   ): RenderTarget {
     const currentColorTexture = <Texture2D>currentRenderTarget?.getColorTexture(0);
-    const colorTexture = colorFormat
-      ? PipelineUtils.recreateTextureIfNeeded(
-          engine,
-          currentColorTexture,
-          width,
-          height,
-          colorFormat,
-          mipmap,
-          isSRGBColorSpace,
-          textureWrapMode,
-          textureFilterMode
-        )
-      : null;
+    const colorTexture =
+      colorFormat != null
+        ? PipelineUtils.recreateTextureIfNeeded(
+            engine,
+            currentColorTexture,
+            width,
+            height,
+            colorFormat,
+            mipmap,
+            isSRGBColorSpace,
+            textureWrapMode,
+            textureFilterMode
+          )
+        : null;
 
     if (needDepthTexture) {
       const currentDepthTexture = <Texture2D>currentRenderTarget?.depthTexture;

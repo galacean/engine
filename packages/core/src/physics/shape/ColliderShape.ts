@@ -63,7 +63,7 @@ export abstract class ColliderShape implements ICustomClone {
     value = Math.max(0, value);
     if (this._contactOffset !== value) {
       this._contactOffset = value;
-      this._nativeShape.setContactOffset(value);
+      this._nativeShape?.setContactOffset(value);
     }
   }
 
@@ -80,7 +80,7 @@ export abstract class ColliderShape implements ICustomClone {
     }
     if (this._material !== value) {
       this._material = value;
-      this._nativeShape.setMaterial(value._nativeMaterial);
+      this._nativeShape?.setMaterial(value._nativeMaterial);
     }
   }
 
@@ -120,7 +120,7 @@ export abstract class ColliderShape implements ICustomClone {
   set isTrigger(value: boolean) {
     if (this._isTrigger !== value) {
       this._isTrigger = value;
-      this._nativeShape.setIsTrigger(value);
+      this._nativeShape?.setIsTrigger(value);
     }
   }
 
@@ -173,12 +173,15 @@ export abstract class ColliderShape implements ICustomClone {
    * @internal
    */
   _destroy() {
-    this._nativeShape.destroy();
-    this._nativeShape = null;
+    if (this._nativeShape) {
+      this._nativeShape.destroy();
+      this._nativeShape = null;
+    }
     delete Engine._physicalObjectsMap[this._id];
   }
 
   protected _syncNative(): void {
+    if (!this._nativeShape) return;
     this._nativeShape.setPosition(this._position);
     this._nativeShape.setRotation(this._rotation);
     this._nativeShape.setContactOffset(this._contactOffset);
@@ -190,13 +193,13 @@ export abstract class ColliderShape implements ICustomClone {
 
   @ignoreClone
   private _setPosition(): void {
-    this._nativeShape.setPosition(this._position);
+    this._nativeShape?.setPosition(this._position);
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 
   @ignoreClone
   private _setRotation(): void {
-    this._nativeShape.setRotation(this._rotation);
+    this._nativeShape?.setRotation(this._rotation);
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 }

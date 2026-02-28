@@ -5,6 +5,8 @@ import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
+import { ColliderShape } from "./shape/ColliderShape";
+import { MeshColliderShape } from "./shape/MeshColliderShape";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -268,8 +270,30 @@ export class DynamicCollider extends Collider {
 
   set isKinematic(value: boolean) {
     if (this._isKinematic !== value) {
+      if (!value) {
+        // Block switching to non-kinematic if non-convex MeshColliderShape is attached
+        const shapes = this._shapes;
+        for (let i = 0, n = shapes.length; i < n; i++) {
+          const shape = shapes[i];
+          if (shape instanceof MeshColliderShape && !shape.isConvex) {
+            console.error(
+              "DynamicCollider: Cannot set isKinematic=false when non-convex MeshColliderShape is attached."
+            );
+            return;
+          }
+        }
+      }
+
       this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+
+      // Resync properties that PhysX ignores/resets during kinematic mode
+      if (!value) {
+        (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
+        if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
+          this._setMassAndUpdateInertia();
+        }
+      }
     }
   }
 
@@ -344,25 +368,35 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
+   * Moves the kinematic collider to the specified position.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
    */
   move(position: Vector3): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(rotation: Quaternion): void;
 
   /**
-   * Moves kinematically controlled dynamic actors through the game world.
-   * @param position - The desired position for the kinematic actor
-   * @param rotation - The desired rotation for the kinematic actor
+   * Moves the kinematic collider to the specified position and rotation.
+   * @remarks Only available when {@link isKinematic} is true.
+   * Unlike setting the transform directly (teleport), this method affects dynamic colliders along the movement path.
+   * @param position - The desired position for the kinematic collider
+   * @param rotation - The desired rotation for the kinematic collider
    */
   move(position: Vector3, rotation: Quaternion): void;
 
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    if (!this._isKinematic) {
+      console.warn("DynamicCollider: move() is only supported when isKinematic is true.");
+      return;
+    }
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).move(positionOrRotation, rotation);
   }
 
@@ -386,6 +420,17 @@ export class DynamicCollider extends Collider {
    */
   wakeUp(): void {
     (<IDynamicCollider>this._nativeCollider).wakeUp();
+  }
+
+  /**
+   * @inheritdoc
+   */
+  override addShape(shape: ColliderShape): void {
+    if (shape instanceof MeshColliderShape && !shape.isConvex && !this._isKinematic) {
+      console.error("DynamicCollider: Non-convex MeshColliderShape is not supported on non-kinematic DynamicCollider.");
+      return;
+    }
+    super.addShape(shape);
   }
 
   /**
@@ -453,6 +498,10 @@ export class DynamicCollider extends Collider {
   }
 
   private _setMassAndUpdateInertia(): void {
+    // Kinematic bodies don't need mass/inertia computation (PhysX doc: mass is not used in kinematic mode)
+    if (this._isKinematic) {
+      return;
+    }
     (<IDynamicCollider>this._nativeCollider).setMassAndUpdateInertia(this._mass);
 
     this._automaticCenterOfMass || (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);

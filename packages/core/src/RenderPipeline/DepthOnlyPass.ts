@@ -15,13 +15,12 @@ import { PipelineStage } from "./enums/PipelineStage";
  * Depth only pass.
  */
 export class DepthOnlyPass extends PipelinePass {
-  readonly _supportDepthTexture: boolean;
-
-  private _renderTarget: RenderTarget;
+  readonly supportDepthTexture: boolean;
+  renderTarget: RenderTarget;
 
   constructor(engine: Engine) {
     super(engine);
-    this._supportDepthTexture = engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
+    this.supportDepthTexture = engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
   }
 
   onConfig(camera: Camera): void {
@@ -30,11 +29,11 @@ export class DepthOnlyPass extends PipelinePass {
 
     const renderTarget = PipelineUtils.recreateRenderTargetIfNeeded(
       engine,
-      this._renderTarget,
+      this.renderTarget,
       width,
       height,
       null,
-      TextureFormat.Depth16,
+      engine._hardwareRenderer.isWebGL2 ? TextureFormat.Depth24 : TextureFormat.Depth24Stencil8,
       true,
       false,
       false,
@@ -43,12 +42,12 @@ export class DepthOnlyPass extends PipelinePass {
       TextureFilterMode.Point
     );
 
-    this._renderTarget = renderTarget;
+    this.renderTarget = renderTarget;
   }
 
   override onRender(context: RenderContext, cullingResults: CullingResults): void {
     const engine = this.engine;
-    const renderTarget = this._renderTarget;
+    const renderTarget = this.renderTarget;
     const camera = context.camera;
     const rhi = engine._hardwareRenderer;
     context.setRenderTarget(renderTarget, PipelineUtils.defaultViewport, 0);
@@ -58,6 +57,15 @@ export class DepthOnlyPass extends PipelinePass {
     cullingResults.opaqueQueue.render(context, PipelineStage.DepthOnly);
     cullingResults.alphaTestQueue.render(context, PipelineStage.DepthOnly);
 
-    camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this._renderTarget.depthTexture);
+    camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, this.renderTarget.depthTexture);
+  }
+
+  release(): void {
+    const renderTarget = this.renderTarget;
+    if (renderTarget) {
+      renderTarget.depthTexture?.destroy(true);
+      renderTarget.destroy(true);
+      this.renderTarget = null;
+    }
   }
 }

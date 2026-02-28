@@ -1,5 +1,5 @@
+import { Camera, ModelMesh, ParticleRenderer, ParticleRenderMode, Scene } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Camera, ParticleRenderer, ModelMesh, Scene, ParticleRenderMode } from "@galacean/engine-core";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("ParticleRenderer", () => {
@@ -52,9 +52,8 @@ describe("ParticleRenderer", () => {
     expect(() => {
       renderer.renderMode = ParticleRenderMode.HorizontalBillboard;
     }).to.throw("Not implemented");
-    expect(() => {
-      renderer.renderMode = ParticleRenderMode.Mesh;
-    }).to.throw("Not implemented");
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    expect(renderer.renderMode).to.eq(ParticleRenderMode.Mesh);
     expect(() => {
       renderer.renderMode = ParticleRenderMode.VerticalBillboard;
     }).to.throw("Not implemented");

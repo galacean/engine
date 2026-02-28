@@ -1,4 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
+import { ignoreClone } from "../clone/CloneManager";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -26,6 +27,7 @@ export class DirectLight extends Light {
    */
   shadowNearPlaneOffset = 0.1;
 
+  @ignoreClone
   private _reverseDirection: Vector3 = new Vector3();
 
   /**

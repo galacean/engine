@@ -131,6 +131,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   constructor(entity: Entity) {
     super(entity);
     this.drawMode = SpriteDrawMode.Simple;
+    // @ts-ignore
     this.setMaterial(this._engine._getUIDefaultMaterial());
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
@@ -196,6 +197,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
     // @todo: This question needs to be raised rather than hidden.
     if (material.destroyed) {
+      // @ts-ignore
       material = this._engine._getUIDefaultMaterial();
     }
 

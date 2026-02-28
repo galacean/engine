@@ -20,7 +20,7 @@ import {
   Layer
 } from "@galacean/engine";
 
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 class CheckScript extends Script {

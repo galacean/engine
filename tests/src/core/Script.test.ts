@@ -189,7 +189,7 @@ describe("Script", () => {
       engine.update();
       engine.update();
       expect(script1.onUpdate).toHaveBeenCalledOnce();
-      expect(script2.onUpdate).toHaveBeenCalledOnce();
+      expect(script2.onUpdate).toHaveBeenCalledTimes(2);
       expect(script3.onUpdate).toHaveBeenCalledTimes(3);
     });
 

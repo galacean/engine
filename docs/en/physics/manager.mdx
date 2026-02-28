@@ -63,50 +63,11 @@ scene.physics.gravity.set(0, 0, 0);
 scene.physics.gravity.set(0, -9.81, 0);
 ```
 
-## Using Raycasting
+## Spatial Query Functions
 
-A ray can be understood as an infinite line emitted from a point in a certain direction in the 3D world. Raycasting is widely used in 3D applications:
+The physics scene provides various spatial query functions for detecting and analyzing spatial relationships between objects in the scene:
 
-- Used to pick objects in the 3D scene when the user clicks the screen
-- Used in shooting games to determine if a bullet can hit the target
-- Detect visibility and occlusion relationships between objects
+- **[Raycasting](/en/docs/physics/query/raycast)** - Precise point-to-point detection, suitable for picking and aiming scenarios
+- **[Shape Casting](/en/docs/physics/query/sweep)** - Cast geometric shapes along directions, suitable for movement prediction and path planning
+- **[Overlap Detection](/en/docs/physics/query/overlap)** - Detect overlapping objects within regions, suitable for triggers and area attacks
 
-<Image src="https://gw.alipayobjects.com/mdn/rms_7c464e/afts/img/A*SHM1RI49Bd4AAAAAAAAAAAAAARQnAQ) 
-(_Image source: Internet_" />
-
-### Raycasting Example
-
-To use raycasting, follow these steps:
-
-1. Import necessary modules such as [Ray](/apis/math/Ray)
-2. Create a ray (can be customized or generated through [camera.screenPointToRay](/apis/core/#Camera-screenPointToRay))
-3. Call the [`raycast`](/apis/core/#PhysicsScene-raycast) method to detect collisions
-```typescript
-// Load the Raycast module
-import { WebGLEngine, HitResult, Ray } from "@galacean/engine";
-import { LitePhysics } from "@galacean/engine-physics-lite";
-
-const engine = await WebGLEngine.create({
-  canvas: "canvas",
-  physics: new LitePhysics()
-});
-engine.canvas.resizeByClientSize();
-const scene = engine.scenes[0];
-// Convert screen input to Ray
-document.getElementById("canvas").addEventListener("click", (e) => {
-  const ratio = window.devicePixelRatio;
-  let ray = new Ray();
-  camera.screenPointToRay(new Vector2(e.offsetX, e.offsetY).scale(ratio), ray);
-  const hit = new HitResult();
-  result = scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit);
-  if (result) {
-    console.log(hit.entity.name);
-  }
-});
-```
-
-### Notes
-
-- Entity must add [collider](/en/docs/physics/collider/overview) components to be detected by raycasting
-- When a ray hits multiple [collider shapes](/en/docs/physics/collider/colliderShape) at the same distance, it will return the Entity of the collider shape that was added first
-- It is recommended to use [InputManager](/en/docs/input/input/) to handle input, as it provides a more convenient way to handle input

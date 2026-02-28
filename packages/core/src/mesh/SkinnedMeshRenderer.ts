@@ -16,6 +16,10 @@ import { Skin, SkinUpdateFlag } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
+  // @TODO: different shader type should use different count, not always 48
+  /** @internal */
+  static _baseVertexUniformVectorCount = 48;
+
   private static _jointCountProperty = ShaderProperty.getByName("renderer_JointCount");
   private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
   private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
@@ -163,8 +167,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
       if (boneCountChange || bsUniformOccupiesCount !== boneDataCreateCache.y) {
         // directly use max joint count to avoid shader recompile
-        // @TODO: different shader type should use different count, not always 44
-        const remainUniformJointCount = Math.ceil((this._maxVertexUniformVectors - (44 + bsUniformOccupiesCount)) / 4);
+        const remainUniformJointCount = Math.ceil(
+          (this._maxVertexUniformVectors -
+            (SkinnedMeshRenderer._baseVertexUniformVectorCount + bsUniformOccupiesCount)) /
+            4
+        );
 
         if (boneCount > remainUniformJointCount) {
           const engine = this.engine;

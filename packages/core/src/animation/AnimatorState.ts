@@ -1,5 +1,7 @@
+import { Engine } from "../Engine";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimationClip } from "./AnimationClip";
+import type { Animator } from "./Animator";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { WrapMode } from "./enums/WrapMode";
@@ -15,18 +17,16 @@ export class AnimatorState {
   wrapMode: WrapMode = WrapMode.Loop;
 
   /** @internal */
-  _onStateEnterScripts: StateMachineScript[] = [];
-  /** @internal */
-  _onStateUpdateScripts: StateMachineScript[] = [];
-  /** @internal */
-  _onStateExitScripts: StateMachineScript[] = [];
-  /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   /** @internal */
   _transitionCollection: AnimatorStateTransitionCollection = new AnimatorStateTransitionCollection();
 
-  private _clipStartTime: number = 0;
-  private _clipEndTime: number = 1;
+  private _onStateEnterScripts: StateMachineScript[] = [];
+  private _onStateUpdateScripts: StateMachineScript[] = [];
+  private _onStateExitScripts: StateMachineScript[] = [];
+  private _engine: Engine;
+  private _clipStartTime = 0;
+  private _clipEndTime = 1;
   private _clip: AnimationClip;
 
   /**
@@ -133,6 +133,7 @@ export class AnimatorState {
    */
   addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
     const script = new scriptType();
+    script._engine = this._engine;
     script._state = this;
 
     const { prototype } = StateMachineScript;
@@ -154,6 +155,36 @@ export class AnimatorState {
    */
   clearTransitions(): void {
     this._transitionCollection.clear();
+  }
+
+  /**
+   * @internal
+   */
+  _callOnEnter(animator: Animator, layerIndex: number): void {
+    const scripts = this._onStateEnterScripts;
+    for (let i = 0, n = scripts.length; i < n; i++) {
+      scripts[i].onStateEnter(animator, this, layerIndex);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _callOnUpdate(animator: Animator, layerIndex: number): void {
+    const scripts = this._onStateUpdateScripts;
+    for (let i = 0, n = scripts.length; i < n; i++) {
+      scripts[i].onStateUpdate(animator, this, layerIndex);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _callOnExit(animator: Animator, layerIndex: number): void {
+    const scripts = this._onStateExitScripts;
+    for (let i = 0, n = scripts.length; i < n; i++) {
+      scripts[i].onStateExit(animator, this, layerIndex);
+    }
   }
 
   /**
@@ -204,5 +235,26 @@ export class AnimatorState {
    */
   _getClipActualEndTime(): number {
     return this._clipEndTime * this.clip.length;
+  }
+
+  /**
+   * @internal
+   */
+  _setEngine(engine: Engine): void {
+    this._engine = engine;
+    const {
+      _onStateEnterScripts: enterScripts,
+      _onStateUpdateScripts: updateScripts,
+      _onStateExitScripts: exitScripts
+    } = this;
+    for (let i = 0, n = enterScripts.length; i < n; i++) {
+      enterScripts[i]._engine = engine;
+    }
+    for (let i = 0, n = updateScripts.length; i < n; i++) {
+      updateScripts[i]._engine = engine;
+    }
+    for (let i = 0, n = exitScripts.length; i < n; i++) {
+      exitScripts[i]._engine = engine;
+    }
   }
 }

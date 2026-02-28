@@ -24,6 +24,7 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _globalAlpha = 1;
   /** @internal */
+  @ignoreClone
   _globalInteractive = true;
 
   @assignmentClone
@@ -41,10 +42,10 @@ export class UIGroup extends Component implements IGroupAble {
   _groupListeningEntities: Entity[] = [];
   /** @internal */
   @ignoreClone
-  _isRootCanvasDirty: boolean = true;
+  _isRootCanvasDirty: boolean = false;
   /** @internal */
   @ignoreClone
-  _isGroupDirty: boolean = true;
+  _isGroupDirty: boolean = false;
   /** @internal */
   @ignoreClone
   _groupDirtyFlags: number = GroupModifyFlags.None;

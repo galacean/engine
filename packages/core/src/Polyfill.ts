@@ -8,6 +8,7 @@ export class Polyfill {
     Polyfill._registerMatchAll();
     Polyfill._registerAudioContext();
     Polyfill._registerTextMetrics();
+    Polyfill._registerPromiseFinally();
   }
 
   private static _registerMatchAll(): void {
@@ -89,6 +90,23 @@ export class Polyfill {
           }
         }
       });
+    }
+  }
+
+  private static _registerPromiseFinally(): void {
+    // iOS Safari 10.0-10.2 and older versions do not support Promise.prototype.finally
+    // Examples: iPhone 6s and below devices without system upgrade
+    if (!Promise.prototype.finally) {
+      Logger.info("Polyfill Promise.prototype.finally");
+      Promise.prototype.finally = function <T>(this: Promise<T>, onFinally?: () => void): Promise<T> {
+        return this.then(
+          (value) => Promise.resolve(onFinally?.()).then(() => value),
+          (reason) =>
+            Promise.resolve(onFinally?.()).then(() => {
+              throw reason;
+            })
+        );
+      };
     }
   }
 }

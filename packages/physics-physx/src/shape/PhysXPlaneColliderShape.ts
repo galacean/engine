@@ -1,5 +1,5 @@
 import { IPlaneColliderShape } from "@galacean/engine-design";
-import { Quaternion, Vector3 } from "@galacean/engine";
+import { Quaternion } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";

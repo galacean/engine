@@ -8,7 +8,7 @@ import {
   ResourceManager
 } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.SourceFont, ["ttf", "otf", "woff"], false)
+@resourceLoader(AssetType.SourceFont, ["ttf", "otf", "woff"])
 class SourceFontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {

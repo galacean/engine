@@ -49,7 +49,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _enableSeparateMacro: ShaderMacro;
   @ignoreClone
-  private _isCurveMacro: ShaderMacro;
+  private _modeMacro: ShaderMacro;
   @ignoreClone
   private _isRandomTwoMacro: ShaderMacro;
 
@@ -58,7 +58,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
    */
   _updateShaderData(shaderData: ShaderData): void {
     let enableSeparateMacro = <ShaderMacro>null;
-    let isCurveMacro = <ShaderMacro>null;
+    let modeMacro = <ShaderMacro>null;
     let isRandomTwoMacro = <ShaderMacro>null;
     if (this.enabled) {
       const rotationX = this.rotationX;
@@ -93,7 +93,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
           }
           isRandomTwoMacro = RotationOverLifetimeModule._isRandomTwoMacro;
         }
-        isCurveMacro = RotationOverLifetimeModule._curveModeMacro;
+        modeMacro = RotationOverLifetimeModule._curveModeMacro;
       } else {
         const constantMax = this._rotationMaxConstant;
         constantMax.set(
@@ -119,7 +119,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
           shaderData.setVector3(RotationOverLifetimeModule._minConstantProperty, constantMin);
           isRandomTwoMacro = RotationOverLifetimeModule._isRandomTwoMacro;
         }
-        isCurveMacro = RotationOverLifetimeModule._constantModeMacro;
+        modeMacro = RotationOverLifetimeModule._constantModeMacro;
       }
 
       if (separateAxes) {
@@ -127,7 +127,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
       }
     }
     this._enableSeparateMacro = this._enableMacro(shaderData, this._enableSeparateMacro, enableSeparateMacro);
-    this._isCurveMacro = this._enableMacro(shaderData, this._isCurveMacro, isCurveMacro);
+    this._modeMacro = this._enableMacro(shaderData, this._modeMacro, modeMacro);
     this._isRandomTwoMacro = this._enableMacro(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
   }
 

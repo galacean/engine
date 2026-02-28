@@ -1,5 +1,6 @@
 import { Rand } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { Burst } from "./Burst";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
@@ -10,6 +11,9 @@ import { BaseShape } from "./shape/BaseShape";
  * The EmissionModule of a Particle Generator.
  */
 export class EmissionModule extends ParticleGeneratorModule {
+  /** @internal */
+  static readonly _emissionShapeMacro = ShaderMacro.getByName("RENDERER_EMISSION_SHAPE");
+
   /**  The rate of particle emission. */
   @deepClone
   rateOverTime: ParticleCompositeCurve = new ParticleCompositeCurve(10);
@@ -34,6 +38,24 @@ export class EmissionModule extends ParticleGeneratorModule {
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
   /**
+   * @inheritdoc
+   */
+  override get enabled(): boolean {
+    return this._enabled;
+  }
+
+  override set enabled(value: boolean) {
+    if (value !== this._enabled) {
+      this._enabled = value;
+      if (value && this._shape) {
+        this._generator._renderer.shaderData.enableMacro(EmissionModule._emissionShapeMacro);
+      } else {
+        this._generator._renderer.shaderData.disableMacro(EmissionModule._emissionShapeMacro);
+      }
+    }
+  }
+
+  /**
    * The shape of the emitter.
    */
   get shape() {
@@ -47,7 +69,13 @@ export class EmissionModule extends ParticleGeneratorModule {
 
       const renderer = this._generator._renderer;
       lastShape?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-      value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
+
+      if (value) {
+        value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
+        this.enabled && renderer.shaderData.enableMacro(EmissionModule._emissionShapeMacro);
+      } else {
+        renderer.shaderData.disableMacro(EmissionModule._emissionShapeMacro);
+      }
 
       renderer._onGeneratorParamsChanged();
     }

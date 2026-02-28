@@ -1,3 +1,4 @@
+import { Engine } from "../Engine";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
@@ -11,6 +12,8 @@ export interface AnimatorStateMap {
 export class AnimatorStateMachine {
   /** The list of states. */
   readonly states: AnimatorState[] = [];
+
+  private _engine: Engine;
 
   /**
    * The state will be played automatically.
@@ -47,6 +50,7 @@ export class AnimatorStateMachine {
     let state = this.findStateByName(name);
     if (!state) {
       state = new AnimatorState(name);
+      state._setEngine(this._engine);
       this.states.push(state);
       this._statesMap[name] = state;
     } else {
@@ -151,5 +155,16 @@ export class AnimatorStateMachine {
    */
   clearAnyStateTransitions(): void {
     this._anyStateTransitionCollection.clear();
+  }
+
+  /**
+   * @internal
+   */
+  _setEngine(engine: Engine): void {
+    this._engine = engine;
+    const { states } = this;
+    for (let i = 0, n = states.length; i < n; i++) {
+      states[i]._setEngine(engine);
+    }
   }
 }

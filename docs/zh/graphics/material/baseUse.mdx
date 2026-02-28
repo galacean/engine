@@ -1,0 +1,190 @@
+---
+title: 材质的基本使用
+---
+
+## 创建材质
+
+创建材质一般有以下 3 种方式：
+
+### 1. 手动创建
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/b01b0ee2-317e-4acb-8c2f-e07736179d67/image-20240206163405147.png" />
+
+### 2. 模型中的材质
+
+参考[模型的导入和使用](/docs/graphics/model/use/)教程，我们可以先将模型导入到编辑器，一般情况下，模型已经自动绑定好材质，用户可以不用做任何操作；
+
+#### 2.1. Remap 材质
+
+如果想要修改模型材质，我们可以点击 `duplicate and remap` 按钮来生成一份该材质的副本，注意 Remap 会修改模型预设，如下图所有模型实例都会受到影响：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/4a41f66e-5523-43f0-a9b5-4028b9d14cbc/2025-01-24%25252015.30.31.gif" />
+
+#### 2.2. 增量修改
+
+如果只想修改某个模型的材质，可以使用增量修改的功能：
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/5d2409f2-a7b2-4b5e-9e6a-9845c3358af3/2025-01-24%25252015.32.04.gif" />
+
+
+### 3. 绑定材质
+
+我们直接将材质拖到场景中即可进行绑定。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/62d6a8cb-fd70-4c37-beab-9dacc8ae4d5b/2025-05-23%25252017.13.59.gif" />
+
+### 4. 脚本方式
+
+我们还可以通过脚本来创建/修改材质，我们将脚本挂载到立方体实体上，实现替换材质的一个 Demo：
+
+```ts showLineNumbers
+export default class extends Script {
+  onStart() {
+    // 获取所有 renderer
+    const renderers = [];
+    this.entity.getComponentsIncludeChildren(MeshRenderer, renderers);
+    const renderer = renderers[0];
+
+    // 直接修改材质
+    const material = renderer.getMaterial();
+    material.baseColor.set(1, 0, 0, 1);
+
+    // 或者替换材质
+    const pbrMaterial = new PBRMaterial(engine);
+    const material = renderer.setMaterial(material);
+  }
+}
+```
+
+## 切换 Shader
+
+可以在编辑器中选中材质，切换 shader 观察实时渲染效果变化。
+
+<Image src="https://gw.alipayobjects.com/zos/OasisHub/cd87c11a-7a68-4cde-a19a-40cff943e878/2025-02-10%25252017.05.33.gif" />
+
+
+
+每个 Shader 有不同的渲染效果和应用场景，更多详情参考 [内置着色器教程](/docs/graphics/material/builtinShaders/pbr/) 和 [自定义 Shader 实战教程](/docs/graphics/material/examples/shaderlab-01-basic-shader) 。
+
+
+## 创建自定义 Shader
+如果内置 Shader 不能满足需求，我们可以自定义一个Shader，在编辑器资产面板中，新建 Shader，选择 PBR 模板或者 Unlit 模板：
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/9abd1026-4e4d-4994-b36a-f964375c38cb/image-20240731105324320.png"
+  style={{ zoom: "50%" }}
+/>
+
+编辑器会自动帮我们创建好 Shader 文件和 [UIScript](/docs/graphics/material/shader/#uiscript-脚本系统) 文件。
+
+<img
+  src="https://gw.alipayobjects.com/zos/OasisHub/6351fa81-5159-4469-bd95-8f21a8f2f4ac/image-20250124162909194.png"
+  style={{ zoom: "50%" }}
+/>
+
+<Callout type="info">
+具体 shader 内容编写可以从 [自定义 Shader 实战教程](/docs/graphics/material/examples/shaderlab-01-basic-shader) 快速上手。
+</Callout>
+
+## Shader 数据的传输
+
+跟别的编程语言一样，我们在写 Shader 过程中也会用到很多变量，首先引擎有很多 [内置变量](/docs/graphics/material/variables)，这部分的变量我们是不需要手动设置的，可以直接在 shader 中使用。接下来我们看看如何设置和使用自定义数据。
+
+### 声明变量
+```glsl showLineNumbers
+...
+Pass "Forward" {
+	// 声明自定义变量
+	vec4 u_color;
+
+	// 声明引擎内置变量
+	mat4 renderer_MVPMat;
+
+	// 通过引入代码片段
+	#include "Transform.glsl"
+}
+...
+```
+
+
+### 设置数据
+Shader 支持通过 [UIScript](/docs/graphics/material/shader/#uiscript-脚本系统) 帮我们自动生成可以交互的面板:
+
+<div style={{display: "flex"}}>
+
+  <Image src="https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*mwAxRr45kE8AAAAAAAAAAAAAeteEAQ/fmt.webp" width="435px" />
+
+  <Image src= "https://mdn.alipayobjects.com/huamei_aftkdx/afts/img/A*7MrxTIG5fpkAAAAAAAAAAAAAeteEAQ/fmt.webp" width="200px" />
+
+</div>
+
+
+<Callout type="info">
+  参考 [Shader Editor 模块 ](/docs/graphics/material/shader/#2-editor-模块) 使用更多类型的数据和宏。
+</Callout>
+
+当然，我们也可以通过代码设置着色器数据:
+
+```ts showLineNumbers
+// shaderData 可以分别保存在 scene 、camera 、renderer、 material 中。
+const shaderData = material.shaderData;
+
+// 上传不同类型的着色器数据
+shaderData.setFloat("u_float", 1.5);
+shaderData.setInt("u_int", 1);
+shaderData.setInt("u_bool", 1);
+shaderData.setVector2("u_vec2", new Vector2(1, 1));
+shaderData.setVector3("u_vec3", new Vector3(1, 1, 1));
+shaderData.setVector4("u_vec4", new Vector4(1, 1, 1, 1));
+shaderData.setMatrix("u_matrix", new Matrix());
+shaderData.setIntArray("u_intArray", new Int32Array(10));
+shaderData.setFloatArray("u_floatArray", new Float32Array(10));
+shaderData.setTexture("u_sampler2D", texture2D);
+shaderData.setTexture("u_samplerCube", textureCube);
+shaderData.setTextureArray("u_samplerArray", [texture2D, textureCube]);
+
+// 开启宏开关
+shaderData.enableMacro("DISCARD");
+// 关闭宏开关
+shaderData.disableMacro("DISCARD");
+
+// 开启变量宏
+shaderData.enableMacro("LIGHT_COUNT", "3");
+
+// 切换变量宏。这里底层会自动 disable 上一个宏，即 “LIGHT_COUNT 3”
+shaderData.enableMacro("LIGHT_COUNT", "2");
+
+// 关闭变量宏
+shaderData.disableMacro("LIGHT_COUNT");
+```
+
+### 获取数据
+
+当你设置完数据后，你已经可以在 Shader 中直接使用，如下：
+
+```glsl showLineNumbers filename="test.glsl"
+float test = u_float;
+int test = u_int;
+bool test = u_bool;
+vec2 test = u_vec2;
+mat4 test = u_matrix;
+sampler2D test = u_sampler2D;
+...
+```
+
+你也可以通过代码获取这个变量的值：
+
+```ts showLineNumbers filename="test.ts"
+const test = shaderData.getFloat("u_float");
+const test = shaderData.getInt("u_int");
+const test = shaderData.getVector2("u_vec2");
+const test = shaderData.getMatrix("u_matrix");
+const test = shaderData.getTexture("u_sampler2D");
+```
+
+## 下一步学习
+- [自定义 Shader](/docs/graphics/material/examples/shaderlab-01-basic-shader) - 从 0 开始 Shader 创作之旅
+- [Shader 语法深入学习](/docs/graphics/material/shader) - 完整的语法参考
+- [Shader 内置变量参考](/docs/graphics/material/variables) - 引擎提供的所有内置变量
+- [Shader 内置 API 参考](/docs/graphics/material/shaderAPI) - 引擎提供的所有 Shader API
+- [光照系统](/docs/graphics/light/light) - 实现更真实的光照效果

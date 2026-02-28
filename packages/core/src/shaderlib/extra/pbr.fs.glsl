@@ -1,9 +1,9 @@
-#define IS_METALLIC_WORKFLOW
 #include <common>
 #include <camera_declare>
 #include <transform_declare>
 
 #include <FogFragmentDeclaration>
+#include <PositionClipSpaceDeclaration>
 
 #include <uv_share>
 #include <normal_share>

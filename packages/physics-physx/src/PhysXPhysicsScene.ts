@@ -1,4 +1,4 @@
-import { Ray, Vector3, DisorderedArray } from "@galacean/engine";
+import { Ray, Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
 import { ICollision, IPhysicsScene } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
@@ -13,7 +13,18 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   _pxControllerManager: any = null;
 
   private static _tempPosition: Vector3 = new Vector3();
+  private static _tempQuaternion: Quaternion = new Quaternion();
   private static _tempNormal: Vector3 = new Vector3();
+  private static _tempPose: { translation: Vector3; rotation: Quaternion } = {
+    translation: new Vector3(),
+    rotation: new Quaternion()
+  };
+  private static _tempShapeIDs: number[] = [];
+
+  // Cached geometry objects for reuse
+  private _boxGeometry: any = null;
+  private _sphereGeometry: any = null;
+  private _capsuleGeometry: any = null;
 
   private _physXPhysics: PhysXPhysics;
   private _physXManager: PhysXPhysicsManager;
@@ -183,7 +194,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const { _pxRaycastHit: pxHitResult } = this;
-    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physX raycast.
 
     const raycastCallback = {
       preFilter: (filterData, index, actor) => {
@@ -192,8 +203,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           return 0; // eNONE
         }
-      },
-      postFilter: (filterData, hit) => {}
+      }
     };
 
     const pxRaycastCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback);
@@ -220,9 +230,146 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.boxCast }
+   */
+  boxCast(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    if (!this._boxGeometry) {
+      this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
+    } else {
+      this._boxGeometry.halfExtents = halfExtents;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._sweepSingle(this._boxGeometry, pose, direction, distance, onSweep, outHitResult);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.sphereCast }
+   */
+  sphereCast(
+    center: Vector3,
+    radius: number,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    if (!this._sphereGeometry) {
+      this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius);
+    } else {
+      this._sphereGeometry.radius = radius;
+    }
+
+    const tempQuat = PhysXPhysicsScene._tempQuaternion;
+    tempQuat.set(0, 0, 0, 1); // Identity quaternion
+    const pose = { translation: center, rotation: tempQuat };
+    return this._sweepSingle(this._sphereGeometry, pose, direction, distance, onSweep, outHitResult);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.capsuleCast }
+   */
+  capsuleCast(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    if (!this._capsuleGeometry) {
+      this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, height * 0.5);
+    } else {
+      this._capsuleGeometry.radius = radius;
+      this._capsuleGeometry.halfHeight = height * 0.5;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._sweepSingle(this._capsuleGeometry, pose, direction, distance, onSweep, outHitResult);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapBoxAll }
+   */
+  overlapBoxAll(
+    center: Vector3,
+    orientation: Quaternion,
+    halfExtents: Vector3,
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    if (!this._boxGeometry) {
+      this._boxGeometry = new this._physXPhysics._physX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
+    } else {
+      this._boxGeometry.halfExtents = halfExtents;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._overlapMultiple(this._boxGeometry, pose, onOverlap);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapSphereAll }
+   */
+  overlapSphereAll(center: Vector3, radius: number, onOverlap: (obj: number) => boolean): number[] {
+    if (!this._sphereGeometry) {
+      this._sphereGeometry = new this._physXPhysics._physX.PxSphereGeometry(radius);
+    } else {
+      this._sphereGeometry.radius = radius;
+    }
+
+    const tempQuat = PhysXPhysicsScene._tempQuaternion;
+    tempQuat.set(0, 0, 0, 1);
+    const pose = { translation: center, rotation: tempQuat };
+    return this._overlapMultiple(this._sphereGeometry, pose, onOverlap);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.overlapCapsuleAll }
+   */
+  overlapCapsuleAll(
+    center: Vector3,
+    radius: number,
+    height: number,
+    orientation: Quaternion,
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    if (!this._capsuleGeometry) {
+      this._capsuleGeometry = new this._physXPhysics._physX.PxCapsuleGeometry(radius, height * 0.5);
+    } else {
+      this._capsuleGeometry.radius = radius;
+      this._capsuleGeometry.halfHeight = height * 0.5;
+    }
+
+    const pose = PhysXPhysicsScene._tempPose;
+    pose.translation.copyFrom(center);
+    pose.rotation.copyFrom(orientation);
+    return this._overlapMultiple(this._capsuleGeometry, pose, onOverlap);
+  }
+
+  /**
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {
+    this._boxGeometry?.delete();
+    this._sphereGeometry?.delete();
+    this._capsuleGeometry?.delete();
+
     this._physXSimulationCallbackInstance.delete();
     this._pxRaycastHit.delete();
     this._pxFilterData.flags.delete();
@@ -268,6 +415,85 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       }
     });
     delete eventMap[id];
+  }
+
+  private _sweepSingle(
+    geometry: any,
+    pose: { translation: Vector3; rotation: Quaternion },
+    direction: Vector3,
+    distance: number,
+    onSweep: (obj: number) => boolean,
+    outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
+
+    const sweepCallback = {
+      preFilter: (filterData, index, actor) => {
+        if (onSweep(index)) {
+          return 2; // eBLOCK
+        } else {
+          return 0; // eNONE
+        }
+      }
+    };
+
+    const pxSweepCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(sweepCallback);
+    const pxSweepHit = new this._physXPhysics._physX.PxSweepHit();
+    const result = this._pxScene.sweepSingle(
+      geometry,
+      pose,
+      direction,
+      distance,
+      pxSweepHit,
+      this._pxFilterData,
+      pxSweepCallback
+    );
+
+    if (result && outHitResult != undefined) {
+      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
+      const { position: pxPosition, normal: pxNormal } = pxSweepHit;
+      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+      outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
+    }
+
+    pxSweepCallback.delete();
+    pxSweepHit.delete();
+
+    return result;
+  }
+
+  private _overlapMultiple(
+    geometry: any,
+    pose: { translation: Vector3; rotation: Quaternion },
+    onOverlap: (obj: number) => boolean
+  ): number[] {
+    const overlapCallback = {
+      preFilter: (filterData, index, actor) => (onOverlap(index) ? 2 : 0)
+    };
+
+    const pxOverlapCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(overlapCallback);
+    const maxHits = 256;
+    const hits: any = (this._pxScene as any).overlapMultiple(
+      geometry,
+      pose,
+      maxHits,
+      this._pxFilterData,
+      pxOverlapCallback
+    );
+
+    const result = PhysXPhysicsScene._tempShapeIDs;
+    result.length = 0;
+    if (hits) {
+      // PhysX overlapMultiple returns a collection with size() method
+      for (let i = 0, n = hits.size(); i < n; i++) {
+        result.push(hits.get(i).getShape().getUUID());
+      }
+    }
+
+    pxOverlapCallback.delete();
+    hits?.delete();
+    return result;
   }
 
   private _simulate(elapsedTime: number): void {

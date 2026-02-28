@@ -78,13 +78,14 @@ export class Utils {
       return relativeUrl;
     }
 
-    if (!/^https?:/.test(baseUrl)) {
-      const fileSchema = "file://";
-      baseUrl = fileSchema + baseUrl;
-      return new URL(relativeUrl, baseUrl).href.substring(fileSchema.length);
+    if (Utils.isAbsoluteUrl(baseUrl)) {
+      return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
     }
 
-    return relativeUrl ? new URL(relativeUrl, baseUrl).href : baseUrl;
+    const head = "file://";
+    const encodedBaseUrl = head + this._encodePathComponents(baseUrl);
+    const encodedRelativeUrl = this._encodePathComponents(relativeUrl);
+    return decodeURIComponent(new URL(encodedRelativeUrl, encodedBaseUrl).href.slice(head.length));
   }
 
   /**
@@ -265,6 +266,10 @@ export class Utils {
       }
       a[j + 1] = element;
     }
+  }
+
+  private static _encodePathComponents(path: string): string {
+    return path.split("/").map(encodeURIComponent).join("/");
   }
 }
 

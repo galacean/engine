@@ -36,24 +36,24 @@ class TextureCubeLoader extends Loader<TextureCube> {
             mipmap = true
           } = item.params ?? {};
           const { width, height } = images[0];
-          // @ts-ignore
-          const isWebGL2 = resourceManager.engine._hardwareRenderer._isWebGL2;
 
           if (width !== height) {
             console.error("The cube texture must have the same width and height");
             return;
           }
 
+          const engine = resourceManager.engine;
+
           const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
+            engine,
             width,
             height,
             format,
             mipmap,
-            isSRGBColorSpace,
-            isWebGL2
+            isSRGBColorSpace
           );
 
-          const texture = new TextureCube(resourceManager.engine, width, format, generateMipmap, isSRGBColorSpace);
+          const texture = new TextureCube(engine, width, format, generateMipmap, isSRGBColorSpace);
 
           texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
           texture.filterMode = filterMode ?? texture.filterMode;

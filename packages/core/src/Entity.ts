@@ -19,6 +19,9 @@ import { DisorderedArray } from "./utils/DisorderedArray";
  * Entity, be used as components container.
  */
 export class Entity extends EngineObject {
+  /** @internal */
+  static _tempComponentConstructors: ComponentConstructor[] = [];
+
   /**
    * @internal
    */
@@ -271,20 +274,13 @@ export class Entity extends EngineObject {
    * @param args - The arguments of the component
    * @returns	The component which has been added
    */
-  addComponent<T extends new (entity: Entity, ...args: any[]) => Component>(
-    type: T,
-    ...args: ComponentArguments<T>
-  ): InstanceType<T> {
+  addComponent<T extends ComponentConstructor>(type: T, ...args: ComponentArguments<T>): InstanceType<T> {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this, ...args) as InstanceType<T>;
     this._components.push(component);
 
     // @todo: temporary solution
-    if (component instanceof Transform) {
-      const transform = this._transform;
-      this._transform = component;
-      transform?.destroy();
-    }
+    if (component instanceof Transform) this._setTransform(component);
     component._setActive(true, ActiveChangeFlag.All);
     return component;
   }
@@ -294,7 +290,7 @@ export class Entity extends EngineObject {
    * @param type - The type of the component
    * @returns	The first component which match type
    */
-  getComponent<T extends Component>(type: new (entity: Entity) => T): T | null {
+  getComponent<T extends Component>(type: ComponentConstructor<T>): T | null {
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
@@ -311,7 +307,7 @@ export class Entity extends EngineObject {
    * @param results - The components which match type
    * @returns	The components which match type
    */
-  getComponents<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+  getComponents<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -329,7 +325,7 @@ export class Entity extends EngineObject {
    * @param results - The components collection
    * @returns	The components collection which match the type
    */
-  getComponentsIncludeChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
+  getComponentsIncludeChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
     this._getComponentsInChildren<T>(type, results);
     return results;
@@ -356,51 +352,7 @@ export class Entity extends EngineObject {
       index = undefined;
       child = indexOrChild;
     }
-
-    if (child._isRoot) {
-      const oldScene = child._scene;
-      Entity._removeFromChildren(oldScene._rootEntities, child);
-      child._isRoot = false;
-
-      this._addToChildrenList(index, child);
-      child._parent = this;
-
-      const newScene = this._scene;
-
-      let inActiveChangeFlag = ActiveChangeFlag.None;
-      if (!this._isActiveInHierarchy) {
-        child._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      if (child._isActiveInScene) {
-        if (this._isActiveInScene) {
-          // Cross scene should inActive first and then active
-          oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
-        } else {
-          inActiveChangeFlag |= ActiveChangeFlag.Scene;
-        }
-      }
-
-      inActiveChangeFlag && child._processInActive(inActiveChangeFlag);
-
-      if (child._scene !== newScene) {
-        Entity._traverseSetOwnerScene(child, newScene);
-      }
-
-      let activeChangeFlag = ActiveChangeFlag.None;
-      if (child._isActive) {
-        if (this._isActiveInHierarchy) {
-          !child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-        }
-        if (this._isActiveInScene) {
-          (!child._isActiveInScene || oldScene !== newScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
-        }
-      }
-      activeChangeFlag && child._processActive(activeChangeFlag);
-
-      child._setParentChange();
-    } else {
-      child._setParent(this, index);
-    }
+    child._setParent(this, index);
   }
 
   /**
@@ -408,6 +360,7 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be removed
    */
   removeChild(child: Entity): void {
+    if (child._parent !== this) return;
     child._setParent(null);
   }
 
@@ -515,7 +468,13 @@ export class Entity extends EngineObject {
   }
 
   private _createCloneEntity(): Entity {
-    const cloneEntity = new Entity(this.engine, this.name);
+    const componentConstructors = Entity._tempComponentConstructors;
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      componentConstructors[i] = components[i].constructor as ComponentConstructor;
+    }
+    const cloneEntity = new Entity(this.engine, this.name, ...componentConstructors);
+    componentConstructors.length = 0;
     const templateResource = this._templateResource;
     if (templateResource) {
       cloneEntity._templateResource = templateResource;
@@ -527,10 +486,6 @@ export class Entity extends EngineObject {
     const srcChildren = this._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());
-    }
-    const components = this._components;
-    for (let i = 0, n = components.length; i < n; i++) {
-      cloneEntity.addComponent(<ComponentConstructor>components[i].constructor);
     }
     return cloneEntity;
   }
@@ -558,11 +513,10 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   override destroy(): void {
-    if (this._destroyed) {
+    super.destroy();
+    if (!this._destroyed) {
       return;
     }
-
-    super.destroy();
 
     if (this._templateResource) {
       this._isTemplate || this._templateResource._addReferCount(-1);
@@ -685,7 +639,12 @@ export class Entity extends EngineObject {
   private _setParent(parent: Entity, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
-      this._removeFromParent();
+      if (this._isRoot) {
+        Entity._removeFromChildren(this._scene._rootEntities, this);
+        this._isRoot = false;
+      } else {
+        this._removeFromParent();
+      }
       this._parent = parent;
       if (parent) {
         this._isRoot = false;
@@ -739,7 +698,7 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
+  private _getComponentsInChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): void {
     for (let i = this._components.length - 1; i >= 0; i--) {
       const component = this._components[i];
       if (component instanceof type) {
@@ -813,6 +772,15 @@ export class Entity extends EngineObject {
     }
   }
 
+  private _setTransform(value: Transform): void {
+    this._transform?.destroy();
+    this._transform = value;
+    const children = this._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i].transform?._parentChange();
+    }
+  }
+
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _invModelMatrix: Matrix = new Matrix();
   private _inverseWorldMatFlag: BoolUpdateFlag;
@@ -829,11 +797,11 @@ export class Entity extends EngineObject {
   }
 }
 
-type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
+export type ComponentArguments<T extends new (entity: Entity, ...args: any[]) => Component> = T extends new (
   entity: Entity,
   ...args: infer P
 ) => Component
   ? P
   : never;
 
-type ComponentConstructor = new (entity: Entity) => Component;
+export type ComponentConstructor<T extends Component = Component> = new (entity: Entity, ...args: any[]) => T;

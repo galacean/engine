@@ -1,17 +1,28 @@
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import { Logger } from "../base";
 import { ShaderMacro, ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
-import { PBRBaseMaterial } from "./PBRBaseMaterial";
 import { RefractionMode } from "./enums/Refraction";
+import { TextureCoordinate } from "./enums/TextureCoordinate";
 
 /**
  * PBR (Metallic-Roughness Workflow) Material.
  */
-export class PBRMaterial extends PBRBaseMaterial {
+export class PBRMaterial extends BaseMaterial {
+  private static _occlusionTextureIntensityProp = ShaderProperty.getByName("material_OcclusionIntensity");
+  private static _occlusionTextureCoordProp = ShaderProperty.getByName("material_OcclusionTextureCoord");
+  private static _occlusionTextureProp = ShaderProperty.getByName("material_OcclusionTexture");
+
+  private static _clearCoatProp = ShaderProperty.getByName("material_ClearCoat");
+  private static _clearCoatTextureProp = ShaderProperty.getByName("material_ClearCoatTexture");
+  private static _clearCoatRoughnessProp = ShaderProperty.getByName("material_ClearCoatRoughness");
+  private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("material_ClearCoatRoughnessTexture");
+  private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
+
   private static _metallicProp = ShaderProperty.getByName("material_Metal");
   private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
   private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
@@ -41,10 +52,240 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _thicknessProp = ShaderProperty.getByName("material_Thickness");
   private static _thicknessTextureProp = ShaderProperty.getByName("material_ThicknessTexture");
 
+  private static _specularTextureMacro = ShaderMacro.getByName("MATERIAL_HAS_SPECULAR_TEXTURE");
+  private static _specularColorTextureMacro = ShaderMacro.getByName("MATERIAL_HAS_SPECULAR_COLOR_TEXTURE");
+  private static _specularIntensityProp = ShaderProperty.getByName("material_SpecularIntensity");
+  private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
+  private static _specularIntensityTextureProp = ShaderProperty.getByName("material_SpecularIntensityTexture");
+  private static _specularColorTextureProp = ShaderProperty.getByName("material_SpecularColorTexture");
+
   private _refractionMode: RefractionMode;
   private _anisotropyRotation: number = 0;
   private _iridescenceRange = new Vector2(100, 400);
   private _sheenEnabled = false;
+
+  /**
+   * Base color.
+   */
+  get baseColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._baseColorProp);
+  }
+
+  set baseColor(value: Color) {
+    const baseColor = this.shaderData.getColor(PBRMaterial._baseColorProp);
+    if (value !== baseColor) {
+      baseColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Base texture.
+   */
+  get baseTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._baseTextureProp);
+  }
+
+  set baseTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._baseTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._baseTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._baseTextureMacro);
+    }
+  }
+
+  /**
+   * Normal texture.
+   */
+  get normalTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._normalTextureProp);
+  }
+
+  set normalTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._normalTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._normalTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._normalTextureMacro);
+    }
+  }
+
+  /**
+   * Normal texture intensity.
+   */
+  get normalTextureIntensity(): number {
+    return this.shaderData.getFloat(PBRMaterial._normalIntensityProp);
+  }
+
+  set normalTextureIntensity(value: number) {
+    this.shaderData.setFloat(PBRMaterial._normalIntensityProp, value);
+  }
+
+  /**
+   * Emissive color.
+   */
+  get emissiveColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._emissiveColorProp);
+  }
+
+  set emissiveColor(value: Color) {
+    const emissiveColor = this.shaderData.getColor(PBRMaterial._emissiveColorProp);
+    if (value !== emissiveColor) {
+      emissiveColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Emissive texture.
+   */
+  get emissiveTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._emissiveTextureProp);
+  }
+
+  set emissiveTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._emissiveTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._emissiveTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._emissiveTextureMacro);
+    }
+  }
+
+  /**
+   * Occlusion texture.
+   */
+  get occlusionTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._occlusionTextureProp);
+  }
+
+  set occlusionTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._occlusionTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_OCCLUSION_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_OCCLUSION_TEXTURE");
+    }
+  }
+
+  /**
+   * Occlusion texture intensity.
+   */
+  get occlusionTextureIntensity(): number {
+    return this.shaderData.getFloat(PBRMaterial._occlusionTextureIntensityProp);
+  }
+
+  set occlusionTextureIntensity(value: number) {
+    this.shaderData.setFloat(PBRMaterial._occlusionTextureIntensityProp, value);
+  }
+
+  /**
+   * Occlusion texture uv coordinate.
+   * @remarks Must be UV0 or UV1.
+   */
+  get occlusionTextureCoord(): TextureCoordinate {
+    return this.shaderData.getFloat(PBRMaterial._occlusionTextureCoordProp);
+  }
+
+  set occlusionTextureCoord(value: TextureCoordinate) {
+    if (value > TextureCoordinate.UV1) {
+      Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
+    }
+    this.shaderData.setFloat(PBRMaterial._occlusionTextureCoordProp, value);
+  }
+
+  /**
+   * Tiling and offset of main textures.
+   */
+  get tilingOffset(): Vector4 {
+    return this.shaderData.getVector4(PBRMaterial._tilingOffsetProp);
+  }
+
+  set tilingOffset(value: Vector4) {
+    const tilingOffset = this.shaderData.getVector4(PBRMaterial._tilingOffsetProp);
+    if (value !== tilingOffset) {
+      tilingOffset.copyFrom(value);
+    }
+  }
+
+  /**
+   * The clearCoat layer intensity, default 0.
+   */
+  get clearCoat(): number {
+    return this.shaderData.getFloat(PBRMaterial._clearCoatProp);
+  }
+
+  set clearCoat(value: number) {
+    if (!!this.shaderData.getFloat(PBRMaterial._clearCoatProp) !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+      } else {
+        this.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
+      }
+    }
+    this.shaderData.setFloat(PBRMaterial._clearCoatProp, value);
+  }
+
+  /**
+   * The clearCoat layer intensity texture.
+   */
+  get clearCoatTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._clearCoatTextureProp);
+  }
+
+  set clearCoatTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._clearCoatTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_TEXTURE");
+    }
+  }
+
+  /**
+   * The clearCoat layer roughness, default 0.
+   */
+  get clearCoatRoughness(): number {
+    return this.shaderData.getFloat(PBRMaterial._clearCoatRoughnessProp);
+  }
+
+  set clearCoatRoughness(value: number) {
+    this.shaderData.setFloat(PBRMaterial._clearCoatRoughnessProp, value);
+  }
+
+  /**
+   * The clearCoat layer roughness texture.
+   */
+  get clearCoatRoughnessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._clearCoatRoughnessTextureProp);
+  }
+
+  set clearCoatRoughnessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._clearCoatRoughnessTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE");
+    }
+  }
+
+  /**
+   * The clearCoat normal map texture.
+   */
+  get clearCoatNormalTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._clearCoatNormalTextureProp);
+  }
+
+  set clearCoatNormalTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._clearCoatNormalTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE");
+    } else {
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE");
+    }
+  }
 
   /**
    * Index Of Refraction.
@@ -55,7 +296,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set ior(v: number) {
-    this.shaderData.setFloat(PBRMaterial._iorProp, Math.max(v, 0));
+    this.shaderData.setFloat(PBRMaterial._iorProp, Math.min(Math.max(v, 0), 5));
   }
 
   /**
@@ -451,6 +692,66 @@ export class PBRMaterial extends PBRBaseMaterial {
       this.shaderData.disableMacro(PBRMaterial._thicknessTextureMacro);
     }
   }
+
+  /**
+   * The intensity of the specular reflection.
+   * @defaultValue `1.0`
+   */
+  get specularIntensity(): number {
+    return this.shaderData.getFloat(PBRMaterial._specularIntensityProp);
+  }
+
+  set specularIntensity(value: number) {
+    this.shaderData.setFloat(PBRMaterial._specularIntensityProp, Math.min(Math.max(value, 0), 2));
+  }
+
+  /**
+   * The F0 color of the specular reflection.
+   * @defaultValue `[1,1,1]`
+   */
+  get specularColor(): Color {
+    return this.shaderData.getColor(PBRMaterial._specularColorProp);
+  }
+
+  set specularColor(value: Color) {
+    const specularColor = this.shaderData.getColor(PBRMaterial._specularColorProp);
+    if (value !== specularColor) {
+      specularColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * The intensity of the specular reflection, stored in alpha(A) channel. This will be multiplied by `specularIntensity`.
+   */
+  get specularIntensityTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularIntensityTextureProp);
+  }
+
+  set specularIntensityTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._specularIntensityTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._specularTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._specularTextureMacro);
+    }
+  }
+
+  /**
+   * The F0 color of the specular reflection, stored in the RGB channels. This will be multiplied by `specularColor`.
+   */
+  get specularColorTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._specularColorTextureProp);
+  }
+
+  set specularColorTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._specularColorTextureProp, value);
+    if (value) {
+      this.shaderData.enableMacro(PBRMaterial._specularColorTextureMacro);
+    } else {
+      this.shaderData.disableMacro(PBRMaterial._specularColorTextureMacro);
+    }
+  }
+
   /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
@@ -459,6 +760,20 @@ export class PBRMaterial extends PBRBaseMaterial {
     super(engine, Shader.find("pbr"));
 
     const shaderData = this.shaderData;
+
+    shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
+    shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
+
+    shaderData.setColor(PBRMaterial._baseColorProp, new Color(1, 1, 1, 1));
+    shaderData.setColor(PBRMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
+    shaderData.setVector4(PBRMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
+
+    shaderData.setFloat(PBRMaterial._normalIntensityProp, 1);
+    shaderData.setFloat(PBRMaterial._occlusionTextureIntensityProp, 1);
+    shaderData.setFloat(PBRMaterial._occlusionTextureCoordProp, TextureCoordinate.UV0);
+
+    shaderData.setFloat(PBRMaterial._clearCoatProp, 0);
+    shaderData.setFloat(PBRMaterial._clearCoatRoughnessProp, 0);
     shaderData.setFloat(PBRMaterial._metallicProp, 1);
     shaderData.setFloat(PBRMaterial._roughnessProp, 1);
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
@@ -470,8 +785,9 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._transmissionProp, 0);
     shaderData.setFloat(PBRMaterial._thicknessProp, 0);
     shaderData.setFloat(PBRMaterial._attenuationDistanceProp, Infinity);
-    const attenuationColor = new Color(1, 1, 1);
-    shaderData.setColor(PBRMaterial._attenuationColorProp, attenuationColor);
+    shaderData.setColor(PBRMaterial._attenuationColorProp, new Color(1, 1, 1));
+    shaderData.setFloat(PBRMaterial._specularIntensityProp, 1);
+    shaderData.setColor(PBRMaterial._specularColorProp, new Color(1, 1, 1));
 
     // @ts-ignore
     this._iridescenceRange._onValueChanged = this._onIridescenceRangeChanged.bind(this);

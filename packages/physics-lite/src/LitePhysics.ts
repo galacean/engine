@@ -8,6 +8,7 @@ import {
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
+  IMeshColliderShape,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
@@ -117,7 +118,7 @@ export class LitePhysics implements IPhysics {
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
   createPlaneColliderShape(uniqueID: number, material: LitePhysicsMaterial): IPlaneColliderShape {
-    throw "Physics-lite don't support PlaneColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support PlaneColliderShape. Use Physics-PhysX instead!");
   }
 
   /**
@@ -129,28 +130,42 @@ export class LitePhysics implements IPhysics {
     height: number,
     material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support CapsuleColliderShape. Use Physics-PhysX instead!");
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createMeshColliderShape }
+   */
+  createMeshColliderShape(
+    uniqueID: number,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
+    isConvex: boolean,
+    material: LitePhysicsMaterial,
+    cookingFlags: number
+  ): IMeshColliderShape | null {
+    throw new Error("Physics-lite doesn't support MeshColliderShape. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
   createFixedJoint(collider: LiteCollider): IFixedJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support FixedJoint. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IPhysics.createHingeJoint }
    */
   createHingeJoint(collider: LiteCollider): IHingeJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support HingeJoint. Use Physics-PhysX instead!");
   }
 
   /**
    * {@inheritDoc IPhysics.createSpringJoint }
    */
   createSpringJoint(collider: LiteCollider): ISpringJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw new Error("Physics-lite doesn't support SpringJoint. Use Physics-PhysX instead!");
   }
 
   /**

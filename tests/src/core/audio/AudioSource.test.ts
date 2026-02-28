@@ -54,11 +54,36 @@ describe("AudioSource", () => {
     audioSource.stop();
     audioSource.play();
 
+    // @ts-ignore
     if (AudioManager.isAudioContextRunning()) {
       expect(audioSource.isPlaying).to.be.true;
     } else {
       // Because the audio play should interaction
       expect(audioSource.isPlaying).to.be.false;
     }
+  });
+
+  it("clone", () => {
+    const cloneAudioSource = audioSource.entity.clone().getComponent(AudioSource);
+    expect(cloneAudioSource.clip).to.be.equal(audioSource.clip);
+    expect(cloneAudioSource.volume).to.be.equal(audioSource.volume);
+    expect(cloneAudioSource.playbackRate).to.be.equal(audioSource.playbackRate);
+    expect(cloneAudioSource.loop).to.be.equal(audioSource.loop);
+    expect(cloneAudioSource.mute).to.be.equal(audioSource.mute);
+  });
+
+  it("load error - network request fails with 404", async () => {
+    let errorCaught = false;
+    try {
+      await engine.resourceManager.load<AudioClip>({
+        url: "invalid_url",
+        type: AssetType.Audio
+      });
+      expect.fail("Should throw error for 404");
+    } catch (error) {
+      errorCaught = true;
+      expect(error).to.exist;
+    }
+    expect(errorCaught).to.be.true;
   });
 });

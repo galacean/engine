@@ -7,7 +7,13 @@ import { IPhysicsMaterial } from "./IPhysicsMaterial";
 import { IPhysicsScene } from "./IPhysicsScene";
 import { IStaticCollider } from "./IStaticCollider";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
-import { IBoxColliderShape, ICapsuleColliderShape, IPlaneColliderShape, ISphereColliderShape } from "./shape";
+import {
+  IBoxColliderShape,
+  ICapsuleColliderShape,
+  IMeshColliderShape,
+  IPlaneColliderShape,
+  ISphereColliderShape
+} from "./shape";
 import { ICollision } from "./ICollision";
 
 /**
@@ -116,6 +122,24 @@ export interface IPhysics {
     height: number,
     material: IPhysicsMaterial
   ): ICapsuleColliderShape;
+
+  /**
+   * Create mesh collider shape.
+   * @param uniqueID - Shape unique id
+   * @param positions - Vertex positions
+   * @param indices - Index array (null for convex mesh)
+   * @param isConvex - Whether to create convex mesh (true) or triangle mesh (false)
+   * @param material - The material of this shape
+   * @param cookingFlags - Cooking flags
+   */
+  createMeshColliderShape(
+    uniqueID: number,
+    positions: Vector3[],
+    indices: Uint8Array | Uint16Array | Uint32Array | null,
+    isConvex: boolean,
+    material: IPhysicsMaterial,
+    cookingFlags: number
+  ): IMeshColliderShape | null;
 
   /**
    * Create fixed joint.

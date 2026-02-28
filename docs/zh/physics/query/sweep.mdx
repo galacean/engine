@@ -1,0 +1,286 @@
+---
+order: 4
+title: 形状投射
+type: 物理
+label: Physics
+---
+
+形状投射（Shape Casting）是物理引擎中的高级查询功能，可以沿指定方向"投射"一个三维形状来检测阻挡。与 [射线检测](/docs/physics/query/raycast) 使用无限细的线不同，形状投射使用具有体积的几何体进行检测，能够提供更精确和实用的阻挡信息。
+
+## 概述
+
+Galacean 物理引擎提供三种形状投射功能：
+
+- **boxCast** - 盒子投射：投射一个立方体形状
+- **sphereCast** - 球体投射：投射一个球形形状  
+- **capsuleCast** - 胶囊投射：投射一个胶囊形状
+
+<Image src="https://mdn.alipayobjects.com/huamei_3zduhr/afts/img/A*AicVTLV-8dsAAAAAQHAAAAgAesJ_AQ/original" />
+
+## 应用场景
+
+形状投射在游戏开发中有广泛应用：
+
+- **角色移动检测** - 在角色移动前检测是否会被障碍物阻挡
+- **载具路径预测** - 检测车辆、飞机等载具的移动路径是否畅通
+- **武器攻击判定** - 模拟剑击、爆炸等具有范围的攻击
+- **物体放置验证** - 在放置物体前检测空间是否足够
+- **AI路径规划** - 为AI角色规划安全的移动路径
+
+## 盒子投射 (boxCast)
+
+盒子投射沿指定方向投射一个立方体，检测与场景中碰撞器的交集。
+
+### 函数重载
+
+为了提升易用性，`boxCast` 提供了多个重载版本：
+
+```typescript
+// 基础检测 - 仅返回是否被阻挡
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3): boolean
+
+// 获取命中信息
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, outHitResult: HitResult): boolean
+
+// 指定投射距离
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: number): boolean
+
+// 指定距离并获取命中信息
+boxCast(center: Vector3, halfExtents: Vector3, direction: Vector3, distance: number, outHitResult: HitResult): boolean
+
+// 完整参数版本
+boxCast(
+  center: Vector3, 
+  halfExtents: Vector3, 
+  direction: Vector3, 
+  orientation: Quaternion, 
+  distance: number, 
+  layerMask: Layer, 
+  outHitResult?: HitResult
+): boolean
+```
+
+### 使用示例
+
+```typescript
+import { Vector3, HitResult, Layer, Quaternion } from "@galacean/engine";
+
+// 获取物理场景
+const physicsScene = scene.physics;
+
+// 示例1: 基础阻挡检测
+const center = new Vector3(0, 5, 0);
+const halfExtents = new Vector3(1, 1, 1); // 盒子半尺寸
+const direction = new Vector3(0, -1, 0);  // 向下投射
+
+if (physicsScene.boxCast(center, halfExtents, direction)) {
+  console.log("检测到阻挡！");
+}
+
+// 示例2: 获取详细命中信息
+const hitResult = new HitResult();
+if (physicsScene.boxCast(center, halfExtents, direction, hitResult)) {
+  console.log(`命中实体: ${hitResult.entity.name}`);
+  console.log(`命中距离: ${hitResult.distance}`);
+  console.log(`命中点: ${hitResult.point.toString()}`);
+  console.log(`命中法线: ${hitResult.normal.toString()}`);
+}
+
+// 示例3: 角色移动预检测
+const playerSize = new Vector3(0.5, 1, 0.5);
+const moveDirection = new Vector3(1, 0, 0);
+const moveDistance = 2.0;
+
+if (!physicsScene.boxCast(playerPosition, playerSize, moveDirection, moveDistance)) {
+  // 路径安全，可以移动
+  playerPosition.add(moveDirection.scale(moveDistance));
+}
+
+// 示例4: 使用完整参数进行精确检测
+const orientation = new Quaternion(0, 0, 0, 1); // 无旋转
+const layerMask = Layer.Everything; // 检测所有层
+const maxDistance = 10.0;
+
+const detailHit = new HitResult();
+if (physicsScene.boxCast(
+  center, 
+  halfExtents, 
+  direction, 
+  orientation, 
+  maxDistance, 
+  layerMask, 
+  detailHit
+)) {
+  console.log("精确检测成功");
+}
+```
+
+## 球体投射 (sphereCast)
+
+球体投射沿指定方向投射一个球形，适用于需要球形检测区域的场景。
+
+### 函数重载
+
+```typescript
+// 基础检测
+sphereCast(center: Vector3, radius: number, direction: Vector3): boolean
+
+// 获取命中信息
+sphereCast(center: Vector3, radius: number, direction: Vector3, outHitResult: HitResult): boolean
+
+// 指定投射距离
+sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number): boolean
+
+// 指定距离并获取命中信息  
+sphereCast(center: Vector3, radius: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean
+
+// 完整参数版本
+sphereCast(
+  center: Vector3,
+  radius: number, 
+  direction: Vector3,
+  distance: number,
+  layerMask: Layer,
+  outHitResult?: HitResult
+): boolean
+```
+
+### 使用示例
+
+```typescript
+// 示例1: 球形物体移动预测
+const ballRadius = 0.5;
+const ballPosition = new Vector3(-5, 2, 0);
+const rollDirection = new Vector3(1, 0, 0);
+const rollDistance = 8.0;
+
+const rollHit = new HitResult();
+if (physicsScene.sphereCast(ballPosition, ballRadius, rollDirection, rollDistance, rollHit)) {
+  console.log(`球会在距离 ${rollHit.distance} 处撞到 ${rollHit.entity.name}`);
+}
+```
+
+## 胶囊投射 (capsuleCast)
+
+胶囊投射沿指定方向投射一个胶囊形状，特别适合人形角色的路径检测。
+
+### 函数重载
+
+```typescript
+// 基础检测
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3): boolean
+
+// 获取命中信息
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, outHitResult: HitResult): boolean
+
+// 指定投射距离
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number): boolean
+
+// 指定距离并获取命中信息
+capsuleCast(center: Vector3, radius: number, height: number, direction: Vector3, distance: number, outHitResult: HitResult): boolean
+
+// 完整参数版本
+capsuleCast(
+  center: Vector3,
+  radius: number,
+  height: number, 
+  direction: Vector3,
+  orientation: Quaternion,
+  distance: number,
+  layerMask: Layer,
+  outHitResult?: HitResult
+): boolean
+```
+
+### 使用示例
+
+```typescript
+// 示例1: 角色跳跃检测
+const characterCenter = new Vector3(0, 1, 0);
+const characterRadius = 0.5;
+const characterHeight = 1.8;
+const jumpDirection = new Vector3(0, 1, 0);
+const jumpHeight = 2.0;
+
+if (!physicsScene.capsuleCast(characterCenter, characterRadius, characterHeight, jumpDirection, jumpHeight)) {
+  // 头顶空间足够，可以跳跃
+  performJump();
+}
+
+// 示例2: 人形角色移动检测
+const moveDirection = new Vector3(1, 0, 0);
+const stepDistance = 1.0;
+
+const moveHit = new HitResult();
+if (physicsScene.capsuleCast(
+  characterCenter, 
+  characterRadius, 
+  characterHeight, 
+  moveDirection, 
+  stepDistance, 
+  moveHit
+)) {
+  console.log(`角色移动会在 ${moveHit.distance} 处碰到障碍物`);
+  // 可以实现滑动或其他阻挡响应
+}
+```
+
+## 参数说明
+
+### 通用参数
+
+- **center** - 形状的中心位置（世界坐标）
+- **direction** - 投射方向（必须为单位向量）
+- **distance** - 投射距离（默认为 `Number.MAX_VALUE`）
+- **layerMask** - 层遮罩，用于过滤特定层的碰撞器（默认为 `Layer.Everything`）
+- **outHitResult** - 输出的命中结果信息（可选）
+
+### 形状特定参数
+
+- **halfExtents** (boxCast) - 盒子的半尺寸
+- **radius** (sphereCast/capsuleCast) - 球体/胶囊的半径
+- **height** (capsuleCast) - 胶囊的高度
+- **orientation** (boxCast/capsuleCast) - 形状的旋转（默认为无旋转）
+
+## 性能优化建议
+
+1. **合理使用距离限制** - 指定合适的投射距离，避免不必要的远距离检测
+2. **层遮罩过滤** - 使用 `layerMask` 只检测相关的碰撞器层
+3. **重用 HitResult 对象** - 避免频繁创建新的 HitResult 实例
+4. **选择合适的形状** - 根据实际需求选择最简单的形状类型
+
+```typescript
+// 性能优化示例
+class PhysicsQuery {
+  private static readonly _hitResult = new HitResult();
+  private static readonly _playerLayerMask = Layer.Layer0 | Layer.Layer1;
+  
+  static checkPlayerMovement(center: Vector3, direction: Vector3): boolean {
+    return scene.physics.capsuleCast(
+      center,
+      0.5,           // 固定半径
+      1.8,           // 固定高度
+      direction,
+      2.0,           // 限制检测距离
+      this._playerLayerMask,  // 只检测相关层
+      this._hitResult         // 重用结果对象
+    );
+  }
+}
+```
+
+## 注意事项
+
+1. **方向向量规范化** - 确保 `direction` 参数是单位向量
+2. **世界坐标系统** - 所有位置和方向都基于世界坐标系
+3. **碰撞器要求** - 只有添加了[碰撞器组件](/docs/physics/collider/overview)的实体才能被检测到
+
+## 与射线检测的区别
+
+| 特性 | 射线检测 | 形状投射 |
+|------|----------|----------|
+| 检测精度 | 点精度 | 体积精度 |
+| 性能消耗 | 低 | 中等 |
+| 适用场景 | 点选、瞄准 | 移动预测、路径验证 |
+
+形状投射提供了比射线检测更精确的阻挡信息，特别适合需要考虑物体体积的应用场景。结合合适的性能优化策略，可以在保证精度的同时维持良好的运行效率。

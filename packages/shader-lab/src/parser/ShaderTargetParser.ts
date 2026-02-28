@@ -1,18 +1,19 @@
-import { Grammar } from "./Grammar";
-import { NoneTerminal, GrammarSymbol } from "./GrammarSymbol";
-import { BaseToken } from "../common/BaseToken";
-import { ETokenType } from "../common";
-import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
-import { ASTNode, TreeNode } from "./AST";
-import SematicAnalyzer from "./SemanticAnalyzer";
-import { TraceStackItem } from "./types";
-import { addTranslationRule, createGrammar } from "../lalr/CFG";
-import { LALR1 } from "../lalr";
-import { ParserUtils } from "../ParserUtils";
 import { Logger } from "@galacean/engine";
+import { ETokenType } from "../common";
+import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
+import { LALR1 } from "../lalr";
+import { addTranslationRule, createGrammar } from "../lalr/CFG";
+import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
+import { MacroDefineList } from "../Preprocessor";
+import { ParserUtils } from "../ParserUtils";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
+import { ASTNode, TreeNode } from "./AST";
+import { Grammar } from "./Grammar";
+import { GrammarSymbol, NoneTerminal } from "./GrammarSymbol";
+import SematicAnalyzer from "./SemanticAnalyzer";
+import { TraceStackItem } from "./types";
 
 /**
  * The syntax parser and sematic analyzer of `ShaderLab` compiler
@@ -62,8 +63,8 @@ export class ShaderTargetParser {
     this.sematicAnalyzer = new SematicAnalyzer();
   }
 
-  parse(tokens: Generator<BaseToken, BaseToken>): ASTNode.GLShaderProgram | null {
-    this.sematicAnalyzer.reset();
+  parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
+    this.sematicAnalyzer.reset(macroDefineList);
     const start = performance.now();
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
@@ -80,7 +81,7 @@ export class ShaderTargetParser {
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
         Logger.info(
-          `[pass compilation - parser] Accept! State automata run ${loopCount} times! cost time ${
+          `[Task - AST compilation] Accept! State automata run ${loopCount} times! cost time ${
             performance.now() - start
           }ms`
         );

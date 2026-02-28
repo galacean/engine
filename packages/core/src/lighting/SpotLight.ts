@@ -2,6 +2,7 @@ import { Matrix, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
+import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * Spot light.
@@ -35,8 +36,8 @@ export class SpotLight extends Light {
   /** Angle, in radians, from falloff begins to ends. */
   penumbra: number = Math.PI / 12;
 
+  @ignoreClone
   private _inverseDirection: Vector3 = new Vector3();
-  private _projectMatrix: Matrix = new Matrix();
 
   /**
    * Get light position.

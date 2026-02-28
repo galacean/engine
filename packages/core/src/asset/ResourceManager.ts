@@ -61,32 +61,32 @@ export class ResourceManager {
   constructor(public readonly engine: Engine) {}
 
   /**
-   * Load asset asynchronously through the path.
-   * @param path - Path
-   * @returns Asset promise
-   */
-  load<T>(path: string): AssetPromise<T>;
-
-  /**
-   * Load asset collection asynchronously through urls.
-   * @param paths - Path collections
-   * @returns Asset Promise
-   */
-  load(paths: string[]): AssetPromise<Object[]>;
-
-  /**
    * Load the asset asynchronously by asset item information.
    * @param assetItem - AssetItem
    * @returns AssetPromise
    */
-  load<T>(assetItem: LoadItem): AssetPromise<T>;
+  load<T extends EngineObject>(assetItem: LoadItem): AssetPromise<T>;
 
   /**
    * Load the asset collection asynchronously by loading the information collection.
    * @param assetItems - Asset collection
    * @returns AssetPromise
    */
-  load(assetItems: LoadItem[]): AssetPromise<Object[]>;
+  load<T extends EngineObject[]>(assetItems: LoadItem[]): AssetPromise<T>;
+
+  /**
+   * Load asset collection asynchronously through urls.
+   * @param paths - Path collections
+   * @returns Asset Promise
+   */
+  load<T extends EngineObject[]>(paths: string[]): AssetPromise<T>;
+
+  /**
+   * Load asset asynchronously through the path.
+   * @param path - Path
+   * @returns Asset promise
+   */
+  load<T extends EngineObject>(path: string): AssetPromise<T>;
 
   load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
     // single item
@@ -577,7 +577,7 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): AssetPromise<T> {
+  getResourceByRef<T extends EngineObject>(ref: { refId: string; key?: string; isClone?: boolean }): AssetPromise<T> {
     const { refId, key, isClone } = ref;
     const obj = this._objectPool[refId];
     let promise: AssetPromise<T>;
@@ -596,10 +596,11 @@ export class ResourceManager {
 
       promise = this.load<T>({
         url,
-        type: resourceConfig.type
+        type: resourceConfig.type,
+        params: resourceConfig.params
       });
     }
-    return promise.then((item) => (isClone ? <T>(<IClone>item).clone() : item));
+    return promise.then((item) => (isClone ? <T>(<IClone>(<unknown>item)).clone() : item));
   }
 
   /**
@@ -660,6 +661,7 @@ type EditorResourceItem = {
   id: string;
   dependentAssetMap?: { [key: string]: string };
   subpackageName?: string;
+  params?: Record<string, any>;
 };
 type SubAssetPromiseCallbacks<T> = Record<
   // main asset url, ie. "https://***.glb"

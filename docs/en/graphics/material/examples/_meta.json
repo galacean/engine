@@ -1,6 +1,8 @@
 {
-  "create": { "title": "Creating Materials" },
-  "builtin": { "title": "Using Built-in Shaders" },
-  "custom": { "title": "Custom Shaders" },
-  "shaderData": { "title": "Using Shader Data" }
+  "shaderlab-01-basic-shader": "Basic Shader Syntax",
+  "shaderlab-02-render-state": "Render State Control",
+  "shaderlab-03-ui-script": "UIScript System",
+  "shaderlab-04-multi-pass": "Multi-Pass Rendering",
+  "shaderlab-05-advance": "Advanced Features & Code Reuse"
 }
+

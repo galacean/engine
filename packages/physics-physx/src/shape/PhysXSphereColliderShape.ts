@@ -15,8 +15,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
     super(physXPhysics);
 
     this._radius = radius;
-
-    this._pxGeometry = new physXPhysics._physX.PxSphereGeometry(this._radius * this._maxScale);
+    this._pxGeometry = new physXPhysics._physX.PxSphereGeometry(radius * this._maxScale);
     this._initialize(material, uniqueID);
     this._setLocalPose();
   }

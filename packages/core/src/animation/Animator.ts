@@ -43,8 +43,8 @@ export class Animator extends Component {
   /** @internal */
   _onUpdateIndex = -1;
 
+  @assignmentClone
   protected _animatorController: AnimatorController;
-
   @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
   @ignoreClone
@@ -73,10 +73,16 @@ export class Animator extends Component {
   }
 
   set animatorController(animatorController: AnimatorController) {
-    if (animatorController !== this._animatorController) {
-      this._reset();
+    const lastController = this._animatorController;
+    if (animatorController !== lastController) {
+      lastController && this._addResourceReferCount(lastController, -1);
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
-      this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
+      this._reset();
+      if (animatorController) {
+        this._addResourceReferCount(animatorController, 1);
+        this._controllerUpdateFlag = animatorController._registerChangeFlag();
+        animatorController._setEngine(this.engine);
+      }
       this._animatorController = animatorController;
     }
   }
@@ -322,6 +328,26 @@ export class Animator extends Component {
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Animator, srcRoot: Entity, targetRoot: Entity): void {
+    const animatorController = target._animatorController;
+    if (animatorController) {
+      target._addResourceReferCount(animatorController, 1);
+      target._controllerUpdateFlag = animatorController._registerChangeFlag();
+    }
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    const controller = this._animatorController;
+    if (controller) {
+      this._addResourceReferCount(controller, -1);
+      this._controllerUpdateFlag?.destroy();
     }
   }
 
@@ -723,6 +749,10 @@ export class Animator extends Component {
     const { state: destState } = destPlayData;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, destState, deltaTime, aniUpdate)) {
+      return;
+    }
+
     const srcPlaySpeed = srcState.speed * speed;
     const dstPlaySpeed = destState.speed * speed;
     const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
@@ -847,8 +877,11 @@ export class Animator extends Component {
   ) {
     const { destPlayData } = layerData;
     const { state } = destPlayData;
-
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
+
+    if (this._tryCrossFadeInterrupt(layerData, transitionDuration, state, deltaTime, aniUpdate)) {
+      return;
+    }
 
     const playSpeed = state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
@@ -1056,7 +1089,7 @@ export class Animator extends Component {
     const endTime = state.clipEndTime * clipDuration;
 
     if (transitionCollection.noExitTimeCount) {
-      targetTransition = this._checkNoExitTimeTransition(layerData, transitionCollection, aniUpdate);
+      targetTransition = this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate);
       if (targetTransition) {
         return targetTransition;
       }
@@ -1130,13 +1163,37 @@ export class Animator extends Component {
     return targetTransition;
   }
 
-  private _checkNoExitTimeTransition(
+  private _tryCrossFadeInterrupt(
+    layerData: AnimatorLayerData,
+    transitionDuration: number,
+    currentDestState: AnimatorState,
+    deltaTime: number,
+    aniUpdate: boolean
+  ): boolean {
+    if (transitionDuration > 0) {
+      const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
+      if (
+        anyStateTransitions.noExitTimeCount &&
+        this._checkNoExitTimeTransitions(layerData, anyStateTransitions, aniUpdate, currentDestState)
+      ) {
+        this._updateState(layerData, deltaTime, aniUpdate);
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private _checkNoExitTimeTransitions(
     layerData: AnimatorLayerData,
     transitionCollection: AnimatorStateTransitionCollection,
-    aniUpdate: boolean
+    aniUpdate: boolean,
+    excludeDestState?: AnimatorState
   ): AnimatorStateTransition {
-    for (let i = 0, n = transitionCollection.count; i < n; ++i) {
+    for (let i = 0, n = transitionCollection.noExitTimeCount; i < n; ++i) {
       const transition = transitionCollection.get(i);
+      // Skip if destination is same as current state (equivalent to Unity's canTransitionToSelf=false)
+      // TODO: Support canTransitionToSelf option on AnimatorStateTransition
+      if (excludeDestState && transition.destinationState === excludeDestState) continue;
       if (
         transition.mute ||
         (transitionCollection.isSoloMode && !transition.solo) ||
@@ -1468,27 +1525,6 @@ export class Animator extends Component {
     }
   }
 
-  private _callAnimatorScriptOnEnter(state: AnimatorState, layerIndex: number): void {
-    const scripts = state._onStateEnterScripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      scripts[i].onStateEnter(this, state, layerIndex);
-    }
-  }
-
-  private _callAnimatorScriptOnUpdate(state: AnimatorState, layerIndex: number): void {
-    const scripts = state._onStateUpdateScripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      scripts[i].onStateUpdate(this, state, layerIndex);
-    }
-  }
-
-  private _callAnimatorScriptOnExit(state: AnimatorState, layerIndex: number): void {
-    const scripts = state._onStateExitScripts;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      scripts[i].onStateExit(this, state, layerIndex);
-    }
-  }
-
   private _checkAnyAndEntryState(layerData: AnimatorLayerData, remainDeltaTime: number, aniUpdate: boolean): void {
     const { stateMachine } = layerData.layer;
     const { _anyStateTransitionCollection: anyStateTransitions, _entryTransitionCollection: entryTransitions } =
@@ -1532,12 +1568,12 @@ export class Animator extends Component {
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
+      state._callOnEnter(this, layerIndex);
     }
     if (lastPlayState !== AnimatorStatePlayState.Finished && playData.playState === AnimatorStatePlayState.Finished) {
-      this._callAnimatorScriptOnExit(state, layerIndex);
+      state._callOnExit(this, layerIndex);
     } else {
-      this._callAnimatorScriptOnUpdate(state, layerIndex);
+      state._callOnUpdate(this, layerIndex);
     }
   }
 

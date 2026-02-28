@@ -5,30 +5,122 @@ type: UI
 label: UI
 ---
 
-`UITransform` 组件是专门设计用来表示 UI 元素的尺寸和位置的，它继承于 [Transform](/apis/core/#Transform) 。
+`UITransform` 是专门为 UI 元素设计的变换组件，继承自基础的 [Transform](/apis/core/#Transform) 组件。它提供了丰富的布局和对齐功能，是构建灵活 UI 系统的核心组件。
 
 ## 编辑器使用
 
 添加了 UI 组件的节点，会自动添加 `UITransform` 组件（替换原先旧的 [Transform](/apis/core/#Transform) 组件），在编辑器中，可以选中节点可以使用 `RectTool` （快捷键 `T` ）快速设置属性，也可以在在 **[检查器面板](/docs/interface/inspector)** 设置精确属性。
 
-<Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*hJ81TKtDKLIAAAAAAAAAAAAAehuCAQ/original" style={{zoom:"50%"}} />
+### 调整尺寸和锚点
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*VvXkSavtjkMAAAAAgJAAAAgAehuCAQ/original"
+  style={{ zoom: "50%" }}
+/>
+
+### 设置相对布局
+
+<Image
+  src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*gGR7TqS0aI0AAAAAgCAAAAgAehuCAQ/original"
+  style={{ zoom: "50%" }}
+/>
 
 > 当主画布的渲染模式为 `Screen` 时，编辑器侧会禁止修改它的 `transform` 避免屏幕适配异常，因此在脚本中，**开发者应当自己避免去篡改屏幕空间主画布 `transform` 的属性**。
 
 ## 属性
 
-| 属性名  | 描述                                                                                 |
-| :------ | :----------------------------------------------------------------------------------- |
-| `size`  | UI 元素的尺寸，`x` 代表宽度，`y` 代表高度，初始化都默认为 `100`                      |
+| 属性名 | 描述 |
+| :-- | :-- |
+| `size` | UI 元素的尺寸，`x` 代表宽度，`y` 代表高度，初始化都默认为 `100` |
 | `pivot` | UI 元素的锚点，它是一个以左下角为原点的归一化的二元向量，默认值为中心点，即(0.5,0.5) |
+| `horizontalAlignment` | 水平相对布局模式 `HorizontalAlignment` |
+| `alignLeft` | 与父元素左边缘的距离，当且仅当 `HorizontalAlignment.Left` 或 `HorizontalAlignment.LeftAndRight` 时生效 |
+| `alignRight` | 与父元素右边缘的距离，当且仅当 `HorizontalAlignment.Right` 或 `HorizontalAlignment.LeftAndRight` 时生效 |
+| `alignCenter` | 水平居中偏移，当且仅当 `HorizontalAlignment.Center` 时生效 |
+| `verticalAlignment` | 垂直相对布局模式 `VerticalAlignment` |
+| `alignTop` | 与父元素上边缘的距离，当且仅当 `VerticalAlignment.Top` 或 `VerticalAlignment.TopAndBottom` 时生效 |
+| `alignBottom` | 与父元素下边缘的距离，当且仅当 `VerticalAlignment.Bottom` 或 `VerticalAlignment.TopAndBottom` 时生效 |
+| `alignMiddle` | 垂直居中偏移，当且仅当 `VerticalAlignment.Middle` 时生效 |
+
+> 相对布局的属性仅在对应的布局模式下才会生效。
 
 ## 脚本使用
 
+### 设置尺寸和锚点
+
 ```typescript
-// Add UICanvas
+// 添加画布
 const canvasEntity = root.createChild("canvas");
 const canvas = canvasEntity.addComponent(UICanvas);
 const imageEntity = canvasEntity.create("Image");
-(<UITransform>imageEntity.transform).size.set(200, 200);
-(<UITransform>imageEntity.transform).pivot.set(0, 0);
+const uiTransform = <UITransform>imageEntity.transform;
+// 设置尺寸
+uiTransform.size = new Vector2(200, 100);
+// 设置锚点
+uiTransform.pivot = new Vector2(0.5, 0.5);
 ```
+
+### 设置水平相对布局
+
+```typescript
+// 左对齐，距离左边缘 10
+uiTransform.horizontalAlignment = HorizontalAlignmentMode.Left;
+uiTransform.alignLeft = 10;
+
+// 右对齐，距离右边缘 20
+uiTransform.horizontalAlignment = HorizontalAlignmentMode.Right;
+uiTransform.alignRight = 20;
+
+// 水平居中，向右偏移 15
+uiTransform.horizontalAlignment = HorizontalAlignmentMode.Center;
+uiTransform.alignCenter = 15;
+
+// 水平拉伸，左右边距各 30
+uiTransform.horizontalAlignment = HorizontalAlignmentMode.LeftAndRight;
+uiTransform.alignLeft = 30;
+uiTransform.alignRight = 30;
+```
+
+### 设置垂直相对布局
+
+```typescript
+// 顶部对齐，距离顶部 10
+uiTransform.verticalAlignment = VerticalAlignmentMode.Top;
+uiTransform.alignTop = 10;
+
+// 底部对齐，距离底部 20
+uiTransform.verticalAlignment = VerticalAlignmentMode.Bottom;
+uiTransform.alignBottom = 20;
+
+// 垂直居中，向上偏移 5
+uiTransform.verticalAlignment = VerticalAlignmentMode.Middle;
+uiTransform.alignMiddle = 5;
+
+// 垂直拉伸，上下边距各 25
+uiTransform.verticalAlignment = VerticalAlignmentMode.TopAndBottom;
+uiTransform.alignTop = 25;
+uiTransform.alignBottom = 25;
+```
+
+## 最佳实践
+
+### 响应式布局
+使用 `LeftAndRight` 和 `TopAndBottom` 对齐模式可以创建响应式布局，元素会根据父容器的大小自动调整。
+
+```typescript
+// 创建一个始终与父元素尺寸相同的元素
+uiTransform.horizontalAlignment = HorizontalAlignmentMode.LeftAndRight;
+uiTransform.verticalAlignment = VerticalAlignmentMode.TopAndBottom;
+uiTransform.alignLeft = uiTransform.alignRight = 0;
+uiTransform.alignTop = uiTransform.alignBottom = 0;
+```
+
+### 性能考虑
+- 避免频繁修改对齐属性，这会触发布局重新计算
+
+## 注意事项
+
+1. **相对布局优先级**: 当设置了相对布局时，直接设置的 `position` 会被对齐计算覆盖
+2. **边距生效条件**: 各个边距属性只在对应的对齐模式下才会生效
+3. **拉伸模式**: 使用 `LeftAndRight` 或 `TopAndBottom` 时，对应方向的 `size` 会被自动计算
+4. **父子关系**: UI 对齐基于父元素的 UITransform，确保父元素也是 UI 元素

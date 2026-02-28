@@ -1,7 +1,10 @@
 {
-  "overview": { "title": "Material Overview" },
-  "examples": { "title": "Guidelines and Examples" },
-  "builtinShaders": { "title": "Built-in shaders" },
-  "shaderLab": { "title": "ShaderLab" },
-  "variables": "Built-in Variables"
+  "overview": "Material Overview",
+  "baseUse": "Basic Material Usage",
+  "builtinShaders": "Built-in Shaders",
+  "examples": "Custom Shader Tutorial",
+  "shader": "Shader Introduction",
+  "variables": "Shader Built-in Variables",
+  "shaderAPI": "Shader API"
 }
+

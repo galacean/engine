@@ -14,10 +14,11 @@ export { Script } from "./Script";
 export { Renderer, RendererUpdateFlags } from "./Renderer";
 export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
-export { Transform } from "./Transform";
+export { Transform, TransformModifyFlags } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
+export type { ComponentConstructor } from "./Entity";
 
 export { request } from "./asset/request";
 export type { RequestConfig } from "./asset/request";
@@ -28,6 +29,9 @@ export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { ReferResource } from "./asset/ReferResource";
+export { TextAsset } from "./asset/TextAsset";
+export { JSONAsset } from "./asset/JSONAsset";
+export { BufferAsset } from "./asset/BufferAsset";
 
 export * from "./RenderPipeline/index";
 export * from "./base";

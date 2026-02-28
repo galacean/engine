@@ -3,6 +3,7 @@
 tmp
 .idea
 /node_modules
+/*/node_modules
 /packages/*/node_modules
 /packages/*/types
 /packages/*/doc
@@ -31,6 +32,13 @@ e2e/screenshots/*
 e2e/downloads/*
 e2e/diff/*
 e2e/.dev/mpa
+e2e/test-results/*
+playwright-report/
+
+# Claude Code files
+.claude/
+CLAUDE.md
+
 .husky/post-checkout
 .husky/post-commit
 .husky/pre-push
