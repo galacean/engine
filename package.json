@@ -60,7 +60,6 @@
     "rollup-plugin-jscc": "^2.0.0",
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-swc3": "^0.10.1",
-    "three": "^0.178.0",
     "ts-node": "^10",
     "typescript": "^5.1.6",
     "vitest": "2.1.3"
