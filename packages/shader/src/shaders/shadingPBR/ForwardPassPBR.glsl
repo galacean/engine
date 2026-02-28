@@ -55,6 +55,8 @@ Varyings PBRVertex(Attributes attributes) {
 
   gl_Position = renderer_MVPMat * vertexInputs.positionOS;
 
+  varyings.positionCS = gl_Position;
+
   return varyings;
 }
 

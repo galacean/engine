@@ -174,6 +174,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
 
     // Geometry
     surfaceData.position = v.positionWS;
+    surfaceData.positionCS = v.positionCS;
     
     #ifdef CAMERA_ORTHOGRAPHIC
         surfaceData.viewDir = -camera_Forward;

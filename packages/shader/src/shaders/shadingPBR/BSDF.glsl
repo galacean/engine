@@ -26,6 +26,7 @@ struct SurfaceData{
 
     // geometry
     vec3 position;
+    vec4 positionCS;
     vec3 normal;
 
     #ifdef NEED_TANGENT
@@ -426,6 +427,17 @@ vec3 envBRDFApprox(vec3 f0, float f90, float roughness, float dotNV ) {
     }
 #endif
 
+#ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
+    sampler2D camera_AOTexture;
+    float evaluateAmbientOcclusion(vec2 uv){
+        #ifdef MATERIAL_IS_TRANSPARENT
+            return 1.0;
+        #else
+            return texture2D(camera_AOTexture, uv).r;
+        #endif
+    }
+#endif
+
 void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     vec3 albedoColor = surfaceData.albedoColor;
     float metallic = surfaceData.metallic;
@@ -462,6 +474,11 @@ void initBSDFData(SurfaceData surfaceData, out BSDFData bsdfData){
     bsdfData.energyCompensation = 1.0 + bsdfData.resolvedSpecularF0 * (1.0 / max(dfg.x + dfg.y, EPSILON) - 1.0);
 
     bsdfData.diffuseAO = surfaceData.ambientOcclusion;
+
+    #ifdef SCENE_ENABLE_AMBIENT_OCCLUSION
+        float ambientAO = evaluateAmbientOcclusion((surfaceData.positionCS.xy / surfaceData.positionCS.w) * 0.5 + 0.5);
+        bsdfData.diffuseAO = min(bsdfData.diffuseAO, ambientAO);
+    #endif
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         bsdfData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
