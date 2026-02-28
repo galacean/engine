@@ -294,12 +294,7 @@ export class UICanvas extends Component implements IElement {
    * @internal
    */
   _canDispatchEvent(camera: Camera): boolean {
-    const realMode = this._realRenderMode;
-    if (realMode === CanvasRenderMode.ScreenSpaceOverlay) {
-      return true;
-    }
-    const assignedCamera = this._camera;
-    return !assignedCamera || !assignedCamera.enabled || assignedCamera === camera;
+    return this._realRenderMode !== CanvasRenderMode.ScreenSpaceCamera || this._camera === camera;
   }
 
   /**
@@ -669,7 +664,8 @@ export class UICanvas extends Component implements IElement {
   private _getRealRenderMode(): number {
     if (this._isRootCanvas) {
       const mode = this._renderMode;
-      if (mode === CanvasRenderMode.ScreenSpaceCamera && !this._camera?.enabled) {
+      // @ts-ignore
+      if (mode === CanvasRenderMode.ScreenSpaceCamera && !this._camera?._phasedActiveInScene) {
         return CanvasRenderMode.ScreenSpaceOverlay;
       } else {
         return mode;
