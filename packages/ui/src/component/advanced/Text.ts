@@ -51,6 +51,8 @@ export class Text extends UIRenderer implements ITextRenderer {
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
+  private _characterSpacing: number = 0;
+  @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
@@ -120,7 +122,7 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The space between two lines (in pixels).
+   * The space between two lines, in em (ratio of fontSize).
    */
   get lineSpacing(): number {
     return this._lineSpacing;
@@ -129,6 +131,20 @@ export class Text extends UIRenderer implements ITextRenderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
+      this._setDirtyFlagTrue(DirtyFlag.Position);
+    }
+  }
+
+  /**
+   * The space between two characters, in em (ratio of fontSize).
+   */
+  get characterSpacing(): number {
+    return this._characterSpacing;
+  }
+
+  set characterSpacing(value: number) {
+    if (this._characterSpacing !== value) {
+      this._characterSpacing = value;
       this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
@@ -437,17 +453,20 @@ export class Text extends UIRenderer implements ITextRenderer {
     let rendererHeight = size.y;
     const offsetWidth = rendererWidth * (0.5 - pivot.x);
     const offsetHeight = rendererHeight * (0.5 - pivot.y);
+    const characterSpacing = this._characterSpacing * this._fontSize;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(
           this,
           rendererWidth * pixelsPerResolution,
           rendererHeight * pixelsPerResolution,
-          this._lineSpacing * pixelsPerResolution
+          this._lineSpacing * this._fontSize,
+          characterSpacing
         )
       : TextUtils.measureTextWithoutWrap(
           this,
           rendererHeight * pixelsPerResolution,
-          this._lineSpacing * pixelsPerResolution
+          this._lineSpacing * this._fontSize,
+          characterSpacing
         );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
@@ -523,7 +542,7 @@ export class Text extends UIRenderer implements ITextRenderer {
               j === firstRow && (minX = Math.min(minX, left));
               maxX = Math.max(maxX, right);
             }
-            startX += charInfo.xAdvance + charInfo.offsetX;
+            startX += charInfo.xAdvance + characterSpacing;
           }
         }
         startY -= lineHeight;

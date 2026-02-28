@@ -213,6 +213,7 @@ export class TextUtils {
 
             // Push if before word is not empty
             if (wordWidth > 0) {
+              wordWidth -= characterSpacing;
               this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
             }
 
