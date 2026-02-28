@@ -216,7 +216,7 @@ describe("ShaderLab", async () => {
       SubShader "Default" {
         Pass "0" {
           BlendState = {
-            ColorWriteMask[0] = ColorWriteMask.Red | ;
+            ColorWriteMask[0] = ColorWriteMask.Red | invalidToken;
           }
         }
       }
