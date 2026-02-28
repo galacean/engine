@@ -40,35 +40,35 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   _subFont: SubFont = null;
   /** @internal */
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.Font;
+  _dirtyFlag = DirtyFlag.Font;
   @deepClone
-  private _color: Color = new Color(1, 1, 1, 1);
+  private _color = new Color(1, 1, 1, 1);
   @assignmentClone
-  private _text: string = "";
+  private _text = "";
   @assignmentClone
-  private _width: number = 0;
+  private _width = 0;
   @assignmentClone
-  private _height: number = 0;
+  private _height = 0;
   @ignoreClone
-  private _localBounds: BoundingBox = new BoundingBox();
+  private _localBounds = new BoundingBox();
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
-  private _fontSize: number = 24;
+  private _fontSize = 24;
   @assignmentClone
-  private _fontStyle: FontStyle = FontStyle.None;
+  private _fontStyle = FontStyle.None;
   @assignmentClone
-  private _lineSpacing: number = 0;
+  private _lineSpacing = 0;
   @assignmentClone
-  private _characterSpacing: number = 0;
+  private _characterSpacing = 0;
   @assignmentClone
-  private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
+  private _horizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
-  private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
+  private _verticalAlignment = TextVerticalAlignment.Center;
   @assignmentClone
-  private _enableWrapping: boolean = false;
+  private _enableWrapping = false;
   @assignmentClone
-  private _overflowMode: OverflowMode = OverflowMode.Overflow;
+  private _overflowMode = OverflowMode.Overflow;
 
   /**
    * Rendering color for the Text.
