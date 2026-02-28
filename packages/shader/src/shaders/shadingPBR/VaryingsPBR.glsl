@@ -29,6 +29,8 @@ struct Varyings{
 	#if defined(NEED_CALCULATE_SHADOWS) && (SCENE_SHADOW_CASCADED_COUNT == 1)
 	    vec3 shadowCoord;
 	#endif
+
+    vec4 positionCS;
 };
 
 
