@@ -299,5 +299,57 @@ describe("UICanvas", async () => {
     const anoCloneEntity = canvasEntity.clone();
     const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);
     expect(anoCloneCanvas.renderCamera).to.eq(anoCloneEntity.findByName("camera").getComponent(Camera));
+
+    // WorldSpace: clone with camera set
+    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    rootCanvas.renderCamera = cameraNeedClone;
+    const wsCloneEntity = canvasEntity.clone();
+    const wsCloneCanvas = wsCloneEntity.getComponent(UICanvas);
+    expect(wsCloneCanvas.renderMode).to.eq(CanvasRenderMode.WorldSpace);
+    expect(wsCloneCanvas.renderCamera).to.eq(wsCloneEntity.findByName("camera").getComponent(Camera));
+  });
+
+  it("_canDispatchEvent with renderCamera", () => {
+    const camera2 = root.createChild("camera3").addComponent(Camera);
+
+    // WorldSpace: no renderCamera, all cameras can process events
+    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    rootCanvas.renderCamera = null;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera2)).to.be.true;
+
+    // WorldSpace: with renderCamera, only that camera can process events
+    rootCanvas.renderCamera = camera;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera2)).to.be.false;
+
+    // ScreenSpaceCamera: only renderCamera can process events
+    rootCanvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+    rootCanvas.renderCamera = camera;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera2)).to.be.false;
+
+    // ScreenSpaceCamera fallback to ScreenSpaceOverlay: all cameras can process events
+    rootCanvas.renderCamera = null;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera)).to.be.true;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera2)).to.be.true;
+
+    // WorldSpace: camera disabled, fallback to all cameras
+    rootCanvas.renderMode = CanvasRenderMode.WorldSpace;
+    rootCanvas.renderCamera = camera;
+    camera.enabled = false;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera2)).to.be.true;
+    camera.enabled = true;
+    // @ts-ignore
+    expect(rootCanvas._canDispatchEvent(camera2)).to.be.false;
   });
 });
