@@ -83,6 +83,10 @@ function loadPage() {
 
 **描述**：目前 `#include` 的片段在 AST 阶段全部展开，相同文件被多次 include 时会重复生成 AST 树和代码。
 
+**核心障碍**：AST 节点包含 `_location: ShaderRange` 和 `_parent: TreeNode`，这些信息与原始文件的位置和作用域强绑定。例如，`a.a = 1` 在第一个 include 和第二个 include 中的含义完全不同（作用域不同）。直接缓存 AST 会导致位置信息和符号解析错误。
+
+**可行方案**：将 `#include` 文件预编译为可序列化的中间格式（如语义化的结构描述），而非原始 AST。主文件通过引用这些中间格式进行快速组装。
+
 **伪代码案例**：
 ```glsl
 // Common.glsl 被多个文件引用
@@ -94,9 +98,17 @@ function loadPage() {
 // Parser 生成 Common.glsl 的 AST（第1次）
 // Parser 生成 Common.glsl 的 AST（第2次，重复！）
 
-// 期望实现：Common.glsl 只解析一次
-// Parser 缓存: Map<string, AST> = { "Common.glsl": ast }
-// 第2次遇到时直接复用缓存
+// 不可行方案（原因：位置/作用域信息错误）：
+// Parser 缓存: Map<string, ASTNode> = { "Common.glsl": ast }
+// 第2次遇到时直接复用缓存  ❌
+
+// 可行方案（预编译为中间格式）：
+// 构建时：
+//   编译 Common.glsl → Common.glsl.json（包含结构描述，而非 AST）
+//   编译 Lighting.glsl → Lighting.glsl.json（内部引用 Common.glsl.json）
+// 运行时：
+//   加载 ForwardPassPBR.glsl.json
+//   根据引用关系快速组装代码  ✅
 ```
 
 #### 问题 4：顶点、片元代码重复生成（P2）
@@ -311,30 +323,92 @@ interface MacroBranchInfo {
 
 **测试文件**：`tests/src/shader-lab/macro-branch-index.test.ts`
 
-### 2.3 方案三：Include AST 缓存（对应问题 3）
+### 2.3 方案三：Include 预编译中间格式（对应问题 3）
 
 **优先级**：P1
 
-**目标**：对 `#include` 的文件缓存其 AST，避免重复解析相同文件。
+**目标**：对 `#include` 的文件预编译为可序列化的中间格式，避免重复解析，同时解决 AST 缓存的位置/作用域问题。
 
-**实现**：
+**不可行方案分析（AST 直接缓存）**：
 
 ```typescript
-class ShaderTargetParser {
-  private includeASTCache = new Map<string, TreeNode>();
+// ❌ 不可行：AST 节点包含位置依赖信息
+class TreeNode {
+  private _location: ShaderRange;  // 相对于原始文件的位置
+  private _parent: TreeNode;       // 父节点引用
+}
 
-  parseInclude(includePath: string): TreeNode {
-    if (this.includeASTCache.has(includePath)) {
-      return this.includeASTCache.get(includePath);
+// 文件 A: #include "Common.glsl"
+// 文件 C: #include "Common.glsl"
+// 问题：Common.glsl 中的 AST 节点的 _location 指向文件内的位置
+//       如果直接复用，位置信息对 A 和 C 都是错误的
+//       更严重的是符号作用域："a.a = 1" 在 A 和 C 中含义不同
+```
+
+**可行方案（中间格式）**：
+
+```typescript
+// 预编译后的中间格式（不包含位置依赖）
+interface PrecompiledInclude {
+  version: number;
+  hash: string;
+  // 结构描述（而非 AST 节点）
+  structs: StructDescription[];
+  functions: FunctionDescription[];
+  uniforms: UniformDescription[];
+  varyings: VaryingDescription[];
+  // 代码模板（含占位符）
+  codeTemplate: string;
+  // 宏分支信息
+  macroBranches: MacroBranchInfo[];
+}
+
+interface StructDescription {
+  name: string;
+  properties: { name: string; type: string }[];
+}
+
+interface FunctionDescription {
+  name: string;
+  returnType: string;
+  params: { name: string; type: string }[];
+  // 函数体代码（已预处理）
+  body: string;
+}
+
+class IncludePrecompiler {
+  private includeCache = new Map<string, PrecompiledInclude>();
+
+  precompileInclude(includePath: string): PrecompiledInclude {
+    if (this.includeCache.has(includePath)) {
+      return this.includeCache.get(includePath);
     }
-    const ast = this.doParse(includePath);
-    this.includeASTCache.set(includePath, ast);
-    return ast;
+    // 1. 解析 AST
+    const ast = this.parseAST(includePath);
+    // 2. 提取结构描述（不保存 AST）
+    const precompiled = this.extractDescription(ast);
+    // 3. 生成代码模板
+    precompiled.codeTemplate = this.generateTemplate(ast);
+    this.includeCache.set(includePath, precompiled);
+    return precompiled;
+  }
+
+  // 组装时根据上下文实例化
+  instantiate(include: PrecompiledInclude, context: IncludeContext): string {
+    // 根据上下文添加前缀/作用域修饰
+    return this.renderTemplate(include.codeTemplate, context);
   }
 }
 ```
 
-**测试文件**：`tests/src/shader-lab/include-ast-cache.test.ts`
+**关键区别**：
+
+| 方案 | 缓存内容 | 是否含位置信息 | 是否可复用 | 可行性 |
+|------|----------|----------------|------------|--------|
+| AST 直接缓存 | `TreeNode` | 是（`_location`） | 否 | ❌ |
+| 中间格式 | 结构描述 + 代码模板 | 否 | 是 | ✅ |
+
+**测试文件**：`tests/src/shader-lab/include-precompile.test.ts`
 
 ### 2.4 方案四：顶点片元 CodeGen 合并（对应问题 4）
 
@@ -507,14 +581,14 @@ class Preprocessor {
 **目标**：实施其他独立优化项
 
 **任务**：
-- Include AST 缓存
+- Include 预编译中间格式
 - 顶点片元 CodeGen 合并
 - 宏分支级别 TreeShaking
 - Symbol Lookup 缓存
 - Preprocessor 去除注释
 
 **测试文件**：
-- `tests/src/shader-lab/include-ast-cache.test.ts`
+- `tests/src/shader-lab/include-precompile.test.ts`
 - `tests/src/shader-lab/vertex-fragment-codegen-merge.test.ts`
 - `tests/src/shader-lab/macro-level-treeshaking.test.ts`
 - `tests/src/shader-lab/symbol-lookup-cache.test.ts`
@@ -548,12 +622,12 @@ class Preprocessor {
 ### 5.2 RFC 改造测试目录结构
 
 ```
-tests/src/shader-lab/
+tests/src/shader-lab/rfc/
 ├── benchmark-compile-perf.test.ts
 ├── benchmark-macro-parse-perf.test.ts
 ├── precompile-serialization.test.ts
 ├── macro-branch-index.test.ts
-├── include-ast-cache.test.ts
+├── include-precompile.test.ts
 ├── vertex-fragment-codegen-merge.test.ts
 ├── macro-level-treeshaking.test.ts
 ├── symbol-lookup-cache.test.ts
