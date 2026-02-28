@@ -1,6 +1,7 @@
 import {
   BlendFactor,
   BlendOperation,
+  ColorWriteMask,
   CompareFunction,
   CullMode,
   RenderStateElementKey,
@@ -107,7 +108,7 @@ describe("ShaderLab", async () => {
       [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha,
       // Pass level (traditional syntax)
       [RenderStateElementKey.BlendStateEnabled0]: true, // Pass overrides inherited "subShaderBlendEnabled"
-      [RenderStateElementKey.BlendStateColorWriteMask0]: 0.8,
+      [RenderStateElementKey.BlendStateColorWriteMask0]: ColorWriteMask.Red | ColorWriteMask.Green | ColorWriteMask.Blue,
       [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
       [RenderStateElementKey.StencilStateEnabled]: true,
       [RenderStateElementKey.StencilStateMask]: 1.3,
@@ -139,7 +140,9 @@ describe("ShaderLab", async () => {
     });
 
     expect(variableMap1).include({
-      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled2" // Pass overrides inherited "globalDepthWrite"
+      [RenderStateElementKey.DepthStateWriteEnabled]: "depthWriteEnabled2", // Pass overrides inherited "globalDepthWrite"
+      // ColorWriteMask variable declaration
+      [RenderStateElementKey.BlendStateColorWriteMask0]: "colorWriteMaskVar"
     });
 
     // Test comprehensive override behavior (third pass)
@@ -174,6 +177,54 @@ describe("ShaderLab", async () => {
       ReplacementTag: "Opaque",
       pipelineStage: "DepthOnly"
     });
+  });
+
+  it("render state error - bitwise OR on non-bitmask enum", async () => {
+    const shaderSource = `Shader "test" {
+      SubShader "Default" {
+        Pass "0" {
+          DepthState = {
+            CompareFunction = CompareFunction.Less | CompareFunction.Greater;
+          }
+        }
+      }
+    }`;
+    const result = shaderLabVerbose._parseShaderSource(shaderSource);
+    const pass = result.subShaders[0].passes[0];
+    // CompareFunction should not appear in constantMap because bitwise OR is not allowed on non-bitmask enums
+    expect(pass.renderStates.constantMap[RenderStateElementKey.DepthStateCompareFunction]).to.be.undefined;
+  });
+
+  it("render state error - mixed enum types in bitwise OR", async () => {
+    const shaderSource = `Shader "test" {
+      SubShader "Default" {
+        Pass "0" {
+          BlendState = {
+            ColorWriteMask[0] = ColorWriteMask.Red | BlendFactor.One;
+          }
+        }
+      }
+    }`;
+    const result = shaderLabVerbose._parseShaderSource(shaderSource);
+    const pass = result.subShaders[0].passes[0];
+    // Mixed enum types should be rejected
+    expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
+  });
+
+  it("render state error - invalid syntax after bitwise OR", async () => {
+    const shaderSource = `Shader "test" {
+      SubShader "Default" {
+        Pass "0" {
+          BlendState = {
+            ColorWriteMask[0] = ColorWriteMask.Red | invalidToken;
+          }
+        }
+      }
+    }`;
+    const result = shaderLabVerbose._parseShaderSource(shaderSource);
+    const pass = result.subShaders[0].passes[0];
+    // ColorWriteMask should not appear in constantMap due to invalid syntax after '|'
+    expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
   });
 
   it("No frag shader args", async () => {
