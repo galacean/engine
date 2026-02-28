@@ -60,7 +60,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
-  private _letterSpacing: number = 0;
+  private _characterSpacing: number = 0;
   @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
@@ -172,7 +172,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 
   /**
-   * The space between two lines.
+   * The space between two lines, in world units.
    */
   get lineSpacing(): number {
     return this._lineSpacing;
@@ -186,15 +186,15 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 
   /**
-   * The space between two letters.
+   * The space between two characters, in world units.
    */
-  get letterSpacing(): number {
-    return this._letterSpacing;
+  get characterSpacing(): number {
+    return this._characterSpacing;
   }
 
-  set letterSpacing(value: number) {
-    if (this._letterSpacing !== value) {
-      this._letterSpacing = value;
+  set characterSpacing(value: number) {
+    if (this._characterSpacing !== value) {
+      this._characterSpacing = value;
       this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
@@ -526,20 +526,20 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
     const charFont = this._getSubFont();
-    const letterSpacing = this._letterSpacing * _pixelsPerUnit;
+    const characterSpacing = this._characterSpacing * _pixelsPerUnit;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(
           this,
           this.width * _pixelsPerUnit,
           this.height * _pixelsPerUnit,
           this._lineSpacing * _pixelsPerUnit,
-          letterSpacing
+          characterSpacing
         )
       : TextUtils.measureTextWithoutWrap(
           this,
           this.height * _pixelsPerUnit,
           this._lineSpacing * _pixelsPerUnit,
-          letterSpacing
+          characterSpacing
         );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
@@ -553,7 +553,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
       const halfRendererWidth = rendererWidth * 0.5;
       const rendererHeight = this._height * _pixelsPerUnit;
       const halfLineHeight = lineHeight * 0.5;
-      const letterSpacing = this._letterSpacing * _pixelsPerUnit;
 
       let startY = 0;
       const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
@@ -615,7 +614,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
               j === firstRow && (minX = Math.min(minX, left));
               maxX = Math.max(maxX, right);
             }
-            startX += charInfo.xAdvance + charInfo.offsetX + letterSpacing;
+            startX += charInfo.xAdvance + characterSpacing;
           }
         }
         startY -= lineHeight;
