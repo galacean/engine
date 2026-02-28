@@ -371,7 +371,8 @@ describe("TextUtils", () => {
       wrap1TextRenderer,
       textRendererTruncate.width * _pixelsPerUnit,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     wrap2TextRenderer.enableWrapping = true;
     wrap2TextRenderer.width = 5;
@@ -382,7 +383,8 @@ describe("TextUtils", () => {
       wrap2TextRenderer,
       textRendererTruncate.width * _pixelsPerUnit,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(text1Metrics.lineMaxSizes[0].size).to.be.equal(text2Metrics.lineMaxSizes[0].size);
   });
@@ -400,7 +402,8 @@ describe("TextUtils", () => {
     let result = TextUtils.measureTextWithoutWrap(
       textRendererTruncate,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(518);
     expect(result.height).to.be.equal(100);
@@ -411,7 +414,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererTruncate,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(289);
     expect(result.height).to.be.equal(100);
@@ -422,7 +426,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererTruncate,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(418);
     expect(result.height).to.be.equal(100);
@@ -433,7 +438,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererTruncate,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(111);
     expect(result.height).to.be.equal(100);
@@ -452,7 +458,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(0);
     expect(result.height).to.be.equal(0);
@@ -464,7 +471,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(0);
     expect(result.height).to.be.equal(0);
@@ -476,7 +484,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(518);
     expect(result.height).to.be.equal(27);
@@ -487,7 +496,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(289);
     expect(result.height).to.be.equal(27);
@@ -498,7 +508,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(418);
     expect(result.height).to.be.equal(27);
@@ -509,7 +520,8 @@ describe("TextUtils", () => {
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
       textRendererTruncate.height * _pixelsPerUnit,
-      textRendererTruncate.lineSpacing * _pixelsPerUnit
+      textRendererTruncate.lineSpacing * _pixelsPerUnit,
+      0
     );
     expect(result.width).to.be.equal(111);
     expect(result.height).to.be.equal(54);
