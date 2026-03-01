@@ -151,8 +151,10 @@ describe("RenderingStatistics", () => {
         engine._onDeviceLost();
       });
 
+      const beforeDestroy = engine.renderingStatistics.totalMemory;
       texture.destroy();
       buffer.destroy();
+      expect(engine.renderingStatistics.totalMemory).to.equal(beforeDestroy - totalBefore);
     });
   });
 });

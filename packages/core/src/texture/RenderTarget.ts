@@ -251,7 +251,6 @@ export class RenderTarget extends GraphicsResource {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
     this._renderbufferGpuMemorySize = this._calculateRenderbufferMemory();
     this._engine._renderingStatistics._textureMemory += this._renderbufferGpuMemorySize;
-    this._isContentLost = false;
   }
 
   private _calculateRenderbufferMemory(): number {
