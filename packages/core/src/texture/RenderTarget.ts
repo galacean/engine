@@ -165,8 +165,6 @@ export class RenderTarget extends GraphicsResource {
     this._antiAliasing = antiAliasing;
     this._depth = <Texture | null | TextureFormat>depth;
 
-    let renderbufferMemory = 0;
-
     if (renderTexture) {
       const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -175,9 +173,6 @@ export class RenderTarget extends GraphicsResource {
           throw "Render texture can't use depth format.";
         }
         colorTexture._addReferCount(1);
-        if (antiAliasing > 1) {
-          renderbufferMemory += TextureUtils.getMipLevelByteCount(colorTexture.format, width, height) * antiAliasing;
-        }
       }
       this._colorTextures = colorTextures;
     } else {
@@ -193,11 +188,13 @@ export class RenderTarget extends GraphicsResource {
       this._depthFormat = depth.format;
     } else if (typeof depth === "number") {
       this._depthFormat = <TextureFormat>depth;
-      renderbufferMemory += TextureUtils.getMipLevelByteCount(<TextureFormat>depth, width, height);
     }
 
+    // Create platform render target first, which may downgrade antiAliasing to device max
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
 
+    // Calculate renderbuffer memory after platform creation, using the actual (possibly downgraded) antiAliasing
+    const renderbufferMemory = this._calculateRenderbufferMemory();
     this._renderbufferGpuMemorySize = renderbufferMemory;
     engine._renderingStatistics._textureMemory += renderbufferMemory;
   }
@@ -229,7 +226,9 @@ export class RenderTarget extends GraphicsResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._engine._renderingStatistics._textureMemory -= this._renderbufferGpuMemorySize;
+    if (!this._isContentLost) {
+      this._engine._renderingStatistics._textureMemory -= this._renderbufferGpuMemorySize;
+    }
     this._platformRenderTarget.destroy();
     const { _colorTextures: colorTextures } = this;
     for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -253,6 +252,40 @@ export class RenderTarget extends GraphicsResource {
    */
   override _rebuild(): void {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
+    this._renderbufferGpuMemorySize = this._calculateRenderbufferMemory();
     this._engine._renderingStatistics._textureMemory += this._renderbufferGpuMemorySize;
+  }
+
+  private _calculateRenderbufferMemory(): number {
+    const { _antiAliasing: antiAliasing, _depth: depth, _width: width, _height: height } = this;
+    let memory = 0;
+
+    // MSAA color renderbuffers
+    if (antiAliasing > 1) {
+      const colorTextures = this._colorTextures;
+      for (let i = 0, n = colorTextures.length; i < n; i++) {
+        memory += TextureUtils.getMipLevelByteCount(colorTextures[i].format, width, height) * antiAliasing;
+      }
+    }
+
+    // Depth renderbuffer
+    if (depth !== null) {
+      if (depth instanceof Texture) {
+        // When MSAA is enabled, a separate MSAA depth RBO is allocated even if depth is a texture
+        if (antiAliasing > 1) {
+          memory += TextureUtils.getMipLevelByteCount(depth.format, width, height) * antiAliasing;
+        }
+      } else if (typeof depth === "number") {
+        if (antiAliasing > 1) {
+          // MSAA depth RBO (non-MSAA depth RBO is skipped when antiAliasing > 1)
+          memory += TextureUtils.getMipLevelByteCount(<TextureFormat>depth, width, height) * antiAliasing;
+        } else {
+          // Non-MSAA depth RBO
+          memory += TextureUtils.getMipLevelByteCount(<TextureFormat>depth, width, height);
+        }
+      }
+    }
+
+    return memory;
   }
 }

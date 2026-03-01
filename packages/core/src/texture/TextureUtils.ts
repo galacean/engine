@@ -87,8 +87,10 @@ export class TextureUtils {
     switch (format) {
       // Uncompressed formats
       case TextureFormat.R8:
+      case TextureFormat.Alpha8:
         return width * height;
       case TextureFormat.R8G8:
+      case TextureFormat.LuminanceAlpha:
         return width * height * 2;
       case TextureFormat.R8G8B8:
         return width * height * 3;

@@ -248,7 +248,9 @@ export class Buffer extends GraphicsResource {
    */
   protected override _onDestroy() {
     super._onDestroy();
-    this._engine._renderingStatistics._bufferMemory -= this._byteLength;
+    if (!this._isContentLost) {
+      this._engine._renderingStatistics._bufferMemory -= this._byteLength;
+    }
     this._platformBuffer.destroy();
   }
 }
