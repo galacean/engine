@@ -223,7 +223,7 @@ export class RenderTarget extends GraphicsResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    if (!this._isContentLost) {
+    if (!this._engine._isDeviceLost) {
       this._engine._renderingStatistics._textureMemory -= this._renderbufferGpuMemorySize;
     }
     this._platformRenderTarget.destroy();

@@ -296,9 +296,7 @@ export class ResourceManager {
   _restoreGraphicResources(): void {
     const graphicResourcePool = this._graphicResourcePool;
     for (const id in graphicResourcePool) {
-      const resource = graphicResourcePool[id];
-      resource._rebuild();
-      resource._isContentLost = false;
+      graphicResourcePool[id]._rebuild();
     }
   }
 

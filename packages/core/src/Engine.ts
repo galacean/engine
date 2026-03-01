@@ -68,6 +68,8 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _renderingStatistics: RenderingStatistics = new RenderingStatistics();
   /** @internal */
+  _isDeviceLost: boolean = false;
+  /** @internal */
   _batcherManager: BatcherManager;
 
   _particleBufferUtils: ParticleBufferUtils;
@@ -658,6 +660,7 @@ export class Engine extends EventDispatcher {
   }
 
   private _onDeviceLost(): void {
+    this._isDeviceLost = true;
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
     this._renderingStatistics._reset();
@@ -666,6 +669,7 @@ export class Engine extends EventDispatcher {
   }
 
   private _onDeviceRestored(): void {
+    this._isDeviceLost = false;
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
     // Clear shader pools
