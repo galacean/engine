@@ -38,9 +38,9 @@ export class Texture2D extends Texture {
     this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
 
-    this._gpuMemorySize = TextureUtils.getTextureByteCount(format, width, height, this._mipmapCount, 1);
+    this._memorySize = TextureUtils.getTextureByteCount(format, width, height, this._mipmapCount, 1);
     if (!engine._isDeviceLost) {
-      engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+      engine._renderingStatistics._textureMemory += this._memorySize;
     }
   }
 
@@ -174,7 +174,7 @@ export class Texture2D extends Texture {
    */
   override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2D(this);
-    this._engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+    this._engine._renderingStatistics._textureMemory += this._memorySize;
     super._rebuild();
   }
 }

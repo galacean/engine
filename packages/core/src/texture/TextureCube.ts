@@ -26,9 +26,9 @@ export class TextureCube extends Texture {
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
 
-    this._gpuMemorySize = TextureUtils.getTextureByteCount(format, size, size, this._mipmapCount, 6);
+    this._memorySize = TextureUtils.getTextureByteCount(format, size, size, this._mipmapCount, 6);
     if (!engine._isDeviceLost) {
-      engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+      engine._renderingStatistics._textureMemory += this._memorySize;
     }
   }
 
@@ -194,7 +194,7 @@ export class TextureCube extends Texture {
    */
   override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTextureCube(this);
-    this._engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+    this._engine._renderingStatistics._textureMemory += this._memorySize;
     super._rebuild();
   }
 }

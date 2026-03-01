@@ -26,7 +26,7 @@ export class RenderTarget extends GraphicsResource {
   private _height: number;
   private _colorTextures: Texture[];
   private _depthTexture: Texture | null = null;
-  private _renderbufferGpuMemorySize: number = 0;
+  private _memorySize: number = 0;
 
   /**
    * Whether to automatically generate multi-level textures.
@@ -193,9 +193,9 @@ export class RenderTarget extends GraphicsResource {
 
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
 
-    this._renderbufferGpuMemorySize = this._calculateRenderbufferMemory();
+    this._memorySize = this._calculateRenderbufferMemory();
     if (!engine._isDeviceLost) {
-      engine._renderingStatistics._textureMemory += this._renderbufferGpuMemorySize;
+      engine._renderingStatistics._textureMemory += this._memorySize;
     }
   }
 
@@ -227,7 +227,7 @@ export class RenderTarget extends GraphicsResource {
   protected override _onDestroy(): void {
     super._onDestroy();
     if (!this._engine._isDeviceLost) {
-      this._engine._renderingStatistics._textureMemory -= this._renderbufferGpuMemorySize;
+      this._engine._renderingStatistics._textureMemory -= this._memorySize;
     }
     this._platformRenderTarget.destroy();
     const { _colorTextures: colorTextures } = this;
@@ -252,8 +252,8 @@ export class RenderTarget extends GraphicsResource {
    */
   override _rebuild(): void {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
-    this._renderbufferGpuMemorySize = this._calculateRenderbufferMemory();
-    this._engine._renderingStatistics._textureMemory += this._renderbufferGpuMemorySize;
+    this._memorySize = this._calculateRenderbufferMemory();
+    this._engine._renderingStatistics._textureMemory += this._memorySize;
   }
 
   private _calculateRenderbufferMemory(): number {

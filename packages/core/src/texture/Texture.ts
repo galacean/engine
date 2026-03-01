@@ -22,7 +22,7 @@ export abstract class Texture extends GraphicsResource {
   /** @internal */
   _isDepthTexture: boolean = false;
   /** @internal */
-  _gpuMemorySize: number = 0;
+  _memorySize: number = 0;
 
   protected _format: TextureFormat;
   protected _width: number;
@@ -239,7 +239,7 @@ export abstract class Texture extends GraphicsResource {
   protected override _onDestroy() {
     super._onDestroy();
     if (!this._engine._isDeviceLost) {
-      this._engine._renderingStatistics._textureMemory -= this._gpuMemorySize;
+      this._engine._renderingStatistics._textureMemory -= this._memorySize;
     }
     this._platformTexture.destroy();
     this._platformTexture = null;
