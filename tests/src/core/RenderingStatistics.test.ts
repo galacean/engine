@@ -205,5 +205,62 @@ describe("RenderingStatistics", () => {
       buffer.destroy();
       expect(engine.renderingStatistics.totalMemory).to.equal(0);
     });
+
+    it("resources created and destroyed during device lost should not affect counters", async () => {
+      const baseTexture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const baseBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
+      const totalBefore = engine.renderingStatistics.totalMemory;
+
+      await new Promise<void>((resolve) => {
+        engine.once("devicelost", () => {
+          expect(engine.renderingStatistics.totalMemory).to.equal(0);
+
+          const transientTexture = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8, false, false);
+          const transientBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 256, BufferUsage.Static);
+          expect(engine.renderingStatistics.totalMemory).to.equal(0);
+
+          transientTexture.destroy();
+          transientBuffer.destroy();
+          expect(engine.renderingStatistics.totalMemory).to.equal(0);
+
+          engine.once("devicerestored", () => {
+            expect(engine.renderingStatistics.totalMemory).to.equal(totalBefore);
+            resolve();
+          });
+          // @ts-ignore
+          engine._onDeviceRestored();
+        });
+        // @ts-ignore
+        engine._onDeviceLost();
+      });
+
+      baseTexture.destroy();
+      baseBuffer.destroy();
+    });
+
+    it("resources created during device lost should be counted once after restore", async () => {
+      await new Promise<void>((resolve) => {
+        engine.once("devicelost", () => {
+          expect(engine.renderingStatistics.totalMemory).to.equal(0);
+
+          const texture = new Texture2D(engine, 32, 32, TextureFormat.R8G8B8A8, false, false);
+          const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 256, BufferUsage.Static);
+          expect(engine.renderingStatistics.totalMemory).to.equal(0);
+
+          const expectedAfterRestore = 32 * 32 * 4 + 256;
+          engine.once("devicerestored", () => {
+            expect(engine.renderingStatistics.totalMemory).to.equal(expectedAfterRestore);
+            texture.destroy();
+            buffer.destroy();
+            expect(engine.renderingStatistics.totalMemory).to.equal(0);
+            resolve();
+          });
+          // @ts-ignore
+          engine._onDeviceRestored();
+        });
+        // @ts-ignore
+        engine._onDeviceLost();
+      });
+    });
   });
 });

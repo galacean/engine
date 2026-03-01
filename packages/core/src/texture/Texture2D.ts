@@ -39,7 +39,9 @@ export class Texture2D extends Texture {
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
 
     this._gpuMemorySize = TextureUtils.getTextureByteCount(format, width, height, this._mipmapCount, 1);
-    engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+    if (!engine._isDeviceLost) {
+      engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+    }
   }
 
   /**

@@ -126,7 +126,9 @@ export class Buffer extends GraphicsResource {
       }
     }
 
-    engine._renderingStatistics._bufferMemory += this._byteLength;
+    if (!engine._isDeviceLost) {
+      engine._renderingStatistics._bufferMemory += this._byteLength;
+    }
   }
 
   /**

@@ -27,7 +27,9 @@ export class TextureCube extends Texture {
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
 
     this._gpuMemorySize = TextureUtils.getTextureByteCount(format, size, size, this._mipmapCount, 6);
-    engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+    if (!engine._isDeviceLost) {
+      engine._renderingStatistics._textureMemory += this._gpuMemorySize;
+    }
   }
 
   /**
