@@ -4,6 +4,7 @@ import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 import { Texture } from "./Texture";
+import { TextureUtils } from "./TextureUtils";
 
 /**
  * Two-dimensional texture array.
@@ -47,6 +48,9 @@ export class Texture2DArray extends Texture {
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2DArray(this);
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
+
+    this._gpuMemorySize = TextureUtils.getTextureByteCount(format, width, height, this._mipmapCount, length);
+    engine._renderingInfo._textureMemory += this._gpuMemorySize;
   }
 
   /**
@@ -219,6 +223,7 @@ export class Texture2DArray extends Texture {
    */
   override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2DArray(this);
+    this._engine._renderingInfo._textureMemory += this._gpuMemorySize;
     super._rebuild();
   }
 }

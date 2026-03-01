@@ -4,6 +4,7 @@ import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 import { TextureFormat } from "./enums/TextureFormat";
 import { Texture } from "./Texture";
+import { TextureUtils } from "./TextureUtils";
 
 /**
  * The render target used for off-screen rendering.
@@ -24,6 +25,7 @@ export class RenderTarget extends GraphicsResource {
   private _height: number;
   private _colorTextures: Texture[];
   private _depthTexture: Texture | null = null;
+  private _renderbufferGpuMemorySize: number = 0;
 
   /**
    * Whether to automatically generate multi-level textures.
@@ -163,6 +165,8 @@ export class RenderTarget extends GraphicsResource {
     this._antiAliasing = antiAliasing;
     this._depth = <Texture | null | TextureFormat>depth;
 
+    let renderbufferMemory = 0;
+
     if (renderTexture) {
       const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -171,6 +175,9 @@ export class RenderTarget extends GraphicsResource {
           throw "Render texture can't use depth format.";
         }
         colorTexture._addReferCount(1);
+        if (antiAliasing > 1) {
+          renderbufferMemory += TextureUtils.getMipLevelByteCount(colorTexture.format, width, height) * antiAliasing;
+        }
       }
       this._colorTextures = colorTextures;
     } else {
@@ -186,9 +193,13 @@ export class RenderTarget extends GraphicsResource {
       this._depthFormat = depth.format;
     } else if (typeof depth === "number") {
       this._depthFormat = <TextureFormat>depth;
+      renderbufferMemory += TextureUtils.getMipLevelByteCount(<TextureFormat>depth, width, height);
     }
 
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
+
+    this._renderbufferGpuMemorySize = renderbufferMemory;
+    engine._renderingInfo._textureMemory += renderbufferMemory;
   }
 
   /**
@@ -218,6 +229,7 @@ export class RenderTarget extends GraphicsResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
+    this._engine._renderingInfo._textureMemory -= this._renderbufferGpuMemorySize;
     this._platformRenderTarget.destroy();
     const { _colorTextures: colorTextures } = this;
     for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -241,5 +253,6 @@ export class RenderTarget extends GraphicsResource {
    */
   override _rebuild(): void {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
+    this._engine._renderingInfo._textureMemory += this._renderbufferGpuMemorySize;
   }
 }

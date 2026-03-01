@@ -19,6 +19,7 @@ import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
+import { RenderingInfo } from "./asset/RenderingInfo";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -64,6 +65,8 @@ export class Engine extends EventDispatcher {
   /** XR manager of Engine. */
   readonly xrManager: XRManager;
 
+  /** @internal */
+  _renderingInfo: RenderingInfo = new RenderingInfo();
   /** @internal */
   _batcherManager: BatcherManager;
 
@@ -181,6 +184,13 @@ export class Engine extends EventDispatcher {
    */
   get time(): Time {
     return this._time;
+  }
+
+  /**
+   * Rendering statistics.
+   */
+  get renderingInfo(): RenderingInfo {
+    return this._renderingInfo;
   }
 
   /**
@@ -650,6 +660,7 @@ export class Engine extends EventDispatcher {
   private _onDeviceLost(): void {
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
+    this._renderingInfo._reset();
     console.log("Device lost.");
     this.dispatch("devicelost", this);
   }

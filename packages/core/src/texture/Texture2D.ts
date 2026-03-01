@@ -5,6 +5,7 @@ import { TextureFormat } from "./enums/TextureFormat";
 import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 import { Texture } from "./Texture";
+import { TextureUtils } from "./TextureUtils";
 
 /**
  * Two-dimensional texture.
@@ -36,6 +37,9 @@ export class Texture2D extends Texture {
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
     this.filterMode = this._isIntFormat() ? TextureFilterMode.Point : TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
+
+    this._gpuMemorySize = TextureUtils.getTextureByteCount(format, width, height, this._mipmapCount, 1);
+    engine._renderingInfo._textureMemory += this._gpuMemorySize;
   }
 
   /**
@@ -168,6 +172,7 @@ export class Texture2D extends Texture {
    */
   override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2D(this);
+    this._engine._renderingInfo._textureMemory += this._gpuMemorySize;
     super._rebuild();
   }
 }

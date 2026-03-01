@@ -21,6 +21,8 @@ export abstract class Texture extends GraphicsResource {
   _mipmap: boolean;
   /** @internal */
   _isDepthTexture: boolean = false;
+  /** @internal */
+  _gpuMemorySize: number = 0;
 
   protected _format: TextureFormat;
   protected _width: number;
@@ -236,6 +238,7 @@ export abstract class Texture extends GraphicsResource {
    */
   protected override _onDestroy() {
     super._onDestroy();
+    this._engine._renderingInfo._textureMemory -= this._gpuMemorySize;
     this._platformTexture.destroy();
     this._platformTexture = null;
   }
