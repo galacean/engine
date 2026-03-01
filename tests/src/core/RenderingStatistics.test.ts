@@ -124,6 +124,20 @@ describe("RenderingStatistics", () => {
 
       colorTexture.destroy();
     });
+
+    it("RenderTarget with depth texture in non-MSAA mode does not add depth renderbuffer memory", () => {
+      const colorTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8, false, false);
+      const depthTexture = new Texture2D(engine, 128, 128, TextureFormat.Depth24Stencil8, false, false);
+      const before = engine.renderingStatistics.textureMemory;
+
+      const renderTarget = new RenderTarget(engine, 128, 128, colorTexture, depthTexture, 1);
+      const after = engine.renderingStatistics.textureMemory;
+      expect(after).to.equal(before);
+
+      renderTarget.destroy();
+      colorTexture.destroy();
+      depthTexture.destroy();
+    });
   });
 
   describe("device loss", () => {

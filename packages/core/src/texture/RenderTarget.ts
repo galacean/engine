@@ -4,6 +4,7 @@ import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 import { TextureFormat } from "./enums/TextureFormat";
 import { Texture } from "./Texture";
+import { TextureCube } from "./TextureCube";
 import { TextureUtils } from "./TextureUtils";
 
 /**
@@ -266,9 +267,14 @@ export class RenderTarget extends GraphicsResource {
 
     if (depth !== null) {
       const depthFormat = depth instanceof Texture ? depth.format : <TextureFormat>depth;
-      if (antiAliasing > 1) {
+      const hasMSAADepthRenderbuffer = antiAliasing > 1;
+      // Matches GLRenderTarget._bindMainFBO(): non-MSAA depth RBO is created for depth format
+      // and cube depth texture targets.
+      const hasMainDepthRenderbuffer = antiAliasing <= 1 && (!(depth instanceof Texture) || depth instanceof TextureCube);
+
+      if (hasMSAADepthRenderbuffer) {
         memory += TextureUtils.getMipLevelByteCount(depthFormat, width, height) * antiAliasing;
-      } else if (!(depth instanceof Texture)) {
+      } else if (hasMainDepthRenderbuffer) {
         memory += TextureUtils.getMipLevelByteCount(depthFormat, width, height);
       }
     }
