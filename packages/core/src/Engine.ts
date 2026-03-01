@@ -669,7 +669,6 @@ export class Engine extends EventDispatcher {
   }
 
   private _onDeviceRestored(): void {
-    this._isDeviceLost = false;
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
     // Clear shader pools
@@ -679,6 +678,7 @@ export class Engine extends EventDispatcher {
     const { resourceManager } = this;
     // Restore graphic resources
     resourceManager._restoreGraphicResources();
+    this._isDeviceLost = false;
     console.log("Graphic resource restored.");
 
     // Restore resources content

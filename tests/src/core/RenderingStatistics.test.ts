@@ -156,5 +156,40 @@ describe("RenderingStatistics", () => {
       buffer.destroy();
       expect(engine.renderingStatistics.totalMemory).to.equal(beforeDestroy - totalBefore);
     });
+
+    it("failed restore keeps device-lost state and avoids negative counters on destroy", () => {
+      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
+
+      // @ts-ignore
+      const resourceManager = engine.resourceManager;
+      const originalRestoreGraphicResources = resourceManager._restoreGraphicResources;
+      // @ts-ignore
+      resourceManager._restoreGraphicResources = () => {
+        throw new Error("mock restore failure");
+      };
+
+      try {
+        // @ts-ignore
+        engine._onDeviceLost();
+        expect(engine.renderingStatistics.totalMemory).to.equal(0);
+        // @ts-ignore
+        expect(engine._isDeviceLost).to.equal(true);
+
+        expect(() => {
+          // @ts-ignore
+          engine._onDeviceRestored();
+        }).toThrow("mock restore failure");
+        // @ts-ignore
+        expect(engine._isDeviceLost).to.equal(true);
+      } finally {
+        // @ts-ignore
+        resourceManager._restoreGraphicResources = originalRestoreGraphicResources;
+      }
+
+      texture.destroy();
+      buffer.destroy();
+      expect(engine.renderingStatistics.totalMemory).to.equal(0);
+    });
   });
 });
