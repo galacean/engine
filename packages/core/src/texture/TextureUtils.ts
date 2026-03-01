@@ -148,7 +148,6 @@ export class TextureUtils {
         return width * height * 2;
       case TextureFormat.Depth24:
       case TextureFormat.Depth24Stencil8:
-        return width * height * 4;
       case TextureFormat.Depth32:
         return width * height * 4;
       case TextureFormat.Depth32Stencil8:
