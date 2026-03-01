@@ -1,7 +1,7 @@
 /**
  * Rendering statistics.
  */
-export class RenderingInfo {
+export class RenderingStatistics {
   /** @internal */
   _textureMemory: number = 0;
   /** @internal */

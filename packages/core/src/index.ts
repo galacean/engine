@@ -24,7 +24,7 @@ export { request } from "./asset/request";
 export type { RequestConfig } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ContentRestorer } from "./asset/ContentRestorer";
-export { RenderingInfo } from "./asset/RenderingInfo";
+export { RenderingStatistics } from "./asset/RenderingStatistics";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";

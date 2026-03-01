@@ -126,7 +126,7 @@ export class Buffer extends GraphicsResource {
       }
     }
 
-    engine._renderingInfo._bufferMemory += this._byteLength;
+    engine._renderingStatistics._bufferMemory += this._byteLength;
   }
 
   /**
@@ -240,7 +240,7 @@ export class Buffer extends GraphicsResource {
       this._bufferUsage
     );
     this._platformBuffer = platformBuffer;
-    this._engine._renderingInfo._bufferMemory += this._byteLength;
+    this._engine._renderingStatistics._bufferMemory += this._byteLength;
   }
 
   /**
@@ -248,7 +248,7 @@ export class Buffer extends GraphicsResource {
    */
   protected override _onDestroy() {
     super._onDestroy();
-    this._engine._renderingInfo._bufferMemory -= this._byteLength;
+    this._engine._renderingStatistics._bufferMemory -= this._byteLength;
     this._platformBuffer.destroy();
   }
 }

@@ -238,7 +238,7 @@ export abstract class Texture extends GraphicsResource {
    */
   protected override _onDestroy() {
     super._onDestroy();
-    this._engine._renderingInfo._textureMemory -= this._gpuMemorySize;
+    this._engine._renderingStatistics._textureMemory -= this._gpuMemorySize;
     this._platformTexture.destroy();
     this._platformTexture = null;
   }

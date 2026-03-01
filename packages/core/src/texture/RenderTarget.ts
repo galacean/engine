@@ -199,7 +199,7 @@ export class RenderTarget extends GraphicsResource {
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
 
     this._renderbufferGpuMemorySize = renderbufferMemory;
-    engine._renderingInfo._textureMemory += renderbufferMemory;
+    engine._renderingStatistics._textureMemory += renderbufferMemory;
   }
 
   /**
@@ -229,7 +229,7 @@ export class RenderTarget extends GraphicsResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._engine._renderingInfo._textureMemory -= this._renderbufferGpuMemorySize;
+    this._engine._renderingStatistics._textureMemory -= this._renderbufferGpuMemorySize;
     this._platformRenderTarget.destroy();
     const { _colorTextures: colorTextures } = this;
     for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -253,6 +253,6 @@ export class RenderTarget extends GraphicsResource {
    */
   override _rebuild(): void {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
-    this._engine._renderingInfo._textureMemory += this._renderbufferGpuMemorySize;
+    this._engine._renderingStatistics._textureMemory += this._renderbufferGpuMemorySize;
   }
 }

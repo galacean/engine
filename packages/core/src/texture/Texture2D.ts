@@ -39,7 +39,7 @@ export class Texture2D extends Texture {
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
 
     this._gpuMemorySize = TextureUtils.getTextureByteCount(format, width, height, this._mipmapCount, 1);
-    engine._renderingInfo._textureMemory += this._gpuMemorySize;
+    engine._renderingStatistics._textureMemory += this._gpuMemorySize;
   }
 
   /**
@@ -172,7 +172,7 @@ export class Texture2D extends Texture {
    */
   override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2D(this);
-    this._engine._renderingInfo._textureMemory += this._gpuMemorySize;
+    this._engine._renderingStatistics._textureMemory += this._gpuMemorySize;
     super._rebuild();
   }
 }
