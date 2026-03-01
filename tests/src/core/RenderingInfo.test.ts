@@ -1,0 +1,158 @@
+import {
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
+  RenderTarget,
+  Texture2D,
+  TextureCube,
+  TextureFormat
+} from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { beforeAll, describe, expect, it } from "vitest";
+
+describe("RenderingInfo", () => {
+  const canvas = document.createElement("canvas");
+
+  let engine: WebGLEngine;
+  beforeAll(async () => {
+    engine = await WebGLEngine.create({ canvas });
+  });
+
+  describe("textureMemory", () => {
+    it("Texture2D creation increases textureMemory", () => {
+      const before = engine.renderingInfo.textureMemory;
+      const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
+      const after = engine.renderingInfo.textureMemory;
+
+      // 256 * 256 * 4 = 262144
+      expect(after - before).to.equal(256 * 256 * 4);
+
+      texture.destroy();
+    });
+
+    it("Texture2D with mipmaps accounts for all levels", () => {
+      const before = engine.renderingInfo.textureMemory;
+      const texture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, true, false);
+      const after = engine.renderingInfo.textureMemory;
+
+      // With mipmaps: 256x256 + 128x128 + 64x64 + ... + 1x1, all * 4 bytes
+      expect(after - before).to.be.greaterThan(256 * 256 * 4);
+
+      texture.destroy();
+    });
+
+    it("TextureCube accounts for 6 faces", () => {
+      const before = engine.renderingInfo.textureMemory;
+      const texture = new TextureCube(engine, 64, TextureFormat.R8G8B8A8, false);
+      const after = engine.renderingInfo.textureMemory;
+
+      // 64 * 64 * 4 * 6 faces = 98304
+      expect(after - before).to.equal(64 * 64 * 4 * 6);
+
+      texture.destroy();
+    });
+
+    it("Texture destroy decreases textureMemory", () => {
+      const before = engine.renderingInfo.textureMemory;
+      const texture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8, false, false);
+      texture.destroy();
+      const after = engine.renderingInfo.textureMemory;
+
+      expect(after).to.equal(before);
+    });
+  });
+
+  describe("bufferMemory", () => {
+    it("Buffer creation increases bufferMemory", () => {
+      const before = engine.renderingInfo.bufferMemory;
+      const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 1024, BufferUsage.Static);
+      const after = engine.renderingInfo.bufferMemory;
+
+      expect(after - before).to.equal(1024);
+
+      buffer.destroy();
+    });
+
+    it("Buffer destroy decreases bufferMemory", () => {
+      const before = engine.renderingInfo.bufferMemory;
+      const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 2048, BufferUsage.Static);
+      buffer.destroy();
+      const after = engine.renderingInfo.bufferMemory;
+
+      expect(after).to.equal(before);
+    });
+  });
+
+  describe("totalMemory", () => {
+    it("totalMemory equals textureMemory + bufferMemory", () => {
+      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
+
+      expect(engine.renderingInfo.totalMemory).to.equal(
+        engine.renderingInfo.textureMemory + engine.renderingInfo.bufferMemory
+      );
+
+      texture.destroy();
+      buffer.destroy();
+    });
+  });
+
+  describe("RenderTarget renderbuffer", () => {
+    it("RenderTarget with depth format tracks renderbuffer memory", () => {
+      const colorTexture = new Texture2D(engine, 256, 256, TextureFormat.R8G8B8A8, false, false);
+      const afterTexture = engine.renderingInfo.textureMemory;
+
+      const renderTarget = new RenderTarget(engine, 256, 256, colorTexture, TextureFormat.Depth24Stencil8);
+      const afterRT = engine.renderingInfo.textureMemory;
+
+      // Depth renderbuffer: 256 * 256 * 4
+      expect(afterRT - afterTexture).to.equal(256 * 256 * 4);
+
+      renderTarget.destroy();
+      colorTexture.destroy();
+    });
+
+    it("RenderTarget destroy decreases renderbuffer memory", () => {
+      const colorTexture = new Texture2D(engine, 128, 128, TextureFormat.R8G8B8A8, false, false);
+      const before = engine.renderingInfo.textureMemory;
+
+      const renderTarget = new RenderTarget(engine, 128, 128, colorTexture, TextureFormat.Depth24Stencil8);
+      renderTarget.destroy();
+
+      const after = engine.renderingInfo.textureMemory;
+      expect(after).to.equal(before);
+
+      colorTexture.destroy();
+    });
+  });
+
+  describe("device loss", () => {
+    it("counters reset on device lost and recover on rebuild", async () => {
+      const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
+      const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
+
+      const totalBefore = engine.renderingInfo.totalMemory;
+      expect(totalBefore).to.be.greaterThan(0);
+
+      await new Promise<void>((resolve) => {
+        engine.once("devicelost", () => {
+          expect(engine.renderingInfo.textureMemory).to.equal(0);
+          expect(engine.renderingInfo.bufferMemory).to.equal(0);
+          expect(engine.renderingInfo.totalMemory).to.equal(0);
+
+          engine.once("devicerestored", () => {
+            expect(engine.renderingInfo.totalMemory).to.equal(totalBefore);
+            resolve();
+          });
+          // @ts-ignore
+          engine._onDeviceRestored();
+        });
+        // @ts-ignore
+        engine._onDeviceLost();
+      });
+
+      texture.destroy();
+      buffer.destroy();
+    });
+  });
+});
