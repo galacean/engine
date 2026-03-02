@@ -22,7 +22,9 @@
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shaderlab": "workspace:*",
     "@galacean/engine-toolkit": "latest",
-    "@galacean/engine-ui": "workspace:*"
+    "@galacean/engine-ui": "workspace:*",
+    "@galacean/engine-xr": "workspace:*",
+    "@galacean/engine-xr-webxr": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-basic-ssl": "^2.1.4",
