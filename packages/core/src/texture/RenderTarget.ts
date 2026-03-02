@@ -1,4 +1,5 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
+import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
@@ -163,9 +164,16 @@ export class RenderTarget extends GraphicsResource {
 
     this._width = width;
     this._height = height;
-    this._antiAliasing = antiAliasing;
     this._depth = <Texture | null | TextureFormat>depth;
 
+    const maxAntiAliasing = engine._hardwareRenderer.capability.maxAntiAliasing;
+    if (antiAliasing > maxAntiAliasing) {
+      Logger.warn(`MSAA antiAliasing exceeds the limit and is automatically downgraded to:${maxAntiAliasing}`);
+      antiAliasing = maxAntiAliasing;
+    }
+    this._antiAliasing = antiAliasing;
+
+    let memorySize = 0;
     if (renderTexture) {
       const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -174,6 +182,9 @@ export class RenderTarget extends GraphicsResource {
           throw "Render texture can't use depth format.";
         }
         colorTexture._addReferCount(1);
+        if (antiAliasing > 1) {
+          memorySize += TextureUtils.getMipLevelByteCount(colorTexture.format, width, height);
+        }
       }
       this._colorTextures = colorTextures;
     } else {
@@ -187,15 +198,24 @@ export class RenderTarget extends GraphicsResource {
       this._depthTexture = depth;
       this._depthTexture._addReferCount(1);
       this._depthFormat = depth.format;
+      // MSAA depth RBO or non-MSAA cube depth RBO
+      if (antiAliasing > 1 || depth instanceof TextureCube) {
+        memorySize += TextureUtils.getMipLevelByteCount(depth.format, width, height);
+      }
     } else if (typeof depth === "number") {
       this._depthFormat = <TextureFormat>depth;
+      // Depth format always needs a RBO
+      memorySize += TextureUtils.getMipLevelByteCount(<TextureFormat>depth, width, height);
+    }
+
+    if (antiAliasing > 1) {
+      memorySize *= antiAliasing;
     }
 
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
-
-    this._memorySize = this._calculateRenderbufferMemory();
+    this._memorySize = memorySize;
     if (!engine._isDeviceLost) {
-      engine._renderingStatistics._textureMemory += this._memorySize;
+      engine._renderingStatistics._textureMemory += memorySize;
     }
   }
 
@@ -252,36 +272,6 @@ export class RenderTarget extends GraphicsResource {
    */
   override _rebuild(): void {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
-    this._memorySize = this._calculateRenderbufferMemory();
     this._engine._renderingStatistics._textureMemory += this._memorySize;
-  }
-
-  private _calculateRenderbufferMemory(): number {
-    const { _antiAliasing: antiAliasing, _depth: depth, _width: width, _height: height } = this;
-    let memory = 0;
-
-    if (antiAliasing > 1) {
-      const colorTextures = this._colorTextures;
-      for (let i = 0, n = colorTextures.length; i < n; i++) {
-        memory += TextureUtils.getMipLevelByteCount(colorTextures[i].format, width, height) * antiAliasing;
-      }
-    }
-
-    if (depth !== null) {
-      const depthFormat = depth instanceof Texture ? depth.format : <TextureFormat>depth;
-      const hasMSAADepthRenderbuffer = antiAliasing > 1;
-      // Matches GLRenderTarget._bindMainFBO(): non-MSAA depth RBO is created for depth format
-      // and cube depth texture targets.
-      const hasMainDepthRenderbuffer =
-        antiAliasing <= 1 && (!(depth instanceof Texture) || depth instanceof TextureCube);
-
-      if (hasMSAADepthRenderbuffer) {
-        memory += TextureUtils.getMipLevelByteCount(depthFormat, width, height) * antiAliasing;
-      } else if (hasMainDepthRenderbuffer) {
-        memory += TextureUtils.getMipLevelByteCount(depthFormat, width, height);
-      }
-    }
-
-    return memory;
   }
 }

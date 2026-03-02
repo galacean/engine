@@ -1,7 +1,6 @@
 import {
   GLCapabilityType,
   IPlatformRenderTarget,
-  Logger,
   RenderTarget,
   Texture,
   TextureCube,
@@ -74,14 +73,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     // todo: necessary to support MRT + Cube + [,MSAA] ?
     if (_colorTextures.length > 1 && _colorTextures.some((v: Texture) => v instanceof TextureCube)) {
       throw new Error("MRT+Cube+[,MSAA] is not supported");
-    }
-
-    const maxAntiAliasing = rhi.capability.maxAntiAliasing;
-    if (target.antiAliasing > maxAntiAliasing) {
-      Logger.warn(`MSAA antiAliasing exceeds the limit and is automatically downgraded to:${maxAntiAliasing}`);
-
-      /** @ts-ignore */
-      target._antiAliasing = maxAntiAliasing;
     }
 
     this._frameBuffer = this._gl.createFramebuffer();
