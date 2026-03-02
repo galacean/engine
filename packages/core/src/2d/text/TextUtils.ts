@@ -99,7 +99,8 @@ export class TextUtils {
     renderer: ITextRenderer,
     rendererWidth: number,
     rendererHeight: number,
-    lineSpacing: number
+    lineSpacing: number,
+    characterSpacing: number
   ): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
@@ -157,6 +158,7 @@ export class TextUtils {
             if (lineWidth + wordWidth > rendererWidth) {
               // Push if before line is not empty
               if (lineWidth > 0) {
+                lineWidth -= characterSpacing;
                 this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
               }
 
@@ -180,6 +182,7 @@ export class TextUtils {
           // Handle char
           // At least one char in a line
           if (lineWidth + w > rendererWidth && lineWidth > 0) {
+            lineWidth -= characterSpacing;
             this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
             textWidth = Math.max(textWidth, lineWidth);
             notFirstLine = true;
@@ -188,19 +191,20 @@ export class TextUtils {
               lineWidth = lineMaxAscent = lineMaxDescent = 0;
             } else {
               line = char;
-              lineWidth = charInfo.xAdvance;
+              lineWidth = charInfo.xAdvance + characterSpacing;
               lineMaxAscent = ascent;
               lineMaxDescent = descent;
             }
           } else {
             line += char;
-            lineWidth += charInfo.xAdvance;
+            lineWidth += charInfo.xAdvance + characterSpacing;
             lineMaxAscent = Math.max(lineMaxAscent, ascent);
             lineMaxDescent = Math.max(lineMaxDescent, descent);
           }
         } else {
           if (wordWidth + charInfo.w > rendererWidth) {
             if (lineWidth > 0) {
+              lineWidth -= characterSpacing;
               this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
               textWidth = Math.max(textWidth, lineWidth);
               line = "";
@@ -209,18 +213,19 @@ export class TextUtils {
 
             // Push if before word is not empty
             if (wordWidth > 0) {
+              wordWidth -= characterSpacing;
               this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
             }
 
             textWidth = Math.max(textWidth, wordWidth);
             notFirstLine = true;
             word = char;
-            wordWidth = charInfo.xAdvance;
+            wordWidth = charInfo.xAdvance + characterSpacing;
             wordMaxAscent = ascent;
             wordMaxDescent = descent;
           } else {
             word += char;
-            wordWidth += charInfo.xAdvance;
+            wordWidth += charInfo.xAdvance + characterSpacing;
             wordMaxAscent = Math.max(wordMaxAscent, ascent);
             wordMaxDescent = Math.max(wordMaxDescent, descent);
           }
@@ -232,6 +237,7 @@ export class TextUtils {
         if (lineWidth + wordWidth > rendererWidth) {
           // Push chars to a single line
           if (lineWidth > 0) {
+            lineWidth -= characterSpacing;
             this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
           }
           textWidth = Math.max(textWidth, lineWidth);
@@ -239,6 +245,7 @@ export class TextUtils {
           lineWidth = 0;
           // Push word to a single line
           if (wordWidth > 0) {
+            wordWidth -= characterSpacing;
             this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
           }
           textWidth = Math.max(textWidth, wordWidth);
@@ -252,6 +259,7 @@ export class TextUtils {
       }
 
       if (lineWidth > 0) {
+        lineWidth -= characterSpacing;
         this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
         textWidth = Math.max(textWidth, lineWidth);
       }
@@ -272,7 +280,12 @@ export class TextUtils {
     };
   }
 
-  static measureTextWithoutWrap(renderer: ITextRenderer, rendererHeight: number, lineSpacing: number): TextMetrics {
+  static measureTextWithoutWrap(
+    renderer: ITextRenderer,
+    rendererHeight: number,
+    lineSpacing: number,
+    characterSpacing: number
+  ): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
@@ -287,11 +300,12 @@ export class TextUtils {
     subFont.nativeFontString = fontString;
     for (let i = 0; i < textCount; ++i) {
       const line = subTexts[i];
-      let curWidth = 0;
+      const lineLength = line.length;
+      let curWidth = lineLength > 1 ? characterSpacing * (lineLength - 1) : 0;
       let maxAscent = 0;
       let maxDescent = 0;
 
-      for (let j = 0, m = line.length; j < m; ++j) {
+      for (let j = 0; j < lineLength; ++j) {
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;

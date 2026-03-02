@@ -299,7 +299,8 @@ export class UICanvas extends Component implements IElement {
       return true;
     }
     const assignedCamera = this._camera;
-    return !assignedCamera || assignedCamera === camera;
+    // @ts-ignore
+    return !assignedCamera || !assignedCamera._phasedActiveInScene || assignedCamera === camera;
   }
 
   /**

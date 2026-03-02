@@ -40,33 +40,35 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   _subFont: SubFont = null;
   /** @internal */
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.Font;
+  _dirtyFlag = DirtyFlag.Font;
   @deepClone
-  private _color: Color = new Color(1, 1, 1, 1);
+  private _color = new Color(1, 1, 1, 1);
   @assignmentClone
-  private _text: string = "";
+  private _text = "";
   @assignmentClone
-  private _width: number = 0;
+  private _width = 0;
   @assignmentClone
-  private _height: number = 0;
+  private _height = 0;
   @ignoreClone
-  private _localBounds: BoundingBox = new BoundingBox();
+  private _localBounds = new BoundingBox();
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
-  private _fontSize: number = 24;
+  private _fontSize = 24;
   @assignmentClone
-  private _fontStyle: FontStyle = FontStyle.None;
+  private _fontStyle = FontStyle.None;
   @assignmentClone
-  private _lineSpacing: number = 0;
+  private _lineSpacing = 0;
   @assignmentClone
-  private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
+  private _characterSpacing = 0;
   @assignmentClone
-  private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
+  private _horizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
-  private _enableWrapping: boolean = false;
+  private _verticalAlignment = TextVerticalAlignment.Center;
   @assignmentClone
-  private _overflowMode: OverflowMode = OverflowMode.Overflow;
+  private _enableWrapping = false;
+  @assignmentClone
+  private _overflowMode = OverflowMode.Overflow;
 
   /**
    * Rendering color for the Text.
@@ -170,7 +172,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 
   /**
-   * The space between two lines (in pixels).
+   * The space between two lines, in em (ratio of fontSize).
    */
   get lineSpacing(): number {
     return this._lineSpacing;
@@ -179,6 +181,20 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
+      this._setDirtyFlagTrue(DirtyFlag.Position);
+    }
+  }
+
+  /**
+   * The space between two characters, in em (ratio of fontSize).
+   */
+  get characterSpacing(): number {
+    return this._characterSpacing;
+  }
+
+  set characterSpacing(value: number) {
+    if (this._characterSpacing !== value) {
+      this._characterSpacing = value;
       this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
@@ -510,14 +526,21 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
     const charFont = this._getSubFont();
+    const characterSpacing = this._characterSpacing * this._fontSize;
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(
           this,
           this.width * _pixelsPerUnit,
           this.height * _pixelsPerUnit,
-          this._lineSpacing * _pixelsPerUnit
+          this._lineSpacing * this._fontSize,
+          characterSpacing
         )
-      : TextUtils.measureTextWithoutWrap(this, this.height * _pixelsPerUnit, this._lineSpacing * _pixelsPerUnit);
+      : TextUtils.measureTextWithoutWrap(
+          this,
+          this.height * _pixelsPerUnit,
+          this._lineSpacing * this._fontSize,
+          characterSpacing
+        );
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
@@ -526,9 +549,9 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     if (linesLen > 0) {
       const { horizontalAlignment } = this;
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-      const rendererWidth = this.width * _pixelsPerUnit;
+      const rendererWidth = this._width * _pixelsPerUnit;
       const halfRendererWidth = rendererWidth * 0.5;
-      const rendererHeight = this.height * _pixelsPerUnit;
+      const rendererHeight = this._height * _pixelsPerUnit;
       const halfLineHeight = lineHeight * 0.5;
 
       let startY = 0;
@@ -591,7 +614,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
               j === firstRow && (minX = Math.min(minX, left));
               maxX = Math.max(maxX, right);
             }
-            startX += charInfo.xAdvance + charInfo.offsetX;
+            startX += charInfo.xAdvance + characterSpacing;
           }
         }
         startY -= lineHeight;
