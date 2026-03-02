@@ -146,6 +146,7 @@ describe("RenderingStatistics", () => {
       const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
 
       const totalBefore = engine.renderingStatistics.totalMemory;
+      const resourceSize = 64 * 64 * 4 + 512;
       expect(totalBefore).to.be.greaterThan(0);
 
       await new Promise<void>((resolve) => {
@@ -168,10 +169,10 @@ describe("RenderingStatistics", () => {
       const beforeDestroy = engine.renderingStatistics.totalMemory;
       texture.destroy();
       buffer.destroy();
-      expect(engine.renderingStatistics.totalMemory).to.equal(beforeDestroy - totalBefore);
+      expect(engine.renderingStatistics.totalMemory).to.equal(beforeDestroy - resourceSize);
     });
 
-    it("failed restore keeps device-lost state and avoids negative counters on destroy", () => {
+    it("failed restore keeps device-lost state and avoids negative counters on destroy", async () => {
       const texture = new Texture2D(engine, 64, 64, TextureFormat.R8G8B8A8, false, false);
       const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 512, BufferUsage.Static);
 
@@ -204,6 +205,13 @@ describe("RenderingStatistics", () => {
       texture.destroy();
       buffer.destroy();
       expect(engine.renderingStatistics.totalMemory).to.equal(0);
+
+      // Restore engine state for subsequent tests
+      // @ts-ignore
+      engine._onDeviceRestored();
+      await new Promise<void>((resolve) => {
+        engine.once("devicerestored", () => resolve());
+      });
     });
 
     it("resources created and destroyed during device lost should not affect counters", async () => {
@@ -239,6 +247,10 @@ describe("RenderingStatistics", () => {
     });
 
     it("resources created during device lost should be counted once after restore", async () => {
+      // Record baseline before device loss (includes engine internal resources)
+      const baselineTotal = engine.renderingStatistics.totalMemory;
+      const resourceSize = 32 * 32 * 4 + 256;
+
       await new Promise<void>((resolve) => {
         engine.once("devicelost", () => {
           expect(engine.renderingStatistics.totalMemory).to.equal(0);
@@ -247,12 +259,12 @@ describe("RenderingStatistics", () => {
           const buffer = new Buffer(engine, BufferBindFlag.VertexBuffer, 256, BufferUsage.Static);
           expect(engine.renderingStatistics.totalMemory).to.equal(0);
 
-          const expectedAfterRestore = 32 * 32 * 4 + 256;
           engine.once("devicerestored", () => {
-            expect(engine.renderingStatistics.totalMemory).to.equal(expectedAfterRestore);
+            // Should include engine internal resources + newly created resources
+            expect(engine.renderingStatistics.totalMemory).to.equal(baselineTotal + resourceSize);
             texture.destroy();
             buffer.destroy();
-            expect(engine.renderingStatistics.totalMemory).to.equal(0);
+            expect(engine.renderingStatistics.totalMemory).to.equal(baselineTotal);
             resolve();
           });
           // @ts-ignore
