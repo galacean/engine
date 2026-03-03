@@ -8,19 +8,6 @@ import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapM
 export class PipelineUtils {
   static readonly defaultViewport = new Vector4(0, 0, 1, 1);
 
-  /**
-   * Recreate texture if needed.
-   * @param engine - Engine
-   * @param currentTexture - Current texture
-   * @param width - Need texture width
-   * @param height - Need texture height
-   * @param format - Need texture format
-   * @param mipmap - Need texture mipmap
-   * @param isSRGBColorSpace - Whether to use sRGB color space
-   * @param textureWrapMode - Texture wrap mode
-   * @param textureFilterMode - Texture filter mode
-   * @returns Texture
-   */
   static recreateTextureIfNeeded(
     engine: Engine,
     currentTexture: Texture2D | null,
@@ -32,44 +19,26 @@ export class PipelineUtils {
     textureWrapMode: TextureWrapMode,
     textureFilterMode: TextureFilterMode
   ): Texture2D {
-    if (currentTexture) {
-      if (
-        currentTexture.width !== width ||
-        currentTexture.height !== height ||
-        currentTexture.format !== format ||
-        currentTexture.isSRGBColorSpace !== isSRGBColorSpace ||
-        currentTexture.mipmapCount > 1 !== mipmap
-      ) {
-        currentTexture.destroy(true);
-        currentTexture = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
-        currentTexture.isGCIgnored = true;
-      }
-    } else {
-      currentTexture = new Texture2D(engine, width, height, format, mipmap, isSRGBColorSpace);
-      currentTexture.isGCIgnored = true;
+    if (
+      currentTexture &&
+      currentTexture.width === width &&
+      currentTexture.height === height &&
+      currentTexture.format === format &&
+      currentTexture.isSRGBColorSpace === isSRGBColorSpace &&
+      currentTexture.mipmapCount > 1 === mipmap
+    ) {
+      currentTexture.wrapModeU = currentTexture.wrapModeV = textureWrapMode;
+      currentTexture.filterMode = textureFilterMode;
+      return currentTexture;
     }
 
-    currentTexture.wrapModeU = currentTexture.wrapModeV = textureWrapMode;
-    currentTexture.filterMode = textureFilterMode;
-
-    return currentTexture;
+    const pool = engine._renderTargetPool;
+    if (currentTexture) {
+      pool.freeTexture(currentTexture);
+    }
+    return pool.allocateTexture(width, height, format, mipmap, isSRGBColorSpace, textureWrapMode, textureFilterMode);
   }
 
-  /**
-   * Recreate render target if needed.
-   * @param engine - Engine
-   * @param currentRenderTarget - Current render target
-   * @param width - Need render target width
-   * @param height - Need render target height
-   * @param colorFormat - Need render target color format
-   * @param depthFormat - Need render target depth format
-   * @param mipmap - Need render target mipmap
-   * @param isSRGBColorSpace - Whether to use sRGB color space
-   * @param antiAliasing - Need render target anti aliasing
-   * @param textureWrapMode - Texture wrap mode
-   * @param textureFilterMode - Texture filter mode
-   * @returns Render target
-   */
   static recreateRenderTargetIfNeeded(
     engine: Engine,
     currentRenderTarget: RenderTarget | null,
@@ -84,55 +53,70 @@ export class PipelineUtils {
     textureWrapMode: TextureWrapMode,
     textureFilterMode: TextureFilterMode
   ): RenderTarget {
-    const currentColorTexture = <Texture2D>currentRenderTarget?.getColorTexture(0);
-    const colorTexture =
-      colorFormat != null
-        ? PipelineUtils.recreateTextureIfNeeded(
-            engine,
-            currentColorTexture,
-            width,
-            height,
-            colorFormat,
-            mipmap,
-            isSRGBColorSpace,
-            textureWrapMode,
-            textureFilterMode
-          )
-        : null;
+    if (currentRenderTarget) {
+      const colorTexture = currentRenderTarget.getColorTexture(0) as Texture2D;
+      const depthTexture = currentRenderTarget.depthTexture as Texture2D;
 
-    if (needDepthTexture) {
-      const currentDepthTexture = <Texture2D>currentRenderTarget?.depthTexture;
-      const needDepthTexture = depthFormat
-        ? PipelineUtils.recreateTextureIfNeeded(
-            engine,
-            currentDepthTexture,
-            width,
-            height,
-            depthFormat,
-            mipmap,
-            isSRGBColorSpace,
-            textureWrapMode,
-            textureFilterMode
-          )
-        : null;
+      let matched = true;
 
-      if (currentColorTexture !== colorTexture || currentDepthTexture !== needDepthTexture) {
-        currentRenderTarget?.destroy(true);
-        currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, needDepthTexture, antiAliasing);
-        currentRenderTarget.isGCIgnored = true;
+      if (colorFormat != null) {
+        if (
+          !colorTexture ||
+          colorTexture.width !== width ||
+          colorTexture.height !== height ||
+          colorTexture.format !== colorFormat ||
+          colorTexture.isSRGBColorSpace !== isSRGBColorSpace ||
+          colorTexture.mipmapCount > 1 !== mipmap
+        ) {
+          matched = false;
+        }
+      } else if (colorTexture) {
+        matched = false;
       }
-    } else {
-      if (
-        currentColorTexture !== colorTexture ||
-        currentRenderTarget?._depthFormat !== depthFormat ||
-        currentRenderTarget.antiAliasing !== antiAliasing
-      ) {
-        currentRenderTarget?.destroy(true);
-        currentRenderTarget = new RenderTarget(engine, width, height, colorTexture, depthFormat, antiAliasing);
-        currentRenderTarget.isGCIgnored = true;
+
+      if (matched && currentRenderTarget.antiAliasing !== antiAliasing) {
+        matched = false;
       }
+
+      if (matched) {
+        if (needDepthTexture) {
+          if (depthFormat) {
+            if (
+              !depthTexture ||
+              depthTexture.width !== width ||
+              depthTexture.height !== height ||
+              depthTexture.format !== depthFormat
+            ) {
+              matched = false;
+            }
+          } else if (depthTexture) {
+            matched = false;
+          }
+        } else {
+          if (currentRenderTarget._depthFormat !== depthFormat) {
+            matched = false;
+          }
+        }
+      }
+
+      if (matched) {
+        return currentRenderTarget;
+      }
+
+      engine._renderTargetPool.freeRenderTarget(currentRenderTarget);
     }
 
-    return currentRenderTarget;
+    return engine._renderTargetPool.allocateRenderTarget(
+      width,
+      height,
+      colorFormat,
+      depthFormat,
+      needDepthTexture,
+      mipmap,
+      isSRGBColorSpace,
+      antiAliasing,
+      textureWrapMode,
+      textureFilterMode
+    );
   }
 }

@@ -5,6 +5,7 @@ import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 import { Texture } from "./Texture";
+import { TextureUtils } from "./TextureUtils";
 
 /**
  * Cube texture.
@@ -24,6 +25,11 @@ export class TextureCube extends Texture {
     this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
+
+    this._memorySize = TextureUtils.getTextureByteCount(format, size, size, this._mipmapCount, 6);
+    if (!engine._isDeviceLost) {
+      engine._renderingStatistics._textureMemory += this._memorySize;
+    }
   }
 
   /**
@@ -188,6 +194,7 @@ export class TextureCube extends Texture {
    */
   override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTextureCube(this);
+    this._engine._renderingStatistics._textureMemory += this._memorySize;
     super._rebuild();
   }
 }

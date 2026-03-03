@@ -37,7 +37,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   override destroy(force: boolean, isGC: boolean): boolean;
 
   override destroy(force: boolean = false, isGC?: boolean): boolean {
-    if (!force) {
+    if (!this._pendingDestroy && !force) {
       if (this._refCount !== 0) {
         return false;
       }

@@ -125,6 +125,10 @@ export class Buffer extends GraphicsResource {
         this._data = new Uint8Array(buffer);
       }
     }
+
+    if (!engine._isDeviceLost) {
+      engine._renderingStatistics._bufferMemory += this._byteLength;
+    }
   }
 
   /**
@@ -238,6 +242,7 @@ export class Buffer extends GraphicsResource {
       this._bufferUsage
     );
     this._platformBuffer = platformBuffer;
+    this._engine._renderingStatistics._bufferMemory += this._byteLength;
   }
 
   /**
@@ -245,6 +250,9 @@ export class Buffer extends GraphicsResource {
    */
   protected override _onDestroy() {
     super._onDestroy();
+    if (!this._engine._isDeviceLost) {
+      this._engine._renderingStatistics._bufferMemory -= this._byteLength;
+    }
     this._platformBuffer.destroy();
   }
 }

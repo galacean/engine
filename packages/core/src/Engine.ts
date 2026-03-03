@@ -16,9 +16,11 @@ import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
+import { RenderTargetPool } from "./RenderPipeline/RenderTargetPool";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
+import { RenderingStatistics } from "./asset/RenderingStatistics";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EngineObject, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -65,6 +67,10 @@ export class Engine extends EventDispatcher {
   readonly xrManager: XRManager;
 
   /** @internal */
+  _renderingStatistics: RenderingStatistics = new RenderingStatistics();
+  /** @internal */
+  _isDeviceLost: boolean = false;
+  /** @internal */
   _batcherManager: BatcherManager;
 
   _particleBufferUtils: ParticleBufferUtils;
@@ -80,6 +86,8 @@ export class Engine extends EventDispatcher {
   _nativePhysicsManager: IPhysicsManager;
   /* @internal */
   _hardwareRenderer: IHardwareRenderer;
+  /* @internal */
+  _renderTargetPool: RenderTargetPool;
   /* @internal */
   _lastRenderState: RenderState = new RenderState();
 
@@ -184,6 +192,13 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * Rendering statistics.
+   */
+  get renderingStatistics(): RenderingStatistics {
+    return this._renderingStatistics;
+  }
+
+  /**
    * Whether the engine is paused.
    */
   get isPaused(): boolean {
@@ -243,6 +258,7 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = true;
 
     this._batcherManager = new BatcherManager(this);
+    this._renderTargetPool = new RenderTargetPool(this);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -494,6 +510,7 @@ export class Engine extends EventDispatcher {
 
     this.inputManager._destroy();
     this._batcherManager.destroy();
+    this._renderTargetPool.gc();
     this.xrManager?._destroy();
     this.dispatch("shutdown", this);
 
@@ -648,8 +665,10 @@ export class Engine extends EventDispatcher {
   }
 
   private _onDeviceLost(): void {
+    this._isDeviceLost = true;
     // Lose graphic resources
     this.resourceManager._lostGraphicResources();
+    this._renderingStatistics._reset();
     console.log("Device lost.");
     this.dispatch("devicelost", this);
   }
@@ -664,6 +683,7 @@ export class Engine extends EventDispatcher {
     const { resourceManager } = this;
     // Restore graphic resources
     resourceManager._restoreGraphicResources();
+    this._isDeviceLost = false;
     console.log("Graphic resource restored.");
 
     // Restore resources content

@@ -1,9 +1,12 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
+import { Logger } from "../base/Logger";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 import { TextureFormat } from "./enums/TextureFormat";
 import { Texture } from "./Texture";
+import { TextureCube } from "./TextureCube";
+import { TextureUtils } from "./TextureUtils";
 
 /**
  * The render target used for off-screen rendering.
@@ -24,6 +27,7 @@ export class RenderTarget extends GraphicsResource {
   private _height: number;
   private _colorTextures: Texture[];
   private _depthTexture: Texture | null = null;
+  private _memorySize: number = 0;
 
   /**
    * Whether to automatically generate multi-level textures.
@@ -160,9 +164,16 @@ export class RenderTarget extends GraphicsResource {
 
     this._width = width;
     this._height = height;
-    this._antiAliasing = antiAliasing;
     this._depth = <Texture | null | TextureFormat>depth;
 
+    const maxAntiAliasing = engine._hardwareRenderer.capability.maxAntiAliasing;
+    if (antiAliasing > maxAntiAliasing) {
+      Logger.warn(`MSAA antiAliasing exceeds the limit and is automatically downgraded to:${maxAntiAliasing}`);
+      antiAliasing = maxAntiAliasing;
+    }
+    this._antiAliasing = antiAliasing;
+
+    let memorySize = 0;
     if (renderTexture) {
       const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -171,6 +182,9 @@ export class RenderTarget extends GraphicsResource {
           throw "Render texture can't use depth format.";
         }
         colorTexture._addReferCount(1);
+        if (antiAliasing > 1) {
+          memorySize += TextureUtils.getMipLevelByteCount(colorTexture.format, width, height);
+        }
       }
       this._colorTextures = colorTextures;
     } else {
@@ -184,11 +198,25 @@ export class RenderTarget extends GraphicsResource {
       this._depthTexture = depth;
       this._depthTexture._addReferCount(1);
       this._depthFormat = depth.format;
+      // MSAA depth RBO or non-MSAA cube depth RBO
+      if (antiAliasing > 1 || depth instanceof TextureCube) {
+        memorySize += TextureUtils.getMipLevelByteCount(depth.format, width, height);
+      }
     } else if (typeof depth === "number") {
       this._depthFormat = <TextureFormat>depth;
+      // Depth format always needs a RBO
+      memorySize += TextureUtils.getMipLevelByteCount(<TextureFormat>depth, width, height);
+    }
+
+    if (antiAliasing > 1) {
+      memorySize *= antiAliasing;
     }
 
     this._platformRenderTarget = engine._hardwareRenderer.createPlatformRenderTarget(this);
+    this._memorySize = memorySize;
+    if (!engine._isDeviceLost) {
+      engine._renderingStatistics._textureMemory += memorySize;
+    }
   }
 
   /**
@@ -218,6 +246,9 @@ export class RenderTarget extends GraphicsResource {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
+    if (!this._engine._isDeviceLost) {
+      this._engine._renderingStatistics._textureMemory -= this._memorySize;
+    }
     this._platformRenderTarget.destroy();
     const { _colorTextures: colorTextures } = this;
     for (let i = 0, n = colorTextures.length; i < n; i++) {
@@ -241,5 +272,6 @@ export class RenderTarget extends GraphicsResource {
    */
   override _rebuild(): void {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
+    this._engine._renderingStatistics._textureMemory += this._memorySize;
   }
 }

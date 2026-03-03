@@ -63,8 +63,7 @@ export class DepthOnlyPass extends PipelinePass {
   release(): void {
     const renderTarget = this.renderTarget;
     if (renderTarget) {
-      renderTarget.depthTexture?.destroy(true);
-      renderTarget.destroy(true);
+      this.engine._renderTargetPool.freeRenderTarget(renderTarget);
       this.renderTarget = null;
     }
   }

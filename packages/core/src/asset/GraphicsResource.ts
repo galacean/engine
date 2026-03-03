@@ -15,6 +15,7 @@ export abstract class GraphicsResource extends ReferResource {
   protected constructor(engine: Engine) {
     super(engine);
     engine.resourceManager._addGraphicResource(this);
+    this._isContentLost = engine._isDeviceLost;
   }
 
   /**

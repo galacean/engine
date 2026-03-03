@@ -86,8 +86,7 @@ export class FinalPass extends PipelinePass {
   release(): void {
     const srgbRenderTarget = this._srgbRenderTarget;
     if (srgbRenderTarget) {
-      srgbRenderTarget.getColorTexture(0)?.destroy(true);
-      srgbRenderTarget.destroy(true);
+      this.engine._renderTargetPool.freeRenderTarget(srgbRenderTarget);
       this._srgbRenderTarget = null;
     }
     this._inputRenderTarget = null;
