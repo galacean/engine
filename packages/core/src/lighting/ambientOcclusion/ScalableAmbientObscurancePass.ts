@@ -160,14 +160,13 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
   }
 
   release(): void {
+    const pool = this.engine._renderTargetPool;
     if (this._saoRenderTarget) {
-      this._saoRenderTarget.getColorTexture(0)?.destroy(true);
-      this._saoRenderTarget.destroy(true);
+      pool.freeRenderTarget(this._saoRenderTarget);
       this._saoRenderTarget = null;
     }
     if (this._blurRenderTarget) {
-      this._blurRenderTarget.getColorTexture(0)?.destroy(true);
-      this._blurRenderTarget.destroy(true);
+      pool.freeRenderTarget(this._blurRenderTarget);
       this._blurRenderTarget = null;
     }
     this._depthRenderTarget = null;

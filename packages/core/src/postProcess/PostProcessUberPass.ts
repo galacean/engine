@@ -247,17 +247,16 @@ export class PostProcessUberPass extends PostProcessPass {
   }
 
   private _releaseBloomRenderTargets(): void {
+    const pool = this.engine._renderTargetPool;
     const length = this._mipDownRT.length;
     for (let i = 0; i < length; i++) {
       const downRT = this._mipDownRT[i];
       const upRT = this._mipUpRT[i];
       if (downRT) {
-        downRT.getColorTexture(0).destroy(true);
-        downRT.destroy(true);
+        pool.freeRenderTarget(downRT);
       }
       if (upRT) {
-        upRT.getColorTexture(0).destroy(true);
-        upRT.destroy(true);
+        pool.freeRenderTarget(upRT);
       }
     }
     this._mipDownRT.length = 0;

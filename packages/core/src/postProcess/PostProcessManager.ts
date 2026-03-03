@@ -195,8 +195,7 @@ export class PostProcessManager {
   _releaseSwapRenderTarget(): void {
     const swapRenderTarget = this._swapRenderTarget;
     if (swapRenderTarget) {
-      swapRenderTarget.getColorTexture(0)?.destroy(true);
-      swapRenderTarget.destroy(true);
+      this.scene.engine._renderTargetPool.freeRenderTarget(swapRenderTarget);
       this._swapRenderTarget = null;
     }
   }
@@ -207,8 +206,7 @@ export class PostProcessManager {
   _releaseOutputRenderTarget(): void {
     const outputRenderTarget = this._outputRenderTarget;
     if (outputRenderTarget) {
-      outputRenderTarget.getColorTexture(0)?.destroy(true);
-      outputRenderTarget.destroy(true);
+      this.scene.engine._renderTargetPool.freeRenderTarget(outputRenderTarget);
       this._outputRenderTarget = null;
     }
   }

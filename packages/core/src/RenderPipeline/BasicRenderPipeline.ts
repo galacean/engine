@@ -72,6 +72,19 @@ export class BasicRenderPipeline {
    */
   destroy(): void {
     this._cullingResults.destroy();
+
+    const pool = this._camera.engine._renderTargetPool;
+
+    if (this._internalColorTarget) {
+      pool.freeRenderTarget(this._internalColorTarget);
+      this._internalColorTarget = null;
+    }
+
+    if (this._copyBackgroundTexture) {
+      pool.freeTexture(this._copyBackgroundTexture);
+      this._copyBackgroundTexture = null;
+    }
+
     this._camera = null;
   }
 
@@ -188,13 +201,13 @@ export class BasicRenderPipeline {
     } else {
       const internalColorTarget = this._internalColorTarget;
       const copyBackgroundTexture = this._copyBackgroundTexture;
+      const pool = engine._renderTargetPool;
       if (internalColorTarget) {
-        internalColorTarget.getColorTexture(0)?.destroy(true);
-        internalColorTarget.destroy(true);
+        pool.freeRenderTarget(internalColorTarget);
         this._internalColorTarget = null;
       }
       if (copyBackgroundTexture) {
-        copyBackgroundTexture.destroy(true);
+        pool.freeTexture(copyBackgroundTexture);
         this._copyBackgroundTexture = null;
       }
     }
