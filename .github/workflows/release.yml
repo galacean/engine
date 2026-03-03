@@ -51,6 +51,11 @@ jobs:
         if: ${{ github.event.inputs.build_official_preload == '' || github.event.inputs.build_official_preload == 'true' }}
         run: ./scripts/build-official-preload.js
 
+      - name: Verify npm auth
+        run: npm whoami
+        env: 
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Release engine packages and Sync to CDN
         uses: galacean/publish@main
         if: success() || failure()
