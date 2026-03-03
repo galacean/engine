@@ -153,7 +153,7 @@ export class TextureUtils {
       case TextureFormat.Depth32:
         return width * height * 4;
       case TextureFormat.Depth32Stencil8:
-        return width * height * 5;
+        return width * height * 8;
 
       // STENCIL_INDEX8: 1 byte per pixel
       case TextureFormat.Stencil:

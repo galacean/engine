@@ -48,6 +48,11 @@ export class RenderTargetPool {
           colorTexture.wrapModeU = colorTexture.wrapModeV = wrapMode;
           colorTexture.filterMode = filterMode;
         }
+        const depthTexture = renderTarget.depthTexture as Texture2D;
+        if (depthTexture) {
+          depthTexture.wrapModeU = depthTexture.wrapModeV = wrapMode;
+          depthTexture.filterMode = filterMode;
+        }
         return renderTarget;
       }
     }

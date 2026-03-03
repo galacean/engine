@@ -27,6 +27,8 @@ export class PipelineUtils {
       currentTexture.isSRGBColorSpace === isSRGBColorSpace &&
       currentTexture.mipmapCount > 1 === mipmap
     ) {
+      currentTexture.wrapModeU = currentTexture.wrapModeV = textureWrapMode;
+      currentTexture.filterMode = textureFilterMode;
       return currentTexture;
     }
 
@@ -72,6 +74,10 @@ export class PipelineUtils {
         matched = false;
       }
 
+      if (matched && currentRenderTarget.antiAliasing !== antiAliasing) {
+        matched = false;
+      }
+
       if (matched) {
         if (needDepthTexture) {
           if (depthFormat) {
@@ -87,7 +93,7 @@ export class PipelineUtils {
             matched = false;
           }
         } else {
-          if (currentRenderTarget._depthFormat !== depthFormat || currentRenderTarget.antiAliasing !== antiAliasing) {
+          if (currentRenderTarget._depthFormat !== depthFormat) {
             matched = false;
           }
         }
