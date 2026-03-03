@@ -155,10 +155,13 @@ export class TextureUtils {
       case TextureFormat.Depth32Stencil8:
         return width * height * 5;
 
+      // STENCIL_INDEX8: 1 byte per pixel
+      case TextureFormat.Stencil:
+        return width * height;
+
       // Auto depth/stencil (conservative estimate)
       case TextureFormat.Depth:
       case TextureFormat.DepthStencil:
-      case TextureFormat.Stencil:
         return width * height * 4;
 
       default:
