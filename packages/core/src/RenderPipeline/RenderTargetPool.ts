@@ -129,12 +129,12 @@ export class RenderTargetPool {
     for (let i = 0, n = freeRenderTargets.length; i < n; i++) {
       const renderTarget = freeRenderTargets[i];
       const colorTexture = renderTarget.getColorTexture(0);
-      colorTexture?.destroy(true);
       const depthTexture = renderTarget.depthTexture;
+      renderTarget.destroy(true);
+      colorTexture?.destroy(true);
       if (depthTexture && depthTexture !== colorTexture) {
         depthTexture.destroy(true);
       }
-      renderTarget.destroy(true);
     }
     freeRenderTargets.length = 0;
 
