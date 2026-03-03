@@ -25,7 +25,7 @@ export class PipelineUtils {
       currentTexture.height === height &&
       currentTexture.format === format &&
       currentTexture.isSRGBColorSpace === isSRGBColorSpace &&
-      (currentTexture.mipmapCount > 1) === mipmap
+      currentTexture.mipmapCount > 1 === mipmap
     ) {
       return currentTexture;
     }
@@ -64,7 +64,7 @@ export class PipelineUtils {
           colorTexture.height !== height ||
           colorTexture.format !== colorFormat ||
           colorTexture.isSRGBColorSpace !== isSRGBColorSpace ||
-          (colorTexture.mipmapCount > 1) !== mipmap
+          colorTexture.mipmapCount > 1 !== mipmap
         ) {
           matched = false;
         }

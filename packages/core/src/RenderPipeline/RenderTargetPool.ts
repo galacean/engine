@@ -28,7 +28,19 @@ export class RenderTargetPool {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = freeRenderTargets.length - 1; i >= 0; i--) {
       const renderTarget = freeRenderTargets[i];
-      if (RenderTargetPool._matchRenderTarget(renderTarget, width, height, colorFormat, depthFormat, needDepthTexture, mipmap, isSRGBColorSpace, antiAliasing)) {
+      if (
+        RenderTargetPool._matchRenderTarget(
+          renderTarget,
+          width,
+          height,
+          colorFormat,
+          depthFormat,
+          needDepthTexture,
+          mipmap,
+          isSRGBColorSpace,
+          antiAliasing
+        )
+      ) {
         freeRenderTargets[i] = freeRenderTargets[freeRenderTargets.length - 1];
         freeRenderTargets.length--;
         const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
@@ -83,7 +95,7 @@ export class RenderTargetPool {
         texture.width === width &&
         texture.height === height &&
         texture.format === format &&
-        (texture.mipmapCount > 1) === mipmap &&
+        texture.mipmapCount > 1 === mipmap &&
         texture.isSRGBColorSpace === isSRGBColorSpace
       ) {
         freeTextures[i] = freeTextures[freeTextures.length - 1];
@@ -153,7 +165,7 @@ export class RenderTargetPool {
       if (
         !colorTexture ||
         colorTexture.format !== colorFormat ||
-        (colorTexture.mipmapCount > 1) !== mipmap ||
+        colorTexture.mipmapCount > 1 !== mipmap ||
         colorTexture.isSRGBColorSpace !== isSRGBColorSpace
       ) {
         return false;
