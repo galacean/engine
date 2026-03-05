@@ -1,46 +1,25 @@
-import { BoundingBox, Vector3 } from "@galacean/engine-math";
+import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
-import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
-import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
-import { Sprite } from "./Sprite";
-import { SpriteMaskUtils } from "./SpriteMaskUtils";
+import { MaskDirtyFlags, MaskRenderable } from "./MaskRenderable";
 
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer implements ISpriteRenderer {
+export class SpriteMask extends MaskRenderable(Renderer) {
+  /** @internal */
+  static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
-  static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
-
-  /** The mask layers the sprite mask influence to. */
-  @assignmentClone
-  private _influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
-  /** @internal */
-  @ignoreClone
-  _renderElement: RenderElement;
-
-  /** @internal */
   @ignoreClone
   _subChunk: SubPrimitiveChunk;
-  /** @internal */
-  @ignoreClone
-  _maskIndex: number = -1;
-
-  @ignoreClone
-  private _sprite: Sprite = null;
 
   @ignoreClone
   private _automaticWidth: number = 0;
@@ -50,29 +29,6 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   private _customWidth: number = undefined;
   @assignmentClone
   private _customHeight: number = undefined;
-  @assignmentClone
-  private _flipX: boolean = false;
-  @assignmentClone
-  private _flipY: boolean = false;
-
-  @assignmentClone
-  private _alphaCutoff: number = 0.5;
-
-  /**
-   * The mask layers the sprite mask influence to.
-   */
-  get influenceLayers(): SpriteMaskLayer {
-    return this._influenceLayers;
-  }
-
-  set influenceLayers(value: SpriteMaskLayer) {
-    if (this._influenceLayers !== value) {
-      this._influenceLayers = value;
-      if (this._phasedActiveInScene) {
-        this.scene._maskManager.onMaskInfluenceLayersChange();
-      }
-    }
-  }
 
   /**
    * Render width (in world coordinates).
@@ -85,7 +41,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
-      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
+      this._dirtyUpdateFlag & MaskDirtyFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticWidth;
     }
   }
@@ -108,7 +64,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
-      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
+      this._dirtyUpdateFlag & MaskDirtyFlags.AutomaticSize && this._calDefaultSize();
       return this._automaticHeight;
     }
   }
@@ -121,76 +77,11 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   }
 
   /**
-   * Flips the sprite on the X axis.
-   */
-  get flipX(): boolean {
-    return this._flipX;
-  }
-
-  set flipX(value: boolean) {
-    if (this._flipX !== value) {
-      this._flipX = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-    }
-  }
-
-  /**
-   * Flips the sprite on the Y axis.
-   */
-  get flipY(): boolean {
-    return this._flipY;
-  }
-
-  set flipY(value: boolean) {
-    if (this._flipY !== value) {
-      this._flipY = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-    }
-  }
-
-  /**
-   * The Sprite to render.
-   */
-  get sprite(): Sprite {
-    return this._sprite;
-  }
-
-  set sprite(value: Sprite | null) {
-    this._sprite = SpriteMaskUtils.setSprite(
-      this,
-      this._sprite,
-      value,
-      this._onSpriteChange,
-      SpriteMask._textureProperty,
-      SpriteMaskUpdateFlags.All
-    );
-  }
-
-  /**
-   * The minimum alpha value used by the mask to select the area of influence defined over the mask's sprite. Value between 0 and 1.
-   */
-  get alphaCutoff(): number {
-    return this._alphaCutoff;
-  }
-
-  set alphaCutoff(value: number) {
-    if (this._alphaCutoff !== value) {
-      this._alphaCutoff = value;
-      this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, value);
-    }
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
-    SimpleSpriteAssembler.resetData(this);
-    this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
-    this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
-    this._renderElement = new RenderElement();
-    this._renderElement.addSubRenderElement(new SubRenderElement());
-    this._onSpriteChange = this._onSpriteChange.bind(this);
+    this._initMask();
   }
 
   /**
@@ -206,37 +97,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
    */
   override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
-    target.sprite = this._sprite;
-  }
-
-  /**
-   * @internal
-   */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSpriteMask(elementA, elementB);
-  }
-
-  /**
-   * @internal
-   */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
-  }
-
-  /**
-   * @internal
-   */
-  override _onEnableInScene(): void {
-    super._onEnableInScene();
-    this.scene._maskManager.addSpriteMask(this);
-  }
-
-  /**
-   * @internal
-   */
-  override _onDisableInScene(): void {
-    super._onDisableInScene();
-    this.scene._maskManager.removeSpriteMask(this);
+    this._cloneMaskData(target);
   }
 
   /**
@@ -246,158 +107,65 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     return this.engine._batcherManager.primitiveChunkManagerMask;
   }
 
-  /**
-   * @internal
-   */
-  _containsWorldPoint(worldPoint: Vector3): boolean {
-    const { _sprite: sprite } = this;
-    return SpriteMaskUtils.containsWorldPoint(
-      worldPoint,
-      sprite,
-      this._transformEntity.transform.worldMatrix,
-      this.width,
-      this.height,
-      sprite?.pivot,
-      this._flipX,
-      this._flipY,
-      this._alphaCutoff
-    );
-  }
-
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const sprite = this._sprite;
-    const transform = this._transformEntity.transform;
-    SpriteMaskUtils.updateBounds(
-      this,
-      sprite,
-      worldBounds,
-      transform.worldMatrix,
-      transform.worldPosition,
-      this.width,
-      this.height,
-      sprite?.pivot,
-      this._flipX,
-      this._flipY
-    );
+    this._updateMaskBounds(worldBounds);
   }
 
   /**
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
-    const { _sprite: sprite } = this;
-    if (!sprite?.texture || !this.width || !this.height) {
-      return;
-    }
-
-    let material = this.getMaterial();
-    if (!material) {
-      return;
-    }
-    const { _engine: engine } = this;
-    // @todo: This question needs to be raised rather than hidden.
-    if (material.destroyed) {
-      material = engine._basicResources.spriteMaskDefaultMaterial;
-    }
-
-    // Update position
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SpriteMaskUtils.updatePositions(
-        this,
-        this._transformEntity.transform.worldMatrix,
-        this.width,
-        this.height,
-        sprite.pivot,
-        this._flipX,
-        this._flipY
-      );
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
-    }
-
-    // Update uv
-    if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV) {
-      SpriteMaskUtils.updateUVs(this);
-      this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
-    }
-    SpriteMaskUtils.setupRenderElement(
-      this._renderElement,
-      this,
-      material,
-      this._subChunk,
-      this.sprite.texture,
-      this._distanceForSort
-    );
+    this._renderMask(this._distanceForSort);
   }
 
   /**
    * @inheritdoc
    */
   protected override _onDestroy(): void {
-    SpriteMaskUtils.releaseSprite(this, this._sprite, this._onSpriteChange);
+    this._destroyMaskResources();
 
     super._onDestroy();
 
-    this._sprite = null;
     if (this._subChunk) {
       this._getChunkManager().freeSubChunk(this._subChunk);
       this._subChunk = null;
     }
+  }
 
-    this._renderElement = null;
+  override _getMaskWidth(): number {
+    return this.width;
+  }
+
+  override _getMaskHeight(): number {
+    return this.height;
+  }
+
+  override _getMaskPivot() {
+    return this.sprite?.pivot;
+  }
+
+  override _onSpriteChangeExtra(type: SpriteModifyFlags): void {
+    switch (type) {
+      case SpriteModifyFlags.size:
+        this._dirtyUpdateFlag |= MaskDirtyFlags.AutomaticSize;
+        if (this._customWidth === undefined || this._customHeight === undefined) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        }
+        break;
+      case SpriteModifyFlags.pivot:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        break;
+    }
   }
 
   private _calDefaultSize(): void {
-    const sprite = this._sprite;
+    const sprite = this.sprite;
     if (sprite) {
       this._automaticWidth = sprite.width;
       this._automaticHeight = sprite.height;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
-    this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AutomaticSize;
+    this._dirtyUpdateFlag &= ~MaskDirtyFlags.AutomaticSize;
   }
-
-  @ignoreClone
-  private _onSpriteChange(type: SpriteModifyFlags): void {
-    switch (type) {
-      case SpriteModifyFlags.texture:
-        this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
-        break;
-      case SpriteModifyFlags.size:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
-        if (this._customWidth === undefined || this._customHeight === undefined) {
-          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-        }
-        break;
-      case SpriteModifyFlags.region:
-      case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndUV;
-        break;
-      case SpriteModifyFlags.atlasRegion:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
-        break;
-      case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-        break;
-      case SpriteModifyFlags.destroy:
-        this.sprite = null;
-        break;
-      default:
-        break;
-    }
-  }
-}
-
-/**
- * @remarks Extends `RendererUpdateFlags`.
- */
-enum SpriteMaskUpdateFlags {
-  /** UV. */
-  UV = 0x2,
-  /** Automatic Size. */
-  AutomaticSize = 0x4,
-  /** WorldVolume and UV. */
-  WorldVolumeAndUV = 0x3,
-  /** All. */
-  All = 0x7
 }
