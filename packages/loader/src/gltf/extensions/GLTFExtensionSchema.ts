@@ -153,7 +153,7 @@ export interface IEXTMeshoptCompressionSchema {
 }
 
 export interface IGalaceanMaterialRemap {
-  refId: string;
+  url: string;
   key?: string;
   isClone?: boolean;
 }

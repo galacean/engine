@@ -144,21 +144,21 @@ export class ReflectionParser {
 
   private _getEntityByConfig(entityConfig: IEntity) {
     // @ts-ignore
-    const assetRefId: string = entityConfig.assetRefId;
+    const assetUrl: string = entityConfig.assetUrl;
     const engine = this._context.engine;
 
-    if (assetRefId) {
+    if (assetUrl) {
       return (
         engine.resourceManager
           // @ts-ignore
           .getResourceByRef({
-            refId: assetRefId,
+            url: assetUrl,
             key: (entityConfig as IRefEntity).key,
             isClone: (entityConfig as IRefEntity).isClone
           })
           .then((entity) => {
             // @ts-ignore
-            const resource = engine.resourceManager._objectPool[assetRefId];
+            const resource = engine.resourceManager._objectPool[assetUrl];
             if (this._context.type === ParserType.Prefab) {
               // @ts-ignore
               this._context.resource._addDependenceAsset(resource);
@@ -183,7 +183,7 @@ export class ReflectionParser {
   }
 
   private static _isAssetRef(value: any): value is IAssetRef {
-    return value["refId"] !== undefined;
+    return value["url"] !== undefined;
   }
 
   private static _isEntityRef(value: any): value is IEntityRef {
