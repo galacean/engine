@@ -591,15 +591,14 @@ export class ResourceManager {
     if (cached) {
       return isClone ? AssetPromise.resolve(<T>(<IClone>(<unknown>cached)).clone()) : AssetPromise.resolve(cached);
     }
-    const mapped = this._virtualPathResourceMap[url];
-    let loadUrl = mapped ? mapped.path : url;
+    let loadUrl = url;
     if (key) {
       loadUrl += "?q=" + key;
     }
+    const mapped = this._virtualPathResourceMap[url];
     const promise = this.load<T>({
       url: loadUrl,
-      type: mapped?.type ?? ref.type,
-      params: mapped?.params
+      type: mapped?.type ?? ref.type
     });
     return promise.then((item) => {
       if (!key) this._objectPool[url] = item;
