@@ -6,7 +6,7 @@ import { decoder } from "../../utils/Decorator";
 export class Texture2DDecoder {
   static decode(engine: Engine, bufferReader: BufferReader, restoredTexture?: Texture2D): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
-      bufferReader.nextStr(); // skip legacy objectId field in binary format
+      const url = bufferReader.nextStr();
       const mipmap = !!bufferReader.nextUint8();
       const filterMode = bufferReader.nextUint8();
       const anisoLevel = bufferReader.nextUint8();
@@ -37,6 +37,8 @@ export class Texture2DDecoder {
             texture2D.setPixelBuffer(pixelBuffer, i);
           }
         }
+        // @ts-ignore
+        engine.resourceManager._objectPool[url] = texture2D;
         resolve(texture2D);
       } else {
         const blob = new window.Blob([imagesData[0]]);

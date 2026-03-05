@@ -578,9 +578,9 @@ export class ResourceManager {
    */
   getResourceByRef<T extends EngineObject>(ref: {
     url: string;
+    type?: string;
     key?: string;
     isClone?: boolean;
-    type?: string;
   }): AssetPromise<T> {
     const { url, key, isClone } = ref;
     if (!url) {
@@ -600,10 +600,7 @@ export class ResourceManager {
       url: loadUrl,
       type: mapped?.type ?? ref.type
     });
-    return promise.then((item) => {
-      if (!key) this._objectPool[url] = item;
-      return isClone ? <T>(<IClone>(<unknown>item)).clone() : item;
-    });
+    return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
 
   /**

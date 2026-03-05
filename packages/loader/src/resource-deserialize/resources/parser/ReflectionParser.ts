@@ -159,7 +159,7 @@ export class ReflectionParser {
           .then((entity) => {
             // @ts-ignore
             const resource = engine.resourceManager._objectPool[assetUrl];
-            if (this._context.type === ParserType.Prefab) {
+            if (resource && this._context.type === ParserType.Prefab) {
               // @ts-ignore
               this._context.resource._addDependenceAsset(resource);
             }
