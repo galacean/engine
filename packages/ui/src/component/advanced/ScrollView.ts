@@ -6,38 +6,38 @@ import { UITransform } from "../UITransform";
  * Vertical scroll view
  */
 export class ScrollView extends Script {
-    // 视口
+    // Viewport
     private _viewportTransform: UITransform;
-    // 内容
+    // Content
     private _contentTransform: UITransform;
-    // 类型
+    // Type
     private _mode: ScrollViewMode = ScrollViewMode.VerticalAndHorizontal;
-    // 滑动类型
+    // Scroll type
     private _movementType: MovementType = MovementType.Clamped;
-    // 惯性
+    // Inertia
     private _inertia: boolean = true;
-    // 当前滑动速度
+    // Current scroll velocity
     private _velocity: Vector2 = new Vector2();
-    // 惯性速度阈值
+    // Inertia velocity threshold
     private _threshold = 10;
-    // 惯性衰减系数
+    // Inertia deceleration factor
     private _decelerationRate: number = 0.05;
-    // 计算惯性时把每帧分成多个 1 / 240 秒时间片，模拟微积分
+    // Split each frame into multiple 1/240s time slices for inertia calculation, simulating integration
     private _inertiaBaseTimeInterval = 1 / 240;
 
-    // 正在拖拽
+    // Is dragging
     private _isDragging: boolean = false;
-    // 计算边界
+    // Calculate bounds
     private _viewportRect: Rect = new Rect();
     private _contentRect: Rect = new Rect();
     @ignoreClone
     private _listeners: SafeLoopArray<IScrollListener> = new SafeLoopArray<IScrollListener>();
 
-    // 拖动行为的起始点（以 viewport 的局部坐标系为参考坐标系）
+    // Drag start point (in viewport local coordinates)
     private _startPoint: Vector3 = new Vector3();
-    // **本帧**移动的起点（以 viewport 的局部坐标系为参考坐标系）
+    // Move start point for current frame (in viewport local coordinates)
     private _fromPoint: Vector3 = new Vector3();
-    // **本帧**移动的终点（以 viewport 的局部坐标系为参考坐标系）
+    // Move end point for current frame (in viewport local coordinates)
     private _toPoint: Vector3 = new Vector3();
 
     get mode(): ScrollViewMode {
@@ -65,7 +65,7 @@ export class ScrollView extends Script {
     }
 
     /**
-     * 添加滑动回调
+     * Add scroll callback
      * @param listener - The listening function
      */
     addOnScroll(listener: (percentH: number, percentV: number) => void): void {
@@ -73,7 +73,7 @@ export class ScrollView extends Script {
     }
 
     /**
-     * 移除滑动回调
+     * Remove scroll callback
      * @param listener - The listening function
      */
     removeOnScroll(listener: (val: number) => void): void {
@@ -84,7 +84,7 @@ export class ScrollView extends Script {
         this._isDragging = true;
         const { _viewportTransform: viewportTransform } = this;
         if (!viewportTransform || !this._contentTransform) return;
-        // 初始化拖动的起始点
+        // Initialize drag start point
         Utils.screenToLocalPoint(eventData.pointer.position, viewportTransform, this._startPoint);
         this._fromPoint.copyFrom(this._startPoint);
     }
@@ -93,22 +93,22 @@ export class ScrollView extends Script {
         const { _viewportTransform: viewportTransform, _contentTransform: contentTransform } = this;
         if (!viewportTransform || !contentTransform) return;
         const { _fromPoint: fromPoint, _toPoint: toPoint } = this;
-        // 更新 toPoint
+        // Update toPoint
         Utils.screenToLocalPoint(eventData.pointer.position, viewportTransform, toPoint);
-        // 从 fromPoint 到 toPoint
+        // From fromPoint to toPoint
         this._updateRect();
         this._computeScrolling(fromPoint, toPoint);
-        // 更新 fromPoint
+        // Update fromPoint
         fromPoint.copyFrom(toPoint)
     }
 
     private _computeScrolling(from: Vector3, to: Vector3) {
         const { _contentTransform: contentTransform, _mode: mode } = this;
         const contentScale = contentTransform.scale;
-        // 根据 mode 计算 delta
+        // Calculate delta based on mode
         let deltaX = (mode & ScrollViewMode.Horizontal) ? (to.x - from.x) * contentScale.x : 0;
         let deltaY = (mode & ScrollViewMode.Vertical) ? (to.y - from.y) * contentScale.y : 0;
-        // 根据滑动类型计算滑块的运动
+        // Calculate scroll movement based on scroll type
         switch (this._movementType) {
             case MovementType.Clamped:
                 const { _viewportRect: viewportRect, _contentRect: contentRect } = this;
@@ -136,13 +136,13 @@ export class ScrollView extends Script {
                 }
                 break;
             case MovementType.Elastic:
-                // 暂未实现
+                // Not yet implemented
                 break;
             default:
                 break;
         }
         this._applyScrolling(deltaX, deltaY);
-        // 记录此时的速度，可以计算惯性
+        // Record current velocity for inertia calculation
         const delta = this.engine.time.actualDeltaTime;
         const invDeltaTime = 1 / delta;
         const velocity = this._velocity;
@@ -153,7 +153,7 @@ export class ScrollView extends Script {
     private _applyScrolling(dx: number, dy: number): void {
         const contentPosition = this._contentTransform.position;
         const { _contentRect: contentRect, _viewportRect: viewportRect } = this;
-        // 计算是否碰到边缘
+        // Check if reached edge
         contentPosition.set(contentPosition.x + dx, contentPosition.y + dy, contentPosition.z);
         const percentH = (viewportRect.x - contentRect.x) / (contentRect.width - viewportRect.width);
         const percentV = (contentRect.y + contentRect.height - viewportRect.y - viewportRect.height) / (contentRect.height - viewportRect.height)
@@ -219,11 +219,11 @@ export class ScrollView extends Script {
         const { _viewportTransform: viewportTransform, _contentTransform: contentTransform } = this;
         if (viewportTransform && contentTransform) {
             const { _viewportRect: viewportRect, _contentRect: contentRect } = this;
-            // viewport 的 localRect
+            // Viewport local rect
             const viewportPivot = viewportTransform.pivot;
             const viewportSize = viewportTransform.size;
             viewportRect.set(-viewportPivot.x * viewportSize.x, -viewportPivot.y * viewportSize.y, viewportSize.x, viewportSize.y);
-            // content 相对于 viewport 的 Rect
+            // Content rect relative to viewport
             const contentPosition = contentTransform.position;
             const contentScale = contentTransform.scale;
             const contentPivot = contentTransform.pivot;

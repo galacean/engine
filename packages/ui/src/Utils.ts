@@ -157,11 +157,11 @@ export class Utils {
   static _tempVec3: Vector3 = new Vector3();
   static _tempMat: Matrix = new Matrix();
   /**
-   * 屏幕上的点在组件中的局部位置
+   * Local position of a screen point in the component
    */
   static screenToLocalPoint(position: Vector2, transform: UITransform, out: Vector3): Boolean {
     const engine = transform.engine;
-    // 获取主画布
+    // Get root canvas
     let entity = transform.entity;
     let rootCanvas: UICanvas;
     while (entity) {
@@ -176,7 +176,7 @@ export class Utils {
       entity = entity.parent;
     }
     if (!rootCanvas) return false;
-    // 计算 Ray
+    // Calculate ray
     const ray = this._tempRay;
     switch (rootCanvas._realRenderMode) {
       case CanvasRenderMode.ScreenSpaceOverlay:
@@ -188,10 +188,10 @@ export class Utils {
         rootCanvas.renderCamera.screenPointToRay(position, ray);
         break;
       default:
-        // 暂不支持世界空间，详见 issue #2793
+        // World space not yet supported, see issue #2793
         return false;
     }
-    // 用这个射线和 UI 平面相交获取局部坐标
+    // Intersect ray with UI plane to get local coordinates
     const plane = this._tempPlane;
     const normal = plane.normal.copyFrom(transform.worldForward);
     plane.distance = -Vector3.dot(normal, transform.worldPosition);
