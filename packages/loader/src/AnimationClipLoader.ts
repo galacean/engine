@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
-@resourceLoader(AssetType.AnimationClip, ["ani"])
+@resourceLoader(AssetType.AnimationClip, ["anim"])
 class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve, reject) => {

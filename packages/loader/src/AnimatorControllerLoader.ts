@@ -14,7 +14,7 @@ import {
   WrapMode
 } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.AnimatorController, ["aniCtrl"], false)
+@resourceLoader(AssetType.AnimatorController, ["animCtrl"], false)
 class AnimatorControllerLoader extends Loader<AnimatorController> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimatorController> {
     return new AssetPromise((resolve, reject) => {
