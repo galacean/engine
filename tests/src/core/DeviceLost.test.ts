@@ -1,4 +1,14 @@
-import { AmbientLight, AssetType, BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh, Texture2D, TextureCube } from "@galacean/engine-core";
+import {
+  AmbientLight,
+  AssetType,
+  BlinnPhongMaterial,
+  Camera,
+  DirectLight,
+  MeshRenderer,
+  PrimitiveMesh,
+  Texture2D,
+  TextureCube
+} from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { describe, expect, it } from "vitest";
@@ -10,7 +20,6 @@ canvasDOM.height = 1024;
 describe("Device lost test", function () {
   it("Force lost and restore test", async () => {
     const engine = await WebGLEngine.create({ canvas: canvasDOM });
-
 
     // Get scene and create root entity.
     const scene = engine.sceneManager.activeScene;
@@ -42,30 +51,27 @@ describe("Device lost test", function () {
     const ambientLight = await resourceManager.load<AmbientLight>({
       url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*t1inRbPh6VQAAAAAAAAAAAAADkp5AQ/ambient.json",
       type: AssetType.Env
-    })
+    });
     const textureCube = await engine.resourceManager.load<TextureCube>({
       url: "https://gw.alipayobjects.com/os/bmw-prod/10c5d68d-8580-4bd9-8795-6f1035782b94.bin", // sunset_1K
       type: AssetType.HDR
-    })
-    const ktx2Texture = await resourceManager.load<Texture2D>(
-      {
-        url: "https://mdn.alipayobjects.com/oasis_be/afts/img/A*iaD4QaUJRKoAAAAAAAAAAAAADkp5AQ/original/DefaultTexture.ktx2",
-        type: AssetType.KTX2
-      }
-    )
+    });
+    const ktx2Texture = await resourceManager.load<Texture2D>({
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/img/A*iaD4QaUJRKoAAAAAAAAAAAAADkp5AQ/original/DefaultTexture.ktx2",
+      type: AssetType.KTX2
+    });
     const editorTexture = await resourceManager.load<Texture2D>({
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*dOzQRoS72LgAAAAAAAAAAAAAekp5AQ/ImageTexture.json",
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*oFd_T4ffoUMAAAAAQ8AAAAgAekp5AQ/Internal/Material/Internal/Material/DefaultTexture.tex",
       type: AssetType.Texture2D
-    })
-
+    });
 
     await new Promise((resolve) => {
       // Listening context devicelost and devicerestored
-      console.log('new Promise');
+      console.log("new Promise");
       engine.once("devicelost", () => {
-        console.log('context lost');
+        console.log("context lost");
         engine.once("devicerestored", () => {
-          console.log('context restored');
+          console.log("context restored");
           resolve(null);
         });
         // 模拟器不支持上下文恢复，此处直接调用代码模拟丢失与恢复
@@ -74,12 +80,11 @@ describe("Device lost test", function () {
       });
       // @ts-ignore
       engine._onDeviceLost();
-    })
+    });
 
     expect(ambientLight.specularTexture.isContentLost).to.equal(false);
     expect(ktx2Texture.isContentLost).to.equal(false);
     expect(textureCube.isContentLost).to.equal(false);
     expect(editorTexture.isContentLost).to.equal(false);
-
   });
 });
