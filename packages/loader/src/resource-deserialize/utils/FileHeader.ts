@@ -20,13 +20,12 @@ export class FileHeader {
 
   static decode(arrayBuffer: ArrayBuffer): FileHeader {
     const dataView = new DataView(arrayBuffer);
-    let offset = 0;
 
-    const hasMagic = dataView.getUint32(0, true) === FileHeader.MAGIC;
-    if (hasMagic) {
-      offset = 4;
+    if (!FileHeader.checkMagic(arrayBuffer)) {
+      throw new Error("Invalid Galacean binary file: missing GLCN magic header.");
     }
 
+    const offset = 4;
     const totalLen = dataView.getUint32(offset, true);
     const fileVersion = dataView.getUint8(offset + 4);
     const typeLen = dataView.getUint16(offset + 5, true);
