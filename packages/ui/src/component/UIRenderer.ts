@@ -383,7 +383,12 @@ export class UIRenderer extends Renderer implements IGraphics {
         this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, 0);
       }
       const rectMaskSoftness = this._rectMaskSoftness;
-      if (rectMaskSoftness.x !== 0 || rectMaskSoftness.y !== 0 || rectMaskSoftness.z !== 0 || rectMaskSoftness.w !== 0) {
+      if (
+        rectMaskSoftness.x !== 0 ||
+        rectMaskSoftness.y !== 0 ||
+        rectMaskSoftness.z !== 0 ||
+        rectMaskSoftness.w !== 0
+      ) {
         rectMaskSoftness.set(0, 0, 0, 0);
         this.shaderData.setVector4(UIRenderer._rectClipSoftnessProperty, rectMaskSoftness);
       }
@@ -446,7 +451,12 @@ export class UIRenderer extends Renderer implements IGraphics {
         this.shaderData.setFloat(UIRenderer._rectClipEnabledProperty, 0);
       }
       const rectMaskSoftness = this._rectMaskSoftness;
-      if (rectMaskSoftness.x !== 0 || rectMaskSoftness.y !== 0 || rectMaskSoftness.z !== 0 || rectMaskSoftness.w !== 0) {
+      if (
+        rectMaskSoftness.x !== 0 ||
+        rectMaskSoftness.y !== 0 ||
+        rectMaskSoftness.z !== 0 ||
+        rectMaskSoftness.w !== 0
+      ) {
         rectMaskSoftness.set(0, 0, 0, 0);
         this.shaderData.setVector4(UIRenderer._rectClipSoftnessProperty, rectMaskSoftness);
       }
