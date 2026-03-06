@@ -31,7 +31,7 @@ function parseProperty(object: Object, key: string, value: any) {
   }
 }
 
-@resourceLoader(AssetType.Material, ["json"])
+@resourceLoader(AssetType.Material, ["mat"])
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
     return new AssetPromise((resolve, reject) => {

@@ -13,7 +13,7 @@ import {
 } from "@galacean/engine-core";
 import { TextureCubeContentRestorer } from "./TextureCubeContentRestorer";
 
-@resourceLoader(AssetType.TextureCube, [""])
+@resourceLoader(AssetType.TextureCube, ["texCube"])
 class TextureCubeLoader extends Loader<TextureCube> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
