@@ -576,30 +576,26 @@ export class ResourceManager {
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T extends EngineObject>(ref: {
-    url: string;
-    key?: string;
-    isClone?: boolean;
-  }): AssetPromise<T> {
+  getResourceByRef<T extends EngineObject>(ref: { url: string; key?: string; isClone?: boolean }): AssetPromise<T> {
     const { url, key, isClone } = ref;
     if (!url) {
-      Logger.warn("ResourceManager.getResourceByRef url is empty.");
+      Logger.warn("ResourceManager.getResourceByRef: url is empty.");
       return AssetPromise.resolve(null);
     }
+
     const cached = this._objectPool[url];
     if (cached) {
-      return isClone ? AssetPromise.resolve(<T>(<IClone>(<unknown>cached)).clone()) : AssetPromise.resolve(cached);
+      return AssetPromise.resolve(isClone ? <T>(<IClone>(<unknown>cached)).clone() : cached);
     }
-    let loadUrl = url;
-    if (key) {
-      loadUrl += "?q=" + key;
-    }
+
     const mapped = this._virtualPathResourceMap[url];
-    const promise = this.load<T>({
-      url: loadUrl,
-      type: mapped?.type,
-      params: mapped?.params
-    });
+    if (!mapped) {
+      Logger.warn(`ResourceManager.getResourceByRef: url "${url}" not found in virtualPathResourceMap.`);
+      return AssetPromise.resolve(null);
+    }
+
+    const loadUrl = key ? url + "?q=" + key : url;
+    const promise = this.load<T>({ url: loadUrl, type: mapped.type, params: mapped.params });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
 
