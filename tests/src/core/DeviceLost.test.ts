@@ -55,7 +55,7 @@ describe("Device lost test", function () {
     )
     const editorTexture = await resourceManager.load<Texture2D>({
       url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*dOzQRoS72LgAAAAAAAAAAAAAekp5AQ/ImageTexture.json",
-      type: "EditorTexture2D"
+      type: AssetType.Texture2D
     })
 
 
