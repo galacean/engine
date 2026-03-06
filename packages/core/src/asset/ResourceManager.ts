@@ -578,7 +578,6 @@ export class ResourceManager {
    */
   getResourceByRef<T extends EngineObject>(ref: {
     url: string;
-    type?: string;
     key?: string;
     isClone?: boolean;
   }): AssetPromise<T> {
@@ -598,7 +597,8 @@ export class ResourceManager {
     const mapped = this._virtualPathResourceMap[url];
     const promise = this.load<T>({
       url: loadUrl,
-      type: mapped?.type ?? ref.type
+      type: mapped?.type,
+      params: mapped?.params
     });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }

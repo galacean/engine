@@ -107,7 +107,7 @@ export class ReflectionParser {
         // reference object
         // @ts-ignore
         return context.resourceManager.getResourceByRef(value).then((resource) => {
-          if (context.type === ParserType.Prefab) {
+          if (resource && context.type === ParserType.Prefab) {
             // @ts-ignore
             context.resource._addDependenceAsset(resource);
           }

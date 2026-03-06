@@ -101,7 +101,7 @@ export type IBasicType =
   | IMethodParams
   | IEntityRef;
 
-export type IAssetRef = { key?: string; url: string; type?: string };
+export type IAssetRef = { key?: string; url: string };
 
 export type IEntityRef = { entityId: string };
 
