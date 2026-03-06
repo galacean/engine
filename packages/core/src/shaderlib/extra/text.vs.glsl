@@ -11,10 +11,9 @@ varying vec2 v_worldPosition;
 
 void main()
 {
-  vec4 worldPosition = renderer_ModelMat * vec4(POSITION, 1.0);
   gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
 
   v_uv = TEXCOORD_0;
   v_color = COLOR_0;
-  v_worldPosition = worldPosition.xy;
+  v_worldPosition = POSITION.xy;
 }
