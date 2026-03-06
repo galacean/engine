@@ -1,4 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
+import { IMaskRenderable } from "../2d/sprite/MaskRenderable";
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -8,20 +9,8 @@ import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { StencilOperation } from "../shader/enums/StencilOperation";
 import { DisorderedArray } from "../utils/DisorderedArray";
 import { RenderContext } from "./RenderContext";
-import { RenderElement } from "./RenderElement";
 import { RenderQueue } from "./RenderQueue";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
-
-/**
- * @internal
- */
-export interface IMask {
-  influenceLayers: SpriteMaskLayer;
-  _renderElement: RenderElement;
-  _maskIndex: number;
-
-  _containsWorldPoint(worldPoint: Vector3): boolean;
-}
 
 /**
  * @internal
@@ -41,17 +30,17 @@ export class MaskManager {
   hasStencilWritten = false;
 
   private _preMaskLayer = SpriteMaskLayer.Nothing;
-  private _allSpriteMasks = new DisorderedArray<IMask>();
-  private _filteredMasksByLayer = new Map<SpriteMaskLayer, IMask[]>();
+  private _allSpriteMasks = new DisorderedArray<IMaskRenderable>();
+  private _filteredMasksByLayer = new Map<SpriteMaskLayer, IMaskRenderable[]>();
   private _isFilteredMasksDirty = true;
 
-  addSpriteMask(mask: IMask): void {
+  addSpriteMask(mask: IMaskRenderable): void {
     mask._maskIndex = this._allSpriteMasks.length;
     this._allSpriteMasks.add(mask);
     this._setFilteredMasksDirty();
   }
 
-  removeSpriteMask(mask: IMask): void {
+  removeSpriteMask(mask: IMaskRenderable): void {
     const replaced = this._allSpriteMasks.deleteByIndex(mask._maskIndex);
     replaced && (replaced._maskIndex = mask._maskIndex);
     mask._maskIndex = -1;
@@ -171,7 +160,7 @@ export class MaskManager {
     this._isFilteredMasksDirty = true;
   }
 
-  private _getMasksByLayer(maskLayer: SpriteMaskLayer): IMask[] {
+  private _getMasksByLayer(maskLayer: SpriteMaskLayer): IMaskRenderable[] {
     if (maskLayer === SpriteMaskLayer.Nothing) {
       return [];
     }

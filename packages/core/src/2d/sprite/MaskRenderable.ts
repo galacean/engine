@@ -1,6 +1,5 @@
 import { BoundingBox, Vector2, Vector3 } from "@galacean/engine-math";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
-import { IMask } from "../../RenderPipeline/MaskManager";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
@@ -23,7 +22,7 @@ const _alphaCutoffProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff"
 /**
  * Public contract of the MaskRenderable mixin, used for declaration file generation.
  */
-export interface IMaskRenderable extends IMask {
+export interface IMaskRenderable {
   influenceLayers: SpriteMaskLayer;
   flipX: boolean;
   flipY: boolean;
@@ -50,7 +49,7 @@ export interface IMaskRenderable extends IMask {
 export function MaskRenderable<T extends RendererConstructor>(
   Base: T
 ): (abstract new (...args: any[]) => IMaskRenderable) & T {
-  abstract class MaskRenderableBase extends Base implements IMask {
+  abstract class MaskRenderableBase extends Base implements IMaskRenderable {
     @assignmentClone
     private _influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
     /** @internal */
