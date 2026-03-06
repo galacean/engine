@@ -2,11 +2,15 @@ import { AssetPromise, Engine, Texture2D } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 
+/**
+ * Data format: [url] [mipmap(1B)] [filterMode(1B)] [anisoLevel(1B)] [wrapModeU(1B)] [wrapModeV(1B)]
+ * [format(1B)] [width(2B)] [height(2B)] [isPixelBuffer(1B)] [isSRGBColorSpace(1B)] [mipCount(1B)] [imageData...]
+ */
 @decoder("Texture2D")
 export class Texture2DDecoder {
   static decode(engine: Engine, bufferReader: BufferReader, restoredTexture?: Texture2D): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
-      const objectId = bufferReader.nextStr();
+      const url = bufferReader.nextStr();
       const mipmap = !!bufferReader.nextUint8();
       const filterMode = bufferReader.nextUint8();
       const anisoLevel = bufferReader.nextUint8();
@@ -38,7 +42,7 @@ export class Texture2DDecoder {
           }
         }
         // @ts-ignore
-        engine.resourceManager._objectPool[objectId] = texture2D;
+        engine.resourceManager._objectPool[url] = texture2D;
         resolve(texture2D);
       } else {
         const blob = new window.Blob([imagesData[0]]);

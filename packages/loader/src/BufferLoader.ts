@@ -10,7 +10,7 @@ import {
 
 const base64Regex = /^data:(.+?);base64,/;
 
-@resourceLoader(AssetType.Buffer, ["bin", "r3bin"])
+@resourceLoader(AssetType.Buffer, ["bin"])
 class BufferLoader extends Loader<BufferAsset> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<BufferAsset> {
     const { url } = item;

@@ -570,38 +570,33 @@ export class ResourceManager {
   /** @internal */
   _objectPool: { [key: string]: any } = Object.create(null);
   /** @internal */
-  _idResourceMap: Record<ResourceId, EditorResourceItem> = Object.create(null);
-  /** @internal */
   _virtualPathResourceMap: Record<VirtualPath, EditorResourceItem> = Object.create(null);
 
   /**
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
-  getResourceByRef<T extends EngineObject>(ref: { refId: string; key?: string; isClone?: boolean }): AssetPromise<T> {
-    const { refId, key, isClone } = ref;
-    const obj = this._objectPool[refId];
-    let promise: AssetPromise<T>;
-    if (obj) {
-      promise = AssetPromise.resolve(obj);
-    } else {
-      const resourceConfig = this._idResourceMap[refId];
-      if (!resourceConfig) {
-        Logger.warn(`refId:${refId} is not find in this._idResourceMap.`);
-        return AssetPromise.resolve(null);
-      }
-      let url = resourceConfig.virtualPath;
-      if (key) {
-        url += "?q=" + key;
-      }
-
-      promise = this.load<T>({
-        url,
-        type: resourceConfig.type,
-        params: resourceConfig.params
-      });
+  getResourceByRef<T extends EngineObject>(ref: { url: string; key?: string; isClone?: boolean }): AssetPromise<T> {
+    const { url, key, isClone } = ref;
+    if (!url) {
+      Logger.warn("ResourceManager.getResourceByRef: url is empty.");
+      return AssetPromise.resolve(null);
     }
-    return promise.then((item) => (isClone ? <T>(<IClone>(<unknown>item)).clone() : item));
+
+    const cached = this._objectPool[url];
+    if (cached) {
+      return AssetPromise.resolve(isClone ? <T>(<IClone>(<unknown>cached)).clone() : cached);
+    }
+
+    const mapped = this._virtualPathResourceMap[url];
+    if (!mapped) {
+      Logger.warn(`ResourceManager.getResourceByRef: url "${url}" not found in virtualPathResourceMap.`);
+      return AssetPromise.resolve(null);
+    }
+
+    const loadUrl = key ? url + "?q=" + key : url;
+    const promise = this.load<T>({ url: loadUrl, type: mapped.type, params: mapped.params });
+    return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
 
   /**
@@ -611,7 +606,6 @@ export class ResourceManager {
   initVirtualResources(config: EditorResourceItem[]): void {
     config.forEach((element) => {
       this._virtualPathResourceMap[element.virtualPath] = element;
-      this._idResourceMap[element.id] = element;
       if (element.dependentAssetMap) {
         this._virtualPathResourceMap[element.virtualPath].dependentAssetMap = element.dependentAssetMap;
       }
@@ -653,13 +647,11 @@ const rePropName = RegExp(
   "g"
 );
 
-type ResourceId = string;
 type VirtualPath = string;
 type EditorResourceItem = {
   virtualPath: string;
   path: string;
   type: string;
-  id: string;
   dependentAssetMap?: { [key: string]: string };
   subpackageName?: string;
   params?: Record<string, any>;

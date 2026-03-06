@@ -52,7 +52,7 @@ export interface IBasicEntity {
 export type IEntity = IBasicEntity | IRefEntity | IStrippedEntity;
 
 export interface IRefEntity extends IBasicEntity {
-  assetRefId: string;
+  assetUrl: string;
   key?: string;
   isClone?: boolean;
   modifications: (IInstance & {
@@ -73,7 +73,7 @@ export interface IStrippedEntity extends IBasicEntity {
   prefabSource: { assetId: string; entityId: string };
 }
 
-export type IComponent = { id: string; refId?: string } & IClass;
+export type IComponent = { id: string; url?: string } & IClass;
 
 export type IClass = {
   class: string;
@@ -101,7 +101,7 @@ export type IBasicType =
   | IMethodParams
   | IEntityRef;
 
-export type IAssetRef = { key?: string; refId: string };
+export type IAssetRef = { key?: string; url: string };
 
 export type IEntityRef = { entityId: string };
 

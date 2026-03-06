@@ -82,7 +82,7 @@ describe("ResourceManager", () => {
     it("invalid q case", async () => {
       const loadRes = await engine.resourceManager.load({
         // contains invalid q value cdn url.
-        url: "https://mdn.alipayobjects.com/huamei_aftkdx/afts/file/A*_Ao1QZtL9fMAAAAAAAAAAAAADteEAQ/mock-project.json",
+        url: "https://mdn.alipayobjects.com/rms/afts/file/A*sX29TKhEzq4AAAAAQLAAAAgAehQnAQ/project.json",
         type: AssetType.Project
       });
       expect(loadRes).to.equal(undefined);
