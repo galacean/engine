@@ -125,7 +125,7 @@ export class HDRDecoder {
         const theta = Math.atan2(v.z, v.x);
         const phi = Math.acos(v.y);
 
-        const dx = theta / pi * 0.5 + 0.5;
+        const dx = (theta / pi) * 0.5 + 0.5;
         const dy = phi / pi;
 
         let px = Math.round(dx * inputWidth);
