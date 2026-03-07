@@ -45,7 +45,7 @@ describe("Device lost test", function () {
     })
     const textureCube = await engine.resourceManager.load<TextureCube>({
       url: "https://gw.alipayobjects.com/os/bmw-prod/10c5d68d-8580-4bd9-8795-6f1035782b94.bin", // sunset_1K
-      type: AssetType.HDR
+      type: AssetType.TextureCube
     })
     const ktx2Texture = await resourceManager.load<Texture2D>(
       {

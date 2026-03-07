@@ -5,7 +5,6 @@ import "./EnvLoader";
 import "./FontLoader";
 import "./GLTFLoader";
 import "./PrefabLoader";
-import "./HDRLoader";
 import "./JSONLoader";
 import "./KTXCubeLoader";
 import "./KTXLoader";
