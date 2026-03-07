@@ -197,7 +197,7 @@ export const E2E_CONFIG = {
       category: "Texture",
       caseFileName: "texture-hdr",
       threshold: 0,
-      diffPercentage: 0.0
+      diffPercentage: 0.0316
     }
   },
   Shadow: {

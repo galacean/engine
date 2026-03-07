@@ -42,7 +42,7 @@ export enum AssetType {
   Env = "Environment",
   /** Scene. */
   Scene = "Scene",
-/** Font. */
+  /** Font. */
   Font = "Font",
   /** Source Font, include ttf, otf and woff. */
   SourceFont = "SourceFont",
