@@ -1,4 +1,4 @@
-import { Engine, TextureCube, TextureCubeFace } from "@galacean/engine-core";
+import { Engine, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 
 interface IHDRHeader {
@@ -79,7 +79,7 @@ export class HDRDecoder {
     const bufferArray = new Uint8Array(buffer);
     const { width, height, dataPosition } = HDRDecoder._parseHeader(bufferArray);
     const cubeSize = height >> 1;
-    texture ||= new TextureCube(engine, cubeSize, undefined, undefined, false);
+    texture ||= new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true, false);
     const pixels = HDRDecoder._readPixels(bufferArray.subarray(dataPosition), width, height);
 
     const faces = HDRDecoder._faces;
