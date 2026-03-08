@@ -101,20 +101,20 @@ export class HDRDecoder {
 
   private static _createCubemapData(
     texSize: number,
-    faceData: Vector3[],
+    faceCorners: Vector3[],
     pixels: Uint8Array,
     inputWidth: number,
     inputHeight: number
   ): Uint16Array {
-    const textureArray = new Uint16Array(texSize * texSize * 4);
+    const facePixels = new Uint16Array(texSize * texSize * 4);
     const invSize = 1 / texSize;
-    const rotDX1 = this._rotDX1.copyFrom(faceData[1]).subtract(faceData[0]).scale(invSize);
-    const rotDX2 = this._rotDX2.copyFrom(faceData[3]).subtract(faceData[2]).scale(invSize);
+    const rotDX1 = this._rotDX1.copyFrom(faceCorners[1]).subtract(faceCorners[0]).scale(invSize);
+    const rotDX2 = this._rotDX2.copyFrom(faceCorners[3]).subtract(faceCorners[2]).scale(invSize);
 
     const floatView = HDRDecoder._floatView;
     const uint32View = HDRDecoder._uint32View;
     const { baseTable, shiftTable } = HDRDecoder._float2HalfTables;
-    const v = this._dir;
+    const dir = this._dir;
     const xv1Temp = this._xv1;
     const xv2Temp = this._xv2;
 
@@ -127,17 +127,17 @@ export class HDRDecoder {
     let fy = 0;
 
     for (let y = 0; y < texSize; y++) {
-      const xv1 = xv1Temp.copyFrom(faceData[0]);
-      const xv2 = xv2Temp.copyFrom(faceData[2]);
+      const xv1 = xv1Temp.copyFrom(faceCorners[0]);
+      const xv2 = xv2Temp.copyFrom(faceCorners[2]);
 
       for (let x = 0; x < texSize; x++) {
-        v.x = xv1.x + (xv2.x - xv1.x) * fy;
-        v.y = xv1.y + (xv2.y - xv1.y) * fy;
-        v.z = xv1.z + (xv2.z - xv1.z) * fy;
-        v.normalize();
+        dir.x = xv1.x + (xv2.x - xv1.x) * fy;
+        dir.y = xv1.y + (xv2.y - xv1.y) * fy;
+        dir.z = xv1.z + (xv2.z - xv1.z) * fy;
+        dir.normalize();
 
-        const theta = Math.atan2(v.z, v.x);
-        const phi = Math.acos(v.y);
+        const theta = Math.atan2(dir.z, dir.x);
+        const phi = Math.acos(dir.y);
 
         let px = Math.round(((theta / Math.PI) * 0.5 + 0.5) * inputWidth);
         if (px < 0) px = 0;
@@ -157,9 +157,9 @@ export class HDRDecoder {
           floatView[0] = pixels[srcIndex + c] * scaleFactor;
           const f = uint32View[0];
           const e = (f >> 23) & 0x1ff;
-          textureArray[dstIndex + c] = baseTable[e] + ((f & 0x007fffff) >> shiftTable[e]);
+          facePixels[dstIndex + c] = baseTable[e] + ((f & 0x007fffff) >> shiftTable[e]);
         }
-        textureArray[dstIndex + 3] = one;
+        facePixels[dstIndex + 3] = one;
 
         xv1.add(rotDX1);
         xv2.add(rotDX2);
@@ -168,7 +168,7 @@ export class HDRDecoder {
       fy += invSize;
     }
 
-    return textureArray;
+    return facePixels;
   }
 
   private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {
@@ -219,7 +219,7 @@ export class HDRDecoder {
     const sizeRegexp = /^\-Y (.*) \+X (.*)$/g;
     const match = sizeRegexp.exec(line);
 
-    // TODO. Support +Y and -X if needed.
+    // Only support -Y +X layout (the de facto standard for HDR files).
     if (!match || match.length < 3) {
       throw "HDR Bad header format, no size";
     }
