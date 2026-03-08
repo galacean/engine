@@ -39,7 +39,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       sky.material = skyMaterial;
       sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
       skyMaterial.texture = textureCube;
-      skyMaterial.textureDecodeRGBM = true;
 
       updateForE2E(engine);
       initScreenshot(engine, camera);

@@ -79,7 +79,7 @@ export class HDRDecoder {
     const bufferArray = new Uint8Array(buffer);
     const { width, height, dataPosition } = HDRDecoder._parseHeader(bufferArray);
     const cubeSize = height >> 1;
-    texture ||= new TextureCube(engine, cubeSize, TextureFormat.R8G8B8A8, true, false);
+    texture ||= new TextureCube(engine, cubeSize, TextureFormat.R16G16B16A16, true, false);
     const pixels = HDRDecoder._readPixels(bufferArray.subarray(dataPosition), width, height);
 
     const faces = HDRDecoder._faces;
@@ -97,10 +97,9 @@ export class HDRDecoder {
     pixels: Uint8Array,
     inputWidth: number,
     inputHeight: number
-  ): Uint8ClampedArray {
-    const textureArray = new Uint8ClampedArray(texSize * texSize * 4);
+  ): Float32Array {
+    const textureArray = new Float32Array(texSize * texSize * 4);
     const pi = this._PI;
-    const maxRange = 5;
     const invSize = 1 / texSize;
     const rotDX1 = this._rotDX1.copyFrom(faceData[1]).subtract(faceData[0]).scale(invSize);
     const rotDX2 = this._rotDX2.copyFrom(faceData[3]).subtract(faceData[2]).scale(invSize);
@@ -121,7 +120,7 @@ export class HDRDecoder {
         v.z = xv1.z + (xv2.z - xv1.z) * fy;
         v.normalize();
 
-        // Inline spherical projection + RGBE→Linear→RGBM
+        // Spherical projection + RGBE→Linear
         const theta = Math.atan2(v.z, v.x);
         const phi = Math.acos(v.y);
 
@@ -144,19 +143,11 @@ export class HDRDecoder {
         const g = pixels[srcIndex + 1] * scaleFactor;
         const b = pixels[srcIndex + 2] * scaleFactor;
 
-        // Linear to RGBM
-        const maxRGB = Math.max(r, Math.max(g, b));
-        const M = Math.ceil(Math.min(maxRGB / maxRange, 1) * 255);
-
         const dstIndex = y * texSize * 4 + x * 4;
-        if (M > 0) {
-          const rgbmScale = 65025 / (M * maxRange);
-          textureArray[dstIndex] = r * rgbmScale;
-          textureArray[dstIndex + 1] = g * rgbmScale;
-          textureArray[dstIndex + 2] = b * rgbmScale;
-          textureArray[dstIndex + 3] = M;
-        }
-        // M === 0: all channels stay 0 (Uint8ClampedArray default)
+        textureArray[dstIndex] = r;
+        textureArray[dstIndex + 1] = g;
+        textureArray[dstIndex + 2] = b;
+        textureArray[dstIndex + 3] = 1;
 
         xv1.add(rotDX1);
         xv2.add(rotDX2);
