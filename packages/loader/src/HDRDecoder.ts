@@ -191,7 +191,7 @@ export class HDRDecoder {
 
     let line = this._readStringLine(uint8array, 0);
     if (line[0] !== "#" || line[1] !== "?") {
-      throw "Bad HDR Format.";
+      throw "HDRDecoder: invalid file header";
     }
 
     let endOfHeader = false;
@@ -210,7 +210,7 @@ export class HDRDecoder {
     } while (!endOfHeader);
 
     if (!findFormat) {
-      throw "HDR Bad header format, unsupported FORMAT";
+      throw "HDRDecoder: unsupported format, expected 32-bit_rle_rgbe";
     }
 
     lineIndex += line.length + 1;
@@ -221,13 +221,13 @@ export class HDRDecoder {
 
     // Only support -Y +X layout (the de facto standard for HDR files).
     if (!match || match.length < 3) {
-      throw "HDR Bad header format, no size";
+      throw "HDRDecoder: missing image size, only -Y +X layout is supported";
     }
     width = parseInt(match[2]);
     height = parseInt(match[1]);
 
     if (width < 8 || width > 0x7fff) {
-      throw "HDR Bad header format, unsupported size";
+      throw "HDRDecoder: unsupported image width, must be between 8 and 32767";
     }
 
     lineIndex += line.length + 1;
@@ -256,7 +256,7 @@ export class HDRDecoder {
       }
 
       if (((c << 8) | d) !== width) {
-        throw "HDR Bad header format, wrong scan line width";
+        throw "HDRDecoder: wrong scanline width";
       }
 
       let ptr = 0;
@@ -267,7 +267,7 @@ export class HDRDecoder {
         if (isEncodedRun) count -= 128;
 
         if (count === 0 || ptr + count > ptrEnd) {
-          throw "HDR Bad Format, bad scanline data (run)";
+          throw "HDRDecoder: bad scanline data";
         }
 
         if (isEncodedRun) {
