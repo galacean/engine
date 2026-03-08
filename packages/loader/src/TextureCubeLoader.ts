@@ -4,8 +4,10 @@ import {
   ContentRestorer,
   LoadItem,
   Loader,
+  Logger,
   RequestConfig,
   ResourceManager,
+  SystemInfo,
   TextureCube,
   TextureCubeFace,
   TextureFormat,
@@ -34,6 +36,9 @@ class TextureCubeLoader extends Loader<TextureCube> {
         // @ts-ignore
         ._request<ArrayBuffer>(url, requestConfig)
         .then((buffer) => {
+          if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16)) {
+            Logger.warn("HDR texture requires half float support, current device may not render correctly.");
+          }
           const texture = HDRDecoder.decode(engine, buffer);
           resourceManager.addContentRestorer(new HDRContentRestorer(texture, url, requestConfig));
           resolve(texture);
