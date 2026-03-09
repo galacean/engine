@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-root",
-  "version": "0.0.0-experimental-1.6-xr.9",
+  "version": "0.0.0-experimental-1.6-xr.10",
   "packageManager": "pnpm@9.3.0",
   "private": true,
   "scripts": {
