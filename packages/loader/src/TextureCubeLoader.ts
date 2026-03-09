@@ -4,7 +4,6 @@ import {
   ContentRestorer,
   LoadItem,
   Loader,
-  Logger,
   RequestConfig,
   ResourceManager,
   SystemInfo,
@@ -37,9 +36,8 @@ class TextureCubeLoader extends Loader<TextureCube> {
         ._request<ArrayBuffer>(url, requestConfig)
         .then((buffer) => {
           if (!SystemInfo.supportsTextureFormat(engine, TextureFormat.R16G16B16A16)) {
-            Logger.warn(
-              "TextureCubeLoader: HDR texture requires half float support, current device may not render correctly."
-            );
+            reject(new Error("TextureCubeLoader: HDR texture requires half float support."));
+            return;
           }
           const { mipmap = true, anisoLevel, wrapModeU, wrapModeV, filterMode } = item.params ?? {};
           const { cubeSize, faceBuffers } = HDRDecoder.decode(buffer);
