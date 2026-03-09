@@ -97,8 +97,12 @@ export class HDRDecoder {
 
     let fy = 0;
     for (let y = 0; y < texSize; y++) {
-      let xv1X = face[0], xv1Y = face[1], xv1Z = face[2];
-      let xv2X = face[6], xv2Y = face[7], xv2Z = face[8];
+      let xv1X = face[0],
+        xv1Y = face[1],
+        xv1Z = face[2];
+      let xv2X = face[6],
+        xv2Y = face[7],
+        xv2Z = face[8];
 
       for (let x = 0; x < texSize; x++) {
         let dirX = xv1X + (xv2X - xv1X) * fy;
@@ -129,8 +133,12 @@ export class HDRDecoder {
         }
         facePixels[dstIndex + 3] = one;
 
-        xv1X += rotDX1X; xv1Y += rotDX1Y; xv1Z += rotDX1Z;
-        xv2X += rotDX2X; xv2Y += rotDX2Y; xv2Z += rotDX2Z;
+        xv1X += rotDX1X;
+        xv1Y += rotDX1Y;
+        xv1Z += rotDX1Z;
+        xv2X += rotDX2X;
+        xv2Y += rotDX2Y;
+        xv2Z += rotDX2Z;
       }
       fy += invSize;
     }
