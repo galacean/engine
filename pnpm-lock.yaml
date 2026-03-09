@@ -191,6 +191,12 @@ importers:
       '@galacean/engine-ui':
         specifier: workspace:*
         version: link:../packages/ui
+      '@galacean/engine-xr':
+        specifier: workspace:*
+        version: link:../packages/xr
+      '@galacean/engine-xr-webxr':
+        specifier: workspace:*
+        version: link:../packages/xr-webxr
     devDependencies:
       '@vitejs/plugin-basic-ssl':
         specifier: ^2.1.4
