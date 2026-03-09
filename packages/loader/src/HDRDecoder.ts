@@ -19,6 +19,44 @@ export class HDRDecoder {
     /* -Z */ [ 1,-1, 1, -1,-1, 1,  1, 1, 1, -1, 1, 1]
   ];
 
+  static parseHeader(uint8array: Uint8Array): IHDRHeader {
+    let line = this._readStringLine(uint8array, 0);
+    if (line[0] !== "#" || line[1] !== "?") {
+      throw "HDRDecoder: invalid file header";
+    }
+
+    let endOfHeader = false;
+    let findFormat = false;
+    let lineIndex = 0;
+
+    do {
+      lineIndex += line.length + 1;
+      line = this._readStringLine(uint8array, lineIndex);
+      if (line === "FORMAT=32-bit_rle_rgbe") findFormat = true;
+      else if (line.length === 0) endOfHeader = true;
+    } while (!endOfHeader);
+
+    if (!findFormat) {
+      throw "HDRDecoder: unsupported format, expected 32-bit_rle_rgbe";
+    }
+
+    lineIndex += line.length + 1;
+    line = this._readStringLine(uint8array, lineIndex);
+
+    const match = /^\-Y (.*) \+X (.*)$/g.exec(line);
+    if (!match || match.length < 3) {
+      throw "HDRDecoder: missing image size, only -Y +X layout is supported";
+    }
+    const width = parseInt(match[2]);
+    const height = parseInt(match[1]);
+
+    if (width < 8 || width > 0x7fff) {
+      throw "HDRDecoder: unsupported image width, must be between 8 and 32767";
+    }
+
+    return { height, width, dataPosition: lineIndex + line.length + 1 };
+  }
+
   static decodeFaces(
     bufferArray: Uint8Array,
     header: IHDRHeader,
@@ -69,44 +107,6 @@ export class HDRDecoder {
       }
     }
     return { baseTable, shiftTable };
-  }
-
-  static parseHeader(uint8array: Uint8Array): IHDRHeader {
-    let line = this._readStringLine(uint8array, 0);
-    if (line[0] !== "#" || line[1] !== "?") {
-      throw "HDRDecoder: invalid file header";
-    }
-
-    let endOfHeader = false;
-    let findFormat = false;
-    let lineIndex = 0;
-
-    do {
-      lineIndex += line.length + 1;
-      line = this._readStringLine(uint8array, lineIndex);
-      if (line === "FORMAT=32-bit_rle_rgbe") findFormat = true;
-      else if (line.length === 0) endOfHeader = true;
-    } while (!endOfHeader);
-
-    if (!findFormat) {
-      throw "HDRDecoder: unsupported format, expected 32-bit_rle_rgbe";
-    }
-
-    lineIndex += line.length + 1;
-    line = this._readStringLine(uint8array, lineIndex);
-
-    const match = /^\-Y (.*) \+X (.*)$/g.exec(line);
-    if (!match || match.length < 3) {
-      throw "HDRDecoder: missing image size, only -Y +X layout is supported";
-    }
-    const width = parseInt(match[2]);
-    const height = parseInt(match[1]);
-
-    if (width < 8 || width > 0x7fff) {
-      throw "HDRDecoder: unsupported image width, must be between 8 and 32767";
-    }
-
-    return { height, width, dataPosition: lineIndex + line.length + 1 };
   }
 
   private static _createCubemapData(
