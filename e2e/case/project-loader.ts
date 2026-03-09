@@ -17,7 +17,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
   engine.resourceManager
     .load({
       type: AssetType.Project,
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*qGzdR5VaZToAAAAAQJAAAAgAekp5AQ/project.json"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*HHq7Tb8zf5oAAAAAQJAAAAgAekp5AQ/project.json"
     })
     .then(() => {
       const cameraEntity = engine.sceneManager.activeScene.findEntityByName("Camera");

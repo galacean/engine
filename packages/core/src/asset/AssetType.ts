@@ -42,8 +42,6 @@ export enum AssetType {
   Env = "Environment",
   /** Scene. */
   Scene = "Scene",
-  /** HDR to cube. */
-  HDR = "HDR",
   /** Font. */
   Font = "Font",
   /** Source Font, include ttf, otf and woff. */
