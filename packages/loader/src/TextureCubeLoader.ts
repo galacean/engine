@@ -41,8 +41,20 @@ class TextureCubeLoader extends Loader<TextureCube> {
               "TextureCubeLoader: HDR texture requires half float support, current device may not render correctly."
             );
           }
-          const texture = HDRDecoder.decode(engine, buffer);
-          resourceManager.addContentRestorer(new HDRContentRestorer(texture, url, requestConfig));
+          const { mipmap = true, anisoLevel, wrapModeU, wrapModeV, filterMode } = item.params ?? {};
+          const { cubeSize, faceBuffers } = HDRDecoder.decode(buffer);
+          const texture = new TextureCube(engine, cubeSize, TextureFormat.R16G16B16A16, mipmap, false);
+          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+            texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, faceBuffers[faceIndex], 0);
+          }
+          if (mipmap) {
+            texture.generateMipmaps();
+          }
+          texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
+          texture.filterMode = filterMode ?? texture.filterMode;
+          texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
+          texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
+          resourceManager.addContentRestorer(new HDRContentRestorer(texture, url, requestConfig, mipmap));
           resolve(texture);
         })
         .catch(reject);
@@ -111,7 +123,8 @@ class HDRContentRestorer extends ContentRestorer<TextureCube> {
   constructor(
     resource: TextureCube,
     public url: string,
-    public requestConfig: RequestConfig
+    public requestConfig: RequestConfig,
+    public mipmap: boolean
   ) {
     super(resource);
   }
@@ -119,12 +132,17 @@ class HDRContentRestorer extends ContentRestorer<TextureCube> {
   override restoreContent(): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const resource = this.resource;
-      const engine = resource.engine;
-      engine.resourceManager
+      resource.engine.resourceManager
         // @ts-ignore
         ._request<ArrayBuffer>(this.url, this.requestConfig)
         .then((buffer) => {
-          HDRDecoder.decode(engine, buffer, resource);
+          const { faceBuffers } = HDRDecoder.decode(buffer);
+          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+            resource.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, faceBuffers[faceIndex], 0);
+          }
+          if (this.mipmap) {
+            resource.generateMipmaps();
+          }
           resolve(resource);
         })
         .catch(reject);
