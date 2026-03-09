@@ -20,18 +20,21 @@ export class HDRDecoder {
     /* -Z */ [ 1,-1, 1, -1,-1, 1,  1, 1, 1, -1, 1, 1]
   ];
 
-  static decode(buffer: ArrayBuffer): { cubeSize: number; faceBuffers: Uint16Array[] } {
-    const bufferArray = new Uint8Array(buffer);
-    const { width, height, dataPosition } = HDRDecoder._parseHeader(bufferArray);
+  static decodeFaces(
+    bufferArray: Uint8Array,
+    header: IHDRHeader,
+    onFace: (faceIndex: number, data: Uint16Array) => void
+  ): void {
+    const { width, height, dataPosition } = header;
     const cubeSize = height >> 1;
     const pixels = HDRDecoder._readPixels(bufferArray.subarray(dataPosition), width, height);
 
     const faces = HDRDecoder._faces;
-    const faceBuffers: Uint16Array[] = [];
+    const faceBuffer = new Uint16Array(cubeSize * cubeSize * 4);
     for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-      faceBuffers[faceIndex] = HDRDecoder._createCubemapData(cubeSize, faces[faceIndex], pixels, width, height);
+      HDRDecoder._createCubemapData(cubeSize, faces[faceIndex], pixels, width, height, faceBuffer);
+      onFace(faceIndex, faceBuffer);
     }
-    return { cubeSize, faceBuffers };
   }
 
   private static _generateScaleTable(): Float64Array {
@@ -77,14 +80,52 @@ export class HDRDecoder {
     return { baseTable, shiftTable };
   }
 
+  static parseHeader(uint8array: Uint8Array): IHDRHeader {
+    let line = this._readStringLine(uint8array, 0);
+    if (line[0] !== "#" || line[1] !== "?") {
+      throw "HDRDecoder: invalid file header";
+    }
+
+    let endOfHeader = false;
+    let findFormat = false;
+    let lineIndex = 0;
+
+    do {
+      lineIndex += line.length + 1;
+      line = this._readStringLine(uint8array, lineIndex);
+      if (line === "FORMAT=32-bit_rle_rgbe") findFormat = true;
+      else if (line.length === 0) endOfHeader = true;
+    } while (!endOfHeader);
+
+    if (!findFormat) {
+      throw "HDRDecoder: unsupported format, expected 32-bit_rle_rgbe";
+    }
+
+    lineIndex += line.length + 1;
+    line = this._readStringLine(uint8array, lineIndex);
+
+    const match = /^\-Y (.*) \+X (.*)$/g.exec(line);
+    if (!match || match.length < 3) {
+      throw "HDRDecoder: missing image size, only -Y +X layout is supported";
+    }
+    const width = parseInt(match[2]);
+    const height = parseInt(match[1]);
+
+    if (width < 8 || width > 0x7fff) {
+      throw "HDRDecoder: unsupported image width, must be between 8 and 32767";
+    }
+
+    return { height, width, dataPosition: lineIndex + line.length + 1 };
+  }
+
   private static _createCubemapData(
     texSize: number,
     face: number[],
     pixels: Uint8Array,
     inputWidth: number,
-    inputHeight: number
-  ): Uint16Array {
-    const facePixels = new Uint16Array(texSize * texSize * 4);
+    inputHeight: number,
+    facePixels: Uint16Array
+  ): void {
     const invSize = 1 / texSize;
     const rotDX1X = (face[3] - face[0]) * invSize;
     const rotDX1Y = (face[4] - face[1]) * invSize;
@@ -146,45 +187,6 @@ export class HDRDecoder {
       }
       fy += invSize;
     }
-    return facePixels;
-  }
-
-  private static _parseHeader(uint8array: Uint8Array): IHDRHeader {
-    let line = this._readStringLine(uint8array, 0);
-    if (line[0] !== "#" || line[1] !== "?") {
-      throw "HDRDecoder: invalid file header";
-    }
-
-    let endOfHeader = false;
-    let findFormat = false;
-    let lineIndex = 0;
-
-    do {
-      lineIndex += line.length + 1;
-      line = this._readStringLine(uint8array, lineIndex);
-      if (line === "FORMAT=32-bit_rle_rgbe") findFormat = true;
-      else if (line.length === 0) endOfHeader = true;
-    } while (!endOfHeader);
-
-    if (!findFormat) {
-      throw "HDRDecoder: unsupported format, expected 32-bit_rle_rgbe";
-    }
-
-    lineIndex += line.length + 1;
-    line = this._readStringLine(uint8array, lineIndex);
-
-    const match = /^\-Y (.*) \+X (.*)$/g.exec(line);
-    if (!match || match.length < 3) {
-      throw "HDRDecoder: missing image size, only -Y +X layout is supported";
-    }
-    const width = parseInt(match[2]);
-    const height = parseInt(match[1]);
-
-    if (width < 8 || width > 0x7fff) {
-      throw "HDRDecoder: unsupported image width, must be between 8 and 32767";
-    }
-
-    return { height, width, dataPosition: lineIndex + line.length + 1 };
   }
 
   private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {

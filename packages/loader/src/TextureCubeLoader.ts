@@ -40,19 +40,18 @@ class TextureCubeLoader extends Loader<TextureCube> {
             return;
           }
           const { mipmap = true, anisoLevel, wrapModeU, wrapModeV, filterMode } = item.params ?? {};
-          const { cubeSize, faceBuffers } = HDRDecoder.decode(buffer);
-          const texture = new TextureCube(engine, cubeSize, TextureFormat.R16G16B16A16, mipmap, false);
-          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, faceBuffers[faceIndex], 0);
-          }
-          if (mipmap) {
-            texture.generateMipmaps();
-          }
+          const bufferArray = new Uint8Array(buffer);
+          const header = HDRDecoder.parseHeader(bufferArray);
+          const texture = new TextureCube(engine, header.height >> 1, TextureFormat.R16G16B16A16, mipmap, false);
+          HDRDecoder.decodeFaces(bufferArray, header, (faceIndex, data) => {
+            texture.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, data, 0);
+          });
+          texture.generateMipmaps();
           texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
           texture.filterMode = filterMode ?? texture.filterMode;
           texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
           texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
-          resourceManager.addContentRestorer(new HDRContentRestorer(texture, url, requestConfig, mipmap));
+          resourceManager.addContentRestorer(new HDRContentRestorer(texture, url, requestConfig));
           resolve(texture);
         })
         .catch(reject);
@@ -107,9 +106,9 @@ class TextureCubeLoader extends Loader<TextureCube> {
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             texture.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
           }
-          generateMipmap && texture.generateMipmaps();
+          texture.generateMipmaps();
 
-          resourceManager.addContentRestorer(new CubeFaceContentRestorer(texture, urls, requestConfig, generateMipmap));
+          resourceManager.addContentRestorer(new CubeFaceContentRestorer(texture, urls, requestConfig));
           resolve(texture);
         })
         .catch(reject);
@@ -121,8 +120,7 @@ class HDRContentRestorer extends ContentRestorer<TextureCube> {
   constructor(
     resource: TextureCube,
     public url: string,
-    public requestConfig: RequestConfig,
-    public mipmap: boolean
+    public requestConfig: RequestConfig
   ) {
     super(resource);
   }
@@ -134,13 +132,11 @@ class HDRContentRestorer extends ContentRestorer<TextureCube> {
         // @ts-ignore
         ._request<ArrayBuffer>(this.url, this.requestConfig)
         .then((buffer) => {
-          const { faceBuffers } = HDRDecoder.decode(buffer);
-          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            resource.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, faceBuffers[faceIndex], 0);
-          }
-          if (this.mipmap) {
-            resource.generateMipmaps();
-          }
+          const bufferArray = new Uint8Array(buffer);
+          HDRDecoder.decodeFaces(bufferArray, HDRDecoder.parseHeader(bufferArray), (faceIndex, data) => {
+            resource.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, data, 0);
+          });
+          resource.generateMipmaps();
           resolve(resource);
         })
         .catch(reject);
@@ -152,8 +148,7 @@ class CubeFaceContentRestorer extends ContentRestorer<TextureCube> {
   constructor(
     resource: TextureCube,
     public urls: string[],
-    public requestConfig: RequestConfig,
-    public mipmap: boolean
+    public requestConfig: RequestConfig
   ) {
     super(resource);
   }
@@ -166,9 +161,7 @@ class CubeFaceContentRestorer extends ContentRestorer<TextureCube> {
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             resource.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
           }
-          if (this.mipmap) {
-            resource.generateMipmaps();
-          }
+          resource.generateMipmaps();
           resolve(resource);
         })
         .catch(reject);
