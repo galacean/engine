@@ -13,12 +13,10 @@ export class HDRDecoder {
   private static _float2HalfTables = HDRDecoder._generateFloat2HalfTables();
   private static _floatView = new Float32Array(1);
   private static _uint32View = new Uint32Array(HDRDecoder._floatView.buffer);
-  // Half float for 1.0
-  private static _one = 0x3c00;
+  private static _one = 0x3c00; // Half float for 1.0
 
   // prettier-ignore
-  // Cubemap face corners [bottomLeft, bottomRight, topLeft, topRight] as flat xyz
-  private static _faces = [
+  private static _faces = [ // Cubemap face corners [bottomLeft, bottomRight, topLeft, topRight] as flat xyz
     /* +X */ [ 1,-1,-1,  1,-1, 1,  1, 1,-1,  1, 1, 1],
     /* -X */ [-1,-1, 1, -1,-1,-1, -1, 1, 1, -1, 1,-1],
     /* +Y */ [-1,-1, 1,  1,-1, 1, -1,-1,-1,  1,-1,-1],
