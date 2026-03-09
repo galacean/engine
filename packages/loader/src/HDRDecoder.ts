@@ -1,9 +1,3 @@
-interface IHDRHeader {
-  width: number;
-  height: number;
-  dataPosition: number;
-}
-
 /**
  * @internal
  * HDR panorama to cubemap decoder.
@@ -24,6 +18,20 @@ export class HDRDecoder {
     /* +Z */ [-1,-1,-1,  1,-1,-1, -1, 1,-1,  1, 1,-1],
     /* -Z */ [ 1,-1, 1, -1,-1, 1,  1, 1, 1, -1, 1, 1]
   ];
+
+  static decode(buffer: ArrayBuffer): { cubeSize: number; faceBuffers: Uint16Array[] } {
+    const bufferArray = new Uint8Array(buffer);
+    const { width, height, dataPosition } = HDRDecoder._parseHeader(bufferArray);
+    const cubeSize = height >> 1;
+    const pixels = HDRDecoder._readPixels(bufferArray.subarray(dataPosition), width, height);
+
+    const faces = HDRDecoder._faces;
+    const faceBuffers: Uint16Array[] = [];
+    for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
+      faceBuffers[faceIndex] = HDRDecoder._createCubemapData(cubeSize, faces[faceIndex], pixels, width, height);
+    }
+    return { cubeSize, faceBuffers };
+  }
 
   private static _generateFloat2HalfTables(): { baseTable: Uint32Array; shiftTable: Uint32Array } {
     const baseTable = new Uint32Array(512);
@@ -58,20 +66,6 @@ export class HDRDecoder {
       }
     }
     return { baseTable, shiftTable };
-  }
-
-  static decode(buffer: ArrayBuffer): { cubeSize: number; faceBuffers: Uint16Array[] } {
-    const bufferArray = new Uint8Array(buffer);
-    const { width, height, dataPosition } = HDRDecoder._parseHeader(bufferArray);
-    const cubeSize = height >> 1;
-    const pixels = HDRDecoder._readPixels(bufferArray.subarray(dataPosition), width, height);
-
-    const faces = HDRDecoder._faces;
-    const faceBuffers: Uint16Array[] = [];
-    for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-      faceBuffers[faceIndex] = HDRDecoder._createCubemapData(cubeSize, faces[faceIndex], pixels, width, height);
-    }
-    return { cubeSize, faceBuffers };
   }
 
   private static _createCubemapData(
@@ -145,16 +139,6 @@ export class HDRDecoder {
     return facePixels;
   }
 
-  private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {
-    let line = "";
-    for (let i = startIndex, n = uint8array.length; i < n; i++) {
-      const character = String.fromCharCode(uint8array[i]);
-      if (character === "\n") break;
-      line += character;
-    }
-    return line;
-  }
-
   private static _parseHeader(uint8array: Uint8Array): IHDRHeader {
     let line = this._readStringLine(uint8array, 0);
     if (line[0] !== "#" || line[1] !== "?") {
@@ -191,6 +175,16 @@ export class HDRDecoder {
     }
 
     return { height, width, dataPosition: lineIndex + line.length + 1 };
+  }
+
+  private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {
+    let line = "";
+    for (let i = startIndex, n = uint8array.length; i < n; i++) {
+      const character = String.fromCharCode(uint8array[i]);
+      if (character === "\n") break;
+      line += character;
+    }
+    return line;
   }
 
   private static _readPixels(buffer: Uint8Array, width: number, height: number): Uint8Array {
@@ -240,4 +234,10 @@ export class HDRDecoder {
     }
     return dataRGBA;
   }
+}
+
+interface IHDRHeader {
+  width: number;
+  height: number;
+  dataPosition: number;
 }

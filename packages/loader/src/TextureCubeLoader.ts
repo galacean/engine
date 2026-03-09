@@ -109,7 +109,7 @@ class TextureCubeLoader extends Loader<TextureCube> {
           }
           generateMipmap && texture.generateMipmaps();
 
-          resourceManager.addContentRestorer(new CubeFaceContentRestorer(texture, urls, requestConfig));
+          resourceManager.addContentRestorer(new CubeFaceContentRestorer(texture, urls, requestConfig, generateMipmap));
           resolve(texture);
         })
         .catch(reject);
@@ -152,7 +152,8 @@ class CubeFaceContentRestorer extends ContentRestorer<TextureCube> {
   constructor(
     resource: TextureCube,
     public urls: string[],
-    public requestConfig: RequestConfig
+    public requestConfig: RequestConfig,
+    public mipmap: boolean
   ) {
     super(resource);
   }
@@ -165,7 +166,9 @@ class CubeFaceContentRestorer extends ContentRestorer<TextureCube> {
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             resource.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
           }
-          resource.generateMipmaps();
+          if (this.mipmap) {
+            resource.generateMipmaps();
+          }
           resolve(resource);
         })
         .catch(reject);
