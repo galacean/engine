@@ -147,7 +147,7 @@ export class HDRDecoder {
 
   private static _readStringLine(uint8array: Uint8Array, startIndex: number): string {
     let line = "";
-    for (let i = startIndex, n = uint8array.length - startIndex; i < n; i++) {
+    for (let i = startIndex, n = uint8array.length; i < n; i++) {
       const character = String.fromCharCode(uint8array[i]);
       if (character === "\n") break;
       line += character;
