@@ -8,7 +8,6 @@ export class HDRDecoder {
   private static _floatView = new Float32Array(1);
   private static _uint32View = new Uint32Array(HDRDecoder._floatView.buffer);
   private static _one = 0x3c00; // Half float for 1.0
-  private static _scaleTable = HDRDecoder._generateScaleTable();
 
   // prettier-ignore
   private static _faces = [ // Cubemap face corners [bottomLeft, bottomRight, topLeft, topRight] as flat xyz
@@ -35,14 +34,6 @@ export class HDRDecoder {
       HDRDecoder._createCubemapData(cubeSize, faces[faceIndex], pixels, width, height, faceBuffer);
       onFace(faceIndex, faceBuffer);
     }
-  }
-
-  private static _generateScaleTable(): Float64Array {
-    const table = new Float64Array(256);
-    for (let i = 0; i < 256; i++) {
-      table[i] = Math.pow(2, i - 128) / 255;
-    }
-    return table;
   }
 
   private static _generateFloat2HalfTables(): { baseTable: Uint32Array; shiftTable: Uint32Array } {
@@ -138,7 +129,6 @@ export class HDRDecoder {
     const uint32View = HDRDecoder._uint32View;
     const { baseTable, shiftTable } = HDRDecoder._float2HalfTables;
     const one = HDRDecoder._one;
-    const scaleTable = HDRDecoder._scaleTable;
 
     let fy = 0;
     for (let y = 0; y < texSize; y++) {
@@ -167,7 +157,7 @@ export class HDRDecoder {
         else if (py >= inputHeight) py = inputHeight - 1;
 
         const srcIndex = (inputHeight - py - 1) * inputWidth * 4 + px * 4;
-        const scaleFactor = scaleTable[pixels[srcIndex + 3]];
+        const scaleFactor = Math.pow(2, pixels[srcIndex + 3] - 128) / 255;
         const dstIndex = y * texSize * 4 + x * 4;
 
         for (let c = 0; c < 3; c++) {
