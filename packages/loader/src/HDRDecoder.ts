@@ -161,7 +161,8 @@ export class HDRDecoder {
         const dstIndex = y * texSize * 4 + x * 4;
 
         for (let c = 0; c < 3; c++) {
-          floatView[0] = pixels[srcIndex + c] * scaleFactor;
+          // Clamp to half-float max (65504) to prevent Infinity in R16G16B16A16
+          floatView[0] = Math.min(pixels[srcIndex + c] * scaleFactor, 65504);
           const f = uint32View[0];
           const e = (f >> 23) & 0x1ff;
           facePixels[dstIndex + c] = baseTable[e] + ((f & 0x007fffff) >> shiftTable[e]);
