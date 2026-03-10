@@ -179,7 +179,6 @@ async function setupDefaultScene(scene: Scene) {
     .then((ambientLight) => {
       scene.ambientLight = ambientLight;
       skyMaterial.texture = ambientLight.specularTexture;
-      skyMaterial.textureDecodeRGBM = true;
       openDebug(ambientLight.specularTexture);
       engine.run();
     });
@@ -196,7 +195,6 @@ engine.resourceManager
   .then((ambientLight) => {
     scene.ambientLight = ambientLight;
     skyMaterial.texture = ambientLight.specularTexture;
-    skyMaterial.textureDecodeRGBM = true;
     openDebug(ambientLight.specularTexture);
     engine.run();
   });
