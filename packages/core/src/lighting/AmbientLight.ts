@@ -8,7 +8,6 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
 
-
 /**
  * Ambient light.
  */
