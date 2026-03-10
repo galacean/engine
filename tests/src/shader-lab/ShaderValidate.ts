@@ -7,7 +7,6 @@ const baseTestMacroList = [
   { name: "RENDERER_HAS_NORMAL" },
   { name: "SCENE_USE_SH" },
   { name: "SCENE_USE_SPECULAR_ENV" },
-  { name: "SCENE_IS_DECODE_ENV_RGBM" },
   { name: "SCENE_FOG_MODE", value: "0" },
   { name: "SCENE_SHADOW_CASCADED_COUNT", value: "1" },
   { name: "MATERIAL_NEED_WORLD_POS" },

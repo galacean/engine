@@ -49,7 +49,7 @@ describe("Device lost test", function () {
 
     // 注意：以下部分文件可能会版本迭代而解析报错，若出现此情况，只需更新对应版本的编辑器资产文件即可
     const ambientLight = await resourceManager.load<AmbientLight>({
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*t1inRbPh6VQAAAAAAAAAAAAADkp5AQ/ambient.json",
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env",
       type: AssetType.Env
     });
     const textureCube = await engine.resourceManager.load<TextureCube>({

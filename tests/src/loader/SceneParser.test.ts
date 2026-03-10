@@ -23,7 +23,7 @@ describe("ProjectLoader Component Reference Tests", function () {
     await engine.resourceManager.load({
       type: AssetType.Project,
       // button.Color.target be deleted
-      url: "https://mdn.alipayobjects.com/rms/afts/file/A*6GoSSK-ifQkAAAAAQMAAAAgAehQnAQ/project.json"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*FxCdTZFHcGMAAAAAQMAAAAgAekp5AQ/project.json"
     });
     const scene = engine.sceneManager.scenes[0];
 

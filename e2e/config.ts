@@ -382,8 +382,7 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-emit-mesh-no-shape-world",
       threshold: 0,
       diffPercentage: 0.00146
-    }
-    ,
+    },
     particleEmitMeshConeScale3DRotation: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-3d-rotation",
@@ -438,7 +437,7 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
       threshold: 0,
-      diffPercentage: 0.025
+      diffPercentage: 0.03
     }
   },
   SpriteMask: {

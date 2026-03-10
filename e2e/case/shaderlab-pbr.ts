@@ -364,7 +364,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
     engine.resourceManager
       .load<AmbientLight>({
         type: AssetType.Env,
-        url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
+        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env"
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;
@@ -375,7 +375,6 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
         sky.material = skyMaterial;
         sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
         skyMaterial.texture = ambientLight.specularTexture;
-        skyMaterial.textureDecodeRGBM = true;
         return ambientLight;
       }),
     engine.resourceManager.load<Texture2D>({

@@ -36,9 +36,9 @@ import * as dat from "dat.gui";
 Logger.enable();
 
 const envList = {
-  sunset: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin",
-  pisa: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
-  foot_2K: "https://gw.alipayobjects.com/os/bmw-prod/23c1893a-fe29-4e91-bd6a-bb1c4201a876.bin"
+  sunset: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env",
+  pisa: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env",
+  foot_2K: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env"
 };
 
 class Oasis {
@@ -180,7 +180,6 @@ class Oasis {
 
           this.scene.ambientLight = env;
           this.skyMaterial.texture = env.specularTexture;
-          this.skyMaterial.textureDecodeRGBM = true;
           resolve(true);
         });
     });

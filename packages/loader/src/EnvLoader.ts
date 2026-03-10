@@ -12,6 +12,7 @@ import {
   TextureCube,
   TextureCubeFace,
   TextureFilterMode,
+  TextureFormat,
   resourceLoader
 } from "@galacean/engine-core";
 import { SphericalHarmonics3 } from "@galacean/engine-math";
@@ -24,7 +25,7 @@ class EnvLoader extends Loader<AmbientLight> {
   static _setTextureByBuffer(engine: Engine, buffer: ArrayBuffer, texture?: TextureCube) {
     const shByteLength = 27 * 4;
     const size = new Uint16Array(buffer, shByteLength, 1)?.[0];
-    texture ||= new TextureCube(engine, size, undefined, undefined, false);
+    texture ||= new TextureCube(engine, size, TextureFormat.R16G16B16A16, true, false);
     texture.filterMode = TextureFilterMode.Trilinear;
     const mipmapCount = texture.mipmapCount;
     let offset = shByteLength + 2;
@@ -34,8 +35,8 @@ class EnvLoader extends Loader<AmbientLight> {
 
       for (let face = 0; face < 6; face++) {
         const dataSize = mipSize * mipSize * 4;
-        const data = new Uint8Array(buffer, offset, dataSize);
-        offset += dataSize;
+        const data = new Uint16Array(buffer, offset, dataSize);
+        offset += dataSize * 2;
         texture.setPixelBuffer(TextureCubeFace.PositiveX + face, data, mipLevel);
       }
     }
@@ -59,7 +60,6 @@ class EnvLoader extends Loader<AmbientLight> {
           sh.copyFromArray(new Float32Array(arraybuffer, 0, 27));
           ambientLight.diffuseSphericalHarmonics = sh;
           ambientLight.specularTexture = texture;
-          ambientLight.specularTextureDecodeRGBM = true;
           resolve(ambientLight);
         })
         .catch((e) => {
