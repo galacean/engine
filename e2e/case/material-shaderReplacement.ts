@@ -49,7 +49,7 @@ async function main() {
     .load([
       {
         type: AssetType.Env,
-        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*KabxT4d8GHcAAAAAgEAAAAgAekp5AQ/Internal/Bake/ambient.env"
+        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env"
       },
       {
         url: "https://gw.alipayobjects.com/os/bmw-prod/150e44f6-7810-4c45-8029-3575d36aff30.gltf",

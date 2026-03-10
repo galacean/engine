@@ -36,9 +36,9 @@ import * as dat from "dat.gui";
 Logger.enable();
 
 const envList = {
-  sunset: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*KabxT4d8GHcAAAAAgEAAAAgAekp5AQ/Internal/Bake/ambient.env",
-  pisa: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*KabxT4d8GHcAAAAAgEAAAAgAekp5AQ/Internal/Bake/ambient.env",
-  foot_2K: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*KabxT4d8GHcAAAAAgEAAAAgAekp5AQ/Internal/Bake/ambient.env"
+  sunset: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env",
+  pisa: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env",
+  foot_2K: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env"
 };
 
 class Oasis {
