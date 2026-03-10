@@ -114,12 +114,11 @@ WebGLEngine.create({
   engine.resourceManager
     .load<AmbientLight>({
       type: AssetType.Env,
-      url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*KabxT4d8GHcAAAAAgEAAAAgAekp5AQ/Internal/Bake/ambient.env"
     })
     .then((ambientLight) => {
       scene.ambientLight = ambientLight;
       skyMaterial.texture = ambientLight.specularTexture;
-      skyMaterial.textureDecodeRGBM = true;
       ambientLight.diffuseIntensity = 1;
       ambientLight.specularIntensity = 1;
     })

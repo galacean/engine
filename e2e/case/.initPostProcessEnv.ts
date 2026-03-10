@@ -38,7 +38,7 @@ export async function initPostProcessEnv(
       engine.resourceManager
         .load<AmbientLight>({
           type: AssetType.Env,
-          url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
+          url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*KabxT4d8GHcAAAAAgEAAAAgAekp5AQ/Internal/Bake/ambient.env"
         })
         .then((ambientLight) => {
           scene.ambientLight = ambientLight;
@@ -49,7 +49,6 @@ export async function initPostProcessEnv(
           sky.material = skyMaterial;
           sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
           skyMaterial.texture = ambientLight.specularTexture;
-          skyMaterial.textureDecodeRGBM = true;
           return ambientLight;
         }),
       engine.resourceManager.load<Texture2D>({

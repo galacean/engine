@@ -253,7 +253,6 @@ describe("Light test", function () {
     if (ambientLightA) {
       scene.ambientLight = ambientLightA;
       skyMaterial.texture = ambientLightA.specularTexture;
-      skyMaterial.textureDecodeRGBM = true;
     }
 
     const diffuseSphericalHarmonics = ambientLightA.diffuseSphericalHarmonics;
@@ -296,30 +295,6 @@ describe("Light test", function () {
     ambientLightA.specularIntensity = expectIntensity;
     const currentIntensity = ambientLightA.specularIntensity;
     expect(currentIntensity).to.eq(expectIntensity);
-  });
-
-  it("ambientLight specularTextureDecodeRGBM", async () => {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM });
-    const scene = engine.sceneManager.activeScene;
-    const rootEntity = engine.sceneManager.activeScene.createRootEntity();
-    const lightEntity = rootEntity.createChild("light");
-    const sunLight = lightEntity.addComponent(DirectLight);
-    const directLight = lightEntity.addComponent(DirectLight);
-    const pointLight = lightEntity.addComponent(PointLight);
-    const spotLight = lightEntity.addComponent(SpotLight);
-    ambientLightB = scene.ambientLight;
-
-    directLight.shadowType = ShadowType.SoftHigh;
-
-    engine.run();
-
-    const decodeRGBM = ambientLightB.specularTextureDecodeRGBM;
-    const expectDecodeRGBM = false;
-    expect(decodeRGBM).to.eq(expectDecodeRGBM);
-
-    ambientLightB.specularTextureDecodeRGBM = !expectDecodeRGBM;
-    const currentDecodeRGBM = ambientLightB.specularTextureDecodeRGBM;
-    expect(currentDecodeRGBM).to.eq(!expectDecodeRGBM);
   });
 
   afterAll(function () {
