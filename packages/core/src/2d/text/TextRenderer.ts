@@ -682,6 +682,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
   private _isTextNoVisible(): boolean {
     return (
+      !this._font ||
       this._text === "" ||
       this._fontSize === 0 ||
       (this.enableWrapping && this.width <= 0) ||
