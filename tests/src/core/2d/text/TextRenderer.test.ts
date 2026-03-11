@@ -67,6 +67,25 @@ describe("TextRenderer", () => {
     expect(newFont2.refCount).to.be.equal(newFontReferCount);
   });
 
+  it("set font to null should not throw", () => {
+    textRenderer.text = "test";
+    textRenderer.font = null;
+
+    // Test that accessing bounds does not throw when font is null.
+    expect(() => textRenderer.bounds).not.to.throw();
+
+    // Test that bounds is zero when font is null.
+    const { bounds } = textRenderer;
+    expect(bounds.min.x).to.be.equal(0);
+    expect(bounds.min.y).to.be.equal(0);
+    expect(bounds.max.x).to.be.equal(0);
+    expect(bounds.max.y).to.be.equal(0);
+
+    // Restore font and text for subsequent tests.
+    textRenderer.font = rootEntity.engine["_textDefaultFont"];
+    textRenderer.text = "";
+  });
+
   it("enableWrapping", () => {
     // Test that return default enable wrapping.
     expect(textRenderer.enableWrapping).to.be.equal(false);
