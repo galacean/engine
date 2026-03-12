@@ -16,75 +16,57 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { SphericalHarmonics3 } from "@galacean/engine-math";
+import { KTX2Container } from "./ktx2/KTX2Container";
 import { KTX2Loader } from "./ktx2/KTX2Loader";
 import { FileHeader } from "./resource-deserialize/utils/FileHeader";
 
 @resourceLoader(AssetType.AmbientLight, ["ambLight"])
+/** @internal */
 class AmbientLightLoader extends Loader<AmbientLight> {
-  private static _shByteLength = 27 * 4;
+  static _shByteLength = 27 * 4;
 
-  private static _parse(
+  /** @internal */
+  static _parseTexture(
     engine: Engine,
     buffer: ArrayBuffer,
-    texture?: TextureCube
-  ): { sh: SphericalHarmonics3; texturePromise: Promise<TextureCube> } {
-    const header = FileHeader.decode(buffer);
-    const dataOffset = header.headerLength;
-    const sh = new SphericalHarmonics3();
-    sh.copyFromArray(new Float32Array(buffer, dataOffset, 27));
-
-    const texturePromise = header.version >= 2
-      ? AmbientLightLoader._parseCompressedTexture(
-          engine, buffer, dataOffset + AmbientLightLoader._shByteLength, header.dataLength - AmbientLightLoader._shByteLength, texture
-        )
-      : AmbientLightLoader._parseRawTexture(
-          engine, buffer, dataOffset + AmbientLightLoader._shByteLength, texture
-        );
-    return { sh, texturePromise };
-  }
-
-  private static _parseCompressedTexture(
-    engine: Engine,
-    buffer: ArrayBuffer,
-    ktx2Offset: number,
-    ktx2Length: number,
+    textureOffset: number,
+    textureLength: number,
     texture?: TextureCube
   ): Promise<TextureCube> {
-    const ktx2Data = new Uint8Array(buffer, ktx2Offset, ktx2Length);
+    if (KTX2Container.checkMagic(buffer, textureOffset)) {
+      const ktx2Data = new Uint8Array(buffer, textureOffset, textureLength);
+      return KTX2Loader._parseBuffer(ktx2Data, engine).then(
+        ({ ktx2Container, engine, result, targetFormat, params }) => {
+          const tex = KTX2Loader._createTextureByBuffer(
+            engine,
+            ktx2Container.isSRGB,
+            result,
+            targetFormat,
+            params,
+            texture
+          ) as TextureCube;
+          tex.filterMode = TextureFilterMode.Trilinear;
+          return tex;
+        }
+      );
+    } else {
+      const size = new Uint16Array(buffer, textureOffset, 1)[0];
+      texture ||= new TextureCube(engine, size, TextureFormat.R16G16B16A16, true, false);
+      texture.filterMode = TextureFilterMode.Trilinear;
+      const mipmapCount = texture.mipmapCount;
+      let offset = textureOffset + 2;
 
-    return KTX2Loader._parseBuffer(ktx2Data, engine).then(
-      ({ ktx2Container, engine, result, targetFormat, params }) => {
-        const tex = KTX2Loader._createTextureByBuffer(
-          engine, ktx2Container.isSRGB, result, targetFormat, params, texture
-        ) as TextureCube;
-        tex.filterMode = TextureFilterMode.Trilinear;
-        return tex;
+      for (let mipLevel = 0; mipLevel < mipmapCount; mipLevel++) {
+        const mipSize = size >> mipLevel;
+        for (let face = 0; face < 6; face++) {
+          const dataSize = mipSize * mipSize * 4;
+          const data = new Uint16Array(buffer, offset, dataSize);
+          offset += dataSize * 2;
+          texture.setPixelBuffer(TextureCubeFace.PositiveX + face, data, mipLevel);
+        }
       }
-    );
-  }
-
-  private static _parseRawTexture(
-    engine: Engine,
-    buffer: ArrayBuffer,
-    dataOffset: number,
-    texture?: TextureCube
-  ): Promise<TextureCube> {
-    const size = new Uint16Array(buffer, dataOffset, 1)[0];
-    texture ||= new TextureCube(engine, size, TextureFormat.R16G16B16A16, true, false);
-    texture.filterMode = TextureFilterMode.Trilinear;
-    const mipmapCount = texture.mipmapCount;
-    let offset = dataOffset + 2;
-
-    for (let mipLevel = 0; mipLevel < mipmapCount; mipLevel++) {
-      const mipSize = size >> mipLevel;
-      for (let face = 0; face < 6; face++) {
-        const dataSize = mipSize * mipSize * 4;
-        const data = new Uint16Array(buffer, offset, dataSize);
-        offset += dataSize * 2;
-        texture.setPixelBuffer(TextureCubeFace.PositiveX + face, data, mipLevel);
-      }
+      return Promise.resolve(texture);
     }
-    return Promise.resolve(texture);
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AmbientLight> {
@@ -95,18 +77,28 @@ class AmbientLightLoader extends Loader<AmbientLight> {
       resourceManager
         // @ts-ignore
         ._request<ArrayBuffer>(url, requestConfig)
-        .then((arraybuffer) => {
-          const { sh, texturePromise } = AmbientLightLoader._parse(engine, arraybuffer);
-          texturePromise
-            .then((texture) => {
-              engine.resourceManager.addContentRestorer(new AmbientLightContentRestorer(texture, url, requestConfig));
-              const ambientLight = new AmbientLight(engine);
-              ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
-              ambientLight.diffuseSphericalHarmonics = sh;
-              ambientLight.specularTexture = texture;
-              resolve(ambientLight);
-            })
-            .catch(reject);
+        .then((buffer) => {
+          const header = FileHeader.decode(buffer);
+          const dataOffset = header.headerLength;
+          const sh = new SphericalHarmonics3();
+          sh.copyFromArray(new Float32Array(buffer, dataOffset, 27));
+
+          const textureOffset = dataOffset + AmbientLightLoader._shByteLength;
+          return AmbientLightLoader._parseTexture(
+            engine,
+            buffer,
+            textureOffset,
+            header.dataLength - AmbientLightLoader._shByteLength
+          ).then((specularTexture) => {
+            engine.resourceManager.addContentRestorer(
+              new AmbientLightContentRestorer(specularTexture, url, requestConfig)
+            );
+            const ambientLight = new AmbientLight(engine);
+            ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
+            ambientLight.diffuseSphericalHarmonics = sh;
+            ambientLight.specularTexture = specularTexture;
+            resolve(ambientLight);
+          });
         })
         .catch(reject);
     });
@@ -133,8 +125,18 @@ class AmbientLightContentRestorer extends ContentRestorer<TextureCube> {
         // @ts-ignore
         ._request<ArrayBuffer>(this.url, this.requestConfig)
         .then((buffer) => {
-          AmbientLightLoader._parse(engine, buffer, resource).texturePromise.then(resolve).catch(reject);
+          const header = FileHeader.decode(buffer);
+          const dataOffset = header.headerLength;
+          const textureOffset = dataOffset + AmbientLightLoader._shByteLength;
+          return AmbientLightLoader._parseTexture(
+            engine,
+            buffer,
+            textureOffset,
+            header.dataLength - AmbientLightLoader._shByteLength,
+            resource
+          );
         })
+        .then(resolve)
         .catch(reject);
     });
   }
