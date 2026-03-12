@@ -40,7 +40,9 @@ export class FileHeader {
     header.name = name;
     header.type = type;
     header.version = fileVersion;
-    header.headerLength = offset + nameUint8Array.byteLength + typeUint8Array.byteLength + 9;
+    // Align to 4 bytes so that data following the header can be accessed via TypedArray views
+    const rawLength = offset + nameUint8Array.byteLength + typeUint8Array.byteLength + 9;
+    header.headerLength = (rawLength + 3) & ~3;
     return header;
   }
 
