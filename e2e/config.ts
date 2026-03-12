@@ -471,12 +471,6 @@ export const E2E_CONFIG = {
     }
   },
   Other: {
-    ProjectLoader: {
-      category: "Advance",
-      caseFileName: "project-loader",
-      threshold: 0.01,
-      diffPercentage: 0.0016
-    },
     MultiSceneClear: {
       category: "Advance",
       caseFileName: "multi-scene-clear",

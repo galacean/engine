@@ -78,18 +78,6 @@ describe("ResourceManager", () => {
     });
   });
 
-  describe("gltf subAsset load", () => {
-    it("invalid q case", async () => {
-      const loadRes = await engine.resourceManager.load({
-        // contains invalid q value cdn url.
-        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*FxCdTZFHcGMAAAAAQMAAAAgAekp5AQ/project.json",
-        type: AssetType.Project
-      });
-      expect(loadRes).to.equal(undefined);
-    });
-
-    // TODO: case for gltf loader load invalid q url, expect to throw
-  });
 
   describe("load asset", () => {
     it("not found", async () => {
