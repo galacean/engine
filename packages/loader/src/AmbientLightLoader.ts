@@ -31,10 +31,9 @@ class AmbientLightLoader extends Loader<AmbientLight> {
     const header = FileHeader.decode(buffer);
     const dataOffset = header.headerLength;
     const sh = new SphericalHarmonics3();
-    sh.copyFromArray(new Float
-      32Array(buffer, dataOffset, 27));
+    sh.copyFromArray(new Float32Array(buffer, dataOffset, 27));
 
-    const texturePromise = header.type === "AmbientLightKTX2"
+    const texturePromise = header.version >= 2
       ? AmbientLightLoader._parseCompressedTexture(
           engine, buffer, dataOffset + AmbientLightLoader._shByteLength, header.dataLength - AmbientLightLoader._shByteLength, texture
         )
