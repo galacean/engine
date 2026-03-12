@@ -17,10 +17,10 @@ import {
 } from "@galacean/engine-core";
 import { SphericalHarmonics3 } from "@galacean/engine-math";
 import { KTX2Loader } from "./ktx2/KTX2Loader";
+import { FileHeader } from "./resource-deserialize/utils/FileHeader";
 
 @resourceLoader(AssetType.AmbientLight, ["ambLight"])
 class AmbientLightLoader extends Loader<AmbientLight> {
-  private static _magic = 0x56_4e_45_47; // "GENV" magic for compressed format
   private static _shByteLength = 27 * 4;
 
   private static _parse(
@@ -28,26 +28,32 @@ class AmbientLightLoader extends Loader<AmbientLight> {
     buffer: ArrayBuffer,
     texture?: TextureCube
   ): { sh: SphericalHarmonics3; texturePromise: Promise<TextureCube> } {
-    const isCompressed = new DataView(buffer).getUint32(0, true) === AmbientLightLoader._magic;
+    const isCompressed = FileHeader.checkMagic(buffer);
     const sh = new SphericalHarmonics3();
-    const shOffset = isCompressed ? 8 : 0; // compressed: magic(4) + version(4)
-    sh.copyFromArray(new Float32Array(buffer, shOffset, 27));
 
-    const texturePromise = isCompressed
-      ? AmbientLightLoader._parseCompressedTexture(engine, buffer, texture)
-      : AmbientLightLoader._parseRawTexture(engine, buffer, texture);
+    if (isCompressed) {
+      const header = FileHeader.decode(buffer);
+      const dataOffset = header.headerLength;
+      sh.copyFromArray(new Float32Array(buffer, dataOffset, 27));
+      const texturePromise = AmbientLightLoader._parseCompressedTexture(
+        engine, buffer, dataOffset + AmbientLightLoader._shByteLength, header.dataLength - AmbientLightLoader._shByteLength, texture
+      );
+      return { sh, texturePromise };
+    }
+
+    sh.copyFromArray(new Float32Array(buffer, 0, 27));
+    const texturePromise = AmbientLightLoader._parseRawTexture(engine, buffer, texture);
     return { sh, texturePromise };
   }
 
   private static _parseCompressedTexture(
     engine: Engine,
     buffer: ArrayBuffer,
+    ktx2Offset: number,
+    ktx2Length: number,
     texture?: TextureCube
   ): Promise<TextureCube> {
-    const dataView = new DataView(buffer);
-    const ktx2LengthOffset = 8 + AmbientLightLoader._shByteLength;
-    const ktx2Length = dataView.getUint32(ktx2LengthOffset, true);
-    const ktx2Data = new Uint8Array(buffer, ktx2LengthOffset + 4, ktx2Length);
+    const ktx2Data = new Uint8Array(buffer, ktx2Offset, ktx2Length);
 
     return KTX2Loader._parseBuffer(ktx2Data, engine).then(
       ({ ktx2Container, engine, result, targetFormat, params }) => {
