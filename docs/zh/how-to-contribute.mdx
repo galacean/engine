@@ -178,7 +178,7 @@ async function setupDefaultScene(scene: Scene) {
 ```ts /specularTexture/
   engine.resourceManager
     .load<AmbientLight>({
-      type: AssetType.Env,
+      type: AssetType.AmbientLight,
       url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
     })
     .then((ambientLight) => {
@@ -194,7 +194,7 @@ async function setupDefaultScene(scene: Scene) {
 ```ts /specularTexture/
 engine.resourceManager
   .load<AmbientLight>({
-    type: AssetType.Env,
+    type: AssetType.AmbientLight,
     url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
   })
   .then((ambientLight) => {

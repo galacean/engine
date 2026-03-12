@@ -265,7 +265,7 @@ WebGLEngine.create({ canvas: "canvas", physics: new PhysXPhysics() }).then((engi
   // Load environment and run E2E
   engine.resourceManager
     .load<AmbientLight>({
-      type: AssetType.Env,
+      type: AssetType.AmbientLight,
       url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env"
     })
     .then((ambientLight) => {

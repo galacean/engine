@@ -1,7 +1,7 @@
 import "./AnimationClipLoader";
 import "./AnimatorControllerLoader";
 import "./BufferLoader";
-import "./EnvLoader";
+import "./AmbientLightLoader";
 import "./FontLoader";
 import "./GLTFLoader";
 import "./PrefabLoader";
