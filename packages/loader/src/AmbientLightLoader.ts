@@ -28,21 +28,19 @@ class AmbientLightLoader extends Loader<AmbientLight> {
     buffer: ArrayBuffer,
     texture?: TextureCube
   ): { sh: SphericalHarmonics3; texturePromise: Promise<TextureCube> } {
-    const isCompressed = FileHeader.checkMagic(buffer);
+    const header = FileHeader.decode(buffer);
+    const dataOffset = header.headerLength;
     const sh = new SphericalHarmonics3();
+    sh.copyFromArray(new Float
+      32Array(buffer, dataOffset, 27));
 
-    if (isCompressed) {
-      const header = FileHeader.decode(buffer);
-      const dataOffset = header.headerLength;
-      sh.copyFromArray(new Float32Array(buffer, dataOffset, 27));
-      const texturePromise = AmbientLightLoader._parseCompressedTexture(
-        engine, buffer, dataOffset + AmbientLightLoader._shByteLength, header.dataLength - AmbientLightLoader._shByteLength, texture
-      );
-      return { sh, texturePromise };
-    }
-
-    sh.copyFromArray(new Float32Array(buffer, 0, 27));
-    const texturePromise = AmbientLightLoader._parseRawTexture(engine, buffer, texture);
+    const texturePromise = header.type === "AmbientLightKTX2"
+      ? AmbientLightLoader._parseCompressedTexture(
+          engine, buffer, dataOffset + AmbientLightLoader._shByteLength, header.dataLength - AmbientLightLoader._shByteLength, texture
+        )
+      : AmbientLightLoader._parseRawTexture(
+          engine, buffer, dataOffset + AmbientLightLoader._shByteLength, texture
+        );
     return { sh, texturePromise };
   }
 
@@ -69,13 +67,14 @@ class AmbientLightLoader extends Loader<AmbientLight> {
   private static _parseRawTexture(
     engine: Engine,
     buffer: ArrayBuffer,
+    dataOffset: number,
     texture?: TextureCube
   ): Promise<TextureCube> {
-    const size = new Uint16Array(buffer, AmbientLightLoader._shByteLength, 1)[0];
+    const size = new Uint16Array(buffer, dataOffset, 1)[0];
     texture ||= new TextureCube(engine, size, TextureFormat.R16G16B16A16, true, false);
     texture.filterMode = TextureFilterMode.Trilinear;
     const mipmapCount = texture.mipmapCount;
-    let offset = AmbientLightLoader._shByteLength + 2;
+    let offset = dataOffset + 2;
 
     for (let mipLevel = 0; mipLevel < mipmapCount; mipLevel++) {
       const mipSize = size >> mipLevel;
