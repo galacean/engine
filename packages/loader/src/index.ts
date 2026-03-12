@@ -34,3 +34,4 @@ export { KTX2Loader } from "./ktx2/KTX2Loader";
 export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
 export * from "./resource-deserialize";
 export * from "./prefab/PrefabResource";
+export { HDRDecoder } from "./HDRDecoder";
