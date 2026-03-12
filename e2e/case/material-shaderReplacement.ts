@@ -48,7 +48,7 @@ async function main() {
   engine.resourceManager
     .load([
       {
-        type: AssetType.Env,
+        type: AssetType.AmbientLight,
         url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aaq7R7_GNWYAAAAAgBAAAAgAekp5AQ/Internal/Bake/ambient.env"
       },
       {

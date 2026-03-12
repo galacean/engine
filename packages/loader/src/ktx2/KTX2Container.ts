@@ -21,6 +21,12 @@ export enum SupercompressionScheme {
 
 /** @internal */
 export class KTX2Container {
+  static checkMagic(buffer: ArrayBuffer, offset: number = 0): boolean {
+    if (buffer.byteLength < offset + 4) return false;
+    const id = new Uint8Array(buffer, offset, 4);
+    return id[0] === 0xab && id[1] === 0x4b && id[2] === 0x54 && id[3] === 0x58;
+  }
+
   vkFormat = 0;
 
   typeSize = 1;

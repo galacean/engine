@@ -32,12 +32,12 @@ In addition to real-time computed direct light sources, we generally need to pre
 
 ## Script Usage
 
-After obtaining the URL of the baked product through the [baking tutorial](/en/docs/graphics/light/bake/), load and parse it through the engine's EnvLoader:
+After obtaining the URL of the baked product through the [baking tutorial](/en/docs/graphics/light/bake/), load and parse it through the engine's AmbientLightLoader:
 
 ```typescript
 engine.resourceManager
   .load<AmbientLight>({
-    type: AssetType.Env,
+    type: AssetType.AmbientLight,
     url: "https://gw.alipayobjects.com/os/bmw-prod/89c54544-1184-45a1-b0f5-c0b17e5c3e68.bin"
   })
   .then((ambientLight) => {

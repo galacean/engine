@@ -172,7 +172,7 @@ class Oasis {
     return new Promise((resolve) => {
       this.engine.resourceManager
         .load<AmbientLight>({
-          type: AssetType.Env,
+          type: AssetType.AmbientLight,
           url: envList[envName]
         })
         .then((env) => {

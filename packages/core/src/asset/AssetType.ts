@@ -39,7 +39,7 @@ export enum AssetType {
   /** Sprite Atlas. */
   SpriteAtlas = "SpriteAtlas",
   /** Ambient light. */
-  Env = "Environment",
+  AmbientLight = "AmbientLight",
   /** Scene. */
   Scene = "Scene",
   /** Font. */

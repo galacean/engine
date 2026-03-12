@@ -10,8 +10,6 @@ import {
   TextureCube,
   TextureCubeFace,
   TextureFormat,
-  TextureUtils,
-  request,
   resourceLoader
 } from "@galacean/engine-core";
 import { HDRDecoder } from "./HDRDecoder";
@@ -19,14 +17,6 @@ import { HDRDecoder } from "./HDRDecoder";
 @resourceLoader(AssetType.TextureCube, ["texCube", "hdr"])
 class TextureCubeLoader extends Loader<TextureCube> {
   override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
-    if (item.urls) {
-      return this._loadCubeFaces(item, resourceManager);
-    } else {
-      return this._loadHDR(item, resourceManager);
-    }
-  }
-
-  private _loadHDR(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
       const url = item.url;
@@ -57,63 +47,6 @@ class TextureCubeLoader extends Loader<TextureCube> {
         .catch(reject);
     });
   }
-
-  private _loadCubeFaces(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
-    return new AssetPromise((resolve, reject) => {
-      const urls = item.urls;
-      const requestConfig = <RequestConfig>{
-        ...item,
-        type: "image"
-      };
-
-      // @ts-ignore
-      Promise.all(urls.map((url) => resourceManager._request<HTMLImageElement>(url, requestConfig)))
-        .then((images) => {
-          const {
-            format = TextureFormat.R8G8B8A8,
-            anisoLevel,
-            wrapModeU,
-            wrapModeV,
-            filterMode,
-            isSRGBColorSpace = true,
-            mipmap = true
-          } = item.params ?? {};
-          const { width, height } = images[0];
-
-          if (width !== height) {
-            reject(new Error("The cube texture must have the same width and height"));
-            return;
-          }
-
-          const engine = resourceManager.engine;
-
-          const generateMipmap = TextureUtils.supportGenerateMipmapsWithCorrection(
-            engine,
-            width,
-            height,
-            format,
-            mipmap,
-            isSRGBColorSpace
-          );
-
-          const texture = new TextureCube(engine, width, format, generateMipmap, isSRGBColorSpace);
-
-          texture.anisoLevel = anisoLevel ?? texture.anisoLevel;
-          texture.filterMode = filterMode ?? texture.filterMode;
-          texture.wrapModeU = wrapModeU ?? texture.wrapModeU;
-          texture.wrapModeV = wrapModeV ?? texture.wrapModeV;
-
-          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            texture.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
-          }
-          texture.generateMipmaps();
-
-          resourceManager.addContentRestorer(new CubeFaceContentRestorer(texture, urls, requestConfig));
-          resolve(texture);
-        })
-        .catch(reject);
-    });
-  }
 }
 
 class HDRContentRestorer extends ContentRestorer<TextureCube> {
@@ -136,31 +69,6 @@ class HDRContentRestorer extends ContentRestorer<TextureCube> {
           HDRDecoder.decodeFaces(bufferArray, HDRDecoder.parseHeader(bufferArray), (faceIndex, data) => {
             resource.setPixelBuffer(TextureCubeFace.PositiveX + faceIndex, data, 0);
           });
-          resource.generateMipmaps();
-          resolve(resource);
-        })
-        .catch(reject);
-    });
-  }
-}
-
-class CubeFaceContentRestorer extends ContentRestorer<TextureCube> {
-  constructor(
-    resource: TextureCube,
-    public urls: string[],
-    public requestConfig: RequestConfig
-  ) {
-    super(resource);
-  }
-
-  override restoreContent(): AssetPromise<TextureCube> {
-    return new AssetPromise((resolve, reject) => {
-      Promise.all(this.urls.map((url) => request<HTMLImageElement>(url, this.requestConfig)))
-        .then((images) => {
-          const resource = this.resource;
-          for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
-            resource.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
-          }
           resource.generateMipmaps();
           resolve(resource);
         })

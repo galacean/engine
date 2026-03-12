@@ -247,7 +247,7 @@ describe("Light test", function () {
     sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
 
     ambientLightA = await engine.resourceManager.load<AmbientLight>({
-      type: AssetType.Env,
+      type: AssetType.AmbientLight,
       url: lightResource //'https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin'
     });
     if (ambientLightA) {
