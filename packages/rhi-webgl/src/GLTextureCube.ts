@@ -43,10 +43,6 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
 
     this._bind();
 
-    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-    gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
-
     if (isCompressed) {
       const mipBit = 1 << mipLevel;
       if (isWebGL2 || this._compressedFaceFilled[face] & mipBit) {
@@ -73,6 +69,9 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
         this._compressedFaceFilled[face] |= mipBit;
       }
     } else {
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
+      gl.pixelStorei(gl.UNPACK_ALIGNMENT, formatDetail.alignment);
       gl.texSubImage2D(
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
         mipLevel,
