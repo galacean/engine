@@ -1,5 +1,4 @@
 /**
- * @internal
  * HDR panorama to cubemap decoder.
  */
 export class HDRDecoder {
