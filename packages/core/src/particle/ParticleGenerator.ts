@@ -1,4 +1,4 @@
-import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Primitive } from "../graphic/Primitive";
@@ -774,10 +774,10 @@ export class ParticleGenerator {
     if (this._renderer.renderMode !== ParticleRenderMode.Mesh) {
       isFlip = !isFlip;
     }
-    const rotationZ = MathUtil.degreeToRadian(main.startRotationZ.evaluate(undefined, startRotationRand.random()));
+    const rotationZ = main.startRotationZ.evaluate(undefined, startRotationRand.random());
     if (main.startRotation3D) {
-      const rotationX = MathUtil.degreeToRadian(main.startRotationX.evaluate(undefined, startRotationRand.random()));
-      const rotationY = MathUtil.degreeToRadian(main.startRotationY.evaluate(undefined, startRotationRand.random()));
+      const rotationX = main.startRotationX.evaluate(undefined, startRotationRand.random());
+      const rotationY = main.startRotationY.evaluate(undefined, startRotationRand.random());
       instanceVertices[offset + 15] = isFlip ? -rotationX : rotationX;
       instanceVertices[offset + 16] = isFlip ? -rotationY : rotationY;
       instanceVertices[offset + 17] = isFlip ? -rotationZ : rotationZ;
