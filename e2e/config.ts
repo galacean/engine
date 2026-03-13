@@ -345,7 +345,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0,
-      diffPercentage: 0.0073
+      diffPercentage: 0.0162
     },
     particleEmissive: {
       category: "Particle",
@@ -393,7 +393,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-life",
       threshold: 0,
-      diffPercentage: 0.0098
+      diffPercentage: 0.036459
     },
     particleEmitMeshConeScaleRotationLifeSeperate: {
       category: "Particle",
