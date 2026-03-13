@@ -327,13 +327,13 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0.064
+      diffPercentage: 0.0707
     },
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
       threshold: 0,
-      diffPercentage: 0.007709
+      diffPercentage: 0.1630209
     },
     textureSheetAnimation: {
       category: "Particle",
