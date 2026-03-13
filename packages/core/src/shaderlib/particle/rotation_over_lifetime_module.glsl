@@ -1,16 +1,16 @@
 #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
     #ifdef RENDERER_ROL_CURVE_MODE
         uniform vec2 renderer_ROLMaxCurveZ[4];
-        // #ifdef RENDERER_ROL_IS_SEPARATE
-        //     uniform vec2 renderer_ROLMaxCurveX[4];
-        //     uniform vec2 renderer_ROLMaxCurveY[4];
-        // #endif
+        #ifdef RENDERER_ROL_IS_SEPARATE
+            uniform vec2 renderer_ROLMaxCurveX[4];
+            uniform vec2 renderer_ROLMaxCurveY[4];
+        #endif
         #ifdef RENDERER_ROL_IS_RANDOM_TWO
             uniform vec2 renderer_ROLMinCurveZ[4];
-            // #ifdef RENDERER_ROL_IS_SEPARATE
-            //     uniform vec2 renderer_ROLMinCurveX[4];
-            //     uniform vec2 renderer_ROLMinCurveY[4];
-            // #endif
+            #ifdef RENDERER_ROL_IS_SEPARATE
+                uniform vec2 renderer_ROLMinCurveX[4];
+                uniform vec2 renderer_ROLMinCurveY[4];
+            #endif
         #endif
     #else
         uniform vec3 renderer_ROLMaxConst;
@@ -53,18 +53,21 @@ vec3 computeParticleRotationVec3(in vec3 rotation, in float age, in float normal
             rotation += ageRot;
         #endif
         #ifdef RENDERER_ROL_CURVE_MODE
+            float currentValue;
+            float lifetime = a_ShapePositionStartLifeTime.w;
             #ifdef RENDERER_ROL_IS_RANDOM_TWO
                 rotation += vec3(
-                mix(getTotalValueFromGradientFloat(renderer_ROLMinCurveX, normalizedAge),
-                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveX, normalizedAge), a_Random0.w),
-                mix(getTotalValueFromGradientFloat(renderer_ROLMinCurveY, normalizedAge),
-                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveY, normalizedAge), a_Random0.w),
-                mix(getTotalValueFromGradientFloat(renderer_ROLMinCurveZ, normalizedAge),
-                    getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge), a_Random0.w));
+                    mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveX, normalizedAge, currentValue),
+                        evaluateParticleCurveCumulative(renderer_ROLMaxCurveX, normalizedAge, currentValue), a_Random0.w),
+                    mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveY, normalizedAge, currentValue),
+                        evaluateParticleCurveCumulative(renderer_ROLMaxCurveY, normalizedAge, currentValue), a_Random0.w),
+                    mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge, currentValue),
+                        evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge, currentValue), a_Random0.w)) * lifetime;
             #else
-                rotation += vec3(getTotalValueFromGradientFloat(renderer_ROLMaxCurveX, normalizedAge),
-                getTotalValueFromGradientFloat(renderer_ROLMaxCurveY, normalizedAge),
-                getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge));
+                rotation += vec3(
+                    evaluateParticleCurveCumulative(renderer_ROLMaxCurveX, normalizedAge, currentValue),
+                    evaluateParticleCurveCumulative(renderer_ROLMaxCurveY, normalizedAge, currentValue),
+                    evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge, currentValue)) * lifetime;
             #endif
         #endif
     #else
@@ -78,14 +81,12 @@ vec3 computeParticleRotationVec3(in vec3 rotation, in float age, in float normal
         #endif
 
         #ifdef RENDERER_ROL_CURVE_MODE
+            float currentValue;
+            float lifeRotation = evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge, currentValue);
             #ifdef RENDERER_ROL_IS_RANDOM_TWO
-                rotation += mix(
-                getTotalValueFromGradientFloat(renderer_ROLMinCurveZ, normalizedAge),
-                getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge),
-                a_Random0.w);
-            #else
-                rotation += getTotalValueFromGradientFloat(renderer_ROLMaxCurveZ, normalizedAge);
+                lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge, currentValue), lifeRotation, a_Random0.w);
             #endif
+            rotation += lifeRotation * a_ShapePositionStartLifeTime.w;
         #endif
     #endif
     return rotation;
