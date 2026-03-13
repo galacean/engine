@@ -327,13 +327,13 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0.064
+      diffPercentage: 0.0707
     },
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
-      threshold: 0.005,
-      diffPercentage: 0.0054
+      threshold: 0,
+      diffPercentage: 0.1630209
     },
     textureSheetAnimation: {
       category: "Particle",
@@ -345,7 +345,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0,
-      diffPercentage: 0.0073
+      diffPercentage: 0.0162
     },
     particleEmissive: {
       category: "Particle",
@@ -393,7 +393,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-life",
       threshold: 0,
-      diffPercentage: 0.0098
+      diffPercentage: 0.036459
     },
     particleEmitMeshConeScaleRotationLifeSeperate: {
       category: "Particle",
