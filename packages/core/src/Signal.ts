@@ -3,12 +3,7 @@ import { ignoreClone } from "./clone/CloneManager";
 
 /**
  * Signal is a typed event mechanism for Galacean Engine.
- *
- * Components expose Signal fields to allow event binding from both the editor
- * (deserialized as `on()` calls during scene loading) and code.
- *
  * @typeParam T - Tuple type of the signal arguments
- *
  */
 export class Signal<T extends any[] = []> {
   @ignoreClone
