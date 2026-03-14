@@ -1,6 +1,6 @@
-import { Engine, SafeLoopArray } from "@galacean/engine";
+import { Engine, Signal } from "@galacean/engine";
 import { IXRInputEvent } from "@galacean/engine-design";
-import { IXRListener, XRManagerExtended } from "../XRManagerExtended";
+import { XRManagerExtended } from "../XRManagerExtended";
 import { XRCamera } from "./XRCamera";
 import { XRController } from "./XRController";
 import { XRInput } from "./XRInput";
@@ -14,6 +14,9 @@ import { XRTrackingState } from "./XRTrackingState";
  * The manager of XR input.
  */
 export class XRInputManager {
+  /** Signal emitted when tracked devices change. */
+  readonly onTrackedDeviceChanged = new Signal<[readonly XRInput[], readonly XRInput[]]>();
+
   /** @internal */
   _cameras: XRCamera[] = [];
   /** @internal */
@@ -23,7 +26,6 @@ export class XRInputManager {
   private _removed: XRInput[] = [];
   private _trackedDevices: XRInput[] = [];
   private _statusSnapshot: XRTrackingState[] = [];
-  private _listeners: SafeLoopArray<IXRListener> = new SafeLoopArray<IXRListener>();
 
   /**
    * @internal
@@ -63,18 +65,18 @@ export class XRInputManager {
 
   /**
    * Add a listener for tracked device changes.
-   * @param listener - The listener to add
+   * @deprecated Use `onTrackedDeviceChanged.on(listener)` instead.
    */
   addTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
-    this._listeners.push({ fn: listener });
+    this.onTrackedDeviceChanged.on(listener);
   }
 
   /**
    * Remove a listener of tracked device changes.
-   * @param listener - The listener to remove
+   * @deprecated Use `onTrackedDeviceChanged.off(listener)` instead.
    */
   removeTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
-    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
+    this.onTrackedDeviceChanged.off(listener);
   }
 
   /**
@@ -114,11 +116,7 @@ export class XRInputManager {
     }
     // Dispatch change event
     if (added.length > 0 || removed.length > 0) {
-      const listeners = this._listeners.getLoopArray();
-      for (let i = 0, n = listeners.length; i < n; i++) {
-        const listener = listeners[i];
-        !listener.destroyed && listener.fn(added, removed);
-      }
+      this.onTrackedDeviceChanged.invoke(added, removed);
     }
   }
 
@@ -126,7 +124,7 @@ export class XRInputManager {
    * @internal
    */
   _onDestroy(): void {
-    this._listeners.findAndRemove((value) => (value.destroyed = true));
+    this.onTrackedDeviceChanged.removeAll();
   }
 
   private _handleEvent(event: IXRInputEvent): void {

@@ -206,11 +206,6 @@ export function registerXRFeature<T extends XRFeature>(type: XRFeatureType): (fe
   };
 }
 
-export interface IXRListener {
-  fn: (...args: any[]) => any;
-  destroyed?: boolean;
-}
-
 type TFeatureConstructor<T extends XRFeature> = new (xrManager: XRManagerExtended, ...args: any[]) => T;
 
 type TFeatureConstructorArguments<T extends new (xrManager: XRManagerExtended, ...args: any[]) => XRFeature> =

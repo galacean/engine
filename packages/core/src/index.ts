@@ -11,6 +11,7 @@ export { SceneManager } from "./SceneManager";
 export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
+export { Signal } from "./Signal";
 export { Renderer, RendererUpdateFlags } from "./Renderer";
 export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";

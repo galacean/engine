@@ -1,6 +1,6 @@
-import { Engine, SafeLoopArray } from "@galacean/engine";
+import { Engine, Signal } from "@galacean/engine";
 import { IHardwareRenderer, IXRSession } from "@galacean/engine-design";
-import { IXRListener, XRManagerExtended } from "../XRManagerExtended";
+import { XRManagerExtended } from "../XRManagerExtended";
 import { XRFeature } from "../feature/XRFeature";
 import { XRSessionMode } from "./XRSessionMode";
 import { XRSessionState } from "./XRSessionState";
@@ -9,6 +9,9 @@ import { XRSessionState } from "./XRSessionState";
  * XRSessionManager manages the life cycle of XR sessions.
  */
 export class XRSessionManager {
+  /** Signal emitted when session state changes. */
+  readonly onStateChanged = new Signal<[XRSessionState]>();
+
   /** @internal */
   _platformSession: IXRSession;
 
@@ -17,7 +20,6 @@ export class XRSessionManager {
   private _rhi: IHardwareRenderer;
   private _raf: (callback: FrameRequestCallback) => number;
   private _caf: (id: number) => void;
-  private _listeners: SafeLoopArray<IXRListener> = new SafeLoopArray<IXRListener>();
 
   /**
    * The current session mode( AR or VR ).
@@ -111,18 +113,18 @@ export class XRSessionManager {
 
   /**
    * Add a listening function for session state changes.
-   * @param listener - The listening function
+   * @deprecated Use `onStateChanged.on(listener)` instead.
    */
   addStateChangedListener(listener: (state: XRSessionState) => void): void {
-    this._listeners.push({ fn: listener });
+    this.onStateChanged.on(listener);
   }
 
   /**
    * Remove a listening function of session state changes.
-   * @param listener - The listening function
+   * @deprecated Use `onStateChanged.off(listener)` instead.
    */
   removeStateChangedListener(listener: (state: XRSessionState) => void): void {
-    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
+    this.onStateChanged.off(listener);
   }
 
   /**
@@ -130,11 +132,7 @@ export class XRSessionManager {
    */
   _setState(value: XRSessionState) {
     this._state = value;
-    const listeners = this._listeners.getLoopArray();
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      const listener = listeners[i];
-      !listener.destroyed && listener.fn(value);
-    }
+    this.onStateChanged.invoke(value);
   }
 
   /**
@@ -224,7 +222,7 @@ export class XRSessionManager {
    * @internal
    */
   _onDestroy(): void {
-    this._listeners.findAndRemove((value) => (value.destroyed = true));
+    this.onStateChanged.removeAll();
     this._raf = this._caf = null;
   }
 }
