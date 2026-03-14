@@ -25,22 +25,6 @@ export abstract class XRTrackableFeature<
   protected _removed: T[] = [];
   protected _statusSnapshot: Record<number, XRTrackingState> = {};
 
-  /**
-   * Add a listening function for tracked object changes.
-   * @deprecated Use `onChanged.on(listener)` instead.
-   */
-  addChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    this.onChanged.on(listener);
-  }
-
-  /**
-   * Remove a listening function of tracked object changes.
-   * @deprecated Use `onChanged.off(listener)` instead.
-   */
-  removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
-    this.onChanged.off(listener);
-  }
-
   override _onUpdate(): void {
     const { _platformSession: platformSession } = this._xrManager.sessionManager;
     const { frame: platformFrame } = platformSession;
@@ -149,4 +133,20 @@ export abstract class XRTrackableFeature<
   }
 
   protected abstract _generateTracked(): T;
+
+  /**
+   * Add a listening function for tracked object changes.
+   * @deprecated Use `onChanged.on(listener)` instead.
+   */
+  addChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
+    this.onChanged.on(listener);
+  }
+
+  /**
+   * Remove a listening function of tracked object changes.
+   * @deprecated Use `onChanged.off(listener)` instead.
+   */
+  removeChangedListener(listener: (added: readonly T[], updated: readonly T[], removed: readonly T[]) => void): void {
+    this.onChanged.off(listener);
+  }
 }

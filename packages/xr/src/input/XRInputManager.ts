@@ -64,22 +64,6 @@ export class XRInputManager {
   }
 
   /**
-   * Add a listener for tracked device changes.
-   * @deprecated Use `onTrackedDeviceChanged.on(listener)` instead.
-   */
-  addTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
-    this.onTrackedDeviceChanged.on(listener);
-  }
-
-  /**
-   * Remove a listener of tracked device changes.
-   * @deprecated Use `onTrackedDeviceChanged.off(listener)` instead.
-   */
-  removeTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
-    this.onTrackedDeviceChanged.off(listener);
-  }
-
-  /**
    * @internal
    */
   _onUpdate(): void {
@@ -209,5 +193,21 @@ export class XRInputManager {
         break;
     }
     return new PointerEvent(type, eventInitDict);
+  }
+
+  /**
+   * Add a listener for tracked device changes.
+   * @deprecated Use `onTrackedDeviceChanged.on(listener)` instead.
+   */
+  addTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
+    this.onTrackedDeviceChanged.on(listener);
+  }
+
+  /**
+   * Remove a listener of tracked device changes.
+   * @deprecated Use `onTrackedDeviceChanged.off(listener)` instead.
+   */
+  removeTrackedDeviceChangedListener(listener: (added: readonly XRInput[], removed: readonly XRInput[]) => void): void {
+    this.onTrackedDeviceChanged.off(listener);
   }
 }

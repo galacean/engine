@@ -112,22 +112,6 @@ export class XRSessionManager {
   }
 
   /**
-   * Add a listening function for session state changes.
-   * @deprecated Use `onStateChanged.on(listener)` instead.
-   */
-  addStateChangedListener(listener: (state: XRSessionState) => void): void {
-    this.onStateChanged.on(listener);
-  }
-
-  /**
-   * Remove a listening function of session state changes.
-   * @deprecated Use `onStateChanged.off(listener)` instead.
-   */
-  removeStateChangedListener(listener: (state: XRSessionState) => void): void {
-    this.onStateChanged.off(listener);
-  }
-
-  /**
    * @internal
    */
   _setState(value: XRSessionState) {
@@ -224,5 +208,21 @@ export class XRSessionManager {
   _onDestroy(): void {
     this.onStateChanged.removeAll();
     this._raf = this._caf = null;
+  }
+
+  /**
+   * Add a listening function for session state changes.
+   * @deprecated Use `onStateChanged.on(listener)` instead.
+   */
+  addStateChangedListener(listener: (state: XRSessionState) => void): void {
+    this.onStateChanged.on(listener);
+  }
+
+  /**
+   * Remove a listening function of session state changes.
+   * @deprecated Use `onStateChanged.off(listener)` instead.
+   */
+  removeStateChangedListener(listener: (state: XRSessionState) => void): void {
+    this.onStateChanged.off(listener);
   }
 }

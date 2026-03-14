@@ -113,7 +113,7 @@ export type IComponentRef = {
 };
 
 export type ISignalRef = {
-  calls: Array<{
+  listeners: Array<{
     target: IComponentRef;
     methodName: string;
     arguments?: Array<IBasicType>;

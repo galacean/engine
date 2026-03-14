@@ -97,13 +97,13 @@ export class ReflectionParser {
   parseSignal(signalRef: ISignalRef): Promise<Signal> {
     const signal = new Signal();
     return Promise.all(
-      signalRef.calls.map((call) =>
+      signalRef.listeners.map((listener) =>
         Promise.all([
-          this.parseBasicType(call.target),
-          call.arguments ? Promise.all(call.arguments.map((a) => this.parseBasicType(a))) : Promise.resolve([])
+          this.parseBasicType(listener.target),
+          listener.arguments ? Promise.all(listener.arguments.map((a) => this.parseBasicType(a))) : Promise.resolve([])
         ]).then(([target, resolvedArgs]) => {
           if (target) {
-            const { methodName } = call;
+            const { methodName } = listener;
             if (resolvedArgs.length > 0) {
               signal.on((...args: any[]) => target[methodName](...resolvedArgs, ...args), target);
             } else {
@@ -219,7 +219,7 @@ export class ReflectionParser {
   }
 
   private static _isSignalRef(value: any): value is ISignalRef {
-    return value["calls"] !== undefined;
+    return value["listeners"] !== undefined;
   }
 
   private static _isMethodObject(value: any): value is IMethod {
