@@ -19,6 +19,7 @@ export class Button extends UIInteractive {
   // @ts-ignore
   override _cloneTo(target: Button, srcRoot: Entity, targetRoot: Entity): void {
     super._cloneTo(target, srcRoot, targetRoot);
+    // @ts-ignore
     this.onClick._cloneTo(target.onClick, srcRoot, targetRoot);
   }
 

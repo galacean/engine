@@ -284,6 +284,7 @@ describe("Signal", async () => {
 
     const srcRoot = root.createChild("clSrc1");
     const targetRoot = srcRoot.clone();
+    // @ts-ignore
     signal._cloneTo(targetSignal, srcRoot, targetRoot);
 
     // Closure listeners should NOT be copied to clone
@@ -304,6 +305,7 @@ describe("Signal", async () => {
     signal.on(handler, "handleClick");
 
     const targetRoot = srcRoot.clone();
+    // @ts-ignore
     signal._cloneTo(targetSignal, srcRoot, targetRoot);
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
@@ -326,6 +328,7 @@ describe("Signal", async () => {
     signal.on(externalHandler, "handleClick");
 
     const targetRoot = srcRoot.clone();
+    // @ts-ignore
     signal._cloneTo(targetSignal, srcRoot, targetRoot);
 
     targetSignal.invoke();
@@ -348,6 +351,7 @@ describe("Signal", async () => {
     signal.on(handler, "handleClickWithPrefix", refHandler);
 
     const targetRoot = srcRoot.clone();
+    // @ts-ignore
     signal._cloneTo(targetSignal, srcRoot, targetRoot);
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
@@ -370,6 +374,7 @@ describe("Signal", async () => {
     signal.once(handler, "handleClick");
 
     const targetRoot = srcRoot.clone();
+    // @ts-ignore
     signal._cloneTo(targetSignal, srcRoot, targetRoot);
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
