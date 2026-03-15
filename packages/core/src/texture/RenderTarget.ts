@@ -55,6 +55,13 @@ export class RenderTarget extends GraphicsResource {
   }
 
   /**
+   * Render color textures.
+   */
+  get colorTextures(): ReadonlyArray<Texture> {
+    return this._colorTextures;
+  }
+
+  /**
    * Render color texture count.
    */
   get colorTextureCount(): number {
