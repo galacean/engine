@@ -19,7 +19,7 @@ WebGLEngine.create({
 
   engine.resourceManager
     .load({
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*fdQBRJIBfBsAAAAAQMAAAAgAekp5AQ/project.json",
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*YguTSLOkvhUAAAAAQMAAAAgAekp5AQ/project.json",
       type: AssetType.Project
     })
     .then(() => {
