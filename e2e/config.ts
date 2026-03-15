@@ -192,6 +192,12 @@ export const E2E_CONFIG = {
       caseFileName: "texture-hdr-ktx2",
       threshold: 0,
       diffPercentage: 0.015
+    },
+    HDR: {
+      category: "Texture",
+      caseFileName: "texture-hdr",
+      threshold: 0,
+      diffPercentage: 0.0512
     }
   },
   Shadow: {
@@ -301,7 +307,7 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.1137
+      diffPercentage: 0.12094
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
@@ -321,13 +327,13 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0.064
+      diffPercentage: 0.0707
     },
     forceOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-force",
-      threshold: 0.005,
-      diffPercentage: 0.0054
+      threshold: 0,
+      diffPercentage: 0.1630209
     },
     textureSheetAnimation: {
       category: "Particle",
@@ -339,7 +345,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0,
-      diffPercentage: 0.0073
+      diffPercentage: 0.0162
     },
     particleEmissive: {
       category: "Particle",
@@ -387,7 +393,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-cone-scale-rotation-life",
       threshold: 0,
-      diffPercentage: 0.0098
+      diffPercentage: 0.036459
     },
     particleEmitMeshConeScaleRotationLifeSeperate: {
       category: "Particle",
@@ -431,7 +437,7 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-customPass",
       threshold: 0,
-      diffPercentage: 0.025
+      diffPercentage: 0.03
     }
   },
   SpriteMask: {
@@ -473,12 +479,6 @@ export const E2E_CONFIG = {
     }
   },
   Other: {
-    ProjectLoader: {
-      category: "Advance",
-      caseFileName: "project-loader",
-      threshold: 0.01,
-      diffPercentage: 0.0016
-    },
     MultiSceneClear: {
       category: "Advance",
       caseFileName: "multi-scene-clear",

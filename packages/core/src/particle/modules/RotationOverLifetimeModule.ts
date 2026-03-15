@@ -1,4 +1,4 @@
-import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
+import { Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
@@ -28,13 +28,13 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
 
   /** Specifies whether the rotation is separate on each axis, when disabled, only `rotationZ` is used. */
   separateAxes: boolean = false;
-  /** Rotation over lifetime for z axis. */
+  /** Rotation over lifetime for x axis, in degrees. */
   @deepClone
   rotationX = new ParticleCompositeCurve(0);
-  /** Rotation over lifetime for z axis. */
+  /** Rotation over lifetime for y axis, in degrees. */
   @deepClone
   rotationY = new ParticleCompositeCurve(0);
-  /** Rotation over lifetime for z axis. */
+  /** Rotation over lifetime for z axis, in degrees. */
   @deepClone
   rotationZ = new ParticleCompositeCurve(45);
 
@@ -96,11 +96,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
         modeMacro = RotationOverLifetimeModule._curveModeMacro;
       } else {
         const constantMax = this._rotationMaxConstant;
-        constantMax.set(
-          MathUtil.degreeToRadian(rotationX.constantMax),
-          MathUtil.degreeToRadian(rotationY.constantMax),
-          MathUtil.degreeToRadian(rotationZ.constantMax)
-        );
+        constantMax.set(rotationX.constantMax, rotationY.constantMax, rotationZ.constantMax);
         shaderData.setVector3(RotationOverLifetimeModule._maxConstantProperty, constantMax);
 
         if (
@@ -111,11 +107,7 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
             : rotationZ.mode === ParticleCurveMode.TwoConstants
         ) {
           const constantMin = this._rotationMinConstant;
-          constantMin.set(
-            MathUtil.degreeToRadian(rotationX.constantMin),
-            MathUtil.degreeToRadian(rotationY.constantMin),
-            MathUtil.degreeToRadian(rotationZ.constantMin)
-          );
+          constantMin.set(rotationX.constantMin, rotationY.constantMin, rotationZ.constantMin);
           shaderData.setVector3(RotationOverLifetimeModule._minConstantProperty, constantMin);
           isRandomTwoMacro = RotationOverLifetimeModule._isRandomTwoMacro;
         }

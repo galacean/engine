@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
-@resourceLoader(AssetType.AnimationClip, ["ani"])
+@resourceLoader(AssetType.AnimationClip, ["anim"])
 class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve, reject) => {
@@ -45,7 +45,7 @@ class AnimationClipLoader extends Loader<AnimationClip> {
   private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): Promise<any> {
     const value = keyframe.value;
 
-    if (typeof value === "object" && (value as any)?.refId) {
+    if (typeof value === "object" && (value as any)?.url) {
       return new Promise((resolve) => {
         resourceManager
           // @ts-ignore

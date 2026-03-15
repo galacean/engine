@@ -8,7 +8,7 @@ import {
   PhysicsMaterial
 } from "@galacean/engine-core";
 
-@resourceLoader(AssetType.PhysicsMaterial, ["mesh"])
+@resourceLoader(AssetType.PhysicsMaterial, ["physMat"])
 class PhysicsMaterialLoader extends Loader<PhysicsMaterial> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<PhysicsMaterial> {
     return (

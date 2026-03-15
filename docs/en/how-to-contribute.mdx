@@ -173,13 +173,12 @@ async function setupDefaultScene(scene: Scene) {
 ```ts /specularTexture/
   engine.resourceManager
     .load<AmbientLight>({
-      type: AssetType.Env,
+      type: AssetType.AmbientLight,
       url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
     })
     .then((ambientLight) => {
       scene.ambientLight = ambientLight;
       skyMaterial.texture = ambientLight.specularTexture;
-      skyMaterial.textureDecodeRGBM = true;
       openDebug(ambientLight.specularTexture);
       engine.run();
     });
@@ -190,13 +189,12 @@ The effect produced by the above syntax is as follows:
 ```ts /specularTexture/
 engine.resourceManager
   .load<AmbientLight>({
-    type: AssetType.Env,
+    type: AssetType.AmbientLight,
     url: "https://gw.alipayobjects.com/os/bmw-prod/6470ea5e-094b-4a77-a05f-4945bf81e318.bin",
   })
   .then((ambientLight) => {
     scene.ambientLight = ambientLight;
     skyMaterial.texture = ambientLight.specularTexture;
-    skyMaterial.textureDecodeRGBM = true;
     openDebug(ambientLight.specularTexture);
     engine.run();
   });

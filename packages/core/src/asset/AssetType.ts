@@ -39,11 +39,9 @@ export enum AssetType {
   /** Sprite Atlas. */
   SpriteAtlas = "SpriteAtlas",
   /** Ambient light. */
-  Env = "Environment",
+  AmbientLight = "AmbientLight",
   /** Scene. */
   Scene = "Scene",
-  /** HDR to cube. */
-  HDR = "HDR",
   /** Font. */
   Font = "Font",
   /** Source Font, include ttf, otf and woff. */

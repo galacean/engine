@@ -5,10 +5,10 @@
 	corner *= computeParticleSizeBillboard(a_StartSize.xy, normalizedAge);
     #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
         if (renderer_ThreeDStartRotation) {
-            vec3 rotation = vec3(a_StartRotation0.xy, computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge));
+            vec3 rotation = radians(vec3(a_StartRotation0.xy, computeParticleRotationFloat(a_StartRotation0.z, age, normalizedAge)));
             center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, rotation);
         } else {
-            float rot = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
+            float rot = radians(computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge));
             float c = cos(rot);
             float s = sin(rot);
             mat2 rotation = mat2(c, -s, s, c);
@@ -17,10 +17,10 @@
         }
     #else
         if (renderer_ThreeDStartRotation) {
-            center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, a_StartRotation0);
+            center += renderer_SizeScale.xzy * rotationByEuler(corner.x * sideVector + corner.y * upVector, radians(a_StartRotation0));
         } else {
-            float c = cos(a_StartRotation0.x);
-            float s = sin(a_StartRotation0.x);
+            float c = cos(radians(a_StartRotation0.x));
+            float s = sin(radians(a_StartRotation0.x));
             mat2 rotation = mat2(c, -s, s, c);
             corner = rotation * corner;
             center += renderer_SizeScale.xzy * (corner.x * sideVector + corner.y * upVector);

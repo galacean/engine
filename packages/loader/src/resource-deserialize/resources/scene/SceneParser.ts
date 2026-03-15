@@ -29,11 +29,11 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
       const { customAmbientLight, ambientLight } = ambient;
       if (useCustomAmbient && customAmbientLight) {
         // @ts-ignore
-        context._addDependentAsset(customAmbientLight.refId, resourceManager.getResourceByRef(customAmbientLight));
+        context._addDependentAsset(customAmbientLight.url, resourceManager.getResourceByRef(customAmbientLight));
       }
       if (ambientLight && (!useCustomAmbient || useSH)) {
         // @ts-ignore
-        context._addDependentAsset(ambientLight.refId, resourceManager.getResourceByRef(ambientLight));
+        context._addDependentAsset(ambientLight.url, resourceManager.getResourceByRef(ambientLight));
       }
     }
 
@@ -42,14 +42,14 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
     if (backgroundMode === BackgroundMode.Texture) {
       const texture = background.texture;
       // @ts-ignore
-      texture && context._addDependentAsset(texture.refId, resourceManager.getResourceByRef(texture));
+      texture && context._addDependentAsset(texture.url, resourceManager.getResourceByRef(texture));
     } else if (backgroundMode === BackgroundMode.Sky) {
       const { skyMesh, skyMaterial } = background;
       if (skyMesh && skyMaterial) {
         // @ts-ignore
-        context._addDependentAsset(skyMesh.refId, resourceManager.getResourceByRef(skyMesh));
+        context._addDependentAsset(skyMesh.url, resourceManager.getResourceByRef(skyMesh));
         // @ts-ignore
-        context._addDependentAsset(skyMaterial.refId, resourceManager.getResourceByRef(skyMaterial));
+        context._addDependentAsset(skyMaterial.url, resourceManager.getResourceByRef(skyMaterial));
       }
     }
   }
@@ -68,11 +68,11 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
     const entities = file.entities;
     for (let i = 0, n = entities.length; i < n; i++) {
       const entity = entities[i];
-      if (!!(<IRefEntity>entity).assetRefId) {
+      if (!!(<IRefEntity>entity).assetUrl) {
         const context = this.context;
-        const { assetRefId: refId, key } = <IRefEntity>entity;
+        const { assetUrl: url, key } = <IRefEntity>entity;
         // @ts-ignore
-        context._addDependentAsset(refId, context.resourceManager.getResourceByRef({ refId, key }));
+        context._addDependentAsset(url, context.resourceManager.getResourceByRef({ url, key }));
       } else if ((<IStrippedEntity>entity).strippedId) {
         continue;
       } else {
@@ -96,7 +96,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
       if (ReflectionParser._isAssetRef(value)) {
         const context = this.context;
         // @ts-ignore
-        context._addDependentAsset(value.refId, context.resourceManager.getResourceByRef(value));
+        context._addDependentAsset(value.url, context.resourceManager.getResourceByRef(value));
       } else {
         for (let key in value) {
           this._searchDependentAssets(value[key]);

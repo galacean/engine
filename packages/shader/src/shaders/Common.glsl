@@ -14,10 +14,6 @@ float pow2(float x ) {
     return x * x;
 }
 
-vec4 RGBMToLinear(vec4 value, float maxRange ) {
-    return vec4( value.rgb * value.a * maxRange, 1.0 );
-}
-
 vec4 gammaToLinear(vec4 value){
     return vec4( pow(value.rgb, vec3(2.2)), value.a);
 }

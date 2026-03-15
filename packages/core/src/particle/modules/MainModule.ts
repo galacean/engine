@@ -35,13 +35,13 @@ export class MainModule implements ICustomClone {
 
   /** A flag to enable 3D particle rotation, when disabled, only `startRotationZ` is used. */
   startRotation3D = false;
-  /** The initial rotation of particles around the x-axis when emitted.*/
+  /** The initial rotation of particles around the x-axis when emitted, in degrees. */
   @deepClone
   startRotationX = new ParticleCompositeCurve(0);
-  /** The initial rotation of particles around the y-axis when emitted. */
+  /** The initial rotation of particles around the y-axis when emitted, in degrees. */
   @deepClone
   startRotationY = new ParticleCompositeCurve(0);
-  /** The initial rotation of particles around the z-axis when emitted. */
+  /** The initial rotation of particles around the z-axis when emitted, in degrees. */
   @deepClone
   startRotationZ = new ParticleCompositeCurve(0);
   /** Makes some particles spin in the opposite direction. */

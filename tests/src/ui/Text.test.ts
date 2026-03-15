@@ -101,6 +101,20 @@ describe("Text", async () => {
     label3.text = "hello world\nddl\nsdfjdslfsdfdssdfsdf";
   });
 
+  it("set font to null should not throw", () => {
+    const textEntity = canvasEntity.createChild("text-null-font");
+    const text = textEntity.addComponent(Text);
+    text.text = "test";
+    text.font = null;
+
+    // Test that accessing bounds does not throw when font is null.
+    expect(() => text.bounds).not.to.throw();
+
+    // Test that bounds remains valid when font is null.
+    const { bounds } = text;
+    expect(bounds).to.not.be.undefined;
+  });
+
   it("Clone", () => {
     const textEntity = canvasEntity.createChild("Image");
     const text = textEntity.addComponent(Text);

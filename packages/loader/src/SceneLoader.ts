@@ -49,7 +49,6 @@ class SceneLoader extends Loader<Scene> {
               scene.ambientLight.specularIntensity = ambient.specularIntensity;
               scene.ambientLight.diffuseMode = ambient.diffuseMode;
               scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
-              scene.ambientLight.specularTextureDecodeRGBM = true;
 
               if (useCustomAmbient && ambient.customAmbientLight) {
                 promises.push(

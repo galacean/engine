@@ -52,11 +52,11 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   _setTaskCompleteProgress: (loaded: number, total: number) => void;
 
   /** @internal */
-  _addDependentAsset(refID: string, promise: AssetPromise<any>): void {
+  _addDependentAsset(url: string, promise: AssetPromise<any>): void {
     const tasks = this._tasks;
-    if (tasks.has(refID)) return;
+    if (tasks.has(url)) return;
     ++this._total;
-    tasks.add(refID);
+    tasks.add(url);
     promise.finally(() => {
       ++this._loaded;
       this._setTaskCompleteProgress(this._loaded, this._total);

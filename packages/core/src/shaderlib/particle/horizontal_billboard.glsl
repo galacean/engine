@@ -3,7 +3,7 @@
 	const vec3 cameraUpVector = vec3(0.0, 0.0, 1.0);
 	const vec3 sideVector = vec3(-1.0, 0.0, 0.0);
 
-	float rot = computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge);
+	float rot = radians(computeParticleRotationFloat(a_StartRotation0.x, age, normalizedAge));
 	float c = cos(rot);
 	float s = sin(rot);
 	mat2 rotation = mat2(c, -s, s, c);

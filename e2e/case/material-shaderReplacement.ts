@@ -48,8 +48,8 @@ async function main() {
   engine.resourceManager
     .load([
       {
-        type: AssetType.Env,
-        url: "https://gw.alipayobjects.com/os/bmw-prod/f369110c-0e33-47eb-8296-756e9c80f254.bin"
+        type: AssetType.AmbientLight,
+        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
       },
       {
         url: "https://gw.alipayobjects.com/os/bmw-prod/150e44f6-7810-4c45-8029-3575d36aff30.gltf",

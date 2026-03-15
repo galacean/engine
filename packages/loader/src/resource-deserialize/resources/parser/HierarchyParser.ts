@@ -223,7 +223,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _getEntityByConfig(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     let entityPromise: Promise<Entity>;
-    if ((<IRefEntity>entityConfig).assetRefId) {
+    if ((<IRefEntity>entityConfig).assetUrl) {
       entityPromise = this._parsePrefab(<IRefEntity>entityConfig, engine);
     } else if ((<IStrippedEntity>entityConfig).strippedId) {
       entityPromise = this._parseStrippedEntity(<IStrippedEntity>entityConfig);
@@ -245,13 +245,13 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private _parsePrefab(entityConfig: IRefEntity, engine: Engine): Promise<Entity> {
-    const assetRefId: string = entityConfig.assetRefId;
+    const assetUrl: string = entityConfig.assetUrl;
 
     return (
       engine.resourceManager
         // @ts-ignore
         .getResourceByRef<Entity>({
-          refId: assetRefId
+          url: assetUrl
         })
         .then((prefabResource: PrefabResource | GLTFResource) => {
           const entity =
@@ -310,7 +310,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
     for (let i = 0, n = components.length; i < n; i++) {
       const componentConfig = components[i];
-      const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
+      const key = !componentConfig.url ? componentConfig.class : componentConfig.url;
       const componentId = componentConfig.id;
       const component = entity.addComponent(Loader.getClass(key));
       componentMap.set(componentId, component);

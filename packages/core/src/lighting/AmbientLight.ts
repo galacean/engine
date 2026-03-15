@@ -14,7 +14,6 @@ import { DiffuseMode } from "./enums/DiffuseMode";
 export class AmbientLight extends ReferResource {
   private static _shMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SH");
   private static _specularMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV");
-  private static _decodeRGBMMacro: ShaderMacro = ShaderMacro.getByName("SCENE_IS_DECODE_ENV_RGBM");
 
   private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuse");
   private static _diffuseSHProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSH");
@@ -35,23 +34,6 @@ export class AmbientLight extends ReferResource {
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
   private _scenes: Scene[] = [];
-  private _specularTextureDecodeRGBM: boolean = false;
-
-  /**
-   * Whether to decode from specularTexture with RGBM format.
-   */
-  get specularTextureDecodeRGBM(): boolean {
-    return this._specularTextureDecodeRGBM;
-  }
-
-  set specularTextureDecodeRGBM(value: boolean) {
-    this._specularTextureDecodeRGBM = value;
-
-    const scenes = this._scenes;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      this._setSpecularTextureDecodeRGBM(scenes[i].shaderData);
-    }
-  }
 
   /**
    * Diffuse mode of ambient light.
@@ -162,7 +144,6 @@ export class AmbientLight extends ReferResource {
     shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
 
     this._setDiffuseMode(shaderData);
-    this._setSpecularTextureDecodeRGBM(shaderData);
     this._setSpecularTexture(shaderData);
   }
 
@@ -198,14 +179,6 @@ export class AmbientLight extends ReferResource {
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
     } else {
       sceneShaderData.disableMacro(AmbientLight._specularMacro);
-    }
-  }
-
-  private _setSpecularTextureDecodeRGBM(sceneShaderData: ShaderData): void {
-    if (this._specularTextureDecodeRGBM) {
-      sceneShaderData.enableMacro(AmbientLight._decodeRGBMMacro);
-    } else {
-      sceneShaderData.disableMacro(AmbientLight._decodeRGBMMacro);
     }
   }
 

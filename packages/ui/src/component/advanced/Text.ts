@@ -603,6 +603,7 @@ export class Text extends UIRenderer implements ITextRenderer {
   private _isTextNoVisible(): boolean {
     const size = (<UITransform>this._transformEntity.transform).size;
     return (
+      !this._font ||
       this._text === "" ||
       this._fontSize === 0 ||
       (this.enableWrapping && size.x <= 0) ||

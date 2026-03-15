@@ -1,11 +1,10 @@
 import "./AnimationClipLoader";
 import "./AnimatorControllerLoader";
 import "./BufferLoader";
-import "./EnvLoader";
+import "./AmbientLightLoader";
 import "./FontLoader";
 import "./GLTFLoader";
 import "./PrefabLoader";
-import "./HDRLoader";
 import "./JSONLoader";
 import "./KTXCubeLoader";
 import "./KTXLoader";
@@ -35,3 +34,4 @@ export { KTX2Loader } from "./ktx2/KTX2Loader";
 export { KTX2TargetFormat } from "./ktx2/KTX2TargetFormat";
 export * from "./resource-deserialize";
 export * from "./prefab/PrefabResource";
+export { HDRDecoder } from "./HDRDecoder";
