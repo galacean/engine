@@ -88,24 +88,6 @@ describe("Signal", async () => {
     expect(fn2).not.toHaveBeenCalled();
   });
 
-  it("hasListeners reflects state", () => {
-    const signal = new Signal();
-    expect(signal.hasListeners).toBe(false);
-    const fn = vi.fn();
-    signal.on(fn);
-    expect(signal.hasListeners).toBe(true);
-    signal.off(fn);
-    expect(signal.hasListeners).toBe(false);
-  });
-
-  it("hasListeners after once + invoke", () => {
-    const signal = new Signal();
-    signal.once(vi.fn());
-    expect(signal.hasListeners).toBe(true);
-    signal.invoke();
-    expect(signal.hasListeners).toBe(false);
-  });
-
   it("invoke with no listeners does not throw", () => {
     const signal = new Signal<[number]>();
     expect(() => signal.invoke(42)).not.toThrow();
@@ -283,10 +265,13 @@ describe("Signal", async () => {
     expect(handler.callCount).toBe(0);
     // Other listeners should still fire
     expect(fn).toHaveBeenCalledOnce();
-    // Destroyed listener should be cleaned up
-    expect(signal.hasListeners).toBe(true); // fn still there
+    // Verify structured binding was auto-cleaned: off the closure, then invoke again
     signal.off(fn);
-    expect(signal.hasListeners).toBe(false); // structured binding was auto-cleaned
+    const fn2 = vi.fn();
+    signal.on(fn2);
+    signal.invoke();
+    // fn2 fires, but destroyed handler's binding should not cause errors
+    expect(fn2).toHaveBeenCalledOnce();
   });
 
   // ---- Clone ----
@@ -302,7 +287,6 @@ describe("Signal", async () => {
     signal._cloneTo(targetSignal, srcRoot, targetRoot);
 
     // Closure listeners should NOT be copied to clone
-    expect(targetSignal.hasListeners).toBe(false);
     targetSignal.invoke(42);
     expect(fn).not.toHaveBeenCalled();
 

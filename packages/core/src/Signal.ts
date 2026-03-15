@@ -88,8 +88,7 @@ export class Signal<T extends any[] = []> {
     if (target !== undefined) {
       this._listeners.findAndRemove((listener) => {
         if (listener.target === target) {
-          listener.destroyed = true;
-          return true;
+          return (listener.destroyed = true);
         }
         return false;
       });
@@ -107,7 +106,6 @@ export class Signal<T extends any[] = []> {
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
       if (listener.destroyed) continue;
-      // Lazy cleanup: auto-remove structured bindings whose target component is destroyed
       if (listener.methodName && listener.target.destroyed) {
         listener.destroyed = true;
         this._listeners.findAndRemove((l) => l === listener);
@@ -122,13 +120,6 @@ export class Signal<T extends any[] = []> {
   }
 
   /**
-   * Whether this signal has any listeners.
-   */
-  get hasListeners(): boolean {
-    return this._listeners.length > 0;
-  }
-
-  /**
    * @internal
    * Clone listeners to target signal, remapping entity/component references.
    */
@@ -140,7 +131,7 @@ export class Signal<T extends any[] = []> {
       // @ts-ignore
       const clonedTarget = Entity._remapComponent(srcRoot, targetRoot, listener.target);
       if (clonedTarget) {
-        const clonedArgs = Signal._cloneArguments(listener.arguments, srcRoot, targetRoot);
+        const clonedArgs = this._cloneArguments(listener.arguments, srcRoot, targetRoot);
         if (listener.once) {
           target.once(clonedTarget, listener.methodName, ...clonedArgs);
         } else {
@@ -150,10 +141,11 @@ export class Signal<T extends any[] = []> {
     }
   }
 
-  private static _cloneArguments(args: any[], srcRoot: Entity, targetRoot: Entity): any[] {
+  private _cloneArguments(args: any[], srcRoot: Entity, targetRoot: Entity): any[] {
     if (!args || args.length === 0) return [];
-    const clonedArgs = new Array(args.length);
-    for (let i = 0; i < args.length; i++) {
+    const len = args.length;
+    const clonedArgs = new Array(len);
+    for (let i = 0; i < len; i++) {
       const arg = args[i];
       if (arg instanceof Entity) {
         // @ts-ignore
