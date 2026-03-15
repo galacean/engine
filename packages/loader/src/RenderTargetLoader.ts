@@ -6,12 +6,11 @@ import {
   RenderTarget,
   ResourceManager,
   Texture2D,
+  TextureFilterMode,
   TextureFormat,
+  TextureWrapMode,
   resourceLoader
 } from "@galacean/engine-core";
-
-/** depthFormat value indicating no depth attachment. Must match editor's DEPTH_NONE. */
-const DEPTH_NONE = -1;
 
 @resourceLoader(AssetType.RenderTarget, ["renderTarget"])
 class RenderTargetLoader extends Loader<RenderTarget> {
@@ -24,7 +23,7 @@ class RenderTargetLoader extends Loader<RenderTarget> {
           ...item,
           type: "json"
         })
-        .then((data) => {
+        .then((data: IRenderTargetData) => {
           const { width, height, colorFormat, depthFormat, antiAliasing, autoGenerateMipmaps } = data;
 
           const colorProps = data.colorTexture;
@@ -38,7 +37,7 @@ class RenderTargetLoader extends Loader<RenderTarget> {
             if (colorProps.anisoLevel != null) colorTexture.anisoLevel = colorProps.anisoLevel;
           }
 
-          const depth = depthFormat === DEPTH_NONE ? null : depthFormat;
+          const depth = depthFormat === -1 ? null : depthFormat;
           const rt = new RenderTarget(engine, width, height, colorTexture, depth, antiAliasing);
           rt.autoGenerateMipmaps = autoGenerateMipmaps;
 
@@ -60,4 +59,12 @@ interface IRenderTargetData {
   depthFormat: number;
   antiAliasing: number;
   autoGenerateMipmaps: boolean;
+  colorTexture?: {
+    mipmap?: boolean;
+    isSRGBColorSpace?: boolean;
+    filterMode?: TextureFilterMode;
+    wrapModeU?: TextureWrapMode;
+    wrapModeV?: TextureWrapMode;
+    anisoLevel?: number;
+  };
 }
