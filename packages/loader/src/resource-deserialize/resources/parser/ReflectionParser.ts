@@ -15,12 +15,6 @@ import type {
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
-  static customParseComponentHandles = new Map<string, Function>();
-
-  static registerCustomParseComponent(componentType: string, handle: Function) {
-    this.customParseComponentHandles[componentType] = handle;
-  }
-
   constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) {}
 
   parseEntity(entityConfig: IEntity): Promise<Entity> {
@@ -72,11 +66,7 @@ export class ReflectionParser {
       }
     }
 
-    return Promise.all(promises).then(() => {
-      const handle = ReflectionParser.customParseComponentHandles[instance.constructor.name];
-      if (handle) return handle(instance, item);
-      else return instance;
-    });
+    return Promise.all(promises).then(() => instance);
   }
 
   parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
