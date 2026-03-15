@@ -291,7 +291,7 @@ describe("Signal", async () => {
 
   // ---- Clone ----
 
-  it("clone: closure-based listeners are reference-copied", () => {
+  it("clone: closure-based listeners are not cloned", () => {
     const signal = new Signal<[number]>();
     const targetSignal = new Signal<[number]>();
     const fn = vi.fn();
@@ -301,8 +301,10 @@ describe("Signal", async () => {
     const targetRoot = srcRoot.clone();
     signal._cloneTo(targetSignal, srcRoot, targetRoot);
 
+    // Closure listeners should NOT be copied to clone
+    expect(targetSignal.hasListeners).toBe(false);
     targetSignal.invoke(42);
-    expect(fn).toHaveBeenCalledWith(42);
+    expect(fn).not.toHaveBeenCalled();
 
     srcRoot.destroy();
   });

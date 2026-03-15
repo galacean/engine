@@ -144,7 +144,7 @@ describe("Button", async () => {
     expect(cloneTransitionTwo.target).to.eq(commonText);
   });
 
-  it("clone onClick signal is independent", () => {
+  it("clone onClick does not copy closure listeners", () => {
     const testEntity = canvasEntity.createChild("testBtn");
     testEntity.addComponent(Image);
     (<UITransform>testEntity.transform).size.set(100, 40);
@@ -156,23 +156,13 @@ describe("Button", async () => {
     const cloneEntity = testEntity.clone();
     const cloneButton = cloneEntity.getComponent(Button);
 
-    // Clone should have the source's closure listener (reference-copied by _cloneTo)
-    // but adding a new listener to clone shouldn't affect source
-    const cloneFn = vi.fn();
-    cloneButton.onClick.on(cloneFn);
-
-    sourceFn.mockClear();
+    // Clone should NOT have source's closure listener
     cloneButton.onClick.invoke(new PointerEventData());
-    // sourceFn fires because closure listeners are reference-copied during clone
-    expect(sourceFn).toHaveBeenCalledOnce();
-    expect(cloneFn).toHaveBeenCalledOnce();
+    expect(sourceFn).not.toHaveBeenCalled();
 
-    // Source invoke should not fire clone's listener
-    sourceFn.mockClear();
-    cloneFn.mockClear();
+    // Source should still work
     testButton.onClick.invoke(new PointerEventData());
     expect(sourceFn).toHaveBeenCalledOnce();
-    expect(cloneFn).not.toHaveBeenCalled();
 
     testEntity.destroy();
   });

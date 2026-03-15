@@ -136,25 +136,15 @@ export class Signal<T extends any[] = []> {
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
-      if (listener.destroyed) continue;
-      if (listener.methodName) {
-        // Structured binding: remap target component and arguments
-        // @ts-ignore
-        const clonedTarget = Entity._remapComponent(srcRoot, targetRoot, listener.target);
-        if (clonedTarget) {
-          const clonedArgs = Signal._cloneArguments(listener.arguments, srcRoot, targetRoot);
-          if (listener.once) {
-            target.once(clonedTarget, listener.methodName, ...clonedArgs);
-          } else {
-            target.on(clonedTarget, listener.methodName, ...clonedArgs);
-          }
-        }
-      } else {
-        // Closure-based: copy reference as-is
+      if (listener.destroyed || !listener.methodName) continue;
+      // @ts-ignore
+      const clonedTarget = Entity._remapComponent(srcRoot, targetRoot, listener.target);
+      if (clonedTarget) {
+        const clonedArgs = Signal._cloneArguments(listener.arguments, srcRoot, targetRoot);
         if (listener.once) {
-          target.once(listener.fn, listener.target);
+          target.once(clonedTarget, listener.methodName, ...clonedArgs);
         } else {
-          target.on(listener.fn, listener.target);
+          target.on(clonedTarget, listener.methodName, ...clonedArgs);
         }
       }
     }
