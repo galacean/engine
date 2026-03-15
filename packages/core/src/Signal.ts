@@ -1,3 +1,5 @@
+import { Component } from "./Component";
+import { Entity } from "./Entity";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 import { ignoreClone } from "./clone/CloneManager";
 
@@ -12,36 +14,88 @@ export class Signal<T extends any[] = []> {
   /**
    * Add a listener for this signal.
    * @param fn - The callback function
-   * @param context - The `this` context for the callback
+   * @param target - The `this` context for the callback
    */
-  on(fn: (...args: T) => void, context?: any): void {
-    this._listeners.push({ fn, context: context ?? null, once: false });
+  on(fn: (...args: T) => void, target?: any): void;
+  /**
+   * Add a structured binding listener. Structured bindings support clone remapping.
+   * @param target - The target component
+   * @param methodName - The method name to invoke on the target
+   * @param args - Pre-resolved arguments
+   */
+  on(target: Component, methodName: string, ...args: any[]): void;
+  on(fnOrTarget: ((...args: T) => void) | Component, targetOrMethodName?: any, ...args: any[]): void {
+    this._addListener(fnOrTarget, targetOrMethodName, false, ...args);
   }
 
   /**
    * Add a one-time listener that is automatically removed after first invocation.
    * @param fn - The callback function
-   * @param context - The `this` context for the callback
+   * @param target - The `this` context for the callback
    */
-  once(fn: (...args: T) => void, context?: any): void {
-    this._listeners.push({ fn, context: context ?? null, once: true });
+  once(fn: (...args: T) => void, target?: any): void;
+  /**
+   * Add a one-time structured binding listener.
+   * @param target - The target component
+   * @param methodName - The method name to invoke on the target
+   * @param args - Pre-resolved arguments
+   */
+  once(target: Component, methodName: string, ...args: any[]): void;
+  once(fnOrTarget: ((...args: T) => void) | Component, targetOrMethodName?: any, ...args: any[]): void {
+    this._addListener(fnOrTarget, targetOrMethodName, true, ...args);
   }
 
   /**
-   * Remove a listener. Both `fn` and `context` must match the values passed to `on`/`once`.
+   * Remove a listener. Both `fn` and `target` must match the values passed to `on`/`once`.
    * @param fn - The callback function to remove
-   * @param context - The `this` context that was used when adding the listener
+   * @param target - The `this` context that was used when adding the listener
    */
-  off(fn: (...args: T) => void, context?: any): void {
-    const ctx = context ?? null;
-    this._listeners.findAndRemove((listener) => listener.fn === fn && listener.context === ctx);
+  off(fn: (...args: T) => void, target?: any): void;
+  /**
+   * Remove a structured binding listener by target and method name.
+   * @param target - The target component
+   * @param methodName - The method name
+   */
+  off(target: Component, methodName: string): void;
+  off(fnOrTarget: ((...args: T) => void) | Component, targetOrMethodName?: any): void {
+    if (typeof fnOrTarget === "function") {
+      const target = targetOrMethodName ?? null;
+      this._listeners.findAndRemove((listener) => {
+        if (listener.fn === fnOrTarget && listener.target === target) {
+          listener.destroyed = true;
+          return true;
+        }
+        return false;
+      });
+    } else {
+      const target = fnOrTarget;
+      const methodName = targetOrMethodName as string;
+      this._listeners.findAndRemove((listener) => {
+        if (listener.target === target && listener.methodName === methodName) {
+          listener.destroyed = true;
+          return true;
+        }
+        return false;
+      });
+    }
   }
 
   /**
-   * Remove all listeners.
+   * Remove all listeners, or all listeners for a specific target.
+   * @param target - If provided, only remove listeners bound to this target
    */
-  removeAll(): void {
-    this._listeners.findAndRemove(() => true);
+  removeAll(target?: any): void {
+    if (target !== undefined) {
+      this._listeners.findAndRemove((listener) => {
+        if (listener.target === target) {
+          listener.destroyed = true;
+          return true;
+        }
+        return false;
+      });
+    } else {
+      this._listeners.findAndRemove((listener) => (listener.destroyed = true));
+    }
   }
 
   /**
@@ -52,12 +106,17 @@ export class Signal<T extends any[] = []> {
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
-      if (!listener.destroyed) {
-        listener.fn.apply(listener.context, args);
-        if (listener.once) {
-          listener.destroyed = true;
-          this._listeners.findAndRemove((l) => l === listener);
-        }
+      if (listener.destroyed) continue;
+      // Lazy cleanup: auto-remove structured bindings whose target component is destroyed
+      if (listener.methodName && listener.target.destroyed) {
+        listener.destroyed = true;
+        this._listeners.findAndRemove((l) => l === listener);
+        continue;
+      }
+      listener.fn.apply(listener.target, args);
+      if (listener.once) {
+        listener.destroyed = true;
+        this._listeners.findAndRemove((l) => l === listener);
       }
     }
   }
@@ -68,11 +127,88 @@ export class Signal<T extends any[] = []> {
   get hasListeners(): boolean {
     return this._listeners.length > 0;
   }
+
+  /**
+   * @internal
+   * Clone listeners to target signal, remapping entity/component references.
+   */
+  _cloneTo(target: Signal<T>, srcRoot: Entity, targetRoot: Entity): void {
+    const listeners = this._listeners.getLoopArray();
+    for (let i = 0, n = listeners.length; i < n; i++) {
+      const listener = listeners[i];
+      if (listener.destroyed) continue;
+      if (listener.methodName) {
+        // Structured binding: remap target component and arguments
+        // @ts-ignore
+        const clonedTarget = Entity._remapComponent(srcRoot, targetRoot, listener.target);
+        if (clonedTarget) {
+          const clonedArgs = Signal._cloneArguments(listener.arguments, srcRoot, targetRoot);
+          if (listener.once) {
+            target.once(clonedTarget, listener.methodName, ...clonedArgs);
+          } else {
+            target.on(clonedTarget, listener.methodName, ...clonedArgs);
+          }
+        }
+      } else {
+        // Closure-based: copy reference as-is
+        if (listener.once) {
+          target.once(listener.fn, listener.target);
+        } else {
+          target.on(listener.fn, listener.target);
+        }
+      }
+    }
+  }
+
+  private static _cloneArguments(args: any[], srcRoot: Entity, targetRoot: Entity): any[] {
+    if (!args || args.length === 0) return [];
+    const clonedArgs = new Array(args.length);
+    for (let i = 0; i < args.length; i++) {
+      const arg = args[i];
+      if (arg instanceof Entity) {
+        // @ts-ignore
+        clonedArgs[i] = Entity._remapEntity(srcRoot, targetRoot, arg);
+      } else if (arg instanceof Component) {
+        // @ts-ignore
+        clonedArgs[i] = Entity._remapComponent(srcRoot, targetRoot, arg);
+      } else {
+        clonedArgs[i] = arg;
+      }
+    }
+    return clonedArgs;
+  }
+
+  private _addListener(
+    fnOrTarget: ((...args: T) => void) | Component,
+    targetOrMethodName: any,
+    once: boolean,
+    ...args: any[]
+  ): void {
+    if (typeof fnOrTarget === "function") {
+      this._listeners.push({ fn: fnOrTarget, target: targetOrMethodName ?? null, once });
+    } else {
+      const target = fnOrTarget;
+      const methodName = targetOrMethodName as string;
+      const fn =
+        args.length > 0
+          ? (...signalArgs: any[]) => (target as any)[methodName](...args, ...signalArgs)
+          : (...signalArgs: any[]) => (target as any)[methodName](...signalArgs);
+      this._listeners.push({
+        fn: fn as (...args: T) => void,
+        target,
+        once,
+        methodName,
+        arguments: args
+      });
+    }
+  }
 }
 
 interface ISignalListener<T extends any[]> {
   fn: (...args: T) => void;
-  context: any;
+  target: any;
   once: boolean;
   destroyed?: boolean;
+  methodName?: string;
+  arguments?: any[];
 }

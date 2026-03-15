@@ -1,7 +1,28 @@
-import { Signal } from "@galacean/engine-core";
+import { Script, Signal } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { describe, expect, it, vi } from "vitest";
 
-describe("Signal", () => {
+class TestHandler extends Script {
+  callCount = 0;
+  lastPrefix = "";
+
+  handleClick() {
+    this.callCount++;
+  }
+
+  handleClickWithPrefix(prefix: string) {
+    this.callCount++;
+    this.lastPrefix = prefix;
+  }
+}
+
+describe("Signal", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const scene = engine.sceneManager.scenes[0];
+  const root = scene.createRootEntity("root");
+
+  // ---- Basic closure-based API ----
+
   it("on and invoke", () => {
     const signal = new Signal<[number, string]>();
     const fn = vi.fn();
@@ -33,16 +54,15 @@ describe("Signal", () => {
     expect(fn2).toHaveBeenCalledWith("test");
   });
 
-  it("off with context matching", () => {
+  it("off with target matching", () => {
     const signal = new Signal();
     const fn = vi.fn();
-    const ctx1 = { name: "ctx1" };
-    const ctx2 = { name: "ctx2" };
-    signal.on(fn, ctx1);
-    signal.on(fn, ctx2);
-    signal.off(fn, ctx1);
+    const t1 = { name: "t1" };
+    const t2 = { name: "t2" };
+    signal.on(fn, t1);
+    signal.on(fn, t2);
+    signal.off(fn, t1);
     signal.invoke();
-    // only ctx2 listener remains
     expect(fn).toHaveBeenCalledOnce();
   });
 
@@ -100,7 +120,7 @@ describe("Signal", () => {
     expect(fn).toHaveBeenCalledWith();
   });
 
-  it("context is applied correctly", () => {
+  it("target is applied correctly", () => {
     const signal = new Signal();
     const ctx = { value: 0 };
     signal.on(function (this: typeof ctx) {
@@ -122,7 +142,7 @@ describe("Signal", () => {
     expect(late).toHaveBeenCalledOnce();
   });
 
-  it("listener removed during invoke is removed for next invoke", () => {
+  it("listener removed during invoke does not fire in same cycle", () => {
     const signal = new Signal();
     const fn2 = vi.fn();
     signal.on(() => {
@@ -130,11 +150,7 @@ describe("Signal", () => {
     });
     signal.on(fn2);
     signal.invoke();
-    // fn2 still fires in the current invoke (snapshot-based iteration)
-    expect(fn2).toHaveBeenCalledOnce();
-    // but is removed for subsequent invokes
-    signal.invoke();
-    expect(fn2).toHaveBeenCalledOnce();
+    expect(fn2).not.toHaveBeenCalled();
   });
 
   it("off non-existent listener is a no-op", () => {
@@ -178,5 +194,204 @@ describe("Signal", () => {
     signal.on(fn);
     signal.invoke(99);
     expect(fn).toHaveBeenCalledWith(99);
+  });
+
+  // ---- Structured binding API ----
+
+  it("structured binding on/invoke", () => {
+    const signal = new Signal();
+    const entity = root.createChild("sb1");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.on(handler, "handleClick");
+    signal.invoke();
+    expect(handler.callCount).toBe(1);
+
+    entity.destroy();
+  });
+
+  it("structured binding with arguments", () => {
+    const signal = new Signal();
+    const entity = root.createChild("sb2");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.on(handler, "handleClickWithPrefix", "hello");
+    signal.invoke();
+    expect(handler.callCount).toBe(1);
+    expect(handler.lastPrefix).toBe("hello");
+
+    entity.destroy();
+  });
+
+  it("structured binding off by target + methodName", () => {
+    const signal = new Signal();
+    const entity = root.createChild("sb3");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.on(handler, "handleClick");
+    signal.off(handler, "handleClick");
+    signal.invoke();
+    expect(handler.callCount).toBe(0);
+
+    entity.destroy();
+  });
+
+  it("structured binding once", () => {
+    const signal = new Signal();
+    const entity = root.createChild("sb4");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.once(handler, "handleClick");
+    signal.invoke();
+    signal.invoke();
+    expect(handler.callCount).toBe(1);
+
+    entity.destroy();
+  });
+
+  it("removeAll(target) removes only matching listeners", () => {
+    const signal = new Signal();
+    const e1 = root.createChild("ra1");
+    const e2 = root.createChild("ra2");
+    const h1 = e1.addComponent(TestHandler);
+    const h2 = e2.addComponent(TestHandler);
+
+    signal.on(h1, "handleClick");
+    signal.on(h2, "handleClick");
+    signal.removeAll(h1);
+    signal.invoke();
+    expect(h1.callCount).toBe(0);
+    expect(h2.callCount).toBe(1);
+
+    e1.destroy();
+    e2.destroy();
+  });
+
+  it("invoke auto-cleans destroyed component's structured binding", () => {
+    const signal = new Signal();
+    const entity = root.createChild("ac1");
+    const handler = entity.addComponent(TestHandler);
+    const fn = vi.fn();
+
+    signal.on(handler, "handleClick");
+    signal.on(fn);
+
+    entity.destroy();
+    signal.invoke();
+
+    // Destroyed component's listener should be skipped
+    expect(handler.callCount).toBe(0);
+    // Other listeners should still fire
+    expect(fn).toHaveBeenCalledOnce();
+    // Destroyed listener should be cleaned up
+    expect(signal.hasListeners).toBe(true); // fn still there
+    signal.off(fn);
+    expect(signal.hasListeners).toBe(false); // structured binding was auto-cleaned
+  });
+
+  // ---- Clone ----
+
+  it("clone: closure-based listeners are reference-copied", () => {
+    const signal = new Signal<[number]>();
+    const targetSignal = new Signal<[number]>();
+    const fn = vi.fn();
+    signal.on(fn);
+
+    const srcRoot = root.createChild("clSrc1");
+    const targetRoot = srcRoot.clone();
+    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+
+    targetSignal.invoke(42);
+    expect(fn).toHaveBeenCalledWith(42);
+
+    srcRoot.destroy();
+  });
+
+  it("clone: structured bindings are remapped to cloned hierarchy", () => {
+    const signal = new Signal();
+    const targetSignal = new Signal();
+
+    const srcRoot = root.createChild("clSrc2");
+    const handlerEntity = srcRoot.createChild("handler");
+    const handler = handlerEntity.addComponent(TestHandler);
+
+    signal.on(handler, "handleClick");
+
+    const targetRoot = srcRoot.clone();
+    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+
+    const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
+    targetSignal.invoke();
+
+    expect(clonedHandler.callCount).toBe(1);
+    expect(handler.callCount).toBe(0);
+
+    srcRoot.destroy();
+  });
+
+  it("clone: external structured bindings preserve original target", () => {
+    const signal = new Signal();
+    const targetSignal = new Signal();
+
+    const externalEntity = root.createChild("external");
+    const externalHandler = externalEntity.addComponent(TestHandler);
+
+    const srcRoot = root.createChild("clSrc3");
+    signal.on(externalHandler, "handleClick");
+
+    const targetRoot = srcRoot.clone();
+    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+
+    targetSignal.invoke();
+    expect(externalHandler.callCount).toBe(1);
+
+    srcRoot.destroy();
+    externalEntity.destroy();
+  });
+
+  it("clone: arguments with Entity/Component refs are remapped", () => {
+    const signal = new Signal();
+    const targetSignal = new Signal();
+
+    const srcRoot = root.createChild("clSrc4");
+    const handlerEntity = srcRoot.createChild("handler");
+    const handler = handlerEntity.addComponent(TestHandler);
+    const refEntity = srcRoot.createChild("ref");
+    const refHandler = refEntity.addComponent(TestHandler);
+
+    signal.on(handler, "handleClickWithPrefix", refHandler);
+
+    const targetRoot = srcRoot.clone();
+    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+
+    const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
+    targetSignal.invoke();
+
+    expect(clonedHandler.callCount).toBe(1);
+    expect(handler.callCount).toBe(0);
+
+    srcRoot.destroy();
+  });
+
+  it("clone: once flag is preserved", () => {
+    const signal = new Signal();
+    const targetSignal = new Signal();
+
+    const srcRoot = root.createChild("clSrc5");
+    const handlerEntity = srcRoot.createChild("handler");
+    const handler = handlerEntity.addComponent(TestHandler);
+
+    signal.once(handler, "handleClick");
+
+    const targetRoot = srcRoot.clone();
+    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+
+    const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
+    targetSignal.invoke();
+    targetSignal.invoke();
+
+    expect(clonedHandler.callCount).toBe(1);
+
+    srcRoot.destroy();
   });
 });

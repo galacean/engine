@@ -10,8 +10,6 @@ import { Transition } from "./transition/Transition";
  * Interactive component.
  */
 export class UIInteractive extends Script implements IGroupAble {
-  private static _targetTempPath = new Array<number>();
-
   /** @internal */
   @ignoreClone
   _rootCanvas: UICanvas;
@@ -178,13 +176,8 @@ export class UIInteractive extends Script implements IGroupAble {
       dstTransition.disabled = srcTransition.disabled;
       const transitionTarget = srcTransition.target;
       if (transitionTarget) {
-        const paths = UIInteractive._targetTempPath;
         // @ts-ignore
-        const success = Entity._getEntityHierarchyPath(srcRoot, transitionTarget.entity, paths);
-        dstTransition.target = success
-          ? // @ts-ignore
-            Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(transitionTarget.constructor)
-          : transitionTarget;
+        dstTransition.target = Entity._remapComponent(srcRoot, targetRoot, transitionTarget);
       }
       target.addTransition(dstTransition);
     }

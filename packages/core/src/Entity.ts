@@ -21,6 +21,8 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
+  /** @internal */
+  static _tempRemapPath: number[] = [];
 
   /**
    * @internal
@@ -52,6 +54,28 @@ export class Entity extends EngineObject {
     for (let i = children.length - 1; i >= 0; i--) {
       this._traverseSetOwnerScene(children[i], scene);
     }
+  }
+
+  /**
+   * @internal
+   */
+  static _remapEntity(srcRoot: Entity, targetRoot: Entity, entity: Entity): Entity {
+    const paths = Entity._tempRemapPath;
+    const success = Entity._getEntityHierarchyPath(srcRoot, entity, paths);
+    return success ? Entity._getEntityByHierarchyPath(targetRoot, paths) : entity;
+  }
+
+  /**
+   * @internal
+   */
+  static _remapComponent<T extends Component>(srcRoot: Entity, targetRoot: Entity, component: T): T {
+    const paths = Entity._tempRemapPath;
+    const success = Entity._getEntityHierarchyPath(srcRoot, component.entity, paths);
+    return success
+      ? (Entity._getEntityByHierarchyPath(targetRoot, paths)?.getComponent(
+          <ComponentConstructor<T>>component.constructor
+        ) as T)
+      : component;
   }
 
   /**

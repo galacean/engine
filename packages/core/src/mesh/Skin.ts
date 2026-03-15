@@ -98,13 +98,10 @@ export class Skin extends EngineObject implements IComponentCustomClone {
    * @internal
    */
   _cloneTo(target: Skin, srcRoot: Entity, targetRoot: Entity): void {
-    const paths = new Array<number>();
-
     // Clone rootBone
     const rootBone = this.rootBone;
     if (rootBone) {
-      const success = Entity._getEntityHierarchyPath(srcRoot, rootBone, paths);
-      target.rootBone = success ? Entity._getEntityByHierarchyPath(targetRoot, paths) : rootBone;
+      target.rootBone = Entity._remapEntity(srcRoot, targetRoot, rootBone);
     }
 
     // Clone bones
@@ -113,9 +110,7 @@ export class Skin extends EngineObject implements IComponentCustomClone {
       const boneCount = bones.length;
       const destBones = new Array<Entity>(boneCount);
       for (let i = 0; i < boneCount; i++) {
-        const bone = bones[i];
-        const success = Entity._getEntityHierarchyPath(srcRoot, bone, paths);
-        destBones[i] = success ? Entity._getEntityByHierarchyPath(targetRoot, paths) : bone;
+        destBones[i] = Entity._remapEntity(srcRoot, targetRoot, bones[i]);
       }
       target.bones = destBones;
     }

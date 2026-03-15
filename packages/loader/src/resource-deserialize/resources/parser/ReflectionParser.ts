@@ -103,12 +103,7 @@ export class ReflectionParser {
           listener.arguments ? Promise.all(listener.arguments.map((a) => this.parseBasicType(a))) : Promise.resolve([])
         ]).then(([target, resolvedArgs]) => {
           if (target) {
-            const { methodName } = listener;
-            if (resolvedArgs.length > 0) {
-              signal.on((...args: any[]) => target[methodName](...resolvedArgs, ...args), target);
-            } else {
-              signal.on((...args: any[]) => target[methodName](...args), target);
-            }
+            signal.on(target, listener.methodName, ...resolvedArgs);
           }
         })
       )
