@@ -87,7 +87,6 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
 ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
 
-
 /**
  * Register GUI components for the editor.
  */

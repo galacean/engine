@@ -11,13 +11,7 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import {
-  IScene,
-  ParserContext,
-  ParserType,
-  SceneParser,
-  SpecularMode
-} from "./resource-deserialize";
+import { IScene, ParserContext, ParserType, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
