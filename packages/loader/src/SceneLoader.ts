@@ -3,7 +3,6 @@ import {
   AssetType,
   BackgroundMode,
   DiffuseMode,
-  Font,
   Loader,
   LoadItem,
   Logger,
@@ -12,15 +11,7 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import {
-  IClass,
-  IScene,
-  ParserContext,
-  ParserType,
-  ReflectionParser,
-  SceneParser,
-  SpecularMode
-} from "./resource-deserialize";
+import { IScene, ParserContext, ParserType, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -168,12 +159,3 @@ class SceneLoader extends Loader<Scene> {
     });
   }
 }
-
-ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: Omit<IClass, "class">) => {
-  const { props } = item;
-  if (!props.font) {
-    // @ts-ignore
-    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
-  }
-  return instance;
-});

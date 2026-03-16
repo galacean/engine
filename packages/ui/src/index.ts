@@ -4,12 +4,9 @@ import {
   CullMode,
   Engine,
   Entity,
-  Font,
-  IClass,
   Loader,
   Material,
   PipelineStage,
-  ReflectionParser,
   RenderQueueType,
   Shader,
   ShaderPass
@@ -19,10 +16,10 @@ import uiDefaultFs from "./shader/uiDefault.fs.glsl";
 import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
-export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
-export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 export { HorizontalAlignmentMode } from "./enums/HorizontalAlignmentMode";
+export { ResolutionAdaptationMode } from "./enums/ResolutionAdaptationMode";
 export { VerticalAlignmentMode } from "./enums/VerticalAlignmentMode";
+export { UIPointerEventEmitter } from "./input/UIPointerEventEmitter";
 
 export class EngineExtension {
   _uiDefaultMaterial: Material;
@@ -89,15 +86,6 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
 
 ApplyMixins(Engine, [EngineExtension]);
 ApplyMixins(Entity, [EntityExtension]);
-
-ReflectionParser.registerCustomParseComponent("Text", async (instance: any, item: Omit<IClass, "class">) => {
-  const { props } = item;
-  if (!props.font) {
-    // @ts-ignore
-    instance.font = Font.createFromOS(instance.engine, props.fontFamily || "Arial");
-  }
-  return instance;
-});
 
 /**
  * Register GUI components for the editor.
