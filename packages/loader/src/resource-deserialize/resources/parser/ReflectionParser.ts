@@ -1,4 +1,4 @@
-import { EngineObject, Entity, Loader, Transform } from "@galacean/engine-core";
+import { EngineObject, Entity, Loader, Signal, Transform } from "@galacean/engine-core";
 import type {
   IAssetRef,
   IBasicType,
@@ -10,7 +10,8 @@ import type {
   IHierarchyFile,
   IMethod,
   IMethodParams,
-  IRefEntity
+  IRefEntity,
+  ISignalRef
 } from "../schema";
 import { ParserContext, ParserType } from "./ParserContext";
 
@@ -83,6 +84,22 @@ export class ReflectionParser {
     });
   }
 
+  parseSignal(signalRef: ISignalRef): Promise<Signal> {
+    const signal = new Signal();
+    return Promise.all(
+      signalRef.listeners.map((listener) =>
+        Promise.all([
+          this.parseBasicType(listener.target),
+          listener.arguments ? Promise.all(listener.arguments.map((a) => this.parseBasicType(a))) : Promise.resolve([])
+        ]).then(([target, resolvedArgs]) => {
+          if (target) {
+            signal.on(target, listener.methodName, ...resolvedArgs);
+          }
+        })
+      )
+    ).then(() => signal);
+  }
+
   parseBasicType(value: IBasicType, originValue?: any): Promise<any> {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item)));
@@ -108,6 +125,8 @@ export class ReflectionParser {
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));
+      } else if (ReflectionParser._isSignalRef(value)) {
+        return this.parseSignal(value);
       } else if (originValue) {
         const promises: Promise<any>[] = [];
         for (let key in value as any) {
@@ -182,6 +201,10 @@ export class ReflectionParser {
 
   private static _isComponentRef(value: any): value is IComponentRef {
     return value["ownerId"] !== undefined && value["componentId"] !== undefined;
+  }
+
+  private static _isSignalRef(value: any): value is ISignalRef {
+    return value["listeners"] !== undefined;
   }
 
   private static _isMethodObject(value: any): value is IMethod {

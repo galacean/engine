@@ -1,8 +1,22 @@
-import { Camera, PointerEventData, SpriteDrawMode } from "@galacean/engine-core";
+import { Camera, PointerEventData, Script, SpriteDrawMode } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Button, ColorTransition, Image, ScaleTransition, Text, UICanvas, UIGroup, UITransform } from "@galacean/engine-ui";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+class ClickHandler extends Script {
+  callCount = 0;
+  lastPrefix = "";
+
+  handleClick() {
+    this.callCount++;
+  }
+
+  handleClickWithPrefix(prefix: string) {
+    this.callCount++;
+    this.lastPrefix = prefix;
+  }
+}
 
 describe("Button", async () => {
   const canvas = document.createElement("canvas");
@@ -128,5 +142,105 @@ describe("Button", async () => {
 
     const cloneTransitionTwo = cloneTransitions[2];
     expect(cloneTransitionTwo.target).to.eq(commonText);
-  })
+  });
+
+  it("clone onClick does not copy closure listeners", () => {
+    const testEntity = canvasEntity.createChild("testBtn");
+    testEntity.addComponent(Image);
+    (<UITransform>testEntity.transform).size.set(100, 40);
+    const testButton = testEntity.addComponent(Button);
+
+    const sourceFn = vi.fn();
+    testButton.onClick.on(sourceFn);
+
+    const cloneEntity = testEntity.clone();
+    const cloneButton = cloneEntity.getComponent(Button);
+
+    // Clone should NOT have source's closure listener
+    cloneButton.onClick.invoke(new PointerEventData());
+    expect(sourceFn).not.toHaveBeenCalled();
+
+    // Source should still work
+    testButton.onClick.invoke(new PointerEventData());
+    expect(sourceFn).toHaveBeenCalledOnce();
+
+    testEntity.destroy();
+  });
+
+  it("clone remaps onClick structured bindings to cloned hierarchy", () => {
+    const testEntity = canvasEntity.createChild("testBtnBindings");
+    testEntity.addComponent(Image);
+    (<UITransform>testEntity.transform).size.set(100, 40);
+    const testButton = testEntity.addComponent(Button);
+
+    // Add handler as child
+    const handlerEntity = testEntity.createChild("handler");
+    const handler = handlerEntity.addComponent(ClickHandler);
+
+    // Set up structured binding
+    testButton.onClick.on(handler, "handleClick");
+
+    // Clone
+    const cloneEntity = testEntity.clone();
+    const cloneButton = cloneEntity.getComponent(Button);
+    const cloneHandler = cloneEntity.findByName("handler").getComponent(ClickHandler);
+
+    // Invoke clone's onClick - should call cloned handler only
+    cloneButton.onClick.invoke(new PointerEventData());
+    expect(cloneHandler.callCount).toBe(1);
+    expect(handler.callCount).toBe(0);
+
+    testEntity.destroy();
+  });
+
+  it("clone preserves onClick bindings to external entities", () => {
+    const testEntity = canvasEntity.createChild("testBtnExt");
+    testEntity.addComponent(Image);
+    (<UITransform>testEntity.transform).size.set(100, 40);
+    const testButton = testEntity.addComponent(Button);
+
+    // External handler (not a descendant of testEntity)
+    const externalEntity = canvasEntity.createChild("externalHandler");
+    const externalHandler = externalEntity.addComponent(ClickHandler);
+
+    // Set up structured binding to external handler
+    testButton.onClick.on(externalHandler, "handleClick");
+
+    // Clone
+    const cloneEntity = testEntity.clone();
+    const cloneButton = cloneEntity.getComponent(Button);
+
+    // Invoke clone's onClick - should call original externalHandler
+    cloneButton.onClick.invoke(new PointerEventData());
+    expect(externalHandler.callCount).toBe(1);
+
+    testEntity.destroy();
+    externalEntity.destroy();
+  });
+
+  it("clone onClick bindings with pre-resolved arguments", () => {
+    const testEntity = canvasEntity.createChild("testBtnArgs");
+    testEntity.addComponent(Image);
+    (<UITransform>testEntity.transform).size.set(100, 40);
+    const testButton = testEntity.addComponent(Button);
+
+    const handlerEntity = testEntity.createChild("argsHandler");
+    const handler = handlerEntity.addComponent(ClickHandler);
+
+    // Set up structured binding with arguments
+    testButton.onClick.on(handler, "handleClickWithPrefix", "myPrefix");
+
+    // Clone
+    const cloneEntity = testEntity.clone();
+    const cloneButton = cloneEntity.getComponent(Button);
+    const cloneHandler = cloneEntity.findByName("argsHandler").getComponent(ClickHandler);
+
+    // Invoke clone's onClick
+    cloneButton.onClick.invoke(new PointerEventData());
+    expect(cloneHandler.callCount).toBe(1);
+    expect(cloneHandler.lastPrefix).toBe("myPrefix");
+    expect(handler.callCount).toBe(0);
+
+    testEntity.destroy();
+  });
 });
