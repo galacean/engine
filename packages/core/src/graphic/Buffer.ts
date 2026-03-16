@@ -13,11 +13,12 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 export class Buffer extends GraphicsResource {
   /** @internal */
   _dataUpdateManager: UpdateFlagManager = new UpdateFlagManager();
+  /** @internal */
+  _platformBuffer: IPlatformBuffer;
 
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
-  private _platformBuffer: IPlatformBuffer;
   private _readable: boolean;
   private _data: Uint8Array;
 

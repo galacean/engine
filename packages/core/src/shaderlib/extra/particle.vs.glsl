@@ -33,6 +33,11 @@ attribute float a_StartSpeed;
 attribute vec3 a_SimulationWorldPosition;
 attribute vec4 a_SimulationWorldRotation;
 
+#ifdef RENDERER_TRANSFORM_FEEDBACK
+    attribute vec3 a_TFPosition;
+    attribute vec3 a_TFVelocity;
+#endif
+
 varying vec4 v_Color;
 #ifdef MATERIAL_HAS_BASETEXTURE
     attribute vec4 a_SimulationUV;
@@ -64,9 +69,10 @@ uniform float renderer_StretchedBillboardSpeedScale;
 uniform int renderer_SimulationSpace;
 
 #include <particle_common>
-#include <velocity_over_lifetime_module>
-#include <force_over_lifetime_module>
-#include <limit_velocity_over_lifetime_module>
+#ifndef RENDERER_TRANSFORM_FEEDBACK
+    #include <velocity_over_lifetime_module>
+    #include <force_over_lifetime_module>
+#endif
 #include <color_over_lifetime_module>
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
@@ -127,9 +133,6 @@ void main() {
     float age = renderer_CurrentTime - a_DirectionTime.w;
     float normalizedAge = age / a_ShapePositionStartLifeTime.w;
     if (normalizedAge < 1.0) {
-        vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
-        vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
-
         vec4 worldRotation;
         if (renderer_SimulationSpace == 0) {
             worldRotation = renderer_WorldRotation;
@@ -137,27 +140,20 @@ void main() {
             worldRotation = a_SimulationWorldRotation;
         }
 
-        vec3 localVelocity = startVelocity;
-        vec3 worldVelocity = gravityVelocity;
+        vec3 localVelocity;
+        vec3 worldVelocity;
 
-        #ifdef RENDERER_LVL_MODULE_ENABLED
-            // Sampling-based position computation with velocity limiting
-            float limitRand = a_Random2.w;
-            vec3 gravityAcceleration = renderer_Gravity * a_Random0.x;
-            vec3 center = computeParticlePositionLVL(
-                startVelocity,
-                age,
-                a_ShapePositionStartLifeTime.w,
-                gravityAcceleration,
-                worldRotation,
-                limitRand,
-                a_Random0.x,
-                a_StartSize,
-                localVelocity,
-                worldVelocity
-            );
+        #ifdef RENDERER_TRANSFORM_FEEDBACK
+            // Transform Feedback mode: position and velocity computed per-frame by TF pass
+            vec3 center = a_TFPosition;
+            localVelocity = a_TFVelocity;
+            worldVelocity = rotationByQuaternions(localVelocity, worldRotation);
         #else
             // Original analytical path
+            vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
+            vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
+            localVelocity = startVelocity;
+            worldVelocity = gravityVelocity;
             vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
             vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, localVelocity, worldVelocity);
         #endif

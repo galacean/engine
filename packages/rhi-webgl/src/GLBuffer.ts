@@ -3,10 +3,12 @@ import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 import { WebGLExtension } from "./type";
 
 export class GLBuffer implements IPlatformBuffer {
+  /** @internal */
+  _glBuffer: WebGLBuffer;
+
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _glBindTarget: number;
   private _glBufferUsage: number;
-  private _glBuffer: WebGLBuffer;
   private _isWebGL2: boolean;
 
   constructor(
@@ -20,7 +22,6 @@ export class GLBuffer implements IPlatformBuffer {
     const glBuffer = gl.createBuffer();
     const glBufferUsage = this._getGLBufferUsage(gl, bufferUsage);
     const glBindTarget = type === BufferBindFlag.VertexBuffer ? gl.ARRAY_BUFFER : gl.ELEMENT_ARRAY_BUFFER;
-
     this._gl = gl;
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;

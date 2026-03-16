@@ -10,6 +10,7 @@ import {
   IPlatformRenderTarget,
   IPlatformTexture2D,
   IPlatformTextureCube,
+  IPlatformTransformFeedback,
   Logger,
   Mesh,
   Platform,
@@ -34,6 +35,7 @@ import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTexture2DArray } from "./GLTexture2DArray";
 import { GLTextureCube } from "./GLTextureCube";
+import { GLTransformFeedback } from "./GLTransformFeedback";
 import { WebCanvas } from "./WebCanvas";
 import { WebGLExtension } from "./type";
 
@@ -266,6 +268,48 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     data?: ArrayBuffer | ArrayBufferView
   ): IPlatformBuffer {
     return new GLBuffer(this, type, byteLength, bufferUsage, data);
+  }
+
+  createPlatformTransformFeedback(): IPlatformTransformFeedback {
+    return new GLTransformFeedback(this);
+  }
+
+  /**
+   * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
+   */
+  enableRasterizerDiscard(): void {
+    if (this._isWebGL2) {
+      const gl = <WebGL2RenderingContext>this._gl;
+      gl.enable(gl.RASTERIZER_DISCARD);
+    }
+  }
+
+  /**
+   * Disable GL_RASTERIZER_DISCARD (WebGL2 only).
+   */
+  disableRasterizerDiscard(): void {
+    if (this._isWebGL2) {
+      const gl = <WebGL2RenderingContext>this._gl;
+      gl.disable(gl.RASTERIZER_DISCARD);
+    }
+  }
+
+  /**
+   * Issue a raw drawArrays call (used for Transform Feedback passes).
+   */
+  drawArrays(mode: number, first: number, count: number): void {
+    this._gl.drawArrays(mode, first, count);
+  }
+
+  /**
+   * Invalidate the cached shader program state.
+   * Call this after using a custom program (e.g., Transform Feedback) outside the engine's pipeline.
+   */
+  invalidateShaderProgramState(): void {
+    if (this._currentBindShaderProgram) {
+      this._gl.useProgram(null);
+      this._currentBindShaderProgram = null;
+    }
   }
 
   requireExtension(ext) {

@@ -6,6 +6,7 @@ import color_over_lifetime_module from "./color_over_lifetime_module.glsl";
 import texture_sheet_animation_module from "./texture_sheet_animation_module.glsl";
 import force_over_lifetime_module from "./force_over_lifetime_module.glsl";
 import limit_velocity_over_lifetime_module from "./limit_velocity_over_lifetime_module.glsl";
+import particle_transform_feedback_update from "./particle_transform_feedback_update.glsl";
 
 import sphere_billboard from "./sphere_billboard.glsl";
 import stretched_billboard from "./stretched_billboard.glsl";
@@ -22,6 +23,7 @@ export default {
   texture_sheet_animation_module,
   force_over_lifetime_module,
   limit_velocity_over_lifetime_module,
+  particle_transform_feedback_update,
 
   sphere_billboard,
   stretched_billboard,

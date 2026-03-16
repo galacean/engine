@@ -30,6 +30,11 @@ import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
+import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderProperty } from "../shader/ShaderProperty";
+import { Logger } from "../base/Logger";
 
 /**
  * Particle Generator.
@@ -107,6 +112,18 @@ export class ParticleGenerator {
   _subPrimitive = new SubMesh(0, 0, MeshTopology.Triangles);
   /** @internal */
   readonly _renderer: ParticleRenderer;
+
+  /** @internal */
+  @ignoreClone
+  _transformFeedback: ParticleTransformFeedbackSimulator;
+  /** @internal */
+  @ignoreClone
+  _useTFMode = false;
+  /** @internal - Index of the TF buffer in the primitive's vertexBufferBindings array */
+  @ignoreClone
+  private _tfBufferBindingIndex = -1;
+
+  private static readonly _tfModeMacro = ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK");
 
   @ignoreClone
   private _isPlaying = false;
@@ -349,6 +366,37 @@ export class ParticleGenerator {
     ) {
       this._addActiveParticlesToVertexBuffer();
     }
+
+    // Run Transform Feedback update pass if in TF mode
+    if (this._useTFMode && this._transformFeedback) {
+      const renderer = this._renderer;
+      const shaderData = renderer.shaderData;
+
+      // TF needs current uniform values, but _updateShaderData is normally called
+      // after _update in ParticleRenderer. Upload them now so TF has fresh data.
+      shaderData.setFloat(ShaderProperty.getByName("renderer_CurrentTime"), this._playTime);
+      this._updateShaderData(shaderData);
+
+      const macroList: ShaderMacro[] = [];
+      ShaderMacro._getMacrosElements(shaderData._macroCollection, macroList);
+      this._transformFeedback.update(
+        this._instanceVertexBufferBinding.buffer,
+        shaderData,
+        macroList,
+        this._currentParticleCount,
+        this._firstActiveElement,
+        this._firstFreeElement,
+        deltaTime
+      );
+
+      // After TF swap, update the render pass buffer binding to point to the latest output
+      if (this._tfBufferBindingIndex >= 0) {
+        this._primitive.setVertexBufferBinding(
+          this._tfBufferBindingIndex,
+          this._transformFeedback.currentRenderBufferBinding
+        );
+      }
+    }
   }
 
   /**
@@ -418,6 +466,20 @@ export class ParticleGenerator {
     // If instance buffer already created
     if (this._instanceVertexBufferBinding) {
       vertexBufferBindings.push(this._instanceVertexBufferBinding);
+    }
+
+    // Add TF output buffer binding for render pass (position + velocity from TF)
+    if (this._useTFMode && this._transformFeedback) {
+      this._tfBufferBindingIndex = vertexBufferBindings.length;
+      primitive.addVertexElement(
+        new VertexElement("a_TFPosition", 0, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
+      );
+      primitive.addVertexElement(
+        new VertexElement("a_TFVelocity", 12, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
+      );
+      vertexBufferBindings.push(this._transformFeedback.currentRenderBufferBinding);
+    } else {
+      this._tfBufferBindingIndex = -1;
     }
 
     primitive.setVertexBufferBindings(vertexBufferBindings);
@@ -500,15 +562,28 @@ export class ParticleGenerator {
 
       this._instanceBufferResized = true;
     }
-    // Instance buffer always at last
-    this._primitive.setVertexBufferBinding(
-      lastInstanceVertices ? vertexBufferBindings.length - 1 : vertexBufferBindings.length,
-      vertexBufferBinding
-    );
+    // Update instance buffer binding at the correct index
+    // (In TF mode, TF buffer occupies the last slot, instance buffer is second-to-last)
+    const instanceBindingIndex = lastInstanceVertices
+      ? vertexBufferBindings.length - 1 - (this._useTFMode ? 1 : 0)
+      : vertexBufferBindings.length;
+    this._primitive.setVertexBufferBinding(instanceBindingIndex, vertexBufferBinding);
 
     this._instanceVertices = instanceVertices;
     this._instanceVertexBufferBinding = vertexBufferBinding;
     this._currentParticleCount = newParticleCount;
+
+    // Resize TF buffers if in TF mode
+    if (this._useTFMode && this._transformFeedback) {
+      this._transformFeedback.resize(newParticleCount);
+      // Update TF buffer binding in primitive after resize
+      if (this._tfBufferBindingIndex >= 0) {
+        this._primitive.setVertexBufferBinding(
+          this._tfBufferBindingIndex,
+          this._transformFeedback.currentRenderBufferBinding
+        );
+      }
+    }
   }
 
   /**
@@ -538,6 +613,40 @@ export class ParticleGenerator {
     this.limitVelocityOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
+  }
+
+  /**
+   * @internal
+   * Enable or disable Transform Feedback mode.
+   * When enabled, velocity/position simulation is done per-frame via TF,
+   * allowing accurate stateful simulation (e.g., dampen in LimitVelocityOverLifetime).
+   */
+  _setTFMode(enabled: boolean): void {
+    if (this._useTFMode === enabled) return;
+    this._useTFMode = enabled;
+
+    const renderer = this._renderer;
+    const engine = renderer.engine;
+
+    if (enabled) {
+      // Check WebGL2 support — LimitVelocityOverLifetime requires TF for accurate simulation
+      if (!engine._hardwareRenderer.isWebGL2) {
+        Logger.warn("ParticleGenerator: LimitVelocityOverLifetime is not supported on WebGL1.");
+        this._useTFMode = false;
+        return;
+      }
+
+      if (!this._transformFeedback) {
+        this._transformFeedback = new ParticleTransformFeedbackSimulator(engine);
+      }
+      this._transformFeedback.resize(this._currentParticleCount);
+      renderer.shaderData.enableMacro(ParticleGenerator._tfModeMacro);
+    } else {
+      renderer.shaderData.disableMacro(ParticleGenerator._tfModeMacro);
+    }
+
+    // Rebuild geometry buffers to include/exclude TF buffer binding
+    this._reorganizeGeometryBuffers();
   }
 
   /**
@@ -577,6 +686,7 @@ export class ParticleGenerator {
     this._instanceVertexBufferBinding.buffer.destroy();
     this._primitive.destroy();
     this.emission._destroy();
+    this._transformFeedback?.destroy();
   }
 
   /**
@@ -880,7 +990,68 @@ export class ParticleGenerator {
       instanceVertices[offset + 41] = limitVelocityOverLifetime._limitRand.random();
     }
 
+    // Initialize TF buffer for this particle
+    if (this._useTFMode && this._transformFeedback) {
+      this._initTFParticle(firstFreeElement, position, direction, startSpeed, transform);
+    }
+
     this._firstFreeElement = nextFreeElement;
+  }
+
+  /**
+   * Initialize TF buffer data for a newly emitted particle.
+   * Computes initial world position and local velocity on CPU so the TF shader
+   * only ever does incremental updates.
+   */
+  private _initTFParticle(
+    index: number,
+    shapePosition: Vector3,
+    direction: Vector3,
+    startSpeed: number,
+    transform: Transform
+  ): void {
+    const main = this.main;
+
+    // Local velocity = direction * speed
+    const vx = direction.x * startSpeed;
+    const vy = direction.y * startSpeed;
+    const vz = direction.z * startSpeed;
+
+    // World position = rotateByWorldRotation(shapePosition) + worldOffset
+    let qx: number, qy: number, qz: number, qw: number;
+    if (main.simulationSpace === ParticleSimulationSpace.Local) {
+      const wrot = transform.worldRotationQuaternion;
+      qx = wrot.x;
+      qy = wrot.y;
+      qz = wrot.z;
+      qw = wrot.w;
+    } else {
+      // World space: rotation was captured at emission time, stored in instance buffer
+      // For simplicity, use identity (shape position is already in world space for world sim)
+      qx = 0;
+      qy = 0;
+      qz = 0;
+      qw = 1;
+    }
+
+    // Rotate shape position by quaternion: v + 2*cross(q.xyz, cross(q.xyz, v) + q.w * v)
+    const sx = shapePosition.x,
+      sy = shapePosition.y,
+      sz = shapePosition.z;
+    const cx1 = qy * sz - qz * sy + qw * sx;
+    const cy1 = qz * sx - qx * sz + qw * sy;
+    const cz1 = qx * sy - qy * sx + qw * sz;
+    let px = sx + 2 * (qy * cz1 - qz * cy1);
+    let py = sy + 2 * (qz * cx1 - qx * cz1);
+    let pz = sz + 2 * (qx * cy1 - qy * cx1);
+
+    // Add world offset
+    const wp = transform.worldPosition;
+    px += wp.x;
+    py += wp.y;
+    pz += wp.z;
+
+    this._transformFeedback.writeParticleData(index, px, py, pz, vx, vy, vz);
   }
 
   private _retireActiveParticles(): void {
@@ -940,24 +1111,46 @@ export class ParticleGenerator {
     }
 
     const byteStride = ParticleBufferUtils.instanceVertexStride;
-    const start = firstActiveElement * byteStride;
     const instanceBuffer = this._instanceVertexBufferBinding.buffer;
     const dataBuffer = this._instanceVertices.buffer;
 
-    if (firstActiveElement < firstFreeElement) {
-      instanceBuffer.setData(
-        dataBuffer,
-        0,
-        start,
-        (firstFreeElement - firstActiveElement) * byteStride,
-        SetDataOptions.Discard
-      );
+    if (this._useTFMode) {
+      // TF mode: upload active range without compacting (indices must match TF buffer slots).
+      // Uses Discard to avoid CPU-GPU sync stalls.
+      const start = firstActiveElement * byteStride;
+      if (firstActiveElement < firstFreeElement) {
+        instanceBuffer.setData(
+          dataBuffer as ArrayBuffer,
+          start,
+          start,
+          (firstFreeElement - firstActiveElement) * byteStride,
+          SetDataOptions.Discard
+        );
+      } else {
+        const firstSegmentSize = (this._currentParticleCount - firstActiveElement) * byteStride;
+        instanceBuffer.setData(dataBuffer as ArrayBuffer, start, start, firstSegmentSize, SetDataOptions.Discard);
+        if (firstFreeElement > 0) {
+          instanceBuffer.setData(dataBuffer as ArrayBuffer, 0, 0, firstFreeElement * byteStride);
+        }
+      }
     } else {
-      const firstSegmentCount = (this._currentParticleCount - firstActiveElement) * byteStride;
-      instanceBuffer.setData(dataBuffer, 0, start, firstSegmentCount, SetDataOptions.Discard);
+      // Non-TF mode: compact active range to GPU offset 0
+      const start = firstActiveElement * byteStride;
+      if (firstActiveElement < firstFreeElement) {
+        instanceBuffer.setData(
+          dataBuffer,
+          0,
+          start,
+          (firstFreeElement - firstActiveElement) * byteStride,
+          SetDataOptions.Discard
+        );
+      } else {
+        const firstSegmentCount = (this._currentParticleCount - firstActiveElement) * byteStride;
+        instanceBuffer.setData(dataBuffer, 0, start, firstSegmentCount, SetDataOptions.Discard);
 
-      if (firstFreeElement > 0) {
-        instanceBuffer.setData(dataBuffer, firstSegmentCount, 0, firstFreeElement * byteStride);
+        if (firstFreeElement > 0) {
+          instanceBuffer.setData(dataBuffer, firstSegmentCount, 0, firstFreeElement * byteStride);
+        }
       }
     }
     this._firstNewElement = firstFreeElement;

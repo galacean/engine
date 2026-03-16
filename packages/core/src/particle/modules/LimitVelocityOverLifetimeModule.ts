@@ -235,6 +235,8 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   override set enabled(value: boolean) {
     if (value !== this._enabled) {
       this._enabled = value;
+      // Auto-switch to Transform Feedback mode for accurate per-frame dampen simulation
+      this._generator._setTFMode(value);
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }

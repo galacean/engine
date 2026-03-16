@@ -133,7 +133,7 @@ function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: 
   limitVelocityOverLifetime.limitZ = new ParticleCompositeCurve(0);
   //   limitVelocityOverLifetime.limit = new ParticleCompositeCurve(1);
   limitVelocityOverLifetime.space = ParticleSimulationSpace.World;
-  limitVelocityOverLifetime.dampen = 0.8;
+  limitVelocityOverLifetime.dampen = 0.25;
   limitVelocityOverLifetime.drag = new ParticleCompositeCurve(0.0);
   limitVelocityOverLifetime.multiplyDragByParticleSize = true;
   limitVelocityOverLifetime.multiplyDragByParticleVelocity = true;
