@@ -24,26 +24,32 @@ class RenderTargetLoader extends Loader<RenderTarget> {
           type: "json"
         })
         .then((data: IRenderTargetData) => {
-          const { width, height, colorFormat, depthFormat, antiAliasing, autoGenerateMipmaps } = data;
+          const { width, height, colorFormats, depthFormat, antiAliasing, autoGenerateMipmaps } = data;
 
-          const colorProps = data.colorTexture;
-          const mipmap = colorProps?.mipmap ?? true;
-          const isSRGB = colorProps?.isSRGBColorSpace ?? colorFormat === TextureFormat.R8G8B8A8;
-          const colorTexture = new Texture2D(engine, width, height, colorFormat, mipmap, isSRGB);
-          if (colorProps) {
-            if (colorProps.filterMode != null) colorTexture.filterMode = colorProps.filterMode;
-            if (colorProps.wrapModeU != null) colorTexture.wrapModeU = colorProps.wrapModeU;
-            if (colorProps.wrapModeV != null) colorTexture.wrapModeV = colorProps.wrapModeV;
-            if (colorProps.anisoLevel != null) colorTexture.anisoLevel = colorProps.anisoLevel;
-          }
+          const colorTextureProps = data.colorTextures;
+          const colorTextures = colorFormats.map((format, i) => {
+            const props = colorTextureProps?.[i];
+            const mipmap = props?.mipmap ?? true;
+            const isSRGB = props?.isSRGBColorSpace ?? format === TextureFormat.R8G8B8A8;
+            const texture = new Texture2D(engine, width, height, format, mipmap, isSRGB);
+            if (props) {
+              if (props.filterMode != null) texture.filterMode = props.filterMode;
+              if (props.wrapModeU != null) texture.wrapModeU = props.wrapModeU;
+              if (props.wrapModeV != null) texture.wrapModeV = props.wrapModeV;
+              if (props.anisoLevel != null) texture.anisoLevel = props.anisoLevel;
+            }
+            return texture;
+          });
 
           const depth = depthFormat === -1 ? null : depthFormat;
-          const rt = new RenderTarget(engine, width, height, colorTexture, depth, antiAliasing);
+          const rt = new RenderTarget(engine, width, height, colorTextures, depth, antiAliasing);
           if (autoGenerateMipmaps != null) rt.autoGenerateMipmaps = autoGenerateMipmaps;
 
-          // Notify pending sub-asset requests for colorTexture
-          // @ts-ignore
-          resourceManager._onSubAssetSuccess(item.url, "colorTextures[0]", colorTexture);
+          // Notify pending sub-asset requests for colorTextures
+          for (let i = 0, n = colorTextures.length; i < n; i++) {
+            // @ts-ignore
+            resourceManager._onSubAssetSuccess(item.url, `colorTextures[${i}]`, colorTextures[i]);
+          }
 
           return rt;
         })
@@ -55,16 +61,19 @@ class RenderTargetLoader extends Loader<RenderTarget> {
 interface IRenderTargetData {
   width: number;
   height: number;
-  colorFormat: TextureFormat;
+  colorFormats: TextureFormat[];
   depthFormat: number;
   antiAliasing: number;
   autoGenerateMipmaps?: boolean;
-  colorTexture?: {
-    mipmap?: boolean;
-    isSRGBColorSpace?: boolean;
-    filterMode?: TextureFilterMode;
-    wrapModeU?: TextureWrapMode;
-    wrapModeV?: TextureWrapMode;
-    anisoLevel?: number;
-  };
+  colorTextures?: IColorTextureProps[];
+}
+
+/** @internal */
+interface IColorTextureProps {
+  mipmap?: boolean;
+  isSRGBColorSpace?: boolean;
+  filterMode?: TextureFilterMode;
+  wrapModeU?: TextureWrapMode;
+  wrapModeV?: TextureWrapMode;
+  anisoLevel?: number;
 }

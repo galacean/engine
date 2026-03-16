@@ -1,7 +1,6 @@
 import {
   GLCapabilityType,
   IPlatformRenderTarget,
-  Logger,
   RenderTarget,
   Texture,
   TextureCube,
@@ -50,8 +49,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       if (!GLTexture._supportRenderBufferColorFormat(format, rhi)) {
         throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
-      if (isSRGBColorSpace && format !== TextureFormat.R8G8B8A8) {
-        Logger.warn(`sRGB color space is only supported with R8G8B8A8 format in RenderTarget, will use linear space.`);
+      if (isSRGBColorSpace && format === TextureFormat.R8G8B8) {
+        throw new Error(`If you want to use sRGB color space, only R8G8B8A8 format is supported in RenderTarget`);
       }
     }
 
