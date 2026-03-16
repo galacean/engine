@@ -136,8 +136,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SkinnedMeshRenderer, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
+  override _cloneTo(target: SkinnedMeshRenderer): void {
+    super._cloneTo(target);
 
     if (this.skin) {
       target._applySkin(null, target.skin);

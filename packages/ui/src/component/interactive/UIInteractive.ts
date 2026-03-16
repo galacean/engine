@@ -1,4 +1,12 @@
-import { CloneUtils, Entity, EntityModifyFlags, Script, assignmentClone, ignoreClone } from "@galacean/engine";
+import {
+  CloneUtils,
+  Entity,
+  EntityModifyFlags,
+  Script,
+  assignmentClone,
+  deepClone,
+  ignoreClone
+} from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -42,7 +50,7 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _globalInteractiveDirty: boolean = false;
 
-  @ignoreClone
+  @deepClone
   protected _transitions: Transition[] = [];
   @assignmentClone
   protected _interactive: boolean = true;
@@ -161,24 +169,6 @@ export class UIInteractive extends Script implements IGroupAble {
     const transitions = this._transitions;
     for (let i = transitions.length - 1; i >= 0; i--) {
       transitions[i].destroy();
-    }
-  }
-
-  // @ts-ignore
-  override _cloneTo(target: UIInteractive, srcRoot: Entity, targetRoot: Entity): void {
-    const transitions = this._transitions;
-    for (let i = 0, n = transitions.length; i < n; i++) {
-      const srcTransition = transitions[i];
-      const dstTransition = new (transitions[i].constructor as new () => Transition)();
-      dstTransition.normal = srcTransition.normal;
-      dstTransition.pressed = srcTransition.pressed;
-      dstTransition.hover = srcTransition.hover;
-      dstTransition.disabled = srcTransition.disabled;
-      const transitionTarget = srcTransition.target;
-      if (transitionTarget) {
-        dstTransition.target = CloneUtils.remapComponent(srcRoot, targetRoot, transitionTarget);
-      }
-      target.addTransition(dstTransition);
     }
   }
 

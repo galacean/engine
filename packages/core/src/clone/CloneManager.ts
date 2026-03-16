@@ -1,6 +1,6 @@
 import { Entity } from "../Entity";
 import { TypedArray } from "../base/Constant";
-import { IComponentCustomClone, ICustomClone } from "./ComponentCloner";
+import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -103,11 +103,16 @@ export class CloneManager {
     targetRoot: Entity,
     deepInstanceMap: Map<Object, Object>
   ): void {
+    const sourceProperty = source[k];
+    if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
+      target[k] = (<ICustomClone>sourceProperty)._remap(srcRoot, targetRoot);
+      return;
+    }
+
     if (cloneMode === CloneMode.Ignore) {
       return;
     }
 
-    const sourceProperty = source[k];
     if (sourceProperty instanceof Object) {
       if (cloneMode === undefined || cloneMode === CloneMode.Assignment) {
         target[k] = sourceProperty;
@@ -180,15 +185,8 @@ export class CloneManager {
                 deepInstanceMap
               );
             }
-
             // Custom incremental clone
-            if ((<IComponentCustomClone>sourceProperty)._cloneTo) {
-              (<IComponentCustomClone>sourceProperty)._cloneTo(
-                <IComponentCustomClone>targetProperty,
-                srcRoot,
-                targetRoot
-              );
-            }
+            (<ICustomClone>sourceProperty)._cloneTo?.(<ICustomClone>targetProperty, srcRoot, targetRoot);
           }
           break;
       }

@@ -413,12 +413,8 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
-  _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: UICanvas): void {
     target.renderMode = this._renderMode;
-    const camera = this._camera;
-    if (camera) {
-      target.camera = CloneUtils.remapComponent(srcRoot, targetRoot, camera);
-    }
   }
 
   private _getRenderers(): UIRenderer[] {

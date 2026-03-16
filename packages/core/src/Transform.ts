@@ -581,7 +581,7 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: Transform, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: Transform): void {
     const { _position: position, _rotation: rotation, _scale: scale } = target;
 
     // @ts-ignore
