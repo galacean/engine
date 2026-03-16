@@ -53,7 +53,6 @@ export class Entity extends EngineObject {
     }
   }
 
-
   /**
    * @internal
    */

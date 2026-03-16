@@ -2,7 +2,7 @@ import { Entity, ignoreClone, PointerEventData, Signal } from "@galacean/engine"
 import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {
-  /** Signal emitted when the button is clicked */
+  /** Signal emitted when the button is clicked. */
   @ignoreClone
   readonly onClick = new Signal<[PointerEventData]>();
 
