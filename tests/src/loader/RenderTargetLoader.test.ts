@@ -23,7 +23,7 @@ describe("RenderTargetLoader", () => {
     const url = createRenderTargetBlob({
       width: 256,
       height: 256,
-      colorFormat: TextureFormat.R8G8B8A8,
+      colorFormats: [TextureFormat.R8G8B8A8],
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: true
@@ -47,7 +47,7 @@ describe("RenderTargetLoader", () => {
     const url = createRenderTargetBlob({
       width: 128,
       height: 128,
-      colorFormat: TextureFormat.R8G8B8A8,
+      colorFormats: [TextureFormat.R8G8B8A8],
       depthFormat: -1,
       antiAliasing: 1,
       autoGenerateMipmaps: false
@@ -63,18 +63,18 @@ describe("RenderTargetLoader", () => {
     const url = createRenderTargetBlob({
       width: 64,
       height: 64,
-      colorFormat: TextureFormat.R8G8B8A8,
+      colorFormats: [TextureFormat.R8G8B8A8],
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: false,
-      colorTexture: {
+      colorTextures: [{
         mipmap: false,
         isSRGBColorSpace: true,
         filterMode: 1,
         wrapModeU: 1,
         wrapModeV: 1,
         anisoLevel: 4
-      }
+      }]
     });
 
     const rt = await engine.resourceManager.load<RenderTarget>({ url, type: AssetType.RenderTarget });
@@ -89,7 +89,7 @@ describe("RenderTargetLoader", () => {
     const url = createRenderTargetBlob({
       width: 32,
       height: 32,
-      colorFormat: TextureFormat.R8G8B8A8,
+      colorFormats: [TextureFormat.R8G8B8A8],
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: false
