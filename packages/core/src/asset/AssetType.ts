@@ -51,5 +51,7 @@ export enum AssetType {
   /** Project asset. */
   Project = "project",
   /** PhysicsMaterial. */
-  PhysicsMaterial = "PhysicsMaterial"
+  PhysicsMaterial = "PhysicsMaterial",
+  /** RenderTarget. */
+  RenderTarget = "RenderTarget"
 }
