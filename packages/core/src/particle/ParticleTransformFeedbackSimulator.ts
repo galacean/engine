@@ -101,14 +101,13 @@ export class ParticleTransformFeedbackSimulator {
     if (macroHash !== this._lastMacroHash) {
       this._compileTFProgram(macros);
       this._lastMacroHash = macroHash;
-      this._primitive.markVAODirty();
     }
 
     if (!this._tfProgram || !this._tfProgram.isValid) return;
 
-    // Rebuild VAOs if needed
+    // Update VAOs (auto-rebuilds if program or buffers changed)
     const instanceBinding = new VertexBufferBinding(instanceBuffer, ParticleBufferUtils.instanceVertexStride);
-    this._primitive.rebuildVAOsIfNeeded(
+    this._primitive.updateVAOs(
       this._tfProgram,
       ParticleTransformFeedbackSimulator._tfElements,
       [{ binding: instanceBinding, elements: ParticleTransformFeedbackSimulator._instanceElements }]

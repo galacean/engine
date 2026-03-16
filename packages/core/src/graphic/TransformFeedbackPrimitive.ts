@@ -18,20 +18,17 @@ export class TransformFeedbackPrimitive {
   private _writeBuffer: Buffer;
   private _transformFeedback: TransformFeedback;
 
+  // VAO pair for current program (one per ping-pong direction)
   private _vaoA: WebGLVertexArrayObject;
   private _vaoB: WebGLVertexArrayObject;
-  private _currentVAO: WebGLVertexArrayObject;
+  private _useA = true;
+  private _lastProgramId = -1;
 
   private _renderBufferBinding: VertexBufferBinding;
   private _byteStride: number;
   private _vertexCount = 0;
   private _initialized = false;
-  private _vaoDirty = true;
 
-  /**
-   * Vertex buffer binding for the render pass.
-   * After swap, the latest TF output is in readBuffer.
-   */
   get currentRenderBufferBinding(): VertexBufferBinding {
     return this._renderBufferBinding;
   }
@@ -82,40 +79,29 @@ export class TransformFeedbackPrimitive {
     this._renderBufferBinding = new VertexBufferBinding(this._readBuffer, this._byteStride);
     this._vertexCount = vertexCount;
     this._initialized = true;
-    this._vaoDirty = true;
+    // Force VAO rebuild on next updateVAOs
+    this._lastProgramId = -1;
   }
 
   /**
-   * Mark VAOs as dirty (e.g., after shader program recompile).
+   * Ensure VAOs are up-to-date. Automatically rebuilds when program or buffers change.
    */
-  markVAODirty(): void {
-    this._vaoDirty = true;
-  }
-
-  /**
-   * Rebuild VAOs if dirty. Call before draw.
-   * @param program - The TF shader program (for attribute locations).
-   * @param tfElements - VertexElements from the TF read buffer.
-   * @param extraBindings - Additional vertex buffer bindings with their elements.
-   */
-  rebuildVAOsIfNeeded(
+  updateVAOs(
     program: ShaderProgram,
     tfElements: VertexElement[],
     extraBindings: { binding: VertexBufferBinding; elements: VertexElement[] }[]
   ): void {
-    if (!this._vaoDirty) return;
+    if (program.id === this._lastProgramId) return;
 
     const gl = this._engine._hardwareRenderer.gl as WebGL2RenderingContext;
 
-    if (this._vaoA) gl.deleteVertexArray(this._vaoA);
-    if (this._vaoB) gl.deleteVertexArray(this._vaoB);
+    this._deleteVAOs(gl);
 
     this._vaoA = this._createVAO(gl, program, this._readBuffer, tfElements, extraBindings);
     this._vaoB = this._createVAO(gl, program, this._writeBuffer, tfElements, extraBindings);
-    this._currentVAO = this._vaoA;
+    this._lastProgramId = program.id;
 
     gl.bindVertexArray(null);
-    this._vaoDirty = false;
   }
 
   /**
@@ -123,7 +109,7 @@ export class TransformFeedbackPrimitive {
    */
   bindVAO(): void {
     const gl = this._engine._hardwareRenderer.gl as WebGL2RenderingContext;
-    gl.bindVertexArray(this._currentVAO);
+    gl.bindVertexArray(this._useA ? this._vaoA : this._vaoB);
   }
 
   /**
@@ -135,7 +121,7 @@ export class TransformFeedbackPrimitive {
   }
 
   /**
-   * Execute a TF draw call for a range of vertices, with bindBufferRange to write at the correct offset.
+   * Execute a TF draw call for a range of vertices.
    */
   draw(rhi: any, mode: number, first: number, count: number): void {
     const byteOffset = first * this._byteStride;
@@ -155,17 +141,27 @@ export class TransformFeedbackPrimitive {
     const temp = this._readBuffer;
     this._readBuffer = this._writeBuffer;
     this._writeBuffer = temp;
-    this._currentVAO = this._currentVAO === this._vaoA ? this._vaoB : this._vaoA;
+    this._useA = !this._useA;
     this._renderBufferBinding = new VertexBufferBinding(this._readBuffer, this._byteStride);
   }
 
   destroy(): void {
     const gl = this._engine._hardwareRenderer.gl as WebGL2RenderingContext;
-    if (this._vaoA) gl.deleteVertexArray(this._vaoA);
-    if (this._vaoB) gl.deleteVertexArray(this._vaoB);
+    this._deleteVAOs(gl);
     this._readBuffer?.destroy();
     this._writeBuffer?.destroy();
     this._transformFeedback?.destroy();
+  }
+
+  private _deleteVAOs(gl: WebGL2RenderingContext): void {
+    if (this._vaoA) {
+      gl.deleteVertexArray(this._vaoA);
+      this._vaoA = null;
+    }
+    if (this._vaoB) {
+      gl.deleteVertexArray(this._vaoB);
+      this._vaoB = null;
+    }
   }
 
   private _createVAO(
@@ -180,11 +176,9 @@ export class TransformFeedbackPrimitive {
 
     const attribs = program.attributeLocation;
 
-    // TF read buffer attributes
     tfReadBuffer.bind();
     this._bindElements(gl, attribs, tfElements, this._byteStride);
 
-    // Extra buffer attributes
     for (const { binding, elements } of extraBindings) {
       binding.buffer.bind();
       this._bindElements(gl, attribs, elements, binding.stride);
