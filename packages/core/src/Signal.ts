@@ -1,7 +1,8 @@
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { SafeLoopArray } from "./utils/SafeLoopArray";
+import { CloneUtils } from "./clone/CloneUtils";
 import { ignoreClone } from "./clone/CloneManager";
+import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Signal is a typed event mechanism for Galacean Engine.
@@ -128,8 +129,7 @@ export class Signal<T extends any[] = []> {
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
       if (listener.destroyed || !listener.methodName) continue;
-      // @ts-ignore
-      const clonedTarget = Entity._remapComponent(srcRoot, targetRoot, listener.target);
+      const clonedTarget = CloneUtils.remapComponent(srcRoot, targetRoot, listener.target);
       if (clonedTarget) {
         const clonedArgs = this._cloneArguments(listener.arguments, srcRoot, targetRoot);
         if (listener.once) {
@@ -148,11 +148,9 @@ export class Signal<T extends any[] = []> {
     for (let i = 0; i < len; i++) {
       const arg = args[i];
       if (arg instanceof Entity) {
-        // @ts-ignore
-        clonedArgs[i] = Entity._remapEntity(srcRoot, targetRoot, arg);
+        clonedArgs[i] = CloneUtils.remapEntity(srcRoot, targetRoot, arg);
       } else if (arg instanceof Component) {
-        // @ts-ignore
-        clonedArgs[i] = Entity._remapComponent(srcRoot, targetRoot, arg);
+        clonedArgs[i] = CloneUtils.remapComponent(srcRoot, targetRoot, arg);
       } else {
         clonedArgs[i] = arg;
       }

@@ -21,9 +21,6 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
-  /** @internal */
-  static _tempRemapPath: number[] = [];
-
   /**
    * @internal
    */
@@ -56,54 +53,6 @@ export class Entity extends EngineObject {
     }
   }
 
-  /**
-   * @internal
-   */
-  static _remapEntity(srcRoot: Entity, targetRoot: Entity, entity: Entity): Entity {
-    const paths = Entity._tempRemapPath;
-    const success = Entity._getEntityHierarchyPath(srcRoot, entity, paths);
-    return success ? Entity._getEntityByHierarchyPath(targetRoot, paths) : entity;
-  }
-
-  /**
-   * @internal
-   */
-  static _remapComponent<T extends Component>(srcRoot: Entity, targetRoot: Entity, component: T): T {
-    const paths = Entity._tempRemapPath;
-    const success = Entity._getEntityHierarchyPath(srcRoot, component.entity, paths);
-    return success
-      ? (Entity._getEntityByHierarchyPath(targetRoot, paths)?.getComponent(
-          <ComponentConstructor<T>>component.constructor
-        ) as T)
-      : component;
-  }
-
-  /**
-   * @internal
-   */
-  static _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
-    inversePath.length = 0;
-    while (searchEntity !== rootEntity) {
-      const parent = searchEntity.parent;
-      if (!parent) {
-        return false;
-      }
-      inversePath.push(searchEntity.siblingIndex);
-      searchEntity = parent;
-    }
-    return true;
-  }
-
-  /**
-   * @internal
-   */
-  static _getEntityByHierarchyPath(rootEntity: Entity, inversePath: number[]): Entity {
-    let entity = rootEntity;
-    for (let i = inversePath.length - 1; i >= 0; i--) {
-      entity = entity.children[inversePath[i]];
-    }
-    return entity;
-  }
 
   /**
    * @internal

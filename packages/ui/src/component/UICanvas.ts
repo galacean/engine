@@ -16,7 +16,8 @@ import {
   assignmentClone,
   deepClone,
   dependentComponents,
-  ignoreClone
+  ignoreClone,
+  CloneUtils
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
@@ -416,8 +417,7 @@ export class UICanvas extends Component implements IElement {
     target.renderMode = this._renderMode;
     const camera = this._camera;
     if (camera) {
-      // @ts-ignore
-      target.camera = Entity._remapComponent(srcRoot, targetRoot, camera);
+      target.camera = CloneUtils.remapComponent(srcRoot, targetRoot, camera);
     }
   }
 

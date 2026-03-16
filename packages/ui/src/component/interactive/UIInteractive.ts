@@ -1,4 +1,4 @@
-import { Entity, EntityModifyFlags, Script, assignmentClone, ignoreClone } from "@galacean/engine";
+import { CloneUtils, Entity, EntityModifyFlags, Script, assignmentClone, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -176,8 +176,7 @@ export class UIInteractive extends Script implements IGroupAble {
       dstTransition.disabled = srcTransition.disabled;
       const transitionTarget = srcTransition.target;
       if (transitionTarget) {
-        // @ts-ignore
-        dstTransition.target = Entity._remapComponent(srcRoot, targetRoot, transitionTarget);
+        dstTransition.target = CloneUtils.remapComponent(srcRoot, targetRoot, transitionTarget);
       }
       target.addTransition(dstTransition);
     }
