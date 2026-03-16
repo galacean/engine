@@ -39,7 +39,7 @@ class RenderTargetLoader extends Loader<RenderTarget> {
 
           const depth = depthFormat === -1 ? null : depthFormat;
           const rt = new RenderTarget(engine, width, height, colorTexture, depth, antiAliasing);
-          rt.autoGenerateMipmaps = autoGenerateMipmaps;
+          if (autoGenerateMipmaps != null) rt.autoGenerateMipmaps = autoGenerateMipmaps;
 
           // Notify pending sub-asset requests for colorTexture
           // @ts-ignore
@@ -58,7 +58,7 @@ interface IRenderTargetData {
   colorFormat: TextureFormat;
   depthFormat: number;
   antiAliasing: number;
-  autoGenerateMipmaps: boolean;
+  autoGenerateMipmaps?: boolean;
   colorTexture?: {
     mipmap?: boolean;
     isSRGBColorSpace?: boolean;
