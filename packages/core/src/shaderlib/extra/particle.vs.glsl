@@ -26,6 +26,10 @@ attribute float a_StartSpeed;
     attribute vec4 a_Random1; // x:texture sheet animation random
 #endif
 
+#if defined(_FOL_MODULE_ENABLED) || defined(RENDERER_LVL_MODULE_ENABLED)
+    attribute vec4 a_Random2;
+#endif
+
 attribute vec3 a_SimulationWorldPosition;
 attribute vec4 a_SimulationWorldRotation;
 
@@ -62,6 +66,7 @@ uniform int renderer_SimulationSpace;
 #include <particle_common>
 #include <velocity_over_lifetime_module>
 #include <force_over_lifetime_module>
+#include <limit_velocity_over_lifetime_module>
 #include <color_over_lifetime_module>
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
@@ -135,9 +140,27 @@ void main() {
         vec3 localVelocity = startVelocity;
         vec3 worldVelocity = gravityVelocity;
 
-        //drag
-        vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
-        vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, localVelocity, worldVelocity);
+        #ifdef RENDERER_LVL_MODULE_ENABLED
+            // Sampling-based position computation with velocity limiting
+            float limitRand = a_Random2.w;
+            vec3 gravityAcceleration = renderer_Gravity * a_Random0.x;
+            vec3 center = computeParticlePositionLVL(
+                startVelocity,
+                age,
+                a_ShapePositionStartLifeTime.w,
+                gravityAcceleration,
+                worldRotation,
+                limitRand,
+                a_Random0.x,
+                a_StartSize,
+                localVelocity,
+                worldVelocity
+            );
+        #else
+            // Original analytical path
+            vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
+            vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, localVelocity, worldVelocity);
+        #endif
 
         #include <sphere_billboard>
         #include <stretched_billboard>

@@ -29,6 +29,7 @@ import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
 
 /**
  * Particle Generator.
@@ -61,6 +62,9 @@ export class ParticleGenerator {
   /** Force over lifetime module. */
   @deepClone
   readonly forceOverLifetime: ForceOverLifetimeModule;
+  /** Limit velocity over lifetime module. */
+  @deepClone
+  readonly limitVelocityOverLifetime: LimitVelocityOverLifetimeModule;
   /** Size over lifetime module. */
   @deepClone
   readonly sizeOverLifetime: SizeOverLifetimeModule;
@@ -169,6 +173,7 @@ export class ParticleGenerator {
     this.velocityOverLifetime = new VelocityOverLifetimeModule(this);
     this.forceOverLifetime = new ForceOverLifetimeModule(this);
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
+    this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
 
     this.emission.enabled = true;
   }
@@ -513,6 +518,7 @@ export class ParticleGenerator {
     this.main._updateShaderData(shaderData);
     this.velocityOverLifetime._updateShaderData(shaderData);
     this.forceOverLifetime._updateShaderData(shaderData);
+    this.limitVelocityOverLifetime._updateShaderData(shaderData);
     this.textureSheetAnimation._updateShaderData(shaderData);
     this.sizeOverLifetime._updateShaderData(shaderData);
     this.rotationOverLifetime._updateShaderData(shaderData);
@@ -529,6 +535,7 @@ export class ParticleGenerator {
     this.textureSheetAnimation._resetRandomSeed(seed);
     this.velocityOverLifetime._resetRandomSeed(seed);
     this.forceOverLifetime._resetRandomSeed(seed);
+    this.limitVelocityOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
   }
@@ -866,6 +873,11 @@ export class ParticleGenerator {
       instanceVertices[offset + 38] = rand.random();
       instanceVertices[offset + 39] = rand.random();
       instanceVertices[offset + 40] = rand.random();
+    }
+
+    const { limitVelocityOverLifetime } = this;
+    if (limitVelocityOverLifetime.enabled && limitVelocityOverLifetime._isRandomMode()) {
+      instanceVertices[offset + 41] = limitVelocityOverLifetime._limitRand.random();
     }
 
     this._firstFreeElement = nextFreeElement;
