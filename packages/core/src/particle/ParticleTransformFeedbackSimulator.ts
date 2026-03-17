@@ -53,8 +53,8 @@ export class ParticleTransformFeedbackSimulator {
   private _tempParticleData = new Float32Array(6);
   private _initialized = false;
 
-  get currentRenderBufferBinding(): VertexBufferBinding {
-    return this._primitive.currentRenderBufferBinding;
+  get readBinding(): VertexBufferBinding {
+    return this._primitive.readBinding;
   }
 
   constructor(engine: Engine) {
@@ -80,8 +80,8 @@ export class ParticleTransformFeedbackSimulator {
     data[4] = vy;
     data[5] = vz;
     const byteOffset = index * ParticleTransformFeedbackSimulator._byteStride;
-    this._primitive.readBuffer.setData(data, byteOffset);
-    this._primitive.writeBuffer.setData(data, byteOffset);
+    this._primitive.readBinding.buffer.setData(data, byteOffset);
+    this._primitive.writeBinding.buffer.setData(data, byteOffset);
   }
 
   update(
@@ -115,15 +115,17 @@ export class ParticleTransformFeedbackSimulator {
     this._tfProgram.uploadUniforms(this._tfProgram.rendererUniformBlock, shaderData);
     this._tfProgram.uploadUniforms(this._tfProgram.otherUniformBlock, shaderData);
 
-    // Draw alive particles (ring buffer may wrap into two segments)
+    // Update attribute layout if program changed
     const instanceBinding = new VertexBufferBinding(instanceBuffer, ParticleBufferUtils.instanceVertexStride);
-    this._primitive.beginDraw(
+    this._primitive.updateVertexLayout(
       this._tfProgram,
       ParticleTransformFeedbackSimulator._feedbackElements,
       instanceBinding,
       ParticleTransformFeedbackSimulator._instanceElements
     );
 
+    // Draw alive particles (ring buffer may wrap into two segments)
+    this._primitive.beginDraw();
     if (firstActive < firstFree) {
       this._primitive.draw(MeshTopology.Points, firstActive, firstFree - firstActive);
     } else {
@@ -132,7 +134,6 @@ export class ParticleTransformFeedbackSimulator {
         this._primitive.draw(MeshTopology.Points, 0, firstFree);
       }
     }
-
     this._primitive.endDraw();
     rhi.disableRasterizerDiscard();
 

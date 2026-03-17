@@ -393,7 +393,7 @@ export class ParticleGenerator {
       // Directly assign to avoid triggering _bufferStructChanged (VAO is disabled in TF mode).
       if (this._tfBufferBindingIndex >= 0) {
         this._primitive.vertexBufferBindings[this._tfBufferBindingIndex] =
-          this._transformFeedback.currentRenderBufferBinding;
+          this._transformFeedback.readBinding;
       }
     }
   }
@@ -476,7 +476,7 @@ export class ParticleGenerator {
       primitive.addVertexElement(
         new VertexElement("a_TFVelocity", 12, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
       );
-      vertexBufferBindings.push(this._transformFeedback.currentRenderBufferBinding);
+      vertexBufferBindings.push(this._transformFeedback.readBinding);
     } else {
       this._tfBufferBindingIndex = -1;
     }
@@ -579,7 +579,7 @@ export class ParticleGenerator {
       if (this._tfBufferBindingIndex >= 0) {
         this._primitive.setVertexBufferBinding(
           this._tfBufferBindingIndex,
-          this._transformFeedback.currentRenderBufferBinding
+          this._transformFeedback.readBinding
         );
       }
     }

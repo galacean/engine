@@ -12,7 +12,7 @@ export interface IPlatformTransformFeedbackPrimitive {
    * @param feedbackElements - Vertex elements for TF buffer
    * @param inputBindings - Additional buffers with their vertex elements
    */
-  update(
+  updateVertexLayout(
     program: any,
     readBuffer: any,
     writeBuffer: any,

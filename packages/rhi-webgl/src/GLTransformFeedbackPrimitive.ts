@@ -16,7 +16,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     this._gl = gl;
   }
 
-  update(
+  updateVertexLayout(
     program: any,
     readBuffer: Buffer,
     writeBuffer: Buffer,

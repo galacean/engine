@@ -11,7 +11,7 @@ import { VertexElement } from "./VertexElement";
 
 /**
  * @internal
- * Transform Feedback primitive that manages buffers, draw calls, and state for GPU-side data capture.
+ * Primitive for Transform Feedback simulation with read/write buffer swapping.
  */
 export class TransformFeedbackPrimitive {
   /** @internal */
@@ -19,36 +19,28 @@ export class TransformFeedbackPrimitive {
 
   private _engine: Engine;
   private _transformFeedback: TransformFeedback;
-  private _readBuffer: Buffer;
-  private _writeBuffer: Buffer;
-  private _renderBufferBinding: VertexBufferBinding;
+  private _bindingA: VertexBufferBinding;
+  private _bindingB: VertexBufferBinding;
   private _byteStride: number;
-  private _readIsFirst = true;
+  private _readIsA = true;
 
   /**
-   * Buffer binding for the render pass (points to the latest TF output).
+   * The current read buffer binding.
    */
-  get currentRenderBufferBinding(): VertexBufferBinding {
-    return this._renderBufferBinding;
+  get readBinding(): VertexBufferBinding {
+    return this._readIsA ? this._bindingA : this._bindingB;
   }
 
   /**
-   * The current read buffer (TF input / render source).
+   * The current write buffer binding.
    */
-  get readBuffer(): Buffer {
-    return this._readBuffer;
-  }
-
-  /**
-   * The current write buffer (TF output target).
-   */
-  get writeBuffer(): Buffer {
-    return this._writeBuffer;
+  get writeBinding(): VertexBufferBinding {
+    return this._readIsA ? this._bindingB : this._bindingA;
   }
 
   /**
    * @param engine - Engine instance
-   * @param byteStride - Bytes per vertex in the TF buffer
+   * @param byteStride - Bytes per vertex
    */
   constructor(engine: Engine, byteStride: number) {
     this._engine = engine;
@@ -59,59 +51,65 @@ export class TransformFeedbackPrimitive {
   }
 
   /**
-   * Resize buffers.
+   * Resize read and write buffers.
    * @param vertexCount - Number of vertices to allocate
    */
   resize(vertexCount: number): void {
-    this._readBuffer?.destroy();
-    this._writeBuffer?.destroy();
+    this._bindingA?.buffer.destroy();
+    this._bindingB?.buffer.destroy();
 
     const byteLength = this._byteStride * vertexCount;
-    const readBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
-    readBuffer.isGCIgnored = true;
-    const writeBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
-    writeBuffer.isGCIgnored = true;
+    const bufferA = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
+    bufferA.isGCIgnored = true;
+    const bufferB = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
+    bufferB.isGCIgnored = true;
 
-    this._readBuffer = readBuffer;
-    this._writeBuffer = writeBuffer;
-    this._renderBufferBinding = new VertexBufferBinding(readBuffer, this._byteStride);
+    this._bindingA = new VertexBufferBinding(bufferA, this._byteStride);
+    this._bindingB = new VertexBufferBinding(bufferB, this._byteStride);
+    this._readIsA = true;
   }
 
   /**
-   * Prepare for drawing. Updates attribute bindings if needed and binds state.
-   * @param program - The shader program
-   * @param feedbackElements - Vertex elements for the feedback buffer
-   * @param inputBinding - Input buffer binding (e.g., instance data)
-   * @param inputElements - Vertex elements for the input buffer
+   * Update vertex layout, only rebuilds when program changes.
+   * @param program - Shader program for attribute locations
+   * @param feedbackElements - Vertex elements describing the read/write buffer
+   * @param inputBinding - Additional input buffer binding
+   * @param inputElements - Vertex elements describing the input buffer
    */
-  beginDraw(
+  updateVertexLayout(
     program: ShaderProgram,
     feedbackElements: VertexElement[],
     inputBinding: VertexBufferBinding,
     inputElements: VertexElement[]
   ): void {
-    this._platformPrimitive.update(
+    this._platformPrimitive.updateVertexLayout(
       program,
-      this._readBuffer,
-      this._writeBuffer,
+      this.readBinding.buffer,
+      this.writeBinding.buffer,
       this._byteStride,
       feedbackElements,
       inputBinding,
       inputElements
     );
-    this._platformPrimitive.bind(this._readIsFirst);
   }
 
   /**
-   * Execute a single TF draw call for a vertex range.
+   * Bind state before issuing draw calls.
+   */
+  beginDraw(): void {
+    this._platformPrimitive.bind(this._readIsA);
+  }
+
+  /**
+   * Issue a draw call for a vertex range, capturing output to the write buffer.
    * @param mode - Primitive topology
    * @param first - First vertex index
-   * @param count - Number of vertices to process
+   * @param count - Number of vertices
    */
   draw(mode: MeshTopology, first: number, count: number): void {
     const transformFeedback = this._transformFeedback;
     transformFeedback.bind();
-    transformFeedback.bindBufferRange(0, this._writeBuffer, first * this._byteStride, count * this._byteStride);
+    transformFeedback.bindBufferRange(0, this.writeBinding.buffer, first * this._byteStride, count * this._byteStride);
     transformFeedback.begin(mode);
     this._platformPrimitive.draw(mode, first, count);
     transformFeedback.end();
@@ -120,27 +118,23 @@ export class TransformFeedbackPrimitive {
   }
 
   /**
-   * Finish drawing and unbind state.
+   * Unbind state after draw calls.
    */
   endDraw(): void {
     this._platformPrimitive.unbind();
   }
 
   /**
-   * Swap ping-pong buffers. After this, readBuffer holds the latest TF output.
+   * Swap read and write buffers.
    */
   swap(): void {
-    const temp = this._readBuffer;
-    this._readBuffer = this._writeBuffer;
-    this._writeBuffer = temp;
-    this._readIsFirst = !this._readIsFirst;
-    this._renderBufferBinding = new VertexBufferBinding(this._readBuffer, this._byteStride);
+    this._readIsA = !this._readIsA;
   }
 
   destroy(): void {
     this._platformPrimitive?.destroy();
-    this._readBuffer?.destroy();
-    this._writeBuffer?.destroy();
+    this._bindingA?.buffer.destroy();
+    this._bindingB?.buffer.destroy();
     this._transformFeedback?.destroy();
   }
 }
