@@ -377,12 +377,9 @@ export class ParticleGenerator {
       shaderData.setFloat(ShaderProperty.getByName("renderer_CurrentTime"), this._playTime);
       this._updateShaderData(shaderData);
 
-      const macroList: ShaderMacro[] = [];
-      ShaderMacro._getMacrosElements(shaderData._macroCollection, macroList);
       this._transformFeedback.update(
         this._instanceVertexBufferBinding.buffer,
         shaderData,
-        macroList,
         this._currentParticleCount,
         this._firstActiveElement,
         this._firstFreeElement,

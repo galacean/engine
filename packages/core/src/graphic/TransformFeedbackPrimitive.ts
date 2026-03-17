@@ -97,6 +97,7 @@ export class TransformFeedbackPrimitive {
    * Bind state before issuing draw calls.
    */
   beginDraw(): void {
+    this._engine._hardwareRenderer.enableRasterizerDiscard();
     this._transformFeedback.bind();
     this._platformPrimitive.bind(this._readIsA);
   }
@@ -122,6 +123,8 @@ export class TransformFeedbackPrimitive {
     this._platformPrimitive.unbind();
     this._transformFeedback.unbindBuffer(0);
     this._transformFeedback.unbind();
+    this._engine._hardwareRenderer.disableRasterizerDiscard();
+    this._engine._hardwareRenderer.invalidateShaderProgramState();
   }
 
   /**
