@@ -33,7 +33,6 @@ import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLife
 import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { ShaderProperty } from "../shader/ShaderProperty";
 import { Logger } from "../base/Logger";
 
 /**
@@ -52,7 +51,6 @@ export class ParticleGenerator {
   private static readonly _particleIncreaseCount = 128;
   private static readonly _transformedBoundsIncreaseCount = 16;
   private static readonly _transformFeedbackMacro = ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK");
-  private static readonly _currentTimeProperty = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Use auto random seed. */
   useAutoRandomSeed = true;
@@ -367,29 +365,24 @@ export class ParticleGenerator {
       this._addActiveParticlesToVertexBuffer();
     }
 
-    // Run Transform Feedback update pass
-    if (this._useTransformFeedback && this._feedbackSimulator) {
-      const renderer = this._renderer;
-      const shaderData = renderer.shaderData;
+  }
 
-      // Upload current uniform values before feedback pass.
-      shaderData.setFloat(ParticleGenerator._currentTimeProperty, this._playTime);
-      this._updateShaderData(shaderData);
+  /**
+   * @internal
+   * Run Transform Feedback simulation pass.
+   */
+  _updateFeedback(shaderData: ShaderData, deltaTime: number): void {
+    this._feedbackSimulator.update(
+      this._instanceVertexBufferBinding.buffer,
+      shaderData,
+      this._currentParticleCount,
+      this._firstActiveElement,
+      this._firstFreeElement,
+      deltaTime
+    );
 
-      this._feedbackSimulator.update(
-        this._instanceVertexBufferBinding.buffer,
-        shaderData,
-        this._currentParticleCount,
-        this._firstActiveElement,
-        this._firstFreeElement,
-        deltaTime
-      );
-
-      // After swap, update the render pass buffer binding to point to the latest output.
-      if (this._feedbackBindingIndex >= 0) {
-        this._primitive.vertexBufferBindings[this._feedbackBindingIndex] = this._feedbackSimulator.readBinding;
-      }
-    }
+    // After swap, update the render pass buffer binding to point to the latest output
+    this._primitive.vertexBufferBindings[this._feedbackBindingIndex] = this._feedbackSimulator.readBinding;
   }
 
   /**
@@ -462,7 +455,7 @@ export class ParticleGenerator {
     }
 
     // Add feedback buffer binding for render pass
-    if (this._useTransformFeedback && this._feedbackSimulator) {
+    if (this._useTransformFeedback) {
       this._feedbackBindingIndex = vertexBufferBindings.length;
       primitive.addVertexElement(
         new VertexElement("a_FeedbackPosition", 0, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
@@ -567,12 +560,10 @@ export class ParticleGenerator {
     this._currentParticleCount = newParticleCount;
 
     // Resize feedback buffers
-    if (this._useTransformFeedback && this._feedbackSimulator) {
+    if (this._useTransformFeedback) {
       this._feedbackSimulator.resize(newParticleCount);
       // Update feedback buffer binding after resize
-      if (this._feedbackBindingIndex >= 0) {
-        this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
-      }
+      this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
     }
   }
 
@@ -981,7 +972,7 @@ export class ParticleGenerator {
     }
 
     // Initialize feedback buffer for this particle
-    if (this._useTransformFeedback && this._feedbackSimulator) {
+    if (this._useTransformFeedback) {
       this._initTFParticle(firstFreeElement, position, direction, startSpeed, transform);
     }
 

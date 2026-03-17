@@ -218,6 +218,11 @@ export class ParticleRenderer extends Renderer {
     shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
 
     this.generator._updateShaderData(shaderData);
+
+    // Run Transform Feedback simulation after shader data is up to date
+    if (generator._useTransformFeedback) {
+      generator._updateFeedback(shaderData, this.engine.time.deltaTime);
+    }
   }
 
   protected override _render(context: RenderContext): void {
