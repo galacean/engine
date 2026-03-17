@@ -1047,43 +1047,23 @@ export class ParticleGenerator {
     const instanceBuffer = this._instanceVertexBufferBinding.buffer;
     const dataBuffer = this._instanceVertices.buffer;
 
-    if (this._useTransformFeedback) {
-      // Feedback mode: upload active range without compacting (indices must match feedback buffer slots).
-      // Uses Discard to avoid CPU-GPU sync stalls.
-      const start = firstActiveElement * byteStride;
-      if (firstActiveElement < firstFreeElement) {
-        instanceBuffer.setData(
-          dataBuffer as ArrayBuffer,
-          start,
-          start,
-          (firstFreeElement - firstActiveElement) * byteStride,
-          SetDataOptions.Discard
-        );
-      } else {
-        const firstSegmentSize = (this._currentParticleCount - firstActiveElement) * byteStride;
-        instanceBuffer.setData(dataBuffer as ArrayBuffer, start, start, firstSegmentSize, SetDataOptions.Discard);
-        if (firstFreeElement > 0) {
-          instanceBuffer.setData(dataBuffer as ArrayBuffer, 0, 0, firstFreeElement * byteStride);
-        }
-      }
+    // Feedback mode: upload in-place (indices match feedback buffer slots)
+    // Non-feedback mode: compact to GPU offset 0
+    const compact = !this._useTransformFeedback;
+    const start = firstActiveElement * byteStride;
+    if (firstActiveElement < firstFreeElement) {
+      instanceBuffer.setData(
+        dataBuffer as ArrayBuffer,
+        compact ? 0 : start,
+        start,
+        (firstFreeElement - firstActiveElement) * byteStride,
+        SetDataOptions.Discard
+      );
     } else {
-      // Non-feedback mode: compact active range to GPU offset 0
-      const start = firstActiveElement * byteStride;
-      if (firstActiveElement < firstFreeElement) {
-        instanceBuffer.setData(
-          dataBuffer,
-          0,
-          start,
-          (firstFreeElement - firstActiveElement) * byteStride,
-          SetDataOptions.Discard
-        );
-      } else {
-        const firstSegmentCount = (this._currentParticleCount - firstActiveElement) * byteStride;
-        instanceBuffer.setData(dataBuffer, 0, start, firstSegmentCount, SetDataOptions.Discard);
-
-        if (firstFreeElement > 0) {
-          instanceBuffer.setData(dataBuffer, firstSegmentCount, 0, firstFreeElement * byteStride);
-        }
+      const firstSegmentSize = (this._currentParticleCount - firstActiveElement) * byteStride;
+      instanceBuffer.setData(dataBuffer as ArrayBuffer, compact ? 0 : start, start, firstSegmentSize, SetDataOptions.Discard);
+      if (firstFreeElement > 0) {
+        instanceBuffer.setData(dataBuffer as ArrayBuffer, compact ? firstSegmentSize : 0, 0, firstFreeElement * byteStride);
       }
     }
     this._firstNewElement = firstFreeElement;
