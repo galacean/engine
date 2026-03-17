@@ -13,7 +13,6 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  * Limit velocity over lifetime module.
  */
 export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
-  // --- Macros ---
   static readonly _enabledMacro = ShaderMacro.getByName("RENDERER_LVL_MODULE_ENABLED");
   static readonly _separateAxesMacro = ShaderMacro.getByName("RENDERER_LVL_SEPARATE_AXES");
   static readonly _limitConstantModeMacro = ShaderMacro.getByName("RENDERER_LVL_LIMIT_CONSTANT_MODE");
@@ -23,13 +22,10 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _multiplyDragBySizeMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_MULTIPLY_SIZE");
   static readonly _multiplyDragByVelocityMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_MULTIPLY_VELOCITY");
 
-  // --- Uniforms: Limit (scalar, non-separate) ---
   static readonly _limitMaxConstProperty = ShaderProperty.getByName("renderer_LVLLimitMaxConst");
   static readonly _limitMinConstProperty = ShaderProperty.getByName("renderer_LVLLimitMinConst");
   static readonly _limitMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitMaxCurve");
   static readonly _limitMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitMinCurve");
-
-  // --- Uniforms: Limit (per-axis, separate) ---
   static readonly _limitMaxConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMaxConstVec");
   static readonly _limitMinConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMinConstVec");
   static readonly _limitXMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitXMaxCurve");
@@ -38,8 +34,6 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _limitYMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitYMinCurve");
   static readonly _limitZMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitZMaxCurve");
   static readonly _limitZMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitZMinCurve");
-
-  // --- Uniforms: Dampen, Drag, Space ---
   static readonly _dampenProperty = ShaderProperty.getByName("renderer_LVLDampen");
   static readonly _dragConstantProperty = ShaderProperty.getByName("u_DragConstant");
   static readonly _dragMaxCurveProperty = ShaderProperty.getByName("renderer_LVLDragMaxCurve");
@@ -101,7 +95,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Speed limit (used when separateAxes is false). Alias for limitX.
+   * Speed limit when separateAxes is false.
    */
   get limit(): ParticleCompositeCurve {
     return this._limitX;
@@ -157,14 +151,15 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Controls how much the module dampens particle velocities that exceed the speed limit.
-   * A value of 0 means no damping, a value of 1 means full damping (hard clamp).
+   * Controls how much the velocity is dampened when it exceeds the limit.
+   * @remarks Value is clamped to [0, 1]. 0 means no damping, 1 means full damping.
    */
   get dampen(): number {
     return this._dampen;
   }
 
   set dampen(value: number) {
+    value = Math.max(0, Math.min(1, value));
     if (value !== this._dampen) {
       this._dampen = value;
       this._generator._renderer._onGeneratorParamsChanged();
