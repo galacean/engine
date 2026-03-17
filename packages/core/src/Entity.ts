@@ -21,7 +21,6 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
-
   /**
    * @internal
    */
@@ -52,33 +51,6 @@ export class Entity extends EngineObject {
     for (let i = children.length - 1; i >= 0; i--) {
       this._traverseSetOwnerScene(children[i], scene);
     }
-  }
-
-  /**
-   * @internal
-   */
-  static _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
-    inversePath.length = 0;
-    while (searchEntity !== rootEntity) {
-      const parent = searchEntity.parent;
-      if (!parent) {
-        return false;
-      }
-      inversePath.push(searchEntity.siblingIndex);
-      searchEntity = parent;
-    }
-    return true;
-  }
-
-  /**
-   * @internal
-   */
-  static _getEntityByHierarchyPath(rootEntity: Entity, inversePath: number[]): Entity {
-    let entity = rootEntity;
-    for (let i = inversePath.length - 1; i >= 0; i--) {
-      entity = entity.children[inversePath[i]];
-    }
-    return entity;
   }
 
   /**

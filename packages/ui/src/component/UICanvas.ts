@@ -16,7 +16,8 @@ import {
   assignmentClone,
   deepClone,
   dependentComponents,
-  ignoreClone
+  ignoreClone,
+  CloneUtils
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
@@ -38,7 +39,6 @@ import { UIInteractive } from "./interactive/UIInteractive";
 export class UICanvas extends Component implements IElement {
   /** @internal */
   static _hierarchyCounter: number = 1;
-  private static _targetTempPath: number[] = [];
   private static _tempGroupAbleList: IGroupAble[] = [];
   private static _tempRectMaskList: RectMask2D[] = [];
   private static _tempVec3: Vector3 = new Vector3();
@@ -419,14 +419,7 @@ export class UICanvas extends Component implements IElement {
     target.renderMode = this._renderMode;
     const camera = this._camera;
     if (camera) {
-      const paths = UICanvas._targetTempPath;
-      // @ts-ignore
-      const success = Entity._getEntityHierarchyPath(srcRoot, camera.entity, paths);
-      // @ts-ignore
-      target.camera = success
-        ? // @ts-ignore
-          Entity._getEntityByHierarchyPath(targetRoot, paths).getComponent(Camera)
-        : camera;
+      target.camera = CloneUtils.remapComponent(srcRoot, targetRoot, camera);
     }
   }
 

@@ -145,12 +145,16 @@ export class CollisionUtil {
     const { zeroTolerance } = MathUtil;
 
     const dir = Vector3.dot(normal, ray.direction);
+    const position = Vector3.dot(normal, ray.origin);
     // Parallel
     if (Math.abs(dir) < zeroTolerance) {
+      // Check if ray origin is on the plane
+      if (Math.abs(position + plane.distance) < zeroTolerance) {
+        return 0;
+      }
       return -1;
     }
 
-    const position = Vector3.dot(normal, ray.origin);
     let distance = (-plane.distance - position) / dir;
 
     if (distance < 0) {

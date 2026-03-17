@@ -99,7 +99,9 @@ export type IBasicType =
   | IClass
   | IClassType
   | IMethodParams
-  | IEntityRef;
+  | IEntityRef
+  | IComponentRef
+  | ISignalRef;
 
 export type IAssetRef = { key?: string; url: string };
 
@@ -108,4 +110,12 @@ export type IEntityRef = { entityId: string };
 export type IComponentRef = {
   ownerId: string;
   componentId: string;
+};
+
+export type ISignalRef = {
+  listeners: Array<{
+    target: IComponentRef;
+    methodName: string;
+    arguments?: Array<IBasicType>;
+  }>;
 };

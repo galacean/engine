@@ -1,4 +1,4 @@
-import { EngineObject, Entity, Loader, Transform } from "@galacean/engine-core";
+import { EngineObject, Entity, Loader, Signal, Transform } from "@galacean/engine-core";
 import type {
   IAssetRef,
   IBasicType,
@@ -10,17 +10,12 @@ import type {
   IHierarchyFile,
   IMethod,
   IMethodParams,
-  IRefEntity
+  IRefEntity,
+  ISignalRef
 } from "../schema";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
-  static customParseComponentHandles = new Map<string, Function>();
-
-  static registerCustomParseComponent(componentType: string, handle: Function) {
-    this.customParseComponentHandles[componentType] = handle;
-  }
-
   constructor(private readonly _context: ParserContext<IHierarchyFile, EngineObject>) {}
 
   parseEntity(entityConfig: IEntity): Promise<Entity> {
@@ -72,11 +67,7 @@ export class ReflectionParser {
       }
     }
 
-    return Promise.all(promises).then(() => {
-      const handle = ReflectionParser.customParseComponentHandles[instance.constructor.name];
-      if (handle) return handle(instance, item);
-      else return instance;
-    });
+    return Promise.all(promises).then(() => instance);
   }
 
   parseMethod(instance: any, methodName: string, methodParams: IMethodParams) {
@@ -91,6 +82,22 @@ export class ReflectionParser {
         return methodResult;
       }
     });
+  }
+
+  parseSignal(signalRef: ISignalRef): Promise<Signal> {
+    const signal = new Signal();
+    return Promise.all(
+      signalRef.listeners.map((listener) =>
+        Promise.all([
+          this.parseBasicType(listener.target),
+          listener.arguments ? Promise.all(listener.arguments.map((a) => this.parseBasicType(a))) : Promise.resolve([])
+        ]).then(([target, resolvedArgs]) => {
+          if (target) {
+            signal.on(target, listener.methodName, ...resolvedArgs);
+          }
+        })
+      )
+    ).then(() => signal);
   }
 
   parseBasicType(value: IBasicType, originValue?: any): Promise<any> {
@@ -118,6 +125,8 @@ export class ReflectionParser {
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));
+      } else if (ReflectionParser._isSignalRef(value)) {
+        return this.parseSignal(value);
       } else if (originValue) {
         const promises: Promise<any>[] = [];
         for (let key in value as any) {
@@ -192,6 +201,10 @@ export class ReflectionParser {
 
   private static _isComponentRef(value: any): value is IComponentRef {
     return value["ownerId"] !== undefined && value["componentId"] !== undefined;
+  }
+
+  private static _isSignalRef(value: any): value is ISignalRef {
+    return value["listeners"] !== undefined;
   }
 
   private static _isMethodObject(value: any): value is IMethod {

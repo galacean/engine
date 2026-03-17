@@ -1,42 +1,41 @@
-import { ignoreClone, PointerEventData, SafeLoopArray } from "@galacean/engine";
+import { Entity, ignoreClone, PointerEventData, Signal } from "@galacean/engine";
 import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {
+  /** Signal emitted when the button is clicked. */
   @ignoreClone
-  private _listeners: SafeLoopArray<IUIListener> = new SafeLoopArray<IUIListener>();
-
-  /**
-   * Add a listening function for click.
-   * @param listener - The listening function
-   */
-  addClicked(listener: (event: PointerEventData) => void): void {
-    this._listeners.push({ fn: listener });
-  }
-
-  /**
-   * Remove a listening function of click.
-   * @param listener - The listening function
-   */
-  removeClicked(listener: (event: PointerEventData) => void): void {
-    this._listeners.findAndRemove((value) => (value.fn === listener ? (value.destroyed = true) : false));
-  }
+  readonly onClick = new Signal<[PointerEventData]>();
 
   override onPointerClick(event: PointerEventData): void {
     if (!this._getGlobalInteractive()) return;
-    const listeners = this._listeners.getLoopArray();
-    for (let i = 0, n = listeners.length; i < n; i++) {
-      const listener = listeners[i];
-      !listener.destroyed && listener.fn(event);
-    }
+    this.onClick.invoke(event);
   }
 
   override onDestroy(): void {
     super.onDestroy();
-    this._listeners.findAndRemove((value) => (value.destroyed = true));
+    this.onClick.removeAll();
   }
-}
 
-export interface IUIListener {
-  fn: (event: PointerEventData) => void;
-  destroyed?: boolean;
+  // @ts-ignore
+  override _cloneTo(target: Button, srcRoot: Entity, targetRoot: Entity): void {
+    super._cloneTo(target, srcRoot, targetRoot);
+    // @ts-ignore
+    this.onClick._cloneTo(target.onClick, srcRoot, targetRoot);
+  }
+
+  /**
+   * Add a listening function for click.
+   * @deprecated Use `onClick.on(listener, context)` instead.
+   */
+  addClicked(listener: (event: PointerEventData) => void): void {
+    this.onClick.on(listener);
+  }
+
+  /**
+   * Remove a listening function of click.
+   * @deprecated Use `onClick.off(listener, context)` instead.
+   */
+  removeClicked(listener: (event: PointerEventData) => void): void {
+    this.onClick.off(listener);
+  }
 }

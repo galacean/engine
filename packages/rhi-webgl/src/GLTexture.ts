@@ -34,7 +34,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: isSRGBColorSpace ? gl.SRGB8 : isWebGL2 ? gl.RGB8 : gl.RGB,
           baseFormat: isSRGBColorSpace ? (isWebGL2 ? gl.RGB : gl.SRGB8) : gl.RGB,
-          readFormat: gl.RGB,
+          readFormat: isWebGL2 ? gl.RGBA : gl.RGB,
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false,
           alignment: 1
@@ -109,6 +109,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: gl.R11F_G11F_B10F,
           baseFormat: gl.RGB,
+          readFormat: gl.RGBA,
           dataType: gl.FLOAT,
           isCompressed: false,
           alignment: 4
