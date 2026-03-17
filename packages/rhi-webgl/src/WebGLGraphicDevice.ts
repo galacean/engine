@@ -11,6 +11,7 @@ import {
   IPlatformTexture2D,
   IPlatformTextureCube,
   IPlatformTransformFeedback,
+  IPlatformTransformFeedbackPrimitive,
   Logger,
   Mesh,
   Platform,
@@ -36,6 +37,7 @@ import { GLTexture2D } from "./GLTexture2D";
 import { GLTexture2DArray } from "./GLTexture2DArray";
 import { GLTextureCube } from "./GLTextureCube";
 import { GLTransformFeedback } from "./GLTransformFeedback";
+import { GLTransformFeedbackPrimitive } from "./GLTransformFeedbackPrimitive";
 import { WebCanvas } from "./WebCanvas";
 import { WebGLExtension } from "./type";
 
@@ -274,6 +276,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return new GLTransformFeedback(this);
   }
 
+  createPlatformTransformFeedbackPrimitive(): IPlatformTransformFeedbackPrimitive {
+    return new GLTransformFeedbackPrimitive(<WebGL2RenderingContext>this._gl);
+  }
+
   /**
    * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
    */
@@ -292,13 +298,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       const gl = <WebGL2RenderingContext>this._gl;
       gl.disable(gl.RASTERIZER_DISCARD);
     }
-  }
-
-  /**
-   * Issue a raw drawArrays call (used for Transform Feedback passes).
-   */
-  drawArrays(mode: number, first: number, count: number): void {
-    this._gl.drawArrays(mode, first, count);
   }
 
   /**

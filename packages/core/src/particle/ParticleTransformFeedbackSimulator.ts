@@ -26,7 +26,7 @@ export class ParticleTransformFeedbackSimulator {
   private static readonly _deltaTimeProperty = ShaderProperty.getByName("renderer_DeltaTime");
 
   // TF read buffer vertex elements
-  private static readonly _tfElements: VertexElement[] = [
+  private static readonly _feedbackElements: VertexElement[] = [
     new VertexElement("a_TFPosition", 0, VertexElementFormat.Vector3, 0),
     new VertexElement("a_TFVelocity", 12, VertexElementFormat.Vector3, 0)
   ];
@@ -106,12 +106,6 @@ export class ParticleTransformFeedbackSimulator {
 
     if (!this._tfProgram || !this._tfProgram.isValid) return;
 
-    // Update VAOs (auto-rebuilds if program or buffers changed)
-    const instanceBinding = new VertexBufferBinding(instanceBuffer, ParticleBufferUtils.instanceVertexStride);
-    this._primitive.updateVAOs(this._tfProgram, ParticleTransformFeedbackSimulator._tfElements, [
-      { binding: instanceBinding, elements: ParticleTransformFeedbackSimulator._instanceElements }
-    ]);
-
     // --- TF pass ---
     this._tfProgram.bind();
     rhi.enableRasterizerDiscard();
@@ -121,20 +115,25 @@ export class ParticleTransformFeedbackSimulator {
     this._tfProgram.uploadUniforms(this._tfProgram.rendererUniformBlock, shaderData);
     this._tfProgram.uploadUniforms(this._tfProgram.otherUniformBlock, shaderData);
 
-    // Bind VAO and execute TF for alive particles
-    this._primitive.bindVAO();
+    // Draw alive particles (ring buffer may wrap into two segments)
+    const instanceBinding = new VertexBufferBinding(instanceBuffer, ParticleBufferUtils.instanceVertexStride);
+    this._primitive.beginDraw(
+      this._tfProgram,
+      ParticleTransformFeedbackSimulator._feedbackElements,
+      instanceBinding,
+      ParticleTransformFeedbackSimulator._instanceElements
+    );
 
-    const POINTS = MeshTopology.Points;
     if (firstActive < firstFree) {
-      this._primitive.draw(rhi, POINTS, firstActive, firstFree - firstActive);
+      this._primitive.draw(MeshTopology.Points, firstActive, firstFree - firstActive);
     } else {
-      this._primitive.draw(rhi, POINTS, firstActive, particleCount - firstActive);
+      this._primitive.draw(MeshTopology.Points, firstActive, particleCount - firstActive);
       if (firstFree > 0) {
-        this._primitive.draw(rhi, POINTS, 0, firstFree);
+        this._primitive.draw(MeshTopology.Points, 0, firstFree);
       }
     }
 
-    this._primitive.unbindVAO();
+    this._primitive.endDraw();
     rhi.disableRasterizerDiscard();
 
     // Swap ping-pong

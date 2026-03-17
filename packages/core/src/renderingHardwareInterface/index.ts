@@ -5,3 +5,4 @@ export type { IPlatformTexture2D } from "./IPlatformTexture2D";
 export type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
 export type { IPlatformTextureCube } from "./IPlatformTextureCube";
 export type { IPlatformTransformFeedback } from "./IPlatformTransformFeedback";
+export type { IPlatformTransformFeedbackPrimitive } from "./IPlatformTransformFeedbackPrimitive";
