@@ -29,7 +29,7 @@ export class ParticleTransformFeedbackSimulator {
     this._simulator = new TransformFeedbackSimulator(
       engine,
       ParticleBufferUtils.feedbackVertexStride,
-      `#include <particle_transform_feedback_update>`,
+      `#include <particle_feedback_simulation>`,
       `void main() { discard; }`,
       ["v_FeedbackPosition", "v_FeedbackVelocity"]
     );
