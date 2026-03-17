@@ -230,7 +230,7 @@ void main() {
     if (renderer_SimulationSpace == 0) {
       // Local: integrate in local space
       totalVelocity = localVelocity + volLocal
-        + rotationByQuaternions(volWorld, quaternionConjugate(worldRotation));
+        + rotationByQuaternions(volWorld, invWorldRotation);
     } else {
       // World: integrate in world space
       totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
