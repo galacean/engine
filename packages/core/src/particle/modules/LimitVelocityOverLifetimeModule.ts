@@ -27,8 +27,8 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _limitMinConstProperty = ShaderProperty.getByName("renderer_LVLLimitMinConst");
   static readonly _limitMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitMaxCurve");
   static readonly _limitMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitMinCurve");
-  static readonly _limitMaxConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMaxConstVec");
-  static readonly _limitMinConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMinConstVec");
+  static readonly _limitMaxConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMaxConstVector");
+  static readonly _limitMinConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMinConstVector");
   static readonly _limitXMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitXMaxCurve");
   static readonly _limitXMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitXMinCurve");
   static readonly _limitYMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitYMaxCurve");
