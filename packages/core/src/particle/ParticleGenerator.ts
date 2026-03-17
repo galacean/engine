@@ -373,7 +373,6 @@ export class ParticleGenerator {
    */
   _updateFeedback(shaderData: ShaderData, deltaTime: number): void {
     this._feedbackSimulator.update(
-      this._instanceVertexBufferBinding.buffer,
       shaderData,
       this._currentParticleCount,
       this._firstActiveElement,
@@ -573,7 +572,7 @@ export class ParticleGenerator {
 
     // Resize feedback buffers
     if (this._useTransformFeedback) {
-      this._feedbackSimulator.resize(newParticleCount);
+      this._feedbackSimulator.resize(newParticleCount, this._instanceVertexBufferBinding);
       // Update feedback buffer binding after resize
       this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
     }
@@ -618,7 +617,7 @@ export class ParticleGenerator {
       if (!this._feedbackSimulator) {
         this._feedbackSimulator = new ParticleTransformFeedbackSimulator(this._renderer.engine);
       }
-      this._feedbackSimulator.resize(this._currentParticleCount);
+      this._feedbackSimulator.resize(this._currentParticleCount, this._instanceVertexBufferBinding);
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
     } else {
       this._renderer.shaderData.disableMacro(ParticleGenerator._transformFeedbackMacro);

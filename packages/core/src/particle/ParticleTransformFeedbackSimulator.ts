@@ -1,7 +1,6 @@
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { Buffer } from "../graphic/Buffer";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Vector3 } from "@galacean/engine-math";
@@ -17,6 +16,7 @@ export class ParticleTransformFeedbackSimulator {
 
   private _simulator: TransformFeedbackSimulator;
   private _particleInitData = new Float32Array(6);
+  private _instanceBinding: VertexBufferBinding;
 
   /**
    * The current read buffer binding for the render pass.
@@ -39,8 +39,9 @@ export class ParticleTransformFeedbackSimulator {
    * Resize feedback buffers.
    * @param particleCount - Number of particles to allocate
    */
-  resize(particleCount: number): void {
+  resize(particleCount: number, instanceBinding: VertexBufferBinding): void {
     this._simulator.resize(particleCount);
+    this._instanceBinding = instanceBinding;
   }
 
   /**
@@ -70,7 +71,6 @@ export class ParticleTransformFeedbackSimulator {
    * @param deltaTime - Frame delta time
    */
   update(
-    instanceBuffer: Buffer,
     shaderData: ShaderData,
     particleCount: number,
     firstActive: number,
@@ -81,12 +81,11 @@ export class ParticleTransformFeedbackSimulator {
 
     shaderData.setFloat(ParticleTransformFeedbackSimulator._deltaTimeProperty, deltaTime);
 
-    const instanceBinding = new VertexBufferBinding(instanceBuffer, ParticleBufferUtils.instanceVertexStride);
     if (
       !this._simulator.beginUpdate(
         shaderData,
         ParticleBufferUtils.feedbackVertexElements,
-        instanceBinding,
+        this._instanceBinding,
         ParticleBufferUtils.feedbackInstanceElements
       )
     )
