@@ -46,7 +46,6 @@ varying vec4 v_Color;
 
 uniform float renderer_CurrentTime;
 uniform vec3 renderer_Gravity;
-uniform vec2 renderer_LVLDragConstant;
 uniform vec3 renderer_WorldPosition;
 uniform vec4 renderer_WorldRotation;
 uniform bool renderer_ThreeDStartRotation;
@@ -76,15 +75,8 @@ uniform int renderer_SimulationSpace;
 #include <rotation_over_lifetime_module>
 #include <texture_sheet_animation_module>
 
-vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
-    vec3 startPosition;
-    float lastTime = min(startVelocity.x / dragData.x, age); // todo 0/0
-    startPosition = lastTime * (startVelocity - 0.5 * dragData * lastTime);
-    return startPosition;
-}
-
-vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, inout vec3 localVelocity, inout vec3 worldVelocity) {
-    vec3 startPosition = getStartPosition(startVelocity, age, dragData);
+vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
+    vec3 startPosition = startVelocity * age;
 
     vec3 finalPosition;
     vec3 localPositionOffset = startPosition;
@@ -168,8 +160,7 @@ void main() {
             vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
             localVelocity = startVelocity;
             worldVelocity = gravityVelocity;
-            vec3 dragData = a_DirectionTime.xyz * mix(renderer_LVLDragConstant.x, renderer_LVLDragConstant.y, a_Random0.x);
-            vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, localVelocity, worldVelocity);
+            vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, localVelocity, worldVelocity);
         #endif
 
         #include <sphere_billboard>
