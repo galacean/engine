@@ -48,6 +48,10 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     this._gl.drawArrays(mode, first, count);
   }
 
+  invalidate(): void {
+    this._deleteVAOs();
+  }
+
   destroy(): void {
     this._deleteVAOs();
   }

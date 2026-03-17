@@ -41,6 +41,11 @@ export interface IPlatformTransformFeedbackPrimitive {
   draw(mode: number, first: number, count: number): void;
 
   /**
+   * Invalidate cached state, forcing rebuild on next updateVertexLayout.
+   */
+  invalidate(): void;
+
+  /**
    * Destroy native resources.
    */
   destroy(): void;
