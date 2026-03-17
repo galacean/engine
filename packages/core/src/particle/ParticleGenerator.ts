@@ -365,7 +365,6 @@ export class ParticleGenerator {
     ) {
       this._addActiveParticlesToVertexBuffer();
     }
-
   }
 
   /**
@@ -459,10 +458,22 @@ export class ParticleGenerator {
     if (this._useTransformFeedback) {
       this._feedbackBindingIndex = vertexBufferBindings.length;
       primitive.addVertexElement(
-        new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
+        new VertexElement(
+          ParticleFeedbackVertexAttribute.Position,
+          0,
+          VertexElementFormat.Vector3,
+          this._feedbackBindingIndex,
+          1
+        )
       );
       primitive.addVertexElement(
-        new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
+        new VertexElement(
+          ParticleFeedbackVertexAttribute.Velocity,
+          12,
+          VertexElementFormat.Vector3,
+          this._feedbackBindingIndex,
+          1
+        )
       );
       vertexBufferBindings.push(this._feedbackSimulator.readBinding);
     } else {
@@ -982,8 +993,11 @@ export class ParticleGenerator {
     }
 
     this._feedbackSimulator.writeParticleData(
-      index, position,
-      direction.x * startSpeed, direction.y * startSpeed, direction.z * startSpeed
+      index,
+      position,
+      direction.x * startSpeed,
+      direction.y * startSpeed,
+      direction.z * startSpeed
     );
   }
 
@@ -1061,9 +1075,20 @@ export class ParticleGenerator {
       );
     } else {
       const firstSegmentSize = (this._currentParticleCount - firstActiveElement) * byteStride;
-      instanceBuffer.setData(dataBuffer as ArrayBuffer, compact ? 0 : start, start, firstSegmentSize, SetDataOptions.Discard);
+      instanceBuffer.setData(
+        dataBuffer as ArrayBuffer,
+        compact ? 0 : start,
+        start,
+        firstSegmentSize,
+        SetDataOptions.Discard
+      );
       if (firstFreeElement > 0) {
-        instanceBuffer.setData(dataBuffer as ArrayBuffer, compact ? firstSegmentSize : 0, 0, firstFreeElement * byteStride);
+        instanceBuffer.setData(
+          dataBuffer as ArrayBuffer,
+          compact ? firstSegmentSize : 0,
+          0,
+          firstFreeElement * byteStride
+        );
       }
     }
     this._firstNewElement = firstFreeElement;
