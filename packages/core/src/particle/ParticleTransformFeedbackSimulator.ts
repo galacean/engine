@@ -107,11 +107,9 @@ export class ParticleTransformFeedbackSimulator {
 
     // Update VAOs (auto-rebuilds if program or buffers changed)
     const instanceBinding = new VertexBufferBinding(instanceBuffer, ParticleBufferUtils.instanceVertexStride);
-    this._primitive.updateVAOs(
-      this._tfProgram,
-      ParticleTransformFeedbackSimulator._tfElements,
-      [{ binding: instanceBinding, elements: ParticleTransformFeedbackSimulator._instanceElements }]
-    );
+    this._primitive.updateVAOs(this._tfProgram, ParticleTransformFeedbackSimulator._tfElements, [
+      { binding: instanceBinding, elements: ParticleTransformFeedbackSimulator._instanceElements }
+    ]);
 
     // --- TF pass ---
     this._tfProgram.bind();
@@ -152,10 +150,7 @@ export class ParticleTransformFeedbackSimulator {
 
   private _getMacroHash(macros: readonly ShaderMacro[]): string {
     const relevant = macros.filter(
-      (m) =>
-        m.name.startsWith("RENDERER_VOL") ||
-        m.name.startsWith("RENDERER_FOL") ||
-        m.name.startsWith("RENDERER_LVL")
+      (m) => m.name.startsWith("RENDERER_VOL") || m.name.startsWith("RENDERER_FOL") || m.name.startsWith("RENDERER_LVL")
     );
     return relevant.map((m) => (m.value ? `${m.name}=${m.value}` : m.name)).join("|");
   }

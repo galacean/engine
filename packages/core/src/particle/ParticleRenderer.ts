@@ -231,9 +231,7 @@ export class ParticleRenderer extends Renderer {
 
     // TF mode: render all slots (dead particles are discarded in shader via gl_Position = vec4(2.0)).
     // Non-TF mode: render only alive particles (instance buffer is compacted).
-    generator._primitive.instanceCount = generator._useTFMode
-      ? generator._currentParticleCount
-      : aliveParticleCount;
+    generator._primitive.instanceCount = generator._useTFMode ? generator._currentParticleCount : aliveParticleCount;
 
     let material = this.getMaterial();
     if (!material || (this._renderMode === ParticleRenderMode.Mesh && !this._mesh)) {

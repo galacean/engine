@@ -256,18 +256,12 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   _isRandomMode(): boolean {
     if (this._separateAxes) {
       return (
-        (this._limitX.mode === ParticleCurveMode.TwoConstants ||
-          this._limitX.mode === ParticleCurveMode.TwoCurves) &&
-        (this._limitY.mode === ParticleCurveMode.TwoConstants ||
-          this._limitY.mode === ParticleCurveMode.TwoCurves) &&
-        (this._limitZ.mode === ParticleCurveMode.TwoConstants ||
-          this._limitZ.mode === ParticleCurveMode.TwoCurves)
+        (this._limitX.mode === ParticleCurveMode.TwoConstants || this._limitX.mode === ParticleCurveMode.TwoCurves) &&
+        (this._limitY.mode === ParticleCurveMode.TwoConstants || this._limitY.mode === ParticleCurveMode.TwoCurves) &&
+        (this._limitZ.mode === ParticleCurveMode.TwoConstants || this._limitZ.mode === ParticleCurveMode.TwoCurves)
       );
     }
-    return (
-      this._limitX.mode === ParticleCurveMode.TwoConstants ||
-      this._limitX.mode === ParticleCurveMode.TwoCurves
-    );
+    return this._limitX.mode === ParticleCurveMode.TwoConstants || this._limitX.mode === ParticleCurveMode.TwoCurves;
   }
 
   /**
