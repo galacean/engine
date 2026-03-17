@@ -237,7 +237,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
         return;
       }
       this._enabled = value;
-      this._generator._setTFMode(value);
+      this._generator._setTransformFeedback(value);
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }

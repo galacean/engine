@@ -51,6 +51,8 @@ export class ParticleGenerator {
 
   private static readonly _particleIncreaseCount = 128;
   private static readonly _transformedBoundsIncreaseCount = 16;
+  private static readonly _transformFeedbackMacro = ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK");
+  private static readonly _currentTimeProperty = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Use auto random seed. */
   useAutoRandomSeed = true;
@@ -115,15 +117,13 @@ export class ParticleGenerator {
 
   /** @internal */
   @ignoreClone
-  _transformFeedback: ParticleTransformFeedbackSimulator;
+  _feedbackSimulator: ParticleTransformFeedbackSimulator;
   /** @internal */
   @ignoreClone
   _useTransformFeedback = false;
-  /** @internal - Index of the TF buffer in the primitive's vertexBufferBindings array */
+  /** @internal */
   @ignoreClone
-  private _tfBufferBindingIndex = -1;
-
-  private static readonly _tfModeMacro = ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK");
+  private _feedbackBindingIndex = -1;
 
   @ignoreClone
   private _isPlaying = false;
@@ -367,17 +367,16 @@ export class ParticleGenerator {
       this._addActiveParticlesToVertexBuffer();
     }
 
-    // Run Transform Feedback update pass if in TF mode
-    if (this._useTransformFeedback && this._transformFeedback) {
+    // Run Transform Feedback update pass
+    if (this._useTransformFeedback && this._feedbackSimulator) {
       const renderer = this._renderer;
       const shaderData = renderer.shaderData;
 
-      // TF needs current uniform values, but _updateShaderData is normally called
-      // after _update in ParticleRenderer. Upload them now so TF has fresh data.
-      shaderData.setFloat(ShaderProperty.getByName("renderer_CurrentTime"), this._playTime);
+      // Upload current uniform values before feedback pass.
+      shaderData.setFloat(ParticleGenerator._currentTimeProperty, this._playTime);
       this._updateShaderData(shaderData);
 
-      this._transformFeedback.update(
+      this._feedbackSimulator.update(
         this._instanceVertexBufferBinding.buffer,
         shaderData,
         this._currentParticleCount,
@@ -386,10 +385,9 @@ export class ParticleGenerator {
         deltaTime
       );
 
-      // After TF swap, update the render pass buffer binding to point to the latest output.
-      // Directly assign to avoid triggering _bufferStructChanged (VAO is disabled in TF mode).
-      if (this._tfBufferBindingIndex >= 0) {
-        this._primitive.vertexBufferBindings[this._tfBufferBindingIndex] = this._transformFeedback.readBinding;
+      // After swap, update the render pass buffer binding to point to the latest output.
+      if (this._feedbackBindingIndex >= 0) {
+        this._primitive.vertexBufferBindings[this._feedbackBindingIndex] = this._feedbackSimulator.readBinding;
       }
     }
   }
@@ -463,18 +461,18 @@ export class ParticleGenerator {
       vertexBufferBindings.push(this._instanceVertexBufferBinding);
     }
 
-    // Add TF output buffer binding for render pass (position + velocity from TF)
-    if (this._useTransformFeedback && this._transformFeedback) {
-      this._tfBufferBindingIndex = vertexBufferBindings.length;
+    // Add feedback buffer binding for render pass
+    if (this._useTransformFeedback && this._feedbackSimulator) {
+      this._feedbackBindingIndex = vertexBufferBindings.length;
       primitive.addVertexElement(
-        new VertexElement("a_FeedbackPosition", 0, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
+        new VertexElement("a_FeedbackPosition", 0, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
       );
       primitive.addVertexElement(
-        new VertexElement("a_FeedbackVelocity", 12, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
+        new VertexElement("a_FeedbackVelocity", 12, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
       );
-      vertexBufferBindings.push(this._transformFeedback.readBinding);
+      vertexBufferBindings.push(this._feedbackSimulator.readBinding);
     } else {
-      this._tfBufferBindingIndex = -1;
+      this._feedbackBindingIndex = -1;
     }
 
     primitive.setVertexBufferBindings(vertexBufferBindings);
@@ -558,7 +556,7 @@ export class ParticleGenerator {
       this._instanceBufferResized = true;
     }
     // Update instance buffer binding at the correct index
-    // (In TF mode, TF buffer occupies the last slot, instance buffer is second-to-last)
+    // In feedback mode, feedback buffer occupies the last slot
     const instanceBindingIndex = lastInstanceVertices
       ? vertexBufferBindings.length - 1 - (this._useTransformFeedback ? 1 : 0)
       : vertexBufferBindings.length;
@@ -568,12 +566,12 @@ export class ParticleGenerator {
     this._instanceVertexBufferBinding = vertexBufferBinding;
     this._currentParticleCount = newParticleCount;
 
-    // Resize TF buffers if in TF mode
-    if (this._useTransformFeedback && this._transformFeedback) {
-      this._transformFeedback.resize(newParticleCount);
-      // Update TF buffer binding in primitive after resize
-      if (this._tfBufferBindingIndex >= 0) {
-        this._primitive.setVertexBufferBinding(this._tfBufferBindingIndex, this._transformFeedback.readBinding);
+    // Resize feedback buffers
+    if (this._useTransformFeedback && this._feedbackSimulator) {
+      this._feedbackSimulator.resize(newParticleCount);
+      // Update feedback buffer binding after resize
+      if (this._feedbackBindingIndex >= 0) {
+        this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
       }
     }
   }
@@ -613,7 +611,7 @@ export class ParticleGenerator {
    * When enabled, velocity/position simulation is done per-frame via TF,
    * allowing accurate stateful simulation (e.g., dampen in LimitVelocityOverLifetime).
    */
-  _setTFMode(enabled: boolean): void {
+  _setTransformFeedback(enabled: boolean): void {
     if (this._useTransformFeedback === enabled) return;
     this._useTransformFeedback = enabled;
 
@@ -621,23 +619,23 @@ export class ParticleGenerator {
     const engine = renderer.engine;
 
     if (enabled) {
-      // Check WebGL2 support — LimitVelocityOverLifetime requires TF for accurate simulation
+      // Check WebGL2 support
       if (!engine._hardwareRenderer.isWebGL2) {
         Logger.warn("ParticleGenerator: LimitVelocityOverLifetime is not supported on WebGL1.");
         this._useTransformFeedback = false;
         return;
       }
 
-      if (!this._transformFeedback) {
-        this._transformFeedback = new ParticleTransformFeedbackSimulator(engine);
+      if (!this._feedbackSimulator) {
+        this._feedbackSimulator = new ParticleTransformFeedbackSimulator(engine);
       }
-      this._transformFeedback.resize(this._currentParticleCount);
-      renderer.shaderData.enableMacro(ParticleGenerator._tfModeMacro);
+      this._feedbackSimulator.resize(this._currentParticleCount);
+      renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
     } else {
-      renderer.shaderData.disableMacro(ParticleGenerator._tfModeMacro);
+      renderer.shaderData.disableMacro(ParticleGenerator._transformFeedbackMacro);
     }
 
-    // Rebuild geometry buffers to include/exclude TF buffer binding
+    // Rebuild geometry buffers to include/exclude feedback buffer binding
     this._reorganizeGeometryBuffers();
   }
 
@@ -678,7 +676,7 @@ export class ParticleGenerator {
     this._instanceVertexBufferBinding.buffer.destroy();
     this._primitive.destroy();
     this.emission._destroy();
-    this._transformFeedback?.destroy();
+    this._feedbackSimulator?.destroy();
   }
 
   /**
@@ -982,8 +980,8 @@ export class ParticleGenerator {
       instanceVertices[offset + 41] = limitVelocityOverLifetime._limitRand.random();
     }
 
-    // Initialize TF buffer for this particle
-    if (this._useTransformFeedback && this._transformFeedback) {
+    // Initialize feedback buffer for this particle
+    if (this._useTransformFeedback && this._feedbackSimulator) {
       this._initTFParticle(firstFreeElement, position, direction, startSpeed, transform);
     }
 
@@ -991,7 +989,7 @@ export class ParticleGenerator {
   }
 
   /**
-   * Initialize TF buffer data for a newly emitted particle.
+   * Initialize feedback buffer data for a newly emitted particle.
    * Position is stored in the particle's simulation space (local or world).
    */
   private _initTFParticle(
@@ -1032,7 +1030,7 @@ export class ParticleGenerator {
       pz = sz + 2 * (qx * cy1 - qy * cx1) + wp.z;
     }
 
-    this._transformFeedback.writeParticleData(index, px, py, pz, vx, vy, vz);
+    this._feedbackSimulator.writeParticleData(index, px, py, pz, vx, vy, vz);
   }
 
   private _retireActiveParticles(): void {
@@ -1096,7 +1094,7 @@ export class ParticleGenerator {
     const dataBuffer = this._instanceVertices.buffer;
 
     if (this._useTransformFeedback) {
-      // TF mode: upload active range without compacting (indices must match TF buffer slots).
+      // Feedback mode: upload active range without compacting (indices must match feedback buffer slots).
       // Uses Discard to avoid CPU-GPU sync stalls.
       const start = firstActiveElement * byteStride;
       if (firstActiveElement < firstFreeElement) {
@@ -1115,7 +1113,7 @@ export class ParticleGenerator {
         }
       }
     } else {
-      // Non-TF mode: compact active range to GPU offset 0
+      // Non-feedback mode: compact active range to GPU offset 0
       const start = firstActiveElement * byteStride;
       if (firstActiveElement < firstFreeElement) {
         instanceBuffer.setData(
