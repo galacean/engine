@@ -85,8 +85,8 @@ export class TransformFeedbackPrimitive {
   ): void {
     this._platformPrimitive.updateVertexLayout(
       program,
-      this.readBinding,
-      this.writeBinding,
+      this._bindingA,
+      this._bindingB,
       feedbackElements,
       inputBinding,
       inputElements
@@ -97,6 +97,7 @@ export class TransformFeedbackPrimitive {
    * Bind state before issuing draw calls.
    */
   beginDraw(): void {
+    this._transformFeedback.bind();
     this._platformPrimitive.bind(this._readIsA);
   }
 
@@ -108,15 +109,10 @@ export class TransformFeedbackPrimitive {
    */
   draw(mode: MeshTopology, first: number, count: number): void {
     const transformFeedback = this._transformFeedback;
-    transformFeedback.bind();
-    // Clear any stale buffer binding on the TF object before binding new range
-    transformFeedback.unbindBuffer(0);
     transformFeedback.bindBufferRange(0, this.writeBinding.buffer, first * this._byteStride, count * this._byteStride);
     transformFeedback.begin(mode);
     this._platformPrimitive.draw(mode, first, count);
     transformFeedback.end();
-    transformFeedback.unbind();
-    transformFeedback.unbindBuffer(0);
   }
 
   /**
@@ -124,6 +120,8 @@ export class TransformFeedbackPrimitive {
    */
   endDraw(): void {
     this._platformPrimitive.unbind();
+    this._transformFeedback.unbindBuffer(0);
+    this._transformFeedback.unbind();
   }
 
   /**

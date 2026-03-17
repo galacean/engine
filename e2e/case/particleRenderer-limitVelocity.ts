@@ -125,6 +125,7 @@ function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: 
     velocityOverLifetime.velocityX.constant = 1;
     velocityOverLifetime.velocityY.constant = 20;
     velocityOverLifetime.velocityZ.constant = 1;
+    console.log("s");
   }, 3000);
 
   // Limit velocity over lifetime
