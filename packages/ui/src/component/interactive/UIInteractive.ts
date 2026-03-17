@@ -19,7 +19,6 @@ import { Transition } from "./transition/Transition";
  */
 export class UIInteractive extends Script implements IGroupAble {
   /** @internal */
-  @ignoreClone
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
@@ -31,7 +30,6 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
-  @ignoreClone
   _group: UIGroup;
   /** @internal */
   @ignoreClone

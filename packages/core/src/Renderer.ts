@@ -65,7 +65,6 @@ export class Renderer extends Component {
   protected _rendererLayer: Vector4 = new Vector4();
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
-  @ignoreClone
   protected _transformEntity: Entity;
 
   @deepClone

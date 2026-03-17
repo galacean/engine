@@ -51,7 +51,6 @@ export class Transform extends Component {
 
   @ignoreClone
   protected _isParentDirty: boolean = true;
-  @ignoreClone
   private _parentTransformCache: Transform = null;
   @ignoreClone
   private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;

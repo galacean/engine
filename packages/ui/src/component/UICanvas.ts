@@ -46,7 +46,6 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   _canvasIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
@@ -79,9 +78,7 @@ export class UICanvas extends Component implements IElement {
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @ignoreClone
   private _camera: Camera;
-  @ignoreClone
   private _cameraObserver: Camera;
   @assignmentClone
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;

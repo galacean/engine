@@ -21,7 +21,6 @@ export class Skin extends EngineObject {
   @ignoreClone
   _updatedManager = new UpdateFlagManager();
 
-  @ignoreClone
   private _rootBone: Entity;
   @deepClone
   private _bones = new Array<Entity>();

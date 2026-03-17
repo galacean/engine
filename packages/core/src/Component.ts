@@ -11,7 +11,6 @@ import { Scene } from "./Scene";
  */
 export class Component extends EngineObject {
   /** @internal */
-  @ignoreClone
   _entity: Entity;
 
   /** @internal */
