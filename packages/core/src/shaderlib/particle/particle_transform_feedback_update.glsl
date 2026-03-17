@@ -136,16 +136,16 @@ void main() {
         }
     #endif
 
-    // FOL acceleration → velocity delta
+    // FOL acceleration → velocity delta (always persisted, like gravity)
     vec3 folDeltaLocal = vec3(0.0);
-    vec3 folDeltaWorld = vec3(0.0);
     #ifdef _FOL_MODULE_ENABLED
         vec3 folAcc = getFOLAcceleration(normalizedAge);
         vec3 folVelDelta = folAcc * dt;
         if (renderer_FOLSpace == 0) {
             folDeltaLocal = folVelDelta;
         } else {
-            folDeltaWorld = folVelDelta;
+            // World FOL: convert to local and persist, same as gravity
+            folDeltaLocal = rotationByQuaternions(folVelDelta, quaternionConjugate(worldRotation));
         }
     #endif
 
@@ -219,14 +219,16 @@ void main() {
     // Local mode: position in local space, velocity rotated to local
     // World mode: position in world space, velocity rotated to world
     // =====================================================
+    // FOL is now fully in localVelocity (both local and world-space FOL).
+    // Only VOL overlay needs to be added here.
     vec3 totalVelocity;
     if (renderer_SimulationSpace == 0) {
       // Local: integrate in local space
       totalVelocity = localVelocity + volLocal
-        + rotationByQuaternions(volWorld + folDeltaWorld, quaternionConjugate(worldRotation));
+        + rotationByQuaternions(volWorld, quaternionConjugate(worldRotation));
     } else {
       // World: integrate in world space
-      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld + folDeltaWorld;
+      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
     }
     vec3 position = a_FeedbackPosition + totalVelocity * dt;
 
