@@ -41,14 +41,20 @@
     // Drag curve
     #ifdef RENDERER_LVL_DRAG_CURVE_MODE
         uniform vec2 renderer_LVLDragMaxCurve[4];
-        uniform vec2 renderer_LVLDragMinCurve[4];
+        #ifdef RENDERER_LVL_DRAG_IS_RANDOM_TWO
+            uniform vec2 renderer_LVLDragMinCurve[4];
+        #endif
     #endif
 
     float evaluateLVLDrag(float normalizedAge, float dragRand) {
         #ifdef RENDERER_LVL_DRAG_CURVE_MODE
             float dragMax = evaluateParticleCurve(renderer_LVLDragMaxCurve, normalizedAge);
-            float dragMin = evaluateParticleCurve(renderer_LVLDragMinCurve, normalizedAge);
-            return mix(dragMin, dragMax, dragRand);
+            #ifdef RENDERER_LVL_DRAG_IS_RANDOM_TWO
+                float dragMin = evaluateParticleCurve(renderer_LVLDragMinCurve, normalizedAge);
+                return mix(dragMin, dragMax, dragRand);
+            #else
+                return dragMax;
+            #endif
         #else
             return mix(renderer_LVLDragConstant.x, renderer_LVLDragConstant.y, dragRand);
         #endif
