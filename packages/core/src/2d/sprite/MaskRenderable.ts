@@ -1,6 +1,7 @@
 import { BoundingBox, Vector2, Vector3 } from "@galacean/engine-math";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
@@ -11,13 +12,6 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 import { SpriteMaskUtils } from "./SpriteMaskUtils";
-
-type RendererConstructor = abstract new (...args: any[]) => Renderer;
-
-/** @internal */
-const _maskTextureProperty = ShaderProperty.getByName("renderer_MaskTexture");
-/** @internal */
-const _alphaCutoffProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
 /**
  * Public contract of the MaskRenderable mixin, used for declaration file generation.
@@ -38,9 +32,9 @@ export interface IMaskRenderable {
   _renderMask(distanceForSort: number): void;
   _onSpriteChange(type: SpriteModifyFlags): void;
   _onSpriteChangeExtra(type: SpriteModifyFlags): void;
-  _getMaskWidth(): number;
-  _getMaskHeight(): number;
-  _getMaskPivot(): Vector2;
+  _getSpriteWidth(): number;
+  _getSpriteHeight(): number;
+  _getSpritePivot(): Vector2;
 }
 
 /**
@@ -50,6 +44,9 @@ export function MaskRenderable<T extends RendererConstructor>(
   Base: T
 ): (abstract new (...args: any[]) => IMaskRenderable) & T {
   abstract class MaskRenderableBase extends Base implements IMaskRenderable {
+    private static _maskTextureProperty = ShaderProperty.getByName("renderer_MaskTexture");
+    private static _alphaCutoffProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
+
     @assignmentClone
     private _influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
     /** @internal */
@@ -120,14 +117,22 @@ export function MaskRenderable<T extends RendererConstructor>(
     }
 
     set sprite(value: Sprite | null) {
-      this._sprite = SpriteMaskUtils.setSprite(
-        this,
-        this._sprite,
-        value,
-        this._onSpriteChange,
-        _maskTextureProperty,
-        MaskDirtyFlags.All
-      );
+      const lastSprite = this._sprite;
+      if (lastSprite !== value) {
+        if (lastSprite) {
+          this._addResourceReferCount(lastSprite, -1);
+          lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+        }
+        this._dirtyUpdateFlag |= MaskDirtyFlags.All;
+        if (value) {
+          this._addResourceReferCount(value, 1);
+          value._updateFlagManager.addListener(this._onSpriteChange);
+          this.shaderData.setTexture(MaskRenderableBase._maskTextureProperty, value.texture);
+        } else {
+          this.shaderData.setTexture(MaskRenderableBase._maskTextureProperty, null);
+        }
+        this._sprite = value;
+      }
     }
 
     /**
@@ -140,7 +145,7 @@ export function MaskRenderable<T extends RendererConstructor>(
     set alphaCutoff(value: number) {
       if (this._alphaCutoff !== value) {
         this._alphaCutoff = value;
-        this.shaderData.setFloat(_alphaCutoffProperty, value);
+        this.shaderData.setFloat(MaskRenderableBase._alphaCutoffProperty, value);
       }
     }
 
@@ -188,9 +193,9 @@ export function MaskRenderable<T extends RendererConstructor>(
         worldPoint,
         this._sprite,
         this._transformEntity.transform.worldMatrix,
-        this._getMaskWidth(),
-        this._getMaskHeight(),
-        this._getMaskPivot(),
+        this._getSpriteWidth(),
+        this._getSpriteHeight(),
+        this._getSpritePivot(),
         this._flipX,
         this._flipY,
         this._alphaCutoff
@@ -205,7 +210,7 @@ export function MaskRenderable<T extends RendererConstructor>(
       SimpleSpriteAssembler.resetData(this as unknown as ISpriteRenderer);
       // @ts-ignore
       this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
-      this.shaderData.setFloat(_alphaCutoffProperty, this._alphaCutoff);
+      this.shaderData.setFloat(MaskRenderableBase._alphaCutoffProperty, this._alphaCutoff);
       this._renderElement = new RenderElement();
       this._renderElement.addSubRenderElement(new SubRenderElement());
       this._onSpriteChange = this._onSpriteChange.bind(this);
@@ -224,29 +229,36 @@ export function MaskRenderable<T extends RendererConstructor>(
      * Release mask sprite resources. Called from subclass _onDestroy.
      */
     _destroyMaskResources(): void {
-      SpriteMaskUtils.releaseSprite(this, this._sprite, this._onSpriteChange);
+      const sprite = this._sprite;
+      if (sprite) {
+        this._addResourceReferCount(sprite, -1);
+        sprite._updateFlagManager.removeListener(this._onSpriteChange);
+      }
       this._sprite = null;
       this._renderElement = null;
     }
 
     /**
      * @internal
-     * Shared update-bounds logic via SpriteMaskUtils.
+     * Update bounds using SimpleSpriteAssembler directly.
      */
     _updateMaskBounds(worldBounds: BoundingBox): void {
-      const transform = this._transformEntity.transform;
-      SpriteMaskUtils.updateBounds(
-        this as unknown as ISpriteRenderer,
-        this._sprite,
-        worldBounds,
-        transform.worldMatrix,
-        transform.worldPosition,
-        this._getMaskWidth(),
-        this._getMaskHeight(),
-        this._getMaskPivot(),
-        this._flipX,
-        this._flipY
-      );
+      const sprite = this._sprite;
+      if (sprite) {
+        SimpleSpriteAssembler.updatePositions(
+          this as unknown as ISpriteRenderer,
+          this._transformEntity.transform.worldMatrix,
+          this._getSpriteWidth(),
+          this._getSpriteHeight(),
+          this._getSpritePivot(),
+          this._flipX,
+          this._flipY
+        );
+      } else {
+        const { worldPosition } = this._transformEntity.transform;
+        worldBounds.min.copyFrom(worldPosition);
+        worldBounds.max.copyFrom(worldPosition);
+      }
     }
 
     /**
@@ -255,8 +267,8 @@ export function MaskRenderable<T extends RendererConstructor>(
      */
     _renderMask(distanceForSort: number): void {
       const { _sprite: sprite } = this;
-      const width = this._getMaskWidth();
-      const height = this._getMaskHeight();
+      const width = this._getSpriteWidth();
+      const height = this._getSpriteHeight();
       if (!sprite?.texture || !width || !height) {
         return;
       }
@@ -273,12 +285,12 @@ export function MaskRenderable<T extends RendererConstructor>(
 
       // Update position
       if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-        SpriteMaskUtils.updatePositions(
+        SimpleSpriteAssembler.updatePositions(
           this as unknown as ISpriteRenderer,
           this._transformEntity.transform.worldMatrix,
           width,
           height,
-          this._getMaskPivot(),
+          this._getSpritePivot(),
           this._flipX,
           this._flipY
         );
@@ -287,18 +299,18 @@ export function MaskRenderable<T extends RendererConstructor>(
 
       // Update uv
       if (this._dirtyUpdateFlag & MaskDirtyFlags.UV) {
-        SpriteMaskUtils.updateUVs(this as unknown as ISpriteRenderer);
+        SimpleSpriteAssembler.updateUVs(this as unknown as ISpriteRenderer);
         this._dirtyUpdateFlag &= ~MaskDirtyFlags.UV;
       }
 
-      SpriteMaskUtils.setupRenderElement(
-        this._renderElement,
-        this,
-        material,
-        (this as any)._subChunk,
-        sprite.texture,
-        distanceForSort
-      );
+      // Push render element
+      const subRenderElement = this._renderElement.subRenderElements[0];
+      this._renderElement.set(this.priority, distanceForSort);
+      const subChunk = (this as any)._subChunk;
+      subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, sprite.texture, subChunk);
+      subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+      subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+      this._renderElement.addSubRenderElement(subRenderElement);
     }
 
     /** @internal */
@@ -306,7 +318,7 @@ export function MaskRenderable<T extends RendererConstructor>(
     _onSpriteChange(type: SpriteModifyFlags): void {
       switch (type) {
         case SpriteModifyFlags.texture:
-          this.shaderData.setTexture(_maskTextureProperty, this.sprite.texture);
+          this.shaderData.setTexture(MaskRenderableBase._maskTextureProperty, this.sprite.texture);
           break;
         case SpriteModifyFlags.region:
         case SpriteModifyFlags.atlasRegionOffset:
@@ -332,15 +344,15 @@ export function MaskRenderable<T extends RendererConstructor>(
     _onSpriteChangeExtra(type: SpriteModifyFlags): void {}
 
     /** @internal */
-    _getMaskWidth(): number {
+    _getSpriteWidth(): number {
       return 0;
     }
     /** @internal */
-    _getMaskHeight(): number {
+    _getSpriteHeight(): number {
       return 0;
     }
     /** @internal */
-    _getMaskPivot(): Vector2 {
+    _getSpritePivot(): Vector2 {
       return null;
     }
   }
@@ -355,9 +367,11 @@ export enum MaskDirtyFlags {
   /** UV. */
   UV = 0x2,
   /** Automatic Size. */
-  AutomaticSize = 0x4,
+  AutomaticSize = 0x8,
   /** WorldVolume and UV. */
   WorldVolumeAndUV = 0x3,
   /** All. */
-  All = 0x7
+  All = 0xb
 }
+
+type RendererConstructor = abstract new (...args: any[]) => Renderer;

@@ -1,18 +1,9 @@
-import { BoundingBox, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
-import { Renderer } from "../../Renderer";
-import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
-import { RenderElement } from "../../RenderPipeline/RenderElement";
-import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { ShaderProperty } from "../../shader/ShaderProperty";
-import { Material } from "../../material";
+import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { Texture2D, TextureFormat } from "../../texture";
-import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
-import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 
 /**
- * Internal helpers shared by SpriteMask and UI Mask.
+ * Internal helpers for sprite mask hit testing.
  * @internal
  */
 export class SpriteMaskUtils {
@@ -25,100 +16,6 @@ export class SpriteMaskUtils {
   private static _u16Buffer4 = new Uint16Array(4);
   private static _f32Buffer4 = new Float32Array(4);
   private static _u32Buffer4 = new Uint32Array(4);
-
-  static setSprite(
-    renderer: Renderer,
-    currentSprite: Sprite | null,
-    nextSprite: Sprite | null,
-    onSpriteChange: (type: SpriteModifyFlags) => void,
-    textureProperty: ShaderProperty,
-    allDirtyFlag: number
-  ): Sprite | null {
-    if (currentSprite === nextSprite) {
-      return currentSprite;
-    }
-
-    const target = renderer as any;
-    if (currentSprite) {
-      target._addResourceReferCount(currentSprite, -1);
-      currentSprite._updateFlagManager.removeListener(onSpriteChange);
-    }
-
-    target._dirtyUpdateFlag |= allDirtyFlag;
-    if (nextSprite) {
-      target._addResourceReferCount(nextSprite, 1);
-      nextSprite._updateFlagManager.addListener(onSpriteChange);
-      renderer.shaderData.setTexture(textureProperty, nextSprite.texture);
-    } else {
-      renderer.shaderData.setTexture(textureProperty, null);
-    }
-
-    return nextSprite;
-  }
-
-  static releaseSprite(
-    renderer: Renderer,
-    sprite: Sprite | null,
-    onSpriteChange: (type: SpriteModifyFlags) => void
-  ): void {
-    if (sprite) {
-      const target = renderer as any;
-      target._addResourceReferCount(sprite, -1);
-      sprite._updateFlagManager.removeListener(onSpriteChange);
-    }
-  }
-
-  static updateBounds(
-    renderer: ISpriteRenderer,
-    sprite: Sprite | null,
-    worldBounds: BoundingBox,
-    worldMatrix: Matrix,
-    worldPosition: Vector3,
-    width: number,
-    height: number,
-    pivot: Vector2,
-    flipX: boolean,
-    flipY: boolean
-  ): void {
-    if (sprite) {
-      SpriteMaskUtils.updatePositions(renderer, worldMatrix, width, height, pivot, flipX, flipY);
-    } else {
-      worldBounds.min.copyFrom(worldPosition);
-      worldBounds.max.copyFrom(worldPosition);
-    }
-  }
-
-  static updatePositions(
-    renderer: ISpriteRenderer,
-    worldMatrix: Matrix,
-    width: number,
-    height: number,
-    pivot: Vector2,
-    flipX: boolean,
-    flipY: boolean
-  ): void {
-    SimpleSpriteAssembler.updatePositions(renderer, worldMatrix, width, height, pivot, flipX, flipY);
-  }
-
-  static updateUVs(renderer: ISpriteRenderer): void {
-    SimpleSpriteAssembler.updateUVs(renderer);
-  }
-
-  static setupRenderElement(
-    renderElement: RenderElement,
-    renderer: Renderer,
-    material: Material,
-    subChunk: SubPrimitiveChunk,
-    texture: any,
-    distanceForSort: number
-  ): void {
-    const subRenderElement = renderElement.subRenderElements[0];
-    renderElement.set(renderer.priority, distanceForSort);
-    subRenderElement.set(renderer, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-    renderElement.addSubRenderElement(subRenderElement);
-  }
 
   static containsWorldPoint(
     worldPoint: Vector3,

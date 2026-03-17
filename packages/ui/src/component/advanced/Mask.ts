@@ -61,15 +61,15 @@ export class Mask extends MaskRenderable(UIRenderer) {
     }
   }
 
-  override _getMaskWidth(): number {
+  override _getSpriteWidth(): number {
     return (<UITransform>this._transformEntity.transform).size.x;
   }
 
-  override _getMaskHeight(): number {
+  override _getSpriteHeight(): number {
     return (<UITransform>this._transformEntity.transform).size.y;
   }
 
-  override _getMaskPivot(): Vector2 {
+  override _getSpritePivot(): Vector2 {
     return (<UITransform>this._transformEntity.transform).pivot;
   }
 }

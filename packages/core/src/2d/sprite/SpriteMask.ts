@@ -132,15 +132,15 @@ export class SpriteMask extends MaskRenderable(Renderer) {
     }
   }
 
-  override _getMaskWidth(): number {
+  override _getSpriteWidth(): number {
     return this.width;
   }
 
-  override _getMaskHeight(): number {
+  override _getSpriteHeight(): number {
     return this.height;
   }
 
-  override _getMaskPivot() {
+  override _getSpritePivot() {
     return this.sprite?.pivot;
   }
 
