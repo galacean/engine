@@ -118,7 +118,7 @@ export class ParticleGenerator {
   _transformFeedback: ParticleTransformFeedbackSimulator;
   /** @internal */
   @ignoreClone
-  _useTFMode = false;
+  _useTransformFeedback = false;
   /** @internal - Index of the TF buffer in the primitive's vertexBufferBindings array */
   @ignoreClone
   private _tfBufferBindingIndex = -1;
@@ -368,7 +368,7 @@ export class ParticleGenerator {
     }
 
     // Run Transform Feedback update pass if in TF mode
-    if (this._useTFMode && this._transformFeedback) {
+    if (this._useTransformFeedback && this._transformFeedback) {
       const renderer = this._renderer;
       const shaderData = renderer.shaderData;
 
@@ -464,7 +464,7 @@ export class ParticleGenerator {
     }
 
     // Add TF output buffer binding for render pass (position + velocity from TF)
-    if (this._useTFMode && this._transformFeedback) {
+    if (this._useTransformFeedback && this._transformFeedback) {
       this._tfBufferBindingIndex = vertexBufferBindings.length;
       primitive.addVertexElement(
         new VertexElement("a_FeedbackPosition", 0, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
@@ -560,7 +560,7 @@ export class ParticleGenerator {
     // Update instance buffer binding at the correct index
     // (In TF mode, TF buffer occupies the last slot, instance buffer is second-to-last)
     const instanceBindingIndex = lastInstanceVertices
-      ? vertexBufferBindings.length - 1 - (this._useTFMode ? 1 : 0)
+      ? vertexBufferBindings.length - 1 - (this._useTransformFeedback ? 1 : 0)
       : vertexBufferBindings.length;
     this._primitive.setVertexBufferBinding(instanceBindingIndex, vertexBufferBinding);
 
@@ -569,7 +569,7 @@ export class ParticleGenerator {
     this._currentParticleCount = newParticleCount;
 
     // Resize TF buffers if in TF mode
-    if (this._useTFMode && this._transformFeedback) {
+    if (this._useTransformFeedback && this._transformFeedback) {
       this._transformFeedback.resize(newParticleCount);
       // Update TF buffer binding in primitive after resize
       if (this._tfBufferBindingIndex >= 0) {
@@ -614,8 +614,8 @@ export class ParticleGenerator {
    * allowing accurate stateful simulation (e.g., dampen in LimitVelocityOverLifetime).
    */
   _setTFMode(enabled: boolean): void {
-    if (this._useTFMode === enabled) return;
-    this._useTFMode = enabled;
+    if (this._useTransformFeedback === enabled) return;
+    this._useTransformFeedback = enabled;
 
     const renderer = this._renderer;
     const engine = renderer.engine;
@@ -624,7 +624,7 @@ export class ParticleGenerator {
       // Check WebGL2 support — LimitVelocityOverLifetime requires TF for accurate simulation
       if (!engine._hardwareRenderer.isWebGL2) {
         Logger.warn("ParticleGenerator: LimitVelocityOverLifetime is not supported on WebGL1.");
-        this._useTFMode = false;
+        this._useTransformFeedback = false;
         return;
       }
 
@@ -983,7 +983,7 @@ export class ParticleGenerator {
     }
 
     // Initialize TF buffer for this particle
-    if (this._useTFMode && this._transformFeedback) {
+    if (this._useTransformFeedback && this._transformFeedback) {
       this._initTFParticle(firstFreeElement, position, direction, startSpeed, transform);
     }
 
@@ -1090,7 +1090,7 @@ export class ParticleGenerator {
     const instanceBuffer = this._instanceVertexBufferBinding.buffer;
     const dataBuffer = this._instanceVertices.buffer;
 
-    if (this._useTFMode) {
+    if (this._useTransformFeedback) {
       // TF mode: upload active range without compacting (indices must match TF buffer slots).
       // Uses Discard to avoid CPU-GPU sync stalls.
       const start = firstActiveElement * byteStride;
