@@ -1,5 +1,5 @@
 /**
- * @title UI RectMask ScrollView
+ * @title UI RectMask2D
  * @category UI
  */
 import { Camera, Color, Sprite, Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
@@ -7,8 +7,6 @@ import {
   CanvasRenderMode,
   Image,
   RectMask2D,
-  ScrollView,
-  ScrollViewMode,
   Text,
   UICanvas,
   UITransform
@@ -35,6 +33,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   const solidSprite = createSolidSprite(engine);
 
+  // --- Left: RectMask2D with alphaClip clipping a grid of tiles ---
   const frameEntity = canvasEntity.createChild("Frame");
   const frameTransform = frameEntity.transform as UITransform;
   frameTransform.size.set(520, 420);
@@ -58,11 +57,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const contentTransform = contentEntity.transform as UITransform;
   contentTransform.size.set(740, 560);
   contentTransform.setPosition(90, -70, 0);
-
-  const scrollView = viewportEntity.addComponent(ScrollView);
-  scrollView.mode = ScrollViewMode.VerticalAndHorizontal;
-  scrollView.viewport = viewportEntity;
-  scrollView.content = contentEntity;
 
   const colors = [
     new Color(0.91, 0.3, 0.24, 1),
@@ -102,15 +96,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     }
   }
 
-  const titleEntity = canvasEntity.createChild("Title");
-  const titleTransform = titleEntity.transform as UITransform;
-  titleTransform.size.set(620, 70);
-  titleTransform.setPosition(-160, 250, 0);
-  const title = titleEntity.addComponent(Text);
-  title.text = "RectMask2D keeps Image and Text visible";
-  title.fontSize = 38;
-  title.color.set(0.96, 0.97, 0.99, 1);
-
+  // --- Right: description ---
   const noteEntity = canvasEntity.createChild("Note");
   const noteTransform = noteEntity.transform as UITransform;
   noteTransform.size.set(340, 180);
@@ -122,9 +108,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const noteTextEntity = noteEntity.createChild("Copy");
   const noteTextTransform = noteTextEntity.transform as UITransform;
   noteTextTransform.size.set(260, 120);
-  noteTextTransform.setPosition(0, 0, 0);
   const noteText = noteTextEntity.addComponent(Text);
-  noteText.text = "Mask on.\nTiles still render.\nNumbers still render.";
+  noteText.text = "RectMask2D clips\nImage and Text\nby axis-aligned rect.";
   noteText.fontSize = 28;
   noteText.color.set(0.77, 0.82, 0.89, 1);
 

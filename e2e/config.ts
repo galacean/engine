@@ -463,9 +463,15 @@ export const E2E_CONFIG = {
     }
   },
   UI: {
-    RectMaskScrollView: {
+    Mask: {
       category: "UI",
-      caseFileName: "ui-rectMask-scrollView",
+      caseFileName: "ui-mask",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    RectMask2D: {
+      category: "UI",
+      caseFileName: "ui-rectMask",
       threshold: 0,
       diffPercentage: 0
     }
