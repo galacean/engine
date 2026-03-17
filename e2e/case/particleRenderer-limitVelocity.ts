@@ -11,7 +11,6 @@ import {
   Engine,
   Entity,
   SphereShape,
-  Logger,
   ParticleCompositeCurve,
   ParticleCurveMode,
   ParticleGradientMode,
@@ -26,21 +25,17 @@ import {
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
-// Create engine
 WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
-  Logger.enable();
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
   scene.background.solidColor = new Color(0, 0, 0, 1);
 
-  // Camera
   const cameraEntity = rootEntity.createChild("camera");
   cameraEntity.transform.setPosition(2, 1.43, 30);
-  cameraEntity.transform.setRotation(0, 0, 0);
   const camera = cameraEntity.addComponent(Camera);
   camera.fieldOfView = 60;
   camera.enableHDR = true;
@@ -53,23 +48,26 @@ WebGLEngine.create({
   bloom.threshold.value = 0.8;
   postProcess.addEffect(TonemappingEffect);
 
-  engine.run();
-
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JPsCSK5LtYkAAAAAAAAAAAAADil6AQ/original",
       type: AssetType.Texture2D
     })
     .then((texture) => {
-      createScalarLimitParticle(engine, rootEntity, <Texture2D>texture);
+      createParticle(engine, rootEntity, <Texture2D>texture);
+
+      updateForE2E(engine, 30);
+      initScreenshot(engine, camera);
     });
 });
 
-function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: Texture2D): void {
-  const particleEntity = rootEntity.createChild("ScalarLimit");
+function createParticle(engine: Engine, rootEntity: Entity, texture: Texture2D): void {
+  const particleEntity = new Entity(engine, "LimitVelocity");
   particleEntity.transform.setPosition(2.006557, 1.43, 12.35);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
+  const generator = particleRenderer.generator;
+  generator.useAutoRandomSeed = false;
 
   const material = new ParticleMaterial(engine);
   material.baseColor = new Color(0.2, 0.6, 1.0, 1.0);
@@ -77,12 +75,9 @@ function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: 
   material.baseTexture = texture;
   particleRenderer.setMaterial(material);
 
-  const generator = particleRenderer.generator;
-  generator.useAutoRandomSeed = false;
-
   const { main, emission, limitVelocityOverLifetime, colorOverLifetime, velocityOverLifetime } = generator;
 
-  // Main module
+  // Main
   main.duration = 2;
   main.isLoop = true;
   main.startDelay.constant = 0;
@@ -105,12 +100,11 @@ function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: 
   // Emission
   emission.rateOverTime.constant = 0;
   emission.addBurst(new Burst(0, new ParticleCompositeCurve(10, 30)));
-
   const sphereShape = new SphereShape();
   sphereShape.radius = 0.8;
   emission.shape = sphereShape;
 
-  // Color over lifetime: fade in then fade out
+  // Color over lifetime
   colorOverLifetime.enabled = true;
   colorOverLifetime.color.mode = ParticleGradientMode.Gradient;
   const gradient = colorOverLifetime.color.gradient;
@@ -119,14 +113,10 @@ function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: 
   gradient.addAlphaKey(0.2, 1.0);
   gradient.addAlphaKey(0.8, 1.0);
 
-  // Velocity over lifetime (delayed activation)
-  setTimeout(() => {
-    velocityOverLifetime.enabled = true;
-    velocityOverLifetime.velocityX.constant = 1;
-    velocityOverLifetime.velocityY.constant = 20;
-    velocityOverLifetime.velocityZ.constant = 1;
-    console.log("s");
-  }, 3000);
+  velocityOverLifetime.enabled = true;
+  velocityOverLifetime.velocityX.constant = 1;
+  velocityOverLifetime.velocityY.constant = 20;
+  velocityOverLifetime.velocityZ.constant = 1;
 
   // Limit velocity over lifetime
   limitVelocityOverLifetime.enabled = true;
@@ -134,15 +124,11 @@ function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: 
   limitVelocityOverLifetime.limitX = new ParticleCompositeCurve(1);
   limitVelocityOverLifetime.limitY = new ParticleCompositeCurve(1);
   limitVelocityOverLifetime.limitZ = new ParticleCompositeCurve(0);
-  //   limitVelocityOverLifetime.limit = new ParticleCompositeCurve(1);
   limitVelocityOverLifetime.space = ParticleSimulationSpace.World;
   limitVelocityOverLifetime.dampen = 0.25;
   limitVelocityOverLifetime.drag = new ParticleCompositeCurve(0.0);
   limitVelocityOverLifetime.multiplyDragByParticleSize = true;
   limitVelocityOverLifetime.multiplyDragByParticleVelocity = true;
 
-  //   limitVelocityOverLifetime.enabled = true;
-  // limitVelocityOverLifetime.separateAxes = false;
-  // limitVelocityOverLifetime.limit = new ParticleCompositeCurve(0);
-  // limitVelocityOverLifetime.dampen = 1;
+  rootEntity.addChild(particleEntity);
 }
