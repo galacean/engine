@@ -153,11 +153,17 @@ void main() {
         }
     #endif
 
-    // Add velocity deltas to local velocity
-    localVelocity += volDeltaLocal + folDeltaLocal;
+    // Gravity and FOL contribute to base velocity (persisted, subject to dampen/drag).
+    vec3 gravityLocal = rotationByQuaternions(gravityDelta, quaternionConjugate(worldRotation));
+    localVelocity += folDeltaLocal + gravityLocal;
 
     // =====================================================
     // Step 2: Dampen (Limit Velocity)
+    // Two-velocity system:
+    //   base velocity (persisted) = startVelocity + FOL + gravity
+    //   animated velocity (per-frame) = VOL
+    // Dampen uses total (base + animated) to judge overspeed,
+    // but only permanently modifies base velocity.
     // =====================================================
     #ifdef RENDERER_LVL_MODULE_ENABLED
         float limitRand = a_Random2.w;
@@ -166,28 +172,29 @@ void main() {
         float effectiveDampen = 1.0 - pow(1.0 - dampen, dt * 30.0);
 
         if (renderer_LVLSpace == 0) {
-            localVelocity = applyLVLSpeedLimitTF(localVelocity, normalizedAge, limitRand, effectiveDampen);
+            vec3 totalLocal = localVelocity + volDeltaLocal;
+            vec3 dampenedTotal = applyLVLSpeedLimitTF(totalLocal, normalizedAge, limitRand, effectiveDampen);
+            localVelocity = dampenedTotal - volDeltaLocal;
         } else {
-            // World space: exclude animatedVelocity from permanent dampen.
-            vec3 animatedWorld = volDeltaWorld + folDeltaWorld + gravityDelta;
-            vec3 localWorld = rotationByQuaternions(localVelocity, worldRotation);
-            vec3 totalWorld = localWorld + animatedWorld;
+            vec3 animatedWorld = volDeltaWorld;
+            vec3 baseWorld = rotationByQuaternions(localVelocity, worldRotation);
+            vec3 totalWorld = baseWorld + animatedWorld;
             vec3 dampenedTotal = applyLVLSpeedLimitTF(totalWorld, normalizedAge, limitRand, effectiveDampen);
-            // Delta applies only to the local velocity portion
-            vec3 dampenedLocal = dampenedTotal - animatedWorld;
-            localVelocity = rotationByQuaternions(dampenedLocal, quaternionConjugate(worldRotation));
+            vec3 dampenedBase = dampenedTotal - animatedWorld;
+            localVelocity = rotationByQuaternions(dampenedBase, quaternionConjugate(worldRotation));
         }
     #endif
 
     // =====================================================
     // Step 3: Drag
+    // Drag also uses total velocity (base + animated), only modifies base.
     // =====================================================
     #ifdef RENDERER_LVL_MODULE_ENABLED
     {
         float dragCoeff = evaluateLVLDrag(normalizedAge, a_Random0.x);
         if (dragCoeff > 0.0) {
-            vec3 combinedVel = localVelocity;
-            float velMagSqr = dot(combinedVel, combinedVel);
+            vec3 totalVel = localVelocity + volDeltaLocal;
+            float velMagSqr = dot(totalVel, totalVel);
             float velMag = sqrt(velMagSqr);
 
             float drag = dragCoeff;
@@ -204,7 +211,8 @@ void main() {
 
             if (velMag > 0.0) {
                 float newVelMag = max(0.0, velMag - drag * dt);
-                localVelocity = localVelocity * (newVelMag / velMag);
+                vec3 dampenedTotal = totalVel * (newVelMag / velMag);
+                localVelocity = dampenedTotal - volDeltaLocal;
             }
         }
     }
@@ -212,8 +220,10 @@ void main() {
 
     // =====================================================
     // Step 4: Integrate position
+    // localVelocity (base, includes gravity+FOL) is persisted in TF buffer.
+    // VOL is added for integration only (not persisted).
     // =====================================================
-    vec3 worldVelocity = rotationByQuaternions(localVelocity, worldRotation) + volDeltaWorld + folDeltaWorld + gravityDelta;
+    vec3 worldVelocity = rotationByQuaternions(localVelocity + volDeltaLocal, worldRotation) + volDeltaWorld + folDeltaWorld;
     worldPosition += worldVelocity * dt;
 
     v_TFPosition = worldPosition;
