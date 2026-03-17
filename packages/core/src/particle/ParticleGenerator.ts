@@ -1016,8 +1016,13 @@ export class ParticleGenerator {
     } else {
       // World mode: transform shape position to world space using emitter's current transform
       const wrot = transform.worldRotationQuaternion;
-      const qx = wrot.x, qy = wrot.y, qz = wrot.z, qw = wrot.w;
-      const sx = shapePosition.x, sy = shapePosition.y, sz = shapePosition.z;
+      const qx = wrot.x,
+        qy = wrot.y,
+        qz = wrot.z,
+        qw = wrot.w;
+      const sx = shapePosition.x,
+        sy = shapePosition.y,
+        sz = shapePosition.z;
       const cx1 = qy * sz - qz * sy + qw * sx;
       const cy1 = qz * sx - qx * sz + qw * sy;
       const cz1 = qx * sy - qy * sx + qw * sz;

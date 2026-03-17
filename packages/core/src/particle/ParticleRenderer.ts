@@ -231,7 +231,9 @@ export class ParticleRenderer extends Renderer {
     // Transform Feedback: render all slots (instance buffer not compacted, dead particles discarded in shader).
     // Non-Transform Feedback: render only alive particles (instance buffer compacted).
 
-    generator._primitive.instanceCount = generator._useTransformFeedback ? generator._currentParticleCount : aliveParticleCount;
+    generator._primitive.instanceCount = generator._useTransformFeedback
+      ? generator._currentParticleCount
+      : aliveParticleCount;
 
     let material = this.getMaterial();
     if (!material || (this._renderMode === ParticleRenderMode.Mesh && !this._mesh)) {

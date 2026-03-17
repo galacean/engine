@@ -53,9 +53,10 @@ export class ParticleTransformFeedbackSimulator {
     data[3] = vx;
     data[4] = vy;
     data[5] = vz;
+    const simulator = this._simulator;
     const byteOffset = index * ParticleBufferUtils.feedbackVertexStride;
-    this._simulator.readBinding.buffer.setData(data, byteOffset);
-    this._simulator.writeBinding.buffer.setData(data, byteOffset);
+    simulator.readBinding.buffer.setData(data, byteOffset);
+    simulator.writeBinding.buffer.setData(data, byteOffset);
   }
 
   /**
