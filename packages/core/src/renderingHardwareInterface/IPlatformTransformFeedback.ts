@@ -11,6 +11,11 @@ export interface IPlatformTransformFeedback {
   bindBufferRange(index: number, buffer: IPlatformBuffer, byteOffset: number, byteSize: number): void;
 
   /**
+   * Unbind buffer from Transform Feedback output at the given index.
+   */
+  unbindBuffer(index: number): void;
+
+  /**
    * Begin a Transform Feedback pass.
    * @param primitiveMode - The primitive mode (e.g., POINTS)
    */

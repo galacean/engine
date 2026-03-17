@@ -131,6 +131,9 @@ export class TransformFeedbackPrimitive {
     this._transformFeedback.begin(mode);
     rhi.drawArrays(mode, first, count);
     this._transformFeedback.end();
+    // Unbind TF buffer from TRANSFORM_FEEDBACK_BUFFER target to avoid
+    // conflicts when the same buffer is bound as ARRAY_BUFFER in render pass.
+    this._transformFeedback.unbindBuffer(0);
     this._transformFeedback.unbind();
   }
 

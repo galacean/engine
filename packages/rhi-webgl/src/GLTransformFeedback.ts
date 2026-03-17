@@ -21,6 +21,11 @@ export class GLTransformFeedback implements IPlatformTransformFeedback {
     gl.bindBufferRange(gl.TRANSFORM_FEEDBACK_BUFFER, index, (<GLBuffer>buffer)._glBuffer, byteOffset, byteSize);
   }
 
+  unbindBuffer(index: number): void {
+    const gl = this._gl;
+    gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, index, null);
+  }
+
   begin(primitiveMode: number): void {
     this._gl.beginTransformFeedback(primitiveMode);
   }

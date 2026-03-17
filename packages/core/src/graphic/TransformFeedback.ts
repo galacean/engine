@@ -26,6 +26,13 @@ export class TransformFeedback extends GraphicsResource {
   }
 
   /**
+   * Unbind buffer from Transform Feedback output at the given index.
+   */
+  unbindBuffer(index: number): void {
+    this._platformTransformFeedback.unbindBuffer(index);
+  }
+
+  /**
    * Begin a Transform Feedback pass.
    * @param primitiveMode - GL primitive mode (e.g., gl.POINTS = 0)
    */

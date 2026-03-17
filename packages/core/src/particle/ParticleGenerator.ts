@@ -389,12 +389,10 @@ export class ParticleGenerator {
         deltaTime
       );
 
-      // After TF swap, update the render pass buffer binding to point to the latest output
+      // After TF swap, update the render pass buffer binding to point to the latest output.
+      // Directly assign to avoid triggering _bufferStructChanged (VAO is disabled in TF mode).
       if (this._tfBufferBindingIndex >= 0) {
-        this._primitive.setVertexBufferBinding(
-          this._tfBufferBindingIndex,
-          this._transformFeedback.currentRenderBufferBinding
-        );
+        this._primitive.vertexBufferBindings[this._tfBufferBindingIndex] = this._transformFeedback.currentRenderBufferBinding;
       }
     }
   }

@@ -119,11 +119,13 @@ function createScalarLimitParticle(engine: Engine, rootEntity: Entity, texture: 
   gradient.addAlphaKey(0.2, 1.0);
   gradient.addAlphaKey(0.8, 1.0);
 
-  // Velocity over lifetime
-  velocityOverLifetime.enabled = true;
-  velocityOverLifetime.velocityX.constant = 1;
-  velocityOverLifetime.velocityY.constant = 20;
-  velocityOverLifetime.velocityZ.constant = 1;
+  // Velocity over lifetime (delayed activation)
+  setTimeout(() => {
+    velocityOverLifetime.enabled = true;
+    velocityOverLifetime.velocityX.constant = 1;
+    velocityOverLifetime.velocityY.constant = 20;
+    velocityOverLifetime.velocityZ.constant = 1;
+  }, 3000);
 
   // Limit velocity over lifetime
   limitVelocityOverLifetime.enabled = true;
