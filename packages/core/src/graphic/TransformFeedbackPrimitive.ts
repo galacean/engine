@@ -115,8 +115,8 @@ export class TransformFeedbackPrimitive {
     transformFeedback.begin(mode);
     this._platformPrimitive.draw(mode, first, count);
     transformFeedback.end();
-    transformFeedback.unbindBuffer(0);
     transformFeedback.unbind();
+    transformFeedback.unbindBuffer(0);
   }
 
   /**
