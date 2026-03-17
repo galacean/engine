@@ -69,10 +69,8 @@ uniform float renderer_StretchedBillboardSpeedScale;
 uniform int renderer_SimulationSpace;
 
 #include <particle_common>
-#ifndef RENDERER_TRANSFORM_FEEDBACK
-    #include <velocity_over_lifetime_module>
-    #include <force_over_lifetime_module>
-#endif
+#include <velocity_over_lifetime_module>
+#include <force_over_lifetime_module>
 #include <color_over_lifetime_module>
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
@@ -144,10 +142,23 @@ void main() {
         vec3 worldVelocity;
 
         #ifdef RENDERER_TRANSFORM_FEEDBACK
-            // Transform Feedback mode: position and velocity computed per-frame by TF pass
+            // Transform Feedback mode: position computed per-frame by TF pass.
+            // a_TFVelocity = base velocity in local space (start + gravity + local FOL).
+            // VOL overlay is recomputed here to maintain correct local/world split
+            // for stretched billboard (which combines rotateToWorld(localVelocity) + worldVelocity).
             vec3 center = a_TFPosition;
             localVelocity = a_TFVelocity;
-            worldVelocity = rotationByQuaternions(localVelocity, worldRotation);
+            worldVelocity = vec3(0.0);
+
+            #ifdef _VOL_MODULE_ENABLED
+                vec3 volVelocity;
+                computeVelocityPositionOffset(normalizedAge, age, volVelocity);
+                if (renderer_VOLSpace == 0) {
+                    localVelocity += volVelocity;
+                } else {
+                    worldVelocity += volVelocity;
+                }
+            #endif
         #else
             // Original analytical path
             vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
