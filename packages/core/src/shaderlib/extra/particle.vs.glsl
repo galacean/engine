@@ -146,12 +146,12 @@ void main() {
             worldVelocity = vec3(0.0);
 
             #ifdef _VOL_MODULE_ENABLED
-                vec3 volVelocity;
-                computeVelocityPositionOffset(normalizedAge, age, volVelocity);
+                vec3 instantVOLVelocity;
+                computeVelocityPositionOffset(normalizedAge, age, instantVOLVelocity);
                 if (renderer_VOLSpace == 0) {
-                    localVelocity += volVelocity;
+                    localVelocity += instantVOLVelocity;
                 } else {
-                    worldVelocity += volVelocity;
+                    worldVelocity += instantVOLVelocity;
                 }
             #endif
         #else
