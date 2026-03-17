@@ -34,8 +34,8 @@ attribute vec3 a_SimulationWorldPosition;
 attribute vec4 a_SimulationWorldRotation;
 
 #ifdef RENDERER_TRANSFORM_FEEDBACK
-    attribute vec3 a_TFPosition;
-    attribute vec3 a_TFVelocity;
+    attribute vec3 a_FeedbackPosition;
+    attribute vec3 a_FeedbackVelocity;
 #endif
 
 varying vec4 v_Color;
@@ -143,11 +143,10 @@ void main() {
 
         #ifdef RENDERER_TRANSFORM_FEEDBACK
             // Transform Feedback mode: position computed per-frame by TF pass.
-            // a_TFVelocity = base velocity in local space (start + gravity + local FOL).
-            // VOL overlay is recomputed here to maintain correct local/world split
-            // for stretched billboard (which combines rotateToWorld(localVelocity) + worldVelocity).
-            vec3 center = a_TFPosition;
-            localVelocity = a_TFVelocity;
+            // a_FeedbackVelocity = base velocity in local space (start + gravity + local FOL).
+            // VOL is recomputed here to maintain correct local/world split for stretched billboard.
+            vec3 center = a_FeedbackPosition;
+            localVelocity = a_FeedbackVelocity;
             worldVelocity = vec3(0.0);
 
             #ifdef _VOL_MODULE_ENABLED

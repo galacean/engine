@@ -9,12 +9,32 @@ import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { ParticleBillboardVertexAttribute } from "./enums/attributes/BillboardParticleVertexAttribute";
+import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 import { ParticleInstanceVertexAttribute } from "./enums/attributes/ParticleInstanceVertexAttribute";
 
 /**
  * @internal
  */
 export class ParticleBufferUtils {
+  static readonly feedbackVertexStride = 24;
+
+  static readonly feedbackVertexElements = [
+    new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+    new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, 0)
+  ];
+
+  static readonly feedbackInstanceElements = [
+    new VertexElement(ParticleInstanceVertexAttribute.ShapePositionStartLifeTime, 0, VertexElementFormat.Vector4, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.DirectionTime, 16, VertexElementFormat.Vector4, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.StartSize, 48, VertexElementFormat.Vector3, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.StartSpeed, 72, VertexElementFormat.Float, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.Random0, 76, VertexElementFormat.Vector4, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.Random1, 92, VertexElementFormat.Vector4, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 0)
+  ];
+
   static readonly instanceVertexStride = 168;
   static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 

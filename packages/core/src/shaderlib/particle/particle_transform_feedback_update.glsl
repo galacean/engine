@@ -3,8 +3,8 @@
 // Runs once per particle per frame (no rasterization).
 
 // Previous frame TF data
-attribute vec3 a_TFPosition;
-attribute vec3 a_TFVelocity;
+attribute vec3 a_FeedbackPosition;
+attribute vec3 a_FeedbackVelocity;
 
 // Per-particle instance data
 attribute vec4 a_ShapePositionStartLifeTime;
@@ -27,8 +27,8 @@ uniform vec4 renderer_WorldRotation;
 uniform int renderer_SimulationSpace;
 
 // TF outputs
-varying vec3 v_TFPosition;
-varying vec3 v_TFVelocity;
+varying vec3 v_FeedbackPosition;
+varying vec3 v_FeedbackVelocity;
 
 #include <particle_common>
 #include <velocity_over_lifetime_module>
@@ -101,8 +101,8 @@ void main() {
 
     // Dead particle: pass through unchanged
     if (normalizedAge >= 1.0 || age < 0.0) {
-        v_TFPosition = a_TFPosition;
-        v_TFVelocity = a_TFVelocity;
+        v_FeedbackPosition = a_FeedbackPosition;
+        v_FeedbackVelocity = a_FeedbackVelocity;
         gl_Position = vec4(0.0);
         return;
     }
@@ -115,8 +115,8 @@ void main() {
     }
 
     // Read previous frame state (initialized by CPU on particle birth)
-    vec3 localVelocity = a_TFVelocity;
-    vec3 worldPosition = a_TFPosition;
+    vec3 localVelocity = a_FeedbackVelocity;
+    vec3 worldPosition = a_FeedbackPosition;
 
     // =====================================================
     // Step 1: Apply velocity module deltas (VOL + FOL + Gravity)
@@ -223,7 +223,7 @@ void main() {
     vec3 worldVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld + folDeltaWorld;
     worldPosition += worldVelocity * dt;
 
-    v_TFPosition = worldPosition;
-    v_TFVelocity = localVelocity;
+    v_FeedbackPosition = worldPosition;
+    v_FeedbackVelocity = localVelocity;
     gl_Position = vec4(0.0);
 }

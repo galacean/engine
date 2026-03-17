@@ -470,10 +470,10 @@ export class ParticleGenerator {
     if (this._useTFMode && this._transformFeedback) {
       this._tfBufferBindingIndex = vertexBufferBindings.length;
       primitive.addVertexElement(
-        new VertexElement("a_TFPosition", 0, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
+        new VertexElement("a_FeedbackPosition", 0, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
       );
       primitive.addVertexElement(
-        new VertexElement("a_TFVelocity", 12, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
+        new VertexElement("a_FeedbackVelocity", 12, VertexElementFormat.Vector3, this._tfBufferBindingIndex, 1)
       );
       vertexBufferBindings.push(this._transformFeedback.readBinding);
     } else {

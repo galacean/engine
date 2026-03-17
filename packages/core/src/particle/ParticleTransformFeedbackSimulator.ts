@@ -2,8 +2,6 @@ import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
 import { TransformFeedbackPrimitive } from "../graphic/TransformFeedbackPrimitive";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { VertexElement } from "../graphic/VertexElement";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -20,29 +18,7 @@ import { ParticleBufferUtils } from "./ParticleBufferUtils";
  * handles shader compilation, uniform upload, and particle data initialization.
  */
 export class ParticleTransformFeedbackSimulator {
-  /** vec3 position + vec3 velocity = 6 floats = 24 bytes. */
-  private static readonly _byteStride = 24;
-
   private static readonly _deltaTimeProperty = ShaderProperty.getByName("renderer_DeltaTime");
-
-  // TF read buffer vertex elements
-  private static readonly _feedbackElements: VertexElement[] = [
-    new VertexElement("a_TFPosition", 0, VertexElementFormat.Vector3, 0),
-    new VertexElement("a_TFVelocity", 12, VertexElementFormat.Vector3, 0)
-  ];
-
-  // Instance buffer vertex elements
-  private static readonly _instanceElements: VertexElement[] = [
-    new VertexElement("a_ShapePositionStartLifeTime", 0, VertexElementFormat.Vector4, 0),
-    new VertexElement("a_DirectionTime", 16, VertexElementFormat.Vector4, 0),
-    new VertexElement("a_StartSize", 48, VertexElementFormat.Vector3, 0),
-    new VertexElement("a_StartSpeed", 72, VertexElementFormat.Float, 0),
-    new VertexElement("a_Random0", 76, VertexElementFormat.Vector4, 0),
-    new VertexElement("a_Random1", 92, VertexElementFormat.Vector4, 0),
-    new VertexElement("a_SimulationWorldPosition", 108, VertexElementFormat.Vector3, 0),
-    new VertexElement("a_SimulationWorldRotation", 120, VertexElementFormat.Vector4, 0),
-    new VertexElement("a_Random2", 152, VertexElementFormat.Vector4, 0)
-  ];
 
   private _engine: Engine;
   private _primitive: TransformFeedbackPrimitive;
@@ -59,7 +35,7 @@ export class ParticleTransformFeedbackSimulator {
 
   constructor(engine: Engine) {
     this._engine = engine;
-    this._primitive = new TransformFeedbackPrimitive(engine, ParticleTransformFeedbackSimulator._byteStride);
+    this._primitive = new TransformFeedbackPrimitive(engine, ParticleBufferUtils.feedbackVertexStride);
   }
 
   resize(particleCount: number): void {
@@ -79,7 +55,7 @@ export class ParticleTransformFeedbackSimulator {
     data[3] = vx;
     data[4] = vy;
     data[5] = vz;
-    const byteOffset = index * ParticleTransformFeedbackSimulator._byteStride;
+    const byteOffset = index * ParticleBufferUtils.feedbackVertexStride;
     this._primitive.readBinding.buffer.setData(data, byteOffset);
     this._primitive.writeBinding.buffer.setData(data, byteOffset);
   }
@@ -119,9 +95,9 @@ export class ParticleTransformFeedbackSimulator {
     const instanceBinding = new VertexBufferBinding(instanceBuffer, ParticleBufferUtils.instanceVertexStride);
     this._primitive.updateVertexLayout(
       this._tfProgram,
-      ParticleTransformFeedbackSimulator._feedbackElements,
+      ParticleBufferUtils.feedbackVertexElements,
       instanceBinding,
-      ParticleTransformFeedbackSimulator._instanceElements
+      ParticleBufferUtils.feedbackInstanceElements
     );
 
     // Draw alive particles (ring buffer may wrap into two segments)
@@ -171,7 +147,7 @@ export class ParticleTransformFeedbackSimulator {
 
     const fragmentSource = `#version 300 es\nprecision highp float;\nvoid main() { discard; }`;
 
-    this._tfProgram = new ShaderProgram(engine, vertexSource, fragmentSource, ["v_TFPosition", "v_TFVelocity"]);
+    this._tfProgram = new ShaderProgram(engine, vertexSource, fragmentSource, ["v_FeedbackPosition", "v_FeedbackVelocity"]);
 
     if (!this._tfProgram.isValid) {
       Logger.error("Failed to compile Transform Feedback shader program.");
