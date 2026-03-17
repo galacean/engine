@@ -125,18 +125,15 @@ void main() {
     // Gravity (world space)
     vec3 gravityDelta = renderer_Gravity * a_Random0.x * dt;
 
-    // VOL delta (change in instantaneous velocity this frame)
-    vec3 volDeltaLocal = vec3(0.0);
-    vec3 volDeltaWorld = vec3(0.0);
+    // VOL instantaneous velocity (animated velocity, not persisted)
+    vec3 volLocal = vec3(0.0);
+    vec3 volWorld = vec3(0.0);
     #ifdef _VOL_MODULE_ENABLED
-        float prevNormalizedAge = max(age - dt, 0.0) / lifetime;
-        vec3 curVOL = getVOLVelocity(normalizedAge);
-        vec3 prevVOL = getVOLVelocity(prevNormalizedAge);
-        vec3 volDelta = curVOL - prevVOL;
+        vec3 vol = getVOLVelocity(normalizedAge);
         if (renderer_VOLSpace == 0) {
-            volDeltaLocal = volDelta;
+            volLocal = vol;
         } else {
-            volDeltaWorld = volDelta;
+            volWorld = vol;
         }
     #endif
 
@@ -172,11 +169,11 @@ void main() {
         float effectiveDampen = 1.0 - pow(1.0 - dampen, dt * 30.0);
 
         if (renderer_LVLSpace == 0) {
-            vec3 totalLocal = localVelocity + volDeltaLocal;
+            vec3 totalLocal = localVelocity + volLocal;
             vec3 dampenedTotal = applyLVLSpeedLimitTF(totalLocal, normalizedAge, limitRand, effectiveDampen);
-            localVelocity = dampenedTotal - volDeltaLocal;
+            localVelocity = dampenedTotal - volLocal;
         } else {
-            vec3 animatedWorld = volDeltaWorld;
+            vec3 animatedWorld = volWorld;
             vec3 baseWorld = rotationByQuaternions(localVelocity, worldRotation);
             vec3 totalWorld = baseWorld + animatedWorld;
             vec3 dampenedTotal = applyLVLSpeedLimitTF(totalWorld, normalizedAge, limitRand, effectiveDampen);
@@ -193,7 +190,7 @@ void main() {
     {
         float dragCoeff = evaluateLVLDrag(normalizedAge, a_Random0.x);
         if (dragCoeff > 0.0) {
-            vec3 totalVel = localVelocity + volDeltaLocal;
+            vec3 totalVel = localVelocity + volLocal;
             float velMagSqr = dot(totalVel, totalVel);
             float velMag = sqrt(velMagSqr);
 
@@ -212,7 +209,7 @@ void main() {
             if (velMag > 0.0) {
                 float newVelMag = max(0.0, velMag - drag * dt);
                 vec3 dampenedTotal = totalVel * (newVelMag / velMag);
-                localVelocity = dampenedTotal - volDeltaLocal;
+                localVelocity = dampenedTotal - volLocal;
             }
         }
     }
@@ -223,7 +220,7 @@ void main() {
     // localVelocity (base, includes gravity+FOL) is persisted in TF buffer.
     // VOL is added for integration only (not persisted).
     // =====================================================
-    vec3 worldVelocity = rotationByQuaternions(localVelocity + volDeltaLocal, worldRotation) + volDeltaWorld + folDeltaWorld;
+    vec3 worldVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld + folDeltaWorld;
     worldPosition += worldVelocity * dt;
 
     v_TFPosition = worldPosition;
