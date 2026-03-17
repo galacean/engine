@@ -33,7 +33,7 @@ import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLife
 import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { Logger } from "../base/Logger";
+import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 
 /**
  * Particle Generator.
@@ -458,10 +458,10 @@ export class ParticleGenerator {
     if (this._useTransformFeedback) {
       this._feedbackBindingIndex = vertexBufferBindings.length;
       primitive.addVertexElement(
-        new VertexElement("a_FeedbackPosition", 0, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
+        new VertexElement(ParticleFeedbackVertexAttribute.Position, 0, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
       );
       primitive.addVertexElement(
-        new VertexElement("a_FeedbackVelocity", 12, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
+        new VertexElement(ParticleFeedbackVertexAttribute.Velocity, 12, VertexElementFormat.Vector3, this._feedbackBindingIndex, 1)
       );
       vertexBufferBindings.push(this._feedbackSimulator.readBinding);
     } else {
@@ -598,35 +598,20 @@ export class ParticleGenerator {
 
   /**
    * @internal
-   * Enable or disable Transform Feedback mode.
-   * When enabled, velocity/position simulation is done per-frame via TF,
-   * allowing accurate stateful simulation (e.g., dampen in LimitVelocityOverLifetime).
    */
   _setTransformFeedback(enabled: boolean): void {
-    if (this._useTransformFeedback === enabled) return;
     this._useTransformFeedback = enabled;
 
-    const renderer = this._renderer;
-    const engine = renderer.engine;
-
     if (enabled) {
-      // Check WebGL2 support
-      if (!engine._hardwareRenderer.isWebGL2) {
-        Logger.warn("ParticleGenerator: LimitVelocityOverLifetime is not supported on WebGL1.");
-        this._useTransformFeedback = false;
-        return;
-      }
-
       if (!this._feedbackSimulator) {
-        this._feedbackSimulator = new ParticleTransformFeedbackSimulator(engine);
+        this._feedbackSimulator = new ParticleTransformFeedbackSimulator(this._renderer.engine);
       }
       this._feedbackSimulator.resize(this._currentParticleCount);
-      renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
+      this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
     } else {
-      renderer.shaderData.disableMacro(ParticleGenerator._transformFeedbackMacro);
+      this._renderer.shaderData.disableMacro(ParticleGenerator._transformFeedbackMacro);
     }
 
-    // Rebuild geometry buffers to include/exclude feedback buffer binding
     this._reorganizeGeometryBuffers();
   }
 
