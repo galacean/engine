@@ -4,29 +4,28 @@
  */
 export interface IPlatformTransformFeedbackPrimitive {
   /**
-   * Update attribute bindings for the given program. Auto-rebuilds when program changes.
+   * Update vertex layout. Auto-rebuilds when program changes.
    * @param program - Shader program (for attribute locations)
-   * @param readBuffer - Current read buffer (ping-pong A)
-   * @param writeBuffer - Current write buffer (ping-pong B)
-   * @param tfStride - TF buffer byte stride
-   * @param feedbackElements - Vertex elements for TF buffer
-   * @param inputBindings - Additional buffers with their vertex elements
+   * @param readBinding - Current read buffer binding
+   * @param writeBinding - Current write buffer binding
+   * @param feedbackElements - Vertex elements for feedback buffer
+   * @param inputBinding - Input buffer binding
+   * @param inputElements - Vertex elements for input buffer
    */
   updateVertexLayout(
     program: any,
-    readBuffer: any,
-    writeBuffer: any,
-    feedbackStride: number,
+    readBinding: any,
+    writeBinding: any,
     feedbackElements: any[],
     inputBinding: any,
     inputElements: any[]
   ): void;
 
   /**
-   * Bind attribute state for the given ping-pong direction.
-   * @param useA - Whether to bind direction A or B
+   * Bind attribute state for the given read direction.
+   * @param readIsA - Whether to use direction A as read
    */
-  bind(useA: boolean): void;
+  bind(readIsA: boolean): void;
 
   /**
    * Unbind attribute state.

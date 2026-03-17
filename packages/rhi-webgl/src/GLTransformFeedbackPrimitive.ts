@@ -1,10 +1,10 @@
-import { IPlatformTransformFeedbackPrimitive, VertexElement, VertexBufferBinding, Buffer } from "@galacean/engine-core";
+import { IPlatformTransformFeedbackPrimitive, VertexElement, VertexBufferBinding } from "@galacean/engine-core";
 import { GLBuffer } from "./GLBuffer";
 
 /**
  * @internal
  * WebGL2 implementation of Transform Feedback primitive.
- * Maintains two VAOs (one per ping-pong direction), auto-rebuilds when program changes.
+ * Maintains two VAOs (one per read direction), auto-rebuilds when program changes.
  */
 export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackPrimitive {
   private _gl: WebGL2RenderingContext;
@@ -18,9 +18,8 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
 
   updateVertexLayout(
     program: any,
-    readBuffer: Buffer,
-    writeBuffer: Buffer,
-    feedbackStride: number,
+    readBinding: VertexBufferBinding,
+    writeBinding: VertexBufferBinding,
     feedbackElements: VertexElement[],
     inputBinding: VertexBufferBinding,
     inputElements: VertexElement[]
@@ -30,15 +29,15 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     this._deleteVAOs();
 
     const attribs = program.attributeLocation;
-    this._vaoA = this._createVAO(attribs, readBuffer, feedbackStride, feedbackElements, inputBinding, inputElements);
-    this._vaoB = this._createVAO(attribs, writeBuffer, feedbackStride, feedbackElements, inputBinding, inputElements);
+    this._vaoA = this._createVAO(attribs, readBinding, feedbackElements, inputBinding, inputElements);
+    this._vaoB = this._createVAO(attribs, writeBinding, feedbackElements, inputBinding, inputElements);
     this._lastProgramId = program.id;
 
     this._gl.bindVertexArray(null);
   }
 
-  bind(useA: boolean): void {
-    this._gl.bindVertexArray(useA ? this._vaoA : this._vaoB);
+  bind(readIsA: boolean): void {
+    this._gl.bindVertexArray(readIsA ? this._vaoA : this._vaoB);
   }
 
   unbind(): void {
@@ -68,8 +67,7 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
 
   private _createVAO(
     attribs: Record<string, number>,
-    feedbackBuffer: Buffer,
-    feedbackStride: number,
+    feedbackBinding: VertexBufferBinding,
     feedbackElements: VertexElement[],
     inputBinding: VertexBufferBinding,
     inputElements: VertexElement[]
@@ -78,9 +76,11 @@ export class GLTransformFeedbackPrimitive implements IPlatformTransformFeedbackP
     const vao = gl.createVertexArray();
     gl.bindVertexArray(vao);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>feedbackBuffer._platformBuffer)._glBuffer);
-    this._bindElements(gl, attribs, feedbackElements, feedbackStride);
+    // @ts-ignore: Access internal _platformBuffer across packages
+    gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>feedbackBinding.buffer._platformBuffer)._glBuffer);
+    this._bindElements(gl, attribs, feedbackElements, feedbackBinding.stride);
 
+    // @ts-ignore: Access internal _platformBuffer across packages
     gl.bindBuffer(gl.ARRAY_BUFFER, (<GLBuffer>inputBinding.buffer._platformBuffer)._glBuffer);
     this._bindElements(gl, attribs, inputElements, inputBinding.stride);
 

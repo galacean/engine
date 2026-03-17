@@ -84,9 +84,8 @@ export class TransformFeedbackPrimitive {
   ): void {
     this._platformPrimitive.updateVertexLayout(
       program,
-      this.readBinding.buffer,
-      this.writeBinding.buffer,
-      this._byteStride,
+      this.readBinding,
+      this.writeBinding,
       feedbackElements,
       inputBinding,
       inputElements
