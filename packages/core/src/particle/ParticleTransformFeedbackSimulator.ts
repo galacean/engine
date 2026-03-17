@@ -4,6 +4,7 @@ import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { Buffer } from "../graphic/Buffer";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
+import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
@@ -45,11 +46,11 @@ export class ParticleTransformFeedbackSimulator {
   /**
    * Write initial position and velocity for a newly emitted particle.
    */
-  writeParticleData(index: number, px: number, py: number, pz: number, vx: number, vy: number, vz: number): void {
+  writeParticleData(index: number, position: Vector3, vx: number, vy: number, vz: number): void {
     const data = this._particleInitData;
-    data[0] = px;
-    data[1] = py;
-    data[2] = pz;
+    data[0] = position.x;
+    data[1] = position.y;
+    data[2] = position.z;
     data[3] = vx;
     data[4] = vy;
     data[5] = vz;

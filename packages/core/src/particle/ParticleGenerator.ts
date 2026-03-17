@@ -44,6 +44,7 @@ export class ParticleGenerator {
   private static _tempVector22 = new Vector2();
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
+  private static _tempVector32 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
@@ -958,55 +959,32 @@ export class ParticleGenerator {
 
     // Initialize feedback buffer for this particle
     if (this._useTransformFeedback) {
-      this._initTFParticle(firstFreeElement, position, direction, startSpeed, transform);
+      this._addFeedbackParticle(firstFreeElement, position, direction, startSpeed, transform);
     }
 
     this._firstFreeElement = nextFreeElement;
   }
 
-  /**
-   * Initialize feedback buffer data for a newly emitted particle.
-   * Position is stored in the particle's simulation space (local or world).
-   */
-  private _initTFParticle(
+  private _addFeedbackParticle(
     index: number,
     shapePosition: Vector3,
     direction: Vector3,
     startSpeed: number,
     transform: Transform
   ): void {
-    // Local velocity = direction * speed
-    const vx = direction.x * startSpeed;
-    const vy = direction.y * startSpeed;
-    const vz = direction.z * startSpeed;
-
-    let px: number, py: number, pz: number;
-
+    let position: Vector3;
     if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
-      // Local mode: store shape position in local space (same as a_ShapePositionStartLifeTime)
-      px = shapePosition.x;
-      py = shapePosition.y;
-      pz = shapePosition.z;
+      position = shapePosition;
     } else {
-      // World mode: transform shape position to world space using emitter's current transform
-      const wrot = transform.worldRotationQuaternion;
-      const qx = wrot.x,
-        qy = wrot.y,
-        qz = wrot.z,
-        qw = wrot.w;
-      const sx = shapePosition.x,
-        sy = shapePosition.y,
-        sz = shapePosition.z;
-      const cx1 = qy * sz - qz * sy + qw * sx;
-      const cy1 = qz * sx - qx * sz + qw * sy;
-      const cz1 = qx * sy - qy * sx + qw * sz;
-      const wp = transform.worldPosition;
-      px = sx + 2 * (qy * cz1 - qz * cy1) + wp.x;
-      py = sy + 2 * (qz * cx1 - qx * cz1) + wp.y;
-      pz = sz + 2 * (qx * cy1 - qy * cx1) + wp.z;
+      position = ParticleGenerator._tempVector32;
+      Vector3.transformByQuat(shapePosition, transform.worldRotationQuaternion, position);
+      position.add(transform.worldPosition);
     }
 
-    this._feedbackSimulator.writeParticleData(index, px, py, pz, vx, vy, vz);
+    this._feedbackSimulator.writeParticleData(
+      index, position,
+      direction.x * startSpeed, direction.y * startSpeed, direction.z * startSpeed
+    );
   }
 
   private _retireActiveParticles(): void {
