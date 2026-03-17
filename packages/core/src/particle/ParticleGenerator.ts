@@ -992,8 +992,7 @@ export class ParticleGenerator {
 
   /**
    * Initialize TF buffer data for a newly emitted particle.
-   * Computes initial world position and local velocity on CPU so the TF shader
-   * only ever does incremental updates.
+   * Position is stored in the particle's simulation space (local or world).
    */
   private _initTFParticle(
     index: number,
@@ -1002,46 +1001,31 @@ export class ParticleGenerator {
     startSpeed: number,
     transform: Transform
   ): void {
-    const main = this.main;
-
     // Local velocity = direction * speed
     const vx = direction.x * startSpeed;
     const vy = direction.y * startSpeed;
     const vz = direction.z * startSpeed;
 
-    // World position = rotateByWorldRotation(shapePosition) + worldOffset
-    let qx: number, qy: number, qz: number, qw: number;
-    if (main.simulationSpace === ParticleSimulationSpace.Local) {
-      const wrot = transform.worldRotationQuaternion;
-      qx = wrot.x;
-      qy = wrot.y;
-      qz = wrot.z;
-      qw = wrot.w;
+    let px: number, py: number, pz: number;
+
+    if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
+      // Local mode: store shape position in local space (same as a_ShapePositionStartLifeTime)
+      px = shapePosition.x;
+      py = shapePosition.y;
+      pz = shapePosition.z;
     } else {
-      // World space: rotation was captured at emission time, stored in instance buffer
-      // For simplicity, use identity (shape position is already in world space for world sim)
-      qx = 0;
-      qy = 0;
-      qz = 0;
-      qw = 1;
+      // World mode: transform shape position to world space using emitter's current transform
+      const wrot = transform.worldRotationQuaternion;
+      const qx = wrot.x, qy = wrot.y, qz = wrot.z, qw = wrot.w;
+      const sx = shapePosition.x, sy = shapePosition.y, sz = shapePosition.z;
+      const cx1 = qy * sz - qz * sy + qw * sx;
+      const cy1 = qz * sx - qx * sz + qw * sy;
+      const cz1 = qx * sy - qy * sx + qw * sz;
+      const wp = transform.worldPosition;
+      px = sx + 2 * (qy * cz1 - qz * cy1) + wp.x;
+      py = sy + 2 * (qz * cx1 - qx * cz1) + wp.y;
+      pz = sz + 2 * (qx * cy1 - qy * cx1) + wp.z;
     }
-
-    // Rotate shape position by quaternion: v + 2*cross(q.xyz, cross(q.xyz, v) + q.w * v)
-    const sx = shapePosition.x,
-      sy = shapePosition.y,
-      sz = shapePosition.z;
-    const cx1 = qy * sz - qz * sy + qw * sx;
-    const cy1 = qz * sx - qx * sz + qw * sy;
-    const cz1 = qx * sy - qy * sx + qw * sz;
-    let px = sx + 2 * (qy * cz1 - qz * cy1);
-    let py = sy + 2 * (qz * cx1 - qx * cz1);
-    let pz = sz + 2 * (qx * cy1 - qy * cx1);
-
-    // Add world offset
-    const wp = transform.worldPosition;
-    px += wp.x;
-    py += wp.y;
-    pz += wp.z;
 
     this._transformFeedback.writeParticleData(index, px, py, pz, vx, vy, vz);
   }

@@ -116,7 +116,6 @@ void main() {
 
     // Read previous frame state (initialized by CPU on particle birth)
     vec3 localVelocity = a_FeedbackVelocity;
-    vec3 worldPosition = a_FeedbackPosition;
 
     // =====================================================
     // Step 1: Apply velocity module deltas (VOL + FOL + Gravity)
@@ -216,14 +215,22 @@ void main() {
     #endif
 
     // =====================================================
-    // Step 4: Integrate position
-    // localVelocity (base, includes gravity+FOL) is persisted in TF buffer.
-    // VOL is added for integration only (not persisted).
+    // Step 4: Integrate position in simulation space
+    // Local mode: position in local space, velocity rotated to local
+    // World mode: position in world space, velocity rotated to world
     // =====================================================
-    vec3 worldVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld + folDeltaWorld;
-    worldPosition += worldVelocity * dt;
+    vec3 totalVelocity;
+    if (renderer_SimulationSpace == 0) {
+      // Local: integrate in local space
+      totalVelocity = localVelocity + volLocal
+        + rotationByQuaternions(volWorld + folDeltaWorld, quaternionConjugate(worldRotation));
+    } else {
+      // World: integrate in world space
+      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld + folDeltaWorld;
+    }
+    vec3 position = a_FeedbackPosition + totalVelocity * dt;
 
-    v_FeedbackPosition = worldPosition;
+    v_FeedbackPosition = position;
     v_FeedbackVelocity = localVelocity;
     gl_Position = vec4(0.0);
 }

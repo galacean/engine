@@ -142,10 +142,14 @@ void main() {
         vec3 worldVelocity;
 
         #ifdef RENDERER_TRANSFORM_FEEDBACK
-            // Transform Feedback mode: position computed per-frame by TF pass.
-            // a_FeedbackVelocity = base velocity in local space (start + gravity + local FOL).
-            // VOL is recomputed here to maintain correct local/world split for stretched billboard.
-            vec3 center = a_FeedbackPosition;
+            // Transform Feedback mode: position in simulation space (local or world).
+            // Local: transform to world; World: use directly.
+            vec3 center;
+            if (renderer_SimulationSpace == 0) {
+                center = rotationByQuaternions(a_FeedbackPosition, worldRotation) + renderer_WorldPosition;
+            } else if (renderer_SimulationSpace == 1) {
+                center = a_FeedbackPosition;
+            }
             localVelocity = a_FeedbackVelocity;
             worldVelocity = vec3(0.0);
 
