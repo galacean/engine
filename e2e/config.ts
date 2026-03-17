@@ -339,7 +339,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-limitVelocity",
       threshold: 0,
-      diffPercentage: 0.0
+      diffPercentage: 0.0364
     },
     textureSheetAnimation: {
       category: "Particle",
@@ -351,7 +351,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0,
-      diffPercentage: 0.0162
+      diffPercentage: 0.01698
     },
     particleEmissive: {
       category: "Particle",

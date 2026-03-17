@@ -26,10 +26,6 @@ attribute float a_StartSpeed;
     attribute vec4 a_Random1; // x:texture sheet animation random
 #endif
 
-#if defined(_FOL_MODULE_ENABLED) || defined(RENDERER_LVL_MODULE_ENABLED)
-    attribute vec4 a_Random2;
-#endif
-
 attribute vec3 a_SimulationWorldPosition;
 attribute vec4 a_SimulationWorldRotation;
 
@@ -70,6 +66,11 @@ uniform int renderer_SimulationSpace;
 #include <particle_common>
 #include <velocity_over_lifetime_module>
 #include <force_over_lifetime_module>
+
+#if defined(_FOL_MODULE_ENABLED) || defined(RENDERER_LVL_MODULE_ENABLED)
+    attribute vec4 a_Random2;
+#endif
+
 #include <color_over_lifetime_module>
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
