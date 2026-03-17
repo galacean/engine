@@ -21,7 +21,7 @@ attribute vec4 a_Random2;
 uniform float renderer_CurrentTime;
 uniform float renderer_DeltaTime;
 uniform vec3 renderer_Gravity;
-uniform vec2 u_DragConstant;
+uniform vec2 renderer_LVLDragConstant;
 uniform vec3 renderer_WorldPosition;
 uniform vec4 renderer_WorldRotation;
 uniform int renderer_SimulationSpace;

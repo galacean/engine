@@ -46,7 +46,7 @@ varying vec4 v_Color;
 
 uniform float renderer_CurrentTime;
 uniform vec3 renderer_Gravity;
-uniform vec2 u_DragConstant;
+uniform vec2 renderer_LVLDragConstant;
 uniform vec3 renderer_WorldPosition;
 uniform vec4 renderer_WorldRotation;
 uniform bool renderer_ThreeDStartRotation;
@@ -154,7 +154,7 @@ void main() {
             vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
             localVelocity = startVelocity;
             worldVelocity = gravityVelocity;
-            vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
+            vec3 dragData = a_DirectionTime.xyz * mix(renderer_LVLDragConstant.x, renderer_LVLDragConstant.y, a_Random0.x);
             vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, localVelocity, worldVelocity);
         #endif
 

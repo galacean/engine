@@ -50,7 +50,7 @@
             float dragMin = evaluateParticleCurve(renderer_LVLDragMinCurve, normalizedAge);
             return mix(dragMin, dragMax, dragRand);
         #else
-            return mix(u_DragConstant.x, u_DragConstant.y, dragRand);
+            return mix(renderer_LVLDragConstant.x, renderer_LVLDragConstant.y, dragRand);
         #endif
     }
 

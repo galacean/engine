@@ -392,8 +392,7 @@ export class ParticleGenerator {
       // After TF swap, update the render pass buffer binding to point to the latest output.
       // Directly assign to avoid triggering _bufferStructChanged (VAO is disabled in TF mode).
       if (this._tfBufferBindingIndex >= 0) {
-        this._primitive.vertexBufferBindings[this._tfBufferBindingIndex] =
-          this._transformFeedback.readBinding;
+        this._primitive.vertexBufferBindings[this._tfBufferBindingIndex] = this._transformFeedback.readBinding;
       }
     }
   }
@@ -577,10 +576,7 @@ export class ParticleGenerator {
       this._transformFeedback.resize(newParticleCount);
       // Update TF buffer binding in primitive after resize
       if (this._tfBufferBindingIndex >= 0) {
-        this._primitive.setVertexBufferBinding(
-          this._tfBufferBindingIndex,
-          this._transformFeedback.readBinding
-        );
+        this._primitive.setVertexBufferBinding(this._tfBufferBindingIndex, this._transformFeedback.readBinding);
       }
     }
   }

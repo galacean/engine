@@ -35,7 +35,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _limitZMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitZMaxCurve");
   static readonly _limitZMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitZMinCurve");
   static readonly _dampenProperty = ShaderProperty.getByName("renderer_LVLDampen");
-  static readonly _dragConstantProperty = ShaderProperty.getByName("u_DragConstant");
+  static readonly _dragConstantProperty = ShaderProperty.getByName("renderer_LVLDragConstant");
   static readonly _dragMaxCurveProperty = ShaderProperty.getByName("renderer_LVLDragMaxCurve");
   static readonly _dragMinCurveProperty = ShaderProperty.getByName("renderer_LVLDragMinCurve");
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_LVLSpace");
