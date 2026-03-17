@@ -4,6 +4,7 @@ import { TransformFeedbackPrimitive } from "../graphic/TransformFeedbackPrimitiv
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProgram } from "../shader/ShaderProgram";
@@ -123,7 +124,7 @@ export class ParticleTransformFeedbackSimulator {
     // Bind VAO and execute TF for alive particles
     this._primitive.bindVAO();
 
-    const POINTS = 0x0000;
+    const POINTS = MeshTopology.Points;
     if (firstActive < firstFree) {
       this._primitive.draw(rhi, POINTS, firstActive, firstFree - firstActive);
     } else {

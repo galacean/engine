@@ -6,6 +6,7 @@ import { BufferUsage } from "./enums/BufferUsage";
 import { TransformFeedback } from "./TransformFeedback";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
+import { MeshTopology } from "./enums/MeshTopology";
 
 /**
  * @internal
@@ -123,7 +124,7 @@ export class TransformFeedbackPrimitive {
   /**
    * Execute a TF draw call for a range of vertices.
    */
-  draw(rhi: any, mode: number, first: number, count: number): void {
+  draw(rhi: any, mode: MeshTopology, first: number, count: number): void {
     const byteOffset = first * this._byteStride;
     const byteSize = count * this._byteStride;
     this._transformFeedback.bind();

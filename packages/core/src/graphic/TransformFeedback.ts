@@ -2,11 +2,10 @@ import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { IPlatformTransformFeedback } from "../renderingHardwareInterface";
 import { Buffer } from "./Buffer";
+import { MeshTopology } from "./enums/MeshTopology";
 
 /**
  * Transform Feedback object for GPU-based data capture.
- * Wraps a platform-specific TF object and provides buffer binding,
- * begin/end control, and context-loss recovery.
  * @internal
  */
 export class TransformFeedback extends GraphicsResource {
@@ -19,24 +18,28 @@ export class TransformFeedback extends GraphicsResource {
   }
 
   /**
-   * Bind a buffer range as Transform Feedback output at the given index.
+   * Bind this Transform Feedback object as active.
+   */
+  bind(): void {
+    this._platformTransformFeedback.bind();
+  }
+
+  /**
+   * Bind a buffer range as output at the given index.
+   * @param index - Output binding point index (corresponds to varying index in shader)
+   * @param buffer - Output buffer to capture data into
+   * @param byteOffset - Starting byte offset in the buffer
+   * @param byteSize - Size in bytes of the capture range
    */
   bindBufferRange(index: number, buffer: Buffer, byteOffset: number, byteSize: number): void {
     this._platformTransformFeedback.bindBufferRange(index, buffer._platformBuffer, byteOffset, byteSize);
   }
 
   /**
-   * Unbind buffer from Transform Feedback output at the given index.
-   */
-  unbindBuffer(index: number): void {
-    this._platformTransformFeedback.unbindBuffer(index);
-  }
-
-  /**
    * Begin a Transform Feedback pass.
-   * @param primitiveMode - GL primitive mode (e.g., gl.POINTS = 0)
+   * @param primitiveMode - Primitive topology mode
    */
-  begin(primitiveMode: number): void {
+  begin(primitiveMode: MeshTopology): void {
     this._platformTransformFeedback.begin(primitiveMode);
   }
 
@@ -48,14 +51,15 @@ export class TransformFeedback extends GraphicsResource {
   }
 
   /**
-   * Bind this Transform Feedback object.
+   * Unbind the output buffer at the given index from the Transform Feedback target.
+   * @param index - Output binding point index
    */
-  bind(): void {
-    this._platformTransformFeedback.bind();
+  unbindBuffer(index: number): void {
+    this._platformTransformFeedback.unbindBuffer(index);
   }
 
   /**
-   * Unbind the Transform Feedback object.
+   * Unbind this Transform Feedback object.
    */
   unbind(): void {
     this._platformTransformFeedback.unbind();
