@@ -113,6 +113,7 @@ void main() {
     } else {
         worldRotation = a_SimulationWorldRotation;
     }
+    vec4 invWorldRotation = quaternionConjugate(worldRotation);
 
     // Read previous frame state (initialized by CPU on particle birth)
     vec3 localVelocity = a_FeedbackVelocity;
@@ -145,73 +146,77 @@ void main() {
             folDeltaLocal = folVelDelta;
         } else {
             // World FOL: convert to local and persist, same as gravity
-            folDeltaLocal = rotationByQuaternions(folVelDelta, quaternionConjugate(worldRotation));
+            folDeltaLocal = rotationByQuaternions(folVelDelta, invWorldRotation);
         }
     #endif
 
     // Gravity and FOL contribute to base velocity (persisted, subject to dampen/drag).
-    vec3 gravityLocal = rotationByQuaternions(gravityDelta, quaternionConjugate(worldRotation));
+    vec3 gravityLocal = rotationByQuaternions(gravityDelta, invWorldRotation);
     localVelocity += folDeltaLocal + gravityLocal;
 
     // =====================================================
-    // Step 2: Dampen (Limit Velocity)
-    // Two-velocity system:
-    //   base velocity (persisted) = startVelocity + FOL + gravity
-    //   animated velocity (per-frame) = VOL
-    // Dampen uses total (base + animated) to judge overspeed,
-    // but only permanently modifies base velocity.
+    // Step 2 & 3: Dampen (Limit Velocity) + Drag
+    // VOL must be projected into the LVL target space so that
+    // limit/drag see the full velocity regardless of VOL.space vs LVL.space.
     // =====================================================
     #ifdef RENDERER_LVL_MODULE_ENABLED
+        // Precompute VOL in both spaces
+        vec3 volAsLocal = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+        vec3 volAsWorld = rotationByQuaternions(volLocal, worldRotation) + volWorld;
+
         float limitRand = a_Random2.w;
         float dampen = renderer_LVLDampen;
         // Frame-rate independent dampen (30fps as reference)
         float effectiveDampen = 1.0 - pow(1.0 - dampen, dt * 30.0);
 
         if (renderer_LVLSpace == 0) {
-            vec3 totalLocal = localVelocity + volLocal;
+            // Local space: total = base + all VOL projected to local
+            vec3 totalLocal = localVelocity + volAsLocal;
             vec3 dampenedTotal = applyLVLSpeedLimitTF(totalLocal, normalizedAge, limitRand, effectiveDampen);
-            localVelocity = dampenedTotal - volLocal;
+            localVelocity = dampenedTotal - volAsLocal;
         } else {
-            vec3 animatedWorld = volWorld;
-            vec3 baseWorld = rotationByQuaternions(localVelocity, worldRotation);
-            vec3 totalWorld = baseWorld + animatedWorld;
+            // World space: total = rotated base + all VOL projected to world
+            vec3 totalWorld = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
             vec3 dampenedTotal = applyLVLSpeedLimitTF(totalWorld, normalizedAge, limitRand, effectiveDampen);
-            vec3 dampenedBase = dampenedTotal - animatedWorld;
-            localVelocity = rotationByQuaternions(dampenedBase, quaternionConjugate(worldRotation));
+            localVelocity = rotationByQuaternions(dampenedTotal - volAsWorld, invWorldRotation);
         }
-    #endif
 
-    // =====================================================
-    // Step 3: Drag
-    // Drag also uses total velocity (base + animated), only modifies base.
-    // =====================================================
-    #ifdef RENDERER_LVL_MODULE_ENABLED
-    {
-        float dragCoeff = evaluateLVLDrag(normalizedAge, a_Random0.x);
-        if (dragCoeff > 0.0) {
-            vec3 totalVel = localVelocity + volLocal;
-            float velMagSqr = dot(totalVel, totalVel);
-            float velMag = sqrt(velMagSqr);
+        // Drag: same space as dampen
+        {
+            float dragCoeff = evaluateLVLDrag(normalizedAge, a_Random0.x);
+            if (dragCoeff > 0.0) {
+                vec3 totalVel;
+                if (renderer_LVLSpace == 0) {
+                    totalVel = localVelocity + volAsLocal;
+                } else {
+                    totalVel = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
+                }
+                float velMagSqr = dot(totalVel, totalVel);
+                float velMag = sqrt(velMagSqr);
 
-            float drag = dragCoeff;
+                float drag = dragCoeff;
 
-            #ifdef RENDERER_LVL_DRAG_MULTIPLY_SIZE
-                float maxDim = max(a_StartSize.x, max(a_StartSize.y, a_StartSize.z));
-                float radius = maxDim * 0.5;
-                drag *= 3.14159265 * radius * radius;
-            #endif
+                #ifdef RENDERER_LVL_DRAG_MULTIPLY_SIZE
+                    float maxDim = max(a_StartSize.x, max(a_StartSize.y, a_StartSize.z));
+                    float radius = maxDim * 0.5;
+                    drag *= 3.14159265 * radius * radius;
+                #endif
 
-            #ifdef RENDERER_LVL_DRAG_MULTIPLY_VELOCITY
-                drag *= velMagSqr;
-            #endif
+                #ifdef RENDERER_LVL_DRAG_MULTIPLY_VELOCITY
+                    drag *= velMagSqr;
+                #endif
 
-            if (velMag > 0.0) {
-                float newVelMag = max(0.0, velMag - drag * dt);
-                vec3 dampenedTotal = totalVel * (newVelMag / velMag);
-                localVelocity = dampenedTotal - volLocal;
+                if (velMag > 0.0) {
+                    float newVelMag = max(0.0, velMag - drag * dt);
+                    vec3 draggedTotal = totalVel * (newVelMag / velMag);
+                    if (renderer_LVLSpace == 0) {
+                        localVelocity = draggedTotal - volAsLocal;
+                    } else {
+                        localVelocity = rotationByQuaternions(draggedTotal - volAsWorld, invWorldRotation);
+                    }
+                }
             }
         }
-    }
     #endif
 
     // =====================================================
