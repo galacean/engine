@@ -462,6 +462,20 @@ export const E2E_CONFIG = {
       diffPercentage: 0.0
     }
   },
+  UI: {
+    Mask: {
+      category: "UI",
+      caseFileName: "ui-mask",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    RectMask2D: {
+      category: "UI",
+      caseFileName: "ui-rectMask",
+      threshold: 0,
+      diffPercentage: 0
+    }
+  },
   Trail: {
     basic: {
       category: "Trail",

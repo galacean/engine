@@ -25,6 +25,7 @@ import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
 import { UIHitResult } from "../input/UIHitResult";
 import { IElement } from "../interface/IElement";
 import { IGroupAble } from "../interface/IGroupAble";
+import { RectMask2D } from "./advanced/RectMask2D";
 import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
 import { UITransform } from "./UITransform";
@@ -39,6 +40,7 @@ export class UICanvas extends Component implements IElement {
   /** @internal */
   static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IGroupAble[] = [];
+  private static _tempRectMaskList: RectMask2D[] = [];
   private static _tempVec3: Vector3 = new Vector3();
   private static _tempMat: Matrix = new Matrix();
 
@@ -425,7 +427,8 @@ export class UICanvas extends Component implements IElement {
     const { _orderedRenderers: renderers, entity } = this;
     const uiHierarchyVersion = entity._uiHierarchyVersion;
     if (this._hierarchyVersion !== uiHierarchyVersion) {
-      renderers.length = this._walk(this.entity, renderers);
+      UICanvas._tempRectMaskList.length = 0;
+      renderers.length = this._walk(this.entity, renderers, 0, null, 0);
       UICanvas._tempGroupAbleList.length = 0;
       this._hierarchyVersion = uiHierarchyVersion;
       ++UICanvas._hierarchyCounter;
@@ -507,10 +510,18 @@ export class UICanvas extends Component implements IElement {
     transform.size.set(curWidth / expectX, curHeight / expectY);
   }
 
-  private _walk(entity: Entity, renderers: UIRenderer[], depth = 0, group: UIGroup = null): number {
+  private _walk(
+    entity: Entity,
+    renderers: UIRenderer[],
+    depth = 0,
+    group: UIGroup = null,
+    rectMaskCount: number = 0
+  ): number {
     // @ts-ignore
     const components: Component[] = entity._components;
     const tempGroupAbleList = UICanvas._tempGroupAbleList;
+    const tempRectMaskList = UICanvas._tempRectMaskList;
+    let rectMask: RectMask2D = null;
     let groupAbleCount = 0;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
@@ -522,11 +533,14 @@ export class UICanvas extends Component implements IElement {
         if (component._isGroupDirty) {
           tempGroupAbleList[groupAbleCount++] = component;
         }
+        component._setRectMasks(tempRectMaskList, rectMaskCount);
       } else if (component instanceof UIInteractive) {
         component._isRootCanvasDirty && Utils.setRootCanvas(component, this);
         if (component._isGroupDirty) {
           tempGroupAbleList[groupAbleCount++] = component;
         }
+      } else if (component instanceof RectMask2D) {
+        rectMask = component;
       } else if (component instanceof UIGroup) {
         component._isRootCanvasDirty && Utils.setRootCanvas(component, this);
         component._isGroupDirty && Utils.setGroup(component, group);
@@ -536,10 +550,13 @@ export class UICanvas extends Component implements IElement {
     for (let i = 0; i < groupAbleCount; i++) {
       Utils.setGroup(tempGroupAbleList[i], group);
     }
+    if (rectMask) {
+      tempRectMaskList[rectMaskCount++] = rectMask;
+    }
     const children = entity.children;
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
-      child.isActive && (depth = this._walk(child, renderers, depth, group));
+      child.isActive && (depth = this._walk(child, renderers, depth, group, rectMaskCount));
     }
     return depth;
   }

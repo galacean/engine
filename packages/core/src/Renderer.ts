@@ -47,7 +47,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   @ignoreClone
   _renderFrameCount: number;
-  /** @internal */
   @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   /** @internal */
