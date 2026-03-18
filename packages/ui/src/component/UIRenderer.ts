@@ -45,7 +45,6 @@ export class UIRenderer extends Renderer implements IGraphics {
   @deepClone
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
   /** @internal */
-  @ignoreClone
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
@@ -57,7 +56,6 @@ export class UIRenderer extends Renderer implements IGraphics {
   @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
-  @ignoreClone
   _group: UIGroup;
   /** @internal */
   @ignoreClone

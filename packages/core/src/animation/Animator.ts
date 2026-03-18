@@ -334,7 +334,7 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: Animator, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: Animator): void {
     const animatorController = target._animatorController;
     if (animatorController) {
       target._addResourceReferCount(animatorController, 1);

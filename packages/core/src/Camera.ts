@@ -829,7 +829,7 @@ export class Camera extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: Camera, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: Camera): void {
     this._renderTarget?._addReferCount(1);
   }
 

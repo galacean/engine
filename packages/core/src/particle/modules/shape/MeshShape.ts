@@ -166,7 +166,7 @@ export class MeshShape extends BaseShape {
   /**
    * @internal
    */
-  _cloneTo(target: MeshShape, _: Entity, __: Entity): void {
+  _cloneTo(target: MeshShape): void {
     target.mesh = this._mesh;
   }
 }

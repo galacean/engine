@@ -8,7 +8,6 @@ import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
-import { IComponentCustomClone } from "./clone/ComponentCloner";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
@@ -21,7 +20,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component implements IComponentCustomClone {
+export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
@@ -66,7 +65,6 @@ export class Renderer extends Component implements IComponentCustomClone {
   protected _rendererLayer: Vector4 = new Vector4();
   @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
-  @ignoreClone
   protected _transformEntity: Entity;
 
   @deepClone
@@ -351,7 +349,7 @@ export class Renderer extends Component implements IComponentCustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: Renderer, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: Renderer): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       target._setMaterial(i, materials[i]);

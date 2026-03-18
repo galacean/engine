@@ -51,7 +51,6 @@ export class Transform extends Component {
 
   @ignoreClone
   protected _isParentDirty: boolean = true;
-  @ignoreClone
   private _parentTransformCache: Transform = null;
   @ignoreClone
   private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
@@ -581,7 +580,7 @@ export class Transform extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: Transform, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: Transform): void {
     const { _position: position, _rotation: rotation, _scale: scale } = target;
 
     // @ts-ignore

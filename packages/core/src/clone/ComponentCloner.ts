@@ -9,18 +9,15 @@ export interface ICustomClone {
   /**
    * @internal
    */
-  _cloneTo?(target: ICustomClone): void;
+  _remap?(srcRoot: Entity, targetRoot: Entity): Object;
+  /**
+   * @internal
+   */
+  _cloneTo?(target: ICustomClone, srcRoot?: Entity, targetRoot?: Entity): void;
   /**
    * @internal
    */
   copyFrom?(source: ICustomClone): void;
-}
-
-export interface IComponentCustomClone {
-  /**
-   * @internal
-   */
-  _cloneTo(target: IComponentCustomClone, srcRoot: Entity, targetRoot: Entity): void;
 }
 
 export class ComponentCloner {
@@ -37,17 +34,9 @@ export class ComponentCloner {
     deepInstanceMap: Map<Object, Object>
   ): void {
     const cloneModes = CloneManager.getCloneMode(source.constructor);
-
     for (let k in source) {
       CloneManager.cloneProperty(source, target, k, cloneModes[k], srcRoot, targetRoot, deepInstanceMap);
     }
-
-    if ((<IComponentCustomClone>(source as unknown))._cloneTo) {
-      (<IComponentCustomClone>(source as unknown))._cloneTo(
-        <IComponentCustomClone>(target as unknown),
-        srcRoot,
-        targetRoot
-      );
-    }
+    (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, srcRoot, targetRoot);
   }
 }

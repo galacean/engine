@@ -267,9 +267,9 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   // @ts-ignore
-  override _cloneTo(target: Text, srcRoot: Entity, targetRoot: Entity): void {
+  override _cloneTo(target: Text): void {
     // @ts-ignore
-    super._cloneTo(target, srcRoot, targetRoot);
+    super._cloneTo(target);
     target.font = this._font;
     target._subFont = this._subFont;
   }

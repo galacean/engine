@@ -196,8 +196,8 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteMask, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
+  override _cloneTo(target: SpriteMask): void {
+    super._cloneTo(target);
     target.sprite = this._sprite;
   }
 
