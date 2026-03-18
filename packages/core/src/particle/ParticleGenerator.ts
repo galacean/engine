@@ -342,6 +342,7 @@ export class ParticleGenerator {
       this._firstFreeElement = 0;
       this._firstRetiredElement = 0;
       this._waitProcessRetiredElementCount = 0;
+      this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
     }
 
     if (this.isAlive) {
