@@ -188,29 +188,29 @@ describe("LimitVelocityOverLifetimeModule", function () {
     expect(lvl.limit.mode).to.eq(ParticleCurveMode.TwoCurves);
   });
 
-  it("_isRandomMode returns false for Constant", function () {
+  it("_isLimitRandomMode returns false for Constant", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     lvl.limit = new ParticleCompositeCurve(5);
-    expect(lvl._isRandomMode()).to.eq(false);
+    expect(lvl._isLimitRandomMode()).to.eq(false);
   });
 
-  it("_isRandomMode returns true for TwoConstants", function () {
+  it("_isLimitRandomMode returns true for TwoConstants", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     lvl.limit = new ParticleCompositeCurve(2, 8);
-    expect(lvl._isRandomMode()).to.eq(true);
+    expect(lvl._isLimitRandomMode()).to.eq(true);
   });
 
-  it("_isRandomMode with separateAxes", function () {
+  it("_isLimitRandomMode with separateAxes", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     lvl.separateAxes = true;
     lvl.limitX = new ParticleCompositeCurve(1, 5);
     lvl.limitY = new ParticleCompositeCurve(1, 5);
     lvl.limitZ = new ParticleCompositeCurve(1, 5);
-    expect(lvl._isRandomMode()).to.eq(true);
+    expect(lvl._isLimitRandomMode()).to.eq(true);
 
     // Mixed modes: not all random
     lvl.limitZ = new ParticleCompositeCurve(5);
-    expect(lvl._isRandomMode()).to.eq(false);
+    expect(lvl._isLimitRandomMode()).to.eq(false);
   });
 
   it("enabling module triggers shader update without error", function () {

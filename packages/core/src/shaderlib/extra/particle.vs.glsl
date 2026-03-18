@@ -122,7 +122,8 @@ vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float norma
 void main() {
     float age = renderer_CurrentTime - a_DirectionTime.w;
     float normalizedAge = age / a_ShapePositionStartLifeTime.w;
-    if (normalizedAge < 1.0) {
+    // normalizedAge >= 0.0: skip stale TF slots whose startTime is from a previous playback (e.g. after StopEmittingAndClear).
+    if (normalizedAge >= 0.0 && normalizedAge < 1.0) {
         vec4 worldRotation;
         if (renderer_SimulationSpace == 0) {
             worldRotation = renderer_WorldRotation;

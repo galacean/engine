@@ -99,8 +99,8 @@ void main() {
     float normalizedAge = age / lifetime;
     float dt = renderer_DeltaTime;
 
-    // Dead particle: pass through unchanged
-    if (normalizedAge >= 1.0 || age < 0.0) {
+    // normalizedAge < 0.0: stale TF slot whose startTime is from a previous playback (e.g. after StopEmittingAndClear).
+    if (normalizedAge >= 1.0 || normalizedAge < 0.0) {
         v_FeedbackPosition = a_FeedbackPosition;
         v_FeedbackVelocity = a_FeedbackVelocity;
         gl_Position = vec4(0.0);
