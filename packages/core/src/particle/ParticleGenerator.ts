@@ -1009,7 +1009,7 @@ export class ParticleGenerator {
     const { limitVelocityOverLifetime } = this;
     if (
       limitVelocityOverLifetime.enabled &&
-      (limitVelocityOverLifetime._isRandomMode() || limitVelocityOverLifetime._isDragRandomMode())
+      (limitVelocityOverLifetime._isLimitRandomMode() || limitVelocityOverLifetime._isDragRandomMode())
     ) {
       instanceVertices[offset + 41] = limitVelocityOverLifetime._limitRand.random();
     }
