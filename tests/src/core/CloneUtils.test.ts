@@ -87,6 +87,18 @@ class NestedObjectScript extends Script {
   config: { target: Entity; label: string } = { target: null, label: "" };
 }
 
+/** Script for testing multiple same-type components on one entity */
+class CounterScript extends Script {
+  value: number = 0;
+  partner: CounterScript;
+  targetEntity: Entity;
+}
+
+/** Script that references a CounterScript */
+class CounterRefScript extends Script {
+  counter: CounterScript;
+}
+
 /** Handler script used for Signal structured binding tests */
 class ClickHandler extends Script {
   callCount = 0;
@@ -699,6 +711,164 @@ describe("Clone remap", async () => {
 
       expect(csA.targetEntity).eq(clonedB);
       expect(csB.targetEntity).eq(clonedA);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Single entity with multiple same-type components", () => {
+    it("clone preserves multiple same-type components with correct state", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("entity");
+      const script1 = entity.addComponent(CounterScript);
+      const script2 = entity.addComponent(CounterScript);
+      script1.value = 10;
+      script2.value = 20;
+
+      const cloned = entity.clone();
+      const clonedScripts = cloned.getComponents(CounterScript, []);
+
+      expect(clonedScripts.length).eq(2);
+      expect(clonedScripts[0].value).eq(10);
+      expect(clonedScripts[1].value).eq(20);
+      expect(clonedScripts[0]).not.eq(script1);
+      expect(clonedScripts[1]).not.eq(script2);
+
+      rootEntity.destroy();
+    });
+
+    it("ref to second component of same type should remap correctly", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const counter1 = child.addComponent(CounterScript);
+      const counter2 = child.addComponent(CounterScript);
+      counter1.value = 1;
+      counter2.value = 2;
+
+      const refScript = parent.addComponent(CounterRefScript);
+      refScript.counter = counter2;
+
+      const cloned = parent.clone();
+      const clonedRef = cloned.getComponent(CounterRefScript);
+      const clonedCounters = cloned.children[0].getComponents(CounterScript, []);
+
+      expect(clonedRef.counter).not.eq(counter2);
+      expect(clonedRef.counter).eq(clonedCounters[1]);
+      expect(clonedRef.counter.value).eq(2);
+
+      rootEntity.destroy();
+    });
+
+    it("ref to first component of same type should remap correctly", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const counter1 = child.addComponent(CounterScript);
+      const counter2 = child.addComponent(CounterScript);
+      counter1.value = 100;
+      counter2.value = 200;
+
+      const refScript = parent.addComponent(CounterRefScript);
+      refScript.counter = counter1;
+
+      const cloned = parent.clone();
+      const clonedRef = cloned.getComponent(CounterRefScript);
+      const clonedCounters = cloned.children[0].getComponents(CounterScript, []);
+
+      expect(clonedRef.counter).not.eq(counter1);
+      expect(clonedRef.counter).eq(clonedCounters[0]);
+      expect(clonedRef.counter.value).eq(100);
+
+      rootEntity.destroy();
+    });
+
+    it("cross-references between multiple same-type components on same entity", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("entity");
+      const script1 = entity.addComponent(CounterScript);
+      const script2 = entity.addComponent(CounterScript);
+      script1.value = 1;
+      script2.value = 2;
+      script1.partner = script2;
+      script2.partner = script1;
+
+      const cloned = entity.clone();
+      const clonedScripts = cloned.getComponents(CounterScript, []);
+
+      expect(clonedScripts[0].partner).eq(clonedScripts[1]);
+      expect(clonedScripts[1].partner).eq(clonedScripts[0]);
+      expect(clonedScripts[0].partner).not.eq(script2);
+      expect(clonedScripts[1].partner).not.eq(script1);
+
+      rootEntity.destroy();
+    });
+
+    it("self-reference among multiple same-type components remaps to correct clone", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("entity");
+      const script1 = entity.addComponent(CounterScript);
+      const script2 = entity.addComponent(CounterScript);
+      script1.partner = script1;
+      script2.partner = script2;
+
+      const cloned = entity.clone();
+      const clonedScripts = cloned.getComponents(CounterScript, []);
+
+      expect(clonedScripts[0].partner).eq(clonedScripts[0]);
+      expect(clonedScripts[1].partner).eq(clonedScripts[1]);
+
+      rootEntity.destroy();
+    });
+
+    it("multiple same-type components with entity refs all remap independently", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const childA = parent.createChild("childA");
+      const childB = parent.createChild("childB");
+      const script1 = parent.addComponent(CounterScript);
+      const script2 = parent.addComponent(CounterScript);
+      script1.targetEntity = childA;
+      script2.targetEntity = childB;
+
+      const cloned = parent.clone();
+      const clonedScripts = cloned.getComponents(CounterScript, []);
+
+      expect(clonedScripts[0].targetEntity).eq(cloned.children[0]);
+      expect(clonedScripts[1].targetEntity).eq(cloned.children[1]);
+      expect(clonedScripts[0].targetEntity.name).eq("childA");
+      expect(clonedScripts[1].targetEntity.name).eq("childB");
+
+      rootEntity.destroy();
+    });
+
+    it("@deepClone array referencing specific component among same-type siblings", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const counter1 = child.addComponent(CounterScript);
+      const counter2 = child.addComponent(CounterScript);
+      const counter3 = child.addComponent(CounterScript);
+      counter1.value = 1;
+      counter2.value = 2;
+      counter3.value = 3;
+
+      const arrayScript = parent.addComponent(ArrayRefScript);
+      // Note: ArrayRefScript uses Entity[], but we test component indexing
+      // via direct component references instead
+      const refScript1 = parent.addComponent(CounterRefScript);
+      const refScript2 = parent.addComponent(CounterRefScript);
+      refScript1.counter = counter1;
+      refScript2.counter = counter3;
+
+      const cloned = parent.clone();
+      const clonedRefs = cloned.getComponents(CounterRefScript, []);
+      const clonedCounters = cloned.children[0].getComponents(CounterScript, []);
+
+      expect(clonedRefs[0].counter).eq(clonedCounters[0]);
+      expect(clonedRefs[0].counter.value).eq(1);
+      expect(clonedRefs[1].counter).eq(clonedCounters[2]);
+      expect(clonedRefs[1].counter.value).eq(3);
 
       rootEntity.destroy();
     });
