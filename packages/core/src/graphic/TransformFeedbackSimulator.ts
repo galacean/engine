@@ -6,7 +6,7 @@ import { VertexElement } from "./VertexElement";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { ShaderProgramPool } from "../shader/ShaderProgramPool";
+import { ShaderPass } from "../shader/ShaderPass";
 import { ShaderData } from "../shader/ShaderData";
 import { Logger } from "../base/Logger";
 
@@ -18,7 +18,7 @@ import { Logger } from "../base/Logger";
 export class TransformFeedbackSimulator {
   private _engine: Engine;
   private _primitive: TransformFeedbackPrimitive;
-  private _programPool: ShaderProgramPool;
+  private _simulatorId: number;
   private _vertexSource: string;
   private _fragmentSource: string;
   private _feedbackVaryings: string[];
@@ -53,7 +53,7 @@ export class TransformFeedbackSimulator {
   ) {
     this._engine = engine;
     this._primitive = new TransformFeedbackPrimitive(engine, byteStride);
-    this._programPool = new ShaderProgramPool(engine);
+    this._simulatorId = ShaderPass._shaderPassCounter++;
     this._vertexSource = vertexSource;
     this._fragmentSource = fragmentSource;
     this._feedbackVaryings = feedbackVaryings;
@@ -81,12 +81,13 @@ export class TransformFeedbackSimulator {
     inputElements: VertexElement[]
   ): boolean {
     const primitive = this._primitive;
+    const pool = this._engine._getShaderProgramPool(this._simulatorId);
 
-    let program = this._programPool.get(shaderData._macroCollection);
+    let program = pool.get(shaderData._macroCollection);
     if (!program) {
       program = this._compileProgram(shaderData._macroCollection);
       if (!program) return false;
-      this._programPool.cache(program);
+      pool.cache(program);
     }
 
     program.bind();
@@ -118,7 +119,11 @@ export class TransformFeedbackSimulator {
 
   destroy(): void {
     this._primitive?.destroy();
-    this._programPool?._destroy();
+    const pool = this._engine._shaderProgramPools[this._simulatorId];
+    if (pool) {
+      pool._destroy();
+      delete this._engine._shaderProgramPools[this._simulatorId];
+    }
   }
 
   private _compileProgram(macroCollection: ShaderMacroCollection): ShaderProgram | null {

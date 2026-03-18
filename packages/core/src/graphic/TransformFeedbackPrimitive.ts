@@ -1,4 +1,5 @@
 import { Engine } from "../Engine";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { IPlatformTransformFeedbackPrimitive } from "../renderingHardwareInterface";
 import { ShaderProgram } from "../shader/ShaderProgram";
 import { Buffer } from "./Buffer";
@@ -13,11 +14,10 @@ import { VertexElement } from "./VertexElement";
  * @internal
  * Primitive for Transform Feedback simulation with read/write buffer swapping.
  */
-export class TransformFeedbackPrimitive {
+export class TransformFeedbackPrimitive extends GraphicsResource {
   /** @internal */
   _platformPrimitive: IPlatformTransformFeedbackPrimitive;
 
-  private _engine: Engine;
   private _transformFeedback: TransformFeedback;
   private _bindingA: VertexBufferBinding;
   private _bindingB: VertexBufferBinding;
@@ -43,11 +43,12 @@ export class TransformFeedbackPrimitive {
    * @param byteStride - Bytes per vertex
    */
   constructor(engine: Engine, byteStride: number) {
-    this._engine = engine;
+    super(engine);
     this._byteStride = byteStride;
     this._transformFeedback = new TransformFeedback(engine);
     this._transformFeedback.isGCIgnored = true;
     this._platformPrimitive = engine._hardwareRenderer.createPlatformTransformFeedbackPrimitive();
+    this.isGCIgnored = true;
   }
 
   /**
@@ -143,7 +144,12 @@ export class TransformFeedbackPrimitive {
     this._readIsA = !this._readIsA;
   }
 
-  destroy(): void {
+  override _rebuild(): void {
+    this._platformPrimitive = this._engine._hardwareRenderer.createPlatformTransformFeedbackPrimitive();
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
     this._platformPrimitive?.destroy();
     this._bindingA?.buffer.destroy();
     this._bindingB?.buffer.destroy();

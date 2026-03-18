@@ -26,7 +26,8 @@ const precisionStr = `
  * Shader pass containing vertex and fragment source.
  */
 export class ShaderPass extends ShaderPart {
-  private static _shaderPassCounter: number = 0;
+  /** @internal */
+  static _shaderPassCounter: number = 0;
   /** @internal */
   static _shaderRootPath = "shaders://root/";
 
@@ -109,7 +110,7 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const shaderProgramPool = engine._getShaderProgramPool(this);
+    const shaderProgramPool = engine._getShaderProgramPool(this._shaderPassId, this._shaderProgramPools);
     let shaderProgram = shaderProgramPool.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
