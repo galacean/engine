@@ -539,7 +539,11 @@ export class ParticleGenerator {
 
         if (useFeedback) {
           this._feedbackSimulator.copyOldBufferData(0, 0, firstFreeElement * feedbackVertexStride);
-          this._feedbackSimulator.copyOldBufferData(nextFreeElement * feedbackVertexStride, tailDstElement * feedbackVertexStride, tailCount * feedbackVertexStride);
+          this._feedbackSimulator.copyOldBufferData(
+            nextFreeElement * feedbackVertexStride,
+            tailDstElement * feedbackVertexStride,
+            tailCount * feedbackVertexStride
+          );
         }
 
         this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
