@@ -221,7 +221,7 @@ export class ParticleRenderer extends Renderer {
 
     // Run Transform Feedback simulation after shader data is up to date
     if (generator._useTransformFeedback) {
-      generator._updateFeedback(shaderData, this.engine.time.deltaTime);
+      generator._updateFeedback(shaderData, this.engine.time.deltaTime * generator.main.simulationSpeed);
     }
   }
 
