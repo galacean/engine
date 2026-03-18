@@ -382,7 +382,7 @@ export class ParticleGenerator {
     );
 
     // After swap, update the render pass buffer binding to point to the latest output
-    this._primitive.vertexBufferBindings[this._feedbackBindingIndex] = this._feedbackSimulator.readBinding;
+    this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
   }
 
   /**
