@@ -1,4 +1,5 @@
 export type { IShaderLab } from "./IShaderLab";
+export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";
 export type { IShaderProgramSource as IShaderInfo } from "./IShaderProgramSource";
 export { IRenderStates } from "./shaderSource/IRenderStates";
 export { IShaderPassSource } from "./shaderSource/IShaderPassSource";

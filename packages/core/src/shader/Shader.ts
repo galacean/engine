@@ -1,4 +1,4 @@
-import { IShaderLab } from "@galacean/engine-design";
+import { IShaderLab, IPrecompiledShader } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { IReferable } from "../asset/IReferable";
@@ -196,6 +196,68 @@ export class Shader implements IReferable {
    */
   static find(name: string): Shader {
     return Shader._shaderMap[name];
+  }
+
+  /**
+   * Create a shader from precompiled data (.gsb).
+   * This skips ShaderLab parsing (Preprocessor + Lexer + Parser + CodeGen)
+   * and directly constructs the Shader from precompiled vertex/fragment GLSL.
+   * @param data - Precompiled shader data (decoded from .gsb binary)
+   * @returns Shader
+   */
+  static createFromPrecompiled(data: IPrecompiledShader): Shader {
+    const shaderMap = Shader._shaderMap;
+    if (shaderMap[data.name]) {
+      console.error(`Shader named "${data.name}" already exists.`);
+      return;
+    }
+
+    const subShaderList = data.subShaders.map((subData) => {
+      const passList = subData.passes.map((passData) => {
+        if (passData.isUsePass) {
+          const [shaderName, subShaderName, passName] = passData.name.split("/");
+          return Shader.find(shaderName)
+            ?.subShaders.find((subShader) => subShader.name === subShaderName)
+            ?.passes.find((pass) => pass.name === passName);
+        }
+
+        const shaderPass = new ShaderPass(passData.name, passData.vertexSource, passData.fragmentSource, passData.tags);
+        shaderPass._platformTarget = data.platformTarget as ShaderLanguage;
+        shaderPass._vertexHasMacros = passData.vertexHasMacros !== false;
+        shaderPass._fragmentHasMacros = passData.fragmentHasMacros !== false;
+        shaderPass._vertexSegments = passData.vertexSegments;
+        shaderPass._fragmentSegments = passData.fragmentSegments;
+
+        const { constantMap, variableMap } = passData.renderStates;
+        if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
+          const renderState = new RenderState();
+          for (const k in constantMap) {
+            const value = constantMap[k];
+            // Deserialize Color from [r, g, b, a] array
+            if (Array.isArray(value)) {
+              Shader._applyConstRenderStates(renderState, +k, new Color(value[0], value[1], value[2], value[3]));
+            } else {
+              Shader._applyConstRenderStates(renderState, +k, value);
+            }
+          }
+          shaderPass._renderState = renderState;
+
+          const renderStateDataMap = <Record<number, ShaderProperty>>{};
+          for (const k in variableMap) {
+            renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
+          }
+          shaderPass._renderStateDataMap = renderStateDataMap;
+        }
+
+        return shaderPass;
+      });
+
+      return new SubShader(subData.name, passList, subData.tags);
+    });
+
+    const shader = new Shader(data.name, subShaderList);
+    shaderMap[data.name] = shader;
+    return shader;
   }
 
   /**

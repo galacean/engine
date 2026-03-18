@@ -1,11 +1,13 @@
-import { Logger, ShaderMacro, ShaderLanguage } from "@galacean/engine";
-import { IShaderLab, IShaderSource } from "@galacean/engine-design";
+import { Color, Logger, ShaderMacro, ShaderLanguage } from "@galacean/engine";
+import { IPrecompiledShader, IShaderLab, IShaderSource, IRenderStates } from "@galacean/engine-design";
 import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { MacroParser } from "./macroProcessor/MacroParser";
 import { ShaderTargetParser } from "./parser";
+import { parseSegmentTree } from "./MacroCodeSegment";
+import { PRECOMPILE_VERSION } from "./PrecompiledShaderCodec";
 import { Preprocessor } from "./Preprocessor";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
@@ -103,6 +105,87 @@ export class ShaderLab implements IShaderLab {
     // #endif
 
     return parsedContent;
+  }
+
+  _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePath: string): IPrecompiledShader {
+    const shaderSource = this._parseShaderSource(sourceCode);
+
+    const subShaders = shaderSource.subShaders.map((sub) => ({
+      name: sub.name,
+      tags: sub.tags,
+      passes: sub.passes.map((pass) => {
+        if (pass.isUsePass) {
+          return {
+            name: pass.name,
+            isUsePass: true as const,
+            tags: pass.tags,
+            renderStates: this._serializeRenderStates(pass.renderStates)
+          };
+        }
+
+        const programSource = this._parseShaderPass(
+          pass.contents,
+          pass.vertexEntry,
+          pass.fragmentEntry,
+          platformTarget,
+          basePath
+        );
+
+        if (!programSource) {
+          throw new Error(
+            `Shader pass "${shaderSource.name}.${sub.name}.${pass.name}" precompile failed, please check the shader source code.`
+          );
+        }
+
+        const vertexHasMacros = ShaderLab._hasMacroBranches(programSource.vertex);
+        const fragmentHasMacros = ShaderLab._hasMacroBranches(programSource.fragment);
+
+        return {
+          name: pass.name,
+          isUsePass: false as const,
+          tags: pass.tags,
+          renderStates: this._serializeRenderStates(pass.renderStates),
+          vertexSource: programSource.vertex,
+          fragmentSource: programSource.fragment,
+          vertexHasMacros,
+          fragmentHasMacros,
+          vertexSegments: vertexHasMacros ? parseSegmentTree(programSource.vertex) : undefined,
+          fragmentSegments: fragmentHasMacros ? parseSegmentTree(programSource.fragment) : undefined
+        };
+      })
+    }));
+
+    return {
+      version: PRECOMPILE_VERSION,
+      name: shaderSource.name,
+      platformTarget,
+      subShaders
+    };
+  }
+
+  private _serializeRenderStates(renderStates: IRenderStates): {
+    constantMap: Record<string, number | string | boolean | number[]>;
+    variableMap: Record<string, string>;
+  } {
+    const constantMap: Record<string, number | string | boolean | number[]> = {};
+    for (const key in renderStates.constantMap) {
+      const value = renderStates.constantMap[key];
+      if (value instanceof Color) {
+        constantMap[key] = [value.r, value.g, value.b, value.a];
+      } else {
+        constantMap[key] = value as number | string | boolean;
+      }
+    }
+    return {
+      constantMap,
+      variableMap: renderStates.variableMap
+    };
+  }
+
+  private static _macroBranchRegex = /^\s*#\s*(?:if|ifdef|ifndef)\b/m;
+
+  private static _hasMacroBranches(glsl: string): boolean {
+    return ShaderLab._macroBranchRegex.test(glsl);
   }
 
   // #if _VERBOSE

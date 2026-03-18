@@ -4,6 +4,7 @@ const path = require("path");
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import glsl from "./rollup-plugin-glsl";
+import shaderlab from "./rollup-plugin-shaderlab";
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
@@ -31,14 +32,23 @@ pkgs.push({ ...shaderLabPkg, verboseMode: true });
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
+const PRECOMPILE = process.env.PRECOMPILE === "true";
+
 const glslPlugin = glsl({
-  include: [/\.(glsl|gs)$/],
+  include: [/\.glsl$/],
   compress: false
+});
+
+const shaderlabPlugin = shaderlab({
+  precompile: PRECOMPILE,
+  platformTarget: 0,
+  basePath: "shaders://root/"
 });
 
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
   glslPlugin,
+  shaderlabPlugin,
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
@@ -90,7 +100,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.(glsl|gs)$/],
+            include: [/\.glsl$/],
             compress: true
           })
         );
@@ -157,7 +167,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.(glsl|gs)$/],
+            include: [/\.glsl$/],
             compress: true
           })
         );

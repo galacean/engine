@@ -10,6 +10,7 @@ import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
+import { evaluateSegmentTree } from "./MacroSegmentEvaluator";
 import { RenderState } from "./state/RenderState";
 
 const precisionStr = `
@@ -34,6 +35,15 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   _platformTarget: ShaderLanguage | undefined;
+
+  /** @internal - Whether vertex/fragment sources contain runtime macro branches. Used by precompiled path to skip _parseMacros. */
+  _vertexHasMacros: boolean = true;
+  /** @internal */
+  _fragmentHasMacros: boolean = true;
+  /** @internal - Pre-parsed conditional segment tree for vertex. When set, used instead of _parseMacros for fast evaluation. */
+  _vertexSegments: any[] | undefined;
+  /** @internal */
+  _fragmentSegments: any[] | undefined;
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -135,6 +145,15 @@ export class ShaderPass extends ShaderPart {
     shaderProgramPools.length = 0;
   }
 
+  private static _buildMacroMap(macroList: ShaderMacro[]): Map<string, string> {
+    const map = new Map<string, string>();
+    for (let i = 0, n = macroList.length; i < n; i++) {
+      const macro = macroList[i];
+      map.set(macro.name, macro.value ?? "");
+    }
+    return map;
+  }
+
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = new Array<ShaderMacro>();
@@ -153,8 +172,22 @@ export class ShaderPass extends ShaderPart {
 
     // Parse macros when use shaderlab
     if (this._platformTarget != undefined) {
-      noIncludeVertex = Shader._shaderLab._parseMacros(noIncludeVertex, shaderMacroList);
-      noIncludeFrag = Shader._shaderLab._parseMacros(noIncludeFrag, shaderMacroList);
+      if (this._vertexHasMacros) {
+        if (this._vertexSegments) {
+          const macroMap = ShaderPass._buildMacroMap(shaderMacroList);
+          noIncludeVertex = evaluateSegmentTree(this._vertexSegments, macroMap);
+        } else {
+          noIncludeVertex = Shader._shaderLab._parseMacros(noIncludeVertex, shaderMacroList);
+        }
+      }
+      if (this._fragmentHasMacros) {
+        if (this._fragmentSegments) {
+          const macroMap = ShaderPass._buildMacroMap(shaderMacroList);
+          noIncludeFrag = evaluateSegmentTree(this._fragmentSegments, macroMap);
+        } else {
+          noIncludeFrag = Shader._shaderLab._parseMacros(noIncludeFrag, shaderMacroList);
+        }
+      }
     } else {
       const macroNameStr = ShaderFactory.parseCustomMacros(shaderMacroList);
       noIncludeVertex = macroNameStr + noIncludeVertex;
