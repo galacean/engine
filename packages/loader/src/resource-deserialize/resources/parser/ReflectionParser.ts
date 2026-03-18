@@ -123,7 +123,9 @@ export class ReflectionParser {
       } else if (ReflectionParser._isComponentRef(value)) {
         const { ownerId, componentId } = value;
         const prefabContext = this._context.prefabInstanceContexts?.get(ownerId);
-        return Promise.resolve(prefabContext?.components.get(componentId) ?? this._context.components.get(componentId) ?? null);
+        return Promise.resolve(
+          prefabContext?.components.get(componentId) ?? this._context.components.get(componentId) ?? null
+        );
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));
