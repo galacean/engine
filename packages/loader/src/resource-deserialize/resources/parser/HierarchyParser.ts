@@ -97,7 +97,13 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       for (let i = 0, l = entities.length; i < l; i++) {
         entityMap.set(entitiesConfig[i].id, entities[i]);
       }
-
+      // Build rootIds in serialization order (not async completion order)
+      const rootIds = this.context.rootIds;
+      for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+        if (!entitiesConfig[i].parent && !(entitiesConfig[i] as IStrippedEntity).strippedId) {
+          rootIds.push(entitiesConfig[i].id);
+        }
+      }
       return entities;
     });
   }
@@ -238,8 +244,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     const transform = entityConfig.transform;
     const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
-    if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
-
     this._addEntityPlugin(entityConfig.id, entity);
     return Promise.resolve(entity);
   }
@@ -259,8 +263,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
               ? prefabResource.instantiate()
               : prefabResource.instantiateSceneRoot();
           const instanceContext = new ParserContext<IHierarchyFile, Entity>(engine, ParserType.Prefab, null);
-          if (!entityConfig.parent) this.context.rootIds.push(entityConfig.id);
-
           this._generateInstanceContext(entity, instanceContext, "");
 
           this._prefabContextMap.set(entity, instanceContext);
