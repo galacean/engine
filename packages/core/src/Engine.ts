@@ -32,7 +32,6 @@ import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
@@ -542,8 +541,7 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(shaderPass: ShaderPass): ShaderProgramPool {
-    const index = shaderPass._shaderPassId;
+  _getShaderProgramPool(index: number, trackPools?: ShaderProgramPool[]): ShaderProgramPool {
     const shaderProgramPools = this._shaderProgramPools;
     let pool = shaderProgramPools[index];
     if (!pool) {
@@ -552,7 +550,7 @@ export class Engine extends EventDispatcher {
         shaderProgramPools.length = length;
       }
       shaderProgramPools[index] = pool = new ShaderProgramPool(this);
-      shaderPass._shaderProgramPools.push(pool);
+      trackPools?.push(pool);
     }
     return pool;
   }

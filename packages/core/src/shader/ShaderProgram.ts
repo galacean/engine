@@ -68,10 +68,10 @@ export class ShaderProgram {
     return this._isValid;
   }
 
-  constructor(engine: Engine, vertexSource: string, fragmentSource: string) {
+  constructor(engine: Engine, vertexSource: string, fragmentSource: string, transformFeedbackVaryings?: string[]) {
     this._engine = engine;
     this._gl = engine._hardwareRenderer.gl;
-    this._glProgram = this._createProgram(vertexSource, fragmentSource);
+    this._glProgram = this._createProgram(vertexSource, fragmentSource, transformFeedbackVaryings);
 
     if (this._glProgram) {
       this._isValid = true;
@@ -237,7 +237,11 @@ export class ShaderProgram {
   /**
    * Init and link program with shader.
    */
-  private _createProgram(vertexSource: string, fragmentSource: string): WebGLProgram | null {
+  private _createProgram(
+    vertexSource: string,
+    fragmentSource: string,
+    transformFeedbackVaryings?: string[]
+  ): WebGLProgram | null {
     const gl = this._gl;
 
     // Create and compile shader
@@ -259,6 +263,16 @@ export class ShaderProgram {
 
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
+
+    // Set Transform Feedback varyings before linking (WebGL2 only)
+    if (transformFeedbackVaryings?.length) {
+      (<WebGL2RenderingContext>gl).transformFeedbackVaryings(
+        program,
+        transformFeedbackVaryings,
+        (<WebGL2RenderingContext>gl).INTERLEAVED_ATTRIBS
+      );
+    }
+
     gl.linkProgram(program);
     gl.validateProgram(program);
 

@@ -3,8 +3,6 @@
 #endif
 
 #ifdef _FOL_MODULE_ENABLED
-    attribute vec4 a_Random2;
-
     uniform int renderer_FOLSpace;
 
     #ifdef RENDERER_FOL_CONSTANT_MODE

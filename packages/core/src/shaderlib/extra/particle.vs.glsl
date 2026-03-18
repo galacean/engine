@@ -26,8 +26,17 @@ attribute float a_StartSpeed;
     attribute vec4 a_Random1; // x:texture sheet animation random
 #endif
 
+#if defined(RENDERER_FOL_CONSTANT_MODE) || defined(RENDERER_FOL_CURVE_MODE) || defined(RENDERER_LVL_MODULE_ENABLED)
+    attribute vec4 a_Random2;
+#endif
+
 attribute vec3 a_SimulationWorldPosition;
 attribute vec4 a_SimulationWorldRotation;
+
+#ifdef RENDERER_TRANSFORM_FEEDBACK
+    attribute vec3 a_FeedbackPosition;
+    attribute vec3 a_FeedbackVelocity;
+#endif
 
 varying vec4 v_Color;
 #ifdef MATERIAL_HAS_BASETEXTURE
@@ -37,7 +46,6 @@ varying vec4 v_Color;
 
 uniform float renderer_CurrentTime;
 uniform vec3 renderer_Gravity;
-uniform vec2 u_DragConstant;
 uniform vec3 renderer_WorldPosition;
 uniform vec4 renderer_WorldRotation;
 uniform bool renderer_ThreeDStartRotation;
@@ -67,15 +75,8 @@ uniform int renderer_SimulationSpace;
 #include <rotation_over_lifetime_module>
 #include <texture_sheet_animation_module>
 
-vec3 getStartPosition(vec3 startVelocity, float age, vec3 dragData) {
-    vec3 startPosition;
-    float lastTime = min(startVelocity.x / dragData.x, age); // todo 0/0
-    startPosition = lastTime * (startVelocity - 0.5 * dragData * lastTime);
-    return startPosition;
-}
-
-vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, vec3 dragData, inout vec3 localVelocity, inout vec3 worldVelocity) {
-    vec3 startPosition = getStartPosition(startVelocity, age, dragData);
+vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
+    vec3 startPosition = startVelocity * age;
 
     vec3 finalPosition;
     vec3 localPositionOffset = startPosition;
@@ -121,10 +122,8 @@ vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float norma
 void main() {
     float age = renderer_CurrentTime - a_DirectionTime.w;
     float normalizedAge = age / a_ShapePositionStartLifeTime.w;
-    if (normalizedAge < 1.0) {
-        vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
-        vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
-
+    // normalizedAge >= 0.0: skip stale TF slots whose startTime is from a previous playback (e.g. after StopEmittingAndClear).
+    if (normalizedAge >= 0.0 && normalizedAge < 1.0) {
         vec4 worldRotation;
         if (renderer_SimulationSpace == 0) {
             worldRotation = renderer_WorldRotation;
@@ -132,12 +131,38 @@ void main() {
             worldRotation = a_SimulationWorldRotation;
         }
 
-        vec3 localVelocity = startVelocity;
-        vec3 worldVelocity = gravityVelocity;
+        vec3 localVelocity;
+        vec3 worldVelocity;
 
-        //drag
-        vec3 dragData = a_DirectionTime.xyz * mix(u_DragConstant.x, u_DragConstant.y, a_Random0.x);
-        vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, dragData, localVelocity, worldVelocity);
+        #ifdef RENDERER_TRANSFORM_FEEDBACK
+            // Transform Feedback mode: position in simulation space (local or world).
+            // Local: transform to world; World: use directly.
+            vec3 center;
+            if (renderer_SimulationSpace == 0) {
+                center = rotationByQuaternions(a_FeedbackPosition, worldRotation) + renderer_WorldPosition;
+            } else if (renderer_SimulationSpace == 1) {
+                center = a_FeedbackPosition;
+            }
+            localVelocity = a_FeedbackVelocity;
+            worldVelocity = vec3(0.0);
+
+            #ifdef _VOL_MODULE_ENABLED
+                vec3 instantVOLVelocity;
+                computeVelocityPositionOffset(normalizedAge, age, instantVOLVelocity);
+                if (renderer_VOLSpace == 0) {
+                    localVelocity += instantVOLVelocity;
+                } else {
+                    worldVelocity += instantVOLVelocity;
+                }
+            #endif
+        #else
+            // Original analytical path
+            vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
+            vec3 gravityVelocity = renderer_Gravity * a_Random0.x * age;
+            localVelocity = startVelocity;
+            worldVelocity = gravityVelocity;
+            vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, localVelocity, worldVelocity);
+        #endif
 
         #include <sphere_billboard>
         #include <stretched_billboard>

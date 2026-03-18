@@ -218,6 +218,11 @@ export class ParticleRenderer extends Renderer {
     shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
 
     this.generator._updateShaderData(shaderData);
+
+    // Run Transform Feedback simulation after shader data is up to date
+    if (generator._useTransformFeedback) {
+      generator._updateFeedback(shaderData, this.engine.time.deltaTime * generator.main.simulationSpeed);
+    }
   }
 
   protected override _render(context: RenderContext): void {
@@ -228,8 +233,13 @@ export class ParticleRenderer extends Renderer {
     if (!aliveParticleCount) {
       return;
     }
-
-    generator._primitive.instanceCount = aliveParticleCount;
+    // Transform Feedback: render all slots (instance buffer not compacted, dead particles discarded in shader)
+    // Non-Transform Feedback: render only alive particles (instance buffer compacted)
+    generator._primitive.instanceCount = generator._useTransformFeedback
+      ? generator._firstActiveElement <= generator._firstFreeElement
+        ? generator._firstFreeElement
+        : generator._currentParticleCount
+      : aliveParticleCount;
 
     let material = this.getMaterial();
     if (!material || (this._renderMode === ParticleRenderMode.Mesh && !this._mesh)) {
