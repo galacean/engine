@@ -338,6 +338,16 @@ export class ParticleGenerator {
       }
     }
 
+    // Retire all particles on device restore before bounds/volume bookkeeping
+    const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
+    if (isContentLost) {
+      this._firstActiveElement = 0;
+      this._firstNewElement = 0;
+      this._firstFreeElement = 0;
+      this._firstRetiredElement = 0;
+      this._waitProcessRetiredElementCount = 0;
+    }
+
     if (this.isAlive) {
       if (main.simulationSpace === ParticleSimulationSpace.World) {
         this._generateTransformedBounds();
@@ -353,19 +363,7 @@ export class ParticleGenerator {
       this._renderer._onWorldVolumeChanged();
     }
 
-    // Add new particles to vertex buffer when has wait process retired element or new particle
-    //
-    // Another choice is just add new particles to vertex buffer and render all particles ignore the retired particle in shader, especially billboards
-    // But webgl don't support map buffer range, so this choice don't have performance advantage even less set data to GPU
-    const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
-    if (isContentLost) {
-      // GPU buffer data is unrecoverable after device lost, retire all particles
-      this._firstActiveElement = 0;
-      this._firstNewElement = 0;
-      this._firstFreeElement = 0;
-      this._firstRetiredElement = 0;
-      this._waitProcessRetiredElementCount = 0;
-    } else if (
+    if (
       this._firstNewElement != this._firstFreeElement ||
       this._waitProcessRetiredElementCount > 0 ||
       this._instanceBufferResized
@@ -680,6 +678,15 @@ export class ParticleGenerator {
         instanceCount += this._firstFreeElement;
       }
       return instanceCount;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: ParticleGenerator): void {
+    if (target.limitVelocityOverLifetime.enabled) {
+      target._setTransformFeedback(true);
     }
   }
 
