@@ -257,6 +257,13 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
+  _isDragRandomMode(): boolean {
+    return this._drag.mode === ParticleCurveMode.TwoConstants || this._drag.mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
   _isRandomMode(): boolean {
     if (this._separateAxes) {
       return (
