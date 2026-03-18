@@ -1058,6 +1058,7 @@ export class ParticleGenerator {
     this._firstRetiredElement = firstFreeElement;
     this._firstActiveElement = firstFreeElement;
     this._firstNewElement = firstFreeElement;
+    this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
   }
 
   private _retireActiveParticles(): void {
