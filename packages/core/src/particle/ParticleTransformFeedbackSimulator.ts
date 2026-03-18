@@ -44,9 +44,13 @@ export class ParticleTransformFeedbackSimulator {
    * @param instanceBinding - New instance vertex buffer binding
    */
   resize(particleCount: number, instanceBinding: VertexBufferBinding): void {
-    this._oldReadBuffer = this._simulator.readBinding?.buffer;
-    this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
-    this._simulator.resize(particleCount);
+    const readBinding = this._simulator.readBinding;
+    const needResize = !readBinding || readBinding.buffer.byteLength !== particleCount * ParticleBufferUtils.feedbackVertexStride;
+    if (needResize) {
+      this._oldReadBuffer = readBinding?.buffer;
+      this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
+      this._simulator.resize(particleCount);
+    }
     this._instanceBinding = instanceBinding;
   }
 
