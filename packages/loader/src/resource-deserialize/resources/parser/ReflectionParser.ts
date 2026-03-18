@@ -203,7 +203,7 @@ export class ReflectionParser {
       if (!entity || entityPath[i] >= entity.children.length) return null;
       entity = entity.children[entityPath[i]];
     }
-    return entity ?? null;
+    return entity;
   }
 
   private static _isClass(value: any): value is IClass {
