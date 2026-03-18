@@ -96,6 +96,8 @@ export class GLBuffer implements IPlatformBuffer {
     gl.bindBuffer(gl.COPY_READ_BUFFER, (<GLBuffer>srcBuffer)._glBuffer);
     gl.bindBuffer(gl.COPY_WRITE_BUFFER, this._glBuffer);
     gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, srcByteOffset, dstByteOffset, byteLength);
+    gl.bindBuffer(gl.COPY_READ_BUFFER, null);
+    gl.bindBuffer(gl.COPY_WRITE_BUFFER, null);
   }
 
   destroy(): void {
