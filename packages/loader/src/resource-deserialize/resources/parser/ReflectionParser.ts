@@ -125,16 +125,7 @@ export class ReflectionParser {
         if (!entity) return Promise.resolve(null);
         const type = Loader.getClass(value.componentType);
         if (!type) return Promise.resolve(null);
-        let count = 0;
-        // @ts-ignore
-        const components = entity._components;
-        for (let i = 0, n = components.length; i < n; i++) {
-          if (components[i] instanceof type) {
-            if (count === value.componentIndex) return Promise.resolve(components[i]);
-            count++;
-          }
-        }
-        return Promise.resolve(null);
+        return Promise.resolve(entity.getComponents(type, [])[value.componentIndex] ?? null);
       } else if (ReflectionParser._isEntityRef(value)) {
         return Promise.resolve(this._resolveEntityByPath(value.entityPath));
       } else if (ReflectionParser._isSignalRef(value)) {
