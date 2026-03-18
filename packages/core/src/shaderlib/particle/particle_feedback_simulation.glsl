@@ -183,7 +183,7 @@ void main() {
 
         // Drag: same space as dampen
         {
-            float dragCoeff = evaluateLVLDrag(normalizedAge, a_Random0.x);
+            float dragCoeff = evaluateLVLDrag(normalizedAge, a_Random2.w);
             if (dragCoeff > 0.0) {
                 vec3 totalVel;
                 if (renderer_LVLSpace == 0) {
