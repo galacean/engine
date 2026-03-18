@@ -37,6 +37,8 @@ playwright-report/
 
 # Claude Code files
 .claude/
+.worktrees/
+docs/plans
 CLAUDE.md
 
 .husky/post-checkout
