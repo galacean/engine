@@ -121,7 +121,9 @@ export class ReflectionParser {
           return resource;
         });
       } else if (ReflectionParser._isComponentRef(value)) {
-        return Promise.resolve(this._context.components.get(value.componentId) ?? null);
+        const { ownerId, componentId } = value;
+        const prefabContext = this._context.prefabInstanceContexts?.get(ownerId);
+        return Promise.resolve(prefabContext?.components.get(componentId) ?? this._context.components.get(componentId) ?? null);
       } else if (ReflectionParser._isEntityRef(value)) {
         // entity reference
         return Promise.resolve(this._context.entityMap.get(value.entityId));

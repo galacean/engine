@@ -1,9 +1,18 @@
 import { expect, beforeAll, afterAll, describe, it } from "vitest";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import type { IHierarchyFile } from "@galacean/engine-loader";
+import { Loader, MeshRenderer, Script } from "@galacean/engine-core";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
 
 let engine: WebGLEngine;
+
+class DiceScript extends Script {
+  skinMesh: MeshRenderer = null;
+  numMesh: MeshRenderer = null;
+}
+
+Loader.registerClass("MeshRenderer", MeshRenderer);
+Loader.registerClass("DiceScript", DiceScript);
 
 beforeAll(async () => {
   const canvas = document.createElement("canvas");
@@ -50,5 +59,159 @@ describe("PrefabResource refCount", () => {
 
     instance2.destroy();
     expect(prefab.refCount).toBe(0);
+  });
+});
+
+describe("Cross-prefab IComponentRef", () => {
+  it("should resolve component ref inside nested prefab instance", async () => {
+    const nestedPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "0",
+          name: "diceRoot",
+          components: [
+            {
+              id: "mesh-comp",
+              class: "MeshRenderer"
+            }
+          ],
+          children: []
+        }
+      ]
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "dice.prefab", nestedPrefabData);
+    engine.resourceManager._objectPool["dice.prefab"] = nestedPrefab;
+
+    const outerPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "root",
+          name: "DiceNode",
+          components: [
+            {
+              id: "script-comp",
+              class: "DiceScript",
+              props: {
+                skinMesh: {
+                  ownerId: "dice-inst",
+                  componentId: ":MeshRenderer/0"
+                }
+              }
+            }
+          ],
+          children: ["dice-inst"]
+        },
+        {
+          id: "dice-inst",
+          name: "dice",
+          parent: "root",
+          components: [],
+          assetUrl: "dice.prefab",
+          modifications: [],
+          removedEntities: [],
+          removedComponents: []
+        }
+      ]
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "DiceNode.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+    const script = root.getComponent(DiceScript);
+
+    expect(script.skinMesh).not.toBeNull();
+    expect(script.skinMesh).toBeInstanceOf(MeshRenderer);
+
+    root.destroy();
+    delete engine.resourceManager._objectPool["dice.prefab"];
+  });
+
+  it("should keep local and nested prefab component refs on each instantiated clone", async () => {
+    const nestedPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "0",
+          name: "diceRoot",
+          components: [
+            {
+              id: "mesh-comp",
+              class: "MeshRenderer"
+            }
+          ],
+          children: []
+        }
+      ]
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "dice.prefab", nestedPrefabData);
+    engine.resourceManager._objectPool["dice.prefab"] = nestedPrefab;
+
+    const outerPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "root",
+          name: "DiceNode",
+          components: [
+            {
+              id: "script-comp",
+              class: "DiceScript",
+              props: {
+                numMesh: {
+                  ownerId: "num-cube",
+                  componentId: "num-mesh-comp"
+                },
+                skinMesh: {
+                  ownerId: "dice-inst",
+                  componentId: ":MeshRenderer/0"
+                }
+              }
+            }
+          ],
+          children: ["num-cube", "dice-inst"]
+        },
+        {
+          id: "num-cube",
+          name: "numCube",
+          parent: "root",
+          components: [
+            {
+              id: "num-mesh-comp",
+              class: "MeshRenderer"
+            }
+          ]
+        },
+        {
+          id: "dice-inst",
+          name: "dice",
+          parent: "root",
+          components: [],
+          assetUrl: "dice.prefab",
+          modifications: [],
+          removedEntities: [],
+          removedComponents: []
+        }
+      ]
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "DiceNode.prefab", outerPrefabData);
+    const instance1 = outerPrefab.instantiate();
+    const instance2 = outerPrefab.instantiate();
+
+    const script1 = instance1.getComponent(DiceScript);
+    const script2 = instance2.getComponent(DiceScript);
+
+    const numMesh1 = instance1.children[0].getComponent(MeshRenderer);
+    const skinMesh1 = instance1.children[1].getComponent(MeshRenderer);
+    const numMesh2 = instance2.children[0].getComponent(MeshRenderer);
+    const skinMesh2 = instance2.children[1].getComponent(MeshRenderer);
+
+    expect(script1.numMesh).toBe(numMesh1);
+    expect(script1.skinMesh).toBe(skinMesh1);
+    expect(script2.numMesh).toBe(numMesh2);
+    expect(script2.skinMesh).toBe(skinMesh2);
+    expect(script1.numMesh).not.toBe(script2.numMesh);
+    expect(script1.skinMesh).not.toBe(script2.skinMesh);
+
+    instance1.destroy();
+    instance2.destroy();
+    delete engine.resourceManager._objectPool["dice.prefab"];
   });
 });

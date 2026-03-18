@@ -22,6 +22,7 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   entityConfigMap: Map<string, IEntity> = new Map();
   components: Map<string, Component> = new Map();
   componentConfigMap: Map<string, any> = new Map();
+  prefabInstanceContexts: Map<string, ParserContext<IHierarchyFile, Entity>> = new Map();
   rootIds: string[] = [];
   strippedIds: string[] = [];
 
@@ -44,6 +45,7 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
     this.components.clear();
     this.componentConfigMap.clear();
     this.entityConfigMap.clear();
+    this.prefabInstanceContexts.clear();
     this.rootIds.length = 0;
     this.strippedIds.length = 0;
   }
