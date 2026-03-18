@@ -381,8 +381,9 @@ export class ParticleGenerator {
       deltaTime
     );
 
-    // After swap, update the render pass buffer binding to point to the latest output
-    this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
+    // After swap, update the render pass buffer binding to point to the latest output.
+    // VAO is disabled in TF mode so direct assignment is safe (no stale VAO issue).
+    this._primitive.vertexBufferBindings[this._feedbackBindingIndex] = this._feedbackSimulator.readBinding;
   }
 
   /**
@@ -655,8 +656,11 @@ export class ParticleGenerator {
         simulator._instanceBinding = this._instanceVertexBufferBinding;
       }
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
+      // Feedback buffer swaps every frame; VAO caching would bake stale buffer handles.
+      this._primitive.enableVAO = false;
     } else {
       this._renderer.shaderData.disableMacro(ParticleGenerator._transformFeedbackMacro);
+      this._primitive.enableVAO = true;
     }
 
     this._reorganizeGeometryBuffers();
