@@ -123,14 +123,14 @@ export class ReflectionParser {
       } else if (ReflectionParser._isComponentRef(value)) {
         const entity = this._resolveEntityByPath(value.entityPath);
         if (!entity) return Promise.resolve(null);
-        const { componentType, componentIndex } = value;
+        const type = Loader.getClass(value.componentType);
+        if (!type) return Promise.resolve(null);
         let count = 0;
         // @ts-ignore
         const components = entity._components;
         for (let i = 0, n = components.length; i < n; i++) {
-          // @ts-ignore
-          if (Loader.getClassName(components[i].constructor) === componentType) {
-            if (count === componentIndex) return Promise.resolve(components[i]);
+          if (components[i] instanceof type) {
+            if (count === value.componentIndex) return Promise.resolve(components[i]);
             count++;
           }
         }
@@ -218,12 +218,12 @@ export class ReflectionParser {
     return value["url"] !== undefined;
   }
 
-  private static _isComponentRef(value: any): value is IComponentRef {
-    return Array.isArray(value["entityPath"]) && value["componentType"] !== undefined;
-  }
-
   private static _isEntityRef(value: any): value is IEntityRef {
     return Array.isArray(value["entityPath"]) && value["componentType"] === undefined;
+  }
+
+  private static _isComponentRef(value: any): value is IComponentRef {
+    return Array.isArray(value["entityPath"]) && value["componentType"] !== undefined;
   }
 
   private static _isSignalRef(value: any): value is ISignalRef {
