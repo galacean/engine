@@ -1,3 +1,4 @@
+import { Buffer } from "../graphic/Buffer";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
@@ -17,6 +18,8 @@ export class ParticleTransformFeedbackSimulator {
   private _simulator: TransformFeedbackSimulator;
   private _particleInitData = new Float32Array(6);
   private _instanceBinding: VertexBufferBinding;
+  private _oldReadBuffer: Buffer;
+  private _oldWriteBuffer: Buffer;
 
   /**
    * The current read buffer binding for the render pass.
@@ -36,11 +39,14 @@ export class ParticleTransformFeedbackSimulator {
   }
 
   /**
-   * Resize feedback buffers, old data is preserved via GPU buffer copy.
+   * Resize feedback buffers.
+   * Saves pre-resize buffers internally for subsequent `copyOldBufferData` / `destroyOldBuffers` calls.
    * @param particleCount - Number of particles to allocate
    * @param instanceBinding - New instance vertex buffer binding
    */
   resize(particleCount: number, instanceBinding: VertexBufferBinding): void {
+    this._oldReadBuffer = this._simulator.readBinding?.buffer;
+    this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
     this._simulator.resize(particleCount);
     this._instanceBinding = instanceBinding;
   }
@@ -60,6 +66,25 @@ export class ParticleTransformFeedbackSimulator {
     const byteOffset = index * ParticleBufferUtils.feedbackVertexStride;
     simulator.readBinding.buffer.setData(data, byteOffset);
     simulator.writeBinding.buffer.setData(data, byteOffset);
+  }
+
+  /**
+   * Copy data from pre-resize buffers to current buffers.
+   * Must be called after `resize` which saves the old buffers.
+   */
+  copyOldBufferData(srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
+    this._simulator.readBinding.buffer.copyFromBuffer(this._oldReadBuffer, srcByteOffset, dstByteOffset, byteLength);
+    this._simulator.writeBinding.buffer.copyFromBuffer(this._oldWriteBuffer, srcByteOffset, dstByteOffset, byteLength);
+  }
+
+  /**
+   * Destroy pre-resize buffers saved during `resize`.
+   */
+  destroyOldBuffers(): void {
+    this._oldReadBuffer.destroy();
+    this._oldWriteBuffer.destroy();
+    this._oldReadBuffer = null;
+    this._oldWriteBuffer = null;
   }
 
   /**

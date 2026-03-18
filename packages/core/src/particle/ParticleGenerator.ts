@@ -10,30 +10,30 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { MeshRenderer, VertexAttribute } from "../mesh";
 import { ShaderData } from "../shader";
+import { ShaderMacro } from "../shader/ShaderMacro";
 import { Buffer } from "./../graphic/Buffer";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 import { ParticleRenderer, ParticleUpdateFlags } from "./ParticleRenderer";
+import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { ForceOverLifetimeModule } from "./modules/ForceOverLifetimeModule";
+import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
 import { MainModule } from "./modules/MainModule";
 import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
-import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
-import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackSimulator";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { ShaderMacro } from "../shader/ShaderMacro";
-import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 
 /**
  * Particle Generator.
@@ -504,25 +504,37 @@ export class ParticleGenerator {
     const vertexBufferBindings = this._primitive.vertexBufferBindings;
     const vertexBufferBinding = new VertexBufferBinding(vertexInstanceBuffer, stride);
 
-    const instanceVertices = new Float32Array(newByteLength / 4);
-
     const lastInstanceVertices = this._instanceVertices;
     const useFeedback = this._useTransformFeedback;
 
+    const instanceVertices = new Float32Array(newByteLength / 4);
+    if (useFeedback) {
+      this._feedbackSimulator.resize(newParticleCount, vertexBufferBinding);
+    }
+
     if (lastInstanceVertices) {
-      const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
+      const { instanceVertexFloatStride: floatStride, feedbackVertexStride } = ParticleBufferUtils;
       const firstFreeElement = this._firstFreeElement;
       const firstRetiredElement = this._firstRetiredElement;
+
       if (isIncrease) {
+        // Copy front segment [0, firstFreeElement)
         instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, firstFreeElement * floatStride));
 
+        // Copy tail segment shifted by increaseCount
         const nextFreeElement = firstFreeElement + 1;
+        const tailCount = this._currentParticleCount - nextFreeElement;
+        const tailDstElement = nextFreeElement + increaseCount;
         instanceVertices.set(
           new Float32Array(lastInstanceVertices.buffer, nextFreeElement * floatStride * 4),
-          (nextFreeElement + increaseCount) * floatStride
+          tailDstElement * floatStride
         );
 
-        // Maintain expanded pointers
+        if (useFeedback) {
+          this._feedbackSimulator.copyOldBufferData(0, 0, firstFreeElement * feedbackVertexStride);
+          this._feedbackSimulator.copyOldBufferData(nextFreeElement * feedbackVertexStride, tailDstElement * feedbackVertexStride, tailCount * feedbackVertexStride);
+        }
+
         this._firstNewElement > firstFreeElement && (this._firstNewElement += increaseCount);
         this._firstActiveElement > firstFreeElement && (this._firstActiveElement += increaseCount);
         firstRetiredElement > firstFreeElement && (this._firstRetiredElement += increaseCount);
@@ -531,8 +543,6 @@ export class ParticleGenerator {
         if (firstRetiredElement <= firstFreeElement) {
           migrateCount = firstFreeElement - firstRetiredElement;
           bufferOffset = 0;
-
-          // Maintain expanded pointers
           this._firstFreeElement -= firstRetiredElement;
           this._firstNewElement -= firstRetiredElement;
           this._firstActiveElement -= firstRetiredElement;
@@ -540,8 +550,6 @@ export class ParticleGenerator {
         } else {
           migrateCount = this._currentParticleCount - firstRetiredElement;
           bufferOffset = firstFreeElement;
-
-          // Maintain expanded pointers
           this._firstNewElement > firstFreeElement && (this._firstNewElement -= firstFreeElement);
           this._firstActiveElement > firstFreeElement && (this._firstActiveElement -= firstFreeElement);
           firstRetiredElement > firstFreeElement && (this._firstRetiredElement -= firstFreeElement);
@@ -555,13 +563,23 @@ export class ParticleGenerator {
           ),
           bufferOffset * floatStride
         );
+
+        if (useFeedback) {
+          this._feedbackSimulator.copyOldBufferData(
+            firstRetiredElement * feedbackVertexStride,
+            bufferOffset * feedbackVertexStride,
+            migrateCount * feedbackVertexStride
+          );
+        }
       }
 
+      if (useFeedback) {
+        this._feedbackSimulator.destroyOldBuffers();
+      }
       this._instanceBufferResized = true;
     }
 
-    // Update instance buffer binding at the correct index
-    // In feedback mode, feedback buffer occupies the last slot
+    // Update instance buffer binding
     const instanceBindingIndex = lastInstanceVertices
       ? vertexBufferBindings.length - 1 - (useFeedback ? 1 : 0)
       : vertexBufferBindings.length;
@@ -571,9 +589,7 @@ export class ParticleGenerator {
     this._instanceVertexBufferBinding = vertexBufferBinding;
     this._currentParticleCount = newParticleCount;
 
-    // Resize feedback buffers (GPU copy handles data migration)
     if (useFeedback) {
-      this._feedbackSimulator.resize(newParticleCount, this._instanceVertexBufferBinding);
       this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
     }
   }
