@@ -10,6 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
+import { CloneUtils } from "./clone/CloneUtils";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
@@ -429,6 +430,13 @@ export class Entity extends EngineObject {
    */
   registerWorldChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
+   * @internal
+   */
+  _remap(srcRoot: Entity, targetRoot: Entity): Entity {
+    return CloneUtils.remapEntity(srcRoot, targetRoot, this);
   }
 
   /**

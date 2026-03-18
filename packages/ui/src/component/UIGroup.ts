@@ -11,10 +11,8 @@ export class UIGroup extends Component implements IGroupAble {
   @ignoreClone
   _indexInRootCanvas: number = -1;
   /** @internal */
-  @ignoreClone
   _group: UIGroup;
   /** @internal */
-  @ignoreClone
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone

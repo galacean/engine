@@ -286,8 +286,8 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _cloneTo(target: SpriteRenderer, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
+  override _cloneTo(target: SpriteRenderer): void {
+    super._cloneTo(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }

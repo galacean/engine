@@ -46,7 +46,6 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   _canvasIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
@@ -79,9 +78,7 @@ export class UICanvas extends Component implements IElement {
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
-  @ignoreClone
   private _camera: Camera;
-  @ignoreClone
   private _cameraObserver: Camera;
   @assignmentClone
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
@@ -413,12 +410,8 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
-  _cloneTo(target: UICanvas, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: UICanvas): void {
     target.renderMode = this._renderMode;
-    const camera = this._camera;
-    if (camera) {
-      target.camera = CloneUtils.remapComponent(srcRoot, targetRoot, camera);
-    }
   }
 
   private _getRenderers(): UIRenderer[] {

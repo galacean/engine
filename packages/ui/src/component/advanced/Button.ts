@@ -1,9 +1,9 @@
-import { Entity, ignoreClone, PointerEventData, Signal } from "@galacean/engine";
+import { deepClone, PointerEventData, Signal } from "@galacean/engine";
 import { UIInteractive } from "../interactive/UIInteractive";
 
 export class Button extends UIInteractive {
   /** Signal emitted when the button is clicked. */
-  @ignoreClone
+  @deepClone
   readonly onClick = new Signal<[PointerEventData]>();
 
   override onPointerClick(event: PointerEventData): void {
@@ -14,13 +14,6 @@ export class Button extends UIInteractive {
   override onDestroy(): void {
     super.onDestroy();
     this.onClick.removeAll();
-  }
-
-  // @ts-ignore
-  override _cloneTo(target: Button, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
-    // @ts-ignore
-    this.onClick._cloneTo(target.onClick, srcRoot, targetRoot);
   }
 
   /**

@@ -14,7 +14,6 @@ export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
 
   /** @internal */
-  @ignoreClone
   _collider: Collider;
   /** @internal */
   @ignoreClone

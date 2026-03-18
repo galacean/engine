@@ -333,8 +333,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   /**
    * @internal
    */
-  override _cloneTo(target: TextRenderer, srcRoot: Entity, targetRoot: Entity): void {
-    super._cloneTo(target, srcRoot, targetRoot);
+  override _cloneTo(target: TextRenderer): void {
+    super._cloneTo(target);
     target.font = this._font;
     target._subFont = this._subFont;
   }
@@ -458,8 +458,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
-    e4 = e[4], e5 = e[5], e6 = e[6],
-    e12 = e[12], e13 = e[13], e14 = e[14];
+      e4 = e[4], e5 = e[5], e6 = e[6],
+      e12 = e[12], e13 = e[13], e14 = e[14];
 
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);

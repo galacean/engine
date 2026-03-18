@@ -1,6 +1,6 @@
 import { Entity } from "../Entity";
 import { TypedArray } from "../base/Constant";
-import { IComponentCustomClone, ICustomClone } from "./ComponentCloner";
+import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -103,98 +103,90 @@ export class CloneManager {
     targetRoot: Entity,
     deepInstanceMap: Map<Object, Object>
   ): void {
-    if (cloneMode === CloneMode.Ignore) {
+    const sourceProperty = source[k];
+
+    // Remappable references (Entity/Component) are always remapped, regardless of clone decorator
+    if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
+      target[k] = (<ICustomClone>sourceProperty)._remap(srcRoot, targetRoot);
       return;
     }
 
-    const sourceProperty = source[k];
-    if (sourceProperty instanceof Object) {
-      if (cloneMode === undefined || cloneMode === CloneMode.Assignment) {
-        target[k] = sourceProperty;
-        return;
-      }
+    if (cloneMode === CloneMode.Ignore) return;
 
-      const type = sourceProperty.constructor;
-      switch (type) {
-        case Uint8Array:
-        case Uint16Array:
-        case Uint32Array:
-        case Int8Array:
-        case Int16Array:
-        case Int32Array:
-        case Float32Array:
-        case Float64Array:
-          let targetPropertyT = <TypedArray>target[k];
-          if (targetPropertyT == null || targetPropertyT.length !== (<TypedArray>sourceProperty).length) {
-            target[k] = (<TypedArray>sourceProperty).slice();
-          } else {
-            targetPropertyT.set(<TypedArray>sourceProperty);
+    // Primitives, undecorated, or @assignmentClone: direct assign
+    if (!(sourceProperty instanceof Object) || cloneMode === undefined || cloneMode === CloneMode.Assignment) {
+      target[k] = sourceProperty;
+      return;
+    }
+
+    // @shallowClone / @deepClone: deep copy complex objects
+    const type = sourceProperty.constructor;
+    switch (type) {
+      case Uint8Array:
+      case Uint16Array:
+      case Uint32Array:
+      case Int8Array:
+      case Int16Array:
+      case Int32Array:
+      case Float32Array:
+      case Float64Array:
+        let targetPropertyT = <TypedArray>target[k];
+        if (targetPropertyT == null || targetPropertyT.length !== (<TypedArray>sourceProperty).length) {
+          target[k] = (<TypedArray>sourceProperty).slice();
+        } else {
+          targetPropertyT.set(<TypedArray>sourceProperty);
+        }
+        break;
+      case Array:
+        let targetPropertyA = <Array<any>>target[k];
+        const length = (<Array<any>>sourceProperty).length;
+        if (targetPropertyA == null) {
+          target[k] = targetPropertyA = new Array<any>(length);
+        } else {
+          targetPropertyA.length = length;
+        }
+        for (let i = 0; i < length; i++) {
+          CloneManager.cloneProperty(
+            <Array<any>>sourceProperty,
+            targetPropertyA,
+            i,
+            cloneMode,
+            srcRoot,
+            targetRoot,
+            deepInstanceMap
+          );
+        }
+        break;
+      default:
+        let targetProperty = <Object>target[k];
+        // If the target property is undefined, create new instance and keep reference sharing like the source
+        if (!targetProperty) {
+          targetProperty = deepInstanceMap.get(sourceProperty);
+          if (!targetProperty) {
+            targetProperty = new sourceProperty.constructor();
+            deepInstanceMap.set(sourceProperty, targetProperty);
           }
-          break;
-        case Array:
-          let targetPropertyA = <Array<any>>target[k];
-          const length = (<Array<any>>sourceProperty).length;
-          if (targetPropertyA == null) {
-            target[k] = targetPropertyA = new Array<any>(length);
-          } else {
-            targetPropertyA.length = length;
-          }
-          for (let i = 0; i < length; i++) {
+          target[k] = targetProperty;
+        }
+
+        if ((<ICustomClone>sourceProperty).copyFrom) {
+          (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
+        } else {
+          const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
+          for (let k in sourceProperty) {
             CloneManager.cloneProperty(
-              <Array<any>>sourceProperty,
-              targetPropertyA,
-              i,
-              cloneMode,
+              <Object>sourceProperty,
+              targetProperty,
+              k,
+              cloneModes[k],
               srcRoot,
               targetRoot,
               deepInstanceMap
             );
           }
-          break;
-        default:
-          let targetProperty = <Object>target[k];
-          // If the target property is undefined, create new instance and keep reference sharing like the source
-          if (!targetProperty) {
-            targetProperty = deepInstanceMap.get(sourceProperty);
-            if (!targetProperty) {
-              targetProperty = new sourceProperty.constructor();
-              deepInstanceMap.set(sourceProperty, targetProperty);
-            }
-            target[k] = targetProperty;
-          }
-
-          if ((<ICustomClone>sourceProperty).copyFrom) {
-            // Custom clone
-            (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
-          } else {
-            // Universal clone
-            const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
-            for (let k in sourceProperty) {
-              CloneManager.cloneProperty(
-                <Object>sourceProperty,
-                targetProperty,
-                k,
-                cloneModes[k],
-                srcRoot,
-                targetRoot,
-                deepInstanceMap
-              );
-            }
-
-            // Custom incremental clone
-            if ((<IComponentCustomClone>sourceProperty)._cloneTo) {
-              (<IComponentCustomClone>sourceProperty)._cloneTo(
-                <IComponentCustomClone>targetProperty,
-                srcRoot,
-                targetRoot
-              );
-            }
-          }
-          break;
-      }
-    } else {
-      // null, undefined, primitive type, function
-      target[k] = sourceProperty;
+          (<ICustomClone>sourceProperty)._cloneTo?.(<ICustomClone>targetProperty, srcRoot, targetRoot);
+        }
+        break;
     }
   }
 
