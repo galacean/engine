@@ -36,8 +36,9 @@ export class ParticleTransformFeedbackSimulator {
   }
 
   /**
-   * Resize feedback buffers.
+   * Resize feedback buffers, old data is preserved via GPU buffer copy.
    * @param particleCount - Number of particles to allocate
+   * @param instanceBinding - New instance vertex buffer binding
    */
   resize(particleCount: number, instanceBinding: VertexBufferBinding): void {
     this._simulator.resize(particleCount);
@@ -63,7 +64,6 @@ export class ParticleTransformFeedbackSimulator {
 
   /**
    * Run one simulation step.
-   * @param instanceBuffer - Particle instance data buffer
    * @param shaderData - Shader data with current macros and uniforms
    * @param particleCount - Total particle slot count
    * @param firstActive - First active particle index in ring buffer

@@ -229,6 +229,17 @@ export class Buffer extends GraphicsResource {
   }
 
   /**
+   * Copy data from another buffer on the GPU.
+   * @param srcBuffer - Source buffer
+   * @param srcByteOffset - Byte offset in the source buffer
+   * @param dstByteOffset - Byte offset in this buffer
+   * @param byteLength - Number of bytes to copy
+   */
+  copyFromBuffer(srcBuffer: Buffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
+    this._platformBuffer.copyFromBuffer(srcBuffer._platformBuffer, srcByteOffset, dstByteOffset, byteLength);
+  }
+
+  /**
    * Mark buffer as readable, the `data` property will be not accessible anymore.
    */
   markAsUnreadable(): void {

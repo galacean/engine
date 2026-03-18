@@ -55,14 +55,23 @@ export class TransformFeedbackPrimitive {
    * @param vertexCount - Number of vertices to allocate
    */
   resize(vertexCount: number): void {
-    this._bindingA?.buffer.destroy();
-    this._bindingB?.buffer.destroy();
+    const oldBindingA = this._bindingA;
+    const oldBindingB = this._bindingB;
 
     const byteLength = this._byteStride * vertexCount;
     const bufferA = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
     bufferA.isGCIgnored = true;
     const bufferB = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, BufferUsage.Dynamic, false);
     bufferB.isGCIgnored = true;
+
+    // GPU copy old data to new buffers before destroying old ones
+    if (oldBindingA) {
+      const copyLength = Math.min(oldBindingA.buffer.byteLength, byteLength);
+      bufferA.copyFromBuffer(oldBindingA.buffer, 0, 0, copyLength);
+      bufferB.copyFromBuffer(oldBindingB.buffer, 0, 0, copyLength);
+      oldBindingA.buffer.destroy();
+      oldBindingB.buffer.destroy();
+    }
 
     this._bindingA = new VertexBufferBinding(bufferA, this._byteStride);
     this._bindingB = new VertexBufferBinding(bufferB, this._byteStride);

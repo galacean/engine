@@ -507,19 +507,19 @@ export class ParticleGenerator {
     const instanceVertices = new Float32Array(newByteLength / 4);
 
     const lastInstanceVertices = this._instanceVertices;
+    const useFeedback = this._useTransformFeedback;
+
     if (lastInstanceVertices) {
       const floatStride = ParticleBufferUtils.instanceVertexFloatStride;
-
       const firstFreeElement = this._firstFreeElement;
       const firstRetiredElement = this._firstRetiredElement;
       if (isIncrease) {
         instanceVertices.set(new Float32Array(lastInstanceVertices.buffer, 0, firstFreeElement * floatStride));
 
         const nextFreeElement = firstFreeElement + 1;
-        const freeEndOffset = (nextFreeElement + increaseCount) * floatStride;
         instanceVertices.set(
           new Float32Array(lastInstanceVertices.buffer, nextFreeElement * floatStride * 4),
-          freeEndOffset
+          (nextFreeElement + increaseCount) * floatStride
         );
 
         // Maintain expanded pointers
@@ -559,10 +559,11 @@ export class ParticleGenerator {
 
       this._instanceBufferResized = true;
     }
+
     // Update instance buffer binding at the correct index
     // In feedback mode, feedback buffer occupies the last slot
     const instanceBindingIndex = lastInstanceVertices
-      ? vertexBufferBindings.length - 1 - (this._useTransformFeedback ? 1 : 0)
+      ? vertexBufferBindings.length - 1 - (useFeedback ? 1 : 0)
       : vertexBufferBindings.length;
     this._primitive.setVertexBufferBinding(instanceBindingIndex, vertexBufferBinding);
 
@@ -570,10 +571,9 @@ export class ParticleGenerator {
     this._instanceVertexBufferBinding = vertexBufferBinding;
     this._currentParticleCount = newParticleCount;
 
-    // Resize feedback buffers
-    if (this._useTransformFeedback) {
+    // Resize feedback buffers (GPU copy handles data migration)
+    if (useFeedback) {
       this._feedbackSimulator.resize(newParticleCount, this._instanceVertexBufferBinding);
-      // Update feedback buffer binding after resize
       this._primitive.setVertexBufferBinding(this._feedbackBindingIndex, this._feedbackSimulator.readBinding);
     }
   }

@@ -91,6 +91,13 @@ export class GLBuffer implements IPlatformBuffer {
     }
   }
 
+  copyFromBuffer(srcBuffer: IPlatformBuffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
+    const gl = <WebGL2RenderingContext>this._gl;
+    gl.bindBuffer(gl.COPY_READ_BUFFER, (<GLBuffer>srcBuffer)._glBuffer);
+    gl.bindBuffer(gl.COPY_WRITE_BUFFER, this._glBuffer);
+    gl.copyBufferSubData(gl.COPY_READ_BUFFER, gl.COPY_WRITE_BUFFER, srcByteOffset, dstByteOffset, byteLength);
+  }
+
   destroy(): void {
     this._gl.deleteBuffer(this._glBuffer);
     this._gl = null;
