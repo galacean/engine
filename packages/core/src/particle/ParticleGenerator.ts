@@ -641,8 +641,8 @@ export class ParticleGenerator {
     if (enabled) {
       if (!this._feedbackSimulator) {
         this._feedbackSimulator = new ParticleTransformFeedbackSimulator(this._renderer.engine);
+        this._feedbackSimulator.resize(this._currentParticleCount, this._instanceVertexBufferBinding);
       }
-      this._feedbackSimulator.resize(this._currentParticleCount, this._instanceVertexBufferBinding);
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
     } else {
       this._renderer.shaderData.disableMacro(ParticleGenerator._transformFeedbackMacro);
