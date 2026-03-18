@@ -236,11 +236,7 @@ export class ParticleGenerator {
     } else {
       this._isPlaying = false;
       if (stopMode === ParticleStopMode.StopEmittingAndClear) {
-        // Move the pointer to free immediately
-        const firstFreeElement = this._firstFreeElement;
-        this._firstRetiredElement = firstFreeElement;
-        this._firstActiveElement = firstFreeElement;
-        this._firstNewElement = firstFreeElement;
+        this._clearActiveParticles();
         this._playTime = 0;
 
         this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
@@ -637,6 +633,11 @@ export class ParticleGenerator {
    */
   _setTransformFeedback(enabled: boolean): void {
     this._useTransformFeedback = enabled;
+
+    // Switching TF mode invalidates all active particle state: feedback buffers and instance
+    // buffer layout are incompatible between the two paths. Clear rather than show a one-frame
+    // jump; new particles will fill in naturally from the next emit cycle.
+    this._clearActiveParticles();
 
     if (enabled) {
       if (!this._feedbackSimulator) {
@@ -1045,6 +1046,13 @@ export class ParticleGenerator {
       direction.y * startSpeed,
       direction.z * startSpeed
     );
+  }
+
+  private _clearActiveParticles(): void {
+    const firstFreeElement = this._firstFreeElement;
+    this._firstRetiredElement = firstFreeElement;
+    this._firstActiveElement = firstFreeElement;
+    this._firstNewElement = firstFreeElement;
   }
 
   private _retireActiveParticles(): void {

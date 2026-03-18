@@ -97,7 +97,9 @@ void main() {
     float age = renderer_CurrentTime - a_DirectionTime.w;
     float lifetime = a_ShapePositionStartLifeTime.w;
     float normalizedAge = age / lifetime;
-    float dt = renderer_DeltaTime;
+    // Clamp to age on the first TF pass: particles emitted mid-frame have age < dt,
+    // so using the full dt would over-integrate. Subsequent passes are unaffected (age >= dt).
+    float dt = min(renderer_DeltaTime, age);
 
     // normalizedAge < 0.0: stale TF slot whose startTime is from a previous playback (e.g. after StopEmittingAndClear).
     if (normalizedAge >= 1.0 || normalizedAge < 0.0) {
