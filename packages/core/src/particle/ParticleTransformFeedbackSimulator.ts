@@ -3,6 +3,7 @@ import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderPool } from "../shader/ShaderPool";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
@@ -32,9 +33,7 @@ export class ParticleTransformFeedbackSimulator {
     this._simulator = new TransformFeedbackSimulator(
       engine,
       ParticleBufferUtils.feedbackVertexStride,
-      `#include <particle_feedback_simulation>`,
-      `void main() { discard; }`,
-      ["v_FeedbackPosition", "v_FeedbackVelocity"]
+      ShaderPool.particleFeedbackShader
     );
   }
 

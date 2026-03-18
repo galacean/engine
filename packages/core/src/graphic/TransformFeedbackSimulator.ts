@@ -1,27 +1,20 @@
 import { Engine } from "../Engine";
 import { MeshTopology } from "./enums/MeshTopology";
 import { TransformFeedbackPrimitive } from "./TransformFeedbackPrimitive";
+import { TransformFeedbackShader } from "./TransformFeedbackShader";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
-import { ShaderFactory } from "../shaderlib/ShaderFactory";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { ShaderProgram } from "../shader/ShaderProgram";
-import { ShaderPass } from "../shader/ShaderPass";
 import { ShaderData } from "../shader/ShaderData";
-import { Logger } from "../base/Logger";
 
 /**
  * @internal
  * General-purpose Transform Feedback simulator.
- * Manages shader compilation, program caching, and per-frame simulation.
+ * Manages per-frame simulation with shared shader program caching.
  */
 export class TransformFeedbackSimulator {
   private _engine: Engine;
   private _primitive: TransformFeedbackPrimitive;
-  private _simulatorId: number;
-  private _vertexSource: string;
-  private _fragmentSource: string;
-  private _feedbackVaryings: string[];
+  private _shader: TransformFeedbackShader;
 
   /**
    * The current read buffer binding.
@@ -40,23 +33,12 @@ export class TransformFeedbackSimulator {
   /**
    * @param engine - Engine instance
    * @param byteStride - Bytes per vertex in the feedback buffer
-   * @param vertexSource - Vertex shader source (may contain #include)
-   * @param fragmentSource - Fragment shader source
-   * @param feedbackVaryings - Transform Feedback varying names
+   * @param shader - Shared Transform Feedback shader definition
    */
-  constructor(
-    engine: Engine,
-    byteStride: number,
-    vertexSource: string,
-    fragmentSource: string,
-    feedbackVaryings: string[]
-  ) {
+  constructor(engine: Engine, byteStride: number, shader: TransformFeedbackShader) {
     this._engine = engine;
     this._primitive = new TransformFeedbackPrimitive(engine, byteStride);
-    this._simulatorId = ShaderPass._shaderPassCounter++;
-    this._vertexSource = vertexSource;
-    this._fragmentSource = fragmentSource;
-    this._feedbackVaryings = feedbackVaryings;
+    this._shader = shader;
   }
 
   /**
@@ -68,7 +50,7 @@ export class TransformFeedbackSimulator {
   }
 
   /**
-   * Begin a simulation step: compile/cache program, bind, upload uniforms, update layout.
+   * Begin a simulation step: get/compile program, bind, upload uniforms, update layout.
    * @param shaderData - Shader data with current macros and uniforms
    * @param feedbackElements - Vertex elements for the feedback buffer
    * @param inputBinding - Input buffer binding
@@ -80,22 +62,15 @@ export class TransformFeedbackSimulator {
     inputBinding: VertexBufferBinding,
     inputElements: VertexElement[]
   ): boolean {
-    const primitive = this._primitive;
-    const pool = this._engine._getShaderProgramPool(this._simulatorId);
-
-    let program = pool.get(shaderData._macroCollection);
-    if (!program) {
-      program = this._compileProgram(shaderData._macroCollection);
-      if (!program) return false;
-      pool.cache(program);
-    }
+    const program = this._shader.getProgram(this._engine, shaderData._macroCollection);
+    if (!program) return false;
 
     program.bind();
     program.uploadUniforms(program.rendererUniformBlock, shaderData);
     program.uploadUniforms(program.otherUniformBlock, shaderData);
 
-    primitive.updateVertexLayout(program, feedbackElements, inputBinding, inputElements);
-    primitive.beginDraw();
+    this._primitive.updateVertexLayout(program, feedbackElements, inputBinding, inputElements);
+    this._primitive.beginDraw();
     return true;
   }
 
@@ -119,29 +94,5 @@ export class TransformFeedbackSimulator {
 
   destroy(): void {
     this._primitive?.destroy();
-    const pool = this._engine._shaderProgramPools[this._simulatorId];
-    if (pool) {
-      pool._destroy();
-      delete this._engine._shaderProgramPools[this._simulatorId];
-    }
-  }
-
-  private _compileProgram(macroCollection: ShaderMacroCollection): ShaderProgram | null {
-    const engine = this._engine;
-    const { vertexSource, fragmentSource } = ShaderFactory.compilePlatformSource(
-      engine,
-      macroCollection,
-      this._vertexSource,
-      this._fragmentSource
-    );
-
-    const program = new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
-
-    if (!program.isValid) {
-      Logger.error("TransformFeedbackSimulator: Failed to compile shader program.");
-      return null;
-    }
-
-    return program;
   }
 }
