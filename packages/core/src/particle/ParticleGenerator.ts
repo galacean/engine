@@ -357,11 +357,18 @@ export class ParticleGenerator {
     //
     // Another choice is just add new particles to vertex buffer and render all particles ignore the retired particle in shader, especially billboards
     // But webgl don't support map buffer range, so this choice don't have performance advantage even less set data to GPU
-    if (
+    const isContentLost = this._instanceVertexBufferBinding._buffer.isContentLost;
+    if (isContentLost) {
+      // GPU buffer data is unrecoverable after device lost, retire all particles
+      this._firstActiveElement = 0;
+      this._firstNewElement = 0;
+      this._firstFreeElement = 0;
+      this._firstRetiredElement = 0;
+      this._waitProcessRetiredElementCount = 0;
+    } else if (
       this._firstNewElement != this._firstFreeElement ||
       this._waitProcessRetiredElementCount > 0 ||
-      this._instanceBufferResized ||
-      this._instanceVertexBufferBinding._buffer.isContentLost
+      this._instanceBufferResized
     ) {
       this._addActiveParticlesToVertexBuffer();
     }
