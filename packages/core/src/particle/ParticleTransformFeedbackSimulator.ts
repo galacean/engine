@@ -1,3 +1,5 @@
+import { Vector3 } from "@galacean/engine-math";
+import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
@@ -5,8 +7,6 @@ import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderPool } from "../shader/ShaderPool";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { Vector3 } from "@galacean/engine-math";
-import { Engine } from "../Engine";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
 
 /**
@@ -16,9 +16,11 @@ import { ParticleBufferUtils } from "./ParticleBufferUtils";
 export class ParticleTransformFeedbackSimulator {
   private static readonly _deltaTimeProperty = ShaderProperty.getByName("renderer_DeltaTime");
 
+  /** @internal */
+  _instanceBinding: VertexBufferBinding;
+
   private _simulator: TransformFeedbackSimulator;
   private _particleInitData = new Float32Array(6);
-  private _instanceBinding: VertexBufferBinding;
   private _oldReadBuffer: Buffer;
   private _oldWriteBuffer: Buffer;
 
@@ -44,14 +46,9 @@ export class ParticleTransformFeedbackSimulator {
    * @param instanceBinding - New instance vertex buffer binding
    */
   resize(particleCount: number, instanceBinding: VertexBufferBinding): void {
-    const readBinding = this._simulator.readBinding;
-    const needResize =
-      !readBinding || readBinding.buffer.byteLength !== particleCount * ParticleBufferUtils.feedbackVertexStride;
-    if (needResize) {
-      this._oldReadBuffer = readBinding?.buffer;
-      this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
-      this._simulator.resize(particleCount);
-    }
+    this._oldReadBuffer = this._simulator.readBinding?.buffer;
+    this._oldWriteBuffer = this._simulator.writeBinding?.buffer;
+    this._simulator.resize(particleCount);
     this._instanceBinding = instanceBinding;
   }
 
@@ -85,8 +82,8 @@ export class ParticleTransformFeedbackSimulator {
    * Destroy pre-resize buffers saved during `resize`.
    */
   destroyOldBuffers(): void {
-    this._oldReadBuffer.destroy();
-    this._oldWriteBuffer.destroy();
+    this._oldReadBuffer?.destroy();
+    this._oldWriteBuffer?.destroy();
     this._oldReadBuffer = null;
     this._oldWriteBuffer = null;
   }

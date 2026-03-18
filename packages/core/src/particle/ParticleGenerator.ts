@@ -642,7 +642,17 @@ export class ParticleGenerator {
       if (!this._feedbackSimulator) {
         this._feedbackSimulator = new ParticleTransformFeedbackSimulator(this._renderer.engine);
       }
-      this._feedbackSimulator.resize(this._currentParticleCount, this._instanceVertexBufferBinding);
+      const simulator = this._feedbackSimulator;
+      const readBinding = simulator.readBinding;
+      if (
+        !readBinding ||
+        readBinding.buffer.byteLength !== this._currentParticleCount * ParticleBufferUtils.feedbackVertexStride
+      ) {
+        simulator.resize(this._currentParticleCount, this._instanceVertexBufferBinding);
+        simulator.destroyOldBuffers();
+      } else {
+        simulator._instanceBinding = this._instanceVertexBufferBinding;
+      }
       this._renderer.shaderData.enableMacro(ParticleGenerator._transformFeedbackMacro);
     } else {
       this._renderer.shaderData.disableMacro(ParticleGenerator._transformFeedbackMacro);
