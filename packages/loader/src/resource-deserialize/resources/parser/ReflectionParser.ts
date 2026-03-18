@@ -121,14 +121,22 @@ export class ReflectionParser {
           return resource;
         });
       } else if (ReflectionParser._isComponentRef(value)) {
-        const { ownerId, componentId } = value;
-        const prefabContext = this._context.prefabInstanceContexts?.get(ownerId);
-        return Promise.resolve(
-          prefabContext?.components.get(componentId) ?? this._context.components.get(componentId) ?? null
-        );
+        const entity = this._resolveEntityByPath(value.entityPath);
+        if (!entity) return Promise.resolve(null);
+        const { componentType, componentIndex } = value;
+        let count = 0;
+        // @ts-ignore
+        const components = entity._components;
+        for (let i = 0, n = components.length; i < n; i++) {
+          // @ts-ignore
+          if (Loader.getClassName(components[i].constructor) === componentType) {
+            if (count === componentIndex) return Promise.resolve(components[i]);
+            count++;
+          }
+        }
+        return Promise.resolve(null);
       } else if (ReflectionParser._isEntityRef(value)) {
-        // entity reference
-        return Promise.resolve(this._context.entityMap.get(value.entityId));
+        return Promise.resolve(this._resolveEntityByPath(value.entityPath));
       } else if (ReflectionParser._isSignalRef(value)) {
         return this.parseSignal(value);
       } else if (originValue) {
@@ -187,6 +195,17 @@ export class ReflectionParser {
     }
   }
 
+  private _resolveEntityByPath(entityPath: number[]): Entity | null {
+    const { rootIds, entityMap } = this._context;
+    if (!entityPath.length || entityPath[0] >= rootIds.length) return null;
+    let entity = entityMap.get(rootIds[entityPath[0]]);
+    for (let i = 1; i < entityPath.length; i++) {
+      if (!entity || entityPath[i] >= entity.children.length) return null;
+      entity = entity.children[entityPath[i]];
+    }
+    return entity ?? null;
+  }
+
   private static _isClass(value: any): value is IClass {
     return value["class"] !== undefined;
   }
@@ -199,12 +218,12 @@ export class ReflectionParser {
     return value["url"] !== undefined;
   }
 
-  private static _isEntityRef(value: any): value is IEntityRef {
-    return value["entityId"] !== undefined;
+  private static _isComponentRef(value: any): value is IComponentRef {
+    return Array.isArray(value["entityPath"]) && value["componentType"] !== undefined;
   }
 
-  private static _isComponentRef(value: any): value is IComponentRef {
-    return value["ownerId"] !== undefined && value["componentId"] !== undefined;
+  private static _isEntityRef(value: any): value is IEntityRef {
+    return Array.isArray(value["entityPath"]) && value["componentType"] === undefined;
   }
 
   private static _isSignalRef(value: any): value is ISignalRef {

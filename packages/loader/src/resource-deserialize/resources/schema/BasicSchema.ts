@@ -105,11 +105,12 @@ export type IBasicType =
 
 export type IAssetRef = { key?: string; url: string };
 
-export type IEntityRef = { entityId: string };
+export type IEntityRef = { entityPath: number[] };
 
 export type IComponentRef = {
-  ownerId: string;
-  componentId: string;
+  entityPath: number[];
+  componentType: string;
+  componentIndex: number;
 };
 
 export type ISignalRef = {

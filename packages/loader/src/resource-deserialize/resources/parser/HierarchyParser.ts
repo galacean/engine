@@ -264,7 +264,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           this._generateInstanceContext(entity, instanceContext, "");
 
           this._prefabContextMap.set(entity, instanceContext);
-          this.context.prefabInstanceContexts.set(entityConfig.id, instanceContext);
           const cbArray = this._prefabPromiseMap.get(entityConfig.id);
           if (cbArray) {
             for (let i = 0, n = cbArray.length; i < n; i++) {
