@@ -1,5 +1,5 @@
 import { Component } from "../Component";
-import { Entity, ComponentConstructor } from "../Entity";
+import { Entity } from "../Entity";
 
 /**
  * @internal
@@ -9,50 +9,18 @@ export class CloneUtils {
   private static _tempRemapPath: number[] = [];
 
   static remapEntity(srcRoot: Entity, targetRoot: Entity, entity: Entity): Entity {
-    const paths = CloneUtils._tempRemapPath;
-    const success = CloneUtils._getEntityHierarchyPath(srcRoot, entity, paths);
-    return success ? CloneUtils._getEntityByHierarchyPath(targetRoot, paths) : entity;
+    const path = CloneUtils._tempRemapPath;
+    if (!CloneUtils._getEntityHierarchyPath(srcRoot, entity, path)) return entity;
+    return CloneUtils._getEntityByHierarchyPath(targetRoot, path);
   }
 
   static remapComponent<T extends Component>(srcRoot: Entity, targetRoot: Entity, component: T): T {
-    const paths = CloneUtils._tempRemapPath;
-    const success = CloneUtils._getEntityHierarchyPath(srcRoot, component.entity, paths);
-    if (!success) {
-      return component;
-    }
-
-    const targetEntity = CloneUtils._getEntityByHierarchyPath(targetRoot, paths);
-    if (!targetEntity) {
-      return component;
-    }
-
-    const type = <ComponentConstructor<T>>component.constructor;
-    const srcComponents = component.entity._components;
-    let componentIndex = 0;
-
-    for (let i = 0, n = srcComponents.length; i < n; i++) {
-      const currentComponent = srcComponents[i];
-      if (currentComponent === component) {
-        break;
-      }
-      if (currentComponent instanceof type) {
-        componentIndex++;
-      }
-    }
-
-    const targetComponents = targetEntity._components;
-    let currentIndex = 0;
-    for (let i = 0, n = targetComponents.length; i < n; i++) {
-      const currentComponent = targetComponents[i];
-      if (currentComponent instanceof type) {
-        if (currentIndex === componentIndex) {
-          return currentComponent as T;
-        }
-        currentIndex++;
-      }
-    }
-
-    return component;
+    const path = CloneUtils._tempRemapPath;
+    const srcEntity = component.entity;
+    if (!CloneUtils._getEntityHierarchyPath(srcRoot, srcEntity, path)) return component;
+    return CloneUtils._getEntityByHierarchyPath(targetRoot, path)._components[
+      srcEntity._components.indexOf(component)
+    ] as T;
   }
 
   private static _getEntityHierarchyPath(rootEntity: Entity, searchEntity: Entity, inversePath: number[]): boolean {
