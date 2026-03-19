@@ -138,7 +138,25 @@ export class LitePhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.fireEvents }
    */
   fireEvents(): void {
-    this._fireEvent();
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    currentEvents.forEach((event, i) => {
+      if (!event.alreadyInvoked) {
+        if (event.state == TriggerEventState.Enter) {
+          this._onTriggerEnter(event.index1, event.index2);
+          event.alreadyInvoked = true;
+        } else if (event.state == TriggerEventState.Stay) {
+          this._onTriggerStay(event.index1, event.index2);
+          event.alreadyInvoked = true;
+        }
+      } else {
+        event.state = TriggerEventState.Exit;
+        this._eventMap[event.index1][event.index2] = undefined;
+
+        currentEvents.deleteByIndex(i);
+        this._onTriggerExit(event.index1, event.index2);
+        eventPool.push(event);
+      }
+    });
   }
 
   /**
@@ -410,28 +428,6 @@ export class LitePhysicsScene implements IPhysicsScene {
         }
       }
     }
-  }
-
-  private _fireEvent(): void {
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    currentEvents.forEach((event, i) => {
-      if (!event.alreadyInvoked) {
-        if (event.state == TriggerEventState.Enter) {
-          this._onTriggerEnter(event.index1, event.index2);
-          event.alreadyInvoked = true;
-        } else if (event.state == TriggerEventState.Stay) {
-          this._onTriggerStay(event.index1, event.index2);
-          event.alreadyInvoked = true;
-        }
-      } else {
-        event.state = TriggerEventState.Exit;
-        this._eventMap[event.index1][event.index2] = undefined;
-
-        currentEvents.deleteByIndex(i);
-        this._onTriggerExit(event.index1, event.index2);
-        eventPool.push(event);
-      }
-    });
   }
 
   private _boxCollision(other: LiteColliderShape): boolean {

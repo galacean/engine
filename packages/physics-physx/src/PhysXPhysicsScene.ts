@@ -189,7 +189,39 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.fireEvents }
    */
   fireEvents(): void {
-    this._fireEvent();
+    // Fire buffered contact events (deferred from fetchResults)
+    const { _contactEvents: contactEvents, _contactEventPool: contactEventPool } = this;
+    for (let i = 0, n = contactEvents.length; i < n; i++) {
+      const event = contactEvents[i];
+      switch (event.state) {
+        case PhysicsEventState.Enter:
+          this._onContactEnter(event);
+          break;
+        case PhysicsEventState.Stay:
+          this._onContactStay(event);
+          break;
+        case PhysicsEventState.Exit:
+          this._onContactExit(event);
+          break;
+      }
+      contactEventPool.push(event);
+    }
+    contactEvents.length = 0;
+
+    // Fire trigger events
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    currentEvents.forEach((event, i) => {
+      if (event.state == PhysicsEventState.Enter) {
+        this._onTriggerEnter(event.index1, event.index2);
+        event.state = PhysicsEventState.Stay;
+      } else if (event.state == PhysicsEventState.Stay) {
+        this._onTriggerStay(event.index1, event.index2);
+      } else if (event.state == PhysicsEventState.Exit) {
+        currentEvents.deleteByIndex(i);
+        this._onTriggerExit(event.index1, event.index2);
+        eventPool.push(event);
+      }
+    });
   }
 
   /**
@@ -548,41 +580,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._contactEvents.push(event);
   }
 
-  private _fireEvent(): void {
-    // Fire buffered contact events (deferred from fetchResults)
-    const { _contactEvents: contactEvents, _contactEventPool: contactEventPool } = this;
-    for (let i = 0, n = contactEvents.length; i < n; i++) {
-      const event = contactEvents[i];
-      switch (event.state) {
-        case PhysicsEventState.Enter:
-          this._onContactEnter(event);
-          break;
-        case PhysicsEventState.Stay:
-          this._onContactStay(event);
-          break;
-        case PhysicsEventState.Exit:
-          this._onContactExit(event);
-          break;
-      }
-      contactEventPool.push(event);
-    }
-    contactEvents.length = 0;
-
-    // Fire trigger events
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    currentEvents.forEach((event, i) => {
-      if (event.state == PhysicsEventState.Enter) {
-        this._onTriggerEnter(event.index1, event.index2);
-        event.state = PhysicsEventState.Stay;
-      } else if (event.state == PhysicsEventState.Stay) {
-        this._onTriggerStay(event.index1, event.index2);
-      } else if (event.state == PhysicsEventState.Exit) {
-        currentEvents.deleteByIndex(i);
-        this._onTriggerExit(event.index1, event.index2);
-        eventPool.push(event);
-      }
-    });
-  }
 }
 
 /**
