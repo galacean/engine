@@ -14,8 +14,8 @@ export interface IContactEvent extends ICollision {
 export interface ITriggerEvent {
   index1: number;
   index2: number;
-  /** 0 = Enter, 1 = Stay, 2 = Exit */
-  state: number;
+  /** The state snapshot for dispatch. 0 = Enter, 1 = Stay, 2 = Exit */
+  dispatchState: number;
 }
 
 /**

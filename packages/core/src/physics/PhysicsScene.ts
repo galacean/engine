@@ -789,7 +789,7 @@ export class PhysicsScene {
       const shape1 = physicalObjectsMap[event.index1];
       const shape2 = physicalObjectsMap[event.index2];
 
-      switch (event.state) {
+      switch (event.dispatchState) {
         case PhysicsEventState.Enter:
           shape1.collider.entity._scripts.forEach((element: Script) => {
             element.onTriggerEnter(shape2);

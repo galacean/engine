@@ -129,10 +129,12 @@ export class LitePhysicsScene implements IPhysicsScene {
 
     activeTriggers.forEach((event, i) => {
       if (!event.alreadyInvoked) {
+        event.dispatchState = event.state;
         triggerResults.push(event);
         event.alreadyInvoked = true;
       } else {
         event.state = PhysicsEventState.Exit;
+        event.dispatchState = PhysicsEventState.Exit;
         this._eventMap[event.index1][event.index2] = undefined;
         activeTriggers.deleteByIndex(i);
         triggerResults.push(event);
@@ -491,6 +493,7 @@ const PhysicsEventState = {
  */
 class TriggerEvent implements ITriggerEvent {
   state: number;
+  dispatchState: number;
   index1: number;
   index2: number;
   alreadyInvoked = false;
