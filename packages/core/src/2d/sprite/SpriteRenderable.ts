@@ -205,11 +205,7 @@ export function SpriteRenderable<T extends RendererConstructor>(
      * @internal
      */
     _initSpriteRenderable(textureProperty: ShaderProperty): void {
-      this._dataBinding = new SpriteDataBinding(
-        this as any,
-        textureProperty,
-        this._onSpriteChanged.bind(this)
-      );
+      this._dataBinding = new SpriteDataBinding(this as any, textureProperty, this._onSpriteChanged.bind(this));
       this._layout = this._createLayout();
       this.drawMode = SpriteDrawMode.Simple;
       this._dirtyUpdateFlag |= SpriteRenderableFlags.Color;
