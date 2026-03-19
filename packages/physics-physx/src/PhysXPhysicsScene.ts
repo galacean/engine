@@ -1,12 +1,5 @@
 import { Ray, Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
-import {
-  ICollision,
-  IPhysicsScene,
-  IPhysicsEvents,
-  PhysicsEventState,
-  IContactEvent,
-  ITriggerEvent
-} from "@galacean/engine-design";
+import { ICollision, IPhysicsScene, IPhysicsEvents, IContactEvent, ITriggerEvent } from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
@@ -538,7 +531,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return event;
   }
 
-  private _bufferContactEvent(collision: ICollision, state: PhysicsEventState): void {
+  private _bufferContactEvent(collision: ICollision, state: number): void {
     const event = this._contactEventPool.length ? this._contactEventPool.pop() : new ContactEvent();
     event.shape0Id = collision.shape0Id;
     event.shape1Id = collision.shape1Id;
@@ -574,11 +567,17 @@ enum QueryFlag {
   NO_BLOCK = 1 << 5
 }
 
+const PhysicsEventState = {
+  Enter: 0,
+  Stay: 1,
+  Exit: 2
+} as const;
+
 /**
  * Trigger event to store interactive object ids and state.
  */
 export class TriggerEvent implements ITriggerEvent {
-  state: PhysicsEventState;
+  state: number;
   index1: number;
   index2: number;
 
@@ -616,7 +615,7 @@ class BufferedContacts {
 }
 
 class ContactEvent implements IContactEvent {
-  state: PhysicsEventState;
+  state: number;
   shape0Id: number;
   shape1Id: number;
 

@@ -1,10 +1,4 @@
-import {
-  ICharacterController,
-  ICollider,
-  IPhysicsScene,
-  IPhysicsEvents,
-  PhysicsEventState
-} from "@galacean/engine-design";
+import { ICharacterController, ICollider, IPhysicsScene, IPhysicsEvents } from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -859,3 +853,10 @@ export class PhysicsScene {
     hitResult.normal.set(0, 0, 0);
   }
 }
+
+/** @internal */
+const PhysicsEventState = {
+  Enter: 0,
+  Stay: 1,
+  Exit: 2
+} as const;

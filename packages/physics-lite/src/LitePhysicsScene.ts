@@ -7,13 +7,7 @@ import {
   Ray,
   Vector3
 } from "@galacean/engine";
-import {
-  ICharacterController,
-  IPhysicsScene,
-  IPhysicsEvents,
-  PhysicsEventState,
-  ITriggerEvent
-} from "@galacean/engine-design";
+import { ICharacterController, IPhysicsScene, IPhysicsEvents, ITriggerEvent } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -486,11 +480,17 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 }
 
+const PhysicsEventState = {
+  Enter: 0,
+  Stay: 1,
+  Exit: 2
+} as const;
+
 /**
  * Trigger event to store interactive object ids and state.
  */
 class TriggerEvent implements ITriggerEvent {
-  state: PhysicsEventState;
+  state: number;
   index1: number;
   index2: number;
   alreadyInvoked = false;
