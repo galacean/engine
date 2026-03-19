@@ -1,4 +1,10 @@
-import { ICharacterController, ICollider, ICollision, IPhysicsScene } from "@galacean/engine-design";
+import {
+  ICharacterController,
+  ICollider,
+  IPhysicsScene,
+  IPhysicsEvents,
+  PhysicsEventState
+} from "@galacean/engine-design";
 import { MathUtil, Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -17,6 +23,9 @@ import { ColliderShape } from "./shape";
 export class PhysicsScene {
   private static _collision = new Collision();
   private static _identityQuaternion = new Quaternion(0, 0, 0, 1);
+  private static _scriptIndexSetter = (element: Script, index: number) => {
+    element._entityScriptsIndex = index;
+  };
 
   private _scene: Scene;
   private _restTime: number = 0;
@@ -26,163 +35,6 @@ export class PhysicsScene {
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
-
-  private _onContactEnter = (nativeCollision: ICollision) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const { shape0Id, shape1Id } = nativeCollision;
-    const shape1 = physicalObjectsMap[shape0Id];
-    const shape2 = physicalObjectsMap[shape1Id];
-    const collision = PhysicsScene._collision;
-    collision._nativeCollision = nativeCollision;
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape2;
-        element.onCollisionEnter(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionEnter(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-
-  private _onContactExit = (nativeCollision: ICollision) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const { shape0Id, shape1Id } = nativeCollision;
-    const shape1 = physicalObjectsMap[shape0Id];
-    const shape2 = physicalObjectsMap[shape1Id];
-    const collision = PhysicsScene._collision;
-    collision._nativeCollision = nativeCollision;
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape2;
-        element.onCollisionExit(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionExit(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-  private _onContactStay = (nativeCollision: ICollision) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const { shape0Id, shape1Id } = nativeCollision;
-    const shape1 = physicalObjectsMap[shape0Id];
-    const shape2 = physicalObjectsMap[shape1Id];
-    const collision = PhysicsScene._collision;
-    collision._nativeCollision = nativeCollision;
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape2;
-        element.onCollisionStay(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        collision.shape = shape1;
-        element.onCollisionStay(collision);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-  private _onTriggerEnter = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const shape1 = physicalObjectsMap[obj1];
-    const shape2 = physicalObjectsMap[obj2];
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerEnter(shape2);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerEnter(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-
-  private _onTriggerExit = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const shape1 = physicalObjectsMap[obj1];
-    const shape2 = physicalObjectsMap[obj2];
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerExit(shape2);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerExit(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
-
-  private _onTriggerStay = (obj1: number, obj2: number) => {
-    const physicalObjectsMap = Engine._physicalObjectsMap;
-    const shape1 = physicalObjectsMap[obj1];
-    const shape2 = physicalObjectsMap[obj2];
-
-    shape1.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerStay(shape2);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-
-    shape2.collider.entity._scripts.forEach(
-      (element: Script) => {
-        element.onTriggerStay(shape1);
-      },
-      (element: Script, index: number) => {
-        element._entityScriptsIndex = index;
-      }
-    );
-  };
 
   /**
    * The gravity of physics scene.
@@ -218,15 +70,7 @@ export class PhysicsScene {
 
     const engine = scene.engine;
     if (engine._physicsInitialized) {
-      this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(
-        engine._nativePhysicsManager,
-        this._onContactEnter,
-        this._onContactExit,
-        this._onContactStay,
-        this._onTriggerEnter,
-        this._onTriggerExit,
-        this._onTriggerStay
-      );
+      this._nativePhysicsScene = Engine._nativePhysics.createPhysicsScene(engine._nativePhysicsManager);
     }
   }
 
@@ -810,7 +654,7 @@ export class PhysicsScene {
       this._callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
-      nativePhysicsManager.fireEvents();
+      this._dispatchEvents(nativePhysicsManager.fireEvents());
     }
   }
 
@@ -896,6 +740,89 @@ export class PhysicsScene {
    */
   _destroy(): void {
     this._nativePhysicsScene?.destroy();
+  }
+
+  private _dispatchEvents(events: IPhysicsEvents): void {
+    const physicalObjectsMap = Engine._physicalObjectsMap;
+    const collision = PhysicsScene._collision;
+    const scriptIndexSetter = PhysicsScene._scriptIndexSetter;
+
+    // Dispatch contact events
+    const { contactEvents } = events;
+    for (let i = 0, n = contactEvents.length; i < n; i++) {
+      const event = contactEvents[i];
+      const shape1 = physicalObjectsMap[event.shape0Id];
+      const shape2 = physicalObjectsMap[event.shape1Id];
+      collision._nativeCollision = event;
+
+      switch (event.state) {
+        case PhysicsEventState.Enter:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape2;
+            element.onCollisionEnter(collision);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape1;
+            element.onCollisionEnter(collision);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Stay:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape2;
+            element.onCollisionStay(collision);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape1;
+            element.onCollisionStay(collision);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Exit:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape2;
+            element.onCollisionExit(collision);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            collision.shape = shape1;
+            element.onCollisionExit(collision);
+          }, scriptIndexSetter);
+          break;
+      }
+    }
+
+    // Dispatch trigger events
+    const { triggerEvents } = events;
+    for (let i = 0, n = triggerEvents.length; i < n; i++) {
+      const event = triggerEvents[i];
+      const shape1 = physicalObjectsMap[event.index1];
+      const shape2 = physicalObjectsMap[event.index2];
+
+      switch (event.state) {
+        case PhysicsEventState.Enter:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerEnter(shape2);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerEnter(shape1);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Stay:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerStay(shape2);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerStay(shape1);
+          }, scriptIndexSetter);
+          break;
+        case PhysicsEventState.Exit:
+          shape1.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerExit(shape2);
+          }, scriptIndexSetter);
+          shape2.collider.entity._scripts.forEach((element: Script) => {
+            element.onTriggerExit(shape1);
+          }, scriptIndexSetter);
+          break;
+      }
+    }
   }
 
   private _setGravity(): void {

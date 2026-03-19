@@ -1,6 +1,7 @@
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
+import { IPhysicsEvents } from "./IPhysicsEvents";
 
 /**
  * Interface for physics manager.
@@ -46,7 +47,7 @@ export interface IPhysicsScene {
    * Fire buffered collision and trigger events.
    * Must be called after update() and after syncing transforms back from physics.
    */
-  fireEvents(): void;
+  fireEvents(): IPhysicsEvents;
 
   /**
    * Casts a ray through the Scene and returns the first hit.

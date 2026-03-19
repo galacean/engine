@@ -1,5 +1,12 @@
 import { Ray, Vector3, DisorderedArray, Quaternion } from "@galacean/engine";
-import { ICollision, IPhysicsScene } from "@galacean/engine-design";
+import {
+  ICollision,
+  IPhysicsScene,
+  IPhysicsEvents,
+  PhysicsEventState,
+  IContactEvent,
+  ITriggerEvent
+} from "@galacean/engine-design";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
@@ -34,29 +41,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxScene: any;
   private _physXSimulationCallbackInstance: any;
 
-  private readonly _onContactEnter?: (collision: ICollision) => void;
-  private readonly _onContactExit?: (collision: ICollision) => void;
-  private readonly _onContactStay?: (collision: ICollision) => void;
-  private readonly _onTriggerEnter?: (index1: number, index2: number) => void;
-  private readonly _onTriggerExit?: (index1: number, index2: number) => void;
-  private readonly _onTriggerStay?: (index1: number, index2: number) => void;
-
-  private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
+  private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _contactEvents: ContactEvent[] = [];
   private _contactEventPool: ContactEvent[] = [];
+  private _triggerEventResults: TriggerEvent[] = [];
+  private _physicsEvents: IPhysicsEvents = { contactEvents: [], triggerEvents: [] };
 
   private _eventPool: TriggerEvent[] = [];
 
-  constructor(
-    physXPhysics: PhysXPhysics,
-    physicsManager: PhysXPhysicsManager,
-    onContactEnter?: (collision: ICollision) => void,
-    onContactExit?: (collision: ICollision) => void,
-    onContactStay?: (collision: ICollision) => void,
-    onTriggerEnter?: (obj1: number, obj2: number) => void,
-    onTriggerExit?: (obj1: number, obj2: number) => void,
-    onTriggerStay?: (obj1: number, obj2: number) => void
-  ) {
+  constructor(physXPhysics: PhysXPhysics, physicsManager: PhysXPhysicsManager) {
     this._physXPhysics = physXPhysics;
     this._physXManager = physicsManager;
 
@@ -65,13 +58,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxRaycastHit = new physX.PxRaycastHit();
     this._pxFilterData = new physX.PxQueryFilterData();
     this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
-
-    this._onContactEnter = onContactEnter;
-    this._onContactExit = onContactExit;
-    this._onContactStay = onContactStay;
-    this._onTriggerEnter = onTriggerEnter;
-    this._onTriggerExit = onTriggerExit;
-    this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
       onContactBegin: (collision) => {
@@ -86,7 +72,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       onTriggerBegin: (index1, index2) => {
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
         event.state = PhysicsEventState.Enter;
-        this._currentEvents.add(event);
+        this._activeTriggers.add(event);
       },
       onTriggerEnd: (index1, index2) => {
         let event: TriggerEvent;
@@ -181,6 +167,13 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.update }
    */
   update(elapsedTime: number): void {
+    // Pool previous frame's contact events before buffering new ones
+    const { _contactEvents: contactEvents, _contactEventPool: contactEventPool } = this;
+    for (let i = 0, n = contactEvents.length; i < n; i++) {
+      contactEventPool.push(contactEvents[i]);
+    }
+    contactEvents.length = 0;
+
     this._simulate(elapsedTime);
     this._fetchResults();
   }
@@ -188,40 +181,28 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   /**
    * {@inheritDoc IPhysicsScene.fireEvents }
    */
-  fireEvents(): void {
-    // Fire buffered contact events (deferred from fetchResults)
-    const { _contactEvents: contactEvents, _contactEventPool: contactEventPool } = this;
-    for (let i = 0, n = contactEvents.length; i < n; i++) {
-      const event = contactEvents[i];
-      switch (event.state) {
-        case PhysicsEventState.Enter:
-          this._onContactEnter(event);
-          break;
-        case PhysicsEventState.Stay:
-          this._onContactStay(event);
-          break;
-        case PhysicsEventState.Exit:
-          this._onContactExit(event);
-          break;
-      }
-      contactEventPool.push(event);
-    }
-    contactEvents.length = 0;
+  fireEvents(): IPhysicsEvents {
+    const { _contactEvents: contactEvents, _physicsEvents: physicsEvents } = this;
 
-    // Fire trigger events
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    currentEvents.forEach((event, i) => {
+    // Collect trigger events
+    const { _eventPool: eventPool, _activeTriggers: activeTriggers, _triggerEventResults: triggerResults } = this;
+    triggerResults.length = 0;
+    activeTriggers.forEach((event, i) => {
       if (event.state == PhysicsEventState.Enter) {
-        this._onTriggerEnter(event.index1, event.index2);
+        triggerResults.push(event);
         event.state = PhysicsEventState.Stay;
       } else if (event.state == PhysicsEventState.Stay) {
-        this._onTriggerStay(event.index1, event.index2);
+        triggerResults.push(event);
       } else if (event.state == PhysicsEventState.Exit) {
-        currentEvents.deleteByIndex(i);
-        this._onTriggerExit(event.index1, event.index2);
+        activeTriggers.deleteByIndex(i);
+        triggerResults.push(event);
         eventPool.push(event);
       }
     });
+
+    physicsEvents.contactEvents = contactEvents;
+    physicsEvents.triggerEvents = triggerResults;
+    return physicsEvents;
   }
 
   /**
@@ -441,7 +422,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * @internal
    */
   _removeColliderShape(id: number) {
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    const { _eventPool: eventPool, _activeTriggers: currentEvents } = this;
     const { _eventMap: eventMap } = this._physXManager;
     currentEvents.forEach((event, i) => {
       if (event.index1 == id) {
@@ -579,7 +560,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     this._contactEvents.push(event);
   }
-
 }
 
 /**
@@ -595,18 +575,9 @@ enum QueryFlag {
 }
 
 /**
- * Physics event state.
- */
-enum PhysicsEventState {
-  Enter,
-  Stay,
-  Exit
-}
-
-/**
  * Trigger event to store interactive object ids and state.
  */
-export class TriggerEvent {
+export class TriggerEvent implements ITriggerEvent {
   state: PhysicsEventState;
   index1: number;
   index2: number;
@@ -644,7 +615,7 @@ class BufferedContacts {
   }
 }
 
-class ContactEvent implements ICollision {
+class ContactEvent implements IContactEvent {
   state: PhysicsEventState;
   shape0Id: number;
   shape1Id: number;
