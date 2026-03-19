@@ -1584,17 +1584,15 @@ describe("SpriteRenderer", async () => {
  * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteRendererUpdateFlags {
-  /** UV. */
-  UV = 0x2,
   /** Color. */
-  Color = 0x4,
-  /** Automatic Size. */
-  AutomaticSize = 0x8,
+  Color = 0x2,
+  /** UV. */
+  UV = 0x4,
 
   /** WorldVolume and UV. */
-  WorldVolumeAndUV = 0x3,
+  WorldVolumeAndUV = 0x5,
   /** WorldVolume, UV and Color. */
   WorldVolumeUVAndColor = 0x7,
   /** All. */
-  All = 0xf
+  All = 0x7
 }
