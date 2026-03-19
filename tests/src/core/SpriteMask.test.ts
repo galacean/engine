@@ -176,7 +176,7 @@ describe("SpriteMask", async () => {
     // @ts-ignore
     spriteMask._render(context);
     // @ts-ignore
-    const subChunk = spriteMask._subChunk;
+    const subChunk = spriteMask._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];

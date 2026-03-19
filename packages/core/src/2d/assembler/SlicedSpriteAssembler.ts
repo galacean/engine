@@ -1,7 +1,6 @@
-import { BoundingBox, Color, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Color, Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
-import { ISpriteLayout } from "../sprite/ISpriteLayout";
 import { SpritePrimitive } from "../sprite/SpritePrimitive";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 
@@ -29,13 +28,16 @@ export class SlicedSpriteAssembler {
   static updatePositions(
     primitive: SpritePrimitive,
     chunkManager: PrimitiveChunkManager,
-    layout: ISpriteLayout,
     worldMatrix: Matrix,
-    outBounds: BoundingBox
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean,
+    flipY: boolean,
+    outBounds: BoundingBox,
+    referenceResolutionPerUnit: number = 1
   ): void {
     const { sprite } = primitive;
-    const { width, height, pivot, flipX, flipY } = layout;
-    const referenceResolutionPerUnit = layout.referenceResolutionPerUnit ?? 1;
     const { border } = sprite;
     // Update local positions.
     const spritePositions = sprite._getPositions();

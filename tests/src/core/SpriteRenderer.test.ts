@@ -189,7 +189,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.width = 4;
     spriteRenderer.height = 5;
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
@@ -261,7 +261,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
@@ -365,7 +365,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
@@ -1521,7 +1521,7 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     expect(spriteRenderer._assembler).to.eq(null);
     // @ts-ignore
-    expect(spriteRenderer._subChunk).to.eq(null);
+    expect(spriteRenderer._spriteData.subChunk).to.eq(null);
   });
 
   it("_render", () => {
@@ -1532,7 +1532,7 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     spriteRenderer._render(context);
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];

@@ -1,10 +1,9 @@
-import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil, Matrix, Vector2 } from "@galacean/engine-math";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { DisorderedArray } from "../../utils/DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
-import { ISpriteLayout } from "../sprite/ISpriteLayout";
 import { Sprite } from "../sprite/Sprite";
 import { SpritePrimitive } from "../sprite/SpritePrimitive";
 import { ISpriteAssembler } from "./ISpriteAssembler";
@@ -37,14 +36,17 @@ export class TiledSpriteAssembler {
   static updatePositions(
     primitive: SpritePrimitive,
     chunkManager: PrimitiveChunkManager,
-    layout: ISpriteLayout,
     worldMatrix: Matrix,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean,
+    flipY: boolean,
     outBounds: BoundingBox,
+    referenceResolutionPerUnit: number = 1,
     tileMode?: SpriteTileMode,
     tiledAdaptiveThreshold?: number
   ): void {
-    const { width, height, pivot, flipX, flipY } = layout;
-    const referenceResolutionPerUnit = layout.referenceResolutionPerUnit ?? 1;
     // Calculate row and column
     const { _posRow: rPos, _posColumn: cPos, _uvRow: rUV, _uvColumn: cUV } = TiledSpriteAssembler;
     TiledSpriteAssembler.resetData(

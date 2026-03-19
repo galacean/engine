@@ -1,7 +1,6 @@
-import { BoundingBox, Color, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Color, Matrix, Vector2 } from "@galacean/engine-math";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
-import { ISpriteLayout } from "../sprite/ISpriteLayout";
 import { SpritePrimitive } from "../sprite/SpritePrimitive";
 
 /**
@@ -12,9 +11,14 @@ export interface ISpriteAssembler {
   updatePositions(
     primitive: SpritePrimitive,
     chunkManager: PrimitiveChunkManager,
-    layout: ISpriteLayout,
     worldMatrix: Matrix,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean,
+    flipY: boolean,
     outBounds: BoundingBox,
+    referenceResolutionPerUnit?: number,
     tileMode?: SpriteTileMode,
     tiledAdaptiveThreshold?: number
   ): void;

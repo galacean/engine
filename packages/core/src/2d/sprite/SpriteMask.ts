@@ -226,15 +226,12 @@ export class SpriteMask extends Renderer {
       SimpleSpriteAssembler.updatePositions(
         this._spriteData,
         this._getChunkManager(),
-        {
-          width: this.width,
-          height: this.height,
-          pivot: sprite.pivot,
-          flipX: this._flipX,
-          flipY: this._flipY,
-          referenceResolutionPerUnit: undefined
-        },
         this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY,
         this._bounds
       );
     } else {
@@ -268,15 +265,12 @@ export class SpriteMask extends Renderer {
       SimpleSpriteAssembler.updatePositions(
         this._spriteData,
         this._getChunkManager(),
-        {
-          width: this.width,
-          height: this.height,
-          pivot: sprite.pivot,
-          flipX: this._flipX,
-          flipY: this._flipY,
-          referenceResolutionPerUnit: undefined
-        },
         this._transformEntity.transform.worldMatrix,
+        this.width,
+        this.height,
+        sprite.pivot,
+        this._flipX,
+        this._flipY,
         this._bounds
       );
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;

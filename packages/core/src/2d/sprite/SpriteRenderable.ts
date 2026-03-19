@@ -16,7 +16,6 @@ import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
-import { ISpriteLayout } from "./ISpriteLayout";
 import { Sprite } from "./Sprite";
 import { SpritePrimitive } from "./SpritePrimitive";
 
@@ -75,22 +74,10 @@ export interface ISpriteRenderable {
  * All host-specific behavior is accessed through abstract methods, composition objects, and hooks.
  * The mixin NEVER touches host private fields directly.
  */
-type MutableSpriteLayout = { -readonly [K in keyof ISpriteLayout]: ISpriteLayout[K] };
-
 export function SpriteRenderable<T extends RendererConstructor>(
   Base: T
 ): (abstract new (...args: any[]) => ISpriteRenderable) & T {
   abstract class SpriteRenderableHost extends Base {
-    /** Static cached layout object for assembler calls. */
-    private static _layoutCache: MutableSpriteLayout = {
-      width: 0,
-      height: 0,
-      pivot: null,
-      flipX: false,
-      flipY: false,
-      referenceResolutionPerUnit: undefined
-    };
-
     /** @internal */
     @ignoreClone
     _spriteData: SpritePrimitive;
@@ -290,9 +277,14 @@ export function SpriteRenderable<T extends RendererConstructor>(
         this._assembler.updatePositions(
           this._spriteData,
           this._getChunkManager(),
-          this._fillLayout(),
           this._transformEntity.transform.worldMatrix,
+          this._getSpriteWidth(),
+          this._getSpriteHeight(),
+          this._getSpritePivot(),
+          this._getSpriteFlipX(),
+          this._getSpriteFlipY(),
           this._bounds,
+          this._getReferenceResolutionPerUnit(),
           this._tileMode,
           this._tiledAdaptiveThreshold
         );
@@ -330,9 +322,14 @@ export function SpriteRenderable<T extends RendererConstructor>(
         this._assembler.updatePositions(
           this._spriteData,
           this._getChunkManager(),
-          this._fillLayout(),
           this._transformEntity.transform.worldMatrix,
+          this._getSpriteWidth(),
+          this._getSpriteHeight(),
+          this._getSpritePivot(),
+          this._getSpriteFlipX(),
+          this._getSpriteFlipY(),
           this._bounds,
+          this._getReferenceResolutionPerUnit(),
           this._tileMode,
           this._tiledAdaptiveThreshold
         );
@@ -361,19 +358,6 @@ export function SpriteRenderable<T extends RendererConstructor>(
       this._assembler = null;
 
       super._onDestroy();
-    }
-
-    // ===== Private: fill layout cache =====
-
-    private _fillLayout(): ISpriteLayout {
-      const layout = SpriteRenderableHost._layoutCache;
-      layout.width = this._getSpriteWidth();
-      layout.height = this._getSpriteHeight();
-      layout.pivot = this._getSpritePivot();
-      layout.flipX = this._getSpriteFlipX();
-      layout.flipY = this._getSpriteFlipY();
-      layout.referenceResolutionPerUnit = this._getReferenceResolutionPerUnit();
-      return layout;
     }
 
     // ===== Wiring: sprite change dispatch =====

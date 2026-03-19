@@ -1,4 +1,3 @@
-export type { ISpriteLayout } from "./ISpriteLayout";
 export { Sprite } from "./Sprite";
 export { SpritePrimitive } from "./SpritePrimitive";
 export type { ISpritePrimitiveOwner } from "./SpritePrimitive";

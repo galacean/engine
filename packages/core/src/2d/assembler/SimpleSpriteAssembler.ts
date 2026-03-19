@@ -1,7 +1,6 @@
-import { BoundingBox, Color, Matrix } from "@galacean/engine-math";
+import { BoundingBox, Color, Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
-import { ISpriteLayout } from "../sprite/ISpriteLayout";
 import { SpritePrimitive } from "../sprite/SpritePrimitive";
 import { ISpriteAssembler } from "./ISpriteAssembler";
 
@@ -24,12 +23,15 @@ export class SimpleSpriteAssembler {
   static updatePositions(
     primitive: SpritePrimitive,
     chunkManager: PrimitiveChunkManager,
-    layout: ISpriteLayout,
     worldMatrix: Matrix,
+    width: number,
+    height: number,
+    pivot: Vector2,
+    flipX: boolean,
+    flipY: boolean,
     outBounds: BoundingBox
   ): void {
     const { sprite } = primitive;
-    const { width, height, pivot, flipX, flipY } = layout;
     const { x: pivotX, y: pivotY } = pivot;
     // Position to World
     const modelMatrix = SimpleSpriteAssembler._matrix;
