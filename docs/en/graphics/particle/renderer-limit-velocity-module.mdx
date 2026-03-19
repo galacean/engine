@@ -1,0 +1,49 @@
+---
+order: 8
+title: Limit Velocity Over Lifetime Module
+type: Graphics
+group: Particle
+label: Graphics/Particle
+---
+
+### Limit Velocity Over Lifetime Module
+
+[`LimitVelocityOverLifetimeModule`](/apis/core/#LimitVelocityOverLifetimeModule) inherits from `ParticleGeneratorModule` and is used to limit particle velocity over lifetime, with optional damping and drag when the velocity exceeds the configured limit.
+
+Note that this module requires WebGL2. On WebGL1, enabling it will be silently ignored.
+
+## Properties
+
+| Property | Description |
+| --- | --- |
+| [separateAxes](/apis/core/#LimitVelocityOverLifetimeModule-separateAxes) | `boolean` value indicating whether to limit velocity per axis. When disabled, use `speed`; when enabled, use `speedX`, `speedY`, and `speedZ` |
+| [speed](/apis/core/#LimitVelocityOverLifetimeModule-speed) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the overall velocity limit when `separateAxes` is disabled |
+| [speedX](/apis/core/#LimitVelocityOverLifetimeModule-speedX) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the x-axis velocity limit; equivalent to `speed` when `separateAxes` is disabled |
+| [speedY](/apis/core/#LimitVelocityOverLifetimeModule-speedY) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the y-axis velocity limit |
+| [speedZ](/apis/core/#LimitVelocityOverLifetimeModule-speedZ) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the z-axis velocity limit |
+| [dampen](/apis/core/#LimitVelocityOverLifetimeModule-dampen) | `number` value controlling how strongly excess velocity is damped, in the range `0 ~ 1` |
+| [drag](/apis/core/#LimitVelocityOverLifetimeModule-drag) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) object representing the drag applied to particle velocity over lifetime |
+| [multiplyDragByParticleSize](/apis/core/#LimitVelocityOverLifetimeModule-multiplyDragByParticleSize) | `boolean` value indicating whether to scale `drag` by particle size |
+| [multiplyDragByParticleVelocity](/apis/core/#LimitVelocityOverLifetimeModule-multiplyDragByParticleVelocity) | `boolean` value indicating whether to scale `drag` by current particle velocity |
+| [space](/apis/core/#LimitVelocityOverLifetimeModule-space) | [`ParticleSimulationSpace`](/apis/core/#ParticleSimulationSpace) enum specifying the space used for limiting velocity; only effective when `separateAxes` is enabled |
+
+## Example
+
+The following example limits particle velocity separately on each axis in world space and applies damping once the velocity exceeds the configured limit:
+
+```ts
+const { limitVelocityOverLifetime } = particleRenderer.generator;
+
+limitVelocityOverLifetime.enabled = true;
+limitVelocityOverLifetime.separateAxes = true;
+limitVelocityOverLifetime.speedX = new ParticleCompositeCurve(1);
+limitVelocityOverLifetime.speedY = new ParticleCompositeCurve(1);
+limitVelocityOverLifetime.speedZ = new ParticleCompositeCurve(0);
+limitVelocityOverLifetime.space = ParticleSimulationSpace.World;
+limitVelocityOverLifetime.dampen = 0.25;
+limitVelocityOverLifetime.drag = new ParticleCompositeCurve(0);
+limitVelocityOverLifetime.multiplyDragByParticleSize = true;
+limitVelocityOverLifetime.multiplyDragByParticleVelocity = true;
+```
+
+If you only need a single scalar velocity limit, disable `separateAxes` and set `speed` directly.

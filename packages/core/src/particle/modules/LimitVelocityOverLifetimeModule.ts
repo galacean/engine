@@ -43,12 +43,12 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /** @internal */
   @ignoreClone
-  _limitRand = new Rand(0, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
+  _speedRand = new Rand(0, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
 
   @ignoreClone
-  private _limitMinConstantVec = new Vector3();
+  private _speedMinConstantVec = new Vector3();
   @ignoreClone
-  private _limitMaxConstantVec = new Vector3();
+  private _speedMaxConstantVec = new Vector3();
   @ignoreClone
   private _dragConstantVec = new Vector2();
 
@@ -265,7 +265,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _isLimitRandomMode(): boolean {
+  _isSpeedRandomMode(): boolean {
     if (this._separateAxes) {
       return (
         (this._speedX.mode === ParticleCurveMode.TwoConstants || this._speedX.mode === ParticleCurveMode.TwoCurves) &&
@@ -338,7 +338,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _resetRandomSeed(seed: number): void {
-    this._limitRand.reset(seed, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
+    this._speedRand.reset(seed, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
   }
 
   private _uploadScalarSpeed(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
@@ -416,7 +416,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
         randomMacro = LimitVelocityOverLifetimeModule._speedIsRandomMacro;
       }
     } else {
-      const constantMax = this._limitMaxConstantVec;
+      const constantMax = this._speedMaxConstantVec;
       constantMax.set(speedX.constantMax, speedY.constantMax, speedZ.constantMax);
       shaderData.setVector3(LimitVelocityOverLifetimeModule._speedMaxConstVecProperty, constantMax);
       modeMacro = LimitVelocityOverLifetimeModule._speedConstantModeMacro;
@@ -426,7 +426,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
         speedY.mode === ParticleCurveMode.TwoConstants &&
         speedZ.mode === ParticleCurveMode.TwoConstants
       ) {
-        const constantMin = this._limitMinConstantVec;
+        const constantMin = this._speedMinConstantVec;
         constantMin.set(speedX.constantMin, speedY.constantMin, speedZ.constantMin);
         shaderData.setVector3(LimitVelocityOverLifetimeModule._speedMinConstVecProperty, constantMin);
         randomMacro = LimitVelocityOverLifetimeModule._speedIsRandomMacro;

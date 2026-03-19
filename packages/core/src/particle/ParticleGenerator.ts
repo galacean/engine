@@ -1015,9 +1015,9 @@ export class ParticleGenerator {
     const { limitVelocityOverLifetime } = this;
     if (
       limitVelocityOverLifetime.enabled &&
-      (limitVelocityOverLifetime._isLimitRandomMode() || limitVelocityOverLifetime._isDragRandomMode())
+      (limitVelocityOverLifetime._isSpeedRandomMode() || limitVelocityOverLifetime._isDragRandomMode())
     ) {
-      instanceVertices[offset + 41] = limitVelocityOverLifetime._limitRand.random();
+      instanceVertices[offset + 41] = limitVelocityOverLifetime._speedRand.random();
     }
 
     // Initialize feedback buffer for this particle
