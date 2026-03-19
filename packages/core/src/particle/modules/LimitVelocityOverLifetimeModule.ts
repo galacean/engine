@@ -282,8 +282,8 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   _updateShaderData(shaderData: ShaderData): void {
     let enabledModuleMacro = <ShaderMacro>null;
     let separateAxesMacro = <ShaderMacro>null;
-    let limitModeMacro = <ShaderMacro>null;
-    let limitRandomMacro = <ShaderMacro>null;
+    let speedModeMacro = <ShaderMacro>null;
+    let speedRandomMacro = <ShaderMacro>null;
     let dragCurveMacro = <ShaderMacro>null;
     let dragRandomMacro = <ShaderMacro>null;
     let dragSizeMacro = <ShaderMacro>null;
@@ -298,16 +298,16 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
       // Space
       shaderData.setInt(LimitVelocityOverLifetimeModule._spaceProperty, this._space);
 
-      // Limit
+      // Limit speed
       if (this._separateAxes) {
         separateAxesMacro = LimitVelocityOverLifetimeModule._separateAxesMacro;
-        const result = this._uploadSeparateAxisLimits(shaderData);
-        limitModeMacro = result.modeMacro;
-        limitRandomMacro = result.randomMacro;
+        const result = this._uploadSeparateAxisSpeeds(shaderData);
+        speedModeMacro = result.modeMacro;
+        speedRandomMacro = result.randomMacro;
       } else {
-        const result = this._uploadScalarLimit(shaderData);
-        limitModeMacro = result.modeMacro;
-        limitRandomMacro = result.randomMacro;
+        const result = this._uploadScalarSpeed(shaderData);
+        speedModeMacro = result.modeMacro;
+        speedRandomMacro = result.randomMacro;
       }
 
       // Drag
@@ -326,8 +326,8 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
     this._enabledModuleMacro = this._enableMacro(shaderData, this._enabledModuleMacro, enabledModuleMacro);
     this._separateAxesCachedMacro = this._enableMacro(shaderData, this._separateAxesCachedMacro, separateAxesMacro);
-    this._speedModeMacro = this._enableMacro(shaderData, this._speedModeMacro, limitModeMacro);
-    this._speedRandomMacro = this._enableMacro(shaderData, this._speedRandomMacro, limitRandomMacro);
+    this._speedModeMacro = this._enableMacro(shaderData, this._speedModeMacro, speedModeMacro);
+    this._speedRandomMacro = this._enableMacro(shaderData, this._speedRandomMacro, speedRandomMacro);
     this._dragCurveCachedMacro = this._enableMacro(shaderData, this._dragCurveCachedMacro, dragCurveMacro);
     this._dragRandomCachedMacro = this._enableMacro(shaderData, this._dragRandomCachedMacro, dragRandomMacro);
     this._dragSizeMacro = this._enableMacro(shaderData, this._dragSizeMacro, dragSizeMacro);
@@ -341,7 +341,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     this._limitRand.reset(seed, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
   }
 
-  private _uploadScalarLimit(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadScalarSpeed(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
     const speedX = this._speedX;
     let modeMacro: ShaderMacro = null;
     let randomMacro: ShaderMacro = null;
@@ -369,7 +369,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
     return { modeMacro, randomMacro };
   }
 
-  private _uploadSeparateAxisLimits(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
+  private _uploadSeparateAxisSpeeds(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
     const speedX = this._speedX;
     const speedY = this._speedY;
     const speedZ = this._speedZ;
