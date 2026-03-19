@@ -121,9 +121,9 @@ function createParticle(engine: Engine, rootEntity: Entity, texture: Texture2D):
   // Limit velocity over lifetime
   limitVelocityOverLifetime.enabled = true;
   limitVelocityOverLifetime.separateAxes = true;
-  limitVelocityOverLifetime.limitX = new ParticleCompositeCurve(1);
-  limitVelocityOverLifetime.limitY = new ParticleCompositeCurve(1);
-  limitVelocityOverLifetime.limitZ = new ParticleCompositeCurve(0);
+  limitVelocityOverLifetime.speedX = new ParticleCompositeCurve(1);
+  limitVelocityOverLifetime.speedY = new ParticleCompositeCurve(1);
+  limitVelocityOverLifetime.speedZ = new ParticleCompositeCurve(0);
   limitVelocityOverLifetime.space = ParticleSimulationSpace.World;
   limitVelocityOverLifetime.dampen = 0.25;
   limitVelocityOverLifetime.drag = new ParticleCompositeCurve(0.0);
