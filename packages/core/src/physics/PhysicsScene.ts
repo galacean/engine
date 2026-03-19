@@ -793,7 +793,7 @@ export class PhysicsScene {
     }
     return shapes;
   }
-  
+
   /**
    * Call on every frame to update pose of objects.
    * @internal
