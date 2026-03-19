@@ -25,4 +25,4 @@ label: Graphics/Particle
 | [drag](/apis/core/#LimitVelocityOverLifetimeModule-drag) | [ParticleCompositeCurve](/apis/core/#ParticleCompositeCurve) 对象，表示生命周期内对粒子速度施加的拖拽系数 |
 | [multiplyDragByParticleSize](/apis/core/#LimitVelocityOverLifetimeModule-multiplyDragByParticleSize) | `boolean` 类型，是否按粒子尺寸放大 `drag` 的影响 |
 | [multiplyDragByParticleVelocity](/apis/core/#LimitVelocityOverLifetimeModule-multiplyDragByParticleVelocity) | `boolean` 类型，是否按粒子当前速度放大 `drag` 的影响 |
-| [space](/apis/core/#LimitVelocityOverLifetimeModule-space) | [`ParticleSimulationSpace`](/apis/core/#ParticleSimulationSpace) 枚举，指定限速所使用的空间；仅在 `separateAxes` 开启时生效 |
+| [space](/apis/core/#LimitVelocityOverLifetimeModule-space) | [`ParticleSimulationSpace`](/apis/core/#ParticleSimulationSpace) 枚举，指定限速所使用的空间；仅在 `separateAxes` 开启时生效。当 `separateAxes` 关闭时，限速作用于整体速度大小，切换 `space` 不会有视觉上的差异；只有开启 `separateAxes` 后，各轴独立限速，`space` 的切换才会产生明显的视觉效果 |
