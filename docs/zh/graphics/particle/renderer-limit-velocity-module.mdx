@@ -26,24 +26,3 @@ label: Graphics/Particle
 | [multiplyDragByParticleSize](/apis/core/#LimitVelocityOverLifetimeModule-multiplyDragByParticleSize) | `boolean` 类型，是否按粒子尺寸放大 `drag` 的影响 |
 | [multiplyDragByParticleVelocity](/apis/core/#LimitVelocityOverLifetimeModule-multiplyDragByParticleVelocity) | `boolean` 类型，是否按粒子当前速度放大 `drag` 的影响 |
 | [space](/apis/core/#LimitVelocityOverLifetimeModule-space) | [`ParticleSimulationSpace`](/apis/core/#ParticleSimulationSpace) 枚举，指定限速所使用的空间；仅在 `separateAxes` 开启时生效 |
-
-## 使用示例
-
-下面的示例会在世界空间中分别限制粒子 x、y、z 方向的速度，并在超过上限时施加阻尼：
-
-```ts
-const { limitVelocityOverLifetime } = particleRenderer.generator;
-
-limitVelocityOverLifetime.enabled = true;
-limitVelocityOverLifetime.separateAxes = true;
-limitVelocityOverLifetime.speedX = new ParticleCompositeCurve(1);
-limitVelocityOverLifetime.speedY = new ParticleCompositeCurve(1);
-limitVelocityOverLifetime.speedZ = new ParticleCompositeCurve(0);
-limitVelocityOverLifetime.space = ParticleSimulationSpace.World;
-limitVelocityOverLifetime.dampen = 0.25;
-limitVelocityOverLifetime.drag = new ParticleCompositeCurve(0);
-limitVelocityOverLifetime.multiplyDragByParticleSize = true;
-limitVelocityOverLifetime.multiplyDragByParticleVelocity = true;
-```
-
-如果只需要限制粒子的整体速度，可以关闭 `separateAxes` 并直接设置 `speed`。
