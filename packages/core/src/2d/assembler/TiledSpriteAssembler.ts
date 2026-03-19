@@ -1,10 +1,13 @@
-import { MathUtil, Matrix, Vector2 } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Logger } from "../../base";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { DisorderedArray } from "../../utils/DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
+import { ISpriteLayout } from "../sprite/ISpriteLayout";
+import { Sprite } from "../sprite/Sprite";
+import { SpritePrimitive } from "../sprite/SpritePrimitive";
 import { ISpriteAssembler } from "./ISpriteAssembler";
-import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
  * Assemble vertex data for the sprite renderer in tiled mode.
@@ -17,36 +20,49 @@ export class TiledSpriteAssembler {
   private static _uvRow = new DisorderedArray<number>();
   private static _uvColumn = new DisorderedArray<number>();
 
-  static resetData(renderer: ISpriteRenderer, vertexCount: number): void {
+  static resetData(primitive: SpritePrimitive, chunkManager: PrimitiveChunkManager, vertexCount: number): void {
     if (vertexCount) {
-      const manager = renderer._getChunkManager();
-      const lastSubChunk = renderer._subChunk;
+      const lastSubChunk = primitive.subChunk;
       const sizeChanged = lastSubChunk && lastSubChunk.vertexArea.size !== vertexCount * 9;
-      sizeChanged && manager.freeSubChunk(lastSubChunk);
+      sizeChanged && chunkManager.freeSubChunk(lastSubChunk);
 
       if (!lastSubChunk || sizeChanged) {
-        const newSubChunk = manager.allocateSubChunk(vertexCount);
+        const newSubChunk = chunkManager.allocateSubChunk(vertexCount);
         newSubChunk.indices = [];
-        renderer._subChunk = newSubChunk;
+        primitive.subChunk = newSubChunk;
       }
     }
   }
 
   static updatePositions(
-    renderer: ISpriteRenderer,
+    primitive: SpritePrimitive,
+    chunkManager: PrimitiveChunkManager,
+    layout: ISpriteLayout,
     worldMatrix: Matrix,
-    width: number,
-    height: number,
-    pivot: Vector2,
-    flipX: boolean,
-    flipY: boolean,
-    referenceResolutionPerUnit: number = 1
+    outBounds: BoundingBox,
+    tileMode?: SpriteTileMode,
+    tiledAdaptiveThreshold?: number
   ): void {
+    const { width, height, pivot, flipX, flipY } = layout;
+    const referenceResolutionPerUnit = layout.referenceResolutionPerUnit ?? 1;
     // Calculate row and column
     const { _posRow: rPos, _posColumn: cPos, _uvRow: rUV, _uvColumn: cUV } = TiledSpriteAssembler;
     TiledSpriteAssembler.resetData(
-      renderer,
-      TiledSpriteAssembler._calculateDividing(renderer, width, height, rPos, cPos, rUV, cUV, referenceResolutionPerUnit)
+      primitive,
+      chunkManager,
+      TiledSpriteAssembler._calculateDividing(
+        primitive.sprite,
+        tileMode,
+        tiledAdaptiveThreshold,
+        chunkManager.maxVertexCount,
+        width,
+        height,
+        rPos,
+        cPos,
+        rUV,
+        cUV,
+        referenceResolutionPerUnit
+      )
     );
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = pivot;
@@ -71,7 +87,7 @@ export class TiledSpriteAssembler {
     const rowLength = rPos.length - 1;
     const columnLength = cPos.length - 1;
 
-    const subChunk = renderer._subChunk;
+    const subChunk = primitive.subChunk;
     const vertices = subChunk.chunk.vertices;
     const indices = subChunk.indices;
     let count = 0;
@@ -118,18 +134,16 @@ export class TiledSpriteAssembler {
       }
     }
 
-    // @ts-ignore
-    const bounds = renderer._bounds;
-    bounds.min.set(rPos.get(0), cPos.get(0), 0);
-    bounds.max.set(rPos.get(rowLength), cPos.get(columnLength), 0);
-    bounds.transform(modelMatrix);
+    outBounds.min.set(rPos.get(0), cPos.get(0), 0);
+    outBounds.max.set(rPos.get(rowLength), cPos.get(columnLength), 0);
+    outBounds.transform(modelMatrix);
   }
 
-  static updateUVs(renderer: ISpriteRenderer): void {
+  static updateUVs(primitive: SpritePrimitive): void {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = TiledSpriteAssembler;
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-    const subChunk = renderer._subChunk;
+    const subChunk = primitive.subChunk;
     const vertices = subChunk.chunk.vertices;
     for (let j = 0, o = subChunk.vertexArea.start + 3; j < columnLength; j++) {
       const doubleJ = 2 * j;
@@ -159,9 +173,9 @@ export class TiledSpriteAssembler {
     }
   }
 
-  static updateColor(renderer: ISpriteRenderer, alpha: number): void {
-    const subChunk = renderer._subChunk;
-    const { r, g, b, a } = renderer.color;
+  static updateColor(primitive: SpritePrimitive, color: Color, alpha: number): void {
+    const subChunk = primitive.subChunk;
+    const { r, g, b, a } = color;
     const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     const vertexArea = subChunk.vertexArea;
@@ -174,7 +188,10 @@ export class TiledSpriteAssembler {
   }
 
   private static _calculateDividing(
-    renderer: ISpriteRenderer,
+    sprite: Sprite,
+    tileMode: SpriteTileMode,
+    threshold: number,
+    maxVertexCount: number,
     width: number,
     height: number,
     rPos: DisorderedArray<number>,
@@ -183,7 +200,6 @@ export class TiledSpriteAssembler {
     cUV: DisorderedArray<number>,
     referenceResolutionPerUnit: number
   ): number {
-    const { sprite, tiledAdaptiveThreshold: threshold } = renderer;
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
@@ -199,7 +215,7 @@ export class TiledSpriteAssembler {
     const fixedB = expectHeight * border.y;
     const fixedTB = fixedT + fixedB;
     const fixedCH = expectHeight - fixedTB;
-    const isAdaptive = renderer.tileMode === SpriteTileMode.Adaptive;
+    const isAdaptive = tileMode === SpriteTileMode.Adaptive;
     let rType: TiledType, rBlocksCount: number, rTiledCount: number;
     let cType: TiledType, cBlocksCount: number, cTiledCount: number;
     if (fixedLR >= width) {
@@ -241,7 +257,6 @@ export class TiledSpriteAssembler {
 
     rPos.length = cPos.length = rUV.length = cUV.length = 0;
     const vertexCount = rBlocksCount * cBlocksCount * 4;
-    const maxVertexCount = renderer._getChunkManager().maxVertexCount;
     if (vertexCount > maxVertexCount) {
       rPos.add(width * left), rPos.add(width * right);
       cPos.add(height * bottom), cPos.add(height * top);

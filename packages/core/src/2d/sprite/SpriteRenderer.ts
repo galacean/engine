@@ -1,4 +1,4 @@
-import { Color } from "@galacean/engine-math";
+import { Color, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
@@ -9,11 +9,9 @@ import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { Material } from "../../material";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
-import { ISpriteLayout } from "./ISpriteLayout";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteRenderable, SpriteRenderableFlags } from "./SpriteRenderable";
-import { WorldSpriteLayout } from "./WorldSpriteLayout";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -24,6 +22,21 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
+
+  @ignoreClone
+  private _customWidth: number = undefined;
+  @ignoreClone
+  private _customHeight: number = undefined;
+  @ignoreClone
+  private _automaticWidth: number = 0;
+  @ignoreClone
+  private _automaticHeight: number = 0;
+  @ignoreClone
+  private _autoSizeDirty: boolean = true;
+  @ignoreClone
+  private _flipX: boolean = false;
+  @ignoreClone
+  private _flipY: boolean = false;
 
   /**
    * Rendering color for the Sprite graphic.
@@ -46,13 +59,18 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
    * otherwise return `SpriteRenderer.sprite.width`.
    */
   get width(): number {
-    return (<WorldSpriteLayout>this._layout).width;
+    if (this._customWidth !== undefined) {
+      return this._customWidth;
+    }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticWidth;
   }
 
   set width(value: number) {
-    const layout = <WorldSpriteLayout>this._layout;
-    if (layout.customWidth !== value) {
-      layout.width = value;
+    if (this._customWidth !== value) {
+      this._customWidth = value;
       this._dirtyUpdateFlag |=
         this.drawMode === SpriteDrawMode.Tiled
           ? SpriteRenderableFlags.WorldVolumeUVAndColor
@@ -68,13 +86,18 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
    * otherwise return `SpriteRenderer.sprite.height`.
    */
   get height(): number {
-    return (<WorldSpriteLayout>this._layout).height;
+    if (this._customHeight !== undefined) {
+      return this._customHeight;
+    }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticHeight;
   }
 
   set height(value: number) {
-    const layout = <WorldSpriteLayout>this._layout;
-    if (layout.customHeight !== value) {
-      layout.height = value;
+    if (this._customHeight !== value) {
+      this._customHeight = value;
       this._dirtyUpdateFlag |=
         this.drawMode === SpriteDrawMode.Tiled
           ? SpriteRenderableFlags.WorldVolumeUVAndColor
@@ -86,13 +109,12 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
    * Flips the sprite on the X axis.
    */
   get flipX(): boolean {
-    return (<WorldSpriteLayout>this._layout).flipX;
+    return this._flipX;
   }
 
   set flipX(value: boolean) {
-    const layout = <WorldSpriteLayout>this._layout;
-    if (layout.flipX !== value) {
-      layout.flipX = value;
+    if (this._flipX !== value) {
+      this._flipX = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -101,13 +123,12 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
    * Flips the sprite on the Y axis.
    */
   get flipY(): boolean {
-    return (<WorldSpriteLayout>this._layout).flipY;
+    return this._flipY;
   }
 
   set flipY(value: boolean) {
-    const layout = <WorldSpriteLayout>this._layout;
-    if (layout.flipY !== value) {
-      layout.flipY = value;
+    if (this._flipY !== value) {
+      this._flipY = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -176,11 +197,55 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
   }
 
   /** @internal */
-  override _createLayout(): ISpriteLayout {
-    return new WorldSpriteLayout(() => this.sprite);
+  override _getSpriteWidth(): number {
+    return this.width;
+  }
+
+  /** @internal */
+  override _getSpriteHeight(): number {
+    return this.height;
+  }
+
+  /** @internal */
+  override _getSpritePivot(): Vector2 {
+    return this.sprite?.pivot;
+  }
+
+  /** @internal */
+  override _getSpriteFlipX(): boolean {
+    return this._flipX;
+  }
+
+  /** @internal */
+  override _getSpriteFlipY(): boolean {
+    return this._flipY;
+  }
+
+  /** @internal */
+  override _onSpriteSizeChanged(): void {
+    this._autoSizeDirty = true;
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    }
+  }
+
+  /** @internal */
+  override _onSpritePivotChanged(): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   // ===== Private =====
+
+  private _calDefaultSize(): void {
+    const sprite = this.sprite;
+    if (sprite) {
+      this._automaticWidth = sprite.width;
+      this._automaticHeight = sprite.height;
+    } else {
+      this._automaticWidth = this._automaticHeight = 0;
+    }
+    this._autoSizeDirty = false;
+  }
 
   @ignoreClone
   private _onColorChanged(): void {

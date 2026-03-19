@@ -10,7 +10,6 @@ import { Material } from "../../material";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
-import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
@@ -19,7 +18,7 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { ISpriteLayout } from "./ISpriteLayout";
 import { Sprite } from "./Sprite";
-import { SpriteDataBinding } from "./SpriteDataBinding";
+import { SpritePrimitive } from "./SpritePrimitive";
 
 /**
  * @remarks Extends `RendererUpdateFlags`.
@@ -48,19 +47,24 @@ export interface ISpriteRenderable {
   drawMode: SpriteDrawMode;
   tileMode: SpriteTileMode;
   tiledAdaptiveThreshold: number;
-  _subChunk: SubPrimitiveChunk;
-  _dataBinding: SpriteDataBinding;
-  _layout: ISpriteLayout;
+  _spriteData: SpritePrimitive;
   _getChunkManager(): PrimitiveChunkManager;
   _getDefaultSpriteMaterial(): Material;
   _getSpriteAlpha(): number;
+  _getSpriteWidth(): number;
+  _getSpriteHeight(): number;
+  _getSpritePivot(): Vector2;
+  _getSpriteFlipX(): boolean;
+  _getSpriteFlipY(): boolean;
+  _getReferenceResolutionPerUnit(): number | undefined;
+  _onSpriteSizeChanged(): void;
+  _onSpritePivotChanged(): void;
   _submitSpriteRenderElement(
     context: RenderContext,
     material: Material,
     subChunk: SubPrimitiveChunk,
     texture: Texture2D
   ): void;
-  _createLayout(): ISpriteLayout;
   _initSpriteRenderable(textureProperty: ShaderProperty): void;
 }
 
@@ -71,19 +75,25 @@ export interface ISpriteRenderable {
  * All host-specific behavior is accessed through abstract methods, composition objects, and hooks.
  * The mixin NEVER touches host private fields directly.
  */
+type MutableSpriteLayout = { -readonly [K in keyof ISpriteLayout]: ISpriteLayout[K] };
+
 export function SpriteRenderable<T extends RendererConstructor>(
   Base: T
 ): (abstract new (...args: any[]) => ISpriteRenderable) & T {
-  abstract class SpriteRenderableHost extends Base implements ISpriteRenderer {
+  abstract class SpriteRenderableHost extends Base {
+    /** Static cached layout object for assembler calls. */
+    private static _layoutCache: MutableSpriteLayout = {
+      width: 0,
+      height: 0,
+      pivot: null,
+      flipX: false,
+      flipY: false,
+      referenceResolutionPerUnit: undefined
+    };
+
     /** @internal */
     @ignoreClone
-    _subChunk: SubPrimitiveChunk;
-    /** @internal */
-    @ignoreClone
-    _dataBinding: SpriteDataBinding;
-    /** @internal */
-    @ignoreClone
-    _layout: ISpriteLayout;
+    _spriteData: SpritePrimitive;
 
     @ignoreClone
     private _drawMode: SpriteDrawMode;
@@ -113,8 +123,11 @@ export function SpriteRenderable<T extends RendererConstructor>(
       texture: Texture2D
     ): void;
 
-    /** Create the layout for this host type. */
-    abstract _createLayout(): ISpriteLayout;
+    /** The sprite width for layout. */
+    abstract _getSpriteWidth(): number;
+
+    /** The sprite height for layout. */
+    abstract _getSpriteHeight(): number;
 
     // ===== Methods with defaults: host CAN override =====
 
@@ -123,17 +136,43 @@ export function SpriteRenderable<T extends RendererConstructor>(
       return 1;
     }
 
+    /** Sprite pivot. Default: sprite's own pivot. */
+    _getSpritePivot(): Vector2 {
+      return this._spriteData.sprite?.pivot;
+    }
+
+    /** Whether to flip X. Default: false. */
+    _getSpriteFlipX(): boolean {
+      return false;
+    }
+
+    /** Whether to flip Y. Default: false. */
+    _getSpriteFlipY(): boolean {
+      return false;
+    }
+
+    /** Reference resolution per unit. Default: undefined. */
+    _getReferenceResolutionPerUnit(): number | undefined {
+      return undefined;
+    }
+
+    /** Called when sprite size changes. Host can override to mark dirty flags. */
+    _onSpriteSizeChanged(): void {}
+
+    /** Called when sprite pivot changes. Host can override to mark dirty flags. */
+    _onSpritePivotChanged(): void {}
+
     // ===== Public API (forwarding) =====
 
     /**
      * The Sprite to render.
      */
     get sprite(): Sprite | null {
-      return this._dataBinding.sprite;
+      return this._spriteData.sprite;
     }
 
     set sprite(value: Sprite | null) {
-      this._dataBinding.sprite = value;
+      this._spriteData.sprite = value;
     }
 
     /**
@@ -159,7 +198,7 @@ export function SpriteRenderable<T extends RendererConstructor>(
           default:
             break;
         }
-        this._assembler.resetData(this);
+        this._assembler.resetData(this._spriteData, this._getChunkManager());
         this._dirtyUpdateFlag |= SpriteRenderableFlags.WorldVolumeUVAndColor;
       }
     }
@@ -205,8 +244,7 @@ export function SpriteRenderable<T extends RendererConstructor>(
      * @internal
      */
     _initSpriteRenderable(textureProperty: ShaderProperty): void {
-      this._dataBinding = new SpriteDataBinding(this as any, textureProperty, this._onSpriteChanged.bind(this));
-      this._layout = this._createLayout();
+      this._spriteData = new SpritePrimitive(this as any, textureProperty, this._onSpriteChanged.bind(this));
       this.drawMode = SpriteDrawMode.Simple;
       this._dirtyUpdateFlag |= SpriteRenderableFlags.Color;
       this.setMaterial(this._getDefaultSpriteMaterial());
@@ -229,7 +267,7 @@ export function SpriteRenderable<T extends RendererConstructor>(
     override _cloneTo(target: SpriteRenderableHost): void {
       // @ts-ignore
       super._cloneTo(target);
-      this._dataBinding.cloneTo(target._dataBinding);
+      this._spriteData.cloneTo(target._spriteData);
       target.drawMode = this._drawMode;
     }
 
@@ -248,17 +286,15 @@ export function SpriteRenderable<T extends RendererConstructor>(
     }
 
     protected override _updateBounds(worldBounds: BoundingBox): void {
-      const layout = this._layout;
-      if (this._dataBinding.sprite) {
+      if (this._spriteData.sprite) {
         this._assembler.updatePositions(
-          this,
+          this._spriteData,
+          this._getChunkManager(),
+          this._fillLayout(),
           this._transformEntity.transform.worldMatrix,
-          layout.width,
-          layout.height,
-          layout.pivot,
-          layout.flipX,
-          layout.flipY,
-          layout.referenceResolutionPerUnit
+          this._bounds,
+          this._tileMode,
+          this._tiledAdaptiveThreshold
         );
       } else {
         const { worldPosition } = this._transformEntity.transform;
@@ -268,10 +304,9 @@ export function SpriteRenderable<T extends RendererConstructor>(
     }
 
     protected override _render(context: RenderContext): void {
-      const sprite = this._dataBinding.sprite;
-      const layout = this._layout;
-      const width = layout.width;
-      const height = layout.height;
+      const sprite = this._spriteData.sprite;
+      const width = this._getSpriteWidth();
+      const height = this._getSpriteHeight();
       if (!sprite?.texture || !width || !height) {
         return;
       }
@@ -293,64 +328,71 @@ export function SpriteRenderable<T extends RendererConstructor>(
       // Update position
       if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
         this._assembler.updatePositions(
-          this,
+          this._spriteData,
+          this._getChunkManager(),
+          this._fillLayout(),
           this._transformEntity.transform.worldMatrix,
-          width,
-          height,
-          layout.pivot,
-          layout.flipX,
-          layout.flipY,
-          layout.referenceResolutionPerUnit
+          this._bounds,
+          this._tileMode,
+          this._tiledAdaptiveThreshold
         );
         this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
       }
 
       // Update uv
       if (this._dirtyUpdateFlag & SpriteRenderableFlags.UV) {
-        this._assembler.updateUVs(this);
+        this._assembler.updateUVs(this._spriteData);
         this._dirtyUpdateFlag &= ~SpriteRenderableFlags.UV;
       }
 
       // Update color
       if (this._dirtyUpdateFlag & SpriteRenderableFlags.Color) {
-        this._assembler.updateColor(this, alpha);
+        this._assembler.updateColor(this._spriteData, this.color, alpha);
         this._dirtyUpdateFlag &= ~SpriteRenderableFlags.Color;
       }
 
       // Submit
-      this._submitSpriteRenderElement(context, material, this._subChunk, sprite.texture);
+      this._submitSpriteRenderElement(context, material, this._spriteData.subChunk, sprite.texture);
     }
 
     protected override _onDestroy(): void {
-      this._dataBinding.destroy();
+      this._spriteData.destroy(this._getChunkManager());
 
       this._assembler = null;
-      this._layout = null;
-      if (this._subChunk) {
-        this._getChunkManager().freeSubChunk(this._subChunk);
-        this._subChunk = null;
-      }
 
       super._onDestroy();
+    }
+
+    // ===== Private: fill layout cache =====
+
+    private _fillLayout(): ISpriteLayout {
+      const layout = SpriteRenderableHost._layoutCache;
+      layout.width = this._getSpriteWidth();
+      layout.height = this._getSpriteHeight();
+      layout.pivot = this._getSpritePivot();
+      layout.flipX = this._getSpriteFlipX();
+      layout.flipY = this._getSpriteFlipY();
+      layout.referenceResolutionPerUnit = this._getReferenceResolutionPerUnit();
+      return layout;
     }
 
     // ===== Wiring: sprite change dispatch =====
 
     /**
-     * Callback from SpriteDataBinding.
+     * Callback from SpritePrimitive.
      * `type === null` means sprite instance was replaced; otherwise a specific property changed.
      */
     private _onSpriteChanged(type: SpriteModifyFlags | null): void {
       if (type === null) {
-        // Sprite instance replaced — mark everything dirty, notify layout
+        // Sprite instance replaced — mark everything dirty
         this._dirtyUpdateFlag |= SpriteRenderableFlags.All;
-        this._layout.onSpriteInstanceChanged();
+        this._onSpriteSizeChanged();
         return;
       }
 
       switch (type) {
         case SpriteModifyFlags.size:
-          this._dirtyUpdateFlag |= this._layout.onSpriteSizeChanged();
+          this._onSpriteSizeChanged();
           switch (this._drawMode) {
             case SpriteDrawMode.Sliced:
               this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -382,7 +424,7 @@ export function SpriteRenderable<T extends RendererConstructor>(
           this._dirtyUpdateFlag |= SpriteRenderableFlags.UV;
           break;
         case SpriteModifyFlags.pivot:
-          this._dirtyUpdateFlag |= this._layout.onSpritePivotChanged();
+          this._onSpritePivotChanged();
           break;
         default:
           break;

@@ -8,10 +8,8 @@ import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderData } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
-import { ISpriteLayout } from "../sprite/ISpriteLayout";
 import { Material } from "../../material";
 import { TextChunk, TextRenderable, TextRenderableFlags } from "./TextRenderable";
-import { WorldTextLayout } from "./WorldTextLayout";
 
 /**
  * Renders a text for 2D graphics.
@@ -19,6 +17,9 @@ import { WorldTextLayout } from "./WorldTextLayout";
 export class TextRenderer extends TextRenderable(Renderer) {
   @deepClone
   private _color = new Color(1, 1, 1, 1);
+
+  private _width: number = 0;
+  private _height: number = 0;
 
   /**
    * Rendering color for the Text.
@@ -37,13 +38,12 @@ export class TextRenderer extends TextRenderable(Renderer) {
    * The width of the TextRenderer (in 3D world coordinates).
    */
   get width(): number {
-    return (<WorldTextLayout>this._layout).width;
+    return this._width;
   }
 
   set width(value: number) {
-    const layout = <WorldTextLayout>this._layout;
-    if (layout.width !== value) {
-      layout.width = value;
+    if (this._width !== value) {
+      this._width = value;
       this._setDirtyFlagTrue(TextRenderableFlags.Position);
     }
   }
@@ -52,13 +52,12 @@ export class TextRenderer extends TextRenderable(Renderer) {
    * The height of the TextRenderer (in 3D world coordinates).
    */
   get height(): number {
-    return (<WorldTextLayout>this._layout).height;
+    return this._height;
   }
 
   set height(value: number) {
-    const layout = <WorldTextLayout>this._layout;
-    if (layout.height !== value) {
-      layout.height = value;
+    if (this._height !== value) {
+      this._height = value;
       this._setDirtyFlagTrue(TextRenderableFlags.Position);
     }
   }
@@ -101,8 +100,12 @@ export class TextRenderer extends TextRenderable(Renderer) {
     return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
-  override _createLayout(): ISpriteLayout {
-    return new WorldTextLayout();
+  override _getTextWidth(): number {
+    return this._width;
+  }
+
+  override _getTextHeight(): number {
+    return this._height;
   }
 
   override _submitText(context: RenderContext, material: Material): void {

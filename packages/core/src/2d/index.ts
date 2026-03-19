@@ -1,5 +1,4 @@
 export type { ISpriteAssembler } from "./assembler/ISpriteAssembler";
-export type { ISpriteRenderer } from "./assembler/ISpriteRenderer";
 export { SimpleSpriteAssembler } from "./assembler/SimpleSpriteAssembler";
 export { SlicedSpriteAssembler } from "./assembler/SlicedSpriteAssembler";
 export { TiledSpriteAssembler } from "./assembler/TiledSpriteAssembler";

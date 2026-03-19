@@ -1,27 +1,31 @@
-import { ShaderProperty } from "../../shader/ShaderProperty";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { ShaderData } from "../../shader/ShaderData";
+import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
 
 /**
- * Minimal host interface required by SpriteDataBinding.
+ * Minimal host interface required by SpritePrimitive.
  * Both Renderer and UIRenderer satisfy this.
  */
-export interface ISpriteDataBindingOwner {
+export interface ISpritePrimitiveOwner {
   shaderData: ShaderData;
   _addResourceReferCount(resource: any, count: number): void;
 }
 
 /**
  * Manages sprite reference lifecycle: ref counting, change listener registration,
- * and texture shader property binding.
+ * texture shader property binding, and sub-chunk ownership.
  *
  * Shared by SpriteRenderable (SpriteRenderer/Image) and future SpriteMaskRenderable (SpriteMask/UIMask).
- * Does NOT own _subChunk or dirty flags — those stay on the host for ISpriteRenderer compatibility.
  */
-export class SpriteDataBinding {
+export class SpritePrimitive {
+  /** The sub-chunk allocated for this sprite's vertex data. */
+  subChunk: SubPrimitiveChunk = null;
+
   private _sprite: Sprite = null;
-  private _owner: ISpriteDataBindingOwner;
+  private _owner: ISpritePrimitiveOwner;
   private _textureProperty: ShaderProperty;
   private _onSpriteChanged: (type: SpriteModifyFlags | null) => void;
 
@@ -53,13 +57,13 @@ export class SpriteDataBinding {
   }
 
   /**
-   * @param owner - The renderer that owns this core
+   * @param owner - The renderer that owns this primitive
    * @param textureProperty - Shader property for texture binding
    * @param onSpriteChanged - Callback for sprite changes. `null` type = sprite instance replaced; otherwise specific property changed.
    *                          texture and destroy are handled internally and NOT forwarded.
    */
   constructor(
-    owner: ISpriteDataBindingOwner,
+    owner: ISpritePrimitiveOwner,
     textureProperty: ShaderProperty,
     onSpriteChanged: (type: SpriteModifyFlags | null) => void
   ) {
@@ -70,16 +74,21 @@ export class SpriteDataBinding {
   }
 
   /**
-   * Clone sprite reference to target core. Triggers target's setter (ref counting + listener).
+   * Clone sprite reference to target primitive. Triggers target's setter (ref counting + listener).
    */
-  cloneTo(target: SpriteDataBinding): void {
+  cloneTo(target: SpritePrimitive): void {
     target.sprite = this._sprite;
   }
 
   /**
-   * Release sprite reference and listeners. Call from host's _onDestroy.
+   * Release sprite reference, listeners, and sub-chunk. Call from host's _onDestroy.
    */
-  destroy(): void {
+  destroy(chunkManager: PrimitiveChunkManager): void {
+    if (this.subChunk) {
+      chunkManager.freeSubChunk(this.subChunk);
+      this.subChunk = null;
+    }
+
     const sprite = this._sprite;
     if (sprite) {
       this._owner._addResourceReferCount(sprite, -1);

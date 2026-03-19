@@ -8,13 +8,11 @@ import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { Material } from "../../material";
-import { ShaderData, ShaderProperty } from "../../shader";
-import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
+import { ShaderProperty } from "../../shader";
 import { Texture2D } from "../../texture";
 import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
-import { ISpriteLayout } from "../sprite/ISpriteLayout";
 import { CharRenderInfo } from "./CharRenderInfo";
 import { Font } from "./Font";
 import { ITextRenderer } from "./ITextRenderer";
@@ -58,11 +56,14 @@ export interface ITextRenderable {
   verticalAlignment: TextVerticalAlignment;
   enableWrapping: boolean;
   overflowMode: OverflowMode;
-  _layout: ISpriteLayout;
   _subFont: SubFont;
   _getChunkManager(): PrimitiveChunkManager;
   _getSubFont(): SubFont;
-  _createLayout(): ISpriteLayout;
+  _getTextWidth(): number;
+  _getTextHeight(): number;
+  _getTextPivotX(): number;
+  _getTextPivotY(): number;
+  _getTextReferenceResolutionPerUnit(): number | undefined;
   _getTextAlpha(): number;
   _submitText(context: RenderContext, material: Material): void;
   _isTextHostInvisible(): boolean;
@@ -87,9 +88,6 @@ export function TextRenderable<T extends RendererConstructor>(
     private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
     private static _charRenderInfos: CharRenderInfo[] = [];
 
-    /** @internal */
-    @ignoreClone
-    _layout: ISpriteLayout;
     @ignoreClone
     private _textChunks = Array<TextChunk>();
     /** @internal */
@@ -122,8 +120,13 @@ export function TextRenderable<T extends RendererConstructor>(
 
     abstract get color(): Color;
     abstract _getChunkManager(): PrimitiveChunkManager;
-    abstract _createLayout(): ISpriteLayout;
     abstract _submitText(context: RenderContext, material: Material): void;
+
+    /** The text layout width. */
+    abstract _getTextWidth(): number;
+
+    /** The text layout height. */
+    abstract _getTextHeight(): number;
 
     // ===== Methods with defaults =====
 
@@ -133,6 +136,21 @@ export function TextRenderable<T extends RendererConstructor>(
 
     _isTextHostInvisible(): boolean {
       return false;
+    }
+
+    /** Text pivot X. Default: 0.5. */
+    _getTextPivotX(): number {
+      return 0.5;
+    }
+
+    /** Text pivot Y. Default: 0.5. */
+    _getTextPivotY(): number {
+      return 0.5;
+    }
+
+    /** Reference resolution per unit. Default: undefined (no scaling). */
+    _getTextReferenceResolutionPerUnit(): number | undefined {
+      return undefined;
     }
 
     // ===== Text properties =====
@@ -277,7 +295,6 @@ export function TextRenderable<T extends RendererConstructor>(
     _initTextRenderable(): void {
       this.font = this._engine._textDefaultFont;
       this.setMaterial(this._engine._basicResources.textDefaultMaterial);
-      this._layout = this._createLayout();
     }
 
     // ===== Lifecycle =====
@@ -350,7 +367,6 @@ export function TextRenderable<T extends RendererConstructor>(
       this._freeTextChunks();
       this._textChunks = null;
       this._subFont && (this._subFont = null);
-      this._layout = null;
     }
 
     @ignoreClone
@@ -393,13 +409,14 @@ export function TextRenderable<T extends RendererConstructor>(
     // ===== Private =====
 
     private _isTextNoVisible(): boolean {
-      const layout = this._layout;
+      const textWidth = this._getTextWidth();
+      const textHeight = this._getTextHeight();
       return (
         !this._font ||
         this._text === "" ||
         this._fontSize === 0 ||
-        (this._enableWrapping && layout.width <= 0) ||
-        (this._overflowMode === OverflowMode.Truncate && layout.height <= 0) ||
+        (this._enableWrapping && textWidth <= 0) ||
+        (this._overflowMode === OverflowMode.Truncate && textHeight <= 0) ||
         this._isTextHostInvisible()
       );
     }
@@ -480,14 +497,14 @@ export function TextRenderable<T extends RendererConstructor>(
     }
 
     private _updateLocalData(): void {
-      const layout = this._layout;
-      let rendererWidth = layout.width;
-      let rendererHeight = layout.height;
-      const { pivot } = layout;
-      const resPerUnit = layout.referenceResolutionPerUnit;
+      let rendererWidth = this._getTextWidth();
+      let rendererHeight = this._getTextHeight();
+      const pivotX = this._getTextPivotX();
+      const pivotY = this._getTextPivotY();
+      const resPerUnit = this._getTextReferenceResolutionPerUnit();
       const pixelsPerUnit = resPerUnit ? Engine._pixelsPerUnit / resPerUnit : Engine._pixelsPerUnit;
-      const offsetWidth = rendererWidth * (0.5 - pivot.x);
-      const offsetHeight = rendererHeight * (0.5 - pivot.y);
+      const offsetWidth = rendererWidth * (0.5 - pivotX);
+      const offsetHeight = rendererHeight * (0.5 - pivotY);
 
       const { min, max } = this._localBounds;
       const charRenderInfos = TextRenderableHost._charRenderInfos;

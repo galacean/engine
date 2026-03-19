@@ -4,20 +4,16 @@ import {
   Material,
   RenderContext,
   RenderQueueFlags,
-  RendererUpdateFlags,
   ShaderData,
   ShaderDataGroup,
-  TextChunk,
   TextRenderable,
   TextRenderableFlags,
   ignoreClone
 } from "@galacean/engine";
-import type { ISpriteLayout, ITextRenderable } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
-import { UISpriteLayout } from "./UISpriteLayout";
 
 /**
  * UI component used to render text.
@@ -31,11 +27,24 @@ export class Text extends TextRenderable(UIRenderer) {
 
   // ===== Abstract implementations =====
 
-  override _createLayout(): ISpriteLayout {
-    return new UISpriteLayout(
-      () => <UITransform>this._transformEntity.transform,
-      () => this._getRootCanvas()
-    );
+  override _getTextWidth(): number {
+    return (<UITransform>this._transformEntity.transform).size.x;
+  }
+
+  override _getTextHeight(): number {
+    return (<UITransform>this._transformEntity.transform).size.y;
+  }
+
+  override _getTextPivotX(): number {
+    return (<UITransform>this._transformEntity.transform).pivot.x;
+  }
+
+  override _getTextPivotY(): number {
+    return (<UITransform>this._transformEntity.transform).pivot.y;
+  }
+
+  override _getTextReferenceResolutionPerUnit(): number | undefined {
+    return this._getRootCanvas()?.referenceResolutionPerUnit;
   }
 
   override _submitText(context: RenderContext, material: Material): void {

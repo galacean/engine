@@ -2,7 +2,6 @@ import {
   BoundingBox,
   Entity,
   Material,
-  PrimitiveChunkManager,
   RenderContext,
   RenderQueueFlags,
   RendererUpdateFlags,
@@ -13,12 +12,11 @@ import {
   Texture2D,
   ignoreClone
 } from "@galacean/engine";
-import type { ISpriteLayout, ISpriteRenderable } from "@galacean/engine";
+import type { Vector2 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
-import { UISpriteLayout } from "./UISpriteLayout";
 
 /**
  * UI element that renders an image.
@@ -63,17 +61,28 @@ export class Image extends SpriteRenderable(UIRenderer) {
   }
 
   /** @internal */
-  override _createLayout(): ISpriteLayout {
-    return new UISpriteLayout(
-      () => <UITransform>this._transformEntity.transform,
-      () => this._getRootCanvas()
-    );
+  override _getSpriteWidth(): number {
+    return (<UITransform>this._transformEntity.transform).size.x;
+  }
+
+  /** @internal */
+  override _getSpriteHeight(): number {
+    return (<UITransform>this._transformEntity.transform).size.y;
+  }
+
+  /** @internal */
+  override _getSpritePivot(): Vector2 {
+    return (<UITransform>this._transformEntity.transform).pivot;
   }
 
   // ===== Override defaults =====
 
   override _getSpriteAlpha(): number {
     return this._getGlobalAlpha();
+  }
+
+  override _getReferenceResolutionPerUnit(): number | undefined {
+    return this._getRootCanvas()?.referenceResolutionPerUnit;
   }
 
   // ===== Image-specific =====
