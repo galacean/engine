@@ -132,6 +132,8 @@ export class Shader implements IReferable {
           );
 
           shaderPass._platformTarget = vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage;
+          shaderPass._vertexInstructions = shaderPassSource.vertexInstructions;
+          shaderPass._fragmentInstructions = shaderPassSource.fragmentInstructions;
 
           const { constantMap, variableMap } = passSource.renderStates;
           // Compatible shader lab no render state use material `renderState` to modify render state
@@ -199,10 +201,10 @@ export class Shader implements IReferable {
   }
 
   /**
-   * Create a shader from precompiled data (.gsb).
+   * Create a shader from precompiled data (.gsp).
    * This skips ShaderLab parsing (Preprocessor + Lexer + Parser + CodeGen)
    * and directly constructs the Shader from precompiled vertex/fragment GLSL.
-   * @param data - Precompiled shader data (decoded from .gsb binary)
+   * @param data - Precompiled shader data (IPrecompiledShader JSON)
    * @returns Shader
    */
   static createFromPrecompiled(data: IPrecompiledShader): Shader {
@@ -221,12 +223,17 @@ export class Shader implements IReferable {
             ?.passes.find((pass) => pass.name === passName);
         }
 
-        const shaderPass = new ShaderPass(passData.name, passData.vertexSource, passData.fragmentSource, passData.tags);
+        // Reconstruct vertex/fragment source from instructions (single TEXT instruction for no-macro shaders)
+        const vertexInst = passData.vertexInstructions;
+        const fragmentInst = passData.fragmentInstructions;
+        const vertexSource =
+          vertexInst && vertexInst.length === 1 && vertexInst[0][0] === 0 ? (vertexInst[0][1] as string) : "";
+        const fragmentSource =
+          fragmentInst && fragmentInst.length === 1 && fragmentInst[0][0] === 0 ? (fragmentInst[0][1] as string) : "";
+        const shaderPass = new ShaderPass(passData.name, vertexSource, fragmentSource, passData.tags);
         shaderPass._platformTarget = data.platformTarget as ShaderLanguage;
-        shaderPass._vertexHasMacros = passData.vertexHasMacros !== false;
-        shaderPass._fragmentHasMacros = passData.fragmentHasMacros !== false;
-        shaderPass._vertexSegments = passData.vertexSegments;
-        shaderPass._fragmentSegments = passData.fragmentSegments;
+        shaderPass._vertexInstructions = vertexInst;
+        shaderPass._fragmentInstructions = fragmentInst;
 
         const { constantMap, variableMap } = passData.renderStates;
         if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {

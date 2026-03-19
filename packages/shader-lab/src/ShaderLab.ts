@@ -1,13 +1,11 @@
-import { Color, Logger, ShaderMacro, ShaderLanguage } from "@galacean/engine";
-import { IPrecompiledShader, IShaderLab, IShaderSource, IRenderStates } from "@galacean/engine-design";
+import { Color, Logger, ShaderLanguage } from "@galacean/engine";
+import { IPrecompiledShader, IRenderStates, IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
-import { MacroParser } from "./macroProcessor/MacroParser";
+import { parseInstructions } from "./InstructionEncoder";
 import { ShaderTargetParser } from "./parser";
-import { parseSegmentTree } from "./MacroCodeSegment";
-import { PRECOMPILE_VERSION } from "./PrecompiledShaderCodec";
 import { Preprocessor } from "./Preprocessor";
 import { ShaderLabUtils } from "./ShaderLabUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
@@ -92,19 +90,13 @@ export class ShaderLab implements IShaderLab {
     this._logErrors(codeGen.errors);
     // #endif
 
+    if (ret) {
+      // Always parse instructions for the compiled GLSL
+      ret.vertexInstructions = parseInstructions(ret.vertex);
+      ret.fragmentInstructions = parseInstructions(ret.fragment);
+    }
+
     return ret;
-  }
-
-  _parseMacros(content: string, macros: ShaderMacro[]): string {
-    const startTime = performance.now();
-    const parsedContent = MacroParser.parse(content, macros);
-    Logger.info(`[Task -  parse macros] cost time: ${performance.now() - startTime}ms`);
-
-    // #if _VERBOSE
-    this._logErrors(MacroParser._errors);
-    // #endif
-
-    return parsedContent;
   }
 
   _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePath: string): IPrecompiledShader {
@@ -137,26 +129,18 @@ export class ShaderLab implements IShaderLab {
           );
         }
 
-        const vertexHasMacros = ShaderLab._hasMacroBranches(programSource.vertex);
-        const fragmentHasMacros = ShaderLab._hasMacroBranches(programSource.fragment);
-
         return {
           name: pass.name,
           isUsePass: false as const,
           tags: pass.tags,
           renderStates: this._serializeRenderStates(pass.renderStates),
-          vertexSource: programSource.vertex,
-          fragmentSource: programSource.fragment,
-          vertexHasMacros,
-          fragmentHasMacros,
-          vertexSegments: vertexHasMacros ? parseSegmentTree(programSource.vertex) : undefined,
-          fragmentSegments: fragmentHasMacros ? parseSegmentTree(programSource.fragment) : undefined
+          vertexInstructions: programSource.vertexInstructions,
+          fragmentInstructions: programSource.fragmentInstructions
         };
       })
     }));
 
     return {
-      version: PRECOMPILE_VERSION,
       name: shaderSource.name,
       platformTarget,
       subShaders
@@ -180,12 +164,6 @@ export class ShaderLab implements IShaderLab {
       constantMap,
       variableMap: renderStates.variableMap
     };
-  }
-
-  private static _macroBranchRegex = /^\s*#\s*(?:if|ifdef|ifndef)\b/m;
-
-  private static _hasMacroBranches(glsl: string): boolean {
-    return ShaderLab._macroBranchRegex.test(glsl);
   }
 
   // #if _VERBOSE

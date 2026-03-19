@@ -1,4 +1,12 @@
 export type { IShaderLab } from "./IShaderLab";
+export type {
+  Condition,
+  DefinedCondition,
+  NotDefinedCondition,
+  CompareCondition,
+  BoolCondition,
+  Instruction
+} from "./ICondition";
 export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";
 export type { IShaderProgramSource as IShaderInfo } from "./IShaderProgramSource";
 export { IRenderStates } from "./shaderSource/IRenderStates";

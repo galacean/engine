@@ -1,30 +1,12 @@
 /**
- * Precompile Benchmark — 各阶段独立计时，对比优化前后性能
- *
- * 测量维度：
- *   1. 全量编译：_precompile() 各 shader 耗时
- *   2. 阶段拆解：Preprocessor / Parser / CodeGen / parseSegmentTree 独立计时
- *   3. 解码耗时：.gsb decode 速度 + encode 参考
- *   4. Shader 重建：createFromPrecompiled vs Shader.create 对比
- *   5. 宏展开对比：evaluateSegmentTree vs _parseMacros（不同宏组合）
- *   6. 端到端对比：源码→WebGL 编译完成，Live vs Precompiled 全链路
+ * Precompile Benchmark — performance comparison between old and new paths
  */
 
-import {
-  Shader,
-  ShaderLanguage,
-  ShaderMacro,
-  ShaderMacroCollection,
-  ShaderPass
-} from "@galacean/engine-core";
+import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { encode, decode } from "@galacean/engine-shaderlab/src/PrecompiledShaderCodec";
-import {
-  parseSegmentTree,
-  evaluateSegmentTree as evalBuildTime
-} from "@galacean/engine-shaderlab/src/MacroCodeSegment";
-import { evaluateSegmentTree as evalRuntime } from "@galacean/engine-core/src/shader/MacroSegmentEvaluator";
+import { parseInstructions } from "@galacean/engine-shaderlab/src/InstructionEncoder";
+import { evaluateInstructions } from "@galacean/engine-core/src/shader/InstructionDecoder";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
@@ -154,16 +136,23 @@ describe("Precompile Benchmark", async () => {
   }
 
   // ═══════════════════════════════════════════════════════════
-  // 1. 全量编译 _precompile()
+  // 1. Full _precompile() pipeline
   // ═══════════════════════════════════════════════════════════
   describe("1. Full _precompile() pipeline", () => {
     it("benchmark each shader", () => {
       Logger.disable();
       const results: BenchResult[] = [];
       for (const { label, source } of shaderFiles) {
-        results.push(bench(label, () => {
-          shaderLab._precompile(source!, ShaderLanguage.GLSLES100, basePath);
-        }, 10, 2));
+        results.push(
+          bench(
+            label,
+            () => {
+              shaderLab._precompile(source!, ShaderLanguage.GLSLES100, basePath);
+            },
+            10,
+            2
+          )
+        );
       }
       Logger.enable();
       logTable("Full _precompile() Pipeline", results);
@@ -171,119 +160,156 @@ describe("Precompile Benchmark", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 2. 阶段拆解：parseSegmentTree 独立计时
+  // 2. Per-stage: parseInstructions
   // ═══════════════════════════════════════════════════════════
-  describe("2. Per-stage: parseSegmentTree", () => {
-    it("parseSegmentTree timing for PBR vertex/fragment", () => {
+  describe("2. Per-stage: parseInstructions", () => {
+    it("parseInstructions timing for PBR vertex/fragment", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
       const results: BenchResult[] = [];
 
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexSource) continue;
-          if (pass.vertexHasMacros) {
-            results.push(bench(`${pass.name} vertex`, () => {
-              parseSegmentTree(pass.vertexSource!);
-            }, 20, 5));
+          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          // Get raw source for re-parsing timing
+          const rawVertex = evaluateInstructions(pass.vertexInstructions, new Map());
+          const rawFragment = pass.fragmentInstructions ? evaluateInstructions(pass.fragmentInstructions, new Map()) : "";
+          if (pass.vertexInstructions.length > 1) {
+            results.push(
+              bench(
+                `${pass.name} vertex`,
+                () => {
+                  parseInstructions(rawVertex);
+                },
+                20,
+                5
+              )
+            );
           }
-          if (pass.fragmentHasMacros) {
-            results.push(bench(`${pass.name} fragment`, () => {
-              parseSegmentTree(pass.fragmentSource!);
-            }, 20, 5));
+          if (pass.fragmentInstructions && pass.fragmentInstructions.length > 1) {
+            results.push(
+              bench(
+                `${pass.name} fragment`,
+                () => {
+                  parseInstructions(rawFragment);
+                },
+                20,
+                5
+              )
+            );
           }
         }
       }
 
-      logTable("parseSegmentTree (build-time cost)", results);
+      logTable("parseInstructions (build-time cost)", results);
     });
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 3. 解码耗时：encode / decode
+  // 3. JSON Serialize / Parse
   // ═══════════════════════════════════════════════════════════
-  describe("3. Encode / Decode", () => {
-    it("encode + decode timing for each shader", () => {
-      const results: Array<{ label: string; size: number; encode: BenchResult; decode: BenchResult }> = [];
+  describe("3. JSON Serialize / Parse", () => {
+    it("stringify + parse timing for each shader", () => {
+      const results: Array<{ label: string; size: number; stringify: BenchResult; parse: BenchResult }> = [];
 
       for (const { label, source } of shaderFiles) {
         const precompiled = shaderLab._precompile(source!, ShaderLanguage.GLSLES100, basePath);
-        const encResult = bench(`${label} encode`, () => { encode(precompiled); }, 20, 5);
-        const buffer = encode(precompiled);
-        const decResult = bench(`${label} decode`, () => { decode(buffer); }, 20, 5);
-        results.push({ label, size: buffer.byteLength, encode: encResult, decode: decResult });
+        const strResult = bench(
+          `${label} stringify`,
+          () => {
+            JSON.stringify(precompiled);
+          },
+          20,
+          5
+        );
+        const jsonStr = JSON.stringify(precompiled);
+        const parseResult = bench(
+          `${label} parse`,
+          () => {
+            JSON.parse(jsonStr);
+          },
+          20,
+          5
+        );
+        results.push({ label, size: jsonStr.length, stringify: strResult, parse: parseResult });
       }
 
-      console.log("\n=== Encode / Decode ===");
-      console.log("| Shader | .gsb Size | Encode (ms) | Decode (ms) |");
-      console.log("|--------|-----------|-------------|-------------|");
+      console.log("\n=== JSON Serialize / Parse ===");
+      console.log("| Shader | .gsp Size | Stringify (ms) | Parse (ms) |");
+      console.log("|--------|-----------|----------------|------------|");
       for (const r of results) {
         const sizeKB = (r.size / 1024).toFixed(1) + "KB";
         console.log(
-          `| ${r.label.padEnd(20)} | ${sizeKB.padStart(9)} | ${r.encode.avg.toFixed(3).padStart(11)} | ${r.decode.avg.toFixed(3).padStart(11)} |`
+          `| ${r.label.padEnd(20)} | ${sizeKB.padStart(9)} | ${r.stringify.avg.toFixed(3).padStart(14)} | ${r.parse.avg.toFixed(3).padStart(10)} |`
         );
       }
     });
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 4. Shader 重建：createFromPrecompiled vs Shader.create
+  // 4. Shader reconstruction
   // ═══════════════════════════════════════════════════════════
   describe("4. Shader reconstruction", () => {
     it("createFromPrecompiled vs Shader.create (PBR)", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
-      const buffer = encode(precompiled);
+      const jsonStr = JSON.stringify(precompiled);
 
       Logger.disable();
 
-      // Live path
-      const liveResult = bench("Shader.create (live)", () => {
-        const name = uid("PBR_live");
-        Shader.create(PBRSource);
-        Shader.find(name)?.destroy(true);
-        // Shader.create uses the shader name from source, need to clean by that name
-      }, 5, 1);
+      const liveResult = bench(
+        "Shader.create (live)",
+        () => {
+          const name = uid("PBR_live");
+          Shader.create(PBRSource);
+          Shader.find(name)?.destroy(true);
+        },
+        5,
+        1
+      );
 
-      // Precompiled path
-      const preResult = bench("decode + createFromPrecompiled", () => {
-        const decoded = decode(buffer);
-        const name = uid("PBR_pre");
-        const shader = Shader.createFromPrecompiled({ ...decoded, name });
-        shader?.destroy(true);
-      }, 5, 1);
+      const preResult = bench(
+        "JSON.parse + createFromPrecompiled",
+        () => {
+          const parsed = JSON.parse(jsonStr);
+          const name = uid("PBR_pre");
+          const shader = Shader.createFromPrecompiled({ ...parsed, name });
+          shader?.destroy(true);
+        },
+        5,
+        1
+      );
 
       Logger.enable();
 
-      logComparison("Shader Reconstruction (PBR)", [{
-        label: "PBR reconstruction",
-        live: liveResult.avg,
-        precompiled: preResult.avg
-      }]);
+      logComparison("Shader Reconstruction (PBR)", [
+        {
+          label: "PBR reconstruction",
+          live: liveResult.avg,
+          precompiled: preResult.avg
+        }
+      ]);
     });
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 5. 宏展开对比：evaluateSegmentTree vs _parseMacros
+  // 5. Macro expansion: evaluateInstructions benchmark
   // ═══════════════════════════════════════════════════════════
-  describe("5. Macro expansion: segment tree vs _parseMacros", () => {
+  describe("5. Macro expansion: evaluateInstructions", () => {
     it("PBR fragment with different macro combos", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
 
-      // Find the first non-UsePass with segments
-      let fragSource: string | undefined;
-      let fragSegments: any[] | undefined;
+      let fragInstructions: any[][] | undefined;
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (!pass.isUsePass && pass.fragmentSegments && pass.fragmentSource) {
-            fragSource = pass.fragmentSource;
-            fragSegments = pass.fragmentSegments;
+          if (!pass.isUsePass && pass.fragmentInstructions && pass.fragmentInstructions.length > 1) {
+            fragInstructions = pass.fragmentInstructions;
             break;
           }
         }
-        if (fragSegments) break;
+        if (fragInstructions) break;
       }
 
-      if (!fragSource || !fragSegments) {
-        console.log("No PBR pass with fragment segments found, skipping.");
+      if (!fragInstructions) {
+        console.log("No PBR pass with fragment instructions found, skipping.");
         return;
       }
 
@@ -293,97 +319,157 @@ describe("Precompile Benchmark", async () => {
         { label: "full (18 macros)", macros: [...baseMacros, ...materialVariantMacros] }
       ];
 
-      const rows: Array<{ label: string; live: number; precompiled: number }> = [];
-
+      const results: BenchResult[] = [];
       for (const { label, macros } of macroSets) {
         const macroMap = makeMacroMap(macros);
-        const macroObjects = macros.map(({ name, value }) => ({ name, value: value ?? "" }));
-
-        const parseResult = bench(`_parseMacros [${label}]`, () => {
-          shaderLab._parseMacros(fragSource!, macroObjects);
-        }, 50, 10);
-
-        const treeResult = bench(`evaluateSegmentTree [${label}]`, () => {
-          evalBuildTime(fragSegments!, new Map(macroMap));
-        }, 50, 10);
-
-        rows.push({ label, live: parseResult.avg, precompiled: treeResult.avg });
+        results.push(
+          bench(
+            `evaluateInstructions [${label}]`,
+            () => {
+              evaluateInstructions(fragInstructions!, new Map(macroMap));
+            },
+            50,
+            10
+          )
+        );
       }
 
-      logComparison("Macro Expansion: _parseMacros vs evaluateSegmentTree (PBR fragment)", rows);
+      logTable("evaluateInstructions (PBR fragment)", results);
 
-      // Also verify runtime evaluator has same performance
-      const rtResult = bench("runtime evaluator [base]", () => {
-        evalRuntime(fragSegments!, new Map(makeMacroMap(baseMacros)));
-      }, 50, 10);
-      console.log(`\nRuntime evaluator (MacroSegmentEvaluator): ${rtResult.avg.toFixed(3)}ms avg`);
+      const rtResult = bench(
+        "runtime evaluator [base]",
+        () => {
+          evaluateInstructions(fragInstructions!, new Map(makeMacroMap(baseMacros)));
+        },
+        50,
+        10
+      );
+      console.log(`\nRuntime evaluator: ${rtResult.avg.toFixed(3)}ms avg`);
     });
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 6. 端到端：源码 → WebGL 编译完成
+  // 6. Variant switch breakdown: CPU macro processing + GPU compile (isolated)
+  //    Simulates what happens when the engine switches a shader variant at runtime.
+  //    Both paths start from an already-created ShaderPass — only measures the
+  //    per-variant work, NOT ShaderLab compilation or .gsp loading.
+  //
+  //    GSP path:  evaluateInstructions → convertTo300 → assemble → new ShaderProgram (GPU)
+  //    GLSL path: parseCustomMacros → prepend → convertTo300 → assemble → new ShaderProgram (GPU)
+  //
+  //    CPU = evaluateInstructions or parseCustomMacros (measured via _getCanonicalShaderProgram minus GPU)
+  //    GPU = new ShaderProgram (isolated via _getCanonicalShaderProgram with same final GLSL)
   // ═══════════════════════════════════════════════════════════
-  describe("6. End-to-end: source → WebGL ShaderProgram", () => {
-    it("Live vs Precompiled full path (PBR, base macros)", () => {
+  describe("6. Variant switch: CPU + GPU breakdown (PBR)", () => {
+    it("precompiled (GSP) vs raw GLSL path", () => {
+      // @ts-ignore
+      Shader._shaderLab = shaderLab;
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
-      const buffer = encode(precompiled);
-      const macroCollection = buildMacroCollection(baseMacros);
+
+      // ── Prepare GSP ShaderPass (with instructions) ──
+      const forwardPassData = precompiled.subShaders[0].passes.find((p) => !p.isUsePass)!;
+      const gspShaderPass = new ShaderPass(forwardPassData.name, "", "", forwardPassData.tags);
+      // @ts-ignore
+      gspShaderPass._platformTarget = ShaderLanguage.GLSLES100;
+      // @ts-ignore
+      gspShaderPass._vertexInstructions = forwardPassData.vertexInstructions;
+      // @ts-ignore
+      gspShaderPass._fragmentInstructions = forwardPassData.fragmentInstructions;
+
+      // ── Prepare raw GLSL ShaderPass (no instructions, no _platformTarget → compilePlatformSource) ──
+      const parsed = shaderLab._parseShaderSource(PBRSource);
+      const livePassSource = parsed.subShaders[0].passes.find((p) => !p.isUsePass)!;
+      const liveProg = shaderLab._parseShaderPass(
+        livePassSource.contents,
+        livePassSource.vertexEntry,
+        livePassSource.fragmentEntry,
+        ShaderLanguage.GLSLES100,
+        basePath
+      )!;
+      // No _platformTarget → _getCanonicalShaderProgram uses compilePlatformSource (raw GLSL path)
+      const glslShaderPass = new ShaderPass(livePassSource.name, liveProg.vertex, liveProg.fragment, livePassSource.tags);
+
+      // ── Macro scenarios ──
+      const emptyMacros = new ShaderMacroCollection();
+      const baseMacroCollection = buildMacroCollection(baseMacros);
+      const fullMacroCollection = buildMacroCollection([...baseMacros, ...materialVariantMacros]);
+
+      // ── CPU-only: evaluateInstructions timing (no GPU) ──
+      function benchCpuGsp(macroCollection: ShaderMacroCollection): BenchResult {
+        const macroList: ShaderMacro[] = [];
+        ShaderMacro._getMacrosElements(macroCollection, macroList);
+        // @ts-ignore
+        const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
+        macroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
+        const macroMap = new Map<string, string>();
+        for (const m of macroList) macroMap.set(m.name, m.value ?? "");
+
+        return bench(
+          "gsp-cpu",
+          () => {
+            evaluateInstructions(forwardPassData.vertexInstructions!, new Map(macroMap));
+            evaluateInstructions(forwardPassData.fragmentInstructions!, new Map(macroMap));
+          },
+          30,
+          5
+        );
+      }
+
+      // ── Full variant switch: _getCanonicalShaderProgram (CPU + GPU) ──
+      function benchTotalGsp(macroCollection: ShaderMacroCollection): BenchResult {
+        return bench(
+          "gsp-total",
+          () => {
+            // @ts-ignore
+            gspShaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          },
+          5,
+          2
+        );
+      }
+
+      function benchTotalGlsl(macroCollection: ShaderMacroCollection): BenchResult {
+        return bench(
+          "glsl-total",
+          () => {
+            // @ts-ignore
+            glslShaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          },
+          5,
+          2
+        );
+      }
 
       Logger.disable();
 
-      // Live path: Shader.create(string) → _getCanonicalShaderProgram → WebGL
-      const liveResult = bench("Live (full pipeline + WebGL)", () => {
-        const name = uid("e2e_live");
-        // Create shader via live compilation
-        // @ts-ignore
-        Shader._shaderLab = shaderLab;
-        const source = shaderLab._parseShaderSource(PBRSource);
-        for (const sub of source.subShaders) {
-          for (const pass of sub.passes) {
-            if (pass.isUsePass) continue;
-            const prog = shaderLab._parseShaderPass(
-              pass.contents, pass.vertexEntry, pass.fragmentEntry,
-              ShaderLanguage.GLSLES100, basePath
-            );
-            const sp = new ShaderPass(pass.name, prog.vertex, prog.fragment, pass.tags);
-            // @ts-ignore
-            sp._platformTarget = ShaderLanguage.GLSLES100;
-            // @ts-ignore
-            sp._getCanonicalShaderProgram(engine, macroCollection);
-          }
-        }
-      }, 3, 1);
+      const scenarios: Array<{ label: string; macros: ShaderMacroCollection }> = [
+        { label: "empty", macros: emptyMacros },
+        { label: "base (11)", macros: baseMacroCollection },
+        { label: "full (18)", macros: fullMacroCollection }
+      ];
 
-      // Precompiled path: decode → createFromPrecompiled → _getCanonicalShaderProgram → WebGL
-      const preResult = bench("Precompiled (decode + rebuild + WebGL)", () => {
-        const decoded = decode(buffer);
-        const name = uid("e2e_pre");
-        const shader = Shader.createFromPrecompiled({ ...decoded, name });
-        if (shader) {
-          for (const sub of shader.subShaders) {
-            for (const pass of sub.passes) {
-              if (!pass) continue;
-              // @ts-ignore
-              if (pass._platformTarget === undefined) continue;
-              // @ts-ignore
-              pass._getCanonicalShaderProgram(engine, macroCollection);
-            }
-          }
-          shader.destroy(true);
-        }
-      }, 3, 1);
+      console.log("\n=== Variant Switch Breakdown (PBR Forward Pass) ===");
+      console.log(
+        "| Scenario | GSP CPU (ms) | GSP Total (ms) | GLSL Total (ms) | GSP GPU ≈ (ms) | GLSL GPU ≈ (ms) | Speedup |"
+      );
+      console.log(
+        "|----------|-------------|---------------|----------------|---------------|----------------|---------|"
+      );
+
+      for (const { label, macros } of scenarios) {
+        const gspCpu = benchCpuGsp(macros);
+        const gspTotal = benchTotalGsp(macros);
+        const glslTotal = benchTotalGlsl(macros);
+        const gspGpuApprox = Math.max(0, gspTotal.avg - gspCpu.avg);
+        const glslGpuApprox = Math.max(0, glslTotal.avg - 0.01); // GLSL path CPU ≈ 0 (just string concat)
+        const speedup = glslTotal.avg > 0 ? (glslTotal.avg / gspTotal.avg).toFixed(1) + "x" : "N/A";
+
+        console.log(
+          `| ${label.padEnd(8)} | ${gspCpu.avg.toFixed(3).padStart(11)} | ${gspTotal.avg.toFixed(2).padStart(13)} | ${glslTotal.avg.toFixed(2).padStart(14)} | ${gspGpuApprox.toFixed(2).padStart(13)} | ${glslGpuApprox.toFixed(2).padStart(14)} | ${speedup.padStart(7)} |`
+        );
+      }
 
       Logger.enable();
-
-      logComparison("End-to-End: Source → WebGL (PBR, base macros)", [{
-        label: "PBR total",
-        live: liveResult.avg,
-        precompiled: preResult.avg
-      }]);
-
-      // Sanity check
-      expect(liveResult.avg).toBeGreaterThan(0);
-      expect(preResult.avg).toBeGreaterThan(0);
     });
   });
 });

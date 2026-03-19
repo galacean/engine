@@ -25,8 +25,6 @@ export interface IShaderLab {
     basePathForIncludeKey: string
   ): IShaderProgramSource;
 
-  _parseMacros(context: string, macros: Array<{ name: string; value: string }>): string;
-
   /**
    * @internal
    * Precompile shader source code into a serializable format.

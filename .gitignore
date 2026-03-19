@@ -47,3 +47,5 @@ CLAUDE.md
 # For bison generated files used by ShaderLab
 *.tab.c
 *.output
+shaderlab 预编译优化.md
+examples/src/shaderlab-devtools.ts

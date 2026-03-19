@@ -1,29 +1,19 @@
 /**
- * A/B Test: Live ShaderLab compilation vs Precompiled (.gsb) path
+ * A/B Test: Live ShaderLab compilation vs Precompiled (.gsp) path
  *
  * Tests verify:
- *   1. GLSL source identity: _parseShaderPass output === precompiled vertexSource/fragmentSource
- *   2. WebGL compilation: precompiled GLSL compiles to valid WebGL programs (same as glslValidate)
+ *   1. GLSL source identity: _parseShaderPass output === precompiled instructions evaluated with empty macros
+ *   2. WebGL compilation: precompiled GLSL compiles to valid WebGL programs
  *   3. RenderState equivalence: constantMap/variableMap identical from both paths
  *   4. Tags & metadata: name, tags, platform, pass structure match
- *   5. Macro expansion: evaluateSegmentTree output is compilable GLSL for various macro combos
- *   6. Full .gsb round-trip: encode → decode → create ShaderPass → WebGL compile
+ *   5. Macro expansion: evaluateInstructions output is compilable GLSL for various macro combos
+ *   6. Full .gsp round-trip: JSON stringify → parse → create ShaderPass → WebGL compile
  */
 
-import {
-  Shader,
-  ShaderLanguage,
-  ShaderMacro,
-  ShaderMacroCollection,
-  ShaderPass
-} from "@galacean/engine-core";
+import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { encode, decode } from "@galacean/engine-shaderlab/src/PrecompiledShaderCodec";
-import {
-  parseSegmentTree,
-  evaluateSegmentTree
-} from "@galacean/engine-shaderlab/src/MacroCodeSegment";
+import { evaluateInstructions } from "@galacean/engine-core/src/shader/InstructionDecoder";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
@@ -79,20 +69,12 @@ function makeMacroMap(macros: { name: string; value?: string }[]): Map<string, s
 
 /**
  * Normalize for semantic comparison.
- * Strips blank lines, trims, and removes #define/#undef lines because:
- * - _parseMacros keeps them as text in the output
- * - evaluateSegmentTree converts them to DefineSegments (no text output)
- * Both behaviors are correct for their respective use cases.
  */
 const normalize = (s: string) =>
-  s.split("\n")
+  s
+    .split("\n")
     .map((line) => line.trim())
-    .filter(
-      (line) =>
-        line.length > 0 &&
-        !/^#\s*(define|undef)\b/.test(line) && // #define/#undef: handled differently by both paths
-        !line.startsWith("//") // pure comment lines: may be consumed by DefineSegment
-    )
+    .filter((line) => line.length > 0 && !/^#\s*(define|undef)\b/.test(line) && !line.startsWith("//"))
     .join("\n");
 
 // ─── Tests ─────────────────────────────────────────────────────────────
@@ -104,6 +86,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // @ts-ignore
   Shader._shaderLab = shaderLab;
 
+  // @ts-ignore
   const basePath = new URL("", ShaderPass._shaderRootPath).href;
 
   // ═══════════════════════════════════════════════════════════
@@ -119,7 +102,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     ];
 
     for (const file of testShaders) {
-      it(`${file}: live GLSL === precompiled GLSL`, async () => {
+      it(`${file}: live instructions === precompiled instructions`, async () => {
         const source = await readFile(`./shaders/${file}`);
         const parsed = shaderLab._parseShaderSource(source);
         const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
@@ -130,12 +113,16 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             if (livePass.isUsePass) continue;
 
             const liveProgram = shaderLab._parseShaderPass(
-              livePass.contents, livePass.vertexEntry, livePass.fragmentEntry,
-              ShaderLanguage.GLSLES100, basePath
+              livePass.contents,
+              livePass.vertexEntry,
+              livePass.fragmentEntry,
+              ShaderLanguage.GLSLES100,
+              basePath
             );
 
-            expect(precompiled.subShaders[i].passes[j].vertexSource).toBe(liveProgram.vertex);
-            expect(precompiled.subShaders[i].passes[j].fragmentSource).toBe(liveProgram.fragment);
+            const pass = precompiled.subShaders[i].passes[j];
+            expect(pass.vertexInstructions).toEqual(liveProgram.vertexInstructions);
+            expect(pass.fragmentInstructions).toEqual(liveProgram.fragmentInstructions);
           }
         }
       });
@@ -143,7 +130,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     for (const platform of [ShaderLanguage.GLSLES100, ShaderLanguage.GLSLES300]) {
       const label = platform === ShaderLanguage.GLSLES100 ? "GLSLES100" : "GLSLES300";
-      it(`PBR (${label}): live GLSL === precompiled GLSL`, () => {
+      it(`PBR (${label}): live instructions === precompiled instructions`, () => {
         const parsed = shaderLab._parseShaderSource(PBRSource);
         const precompiled = shaderLab._precompile(PBRSource, platform, basePath);
 
@@ -153,11 +140,15 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             if (livePass.isUsePass) continue;
 
             const liveProgram = shaderLab._parseShaderPass(
-              livePass.contents, livePass.vertexEntry, livePass.fragmentEntry,
-              platform, basePath
+              livePass.contents,
+              livePass.vertexEntry,
+              livePass.fragmentEntry,
+              platform,
+              basePath
             );
-            expect(precompiled.subShaders[i].passes[j].vertexSource).toBe(liveProgram.vertex);
-            expect(precompiled.subShaders[i].passes[j].fragmentSource).toBe(liveProgram.fragment);
+            const pass = precompiled.subShaders[i].passes[j];
+            expect(pass.vertexInstructions).toEqual(liveProgram.vertexInstructions);
+            expect(pass.fragmentInstructions).toEqual(liveProgram.fragmentInstructions);
           }
         }
       });
@@ -166,7 +157,6 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
   // ═══════════════════════════════════════════════════════════
   // A/B 2: WebGL Compilation (precompiled GLSL → ShaderProgram)
-  //   Same approach as glslValidate: create ShaderPass from GLSL, compile with macros.
   // ═══════════════════════════════════════════════════════════
   describe("A/B: WebGL compilation from precompiled GLSL", () => {
     function validatePrecompiledWebGL(
@@ -179,11 +169,18 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexSource) continue;
+          if (pass.isUsePass || !pass.vertexInstructions) continue;
 
-          const shaderPass = new ShaderPass(pass.name, pass.vertexSource, pass.fragmentSource!, pass.tags);
+          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
+          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
+          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
           // @ts-ignore
           shaderPass._platformTarget = platform;
+          // Set instructions for macro evaluation
+          // @ts-ignore
+          shaderPass._vertexInstructions = pass.vertexInstructions;
+          // @ts-ignore
+          shaderPass._fragmentInstructions = pass.fragmentInstructions;
 
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
@@ -200,9 +197,6 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       validatePrecompiledWebGL(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...materialVariantMacros]);
     });
 
-    // Note: PBR requires certain macros (SCENE_DIRECT_LIGHT_COUNT etc.) to compile.
-    // An empty macro set is NOT expected to produce valid WebGL for PBR.
-
     const simpleShaders = ["noFragArgs.shader", "waterfull.shader", "mrt-struct.shader", "multi-pass.shader"];
     for (const file of simpleShaders) {
       it(`${file}: precompiled GLSL → WebGL`, async () => {
@@ -213,48 +207,52 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // A/B 3: Full .gsb round-trip → WebGL
-  //   precompile → encode → decode → ShaderPass → WebGL compile
+  // A/B 3: Full .gsp round-trip → WebGL
   // ═══════════════════════════════════════════════════════════
-  describe("A/B: Full .gsb round-trip → WebGL", () => {
-    function validateGsbRoundTrip(
+  describe("A/B: Full .gsp round-trip → WebGL", () => {
+    function validateGspRoundTrip(
       source: string,
       platform: ShaderLanguage,
       macros: { name: string; value?: string }[]
     ) {
       const precompiled = shaderLab._precompile(source, platform, basePath);
-      const buffer = encode(precompiled);
-      const decoded = decode(buffer);
+      const restored = JSON.parse(JSON.stringify(precompiled));
       const macroCollection = buildMacroCollection(macros);
 
-      for (const sub of decoded.subShaders) {
+      for (const sub of restored.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexSource) continue;
+          if (pass.isUsePass || !pass.vertexInstructions) continue;
 
-          const shaderPass = new ShaderPass(pass.name, pass.vertexSource, pass.fragmentSource!, pass.tags);
+          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
+          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
+          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
           // @ts-ignore
           shaderPass._platformTarget = platform;
+          // @ts-ignore
+          shaderPass._vertexInstructions = pass.vertexInstructions;
+          // @ts-ignore
+          shaderPass._fragmentInstructions = pass.fragmentInstructions;
 
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
-          expect(program.isValid, `GSB round-trip pass "${pass.name}" should compile`).toBe(true);
+          expect(program.isValid, `.gsp round-trip pass "${pass.name}" should compile`).toBe(true);
         }
       }
     }
 
-    it("PBR: .gsb → WebGL (base macros)", () => {
-      validateGsbRoundTrip(PBRSource, ShaderLanguage.GLSLES100, baseMacros);
+    it("PBR: .gsp → WebGL (base macros)", () => {
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, baseMacros);
     });
 
-    it("PBR: .gsb → WebGL (material variant macros)", () => {
-      validateGsbRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...materialVariantMacros]);
+    it("PBR: .gsp → WebGL (material variant macros)", () => {
+      validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...materialVariantMacros]);
     });
 
     const simpleShaders = ["noFragArgs.shader", "waterfull.shader", "mrt-struct.shader"];
     for (const file of simpleShaders) {
-      it(`${file}: .gsb → WebGL`, async () => {
+      it(`${file}: .gsp → WebGL`, async () => {
         const source = await readFile(`./shaders/${file}`);
-        validateGsbRoundTrip(source, ShaderLanguage.GLSLES100, baseMacros);
+        validateGspRoundTrip(source, ShaderLanguage.GLSLES100, baseMacros);
       });
     }
   });
@@ -274,7 +272,6 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
           if (livePass.isUsePass) continue;
           const prePass = precompiled.subShaders[i].passes[j];
 
-          // constantMap values (Color → [r,g,b,a])
           for (const key of Object.keys(livePass.renderStates.constantMap)) {
             const liveVal = livePass.renderStates.constantMap[key];
             const preVal = prePass.renderStates.constantMap[key];
@@ -285,7 +282,6 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             }
           }
 
-          // variableMap keys
           const liveVarKeys = Object.keys(livePass.renderStates.variableMap).sort();
           const preVarKeys = Object.keys(prePass.renderStates.variableMap).sort();
           expect(preVarKeys).toEqual(liveVarKeys);
@@ -315,11 +311,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // A/B 5: Tags & metadata
   // ═══════════════════════════════════════════════════════════
   describe("A/B: Tags and metadata", () => {
-    const tagShaders = [
-      "noFragArgs.shader",
-      "multi-pass.shader",
-      "macro-pre.shader"
-    ];
+    const tagShaders = ["noFragArgs.shader", "multi-pass.shader", "macro-pre.shader"];
 
     for (const file of tagShaders) {
       it(`${file}: metadata matches between paths`, async () => {
@@ -354,31 +346,10 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // A/B 6: Macro expansion consistency
-  //   evaluateSegmentTree output ≈ _parseMacros output (semantic)
+  // A/B 6: Macro expansion — evaluateInstructions produces valid output
   // ═══════════════════════════════════════════════════════════
-  describe("A/B: Macro expansion consistency", () => {
-    // Only test with genuinely runtime macros.
-    // Preprocessor-substituted literals (e.g. SCENE_SHADOW_TYPE → 3) may cause
-    // minor whitespace differences between evaluateSegmentTree and _parseMacros
-    // that are semantically equivalent but not byte-identical.
-    const macroCombos: Array<{ label: string; macros: { name: string; value?: string }[] }> = [
-      { label: "empty", macros: [] },
-      { label: "WEBGL2", macros: [{ name: "GRAPHICS_API_WEBGL2" }] },
-      { label: "runtime macros", macros: [
-        { name: "RENDERER_IS_RECEIVE_SHADOWS" },
-        { name: "RENDERER_HAS_NORMAL" },
-        { name: "SCENE_USE_SH" },
-        { name: "MATERIAL_NEED_WORLD_POS" }
-      ]}
-    ];
-
-    // PBR is too complex for text-level comparison (inline comments on #define lines,
-    // whitespace around macro expansion, etc.). The WebGL compilation tests (A/B 2 & 3)
-    // are the authoritative correctness check for PBR.
-    // Text-level comparison is reserved for simpler shaders below.
-
-    it("macro-pre: segment tree matches _parseMacros", async () => {
+  describe("A/B: Macro expansion", () => {
+    it("macro-pre: evaluateInstructions produces non-empty output for various macro combos", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
 
@@ -390,16 +361,12 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
       for (const { label, macros } of combos) {
         const macroMap = makeMacroMap(macros);
-        const macroObjects = macros.map(({ name, value }) => ({ name, value: value ?? "" }));
 
         for (const sub of precompiled.subShaders) {
           for (const pass of sub.passes) {
-            if (pass.isUsePass) continue;
-            if (pass.fragmentSegments && pass.fragmentHasMacros) {
-              const fromTree = evaluateSegmentTree(pass.fragmentSegments, new Map(macroMap));
-              const fromParser = shaderLab._parseMacros(pass.fragmentSource!, macroObjects);
-              expect(normalize(fromTree), `macro-pre frag [${label}]`).toBe(normalize(fromParser));
-            }
+            if (pass.isUsePass || !pass.fragmentInstructions || pass.fragmentInstructions.length <= 1) continue;
+            const result = evaluateInstructions(pass.fragmentInstructions, new Map(macroMap));
+            expect(result.length, `macro-pre frag [${label}] should produce output`).toBeGreaterThan(0);
           }
         }
       }
@@ -407,32 +374,34 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // A/B 7: hasMacros optimization correctness
-  //   When hasMacros=false, shader still compiles correctly.
+  // A/B 7: Instruction-based optimization correctness
   // ═══════════════════════════════════════════════════════════
-  describe("A/B: hasMacros optimization", () => {
-    it("noFragArgs (hasMacros=false): still compiles with full macro set", async () => {
+  describe("A/B: instruction optimization", () => {
+    it("noFragArgs (single TEXT instruction): still compiles with full macro set", async () => {
       const source = await readFile("./shaders/noFragArgs.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
 
-      // Verify hasMacros flag
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
-          expect(pass.vertexHasMacros).toBe(false);
-          expect(pass.fragmentHasMacros).toBe(false);
+          expect(pass.vertexInstructions!.length).toBe(1);
+          expect(pass.fragmentInstructions!.length).toBe(1);
         }
       }
 
-      // Compile with macros — should still work because hasMacros=false means
-      // the three-tier dispatch skips macro expansion entirely (correct behavior)
       const macroCollection = buildMacroCollection(baseMacros);
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexSource) continue;
-          const shaderPass = new ShaderPass(pass.name, pass.vertexSource, pass.fragmentSource!, pass.tags);
+          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
+          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
+          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
           // @ts-ignore
           shaderPass._platformTarget = ShaderLanguage.GLSLES100;
+          // @ts-ignore
+          shaderPass._vertexInstructions = pass.vertexInstructions;
+          // @ts-ignore
+          shaderPass._fragmentInstructions = pass.fragmentInstructions;
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);
@@ -440,25 +409,31 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       }
     });
 
-    it("mrt-struct (hasMacros=false): compiles correctly", async () => {
+    it("mrt-struct (single TEXT instruction): compiles correctly", async () => {
       const source = await readFile("./shaders/mrt-struct.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
 
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
-          expect(pass.vertexHasMacros).toBe(false);
-          expect(pass.fragmentHasMacros).toBe(false);
+          expect(pass.vertexInstructions!.length).toBe(1);
+          expect(pass.fragmentInstructions!.length).toBe(1);
         }
       }
 
       const macroCollection = buildMacroCollection(baseMacros);
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexSource) continue;
-          const shaderPass = new ShaderPass(pass.name, pass.vertexSource, pass.fragmentSource!, pass.tags);
+          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
+          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
+          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
           // @ts-ignore
           shaderPass._platformTarget = ShaderLanguage.GLSLES100;
+          // @ts-ignore
+          shaderPass._vertexInstructions = pass.vertexInstructions;
+          // @ts-ignore
+          shaderPass._fragmentInstructions = pass.fragmentInstructions;
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);

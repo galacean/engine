@@ -5,9 +5,9 @@
  *
  * When precompile=false: exports source as string (same as glsl plugin).
  * When precompile=true:
- *   - Emits a standalone .gsb binary file to dist/
- *   - JS module exports the raw ShaderLab source string (unchanged, same as precompile=false)
- *   - The .gsb file can be loaded at runtime via PrecompiledShaderLoader
+ *   - Emits a standalone .gsp JSON file to dist/
+ *   - JS module exports the raw ShaderLab source string (unchanged)
+ *   - The .gsp file can be loaded at runtime via PrecompiledShaderLoader
  *
  * Usage in rollup.config.js:
  *   import shaderlab from "./rollup-plugin-shaderlab";
@@ -22,7 +22,7 @@ export default function shaderlab(userOptions = {}) {
     {
       include: [/\.(gs|gsl)$/],
       exclude: [],
-      /** When true, emit .gsb binary to dist/. When false, just export string. */
+      /** When true, emit .gsp JSON to dist/. When false, just export string. */
       precompile: true,
       /** ShaderLanguage enum value: 0 = GLSLES100, 1 = GLSLES300 */
       platformTarget: 0,
@@ -36,17 +36,6 @@ export default function shaderlab(userOptions = {}) {
 
   // Lazy-loaded ShaderLab instance (only when precompile=true)
   let shaderLabInstance = null;
-
-  /** Encode IPrecompiledShader to .gsb ArrayBuffer (8-byte header + JSON payload). */
-  function encodeGsb(data) {
-    const json = JSON.stringify(data);
-    const jsonBytes = Buffer.from(json, "utf8");
-    const buffer = Buffer.alloc(8 + jsonBytes.length);
-    buffer.writeUInt32LE(0x00425347, 0); // magic "GSB\0"
-    buffer.writeUInt16LE(1, 4);          // version
-    jsonBytes.copy(buffer, 8);
-    return buffer;
-  }
 
   function getShaderLab() {
     if (!shaderLabInstance) {
@@ -80,8 +69,6 @@ export default function shaderlab(userOptions = {}) {
       if (!filter(id)) return;
 
       // JS module always exports the raw source string.
-      // This keeps Shader.create(PBRSource) working as the live-compilation fallback,
-      // and tests can always get the raw ShaderLab source.
       const jsOutput = {
         code: `export default ${JSON.stringify(code)}; // eslint-disable-line`,
         map: { mappings: "" }
@@ -91,23 +78,33 @@ export default function shaderlab(userOptions = {}) {
         return jsOutput;
       }
 
-      // Precompile mode: additionally emit a .gsb binary file to dist/.
-      // The .gsb can be loaded at runtime via PrecompiledShaderLoader for zero-parse loading.
+      // Precompile mode: additionally emit a .gsp JSON file to dist/.
       try {
         const shaderLab = getShaderLab();
+
+        // Guard: _precompile may not exist if shader-lab dist is stale.
+        if (typeof shaderLab._precompile !== "function") {
+          this.warn(
+            `_precompile not available (shader-lab dist may be stale), skipping .gsp for ${path.basename(id)}. Re-run build to generate .gsp.`
+          );
+          return jsOutput;
+        }
+
         const precompiled = shaderLab._precompile(code, options.platformTarget, options.basePath);
-        const buffer = encodeGsb(precompiled);
-        const gsbFileName = path.basename(id).replace(/\.(gs|gsl)$/, ".gsb");
+        const gspFileName = path.basename(id).replace(/\.(gs|gsl)$/, ".gsp");
 
         this.emitFile({
           type: "asset",
-          fileName: gsbFileName,
-          source: Buffer.from(new Uint8Array(buffer))
+          fileName: gspFileName,
+          source: JSON.stringify(precompiled)
         });
 
         return jsOutput;
       } catch (e) {
-        this.error(`ShaderLab precompilation failed for ${id}: ${e.message || e}`);
+        this.warn(
+          `ShaderLab precompilation failed for ${path.basename(id)}: ${e.message || e}. Falling back to string export.`
+        );
+        return jsOutput;
       }
     }
   };
