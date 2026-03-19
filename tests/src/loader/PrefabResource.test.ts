@@ -1,9 +1,18 @@
 import { expect, beforeAll, afterAll, describe, it } from "vitest";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import type { IHierarchyFile } from "@galacean/engine-loader";
+import { Loader, MeshRenderer, Script } from "@galacean/engine-core";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
 
 let engine: WebGLEngine;
+
+class DiceScript extends Script {
+  skinMesh: MeshRenderer = null;
+  numMesh: MeshRenderer = null;
+}
+
+Loader.registerClass("MeshRenderer", MeshRenderer);
+Loader.registerClass("DiceScript", DiceScript);
 
 beforeAll(async () => {
   const canvas = document.createElement("canvas");
@@ -50,5 +59,151 @@ describe("PrefabResource refCount", () => {
 
     instance2.destroy();
     expect(prefab.refCount).toBe(0);
+  });
+});
+
+describe("Cross-prefab IComponentRef (path-based)", () => {
+  it("should resolve component ref inside nested prefab instance via entityPath", async () => {
+    // 1. nested prefab (dice.prefab): single root entity with MeshRenderer
+    const nestedPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "0",
+          name: "diceRoot",
+          components: [{ id: "mesh-comp", class: "MeshRenderer" }],
+          children: []
+        }
+      ]
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "dice.prefab", nestedPrefabData);
+    // @ts-ignore — register to resourceManager so getResourceByRef can find it
+    engine.resourceManager._objectPool["dice.prefab"] = nestedPrefab;
+
+    // 2. outer prefab (DiceNode.prefab)
+    //    resolved tree: DiceNode(root=[0]) -> [0]dice(nested)
+    //    skinMesh crosses nested prefab boundary via entityPath
+    const outerPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "root",
+          name: "DiceNode",
+          components: [
+            {
+              id: "script-comp",
+              class: "DiceScript",
+              props: {
+                skinMesh: { entityPath: [0, 0], componentType: "MeshRenderer", componentIndex: 0 }
+              }
+            }
+          ],
+          children: ["dice-inst"]
+        },
+        {
+          id: "dice-inst",
+          name: "dice",
+          parent: "root",
+          components: [],
+          assetUrl: "dice.prefab",
+          modifications: [],
+          removedEntities: [],
+          removedComponents: []
+        }
+      ]
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "DiceNode.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+    const script = root.getComponent(DiceScript);
+
+    // skinMesh should point to the MeshRenderer inside nested prefab instance
+    expect(script.skinMesh).not.toBeNull();
+    expect(script.skinMesh).toBeInstanceOf(MeshRenderer);
+    expect(script.skinMesh.entity.name).toBe("dice");
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["dice.prefab"];
+  });
+
+  it("should resolve both local and cross-prefab refs, and survive clone independently", async () => {
+    const nestedPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "0",
+          name: "diceRoot",
+          components: [{ id: "mesh-comp", class: "MeshRenderer" }],
+          children: []
+        }
+      ]
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "dice.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["dice.prefab"] = nestedPrefab;
+
+    // resolved tree: DiceNode(root=[0]) -> [0]numCube, [1]dice(nested)
+    const outerPrefabData: IHierarchyFile = {
+      entities: [
+        {
+          id: "root",
+          name: "DiceNode",
+          components: [
+            {
+              id: "script-comp",
+              class: "DiceScript",
+              props: {
+                numMesh: { entityPath: [0, 0], componentType: "MeshRenderer", componentIndex: 0 },
+                skinMesh: { entityPath: [0, 1], componentType: "MeshRenderer", componentIndex: 0 }
+              }
+            }
+          ],
+          children: ["num-cube", "dice-inst"]
+        },
+        {
+          id: "num-cube",
+          name: "numCube",
+          parent: "root",
+          components: [{ id: "num-mesh-comp", class: "MeshRenderer" }]
+        },
+        {
+          id: "dice-inst",
+          name: "dice",
+          parent: "root",
+          components: [],
+          assetUrl: "dice.prefab",
+          modifications: [],
+          removedEntities: [],
+          removedComponents: []
+        }
+      ]
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "DiceNode.prefab", outerPrefabData);
+
+    const instance1 = outerPrefab.instantiate();
+    const instance2 = outerPrefab.instantiate();
+
+    const script1 = instance1.getComponent(DiceScript);
+    const script2 = instance2.getComponent(DiceScript);
+
+    // instance1: numMesh -> numCube's MeshRenderer, skinMesh -> dice's MeshRenderer
+    const numMesh1 = instance1.children[0].getComponent(MeshRenderer);
+    const skinMesh1 = instance1.children[1].getComponent(MeshRenderer);
+    expect(script1.numMesh).toBe(numMesh1);
+    expect(script1.skinMesh).toBe(skinMesh1);
+
+    // instance2: independent refs
+    const numMesh2 = instance2.children[0].getComponent(MeshRenderer);
+    const skinMesh2 = instance2.children[1].getComponent(MeshRenderer);
+    expect(script2.numMesh).toBe(numMesh2);
+    expect(script2.skinMesh).toBe(skinMesh2);
+
+    // refs across instances are independent
+    expect(script1.numMesh).not.toBe(script2.numMesh);
+    expect(script1.skinMesh).not.toBe(script2.skinMesh);
+
+    instance1.destroy();
+    instance2.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["dice.prefab"];
   });
 });

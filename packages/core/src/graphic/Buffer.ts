@@ -13,11 +13,12 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 export class Buffer extends GraphicsResource {
   /** @internal */
   _dataUpdateManager: UpdateFlagManager = new UpdateFlagManager();
+  /** @internal */
+  _platformBuffer: IPlatformBuffer;
 
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
-  private _platformBuffer: IPlatformBuffer;
   private _readable: boolean;
   private _data: Uint8Array;
 
@@ -225,6 +226,17 @@ export class Buffer extends GraphicsResource {
 
   getData(data: ArrayBufferView, bufferByteOffset: number = 0, dataOffset: number = 0, dataLength?: number): void {
     this._platformBuffer.getData(data, bufferByteOffset, dataOffset, dataLength);
+  }
+
+  /**
+   * Copy data from another buffer on the GPU.
+   * @param srcBuffer - Source buffer
+   * @param srcByteOffset - Byte offset in the source buffer
+   * @param dstByteOffset - Byte offset in this buffer
+   * @param byteLength - Number of bytes to copy
+   */
+  copyFromBuffer(srcBuffer: Buffer, srcByteOffset: number, dstByteOffset: number, byteLength: number): void {
+    this._platformBuffer.copyFromBuffer(srcBuffer._platformBuffer, srcByteOffset, dstByteOffset, byteLength);
   }
 
   /**

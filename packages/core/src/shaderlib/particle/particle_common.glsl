@@ -2,6 +2,10 @@ vec3 rotationByQuaternions(in vec3 v, in vec4 q) {
     return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
 }
 
+vec4 quaternionConjugate(in vec4 q) {
+    return vec4(-q.xyz, q.w);
+}
+
 vec3 rotationByEuler(in vec3 vector, in vec3 rot) {
     float halfRoll = rot.z * 0.5;
     float halfPitch = rot.x * 0.5;

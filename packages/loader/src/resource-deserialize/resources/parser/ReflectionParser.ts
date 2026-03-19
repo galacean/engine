@@ -121,10 +121,13 @@ export class ReflectionParser {
           return resource;
         });
       } else if (ReflectionParser._isComponentRef(value)) {
-        return Promise.resolve(this._context.components.get(value.componentId) ?? null);
+        const entity = this._resolveEntityByPath(value.entityPath);
+        if (!entity) return Promise.resolve(null);
+        const type = Loader.getClass(value.componentType);
+        if (!type) return Promise.resolve(null);
+        return Promise.resolve(entity.getComponents(type, [])[value.componentIndex] ?? null);
       } else if (ReflectionParser._isEntityRef(value)) {
-        // entity reference
-        return Promise.resolve(this._context.entityMap.get(value.entityId));
+        return Promise.resolve(this._resolveEntityByPath(value.entityPath));
       } else if (ReflectionParser._isSignalRef(value)) {
         return this.parseSignal(value);
       } else if (originValue) {
@@ -183,6 +186,17 @@ export class ReflectionParser {
     }
   }
 
+  private _resolveEntityByPath(entityPath: number[]): Entity | null {
+    const { rootIds, entityMap } = this._context;
+    if (!entityPath.length || entityPath[0] >= rootIds.length) return null;
+    let entity = entityMap.get(rootIds[entityPath[0]]);
+    for (let i = 1; i < entityPath.length; i++) {
+      if (!entity || entityPath[i] >= entity.children.length) return null;
+      entity = entity.children[entityPath[i]];
+    }
+    return entity;
+  }
+
   private static _isClass(value: any): value is IClass {
     return value["class"] !== undefined;
   }
@@ -196,11 +210,11 @@ export class ReflectionParser {
   }
 
   private static _isEntityRef(value: any): value is IEntityRef {
-    return value["entityId"] !== undefined;
+    return Array.isArray(value["entityPath"]) && value["componentType"] === undefined;
   }
 
   private static _isComponentRef(value: any): value is IComponentRef {
-    return value["ownerId"] !== undefined && value["componentId"] !== undefined;
+    return Array.isArray(value["entityPath"]) && value["componentType"] !== undefined;
   }
 
   private static _isSignalRef(value: any): value is ISignalRef {

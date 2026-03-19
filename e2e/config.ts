@@ -335,6 +335,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.1630209
     },
+    limitVelocityOverLifetime: {
+      category: "Particle",
+      caseFileName: "particleRenderer-limitVelocity",
+      threshold: 0,
+      diffPercentage: 0.0364
+    },
     textureSheetAnimation: {
       category: "Particle",
       caseFileName: "particleRenderer-textureSheetAnimation",
@@ -345,7 +351,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-mesh",
       threshold: 0,
-      diffPercentage: 0.0162
+      diffPercentage: 0.01698
     },
     particleEmissive: {
       category: "Particle",

@@ -30,6 +30,7 @@ import trailFs from "../shaderlib/extra/trail.fs.glsl";
 import trailVs from "../shaderlib/extra/trail.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
+import { TransformFeedbackShader } from "../graphic/TransformFeedbackShader";
 import { Shader } from "./Shader";
 import { ShaderPass } from "./ShaderPass";
 import { RenderStateElementKey } from "./enums/RenderStateElementKey";
@@ -40,7 +41,15 @@ import { RenderState } from "./state";
  * @internal
  */
 export class ShaderPool {
+  /** @internal */
+  static particleFeedbackShader: TransformFeedbackShader;
+
   static init(): void {
+    ShaderPool.particleFeedbackShader = new TransformFeedbackShader(
+      `#include <particle_feedback_simulation>`,
+      `void main() { discard; }`,
+      ["v_FeedbackPosition", "v_FeedbackVelocity"]
+    );
     const shadowCasterPass = new ShaderPass("ShadowCaster", shadowMapVs, shadowMapFs, {
       pipelineStage: PipelineStage.ShadowCaster
     });

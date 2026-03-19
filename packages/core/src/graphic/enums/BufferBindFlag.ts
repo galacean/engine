@@ -2,8 +2,8 @@
  * Buffer binding flag.
  */
 export enum BufferBindFlag {
-  /** Vertex buffer binding flag */
+  /** Vertex buffer binding flag. */
   VertexBuffer,
-  /** Index buffer binding flag */
+  /** Index buffer binding flag. */
   IndexBuffer
 }
