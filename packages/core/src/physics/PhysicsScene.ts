@@ -740,9 +740,9 @@ export class PhysicsScene {
     const physicalObjectsMap = Engine._physicalObjectsMap;
     const collision = PhysicsScene._collision;
     const scriptIndexSetter = PhysicsScene._scriptIndexSetter;
+    const { contactEvents, triggerEvents } = events;
 
     // Dispatch contact events
-    const { contactEvents } = events;
     for (let i = 0, n = contactEvents.length; i < n; i++) {
       const event = contactEvents[i];
       const shape1 = physicalObjectsMap[event.shape0Id];
@@ -784,7 +784,6 @@ export class PhysicsScene {
     }
 
     // Dispatch trigger events
-    const { triggerEvents } = events;
     for (let i = 0, n = triggerEvents.length; i < n; i++) {
       const event = triggerEvents[i];
       const shape1 = physicalObjectsMap[event.index1];
@@ -854,9 +853,11 @@ export class PhysicsScene {
   }
 }
 
-/** @internal */
-const PhysicsEventState = {
-  Enter: 0,
-  Stay: 1,
-  Exit: 2
-} as const;
+/**
+ * @internal
+ */
+enum PhysicsEventState {
+  Enter = 0,
+  Stay = 1,
+  Exit = 2
+}

@@ -177,19 +177,25 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   fireEvents(): IPhysicsEvents {
     const { _contactEvents: contactEvents, _physicsEvents: physicsEvents } = this;
 
-    // Collect trigger events
+    // Advance trigger states from previous frame and collect current events
     const { _eventPool: eventPool, _activeTriggers: activeTriggers, _triggerEventResults: triggerResults } = this;
+
+    // First: advance states deferred from last fireEvents call
+    for (let i = 0, n = triggerResults.length; i < n; i++) {
+      const event = triggerResults[i] as TriggerEvent;
+      if (event.state === PhysicsEventState.Enter) {
+        event.state = PhysicsEventState.Stay;
+      } else if (event.state === PhysicsEventState.Exit) {
+        eventPool.push(event);
+      }
+    }
+
+    // Then: collect this frame's trigger events
     triggerResults.length = 0;
     activeTriggers.forEach((event, i) => {
-      if (event.state == PhysicsEventState.Enter) {
-        triggerResults.push(event);
-        event.state = PhysicsEventState.Stay;
-      } else if (event.state == PhysicsEventState.Stay) {
-        triggerResults.push(event);
-      } else if (event.state == PhysicsEventState.Exit) {
+      triggerResults.push(event);
+      if (event.state === PhysicsEventState.Exit) {
         activeTriggers.deleteByIndex(i);
-        triggerResults.push(event);
-        eventPool.push(event);
       }
     });
 
