@@ -15,26 +15,26 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _enabledMacro = ShaderMacro.getByName("RENDERER_LVL_MODULE_ENABLED");
   static readonly _separateAxesMacro = ShaderMacro.getByName("RENDERER_LVL_SEPARATE_AXES");
-  static readonly _limitConstantModeMacro = ShaderMacro.getByName("RENDERER_LVL_LIMIT_CONSTANT_MODE");
-  static readonly _limitCurveModeMacro = ShaderMacro.getByName("RENDERER_LVL_LIMIT_CURVE_MODE");
-  static readonly _limitIsRandomMacro = ShaderMacro.getByName("RENDERER_LVL_LIMIT_IS_RANDOM_TWO");
+  static readonly _speedConstantModeMacro = ShaderMacro.getByName("RENDERER_LVL_SPEED_CONSTANT_MODE");
+  static readonly _speedCurveModeMacro = ShaderMacro.getByName("RENDERER_LVL_SPEED_CURVE_MODE");
+  static readonly _speedIsRandomMacro = ShaderMacro.getByName("RENDERER_LVL_SPEED_IS_RANDOM_TWO");
   static readonly _dragCurveModeMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_CURVE_MODE");
   static readonly _dragIsRandomMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_IS_RANDOM_TWO");
   static readonly _multiplyDragBySizeMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_MULTIPLY_SIZE");
   static readonly _multiplyDragByVelocityMacro = ShaderMacro.getByName("RENDERER_LVL_DRAG_MULTIPLY_VELOCITY");
 
-  static readonly _limitMaxConstProperty = ShaderProperty.getByName("renderer_LVLLimitMaxConst");
-  static readonly _limitMinConstProperty = ShaderProperty.getByName("renderer_LVLLimitMinConst");
-  static readonly _limitMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitMaxCurve");
-  static readonly _limitMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitMinCurve");
-  static readonly _limitMaxConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMaxConstVector");
-  static readonly _limitMinConstVecProperty = ShaderProperty.getByName("renderer_LVLLimitMinConstVector");
-  static readonly _limitXMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitXMaxCurve");
-  static readonly _limitXMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitXMinCurve");
-  static readonly _limitYMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitYMaxCurve");
-  static readonly _limitYMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitYMinCurve");
-  static readonly _limitZMaxCurveProperty = ShaderProperty.getByName("renderer_LVLLimitZMaxCurve");
-  static readonly _limitZMinCurveProperty = ShaderProperty.getByName("renderer_LVLLimitZMinCurve");
+  static readonly _speedMaxConstProperty = ShaderProperty.getByName("renderer_LVLSpeedMaxConst");
+  static readonly _speedMinConstProperty = ShaderProperty.getByName("renderer_LVLSpeedMinConst");
+  static readonly _speedMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedMaxCurve");
+  static readonly _speedMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedMinCurve");
+  static readonly _speedMaxConstVecProperty = ShaderProperty.getByName("renderer_LVLSpeedMaxConstVector");
+  static readonly _speedMinConstVecProperty = ShaderProperty.getByName("renderer_LVLSpeedMinConstVector");
+  static readonly _speedXMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedXMaxCurve");
+  static readonly _speedXMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedXMinCurve");
+  static readonly _speedYMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedYMaxCurve");
+  static readonly _speedYMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedYMinCurve");
+  static readonly _speedZMaxCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedZMaxCurve");
+  static readonly _speedZMinCurveProperty = ShaderProperty.getByName("renderer_LVLSpeedZMinCurve");
   static readonly _dampenProperty = ShaderProperty.getByName("renderer_LVLDampen");
   static readonly _dragConstantProperty = ShaderProperty.getByName("renderer_LVLDragConstant");
   static readonly _dragMaxCurveProperty = ShaderProperty.getByName("renderer_LVLDragMaxCurve");
@@ -57,9 +57,9 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   @ignoreClone
   private _separateAxesCachedMacro: ShaderMacro;
   @ignoreClone
-  private _limitModeMacro: ShaderMacro;
+  private _speedModeMacro: ShaderMacro;
   @ignoreClone
-  private _limitRandomMacro: ShaderMacro;
+  private _speedRandomMacro: ShaderMacro;
   @ignoreClone
   private _dragCurveCachedMacro: ShaderMacro;
   @ignoreClone
@@ -71,12 +71,12 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   private _separateAxes = false;
   @deepClone
-  private _limitX: ParticleCompositeCurve;
+  private _speedX: ParticleCompositeCurve;
   @deepClone
-  private _limitY: ParticleCompositeCurve;
+  private _speedY: ParticleCompositeCurve;
   @deepClone
-  private _limitZ: ParticleCompositeCurve;
-  private _dampen: number = 1;
+  private _speedZ: ParticleCompositeCurve;
+  private _dampen: number = 0;
   @deepClone
   private _drag: ParticleCompositeCurve;
   private _multiplyDragByParticleSize = false;
@@ -100,25 +100,25 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * Speed limit when separateAxes is false.
    */
-  get limit(): ParticleCompositeCurve {
-    return this._limitX;
+  get speed(): ParticleCompositeCurve {
+    return this._speedX;
   }
 
-  set limit(value: ParticleCompositeCurve) {
-    this.limitX = value;
+  set speed(value: ParticleCompositeCurve) {
+    this.speedX = value;
   }
 
   /**
    * Speed limit for the x-axis (or overall limit when separateAxes is false).
    */
-  get limitX(): ParticleCompositeCurve {
-    return this._limitX;
+  get speedX(): ParticleCompositeCurve {
+    return this._speedX;
   }
 
-  set limitX(value: ParticleCompositeCurve) {
-    const lastValue = this._limitX;
+  set speedX(value: ParticleCompositeCurve) {
+    const lastValue = this._speedX;
     if (value !== lastValue) {
-      this._limitX = value;
+      this._speedX = value;
       this._onCompositeCurveChange(lastValue, value);
     }
   }
@@ -126,14 +126,14 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * Speed limit for the y-axis.
    */
-  get limitY(): ParticleCompositeCurve {
-    return this._limitY;
+  get speedY(): ParticleCompositeCurve {
+    return this._speedY;
   }
 
-  set limitY(value: ParticleCompositeCurve) {
-    const lastValue = this._limitY;
+  set speedY(value: ParticleCompositeCurve) {
+    const lastValue = this._speedY;
     if (value !== lastValue) {
-      this._limitY = value;
+      this._speedY = value;
       this._onCompositeCurveChange(lastValue, value);
     }
   }
@@ -141,14 +141,14 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   /**
    * Speed limit for the z-axis.
    */
-  get limitZ(): ParticleCompositeCurve {
-    return this._limitZ;
+  get speedZ(): ParticleCompositeCurve {
+    return this._speedZ;
   }
 
-  set limitZ(value: ParticleCompositeCurve) {
-    const lastValue = this._limitZ;
+  set speedZ(value: ParticleCompositeCurve) {
+    const lastValue = this._speedZ;
     if (value !== lastValue) {
-      this._limitZ = value;
+      this._speedZ = value;
       this._onCompositeCurveChange(lastValue, value);
     }
   }
@@ -214,6 +214,7 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Specifies if the velocity limits are in local space or world space.
+   * @remarks Only takes effect when 'separateAxes' is enabled.
    */
   get space(): ParticleSimulationSpace {
     return this._space;
@@ -248,9 +249,9 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   constructor(generator: ParticleGenerator) {
     super(generator);
 
-    this.limitX = new ParticleCompositeCurve(1);
-    this.limitY = new ParticleCompositeCurve(1);
-    this.limitZ = new ParticleCompositeCurve(1);
+    this.speedX = new ParticleCompositeCurve(1);
+    this.speedY = new ParticleCompositeCurve(1);
+    this.speedZ = new ParticleCompositeCurve(1);
     this.drag = new ParticleCompositeCurve(0);
   }
 
@@ -267,12 +268,12 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   _isLimitRandomMode(): boolean {
     if (this._separateAxes) {
       return (
-        (this._limitX.mode === ParticleCurveMode.TwoConstants || this._limitX.mode === ParticleCurveMode.TwoCurves) &&
-        (this._limitY.mode === ParticleCurveMode.TwoConstants || this._limitY.mode === ParticleCurveMode.TwoCurves) &&
-        (this._limitZ.mode === ParticleCurveMode.TwoConstants || this._limitZ.mode === ParticleCurveMode.TwoCurves)
+        (this._speedX.mode === ParticleCurveMode.TwoConstants || this._speedX.mode === ParticleCurveMode.TwoCurves) &&
+        (this._speedY.mode === ParticleCurveMode.TwoConstants || this._speedY.mode === ParticleCurveMode.TwoCurves) &&
+        (this._speedZ.mode === ParticleCurveMode.TwoConstants || this._speedZ.mode === ParticleCurveMode.TwoCurves)
       );
     }
-    return this._limitX.mode === ParticleCurveMode.TwoConstants || this._limitX.mode === ParticleCurveMode.TwoCurves;
+    return this._speedX.mode === ParticleCurveMode.TwoConstants || this._speedX.mode === ParticleCurveMode.TwoCurves;
   }
 
   /**
@@ -325,8 +326,8 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
 
     this._enabledModuleMacro = this._enableMacro(shaderData, this._enabledModuleMacro, enabledModuleMacro);
     this._separateAxesCachedMacro = this._enableMacro(shaderData, this._separateAxesCachedMacro, separateAxesMacro);
-    this._limitModeMacro = this._enableMacro(shaderData, this._limitModeMacro, limitModeMacro);
-    this._limitRandomMacro = this._enableMacro(shaderData, this._limitRandomMacro, limitRandomMacro);
+    this._speedModeMacro = this._enableMacro(shaderData, this._speedModeMacro, limitModeMacro);
+    this._speedRandomMacro = this._enableMacro(shaderData, this._speedRandomMacro, limitRandomMacro);
     this._dragCurveCachedMacro = this._enableMacro(shaderData, this._dragCurveCachedMacro, dragCurveMacro);
     this._dragRandomCachedMacro = this._enableMacro(shaderData, this._dragRandomCachedMacro, dragRandomMacro);
     this._dragSizeMacro = this._enableMacro(shaderData, this._dragSizeMacro, dragSizeMacro);
@@ -341,27 +342,27 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   private _uploadScalarLimit(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
-    const limitX = this._limitX;
+    const speedX = this._speedX;
     let modeMacro: ShaderMacro = null;
     let randomMacro: ShaderMacro = null;
 
-    const isRandomCurveMode = limitX.mode === ParticleCurveMode.TwoCurves;
-    if (isRandomCurveMode || limitX.mode === ParticleCurveMode.Curve) {
-      shaderData.setFloatArray(LimitVelocityOverLifetimeModule._limitMaxCurveProperty, limitX.curveMax._getTypeArray());
-      modeMacro = LimitVelocityOverLifetimeModule._limitCurveModeMacro;
+    const isRandomCurveMode = speedX.mode === ParticleCurveMode.TwoCurves;
+    if (isRandomCurveMode || speedX.mode === ParticleCurveMode.Curve) {
+      shaderData.setFloatArray(LimitVelocityOverLifetimeModule._speedMaxCurveProperty, speedX.curveMax._getTypeArray());
+      modeMacro = LimitVelocityOverLifetimeModule._speedCurveModeMacro;
       if (isRandomCurveMode) {
         shaderData.setFloatArray(
-          LimitVelocityOverLifetimeModule._limitMinCurveProperty,
-          limitX.curveMin._getTypeArray()
+          LimitVelocityOverLifetimeModule._speedMinCurveProperty,
+          speedX.curveMin._getTypeArray()
         );
-        randomMacro = LimitVelocityOverLifetimeModule._limitIsRandomMacro;
+        randomMacro = LimitVelocityOverLifetimeModule._speedIsRandomMacro;
       }
     } else {
-      shaderData.setFloat(LimitVelocityOverLifetimeModule._limitMaxConstProperty, limitX.constantMax);
-      modeMacro = LimitVelocityOverLifetimeModule._limitConstantModeMacro;
-      if (limitX.mode === ParticleCurveMode.TwoConstants) {
-        shaderData.setFloat(LimitVelocityOverLifetimeModule._limitMinConstProperty, limitX.constantMin);
-        randomMacro = LimitVelocityOverLifetimeModule._limitIsRandomMacro;
+      shaderData.setFloat(LimitVelocityOverLifetimeModule._speedMaxConstProperty, speedX.constantMax);
+      modeMacro = LimitVelocityOverLifetimeModule._speedConstantModeMacro;
+      if (speedX.mode === ParticleCurveMode.TwoConstants) {
+        shaderData.setFloat(LimitVelocityOverLifetimeModule._speedMinConstProperty, speedX.constantMin);
+        randomMacro = LimitVelocityOverLifetimeModule._speedIsRandomMacro;
       }
     }
 
@@ -369,66 +370,66 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   private _uploadSeparateAxisLimits(shaderData: ShaderData): { modeMacro: ShaderMacro; randomMacro: ShaderMacro } {
-    const limitX = this._limitX;
-    const limitY = this._limitY;
-    const limitZ = this._limitZ;
+    const speedX = this._speedX;
+    const speedY = this._speedY;
+    const speedZ = this._speedZ;
     let modeMacro: ShaderMacro = null;
     let randomMacro: ShaderMacro = null;
 
     const isRandomCurveMode =
-      limitX.mode === ParticleCurveMode.TwoCurves &&
-      limitY.mode === ParticleCurveMode.TwoCurves &&
-      limitZ.mode === ParticleCurveMode.TwoCurves;
+      speedX.mode === ParticleCurveMode.TwoCurves &&
+      speedY.mode === ParticleCurveMode.TwoCurves &&
+      speedZ.mode === ParticleCurveMode.TwoCurves;
 
     if (
       isRandomCurveMode ||
-      (limitX.mode === ParticleCurveMode.Curve &&
-        limitY.mode === ParticleCurveMode.Curve &&
-        limitZ.mode === ParticleCurveMode.Curve)
+      (speedX.mode === ParticleCurveMode.Curve &&
+        speedY.mode === ParticleCurveMode.Curve &&
+        speedZ.mode === ParticleCurveMode.Curve)
     ) {
       shaderData.setFloatArray(
-        LimitVelocityOverLifetimeModule._limitXMaxCurveProperty,
-        limitX.curveMax._getTypeArray()
+        LimitVelocityOverLifetimeModule._speedXMaxCurveProperty,
+        speedX.curveMax._getTypeArray()
       );
       shaderData.setFloatArray(
-        LimitVelocityOverLifetimeModule._limitYMaxCurveProperty,
-        limitY.curveMax._getTypeArray()
+        LimitVelocityOverLifetimeModule._speedYMaxCurveProperty,
+        speedY.curveMax._getTypeArray()
       );
       shaderData.setFloatArray(
-        LimitVelocityOverLifetimeModule._limitZMaxCurveProperty,
-        limitZ.curveMax._getTypeArray()
+        LimitVelocityOverLifetimeModule._speedZMaxCurveProperty,
+        speedZ.curveMax._getTypeArray()
       );
-      modeMacro = LimitVelocityOverLifetimeModule._limitCurveModeMacro;
+      modeMacro = LimitVelocityOverLifetimeModule._speedCurveModeMacro;
       if (isRandomCurveMode) {
         shaderData.setFloatArray(
-          LimitVelocityOverLifetimeModule._limitXMinCurveProperty,
-          limitX.curveMin._getTypeArray()
+          LimitVelocityOverLifetimeModule._speedXMinCurveProperty,
+          speedX.curveMin._getTypeArray()
         );
         shaderData.setFloatArray(
-          LimitVelocityOverLifetimeModule._limitYMinCurveProperty,
-          limitY.curveMin._getTypeArray()
+          LimitVelocityOverLifetimeModule._speedYMinCurveProperty,
+          speedY.curveMin._getTypeArray()
         );
         shaderData.setFloatArray(
-          LimitVelocityOverLifetimeModule._limitZMinCurveProperty,
-          limitZ.curveMin._getTypeArray()
+          LimitVelocityOverLifetimeModule._speedZMinCurveProperty,
+          speedZ.curveMin._getTypeArray()
         );
-        randomMacro = LimitVelocityOverLifetimeModule._limitIsRandomMacro;
+        randomMacro = LimitVelocityOverLifetimeModule._speedIsRandomMacro;
       }
     } else {
       const constantMax = this._limitMaxConstantVec;
-      constantMax.set(limitX.constantMax, limitY.constantMax, limitZ.constantMax);
-      shaderData.setVector3(LimitVelocityOverLifetimeModule._limitMaxConstVecProperty, constantMax);
-      modeMacro = LimitVelocityOverLifetimeModule._limitConstantModeMacro;
+      constantMax.set(speedX.constantMax, speedY.constantMax, speedZ.constantMax);
+      shaderData.setVector3(LimitVelocityOverLifetimeModule._speedMaxConstVecProperty, constantMax);
+      modeMacro = LimitVelocityOverLifetimeModule._speedConstantModeMacro;
 
       if (
-        limitX.mode === ParticleCurveMode.TwoConstants &&
-        limitY.mode === ParticleCurveMode.TwoConstants &&
-        limitZ.mode === ParticleCurveMode.TwoConstants
+        speedX.mode === ParticleCurveMode.TwoConstants &&
+        speedY.mode === ParticleCurveMode.TwoConstants &&
+        speedZ.mode === ParticleCurveMode.TwoConstants
       ) {
         const constantMin = this._limitMinConstantVec;
-        constantMin.set(limitX.constantMin, limitY.constantMin, limitZ.constantMin);
-        shaderData.setVector3(LimitVelocityOverLifetimeModule._limitMinConstVecProperty, constantMin);
-        randomMacro = LimitVelocityOverLifetimeModule._limitIsRandomMacro;
+        constantMin.set(speedX.constantMin, speedY.constantMin, speedZ.constantMin);
+        shaderData.setVector3(LimitVelocityOverLifetimeModule._speedMinConstVecProperty, constantMin);
+        randomMacro = LimitVelocityOverLifetimeModule._speedIsRandomMacro;
       }
     }
 

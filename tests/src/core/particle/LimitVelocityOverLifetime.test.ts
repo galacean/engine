@@ -47,9 +47,9 @@ describe("LimitVelocityOverLifetimeModule", function () {
     lvl.enabled = false;
     lvl.separateAxes = false;
     lvl.dampen = 1;
-    lvl.limit = new ParticleCompositeCurve(1);
-    lvl.limitY = new ParticleCompositeCurve(1);
-    lvl.limitZ = new ParticleCompositeCurve(1);
+    lvl.speed = new ParticleCompositeCurve(1);
+    lvl.speedY = new ParticleCompositeCurve(1);
+    lvl.speedZ = new ParticleCompositeCurve(1);
     lvl.drag = new ParticleCompositeCurve(0);
     lvl.multiplyDragByParticleSize = false;
     lvl.multiplyDragByParticleVelocity = false;
@@ -87,9 +87,9 @@ describe("LimitVelocityOverLifetimeModule", function () {
   it("limit property (alias for limitX)", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     const curve = new ParticleCompositeCurve(10);
-    lvl.limit = curve;
-    expect(lvl.limit).to.eq(curve);
-    expect(lvl.limitX).to.eq(curve);
+    lvl.speed = curve;
+    expect(lvl.speed).to.eq(curve);
+    expect(lvl.speedX).to.eq(curve);
   });
 
   it("limitX/Y/Z properties", function () {
@@ -98,13 +98,13 @@ describe("LimitVelocityOverLifetimeModule", function () {
     const curveY = new ParticleCompositeCurve(10);
     const curveZ = new ParticleCompositeCurve(15);
 
-    lvl.limitX = curveX;
-    lvl.limitY = curveY;
-    lvl.limitZ = curveZ;
+    lvl.speedX = curveX;
+    lvl.speedY = curveY;
+    lvl.speedZ = curveZ;
 
-    expect(lvl.limitX).to.eq(curveX);
-    expect(lvl.limitY).to.eq(curveY);
-    expect(lvl.limitZ).to.eq(curveZ);
+    expect(lvl.speedX).to.eq(curveX);
+    expect(lvl.speedY).to.eq(curveY);
+    expect(lvl.speedZ).to.eq(curveZ);
   });
 
   it("dampen property", function () {
@@ -160,63 +160,63 @@ describe("LimitVelocityOverLifetimeModule", function () {
 
   it("limit with Constant mode", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
-    lvl.limit = new ParticleCompositeCurve(5);
-    expect(lvl.limit.mode).to.eq(ParticleCurveMode.Constant);
-    expect(lvl.limit.constant).to.eq(5);
+    lvl.speed = new ParticleCompositeCurve(5);
+    expect(lvl.speed.mode).to.eq(ParticleCurveMode.Constant);
+    expect(lvl.speed.constant).to.eq(5);
   });
 
   it("limit with TwoConstants mode", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
-    lvl.limit = new ParticleCompositeCurve(2, 8);
-    expect(lvl.limit.mode).to.eq(ParticleCurveMode.TwoConstants);
-    expect(lvl.limit.constantMin).to.eq(2);
-    expect(lvl.limit.constantMax).to.eq(8);
+    lvl.speed = new ParticleCompositeCurve(2, 8);
+    expect(lvl.speed.mode).to.eq(ParticleCurveMode.TwoConstants);
+    expect(lvl.speed.constantMin).to.eq(2);
+    expect(lvl.speed.constantMax).to.eq(8);
   });
 
   it("limit with Curve mode", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     const curve = new ParticleCurve(new CurveKey(0, 10), new CurveKey(1, 0));
-    lvl.limit = new ParticleCompositeCurve(curve);
-    expect(lvl.limit.mode).to.eq(ParticleCurveMode.Curve);
+    lvl.speed = new ParticleCompositeCurve(curve);
+    expect(lvl.speed.mode).to.eq(ParticleCurveMode.Curve);
   });
 
   it("limit with TwoCurves mode", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     const curveMin = new ParticleCurve(new CurveKey(0, 2), new CurveKey(1, 0));
     const curveMax = new ParticleCurve(new CurveKey(0, 10), new CurveKey(1, 5));
-    lvl.limit = new ParticleCompositeCurve(curveMin, curveMax);
-    expect(lvl.limit.mode).to.eq(ParticleCurveMode.TwoCurves);
+    lvl.speed = new ParticleCompositeCurve(curveMin, curveMax);
+    expect(lvl.speed.mode).to.eq(ParticleCurveMode.TwoCurves);
   });
 
   it("_isLimitRandomMode returns false for Constant", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
-    lvl.limit = new ParticleCompositeCurve(5);
+    lvl.speed = new ParticleCompositeCurve(5);
     expect(lvl._isLimitRandomMode()).to.eq(false);
   });
 
   it("_isLimitRandomMode returns true for TwoConstants", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
-    lvl.limit = new ParticleCompositeCurve(2, 8);
+    lvl.speed = new ParticleCompositeCurve(2, 8);
     expect(lvl._isLimitRandomMode()).to.eq(true);
   });
 
   it("_isLimitRandomMode with separateAxes", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     lvl.separateAxes = true;
-    lvl.limitX = new ParticleCompositeCurve(1, 5);
-    lvl.limitY = new ParticleCompositeCurve(1, 5);
-    lvl.limitZ = new ParticleCompositeCurve(1, 5);
+    lvl.speedX = new ParticleCompositeCurve(1, 5);
+    lvl.speedY = new ParticleCompositeCurve(1, 5);
+    lvl.speedZ = new ParticleCompositeCurve(1, 5);
     expect(lvl._isLimitRandomMode()).to.eq(true);
 
     // Mixed modes: not all random
-    lvl.limitZ = new ParticleCompositeCurve(5);
+    lvl.speedZ = new ParticleCompositeCurve(5);
     expect(lvl._isLimitRandomMode()).to.eq(false);
   });
 
   it("enabling module triggers shader update without error", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     lvl.enabled = true;
-    lvl.limit = new ParticleCompositeCurve(5);
+    lvl.speed = new ParticleCompositeCurve(5);
     lvl.dampen = 0.8;
     lvl.drag = new ParticleCompositeCurve(0.5);
 
@@ -242,9 +242,9 @@ describe("LimitVelocityOverLifetimeModule", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     lvl.enabled = true;
     lvl.separateAxes = true;
-    lvl.limitX = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 10), new CurveKey(1, 2)));
-    lvl.limitY = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 8), new CurveKey(1, 1)));
-    lvl.limitZ = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 5), new CurveKey(1, 0)));
+    lvl.speedX = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 10), new CurveKey(1, 2)));
+    lvl.speedY = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 8), new CurveKey(1, 1)));
+    lvl.speedZ = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 5), new CurveKey(1, 0)));
     lvl.dampen = 0.5;
 
     particleRenderer.generator.play();
@@ -267,7 +267,7 @@ describe("LimitVelocityOverLifetimeModule", function () {
   it("drag with curve mode triggers shader update without error", function () {
     const lvl = particleRenderer.generator.limitVelocityOverLifetime;
     lvl.enabled = true;
-    lvl.limit = new ParticleCompositeCurve(5);
+    lvl.speed = new ParticleCompositeCurve(5);
     lvl.drag = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 2)));
     lvl.multiplyDragByParticleSize = true;
     lvl.multiplyDragByParticleVelocity = true;
