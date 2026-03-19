@@ -36,9 +36,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _contactEvents: ContactEvent[] = [];
-  private _contactEventPool: ContactEvent[] = [];
+  private _contactEventCount = 0;
   private _triggerEvents: TriggerEvent[] = [];
-  private _physicsEvents: IPhysicsEvents = { contactEvents: [], triggerEvents: [] };
+  private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
 
   private _triggerEventPool: TriggerEvent[] = [];
 
@@ -160,13 +160,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * {@inheritDoc IPhysicsScene.update }
    */
   update(elapsedTime: number): void {
-    // Pool previous frame's contact events before buffering new ones
-    const { _contactEvents: contactEvents, _contactEventPool: contactEventPool } = this;
-    for (let i = 0, n = contactEvents.length; i < n; i++) {
-      contactEventPool.push(contactEvents[i]);
-    }
-    contactEvents.length = 0;
-
+    this._contactEventCount = 0;
     this._simulate(elapsedTime);
     this._fetchResults();
   }
@@ -196,6 +190,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     });
 
     physicsEvents.contactEvents = this._contactEvents;
+    physicsEvents.contactEventCount = this._contactEventCount;
     physicsEvents.triggerEvents = triggerEvents;
     return physicsEvents;
   }
@@ -534,7 +529,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   private _bufferContactEvent(collision: ICollision, state: number): void {
-    const event = this._contactEventPool.length ? this._contactEventPool.pop() : new ContactEvent();
+    const index = this._contactEventCount++;
+    const event = (this._contactEvents[index] ||= new ContactEvent());
     event.shape0Id = collision.shape0Id;
     event.shape1Id = collision.shape1Id;
     event.state = state;
@@ -552,8 +548,6 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       dst.impulse.copyFrom(src.impulse);
       dst.separation = src.separation;
     }
-
-    this._contactEvents.push(event);
   }
 }
 
@@ -569,11 +563,11 @@ enum QueryFlag {
   NO_BLOCK = 1 << 5
 }
 
-const PhysicsEventState = {
-  Enter: 0,
-  Stay: 1,
-  Exit: 2
-} as const;
+enum PhysicsEventState {
+  Enter = 0,
+  Stay = 1,
+  Exit = 2
+}
 
 /**
  * Trigger event to store interactive object ids and state.

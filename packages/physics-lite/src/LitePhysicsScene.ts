@@ -35,7 +35,7 @@ export class LitePhysicsScene implements IPhysicsScene {
   private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
   private _triggerEventPool: TriggerEvent[] = [];
   private _triggerEvents: TriggerEvent[] = [];
-  private _physicsEvents: IPhysicsEvents = { contactEvents: [], triggerEvents: [] };
+  private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
   private _physics: LitePhysics;
 
   constructor(physics: LitePhysics) {
@@ -482,11 +482,11 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 }
 
-const PhysicsEventState = {
-  Enter: 0,
-  Stay: 1,
-  Exit: 2
-} as const;
+enum PhysicsEventState {
+  Enter = 0,
+  Stay = 1,
+  Exit = 2
+}
 
 /**
  * Trigger event to store interactive object ids and state.

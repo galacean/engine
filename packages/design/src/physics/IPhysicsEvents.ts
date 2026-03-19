@@ -23,5 +23,6 @@ export interface ITriggerEvent {
  */
 export interface IPhysicsEvents {
   contactEvents: ReadonlyArray<IContactEvent>;
+  contactEventCount: number;
   triggerEvents: ReadonlyArray<ITriggerEvent>;
 }
