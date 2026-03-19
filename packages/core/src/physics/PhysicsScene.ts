@@ -727,6 +727,7 @@ export class PhysicsScene {
    */
   _gc(): void {
     this._colliders.garbageCollection();
+    (<any>this._nativePhysicsScene)?._gc?.();
   }
 
   /**
