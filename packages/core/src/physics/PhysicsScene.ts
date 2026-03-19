@@ -648,7 +648,7 @@ export class PhysicsScene {
       this._callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
-      this._dispatchEvents(nativePhysicsManager.fireEvents());
+      this._dispatchEvents(nativePhysicsManager.updateEvents());
     }
   }
 

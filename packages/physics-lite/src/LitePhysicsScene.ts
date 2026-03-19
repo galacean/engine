@@ -33,8 +33,8 @@ export class LitePhysicsScene implements IPhysicsScene {
 
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
-  private _eventPool: TriggerEvent[] = [];
-  private _triggerEventResults: TriggerEvent[] = [];
+  private _triggerEventPool: TriggerEvent[] = [];
+  private _triggerEvents: TriggerEvent[] = [];
   private _physicsEvents: IPhysicsEvents = { contactEvents: [], triggerEvents: [] };
   private _physics: LitePhysics;
 
@@ -116,33 +116,33 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.fireEvents }
+   * {@inheritDoc IPhysicsScene.updateEvents }
    */
-  fireEvents(): IPhysicsEvents {
+  updateEvents(): IPhysicsEvents {
     const {
-      _eventPool: eventPool,
+      _triggerEventPool: triggerEventPool,
       _activeTriggers: activeTriggers,
-      _triggerEventResults: triggerResults,
+      _triggerEvents: triggerEvents,
       _physicsEvents: physicsEvents
     } = this;
-    triggerResults.length = 0;
+    triggerEvents.length = 0;
 
     activeTriggers.forEach((event, i) => {
       if (!event.alreadyInvoked) {
         event.dispatchState = event.state;
-        triggerResults.push(event);
+        triggerEvents.push(event);
         event.alreadyInvoked = true;
       } else {
         event.state = PhysicsEventState.Exit;
         event.dispatchState = PhysicsEventState.Exit;
         this._eventMap[event.index1][event.index2] = undefined;
         activeTriggers.deleteByIndex(i);
-        triggerResults.push(event);
-        eventPool.push(event);
+        triggerEvents.push(event);
+        triggerEventPool.push(event);
       }
     });
 
-    physicsEvents.triggerEvents = triggerResults;
+    physicsEvents.triggerEvents = triggerEvents;
     return physicsEvents;
   }
 
@@ -290,15 +290,15 @@ export class LitePhysicsScene implements IPhysicsScene {
    * @internal
    */
   _removeColliderShape(colliderShape: LiteColliderShape): void {
-    const { _eventPool: eventPool, _activeTriggers: activeTriggers, _eventMap: eventMap } = this;
+    const { _triggerEventPool: triggerEventPool, _activeTriggers: activeTriggers, _eventMap: eventMap } = this;
     const { _id: id } = colliderShape;
     activeTriggers.forEach((event, i) => {
       if (event.index1 == id) {
         activeTriggers.deleteByIndex(i);
-        eventPool.push(event);
+        triggerEventPool.push(event);
       } else if (event.index2 == id) {
         activeTriggers.deleteByIndex(i);
-        eventPool.push(event);
+        triggerEventPool.push(event);
         // If the shape is big index, should clear from the small index shape subMap
         eventMap[event.index1][id] = undefined;
       }
@@ -330,8 +330,8 @@ export class LitePhysicsScene implements IPhysicsScene {
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     let event: TriggerEvent;
-    if (this._eventPool.length) {
-      event = this._eventPool.pop();
+    if (this._triggerEventPool.length) {
+      event = this._triggerEventPool.pop();
       event.index1 = index1;
       event.index2 = index2;
     } else {

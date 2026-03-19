@@ -37,10 +37,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _contactEvents: ContactEvent[] = [];
   private _contactEventPool: ContactEvent[] = [];
-  private _triggerEventResults: TriggerEvent[] = [];
+  private _triggerEvents: TriggerEvent[] = [];
   private _physicsEvents: IPhysicsEvents = { contactEvents: [], triggerEvents: [] };
 
-  private _eventPool: TriggerEvent[] = [];
+  private _triggerEventPool: TriggerEvent[] = [];
 
   constructor(physXPhysics: PhysXPhysics, physicsManager: PhysXPhysicsManager) {
     this._physXPhysics = physXPhysics;
@@ -172,27 +172,31 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * {@inheritDoc IPhysicsScene.fireEvents }
+   * {@inheritDoc IPhysicsScene.updateEvents }
    */
-  fireEvents(): IPhysicsEvents {
-    const { _contactEvents: contactEvents, _physicsEvents: physicsEvents } = this;
+  updateEvents(): IPhysicsEvents {
+    const physicsEvents = this._physicsEvents;
 
     // Collect trigger events: snapshot state for dispatch, then advance
-    const { _eventPool: eventPool, _activeTriggers: activeTriggers, _triggerEventResults: triggerResults } = this;
-    triggerResults.length = 0;
+    const {
+      _triggerEventPool: triggerEventPool,
+      _activeTriggers: activeTriggers,
+      _triggerEvents: triggerEvents
+    } = this;
+    triggerEvents.length = 0;
     activeTriggers.forEach((event, i) => {
       event.dispatchState = event.state;
-      triggerResults.push(event);
+      triggerEvents.push(event);
       if (event.state === PhysicsEventState.Enter) {
         event.state = PhysicsEventState.Stay;
       } else if (event.state === PhysicsEventState.Exit) {
         activeTriggers.deleteByIndex(i);
-        eventPool.push(event);
+        triggerEventPool.push(event);
       }
     });
 
-    physicsEvents.contactEvents = contactEvents;
-    physicsEvents.triggerEvents = triggerResults;
+    physicsEvents.contactEvents = this._contactEvents;
+    physicsEvents.triggerEvents = triggerEvents;
     return physicsEvents;
   }
 
@@ -413,15 +417,15 @@ export class PhysXPhysicsScene implements IPhysicsScene {
    * @internal
    */
   _removeColliderShape(id: number) {
-    const { _eventPool: eventPool, _activeTriggers: currentEvents } = this;
+    const { _triggerEventPool: triggerEventPool, _activeTriggers: activeTriggers } = this;
     const { _eventMap: eventMap } = this._physXManager;
-    currentEvents.forEach((event, i) => {
+    activeTriggers.forEach((event, i) => {
       if (event.index1 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
+        activeTriggers.deleteByIndex(i);
+        triggerEventPool.push(event);
       } else if (event.index2 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
+        activeTriggers.deleteByIndex(i);
+        triggerEventPool.push(event);
         // If the shape is big index, should clear from the small index shape subMap
         eventMap[event.index1][id] = undefined;
       }
@@ -518,8 +522,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     let event: TriggerEvent;
-    if (this._eventPool.length) {
-      event = this._eventPool.pop();
+    if (this._triggerEventPool.length) {
+      event = this._triggerEventPool.pop();
       event.index1 = index1;
       event.index2 = index2;
     } else {

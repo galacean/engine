@@ -44,10 +44,10 @@ export interface IPhysicsScene {
   update(elapsedTime: number): void;
 
   /**
-   * Fire buffered collision and trigger events.
+   * Collect buffered collision and trigger events.
    * Must be called after update() and after syncing transforms back from physics.
    */
-  fireEvents(): IPhysicsEvents;
+  updateEvents(): IPhysicsEvents;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
