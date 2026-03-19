@@ -793,7 +793,7 @@ export class PhysicsScene {
     }
     return shapes;
   }
-
+  
   /**
    * Call on every frame to update pose of objects.
    * @internal
@@ -810,6 +810,7 @@ export class PhysicsScene {
       this._callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
+      nativePhysicsManager.fireEvents();
     }
   }
 

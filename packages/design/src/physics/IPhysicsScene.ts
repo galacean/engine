@@ -43,6 +43,12 @@ export interface IPhysicsScene {
   update(elapsedTime: number): void;
 
   /**
+   * Fire buffered collision and trigger events.
+   * Must be called after update() and after syncing transforms back from physics.
+   */
+  fireEvents(): void;
+
+  /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check

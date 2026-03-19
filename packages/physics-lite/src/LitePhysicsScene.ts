@@ -132,6 +132,12 @@ export class LitePhysicsScene implements IPhysicsScene {
       this._collisionDetection(collider, this._staticColliders);
       this._collisionDetection(collider, dynamicColliders);
     }
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.fireEvents }
+   */
+  fireEvents(): void {
     this._fireEvent();
   }
 

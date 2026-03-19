@@ -42,6 +42,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private readonly _onTriggerStay?: (index1: number, index2: number) => void;
 
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
+  private _contactEvents: ContactEvent[] = [];
+  private _contactEventPool: ContactEvent[] = [];
 
   private _eventPool: TriggerEvent[] = [];
 
@@ -73,17 +75,17 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     const triggerCallback = {
       onContactBegin: (collision) => {
-        this._onContactEnter(collision);
+        this._bufferContactEvent(collision, PhysicsEventState.Enter);
       },
       onContactEnd: (collision) => {
-        this._onContactExit(collision);
+        this._bufferContactEvent(collision, PhysicsEventState.Exit);
       },
       onContactPersist: (collision) => {
-        this._onContactStay(collision);
+        this._bufferContactEvent(collision, PhysicsEventState.Stay);
       },
       onTriggerBegin: (index1, index2) => {
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
-        event.state = TriggerEventState.Enter;
+        event.state = PhysicsEventState.Enter;
         this._currentEvents.add(event);
       },
       onTriggerEnd: (index1, index2) => {
@@ -97,7 +99,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
           event = subMap[index1];
           subMap[index1] = undefined;
         }
-        event.state = TriggerEventState.Exit;
+        event.state = PhysicsEventState.Exit;
       }
     };
 
@@ -181,6 +183,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   update(elapsedTime: number): void {
     this._simulate(elapsedTime);
     this._fetchResults();
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.fireEvents }
+   */
+  fireEvents(): void {
     this._fireEvent();
   }
 
@@ -517,15 +525,58 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     return event;
   }
 
+  private _bufferContactEvent(collision: ICollision, state: PhysicsEventState): void {
+    const event = this._contactEventPool.length ? this._contactEventPool.pop() : new ContactEvent();
+    event.shape0Id = collision.shape0Id;
+    event.shape1Id = collision.shape1Id;
+    event.state = state;
+
+    // Copy contact points from PhysX (the native data is only valid during fetchResults)
+    const nativeContacts = collision.getContacts();
+    const count = nativeContacts.size();
+    const bufferedContacts = event._bufferedContacts;
+    bufferedContacts.contactCount = count;
+    for (let i = 0; i < count; i++) {
+      const src = nativeContacts.get(i);
+      const dst = (bufferedContacts.contacts[i] ||= new BufferedContactPoint());
+      dst.position.copyFrom(src.position);
+      dst.normal.copyFrom(src.normal);
+      dst.impulse.copyFrom(src.impulse);
+      dst.separation = src.separation;
+    }
+
+    this._contactEvents.push(event);
+  }
+
   private _fireEvent(): void {
+    // Fire buffered contact events (deferred from fetchResults)
+    const { _contactEvents: contactEvents, _contactEventPool: contactEventPool } = this;
+    for (let i = 0, n = contactEvents.length; i < n; i++) {
+      const event = contactEvents[i];
+      switch (event.state) {
+        case PhysicsEventState.Enter:
+          this._onContactEnter(event);
+          break;
+        case PhysicsEventState.Stay:
+          this._onContactStay(event);
+          break;
+        case PhysicsEventState.Exit:
+          this._onContactExit(event);
+          break;
+      }
+      contactEventPool.push(event);
+    }
+    contactEvents.length = 0;
+
+    // Fire trigger events
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
     currentEvents.forEach((event, i) => {
-      if (event.state == TriggerEventState.Enter) {
+      if (event.state == PhysicsEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);
-        event.state = TriggerEventState.Stay;
-      } else if (event.state == TriggerEventState.Stay) {
+        event.state = PhysicsEventState.Stay;
+      } else if (event.state == PhysicsEventState.Stay) {
         this._onTriggerStay(event.index1, event.index2);
-      } else if (event.state == TriggerEventState.Exit) {
+      } else if (event.state == PhysicsEventState.Exit) {
         currentEvents.deleteByIndex(i);
         this._onTriggerExit(event.index1, event.index2);
         eventPool.push(event);
@@ -547,9 +598,9 @@ enum QueryFlag {
 }
 
 /**
- * Physics state
+ * Physics event state.
  */
-enum TriggerEventState {
+enum PhysicsEventState {
   Enter,
   Stay,
   Exit
@@ -559,12 +610,56 @@ enum TriggerEventState {
  * Trigger event to store interactive object ids and state.
  */
 export class TriggerEvent {
-  state: TriggerEventState;
+  state: PhysicsEventState;
   index1: number;
   index2: number;
 
   constructor(index1: number, index2: number) {
     this.index1 = index1;
     this.index2 = index2;
+  }
+}
+
+/**
+ * Buffered contact point data, copied from PhysX during fetchResults.
+ */
+class BufferedContactPoint {
+  position = new Vector3();
+  normal = new Vector3();
+  impulse = new Vector3();
+  separation = 0;
+}
+
+/**
+ * Contact event buffered from PhysX fetchResults callback.
+ * Implements ICollision so it can be passed directly to the core layer.
+ */
+class BufferedContacts {
+  contactCount = 0;
+  contacts: BufferedContactPoint[] = [];
+
+  size(): number {
+    return this.contactCount;
+  }
+
+  get(index: number): BufferedContactPoint {
+    return this.contacts[index];
+  }
+}
+
+class ContactEvent implements ICollision {
+  state: PhysicsEventState;
+  shape0Id: number;
+  shape1Id: number;
+
+  /** @internal */
+  _bufferedContacts = new BufferedContacts();
+
+  get contactCount(): number {
+    return this._bufferedContacts.contactCount;
+  }
+
+  getContacts(): BufferedContacts {
+    return this._bufferedContacts;
   }
 }
