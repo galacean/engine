@@ -727,7 +727,7 @@ export class PhysicsScene {
    */
   _gc(): void {
     this._colliders.garbageCollection();
-    (<any>this._nativePhysicsScene)?._gc?.();
+    this._nativePhysicsScene.gc();
   }
 
   /**
@@ -748,7 +748,8 @@ export class PhysicsScene {
       const event = contactEvents[i];
       const shape1 = physicalObjectsMap[event.shape0Id];
       const shape2 = physicalObjectsMap[event.shape1Id];
-      // Skip stale events where shape was removed/reparented by a previous callback
+      // entity.destroy() is deferred, so shapes/colliders stay valid through the dispatch loop
+      // This guard covers synchronous removeShape()/clearShapes() which sets shape._collider = null
       if (!shape1?.collider?.entity || !shape2?.collider?.entity) continue;
       collision._nativeCollision = event;
 
@@ -791,7 +792,8 @@ export class PhysicsScene {
       const event = triggerEvents[i];
       const shape1 = physicalObjectsMap[event.index1];
       const shape2 = physicalObjectsMap[event.index2];
-      // Skip stale events where shape was removed/reparented by a previous callback
+      // entity.destroy() is deferred, so shapes/colliders stay valid through the dispatch loop
+      // This guard covers synchronous removeShape()/clearShapes() which sets shape._collider = null
       if (!shape1?.collider?.entity || !shape2?.collider?.entity) continue;
 
       switch (event.dispatchState) {

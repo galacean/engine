@@ -275,6 +275,11 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.gc }
+   */
+  gc(): void {}
+
+  /**
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {}

@@ -133,6 +133,11 @@ export interface IPhysicsScene {
   ): number[];
 
   /**
+   * Trim internal object pools after a GC cycle.
+   */
+  gc(): void;
+
+  /**
    * Destroy the physics scene.
    */
   destroy(): void;

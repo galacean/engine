@@ -19,7 +19,7 @@ export interface ITriggerEvent {
 }
 
 /**
- * Physics events returned by IPhysicsScene.fireEvents().
+ * Physics events returned by IPhysicsScene.updateEvents().
  */
 export interface IPhysicsEvents {
   contactEvents: ReadonlyArray<IContactEvent>;

@@ -374,9 +374,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   }
 
   /**
-   * @internal
+   * {@inheritDoc IPhysicsScene.gc }
    */
-  _gc(): void {
+  gc(): void {
     this._contactEvents.length = this._contactEventCount;
   }
 
