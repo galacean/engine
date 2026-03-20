@@ -49,20 +49,11 @@ export function glslValidate(
         }
         const shaderPass = new ShaderPass(
           passSource.name,
-          shaderPassSource.vertex,
-          shaderPassSource.fragment,
+          shaderPassSource.vertexInstructions,
+          shaderPassSource.fragmentInstructions,
+          platform,
           passSource.tags
         );
-        // @ts-ignore
-        shaderPass._platformTarget = platform;
-        // @ts-ignore
-        shaderPass._vertexInstructions = shaderPassSource.vertexInstructions;
-        // @ts-ignore
-        shaderPass._fragmentInstructions = shaderPassSource.fragmentInstructions;
-        // @ts-ignore
-        shaderPass._vertexInstructions = shaderPassSource.vertexInstructions;
-        // @ts-ignore
-        shaderPass._fragmentInstructions = shaderPassSource.fragmentInstructions;
 
         const totalMacroList = [...baseTestMacroList, ...extraMacroList];
         const macroMockCollection = new ShaderMacroCollection();

@@ -3,6 +3,7 @@
  */
 
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import type { Instruction } from "@galacean/engine-design";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { parseInstructions } from "@galacean/engine-shaderlab/src/InstructionEncoder";
@@ -117,6 +118,7 @@ describe("Precompile Benchmark", async () => {
   const engine = await WebGLEngine.create({ canvas });
   // @ts-ignore
   Shader._shaderLab = shaderLab;
+  // @ts-ignore
   const basePath = new URL("", ShaderPass._shaderRootPath).href;
 
   // Load all test shaders upfront
@@ -172,7 +174,9 @@ describe("Precompile Benchmark", async () => {
           if (pass.isUsePass || !pass.vertexInstructions) continue;
           // Get raw source for re-parsing timing
           const rawVertex = evaluateInstructions(pass.vertexInstructions, new Map());
-          const rawFragment = pass.fragmentInstructions ? evaluateInstructions(pass.fragmentInstructions, new Map()) : "";
+          const rawFragment = pass.fragmentInstructions
+            ? evaluateInstructions(pass.fragmentInstructions, new Map())
+            : "";
           if (pass.vertexInstructions.length > 1) {
             results.push(
               bench(
@@ -297,7 +301,7 @@ describe("Precompile Benchmark", async () => {
     it("PBR fragment with different macro combos", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
 
-      let fragInstructions: any[][] | undefined;
+      let fragInstructions: Instruction[] | undefined;
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (!pass.isUsePass && pass.fragmentInstructions && pass.fragmentInstructions.length > 1) {
@@ -368,13 +372,13 @@ describe("Precompile Benchmark", async () => {
 
       // ── Prepare GSP ShaderPass (with instructions) ──
       const forwardPassData = precompiled.subShaders[0].passes.find((p) => !p.isUsePass)!;
-      const gspShaderPass = new ShaderPass(forwardPassData.name, "", "", forwardPassData.tags);
-      // @ts-ignore
-      gspShaderPass._platformTarget = ShaderLanguage.GLSLES100;
-      // @ts-ignore
-      gspShaderPass._vertexInstructions = forwardPassData.vertexInstructions;
-      // @ts-ignore
-      gspShaderPass._fragmentInstructions = forwardPassData.fragmentInstructions;
+      const gspShaderPass = new ShaderPass(
+        forwardPassData.name,
+        forwardPassData.vertexInstructions!,
+        forwardPassData.fragmentInstructions!,
+        ShaderLanguage.GLSLES100,
+        forwardPassData.tags
+      );
 
       // ── Prepare raw GLSL ShaderPass (no instructions, no _platformTarget → compilePlatformSource) ──
       const parsed = shaderLab._parseShaderSource(PBRSource);
@@ -387,7 +391,10 @@ describe("Precompile Benchmark", async () => {
         basePath
       )!;
       // No _platformTarget → _getCanonicalShaderProgram uses compilePlatformSource (raw GLSL path)
-      const glslShaderPass = new ShaderPass(livePassSource.name, liveProg.vertex, liveProg.fragment, livePassSource.tags);
+      // Evaluate instructions with empty macros to get raw GLSL strings
+      const rawVertex = evaluateInstructions(liveProg.vertexInstructions!, new Map());
+      const rawFragment = evaluateInstructions(liveProg.fragmentInstructions!, new Map());
+      const glslShaderPass = new ShaderPass(livePassSource.name, rawVertex, rawFragment, livePassSource.tags);
 
       // ── Macro scenarios ──
       const emptyMacros = new ShaderMacroCollection();
@@ -397,6 +404,7 @@ describe("Precompile Benchmark", async () => {
       // ── CPU-only: evaluateInstructions timing (no GPU) ──
       function benchCpuGsp(macroCollection: ShaderMacroCollection): BenchResult {
         const macroList: ShaderMacro[] = [];
+        // @ts-ignore - internal API
         ShaderMacro._getMacrosElements(macroCollection, macroList);
         // @ts-ignore
         const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;

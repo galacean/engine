@@ -10,7 +10,25 @@ import type { Condition, Instruction } from "@galacean/engine-design";
 
 export type { Instruction } from "@galacean/engine-design";
 
-// Opcode constants — must match InstructionOpcode in @galacean/engine-design
+/**
+ * Opcode constants for the flat instruction array.
+ *
+ * Each instruction is `[opcode, ...operands]`. Layout per opcode:
+ *
+ *   0  TEXT         [0, content: string]                              output text fragment
+ *   1  IF_DEF       [1, macroName: string, jumpOffset: number]        #ifdef — jump if NOT defined
+ *   2  IF_NDEF      [2, macroName: string, jumpOffset: number]        #ifndef — jump if IS defined
+ *   3  IF_CMP       [3, name: string, op: string, val: number, jump: number]  #if MACRO op value
+ *   4  IF_EXPR      [4, condition: Condition, jumpOffset: number]     #if compound (&&/||/!)
+ *   5  ELSE         [5, jumpOffset: number]                           unconditional jump past #endif
+ *   6  ENDIF        [6]                                               end of conditional block
+ *   7  DEFINE       [7, name: string]                                 #define NAME
+ *   8  DEFINE_VAL   [8, name: string, value: string]                  #define NAME value
+ *   9  DEFINE_FUNC  [9, name: string, params: string[], body: string] #define NAME(a,b) body
+ *  10  UNDEF        [10, name: string]                                #undef NAME
+ *
+ * #elif is decomposed into ELSE + IF_xxx (see explanation below).
+ */
 const Op = {
   TEXT: 0,
   IF_DEF: 1,

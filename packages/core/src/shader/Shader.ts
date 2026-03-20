@@ -106,10 +106,7 @@ export class Shader implements IReferable {
       const subShaderList = shaderSource.subShaders.map((subShaderSource) => {
         const passList = subShaderSource.passes.map((passSource) => {
           if (passSource.isUsePass) {
-            const [shaderName, subShaderName, passName] = passSource.name.split("/");
-            return Shader.find(shaderName)
-              ?.subShaders.find((subShader) => subShader.name === subShaderName)
-              ?.passes.find((pass) => pass.name === passName);
+            return Shader._resolveUsePass(passSource.name);
           }
 
           const shaderPassSource = Shader._shaderLab._parseShaderPass(
@@ -126,32 +123,18 @@ export class Shader implements IReferable {
 
           const shaderPass = new ShaderPass(
             passSource.name,
-            shaderPassSource.vertex,
-            shaderPassSource.fragment,
+            shaderPassSource.vertexInstructions,
+            shaderPassSource.fragmentInstructions,
+            vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage,
             passSource.tags
           );
 
-          shaderPass._platformTarget = vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage;
-          shaderPass._vertexInstructions = shaderPassSource.vertexInstructions;
-          shaderPass._fragmentInstructions = shaderPassSource.fragmentInstructions;
-
-          const { constantMap, variableMap } = passSource.renderStates;
-          // Compatible shader lab no render state use material `renderState` to modify render state
-          if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
-            // Parse const render state
-            const renderState = new RenderState();
-            for (let k in constantMap) {
-              Shader._applyConstRenderStates(renderState, +k, constantMap[k]);
-            }
-            shaderPass._renderState = renderState;
-
-            // Parse variable render state
-            const renderStateDataMap = <Record<number, ShaderProperty>>{};
-            for (let k in variableMap) {
-              renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
-            }
-            shaderPass._renderStateDataMap = renderStateDataMap;
-          }
+          Shader._applyRenderStates(
+            shaderPass,
+            passSource.renderStates.constantMap,
+            passSource.renderStates.variableMap,
+            false
+          );
 
           return shaderPass;
         });
@@ -217,44 +200,23 @@ export class Shader implements IReferable {
     const subShaderList = data.subShaders.map((subData) => {
       const passList = subData.passes.map((passData) => {
         if (passData.isUsePass) {
-          const [shaderName, subShaderName, passName] = passData.name.split("/");
-          return Shader.find(shaderName)
-            ?.subShaders.find((subShader) => subShader.name === subShaderName)
-            ?.passes.find((pass) => pass.name === passName);
+          return Shader._resolveUsePass(passData.name);
         }
 
-        // Reconstruct vertex/fragment source from instructions (single TEXT instruction for no-macro shaders)
-        const vertexInst = passData.vertexInstructions;
-        const fragmentInst = passData.fragmentInstructions;
-        const vertexSource =
-          vertexInst && vertexInst.length === 1 && vertexInst[0][0] === 0 ? (vertexInst[0][1] as string) : "";
-        const fragmentSource =
-          fragmentInst && fragmentInst.length === 1 && fragmentInst[0][0] === 0 ? (fragmentInst[0][1] as string) : "";
-        const shaderPass = new ShaderPass(passData.name, vertexSource, fragmentSource, passData.tags);
-        shaderPass._platformTarget = data.platformTarget as ShaderLanguage;
-        shaderPass._vertexInstructions = vertexInst;
-        shaderPass._fragmentInstructions = fragmentInst;
+        const shaderPass = new ShaderPass(
+          passData.name,
+          passData.vertexInstructions,
+          passData.fragmentInstructions,
+          data.platformTarget as ShaderLanguage,
+          passData.tags
+        );
 
-        const { constantMap, variableMap } = passData.renderStates;
-        if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
-          const renderState = new RenderState();
-          for (const k in constantMap) {
-            const value = constantMap[k];
-            // Deserialize Color from [r, g, b, a] array
-            if (Array.isArray(value)) {
-              Shader._applyConstRenderStates(renderState, +k, new Color(value[0], value[1], value[2], value[3]));
-            } else {
-              Shader._applyConstRenderStates(renderState, +k, value);
-            }
-          }
-          shaderPass._renderState = renderState;
-
-          const renderStateDataMap = <Record<number, ShaderProperty>>{};
-          for (const k in variableMap) {
-            renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
-          }
-          shaderPass._renderStateDataMap = renderStateDataMap;
-        }
+        Shader._applyRenderStates(
+          shaderPass,
+          passData.renderStates.constantMap,
+          passData.renderStates.variableMap,
+          true
+        );
 
         return shaderPass;
       });
@@ -288,6 +250,40 @@ export class Shader implements IReferable {
           }
         }
       }
+    }
+  }
+
+  /** @internal Resolve UsePass reference. */
+  private static _resolveUsePass(passName: string): ShaderPass | undefined {
+    const [shaderName, subShaderName, passNamePart] = passName.split("/");
+    return Shader.find(shaderName)
+      ?.subShaders.find((subShader) => subShader.name === subShaderName)
+      ?.passes.find((pass) => pass.name === passNamePart);
+  }
+
+  /** @internal Apply render states from constantMap/variableMap to a ShaderPass. */
+  private static _applyRenderStates(
+    shaderPass: ShaderPass,
+    constantMap: Record<string, any>,
+    variableMap: Record<string, string>,
+    deserializeColor: boolean
+  ): void {
+    if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
+      const renderState = new RenderState();
+      for (const k in constantMap) {
+        const value = constantMap[k];
+        if (deserializeColor && Array.isArray(value)) {
+          Shader._applyConstRenderStates(renderState, +k, new Color(value[0], value[1], value[2], value[3]));
+        } else {
+          Shader._applyConstRenderStates(renderState, +k, value);
+        }
+      }
+      shaderPass._renderState = renderState;
+      const renderStateDataMap = <Record<number, ShaderProperty>>{};
+      for (const k in variableMap) {
+        renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
+      }
+      shaderPass._renderStateDataMap = renderStateDataMap;
     }
   }
 

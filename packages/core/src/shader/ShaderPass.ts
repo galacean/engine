@@ -38,9 +38,9 @@ export class ShaderPass extends ShaderPart {
   _platformTarget: ShaderLanguage | undefined;
 
   /** @internal - Flat instruction array for vertex shader. */
-  _vertexInstructions: Instruction[] | undefined;
+  _vertexInstructions?: Instruction[];
   /** @internal */
-  _fragmentInstructions: Instruction[] | undefined;
+  _fragmentInstructions?: Instruction[];
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -55,8 +55,11 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
 
-  private _vertexSource: string;
-  private _fragmentSource: string;
+  private _vertexSource?: string;
+  private _fragmentSource?: string;
+
+  private static _shaderMacroList: ShaderMacro[] = [];
+  private static _macroMap: Map<string, string> = new Map();
 
   /**
    * Create a shader pass.
@@ -80,30 +83,56 @@ export class ShaderPass extends ShaderPart {
    */
   constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, number | string | boolean>);
 
+  /**
+   * Create a shader pass from precompiled instructions.
+   * @param name - Shader pass name
+   * @param vertexInstructions - Precompiled vertex instruction array
+   * @param fragmentInstructions - Precompiled fragment instruction array
+   * @param platformTarget - Target shader language
+   * @param tags - Tags
+   */
+  constructor(
+    name: string,
+    vertexInstructions: Instruction[],
+    fragmentInstructions: Instruction[],
+    platformTarget: ShaderLanguage,
+    tags?: Record<string, number | string | boolean>
+  );
+
   constructor(
     nameOrVertexSource: string,
-    vertexSourceOrFragmentSource: string,
-    fragmentSourceOrTags?: string | Record<string, number | string | boolean>,
+    vertexSourceOrFragmentSourceOrInstructions: string | Instruction[],
+    fragmentSourceOrTags?: string | Instruction[] | Record<string, number | string | boolean>,
+    tagsOrPlatformTarget?: Record<string, number | string | boolean> | ShaderLanguage,
     tags?: Record<string, number | string | boolean>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
-    if (typeof fragmentSourceOrTags === "string") {
+    if (Array.isArray(vertexSourceOrFragmentSourceOrInstructions)) {
+      // Instructions overload: (name, vertexInst, fragInst, platformTarget, tags?)
       this._name = nameOrVertexSource;
-      this._vertexSource = vertexSourceOrFragmentSource;
+      this._vertexInstructions = vertexSourceOrFragmentSourceOrInstructions;
+      this._fragmentInstructions = fragmentSourceOrTags as Instruction[];
+      this._platformTarget = tagsOrPlatformTarget as ShaderLanguage;
+      tags = { pipelineStage: PipelineStage.Forward, ...tags };
+    } else if (typeof fragmentSourceOrTags === "string") {
+      // Named overload: (name, vertexSource, fragmentSource, tags?)
+      this._name = nameOrVertexSource;
+      this._vertexSource = vertexSourceOrFragmentSourceOrInstructions;
       this._fragmentSource = fragmentSourceOrTags;
       tags = {
         pipelineStage: PipelineStage.Forward,
-        ...tags
+        ...(tagsOrPlatformTarget as Record<string, number | string | boolean>)
       };
     } else {
+      // Unnamed overload: (vertexSource, fragmentSource, tags?)
       this._name = "Default";
       this._vertexSource = nameOrVertexSource;
-      this._fragmentSource = vertexSourceOrFragmentSource;
+      this._fragmentSource = vertexSourceOrFragmentSourceOrInstructions as string;
       tags = {
         pipelineStage: PipelineStage.Forward,
-        ...fragmentSourceOrTags
+        ...(fragmentSourceOrTags as Record<string, number | string | boolean>)
       };
     }
 
@@ -142,15 +171,6 @@ export class ShaderPass extends ShaderPart {
     shaderProgramPools.length = 0;
   }
 
-  private static _buildMacroMap(macroList: ShaderMacro[]): Map<string, string> {
-    const map = new Map<string, string>();
-    for (let i = 0, n = macroList.length; i < n; i++) {
-      const macro = macroList[i];
-      map.set(macro.name, macro.value ?? "");
-    }
-    return map;
-  }
-
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     if (this._platformTarget != undefined) {
       return this._getShaderLabProgram(engine, macroCollection);
@@ -168,7 +188,8 @@ export class ShaderPass extends ShaderPart {
 
   private _getShaderLabProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
-    const shaderMacroList = new Array<ShaderMacro>();
+    const shaderMacroList = ShaderPass._shaderMacroList;
+    shaderMacroList.length = 0;
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
     shaderMacroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
@@ -178,7 +199,12 @@ export class ShaderPass extends ShaderPart {
       shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
     }
 
-    const macroMap = ShaderPass._buildMacroMap(shaderMacroList);
+    const macroMap = ShaderPass._macroMap;
+    macroMap.clear();
+    for (let i = 0, n = shaderMacroList.length; i < n; i++) {
+      const macro = shaderMacroList[i];
+      macroMap.set(macro.name, macro.value ?? "");
+    }
     let noIncludeVertex = evaluateInstructions(this._vertexInstructions, macroMap);
     let noIncludeFrag = evaluateInstructions(this._fragmentInstructions, macroMap);
 

@@ -9,8 +9,21 @@
  */
 import type { Condition, Instruction } from "@galacean/engine-design";
 
-// Opcode constants — must match InstructionOpcode in @galacean/engine-design
-// Duplicated here to avoid runtime dependency on engine-design (devDependency only)
+/**
+ * Opcode constants — duplicated from InstructionEncoder to avoid runtime dependency on engine-design.
+ *
+ *   0  TEXT         [0, content]                 output text fragment
+ *   1  IF_DEF       [1, name, jump]              #ifdef — jump if NOT defined
+ *   2  IF_NDEF      [2, name, jump]              #ifndef — jump if IS defined
+ *   3  IF_CMP       [3, name, op, val, jump]     #if MACRO op value
+ *   4  IF_EXPR      [4, condition, jump]          #if compound (&&/||/!)
+ *   5  ELSE         [5, jump]                     unconditional jump past #endif
+ *   6  ENDIF        [6]                           end of conditional block
+ *   7  DEFINE       [7, name]                     #define NAME
+ *   8  DEFINE_VAL   [8, name, value]              #define NAME value
+ *   9  DEFINE_FUNC  [9, name, params[], body]     #define NAME(a,b) body
+ *  10  UNDEF        [10, name]                    #undef NAME
+ */
 const Op = {
   TEXT: 0,
   IF_DEF: 1,
@@ -98,6 +111,18 @@ export function evaluateInstructions(instructions: Instruction[], macros: Map<st
     }
   }
 
+  // If no value macros and no function macros, skip expansion
+  let hasExpandable = false;
+  for (const [, val] of defines) {
+    if (val !== "") {
+      hasExpandable = true;
+      break;
+    }
+  }
+  if (!hasExpandable && funcMacros.size === 0) {
+    return parts.join("").replace(/\n\s*\n+/g, "\n");
+  }
+
   return expandMacrosSinglePass(parts, defines, funcMacros);
 }
 
@@ -169,6 +194,11 @@ function expandMacrosSinglePass(
   let i = 0;
   let lastNewline = false;
 
+  // Build first-char filter: skip Map lookups for identifiers whose first char can't match any macro
+  const macroFirstChars = new Set<number>();
+  for (const name of defines.keys()) macroFirstChars.add(name.charCodeAt(0));
+  for (const name of funcMacros.keys()) macroFirstChars.add(name.charCodeAt(0));
+
   while (i < len) {
     const cc = text.charCodeAt(i);
 
@@ -185,14 +215,15 @@ function expandMacrosSinglePass(
           break;
         }
       }
-      const name = text.substring(start, i);
 
-      // Skip GL_ prefixed identifiers
-      if (name.charCodeAt(0) === 71 && name.charCodeAt(1) === 76 && name.charCodeAt(2) === 95) {
-        out.push(name);
+      // Fast path: first char not in any macro name → skip substring + Map lookups
+      if (!macroFirstChars.has(text.charCodeAt(start))) {
+        out.push(text.substring(start, i));
         lastNewline = false;
         continue;
       }
+
+      const name = text.substring(start, i);
 
       // Try function macro
       const func = funcMacros.get(name);
@@ -251,10 +282,15 @@ function expandMacrosSinglePass(
       continue;
     }
 
-    // Any other character — output as-is
-    out.push(text[i]);
+    // Batch collect consecutive non-identifier, non-newline characters
+    const batchStart = i;
+    while (i < len) {
+      const c = text.charCodeAt(i);
+      if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95 || c === 10) break;
+      i++;
+    }
+    out.push(text.substring(batchStart, i));
     lastNewline = false;
-    i++;
   }
 
   return out.join("");
@@ -404,8 +440,14 @@ function expandString(
       out.push(name);
       continue;
     }
-    out.push(text[i]);
-    i++;
+    // Batch collect consecutive non-identifier characters
+    const batchStart = i;
+    while (i < len) {
+      const c = text.charCodeAt(i);
+      if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95) break;
+      i++;
+    }
+    out.push(text.substring(batchStart, i));
   }
 
   return out.join("");

@@ -171,16 +171,13 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         for (const pass of sub.passes) {
           if (pass.isUsePass || !pass.vertexInstructions) continue;
 
-          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
-          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
-          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
-          // @ts-ignore
-          shaderPass._platformTarget = platform;
-          // Set instructions for macro evaluation
-          // @ts-ignore
-          shaderPass._vertexInstructions = pass.vertexInstructions;
-          // @ts-ignore
-          shaderPass._fragmentInstructions = pass.fragmentInstructions;
+          const shaderPass = new ShaderPass(
+            pass.name,
+            pass.vertexInstructions,
+            pass.fragmentInstructions,
+            platform,
+            pass.tags
+          );
 
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
@@ -223,15 +220,13 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
         for (const pass of sub.passes) {
           if (pass.isUsePass || !pass.vertexInstructions) continue;
 
-          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
-          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
-          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
-          // @ts-ignore
-          shaderPass._platformTarget = platform;
-          // @ts-ignore
-          shaderPass._vertexInstructions = pass.vertexInstructions;
-          // @ts-ignore
-          shaderPass._fragmentInstructions = pass.fragmentInstructions;
+          const shaderPass = new ShaderPass(
+            pass.name,
+            pass.vertexInstructions,
+            pass.fragmentInstructions,
+            platform,
+            pass.tags
+          );
 
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
@@ -393,15 +388,13 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass || !pass.vertexInstructions) continue;
-          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
-          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
-          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
-          // @ts-ignore
-          shaderPass._platformTarget = ShaderLanguage.GLSLES100;
-          // @ts-ignore
-          shaderPass._vertexInstructions = pass.vertexInstructions;
-          // @ts-ignore
-          shaderPass._fragmentInstructions = pass.fragmentInstructions;
+          const shaderPass = new ShaderPass(
+            pass.name,
+            pass.vertexInstructions,
+            pass.fragmentInstructions!,
+            ShaderLanguage.GLSLES100,
+            pass.tags
+          );
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);
@@ -425,15 +418,13 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass || !pass.vertexInstructions) continue;
-          const vertexSource = evaluateInstructions(pass.vertexInstructions, new Map());
-          const fragmentSource = evaluateInstructions(pass.fragmentInstructions!, new Map());
-          const shaderPass = new ShaderPass(pass.name, vertexSource, fragmentSource, pass.tags);
-          // @ts-ignore
-          shaderPass._platformTarget = ShaderLanguage.GLSLES100;
-          // @ts-ignore
-          shaderPass._vertexInstructions = pass.vertexInstructions;
-          // @ts-ignore
-          shaderPass._fragmentInstructions = pass.fragmentInstructions;
+          const shaderPass = new ShaderPass(
+            pass.name,
+            pass.vertexInstructions,
+            pass.fragmentInstructions!,
+            ShaderLanguage.GLSLES100,
+            pass.tags
+          );
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);
