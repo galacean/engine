@@ -1,0 +1,14 @@
+name: Add Co-authored-by
+
+on:
+  pull_request:
+    types: [closed]
+
+jobs:
+  add-co-author:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: galacean/shared-actions/add-co-author@main
