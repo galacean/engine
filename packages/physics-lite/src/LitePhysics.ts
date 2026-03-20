@@ -4,7 +4,6 @@ import {
   ICapsuleColliderShape,
   ICharacterController,
   ICollider,
-  ICollision,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
@@ -46,24 +45,8 @@ export class LitePhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsScene }
    */
-  createPhysicsScene(
-    physicsManager: LitePhysicsManager,
-    onContactBegin?: (collision: ICollision) => void,
-    onContactEnd?: (collision: ICollision) => void,
-    onContactPersist?: (collision: ICollision) => void,
-    onTriggerBegin?: (obj1: number, obj2: number) => void,
-    onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerPersist?: (obj1: number, obj2: number) => void
-  ): LitePhysicsScene {
-    return new LitePhysicsScene(
-      this,
-      onContactBegin,
-      onContactEnd,
-      onContactPersist,
-      onTriggerBegin,
-      onTriggerEnd,
-      onTriggerPersist
-    );
+  createPhysicsScene(physicsManager: LitePhysicsManager): LitePhysicsScene {
+    return new LitePhysicsScene(this);
   }
 
   /**

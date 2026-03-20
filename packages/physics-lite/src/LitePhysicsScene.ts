@@ -7,7 +7,7 @@ import {
   Ray,
   Vector3
 } from "@galacean/engine";
-import { ICharacterController, ICollision, IPhysicsScene } from "@galacean/engine-design";
+import { ICharacterController, IPhysicsScene, IPhysicsEvents, ITriggerEvent } from "@galacean/engine-design";
 import { LiteCollider } from "./LiteCollider";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -26,39 +26,20 @@ export class LitePhysicsScene implements IPhysicsScene {
   private static _currentHit: LiteHitResult = new LiteHitResult();
   private static _hitResult: LiteHitResult = new LiteHitResult();
 
-  private readonly _onContactEnter?: (collision: ICollision) => void;
-  private readonly _onContactExit?: (collision: ICollision) => void;
-  private readonly _onContactStay?: (collision: ICollision) => void;
-  private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
-  private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
-
   private _staticColliders: LiteStaticCollider[] = [];
   private _dynamicColliders: LiteDynamicCollider[] = [];
   private _sphere: BoundingSphere = new BoundingSphere();
   private _box: BoundingBox = new BoundingBox();
 
-  private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
+  private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
-  private _eventPool: TriggerEvent[] = [];
+  private _triggerEventPool: TriggerEvent[] = [];
+  private _triggerEvents: TriggerEvent[] = [];
+  private _physicsEvents: IPhysicsEvents = { contactEvents: [], contactEventCount: 0, triggerEvents: [] };
   private _physics: LitePhysics;
 
-  constructor(
-    physics: LitePhysics,
-    onContactEnter?: (collision: ICollision) => void,
-    onContactExit?: (collision: ICollision) => void,
-    onContactStay?: (collision: ICollision) => void,
-    onTriggerEnter?: (obj1: number, obj2: number) => void,
-    onTriggerExit?: (obj1: number, obj2: number) => void,
-    onTriggerStay?: (obj1: number, obj2: number) => void
-  ) {
+  constructor(physics: LitePhysics) {
     this._physics = physics;
-    this._onContactEnter = onContactEnter;
-    this._onContactExit = onContactExit;
-    this._onContactStay = onContactStay;
-    this._onTriggerEnter = onTriggerEnter;
-    this._onTriggerExit = onTriggerExit;
-    this._onTriggerStay = onTriggerStay;
   }
   overlapBox(
     center: Vector3,
@@ -132,7 +113,37 @@ export class LitePhysicsScene implements IPhysicsScene {
       this._collisionDetection(collider, this._staticColliders);
       this._collisionDetection(collider, dynamicColliders);
     }
-    this._fireEvent();
+  }
+
+  /**
+   * {@inheritDoc IPhysicsScene.updateEvents }
+   */
+  updateEvents(): IPhysicsEvents {
+    const {
+      _triggerEventPool: triggerEventPool,
+      _activeTriggers: activeTriggers,
+      _triggerEvents: triggerEvents,
+      _physicsEvents: physicsEvents
+    } = this;
+    triggerEvents.length = 0;
+
+    activeTriggers.forEach((event, i) => {
+      if (!event.alreadyInvoked) {
+        event.dispatchState = event.state;
+        triggerEvents.push(event);
+        event.alreadyInvoked = true;
+      } else {
+        event.state = PhysicsEventState.Exit;
+        event.dispatchState = PhysicsEventState.Exit;
+        this._eventMap[event.index1][event.index2] = undefined;
+        activeTriggers.deleteByIndex(i);
+        triggerEvents.push(event);
+        triggerEventPool.push(event);
+      }
+    });
+
+    physicsEvents.triggerEvents = triggerEvents;
+    return physicsEvents;
   }
 
   /**
@@ -264,6 +275,11 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.gc }
+   */
+  gc(): void {}
+
+  /**
    * {@inheritDoc IPhysicsScene.destroy }
    */
   destroy(): void {}
@@ -279,15 +295,15 @@ export class LitePhysicsScene implements IPhysicsScene {
    * @internal
    */
   _removeColliderShape(colliderShape: LiteColliderShape): void {
-    const { _eventPool: eventPool, _currentEvents: currentEvents, _eventMap: eventMap } = this;
+    const { _triggerEventPool: triggerEventPool, _activeTriggers: activeTriggers, _eventMap: eventMap } = this;
     const { _id: id } = colliderShape;
-    currentEvents.forEach((event, i) => {
+    activeTriggers.forEach((event, i) => {
       if (event.index1 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
+        activeTriggers.deleteByIndex(i);
+        triggerEventPool.push(event);
       } else if (event.index2 == id) {
-        currentEvents.deleteByIndex(i);
-        eventPool.push(event);
+        activeTriggers.deleteByIndex(i);
+        triggerEventPool.push(event);
         // If the shape is big index, should clear from the small index shape subMap
         eventMap[event.index1][id] = undefined;
       }
@@ -319,8 +335,8 @@ export class LitePhysicsScene implements IPhysicsScene {
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     let event: TriggerEvent;
-    if (this._eventPool.length) {
-      event = this._eventPool.pop();
+    if (this._triggerEventPool.length) {
+      event = this._triggerEventPool.pop();
       event.index1 = index1;
       event.index2 = index2;
     } else {
@@ -356,13 +372,13 @@ export class LitePhysicsScene implements IPhysicsScene {
             if (shape != myShape && this._boxCollision(shape)) {
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
-                event.state = TriggerEventState.Enter;
+                event.state = PhysicsEventState.Enter;
                 event.alreadyInvoked = false;
-                this._currentEvents.add(event);
-              } else if (event.state === TriggerEventState.Enter) {
-                event.state = TriggerEventState.Stay;
+                this._activeTriggers.add(event);
+              } else if (event.state === PhysicsEventState.Enter) {
+                event.state = PhysicsEventState.Stay;
                 event.alreadyInvoked = false;
-              } else if (event.state === TriggerEventState.Stay) {
+              } else if (event.state === PhysicsEventState.Stay) {
                 event.alreadyInvoked = false;
               }
             }
@@ -390,13 +406,13 @@ export class LitePhysicsScene implements IPhysicsScene {
             if (shape != myShape && this._sphereCollision(shape)) {
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
-                event.state = TriggerEventState.Enter;
+                event.state = PhysicsEventState.Enter;
                 event.alreadyInvoked = false;
-                this._currentEvents.add(event);
-              } else if (event.state === TriggerEventState.Enter) {
-                event.state = TriggerEventState.Stay;
+                this._activeTriggers.add(event);
+              } else if (event.state === PhysicsEventState.Enter) {
+                event.state = PhysicsEventState.Stay;
                 event.alreadyInvoked = false;
-              } else if (event.state === TriggerEventState.Stay) {
+              } else if (event.state === PhysicsEventState.Stay) {
                 event.alreadyInvoked = false;
               }
             }
@@ -404,28 +420,6 @@ export class LitePhysicsScene implements IPhysicsScene {
         }
       }
     }
-  }
-
-  private _fireEvent(): void {
-    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    currentEvents.forEach((event, i) => {
-      if (!event.alreadyInvoked) {
-        if (event.state == TriggerEventState.Enter) {
-          this._onTriggerEnter(event.index1, event.index2);
-          event.alreadyInvoked = true;
-        } else if (event.state == TriggerEventState.Stay) {
-          this._onTriggerStay(event.index1, event.index2);
-          event.alreadyInvoked = true;
-        }
-      } else {
-        event.state = TriggerEventState.Exit;
-        this._eventMap[event.index1][event.index2] = undefined;
-
-        currentEvents.deleteByIndex(i);
-        this._onTriggerExit(event.index1, event.index2);
-        eventPool.push(event);
-      }
-    });
   }
 
   private _boxCollision(other: LiteColliderShape): boolean {
@@ -493,23 +487,21 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 }
 
-/**
- * Physics state
- */
-enum TriggerEventState {
-  Enter,
-  Stay,
-  Exit
+enum PhysicsEventState {
+  Enter = 0,
+  Stay = 1,
+  Exit = 2
 }
 
 /**
  * Trigger event to store interactive object ids and state.
  */
-class TriggerEvent {
-  state: TriggerEventState;
+class TriggerEvent implements ITriggerEvent {
+  state: number;
+  dispatchState: number;
   index1: number;
   index2: number;
-  alreadyInvoked: boolean = false;
+  alreadyInvoked = false;
 
   constructor(index1: number, index2: number) {
     this.index1 = index1;

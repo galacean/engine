@@ -3,7 +3,6 @@ import {
   IBoxColliderShape,
   ICapsuleColliderShape,
   ICharacterController,
-  ICollision,
   IDynamicCollider,
   IFixedJoint,
   IHingeJoint,
@@ -152,25 +151,8 @@ export class PhysXPhysics implements IPhysics {
   /**
    * {@inheritDoc IPhysics.createPhysicsScene }
    */
-  createPhysicsScene(
-    physicsManager: PhysXPhysicsManager,
-    onContactBegin?: (collision: ICollision) => void,
-    onContactEnd?: (collision: ICollision) => void,
-    onContactStay?: (collision: ICollision) => void,
-    onTriggerBegin?: (obj1: number, obj2: number) => void,
-    onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerStay?: (obj1: number, obj2: number) => void
-  ): IPhysicsScene {
-    const scene = new PhysXPhysicsScene(
-      this,
-      physicsManager,
-      onContactBegin,
-      onContactEnd,
-      onContactStay,
-      onTriggerBegin,
-      onTriggerEnd,
-      onTriggerStay
-    );
+  createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
+    const scene = new PhysXPhysicsScene(this, physicsManager);
     return scene;
   }
 
