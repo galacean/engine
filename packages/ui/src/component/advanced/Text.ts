@@ -320,7 +320,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     const canvas = this._getRootCanvas();
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
