@@ -1,12 +1,11 @@
 name: Set author email
 
 on:
-  pull_request:
-    types: [closed]
+  push:
+    branches: [main, 'dev/**']
 
 jobs:
   set-author-email:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     permissions:
       contents: write
