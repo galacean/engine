@@ -353,25 +353,24 @@ describe("Precompile Benchmark", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 6. Variant switch breakdown: CPU macro processing + GPU compile (isolated)
-  //    Simulates what happens when the engine switches a shader variant at runtime.
-  //    Both paths start from an already-created ShaderPass — only measures the
-  //    per-variant work, NOT ShaderLab compilation or .gsp loading.
+  // 6. Variant switch breakdown: CPU / GPU / Total
   //
-  //    GSP path:  evaluateInstructions → convertTo300 → assemble → new ShaderProgram (GPU)
-  //    GLSL path: parseCustomMacros → prepend → convertTo300 → assemble → new ShaderProgram (GPU)
+  //    CPU measured via _compileShaderLabSource / compilePlatformSource
+  //    Total measured via _getCanonicalShaderProgram (CPU + GPU)
+  //    GPU = Total - CPU
   //
-  //    CPU = evaluateInstructions or parseCustomMacros (measured via _getCanonicalShaderProgram minus GPU)
-  //    GPU = new ShaderProgram (isolated via _getCanonicalShaderProgram with same final GLSL)
+  //    GSP CPU:  buildMacroList + evaluateInstructions + convertTo300 + assemble
+  //    GLSL CPU: buildMacroList + parseIncludes + parseCustomMacros + convertTo300 + assemble
+  //    GPU:      new ShaderProgram(engine, vs, fs) — WebGL compile + link
   // ═══════════════════════════════════════════════════════════
-  describe("6. Variant switch: CPU + GPU breakdown (PBR)", () => {
+  describe("6. Variant switch: CPU / GPU / Total (PBR)", () => {
     it("precompiled (GSP) vs raw GLSL path", () => {
       // @ts-ignore
       Shader._shaderLab = shaderLab;
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
-
-      // ── Prepare GSP ShaderPass (with instructions) ──
       const forwardPassData = precompiled.subShaders[0].passes.find((p) => !p.isUsePass)!;
+
+      // GSP ShaderPass (with instructions)
       const gspShaderPass = new ShaderPass(
         forwardPassData.name,
         forwardPassData.vertexInstructions!,
@@ -380,7 +379,7 @@ describe("Precompile Benchmark", async () => {
         forwardPassData.tags
       );
 
-      // ── Prepare raw GLSL ShaderPass (no instructions, no _platformTarget → compilePlatformSource) ──
+      // GLSL ShaderPass (raw source, no instructions → compilePlatformSource path)
       const parsed = shaderLab._parseShaderSource(PBRSource);
       const livePassSource = parsed.subShaders[0].passes.find((p) => !p.isUsePass)!;
       const liveProg = shaderLab._parseShaderPass(
@@ -390,90 +389,80 @@ describe("Precompile Benchmark", async () => {
         ShaderLanguage.GLSLES100,
         basePath
       )!;
-      // No _platformTarget → _getCanonicalShaderProgram uses compilePlatformSource (raw GLSL path)
-      // Evaluate instructions with empty macros to get raw GLSL strings
-      const rawVertex = evaluateInstructions(liveProg.vertexInstructions!, new Map());
-      const rawFragment = evaluateInstructions(liveProg.fragmentInstructions!, new Map());
-      const glslShaderPass = new ShaderPass(livePassSource.name, rawVertex, rawFragment, livePassSource.tags);
-
-      // ── Macro scenarios ──
-      const emptyMacros = new ShaderMacroCollection();
-      const baseMacroCollection = buildMacroCollection(baseMacros);
-      const fullMacroCollection = buildMacroCollection([...baseMacros, ...materialVariantMacros]);
-
-      // ── CPU-only: evaluateInstructions timing (no GPU) ──
-      function benchCpuGsp(macroCollection: ShaderMacroCollection): BenchResult {
-        const macroList: ShaderMacro[] = [];
-        // @ts-ignore - internal API
-        ShaderMacro._getMacrosElements(macroCollection, macroList);
-        // @ts-ignore
-        const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
-        macroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
-        const macroMap = new Map<string, string>();
-        for (const m of macroList) macroMap.set(m.name, m.value ?? "");
-
-        return bench(
-          "gsp-cpu",
-          () => {
-            evaluateInstructions(forwardPassData.vertexInstructions!, new Map(macroMap));
-            evaluateInstructions(forwardPassData.fragmentInstructions!, new Map(macroMap));
-          },
-          30,
-          5
-        );
-      }
-
-      // ── Full variant switch: _getCanonicalShaderProgram (CPU + GPU) ──
-      function benchTotalGsp(macroCollection: ShaderMacroCollection): BenchResult {
-        return bench(
-          "gsp-total",
-          () => {
-            // @ts-ignore
-            gspShaderPass._getCanonicalShaderProgram(engine, macroCollection);
-          },
-          5,
-          2
-        );
-      }
-
-      function benchTotalGlsl(macroCollection: ShaderMacroCollection): BenchResult {
-        return bench(
-          "glsl-total",
-          () => {
-            // @ts-ignore
-            glslShaderPass._getCanonicalShaderProgram(engine, macroCollection);
-          },
-          5,
-          2
-        );
-      }
+      // Use original CodeGen GLSL (with all #ifdef branches preserved)
+      const glslShaderPass = new ShaderPass(
+        livePassSource.name,
+        liveProg.vertex,
+        liveProg.fragment,
+        livePassSource.tags
+      );
 
       Logger.disable();
 
       const scenarios: Array<{ label: string; macros: ShaderMacroCollection }> = [
-        { label: "empty", macros: emptyMacros },
-        { label: "base (11)", macros: baseMacroCollection },
-        { label: "full (18)", macros: fullMacroCollection }
+        { label: "empty", macros: new ShaderMacroCollection() },
+        { label: "base (11)", macros: buildMacroCollection(baseMacros) },
+        { label: "full (18)", macros: buildMacroCollection([...baseMacros, ...materialVariantMacros]) }
       ];
 
       console.log("\n=== Variant Switch Breakdown (PBR Forward Pass) ===");
       console.log(
-        "| Scenario | GSP CPU (ms) | GSP Total (ms) | GLSL Total (ms) | GSP GPU ≈ (ms) | GLSL GPU ≈ (ms) | Speedup |"
+        "| Scenario | GSP CPU (ms) | GLSL CPU (ms) | GSP GPU (ms) | GLSL GPU (ms) | GSP Total (ms) | GLSL Total (ms) | GSP Size | GLSL Size  |"
       );
       console.log(
-        "|----------|-------------|---------------|----------------|---------------|----------------|---------|"
+        "|----------|-------------|--------------|-------------|--------------|---------------|----------------|----------|------------|"
       );
 
+      // Split-timing bench: measure CPU and GPU within the same iteration
+      function benchSplit(
+        shaderPass: ShaderPass,
+        macroCollection: ShaderMacroCollection,
+        compileMethod: string,
+        runs: number,
+        warmup: number
+      ): { cpu: number; gpu: number; total: number; vsLen: number; fsLen: number } {
+        // Warmup
+        for (let i = 0; i < warmup; i++) {
+          // @ts-ignore
+          shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+        }
+
+        const cpuTimes: number[] = [];
+        const gpuTimes: number[] = [];
+        let vsLen = 0;
+        let fsLen = 0;
+
+        for (let i = 0; i < runs; i++) {
+          // CPU: compile source
+          const t0 = performance.now();
+          // @ts-ignore
+          const { vertexSource, fragmentSource } = shaderPass[compileMethod](engine, macroCollection);
+          const t1 = performance.now();
+          vsLen = vertexSource.length;
+          fsLen = fragmentSource.length;
+
+          // GPU: create ShaderProgram
+          // @ts-ignore
+          ShaderPass._createShaderProgram(engine, vertexSource, fragmentSource);
+          const t2 = performance.now();
+
+          cpuTimes.push(t1 - t0);
+          gpuTimes.push(t2 - t1);
+        }
+
+        cpuTimes.sort((a, b) => a - b);
+        gpuTimes.sort((a, b) => a - b);
+        const cpuAvg = cpuTimes.reduce((s, t) => s + t, 0) / cpuTimes.length;
+        const gpuAvg = gpuTimes.reduce((s, t) => s + t, 0) / gpuTimes.length;
+        return { cpu: cpuAvg, gpu: gpuAvg, total: cpuAvg + gpuAvg, vsLen, fsLen };
+      }
+
       for (const { label, macros } of scenarios) {
-        const gspCpu = benchCpuGsp(macros);
-        const gspTotal = benchTotalGsp(macros);
-        const glslTotal = benchTotalGlsl(macros);
-        const gspGpuApprox = Math.max(0, gspTotal.avg - gspCpu.avg);
-        const glslGpuApprox = Math.max(0, glslTotal.avg - 0.01); // GLSL path CPU ≈ 0 (just string concat)
-        const speedup = glslTotal.avg > 0 ? (glslTotal.avg / gspTotal.avg).toFixed(1) + "x" : "N/A";
+        const gsp = benchSplit(gspShaderPass, macros, "_compileShaderLabSource", 10, 3);
+        const glsl = benchSplit(glslShaderPass, macros, "_compilePlatformSource", 10, 3);
 
         console.log(
-          `| ${label.padEnd(8)} | ${gspCpu.avg.toFixed(3).padStart(11)} | ${gspTotal.avg.toFixed(2).padStart(13)} | ${glslTotal.avg.toFixed(2).padStart(14)} | ${gspGpuApprox.toFixed(2).padStart(13)} | ${glslGpuApprox.toFixed(2).padStart(14)} | ${speedup.padStart(7)} |`
+          `| ${label.padEnd(8)} | ${gsp.cpu.toFixed(3).padStart(11)} | ${glsl.cpu.toFixed(3).padStart(12)} | ${gsp.gpu.toFixed(2).padStart(11)} | ${glsl.gpu.toFixed(2).padStart(12)} | ${gsp.total.toFixed(2).padStart(13)} | ${glsl.total.toFixed(2).padStart(14)} | ${(gsp.vsLen + gsp.fsLen).toString().padStart(9)} | ${(glsl.vsLen + glsl.fsLen).toString().padStart(10)} |`
         );
       }
 

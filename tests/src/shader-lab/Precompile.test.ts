@@ -309,6 +309,163 @@ describe("ShaderLab Precompile", async () => {
       const restored = JSON.parse(JSON.stringify(inst));
       expect(restored).toEqual(inst);
     });
+
+    it("#define with inline comment → strips comment, DEFINE_VAL with value only", () => {
+      const inst = parseInstructions("#define HALF_EPS 4.8828125e-4 // machine epsilon\n");
+      expect(inst[0][0]).toBe(8); // DEFINE_VAL
+      expect(inst[0][1]).toBe("HALF_EPS");
+      expect(inst[0][2]).toBe("4.8828125e-4");
+    });
+
+    it("#if without spaces around operator parses the same as with spaces", () => {
+      const noSpaces = parseInstructions("#if SCENE_SHADOW_CASCADED_COUNT==1\nbody\n#endif\n");
+      const withSpaces = parseInstructions("#if SCENE_SHADOW_CASCADED_COUNT == 1\nbody\n#endif\n");
+      const noSp = noSpaces.find((i) => i[0] === 3); // IF_CMP
+      const withSp = withSpaces.find((i) => i[0] === 3);
+      expect(noSp).toBeDefined();
+      expect(noSp![1]).toBe(withSp![1]); // same macro name
+      expect(noSp![2]).toBe(withSp![2]); // same operator
+      expect(noSp![3]).toBe(withSp![3]); // same value
+    });
+
+    it("#ifdef + #elif defined() mix (normal_get.glsl pattern)", () => {
+      const glsl = [
+        "#ifdef RENDERER_HAS_NORMAL",
+        "  vec3 n = v_normal;",
+        "#elif defined(HAS_DERIVATIVES)",
+        "  vec3 n = cross(dFdx(v_pos), dFdy(v_pos));",
+        "#else",
+        "  vec3 n = vec3(0.0, 0.0, 1.0);",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      const ops = inst.map((i) => i[0]);
+      // Should have IF_DEF for #ifdef, and the #elif defined() decomposes into ELSE + IF_DEF
+      expect(ops.filter((o) => o === 1).length).toBe(2); // two IF_DEF
+      expect(ops).toContain(5); // ELSE
+      expect(ops).toContain(6); // ENDIF
+    });
+
+    it("#if defined(X) && !defined(Y) (skinning_vert.glsl pattern)", () => {
+      const glsl = "#if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)\nbody\n#endif\n";
+      const inst = parseInstructions(glsl);
+      const ifInst = inst.find((i) => i[0] === 4); // IF_EXPR
+      expect(ifInst).toBeDefined();
+      const cond = ifInst![1] as any;
+      expect(cond.t).toBe("and");
+      expect(cond.l.t).toBe("def");
+      expect(cond.l.m).toBe("RENDERER_HAS_NORMAL");
+      expect(cond.r.t).toBe("not");
+      expect(cond.r.c.t).toBe("def");
+      expect(cond.r.c.m).toBe("MATERIAL_OMIT_NORMAL");
+    });
+
+    it("#if defined(A) || (defined(B) && defined(C)) — mixed precedence with parens", () => {
+      const glsl = "#if defined(A) || (defined(B) && defined(C))\nbody\n#endif\n";
+      const inst = parseInstructions(glsl);
+      const ifInst = inst.find((i) => i[0] === 4); // IF_EXPR
+      expect(ifInst).toBeDefined();
+      const cond = ifInst![1] as any;
+      expect(cond.t).toBe("or");
+      expect(cond.l.t).toBe("def");
+      expect(cond.l.m).toBe("A");
+      expect(cond.r.t).toBe("and");
+      expect(cond.r.l.m).toBe("B");
+      expect(cond.r.r.m).toBe("C");
+    });
+
+    it("3-way #elif chain (FogFragmentDeclaration.glsl pattern)", () => {
+      const glsl = [
+        "#if SCENE_FOG_MODE == 1",
+        "  float fogFactor = linear;",
+        "#elif SCENE_FOG_MODE == 2",
+        "  float fogFactor = exp;",
+        "#elif SCENE_FOG_MODE == 3",
+        "  float fogFactor = exp2;",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      // Three IF_CMP instructions (one for #if, two for #elif)
+      expect(inst.filter((i) => i[0] === 3).length).toBe(3);
+      // Two ELSE instructions (one per #elif)
+      expect(inst.filter((i) => i[0] === 5).length).toBe(2);
+      // One ENDIF
+      expect(inst.filter((i) => i[0] === 6).length).toBe(1);
+    });
+
+    it("conditional #define + immediate #ifdef (ShadowFragmentDeclaration.glsl pattern)", () => {
+      const glsl = [
+        "#if defined(SCENE_SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)",
+        "  #define SCENE_IS_CALCULATE_SHADOWS",
+        "#endif",
+        "#ifdef SCENE_IS_CALCULATE_SHADOWS",
+        "  shadow_code;",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      // Should have IF_EXPR, DEFINE, ENDIF, IF_DEF, TEXT, ENDIF
+      const ops = inst.map((i) => i[0]);
+      expect(ops).toContain(4); // IF_EXPR for the compound condition
+      expect(ops).toContain(7); // DEFINE for SCENE_IS_CALCULATE_SHADOWS
+      expect(inst.filter((i) => i[0] === 6).length).toBe(2); // two ENDIFs
+      expect(inst.filter((i) => i[0] === 1).length).toBe(1); // one IF_DEF
+    });
+
+    it("same macro redefined in different branches (SAMPLE_TEXTURE2D_SHADOW pattern)", () => {
+      const glsl = [
+        "#ifdef GRAPHICS_API_WEBGL2",
+        "  #define SAMPLE(tex, coord) textureLod(tex, coord, 0.0)",
+        "#else",
+        "  #define SAMPLE(tex, coord) texture2D(tex, coord)",
+        "#endif",
+        "SAMPLE(myTex, uv)",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      // Two DEFINE_FUNC instructions (one per branch)
+      const funcDefs = inst.filter((i) => i[0] === 9);
+      expect(funcDefs.length).toBe(2);
+      expect(funcDefs[0][1]).toBe("SAMPLE");
+      expect(funcDefs[1][1]).toBe("SAMPLE");
+      // One contains textureLod, the other texture2D
+      expect(funcDefs[0][3]).toContain("textureLod");
+      expect(funcDefs[1][3]).toContain("texture2D");
+    });
+
+    it("deep nesting (4 levels) — jump offsets work correctly", () => {
+      const glsl = [
+        "#ifdef L1",
+        "#ifdef L2",
+        "#ifdef L3",
+        "#ifdef L4",
+        "deepest",
+        "#endif",
+        "#endif",
+        "#endif",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      expect(inst.filter((i) => i[0] === 1).length).toBe(4); // four IF_DEF
+      expect(inst.filter((i) => i[0] === 6).length).toBe(4); // four ENDIF
+      // Verify all jump offsets are valid (not -1)
+      const ifDefs = inst.filter((i) => i[0] === 1);
+      for (const ifDef of ifDefs) {
+        expect(ifDef[2]).toBeGreaterThan(0);
+        expect(ifDef[2]).toBeLessThanOrEqual(inst.length);
+      }
+    });
+
+    it("identity function macro — #define COLOR_2_LINEAR(color) color", () => {
+      const inst = parseInstructions("#define COLOR_2_LINEAR(color) color\n");
+      expect(inst[0][0]).toBe(9); // DEFINE_FUNC
+      expect(inst[0][1]).toBe("COLOR_2_LINEAR");
+      expect(inst[0][2]).toEqual(["color"]);
+      expect(inst[0][3]).toBe("color");
+    });
   });
 
   // ─────────────────────────────────────────────────────────
@@ -441,13 +598,181 @@ describe("ShaderLab Precompile", async () => {
       expect(eval_(inst, [["B", "0"]])).toContain("FALL");
       expect(eval_(inst, [])).toContain("FALL");
     });
+
+    it("#define with comment stripped — comment not in output", () => {
+      const inst = parseInstructions("#define HALF_EPS 4.8828125e-4 // machine epsilon\nfloat x = HALF_EPS;\n");
+      const result = eval_(inst, []);
+      expect(result).toContain("4.8828125e-4");
+      expect(result).not.toContain("machine epsilon");
+      expect(result).not.toContain("//");
+    });
+
+    it("#elif defined(A) && !defined(B) — different macro combos select correct branch", () => {
+      const glsl = [
+        "#ifdef X",
+        "BRANCH_X",
+        "#elif defined(A) && !defined(B)",
+        "BRANCH_A_NOT_B",
+        "#else",
+        "FALLBACK",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      expect(eval_(inst, [["X", ""]])).toContain("BRANCH_X");
+      expect(eval_(inst, [["A", ""]])).toContain("BRANCH_A_NOT_B");
+      expect(
+        eval_(inst, [
+          ["A", ""],
+          ["B", ""]
+        ])
+      ).toContain("FALLBACK");
+      expect(eval_(inst, [])).toContain("FALLBACK");
+    });
+
+    it("function macro expansion — SAMPLE(tex, coord) → textureLod(tex, coord, 0.0)", () => {
+      const glsl = "#define SAMPLE(tex, coord) textureLod(tex, coord, 0.0)\nSAMPLE(myTex, uv)\n";
+      const inst = parseInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("textureLod(myTex, uv, 0.0)");
+    });
+
+    it("conditional #define then #ifdef — with and without triggering macros", () => {
+      const glsl = [
+        "#if defined(SCENE_SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)",
+        "  #define SCENE_IS_CALCULATE_SHADOWS",
+        "#endif",
+        "#ifdef SCENE_IS_CALCULATE_SHADOWS",
+        "SHADOW_CODE",
+        "#else",
+        "NO_SHADOW",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      // Both macros present → conditional define triggers → shadow code active
+      expect(
+        eval_(inst, [
+          ["SCENE_SHADOW_TYPE", "1"],
+          ["RENDERER_IS_RECEIVE_SHADOWS", ""]
+        ])
+      ).toContain("SHADOW_CODE");
+      // Only one macro → conditional define doesn't trigger → no shadow
+      expect(eval_(inst, [["SCENE_SHADOW_TYPE", "1"]])).toContain("NO_SHADOW");
+      // No macros → no shadow
+      expect(eval_(inst, [])).toContain("NO_SHADOW");
+    });
+
+    it("3-way #elif == chain — correct branch for each value", () => {
+      const glsl = [
+        "#if SCENE_FOG_MODE == 1",
+        "LINEAR_FOG",
+        "#elif SCENE_FOG_MODE == 2",
+        "EXP_FOG",
+        "#elif SCENE_FOG_MODE == 3",
+        "EXP2_FOG",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      expect(eval_(inst, [["SCENE_FOG_MODE", "1"]])).toContain("LINEAR_FOG");
+      expect(eval_(inst, [["SCENE_FOG_MODE", "2"]])).toContain("EXP_FOG");
+      expect(eval_(inst, [["SCENE_FOG_MODE", "3"]])).toContain("EXP2_FOG");
+      // No match — none of the branches taken
+      expect(eval_(inst, [["SCENE_FOG_MODE", "99"]])).not.toContain("FOG");
+      expect(eval_(inst, [])).not.toContain("FOG");
+    });
+
+    it("same macro redefined in different branches — WebGL2 vs WebGL1", () => {
+      const glsl = [
+        "#ifdef GRAPHICS_API_WEBGL2",
+        "  #define SAMPLE(tex, coord) textureLod(tex, coord, 0.0)",
+        "#else",
+        "  #define SAMPLE(tex, coord) texture2D(tex, coord)",
+        "#endif",
+        "SAMPLE(myTex, uv)",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      const webgl2 = eval_(inst, [["GRAPHICS_API_WEBGL2", ""]]);
+      const webgl1 = eval_(inst, []);
+      expect(webgl2).toContain("textureLod(myTex, uv, 0.0)");
+      expect(webgl2).not.toContain("texture2D");
+      expect(webgl1).toContain("texture2D(myTex, uv)");
+      expect(webgl1).not.toContain("textureLod");
+    });
+
+    it("deep nesting evaluation — 4-level nesting with different macro combos", () => {
+      const glsl = [
+        "#ifdef L1",
+        "L1_START",
+        "#ifdef L2",
+        "L2_START",
+        "#ifdef L3",
+        "L3_START",
+        "#ifdef L4",
+        "L4_BODY",
+        "#else",
+        "L4_ELSE",
+        "#endif",
+        "L3_END",
+        "#endif",
+        "L2_END",
+        "#endif",
+        "L1_END",
+        "#endif",
+        ""
+      ].join("\n");
+      const inst = parseInstructions(glsl);
+      // All four levels defined
+      const all = eval_(inst, [
+        ["L1", ""],
+        ["L2", ""],
+        ["L3", ""],
+        ["L4", ""]
+      ]);
+      expect(all).toContain("L4_BODY");
+      expect(all).not.toContain("L4_ELSE");
+      // L1-L3 defined, L4 not
+      const noL4 = eval_(inst, [
+        ["L1", ""],
+        ["L2", ""],
+        ["L3", ""]
+      ]);
+      expect(noL4).toContain("L4_ELSE");
+      expect(noL4).not.toContain("L4_BODY");
+      // Only L1
+      const onlyL1 = eval_(inst, [["L1", ""]]);
+      expect(onlyL1).toContain("L1_START");
+      expect(onlyL1).toContain("L1_END");
+      expect(onlyL1).not.toContain("L2_START");
+      // Nothing
+      expect(eval_(inst, [])).not.toContain("L1_START");
+    });
+
+    it("identity function macro — #define F(x) x → F(someValue) → someValue", () => {
+      const glsl = "#define F(x) x\nF(someValue)\n";
+      const inst = parseInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("someValue");
+    });
+
+    it("#define with complex expression body expands correctly", () => {
+      const glsl = "#define RAYLEIGH (mix(0.0, 0.025, pow(x, 2.5)))\nfloat r = RAYLEIGH;\n";
+      const inst = parseInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("(mix(0.0, 0.025, pow(x, 2.5)))");
+      expect(result).not.toContain("RAYLEIGH");
+    });
   });
 
   // ─────────────────────────────────────────────────────────
   // 4. evaluateInstructions consistency
   // ─────────────────────────────────────────────────────────
   describe("evaluateInstructions consistency", () => {
-    it("build-time and runtime evaluators produce identical output for macro-heavy shader", async () => {
+    // Note: This first test is a self-check (idempotency) — it verifies that calling
+    // evaluateInstructions twice with the same inputs produces identical output.
+    it("evaluateInstructions is deterministic (same input → same output)", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
 
@@ -462,10 +787,27 @@ describe("ShaderLab Precompile", async () => {
           if (pass.isUsePass || !pass.fragmentInstructions) continue;
 
           for (const macros of macroCombinations) {
-            const bt = evaluateInstructions(pass.fragmentInstructions, makeMacroMap(macros));
-            const rt = evaluateInstructions(pass.fragmentInstructions, makeMacroMap(macros));
-            expect(bt).toBe(rt);
+            const first = evaluateInstructions(pass.fragmentInstructions, makeMacroMap(macros));
+            const second = evaluateInstructions(pass.fragmentInstructions, makeMacroMap(macros));
+            expect(first).toBe(second);
           }
+        }
+      }
+    });
+
+    it("evaluateInstructions output survives JSON round-trip of instructions", async () => {
+      const source = await readFile("./shaders/macro-pre.shader");
+      const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
+
+      for (const subShader of precompiled.subShaders) {
+        for (const pass of subShader.passes) {
+          if (pass.isUsePass || !pass.fragmentInstructions) continue;
+
+          const macros = makeMacroMap([["RENDERER_IS_RECEIVE_SHADOWS", ""]]);
+          const original = evaluateInstructions(pass.fragmentInstructions, macros);
+          const restored = JSON.parse(JSON.stringify(pass.fragmentInstructions));
+          const fromRestored = evaluateInstructions(restored, macros);
+          expect(fromRestored).toBe(original);
         }
       }
     });
@@ -566,7 +908,7 @@ describe("ShaderLab Precompile", async () => {
             foundMacroPass = true;
             // Should contain conditional opcodes
             const ops = pass.fragmentInstructions.map((i) => i[0]);
-            expect(ops.some((o) => o >= 1 && o <= 4)).toBe(true); // IF_DEF/IF_NDEF/IF_CMP/IF_EXPR
+            expect(ops.some((o) => (o as number) >= 1 && (o as number) <= 4)).toBe(true); // IF_DEF/IF_NDEF/IF_CMP/IF_EXPR
           }
         }
       }
@@ -843,7 +1185,7 @@ describe("ShaderLab Precompile", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
 
-      let fragmentInstructions: any[][] | undefined;
+      let fragmentInstructions: Instruction[] | undefined;
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (!pass.isUsePass && pass.fragmentInstructions && pass.fragmentInstructions.length > 1) {

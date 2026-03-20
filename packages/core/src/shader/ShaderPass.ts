@@ -172,21 +172,43 @@ export class ShaderPass extends ShaderPart {
   }
 
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    if (this._platformTarget != undefined) {
-      return this._getShaderLabProgram(engine, macroCollection);
-    }
+    const { vertexSource, fragmentSource } =
+      this._platformTarget != undefined
+        ? this._compileShaderLabSource(engine, macroCollection)
+        : this._compilePlatformSource(engine, macroCollection);
 
-    const { vertexSource, fragmentSource } = ShaderFactory.compilePlatformSource(
-      engine,
-      macroCollection,
-      this._vertexSource,
-      this._fragmentSource
-    );
+    return ShaderPass._createShaderProgram(engine, vertexSource, fragmentSource);
+  }
 
+  /**
+   * @internal
+   * Create a ShaderProgram (GPU compile + link).
+   */
+  static _createShaderProgram(engine: Engine, vertexSource: string, fragmentSource: string): ShaderProgram {
     return new ShaderProgram(engine, vertexSource, fragmentSource);
   }
 
-  private _getShaderLabProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  /**
+   * @internal
+   * Compile raw GLSL source — CPU work only (no GPU).
+   * Wraps `ShaderFactory.compilePlatformSource()`.
+   */
+  _compilePlatformSource(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection
+  ): { vertexSource: string; fragmentSource: string } {
+    return ShaderFactory.compilePlatformSource(engine, macroCollection, this._vertexSource, this._fragmentSource);
+  }
+
+  /**
+   * @internal
+   * Compile ShaderLab source from instructions — CPU work only (no GPU).
+   * Mirrors `ShaderFactory.compilePlatformSource()` for the instructions path.
+   */
+  _compileShaderLabSource(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection
+  ): { vertexSource: string; fragmentSource: string } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = ShaderPass._shaderMacroList;
     shaderMacroList.length = 0;
@@ -205,25 +227,25 @@ export class ShaderPass extends ShaderPart {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
     }
-    let noIncludeVertex = evaluateInstructions(this._vertexInstructions, macroMap);
-    let noIncludeFrag = evaluateInstructions(this._fragmentInstructions, macroMap);
+    let noMacroVertex = evaluateInstructions(this._vertexInstructions, macroMap);
+    let noMacroFrag = evaluateInstructions(this._fragmentInstructions, macroMap);
 
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
-      noIncludeVertex = ShaderFactory.convertTo300(noIncludeVertex);
-      noIncludeFrag = ShaderFactory.convertTo300(noIncludeFrag, true);
+      noMacroVertex = ShaderFactory.convertTo300(noMacroVertex);
+      noMacroFrag = ShaderFactory.convertTo300(noMacroFrag, true);
     }
 
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
 
-    const vertexSource = ` ${versionStr}
-        ${noIncludeVertex}
-      `;
-    const fragmentSource = ` ${versionStr}
+    return {
+      vertexSource: ` ${versionStr}
+        ${noMacroVertex}
+      `,
+      fragmentSource: ` ${versionStr}
         ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
-        ${noIncludeFrag}
-      `;
-
-    return new ShaderProgram(engine, vertexSource, fragmentSource);
+        ${noMacroFrag}
+      `
+    };
   }
 }
