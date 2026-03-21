@@ -14,7 +14,6 @@ import {
   IPlaneColliderShape,
   ISphereColliderShape
 } from "./shape";
-import { ICollision } from "./ICollision";
 
 /**
  * The interface of physics creation.
@@ -34,22 +33,8 @@ export interface IPhysics {
   /**
    * Create physics scene.
    * @param physicsManager - The physics manager
-   * @param onContactEnter - Function called when contact begin
-   * @param onContactExit - Function called when contact end
-   * @param onContactStay - Function called when contact stay
-   * @param onTriggerEnter - Function called when trigger begin
-   * @param onTriggerExit - Function called when trigger end
-   * @param onTriggerStay - Function called when trigger stay
    */
-  createPhysicsScene(
-    physicsManager: IPhysicsManager,
-    onContactEnter?: (collision: ICollision) => void,
-    onContactExit?: (collision: ICollision) => void,
-    onContactStay?: (collision: ICollision) => void,
-    onTriggerEnter?: (obj1: number, obj2: number) => void,
-    onTriggerExit?: (obj1: number, obj2: number) => void,
-    onTriggerStay?: (obj1: number, obj2: number) => void
-  ): IPhysicsScene;
+  createPhysicsScene(physicsManager: IPhysicsManager): IPhysicsScene;
 
   /**
    * Create dynamic collider.

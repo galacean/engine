@@ -314,6 +314,12 @@ export const E2E_CONFIG = {
       caseFileName: "physx-mesh-collider-data",
       threshold: 0,
       diffPercentage: 0.02
+    },
+    "PhysX Deferred Contact": {
+      category: "Physics",
+      caseFileName: "physx-deferred-contact",
+      threshold: 0,
+      diffPercentage: 0.0
     }
   },
   Particle: {

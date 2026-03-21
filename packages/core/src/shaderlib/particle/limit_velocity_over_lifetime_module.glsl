@@ -4,36 +4,36 @@
 
     // Scalar limit
     #ifndef RENDERER_LVL_SEPARATE_AXES
-        #ifdef RENDERER_LVL_LIMIT_CONSTANT_MODE
-            uniform float renderer_LVLLimitMaxConst;
-            #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                uniform float renderer_LVLLimitMinConst;
+        #ifdef RENDERER_LVL_SPEED_CONSTANT_MODE
+            uniform float renderer_LVLSpeedMaxConst;
+            #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                uniform float renderer_LVLSpeedMinConst;
             #endif
         #endif
-        #ifdef RENDERER_LVL_LIMIT_CURVE_MODE
-            uniform vec2 renderer_LVLLimitMaxCurve[4];
-            #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                uniform vec2 renderer_LVLLimitMinCurve[4];
+        #ifdef RENDERER_LVL_SPEED_CURVE_MODE
+            uniform vec2 renderer_LVLSpeedMaxCurve[4];
+            #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                uniform vec2 renderer_LVLSpeedMinCurve[4];
             #endif
         #endif
     #endif
 
     // Per-axis limit
     #ifdef RENDERER_LVL_SEPARATE_AXES
-        #ifdef RENDERER_LVL_LIMIT_CONSTANT_MODE
-            uniform vec3 renderer_LVLLimitMaxConstVector;
-            #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                uniform vec3 renderer_LVLLimitMinConstVector;
+        #ifdef RENDERER_LVL_SPEED_CONSTANT_MODE
+            uniform vec3 renderer_LVLSpeedMaxConstVector;
+            #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                uniform vec3 renderer_LVLSpeedMinConstVector;
             #endif
         #endif
-        #ifdef RENDERER_LVL_LIMIT_CURVE_MODE
-            uniform vec2 renderer_LVLLimitXMaxCurve[4];
-            uniform vec2 renderer_LVLLimitYMaxCurve[4];
-            uniform vec2 renderer_LVLLimitZMaxCurve[4];
-            #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                uniform vec2 renderer_LVLLimitXMinCurve[4];
-                uniform vec2 renderer_LVLLimitYMinCurve[4];
-                uniform vec2 renderer_LVLLimitZMinCurve[4];
+        #ifdef RENDERER_LVL_SPEED_CURVE_MODE
+            uniform vec2 renderer_LVLSpeedXMaxCurve[4];
+            uniform vec2 renderer_LVLSpeedYMaxCurve[4];
+            uniform vec2 renderer_LVLSpeedZMaxCurve[4];
+            #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                uniform vec2 renderer_LVLSpeedXMinCurve[4];
+                uniform vec2 renderer_LVLSpeedYMinCurve[4];
+                uniform vec2 renderer_LVLSpeedZMinCurve[4];
             #endif
         #endif
     #endif
@@ -62,51 +62,51 @@
 
     vec3 applyLVLSpeedLimitTF(vec3 velocity, float normalizedAge, float limitRand, float effectiveDampen) {
         #ifdef RENDERER_LVL_SEPARATE_AXES
-            vec3 limitValue;
-            #ifdef RENDERER_LVL_LIMIT_CONSTANT_MODE
-                limitValue = renderer_LVLLimitMaxConstVector;
-                #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                    limitValue = mix(renderer_LVLLimitMinConstVector, limitValue, limitRand);
+            vec3 limitSpeed;
+            #ifdef RENDERER_LVL_SPEED_CONSTANT_MODE
+                limitSpeed = renderer_LVLSpeedMaxConstVector;
+                #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                    limitSpeed = mix(renderer_LVLSpeedMinConstVector, limitSpeed, limitRand);
                 #endif
             #endif
-            #ifdef RENDERER_LVL_LIMIT_CURVE_MODE
-                limitValue = vec3(
-                    evaluateParticleCurve(renderer_LVLLimitXMaxCurve, normalizedAge),
-                    evaluateParticleCurve(renderer_LVLLimitYMaxCurve, normalizedAge),
-                    evaluateParticleCurve(renderer_LVLLimitZMaxCurve, normalizedAge)
+            #ifdef RENDERER_LVL_SPEED_CURVE_MODE
+                limitSpeed = vec3(
+                    evaluateParticleCurve(renderer_LVLSpeedXMaxCurve, normalizedAge),
+                    evaluateParticleCurve(renderer_LVLSpeedYMaxCurve, normalizedAge),
+                    evaluateParticleCurve(renderer_LVLSpeedZMaxCurve, normalizedAge)
                 );
-                #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                    vec3 minLimitValue = vec3(
-                        evaluateParticleCurve(renderer_LVLLimitXMinCurve, normalizedAge),
-                        evaluateParticleCurve(renderer_LVLLimitYMinCurve, normalizedAge),
-                        evaluateParticleCurve(renderer_LVLLimitZMinCurve, normalizedAge)
+                #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                    vec3 minLimitSpeed = vec3(
+                        evaluateParticleCurve(renderer_LVLSpeedXMinCurve, normalizedAge),
+                        evaluateParticleCurve(renderer_LVLSpeedYMinCurve, normalizedAge),
+                        evaluateParticleCurve(renderer_LVLSpeedZMinCurve, normalizedAge)
                     );
-                    limitValue = mix(minLimitValue, limitValue, limitRand);
+                    limitSpeed = mix(minLimitSpeed, limitSpeed, limitRand);
                 #endif
             #endif
 
             vec3 absVel = abs(velocity);
-            vec3 excess = max(absVel - limitValue, vec3(0.0));
+            vec3 excess = max(absVel - limitSpeed, vec3(0.0));
             velocity = sign(velocity) * (absVel - excess * effectiveDampen);
         #else
-            float limitValue;
-            #ifdef RENDERER_LVL_LIMIT_CONSTANT_MODE
-                limitValue = renderer_LVLLimitMaxConst;
-                #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                    limitValue = mix(renderer_LVLLimitMinConst, limitValue, limitRand);
+            float limitSpeed;
+            #ifdef RENDERER_LVL_SPEED_CONSTANT_MODE
+                limitSpeed = renderer_LVLSpeedMaxConst;
+                #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                    limitSpeed = mix(renderer_LVLSpeedMinConst, limitSpeed, limitRand);
                 #endif
             #endif
-            #ifdef RENDERER_LVL_LIMIT_CURVE_MODE
-                limitValue = evaluateParticleCurve(renderer_LVLLimitMaxCurve, normalizedAge);
-                #ifdef RENDERER_LVL_LIMIT_IS_RANDOM_TWO
-                    float minLimitValue = evaluateParticleCurve(renderer_LVLLimitMinCurve, normalizedAge);
-                    limitValue = mix(minLimitValue, limitValue, limitRand);
+            #ifdef RENDERER_LVL_SPEED_CURVE_MODE
+                limitSpeed = evaluateParticleCurve(renderer_LVLSpeedMaxCurve, normalizedAge);
+                #ifdef RENDERER_LVL_SPEED_IS_RANDOM_TWO
+                    float minLimitSpeed = evaluateParticleCurve(renderer_LVLSpeedMinCurve, normalizedAge);
+                    limitSpeed = mix(minLimitSpeed, limitSpeed, limitRand);
                 #endif
             #endif
 
             float speed = length(velocity);
-            if (speed > limitValue && speed > 0.0) {
-                float excess = speed - limitValue;
+            if (speed > limitSpeed && speed > 0.0) {
+                float excess = speed - limitSpeed;
                 velocity = velocity * ((speed - excess * effectiveDampen) / speed);
             }
         #endif

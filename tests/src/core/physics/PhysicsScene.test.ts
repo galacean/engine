@@ -1705,6 +1705,161 @@ describe("Physics Test", () => {
       expect(newScene.destroyed).eq(true);
     });
 
+    it("create and destroy physics objects in onCollisionEnter should work correctly", () => {
+      const physicsMgr = enginePhysX.sceneManager.scenes[0].physics;
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
+
+      // Zero gravity so objects don't fall
+      physicsMgr.gravity = new Vector3(0, 0, 0);
+
+      // Create two dynamic boxes at distance, will be pushed together
+      const entityA = root.createChild("boxA");
+      entityA.transform.setPosition(-3, 0, 0);
+      const colliderA = entityA.addComponent(DynamicCollider);
+      colliderA.addShape(new BoxColliderShape());
+
+      const entityB = root.createChild("boxB");
+      entityB.transform.setPosition(0, 0, 0);
+      const colliderB = entityB.addComponent(DynamicCollider);
+      colliderB.addShape(new BoxColliderShape());
+
+      let newEntity: Entity = null;
+      const onCollisionEnter = vi.fn(() => {
+        // Create a new physics object at the collision point (like 2048 game merge)
+        newEntity = root.createChild("newBox");
+        newEntity.transform.setPosition(0, 5, 0);
+        const newCollider = newEntity.addComponent(DynamicCollider);
+        newCollider.addShape(new BoxColliderShape());
+
+        // Destroy the colliding objects
+        entityA.destroy();
+        entityB.destroy();
+      });
+
+      entityA.addComponent(
+        class extends Script {
+          onCollisionEnter(): void {
+            if (!entityA.pendingDestroy) {
+              onCollisionEnter();
+            }
+          }
+        }
+      );
+
+      // Push A toward B
+      colliderA.applyForce(new Vector3(1000, 0, 0));
+
+      // Simulate inside engine frame
+      // @ts-ignore
+      enginePhysX._frameInProcess = true;
+      // @ts-ignore
+      expect(() => physicsMgr._update(1)).not.toThrow();
+      // @ts-ignore
+      enginePhysX._frameInProcess = false;
+
+      expect(onCollisionEnter).toHaveBeenCalled();
+      expect(newEntity).not.toBeNull();
+      expect(entityA.pendingDestroy).eq(true);
+      expect(entityB.pendingDestroy).eq(true);
+    });
+
+    it("new entity created in onCollisionEnter should preserve correct position", () => {
+      const physicsMgr = enginePhysX.sceneManager.scenes[0].physics;
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
+
+      physicsMgr.gravity = new Vector3(0, 0, 0);
+
+      const entityA = root.createChild("boxA");
+      entityA.transform.setPosition(-3, 0, 0);
+      const colliderA = entityA.addComponent(DynamicCollider);
+      colliderA.addShape(new BoxColliderShape());
+
+      const entityB = root.createChild("boxB");
+      entityB.transform.setPosition(0, 0, 0);
+      const colliderB = entityB.addComponent(DynamicCollider);
+      colliderB.addShape(new BoxColliderShape());
+
+      const targetPos = new Vector3(0, 5, 0);
+      let newEntity: Entity = null;
+
+      entityA.addComponent(
+        class extends Script {
+          onCollisionEnter(): void {
+            if (!entityA.pendingDestroy) {
+              newEntity = root.createChild("newBox");
+              newEntity.transform.position = targetPos.clone();
+              const newCollider = newEntity.addComponent(DynamicCollider);
+              newCollider.addShape(new BoxColliderShape());
+              entityA.destroy();
+              entityB.destroy();
+            }
+          }
+        }
+      );
+
+      colliderA.applyForce(new Vector3(1000, 0, 0));
+
+      // @ts-ignore
+      enginePhysX._frameInProcess = true;
+      // @ts-ignore
+      physicsMgr._update(1);
+      // @ts-ignore
+      enginePhysX._frameInProcess = false;
+
+      // The key assertion: new entity's position should NOT be overwritten
+      // by _callColliderOnLateUpdate (the bug that was fixed)
+      expect(newEntity).not.toBeNull();
+      const pos = newEntity.transform.position;
+      expect(pos.x).closeTo(targetPos.x, 0.01);
+      expect(pos.y).closeTo(targetPos.y, 0.01);
+      expect(pos.z).closeTo(targetPos.z, 0.01);
+    });
+
+    it("destroy entity in onCollisionEnter should not crash", () => {
+      const physicsMgr = enginePhysX.sceneManager.scenes[0].physics;
+      const root = enginePhysX.sceneManager.activeScene.createRootEntity("root");
+
+      physicsMgr.gravity = new Vector3(0, 0, 0);
+
+      const entityA = root.createChild("boxA");
+      entityA.transform.setPosition(-3, 0, 0);
+      const colliderA = entityA.addComponent(DynamicCollider);
+      colliderA.addShape(new BoxColliderShape());
+
+      const entityB = root.createChild("boxB");
+      entityB.transform.setPosition(0, 0, 0);
+      const colliderB = entityB.addComponent(DynamicCollider);
+      colliderB.addShape(new BoxColliderShape());
+
+      const onCollisionEnter = vi.fn(() => {
+        entityA.destroy();
+        entityB.destroy();
+      });
+
+      entityA.addComponent(
+        class extends Script {
+          onCollisionEnter(): void {
+            if (!entityA.pendingDestroy) {
+              onCollisionEnter();
+            }
+          }
+        }
+      );
+
+      colliderA.applyForce(new Vector3(1000, 0, 0));
+
+      // @ts-ignore
+      enginePhysX._frameInProcess = true;
+      // @ts-ignore
+      expect(() => physicsMgr._update(1)).not.toThrow();
+      // @ts-ignore
+      enginePhysX._frameInProcess = false;
+
+      expect(onCollisionEnter).toHaveBeenCalled();
+      expect(entityA.pendingDestroy).eq(true);
+      expect(entityB.pendingDestroy).eq(true);
+    });
+
     // @see https://github.com/galacean/engine/issues/2877
     it("destroy entity in onTriggerEnter should not crash", () => {
       const physicsMgr = enginePhysX.sceneManager.scenes[0].physics;
