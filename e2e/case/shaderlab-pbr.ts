@@ -364,7 +364,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
     engine.resourceManager
       .load<AmbientLight>({
         type: AssetType.AmbientLight,
-        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
+        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*9yDlQodN6-AAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
       })
       .then((ambientLight) => {
         scene.ambientLight = ambientLight;
