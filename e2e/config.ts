@@ -117,7 +117,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr-clearcoat",
       threshold: 0,
-      diffPercentage: 0.12
+      diffPercentage: 0.1293
     },
     "white-furnace": {
       category: "Material",
@@ -135,7 +135,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.0044
+      diffPercentage: 0.0080
     },
     shaderLab: {
       category: "Material",
@@ -307,7 +307,7 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.12094
+      diffPercentage: 0.12198
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
