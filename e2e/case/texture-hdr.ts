@@ -28,7 +28,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   engine.resourceManager
     .load<TextureCube>({
-      type: AssetType.TextureCube,
+      type: AssetType.Texture,
       url: "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr"
     })
     .then((textureCube) => {

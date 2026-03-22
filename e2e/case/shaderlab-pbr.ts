@@ -378,7 +378,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab }).then((engine) => {
         return ambientLight;
       }),
     engine.resourceManager.load<Texture2D>({
-      type: AssetType.Texture2D,
+      type: AssetType.Texture,
       url: "https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*tMeTQ4Mx60oAAAAAAAAAAAAADuuHAQ/original"
     })
   ]).then((resArray) => {

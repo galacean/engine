@@ -8,6 +8,7 @@ export type { IModelMesh } from "./resources/mesh/IModelMesh";
 export { MeshDecoder } from "./resources/mesh/MeshDecoder";
 export { ReflectionParser } from "./resources/parser/ReflectionParser";
 export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
+export { TextureCubeDecoder } from "./resources/textureCube/TextureCubeDecoder";
 
 /**
  * Decode engine binary resource.

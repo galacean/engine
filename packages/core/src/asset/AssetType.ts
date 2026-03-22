@@ -8,10 +8,8 @@ export enum AssetType {
   JSON = "JSON",
   /** ArrayBuffer. */
   Buffer = "Buffer",
-  /** 2D Texture. */
-  Texture2D = "Texture2D",
-  /** Cube Texture. */
-  TextureCube = "TextureCube",
+  /** Texture. */
+  Texture = "Texture",
   /** Material. */
   Material = "Material",
   /** Shader. */

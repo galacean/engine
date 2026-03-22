@@ -51,7 +51,7 @@ WebGLEngine.create({
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JPsCSK5LtYkAAAAAAAAAAAAADil6AQ/original",
-      type: AssetType.Texture2D
+      type: AssetType.Texture
     })
     .then((texture) => {
       createParticle(engine, rootEntity, <Texture2D>texture);

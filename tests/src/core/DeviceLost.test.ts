@@ -54,7 +54,7 @@ describe("Device lost test", function () {
     });
     const textureCube = await engine.resourceManager.load<TextureCube>({
       url: "https://gw.alipayobjects.com/os/bmw-prod/10c5d68d-8580-4bd9-8795-6f1035782b94.bin", // sunset_1K
-      type: AssetType.TextureCube
+      type: AssetType.Texture
     });
     const ktx2Texture = await resourceManager.load<Texture2D>({
       url: "https://mdn.alipayobjects.com/oasis_be/afts/img/A*iaD4QaUJRKoAAAAAAAAAAAAADkp5AQ/original/DefaultTexture.ktx2",
@@ -62,7 +62,7 @@ describe("Device lost test", function () {
     });
     const editorTexture = await resourceManager.load<Texture2D>({
       url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*oFd_T4ffoUMAAAAAQ8AAAAgAekp5AQ/Internal/Material/Internal/Material/DefaultTexture.tex",
-      type: AssetType.Texture2D
+      type: AssetType.Texture
     });
 
     await new Promise((resolve) => {
