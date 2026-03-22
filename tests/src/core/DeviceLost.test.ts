@@ -53,7 +53,7 @@ describe("Device lost test", function () {
       type: AssetType.AmbientLight
     });
     const textureCube = await engine.resourceManager.load<TextureCube>({
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*mePuTKQ_vzoAAAAAQKAAAAgAekp5AQ/20260305153504.tex",
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*dKYuQKLX9M4AAAAAgBAAAAgAekp5AQ/kloofendal_48d_partly_cloudy_puresky_1k.tex",
       type: AssetType.Texture
     });
     const ktx2Texture = await resourceManager.load<Texture2D>({
@@ -61,7 +61,7 @@ describe("Device lost test", function () {
       type: AssetType.KTX2
     });
     const editorTexture = await resourceManager.load<Texture2D>({
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*oFd_T4ffoUMAAAAAQ8AAAAgAekp5AQ/Internal/Material/Internal/Material/DefaultTexture.tex",
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*mePuTKQ_vzoAAAAAQKAAAAgAekp5AQ/20260305153504.tex",
       type: AssetType.Texture
     });
 
