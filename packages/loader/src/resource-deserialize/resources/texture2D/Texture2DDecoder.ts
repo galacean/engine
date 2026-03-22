@@ -26,7 +26,9 @@ export class Texture2DDecoder {
 
       const isHDR = imageData[0] === 0x23 && imageData[1] === 0x3f;
       const textureFormat = isHDR ? TextureFormat.R16G16B16A16 : format;
-      const texture = restoredTexture || new Texture2D(engine, width, height, textureFormat, mipmap, isHDR ? false : isSRGBColorSpace);
+      const texture =
+        restoredTexture ||
+        new Texture2D(engine, width, height, textureFormat, mipmap, isHDR ? false : isSRGBColorSpace);
       texture.filterMode = filterMode;
       texture.anisoLevel = anisoLevel;
       texture.wrapModeU = wrapModeU;

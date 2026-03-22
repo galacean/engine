@@ -53,7 +53,7 @@ describe("Device lost test", function () {
       type: AssetType.AmbientLight
     });
     const textureCube = await engine.resourceManager.load<TextureCube>({
-      url: "https://gw.alipayobjects.com/os/bmw-prod/10c5d68d-8580-4bd9-8795-6f1035782b94.bin", // sunset_1K
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*mePuTKQ_vzoAAAAAQKAAAAgAekp5AQ/20260305153504.tex",
       type: AssetType.Texture
     });
     const ktx2Texture = await resourceManager.load<Texture2D>({
