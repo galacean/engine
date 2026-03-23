@@ -1,4 +1,4 @@
-import { Color, Vector2, Vector3 } from "@galacean/engine-math";
+import { Vector2, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
@@ -24,8 +24,6 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
-
-  private static _defaultColor: Color = new Color(1, 1, 1, 1);
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
@@ -143,13 +141,6 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
       this._alphaCutoff = value;
       this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, value);
     }
-  }
-
-  /**
-   * @internal
-   */
-  get color(): Color {
-    return SpriteMask._defaultColor;
   }
 
   /**

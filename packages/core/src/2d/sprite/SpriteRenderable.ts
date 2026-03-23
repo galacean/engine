@@ -55,6 +55,7 @@ export interface ISpriteRenderable {
   _spriteData: SpritePrimitive;
   _getChunkManager(): PrimitiveChunkManager;
   _getDefaultSpriteMaterial(): Material;
+  _getSpriteColor(): Color | null;
   _getSpriteAlpha(): number;
   _getSpriteWidth(): number;
   _getSpriteHeight(): number;
@@ -106,9 +107,6 @@ export function SpriteRenderable<T extends RendererConstructor>(
 
     // ===== Abstract methods: host MUST implement =====
 
-    /** The color used by assemblers. */
-    abstract get color(): Color;
-
     /** Which PrimitiveChunkManager to allocate vertex data from. */
     abstract _getChunkManager(): PrimitiveChunkManager;
 
@@ -130,6 +128,11 @@ export function SpriteRenderable<T extends RendererConstructor>(
     abstract _getSpriteHeight(): number;
 
     // ===== Methods with defaults: host CAN override =====
+
+    /** Sprite color for vertex coloring. Default: null (no color, for masks). */
+    _getSpriteColor(): Color | null {
+      return null;
+    }
 
     /** Final alpha multiplier. Default: 1. UI hosts override to globalAlpha. */
     _getSpriteAlpha(): number {
@@ -349,8 +352,9 @@ export function SpriteRenderable<T extends RendererConstructor>(
         material = this._getDefaultSpriteMaterial();
       }
 
+      const color = this._getSpriteColor();
       const alpha = this._getSpriteAlpha();
-      if (this.color.a * alpha <= 0) {
+      if (color && color.a * alpha <= 0) {
         return;
       }
 
@@ -380,8 +384,8 @@ export function SpriteRenderable<T extends RendererConstructor>(
       }
 
       // Update color
-      if (this._dirtyUpdateFlag & SpriteRenderableFlags.Color) {
-        this._assembler.updateColor(this._spriteData, this.color, alpha);
+      if (color && this._dirtyUpdateFlag & SpriteRenderableFlags.Color) {
+        this._assembler.updateColor(this._spriteData, color, alpha);
         this._dirtyUpdateFlag &= ~SpriteRenderableFlags.Color;
       }
 

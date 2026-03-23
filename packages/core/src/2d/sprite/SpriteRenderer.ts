@@ -144,6 +144,11 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
   // ===== Abstract implementations =====
 
   /** @internal */
+  override _getSpriteColor(): Color {
+    return this._color;
+  }
+
+  /** @internal */
   override _getChunkManager(): PrimitiveChunkManager {
     return this.engine._batcherManager.primitiveChunkManager2D;
   }

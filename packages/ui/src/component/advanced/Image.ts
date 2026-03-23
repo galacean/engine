@@ -33,6 +33,11 @@ export class Image extends SpriteRenderable(UIRenderer) {
   // ===== Abstract implementations =====
 
   /** @internal */
+  _getSpriteColor() {
+    return this._color;
+  }
+
+  /** @internal */
   override _getDefaultSpriteMaterial(): Material {
     // @ts-ignore
     return this._engine._getUIDefaultMaterial();

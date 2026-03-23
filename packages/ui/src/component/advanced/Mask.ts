@@ -1,6 +1,5 @@
 import {
   BoundingBox,
-  Color,
   Entity,
   Material,
   PrimitiveChunkManager,
@@ -31,8 +30,6 @@ export class Mask extends SpriteRenderable(UIRenderer) {
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
-  private static _defaultColor: Color = new Color(1, 1, 1, 1);
-
   @assignmentClone
   private _alphaCutoff: number = 0.5;
 
@@ -49,13 +46,6 @@ export class Mask extends SpriteRenderable(UIRenderer) {
       this._alphaCutoff = value;
       this.shaderData.setFloat(Mask._alphaCutoffProperty, value);
     }
-  }
-
-  /**
-   * @internal
-   */
-  override get color(): Color {
-    return Mask._defaultColor;
   }
 
   /**
