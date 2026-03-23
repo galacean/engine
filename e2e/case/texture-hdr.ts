@@ -29,7 +29,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   engine.resourceManager
     .load<TextureCube>({
       type: AssetType.Texture,
-      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*dKYuQKLX9M4AAAAAgBAAAAgAekp5AQ/kloofendal_48d_partly_cloudy_puresky_1k.tex"
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*1pMlS5cTtoMAAAAAgBAAAAgAekp5AQ/kloofendal_48d_partly_cloudy_puresky_1k.tex"
     })
     .then((textureCube) => {
       const sky = scene.background.sky;
