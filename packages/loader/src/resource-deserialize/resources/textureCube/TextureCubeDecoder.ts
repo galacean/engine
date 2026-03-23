@@ -8,7 +8,7 @@ import { HDRDecoder } from "../../../HDRDecoder";
  * [format(1B)] [faceSize(2B)] [isSRGBColorSpace(1B)] [Uint32(size) + faceBytes] × 6
  */
 @decoder("TextureCube")
-export class TextureCubeDecoder {
+class TextureCubeDecoder {
   static decode(engine: Engine, bufferReader: BufferReader, restoredTexture?: TextureCube): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const url = bufferReader.nextStr();

@@ -8,7 +8,7 @@ import { HDRDecoder } from "../../../HDRDecoder";
  * [format(1B)] [width(2B)] [height(2B)] [isSRGBColorSpace(1B)] [Uint32(imageSize) + imageBytes]
  */
 @decoder("Texture2D")
-export class Texture2DDecoder {
+class Texture2DDecoder {
   static decode(engine: Engine, bufferReader: BufferReader, restoredTexture?: Texture2D): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       const url = bufferReader.nextStr();
