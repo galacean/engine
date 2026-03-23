@@ -73,7 +73,6 @@ export class ParticleRenderer extends Renderer {
           renderModeMacro = ParticleRenderer._stretchedBillboardModeMacro;
           break;
         case ParticleRenderMode.HorizontalBillboard:
-          throw "Not implemented";
           renderModeMacro = ParticleRenderer._horizontalBillboardModeMacro;
           break;
         case ParticleRenderMode.VerticalBillboard:

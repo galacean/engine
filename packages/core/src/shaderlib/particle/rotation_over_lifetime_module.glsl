@@ -40,6 +40,41 @@ float computeParticleRotationFloat(in float rotation, in float age, in float nor
     return rotation;
 }
 
+// Y-axis ROL variant for HorizontalBillboard: reads Y data when separateAxes is on, falls back to Z otherwise.
+float computeParticleRotationFloatY(in float rotation, in float age, in float normalizedAge) {
+    #if defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE)
+        #ifdef RENDERER_ROL_CURVE_MODE
+            float currentValue;
+            #ifdef RENDERER_ROL_IS_SEPARATE
+                float lifeRotation = evaluateParticleCurveCumulative(renderer_ROLMaxCurveY, normalizedAge, currentValue);
+                #ifdef RENDERER_ROL_IS_RANDOM_TWO
+                    lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveY, normalizedAge, currentValue), lifeRotation, a_Random0.w);
+                #endif
+            #else
+                float lifeRotation = evaluateParticleCurveCumulative(renderer_ROLMaxCurveZ, normalizedAge, currentValue);
+                #ifdef RENDERER_ROL_IS_RANDOM_TWO
+                    lifeRotation = mix(evaluateParticleCurveCumulative(renderer_ROLMinCurveZ, normalizedAge, currentValue), lifeRotation, a_Random0.w);
+                #endif
+            #endif
+            rotation += lifeRotation * a_ShapePositionStartLifeTime.w;
+        #else
+            #ifdef RENDERER_ROL_IS_SEPARATE
+                float lifeRotation = renderer_ROLMaxConst.y;
+                #ifdef RENDERER_ROL_IS_RANDOM_TWO
+                    lifeRotation = mix(renderer_ROLMinConst.y, lifeRotation, a_Random0.w);
+                #endif
+            #else
+                float lifeRotation = renderer_ROLMaxConst.z;
+                #ifdef RENDERER_ROL_IS_RANDOM_TWO
+                    lifeRotation = mix(renderer_ROLMinConst.z, lifeRotation, a_Random0.w);
+                #endif
+            #endif
+            rotation += lifeRotation * age;
+        #endif
+    #endif
+    return rotation;
+}
+
 
 #if defined(RENDERER_MODE_MESH) && (defined(RENDERER_ROL_CONSTANT_MODE) || defined(RENDERER_ROL_CURVE_MODE))
 vec3 computeParticleRotationVec3(in vec3 rotation, in float age, in float normalizedAge) {
