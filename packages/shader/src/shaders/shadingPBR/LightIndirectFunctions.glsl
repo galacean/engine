@@ -22,8 +22,7 @@ vec3 getLightProbeRadiance(SurfaceData surfaceData, vec3 normal, float roughness
         return vec3(0);
     #else
         vec3 reflectVec = getReflectedVector(surfaceData, normal);
-        reflectVec.x = -reflectVec.x; // TextureCube is left-hand,so x need inverse
-        
+
         float specularMIPLevel = getSpecularMIPLevel(roughness, int(scene_EnvMapLight.mipMapLevel) );
 
         #ifdef HAS_TEX_LOD
