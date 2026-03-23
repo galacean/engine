@@ -52,7 +52,10 @@ class TextureCubeDecoder {
               resolve(texture);
             }
           };
-          img.onerror = reject;
+          img.onerror = (e) => {
+            URL.revokeObjectURL(img.src);
+            reject(e);
+          };
           img.src = URL.createObjectURL(blob);
         }
       }

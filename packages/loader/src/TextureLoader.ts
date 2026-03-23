@@ -100,7 +100,10 @@ class TextureLoader extends Loader<Texture> {
         this._applyParams(texture, item);
         resolve(texture);
       };
-      img.onerror = reject;
+      img.onerror = (e) => {
+        URL.revokeObjectURL(img.src);
+        reject(e);
+      };
       img.src = URL.createObjectURL(blob);
     });
   }
@@ -157,7 +160,10 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
               texture.mipmapCount > 1 && texture.generateMipmaps();
               resolve(texture);
             };
-            img.onerror = reject;
+            img.onerror = (e) => {
+              URL.revokeObjectURL(img.src);
+              reject(e);
+            };
             img.src = URL.createObjectURL(blob);
           });
         })
