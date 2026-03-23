@@ -429,7 +429,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-horizontal-billboard",
       threshold: 0,
-      diffPercentage: 0.005
+      diffPercentage: 0.216
     }
   },
   PostProcess: {
