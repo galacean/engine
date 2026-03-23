@@ -37,7 +37,7 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_9ahbho/afts/img/A*QJvmQ6g4ujYAAAAAgCAAAAgAegDwAQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       }
     ])
     .then((resources) => {
