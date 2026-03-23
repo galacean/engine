@@ -424,6 +424,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-emit-billboard-stretched",
       threshold: 0,
       diffPercentage: 0.0
+    },
+    particleHorizontalBillboard: {
+      category: "Particle",
+      caseFileName: "particleRenderer-horizontal-billboard",
+      threshold: 0,
+      diffPercentage: 0.2162
     }
   },
   PostProcess: {
