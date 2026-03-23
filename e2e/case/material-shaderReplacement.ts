@@ -49,7 +49,7 @@ async function main() {
     .load([
       {
         type: AssetType.AmbientLight,
-        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
+        url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*eRJ8QKzf5zAAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
       },
       {
         url: "https://gw.alipayobjects.com/os/bmw-prod/150e44f6-7810-4c45-8029-3575d36aff30.gltf",
@@ -61,7 +61,7 @@ async function main() {
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*Q60vQ40ZERsAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       }
     ])
     .then((resources) => {
