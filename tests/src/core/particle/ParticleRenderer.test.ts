@@ -49,9 +49,8 @@ describe("ParticleRenderer", () => {
     expect(renderer.renderMode).to.eq(ParticleRenderMode.Billboard);
     renderer.renderMode = ParticleRenderMode.StretchBillboard;
     expect(renderer.renderMode).to.eq(ParticleRenderMode.StretchBillboard);
-    expect(() => {
-      renderer.renderMode = ParticleRenderMode.HorizontalBillboard;
-    }).to.throw("Not implemented");
+    renderer.renderMode = ParticleRenderMode.HorizontalBillboard;
+    expect(renderer.renderMode).to.eq(ParticleRenderMode.HorizontalBillboard);
     renderer.renderMode = ParticleRenderMode.Mesh;
     expect(renderer.renderMode).to.eq(ParticleRenderMode.Mesh);
     expect(() => {
