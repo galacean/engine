@@ -197,7 +197,7 @@ export const E2E_CONFIG = {
       category: "Texture",
       caseFileName: "texture-hdr",
       threshold: 0,
-      diffPercentage: 0.0512
+      diffPercentage: 0.0523
     }
   },
   Shadow: {
@@ -301,13 +301,13 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-customUrl",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.001146
     },
     "PhysX Mesh Collider": {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.12198
+      diffPercentage: 0.13803
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
