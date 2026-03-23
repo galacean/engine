@@ -78,7 +78,7 @@ export class HDRDecoder {
     for (let i = 0; i < pixelCount; i++) {
       const srcIdx = i * 4;
       const dstIdx = i * 4;
-      const scaleFactor = Math.pow(2, rgbe[srcIdx + 3] - 128) / 255;
+      const scaleFactor = Math.pow(2, rgbe[srcIdx + 3] - 128 - 8);
 
       for (let c = 0; c < 3; c++) {
         floatView[0] = Math.min(rgbe[srcIdx + c] * scaleFactor, 65504);
