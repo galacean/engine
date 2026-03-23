@@ -33,6 +33,8 @@ export class BasicResources {
   private static _maskReadOutsideRenderStates: RenderStateElementMap = null;
   private static _maskWriteIncrementRenderStates: RenderStateElementMap = null;
   private static _maskWriteDecrementRenderStates: RenderStateElementMap = null;
+  private static _uiStencilWriteStates: RenderStateElementMap = null;
+  private static _uiStencilTestStatesCache: Map<number, RenderStateElementMap> = new Map();
 
   static getMaskInteractionRenderStates(maskInteraction: SpriteMaskInteraction): RenderStateElementMap {
     const visibleInsideMask = maskInteraction === SpriteMaskInteraction.VisibleInsideMask;
@@ -99,6 +101,49 @@ export class BasicResources {
     renderStates[RenderStateElementKey.DepthStateEnabled] = false;
     renderStates[RenderStateElementKey.RasterStateCullMode] = CullMode.Off;
 
+    return renderStates;
+  }
+
+  /**
+   * Get stencil write states for UI hierarchy-based mask (increment, no color write).
+   */
+  static getUIStencilWriteStates(): RenderStateElementMap {
+    let renderStates = BasicResources._uiStencilWriteStates;
+    if (renderStates) {
+      return renderStates;
+    }
+    BasicResources._uiStencilWriteStates = renderStates = <RenderStateElementMap>{};
+    renderStates[RenderStateElementKey.StencilStateEnabled] = true;
+    renderStates[RenderStateElementKey.StencilStatePassOperationFront] = StencilOperation.IncrementSaturate;
+    renderStates[RenderStateElementKey.StencilStatePassOperationBack] = StencilOperation.IncrementSaturate;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = CompareFunction.Always;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = CompareFunction.Always;
+    renderStates[RenderStateElementKey.StencilStateFailOperationFront] = StencilOperation.Keep;
+    renderStates[RenderStateElementKey.StencilStateFailOperationBack] = StencilOperation.Keep;
+    renderStates[RenderStateElementKey.StencilStateZFailOperationFront] = StencilOperation.Keep;
+    renderStates[RenderStateElementKey.StencilStateZFailOperationBack] = StencilOperation.Keep;
+    renderStates[RenderStateElementKey.BlendStateColorWriteMask0] = ColorWriteMask.None;
+    renderStates[RenderStateElementKey.DepthStateEnabled] = false;
+    renderStates[RenderStateElementKey.RasterStateCullMode] = CullMode.Off;
+    return renderStates;
+  }
+
+  /**
+   * Get stencil test states for UI hierarchy-based mask (read stencil, ref = depth, LessEqual).
+   */
+  static getUIStencilTestStates(depth: number): RenderStateElementMap {
+    const cache = BasicResources._uiStencilTestStatesCache;
+    let renderStates = cache.get(depth);
+    if (renderStates) {
+      return renderStates;
+    }
+    renderStates = <RenderStateElementMap>{};
+    renderStates[RenderStateElementKey.StencilStateEnabled] = true;
+    renderStates[RenderStateElementKey.StencilStateWriteMask] = 0x00;
+    renderStates[RenderStateElementKey.StencilStateReferenceValue] = depth;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionFront] = CompareFunction.LessEqual;
+    renderStates[RenderStateElementKey.StencilStateCompareFunctionBack] = CompareFunction.LessEqual;
+    cache.set(depth, renderStates);
     return renderStates;
   }
 

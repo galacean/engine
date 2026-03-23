@@ -4,10 +4,8 @@ import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManage
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Renderer } from "../../Renderer";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
-import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderData } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
-import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { Material } from "../../material";
 import { TextChunk, TextRenderable, TextRenderableFlags } from "./TextRenderable";
 
@@ -60,30 +58,6 @@ export class TextRenderer extends TextRenderable(Renderer) {
       this._height = value;
       this._setDirtyFlagTrue(TextRenderableFlags.Position);
     }
-  }
-
-  /**
-   * Interacts with the masks.
-   */
-  get maskInteraction(): SpriteMaskInteraction {
-    return this._maskInteraction;
-  }
-
-  set maskInteraction(value: SpriteMaskInteraction) {
-    if (this._maskInteraction !== value) {
-      this._maskInteraction = value;
-    }
-  }
-
-  /**
-   * The mask layer the sprite renderer belongs to.
-   */
-  get maskLayer(): SpriteMaskLayer {
-    return this._maskLayer;
-  }
-
-  set maskLayer(value: SpriteMaskLayer) {
-    this._maskLayer = value;
   }
 
   constructor(entity: Entity) {

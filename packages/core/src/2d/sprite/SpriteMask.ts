@@ -1,28 +1,31 @@
-import { BoundingBox } from "@galacean/engine-math";
+import { Color, Vector2, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
 import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
+import { Material } from "../../material";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
-import { Sprite } from "./Sprite";
-import { SpritePrimitive } from "./SpritePrimitive";
+import { Texture2D } from "../../texture";
+import { SpriteRenderable } from "./SpriteRenderable";
+import { SpriteMaskUtils } from "./SpriteMaskUtils";
 
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer {
+export class SpriteMask extends SpriteRenderable(Renderer) {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
+
+  private static _defaultColor: Color = new Color(1, 1, 1, 1);
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
@@ -30,10 +33,6 @@ export class SpriteMask extends Renderer {
   /** @internal */
   @ignoreClone
   _renderElement: RenderElement;
-
-  /** @internal */
-  @ignoreClone
-  _spriteData: SpritePrimitive;
   /** @internal */
   @ignoreClone
   _maskIndex: number = -1;
@@ -50,6 +49,8 @@ export class SpriteMask extends Renderer {
   private _flipX: boolean = false;
   @assignmentClone
   private _flipY: boolean = false;
+  @ignoreClone
+  private _autoSizeDirty: boolean = true;
 
   @assignmentClone
   private _alphaCutoff: number = 0.5;
@@ -64,10 +65,11 @@ export class SpriteMask extends Renderer {
   get width(): number {
     if (this._customWidth !== undefined) {
       return this._customWidth;
-    } else {
-      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
-      return this._automaticWidth;
     }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticWidth;
   }
 
   set width(value: number) {
@@ -87,10 +89,11 @@ export class SpriteMask extends Renderer {
   get height(): number {
     if (this._customHeight !== undefined) {
       return this._customHeight;
-    } else {
-      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
-      return this._automaticHeight;
     }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticHeight;
   }
 
   set height(value: number) {
@@ -129,18 +132,6 @@ export class SpriteMask extends Renderer {
   }
 
   /**
-   * The Sprite to render.
-   */
-  get sprite(): Sprite {
-    return this._spriteData.sprite;
-  }
-
-  set sprite(value: Sprite | null) {
-    this._spriteData.sprite = value;
-    this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
-  }
-
-  /**
    * The minimum alpha value used by the mask to select the area of influence defined over the mask's sprite. Value between 0 and 1.
    */
   get alphaCutoff(): number {
@@ -157,44 +148,87 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
+  get color(): Color {
+    return SpriteMask._defaultColor;
+  }
+
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
-    this._spriteData = new SpritePrimitive(this as any, SpriteMask._textureProperty, this._onSpriteChange.bind(this));
-    SimpleSpriteAssembler.resetData(this._spriteData, this._getChunkManager());
-    this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
+    this._initSpriteRenderable(SpriteMask._textureProperty);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._renderElement = new RenderElement();
     this._renderElement.addSubRenderElement(new SubRenderElement());
   }
 
-  /**
-   * @internal
-   */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
-    //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
+  // ===== SpriteRenderable abstract implementations =====
+
+  /** @internal */
+  override _getChunkManager(): PrimitiveChunkManager {
+    return this.engine._batcherManager.primitiveChunkManagerMask;
   }
 
-  /**
-   * @internal
-   */
-  override _cloneTo(target: SpriteMask): void {
-    super._cloneTo(target);
-    this._spriteData.cloneTo(target._spriteData);
+  /** @internal */
+  override _getDefaultSpriteMaterial(): Material {
+    return this._engine._basicResources.spriteMaskDefaultMaterial;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
+  override _submitSpriteRenderElement(
+    context: RenderContext,
+    material: Material,
+    subChunk: SubPrimitiveChunk,
+    texture: Texture2D
+  ): void {
+    const renderElement = this._renderElement;
+    const subRenderElement = renderElement.subRenderElements[0];
+    renderElement.set(this.priority, this._distanceForSort);
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
+    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+    renderElement.addSubRenderElement(subRenderElement);
+  }
+
+  /** @internal */
+  override _getSpriteWidth(): number {
+    return this.width;
+  }
+
+  /** @internal */
+  override _getSpriteHeight(): number {
+    return this.height;
+  }
+
+  /** @internal */
+  override _getSpriteFlipX(): boolean {
+    return this._flipX;
+  }
+
+  /** @internal */
+  override _getSpriteFlipY(): boolean {
+    return this._flipY;
+  }
+
+  /** @internal */
+  override _onSpriteSizeChanged(): void {
+    this._autoSizeDirty = true;
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    }
+  }
+
+  /** @internal */
+  override _onSpritePivotChanged(): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+
+  // ===== Mask-specific overrides =====
+
+  /** @internal */
   override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
     return BatchUtils.canBatchSpriteMask(elementA, elementB);
-  }
-
-  /**
-   * @internal
-   */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
   }
 
   /**
@@ -216,145 +250,35 @@ export class SpriteMask extends Renderer {
   /**
    * @internal
    */
-  _getChunkManager(): PrimitiveChunkManager {
-    return this.engine._batcherManager.primitiveChunkManagerMask;
+  _containsWorldPoint(worldPoint: Vector3): boolean {
+    const sprite = this.sprite;
+    if (!sprite) return false;
+    return SpriteMaskUtils.containsWorldPoint(
+      worldPoint,
+      sprite,
+      this._transformEntity.transform.worldMatrix,
+      this.width,
+      this.height,
+      sprite.pivot,
+      this._getSpriteFlipX(),
+      this._getSpriteFlipY(),
+      this.alphaCutoff
+    );
   }
 
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    const sprite = this._spriteData.sprite;
-    if (sprite) {
-      SimpleSpriteAssembler.updatePositions(
-        this._spriteData,
-        this._getChunkManager(),
-        this._transformEntity.transform.worldMatrix,
-        this.width,
-        this.height,
-        sprite.pivot,
-        this._flipX,
-        this._flipY,
-        this._bounds
-      );
-    } else {
-      const { worldPosition } = this._transformEntity.transform;
-      worldBounds.min.copyFrom(worldPosition);
-      worldBounds.max.copyFrom(worldPosition);
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  protected override _render(context: RenderContext): void {
-    const sprite = this._spriteData.sprite;
-    if (!sprite?.texture || !this.width || !this.height) {
-      return;
-    }
-
-    let material = this.getMaterial();
-    if (!material) {
-      return;
-    }
-    const { _engine: engine } = this;
-    // @todo: This question needs to be raised rather than hidden.
-    if (material.destroyed) {
-      material = engine._basicResources.spriteMaskDefaultMaterial;
-    }
-
-    // Update position
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      SimpleSpriteAssembler.updatePositions(
-        this._spriteData,
-        this._getChunkManager(),
-        this._transformEntity.transform.worldMatrix,
-        this.width,
-        this.height,
-        sprite.pivot,
-        this._flipX,
-        this._flipY,
-        this._bounds
-      );
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
-    }
-
-    // Update uv
-    if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV) {
-      SimpleSpriteAssembler.updateUVs(this._spriteData);
-      this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
-    }
-
-    const renderElement = this._renderElement;
-    const subRenderElement = renderElement.subRenderElements[0];
-    renderElement.set(this.priority, this._distanceForSort);
-
-    const subChunk = this._spriteData.subChunk;
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, sprite.texture, subChunk);
-    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-    renderElement.addSubRenderElement(subRenderElement);
-  }
-
-  /**
-   * @inheritdoc
-   */
   protected override _onDestroy(): void {
-    this._spriteData.destroy(this._getChunkManager());
-
     super._onDestroy();
-
     this._renderElement = null;
   }
 
   private _calDefaultSize(): void {
-    const sprite = this._spriteData.sprite;
+    const sprite = this.sprite;
     if (sprite) {
       this._automaticWidth = sprite.width;
       this._automaticHeight = sprite.height;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
-    this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AutomaticSize;
+    this._autoSizeDirty = false;
   }
-
-  @ignoreClone
-  private _onSpriteChange(type: SpriteModifyFlags | null): void {
-    if (type === null) {
-      // Sprite instance replaced
-      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
-      return;
-    }
-    switch (type) {
-      case SpriteModifyFlags.size:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
-        if (this._customWidth === undefined || this._customHeight === undefined) {
-          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-        }
-        break;
-      case SpriteModifyFlags.region:
-      case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.WorldVolumeAndUV;
-        break;
-      case SpriteModifyFlags.atlasRegion:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
-        break;
-      case SpriteModifyFlags.pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-        break;
-      default:
-        break;
-    }
-  }
-}
-
-/**
- * @remarks Extends `RendererUpdateFlags`.
- */
-enum SpriteMaskUpdateFlags {
-  /** UV. */
-  UV = 0x2,
-  /** Automatic Size. */
-  AutomaticSize = 0x4,
-  /** WorldVolume and UV. */
-  WorldVolumeAndUV = 0x3,
-  /** All. */
-  All = 0x7
 }

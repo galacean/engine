@@ -68,6 +68,12 @@ export class Text extends TextRenderable(UIRenderer) {
         subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
         subRenderElement.renderQueueFlags = RenderQueueFlags.All;
       }
+      // Set UI stencil depth for hierarchy-based masking
+      const stencilDepth = this._uiStencilDepth;
+      if (stencilDepth > 0) {
+        subRenderElement.uiStencilDepth = stencilDepth;
+        subRenderElement.uiStencilOp = 0; // test (read stencil)
+      }
       renderElement.addSubRenderElement(subRenderElement);
     }
   }
@@ -83,17 +89,6 @@ export class Text extends TextRenderable(UIRenderer) {
   }
 
   // ===== Text-specific =====
-
-  /**
-   * The mask layer the text belongs to.
-   */
-  get maskLayer(): number {
-    return this._maskLayer;
-  }
-
-  set maskLayer(value: number) {
-    this._maskLayer = value;
-  }
 
   /**
    * @internal

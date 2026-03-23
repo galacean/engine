@@ -57,6 +57,13 @@ export class Image extends SpriteRenderable(UIRenderer) {
       subRenderElement.renderQueueFlags = RenderQueueFlags.All;
     }
 
+    // Set UI stencil depth for hierarchy-based masking
+    const stencilDepth = this._uiStencilDepth;
+    if (stencilDepth > 0) {
+      subRenderElement.uiStencilDepth = stencilDepth;
+      subRenderElement.uiStencilOp = 0; // test (read stencil)
+    }
+
     canvas._renderElement.addSubRenderElement(subRenderElement);
   }
 

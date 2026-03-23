@@ -6,9 +6,11 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { Material } from "../../material";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
+import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
@@ -46,6 +48,10 @@ export interface ISpriteRenderable {
   drawMode: SpriteDrawMode;
   tileMode: SpriteTileMode;
   tiledAdaptiveThreshold: number;
+  maskInteraction: SpriteMaskInteraction;
+  maskLayer: SpriteMaskLayer;
+  _maskInteraction: SpriteMaskInteraction;
+  _maskLayer: SpriteMaskLayer;
   _spriteData: SpritePrimitive;
   _getChunkManager(): PrimitiveChunkManager;
   _getDefaultSpriteMaterial(): Material;
@@ -81,6 +87,13 @@ export function SpriteRenderable<T extends RendererConstructor>(
     /** @internal */
     @ignoreClone
     _spriteData: SpritePrimitive;
+
+    /** @internal */
+    @assignmentClone
+    _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+    /** @internal */
+    @assignmentClone
+    _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
     @ignoreClone
     private _drawMode: SpriteDrawMode;
@@ -150,6 +163,30 @@ export function SpriteRenderable<T extends RendererConstructor>(
     _onSpritePivotChanged(): void {}
 
     // ===== Public API (forwarding) =====
+
+    /**
+     * The mask layer the renderer belongs to.
+     */
+    get maskLayer(): SpriteMaskLayer {
+      return this._maskLayer;
+    }
+
+    set maskLayer(value: SpriteMaskLayer) {
+      this._maskLayer = value;
+    }
+
+    /**
+     * Interacts with the masks.
+     */
+    get maskInteraction(): SpriteMaskInteraction {
+      return this._maskInteraction;
+    }
+
+    set maskInteraction(value: SpriteMaskInteraction) {
+      if (this._maskInteraction !== value) {
+        this._maskInteraction = value;
+      }
+    }
 
     /**
      * The Sprite to render.

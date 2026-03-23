@@ -17,6 +17,11 @@ export class SubRenderElement implements IPoolElement {
   batched: boolean;
   renderQueueFlags: RenderQueueFlags;
 
+  /** UI stencil depth. 0 = no stencil, >0 = stencil test/write at this depth. */
+  uiStencilDepth: number = 0;
+  /** UI stencil operation. 0 = test (read stencil), 1 = increment (write mask), -1 = decrement (exit mask). */
+  uiStencilOp: number = 0;
+
   // @todo: maybe should remove later
   texture?: Texture2D;
   subChunk?: SubPrimitiveChunk;
