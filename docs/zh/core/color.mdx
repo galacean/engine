@@ -54,10 +54,10 @@ sRGB 色彩空间的伽马校正正是基于这种感知特性设计的，并对
 [加载纹理](/docs/assets/load) 默认使用 sRGB 色彩空间。如果需要使用线性空间，可以通过参数关闭 sRGB 设置：
 
 ```ts showLineNumbers {7}
-// 使用 Texture2DLoader 加载纹理
+// 使用 TextureLoader 加载纹理
 engine.resourceManager
   .load<Texture2D>({
-    type: AssetType.Texture2D,
+    type: AssetType.Texture,
     url: "https://***.png",
     params: {
       isSRGBColorSpace: false // 关闭 sRGB，使用线性空间，如法线贴图

@@ -52,19 +52,19 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*yu-DSb0surwAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: " https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JlayRa2WltYAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*cFafRr6WaWUAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*TASTTpESkIIAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       }
     ])
     .then((textures) => {

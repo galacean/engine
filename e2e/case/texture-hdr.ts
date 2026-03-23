@@ -28,8 +28,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
   engine.resourceManager
     .load<TextureCube>({
-      type: AssetType.TextureCube,
-      url: "https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr"
+      type: AssetType.Texture,
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*1pMlS5cTtoMAAAAAgBAAAAgAekp5AQ/kloofendal_48d_partly_cloudy_puresky_1k.tex"
     })
     .then((textureCube) => {
       const sky = scene.background.sky;

@@ -45,7 +45,7 @@ WebGLEngine.create({
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*yu-DSb0surwAAAAAAAAAAAAADil6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://gw.alipayobjects.com/os/OasisHub/267000040/9994/%25E5%25BD%2592%25E6%25A1%25A3.gltf",

@@ -34,31 +34,6 @@ label: Graphics/Background
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original" />
 
-### 代码设置天空盒
-
-```typescript
-// 创建天空盒纹理
-const textureCube = await engine.resourceManager.load<TextureCube>({
-  urls: [
-    "px - right 图片 url",
-    "nx - left 图片 url",
-    "py - top 图片 url",
-    "ny - bottom 图片 url",
-    "pz - front 图片 url",
-    "nz - back 图片 url",
-  ],
-  type: AssetType.TextureCube,
-});
-// 创建天空盒材质
-const skyMaterial = new SkyBoxMaterial(engine);
-skyMaterial.texture = textureCube;
-// 设置天空盒
-const background = scene.background;
-background.mode = BackgroundMode.Sky;
-background.sky.material = skyMaterial;
-background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
-```
-
 ## 设置程序化天空
 
 程序化天空是编辑器在 3D 项目中的默认背景，您也可以依照路径 **[层级面板](/docs/interface/hierarchy)** -> **选中 Scene** -> **[检查器面板](/docs/interface/inspector)** -> **Background 栏** -> **Mode 设置 Sky** -> **Material 选择内置的 SkyMat 材质** -> **Mesh 设置内置的 Sphere**

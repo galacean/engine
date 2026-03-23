@@ -31,28 +31,6 @@ label: Graphics/Texture
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original" />
 
 
-当然，你也可以在脚本中通过加载六张对应顺序的纹理得到相应的立方纹理。
-
-```typescript
-const cubeTextureResource = {
-  type: AssetType.TextureCube,
-  urls: [
-    "px - right 图片 url",
-    "nx - left 图片 url",
-    "py - top 图片 url",
-    "ny - bottom 图片 url",
-    "pz - front 图片 url",
-    "nz - back 图片 url",
-  ],
-};
-
-engine.resourceManager.load(cubeTextureResource).then((resource) => {
-  // 引擎支持的立方纹理
-  const cubeTexture = resource;
-  // 接下来可以将纹理应用到材质上或者进行其他操作
-});
-```
-
 ## 使用
 
 立方纹理主要在天空盒中使用，详情可参考[天空背景](/docs/graphics/background/sky/)
