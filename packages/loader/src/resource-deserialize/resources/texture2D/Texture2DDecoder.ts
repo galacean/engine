@@ -43,6 +43,7 @@ export class Texture2DDecoder {
         const blob = new Blob([imageData]);
         const img = new Image();
         img.onload = () => {
+          URL.revokeObjectURL(img.src);
           texture.setImageSource(img);
           mipmap && texture.generateMipmaps();
           resolve(texture);

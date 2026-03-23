@@ -45,6 +45,7 @@ export class TextureCubeDecoder {
           const blob = new Blob([facesData[i]]);
           const img = new Image();
           img.onload = () => {
+            URL.revokeObjectURL(img.src);
             texture.setImageSource(TextureCubeFace.PositiveX + i, img);
             if (++loadedCount === 6) {
               mipmap && texture.generateMipmaps();

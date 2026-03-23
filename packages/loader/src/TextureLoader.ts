@@ -144,7 +144,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
           if (bufferView[0] === 0x23 && bufferView[1] === 0x3f) {
             const { pixels } = HDRDecoder.decode(bufferView);
             texture.setPixelBuffer(pixels);
-            texture.generateMipmaps();
+            texture.mipmapCount > 1 && texture.generateMipmaps();
             return texture;
           }
 
@@ -154,7 +154,7 @@ class TextureContentRestorer extends ContentRestorer<Texture> {
             img.onload = () => {
               URL.revokeObjectURL(img.src);
               texture.setImageSource(img);
-              texture.generateMipmaps();
+              texture.mipmapCount > 1 && texture.generateMipmaps();
               resolve(texture);
             };
             img.onerror = reject;
