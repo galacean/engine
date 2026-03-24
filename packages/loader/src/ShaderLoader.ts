@@ -9,12 +9,19 @@ import {
 } from "@galacean/engine-core";
 import { ShaderChunkLoader } from "./ShaderChunkLoader";
 
-@resourceLoader(AssetType.Shader, ["gs", "gsl"])
+@resourceLoader(AssetType.Shader, ["gs", "gsl", "gsp"])
 class ShaderLoader extends Loader<Shader> {
   private static _builtinRegex = /^\s*\/\/\s*@builtin\s+(\w+)/;
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
     const { url } = item;
+
+    if (url.endsWith(".gsp")) {
+      // @ts-ignore
+      return resourceManager._request(url, { ...item, type: "json" }).then((data) => {
+        return Shader.createFromPrecompiled(data);
+      });
+    }
 
     // @ts-ignore
     return resourceManager._request<string>(url, { ...item, type: "text" }).then((code: string) => {

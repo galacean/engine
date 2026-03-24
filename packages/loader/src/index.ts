@@ -22,7 +22,6 @@ import "./AudioLoader";
 import "./ktx2/KTX2Loader";
 import "./ShaderLoader";
 import "./ShaderChunkLoader";
-import "./PrecompiledShaderLoader";
 import "./PhysicsMaterialLoader";
 import "./RenderTargetLoader";
 

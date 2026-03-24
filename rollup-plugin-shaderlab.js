@@ -7,7 +7,7 @@
  * When precompile=true:
  *   - Emits a standalone .gsp JSON file to dist/
  *   - JS module exports the raw ShaderLab source string (unchanged)
- *   - The .gsp file can be loaded at runtime via PrecompiledShaderLoader
+ *   - The .gsp file can be loaded at runtime via ShaderLoader
  *
  * Usage in rollup.config.js:
  *   import shaderlab from "./rollup-plugin-shaderlab";

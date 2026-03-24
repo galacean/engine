@@ -16,8 +16,6 @@ export enum AssetType {
   Material = "Material",
   /** Shader. */
   Shader = "Shader",
-  /** Precompiled Shader (.gsp). */
-  ShaderPrecompiled = "ShaderPrecompiled",
   /** Mesh. */
   Mesh = "Mesh",
   /** AnimationClip. */
