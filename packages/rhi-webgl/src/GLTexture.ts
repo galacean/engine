@@ -181,7 +181,9 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.ETC2_RGBA5:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_PUNCHTHROUGH_ALPHA1_ETC2
+            : GLCompressedTextureInternalFormat.RGB8_PUNCHTHROUGH_ALPHA1_ETC2,
           isCompressed: true
         };
       case TextureFormat.ETC2_RGBA8:
@@ -220,27 +222,37 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.ASTC_5x5:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_5X5_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_5X5_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_5X5_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_6x6:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_6X6_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_6X6_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_6X6_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_8x8:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_8X8_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_8X8_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_8X8_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_10x10:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_10X10_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_10X10_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_10X10_KHR,
           isCompressed: true
         };
       case TextureFormat.ASTC_12x12:
         return {
-          internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
+          internalFormat: isSRGBColorSpace
+            ? GLCompressedTextureInternalFormat.SRGB8_ALPHA8_ASTC_12X12_KHR
+            : GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
           isCompressed: true
         };
 
