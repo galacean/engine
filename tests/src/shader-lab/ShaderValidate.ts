@@ -49,8 +49,8 @@ export function glslValidate(
         }
         const shaderPass = new ShaderPass(
           passSource.name,
-          shaderPassSource.vertexInstructions,
-          shaderPassSource.fragmentInstructions,
+          shaderPassSource.vertexShaderInstructions,
+          shaderPassSource.fragmentShaderInstructions,
           platform,
           passSource.tags
         );

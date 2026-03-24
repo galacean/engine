@@ -1,4 +1,4 @@
-import type { Instruction } from "@galacean/engine-design";
+import type { ShaderInstruction } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
@@ -38,9 +38,9 @@ export class ShaderPass extends ShaderPart {
   _platformTarget: ShaderLanguage | undefined;
 
   /** @internal - Flat instruction array for vertex shader. */
-  _vertexInstructions?: Instruction[];
+  _vertexShaderInstructions?: ShaderInstruction[];
   /** @internal */
-  _fragmentInstructions?: Instruction[];
+  _fragmentShaderInstructions?: ShaderInstruction[];
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -86,23 +86,23 @@ export class ShaderPass extends ShaderPart {
   /**
    * Create a shader pass from precompiled instructions.
    * @param name - Shader pass name
-   * @param vertexInstructions - Precompiled vertex instruction array
-   * @param fragmentInstructions - Precompiled fragment instruction array
+   * @param vertexShaderInstructions - Precompiled vertex instruction array
+   * @param fragmentShaderInstructions - Precompiled fragment instruction array
    * @param platformTarget - Target shader language
    * @param tags - Tags
    */
   constructor(
     name: string,
-    vertexInstructions: Instruction[],
-    fragmentInstructions: Instruction[],
+    vertexShaderInstructions: ShaderInstruction[],
+    fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
     tags?: Record<string, number | string | boolean>
   );
 
   constructor(
     nameOrVertexSource: string,
-    vertexSourceOrFragmentSourceOrInstructions: string | Instruction[],
-    fragmentSourceOrTags?: string | Instruction[] | Record<string, number | string | boolean>,
+    vertexSourceOrFragmentSourceOrInstructions: string | ShaderInstruction[],
+    fragmentSourceOrTags?: string | ShaderInstruction[] | Record<string, number | string | boolean>,
     tagsOrPlatformTarget?: Record<string, number | string | boolean> | ShaderLanguage,
     tags?: Record<string, number | string | boolean>
   ) {
@@ -112,8 +112,8 @@ export class ShaderPass extends ShaderPart {
     if (Array.isArray(vertexSourceOrFragmentSourceOrInstructions)) {
       // Instructions overload: (name, vertexInst, fragInst, platformTarget, tags?)
       this._name = nameOrVertexSource;
-      this._vertexInstructions = vertexSourceOrFragmentSourceOrInstructions;
-      this._fragmentInstructions = fragmentSourceOrTags as Instruction[];
+      this._vertexShaderInstructions = vertexSourceOrFragmentSourceOrInstructions;
+      this._fragmentShaderInstructions = fragmentSourceOrTags as ShaderInstruction[];
       this._platformTarget = tagsOrPlatformTarget as ShaderLanguage;
       tags = { pipelineStage: PipelineStage.Forward, ...tags };
     } else if (typeof fragmentSourceOrTags === "string") {
@@ -227,8 +227,8 @@ export class ShaderPass extends ShaderPart {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
     }
-    let noMacroVertex = ShaderMacroProcessor.evaluate(this._vertexInstructions, macroMap);
-    let noMacroFrag = ShaderMacroProcessor.evaluate(this._fragmentInstructions, macroMap);
+    let noMacroVertex = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
+    let noMacroFrag = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
       noMacroVertex = ShaderFactory.convertTo300(noMacroVertex);

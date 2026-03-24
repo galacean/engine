@@ -1,6 +1,6 @@
 /**
  * Condition types for macro conditional evaluation.
- * Used by InstructionEncoder (build-time) and InstructionDecoder (runtime).
+ * Used by ShaderInstructionEncoder (build-time) and ShaderMacroProcessor (runtime).
  * Compact field names for JSON serialization in .gsp files.
  */
 
@@ -64,36 +64,8 @@ export type Condition =
 
 // ---- Preprocessor instruction types (flat bytecode for .gsp) ----
 
-/** Opcode constants for preprocessor instructions. */
-export const enum PreprocessorOpcode {
-  /** Output text fragment */
-  TEXT = 0,
-  /** #ifdef: jump if macro is NOT defined */
-  IF_DEF = 1,
-  /** #ifndef: jump if macro IS defined */
-  IF_NDEF = 2,
-  /** #if MACRO op value: jump if comparison is false */
-  IF_CMP = 3,
-  /** #if compound expression (&&/||/!): jump if false */
-  IF_EXPR = 4,
-  /** #else: unconditional jump to after #endif */
-  ELSE = 5,
-  /** #endif: end of conditional block */
-  ENDIF = 6,
-  /** #define NAME (no value) */
-  DEFINE = 7,
-  /** #define NAME value */
-  DEFINE_VAL = 8,
-  /** #define NAME(params) body */
-  DEFINE_FUNC = 9,
-  /** #undef NAME */
-  UNDEF = 10
-}
-
 /**
  * Preprocessor instruction. Compact array format for JSON serialization in .gsp files.
- *
  * Each instruction is a tuple: `[opcode, ...operands]`.
- * Operand types vary by opcode — see {@link PreprocessorOpcode} for the layout of each.
  */
-export type Instruction = readonly (string | number | boolean | string[] | Condition)[];
+export type ShaderInstruction = readonly (string | number | boolean | string[] | Condition)[];

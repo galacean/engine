@@ -6,9 +6,9 @@
  * The instruction array is serialized to .gsp for runtime processing by ShaderMacroProcessor.
  */
 
-import type { Condition, Instruction } from "@galacean/engine-design";
+import type { Condition, ShaderInstruction } from "@galacean/engine-design";
 
-export type { Instruction } from "@galacean/engine-design";
+export type { ShaderInstruction } from "@galacean/engine-design";
 
 /**
  * Opcode constants for the flat instruction array.
@@ -29,18 +29,19 @@ export type { Instruction } from "@galacean/engine-design";
  *
  * #elif is decomposed into ELSE + IF_xxx (see explanation below).
  */
-const Op = {
-  TEXT: 0,
-  IF_DEF: 1,
-  IF_NDEF: 2,
-  IF_CMP: 3,
-  IF_EXPR: 4,
-  ELSE: 5,
-  ENDIF: 6,
-  DEFINE: 7,
-  DEFINE_VAL: 8,
-  DEFINE_FUNC: 9,
-  UNDEF: 10
+/** Must stay in sync with PreprocessorOpcode in @galacean/engine-core. */
+const PreprocessorOpcode = {
+  Text: 0,
+  IfDef: 1,
+  IfNdef: 2,
+  IfCmp: 3,
+  IfExpr: 4,
+  Else: 5,
+  Endif: 6,
+  Define: 7,
+  DefineVal: 8,
+  DefineFunc: 9,
+  Undef: 10
 } as const;
 
 // ---- Pre-compiled regexes (hoisted for performance) ----
@@ -52,8 +53,8 @@ const FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
  * Parse a GLSL string (CodeGen output) into a flat instruction array.
  * Called at build time during _precompile() and _parseShaderPass().
  */
-export function parseInstructions(glsl: string): Instruction[] {
-  const instructions: Instruction[] = [];
+export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
+  const instructions: ShaderInstruction[] = [];
   const len = glsl.length;
   let pos = 0;
   const backfillStack: number[][] = [];
@@ -83,10 +84,10 @@ export function parseInstructions(glsl: string): Instruction[] {
       // Not a recognized directive — treat as text
       const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
       const text = lineEnd < len ? line + "\n" : line;
-      if (last && last[0] === Op.TEXT) {
+      if (last && last[0] === PreprocessorOpcode.Text) {
         (last as [number, string])[1] += text;
       } else {
-        instructions.push([Op.TEXT, text]);
+        instructions.push([PreprocessorOpcode.Text, text]);
       }
       continue;
     }
@@ -97,13 +98,13 @@ export function parseInstructions(glsl: string): Instruction[] {
     switch (keyword) {
       case "ifdef": {
         const idx = instructions.length;
-        instructions.push([Op.IF_DEF, rest, -1]);
+        instructions.push([PreprocessorOpcode.IfDef, rest, -1]);
         backfillStack.push([idx]);
         break;
       }
       case "ifndef": {
         const idx = instructions.length;
-        instructions.push([Op.IF_NDEF, rest, -1]);
+        instructions.push([PreprocessorOpcode.IfNdef, rest, -1]);
         backfillStack.push([idx]);
         break;
       }
@@ -111,13 +112,13 @@ export function parseInstructions(glsl: string): Instruction[] {
         const cond = parseConditionString(rest);
         const idx = instructions.length;
         if (cond.t === "def") {
-          instructions.push([Op.IF_DEF, cond.m, -1]);
+          instructions.push([PreprocessorOpcode.IfDef, cond.m, -1]);
         } else if (cond.t === "ndef") {
-          instructions.push([Op.IF_NDEF, cond.m, -1]);
+          instructions.push([PreprocessorOpcode.IfNdef, cond.m, -1]);
         } else if (cond.t === "cmp") {
-          instructions.push([Op.IF_CMP, cond.m, cond.op, cond.v, -1]);
+          instructions.push([PreprocessorOpcode.IfCmp, cond.m, cond.op, cond.v, -1]);
         } else {
-          instructions.push([Op.IF_EXPR, cond, -1]);
+          instructions.push([PreprocessorOpcode.IfExpr, cond, -1]);
         }
         backfillStack.push([idx]);
         break;
@@ -126,20 +127,20 @@ export function parseInstructions(glsl: string): Instruction[] {
         const stack = backfillStack[backfillStack.length - 1];
         const prevIdx = stack[stack.length - 1];
         const elseIdx = instructions.length;
-        instructions.push([Op.ELSE, -1]);
+        instructions.push([PreprocessorOpcode.Else, -1]);
         stack.push(elseIdx);
         backfillJump(instructions[prevIdx], instructions.length);
 
         const cond = parseConditionString(rest);
         const idx = instructions.length;
         if (cond.t === "def") {
-          instructions.push([Op.IF_DEF, cond.m, -1]);
+          instructions.push([PreprocessorOpcode.IfDef, cond.m, -1]);
         } else if (cond.t === "ndef") {
-          instructions.push([Op.IF_NDEF, cond.m, -1]);
+          instructions.push([PreprocessorOpcode.IfNdef, cond.m, -1]);
         } else if (cond.t === "cmp") {
-          instructions.push([Op.IF_CMP, cond.m, cond.op, cond.v, -1]);
+          instructions.push([PreprocessorOpcode.IfCmp, cond.m, cond.op, cond.v, -1]);
         } else {
-          instructions.push([Op.IF_EXPR, cond, -1]);
+          instructions.push([PreprocessorOpcode.IfExpr, cond, -1]);
         }
         stack.push(idx);
         break;
@@ -148,20 +149,20 @@ export function parseInstructions(glsl: string): Instruction[] {
         const stack = backfillStack[backfillStack.length - 1];
         const prevIdx = stack[stack.length - 1];
         const elseIdx = instructions.length;
-        instructions.push([Op.ELSE, -1]);
+        instructions.push([PreprocessorOpcode.Else, -1]);
         stack.push(elseIdx);
         backfillJump(instructions[prevIdx], instructions.length);
         break;
       }
       case "endif": {
         const endifIdx = instructions.length;
-        instructions.push([Op.ENDIF]);
+        instructions.push([PreprocessorOpcode.Endif]);
         const stack = backfillStack.pop();
         if (stack) {
           const afterEndif = endifIdx + 1;
           for (let j = 0; j < stack.length; j++) {
             const inst = instructions[stack[j]];
-            if (inst[0] === Op.ELSE) {
+            if (inst[0] === PreprocessorOpcode.Else) {
               (inst as [number, number])[1] = afterEndif;
             } else {
               backfillJumpIfNeeded(inst, afterEndif);
@@ -177,14 +178,14 @@ export function parseInstructions(glsl: string): Instruction[] {
             .split(",")
             .map((p) => p.trim())
             .filter((p) => p.length > 0);
-          instructions.push([Op.DEFINE_FUNC, funcMatch[1], params, stripLineComment(funcMatch[3].trim())]);
+          instructions.push([PreprocessorOpcode.DefineFunc, funcMatch[1], params, stripLineComment(funcMatch[3].trim())]);
         } else {
           const spaceIdx = rest.indexOf(" ");
           if (spaceIdx === -1) {
-            instructions.push([Op.DEFINE, rest]);
+            instructions.push([PreprocessorOpcode.Define, rest]);
           } else {
             instructions.push([
-              Op.DEFINE_VAL,
+              PreprocessorOpcode.DefineVal,
               rest.substring(0, spaceIdx),
               stripLineComment(rest.substring(spaceIdx + 1).trim())
             ]);
@@ -193,7 +194,7 @@ export function parseInstructions(glsl: string): Instruction[] {
         break;
       }
       case "undef": {
-        instructions.push([Op.UNDEF, rest]);
+        instructions.push([PreprocessorOpcode.Undef, rest]);
         break;
       }
     }
@@ -229,36 +230,36 @@ function findDirectiveStart(source: string, from: number, len: number): number {
 }
 
 /** Append text to instructions, merging with previous TEXT if possible. */
-function pushText(instructions: Instruction[], source: string, from: number, to: number): void {
+function pushText(instructions: ShaderInstruction[], source: string, from: number, to: number): void {
   if (from >= to) return;
   const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
-  if (last && last[0] === Op.TEXT) {
+  if (last && last[0] === PreprocessorOpcode.Text) {
     (last as [number, string])[1] += source.substring(from, to);
   } else {
-    instructions.push([Op.TEXT, source.substring(from, to)]);
+    instructions.push([PreprocessorOpcode.Text, source.substring(from, to)]);
   }
 }
 
 /** Backfill jump offset of an IF/ELIF instruction. */
-function backfillJump(inst: Instruction, target: number): void {
+function backfillJump(inst: ShaderInstruction, target: number): void {
   const op = inst[0];
-  if (op === Op.IF_DEF || op === Op.IF_NDEF) {
+  if (op === PreprocessorOpcode.IfDef || op === PreprocessorOpcode.IfNdef) {
     (inst as [number, string, number])[2] = target;
-  } else if (op === Op.IF_CMP) {
+  } else if (op === PreprocessorOpcode.IfCmp) {
     (inst as [number, string, string, number, number])[4] = target;
-  } else if (op === Op.IF_EXPR) {
+  } else if (op === PreprocessorOpcode.IfExpr) {
     (inst as [number, Condition, number])[2] = target;
   }
 }
 
 /** Backfill only if still at placeholder -1. */
-function backfillJumpIfNeeded(inst: Instruction, target: number): void {
+function backfillJumpIfNeeded(inst: ShaderInstruction, target: number): void {
   const op = inst[0];
-  if (op === Op.IF_DEF || op === Op.IF_NDEF) {
+  if (op === PreprocessorOpcode.IfDef || op === PreprocessorOpcode.IfNdef) {
     if (inst[2] === -1) (inst as [number, string, number])[2] = target;
-  } else if (op === Op.IF_CMP) {
+  } else if (op === PreprocessorOpcode.IfCmp) {
     if (inst[4] === -1) (inst as [number, string, string, number, number])[4] = target;
-  } else if (op === Op.IF_EXPR) {
+  } else if (op === PreprocessorOpcode.IfExpr) {
     if (inst[2] === -1) (inst as [number, Condition, number])[2] = target;
   }
 }

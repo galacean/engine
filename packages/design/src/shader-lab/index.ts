@@ -5,7 +5,7 @@ export type {
   NotDefinedCondition,
   CompareCondition,
   BoolCondition,
-  Instruction
+  ShaderInstruction
 } from "./ICondition";
 export type { IPrecompiledShader, IPrecompiledSubShader, IPrecompiledPass } from "./IPrecompiledShader";
 export type { IShaderProgramSource as IShaderInfo } from "./IShaderProgramSource";

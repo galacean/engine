@@ -3,10 +3,10 @@
  */
 
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
-import type { Instruction } from "@galacean/engine-design";
+import type { ShaderInstruction } from "@galacean/engine-design";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { parseInstructions } from "@galacean/engine-shaderlab/src/InstructionEncoder";
+import { parseShaderInstructions } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
@@ -162,39 +162,39 @@ describe("Precompile Benchmark", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 2. Per-stage: parseInstructions
+  // 2. Per-stage: parseShaderInstructions
   // ═══════════════════════════════════════════════════════════
-  describe("2. Per-stage: parseInstructions", () => {
-    it("parseInstructions timing for PBR vertex/fragment", () => {
+  describe("2. Per-stage: parseShaderInstructions", () => {
+    it("parseShaderInstructions timing for PBR vertex/fragment", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
       const results: BenchResult[] = [];
 
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          if (pass.isUsePass || !pass.vertexShaderInstructions) continue;
           // Get raw source for re-parsing timing
-          const rawVertex = ShaderMacroProcessor.evaluate(pass.vertexInstructions, new Map());
-          const rawFragment = pass.fragmentInstructions
-            ? ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map())
+          const rawVertex = ShaderMacroProcessor.evaluate(pass.vertexShaderInstructions, new Map());
+          const rawFragment = pass.fragmentShaderInstructions
+            ? ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, new Map())
             : "";
-          if (pass.vertexInstructions.length > 1) {
+          if (pass.vertexShaderInstructions.length > 1) {
             results.push(
               bench(
                 `${pass.name} vertex`,
                 () => {
-                  parseInstructions(rawVertex);
+                  parseShaderInstructions(rawVertex);
                 },
                 20,
                 5
               )
             );
           }
-          if (pass.fragmentInstructions && pass.fragmentInstructions.length > 1) {
+          if (pass.fragmentShaderInstructions && pass.fragmentShaderInstructions.length > 1) {
             results.push(
               bench(
                 `${pass.name} fragment`,
                 () => {
-                  parseInstructions(rawFragment);
+                  parseShaderInstructions(rawFragment);
                 },
                 20,
                 5
@@ -204,7 +204,7 @@ describe("Precompile Benchmark", async () => {
         }
       }
 
-      logTable("parseInstructions (build-time cost)", results);
+      logTable("parseShaderInstructions (build-time cost)", results);
     });
   });
 
@@ -295,24 +295,24 @@ describe("Precompile Benchmark", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // 5. Macro expansion: evaluateInstructions benchmark
+  // 5. Macro expansion: evaluateShaderInstructions benchmark
   // ═══════════════════════════════════════════════════════════
-  describe("5. Macro expansion: evaluateInstructions", () => {
+  describe("5. Macro expansion: evaluateShaderInstructions", () => {
     it("PBR fragment with different macro combos", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
 
-      let fragInstructions: Instruction[] | undefined;
+      let fragShaderInstructions: ShaderInstruction[] | undefined;
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (!pass.isUsePass && pass.fragmentInstructions && pass.fragmentInstructions.length > 1) {
-            fragInstructions = pass.fragmentInstructions;
+          if (!pass.isUsePass && pass.fragmentShaderInstructions && pass.fragmentShaderInstructions.length > 1) {
+            fragShaderInstructions = pass.fragmentShaderInstructions;
             break;
           }
         }
-        if (fragInstructions) break;
+        if (fragShaderInstructions) break;
       }
 
-      if (!fragInstructions) {
+      if (!fragShaderInstructions) {
         console.log("No PBR pass with fragment instructions found, skipping.");
         return;
       }
@@ -328,9 +328,9 @@ describe("Precompile Benchmark", async () => {
         const macroMap = makeMacroMap(macros);
         results.push(
           bench(
-            `evaluateInstructions [${label}]`,
+            `evaluateShaderInstructions [${label}]`,
             () => {
-              ShaderMacroProcessor.evaluate(fragInstructions!, new Map(macroMap));
+              ShaderMacroProcessor.evaluate(fragShaderInstructions!, new Map(macroMap));
             },
             50,
             10
@@ -338,12 +338,12 @@ describe("Precompile Benchmark", async () => {
         );
       }
 
-      logTable("evaluateInstructions (PBR fragment)", results);
+      logTable("evaluateShaderInstructions (PBR fragment)", results);
 
       const rtResult = bench(
         "runtime evaluator [base]",
         () => {
-          ShaderMacroProcessor.evaluate(fragInstructions!, new Map(makeMacroMap(baseMacros)));
+          ShaderMacroProcessor.evaluate(fragShaderInstructions!, new Map(makeMacroMap(baseMacros)));
         },
         50,
         10
@@ -359,7 +359,7 @@ describe("Precompile Benchmark", async () => {
   //    Total measured via _getCanonicalShaderProgram (CPU + GPU)
   //    GPU = Total - CPU
   //
-  //    GSP CPU:  buildMacroList + evaluateInstructions + convertTo300 + assemble
+  //    GSP CPU:  buildMacroList + evaluateShaderInstructions + convertTo300 + assemble
   //    GLSL CPU: buildMacroList + parseIncludes + parseCustomMacros + convertTo300 + assemble
   //    GPU:      new ShaderProgram(engine, vs, fs) — WebGL compile + link
   // ═══════════════════════════════════════════════════════════
@@ -373,8 +373,8 @@ describe("Precompile Benchmark", async () => {
       // GSP ShaderPass (with instructions)
       const gspShaderPass = new ShaderPass(
         forwardPassData.name,
-        forwardPassData.vertexInstructions!,
-        forwardPassData.fragmentInstructions!,
+        forwardPassData.vertexShaderInstructions!,
+        forwardPassData.fragmentShaderInstructions!,
         ShaderLanguage.GLSLES100,
         forwardPassData.tags
       );

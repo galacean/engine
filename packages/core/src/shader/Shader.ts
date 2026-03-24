@@ -123,8 +123,8 @@ export class Shader implements IReferable {
 
           const shaderPass = new ShaderPass(
             passSource.name,
-            shaderPassSource.vertexInstructions,
-            shaderPassSource.fragmentInstructions,
+            shaderPassSource.vertexShaderInstructions,
+            shaderPassSource.fragmentShaderInstructions,
             vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage,
             passSource.tags
           );
@@ -205,8 +205,8 @@ export class Shader implements IReferable {
 
         const shaderPass = new ShaderPass(
           passData.name,
-          passData.vertexInstructions,
-          passData.fragmentInstructions,
+          passData.vertexShaderInstructions,
+          passData.fragmentShaderInstructions,
           data.platformTarget as ShaderLanguage,
           passData.tags
         );

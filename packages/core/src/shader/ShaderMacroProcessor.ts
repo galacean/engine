@@ -1,17 +1,5 @@
-/**
- * Runtime macro processor for precompiled shaders.
- *
- * Phase 1: Linear VM walks instructions, evaluating conditions via jump offsets.
- * Phase 2: Single-pass token stream expands all macros (value + function).
- * Output is pure GLSL with no preprocessor directives.
- *
- * @internal
- */
-import { PreprocessorOpcode } from "@galacean/engine-design";
-import type { Condition, Instruction } from "@galacean/engine-design";
-
-/** Maximum recursion depth for nested macro expansion. */
-const MAX_MACRO_EXPANSION_DEPTH = 8;
+import type { Condition, ShaderInstruction } from "@galacean/engine-design";
+import { PreprocessorOpcode } from "./enums/PreprocessorOpcode";
 
 interface FuncMacro {
   params: string[];
@@ -19,19 +7,18 @@ interface FuncMacro {
 }
 
 /**
- * Utility class for processing precompiled shader instructions at runtime.
- *
- * All methods are static — this is a stateless tool class.
  * @internal
  */
 export class ShaderMacroProcessor {
+  private static readonly _maxExpansionDepth = 8;
+  
   /**
    * Evaluate a flat instruction array with active macros.
    * @param instructions - Pre-parsed instruction array
    * @param macros - Active runtime macros { name → value }
    * @returns Pure GLSL string — all conditionals resolved, all macros expanded
    */
-  static evaluate(instructions: Instruction[], macros: Map<string, string>): string {
+  static evaluate(instructions: ShaderInstruction[], macros: Map<string, string>): string {
     const parts: string[] = [];
     const defines = new Map<string, string>();
     const funcMacros = new Map<string, FuncMacro>();
@@ -45,44 +32,44 @@ export class ShaderMacroProcessor {
     while (pc < len) {
       const inst = instructions[pc];
       switch (inst[0]) {
-        case PreprocessorOpcode.TEXT:
+        case PreprocessorOpcode.Text:
           parts.push(inst[1] as string);
           pc++;
           break;
-        case PreprocessorOpcode.IF_DEF:
+        case PreprocessorOpcode.IfDef:
           pc = defines.has(inst[1] as string) || funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
           break;
-        case PreprocessorOpcode.IF_NDEF:
+        case PreprocessorOpcode.IfNdef:
           pc = !defines.has(inst[1] as string) && !funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
           break;
-        case PreprocessorOpcode.IF_CMP: {
+        case PreprocessorOpcode.IfCmp: {
           const val = defines.get(inst[1] as string);
           const cond = val !== undefined && ShaderMacroProcessor._evalCmpOp(Number(val) || 0, inst[2] as string, inst[3] as number);
           pc = cond ? pc + 1 : (inst[4] as number);
           break;
         }
-        case PreprocessorOpcode.IF_EXPR:
+        case PreprocessorOpcode.IfExpr:
           pc = ShaderMacroProcessor._evalCondition(inst[1] as Condition, defines, funcMacros) ? pc + 1 : (inst[2] as number);
           break;
-        case PreprocessorOpcode.ELSE:
+        case PreprocessorOpcode.Else:
           pc = inst[1] as number;
           break;
-        case PreprocessorOpcode.ENDIF:
+        case PreprocessorOpcode.Endif:
           pc++;
           break;
-        case PreprocessorOpcode.DEFINE:
+        case PreprocessorOpcode.Define:
           defines.set(inst[1] as string, "");
           pc++;
           break;
-        case PreprocessorOpcode.DEFINE_VAL:
+        case PreprocessorOpcode.DefineVal:
           defines.set(inst[1] as string, inst[2] as string);
           pc++;
           break;
-        case PreprocessorOpcode.DEFINE_FUNC:
+        case PreprocessorOpcode.DefineFunc:
           funcMacros.set(inst[1] as string, { params: inst[2] as string[], body: inst[3] as string });
           pc++;
           break;
-        case PreprocessorOpcode.UNDEF:
+        case PreprocessorOpcode.Undef:
           defines.delete(inst[1] as string);
           funcMacros.delete(inst[1] as string);
           pc++;
@@ -372,7 +359,7 @@ export class ShaderMacroProcessor {
     excludeName: string,
     depth: number = 0
   ): string {
-    if (depth > MAX_MACRO_EXPANSION_DEPTH || text.length === 0) return text;
+    if (depth > ShaderMacroProcessor._maxExpansionDepth || text.length === 0) return text;
 
     const len = text.length;
     const out: string[] = [];

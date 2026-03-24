@@ -145,8 +145,8 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             );
 
             const pass = precompiled.subShaders[i].passes[j];
-            expect(pass.vertexInstructions).toEqual(liveProgram.vertexInstructions);
-            expect(pass.fragmentInstructions).toEqual(liveProgram.fragmentInstructions);
+            expect(pass.vertexShaderInstructions).toEqual(liveProgram.vertexShaderInstructions);
+            expect(pass.fragmentShaderInstructions).toEqual(liveProgram.fragmentShaderInstructions);
           }
         }
       });
@@ -171,8 +171,8 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
               basePath
             );
             const pass = precompiled.subShaders[i].passes[j];
-            expect(pass.vertexInstructions).toEqual(liveProgram.vertexInstructions);
-            expect(pass.fragmentInstructions).toEqual(liveProgram.fragmentInstructions);
+            expect(pass.vertexShaderInstructions).toEqual(liveProgram.vertexShaderInstructions);
+            expect(pass.fragmentShaderInstructions).toEqual(liveProgram.fragmentShaderInstructions);
           }
         }
       });
@@ -193,12 +193,12 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          if (pass.isUsePass || !pass.vertexShaderInstructions) continue;
 
           const shaderPass = new ShaderPass(
             pass.name,
-            pass.vertexInstructions,
-            pass.fragmentInstructions,
+            pass.vertexShaderInstructions,
+            pass.fragmentShaderInstructions,
             platform,
             pass.tags
           );
@@ -311,12 +311,12 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
       for (const sub of restored.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          if (pass.isUsePass || !pass.vertexShaderInstructions) continue;
 
           const shaderPass = new ShaderPass(
             pass.name,
-            pass.vertexInstructions,
-            pass.fragmentInstructions,
+            pass.vertexShaderInstructions,
+            pass.fragmentShaderInstructions,
             platform,
             pass.tags
           );
@@ -480,9 +480,9 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             if (livePass.isUsePass) continue;
 
             const prePass = precompiled.subShaders[i].passes[j];
-            if (!prePass.fragmentInstructions || prePass.fragmentInstructions.length <= 1) continue;
+            if (!prePass.fragmentShaderInstructions || prePass.fragmentShaderInstructions.length <= 1) continue;
 
-            const result = ShaderMacroProcessor.evaluate(prePass.fragmentInstructions, new Map(macroMap));
+            const result = ShaderMacroProcessor.evaluate(prePass.fragmentShaderInstructions, new Map(macroMap));
             expect(result.length, `macro-pre frag [${label}] should produce output`).toBeGreaterThan(0);
 
             // Verify the evaluated output contains valid GLSL structure
@@ -495,15 +495,15 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
     it("PBR: different macro combos produce different evaluated output", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
       const pass = precompiled.subShaders[0].passes[0];
-      if (!pass.fragmentInstructions) return;
+      if (!pass.fragmentShaderInstructions) return;
 
       const baseMap = makeMacroMap(baseMacros);
       const clearCoatMap = makeMacroMap([...baseMacros, ...clearCoatMacros]);
       const fogMap = makeMacroMap(baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "2" } : m)));
 
-      const baseResult = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map(baseMap));
-      const clearCoatResult = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map(clearCoatMap));
-      const fogResult = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map(fogMap));
+      const baseResult = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, new Map(baseMap));
+      const clearCoatResult = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, new Map(clearCoatMap));
+      const fogResult = ShaderMacroProcessor.evaluate(pass.fragmentShaderInstructions, new Map(fogMap));
 
       // Different macro combos should produce different GLSL output
       expect(baseResult).not.toBe(clearCoatResult);
@@ -522,19 +522,19 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
-          expect(pass.vertexInstructions!.length).toBe(1);
-          expect(pass.fragmentInstructions!.length).toBe(1);
+          expect(pass.vertexShaderInstructions!.length).toBe(1);
+          expect(pass.fragmentShaderInstructions!.length).toBe(1);
         }
       }
 
       const macroCollection = buildMacroCollection(baseMacros);
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          if (pass.isUsePass || !pass.vertexShaderInstructions) continue;
           const shaderPass = new ShaderPass(
             pass.name,
-            pass.vertexInstructions,
-            pass.fragmentInstructions!,
+            pass.vertexShaderInstructions,
+            pass.fragmentShaderInstructions!,
             ShaderLanguage.GLSLES100,
             pass.tags
           );
@@ -552,19 +552,19 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
           if (pass.isUsePass) continue;
-          expect(pass.vertexInstructions!.length).toBe(1);
-          expect(pass.fragmentInstructions!.length).toBe(1);
+          expect(pass.vertexShaderInstructions!.length).toBe(1);
+          expect(pass.fragmentShaderInstructions!.length).toBe(1);
         }
       }
 
       const macroCollection = buildMacroCollection(baseMacros);
       for (const sub of precompiled.subShaders) {
         for (const pass of sub.passes) {
-          if (pass.isUsePass || !pass.vertexInstructions) continue;
+          if (pass.isUsePass || !pass.vertexShaderInstructions) continue;
           const shaderPass = new ShaderPass(
             pass.name,
-            pass.vertexInstructions,
-            pass.fragmentInstructions!,
+            pass.vertexShaderInstructions,
+            pass.fragmentShaderInstructions!,
             ShaderLanguage.GLSLES100,
             pass.tags
           );

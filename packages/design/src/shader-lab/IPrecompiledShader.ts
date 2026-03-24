@@ -1,4 +1,4 @@
-import type { Instruction } from "./ICondition";
+import type { ShaderInstruction } from "./ICondition";
 
 /**
  * Precompiled shader data structure.
@@ -30,7 +30,7 @@ export interface IPrecompiledPass {
     variableMap: Record<string, string>;
   };
   /** Flat instruction array for vertex shader. */
-  vertexInstructions?: Instruction[];
+  vertexShaderInstructions?: ShaderInstruction[];
   /** Flat instruction array for fragment shader. */
-  fragmentInstructions?: Instruction[];
+  fragmentShaderInstructions?: ShaderInstruction[];
 }
