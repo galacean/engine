@@ -2,7 +2,7 @@ import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass 
 import { IPrecompiledShader } from "@galacean/engine-design";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { parseShaderInstructions, ShaderInstruction } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
+import { ShaderInstructionEncoder, ShaderInstruction } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
@@ -99,7 +99,7 @@ describe("ShaderLab Precompile", async () => {
     });
 
     it("instructions survive round-trip", () => {
-      const instructions = parseShaderInstructions("#ifdef FOO\nA\n#else\nB\n#endif\n");
+      const instructions = ShaderInstructionEncoder.parse("#ifdef FOO\nA\n#else\nB\n#endif\n");
       const original: IPrecompiledShader = {
         name: "ShaderInstructionTest",
         platformTarget: ShaderLanguage.GLSLES100,
@@ -198,7 +198,7 @@ describe("ShaderLab Precompile", async () => {
   describe("parseShaderInstructions", () => {
     it("no directives → single TEXT instruction", () => {
       const glsl = "void main() { gl_Position = vec4(0.0); }";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(inst.length).toBe(1);
       expect(inst[0][0]).toBe(0); // TEXT
       expect(inst[0][1]).toBe(glsl);
@@ -206,14 +206,14 @@ describe("ShaderLab Precompile", async () => {
 
     it("adjacent text is merged", () => {
       const glsl = "line1\nline2\nline3";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(inst.length).toBe(1);
       expect(inst[0][0]).toBe(0);
     });
 
     it("#ifdef FOO → IF_DEF instruction", () => {
       const glsl = "#ifdef FOO\nbody\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       // Should have: IF_DEF, TEXT(body), ENDIF
       const ifInst = inst.find((i) => i[0] === 1); // IF_DEF
       expect(ifInst).toBeDefined();
@@ -222,7 +222,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#ifdef FOO / #else → IF_DEF + ELSE + ENDIF", () => {
       const glsl = "#ifdef FOO\nA\n#else\nB\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const ops = inst.map((i) => i[0]);
       expect(ops).toContain(1); // IF_DEF
       expect(ops).toContain(5); // ELSE
@@ -231,7 +231,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#ifndef FOO → IF_NDEF instruction", () => {
       const glsl = "#ifndef FOO\nbody\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const ifInst = inst.find((i) => i[0] === 2); // IF_NDEF
       expect(ifInst).toBeDefined();
       expect(ifInst![1]).toBe("FOO");
@@ -239,7 +239,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#if / #elif / #else → proper instruction sequence", () => {
       const glsl = "#if FOO == 1\nA\n#elif FOO == 2\nB\n#else\nC\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const ops = inst.map((i) => i[0]);
       // Should contain IF_CMP, ELSE, IF_CMP, ELSE, ENDIF
       expect(ops.filter((o) => o === 6).length).toBe(1); // one ENDIF
@@ -247,28 +247,28 @@ describe("ShaderLab Precompile", async () => {
 
     it("#if defined(A) && defined(B) → IF_EXPR instruction", () => {
       const glsl = "#if defined(A) && defined(B)\nbody\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const ifInst = inst.find((i) => i[0] === 4); // IF_EXPR
       expect(ifInst).toBeDefined();
       expect(ifInst![1].t).toBe("and");
     });
 
     it("#define FOO → DEFINE instruction", () => {
-      const inst = parseShaderInstructions("#define FOO\n");
+      const inst = ShaderInstructionEncoder.parse("#define FOO\n");
       expect(inst.length).toBe(1);
       expect(inst[0][0]).toBe(7); // DEFINE
       expect(inst[0][1]).toBe("FOO");
     });
 
     it("#define FOO 42 → DEFINE_VAL instruction", () => {
-      const inst = parseShaderInstructions("#define FOO 42\n");
+      const inst = ShaderInstructionEncoder.parse("#define FOO 42\n");
       expect(inst[0][0]).toBe(8); // DEFINE_VAL
       expect(inst[0][1]).toBe("FOO");
       expect(inst[0][2]).toBe("42");
     });
 
     it("#define FOO(x, y) x + y → DEFINE_FUNC instruction", () => {
-      const inst = parseShaderInstructions("#define FOO(x, y) x + y\n");
+      const inst = ShaderInstructionEncoder.parse("#define FOO(x, y) x + y\n");
       expect(inst[0][0]).toBe(9); // DEFINE_FUNC
       expect(inst[0][1]).toBe("FOO");
       expect(inst[0][2]).toEqual(["x", "y"]);
@@ -276,14 +276,14 @@ describe("ShaderLab Precompile", async () => {
     });
 
     it("#undef FOO → UNDEF instruction", () => {
-      const inst = parseShaderInstructions("#undef FOO\n");
+      const inst = ShaderInstructionEncoder.parse("#undef FOO\n");
       expect(inst[0][0]).toBe(10); // UNDEF
       expect(inst[0][1]).toBe("FOO");
     });
 
     it("text before and after directive is preserved", () => {
       const glsl = "before\n#ifdef FOO\nbody\n#endif\nafter\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const texts = inst.filter((i) => i[0] === 0).map((i) => i[1]);
       expect(texts.some((t) => t.includes("before"))).toBe(true);
       expect(texts.some((t) => t.includes("after"))).toBe(true);
@@ -291,7 +291,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("nested conditionals", () => {
       const glsl = "#ifdef OUTER\n#ifdef INNER\nbody\n#endif\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       // Should have two IF_DEF and two ENDIF
       expect(inst.filter((i) => i[0] === 1).length).toBe(2); // two IF_DEF
       expect(inst.filter((i) => i[0] === 6).length).toBe(2); // two ENDIF
@@ -299,27 +299,27 @@ describe("ShaderLab Precompile", async () => {
 
     it("multiple top-level conditionals", () => {
       const glsl = "#ifdef A\nX\n#endif\n#ifdef B\nY\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(inst.filter((i) => i[0] === 1).length).toBe(2);
     });
 
     it("result can be JSON.stringify → JSON.parse round-tripped", () => {
       const glsl = "#ifdef A\nX\n#elif A == 2\nY\n#else\nZ\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const restored = JSON.parse(JSON.stringify(inst));
       expect(restored).toEqual(inst);
     });
 
     it("#define with inline comment → strips comment, DEFINE_VAL with value only", () => {
-      const inst = parseShaderInstructions("#define HALF_EPS 4.8828125e-4 // machine epsilon\n");
+      const inst = ShaderInstructionEncoder.parse("#define HALF_EPS 4.8828125e-4 // machine epsilon\n");
       expect(inst[0][0]).toBe(8); // DEFINE_VAL
       expect(inst[0][1]).toBe("HALF_EPS");
       expect(inst[0][2]).toBe("4.8828125e-4");
     });
 
     it("#if without spaces around operator parses the same as with spaces", () => {
-      const noSpaces = parseShaderInstructions("#if SCENE_SHADOW_CASCADED_COUNT==1\nbody\n#endif\n");
-      const withSpaces = parseShaderInstructions("#if SCENE_SHADOW_CASCADED_COUNT == 1\nbody\n#endif\n");
+      const noSpaces = ShaderInstructionEncoder.parse("#if SCENE_SHADOW_CASCADED_COUNT==1\nbody\n#endif\n");
+      const withSpaces = ShaderInstructionEncoder.parse("#if SCENE_SHADOW_CASCADED_COUNT == 1\nbody\n#endif\n");
       const noSp = noSpaces.find((i) => i[0] === 3); // IF_CMP
       const withSp = withSpaces.find((i) => i[0] === 3);
       expect(noSp).toBeDefined();
@@ -339,7 +339,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const ops = inst.map((i) => i[0]);
       // Should have IF_DEF for #ifdef, and the #elif defined() decomposes into ELSE + IF_DEF
       expect(ops.filter((o) => o === 1).length).toBe(2); // two IF_DEF
@@ -349,7 +349,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#if defined(X) && !defined(Y) (skinning_vert.glsl pattern)", () => {
       const glsl = "#if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)\nbody\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const ifInst = inst.find((i) => i[0] === 4); // IF_EXPR
       expect(ifInst).toBeDefined();
       const cond = ifInst![1] as any;
@@ -363,7 +363,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#if defined(A) || (defined(B) && defined(C)) — mixed precedence with parens", () => {
       const glsl = "#if defined(A) || (defined(B) && defined(C))\nbody\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const ifInst = inst.find((i) => i[0] === 4); // IF_EXPR
       expect(ifInst).toBeDefined();
       const cond = ifInst![1] as any;
@@ -386,7 +386,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       // Three IF_CMP instructions (one for #if, two for #elif)
       expect(inst.filter((i) => i[0] === 3).length).toBe(3);
       // Two ELSE instructions (one per #elif)
@@ -405,7 +405,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       // Should have IF_EXPR, DEFINE, ENDIF, IF_DEF, TEXT, ENDIF
       const ops = inst.map((i) => i[0]);
       expect(ops).toContain(4); // IF_EXPR for the compound condition
@@ -424,7 +424,7 @@ describe("ShaderLab Precompile", async () => {
         "SAMPLE(myTex, uv)",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       // Two DEFINE_FUNC instructions (one per branch)
       const funcDefs = inst.filter((i) => i[0] === 9);
       expect(funcDefs.length).toBe(2);
@@ -448,7 +448,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(inst.filter((i) => i[0] === 1).length).toBe(4); // four IF_DEF
       expect(inst.filter((i) => i[0] === 6).length).toBe(4); // four ENDIF
       // Verify all jump offsets are valid (not -1)
@@ -460,7 +460,7 @@ describe("ShaderLab Precompile", async () => {
     });
 
     it("identity function macro — #define COLOR_2_LINEAR(color) color", () => {
-      const inst = parseShaderInstructions("#define COLOR_2_LINEAR(color) color\n");
+      const inst = ShaderInstructionEncoder.parse("#define COLOR_2_LINEAR(color) color\n");
       expect(inst[0][0]).toBe(9); // DEFINE_FUNC
       expect(inst[0][1]).toBe("COLOR_2_LINEAR");
       expect(inst[0][2]).toEqual(["color"]);
@@ -477,22 +477,22 @@ describe("ShaderLab Precompile", async () => {
     }
 
     it("text-only instructions are returned as-is", () => {
-      const inst = parseShaderInstructions("void main() {}");
+      const inst = ShaderInstructionEncoder.parse("void main() {}");
       expect(eval_(inst, [])).toBe("void main() {}");
     });
 
     it("#ifdef: branch taken when macro is defined", () => {
-      const inst = parseShaderInstructions("#ifdef FOO\nINSIDE\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#ifdef FOO\nINSIDE\n#endif\n");
       expect(eval_(inst, [["FOO", ""]])).toContain("INSIDE");
     });
 
     it("#ifdef: branch skipped when macro is not defined", () => {
-      const inst = parseShaderInstructions("#ifdef FOO\nINSIDE\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#ifdef FOO\nINSIDE\n#endif\n");
       expect(eval_(inst, [])).not.toContain("INSIDE");
     });
 
     it("#ifdef / #else: else branch taken when macro not defined", () => {
-      const inst = parseShaderInstructions("#ifdef FOO\nIF_BODY\n#else\nELSE_BODY\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#ifdef FOO\nIF_BODY\n#else\nELSE_BODY\n#endif\n");
       const withoutFoo = eval_(inst, []);
       const withFoo = eval_(inst, [["FOO", ""]]);
       expect(withoutFoo).toContain("ELSE_BODY");
@@ -502,13 +502,13 @@ describe("ShaderLab Precompile", async () => {
     });
 
     it("#ifndef: branch taken when macro not defined", () => {
-      const inst = parseShaderInstructions("#ifndef FOO\nBODY\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#ifndef FOO\nBODY\n#endif\n");
       expect(eval_(inst, [])).toContain("BODY");
       expect(eval_(inst, [["FOO", ""]])).not.toContain("BODY");
     });
 
     it("#if MACRO == value: correct branch selected", () => {
-      const inst = parseShaderInstructions("#if FOO == 1\nONE\n#elif FOO == 2\nTWO\n#else\nOTHER\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#if FOO == 1\nONE\n#elif FOO == 2\nTWO\n#else\nOTHER\n#endif\n");
       expect(eval_(inst, [["FOO", "1"]])).toContain("ONE");
       expect(eval_(inst, [["FOO", "2"]])).toContain("TWO");
       expect(eval_(inst, [["FOO", "3"]])).toContain("OTHER");
@@ -517,21 +517,21 @@ describe("ShaderLab Precompile", async () => {
 
     it("#if comparison operators", () => {
       expect(
-        ShaderMacroProcessor.evaluate(parseShaderInstructions("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "5"]]))
+        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "5"]]))
       ).toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(parseShaderInstructions("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "2"]]))
+        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "2"]]))
       ).not.toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(parseShaderInstructions("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "1"]]))
+        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "1"]]))
       ).toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(parseShaderInstructions("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "0"]]))
+        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "0"]]))
       ).not.toContain("YES");
     });
 
     it("#if defined(A) && defined(B): requires both", () => {
-      const inst = parseShaderInstructions("#if defined(A) && defined(B)\nBOTH\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#if defined(A) && defined(B)\nBOTH\n#endif\n");
       expect(
         eval_(inst, [
           ["A", ""],
@@ -543,26 +543,26 @@ describe("ShaderLab Precompile", async () => {
     });
 
     it("#if defined(A) || defined(B): requires at least one", () => {
-      const inst = parseShaderInstructions("#if defined(A) || defined(B)\nEITHER\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#if defined(A) || defined(B)\nEITHER\n#endif\n");
       expect(eval_(inst, [["A", ""]])).toContain("EITHER");
       expect(eval_(inst, [["B", ""]])).toContain("EITHER");
       expect(eval_(inst, [])).not.toContain("EITHER");
     });
 
     it("#if !defined(A): taken when not defined", () => {
-      const inst = parseShaderInstructions("#if !defined(A)\nNOT_A\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#if !defined(A)\nNOT_A\n#endif\n");
       expect(eval_(inst, [])).toContain("NOT_A");
       expect(eval_(inst, [["A", ""]])).not.toContain("NOT_A");
     });
 
     it("#define side effect: subsequent #ifdef sees the defined macro", () => {
-      const inst = parseShaderInstructions("#define NEW_MACRO\n#ifdef NEW_MACRO\nSEEN\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#define NEW_MACRO\n#ifdef NEW_MACRO\nSEEN\n#endif\n");
       const result = ShaderMacroProcessor.evaluate(inst, makeMacroMap([]));
       expect(result).toContain("SEEN");
     });
 
     it("#undef side effect: subsequent #ifdef does not see the macro", () => {
-      const inst = parseShaderInstructions("#undef FOO\n#ifdef FOO\nSTILL_HERE\n#else\nGONE\n#endif\n");
+      const inst = ShaderInstructionEncoder.parse("#undef FOO\n#ifdef FOO\nSTILL_HERE\n#else\nGONE\n#endif\n");
       const result = ShaderMacroProcessor.evaluate(inst, makeMacroMap([["FOO", ""]]));
       expect(result).not.toContain("STILL_HERE");
       expect(result).toContain("GONE");
@@ -570,7 +570,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("nested conditionals: outer + inner independently evaluated", () => {
       const glsl = "#ifdef OUTER\n#ifdef INNER\nBOTH\n#else\nOUTER_ONLY\n#endif\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(
         eval_(inst, [
           ["OUTER", ""],
@@ -583,7 +583,7 @@ describe("ShaderLab Precompile", async () => {
     });
 
     it("no matching branch (all false, no else) → empty for that conditional", () => {
-      const inst = parseShaderInstructions("BEFORE\n#ifdef FOO\nINSIDE\n#endif\nAFTER\n");
+      const inst = ShaderInstructionEncoder.parse("BEFORE\n#ifdef FOO\nINSIDE\n#endif\nAFTER\n");
       const result = ShaderMacroProcessor.evaluate(inst, makeMacroMap([]));
       expect(result).toContain("BEFORE");
       expect(result).toContain("AFTER");
@@ -592,7 +592,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("complex condition: #elif with && and value comparison", () => {
       const glsl = "#ifdef A\nIF_A\n#elif defined(B) && B == 1\nIF_B\n#else\nFALL\n#endif\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(eval_(inst, [["A", ""]])).toContain("IF_A");
       expect(eval_(inst, [["B", "1"]])).toContain("IF_B");
       expect(eval_(inst, [["B", "0"]])).toContain("FALL");
@@ -600,7 +600,7 @@ describe("ShaderLab Precompile", async () => {
     });
 
     it("#define with comment stripped — comment not in output", () => {
-      const inst = parseShaderInstructions("#define HALF_EPS 4.8828125e-4 // machine epsilon\nfloat x = HALF_EPS;\n");
+      const inst = ShaderInstructionEncoder.parse("#define HALF_EPS 4.8828125e-4 // machine epsilon\nfloat x = HALF_EPS;\n");
       const result = eval_(inst, []);
       expect(result).toContain("4.8828125e-4");
       expect(result).not.toContain("machine epsilon");
@@ -618,7 +618,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(eval_(inst, [["X", ""]])).toContain("BRANCH_X");
       expect(eval_(inst, [["A", ""]])).toContain("BRANCH_A_NOT_B");
       expect(
@@ -632,7 +632,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("function macro expansion — SAMPLE(tex, coord) → textureLod(tex, coord, 0.0)", () => {
       const glsl = "#define SAMPLE(tex, coord) textureLod(tex, coord, 0.0)\nSAMPLE(myTex, uv)\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("textureLod(myTex, uv, 0.0)");
     });
@@ -640,7 +640,7 @@ describe("ShaderLab Precompile", async () => {
     it("circular macro reference — does not infinite loop (C preprocessor standard)", () => {
       // #define A B / #define B A → expanding A should terminate, not loop forever
       const glsl = "#define A B\n#define B A\nA\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       // Should terminate with either "A" or "B", not hang
       expect(result.trim().length).toBeGreaterThan(0);
@@ -648,7 +648,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("indirect circular reference through 3 macros — terminates safely", () => {
       const glsl = "#define X Y\n#define Y Z\n#define Z X\nX\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result.trim().length).toBeGreaterThan(0);
     });
@@ -657,7 +657,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#define value macro then #undef — text before #undef should be expanded", () => {
       const glsl = "#define FOO 1.0\nvec3 a = FOO;\n#undef FOO\nvec3 b = FOO;\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("vec3 a = 1.0");
       expect(result).toContain("vec3 b = FOO");
@@ -665,7 +665,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#define value macro then redefine — each usage gets the value at that point", () => {
       const glsl = "#define FOO 1.0\nvec3 a = FOO;\n#define FOO 2.0\nvec3 b = FOO;\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("vec3 a = 1.0");
       expect(result).toContain("vec3 b = 2.0");
@@ -673,7 +673,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("#define value macro then #define no-value — text before should be expanded", () => {
       const glsl = "#define FOO 1.0\nvec3 a = FOO;\n#define FOO\nvec3 b = FOO;\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("vec3 a = 1.0");
       expect(result).not.toContain("vec3 b = 1.0");
@@ -681,7 +681,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("engine-passed value macro then #undef — text before #undef should be expanded", () => {
       const glsl = "vec3 a = FOO;\n#undef FOO\nvec3 b = FOO;\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, [["FOO", "1"]]);
       expect(result).toContain("vec3 a = 1");
       expect(result).toContain("vec3 b = FOO");
@@ -689,7 +689,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("function macro then #undef — invocation before #undef should be expanded", () => {
       const glsl = "#define MUL(a,b) a*b\nvec3 c = MUL(x,y);\n#undef MUL\nvec3 d = MUL(x,y);\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("vec3 c = x*y");
       expect(result).toContain("vec3 d = MUL(x,y)");
@@ -697,7 +697,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("function macro redefine — each invocation gets definition at that point", () => {
       const glsl = "#define F(x) x+1\nvec3 a = F(v);\n#define F(x) x*2\nvec3 b = F(v);\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("vec3 a = v+1");
       expect(result).toContain("vec3 b = v*2");
@@ -710,7 +710,7 @@ describe("ShaderLab Precompile", async () => {
         "TRANSFORM_UV(v_uv)",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("((v_uv) * (offset).xy)");
     });
@@ -727,7 +727,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       // Both macros present → conditional define triggers → shadow code active
       expect(
         eval_(inst, [
@@ -752,7 +752,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       expect(eval_(inst, [["SCENE_FOG_MODE", "1"]])).toContain("LINEAR_FOG");
       expect(eval_(inst, [["SCENE_FOG_MODE", "2"]])).toContain("EXP_FOG");
       expect(eval_(inst, [["SCENE_FOG_MODE", "3"]])).toContain("EXP2_FOG");
@@ -771,7 +771,7 @@ describe("ShaderLab Precompile", async () => {
         "SAMPLE(myTex, uv)",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const webgl2 = eval_(inst, [["GRAPHICS_API_WEBGL2", ""]]);
       const webgl1 = eval_(inst, []);
       expect(webgl2).toContain("textureLod(myTex, uv, 0.0)");
@@ -801,7 +801,7 @@ describe("ShaderLab Precompile", async () => {
         "#endif",
         ""
       ].join("\n");
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       // All four levels defined
       const all = eval_(inst, [
         ["L1", ""],
@@ -830,14 +830,14 @@ describe("ShaderLab Precompile", async () => {
 
     it("identity function macro — #define F(x) x → F(someValue) → someValue", () => {
       const glsl = "#define F(x) x\nF(someValue)\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("someValue");
     });
 
     it("#define with complex expression body expands correctly", () => {
       const glsl = "#define RAYLEIGH (mix(0.0, 0.025, pow(x, 2.5)))\nfloat r = RAYLEIGH;\n";
-      const inst = parseShaderInstructions(glsl);
+      const inst = ShaderInstructionEncoder.parse(glsl);
       const result = eval_(inst, []);
       expect(result).toContain("(mix(0.0, 0.025, pow(x, 2.5)))");
       expect(result).not.toContain("RAYLEIGH");

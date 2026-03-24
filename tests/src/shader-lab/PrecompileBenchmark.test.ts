@@ -7,7 +7,7 @@ import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { parseShaderInstructions } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
+import { ShaderInstructionEncoder } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
@@ -183,7 +183,7 @@ describe("Precompile Benchmark", async () => {
               bench(
                 `${pass.name} vertex`,
                 () => {
-                  parseShaderInstructions(rawVertex);
+                  ShaderInstructionEncoder.parse(rawVertex);
                 },
                 20,
                 5
@@ -195,7 +195,7 @@ describe("Precompile Benchmark", async () => {
               bench(
                 `${pass.name} fragment`,
                 () => {
-                  parseShaderInstructions(rawFragment);
+                  ShaderInstructionEncoder.parse(rawFragment);
                 },
                 20,
                 5

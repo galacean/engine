@@ -4,7 +4,7 @@ import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/I
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
-import { parseShaderInstructions } from "./ShaderInstructionEncoder";
+import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./Preprocessor";
 import { ShaderLabUtils } from "./ShaderLabUtils";
@@ -92,8 +92,8 @@ export class ShaderLab implements IShaderLab {
 
     if (ret) {
       // Always parse instructions for the compiled GLSL
-      ret.vertexShaderInstructions = parseShaderInstructions(ret.vertex);
-      ret.fragmentShaderInstructions = parseShaderInstructions(ret.fragment);
+      ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
+      ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);
     }
 
     return ret;
