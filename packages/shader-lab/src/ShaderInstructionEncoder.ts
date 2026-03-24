@@ -1,16 +1,8 @@
-/**
- * Build-time GLSL preprocessor instruction parser.
- *
- * Parses CodeGen GLSL output (containing #if/#ifdef/#ifndef/#elif/#else/#endif/#define/#undef)
- * into a flat instruction array. Conditional branching uses jump offsets.
- * The instruction array is serialized to .gsp for runtime processing by ShaderMacroProcessor.
- */
-
 import type { Condition, ShaderInstruction } from "@galacean/engine-design";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
 
-/** Must stay in sync with ShaderPreprocessorDirective in @galacean/engine-core. */
+/** Must stay in sync with ShaderPreprocessorDirective in @galacean/engine-core */
 const ShaderPreprocessorDirective = {
   Text: 0,
   IfDef: 1,
@@ -25,46 +17,39 @@ const ShaderPreprocessorDirective = {
   Undef: 10
 } as const;
 
-// ---- Pre-compiled regexes (hoisted for performance) ----
-
 const DIRECTIVE_RE = /^[ \t]*#[ \t]*(if|ifdef|ifndef|elif|else|endif|define|undef)\b(.*)/;
 const FUNC_MACRO_RE = /^(\w+)\(([^)]*)\)\s*(.*)/;
 
 /**
- * Parse a GLSL string (CodeGen output) into a flat instruction array.
- * Called at build time during _precompile() and _parseShaderPass().
+ * @internal
  */
 export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
   const instructions: ShaderInstruction[] = [];
-  const len = glsl.length;
+  const length = glsl.length;
   let pos = 0;
   const backfillStack: number[][] = [];
 
-  while (pos < len) {
-    // Find next line starting with # (preprocessor directive)
-    const directiveStart = findDirectiveStart(glsl, pos, len);
+  while (pos < length) {
+    const directiveStart = findDirectiveStart(glsl, pos, length);
 
     if (directiveStart === -1) {
-      pushText(instructions, glsl, pos, len);
+      pushText(instructions, glsl, pos, length);
       break;
     }
 
-    // Text before directive
     if (directiveStart > pos) {
       pushText(instructions, glsl, pos, directiveStart);
     }
 
-    // Find end of directive line
     let lineEnd = glsl.indexOf("\n", directiveStart);
-    if (lineEnd === -1) lineEnd = len;
+    if (lineEnd === -1) lineEnd = length;
     const line = glsl.substring(directiveStart, lineEnd);
-    pos = lineEnd < len ? lineEnd + 1 : len;
+    pos = lineEnd < length ? lineEnd + 1 : length;
 
     const match = DIRECTIVE_RE.exec(line);
     if (!match) {
-      // Not a recognized directive — treat as text
       const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
-      const text = lineEnd < len ? line + "\n" : line;
+      const text = lineEnd < length ? line + "\n" : line;
       if (last && last[0] === ShaderPreprocessorDirective.Text) {
         (last as [number, string])[1] += text;
       } else {
@@ -92,15 +77,7 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
       case "if": {
         const cond = parseConditionString(rest);
         const idx = instructions.length;
-        if (cond.t === "def") {
-          instructions.push([ShaderPreprocessorDirective.IfDef, cond.m, -1]);
-        } else if (cond.t === "ndef") {
-          instructions.push([ShaderPreprocessorDirective.IfNdef, cond.m, -1]);
-        } else if (cond.t === "cmp") {
-          instructions.push([ShaderPreprocessorDirective.IfCmp, cond.m, cond.op, cond.v, -1]);
-        } else {
-          instructions.push([ShaderPreprocessorDirective.IfExpr, cond, -1]);
-        }
+        pushConditionInstruction(instructions, cond);
         backfillStack.push([idx]);
         break;
       }
@@ -114,15 +91,7 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
 
         const cond = parseConditionString(rest);
         const idx = instructions.length;
-        if (cond.t === "def") {
-          instructions.push([ShaderPreprocessorDirective.IfDef, cond.m, -1]);
-        } else if (cond.t === "ndef") {
-          instructions.push([ShaderPreprocessorDirective.IfNdef, cond.m, -1]);
-        } else if (cond.t === "cmp") {
-          instructions.push([ShaderPreprocessorDirective.IfCmp, cond.m, cond.op, cond.v, -1]);
-        } else {
-          instructions.push([ShaderPreprocessorDirective.IfExpr, cond, -1]);
-        }
+        pushConditionInstruction(instructions, cond);
         stack.push(idx);
         break;
       }
@@ -146,7 +115,7 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
             if (inst[0] === ShaderPreprocessorDirective.Else) {
               (inst as [number, number])[1] = afterEndif;
             } else {
-              backfillJumpIfNeeded(inst, afterEndif);
+              backfillJump(inst, afterEndif, true);
             }
           }
         }
@@ -189,25 +158,38 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
   return instructions;
 }
 
-// ---- Helpers ----
+/**
+ * Push the appropriate condition instruction based on condition type
+ */
+function pushConditionInstruction(instructions: ShaderInstruction[], cond: Condition): void {
+  if (cond.t === "def") {
+    instructions.push([ShaderPreprocessorDirective.IfDef, cond.m, -1]);
+  } else if (cond.t === "ndef") {
+    instructions.push([ShaderPreprocessorDirective.IfNdef, cond.m, -1]);
+  } else if (cond.t === "cmp") {
+    instructions.push([ShaderPreprocessorDirective.IfCmp, cond.m, cond.op, cond.v, -1]);
+  } else {
+    instructions.push([ShaderPreprocessorDirective.IfExpr, cond, -1]);
+  }
+}
 
-/** Find the start of the next preprocessor directive line (line beginning with optional whitespace + #). */
-function findDirectiveStart(source: string, from: number, len: number): number {
+/**
+ * Find the start of the next preprocessor directive line
+ */
+function findDirectiveStart(source: string, from: number, length: number): number {
   let i = from;
-  while (i < len) {
-    // At line start: skip whitespace, check for #
+  while (i < length) {
     let j = i;
-    while (j < len) {
+    while (j < length) {
       const c = source.charCodeAt(j);
-      if (c === 32 || c === 9) {
+      if (c === 32 /* space */ || c === 9 /* tab */) {
         j++;
       } else {
         break;
       }
     }
-    if (j < len && source.charCodeAt(j) === 35) return i; // 35 = '#'
+    if (j < length && source.charCodeAt(j) === 35 /* '#' */) return i;
 
-    // Advance to next line
     const nl = source.indexOf("\n", i);
     if (nl === -1) break;
     i = nl + 1;
@@ -215,7 +197,9 @@ function findDirectiveStart(source: string, from: number, len: number): number {
   return -1;
 }
 
-/** Append text to instructions, merging with previous TEXT if possible. */
+/**
+ * Append text to instructions, merging with previous Text instruction if possible
+ */
 function pushText(instructions: ShaderInstruction[], source: string, from: number, to: number): void {
   if (from >= to) return;
   const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
@@ -226,37 +210,28 @@ function pushText(instructions: ShaderInstruction[], source: string, from: numbe
   }
 }
 
-/** Backfill jump offset of an IF/ELIF instruction. */
-function backfillJump(inst: ShaderInstruction, target: number): void {
-  const op = inst[0];
-  if (op === ShaderPreprocessorDirective.IfDef || op === ShaderPreprocessorDirective.IfNdef) {
-    (inst as [number, string, number])[2] = target;
-  } else if (op === ShaderPreprocessorDirective.IfCmp) {
-    (inst as [number, string, string, number, number])[4] = target;
-  } else if (op === ShaderPreprocessorDirective.IfExpr) {
-    (inst as [number, Condition, number])[2] = target;
+/**
+ * Backfill jump offset of an IF/ELIF instruction.
+ * When onlyPlaceholder is true, only backfill if the current value is still -1
+ */
+function backfillJump(inst: ShaderInstruction, target: number, onlyPlaceholder = false): void {
+  const directive = inst[0];
+  if (directive === ShaderPreprocessorDirective.IfDef || directive === ShaderPreprocessorDirective.IfNdef) {
+    if (!onlyPlaceholder || inst[2] === -1) (inst as [number, string, number])[2] = target;
+  } else if (directive === ShaderPreprocessorDirective.IfCmp) {
+    if (!onlyPlaceholder || inst[4] === -1) (inst as [number, string, string, number, number])[4] = target;
+  } else if (directive === ShaderPreprocessorDirective.IfExpr) {
+    if (!onlyPlaceholder || inst[2] === -1) (inst as [number, Condition, number])[2] = target;
   }
 }
 
-/** Backfill only if still at placeholder -1. */
-function backfillJumpIfNeeded(inst: ShaderInstruction, target: number): void {
-  const op = inst[0];
-  if (op === ShaderPreprocessorDirective.IfDef || op === ShaderPreprocessorDirective.IfNdef) {
-    if (inst[2] === -1) (inst as [number, string, number])[2] = target;
-  } else if (op === ShaderPreprocessorDirective.IfCmp) {
-    if (inst[4] === -1) (inst as [number, string, string, number, number])[4] = target;
-  } else if (op === ShaderPreprocessorDirective.IfExpr) {
-    if (inst[2] === -1) (inst as [number, Condition, number])[2] = target;
-  }
-}
-
-/** Strip trailing // line comment from macro value/body. */
+/**
+ * Strip trailing // line comment from macro value/body
+ */
 function stripLineComment(s: string): string {
   const idx = s.indexOf("//");
   return idx >= 0 ? s.substring(0, idx).trimEnd() : s;
 }
-
-// ---- Condition expression parser ----
 
 function parseConditionString(expr: string): Condition {
   const ctx: ExprCtx = { s: expr.trim(), i: 0 };
@@ -269,13 +244,18 @@ interface ExprCtx {
 }
 
 function skipWs(ctx: ExprCtx): void {
-  while (ctx.i < ctx.s.length && (ctx.s.charCodeAt(ctx.i) === 32 || ctx.s.charCodeAt(ctx.i) === 9)) ctx.i++;
+  while (ctx.i < ctx.s.length && (ctx.s.charCodeAt(ctx.i) === 32 /* space */ || ctx.s.charCodeAt(ctx.i) === 9 /* tab */))
+    ctx.i++;
 }
 
 function parseOr(ctx: ExprCtx): Condition {
   let left = parseAnd(ctx);
   skipWs(ctx);
-  while (ctx.i < ctx.s.length - 1 && ctx.s.charCodeAt(ctx.i) === 124 && ctx.s.charCodeAt(ctx.i + 1) === 124) {
+  while (
+    ctx.i < ctx.s.length - 1 &&
+    ctx.s.charCodeAt(ctx.i) === 124 /* '|' */ &&
+    ctx.s.charCodeAt(ctx.i + 1) === 124 /* '|' */
+  ) {
     ctx.i += 2;
     skipWs(ctx);
     left = { t: "or", l: left, r: parseAnd(ctx) };
@@ -287,7 +267,11 @@ function parseOr(ctx: ExprCtx): Condition {
 function parseAnd(ctx: ExprCtx): Condition {
   let left = parseUnary(ctx);
   skipWs(ctx);
-  while (ctx.i < ctx.s.length - 1 && ctx.s.charCodeAt(ctx.i) === 38 && ctx.s.charCodeAt(ctx.i + 1) === 38) {
+  while (
+    ctx.i < ctx.s.length - 1 &&
+    ctx.s.charCodeAt(ctx.i) === 38 /* '&' */ &&
+    ctx.s.charCodeAt(ctx.i + 1) === 38 /* '&' */
+  ) {
     ctx.i += 2;
     skipWs(ctx);
     left = { t: "and", l: left, r: parseUnary(ctx) };
@@ -298,8 +282,7 @@ function parseAnd(ctx: ExprCtx): Condition {
 
 function parseUnary(ctx: ExprCtx): Condition {
   skipWs(ctx);
-  if (ctx.s.charCodeAt(ctx.i) === 33) {
-    // '!'
+  if (ctx.s.charCodeAt(ctx.i) === 33 /* '!' */) {
     ctx.i++;
     skipWs(ctx);
     return { t: "not", c: parsePrimary(ctx) };
@@ -312,13 +295,12 @@ function parsePrimary(ctx: ExprCtx): Condition {
   const { s } = ctx;
 
   // Parenthesized expression
-  if (s.charCodeAt(ctx.i) === 40) {
-    // '('
+  if (s.charCodeAt(ctx.i) === 40 /* '(' */) {
     ctx.i++;
     skipWs(ctx);
     const inner = parseOr(ctx);
     skipWs(ctx);
-    if (s.charCodeAt(ctx.i) === 41) ctx.i++; // ')'
+    if (s.charCodeAt(ctx.i) === 41 /* ')' */) ctx.i++;
     return inner;
   }
 
@@ -326,12 +308,12 @@ function parsePrimary(ctx: ExprCtx): Condition {
   if (s.substring(ctx.i, ctx.i + 7) === "defined") {
     ctx.i += 7;
     skipWs(ctx);
-    const hasParen = s.charCodeAt(ctx.i) === 40;
+    const hasParen = s.charCodeAt(ctx.i) === 40 /* '(' */;
     if (hasParen) ctx.i++;
     skipWs(ctx);
     const name = scanIdentifier(ctx);
     skipWs(ctx);
-    if (hasParen && s.charCodeAt(ctx.i) === 41) ctx.i++;
+    if (hasParen && s.charCodeAt(ctx.i) === 41 /* ')' */) ctx.i++;
     return { t: "def", m: name };
   }
 
@@ -359,12 +341,17 @@ function parsePrimary(ctx: ExprCtx): Condition {
   return { t: "def", m: name };
 }
 
-function isDigit(cc: number): boolean {
-  return cc >= 48 && cc <= 57;
+function isDigit(charCode: number): boolean {
+  return charCode >= 48 /* '0' */ && charCode <= 57 /* '9' */;
 }
 
-function isAlnum(cc: number): boolean {
-  return (cc >= 65 && cc <= 90) || (cc >= 97 && cc <= 122) || (cc >= 48 && cc <= 57) || cc === 95;
+function isAlnum(charCode: number): boolean {
+  return (
+    (charCode >= 65 /* 'A' */ && charCode <= 90 /* 'Z' */) ||
+    (charCode >= 97 /* 'a' */ && charCode <= 122 /* 'z' */) ||
+    (charCode >= 48 /* '0' */ && charCode <= 57 /* '9' */) ||
+    charCode === 95 /* '_' */
+  );
 }
 
 function scanIdentifier(ctx: ExprCtx): string {
@@ -375,35 +362,36 @@ function scanIdentifier(ctx: ExprCtx): string {
 
 function scanNumber(ctx: ExprCtx): number {
   const start = ctx.i;
-  if (ctx.s.charCodeAt(ctx.i) === 45) ctx.i++; // '-'
-  while (ctx.i < ctx.s.length && (isDigit(ctx.s.charCodeAt(ctx.i)) || ctx.s.charCodeAt(ctx.i) === 46)) ctx.i++;
+  if (ctx.s.charCodeAt(ctx.i) === 45 /* '-' */) ctx.i++;
+  while (ctx.i < ctx.s.length && (isDigit(ctx.s.charCodeAt(ctx.i)) || ctx.s.charCodeAt(ctx.i) === 46 /* '.' */))
+    ctx.i++;
   return Number(ctx.s.substring(start, ctx.i)) || 0;
 }
 
 function scanOp(ctx: ExprCtx): string {
   const c = ctx.s.charCodeAt(ctx.i);
   const c2 = ctx.i + 1 < ctx.s.length ? ctx.s.charCodeAt(ctx.i + 1) : 0;
-  if (c === 61 && c2 === 61) {
+  if (c === 61 /* '=' */ && c2 === 61 /* '=' */) {
     ctx.i += 2;
     return "==";
   }
-  if (c === 33 && c2 === 61) {
+  if (c === 33 /* '!' */ && c2 === 61 /* '=' */) {
     ctx.i += 2;
     return "!=";
   }
-  if (c === 62 && c2 === 61) {
+  if (c === 62 /* '>' */ && c2 === 61 /* '=' */) {
     ctx.i += 2;
     return ">=";
   }
-  if (c === 60 && c2 === 61) {
+  if (c === 60 /* '<' */ && c2 === 61 /* '=' */) {
     ctx.i += 2;
     return "<=";
   }
-  if (c === 62) {
+  if (c === 62 /* '>' */) {
     ctx.i++;
     return ">";
   }
-  if (c === 60) {
+  if (c === 60 /* '<' */) {
     ctx.i++;
     return "<";
   }
