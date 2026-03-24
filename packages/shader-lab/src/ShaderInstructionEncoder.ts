@@ -235,7 +235,7 @@ export class ShaderInstructionEncoder {
   private static _skipWs(ctx: ExprCtx): void {
     while (
       ctx.i < ctx.s.length &&
-      (ctx.s.charCodeAt(ctx.i) === 32 /* space */ || ctx.s.charCodeAt(ctx.i) === 9 /* tab */)
+      (ctx.s.charCodeAt(ctx.i) === 32 /* space */ || ctx.s.charCodeAt(ctx.i) === 9) /* tab */
     )
       ctx.i++;
   }
@@ -300,7 +300,7 @@ export class ShaderInstructionEncoder {
     if (s.substring(ctx.i, ctx.i + 7) === "defined") {
       ctx.i += 7;
       ShaderInstructionEncoder._skipWs(ctx);
-      const hasParen = s.charCodeAt(ctx.i) === 40 /* '(' */;
+      const hasParen = s.charCodeAt(ctx.i) === 40; /* '(' */
       if (hasParen) ctx.i++;
       ShaderInstructionEncoder._skipWs(ctx);
       const name = ShaderInstructionEncoder._scanIdentifier(ctx);
@@ -316,7 +316,10 @@ export class ShaderInstructionEncoder {
       const op = ShaderInstructionEncoder._scanOp(ctx);
       if (op) {
         ShaderInstructionEncoder._skipWs(ctx);
-        return { t: "bool", v: ShaderInstructionEncoder._evalNumOp(lhsNum, op, ShaderInstructionEncoder._scanNumber(ctx)) };
+        return {
+          t: "bool",
+          v: ShaderInstructionEncoder._evalNumOp(lhsNum, op, ShaderInstructionEncoder._scanNumber(ctx))
+        };
       }
       return { t: "bool", v: lhsNum !== 0 };
     }
@@ -339,9 +342,9 @@ export class ShaderInstructionEncoder {
 
   private static _isAlnum(charCode: number): boolean {
     return (
-      (charCode >= 65 /* 'A' */ && charCode <= 90 /* 'Z' */) ||
-      (charCode >= 97 /* 'a' */ && charCode <= 122 /* 'z' */) ||
-      (charCode >= 48 /* '0' */ && charCode <= 57 /* '9' */) ||
+      (charCode >= 65 /* 'A' */ && charCode <= 90) /* 'Z' */ ||
+      (charCode >= 97 /* 'a' */ && charCode <= 122) /* 'z' */ ||
+      (charCode >= 48 /* '0' */ && charCode <= 57) /* '9' */ ||
       charCode === 95 /* '_' */
     );
   }
@@ -357,7 +360,7 @@ export class ShaderInstructionEncoder {
     if (ctx.s.charCodeAt(ctx.i) === 45 /* '-' */) ctx.i++;
     while (
       ctx.i < ctx.s.length &&
-      (ShaderInstructionEncoder._isDigit(ctx.s.charCodeAt(ctx.i)) || ctx.s.charCodeAt(ctx.i) === 46 /* '.' */)
+      (ShaderInstructionEncoder._isDigit(ctx.s.charCodeAt(ctx.i)) || ctx.s.charCodeAt(ctx.i) === 46) /* '.' */
     )
       ctx.i++;
     return Number(ctx.s.substring(start, ctx.i)) || 0;

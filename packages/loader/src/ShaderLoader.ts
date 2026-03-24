@@ -19,6 +19,7 @@ class ShaderLoader extends Loader<Shader> {
     if (url.endsWith(".gsp")) {
       // @ts-ignore
       return resourceManager._request(url, { ...item, type: "json" }).then((data) => {
+        // @ts-ignore - _createFromPrecompiled is @internal
         return Shader._createFromPrecompiled(data);
       });
     }
