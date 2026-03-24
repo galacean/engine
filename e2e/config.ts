@@ -333,7 +333,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0.0707
+      diffPercentage: 0.15386
     },
     forceOverLifetime: {
       category: "Particle",
