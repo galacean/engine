@@ -10,27 +10,8 @@ import type { Condition, ShaderInstruction } from "@galacean/engine-design";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
 
-/**
- * Opcode constants for the flat instruction array.
- *
- * Each instruction is `[opcode, ...operands]`. Layout per opcode:
- *
- *   0  TEXT         [0, content: string]                              output text fragment
- *   1  IF_DEF       [1, macroName: string, jumpOffset: number]        #ifdef — jump if NOT defined
- *   2  IF_NDEF      [2, macroName: string, jumpOffset: number]        #ifndef — jump if IS defined
- *   3  IF_CMP       [3, name: string, op: string, val: number, jump: number]  #if MACRO op value
- *   4  IF_EXPR      [4, condition: Condition, jumpOffset: number]     #if compound (&&/||/!)
- *   5  ELSE         [5, jumpOffset: number]                           unconditional jump past #endif
- *   6  ENDIF        [6]                                               end of conditional block
- *   7  DEFINE       [7, name: string]                                 #define NAME
- *   8  DEFINE_VAL   [8, name: string, value: string]                  #define NAME value
- *   9  DEFINE_FUNC  [9, name: string, params: string[], body: string] #define NAME(a,b) body
- *  10  UNDEF        [10, name: string]                                #undef NAME
- *
- * #elif is decomposed into ELSE + IF_xxx (see explanation below).
- */
-/** Must stay in sync with PreprocessorOpcode in @galacean/engine-core. */
-const PreprocessorOpcode = {
+/** Must stay in sync with ShaderPreprocessorDirective in @galacean/engine-core. */
+const ShaderPreprocessorDirective = {
   Text: 0,
   IfDef: 1,
   IfNdef: 2,
@@ -84,10 +65,10 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
       // Not a recognized directive — treat as text
       const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
       const text = lineEnd < len ? line + "\n" : line;
-      if (last && last[0] === PreprocessorOpcode.Text) {
+      if (last && last[0] === ShaderPreprocessorDirective.Text) {
         (last as [number, string])[1] += text;
       } else {
-        instructions.push([PreprocessorOpcode.Text, text]);
+        instructions.push([ShaderPreprocessorDirective.Text, text]);
       }
       continue;
     }
@@ -98,13 +79,13 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
     switch (keyword) {
       case "ifdef": {
         const idx = instructions.length;
-        instructions.push([PreprocessorOpcode.IfDef, rest, -1]);
+        instructions.push([ShaderPreprocessorDirective.IfDef, rest, -1]);
         backfillStack.push([idx]);
         break;
       }
       case "ifndef": {
         const idx = instructions.length;
-        instructions.push([PreprocessorOpcode.IfNdef, rest, -1]);
+        instructions.push([ShaderPreprocessorDirective.IfNdef, rest, -1]);
         backfillStack.push([idx]);
         break;
       }
@@ -112,13 +93,13 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
         const cond = parseConditionString(rest);
         const idx = instructions.length;
         if (cond.t === "def") {
-          instructions.push([PreprocessorOpcode.IfDef, cond.m, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfDef, cond.m, -1]);
         } else if (cond.t === "ndef") {
-          instructions.push([PreprocessorOpcode.IfNdef, cond.m, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfNdef, cond.m, -1]);
         } else if (cond.t === "cmp") {
-          instructions.push([PreprocessorOpcode.IfCmp, cond.m, cond.op, cond.v, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfCmp, cond.m, cond.op, cond.v, -1]);
         } else {
-          instructions.push([PreprocessorOpcode.IfExpr, cond, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfExpr, cond, -1]);
         }
         backfillStack.push([idx]);
         break;
@@ -127,20 +108,20 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
         const stack = backfillStack[backfillStack.length - 1];
         const prevIdx = stack[stack.length - 1];
         const elseIdx = instructions.length;
-        instructions.push([PreprocessorOpcode.Else, -1]);
+        instructions.push([ShaderPreprocessorDirective.Else, -1]);
         stack.push(elseIdx);
         backfillJump(instructions[prevIdx], instructions.length);
 
         const cond = parseConditionString(rest);
         const idx = instructions.length;
         if (cond.t === "def") {
-          instructions.push([PreprocessorOpcode.IfDef, cond.m, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfDef, cond.m, -1]);
         } else if (cond.t === "ndef") {
-          instructions.push([PreprocessorOpcode.IfNdef, cond.m, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfNdef, cond.m, -1]);
         } else if (cond.t === "cmp") {
-          instructions.push([PreprocessorOpcode.IfCmp, cond.m, cond.op, cond.v, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfCmp, cond.m, cond.op, cond.v, -1]);
         } else {
-          instructions.push([PreprocessorOpcode.IfExpr, cond, -1]);
+          instructions.push([ShaderPreprocessorDirective.IfExpr, cond, -1]);
         }
         stack.push(idx);
         break;
@@ -149,20 +130,20 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
         const stack = backfillStack[backfillStack.length - 1];
         const prevIdx = stack[stack.length - 1];
         const elseIdx = instructions.length;
-        instructions.push([PreprocessorOpcode.Else, -1]);
+        instructions.push([ShaderPreprocessorDirective.Else, -1]);
         stack.push(elseIdx);
         backfillJump(instructions[prevIdx], instructions.length);
         break;
       }
       case "endif": {
         const endifIdx = instructions.length;
-        instructions.push([PreprocessorOpcode.Endif]);
+        instructions.push([ShaderPreprocessorDirective.Endif]);
         const stack = backfillStack.pop();
         if (stack) {
           const afterEndif = endifIdx + 1;
           for (let j = 0; j < stack.length; j++) {
             const inst = instructions[stack[j]];
-            if (inst[0] === PreprocessorOpcode.Else) {
+            if (inst[0] === ShaderPreprocessorDirective.Else) {
               (inst as [number, number])[1] = afterEndif;
             } else {
               backfillJumpIfNeeded(inst, afterEndif);
@@ -178,14 +159,19 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
             .split(",")
             .map((p) => p.trim())
             .filter((p) => p.length > 0);
-          instructions.push([PreprocessorOpcode.DefineFunc, funcMatch[1], params, stripLineComment(funcMatch[3].trim())]);
+          instructions.push([
+            ShaderPreprocessorDirective.DefineFunc,
+            funcMatch[1],
+            params,
+            stripLineComment(funcMatch[3].trim())
+          ]);
         } else {
           const spaceIdx = rest.indexOf(" ");
           if (spaceIdx === -1) {
-            instructions.push([PreprocessorOpcode.Define, rest]);
+            instructions.push([ShaderPreprocessorDirective.Define, rest]);
           } else {
             instructions.push([
-              PreprocessorOpcode.DefineVal,
+              ShaderPreprocessorDirective.DefineVal,
               rest.substring(0, spaceIdx),
               stripLineComment(rest.substring(spaceIdx + 1).trim())
             ]);
@@ -194,7 +180,7 @@ export function parseShaderInstructions(glsl: string): ShaderInstruction[] {
         break;
       }
       case "undef": {
-        instructions.push([PreprocessorOpcode.Undef, rest]);
+        instructions.push([ShaderPreprocessorDirective.Undef, rest]);
         break;
       }
     }
@@ -233,21 +219,21 @@ function findDirectiveStart(source: string, from: number, len: number): number {
 function pushText(instructions: ShaderInstruction[], source: string, from: number, to: number): void {
   if (from >= to) return;
   const last = instructions.length > 0 ? instructions[instructions.length - 1] : null;
-  if (last && last[0] === PreprocessorOpcode.Text) {
+  if (last && last[0] === ShaderPreprocessorDirective.Text) {
     (last as [number, string])[1] += source.substring(from, to);
   } else {
-    instructions.push([PreprocessorOpcode.Text, source.substring(from, to)]);
+    instructions.push([ShaderPreprocessorDirective.Text, source.substring(from, to)]);
   }
 }
 
 /** Backfill jump offset of an IF/ELIF instruction. */
 function backfillJump(inst: ShaderInstruction, target: number): void {
   const op = inst[0];
-  if (op === PreprocessorOpcode.IfDef || op === PreprocessorOpcode.IfNdef) {
+  if (op === ShaderPreprocessorDirective.IfDef || op === ShaderPreprocessorDirective.IfNdef) {
     (inst as [number, string, number])[2] = target;
-  } else if (op === PreprocessorOpcode.IfCmp) {
+  } else if (op === ShaderPreprocessorDirective.IfCmp) {
     (inst as [number, string, string, number, number])[4] = target;
-  } else if (op === PreprocessorOpcode.IfExpr) {
+  } else if (op === ShaderPreprocessorDirective.IfExpr) {
     (inst as [number, Condition, number])[2] = target;
   }
 }
@@ -255,11 +241,11 @@ function backfillJump(inst: ShaderInstruction, target: number): void {
 /** Backfill only if still at placeholder -1. */
 function backfillJumpIfNeeded(inst: ShaderInstruction, target: number): void {
   const op = inst[0];
-  if (op === PreprocessorOpcode.IfDef || op === PreprocessorOpcode.IfNdef) {
+  if (op === ShaderPreprocessorDirective.IfDef || op === ShaderPreprocessorDirective.IfNdef) {
     if (inst[2] === -1) (inst as [number, string, number])[2] = target;
-  } else if (op === PreprocessorOpcode.IfCmp) {
+  } else if (op === ShaderPreprocessorDirective.IfCmp) {
     if (inst[4] === -1) (inst as [number, string, string, number, number])[4] = target;
-  } else if (op === PreprocessorOpcode.IfExpr) {
+  } else if (op === ShaderPreprocessorDirective.IfExpr) {
     if (inst[2] === -1) (inst as [number, Condition, number])[2] = target;
   }
 }

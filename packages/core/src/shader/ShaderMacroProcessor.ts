@@ -1,5 +1,5 @@
 import type { Condition, ShaderInstruction } from "@galacean/engine-design";
-import { PreprocessorOpcode } from "./enums/PreprocessorOpcode";
+import { ShaderPreprocessorDirective } from "./enums/ShaderPreprocessorDirective";
 
 interface FuncMacro {
   params: string[];
@@ -11,7 +11,7 @@ interface FuncMacro {
  */
 export class ShaderMacroProcessor {
   private static readonly _maxExpansionDepth = 8;
-  
+
   /**
    * Evaluate a flat instruction array with active macros.
    * @param instructions - Pre-parsed instruction array
@@ -32,44 +32,48 @@ export class ShaderMacroProcessor {
     while (pc < len) {
       const inst = instructions[pc];
       switch (inst[0]) {
-        case PreprocessorOpcode.Text:
+        case ShaderPreprocessorDirective.Text:
           parts.push(inst[1] as string);
           pc++;
           break;
-        case PreprocessorOpcode.IfDef:
+        case ShaderPreprocessorDirective.IfDef:
           pc = defines.has(inst[1] as string) || funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
           break;
-        case PreprocessorOpcode.IfNdef:
+        case ShaderPreprocessorDirective.IfNdef:
           pc = !defines.has(inst[1] as string) && !funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
           break;
-        case PreprocessorOpcode.IfCmp: {
+        case ShaderPreprocessorDirective.IfCmp: {
           const val = defines.get(inst[1] as string);
-          const cond = val !== undefined && ShaderMacroProcessor._evalCmpOp(Number(val) || 0, inst[2] as string, inst[3] as number);
+          const cond =
+            val !== undefined &&
+            ShaderMacroProcessor._evalCmpOp(Number(val) || 0, inst[2] as string, inst[3] as number);
           pc = cond ? pc + 1 : (inst[4] as number);
           break;
         }
-        case PreprocessorOpcode.IfExpr:
-          pc = ShaderMacroProcessor._evalCondition(inst[1] as Condition, defines, funcMacros) ? pc + 1 : (inst[2] as number);
+        case ShaderPreprocessorDirective.IfExpr:
+          pc = ShaderMacroProcessor._evalCondition(inst[1] as Condition, defines, funcMacros)
+            ? pc + 1
+            : (inst[2] as number);
           break;
-        case PreprocessorOpcode.Else:
+        case ShaderPreprocessorDirective.Else:
           pc = inst[1] as number;
           break;
-        case PreprocessorOpcode.Endif:
+        case ShaderPreprocessorDirective.Endif:
           pc++;
           break;
-        case PreprocessorOpcode.Define:
+        case ShaderPreprocessorDirective.Define:
           defines.set(inst[1] as string, "");
           pc++;
           break;
-        case PreprocessorOpcode.DefineVal:
+        case ShaderPreprocessorDirective.DefineVal:
           defines.set(inst[1] as string, inst[2] as string);
           pc++;
           break;
-        case PreprocessorOpcode.DefineFunc:
+        case ShaderPreprocessorDirective.DefineFunc:
           funcMacros.set(inst[1] as string, { params: inst[2] as string[], body: inst[3] as string });
           pc++;
           break;
-        case PreprocessorOpcode.Undef:
+        case ShaderPreprocessorDirective.Undef:
           defines.delete(inst[1] as string);
           funcMacros.delete(inst[1] as string);
           pc++;
@@ -130,9 +134,15 @@ export class ShaderMacroProcessor {
         return ShaderMacroProcessor._evalCmpOp(Number(val) || 0, cond.op, cond.v);
       }
       case "and":
-        return ShaderMacroProcessor._evalCondition(cond.l, defines, funcMacros) && ShaderMacroProcessor._evalCondition(cond.r, defines, funcMacros);
+        return (
+          ShaderMacroProcessor._evalCondition(cond.l, defines, funcMacros) &&
+          ShaderMacroProcessor._evalCondition(cond.r, defines, funcMacros)
+        );
       case "or":
-        return ShaderMacroProcessor._evalCondition(cond.l, defines, funcMacros) || ShaderMacroProcessor._evalCondition(cond.r, defines, funcMacros);
+        return (
+          ShaderMacroProcessor._evalCondition(cond.l, defines, funcMacros) ||
+          ShaderMacroProcessor._evalCondition(cond.r, defines, funcMacros)
+        );
       case "not":
         return !ShaderMacroProcessor._evalCondition(cond.c, defines, funcMacros);
       case "bool":
@@ -395,7 +405,15 @@ export class ShaderMacroProcessor {
             const args = ShaderMacroProcessor._parseFuncArgs(text, p);
             if (args) {
               i = args.end;
-              out.push(ShaderMacroProcessor._expandString(ShaderMacroProcessor._expandFuncBody(func, args.values), defines, funcMacros, name, depth + 1));
+              out.push(
+                ShaderMacroProcessor._expandString(
+                  ShaderMacroProcessor._expandFuncBody(func, args.values),
+                  defines,
+                  funcMacros,
+                  name,
+                  depth + 1
+                )
+              );
               continue;
             }
           }

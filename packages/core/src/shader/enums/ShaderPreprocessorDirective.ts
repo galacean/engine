@@ -1,7 +1,7 @@
 /**
- * Opcode constants for preprocessor instructions.
+ * Directive types for shader preprocessor instructions.
  */
-export enum PreprocessorOpcode {
+export enum ShaderPreprocessorDirective {
   Text,
   IfDef,
   IfNdef,
