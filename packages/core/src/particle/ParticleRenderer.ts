@@ -47,7 +47,7 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   _transformedBounds = new BoundingBox();
 
-  private _renderMode: ParticleRenderMode;
+  private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
   private _supportInstancedArrays: boolean;
