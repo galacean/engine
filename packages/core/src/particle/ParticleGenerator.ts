@@ -919,12 +919,8 @@ export class ParticleGenerator {
 
     // Start rotation
     const { _startRotationRand: startRotationRand, flipRotation } = main;
-    let isFlip = flipRotation > startRotationRand.random();
+    const isFlip = flipRotation > startRotationRand.random();
 
-    // @todo:None-Mesh mode should inverse the rotation, maybe should unify it
-    if (this._renderer.renderMode !== ParticleRenderMode.Mesh) {
-      isFlip = !isFlip;
-    }
     const rotationZ = main.startRotationZ.evaluate(undefined, startRotationRand.random());
     if (main.startRotation3D) {
       const rotationX = main.startRotationX.evaluate(undefined, startRotationRand.random());
