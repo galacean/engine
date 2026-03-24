@@ -532,7 +532,7 @@ export class UICanvas extends Component implements IElement {
           tempGroupAbleList[groupAbleCount++] = component;
         }
         component._setRectMasks(tempRectMaskList, rectMaskCount);
-        // Mask's stencilDepth is set AFTER incrementing below
+        component._uiStencilDepth = stencilDepth + 1;
       } else if (component instanceof UIRenderer) {
         renderers[depth] = component;
         ++depth;

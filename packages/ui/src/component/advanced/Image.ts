@@ -33,7 +33,7 @@ export class Image extends SpriteRenderable(UIRenderer) {
   // ===== Abstract implementations =====
 
   /** @internal */
-  _getSpriteColor() {
+  override _getSpriteColor() {
     return this._color;
   }
 

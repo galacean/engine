@@ -40,6 +40,8 @@ export class SubRenderElement implements IPoolElement {
     this.subPrimitive = subPrimitive;
     this.texture = texture;
     this.subChunk = subChunk;
+    this.uiStencilDepth = 0;
+    this.uiStencilOp = 0;
   }
 
   dispose(): void {

@@ -118,8 +118,8 @@ export class RenderQueue {
         }
 
         let renderState = shaderPass._renderState;
-        if (needMaskType) {
-          // Mask don't care render queue type
+        if (needMaskType || uiStencilDepth > 0) {
+          // Mask and UI stencil elements don't care about render queue type
           if (!renderState) {
             renderState = renderStates[j];
           }

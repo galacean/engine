@@ -4,11 +4,13 @@ import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManage
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { Material } from "../../material";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
+import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteRenderable, SpriteRenderableFlags } from "./SpriteRenderable";
 
 /**
@@ -17,6 +19,13 @@ import { SpriteRenderable, SpriteRenderableFlags } from "./SpriteRenderable";
 export class SpriteRenderer extends SpriteRenderable(Renderer) {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
+
+  /** @internal */
+  @assignmentClone
+  _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+  /** @internal */
+  @assignmentClone
+  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -128,6 +137,30 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
     if (this._flipY !== value) {
       this._flipY = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    }
+  }
+
+  /**
+   * The mask layer the sprite renderer belongs to.
+   */
+  get maskLayer(): SpriteMaskLayer {
+    return this._maskLayer;
+  }
+
+  set maskLayer(value: SpriteMaskLayer) {
+    this._maskLayer = value;
+  }
+
+  /**
+   * Interacts with the masks.
+   */
+  get maskInteraction(): SpriteMaskInteraction {
+    return this._maskInteraction;
+  }
+
+  set maskInteraction(value: SpriteMaskInteraction) {
+    if (this._maskInteraction !== value) {
+      this._maskInteraction = value;
     }
   }
 
