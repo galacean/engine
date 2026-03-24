@@ -168,7 +168,10 @@ export class ShaderMacroProcessor {
         const func = funcMacros.get(name);
         if (func) {
           let lookAhead = i;
-          while (lookAhead < len && (chunk.charCodeAt(lookAhead) === 32 /* space */ || chunk.charCodeAt(lookAhead) === 9 /* tab */))
+          while (
+            lookAhead < len &&
+            (chunk.charCodeAt(lookAhead) === 32 /* space */ || chunk.charCodeAt(lookAhead) === 9) /* tab */
+          )
             lookAhead++;
           if (lookAhead < len && chunk.charCodeAt(lookAhead) === 40 /* '(' */) {
             const args = ShaderMacroProcessor._parseFuncArgs(chunk, lookAhead);
@@ -245,7 +248,11 @@ export class ShaderMacroProcessor {
         const func = funcMacros.get(name);
         if (func) {
           let lookAhead = i;
-          while (lookAhead < len && (macroExpansion.charCodeAt(lookAhead) === 32 /* space */ || macroExpansion.charCodeAt(lookAhead) === 9 /* tab */))
+          while (
+            lookAhead < len &&
+            (macroExpansion.charCodeAt(lookAhead) === 32 /* space */ ||
+              macroExpansion.charCodeAt(lookAhead) === 9) /* tab */
+          )
             lookAhead++;
           if (lookAhead < len && macroExpansion.charCodeAt(lookAhead) === 40 /* '(' */) {
             const args = ShaderMacroProcessor._parseFuncArgs(macroExpansion, lookAhead);
