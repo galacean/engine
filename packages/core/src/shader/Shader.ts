@@ -184,13 +184,9 @@ export class Shader implements IReferable {
   }
 
   /**
-   * Create a shader from precompiled data (.gsp).
-   * This skips ShaderLab parsing (Preprocessor + Lexer + Parser + CodeGen)
-   * and directly constructs the Shader from precompiled vertex/fragment GLSL.
-   * @param data - Precompiled shader data (IPrecompiledShader JSON)
-   * @returns Shader
+   * @internal
    */
-  static createFromPrecompiled(data: IPrecompiledShader): Shader {
+  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[data.name]) {
       console.error(`Shader named "${data.name}" already exists.`);
@@ -253,7 +249,6 @@ export class Shader implements IReferable {
     }
   }
 
-  /** @internal Resolve UsePass reference. */
   private static _resolveUsePass(passName: string): ShaderPass | undefined {
     const [shaderName, subShaderName, passNamePart] = passName.split("/");
     return Shader.find(shaderName)
@@ -261,7 +256,6 @@ export class Shader implements IReferable {
       ?.passes.find((pass) => pass.name === passNamePart);
   }
 
-  /** @internal Apply render states from constantMap/variableMap to a ShaderPass. */
   private static _applyRenderStates(
     shaderPass: ShaderPass,
     constantMap: Record<string, any>,

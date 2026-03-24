@@ -253,7 +253,7 @@ describe("Precompile Benchmark", async () => {
   // 4. Shader reconstruction
   // ═══════════════════════════════════════════════════════════
   describe("4. Shader reconstruction", () => {
-    it("createFromPrecompiled vs Shader.create (PBR)", () => {
+    it("_createFromPrecompiled vs Shader.create (PBR)", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
       const jsonStr = JSON.stringify(precompiled);
 
@@ -271,11 +271,11 @@ describe("Precompile Benchmark", async () => {
       );
 
       const preResult = bench(
-        "JSON.parse + createFromPrecompiled",
+        "JSON.parse + _createFromPrecompiled",
         () => {
           const parsed = JSON.parse(jsonStr);
           const name = uid("PBR_pre");
-          const shader = Shader.createFromPrecompiled({ ...parsed, name });
+          const shader = Shader.__createFromPrecompiled({ ...parsed, name });
           shader?.destroy(true);
         },
         5,

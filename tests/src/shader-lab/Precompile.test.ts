@@ -1050,13 +1050,13 @@ describe("ShaderLab Precompile", async () => {
   });
 
   // ─────────────────────────────────────────────────────────
-  // 6. Shader.createFromPrecompiled()
+  // 6. Shader.__createFromPrecompiled()
   // ─────────────────────────────────────────────────────────
-  describe("Shader.createFromPrecompiled()", () => {
+  describe("Shader.__createFromPrecompiled()", () => {
     it("should create Shader with correct name and subShader count", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestPBR_CFP_1" };
-      const shader = Shader.createFromPrecompiled(testData);
+      const shader = Shader.__createFromPrecompiled(testData);
 
       expect(shader).not.toBeNull();
       expect(shader.name).toBe("TestPBR_CFP_1");
@@ -1069,7 +1069,7 @@ describe("ShaderLab Precompile", async () => {
       const source = await readFile("./shaders/noFragArgs.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_PlatformTarget" };
-      const shader = Shader.createFromPrecompiled(testData);
+      const shader = Shader.__createFromPrecompiled(testData);
 
       for (const sub of shader.subShaders) {
         for (const pass of sub.passes) {
@@ -1085,7 +1085,7 @@ describe("ShaderLab Precompile", async () => {
       const source = await readFile("./shaders/noFragArgs.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_ShaderInstructions" };
-      const shader = Shader.createFromPrecompiled(testData);
+      const shader = Shader.__createFromPrecompiled(testData);
 
       for (const sub of shader.subShaders) {
         for (const pass of sub.passes) {
@@ -1103,7 +1103,7 @@ describe("ShaderLab Precompile", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_ShaderInstructions" };
-      const shader = Shader.createFromPrecompiled(testData);
+      const shader = Shader.__createFromPrecompiled(testData);
 
       let foundShaderInstructions = false;
       for (const sub of shader.subShaders) {
@@ -1121,11 +1121,11 @@ describe("ShaderLab Precompile", async () => {
       shader.destroy(true);
     });
 
-    it("SubShader tags are preserved after createFromPrecompiled", async () => {
+    it("SubShader tags are preserved after _createFromPrecompiled", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_Tags" };
-      const shader = Shader.createFromPrecompiled(testData);
+      const shader = Shader.__createFromPrecompiled(testData);
 
       const sub = shader.subShaders[0];
       expect(sub.getTagValue("LightMode")).toBe("ForwardBase");
@@ -1133,11 +1133,11 @@ describe("ShaderLab Precompile", async () => {
       shader.destroy(true);
     });
 
-    it("ShaderPass tags are preserved after createFromPrecompiled", async () => {
+    it("ShaderPass tags are preserved after _createFromPrecompiled", async () => {
       const source = await readFile("./shaders/noFragArgs.shader");
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_PassTags" };
-      const shader = Shader.createFromPrecompiled(testData);
+      const shader = Shader.__createFromPrecompiled(testData);
 
       const pass = shader.subShaders[0].passes[0];
       expect(pass.getTagValue("ReplacementTag")).toBe("opaque");
@@ -1149,8 +1149,8 @@ describe("ShaderLab Precompile", async () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestPBR_CFP_Duplicate" };
 
-      const first = Shader.createFromPrecompiled(testData);
-      const second = Shader.createFromPrecompiled(testData);
+      const first = Shader.__createFromPrecompiled(testData);
+      const second = Shader.__createFromPrecompiled(testData);
 
       expect(second).toBeFalsy();
 
@@ -1162,7 +1162,7 @@ describe("ShaderLab Precompile", async () => {
       const precompiled = shaderLab._precompile(source, ShaderLanguage.GLSLES100, basePath);
       const testData = { ...precompiled, name: "TestMultiPass_CFP_UsePass" };
 
-      expect(() => Shader.createFromPrecompiled(testData)).not.toThrow();
+      expect(() => Shader.__createFromPrecompiled(testData)).not.toThrow();
 
       Shader.find("TestMultiPass_CFP_UsePass")?.destroy(true);
     });
