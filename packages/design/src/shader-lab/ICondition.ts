@@ -65,7 +65,7 @@ export type Condition =
 // ---- Preprocessor instruction types (flat bytecode for .gsp) ----
 
 /** Opcode constants for preprocessor instructions. */
-export const enum InstructionOpcode {
+export const enum PreprocessorOpcode {
   /** Output text fragment */
   TEXT = 0,
   /** #ifdef: jump if macro is NOT defined */
@@ -94,6 +94,6 @@ export const enum InstructionOpcode {
  * Preprocessor instruction. Compact array format for JSON serialization in .gsp files.
  *
  * Each instruction is a tuple: `[opcode, ...operands]`.
- * Operand types vary by opcode — see {@link InstructionOpcode} for the layout of each.
+ * Operand types vary by opcode — see {@link PreprocessorOpcode} for the layout of each.
  */
 export type Instruction = readonly (string | number | boolean | string[] | Condition)[];

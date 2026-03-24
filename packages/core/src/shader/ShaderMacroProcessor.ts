@@ -7,36 +7,8 @@
  *
  * @internal
  */
+import { PreprocessorOpcode } from "@galacean/engine-design";
 import type { Condition, Instruction } from "@galacean/engine-design";
-
-/**
- * Opcode constants — duplicated from InstructionEncoder to avoid runtime dependency on engine-design.
- *
- *   0  TEXT         [0, content]                 output text fragment
- *   1  IF_DEF       [1, name, jump]              #ifdef — jump if NOT defined
- *   2  IF_NDEF      [2, name, jump]              #ifndef — jump if IS defined
- *   3  IF_CMP       [3, name, op, val, jump]     #if MACRO op value
- *   4  IF_EXPR      [4, condition, jump]          #if compound (&&/||/!)
- *   5  ELSE         [5, jump]                     unconditional jump past #endif
- *   6  ENDIF        [6]                           end of conditional block
- *   7  DEFINE       [7, name]                     #define NAME
- *   8  DEFINE_VAL   [8, name, value]              #define NAME value
- *   9  DEFINE_FUNC  [9, name, params[], body]     #define NAME(a,b) body
- *  10  UNDEF        [10, name]                    #undef NAME
- */
-const Op = {
-  TEXT: 0,
-  IF_DEF: 1,
-  IF_NDEF: 2,
-  IF_CMP: 3,
-  IF_EXPR: 4,
-  ELSE: 5,
-  ENDIF: 6,
-  DEFINE: 7,
-  DEFINE_VAL: 8,
-  DEFINE_FUNC: 9,
-  UNDEF: 10
-} as const;
 
 /** Maximum recursion depth for nested macro expansion. */
 const MAX_MACRO_EXPANSION_DEPTH = 8;
@@ -73,44 +45,44 @@ export class ShaderMacroProcessor {
     while (pc < len) {
       const inst = instructions[pc];
       switch (inst[0]) {
-        case Op.TEXT:
+        case PreprocessorOpcode.TEXT:
           parts.push(inst[1] as string);
           pc++;
           break;
-        case Op.IF_DEF:
+        case PreprocessorOpcode.IF_DEF:
           pc = defines.has(inst[1] as string) || funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
           break;
-        case Op.IF_NDEF:
+        case PreprocessorOpcode.IF_NDEF:
           pc = !defines.has(inst[1] as string) && !funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
           break;
-        case Op.IF_CMP: {
+        case PreprocessorOpcode.IF_CMP: {
           const val = defines.get(inst[1] as string);
           const cond = val !== undefined && ShaderMacroProcessor._evalCmpOp(Number(val) || 0, inst[2] as string, inst[3] as number);
           pc = cond ? pc + 1 : (inst[4] as number);
           break;
         }
-        case Op.IF_EXPR:
+        case PreprocessorOpcode.IF_EXPR:
           pc = ShaderMacroProcessor._evalCondition(inst[1] as Condition, defines, funcMacros) ? pc + 1 : (inst[2] as number);
           break;
-        case Op.ELSE:
+        case PreprocessorOpcode.ELSE:
           pc = inst[1] as number;
           break;
-        case Op.ENDIF:
+        case PreprocessorOpcode.ENDIF:
           pc++;
           break;
-        case Op.DEFINE:
+        case PreprocessorOpcode.DEFINE:
           defines.set(inst[1] as string, "");
           pc++;
           break;
-        case Op.DEFINE_VAL:
+        case PreprocessorOpcode.DEFINE_VAL:
           defines.set(inst[1] as string, inst[2] as string);
           pc++;
           break;
-        case Op.DEFINE_FUNC:
+        case PreprocessorOpcode.DEFINE_FUNC:
           funcMacros.set(inst[1] as string, { params: inst[2] as string[], body: inst[3] as string });
           pc++;
           break;
-        case Op.UNDEF:
+        case PreprocessorOpcode.UNDEF:
           defines.delete(inst[1] as string);
           funcMacros.delete(inst[1] as string);
           pc++;
