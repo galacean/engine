@@ -183,9 +183,6 @@ export class Shader implements IReferable {
     return Shader._shaderMap[name];
   }
 
-  /**
-   * @internal
-   */
   static _createFromPrecompiled(data: IPrecompiledShader): Shader {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[data.name]) {
