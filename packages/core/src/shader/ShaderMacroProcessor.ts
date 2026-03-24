@@ -167,7 +167,7 @@ export class ShaderMacroProcessor {
               const expanded = ShaderMacroProcessor._expandFuncBody(func, args.values);
               expandedNames.clear();
               expandedNames.add(name);
-              out.push(ShaderMacroProcessor._expandString(expanded, valueMacros, funcMacros, expandedNames));
+              out.push(ShaderMacroProcessor._recursiveExpandMacro(expanded, valueMacros, funcMacros, expandedNames));
               lastNewline = false;
               continue;
             }
@@ -176,10 +176,10 @@ export class ShaderMacroProcessor {
 
         // Try value macro
         const val = valueMacros.get(name);
-        if (val !== undefined && val !== "" && val !== name) {
+        if (val !== undefined && val !== "") {
           expandedNames.clear();
           expandedNames.add(name);
-          out.push(ShaderMacroProcessor._expandString(val, valueMacros, funcMacros, expandedNames));
+          out.push(ShaderMacroProcessor._recursiveExpandMacro(val, valueMacros, funcMacros, expandedNames));
           lastNewline = false;
           continue;
         }
@@ -219,32 +219,34 @@ export class ShaderMacroProcessor {
   }
 
   /**
-   * Recursively expand a string.
-   * expandedNames tracks the full expansion chain to prevent circular references
-   * per C preprocessor standard (C99 §6.10.3.4).
+   * Recursively expand macro substitution results until no more macros remain.
+   * @param macroExpansion - Intermediate text from a macro substitution that may contain further macro references
+   * @param valueMacros - Current value macro definitions
+   * @param funcMacros - Current function macro definitions
+   * @param expandedNames - Macro names already on the expansion chain, prevents circular references (C99 §6.10.3.4)
    */
-  private static _expandString(
-    text: string,
+  private static _recursiveExpandMacro(
+    macroExpansion: string,
     valueMacros: Map<string, string>,
     funcMacros: Map<string, FuncMacro>,
     expandedNames: Set<string>
   ): string {
-    if (text.length === 0) return text;
+    if (macroExpansion.length === 0) return macroExpansion;
 
-    const len = text.length;
+    const len = macroExpansion.length;
     const out: string[] = [];
     let i = 0;
 
     while (i < len) {
-      const cc = text.charCodeAt(i);
+      const cc = macroExpansion.charCodeAt(i);
       if (ShaderMacroProcessor._isIdentifierStart(cc)) {
         const start = i;
         i++;
-        while (i < len && ShaderMacroProcessor._isIdentifierPart(text.charCodeAt(i))) i++;
-        const name = text.substring(start, i);
+        while (i < len && ShaderMacroProcessor._isIdentifierPart(macroExpansion.charCodeAt(i))) i++;
+        const name = macroExpansion.substring(start, i);
 
-        // Skip already-expanded names to prevent circular references;
-        // skip GL_ prefixed names (reserved GLSL built-ins)
+        // Skip already-expanded names (circular reference prevention)
+        // Skip GL_ prefixed names (reserved GLSL built-ins, charCodes: G=71, L=76, _=95)
         if (
           expandedNames.has(name) ||
           (name.charCodeAt(0) === 71 && name.charCodeAt(1) === 76 && name.charCodeAt(2) === 95)
@@ -256,14 +258,15 @@ export class ShaderMacroProcessor {
         const func = funcMacros.get(name);
         if (func) {
           let lookAhead = i;
-          while (lookAhead < len && (text.charCodeAt(lookAhead) === 32 || text.charCodeAt(lookAhead) === 9)) lookAhead++;
-          if (lookAhead < len && text.charCodeAt(lookAhead) === 40) {
-            const args = ShaderMacroProcessor._parseFuncArgs(text, lookAhead);
+          while (lookAhead < len && (macroExpansion.charCodeAt(lookAhead) === 32 || macroExpansion.charCodeAt(lookAhead) === 9))
+            lookAhead++;
+          if (lookAhead < len && macroExpansion.charCodeAt(lookAhead) === 40) {
+            const args = ShaderMacroProcessor._parseFuncArgs(macroExpansion, lookAhead);
             if (args) {
               i = args.end;
               expandedNames.add(name);
               out.push(
-                ShaderMacroProcessor._expandString(
+                ShaderMacroProcessor._recursiveExpandMacro(
                   ShaderMacroProcessor._expandFuncBody(func, args.values),
                   valueMacros,
                   funcMacros,
@@ -277,9 +280,9 @@ export class ShaderMacroProcessor {
         }
 
         const val = valueMacros.get(name);
-        if (val !== undefined && val !== "" && val !== name) {
+        if (val !== undefined && val !== "") {
           expandedNames.add(name);
-          out.push(ShaderMacroProcessor._expandString(val, valueMacros, funcMacros, expandedNames));
+          out.push(ShaderMacroProcessor._recursiveExpandMacro(val, valueMacros, funcMacros, expandedNames));
           expandedNames.delete(name);
           continue;
         }
@@ -290,8 +293,8 @@ export class ShaderMacroProcessor {
 
       // Batch collect non-identifier characters
       const batchStart = i;
-      while (i < len && !ShaderMacroProcessor._isIdentifierStart(text.charCodeAt(i))) i++;
-      out.push(text.substring(batchStart, i));
+      while (i < len && !ShaderMacroProcessor._isIdentifierStart(macroExpansion.charCodeAt(i))) i++;
+      out.push(macroExpansion.substring(batchStart, i));
     }
 
     return out.join("");
