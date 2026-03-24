@@ -61,10 +61,10 @@ export class ShaderMacroProcessor {
         case ShaderPreprocessorDirective.IfCmp: {
           const name = <string>instruction[1];
           const val = valueMacros.get(name);
-          const cond =
+          const matched =
             val !== undefined &&
-            ShaderMacroProcessor._evalCmpOp(Number(val) || 0, <string>instruction[2], <number>instruction[3]);
-          index = cond ? index + 1 : <number>instruction[4];
+            ShaderMacroProcessor._compareValues(Number(val) || 0, <string>instruction[2], <number>instruction[3]);
+          index = matched ? index + 1 : <number>instruction[4];
           break;
         }
         case ShaderPreprocessorDirective.IfExpr:
@@ -101,25 +101,27 @@ export class ShaderMacroProcessor {
       }
     }
 
-    // Fast path: no expandable macros
-    let hasExpandable = false;
-    for (const [, val] of valueMacros) {
-      if (val !== "") {
-        hasExpandable = true;
-        break;
+    // Fast path: no macros need text expansion, skip identifier scanning
+    let canSkipExpansion = funcMacros.size === 0;
+    if (canSkipExpansion) {
+      for (const [, val] of valueMacros) {
+        if (val !== "") {
+          canSkipExpansion = false;
+          break;
+        }
       }
     }
-    if (!hasExpandable && funcMacros.size === 0) {
-      return ShaderMacroProcessor._joinAndCompressNewlines(shaderChunks);
+    if (canSkipExpansion) {
+      return ShaderMacroProcessor._concatChunks(shaderChunks);
+    } else {
+      return ShaderMacroProcessor._expandAndConcatChunks(shaderChunks, valueMacros, funcMacros);
     }
-
-    return ShaderMacroProcessor._expandMacros(shaderChunks, valueMacros, funcMacros);
   }
 
   /**
    * Scan shader chunks, expand all macros in a left-to-right pass.
    */
-  private static _expandMacros(
+  private static _expandAndConcatChunks(
     shaderChunks: string[],
     valueMacros: Map<string, string>,
     funcMacros: Map<string, FuncMacro>
@@ -159,8 +161,9 @@ export class ShaderMacroProcessor {
         const func = funcMacros.get(name);
         if (func) {
           let lookAhead = i;
-          while (lookAhead < len && (shaderSource.charCodeAt(lookAhead) === 32 || shaderSource.charCodeAt(lookAhead) === 9)) lookAhead++;
-          if (lookAhead < len && shaderSource.charCodeAt(lookAhead) === 40) {
+          while (lookAhead < len && (shaderSource.charCodeAt(lookAhead) === 32 /* space */ || shaderSource.charCodeAt(lookAhead) === 9 /* tab */))
+            lookAhead++;
+          if (lookAhead < len && shaderSource.charCodeAt(lookAhead) === 40 /* '(' */) {
             const args = ShaderMacroProcessor._parseFuncArgs(shaderSource, lookAhead);
             if (args) {
               i = args.end;
@@ -190,7 +193,7 @@ export class ShaderMacroProcessor {
       }
 
       // Newline compression
-      if (cc === 10) {
+      if (cc === 10 /* \n */) {
         if (!lastNewline) {
           out.push("\n");
           lastNewline = true;
@@ -198,7 +201,7 @@ export class ShaderMacroProcessor {
         i++;
         while (i < len) {
           const c = shaderSource.charCodeAt(i);
-          if (c === 32 || c === 9 || c === 10) i++;
+          if (c === 32 /* space */ || c === 9 /* tab */ || c === 10 /* \n */) i++;
           else break;
         }
         continue;
@@ -208,7 +211,7 @@ export class ShaderMacroProcessor {
       const batchStart = i;
       while (i < len) {
         const c = shaderSource.charCodeAt(i);
-        if (ShaderMacroProcessor._isIdentifierStart(c) || c === 10) break;
+        if (ShaderMacroProcessor._isIdentifierStart(c) || c === 10 /* \n */) break;
         i++;
       }
       out.push(shaderSource.substring(batchStart, i));
@@ -258,9 +261,9 @@ export class ShaderMacroProcessor {
         const func = funcMacros.get(name);
         if (func) {
           let lookAhead = i;
-          while (lookAhead < len && (macroExpansion.charCodeAt(lookAhead) === 32 || macroExpansion.charCodeAt(lookAhead) === 9))
+          while (lookAhead < len && (macroExpansion.charCodeAt(lookAhead) === 32 /* space */ || macroExpansion.charCodeAt(lookAhead) === 9 /* tab */))
             lookAhead++;
-          if (lookAhead < len && macroExpansion.charCodeAt(lookAhead) === 40) {
+          if (lookAhead < len && macroExpansion.charCodeAt(lookAhead) === 40 /* '(' */) {
             const args = ShaderMacroProcessor._parseFuncArgs(macroExpansion, lookAhead);
             if (args) {
               i = args.end;
@@ -329,7 +332,7 @@ export class ShaderMacroProcessor {
       case "cmp": {
         const val = valueMacros.get(cond.m);
         if (val === undefined) return false;
-        return ShaderMacroProcessor._evalCmpOp(Number(val) || 0, cond.op, cond.v);
+        return ShaderMacroProcessor._compareValues(Number(val) || 0, cond.op, cond.v);
       }
       case "and":
         return (
@@ -351,7 +354,7 @@ export class ShaderMacroProcessor {
   /**
    * Evaluate a comparison operator.
    */
-  private static _evalCmpOp(numVal: number, op: string, value: number): boolean {
+  private static _compareValues(numVal: number, op: string, value: number): boolean {
     switch (op) {
       case "==":
         return numVal === value;
@@ -384,16 +387,16 @@ export class ShaderMacroProcessor {
 
     while (k < len && level > 0) {
       const cc = text.charCodeAt(k);
-      if (cc === 40) {
+      if (cc === 40 /* '(' */) {
         level++;
-      } else if (cc === 41) {
+      } else if (cc === 41 /* ')' */) {
         if (--level === 0) {
           const arg = text.substring(argStart, k).trim();
           if (arg.length > 0 || result.values.length > 0) result.values.push(arg);
           result.end = k + 1;
           return result;
         }
-      } else if (cc === 44 && level === 1) {
+      } else if (cc === 44 /* ',' */ && level === 1) {
         result.values.push(text.substring(argStart, k).trim());
         argStart = k + 1;
       }
@@ -436,7 +439,7 @@ export class ShaderMacroProcessor {
   /**
    * Join shader chunks with consecutive empty lines collapsed to single newline.
    */
-  private static _joinAndCompressNewlines(shaderChunks: string[]): string {
+  private static _concatChunks(shaderChunks: string[]): string {
     const out = ShaderMacroProcessor._out;
     out.length = 0;
     let lastNewline = false;
@@ -447,7 +450,7 @@ export class ShaderMacroProcessor {
       let i = 0;
 
       while (i < len) {
-        if (text.charCodeAt(i) === 10) {
+        if (text.charCodeAt(i) === 10 /* \n */) {
           if (!lastNewline) {
             out.push("\n");
             lastNewline = true;
@@ -455,12 +458,12 @@ export class ShaderMacroProcessor {
           i++;
           while (i < len) {
             const c = text.charCodeAt(i);
-            if (c === 32 || c === 9 || c === 10) i++;
+            if (c === 32 /* space */ || c === 9 /* tab */ || c === 10 /* \n */) i++;
             else break;
           }
         } else {
           const batchStart = i;
-          while (i < len && text.charCodeAt(i) !== 10) i++;
+          while (i < len && text.charCodeAt(i) !== 10 /* \n */) i++;
           out.push(text.substring(batchStart, i));
           lastNewline = false;
         }
