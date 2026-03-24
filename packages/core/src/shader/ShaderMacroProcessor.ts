@@ -158,10 +158,10 @@ export class ShaderMacroProcessor {
         // Try function macro
         const func = funcMacros.get(name);
         if (func) {
-          let p = i;
-          while (p < len && (shaderSource.charCodeAt(p) === 32 || shaderSource.charCodeAt(p) === 9)) p++;
-          if (p < len && shaderSource.charCodeAt(p) === 40) {
-            const args = ShaderMacroProcessor._parseFuncArgs(shaderSource, p);
+          let lookAhead = i;
+          while (lookAhead < len && (shaderSource.charCodeAt(lookAhead) === 32 || shaderSource.charCodeAt(lookAhead) === 9)) lookAhead++;
+          if (lookAhead < len && shaderSource.charCodeAt(lookAhead) === 40) {
+            const args = ShaderMacroProcessor._parseFuncArgs(shaderSource, lookAhead);
             if (args) {
               i = args.end;
               const expanded = ShaderMacroProcessor._expandFuncBody(func, args.values);
@@ -255,10 +255,10 @@ export class ShaderMacroProcessor {
 
         const func = funcMacros.get(name);
         if (func) {
-          let p = i;
-          while (p < len && (text.charCodeAt(p) === 32 || text.charCodeAt(p) === 9)) p++;
-          if (p < len && text.charCodeAt(p) === 40) {
-            const args = ShaderMacroProcessor._parseFuncArgs(text, p);
+          let lookAhead = i;
+          while (lookAhead < len && (text.charCodeAt(lookAhead) === 32 || text.charCodeAt(lookAhead) === 9)) lookAhead++;
+          if (lookAhead < len && text.charCodeAt(lookAhead) === 40) {
+            const args = ShaderMacroProcessor._parseFuncArgs(text, lookAhead);
             if (args) {
               i = args.end;
               expandedNames.add(name);
