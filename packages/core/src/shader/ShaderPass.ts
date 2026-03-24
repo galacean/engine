@@ -180,24 +180,14 @@ export class ShaderPass extends ShaderPart {
     return new ShaderProgram(engine, vertexSource, fragmentSource);
   }
 
-  /**
-   * @internal
-   * Compile raw GLSL source — CPU work only (no GPU).
-   * Wraps `ShaderFactory.compilePlatformSource()`.
-   */
-  _compilePlatformSource(
+  private _compilePlatformSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection
   ): { vertexSource: string; fragmentSource: string } {
     return ShaderFactory.compilePlatformSource(engine, macroCollection, this._vertexSource, this._fragmentSource);
   }
 
-  /**
-   * @internal
-   * Compile ShaderLab source from instructions — CPU work only (no GPU).
-   * Mirrors `ShaderFactory.compilePlatformSource()` for the instructions path.
-   */
-  _compileShaderLabSource(
+  private _compileShaderLabSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection
   ): { vertexSource: string; fragmentSource: string } {
@@ -219,24 +209,24 @@ export class ShaderPass extends ShaderPart {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
     }
-    let noMacroVertex = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
-    let noMacroFrag = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
+    let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
+    let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
-      noMacroVertex = ShaderFactory.convertTo300(noMacroVertex);
-      noMacroFrag = ShaderFactory.convertTo300(noMacroFrag, true);
+      vertexSource = ShaderFactory.convertTo300(vertexSource);
+      fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
     }
 
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
 
     return {
       vertexSource: ` ${versionStr}
-        ${noMacroVertex}
+        ${vertexSource}
       `,
       fragmentSource: ` ${versionStr}
         ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
-        ${noMacroFrag}
+        ${fragmentSource}
       `
     };
   }

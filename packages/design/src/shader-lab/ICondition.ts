@@ -1,22 +1,22 @@
 /**
- * Condition types for macro conditional evaluation.
- * Used by ShaderInstructionEncoder (build-time) and ShaderMacroProcessor (runtime).
- * Compact field names for JSON serialization in .gsp files.
+ * #ifdef MACRO
  */
-
-/** defined(MACRO) or #ifdef MACRO */
 export interface DefinedCondition {
   t: "def";
   m: string;
 }
 
-/** !defined(MACRO) or #ifndef MACRO */
+/**
+ * #ifndef MACRO
+ */
 export interface NotDefinedCondition {
   t: "ndef";
   m: string;
 }
 
-/** MACRO op value (e.g., SCENE_FOG_MODE > 0) */
+/**
+ * #if MACRO op value (e.g., SCENE_FOG_MODE > 0)
+ */
 export interface CompareCondition {
   t: "cmp";
   m: string;
@@ -24,29 +24,26 @@ export interface CompareCondition {
   v: number;
 }
 
-/** Logical AND */
 export interface AndCondition {
   t: "and";
   l: Condition;
   r: Condition;
 }
 
-/** Logical OR */
 export interface OrCondition {
   t: "or";
   l: Condition;
   r: Condition;
 }
 
-/** Logical NOT */
 export interface NotCondition {
   t: "not";
   c: Condition;
 }
 
 /**
- * Constant boolean — produced when Preprocessor-substituted numeric literals
- * appear in conditions (e.g. #define FOO 3 → #if 3 == 3 → always true).
+ * Constant boolean produced when numeric literals resolve statically
+ * (e.g. #define FOO 3 → #if 3 == 3 → always true)
  */
 export interface BoolCondition {
   t: "bool";
@@ -62,10 +59,7 @@ export type Condition =
   | NotCondition
   | BoolCondition;
 
-// ---- Preprocessor instruction types (flat bytecode for .gsp) ----
-
 /**
- * Preprocessor instruction. Compact array format for JSON serialization in .gsp files.
- * Each instruction is a tuple: `[opcode, ...operands]`.
+ * Preprocessor instruction tuple: `[directive, ...operands]`
  */
-export type ShaderInstruction = readonly (string | number | boolean | string[] | Condition)[];
+export type ShaderInstruction = readonly [number, ...(string | number | string[] | Condition)[]];

@@ -27,12 +27,6 @@ export interface IShaderLab {
 
   /**
    * @internal
-   * Precompile shader source code into a serializable format.
-   * The result can be serialized to binary (.gsb) and loaded at runtime
-   * to skip Preprocessor + Lexer + Parser + CodeGen stages.
-   * @param sourceCode - ShaderLab source code
-   * @param platformTarget - Target shader language (ShaderLanguage enum value)
-   * @param basePath - Base path for resolving #include directives
    */
   _precompile(sourceCode: string, platformTarget: any, basePath: string): IPrecompiledShader;
 }
