@@ -3,7 +3,7 @@ import { IPrecompiledShader } from "@galacean/engine-design";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { parseInstructions, Instruction } from "@galacean/engine-shaderlab/src/InstructionEncoder";
-import { evaluateInstructions } from "@galacean/engine-core/src/shader/InstructionDecoder";
+import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
@@ -473,7 +473,7 @@ describe("ShaderLab Precompile", async () => {
   // ─────────────────────────────────────────────────────────
   describe("evaluateInstructions", () => {
     function eval_(inst: Instruction[], macros: Array<[string, string]>): string {
-      return evaluateInstructions(inst, makeMacroMap(macros));
+      return ShaderMacroProcessor.evaluate(inst, makeMacroMap(macros));
     }
 
     it("text-only instructions are returned as-is", () => {
@@ -517,16 +517,16 @@ describe("ShaderLab Precompile", async () => {
 
     it("#if comparison operators", () => {
       expect(
-        evaluateInstructions(parseInstructions("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "5"]]))
+        ShaderMacroProcessor.evaluate(parseInstructions("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "5"]]))
       ).toContain("YES");
       expect(
-        evaluateInstructions(parseInstructions("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "2"]]))
+        ShaderMacroProcessor.evaluate(parseInstructions("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "2"]]))
       ).not.toContain("YES");
       expect(
-        evaluateInstructions(parseInstructions("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "1"]]))
+        ShaderMacroProcessor.evaluate(parseInstructions("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "1"]]))
       ).toContain("YES");
       expect(
-        evaluateInstructions(parseInstructions("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "0"]]))
+        ShaderMacroProcessor.evaluate(parseInstructions("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "0"]]))
       ).not.toContain("YES");
     });
 
@@ -557,13 +557,13 @@ describe("ShaderLab Precompile", async () => {
 
     it("#define side effect: subsequent #ifdef sees the defined macro", () => {
       const inst = parseInstructions("#define NEW_MACRO\n#ifdef NEW_MACRO\nSEEN\n#endif\n");
-      const result = evaluateInstructions(inst, makeMacroMap([]));
+      const result = ShaderMacroProcessor.evaluate(inst, makeMacroMap([]));
       expect(result).toContain("SEEN");
     });
 
     it("#undef side effect: subsequent #ifdef does not see the macro", () => {
       const inst = parseInstructions("#undef FOO\n#ifdef FOO\nSTILL_HERE\n#else\nGONE\n#endif\n");
-      const result = evaluateInstructions(inst, makeMacroMap([["FOO", ""]]));
+      const result = ShaderMacroProcessor.evaluate(inst, makeMacroMap([["FOO", ""]]));
       expect(result).not.toContain("STILL_HERE");
       expect(result).toContain("GONE");
     });
@@ -584,7 +584,7 @@ describe("ShaderLab Precompile", async () => {
 
     it("no matching branch (all false, no else) → empty for that conditional", () => {
       const inst = parseInstructions("BEFORE\n#ifdef FOO\nINSIDE\n#endif\nAFTER\n");
-      const result = evaluateInstructions(inst, makeMacroMap([]));
+      const result = ShaderMacroProcessor.evaluate(inst, makeMacroMap([]));
       expect(result).toContain("BEFORE");
       expect(result).toContain("AFTER");
       expect(result).not.toContain("INSIDE");
@@ -787,8 +787,8 @@ describe("ShaderLab Precompile", async () => {
           if (pass.isUsePass || !pass.fragmentInstructions) continue;
 
           for (const macros of macroCombinations) {
-            const first = evaluateInstructions(pass.fragmentInstructions, makeMacroMap(macros));
-            const second = evaluateInstructions(pass.fragmentInstructions, makeMacroMap(macros));
+            const first = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, makeMacroMap(macros));
+            const second = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, makeMacroMap(macros));
             expect(first).toBe(second);
           }
         }
@@ -804,9 +804,9 @@ describe("ShaderLab Precompile", async () => {
           if (pass.isUsePass || !pass.fragmentInstructions) continue;
 
           const macros = makeMacroMap([["RENDERER_IS_RECEIVE_SHADOWS", ""]]);
-          const original = evaluateInstructions(pass.fragmentInstructions, macros);
+          const original = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, macros);
           const restored = JSON.parse(JSON.stringify(pass.fragmentInstructions));
-          const fromRestored = evaluateInstructions(restored, macros);
+          const fromRestored = ShaderMacroProcessor.evaluate(restored, macros);
           expect(fromRestored).toBe(original);
         }
       }
@@ -1207,7 +1207,7 @@ describe("ShaderLab Precompile", async () => {
 
       const evalStart = performance.now();
       for (let i = 0; i < RUNS; i++) {
-        evaluateInstructions(fragmentInstructions, makeMacroMap(macros));
+        ShaderMacroProcessor.evaluate(fragmentInstructions, makeMacroMap(macros));
       }
       const evalTime = (performance.now() - evalStart) / RUNS;
 

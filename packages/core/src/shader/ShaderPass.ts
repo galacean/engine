@@ -10,7 +10,7 @@ import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
-import { evaluateInstructions } from "./InstructionDecoder";
+import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
 
 const precisionStr = `
@@ -227,8 +227,8 @@ export class ShaderPass extends ShaderPart {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
     }
-    let noMacroVertex = evaluateInstructions(this._vertexInstructions, macroMap);
-    let noMacroFrag = evaluateInstructions(this._fragmentInstructions, macroMap);
+    let noMacroVertex = ShaderMacroProcessor.evaluate(this._vertexInstructions, macroMap);
+    let noMacroFrag = ShaderMacroProcessor.evaluate(this._fragmentInstructions, macroMap);
 
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
       noMacroVertex = ShaderFactory.convertTo300(noMacroVertex);

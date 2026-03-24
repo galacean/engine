@@ -13,7 +13,7 @@
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { evaluateInstructions } from "@galacean/engine-core/src/shader/InstructionDecoder";
+import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
@@ -482,7 +482,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             const prePass = precompiled.subShaders[i].passes[j];
             if (!prePass.fragmentInstructions || prePass.fragmentInstructions.length <= 1) continue;
 
-            const result = evaluateInstructions(prePass.fragmentInstructions, new Map(macroMap));
+            const result = ShaderMacroProcessor.evaluate(prePass.fragmentInstructions, new Map(macroMap));
             expect(result.length, `macro-pre frag [${label}] should produce output`).toBeGreaterThan(0);
 
             // Verify the evaluated output contains valid GLSL structure
@@ -501,9 +501,9 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
       const clearCoatMap = makeMacroMap([...baseMacros, ...clearCoatMacros]);
       const fogMap = makeMacroMap(baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "2" } : m)));
 
-      const baseResult = evaluateInstructions(pass.fragmentInstructions, new Map(baseMap));
-      const clearCoatResult = evaluateInstructions(pass.fragmentInstructions, new Map(clearCoatMap));
-      const fogResult = evaluateInstructions(pass.fragmentInstructions, new Map(fogMap));
+      const baseResult = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map(baseMap));
+      const clearCoatResult = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map(clearCoatMap));
+      const fogResult = ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map(fogMap));
 
       // Different macro combos should produce different GLSL output
       expect(baseResult).not.toBe(clearCoatResult);

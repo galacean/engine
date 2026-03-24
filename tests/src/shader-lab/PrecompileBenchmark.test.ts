@@ -7,7 +7,7 @@ import type { Instruction } from "@galacean/engine-design";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { parseInstructions } from "@galacean/engine-shaderlab/src/InstructionEncoder";
-import { evaluateInstructions } from "@galacean/engine-core/src/shader/InstructionDecoder";
+import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
@@ -173,9 +173,9 @@ describe("Precompile Benchmark", async () => {
         for (const pass of sub.passes) {
           if (pass.isUsePass || !pass.vertexInstructions) continue;
           // Get raw source for re-parsing timing
-          const rawVertex = evaluateInstructions(pass.vertexInstructions, new Map());
+          const rawVertex = ShaderMacroProcessor.evaluate(pass.vertexInstructions, new Map());
           const rawFragment = pass.fragmentInstructions
-            ? evaluateInstructions(pass.fragmentInstructions, new Map())
+            ? ShaderMacroProcessor.evaluate(pass.fragmentInstructions, new Map())
             : "";
           if (pass.vertexInstructions.length > 1) {
             results.push(
@@ -330,7 +330,7 @@ describe("Precompile Benchmark", async () => {
           bench(
             `evaluateInstructions [${label}]`,
             () => {
-              evaluateInstructions(fragInstructions!, new Map(macroMap));
+              ShaderMacroProcessor.evaluate(fragInstructions!, new Map(macroMap));
             },
             50,
             10
@@ -343,7 +343,7 @@ describe("Precompile Benchmark", async () => {
       const rtResult = bench(
         "runtime evaluator [base]",
         () => {
-          evaluateInstructions(fragInstructions!, new Map(makeMacroMap(baseMacros)));
+          ShaderMacroProcessor.evaluate(fragInstructions!, new Map(makeMacroMap(baseMacros)));
         },
         50,
         10

@@ -3,7 +3,7 @@
  *
  * Parses CodeGen GLSL output (containing #if/#ifdef/#ifndef/#elif/#else/#endif/#define/#undef)
  * into a flat instruction array. Conditional branching uses jump offsets.
- * The instruction array is serialized to .gsp for runtime evaluation by InstructionDecoder.
+ * The instruction array is serialized to .gsp for runtime processing by ShaderMacroProcessor.
  */
 
 import type { Condition, Instruction } from "@galacean/engine-design";
