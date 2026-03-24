@@ -16,11 +16,14 @@ export class ShaderMacroProcessor {
   private static _out: string[] = [];
   private static _expandedNames = new Set<string>();
   private static _macroFirstChars = new Set<number>();
+  private static _macroFirstCharsDirty = true;
   private static _replaceWordParts: string[] = [];
   private static _parsedFuncArgs = { values: [] as string[], end: 0 };
 
   /**
    * Evaluate a flat instruction array with active macros.
+   * Macros are expanded immediately when text chunks are collected,
+   * using the current macro state at that point (conforming to GLSL/C99 §6.10 standard).
    * @param instructions - Pre-parsed instruction array
    * @param macros - Active runtime macros
    * @returns Pure GLSL string with all conditionals resolved and macros expanded
@@ -37,6 +40,7 @@ export class ShaderMacroProcessor {
     for (const [name, value] of macros) {
       valueMacros.set(name, value);
     }
+    ShaderMacroProcessor._macroFirstCharsDirty = true;
 
     let index = 0;
     const length = instructions.length;
@@ -45,7 +49,8 @@ export class ShaderMacroProcessor {
       const instruction = instructions[index];
       switch (instruction[0]) {
         case ShaderPreprocessorDirective.Text:
-          shaderChunks.push(<string>instruction[1]);
+          // Immediately expand macros using current macro state (GLSL/C99 conformant)
+          shaderChunks.push(ShaderMacroProcessor._expandChunk(<string>instruction[1], valueMacros, funcMacros));
           index++;
           break;
         case ShaderPreprocessorDirective.IfDef: {
@@ -84,10 +89,12 @@ export class ShaderMacroProcessor {
           break;
         case ShaderPreprocessorDirective.DefineVal:
           valueMacros.set(<string>instruction[1], <string>instruction[2]);
+          ShaderMacroProcessor._macroFirstCharsDirty = true;
           index++;
           break;
         case ShaderPreprocessorDirective.DefineFunc:
           funcMacros.set(<string>instruction[1], { params: <string[]>instruction[2], body: <string>instruction[3] });
+          ShaderMacroProcessor._macroFirstCharsDirty = true;
           index++;
           break;
         case ShaderPreprocessorDirective.Undef:
@@ -101,77 +108,76 @@ export class ShaderMacroProcessor {
       }
     }
 
-    // Fast path: no macros need text expansion, skip identifier scanning
-    let canSkipExpansion = funcMacros.size === 0;
-    if (canSkipExpansion) {
-      for (const [, val] of valueMacros) {
-        if (val !== "") {
-          canSkipExpansion = false;
-          break;
-        }
-      }
-    }
-    if (canSkipExpansion) {
-      return ShaderMacroProcessor._concatChunks(shaderChunks);
-    } else {
-      return ShaderMacroProcessor._expandAndConcatChunks(shaderChunks, valueMacros, funcMacros);
-    }
+    return ShaderMacroProcessor._concatChunks(shaderChunks);
   }
 
   /**
-   * Scan shader chunks, expand all macros in a left-to-right pass.
+   * Expand macros in a single text chunk using the current macro state.
+   * Returns the chunk as-is if no expandable macros exist.
    */
-  private static _expandAndConcatChunks(
-    shaderChunks: string[],
+  private static _expandChunk(
+    chunk: string,
     valueMacros: Map<string, string>,
     funcMacros: Map<string, FuncMacro>
   ): string {
-    const shaderSource = shaderChunks.join("");
-    const out = ShaderMacroProcessor._out;
-    out.length = 0;
-    const len = shaderSource.length;
-    let i = 0;
-    let lastNewline = false;
+    // Fast path: no expandable macros at this point
+    if (funcMacros.size === 0) {
+      let hasExpandable = false;
+      for (const [, val] of valueMacros) {
+        if (val !== "") {
+          hasExpandable = true;
+          break;
+        }
+      }
+      if (!hasExpandable) return chunk;
+    }
+
+    // Rebuild first-char filter if macros changed
+    if (ShaderMacroProcessor._macroFirstCharsDirty) {
+      const macroFirstChars = ShaderMacroProcessor._macroFirstChars;
+      macroFirstChars.clear();
+      for (const name of valueMacros.keys()) macroFirstChars.add(name.charCodeAt(0));
+      for (const name of funcMacros.keys()) macroFirstChars.add(name.charCodeAt(0));
+      ShaderMacroProcessor._macroFirstCharsDirty = false;
+    }
 
     const macroFirstChars = ShaderMacroProcessor._macroFirstChars;
-    macroFirstChars.clear();
-    for (const name of valueMacros.keys()) macroFirstChars.add(name.charCodeAt(0));
-    for (const name of funcMacros.keys()) macroFirstChars.add(name.charCodeAt(0));
-
     const expandedNames = ShaderMacroProcessor._expandedNames;
+    const out = ShaderMacroProcessor._out;
+    out.length = 0;
+    const len = chunk.length;
+    let i = 0;
 
     while (i < len) {
-      const cc = shaderSource.charCodeAt(i);
+      const cc = chunk.charCodeAt(i);
 
       if (ShaderMacroProcessor._isIdentifierStart(cc)) {
         const start = i;
         i++;
-        while (i < len && ShaderMacroProcessor._isIdentifierPart(shaderSource.charCodeAt(i))) i++;
+        while (i < len && ShaderMacroProcessor._isIdentifierPart(chunk.charCodeAt(i))) i++;
 
         // Fast path: first char not in any macro name
-        if (!macroFirstChars.has(shaderSource.charCodeAt(start))) {
-          out.push(shaderSource.substring(start, i));
-          lastNewline = false;
+        if (!macroFirstChars.has(chunk.charCodeAt(start))) {
+          out.push(chunk.substring(start, i));
           continue;
         }
 
-        const name = shaderSource.substring(start, i);
+        const name = chunk.substring(start, i);
 
         // Try function macro
         const func = funcMacros.get(name);
         if (func) {
           let lookAhead = i;
-          while (lookAhead < len && (shaderSource.charCodeAt(lookAhead) === 32 /* space */ || shaderSource.charCodeAt(lookAhead) === 9 /* tab */))
+          while (lookAhead < len && (chunk.charCodeAt(lookAhead) === 32 /* space */ || chunk.charCodeAt(lookAhead) === 9 /* tab */))
             lookAhead++;
-          if (lookAhead < len && shaderSource.charCodeAt(lookAhead) === 40 /* '(' */) {
-            const args = ShaderMacroProcessor._parseFuncArgs(shaderSource, lookAhead);
+          if (lookAhead < len && chunk.charCodeAt(lookAhead) === 40 /* '(' */) {
+            const args = ShaderMacroProcessor._parseFuncArgs(chunk, lookAhead);
             if (args) {
               i = args.end;
               const expanded = ShaderMacroProcessor._expandFuncBody(func, args.values);
               expandedNames.clear();
               expandedNames.add(name);
               out.push(ShaderMacroProcessor._recursiveExpandMacro(expanded, valueMacros, funcMacros, expandedNames));
-              lastNewline = false;
               continue;
             }
           }
@@ -183,39 +189,17 @@ export class ShaderMacroProcessor {
           expandedNames.clear();
           expandedNames.add(name);
           out.push(ShaderMacroProcessor._recursiveExpandMacro(val, valueMacros, funcMacros, expandedNames));
-          lastNewline = false;
           continue;
         }
 
         out.push(name);
-        lastNewline = false;
         continue;
       }
 
-      // Newline compression
-      if (cc === 10 /* \n */) {
-        if (!lastNewline) {
-          out.push("\n");
-          lastNewline = true;
-        }
-        i++;
-        while (i < len) {
-          const c = shaderSource.charCodeAt(i);
-          if (c === 32 /* space */ || c === 9 /* tab */ || c === 10 /* \n */) i++;
-          else break;
-        }
-        continue;
-      }
-
-      // Batch collect non-identifier, non-newline characters
+      // Batch collect non-identifier characters
       const batchStart = i;
-      while (i < len) {
-        const c = shaderSource.charCodeAt(i);
-        if (ShaderMacroProcessor._isIdentifierStart(c) || c === 10 /* \n */) break;
-        i++;
-      }
-      out.push(shaderSource.substring(batchStart, i));
-      lastNewline = false;
+      while (i < len && !ShaderMacroProcessor._isIdentifierStart(chunk.charCodeAt(i))) i++;
+      out.push(chunk.substring(batchStart, i));
     }
 
     return out.join("");
@@ -437,7 +421,7 @@ export class ShaderMacroProcessor {
   }
 
   /**
-   * Join shader chunks with consecutive empty lines collapsed to single newline.
+   * Concatenate shader chunks with consecutive blank lines collapsed to a single newline.
    */
   private static _concatChunks(shaderChunks: string[]): string {
     const out = ShaderMacroProcessor._out;

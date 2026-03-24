@@ -653,6 +653,56 @@ describe("ShaderLab Precompile", async () => {
       expect(result.trim().length).toBeGreaterThan(0);
     });
 
+    // ── GLSL/C99 standard conformance: immediate expansion with current macro state ──
+
+    it("#define value macro then #undef — text before #undef should be expanded", () => {
+      const glsl = "#define FOO 1.0\nvec3 a = FOO;\n#undef FOO\nvec3 b = FOO;\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("vec3 a = 1.0");
+      expect(result).toContain("vec3 b = FOO");
+    });
+
+    it("#define value macro then redefine — each usage gets the value at that point", () => {
+      const glsl = "#define FOO 1.0\nvec3 a = FOO;\n#define FOO 2.0\nvec3 b = FOO;\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("vec3 a = 1.0");
+      expect(result).toContain("vec3 b = 2.0");
+    });
+
+    it("#define value macro then #define no-value — text before should be expanded", () => {
+      const glsl = "#define FOO 1.0\nvec3 a = FOO;\n#define FOO\nvec3 b = FOO;\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("vec3 a = 1.0");
+      expect(result).not.toContain("vec3 b = 1.0");
+    });
+
+    it("engine-passed value macro then #undef — text before #undef should be expanded", () => {
+      const glsl = "vec3 a = FOO;\n#undef FOO\nvec3 b = FOO;\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, [["FOO", "1"]]);
+      expect(result).toContain("vec3 a = 1");
+      expect(result).toContain("vec3 b = FOO");
+    });
+
+    it("function macro then #undef — invocation before #undef should be expanded", () => {
+      const glsl = "#define MUL(a,b) a*b\nvec3 c = MUL(x,y);\n#undef MUL\nvec3 d = MUL(x,y);\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("vec3 c = x*y");
+      expect(result).toContain("vec3 d = MUL(x,y)");
+    });
+
+    it("function macro redefine — each invocation gets definition at that point", () => {
+      const glsl = "#define F(x) x+1\nvec3 a = F(v);\n#define F(x) x*2\nvec3 b = F(v);\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("vec3 a = v+1");
+      expect(result).toContain("vec3 b = v*2");
+    });
+
     it("multi-level nested macro expansion — expands correctly", () => {
       const glsl = [
         "#define TRANSFORM_UV(uv) APPLY_TILING(uv, offset)",
