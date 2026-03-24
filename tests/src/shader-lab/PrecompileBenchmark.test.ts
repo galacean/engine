@@ -3,6 +3,7 @@
  */
 
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { registerIncludes, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
@@ -443,7 +444,7 @@ describe("Precompile Benchmark", async () => {
 
           // GPU: create ShaderProgram
           // @ts-ignore
-          ShaderPass._createShaderProgram(engine, vertexSource, fragmentSource);
+          new ShaderProgram(engine, vertexSource, fragmentSource);
           const t2 = performance.now();
 
           cpuTimes.push(t1 - t0);

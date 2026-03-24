@@ -177,14 +177,6 @@ export class ShaderPass extends ShaderPart {
         ? this._compileShaderLabSource(engine, macroCollection)
         : this._compilePlatformSource(engine, macroCollection);
 
-    return ShaderPass._createShaderProgram(engine, vertexSource, fragmentSource);
-  }
-
-  /**
-   * @internal
-   * Create a ShaderProgram (GPU compile + link).
-   */
-  static _createShaderProgram(engine: Engine, vertexSource: string, fragmentSource: string): ShaderProgram {
     return new ShaderProgram(engine, vertexSource, fragmentSource);
   }
 
