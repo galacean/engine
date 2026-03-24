@@ -276,7 +276,7 @@ describe("Precompile Benchmark", async () => {
         () => {
           const parsed = JSON.parse(jsonStr);
           const name = uid("PBR_pre");
-          const shader = Shader.__createFromPrecompiled({ ...parsed, name });
+          const shader = Shader._createFromPrecompiled({ ...parsed, name });
           shader?.destroy(true);
         },
         5,
