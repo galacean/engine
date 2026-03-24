@@ -10,215 +10,164 @@ interface FuncMacro {
  * @internal
  */
 export class ShaderMacroProcessor {
+  private static _valueMacros = new Map<string, string>();
+  private static _funcMacros = new Map<string, FuncMacro>();
+  private static _shaderChunks: string[] = [];
+  private static _out: string[] = [];
+  private static _expandedNames = new Set<string>();
+  private static _macroFirstChars = new Set<number>();
+  private static _replaceWordParts: string[] = [];
+  private static _parsedFuncArgs = { values: [] as string[], end: 0 };
 
   /**
    * Evaluate a flat instruction array with active macros.
    * @param instructions - Pre-parsed instruction array
-   * @param macros - Active runtime macros { name → value }
-   * @returns Pure GLSL string — all conditionals resolved, all macros expanded
+   * @param macros - Active runtime macros
+   * @returns Pure GLSL string with all conditionals resolved and macros expanded
    */
   static evaluate(instructions: ShaderInstruction[], macros: Map<string, string>): string {
-    const parts: string[] = [];
-    const defines = new Map<string, string>();
-    const funcMacros = new Map<string, FuncMacro>();
-    let pc = 0;
-    const len = instructions.length;
+    const valueMacros = ShaderMacroProcessor._valueMacros;
+    const funcMacros = ShaderMacroProcessor._funcMacros;
+    const shaderChunks = ShaderMacroProcessor._shaderChunks;
+
+    valueMacros.clear();
+    funcMacros.clear();
+    shaderChunks.length = 0;
 
     for (const [name, value] of macros) {
-      defines.set(name, value);
+      valueMacros.set(name, value);
     }
 
-    while (pc < len) {
-      const inst = instructions[pc];
-      switch (inst[0]) {
+    let index = 0;
+    const length = instructions.length;
+
+    while (index < length) {
+      const instruction = instructions[index];
+      switch (instruction[0]) {
         case ShaderPreprocessorDirective.Text:
-          parts.push(inst[1] as string);
-          pc++;
+          shaderChunks.push(<string>instruction[1]);
+          index++;
           break;
-        case ShaderPreprocessorDirective.IfDef:
-          pc = defines.has(inst[1] as string) || funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
+        case ShaderPreprocessorDirective.IfDef: {
+          const name = <string>instruction[1];
+          index = valueMacros.has(name) || funcMacros.has(name) ? index + 1 : <number>instruction[2];
           break;
-        case ShaderPreprocessorDirective.IfNdef:
-          pc = !defines.has(inst[1] as string) && !funcMacros.has(inst[1] as string) ? pc + 1 : (inst[2] as number);
+        }
+        case ShaderPreprocessorDirective.IfNdef: {
+          const name = <string>instruction[1];
+          index = !valueMacros.has(name) && !funcMacros.has(name) ? index + 1 : <number>instruction[2];
           break;
+        }
         case ShaderPreprocessorDirective.IfCmp: {
-          const val = defines.get(inst[1] as string);
+          const name = <string>instruction[1];
+          const val = valueMacros.get(name);
           const cond =
             val !== undefined &&
-            ShaderMacroProcessor._evalCmpOp(Number(val) || 0, inst[2] as string, inst[3] as number);
-          pc = cond ? pc + 1 : (inst[4] as number);
+            ShaderMacroProcessor._evalCmpOp(Number(val) || 0, <string>instruction[2], <number>instruction[3]);
+          index = cond ? index + 1 : <number>instruction[4];
           break;
         }
         case ShaderPreprocessorDirective.IfExpr:
-          pc = ShaderMacroProcessor._evalCondition(inst[1] as Condition, defines, funcMacros)
-            ? pc + 1
-            : (inst[2] as number);
+          index = ShaderMacroProcessor._evalCondition(<Condition>instruction[1], valueMacros, funcMacros)
+            ? index + 1
+            : <number>instruction[2];
           break;
         case ShaderPreprocessorDirective.Else:
-          pc = inst[1] as number;
+          index = <number>instruction[1];
           break;
         case ShaderPreprocessorDirective.Endif:
-          pc++;
+          index++;
           break;
         case ShaderPreprocessorDirective.Define:
-          defines.set(inst[1] as string, "");
-          pc++;
+          valueMacros.set(<string>instruction[1], "");
+          index++;
           break;
         case ShaderPreprocessorDirective.DefineVal:
-          defines.set(inst[1] as string, inst[2] as string);
-          pc++;
+          valueMacros.set(<string>instruction[1], <string>instruction[2]);
+          index++;
           break;
         case ShaderPreprocessorDirective.DefineFunc:
-          funcMacros.set(inst[1] as string, { params: inst[2] as string[], body: inst[3] as string });
-          pc++;
+          funcMacros.set(<string>instruction[1], { params: <string[]>instruction[2], body: <string>instruction[3] });
+          index++;
           break;
         case ShaderPreprocessorDirective.Undef:
-          defines.delete(inst[1] as string);
-          funcMacros.delete(inst[1] as string);
-          pc++;
+          valueMacros.delete(<string>instruction[1]);
+          funcMacros.delete(<string>instruction[1]);
+          index++;
           break;
         default:
-          pc++;
+          index++;
           break;
       }
     }
 
-    // If no value macros and no function macros, skip expansion
+    // Fast path: no expandable macros
     let hasExpandable = false;
-    for (const [, val] of defines) {
+    for (const [, val] of valueMacros) {
       if (val !== "") {
         hasExpandable = true;
         break;
       }
     }
     if (!hasExpandable && funcMacros.size === 0) {
-      return parts.join("").replace(/\n\s*\n+/g, "\n");
+      return ShaderMacroProcessor._joinAndCompressNewlines(shaderChunks);
     }
 
-    return ShaderMacroProcessor._expandMacrosSinglePass(parts, defines, funcMacros);
+    return ShaderMacroProcessor._expandMacros(shaderChunks, valueMacros, funcMacros);
   }
-
-  private static _evalCmpOp(numVal: number, op: string, value: number): boolean {
-    switch (op) {
-      case "==":
-        return numVal === value;
-      case "!=":
-        return numVal !== value;
-      case ">":
-        return numVal > value;
-      case "<":
-        return numVal < value;
-      case ">=":
-        return numVal >= value;
-      case "<=":
-        return numVal <= value;
-      default:
-        return false;
-    }
-  }
-
-  private static _evalCondition(
-    cond: Condition,
-    defines: Map<string, string>,
-    funcMacros: Map<string, FuncMacro>
-  ): boolean {
-    switch (cond.t) {
-      case "def":
-        return defines.has(cond.m) || funcMacros.has(cond.m);
-      case "ndef":
-        return !defines.has(cond.m) && !funcMacros.has(cond.m);
-      case "cmp": {
-        const val = defines.get(cond.m);
-        if (val === undefined) return false;
-        return ShaderMacroProcessor._evalCmpOp(Number(val) || 0, cond.op, cond.v);
-      }
-      case "and":
-        return (
-          ShaderMacroProcessor._evalCondition(cond.l, defines, funcMacros) &&
-          ShaderMacroProcessor._evalCondition(cond.r, defines, funcMacros)
-        );
-      case "or":
-        return (
-          ShaderMacroProcessor._evalCondition(cond.l, defines, funcMacros) ||
-          ShaderMacroProcessor._evalCondition(cond.r, defines, funcMacros)
-        );
-      case "not":
-        return !ShaderMacroProcessor._evalCondition(cond.c, defines, funcMacros);
-      case "bool":
-        return cond.v;
-    }
-  }
-
-  // ---- Single-pass token stream macro expansion ----
 
   /**
-   * Scan text parts, expand all macros in a single left-to-right pass.
-   * For each character:
-   *   - if it starts an identifier → read full identifier → lookup in defines/funcMacros
-   *     - if found: expand (substitute value or function body) → recursively expand the result
-   *     - if not found: output as-is
-   *   - otherwise: output as-is
-   *
-   * Replaces multiple consecutive newlines with single newline.
+   * Scan shader chunks, expand all macros in a left-to-right pass.
    */
-  private static _expandMacrosSinglePass(
-    parts: string[],
-    defines: Map<string, string>,
+  private static _expandMacros(
+    shaderChunks: string[],
+    valueMacros: Map<string, string>,
     funcMacros: Map<string, FuncMacro>
   ): string {
-    const text = parts.join("");
-    const out: string[] = [];
-    const len = text.length;
+    const shaderSource = shaderChunks.join("");
+    const out = ShaderMacroProcessor._out;
+    out.length = 0;
+    const len = shaderSource.length;
     let i = 0;
     let lastNewline = false;
 
-    // Build first-char filter: skip Map lookups for identifiers whose first char can't match any macro
-    const macroFirstChars = new Set<number>();
-    for (const name of defines.keys()) macroFirstChars.add(name.charCodeAt(0));
+    const macroFirstChars = ShaderMacroProcessor._macroFirstChars;
+    macroFirstChars.clear();
+    for (const name of valueMacros.keys()) macroFirstChars.add(name.charCodeAt(0));
     for (const name of funcMacros.keys()) macroFirstChars.add(name.charCodeAt(0));
 
-    while (i < len) {
-      const cc = text.charCodeAt(i);
+    const expandedNames = ShaderMacroProcessor._expandedNames;
 
-      // Identifier start: [a-zA-Z_]
-      if ((cc >= 65 && cc <= 90) || (cc >= 97 && cc <= 122) || cc === 95) {
-        // Read full identifier
+    while (i < len) {
+      const cc = shaderSource.charCodeAt(i);
+
+      if (ShaderMacroProcessor._isIdentifierStart(cc)) {
         const start = i;
         i++;
-        while (i < len) {
-          const c = text.charCodeAt(i);
-          if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c === 95) {
-            i++;
-          } else {
-            break;
-          }
-        }
+        while (i < len && ShaderMacroProcessor._isIdentifierPart(shaderSource.charCodeAt(i))) i++;
 
-        // Fast path: first char not in any macro name → skip substring + Map lookups
-        if (!macroFirstChars.has(text.charCodeAt(start))) {
-          out.push(text.substring(start, i));
+        // Fast path: first char not in any macro name
+        if (!macroFirstChars.has(shaderSource.charCodeAt(start))) {
+          out.push(shaderSource.substring(start, i));
           lastNewline = false;
           continue;
         }
 
-        const name = text.substring(start, i);
+        const name = shaderSource.substring(start, i);
 
         // Try function macro
         const func = funcMacros.get(name);
         if (func) {
-          // Look ahead for '('
           let p = i;
-          while (p < len && (text.charCodeAt(p) === 32 || text.charCodeAt(p) === 9)) p++;
-          if (p < len && text.charCodeAt(p) === 40) {
-            // Parse arguments
-            const args = ShaderMacroProcessor._parseFuncArgs(text, p);
+          while (p < len && (shaderSource.charCodeAt(p) === 32 || shaderSource.charCodeAt(p) === 9)) p++;
+          if (p < len && shaderSource.charCodeAt(p) === 40) {
+            const args = ShaderMacroProcessor._parseFuncArgs(shaderSource, p);
             if (args) {
               i = args.end;
               const expanded = ShaderMacroProcessor._expandFuncBody(func, args.values);
-              // Recursively expand the result (handles nested macros, bounded depth)
-              const expandedNames = new Set<string>();
+              expandedNames.clear();
               expandedNames.add(name);
-              out.push(ShaderMacroProcessor._expandString(expanded, defines, funcMacros, expandedNames));
+              out.push(ShaderMacroProcessor._expandString(expanded, valueMacros, funcMacros, expandedNames));
               lastNewline = false;
               continue;
             }
@@ -226,148 +175,47 @@ export class ShaderMacroProcessor {
         }
 
         // Try value macro
-        const val = defines.get(name);
+        const val = valueMacros.get(name);
         if (val !== undefined && val !== "" && val !== name) {
-          const expandedNames = new Set<string>();
+          expandedNames.clear();
           expandedNames.add(name);
-          out.push(ShaderMacroProcessor._expandString(val, defines, funcMacros, expandedNames));
+          out.push(ShaderMacroProcessor._expandString(val, valueMacros, funcMacros, expandedNames));
           lastNewline = false;
           continue;
         }
 
-        // Not a macro — output as-is
         out.push(name);
         lastNewline = false;
         continue;
       }
 
-      // Newline compression: collapse \n\s*\n+ into single \n
+      // Newline compression
       if (cc === 10) {
         if (!lastNewline) {
           out.push("\n");
           lastNewline = true;
         }
         i++;
-        // Skip whitespace-only lines
         while (i < len) {
-          const c = text.charCodeAt(i);
-          if (c === 32 || c === 9) {
-            i++;
-          } else if (c === 10) {
-            i++;
-          } else {
-            break;
-          }
+          const c = shaderSource.charCodeAt(i);
+          if (c === 32 || c === 9 || c === 10) i++;
+          else break;
         }
         continue;
       }
 
-      // Batch collect consecutive non-identifier, non-newline characters
+      // Batch collect non-identifier, non-newline characters
       const batchStart = i;
       while (i < len) {
-        const c = text.charCodeAt(i);
-        if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95 || c === 10) break;
+        const c = shaderSource.charCodeAt(i);
+        if (ShaderMacroProcessor._isIdentifierStart(c) || c === 10) break;
         i++;
       }
-      out.push(text.substring(batchStart, i));
+      out.push(shaderSource.substring(batchStart, i));
       lastNewline = false;
     }
 
     return out.join("");
-  }
-
-  /**
-   * Parse function macro call arguments.
-   * FOO(a, b+c, vec3(1)) → {values: ["a","b+c","vec3(1)"], end: index after ')'}
-   */
-  private static _parseFuncArgs(text: string, openParen: number): { values: string[]; end: number } | null {
-    const args: string[] = [];
-    let level = 1;
-    let argStart = openParen + 1;
-    let k = argStart;
-    const len = text.length;
-
-    while (k < len && level > 0) {
-      const cc = text.charCodeAt(k);
-      if (cc === 40) {
-        level++;
-      } else if (cc === 41) {
-        if (--level === 0) {
-          const arg = text.substring(argStart, k).trim();
-          if (arg.length > 0 || args.length > 0) args.push(arg);
-          return { values: args, end: k + 1 };
-        }
-      } else if (cc === 44 && level === 1) {
-        args.push(text.substring(argStart, k).trim());
-        argStart = k + 1;
-      }
-      k++;
-    }
-    return null; // unmatched parentheses
-  }
-
-  /**
-   * Substitute function macro params in body.
-   */
-  private static _expandFuncBody(func: FuncMacro, args: string[]): string {
-    if (func.params.length === 0 || args.length !== func.params.length) return func.body;
-
-    let result = func.body;
-    for (let i = 0; i < func.params.length; i++) {
-      // Replace whole-word occurrences of param with arg value
-      result = ShaderMacroProcessor._replaceWord(result, func.params[i], args[i]);
-    }
-    return result;
-  }
-
-  /**
-   * Replace all whole-word occurrences of `word` in `text` with `replacement`.
-   * No regex.
-   */
-  private static _replaceWord(text: string, word: string, replacement: string): string {
-    const wLen = word.length;
-    const parts: string[] = [];
-    let start = 0;
-    let idx = text.indexOf(word, start);
-
-    while (idx !== -1) {
-      // Check word boundary before
-      if (idx > 0) {
-        const before = text.charCodeAt(idx - 1);
-        if (
-          (before >= 65 && before <= 90) ||
-          (before >= 97 && before <= 122) ||
-          (before >= 48 && before <= 57) ||
-          before === 95
-        ) {
-          idx = text.indexOf(word, idx + 1);
-          continue;
-        }
-      }
-      // Check word boundary after
-      const afterIdx = idx + wLen;
-      if (afterIdx < text.length) {
-        const after = text.charCodeAt(afterIdx);
-        if (
-          (after >= 65 && after <= 90) ||
-          (after >= 97 && after <= 122) ||
-          (after >= 48 && after <= 57) ||
-          after === 95
-        ) {
-          idx = text.indexOf(word, idx + 1);
-          continue;
-        }
-      }
-      // Word boundary match
-      parts.push(text.substring(start, idx));
-      parts.push(replacement);
-      start = afterIdx;
-      idx = text.indexOf(word, start);
-    }
-
-    if (start === 0) return text; // no matches
-    parts.push(text.substring(start));
-    return parts.join("");
   }
 
   /**
@@ -377,7 +225,7 @@ export class ShaderMacroProcessor {
    */
   private static _expandString(
     text: string,
-    defines: Map<string, string>,
+    valueMacros: Map<string, string>,
     funcMacros: Map<string, FuncMacro>,
     expandedNames: Set<string>
   ): string {
@@ -389,18 +237,14 @@ export class ShaderMacroProcessor {
 
     while (i < len) {
       const cc = text.charCodeAt(i);
-      if ((cc >= 65 && cc <= 90) || (cc >= 97 && cc <= 122) || cc === 95) {
+      if (ShaderMacroProcessor._isIdentifierStart(cc)) {
         const start = i;
         i++;
-        while (i < len) {
-          const c = text.charCodeAt(i);
-          if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || (c >= 48 && c <= 57) || c === 95) i++;
-          else break;
-        }
+        while (i < len && ShaderMacroProcessor._isIdentifierPart(text.charCodeAt(i))) i++;
         const name = text.substring(start, i);
 
         // Skip already-expanded names to prevent circular references;
-        // skip GL_ prefixed names (reserved GLSL built-ins, never user-defined macros)
+        // skip GL_ prefixed names (reserved GLSL built-ins)
         if (
           expandedNames.has(name) ||
           (name.charCodeAt(0) === 71 && name.charCodeAt(1) === 76 && name.charCodeAt(2) === 95)
@@ -421,7 +265,7 @@ export class ShaderMacroProcessor {
               out.push(
                 ShaderMacroProcessor._expandString(
                   ShaderMacroProcessor._expandFuncBody(func, args.values),
-                  defines,
+                  valueMacros,
                   funcMacros,
                   expandedNames
                 )
@@ -432,10 +276,10 @@ export class ShaderMacroProcessor {
           }
         }
 
-        const val = defines.get(name);
+        const val = valueMacros.get(name);
         if (val !== undefined && val !== "" && val !== name) {
           expandedNames.add(name);
-          out.push(ShaderMacroProcessor._expandString(val, defines, funcMacros, expandedNames));
+          out.push(ShaderMacroProcessor._expandString(val, valueMacros, funcMacros, expandedNames));
           expandedNames.delete(name);
           continue;
         }
@@ -443,16 +287,204 @@ export class ShaderMacroProcessor {
         out.push(name);
         continue;
       }
-      // Batch collect consecutive non-identifier characters
+
+      // Batch collect non-identifier characters
       const batchStart = i;
-      while (i < len) {
-        const c = text.charCodeAt(i);
-        if ((c >= 65 && c <= 90) || (c >= 97 && c <= 122) || c === 95) break;
-        i++;
-      }
+      while (i < len && !ShaderMacroProcessor._isIdentifierStart(text.charCodeAt(i))) i++;
       out.push(text.substring(batchStart, i));
     }
 
     return out.join("");
+  }
+
+  /**
+   * Substitute function macro params in body.
+   */
+  private static _expandFuncBody(func: FuncMacro, args: string[]): string {
+    if (func.params.length === 0 || args.length !== func.params.length) return func.body;
+
+    let result = func.body;
+    for (let i = 0; i < func.params.length; i++) {
+      result = ShaderMacroProcessor._replaceWord(result, func.params[i], args[i]);
+    }
+    return result;
+  }
+
+  /**
+   * Evaluate a compound condition tree.
+   */
+  private static _evalCondition(
+    cond: Condition,
+    valueMacros: Map<string, string>,
+    funcMacros: Map<string, FuncMacro>
+  ): boolean {
+    switch (cond.t) {
+      case "def":
+        return valueMacros.has(cond.m) || funcMacros.has(cond.m);
+      case "ndef":
+        return !valueMacros.has(cond.m) && !funcMacros.has(cond.m);
+      case "cmp": {
+        const val = valueMacros.get(cond.m);
+        if (val === undefined) return false;
+        return ShaderMacroProcessor._evalCmpOp(Number(val) || 0, cond.op, cond.v);
+      }
+      case "and":
+        return (
+          ShaderMacroProcessor._evalCondition(cond.l, valueMacros, funcMacros) &&
+          ShaderMacroProcessor._evalCondition(cond.r, valueMacros, funcMacros)
+        );
+      case "or":
+        return (
+          ShaderMacroProcessor._evalCondition(cond.l, valueMacros, funcMacros) ||
+          ShaderMacroProcessor._evalCondition(cond.r, valueMacros, funcMacros)
+        );
+      case "not":
+        return !ShaderMacroProcessor._evalCondition(cond.c, valueMacros, funcMacros);
+      case "bool":
+        return cond.v;
+    }
+  }
+
+  /**
+   * Evaluate a comparison operator.
+   */
+  private static _evalCmpOp(numVal: number, op: string, value: number): boolean {
+    switch (op) {
+      case "==":
+        return numVal === value;
+      case "!=":
+        return numVal !== value;
+      case ">":
+        return numVal > value;
+      case "<":
+        return numVal < value;
+      case ">=":
+        return numVal >= value;
+      case "<=":
+        return numVal <= value;
+      default:
+        return false;
+    }
+  }
+
+  /**
+   * Parse function macro call arguments.
+   * Returns reusable static result object to avoid allocation.
+   */
+  private static _parseFuncArgs(text: string, openParen: number): { values: string[]; end: number } | null {
+    const result = ShaderMacroProcessor._parsedFuncArgs;
+    result.values.length = 0;
+    let level = 1;
+    let argStart = openParen + 1;
+    let k = argStart;
+    const len = text.length;
+
+    while (k < len && level > 0) {
+      const cc = text.charCodeAt(k);
+      if (cc === 40) {
+        level++;
+      } else if (cc === 41) {
+        if (--level === 0) {
+          const arg = text.substring(argStart, k).trim();
+          if (arg.length > 0 || result.values.length > 0) result.values.push(arg);
+          result.end = k + 1;
+          return result;
+        }
+      } else if (cc === 44 && level === 1) {
+        result.values.push(text.substring(argStart, k).trim());
+        argStart = k + 1;
+      }
+      k++;
+    }
+    return null;
+  }
+
+  /**
+   * Replace all whole-word occurrences of `word` in `text` with `replacement`.
+   */
+  private static _replaceWord(text: string, word: string, replacement: string): string {
+    const wLen = word.length;
+    const parts = ShaderMacroProcessor._replaceWordParts;
+    parts.length = 0;
+    let start = 0;
+    let idx = text.indexOf(word, start);
+
+    while (idx !== -1) {
+      if (idx > 0 && ShaderMacroProcessor._isIdentifierPart(text.charCodeAt(idx - 1))) {
+        idx = text.indexOf(word, idx + 1);
+        continue;
+      }
+      const afterIdx = idx + wLen;
+      if (afterIdx < text.length && ShaderMacroProcessor._isIdentifierPart(text.charCodeAt(afterIdx))) {
+        idx = text.indexOf(word, idx + 1);
+        continue;
+      }
+      parts.push(text.substring(start, idx));
+      parts.push(replacement);
+      start = afterIdx;
+      idx = text.indexOf(word, start);
+    }
+
+    if (start === 0) return text;
+    parts.push(text.substring(start));
+    return parts.join("");
+  }
+
+  /**
+   * Join shader chunks with consecutive empty lines collapsed to single newline.
+   */
+  private static _joinAndCompressNewlines(shaderChunks: string[]): string {
+    const out = ShaderMacroProcessor._out;
+    out.length = 0;
+    let lastNewline = false;
+
+    for (let p = 0; p < shaderChunks.length; p++) {
+      const text = shaderChunks[p];
+      const len = text.length;
+      let i = 0;
+
+      while (i < len) {
+        if (text.charCodeAt(i) === 10) {
+          if (!lastNewline) {
+            out.push("\n");
+            lastNewline = true;
+          }
+          i++;
+          while (i < len) {
+            const c = text.charCodeAt(i);
+            if (c === 32 || c === 9 || c === 10) i++;
+            else break;
+          }
+        } else {
+          const batchStart = i;
+          while (i < len && text.charCodeAt(i) !== 10) i++;
+          out.push(text.substring(batchStart, i));
+          lastNewline = false;
+        }
+      }
+    }
+
+    return out.join("");
+  }
+
+  /**
+   * Check if char code is a valid identifier start.
+   * Matches: [A-Z] | [a-z] | _
+   */
+  private static _isIdentifierStart(charCode: number): boolean {
+    return (charCode >= 65 && charCode <= 90) || (charCode >= 97 && charCode <= 122) || charCode === 95;
+  }
+
+  /**
+   * Check if char code is a valid identifier part.
+   * Matches: [A-Z] | [a-z] | [0-9] | _
+   */
+  private static _isIdentifierPart(charCode: number): boolean {
+    return (
+      (charCode >= 65 && charCode <= 90) ||
+      (charCode >= 97 && charCode <= 122) ||
+      (charCode >= 48 && charCode <= 57) ||
+      charCode === 95
+    );
   }
 }
