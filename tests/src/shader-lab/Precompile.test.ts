@@ -637,6 +637,34 @@ describe("ShaderLab Precompile", async () => {
       expect(result).toContain("textureLod(myTex, uv, 0.0)");
     });
 
+    it("circular macro reference — does not infinite loop (C preprocessor standard)", () => {
+      // #define A B / #define B A → expanding A should terminate, not loop forever
+      const glsl = "#define A B\n#define B A\nA\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      // Should terminate with either "A" or "B", not hang
+      expect(result.trim().length).toBeGreaterThan(0);
+    });
+
+    it("indirect circular reference through 3 macros — terminates safely", () => {
+      const glsl = "#define X Y\n#define Y Z\n#define Z X\nX\n";
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result.trim().length).toBeGreaterThan(0);
+    });
+
+    it("multi-level nested macro expansion — expands correctly", () => {
+      const glsl = [
+        "#define TRANSFORM_UV(uv) APPLY_TILING(uv, offset)",
+        "#define APPLY_TILING(uv, to) ((uv) * (to).xy)",
+        "TRANSFORM_UV(v_uv)",
+        ""
+      ].join("\n");
+      const inst = parseShaderInstructions(glsl);
+      const result = eval_(inst, []);
+      expect(result).toContain("((v_uv) * (offset).xy)");
+    });
+
     it("conditional #define then #ifdef — with and without triggering macros", () => {
       const glsl = [
         "#if defined(SCENE_SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)",
