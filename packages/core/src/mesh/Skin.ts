@@ -15,7 +15,7 @@ export class Skin extends EngineObject {
   inverseBindMatrices = new Array<Matrix>();
 
   /** @internal */
-  @ignoreClone
+  @deepClone
   _skinMatrices: Float32Array;
   /** @internal */
   @ignoreClone
