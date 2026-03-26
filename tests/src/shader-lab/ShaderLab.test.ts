@@ -327,4 +327,36 @@ describe("ShaderLab", async () => {
     expect(fragment).to.contain("dot");
     expect(fragment).to.contain("texture2D");
   });
+
+  it("global-varying-var (Cocos VSOutput pattern: global Varyings var with #define macros)", async () => {
+    const shaderSource = await readFile("./shaders/global-varying-var.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+
+    // Verify verbose mode: global "Varyings o;" should not produce "uniform Varyings o;"
+    // and should not duplicate varying declarations.
+    const shader = shaderLabVerbose._parseShaderSource(shaderSource);
+    const passSource = shader.subShaders[0].passes[0];
+    const { vertex, fragment } = shaderLabVerbose._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0,
+      ""
+    )!;
+
+    expect(vertex).to.be.a("string").and.not.empty;
+    expect(fragment).to.be.a("string").and.not.empty;
+
+    // No "uniform Varyings o;" in output
+    expect(vertex).to.not.contain("uniform Varyings");
+    expect(fragment).to.not.contain("uniform Varyings");
+
+    // Macros should be transformed: "o.v_worldPos" → "v_worldPos"
+    expect(vertex).to.contain("#define VSOutput_worldPos v_worldPos");
+    expect(vertex).to.contain("#define VSOutput_worldNormal v_normal.xyz");
+
+    // No duplicate varying declarations
+    const varyingMatches = vertex.match(/varying vec3 v_worldPos/g);
+    expect(varyingMatches).to.have.lengthOf(1);
+  });
 });

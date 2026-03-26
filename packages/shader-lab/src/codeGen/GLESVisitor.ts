@@ -45,7 +45,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     // Build combined _globalStructVarMap from both entry functions before per-stage processing.
     // This must happen here because vertex runs first and doesn't yet know fragment's variables.
-    this._buildGlobalStructVarMap(vertexEntry, fragmentEntry, shaderData, context);
+    this._buildGlobalStructVarMap(vertexEntry, fragmentEntry, shaderData, outerGlobalMacroDeclarations, context);
 
     return {
       vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroDeclarations),
@@ -215,6 +215,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     vertexEntry: string,
     fragmentEntry: string,
     data: ShaderData,
+    globalMacros: ASTNode.GlobalDeclaration[],
     context: VisitorContext
   ): void {
     const map = context._globalStructVarMap;
@@ -266,6 +267,33 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
       this._collectStructVarsFromBody(fnNode.statements, structTypeRoles, map);
     }
+
+    // Also scan global macros for root variable names that might be global struct variables.
+    // e.g. #define VSOutput_worldPos o.v_worldPos → root "o" → look up in symbol table
+    let hasRoles = false;
+    for (const _ in structTypeRoles) {
+      hasRoles = true;
+      break;
+    }
+    if (hasRoles) {
+      const checked = new Set<string>();
+      const symOut: SymbolInfo[] = [];
+      this._forEachMacroMemberAccess(globalMacros, (rootName) => {
+        if (map[rootName] || checked.has(rootName)) return;
+        checked.add(rootName);
+        lookupSymbol.set(rootName, ESymbolType.VAR);
+        symbolTable.getSymbols(lookupSymbol, true, symOut);
+        for (const sym of symOut) {
+          if (sym.dataType) {
+            const role = structTypeRoles[sym.dataType.typeLexeme];
+            if (role) {
+              map[rootName] = role;
+              break;
+            }
+          }
+        }
+      });
+    }
   }
 
   private _collectStructVarsFromBody(
@@ -296,18 +324,36 @@ export abstract class GLESVisitor extends CodeGenVisitor {
    */
   private _registerGlobalMacroReferences(globalMacros: ASTNode.GlobalDeclaration[], context: VisitorContext): void {
     const map = context._globalStructVarMap;
-    if (!Object.keys(map).length) return;
+    let hasEntries = false;
+    for (const _ in map) {
+      hasEntries = true;
+      break;
+    }
+    if (!hasEntries) return;
+    this._forEachMacroMemberAccess(globalMacros, (rootName, propName) => {
+      const role = map[rootName];
+      if (role) context.referenceStructPropByName(role, propName);
+    });
+  }
+
+  /**
+   * Traverse global macro declarations, extracting member access patterns (e.g. "o.v_uv")
+   * and invoking the callback with (rootName, propName) for each match.
+   */
+  private _forEachMacroMemberAccess(
+    macros: ASTNode.GlobalDeclaration[],
+    callback: (rootName: string, propName: string) => void
+  ): void {
     const reg = CodeGenVisitor._memberAccessReg;
-    for (const macro of globalMacros) {
-      this._scanMacroMemberAccess(macro.children, reg, map, context);
+    for (const macro of macros) {
+      this._walkMacroChildren(macro.children, reg, callback);
     }
   }
 
-  private _scanMacroMemberAccess(
+  private _walkMacroChildren(
     children: NodeChild[],
     reg: RegExp,
-    map: Record<string, "varying" | "attribute" | "mrt">,
-    context: VisitorContext
+    callback: (rootName: string, propName: string) => void
   ): void {
     for (const child of children) {
       if (child instanceof BaseToken && child.type === Keyword.MACRO_DEFINE_EXPRESSION) {
@@ -317,19 +363,20 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         reg.lastIndex = 0;
         let match: RegExpExecArray | null;
         while ((match = reg.exec(value)) !== null) {
-          const role = map[match[1]];
-          if (role) context.referenceStructPropByName(role, match[2]);
+          callback(match[1], match[2]);
         }
       } else if (child instanceof TreeNode) {
-        this._scanMacroMemberAccess(child.children, reg, map, context);
+        this._walkMacroChildren(child.children, reg, callback);
       }
     }
   }
 
   private _getGlobalSymbol(out: ICodeSegment[]): void {
-    const { _referencedGlobals } = VisitorContext.context;
+    const context = VisitorContext.context;
+    const { _referencedGlobals } = context;
 
-    const lastLength = Object.keys(_referencedGlobals).length;
+    let lastLength = 0;
+    for (const _ in _referencedGlobals) lastLength++;
     if (lastLength === 0) return;
 
     for (const ident in _referencedGlobals) {
@@ -339,7 +386,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       const symbols = _referencedGlobals[ident];
       for (let i = 0; i < symbols.length; i++) {
         const sm = symbols[i];
-        const text = sm.astNode.codeGen(this) + (sm.type === ESymbolType.VAR ? ";" : "");
+        const codeGenResult = sm.astNode.codeGen(this);
+        if (!codeGenResult) continue;
+        const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
         if (!sm.isInMacroBranch) {
           out.push({
             text,
@@ -349,7 +398,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     }
 
-    if (Object.keys(_referencedGlobals).length !== lastLength) {
+    let newLength = 0;
+    for (const _ in _referencedGlobals) newLength++;
+    if (newLength !== lastLength) {
       this._getGlobalSymbol(out);
     }
   }

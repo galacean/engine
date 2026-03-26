@@ -244,7 +244,19 @@ export abstract class CodeGenVisitor {
     const children = node.children;
     const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
-      VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
+      const context = VisitorContext.context;
+      const typeLexeme = fullType.typeSpecifier.lexeme;
+      const role = context.getStructRole(typeLexeme);
+      if (role) {
+        // Global variable of a varying/attribute/mrt struct type (e.g. "Varyings o;").
+        // Don't output as uniform; register the variable in struct var maps instead.
+        const ident = children[1];
+        if (ident instanceof BaseToken) {
+          context.registerStructVar(ident.lexeme, role);
+        }
+        return "";
+      }
+      context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
     return `uniform ${this.defaultCodeGen(children)}`;
   }
