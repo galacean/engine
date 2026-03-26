@@ -253,7 +253,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         let result: ICodeSegment[] = [];
         result.push(
           ...macro.macroExpressions.map((item) => ({
-            text: item instanceof BaseToken ? item.lexeme : item.codeGen(this),
+            text:
+              item instanceof BaseToken
+                ? item.type === Keyword.MACRO_DEFINE_EXPRESSION
+                  ? this._transformMacroDefineValue(item.lexeme)
+                  : item.lexeme
+                : item.codeGen(this),
             index: item.location.start.index
           }))
         );

@@ -251,4 +251,9 @@ describe("ShaderLab", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
+
+  it("define-struct-access (#define value with struct member access)", async () => {
+    const shaderSource = await readFile("./shaders/define-struct-access.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+  });
 });

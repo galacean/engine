@@ -38,6 +38,8 @@ export class VisitorContext {
   _referencedMRTList: Record<string, StructProp[]>;
   _referencedGlobals: Record<string, SymbolInfo[]>;
   _referencedGlobalMacroASTs: TreeNode[] = [];
+  /** Maps variable names to their struct role for #define value transformation. */
+  _structVarMap: Record<string, "varying" | "attribute" | "mrt">;
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
@@ -56,6 +58,28 @@ export class VisitorContext {
     this._referencedMRTList = Object.create(null);
     this._referencedGlobals = Object.create(null);
     this._referencedGlobalMacroASTs.length = 0;
+    this._structVarMap = Object.create(null);
+  }
+
+  getStructRole(typeLexeme: string): "varying" | "attribute" | "mrt" | undefined {
+    if (this.isAttributeStruct(typeLexeme)) return "attribute";
+    if (this.isVaryingStruct(typeLexeme)) return "varying";
+    if (this.isMRTStruct(typeLexeme)) return "mrt";
+  }
+
+  referenceStructPropByName(role: "varying" | "attribute" | "mrt", propName: string): void {
+    const list = role === "varying" ? this.varyingList : role === "attribute" ? this.attributeList : this.mrtList;
+    const refList =
+      role === "varying"
+        ? this._referencedVaryingList
+        : role === "attribute"
+          ? this._referencedAttributeList
+          : this._referencedMRTList;
+    if (refList[propName]) return;
+    const props = list.filter((item) => item.ident.lexeme === propName);
+    if (props.length) {
+      refList[propName] = props;
+    }
   }
 
   isAttributeStruct(type: string) {
