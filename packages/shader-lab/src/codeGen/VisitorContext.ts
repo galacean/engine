@@ -72,6 +72,11 @@ export class VisitorContext {
     if (this.isMRTStruct(typeLexeme)) return "mrt";
   }
 
+  registerStructVar(varName: string, role: "varying" | "attribute" | "mrt"): void {
+    this._structVarMap[varName] = role;
+    this._globalStructVarMap[varName] = role;
+  }
+
   referenceStructPropByName(role: "varying" | "attribute" | "mrt", propName: string): void {
     const list = role === "varying" ? this.varyingList : role === "attribute" ? this.attributeList : this.mrtList;
     const refList =

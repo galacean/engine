@@ -291,4 +291,62 @@ describe("ShaderLab", async () => {
     expect(vertex).to.equal(expectedVert);
     expect(fragment).to.equal(expectedFrag);
   });
+
+  it("macro-member-access-builtin-arg (Cocos FSInput pattern: member access macro as builtin fn arg)", async () => {
+    const shaderSource = await readFile("./shaders/macro-member-access-builtin-arg.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+
+    // Also verify verbose mode (semantic analysis) succeeds — this was the original bug:
+    // member access macros like #define FSInput_worldNormal v.v_normal.xyz resolved to
+    // struct type "Varyings" instead of TypeAny, causing builtin overload matching to fail.
+    const shader = shaderLabVerbose._parseShaderSource(shaderSource);
+    const passSource = shader.subShaders[0].passes[0];
+    const { vertex, fragment } = shaderLabVerbose._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0,
+      ""
+    )!;
+
+    expect(vertex).to.be.a("string").and.not.empty;
+    expect(fragment).to.be.a("string").and.not.empty;
+
+    // Verify key builtins are present in output (macros expanded correctly)
+    expect(fragment).to.contain("normalize");
+    expect(fragment).to.contain("dot");
+    expect(fragment).to.contain("texture2D");
+  });
+
+  it("global-varying-var (Cocos VSOutput pattern: global Varyings var with #define macros)", async () => {
+    const shaderSource = await readFile("./shaders/global-varying-var.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+
+    // Verify verbose mode: global "Varyings o;" should not produce "uniform Varyings o;"
+    // and should not duplicate varying declarations.
+    const shader = shaderLabVerbose._parseShaderSource(shaderSource);
+    const passSource = shader.subShaders[0].passes[0];
+    const { vertex, fragment } = shaderLabVerbose._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0,
+      ""
+    )!;
+
+    expect(vertex).to.be.a("string").and.not.empty;
+    expect(fragment).to.be.a("string").and.not.empty;
+
+    // No "uniform Varyings o;" in output
+    expect(vertex).to.not.contain("uniform Varyings");
+    expect(fragment).to.not.contain("uniform Varyings");
+
+    // Macros should be transformed: "o.v_worldPos" → "v_worldPos"
+    expect(vertex).to.contain("#define VSOutput_worldPos v_worldPos");
+    expect(vertex).to.contain("#define VSOutput_worldNormal v_normal.xyz");
+
+    // No duplicate varying declarations
+    const varyingMatches = vertex.match(/varying vec3 v_worldPos/g);
+    expect(varyingMatches).to.have.lengthOf(1);
+  });
 });
