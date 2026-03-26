@@ -264,6 +264,41 @@ describe("ShaderLab", async () => {
 
   it("define-struct-access (#define value with struct member access)", async () => {
     const shaderSource = await readFile("./shaders/define-struct-access.shader");
+
+    // Validate GLSL compilation
     glslValidate(engine, shaderSource, shaderLabRelease);
+
+    // Verify CodeGen transformation results
+    const shader = shaderLabVerbose._parseShaderSource(shaderSource);
+    const passSource = shader.subShaders[0].passes[0];
+    const shaderProgram = shaderLabVerbose._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0, // GLSLES100
+      ""
+    );
+
+    const { vertex, fragment } = shaderProgram!;
+
+    // Vertex: `#define ATTR_POS attr.POSITION` → `#define ATTR_POS POSITION`
+    expect(vertex).to.include("#define ATTR_POS POSITION");
+    expect(vertex).not.to.include("#define ATTR_POS attr.POSITION");
+
+    // Vertex: `#define VARYING_UV o.v_uv` → `#define VARYING_UV v_uv`
+    expect(vertex).to.include("#define VARYING_UV v_uv");
+    expect(vertex).not.to.include("#define VARYING_UV o.v_uv");
+
+    // Vertex: varying declaration should be emitted for referenced v_uv
+    expect(vertex).to.match(/varying\s+vec2\s+v_uv/);
+    // Vertex: attribute declaration should be emitted for referenced POSITION
+    expect(vertex).to.match(/attribute\s+vec4\s+POSITION/);
+
+    // Fragment: `#define FRAG_UV v.v_uv` → `#define FRAG_UV v_uv`
+    expect(fragment).to.include("#define FRAG_UV v_uv");
+    expect(fragment).not.to.include("#define FRAG_UV v.v_uv");
+
+    // Fragment: varying declaration should be emitted for referenced v_uv
+    expect(fragment).to.match(/varying\s+vec2\s+v_uv/);
   });
 });
