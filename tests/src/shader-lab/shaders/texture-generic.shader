@@ -45,6 +45,16 @@ Shader "texture-generic-test" {
         return color;
       }
 
+      // Test: texture2DLod (ES 1.0 function, concrete types)
+      vec4 sampleLod2D(sampler2D tex, vec2 coord, float lod) {
+        return texture2DLod(tex, coord, lod);
+      }
+
+      // Test: texture2DLod result passed to user function
+      float decodeLod2D(sampler2D tex, vec2 coord) {
+        return decode32(texture2DLod(tex, coord, 0.0));
+      }
+
       // Test: texture() with samplerCube (GVec4 → vec4 resolve via GSamplerCube)
       samplerCube u_cubeMap;
       vec4 sampleCube(samplerCube tex, vec3 dir) {

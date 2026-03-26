@@ -29,23 +29,18 @@ function isGenericType(t: BuiltinType) {
 /**
  * Resolve a generic return type from the actual type of a generic parameter.
  *
- * Same-family generics (GenType→GenType, GenIntType→GenIntType) pass through directly.
- * Cross-family generics (GSampler→GVec4) require a mapping:
+ * For GVec4 return type, maps sampler variants to the correct vec4 type:
  *   sampler2D/sampler3D/samplerCube → vec4
  *   isampler2D/isampler3D/...       → ivec4
  *   usampler2D/usampler3D/...       → uvec4
+ *
+ * For all other generic return types (GenType etc.), passes through the actual param type directly.
  */
 function resolveGenericReturnType(
   genericReturnType: EGenType,
-  genericParamType: EGenType,
   actualParamType: NonGenericGalaceanType
 ): NonGenericGalaceanType {
-  // Cross-family: GSampler* → GVec4
-  if (
-    genericParamType >= EGenType.GSampler2D &&
-    genericParamType <= EGenType.GSampler2DArray &&
-    genericReturnType === EGenType.GVec4
-  ) {
+  if (genericReturnType === EGenType.GVec4) {
     switch (actualParamType) {
       case Keyword.I_SAMPLER2D:
       case Keyword.I_SAMPLER3D:
@@ -61,8 +56,6 @@ function resolveGenericReturnType(
         return Keyword.VEC4;
     }
   }
-
-  // Same-family: GenType→GenType etc. — pass through directly
   return actualParamType;
 }
 
@@ -124,11 +117,7 @@ export class BuiltinFunction {
           const curFnArg = fnArgs[i];
           if (isGenericType(curFnArg)) {
             if (resolvedReturnType === TypeAny) {
-              resolvedReturnType = resolveGenericReturnType(
-                fn._returnType as EGenType,
-                curFnArg as EGenType,
-                parameterTypes[i]
-              );
+              resolvedReturnType = resolveGenericReturnType(fn._returnType as EGenType, parameterTypes[i]);
             }
           } else {
             if (curFnArg !== parameterTypes[i] && parameterTypes[i] !== TypeAny) {
@@ -349,6 +338,7 @@ BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler3D, Keywo
 BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureLod", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture2DLod", Keyword.VEC4, Keyword.SAMPLER2D, Keyword.VEC2, Keyword.FLOAT);
 BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
 BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
 
