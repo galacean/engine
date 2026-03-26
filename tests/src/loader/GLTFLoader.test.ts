@@ -517,6 +517,21 @@ describe("glTF instance test", function () {
   });
 });
 
+describe("glTF scene root structure", function () {
+  it("Single root scene should have GLTF_ROOT container", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testRoot.gltf"
+    });
+    const { defaultSceneRoot } = glTFResource;
+
+    // Should always create GLTF_ROOT container, even for single-root scenes
+    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
+    expect(defaultSceneRoot.children.length).to.equal(1);
+    expect(defaultSceneRoot.children[0].name).to.equal("entity1");
+  });
+});
+
 describe("glTF instance test", function () {
   it("GLTFResource destroy directly", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({

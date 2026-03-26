@@ -307,7 +307,7 @@ describe("Animator test", function () {
     const additiveLayer = new AnimatorControllerLayer("additiveLayer");
     additiveLayer.stateMachine = animatorStateMachine;
     const mask = AnimatorLayerMask.createByEntity(animator.entity);
-    mask.setPathMaskActive("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04", false, true);
+    mask.setPathMaskActive("root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04", false, true);
     additiveLayer.mask = mask;
     additiveLayer.blendingMode = AnimatorLayerBlendingMode.Additive;
     animatorController.addLayer(additiveLayer);
@@ -319,12 +319,12 @@ describe("Animator test", function () {
     animator.play("Walk", 0);
     animator.play("Run", 1);
 
-    const parentEntity = animator.entity.findByPath("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/");
+    const parentEntity = animator.entity.findByPath("root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/");
     const targetEntity = animator.entity.findByPath(
-      "_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04"
+      "root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04"
     );
     const childEntity = animator.entity.findByPath(
-      "_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05"
+      "root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05"
     );
 
     let layerData = animator["_animatorLayersData"][1];
@@ -338,7 +338,7 @@ describe("Animator test", function () {
     expect(childLayerCurveOwner.isActive).to.eq(false);
 
     animator.animatorController.removeLayer(1);
-    mask.removePathMask("_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05");
+    mask.removePathMask("root/_rootJoint/b_Root_00/b_Hip_01/b_Spine01_02/b_Spine02_03/b_Neck_04/b_Head_05");
     animator.animatorController.addLayer(additiveLayer);
     animator.play("Run", 1);
     layerData = animator["_animatorLayersData"][1];
