@@ -281,24 +281,42 @@ describe("ShaderLab", async () => {
 
     const { vertex, fragment } = shaderProgram!;
 
-    // Vertex: `#define ATTR_POS attr.POSITION` → `#define ATTR_POS POSITION`
+    // ---- #define transformation ----
+    // Vertex: struct member access should be stripped to property name
     expect(vertex).to.include("#define ATTR_POS POSITION");
     expect(vertex).not.to.include("#define ATTR_POS attr.POSITION");
-
-    // Vertex: `#define VARYING_UV o.v_uv` → `#define VARYING_UV v_uv`
     expect(vertex).to.include("#define VARYING_UV v_uv");
     expect(vertex).not.to.include("#define VARYING_UV o.v_uv");
+    expect(vertex).to.include("#define VARYING_NORMAL v_normal");
+    expect(vertex).not.to.include("#define VARYING_NORMAL o.v_normal");
 
-    // Vertex: varying declaration should be emitted for referenced v_uv
-    expect(vertex).to.match(/varying\s+vec2\s+v_uv/);
-    // Vertex: attribute declaration should be emitted for referenced POSITION
-    expect(vertex).to.match(/attribute\s+vec4\s+POSITION/);
-
-    // Fragment: `#define FRAG_UV v.v_uv` → `#define FRAG_UV v_uv`
+    // Fragment: same transformation
     expect(fragment).to.include("#define FRAG_UV v_uv");
     expect(fragment).not.to.include("#define FRAG_UV v.v_uv");
+    expect(fragment).to.include("#define FRAG_NORMAL v_normal");
+    expect(fragment).not.to.include("#define FRAG_NORMAL v.v_normal");
 
-    // Fragment: varying declaration should be emitted for referenced v_uv
+    // ---- Declarations emitted from #define references ----
+    expect(vertex).to.match(/attribute\s+vec4\s+POSITION/);
+    expect(vertex).to.match(/attribute\s+vec2\s+TEXCOORD_0/);
+    expect(vertex).to.match(/varying\s+vec2\s+v_uv/);
+    expect(vertex).to.match(/varying\s+vec3\s+v_normal/);
     expect(fragment).to.match(/varying\s+vec2\s+v_uv/);
+    expect(fragment).to.match(/varying\s+vec3\s+v_normal/);
+
+    // ---- Macro usage in expressions ----
+    // CodeGen outputs spaces between tokens, so use regex for flexible matching.
+
+    // Vertex: ATTR_POS used in multiplication expression
+    expect(vertex).to.match(/renderer_MVPMat\s*\*\s*ATTR_POS/);
+    // Vertex: VARYING_UV used as assignment target (LHS)
+    expect(vertex).to.match(/VARYING_UV\s*=\s*TEXCOORD_0/);
+    // Vertex: VARYING_NORMAL used as assignment target
+    expect(vertex).to.match(/VARYING_NORMAL\s*=\s*vec3/);
+
+    // Fragment: FRAG_NORMAL used as argument in dot() call
+    expect(fragment).to.match(/dot\s*\(\s*FRAG_NORMAL/);
+    // Fragment: FRAG_UV used as argument in texture2D() call
+    expect(fragment).to.match(/texture2D\s*\(\s*u_texture\s*,\s*FRAG_UV\s*\)/);
   });
 });
