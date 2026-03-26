@@ -251,4 +251,9 @@ describe("ShaderLab", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
+
+  it("texture-generic (GVec4 → vec4 resolve)", async () => {
+    const shaderSource = await readFile("./shaders/texture-generic.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+  });
 });
