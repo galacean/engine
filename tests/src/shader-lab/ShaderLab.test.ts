@@ -359,4 +359,10 @@ describe("ShaderLab", async () => {
     const varyingMatches = vertex.match(/varying vec3 v_worldPos/g);
     expect(varyingMatches).to.have.lengthOf(1);
   });
+
+  it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
+    const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
 });
