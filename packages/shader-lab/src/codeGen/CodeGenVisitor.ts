@@ -31,7 +31,7 @@ export abstract class CodeGenVisitor {
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
-  private static readonly _memberAccessReg = /\b(\w+)\.(\w+)\b/g;
+  protected static readonly _memberAccessReg = /\b(\w+)\.(\w+)\b/g;
 
   defaultCodeGen(children: NodeChild[]) {
     const pool = CodeGenVisitor._tmpArrayPool;
@@ -52,9 +52,12 @@ export abstract class CodeGenVisitor {
     return ret.array.join(" ");
   }
 
-  protected _transformMacroDefineValue(lexeme: string): string {
+  protected _transformMacroDefineValue(
+    lexeme: string,
+    overrideMap?: Record<string, "varying" | "attribute" | "mrt">
+  ): string {
     const context = VisitorContext.context;
-    const structVarMap = context._structVarMap;
+    const structVarMap = overrideMap ?? context._structVarMap;
     if (!structVarMap) return lexeme;
 
     const spaceIdx = lexeme.indexOf(" ");
@@ -433,7 +436,7 @@ export abstract class CodeGenVisitor {
     }
   }
 
-  private _extractVarNamesFromInitDeclaratorList(
+  protected _extractVarNamesFromInitDeclaratorList(
     node: ASTNode.InitDeclaratorList,
     map: Record<string, "varying" | "attribute" | "mrt">,
     role: "varying" | "attribute" | "mrt"
