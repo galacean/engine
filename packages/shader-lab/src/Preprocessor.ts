@@ -5,6 +5,7 @@ import { ShaderLib } from "@galacean/engine";
 export enum MacroValueType {
   Number, // 1, 1.1
   Symbol, // variable name
+  MemberAccess, // member access, e.g. input.v_uv, v.rgb
   FunctionCall, // function call, e.g. clamp(a, 0.0, 1.0)
   Other // shaderLab does not check this
 }
@@ -27,6 +28,7 @@ export class Preprocessor {
   private static readonly _macroRegex =
     /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?[ ]+(\(?\w+\)?.*?)(?:\/\/.*|\/\*.*?\*\/)?\s*$/gm;
   private static readonly _symbolReg = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
+  private static readonly _memberAccessReg = /^([a-zA-Z_][a-zA-Z0-9_]*)(\.[a-zA-Z_][a-zA-Z0-9_]*)+$/;
   private static readonly _funcCallReg = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*)\)$/;
   private static readonly _macroDefineIncludeMap = new Map<string, MacroDefineList>();
 
@@ -61,6 +63,10 @@ export class Preprocessor {
         const referencedName = valueType === MacroValueType.FunctionCall ? info.functionCallName : info.value;
         if (info.params.indexOf(referencedName) !== -1) continue;
         if (out.indexOf(referencedName) === -1) out.push(referencedName);
+      } else if (valueType === MacroValueType.MemberAccess) {
+        // Extract root symbol: "input.v_uv" → "input"
+        const rootName = info.value.substring(0, info.value.indexOf("."));
+        if (out.indexOf(rootName) === -1) out.push(rootName);
       } else if (valueType === MacroValueType.Other) {
         // #if _VERBOSE
         Logger.warn(
@@ -110,6 +116,8 @@ export class Preprocessor {
         valueType = MacroValueType.Number;
       } else if (this._symbolReg.test(value)) {
         valueType = MacroValueType.Symbol;
+      } else if (this._memberAccessReg.test(value)) {
+        valueType = MacroValueType.MemberAccess;
       } else {
         const callMatch = this._funcCallReg.exec(value);
         if (callMatch) {
