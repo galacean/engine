@@ -38,8 +38,10 @@ export class VisitorContext {
   _referencedMRTList: Record<string, StructProp[]>;
   _referencedGlobals: Record<string, SymbolInfo[]>;
   _referencedGlobalMacroASTs: TreeNode[] = [];
-  /** Maps variable names to their struct role for #define value transformation. */
+  /** Maps variable names to their struct role for function-body #define value transformation. */
   _structVarMap: Record<string, "varying" | "attribute" | "mrt">;
+  /** Combined mapping from all entry functions for global #define transformation. */
+  _globalStructVarMap: Record<string, "varying" | "attribute" | "mrt">;
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
@@ -59,6 +61,9 @@ export class VisitorContext {
     this._referencedGlobals = Object.create(null);
     this._referencedGlobalMacroASTs.length = 0;
     this._structVarMap = Object.create(null);
+    if (resetAll) {
+      this._globalStructVarMap = Object.create(null);
+    }
   }
 
   getStructRole(typeLexeme: string): "varying" | "attribute" | "mrt" | undefined {
