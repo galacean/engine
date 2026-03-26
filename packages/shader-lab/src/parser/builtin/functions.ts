@@ -127,10 +127,9 @@ export class BuiltinFunction {
           }
         }
         if (found) {
-          fn._realReturnType =
-            isGenericType(fn._returnType) && resolvedReturnType !== TypeAny
-              ? resolvedReturnType
-              : (fn._returnType as NonGenericGalaceanType);
+          fn._realReturnType = isGenericType(fn._returnType)
+            ? resolvedReturnType
+            : (fn._returnType as NonGenericGalaceanType);
           return fn;
         }
       }
