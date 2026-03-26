@@ -26,6 +26,46 @@ function isGenericType(t: BuiltinType) {
   return t >= EGenType.GenType && t <= EGenType.GSampler2DArray;
 }
 
+/**
+ * Resolve a generic return type from the actual type of a generic parameter.
+ *
+ * Same-family generics (GenType→GenType, GenIntType→GenIntType) pass through directly.
+ * Cross-family generics (GSampler→GVec4) require a mapping:
+ *   sampler2D/sampler3D/samplerCube → vec4
+ *   isampler2D/isampler3D/...       → ivec4
+ *   usampler2D/usampler3D/...       → uvec4
+ */
+function resolveGenericReturnType(
+  genericReturnType: EGenType,
+  genericParamType: EGenType,
+  actualParamType: NonGenericGalaceanType
+): NonGenericGalaceanType {
+  // Cross-family: GSampler* → GVec4
+  if (
+    genericParamType >= EGenType.GSampler2D &&
+    genericParamType <= EGenType.GSampler2DArray &&
+    genericReturnType === EGenType.GVec4
+  ) {
+    switch (actualParamType) {
+      case Keyword.I_SAMPLER2D:
+      case Keyword.I_SAMPLER3D:
+      case Keyword.I_SAMPLER_CUBE:
+      case Keyword.I_SAMPLER2D_ARRAY:
+        return Keyword.IVEC4;
+      case Keyword.U_SAMPLER2D:
+      case Keyword.U_SAMPLER3D:
+      case Keyword.U_SAMPLER_CUBE:
+      case Keyword.U_SAMPLER2D_ARRAY:
+        return Keyword.UVEC4;
+      default:
+        return Keyword.VEC4;
+    }
+  }
+
+  // Same-family: GenType→GenType etc. — pass through directly
+  return actualParamType;
+}
+
 const BuiltinFunctionTable: Map<string, BuiltinFunction[]> = new Map();
 
 export class BuiltinFunction {
@@ -78,12 +118,18 @@ export class BuiltinFunction {
         const argLength = fnArgs.length;
         if (argLength !== parameterTypes.length) continue;
         // Try to match generic parameter type.
-        let returnType = TypeAny;
+        let resolvedReturnType: NonGenericGalaceanType = TypeAny;
         let found = true;
         for (let i = 0; i < argLength; i++) {
           const curFnArg = fnArgs[i];
           if (isGenericType(curFnArg)) {
-            if (returnType === TypeAny) returnType = parameterTypes[i];
+            if (resolvedReturnType === TypeAny) {
+              resolvedReturnType = resolveGenericReturnType(
+                fn._returnType as EGenType,
+                curFnArg as EGenType,
+                parameterTypes[i]
+              );
+            }
           } else {
             if (curFnArg !== parameterTypes[i] && parameterTypes[i] !== TypeAny) {
               found = false;
@@ -92,7 +138,10 @@ export class BuiltinFunction {
           }
         }
         if (found) {
-          fn._realReturnType = returnType;
+          fn._realReturnType =
+            isGenericType(fn._returnType) && resolvedReturnType !== TypeAny
+              ? resolvedReturnType
+              : (fn._returnType as NonGenericGalaceanType);
           return fn;
         }
       }
@@ -303,10 +352,10 @@ BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, 
 BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
 BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
 
-BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3);
-BuiltinFunction._create("textureCube", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCube", Keyword.VEC4, Keyword.SAMPLER_CUBE, Keyword.VEC3);
+BuiltinFunction._create("textureCube", Keyword.VEC4, Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureCube", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureCubeLod", Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCubeLod", Keyword.VEC4, Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 
 BuiltinFunction._create(
