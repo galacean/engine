@@ -247,6 +247,12 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
 
+  it("macro-negate-number (!0, !1 in #if expressions)", async () => {
+    const shaderSource = await readFile("./shaders/macro-negate-number.shader");
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+    glslValidate(engine, shaderSource, shaderLabRelease);
+  });
+
   it("mrt-struct", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);

@@ -355,7 +355,7 @@ export class MacroParser {
       scanner.advance(1);
       scanner.skipSpace(false);
       const parenExpr = this._parseParenthesisExpression(scanner);
-      if ((operator === "!" && typeof parenExpr !== "boolean") || (operator !== "!" && typeof parenExpr !== "number")) {
+      if (operator !== "!" && typeof parenExpr !== "number") {
         this._reportError(opPos, "invalid operator.", scanner.source, scanner.file);
       }
 
