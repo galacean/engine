@@ -40,7 +40,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     const params = <GLTFParams>item.params;
     const glTFResource = new GLTFResource(resourceManager.engine, item.url);
     const context = new GLTFParserContext(glTFResource, resourceManager, {
-      keepMeshData: true,
+      keepMeshData: false,
       ...params
     });
 
