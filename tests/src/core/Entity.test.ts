@@ -681,4 +681,194 @@ describe("Entity", async () => {
       expect(script.onDestroy).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("removeChild during onDisable", () => {
+    it("should not crash when removing children during parent's onDisable", () => {
+      // Issue #2947: Entity._scene is null in _onDisableInScene when child removed during parent's onDisable
+      //
+      // Entity tree: root → A → [B, C, D]
+      // A has a script that removes all children in onDisable
+      // B, C, D each have Script components
+      // When root.removeChild(A), the two-phase batched approach causes:
+      //   Phase 1: sets A/B/C/D._isActiveInScene = false, collects all components
+      //   Phase 2: fires callbacks — A's onDisable removes B/C/D, clearing their _scene,
+      //            then B/C/D's _onDisableInScene tries to access this.scene._componentsManager → crash
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      const D = new Entity(engine, "D");
+      A.addChild(B);
+      A.addChild(C);
+      A.addChild(D);
+
+      // A's script removes all children during onDisable
+      class ParentScript extends Script {
+        onDisable() {
+          const children = [...this.entity.children];
+          for (const child of children) {
+            this.entity.removeChild(child);
+          }
+        }
+      }
+      A.addComponent(ParentScript);
+
+      // B, C, D each have a Script component (triggers _onDisableInScene)
+      B.addComponent(Script);
+      C.addComponent(Script);
+      D.addComponent(Script);
+
+      // This should not throw "Cannot read properties of null (reading '_componentsManager')"
+      expect(() => {
+        root.removeChild(A);
+      }).not.toThrow();
+    });
+
+    it("should not crash when sibling removes another sibling during onDisable", () => {
+      // Entity tree: root → A → [B, C, D]
+      // D's onDisable removes sibling C
+      // With deferred callbacks, D fires first (children-first + reverse), then C's callback
+      // should be skipped since C's _scene was cleared by D's removeChild
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      const D = new Entity(engine, "D");
+      A.addChild(B);
+      A.addChild(C);
+      A.addChild(D);
+
+      class SiblingRemoverScript extends Script {
+        onDisable() {
+          // D removes sibling C
+          const parent = this.entity.parent;
+          const c = parent.findByName("C");
+          if (c && c.parent === parent) {
+            parent.removeChild(c);
+          }
+        }
+      }
+      D.addComponent(SiblingRemoverScript);
+
+      B.addComponent(Script);
+      C.addComponent(Script);
+
+      expect(() => {
+        root.removeChild(A);
+      }).not.toThrow();
+    });
+
+    it("should throw when child tries to removeChild its deactivating parent (reentrant)", () => {
+      // Entity tree: root → A → B
+      // B's onDisable tries to remove parent A — triggers reentrant _processInActive which should throw
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      A.addChild(B);
+
+      class ReentrantScript extends Script {
+        onDisable() {
+          root.removeChild(this.entity.parent);
+        }
+      }
+      B.addComponent(ReentrantScript);
+
+      expect(() => {
+        A.isActive = false;
+      }).toThrow();
+    });
+
+    it("should not crash when setting sibling isActive=false during onDisable", () => {
+      // Entity tree: root → A → [B, C]
+      // B's onDisable sets C.isActive = false
+      // C's _isActiveInScene is already false from Phase 1, so _processInActive is skipped
+      // Phase 2 still triggers C's callback normally via _phasedActiveInScene
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      A.addChild(B);
+      A.addChild(C);
+
+      let cDisableCount = 0;
+
+      class DeactivateSiblingScript extends Script {
+        onDisable() {
+          C.isActive = false;
+        }
+      }
+      B.addComponent(DeactivateSiblingScript);
+
+      C.addComponent(
+        class extends Script {
+          onDisable() {
+            cDisableCount++;
+          }
+        }
+      );
+
+      root.removeChild(A);
+      // C's onDisable should fire exactly once
+      expect(cDisableCount).eq(1);
+    });
+
+    it("should fire deactivation callbacks in children-first order", () => {
+      // Entity tree: root → A → [B, C]
+      // Deactivation order should be: B, C (children) before A (parent)
+
+      const root = scene.createRootEntity("root");
+
+      const A = new Entity(engine, "A");
+      root.addChild(A);
+
+      const B = new Entity(engine, "B");
+      const C = new Entity(engine, "C");
+      A.addChild(B);
+      A.addChild(C);
+
+      const order: string[] = [];
+
+      A.addComponent(
+        class extends Script {
+          onDisable() {
+            order.push("A");
+          }
+        }
+      );
+      B.addComponent(
+        class extends Script {
+          onDisable() {
+            order.push("B");
+          }
+        }
+      );
+      C.addComponent(
+        class extends Script {
+          onDisable() {
+            order.push("C");
+          }
+        }
+      );
+
+      A.isActive = false;
+      // Children-first + reverse: C, B, then A
+      expect(order).toEqual(["C", "B", "A"]);
+    });
+  });
 });
