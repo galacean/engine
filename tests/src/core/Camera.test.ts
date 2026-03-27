@@ -245,10 +245,64 @@ describe("camera test", function () {
     expect(Math.abs(ray.direction.z)).not.eq(Infinity);
   });
 
+  it("screenPointToRay should ignore inherited scale from parent entity", () => {
+    // Simulate UICanvas scenario: camera is a child of a scaled parent entity
+    const scene = engine.sceneManager.scenes[0];
+    const parentEntity = scene.createRootEntity("scaledParent");
+    parentEntity.transform.setScale(1.5, 1.5, 1.5);
+    parentEntity.transform.setPosition(100, 200, 0);
+
+    const childEntity = parentEntity.createChild("cameraChild");
+    childEntity.transform.setPosition(0, 0, 500);
+    const scaledCamera = childEntity.addComponent(Camera);
+    scaledCamera.isOrthographic = true;
+    scaledCamera.orthographicSize = 5;
+    scaledCamera.nearClipPlane = 0.1;
+    scaledCamera.farClipPlane = 1000;
+
+    // A camera without inherited scale at the same world position/rotation for comparison
+    const refEntity = scene.createRootEntity("refCamera");
+    refEntity.transform.setWorldPosition(
+      childEntity.transform.worldPosition.x,
+      childEntity.transform.worldPosition.y,
+      childEntity.transform.worldPosition.z
+    );
+    const refCamera = refEntity.addComponent(Camera);
+    refCamera.isOrthographic = true;
+    refCamera.orthographicSize = 5;
+    refCamera.nearClipPlane = 0.1;
+    refCamera.farClipPlane = 1000;
+
+    // Both cameras should produce the same ray for the same screen point
+    const screenPoint = new Vector2(128, 128);
+    const rayScaled = scaledCamera.screenPointToRay(screenPoint, new Ray());
+    const rayRef = refCamera.screenPointToRay(screenPoint, new Ray());
+
+    expect(rayScaled.origin.x).to.be.closeTo(rayRef.origin.x, 0.001);
+    expect(rayScaled.origin.y).to.be.closeTo(rayRef.origin.y, 0.001);
+    expect(rayScaled.direction.x).to.be.closeTo(rayRef.direction.x, 0.001);
+    expect(rayScaled.direction.y).to.be.closeTo(rayRef.direction.y, 0.001);
+    expect(rayScaled.direction.z).to.be.closeTo(rayRef.direction.z, 0.001);
+
+    // Round-trip: worldToViewportPoint -> viewportToWorldPoint should be accurate
+    const worldPoint = new Vector3(105, 210, 0);
+    const viewportPoint = scaledCamera.worldToViewportPoint(worldPoint, new Vector3());
+    const recoveredPoint = scaledCamera.viewportToWorldPoint(viewportPoint, new Vector3());
+    expect(recoveredPoint.x).to.be.closeTo(worldPoint.x, 0.01);
+    expect(recoveredPoint.y).to.be.closeTo(worldPoint.y, 0.01);
+    expect(recoveredPoint.z).to.be.closeTo(worldPoint.z, 0.01);
+
+    // Clean up
+    scaledCamera.destroy();
+    refCamera.destroy();
+    parentEntity.destroy();
+    refEntity.destroy();
+  });
+
   /*
     Attention:
-    Below methods will change the default view of current Camera. 
-    If executed in advance, it will affect the expected results of other test cases, 
+    Below methods will change the default view of current Camera.
+    If executed in advance, it will affect the expected results of other test cases,
     so it should be placed at the end of the test case execution.
   */
   it("projection matrix", () => {
