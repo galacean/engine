@@ -31,19 +31,51 @@ export abstract class CodeGenVisitor {
 
   protected static _tmpArrayPool = new ReturnableObjectPool(TempArray<string>, 10);
 
+  protected static readonly _memberAccessReg = /\b(\w+)\.(\w+)\b/g;
+
   defaultCodeGen(children: NodeChild[]) {
     const pool = CodeGenVisitor._tmpArrayPool;
     let ret = pool.get();
     ret.dispose();
     for (const child of children) {
       if (child instanceof BaseToken) {
-        ret.array.push(child.lexeme);
+        if (child.type === Keyword.MACRO_DEFINE_EXPRESSION) {
+          ret.array.push(this._transformMacroDefineValue(child.lexeme));
+        } else {
+          ret.array.push(child.lexeme);
+        }
       } else {
         ret.array.push(child.codeGen(this));
       }
     }
     pool.return(ret);
     return ret.array.join(" ");
+  }
+
+  protected _transformMacroDefineValue(
+    lexeme: string,
+    overrideMap?: Record<string, "varying" | "attribute" | "mrt">
+  ): string {
+    const context = VisitorContext.context;
+    const structVarMap = overrideMap ?? context._structVarMap;
+    if (!structVarMap) return lexeme;
+
+    const spaceIdx = lexeme.indexOf(" ");
+    if (spaceIdx === -1) return lexeme;
+
+    const macroName = lexeme.substring(0, spaceIdx);
+    let value = lexeme.substring(spaceIdx);
+
+    const reg = CodeGenVisitor._memberAccessReg;
+    reg.lastIndex = 0;
+    value = value.replace(reg, (match, varName, propName) => {
+      const role = structVarMap[varName];
+      if (!role) return match;
+      context.referenceStructPropByName(role, propName);
+      return propName;
+    });
+
+    return macroName + value;
   }
 
   visitPostfixExpression(node: ASTNode.PostfixExpression): string {
@@ -212,7 +244,19 @@ export abstract class CodeGenVisitor {
     const children = node.children;
     const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
-      VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
+      const context = VisitorContext.context;
+      const typeLexeme = fullType.typeSpecifier.lexeme;
+      const role = context.getStructRole(typeLexeme);
+      if (role) {
+        // Global variable of a varying/attribute/mrt struct type (e.g. "Varyings o;").
+        // Don't output as uniform; register the variable in struct var maps instead.
+        const ident = children[1];
+        if (ident instanceof BaseToken) {
+          context.registerStructVar(ident.lexeme, role);
+        }
+        return "";
+      }
+      context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
     return `uniform ${this.defaultCodeGen(children)}`;
   }
@@ -351,11 +395,81 @@ export abstract class CodeGenVisitor {
     const fnName = fnNode.protoType.ident.lexeme;
     const context = VisitorContext.context;
 
+    this._collectStructVars(fnNode, context);
+
     if (fnName == context.stageEntry) {
       const statements = fnNode.statements.codeGen(this);
       return `void main() ${statements}`;
     } else {
       return this.defaultCodeGen(fnNode.children);
+    }
+  }
+
+  private _collectStructVars(fnNode: ASTNode.FunctionDefinition, context: VisitorContext): void {
+    const map = context._structVarMap;
+    // Clear previous function's mappings
+    for (const key in map) delete map[key];
+
+    // Collect from function parameters
+    const paramList = fnNode.protoType.parameterList;
+    if (paramList) {
+      for (const param of paramList) {
+        if (param.ident && param.typeInfo && typeof param.typeInfo.type === "string") {
+          const role = context.getStructRole(param.typeInfo.typeLexeme);
+          if (role) map[param.ident.lexeme] = role;
+        }
+      }
+    }
+
+    // Collect from local variable declarations in function body
+    this._collectStructVarsFromNode(fnNode.statements, context, map);
+  }
+
+  private _collectStructVarsFromNode(
+    node: TreeNode,
+    context: VisitorContext,
+    map: Record<string, "varying" | "attribute" | "mrt">
+  ): void {
+    const children = node.children;
+    for (let i = 0; i < children.length; i++) {
+      const child = children[i];
+      if (child instanceof ASTNode.InitDeclaratorList) {
+        const typeLexeme = child.typeInfo?.typeLexeme;
+        if (typeLexeme) {
+          const role = context.getStructRole(typeLexeme);
+          if (role) {
+            // Extract variable name from SingleDeclaration or comma-separated identifiers
+            this._extractVarNamesFromInitDeclaratorList(child, map, role);
+          }
+        }
+      } else if (child instanceof TreeNode) {
+        this._collectStructVarsFromNode(child, context, map);
+      }
+    }
+  }
+
+  protected _extractVarNamesFromInitDeclaratorList(
+    node: ASTNode.InitDeclaratorList,
+    map: Record<string, "varying" | "attribute" | "mrt">,
+    role: "varying" | "attribute" | "mrt"
+  ): void {
+    const children = node.children;
+    if (children.length === 1) {
+      // SingleDeclaration: type ident
+      const singleDecl = children[0] as ASTNode.SingleDeclaration;
+      const identChildren = singleDecl.children;
+      if (identChildren.length >= 2 && identChildren[1] instanceof BaseToken) {
+        map[identChildren[1].lexeme] = role;
+      }
+    } else if (children.length >= 3) {
+      // InitDeclaratorList , ident ...
+      const initDeclList = children[0];
+      if (initDeclList instanceof ASTNode.InitDeclaratorList) {
+        this._extractVarNamesFromInitDeclaratorList(initDeclList, map, role);
+      }
+      if (children[2] instanceof BaseToken) {
+        map[children[2].lexeme] = role;
+      }
     }
   }
 

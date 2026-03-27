@@ -4,7 +4,7 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
-import { Preprocessor } from "../Preprocessor";
+import { MacroValueType, Preprocessor } from "../Preprocessor";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -1424,7 +1424,12 @@ export namespace ASTNode {
           sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
           // #endif
         } else {
-          this.typeInfo = symbols[0].dataType?.type;
+          // For member access macros (e.g. #define FRAG_UV v.v_uv), the referenceSymbolNames
+          // contains the root variable ("v") whose type is the struct ("Varyings"), not the
+          // member type ("vec2"). Skip type inference in this case — keep TypeAny.
+          if (child instanceof BaseToken || !this._isMemberAccessMacro(sa, child)) {
+            this.typeInfo = symbols[0].dataType?.type;
+          }
           const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
           if (currentScopeSymbol) {
             if (
@@ -1441,6 +1446,12 @@ export namespace ASTNode {
           }
         }
       }
+    }
+
+    private _isMemberAccessMacro(sa: SemanticAnalyzer, child: MacroCallSymbol | MacroCallFunction): boolean {
+      const macroName = child.macroName;
+      const infos = sa.macroDefineList[macroName];
+      return infos?.some((info) => info.valueType === MacroValueType.MemberAccess) ?? false;
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
