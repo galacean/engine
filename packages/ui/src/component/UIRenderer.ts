@@ -71,7 +71,7 @@ export class UIRenderer extends Renderer implements IGraphics {
   _subChunk;
 
   @assignmentClone
-  private _raycastEnabled: boolean = true;
+  private _raycastEnabled: boolean = false;
   @deepClone
   protected _color: Color = new Color(1, 1, 1, 1);
 
