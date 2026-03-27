@@ -122,7 +122,7 @@ export class Entity extends EngineObject {
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
-  private _activeChangedComponents: Component[];
+  private _isActiveChanging: boolean = false;
   private _modifyFlagManager: UpdateFlagManager;
 
   /**
@@ -565,24 +565,24 @@ export class Entity extends EngineObject {
    * @internal
    */
   _processActive(activeChangeFlag: ActiveChangeFlag): void {
-    if (this._activeChangedComponents) {
+    if (this._isActiveChanging) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
-    this._setActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
-    this._setActiveComponents(true, activeChangeFlag);
+    this._isActiveChanging = true;
+    this._setActiveInHierarchy(activeChangeFlag);
+    this._isActiveChanging = false;
   }
 
   /**
    * @internal
    */
   _processInActive(activeChangeFlag: ActiveChangeFlag): void {
-    if (this._activeChangedComponents) {
+    if (this._isActiveChanging) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
-    this._setInActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
-    this._setActiveComponents(false, activeChangeFlag);
+    this._isActiveChanging = true;
+    this._setInActiveInHierarchy(activeChangeFlag);
+    this._isActiveChanging = false;
   }
 
   /**
@@ -690,42 +690,33 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
-    const activeChangedComponents = this._activeChangedComponents;
-    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      activeChangedComponents[i]._setActive(isActive, activeChangeFlag);
-    }
-    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
-    this._activeChangedComponents = null;
-  }
-
-  private _setActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
+  private _setActiveInHierarchy(activeChangeFlag: ActiveChangeFlag): void {
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = true);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = true);
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      (component.enabled || !component._awoken) && activeChangedComponents.push(component);
+      (component.enabled || !component._awoken) && component._setActive(true, activeChangeFlag);
     }
     const children = this._children;
-    for (let i = 0, n = children.length; i < n; i++) {
+    for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      child.isActive && child._setActiveInHierarchy(activeChangedComponents, activeChangeFlag);
+      child.isActive && child._setActiveInHierarchy(activeChangeFlag);
     }
   }
 
-  private _setInActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
+  private _setInActiveInHierarchy(activeChangeFlag: ActiveChangeFlag): void {
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      component.enabled && activeChangedComponents.push(component);
+      component.enabled && component._setActive(false, activeChangeFlag);
     }
     const children = this._children;
-    for (let i = 0, n = children.length; i < n; i++) {
+    for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
-      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
+      child.isActive && child._setInActiveInHierarchy(activeChangeFlag);
     }
   }
 

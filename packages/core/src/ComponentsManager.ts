@@ -36,8 +36,6 @@ export class ComponentsManager {
   // Render
   private _onUpdateRenderers = new DisorderedArray<Renderer>();
 
-  // Delay dispose active/inActive Pool
-  private _componentsContainerPool: Component[][] = [];
 
   addCamera(camera: Camera) {
     camera._cameraIndex = this._activeCameras.length;
@@ -270,14 +268,6 @@ export class ComponentsManager {
     );
   }
 
-  getActiveChangedTempList(): Component[] {
-    return this._componentsContainerPool.length ? this._componentsContainerPool.pop() : [];
-  }
-
-  putActiveChangedTempList(componentContainer: Component[]): void {
-    componentContainer.length = 0;
-    this._componentsContainerPool.push(componentContainer);
-  }
 
   /**
    * @internal

@@ -58,7 +58,7 @@ export class ResourceManager {
    * Create a ResourceManager.
    * @param engine - Engine to which the current ResourceManager belongs
    */
-  constructor(public readonly engine: Engine) {}
+  constructor(public readonly engine: Engine) { }
 
   /**
    * Load the asset asynchronously by asset item information.
@@ -342,7 +342,12 @@ export class ResourceManager {
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem {
     assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
-      throw `asset type should be specified: ${assetInfo.url}`;
+      const remoteConfig = this._virtualPathResourceMap[assetInfo.url];
+      if (remoteConfig) {
+        assetInfo.type = remoteConfig.type;
+      } else {
+        throw `asset type should be specified: ${assetInfo.url}`;
+      }
     }
     assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
     assetInfo.timeout = assetInfo.timeout ?? this.timeout;
@@ -621,7 +626,7 @@ export class ResourceManager {
  * @param extNames - Name of file extension
  */
 export function resourceLoader(assetType: string, extNames: string[], useCache: boolean = true) {
-  return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
+  return <T extends Loader<any>>(Target: { new(useCache: boolean): T }) => {
     const loader = new Target(useCache);
     ResourceManager._addLoader(assetType, loader, extNames);
   };
@@ -632,18 +637,18 @@ const reEscapeChar = /\\(\\)?/g;
 const rePropName = RegExp(
   // Match anything that isn't a dot or bracket.
   "[^.[\\]]+" +
-    "|" +
-    // Or match property names within brackets.
-    "\\[(?:" +
-    // Match a non-string expression.
-    "([^\"'][^[]*)" +
-    "|" +
-    // Or match strings (supports escaping characters).
-    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
-    ")\\]" +
-    "|" +
-    // Or match "" as the space between consecutive dots or empty brackets.
-    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
+  "|" +
+  // Or match property names within brackets.
+  "\\[(?:" +
+  // Match a non-string expression.
+  "([^\"'][^[]*)" +
+  "|" +
+  // Or match strings (supports escaping characters).
+  "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
+  ")\\]" +
+  "|" +
+  // Or match "" as the space between consecutive dots or empty brackets.
+  "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
   "g"
 );
 
