@@ -340,14 +340,14 @@ export class ResourceManager {
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem {
-    assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+    const remoteConfig = this._virtualPathResourceMap[assetInfo.url];
+    if (remoteConfig) {
+      assetInfo.type = remoteConfig.type;
+    } else {
+      assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+    }
     if (assetInfo.type === undefined) {
-      const remoteConfig = this._virtualPathResourceMap[assetInfo.url];
-      if (remoteConfig) {
-        assetInfo.type = remoteConfig.type;
-      } else {
-        throw `asset type should be specified: ${assetInfo.url}`;
-      }
+      throw `asset type should be specified: ${assetInfo.url}`;
     }
     assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
     assetInfo.timeout = assetInfo.timeout ?? this.timeout;
