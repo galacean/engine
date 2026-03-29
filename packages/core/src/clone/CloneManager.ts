@@ -104,6 +104,7 @@ export class CloneManager {
     deepInstanceMap: Map<Object, Object>
   ): void {
     const sourceProperty = source[k];
+    let effectiveCloneMode = cloneMode;
 
     // Remappable references (Entity/Component) are always remapped, regardless of clone decorator
     if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
@@ -111,10 +112,28 @@ export class CloneManager {
       return;
     }
 
-    if (cloneMode === CloneMode.Ignore) return;
+    if (effectiveCloneMode === CloneMode.Ignore) return;
+
+    const targetProperty = target[k];
+    if (
+      effectiveCloneMode === undefined &&
+      sourceProperty instanceof Object &&
+      targetProperty &&
+      targetProperty !== sourceProperty &&
+      targetProperty.constructor === sourceProperty.constructor
+    ) {
+      // Component constructors already create instance-local mutable objects.
+      // Preserve that isolation when cloning prefab templates instead of
+      // overwriting the clone with the template's shared reference.
+      effectiveCloneMode = CloneMode.Deep;
+    }
 
     // Primitives, undecorated, or @assignmentClone: direct assign
-    if (!(sourceProperty instanceof Object) || cloneMode === undefined || cloneMode === CloneMode.Assignment) {
+    if (
+      !(sourceProperty instanceof Object) ||
+      effectiveCloneMode === undefined ||
+      effectiveCloneMode === CloneMode.Assignment
+    ) {
       target[k] = sourceProperty;
       return;
     }
@@ -137,6 +156,24 @@ export class CloneManager {
           targetPropertyT.set(<TypedArray>sourceProperty);
         }
         break;
+      case Map:
+        let targetPropertyM = <Map<any, any>>target[k];
+        if (targetPropertyM == null) {
+          target[k] = targetPropertyM = new Map<any, any>();
+        } else {
+          targetPropertyM.clear();
+        }
+        (<Map<any, any>>sourceProperty).forEach((value, key) => targetPropertyM.set(key, value));
+        break;
+      case Set:
+        let targetPropertyS = <Set<any>>target[k];
+        if (targetPropertyS == null) {
+          target[k] = targetPropertyS = new Set<any>();
+        } else {
+          targetPropertyS.clear();
+        }
+        (<Set<any>>sourceProperty).forEach((value) => targetPropertyS.add(value));
+        break;
       case Array:
         let targetPropertyA = <Array<any>>target[k];
         const length = (<Array<any>>sourceProperty).length;
@@ -150,7 +187,7 @@ export class CloneManager {
             <Array<any>>sourceProperty,
             targetPropertyA,
             i,
-            cloneMode,
+            effectiveCloneMode,
             srcRoot,
             targetRoot,
             deepInstanceMap
