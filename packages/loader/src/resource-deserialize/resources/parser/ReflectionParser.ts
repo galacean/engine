@@ -125,7 +125,14 @@ export class ReflectionParser {
         if (!entity) return Promise.resolve(null);
         const type = Loader.getClass(value.componentType);
         if (!type) return Promise.resolve(null);
-        return Promise.resolve(entity.getComponents(type, [])[value.componentIndex] ?? null);
+        // Try direct components first, fallback to children search (for GLB clone entities
+        // where the component lives on a child entity inside the clone)
+        const direct = entity.getComponents(type, []);
+        const result = direct[value.componentIndex];
+        if (result) return Promise.resolve(result);
+        const includeChildren: any[] = [];
+        entity.getComponentsIncludeChildren(type, includeChildren);
+        return Promise.resolve(includeChildren[value.componentIndex] ?? null);
       } else if (ReflectionParser._isEntityRef(value)) {
         return Promise.resolve(this._resolveEntityByPath(value.entityPath));
       } else if (ReflectionParser._isSignalRef(value)) {
