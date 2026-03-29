@@ -123,8 +123,8 @@ export class GLTFAnimationParser extends GLTFParser {
         // the Animator sits on GLTF_ROOT and needs the root node name in the path.
         // Include the scene root name for single-root scenes to ensure consistent bone paths.
         const sceneNodes = context.glTF.scenes[context.glTF.scene ?? 0]?.nodes;
-        if (sceneNodes?.length === 1 && relativePath !== "") {
-          relativePath = `${entity.name}/${relativePath}`;
+        if (sceneNodes?.length === 1) {
+          relativePath = relativePath === "" ? entity.name : `${entity.name}/${relativePath}`;
         }
         let ComponentType: ComponentConstructor<Component>;
         let propertyName: string;

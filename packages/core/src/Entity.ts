@@ -377,6 +377,14 @@ export class Entity extends EngineObject {
       return this;
     }
 
+    // Some imported animation clips are normalized to include the single scene root
+    // name (for example "mixamorig:Hips/..."), while the Animator may already sit on
+    // that root entity. Accept a self-name prefix so wrapped model roots and
+    // standalone single-root clips resolve through the same path convention.
+    if (splits[0] === this.name) {
+      return splits.length === 1 ? this : Entity._findChildByName(this, 0, splits, 1);
+    }
+
     return Entity._findChildByName(this, 0, splits, 0);
   }
 

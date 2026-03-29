@@ -1046,6 +1046,48 @@ describe("Animator test", function () {
     expect(animator.entity.clone().getComponent(Animator).animatorController).to.eq(animator.animatorController);
   });
 
+  it("samples self-name-prefixed curve paths on wrapped roots", () => {
+    const wrappedRoot = new Entity(engine, "GLTF_ROOT");
+    const hips = new Entity(engine, "mixamorig:Hips");
+    const spine = new Entity(engine, "mixamorig:Spine");
+    hips.parent = wrappedRoot;
+    spine.parent = hips;
+
+    const clip = new AnimationClip("idle");
+    const hipsCurve = new AnimationFloatCurve();
+    const spineCurve = new AnimationFloatCurve();
+    const hipsStart = new Keyframe<number>();
+    const hipsEnd = new Keyframe<number>();
+    hipsStart.time = 0;
+    hipsStart.value = 0;
+    hipsEnd.time = 0.1;
+    hipsEnd.value = 1;
+    hipsCurve.addKey(hipsStart);
+    hipsCurve.addKey(hipsEnd);
+
+    const spineStart = new Keyframe<number>();
+    const spineEnd = new Keyframe<number>();
+    spineStart.time = 0;
+    spineStart.value = 0;
+    spineEnd.time = 0.1;
+    spineEnd.value = 1;
+    spineCurve.addKey(spineStart);
+    spineCurve.addKey(spineEnd);
+
+    clip.addCurveBinding("mixamorig:Hips", Transform, "position.x", hipsCurve);
+    clip.addCurveBinding("mixamorig:Hips/mixamorig:Spine", Transform, "position.y", spineCurve);
+
+    expect(wrappedRoot.findByPath("mixamorig:Hips")).to.eq(hips);
+    expect(wrappedRoot.findByPath("mixamorig:Hips/mixamorig:Spine")).to.eq(spine);
+
+    // @ts-ignore
+    clip._sampleAnimation(wrappedRoot, 0.1);
+
+    expect(wrappedRoot.transform.position.x).to.eq(0);
+    expect(hips.transform.position.x).to.eq(1);
+    expect(spine.transform.position.y).to.eq(1);
+  });
+
   it("anyState transition interrupts crossFade", () => {
     const { animatorController } = animator;
     animatorController.addParameter("interrupt", false);
