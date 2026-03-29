@@ -481,6 +481,17 @@ describe("glTF Loader test", function () {
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
   });
+
+  it("single-root animation root channel should bind to the root node path", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testA.gltf"
+    });
+
+    const clip = glTFResource.animations?.[0];
+    expect(clip).to.exist;
+    expect(clip.curveBindings[0].relativePath).to.equal("entity1");
+  });
 });
 
 describe("glTF instance test", function () {

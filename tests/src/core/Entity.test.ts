@@ -320,6 +320,19 @@ describe("Entity", async () => {
       expect(parent.findByPath("child/grandson")).eq(grandson2);
     });
 
+    it("findByPath accepts self-name prefix", () => {
+      const parent = new Entity(engine, "parent");
+      parent.parent = scene.getRootEntity();
+      const child = new Entity(engine, "child");
+      child.parent = parent;
+      const grandson = new Entity(engine, "grandson");
+      grandson.parent = child;
+
+      expect(parent.findByPath("parent")).eq(parent);
+      expect(parent.findByPath("parent/child")).eq(child);
+      expect(parent.findByPath("parent/child/grandson")).eq(grandson);
+    });
+
     it("clearChildren", () => {
       const parent = new Entity(engine, "parent");
 
