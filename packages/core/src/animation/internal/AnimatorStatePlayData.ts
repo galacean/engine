@@ -1,20 +1,63 @@
+import { AnimationClip } from "../AnimationClip";
 import { AnimatorState } from "../AnimatorState";
+import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
 import { WrapMode } from "../enums/WrapMode";
+import { StateMachineScript } from "../StateMachineScript";
 import { AnimatorStateData } from "./AnimatorStateData";
 
 /**
- * @internal
+ * Per-instance runtime data for an AnimatorState.
+ * Proxies read-only properties from the shared AnimatorState asset,
+ * while providing per-instance mutable properties (e.g. speed).
  */
 export class AnimatorStatePlayData {
+  /** @internal */
   state: AnimatorState;
+  /** @internal */
   stateData: AnimatorStateData;
+  /** @internal */
   playedTime: number;
   playState: AnimatorStatePlayState;
+  /** @internal */
   clipTime: number;
+  /** @internal */
   currentEventIndex: number;
+  /** @internal */
   isForward = true;
+  /** @internal */
   offsetFrameTime: number;
+  /** Per-instance speed. Initialized from AnimatorState.speed, safe to modify without affecting other instances. */
+  speed: number = 1.0;
+
+  // ── Proxy properties from AnimatorState (read-only) ──
+
+  /** The name of the state. */
+  get name(): string {
+    return this.state.name;
+  }
+
+  /** The clip played by this state. */
+  get clip(): AnimationClip {
+    return this.state.clip;
+  }
+
+  /** The wrap mode. */
+  get wrapMode(): WrapMode {
+    return this.state.wrapMode;
+  }
+
+  /** The transitions going out of this state. */
+  get transitions(): Readonly<AnimatorStateTransition[]> {
+    return this.state.transitions;
+  }
+
+  /**
+   * Add a state machine script to the underlying AnimatorState.
+   */
+  addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
+    return this.state.addStateMachineScript(scriptType);
+  }
 
   private _changedOrientation = false;
 
@@ -27,6 +70,7 @@ export class AnimatorStatePlayData {
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
     this.isForward = true;
+    this.speed = state.speed;
     this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 

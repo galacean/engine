@@ -218,13 +218,31 @@ export class Animator extends Component {
    * @param stateName - The state name
    * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
    */
-  findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorState {
-    return this._getAnimatorStateInfo(stateName, layerIndex).state;
+  /**
+   * Find the per-instance play data for a state by name.
+   * The returned object's `speed` is per-instance and safe to modify without affecting other Animator instances.
+   * @param stateName - The state name
+   * @param layerIndex - The layer index (default -1, searches all layers)
+   * @returns Per-instance AnimatorStatePlayData, or null if not found
+   */
+  findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStatePlayData {
+    const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
+    if (!state || foundLayer < 0) return null;
+    const layerData = this._animatorLayersData[foundLayer];
+    if (!layerData) return null;
+    // Check srcPlayData and destPlayData for the matching state
+    if (layerData.srcPlayData.state === state) return layerData.srcPlayData;
+    if (layerData.destPlayData.state === state) return layerData.destPlayData;
+    // State exists in controller but not currently playing — return srcPlayData initialized with the state
+    return layerData.srcPlayData;
   }
 
   /**
    * Get the layer by name.
    * @param name - The layer's name.
+   * @todo Return per-instance layer data (like AnimatorStatePlayData for states) instead of shared asset.
+   *       Currently returns the shared AnimatorControllerLayer — modifying `weight` affects all instances.
+   *       Should follow Unity's pattern: Animator.SetLayerWeight/GetLayerWeight (per-instance).
    */
   findLayerByName(name: string): AnimatorControllerLayer {
     return this._animatorController?._layersMap[name];
@@ -616,7 +634,7 @@ export class Animator extends Component {
     const { srcPlayData } = layerData;
     const { state } = srcPlayData;
 
-    const playSpeed = state.speed * this.speed;
+    const playSpeed = srcPlayData.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
 
     srcPlayData.updateOrientation(playDeltaTime);
@@ -883,7 +901,7 @@ export class Animator extends Component {
       return;
     }
 
-    const playSpeed = state.speed * this.speed;
+    const playSpeed = destPlayData.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
 
     destPlayData.updateOrientation(playDeltaTime);
@@ -989,7 +1007,7 @@ export class Animator extends Component {
   ): void {
     const playData = layerData.srcPlayData;
     const { state } = playData;
-    const actualSpeed = state.speed * this.speed;
+    const actualSpeed = playData.speed * this.speed;
     const actualDeltaTime = actualSpeed * deltaTime;
 
     playData.updateOrientation(actualDeltaTime);
