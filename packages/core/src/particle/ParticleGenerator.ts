@@ -112,6 +112,7 @@ export class ParticleGenerator {
   @ignoreClone
   _subPrimitive = new SubMesh(0, 0, MeshTopology.Triangles);
   /** @internal */
+  @ignoreClone
   readonly _renderer: ParticleRenderer;
 
   /** @internal */

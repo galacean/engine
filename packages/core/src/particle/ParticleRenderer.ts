@@ -258,6 +258,23 @@ export class ParticleRenderer extends Renderer {
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
+  /**
+   * @internal
+   */
+  override _cloneTo(target: ParticleRenderer): void {
+    super._cloneTo(target);
+
+    // ShaderData internals (_macroCollection, _propertyValueMap) are @ignoreClone,
+    // so the cloned shaderData only has the constructor-set Billboard macro.
+    // Must re-apply the source's shaderData state.
+    this.shaderData.cloneTo(target.shaderData);
+
+    // Rebuild GPU resources to match cloned renderMode/mesh/maxParticles.
+    const gen = target.generator;
+    gen._reorganizeGeometryBuffers();
+    gen._resizeInstanceBuffer(true, gen.main.maxParticles);
+  }
+
   protected override _onDestroy(): void {
     const mesh = this._mesh;
     if (mesh) {

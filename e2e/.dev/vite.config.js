@@ -42,6 +42,7 @@ demoList.forEach(({ file }) => {
 fs.outputJSONSync(path.join(__dirname, OUT_PATH, ".demoList.json"), demoSorted);
 
 module.exports = {
+  publicDir: path.resolve(__dirname, "public"),
   server: {
     open: true,
     host: "0.0.0.0",
