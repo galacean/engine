@@ -9,7 +9,7 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 const shaderLab = new ShaderLab();
 
-const shaderSource = `Shader "/custom.gs" {
+const shaderSource = `Shader "/custom.shader" {
           SubShader "Default" {
             UsePass "pbr/Default/ShadowCaster"
 

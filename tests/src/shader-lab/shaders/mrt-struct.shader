@@ -1,4 +1,4 @@
-Shader "/mrt-test.gs" {
+Shader "/mrt-test.shader" {
 
     SubShader "Default" {
 

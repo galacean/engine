@@ -9,7 +9,7 @@ import {
 } from "@galacean/engine-core";
 import { ShaderChunkLoader } from "./ShaderChunkLoader";
 
-@resourceLoader(AssetType.Shader, ["gs", "gsl"])
+@resourceLoader(AssetType.Shader, ["shader"])
 class ShaderLoader extends Loader<Shader> {
   private static _builtinRegex = /^\s*\/\/\s*@builtin\s+(\w+)/;
 

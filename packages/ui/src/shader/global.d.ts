@@ -3,7 +3,7 @@ declare module "*.glsl" {
   export default value;
 }
 
-declare module "*.gs" {
+declare module "*.shader" {
   const value: string;
   export default value;
 }
