@@ -3,7 +3,7 @@ import Common from "./Common.glsl";
 import Fog from "./Fog.glsl";
 import Light from "./Light.glsl";
 import Normal from "./Normal.glsl";
-import PBRSource from "./PBR.gs";
+import PBRSource from "./PBR.shader";
 import Shadow from "./Shadow.glsl";
 import ShadowSampleTent from "./ShadowSampleTent.glsl";
 import Skin from "./Skin.glsl";

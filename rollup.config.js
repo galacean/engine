@@ -32,7 +32,7 @@ const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
 const glslPlugin = glsl({
-  include: [/\.(glsl|gs)$/],
+  include: [/\.(glsl|shader)$/],
   compress: false
 });
 
@@ -90,7 +90,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.(glsl|gs)$/],
+            include: [/\.(glsl|shader)$/],
             compress: true
           })
         );
@@ -157,7 +157,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.(glsl|gs)$/],
+            include: [/\.(glsl|shader)$/],
             compress: true
           })
         );
