@@ -10,10 +10,13 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
+import { FilledSpriteAssembler } from "../assembler/FilledSpriteAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
+import { SpriteFilledMode } from "../enums/SpriteFilledMode";
+import { SpriteFilledOrigin } from "../enums/SpriteFilledOrigin";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
@@ -39,6 +42,14 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
   @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
+  @assignmentClone
+  private _filledMode: SpriteFilledMode = SpriteFilledMode.Radial360;
+  @assignmentClone
+  private _filledAmount: number = 1;
+  @assignmentClone
+  private _filledOrigin: SpriteFilledOrigin = SpriteFilledOrigin.Bottom;
+  @assignmentClone
+  private _filledClockWise: boolean = true;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -78,6 +89,9 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
         case SpriteDrawMode.Tiled:
           this._assembler = TiledSpriteAssembler;
           break;
+        case SpriteDrawMode.Filled:
+          this._assembler = FilledSpriteAssembler;
+          break;
         default:
           break;
       }
@@ -115,6 +129,74 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
+      }
+    }
+  }
+
+  /**
+   * The fill amount of the sprite renderer, range from 0 to 1. (Only works in filled mode.)
+   */
+  get filledAmount(): number {
+    return this._filledAmount;
+  }
+
+  set filledAmount(value: number) {
+    value = MathUtil.clamp(value, 0, 1);
+    if (this._filledAmount !== value) {
+      this._filledAmount = value;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+      }
+    }
+  }
+
+  /**
+   * The fill mode of the sprite renderer. (Only works in filled mode.)
+   */
+  get filledMode(): SpriteFilledMode {
+    return this._filledMode;
+  }
+
+  set filledMode(value: SpriteFilledMode) {
+    if (this._filledMode !== value) {
+      this._filledMode = value;
+      // Reset origin to a valid default for the new mode
+      this._filledOrigin =
+        value === SpriteFilledMode.Radial90 ? SpriteFilledOrigin.BottomLeft : SpriteFilledOrigin.Bottom;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+      }
+    }
+  }
+
+  /**
+   * The fill origin of the sprite renderer. (Only works in filled mode.)
+   */
+  get filledOrigin(): SpriteFilledOrigin {
+    return this._filledOrigin;
+  }
+
+  set filledOrigin(value: SpriteFilledOrigin) {
+    if (this._filledOrigin !== value) {
+      this._filledOrigin = value;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
+      }
+    }
+  }
+
+  /**
+   * Whether the fill is clockwise. (Only works in filled radial mode.)
+   */
+  get filledClockWise(): boolean {
+    return this._filledClockWise;
+  }
+
+  set filledClockWise(value: boolean) {
+    if (this._filledClockWise !== value) {
+      this._filledClockWise = value;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
       }
     }
   }
@@ -436,6 +518,9 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
             this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
             break;
           case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
+            break;
+          case SpriteDrawMode.Filled:
             this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeUVAndColor;
             break;
         }
