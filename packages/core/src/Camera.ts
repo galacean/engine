@@ -934,7 +934,15 @@ export class Camera extends Component {
   private _getInvViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this._entity.transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
+      const matrix = this._invViewProjMat;
+      if (this._isCustomViewMatrix) {
+        Matrix.invert(this.viewMatrix, matrix);
+      } else {
+        // Ignore scale, consistent with viewMatrix getter
+        const transform = this._entity.transform;
+        Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, matrix);
+      }
+      matrix.multiply(this._getInverseProjectionMatrix());
     }
     return this._invViewProjMat;
   }

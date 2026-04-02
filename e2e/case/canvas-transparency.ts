@@ -35,11 +35,11 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { alpha: false } })
     .load([
       {
         url: "https://mdn.alipayobjects.com/huamei_kz4wfo/afts/img/A*3d2oSbam_wcAAAAAAAAAAAAAesp6AQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       },
       {
         url: "https://mdn.alipayobjects.com/huamei_qbugvr/afts/img/A*j6MERb-exVgAAAAAAAAAAAAADtKFAQ/original",
-        type: AssetType.Texture2D
+        type: AssetType.Texture
       }
     ])
     .then((resources) => {

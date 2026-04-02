@@ -51,7 +51,7 @@ WebGLEngine.create({
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/huamei_b4l2if/afts/img/A*JPsCSK5LtYkAAAAAAAAAAAAADil6AQ/original",
-      type: AssetType.Texture2D
+      type: AssetType.Texture
     })
     .then((texture) => {
       createParticle(engine, rootEntity, <Texture2D>texture);
@@ -121,9 +121,9 @@ function createParticle(engine: Engine, rootEntity: Entity, texture: Texture2D):
   // Limit velocity over lifetime
   limitVelocityOverLifetime.enabled = true;
   limitVelocityOverLifetime.separateAxes = true;
-  limitVelocityOverLifetime.limitX = new ParticleCompositeCurve(1);
-  limitVelocityOverLifetime.limitY = new ParticleCompositeCurve(1);
-  limitVelocityOverLifetime.limitZ = new ParticleCompositeCurve(0);
+  limitVelocityOverLifetime.speedX = new ParticleCompositeCurve(1);
+  limitVelocityOverLifetime.speedY = new ParticleCompositeCurve(1);
+  limitVelocityOverLifetime.speedZ = new ParticleCompositeCurve(0);
   limitVelocityOverLifetime.space = ParticleSimulationSpace.World;
   limitVelocityOverLifetime.dampen = 0.25;
   limitVelocityOverLifetime.drag = new ParticleCompositeCurve(0.0);

@@ -38,7 +38,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const { defaultSceneRoot } = asset;
       rootEntity.addChild(defaultSceneRoot);
       const animator = defaultSceneRoot.getComponent(Animator);
-      const skinMeshRenderer = defaultSceneRoot.getComponent(SkinnedMeshRenderer);
+      const skinMeshRenderer = defaultSceneRoot.getComponentsIncludeChildren(SkinnedMeshRenderer, [])[0];
       skinMeshRenderer.blendShapeWeights[0] = 1.0;
       animator.play("TheWave");
 

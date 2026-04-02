@@ -45,8 +45,8 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     .then((asset) => {
       const { defaultSceneRoot } = asset;
       rootEntity.addChild(defaultSceneRoot);
-      const entity = defaultSceneRoot;
-      defaultSceneRoot.transform.rotation = new Vector3(-90, -0, 0);
+      const entity = defaultSceneRoot.children[0];
+      entity.transform.rotation = new Vector3(-90, -0, 0);
       const animator = entity.addComponent(Animator);
 
       animator.animatorController = new AnimatorController(engine);

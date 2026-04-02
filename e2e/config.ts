@@ -117,7 +117,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr-clearcoat",
       threshold: 0,
-      diffPercentage: 0.12
+      diffPercentage: 0.1293
     },
     "white-furnace": {
       category: "Material",
@@ -135,7 +135,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.0044
+      diffPercentage: 0.0080
     },
     shaderLab: {
       category: "Material",
@@ -197,7 +197,7 @@ export const E2E_CONFIG = {
       category: "Texture",
       caseFileName: "texture-hdr",
       threshold: 0,
-      diffPercentage: 0.0512
+      diffPercentage: 0.0523
     }
   },
   Shadow: {
@@ -283,7 +283,7 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-collision",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.0011459
     },
     "LitePhysics Collision Group": {
       category: "Physics",
@@ -301,19 +301,25 @@ export const E2E_CONFIG = {
       category: "Physics",
       caseFileName: "physx-customUrl",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.001146
     },
     "PhysX Mesh Collider": {
       category: "Physics",
       caseFileName: "physx-mesh-collider",
       threshold: 0,
-      diffPercentage: 0.12094
+      diffPercentage: 0.13803
     },
     "PhysX Mesh Collider Data": {
       category: "Physics",
       caseFileName: "physx-mesh-collider-data",
       threshold: 0,
       diffPercentage: 0.02
+    },
+    "PhysX Deferred Contact": {
+      category: "Physics",
+      caseFileName: "physx-deferred-contact",
+      threshold: 0,
+      diffPercentage: 0.0
     }
   },
   Particle: {
@@ -327,7 +333,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-fire",
       threshold: 0,
-      diffPercentage: 0.0707
+      diffPercentage: 0.15386
     },
     forceOverLifetime: {
       category: "Particle",
@@ -418,6 +424,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-emit-billboard-stretched",
       threshold: 0,
       diffPercentage: 0.0
+    },
+    particleHorizontalBillboard: {
+      category: "Particle",
+      caseFileName: "particleRenderer-horizontal-billboard",
+      threshold: 0,
+      diffPercentage: 0.2162
     }
   },
   PostProcess: {
@@ -437,7 +449,7 @@ export const E2E_CONFIG = {
       category: "PostProcess",
       caseFileName: "postProcess-LDR-bloom-neutral",
       threshold: 0,
-      diffPercentage: 0.097
+      diffPercentage: 0.4829
     },
     customPass: {
       category: "PostProcess",

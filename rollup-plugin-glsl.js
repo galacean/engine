@@ -35,7 +35,7 @@ function compressShader(code) {
 export default function glsl(userOptions = {}) {
   const options = Object.assign(
     {
-      include: ["**/*.vs", "**/*.fs", "**/*.vert", "**/*.frag", "**/*.glsl"]
+      include: ["**/*.vs", "**/*.fs", "**/*.vert", "**/*.frag", "**/*.glsl", "**/*.shader"]
     },
     userOptions
   );

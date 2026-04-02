@@ -34,31 +34,6 @@ Finally, follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> 
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*rqvsSpkGJ6UAAAAAAAAAAAAADhuCAQ/original" />
 
-### Code to Set Skybox
-
-```typescript
-// 创建天空盒纹理
-const textureCube = await engine.resourceManager.load<TextureCube>({
-  urls: [
-    "px - right 图片 url",
-    "nx - left 图片 url",
-    "py - top 图片 url",
-    "ny - bottom 图片 url",
-    "pz - front 图片 url",
-    "nz - back 图片 url",
-  ],
-  type: AssetType.TextureCube,
-});
-// 创建天空盒材质
-const skyMaterial = new SkyBoxMaterial(engine);
-skyMaterial.texture = textureCube;
-// 设置天空盒
-const background = scene.background;
-background.mode = BackgroundMode.Sky;
-background.sky.material = skyMaterial;
-background.sky.mesh = PrimitiveMesh.createCuboid(engine, 2, 2, 2);
-```
-
 ## Setting Procedural Sky
 
 Procedural sky is the default background in 3D projects in the editor. You can also follow the path **[Hierarchy Panel](/en/docs/interface/hierarchy)** -> **Select Scene** -> **[Inspector Panel](/en/docs/interface/inspector)** -> **Background section** -> **Set Mode to Sky** -> **Select the built-in SkyMat material** -> **Set Mesh to the built-in Sphere**

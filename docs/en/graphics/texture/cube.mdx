@@ -31,28 +31,6 @@ After preparing the HDR image, follow the steps:
 
 <Image src="https://mdn.alipayobjects.com/huamei_yo47yq/afts/img/A*Oi3FSLEEaYgAAAAAAAAAAAAADhuCAQ/original" />
 
-Of course, you can also create a cube texture in scripts by loading six textures in the corresponding order.
-
-```typescript
-const cubeTextureResource = {
-  type: AssetType.TextureCube,
-  urls: [
-    "px - right image url",
-    "nx - left image url",
-    "py - top image url",
-    "ny - bottom image url",
-    "pz - front image url",
-    "nz - back image url",
-  ],
-};
-
-engine.resourceManager.load(cubeTextureResource).then((resource) => {
-  // Cube texture supported by the engine
-  const cubeTexture = resource;
-  // The texture can now be applied to materials or used for other operations
-});
-```
-
 ## Usage
 
 Cube textures are primarily used in skyboxes. For more details, refer to [Sky Background](/en/docs/graphics/background/sky/).

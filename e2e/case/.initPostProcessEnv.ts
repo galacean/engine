@@ -38,7 +38,7 @@ export async function initPostProcessEnv(
       engine.resourceManager
         .load<AmbientLight>({
           type: AssetType.AmbientLight,
-          url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*kY8wSIrDC2gAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
+          url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*eRJ8QKzf5zAAAAAAgBAAAAgAekp5AQ/ambient.ambLight"
         })
         .then((ambientLight) => {
           scene.ambientLight = ambientLight;
@@ -52,7 +52,7 @@ export async function initPostProcessEnv(
           return ambientLight;
         }),
       engine.resourceManager.load<Texture2D>({
-        type: AssetType.Texture2D,
+        type: AssetType.Texture,
         url: "https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*tMeTQ4Mx60oAAAAAAAAAAAAADuuHAQ/original"
       })
     ]).then((resArray) => {

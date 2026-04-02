@@ -24,7 +24,7 @@ background.mode = BackgroundMode.Texture;
 // 将一张 2D 纹理设置为背景纹理
 background.texture = await engine.resourceManager.load<Texture2D>({
   url: "XXX.jpg",
-  type: AssetType.Texture2D,
+  type: AssetType.Texture,
 });
 // 设置填充模式为铺满
 background.textureFillMode = BackgroundTextureFillMode.Fill;

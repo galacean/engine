@@ -1,6 +1,7 @@
 import { Quaternion, Ray, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
+import { IPhysicsEvents } from "./IPhysicsEvents";
 
 /**
  * Interface for physics manager.
@@ -41,6 +42,12 @@ export interface IPhysicsScene {
    * @param elapsedTime - Step time of update.
    */
   update(elapsedTime: number): void;
+
+  /**
+   * Collect buffered collision and trigger events.
+   * Must be called after update() and after syncing transforms back from physics.
+   */
+  updateEvents(): IPhysicsEvents;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -124,6 +131,11 @@ export interface IPhysicsScene {
     orientation: Quaternion,
     onOverlap: (obj: number) => boolean
   ): number[];
+
+  /**
+   * Trim internal object pools after a GC cycle.
+   */
+  gc(): void;
 
   /**
    * Destroy the physics scene.

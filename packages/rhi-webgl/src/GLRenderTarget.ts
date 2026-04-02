@@ -245,13 +245,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         );
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
-        const depthRenderBuffer = gl.createRenderbuffer();
-
-        this._depthRenderBuffer = depthRenderBuffer;
-
-        gl.bindRenderbuffer(gl.RENDERBUFFER, depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
-        gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, depthRenderBuffer);
+        this._depthRenderBuffer = this._createRenderBuffer(internalFormat, attachment);
       }
     }
 
@@ -262,33 +256,23 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _bindMSAAFBO(): void {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
-    const MSAADepthRenderBuffer = gl.createRenderbuffer();
 
     /** @ts-ignore */
-    const { _depth, colorTextureCount, antiAliasing, width, height } = this._target;
+    const { _depth, colorTextureCount } = this._target;
 
     this._blitDrawBuffers = new Array(colorTextureCount);
-    this._MSAADepthRenderBuffer = MSAADepthRenderBuffer;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._MSAAFrameBuffer);
 
     // prepare MRT+MSAA color RBOs
     for (let i = 0; i < colorTextureCount; i++) {
-      const MSAAColorRenderBuffer = gl.createRenderbuffer();
-
-      this._MSAAColorRenderBuffers[i] = MSAAColorRenderBuffer;
       this._blitDrawBuffers[i] = gl.NONE;
 
-      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAAColorRenderBuffer);
-      gl.renderbufferStorageMultisample(
-        gl.RENDERBUFFER,
-        antiAliasing,
+      const internalFormat =
         /** @ts-ignore */
-        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat,
-        width,
-        height
-      );
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0 + i, gl.RENDERBUFFER, MSAAColorRenderBuffer);
+        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat;
+
+      this._MSAAColorRenderBuffers[i] = this._createRenderBuffer(internalFormat, gl.COLOR_ATTACHMENT0 + i);
     }
     gl.drawBuffers(this._oriDrawBuffers);
 
@@ -300,14 +284,30 @@ export class GLRenderTarget implements IPlatformRenderTarget {
             (_depth._platformTexture as GLTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
 
-      gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);
-      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
-      gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, MSAADepthRenderBuffer);
+      this._MSAADepthRenderBuffer = this._createRenderBuffer(internalFormat, attachment);
     }
 
     this._checkFrameBuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+  }
+
+  private _createRenderBuffer(internalFormat: GLenum, attachment: GLenum): WebGLRenderbuffer {
+    const gl = this._gl;
+    const { width, height, antiAliasing } = this._target;
+    const renderBuffer = gl.createRenderbuffer();
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderBuffer);
+
+    if (antiAliasing > 1) {
+      gl.renderbufferStorageMultisample(gl.RENDERBUFFER, antiAliasing, internalFormat, width, height);
+    } else {
+      gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width, height);
+    }
+
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, attachment, gl.RENDERBUFFER, renderBuffer);
+
+    return renderBuffer;
   }
 
   private _checkFrameBuffer(): void {

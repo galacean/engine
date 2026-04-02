@@ -15,6 +15,6 @@ vec4 rotateY(vec4 v, float angle) {
 }
 
 void main() {
-    v_cubeUV = vec3( -POSITION.x, POSITION.yz ); // TextureCube is left-hand,so x need inverse
+    v_cubeUV = POSITION;
     gl_Position = camera_VPMat * rotateY(vec4(POSITION, 1.0), material_Rotation);
 }
