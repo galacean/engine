@@ -1,3 +1,4 @@
+import { IPrecompiledShader } from "./IPrecompiledShader";
 import { IShaderProgramSource } from "./IShaderProgramSource";
 import { IShaderSource } from "./shaderSource/IShaderSource";
 
@@ -24,5 +25,8 @@ export interface IShaderLab {
     basePathForIncludeKey: string
   ): IShaderProgramSource;
 
-  _parseMacros(context: string, macros: Array<{ name: string; value: string }>): string;
+  /**
+   * @internal
+   */
+  _precompile(sourceCode: string, platformTarget: any, basePath: string): IPrecompiledShader;
 }

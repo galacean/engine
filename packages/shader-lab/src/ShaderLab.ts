@@ -1,10 +1,10 @@
-import { Logger, ShaderMacro, ShaderLanguage } from "@galacean/engine";
-import { IShaderLab, IShaderSource } from "@galacean/engine-design";
+import { Color, Logger, ShaderLanguage } from "@galacean/engine";
+import { IPrecompiledShader, IRenderStates, IShaderLab, IShaderSource } from "@galacean/engine-design";
 import { IShaderProgramSource } from "@galacean/engine-design/types/shader-lab/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
-import { MacroParser } from "./macroProcessor/MacroParser";
+import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import { ShaderTargetParser } from "./parser";
 import { Preprocessor } from "./Preprocessor";
 import { ShaderLabUtils } from "./ShaderLabUtils";
@@ -90,19 +90,80 @@ export class ShaderLab implements IShaderLab {
     this._logErrors(codeGen.errors);
     // #endif
 
+    if (ret) {
+      // Always parse instructions for the compiled GLSL
+      ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
+      ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);
+    }
+
     return ret;
   }
 
-  _parseMacros(content: string, macros: ShaderMacro[]): string {
-    const startTime = performance.now();
-    const parsedContent = MacroParser.parse(content, macros);
-    Logger.info(`[Task -  parse macros] cost time: ${performance.now() - startTime}ms`);
+  _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePath: string): IPrecompiledShader {
+    const shaderSource = this._parseShaderSource(sourceCode);
 
-    // #if _VERBOSE
-    this._logErrors(MacroParser._errors);
-    // #endif
+    const subShaders = shaderSource.subShaders.map((sub) => ({
+      name: sub.name,
+      tags: sub.tags,
+      passes: sub.passes.map((pass) => {
+        if (pass.isUsePass) {
+          return {
+            name: pass.name,
+            isUsePass: true as const,
+            tags: pass.tags,
+            renderStates: this._serializeRenderStates(pass.renderStates)
+          };
+        }
 
-    return parsedContent;
+        const programSource = this._parseShaderPass(
+          pass.contents,
+          pass.vertexEntry,
+          pass.fragmentEntry,
+          platformTarget,
+          basePath
+        );
+
+        if (!programSource) {
+          throw new Error(
+            `Shader pass "${shaderSource.name}.${sub.name}.${pass.name}" precompile failed, please check the shader source code.`
+          );
+        }
+
+        return {
+          name: pass.name,
+          isUsePass: false as const,
+          tags: pass.tags,
+          renderStates: this._serializeRenderStates(pass.renderStates),
+          vertexShaderInstructions: programSource.vertexShaderInstructions,
+          fragmentShaderInstructions: programSource.fragmentShaderInstructions
+        };
+      })
+    }));
+
+    return {
+      name: shaderSource.name,
+      platformTarget,
+      subShaders
+    };
+  }
+
+  private _serializeRenderStates(renderStates: IRenderStates): {
+    constantMap: Record<string, number | string | boolean | number[]>;
+    variableMap: Record<string, string>;
+  } {
+    const constantMap: Record<string, number | string | boolean | number[]> = {};
+    for (const key in renderStates.constantMap) {
+      const value = renderStates.constantMap[key];
+      if (value instanceof Color) {
+        constantMap[key] = [value.r, value.g, value.b, value.a];
+      } else {
+        constantMap[key] = value as number | string | boolean;
+      }
+    }
+    return {
+      constantMap,
+      variableMap: renderStates.variableMap
+    };
   }
 
   // #if _VERBOSE

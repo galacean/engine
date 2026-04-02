@@ -16,6 +16,14 @@ class ShaderLoader extends Loader<Shader> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
     const { url } = item;
 
+    if (url.endsWith(".gsp")) {
+      // @ts-ignore
+      return resourceManager._request(url, { ...item, type: "json" }).then((data) => {
+        // @ts-ignore - _createFromPrecompiled is @internal
+        return Shader._createFromPrecompiled(data);
+      });
+    }
+
     // @ts-ignore
     return resourceManager._request<string>(url, { ...item, type: "text" }).then((code: string) => {
       const builtinShader = this._getBuiltinShader(code);

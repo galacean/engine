@@ -1,8 +1,8 @@
+import type { ShaderInstruction } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
 import { ShaderFactory } from "../shaderlib";
-import { Shader } from "./Shader";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
@@ -10,6 +10,7 @@ import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
+import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
 
 const precisionStr = `
@@ -36,6 +37,11 @@ export class ShaderPass extends ShaderPart {
    */
   _platformTarget: ShaderLanguage | undefined;
 
+  /** @internal - Flat instruction array for vertex shader. */
+  _vertexShaderInstructions?: ShaderInstruction[];
+  /** @internal */
+  _fragmentShaderInstructions?: ShaderInstruction[];
+
   /** @internal */
   _shaderPassId: number = 0;
 
@@ -49,8 +55,11 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
 
-  private _vertexSource: string;
-  private _fragmentSource: string;
+  private _vertexSource?: string;
+  private _fragmentSource?: string;
+
+  private static _shaderMacroList: ShaderMacro[] = [];
+  private static _macroMap: Map<string, string> = new Map();
 
   /**
    * Create a shader pass.
@@ -74,30 +83,56 @@ export class ShaderPass extends ShaderPart {
    */
   constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, number | string | boolean>);
 
+  /**
+   * Create a shader pass from precompiled instructions.
+   * @param name - Shader pass name
+   * @param vertexShaderInstructions - Precompiled vertex instruction array
+   * @param fragmentShaderInstructions - Precompiled fragment instruction array
+   * @param platformTarget - Target shader language
+   * @param tags - Tags
+   */
+  constructor(
+    name: string,
+    vertexShaderInstructions: ShaderInstruction[],
+    fragmentShaderInstructions: ShaderInstruction[],
+    platformTarget: ShaderLanguage,
+    tags?: Record<string, number | string | boolean>
+  );
+
   constructor(
     nameOrVertexSource: string,
-    vertexSourceOrFragmentSource: string,
-    fragmentSourceOrTags?: string | Record<string, number | string | boolean>,
+    vertexSourceOrFragmentSourceOrInstructions: string | ShaderInstruction[],
+    fragmentSourceOrTags?: string | ShaderInstruction[] | Record<string, number | string | boolean>,
+    tagsOrPlatformTarget?: Record<string, number | string | boolean> | ShaderLanguage,
     tags?: Record<string, number | string | boolean>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
-    if (typeof fragmentSourceOrTags === "string") {
+    if (Array.isArray(vertexSourceOrFragmentSourceOrInstructions)) {
+      // Instructions overload: (name, vertexInst, fragInst, platformTarget, tags?)
       this._name = nameOrVertexSource;
-      this._vertexSource = vertexSourceOrFragmentSource;
+      this._vertexShaderInstructions = vertexSourceOrFragmentSourceOrInstructions;
+      this._fragmentShaderInstructions = fragmentSourceOrTags as ShaderInstruction[];
+      this._platformTarget = tagsOrPlatformTarget as ShaderLanguage;
+      tags = { pipelineStage: PipelineStage.Forward, ...tags };
+    } else if (typeof fragmentSourceOrTags === "string") {
+      // Named overload: (name, vertexSource, fragmentSource, tags?)
+      this._name = nameOrVertexSource;
+      this._vertexSource = vertexSourceOrFragmentSourceOrInstructions;
       this._fragmentSource = fragmentSourceOrTags;
       tags = {
         pipelineStage: PipelineStage.Forward,
-        ...tags
+        ...(tagsOrPlatformTarget as Record<string, number | string | boolean>)
       };
     } else {
+      // Unnamed overload: (vertexSource, fragmentSource, tags?)
       this._name = "Default";
       this._vertexSource = nameOrVertexSource;
-      this._fragmentSource = vertexSourceOrFragmentSource;
+      this._fragmentSource = vertexSourceOrFragmentSourceOrInstructions as string;
       tags = {
         pipelineStage: PipelineStage.Forward,
-        ...fragmentSourceOrTags
+        ...(fragmentSourceOrTags as Record<string, number | string | boolean>)
       };
     }
 
@@ -137,23 +172,28 @@ export class ShaderPass extends ShaderPart {
   }
 
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    if (this._platformTarget != undefined) {
-      return this._getShaderLabProgram(engine, macroCollection);
-    }
-
-    const { vertexSource, fragmentSource } = ShaderFactory.compilePlatformSource(
-      engine,
-      macroCollection,
-      this._vertexSource,
-      this._fragmentSource
-    );
+    const { vertexSource, fragmentSource } =
+      this._platformTarget != undefined
+        ? this._compileShaderLabSource(engine, macroCollection)
+        : this._compilePlatformSource(engine, macroCollection);
 
     return new ShaderProgram(engine, vertexSource, fragmentSource);
   }
 
-  private _getShaderLabProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  private _compilePlatformSource(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection
+  ): { vertexSource: string; fragmentSource: string } {
+    return ShaderFactory.compilePlatformSource(engine, macroCollection, this._vertexSource, this._fragmentSource);
+  }
+
+  private _compileShaderLabSource(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection
+  ): { vertexSource: string; fragmentSource: string } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
-    const shaderMacroList = new Array<ShaderMacro>();
+    const shaderMacroList = ShaderPass._shaderMacroList;
+    shaderMacroList.length = 0;
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
     shaderMacroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
     if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
@@ -163,28 +203,31 @@ export class ShaderPass extends ShaderPart {
       shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
     }
 
-    let noIncludeVertex = ShaderFactory.parseIncludes(this._vertexSource);
-    let noIncludeFrag = ShaderFactory.parseIncludes(this._fragmentSource);
-
-    noIncludeVertex = Shader._shaderLab._parseMacros(noIncludeVertex, shaderMacroList);
-    noIncludeFrag = Shader._shaderLab._parseMacros(noIncludeFrag, shaderMacroList);
+    const macroMap = ShaderPass._macroMap;
+    macroMap.clear();
+    for (let i = 0, n = shaderMacroList.length; i < n; i++) {
+      const macro = shaderMacroList[i];
+      macroMap.set(macro.name, macro.value ?? "");
+    }
+    let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
+    let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
-      noIncludeVertex = ShaderFactory.convertTo300(noIncludeVertex);
-      noIncludeFrag = ShaderFactory.convertTo300(noIncludeFrag, true);
+      vertexSource = ShaderFactory.convertTo300(vertexSource);
+      fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
     }
 
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
 
-    const vertexSource = ` ${versionStr}
-        ${noIncludeVertex}
-      `;
-    const fragmentSource = ` ${versionStr}
+    return {
+      vertexSource: ` ${versionStr}
+        ${vertexSource}
+      `,
+      fragmentSource: ` ${versionStr}
         ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
         ${precisionStr}
-        ${noIncludeFrag}
-      `;
-
-    return new ShaderProgram(engine, vertexSource, fragmentSource);
+        ${fragmentSource}
+      `
+    };
   }
 }

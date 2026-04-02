@@ -1,4 +1,4 @@
-import { IShaderLab } from "@galacean/engine-design";
+import { IShaderLab, IPrecompiledShader } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { IReferable } from "../asset/IReferable";
@@ -106,10 +106,7 @@ export class Shader implements IReferable {
       const subShaderList = shaderSource.subShaders.map((subShaderSource) => {
         const passList = subShaderSource.passes.map((passSource) => {
           if (passSource.isUsePass) {
-            const [shaderName, subShaderName, passName] = passSource.name.split("/");
-            return Shader.find(shaderName)
-              ?.subShaders.find((subShader) => subShader.name === subShaderName)
-              ?.passes.find((pass) => pass.name === passName);
+            return Shader._resolveUsePass(passSource.name);
           }
 
           const shaderPassSource = Shader._shaderLab._parseShaderPass(
@@ -126,30 +123,18 @@ export class Shader implements IReferable {
 
           const shaderPass = new ShaderPass(
             passSource.name,
-            shaderPassSource.vertex,
-            shaderPassSource.fragment,
+            shaderPassSource.vertexShaderInstructions,
+            shaderPassSource.fragmentShaderInstructions,
+            vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage,
             passSource.tags
           );
 
-          shaderPass._platformTarget = vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage;
-
-          const { constantMap, variableMap } = passSource.renderStates;
-          // Compatible shader lab no render state use material `renderState` to modify render state
-          if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
-            // Parse const render state
-            const renderState = new RenderState();
-            for (let k in constantMap) {
-              Shader._applyConstRenderStates(renderState, +k, constantMap[k]);
-            }
-            shaderPass._renderState = renderState;
-
-            // Parse variable render state
-            const renderStateDataMap = <Record<number, ShaderProperty>>{};
-            for (let k in variableMap) {
-              renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
-            }
-            shaderPass._renderStateDataMap = renderStateDataMap;
-          }
+          Shader._applyRenderStates(
+            shaderPass,
+            passSource.renderStates.constantMap,
+            passSource.renderStates.variableMap,
+            false
+          );
 
           return shaderPass;
         });
@@ -201,6 +186,48 @@ export class Shader implements IReferable {
   /**
    * @internal
    */
+  static _createFromPrecompiled(data: IPrecompiledShader): Shader {
+    const shaderMap = Shader._shaderMap;
+    if (shaderMap[data.name]) {
+      console.error(`Shader named "${data.name}" already exists.`);
+      return;
+    }
+
+    const subShaderList = data.subShaders.map((subData) => {
+      const passList = subData.passes.map((passData) => {
+        if (passData.isUsePass) {
+          return Shader._resolveUsePass(passData.name);
+        }
+
+        const shaderPass = new ShaderPass(
+          passData.name,
+          passData.vertexShaderInstructions,
+          passData.fragmentShaderInstructions,
+          data.platformTarget as ShaderLanguage,
+          passData.tags
+        );
+
+        Shader._applyRenderStates(
+          shaderPass,
+          passData.renderStates.constantMap,
+          passData.renderStates.variableMap,
+          true
+        );
+
+        return shaderPass;
+      });
+
+      return new SubShader(subData.name, passList, subData.tags);
+    });
+
+    const shader = new Shader(data.name, subShaderList);
+    shaderMap[data.name] = shader;
+    return shader;
+  }
+
+  /**
+   * @internal
+   */
   static _clear(engine: Engine): void {
     const shaderMap = Shader._shaderMap;
     for (const key in shaderMap) {
@@ -219,6 +246,38 @@ export class Shader implements IReferable {
           }
         }
       }
+    }
+  }
+
+  private static _resolveUsePass(passName: string): ShaderPass | undefined {
+    const [shaderName, subShaderName, passNamePart] = passName.split("/");
+    return Shader.find(shaderName)
+      ?.subShaders.find((subShader) => subShader.name === subShaderName)
+      ?.passes.find((pass) => pass.name === passNamePart);
+  }
+
+  private static _applyRenderStates(
+    shaderPass: ShaderPass,
+    constantMap: Record<string, any>,
+    variableMap: Record<string, string>,
+    deserializeColor: boolean
+  ): void {
+    if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
+      const renderState = new RenderState();
+      for (const k in constantMap) {
+        const value = constantMap[k];
+        if (deserializeColor && Array.isArray(value)) {
+          Shader._applyConstRenderStates(renderState, +k, new Color(value[0], value[1], value[2], value[3]));
+        } else {
+          Shader._applyConstRenderStates(renderState, +k, value);
+        }
+      }
+      shaderPass._renderState = renderState;
+      const renderStateDataMap = <Record<number, ShaderProperty>>{};
+      for (const k in variableMap) {
+        renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
+      }
+      shaderPass._renderStateDataMap = renderStateDataMap;
     }
   }
 
