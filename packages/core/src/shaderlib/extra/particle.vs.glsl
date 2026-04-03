@@ -74,6 +74,7 @@ uniform int renderer_SimulationSpace;
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
 #include <texture_sheet_animation_module>
+#include <noise_over_lifetime_module>
 
 vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
     vec3 startPosition = startVelocity * age;
@@ -162,6 +163,10 @@ void main() {
             localVelocity = startVelocity;
             worldVelocity = gravityVelocity;
             vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, localVelocity, worldVelocity);
+        #endif
+
+        #ifdef RENDERER_NOISE_MODULE_ENABLED
+            center += computeNoisePositionOffset(a_ShapePositionStartLifeTime.xyz, normalizedAge, age);
         #endif
 
         #include <sphere_billboard>

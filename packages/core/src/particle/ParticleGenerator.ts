@@ -33,6 +33,7 @@ import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
+import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 
 /**
@@ -83,6 +84,9 @@ export class ParticleGenerator {
   /** Texture sheet animation module. */
   @deepClone
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
+  /** Noise module. */
+  @deepClone
+  readonly noise = new NoiseModule(this);
 
   /** @internal */
   _currentParticleCount = 0;
@@ -613,6 +617,7 @@ export class ParticleGenerator {
     this.sizeOverLifetime._updateShaderData(shaderData);
     this.rotationOverLifetime._updateShaderData(shaderData);
     this.colorOverLifetime._updateShaderData(shaderData);
+    this.noise._updateShaderData(shaderData);
   }
 
   /**
@@ -1384,6 +1389,23 @@ export class ParticleGenerator {
     out.transform(rotateMat);
     min.add(worldOffsetMin);
     max.add(worldOffsetMax);
+
+    // Noise module impact: noise is applied in world space (directly to center),
+    // so it must be added after the rotation transform.
+    const { noise } = this;
+    if (noise.enabled) {
+      let maxAmplitude = 1.0;
+      let amp = 1.0;
+      for (let i = 1; i < noise.octaves; i++) {
+        amp *= noise.octaveMultiplier;
+        maxAmplitude += amp;
+      }
+      const noiseMaxX = Math.abs(noise.strengthX) * maxAmplitude;
+      const noiseMaxY = Math.abs(noise.strengthY) * maxAmplitude;
+      const noiseMaxZ = Math.abs(noise.strengthZ) * maxAmplitude;
+      min.set(min.x - noiseMaxX, min.y - noiseMaxY, min.z - noiseMaxZ);
+      max.set(max.x + noiseMaxX, max.y + noiseMaxY, max.z + noiseMaxZ);
+    }
 
     min.add(worldPosition);
     max.add(worldPosition);
