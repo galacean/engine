@@ -33,7 +33,6 @@ export class ShaderProgram {
       .join("\n");
   }
 
-
   id: number;
 
   readonly sceneUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();

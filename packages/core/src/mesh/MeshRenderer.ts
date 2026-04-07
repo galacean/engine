@@ -9,7 +9,6 @@ import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
-
 /**
  * MeshRenderer Component.
  */
@@ -172,7 +171,6 @@ export class MeshRenderer extends Renderer {
     }
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
-
 
   /**
    * @internal
