@@ -11,7 +11,8 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { IScene, ParserContext, ParserType, SceneParser, SpecularMode } from "./resource-deserialize";
+import type { AssetRef } from "./scene-format/types";
+import { IScene, ParserContext, ParserType, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
 class SceneLoader extends Loader<Scene> {
@@ -29,7 +30,7 @@ class SceneLoader extends Loader<Scene> {
           context._setTaskCompleteProgress = setTaskCompleteProgress;
           parser.start();
           return parser.promise.then(() => {
-            const promises = [];
+            const promises: Promise<any>[] = [];
             // parse ambient light
             const ambient = data.scene.ambient;
             if (ambient) {
@@ -39,12 +40,20 @@ class SceneLoader extends Loader<Scene> {
               scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
               scene.ambientLight.specularIntensity = ambient.specularIntensity;
               scene.ambientLight.diffuseMode = ambient.diffuseMode;
-              scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
+              const solidColor = ambient.diffuseSolidColor;
+              if (solidColor) {
+                if (Array.isArray(solidColor)) {
+                  scene.ambientLight.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
+                } else {
+                  scene.ambientLight.diffuseSolidColor.copyFrom(solidColor);
+                }
+              }
+              scene.ambientLight.specularTextureDecodeRGBM = true;
 
               if (useCustomAmbient && ambient.customAmbientLight) {
                 promises.push(
                   // @ts-ignore
-                  resourceManager.getResourceByRef<any>(ambient.customAmbientLight).then((ambientLight) => {
+                  resourceManager.getResourceByRef<any>(assetRefToEngine(ambient.customAmbientLight)).then((ambientLight) => {
                     scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                   })
                 );
@@ -53,7 +62,7 @@ class SceneLoader extends Loader<Scene> {
               if (ambient.ambientLight && (!useCustomAmbient || useSH)) {
                 promises.push(
                   // @ts-ignore
-                  resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
+                  resourceManager.getResourceByRef<any>(assetRefToEngine(ambient.ambientLight)).then((ambientLight) => {
                     if (!useCustomAmbient) {
                       scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                     }
@@ -71,18 +80,23 @@ class SceneLoader extends Loader<Scene> {
             scene.background.mode = background.mode;
 
             switch (scene.background.mode) {
-              case BackgroundMode.SolidColor:
-                scene.background.solidColor.copyFrom(background.color);
+              case BackgroundMode.SolidColor: {
+                const color = background.color;
+                if (Array.isArray(color)) {
+                  scene.background.solidColor.set(color[0], color[1], color[2], color[3]);
+                } else {
+                  scene.background.solidColor.copyFrom(color);
+                }
                 break;
+              }
               case BackgroundMode.Sky:
                 if (background.skyMesh && background.skyMaterial) {
                   // @ts-ignore
-                  const skyMeshPromise = resourceManager.getResourceByRef<Mesh>(background.skyMesh).then((mesh) => {
+                  const skyMeshPromise = resourceManager.getResourceByRef<Mesh>(assetRefToEngine(background.skyMesh)).then((mesh) => {
                     scene.background.sky.mesh = mesh;
                   });
                   // @ts-ignore
-                  // prettier-ignore
-                  const skyMaterialPromise = resourceManager.getResourceByRef<Material>(background.skyMaterial).then((material) => {
+                  const skyMaterialPromise = resourceManager.getResourceByRef(assetRefToEngine(background.skyMaterial)).then((material) => {
                     scene.background.sky.material = material;
                   });
                   promises.push(skyMeshPromise, skyMaterialPromise);
@@ -93,8 +107,7 @@ class SceneLoader extends Loader<Scene> {
               case BackgroundMode.Texture:
                 if (background.texture) {
                   // @ts-ignore
-                  // prettier-ignore
-                  const backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
+                  const backgroundPromise = resourceManager.getResourceByRef<any>(assetRefToEngine(background.texture)).then((texture) => {
                     scene.background.texture = texture;
                   });
                   promises.push(backgroundPromise);
@@ -125,11 +138,17 @@ class SceneLoader extends Loader<Scene> {
               if (fog.fogStart != undefined) scene.fogStart = fog.fogStart;
               if (fog.fogEnd != undefined) scene.fogEnd = fog.fogEnd;
               if (fog.fogDensity != undefined) scene.fogDensity = fog.fogDensity;
-              if (fog.fogColor != undefined) scene.fogColor.copyFrom(fog.fogColor);
+              if (fog.fogColor != undefined) {
+                if (Array.isArray(fog.fogColor)) {
+                  scene.fogColor.set(fog.fogColor[0], fog.fogColor[1], fog.fogColor[2], fog.fogColor[3]);
+                } else {
+                  scene.fogColor.copyFrom(fog.fogColor);
+                }
+              }
             }
 
             // Post Process
-            const postProcessData = data.scene.postProcess;
+            const postProcessData = (data.scene as any).postProcess;
             if (postProcessData) {
               Logger.warn(
                 "Post Process is not supported in scene yet, please add PostProcess component in entity instead."
@@ -159,3 +178,17 @@ class SceneLoader extends Loader<Scene> {
     });
   }
 }
+
+/** Convert v2 AssetRef { $ref } → engine format { refId } for getResourceByRef. */
+function assetRefToEngine(ref: AssetRef): { refId: string; key?: string } {
+  return ref.key ? { refId: ref.$ref, key: ref.key } : { refId: ref.$ref };
+}
+
+ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: { props?: Record<string, unknown> }) => {
+  const { props } = item;
+  if (!props?.font) {
+    // @ts-ignore
+    instance.font = Font.createFromOS(instance.engine, (props?.fontFamily as string) || "Arial");
+  }
+  return instance;
+});

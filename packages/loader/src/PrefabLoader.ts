@@ -1,7 +1,7 @@
 import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
 import { PrefabParser } from "./prefab/PrefabParser";
 import { PrefabResource } from "./prefab/PrefabResource";
-import { IHierarchyFile } from "./resource-deserialize";
+import type { GalaceanPrefabFile } from "./scene-format/types";
 
 @resourceLoader(AssetType.Prefab, ["prefab"])
 export class PrefabLoader extends Loader<PrefabResource> {
@@ -11,7 +11,7 @@ export class PrefabLoader extends Loader<PrefabResource> {
     return new AssetPromise((resolve, reject) => {
       resourceManager
         // @ts-ignore
-        ._request<IHierarchyFile>(item.url, {
+        ._request<GalaceanPrefabFile>(item.url, {
           ...item,
           type: "json"
         })

@@ -1,14 +1,13 @@
 import {
   BackgroundMode,
   BackgroundTextureFillMode,
-  BloomDownScaleMode,
   DiffuseMode,
   FogMode,
   ShadowCascadesMode,
-  ShadowResolution,
-  TonemappingMode
+  ShadowResolution
 } from "@galacean/engine-core";
-import type { IAssetRef, IColor, IHierarchyFile, IVector3 } from "./BasicSchema";
+import type { AssetRef, IHierarchyFile, Vec4Tuple } from "../../../scene-format/types";
+import type { IColor, IVector3 } from "./BasicSchema";
 
 export enum SpecularMode {
   Sky = "Sky",
@@ -18,20 +17,21 @@ export enum SpecularMode {
 export interface IScene extends IHierarchyFile {
   name?: string;
   scene: {
+    entities: number[];
     background: {
       mode: BackgroundMode;
-      color: IColor;
-      texture?: IAssetRef;
+      color: Vec4Tuple | IColor;
+      texture?: AssetRef;
       textureFillMode?: BackgroundTextureFillMode;
-      skyMesh?: IAssetRef;
-      skyMaterial?: IAssetRef;
+      skyMesh?: AssetRef;
+      skyMaterial?: AssetRef;
     };
     ambient: {
       diffuseMode: DiffuseMode;
-      ambientLight: IAssetRef;
-      customAmbientLight: IAssetRef;
-      customSpecularTexture: IAssetRef;
-      diffuseSolidColor: IColor;
+      ambientLight?: AssetRef;
+      customAmbientLight?: AssetRef;
+      customSpecularTexture?: AssetRef;
+      diffuseSolidColor?: Vec4Tuple | IColor;
       diffuseIntensity: number;
       specularIntensity: number;
       specularMode: SpecularMode;
@@ -52,24 +52,7 @@ export interface IScene extends IHierarchyFile {
       fogStart: number;
       fogEnd: number;
       fogDensity: number;
-      fogColor: IColor;
-    };
-    postProcess?: {
-      isActive: boolean;
-      bloom: {
-        enabled: boolean;
-        downScale: BloomDownScaleMode;
-        threshold: number;
-        scatter: number;
-        intensity: number;
-        tint: IColor;
-        dirtTexture: IAssetRef;
-        dirtIntensity: number;
-      };
-      tonemapping: {
-        enabled: boolean;
-        mode: TonemappingMode;
-      };
+      fogColor: Vec4Tuple | IColor;
     };
     ambientOcclusion?: {
       bias: number;
@@ -82,5 +65,4 @@ export interface IScene extends IHierarchyFile {
       minHorizonAngle: number;
     };
   };
-  files: Array<{ id: string; type: string; virtualPath: string; path: string }>;
 }

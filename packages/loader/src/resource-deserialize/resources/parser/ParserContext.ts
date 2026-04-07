@@ -8,22 +8,29 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import type { IEntity, IHierarchyFile } from "../schema";
+import type { GalaceanComponentSchema, IHierarchyFile } from "../../../scene-format/types";
 
 export enum ParserType {
   Prefab,
   Scene
 }
+
+/** Prefab instance context for override resolution. */
+export interface PrefabInstanceContext {
+  /** Path string → Entity (e.g., "" → root, "0" → first child, "0/1" → ...) */
+  entityMap: Map<string, Entity>;
+  /** Component key → Component (e.g., "0:MeshRenderer/0") */
+  components: Map<string, Component>;
+}
+
 /**
  * @internal
  */
 export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
-  entityMap: Map<string, Entity> = new Map();
-  entityConfigMap: Map<string, IEntity> = new Map();
-  components: Map<string, Component> = new Map();
-  componentConfigMap: Map<string, any> = new Map();
-  rootIds: string[] = [];
-  strippedIds: string[] = [];
+  /** Flat entity index → Entity instance */
+  entityMap: Map<number, Entity> = new Map();
+  /** Component instance → config pairs for props application */
+  componentPairs: Array<{ component: Component; config: GalaceanComponentSchema }> = [];
 
   readonly resourceManager: ResourceManager;
 
@@ -41,11 +48,7 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
 
   clear() {
     this.entityMap.clear();
-    this.components.clear();
-    this.componentConfigMap.clear();
-    this.entityConfigMap.clear();
-    this.rootIds.length = 0;
-    this.strippedIds.length = 0;
+    this.componentPairs.length = 0;
   }
 
   /** @internal */
