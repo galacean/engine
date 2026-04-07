@@ -1,7 +1,8 @@
 import { Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
+import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 /**
@@ -24,11 +25,15 @@ export class NoiseModule extends ParticleGeneratorModule {
   @ignoreClone
   private _octaveInfoVec = new Vector3();
 
-  private _strengthX: number = 1.0;
-  private _strengthY: number = 1.0;
-  private _strengthZ: number = 1.0;
+  @deepClone
+  private _strengthX: ParticleCompositeCurve;
+  @deepClone
+  private _strengthY: ParticleCompositeCurve;
+  @deepClone
+  private _strengthZ: ParticleCompositeCurve;
+  @deepClone
+  private _scrollSpeed: ParticleCompositeCurve;
   private _frequency: number = 0.5;
-  private _scrollSpeed: number = 0.0;
   private _octaves: number = 1;
   private _octaveMultiplier: number = 0.5;
   private _octaveScale: number = 2.0;
@@ -36,42 +41,45 @@ export class NoiseModule extends ParticleGeneratorModule {
   /**
    * Noise strength for x axis.
    */
-  get strengthX(): number {
+  get strengthX(): ParticleCompositeCurve {
     return this._strengthX;
   }
 
-  set strengthX(value: number) {
-    if (value !== this._strengthX) {
+  set strengthX(value: ParticleCompositeCurve) {
+    const lastValue = this._strengthX;
+    if (value !== lastValue) {
       this._strengthX = value;
-      this._generator._renderer._onGeneratorParamsChanged();
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
   /**
    * Noise strength for y axis.
    */
-  get strengthY(): number {
+  get strengthY(): ParticleCompositeCurve {
     return this._strengthY;
   }
 
-  set strengthY(value: number) {
-    if (value !== this._strengthY) {
+  set strengthY(value: ParticleCompositeCurve) {
+    const lastValue = this._strengthY;
+    if (value !== lastValue) {
       this._strengthY = value;
-      this._generator._renderer._onGeneratorParamsChanged();
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
   /**
    * Noise strength for z axis.
    */
-  get strengthZ(): number {
+  get strengthZ(): ParticleCompositeCurve {
     return this._strengthZ;
   }
 
-  set strengthZ(value: number) {
-    if (value !== this._strengthZ) {
+  set strengthZ(value: ParticleCompositeCurve) {
+    const lastValue = this._strengthZ;
+    if (value !== lastValue) {
       this._strengthZ = value;
-      this._generator._renderer._onGeneratorParamsChanged();
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -92,14 +100,15 @@ export class NoiseModule extends ParticleGeneratorModule {
   /**
    * Noise field scroll speed over time.
    */
-  get scrollSpeed(): number {
+  get scrollSpeed(): ParticleCompositeCurve {
     return this._scrollSpeed;
   }
 
-  set scrollSpeed(value: number) {
-    if (value !== this._scrollSpeed) {
+  set scrollSpeed(value: ParticleCompositeCurve) {
+    const lastValue = this._scrollSpeed;
+    if (value !== lastValue) {
       this._scrollSpeed = value;
-      this._generator._renderer._onGeneratorParamsChanged();
+      this._onCompositeCurveChange(lastValue, value);
     }
   }
 
@@ -163,6 +172,11 @@ export class NoiseModule extends ParticleGeneratorModule {
 
   constructor(generator: ParticleGenerator) {
     super(generator);
+
+    this.strengthX = new ParticleCompositeCurve(1);
+    this.strengthY = new ParticleCompositeCurve(1);
+    this.strengthZ = new ParticleCompositeCurve(1);
+    this.scrollSpeed = new ParticleCompositeCurve(0);
   }
 
   /**
@@ -178,11 +192,15 @@ export class NoiseModule extends ParticleGeneratorModule {
       // frequency controls spatial detail, strength controls displacement amplitude.
       const invFreq = 1.0 / this._frequency;
       const strength = this._strengthVec;
-      strength.set(this._strengthX * invFreq, this._strengthY * invFreq, this._strengthZ * invFreq);
+      strength.set(
+        this._strengthX.constantMax * invFreq,
+        this._strengthY.constantMax * invFreq,
+        this._strengthZ.constantMax * invFreq
+      );
       shaderData.setVector3(NoiseModule._strengthProperty, strength);
 
       shaderData.setFloat(NoiseModule._frequencyProperty, this._frequency);
-      shaderData.setFloat(NoiseModule._scrollSpeedProperty, this._scrollSpeed);
+      shaderData.setFloat(NoiseModule._scrollSpeedProperty, this._scrollSpeed.constantMax);
 
       const octaveInfo = this._octaveInfoVec;
       octaveInfo.set(this._octaves, this._octaveMultiplier, this._octaveScale);
