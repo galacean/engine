@@ -430,6 +430,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-horizontal-billboard",
       threshold: 0,
       diffPercentage: 0.2162
+    },
+    noiseModule: {
+      category: "Particle",
+      caseFileName: "particleRenderer-noise",
+      threshold: 0,
+      diffPercentage: 0.15
     }
   },
   PostProcess: {
