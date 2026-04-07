@@ -20,24 +20,27 @@ vec3 computeNoisePositionOffset(vec3 currentPosition) {
     vec3 coord = currentPosition * renderer_NoiseFrequency
                + vec3(renderer_CurrentTime * renderer_NoiseScrollSpeed);
 
-    float amplitude = 1.0;
-    float frequency = 1.0;
+    int octaves = int(renderer_NoiseOctaveInfo.x);
+    float octaveMultiplier = renderer_NoiseOctaveInfo.y;
+    float octaveScale = renderer_NoiseOctaveInfo.z;
+
     vec3 noiseValue = sampleNoise3D(coord);
+    float totalWeight = 1.0;
 
     // Unrolled octave loop (GLSL ES 1.0 requires constant loop bounds)
-    int octaves = int(renderer_NoiseOctaveInfo.x);
     if (octaves >= 2) {
-        amplitude *= renderer_NoiseOctaveInfo.y;
-        frequency *= renderer_NoiseOctaveInfo.z;
-        noiseValue += amplitude * sampleNoise3D(coord * frequency);
-    }
-    if (octaves >= 3) {
-        amplitude *= renderer_NoiseOctaveInfo.y;
-        frequency *= renderer_NoiseOctaveInfo.z;
-        noiseValue += amplitude * sampleNoise3D(coord * frequency);
+        float weight = octaveMultiplier;
+        totalWeight += weight;
+        noiseValue += weight * sampleNoise3D(coord * octaveScale);
+
+        if (octaves >= 3) {
+            weight *= octaveMultiplier;
+            totalWeight += weight;
+            noiseValue += weight * sampleNoise3D(coord * octaveScale * octaveScale);
+        }
     }
 
-    vec3 offset = noiseValue * renderer_NoiseStrength;
+    vec3 offset = (noiseValue / totalWeight) * renderer_NoiseStrength;
 
     #ifdef RENDERER_NOISE_DAMPING
         float normalizedAge = (renderer_CurrentTime - a_DirectionTime.w) / a_ShapePositionStartLifeTime.w;

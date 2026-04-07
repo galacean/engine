@@ -1390,19 +1390,14 @@ export class ParticleGenerator {
     min.add(worldOffsetMin);
     max.add(worldOffsetMax);
 
-    // Noise module impact: noise is applied in world space (directly to center),
-    // so it must be added after the rotation transform.
+    // Noise module impact: noise output is normalized to [-1, 1] regardless of octave count,
+    // so max displacement equals strength. Applied after rotation since noise acts in simulation space
+    // then transformed to world space.
     const { noise } = this;
     if (noise.enabled) {
-      let maxAmplitude = 1.0;
-      let amp = 1.0;
-      for (let i = 1; i < noise.octaves; i++) {
-        amp *= noise.octaveMultiplier;
-        maxAmplitude += amp;
-      }
-      const noiseMaxX = Math.abs(noise.strengthX) * maxAmplitude;
-      const noiseMaxY = Math.abs(noise.strengthY) * maxAmplitude;
-      const noiseMaxZ = Math.abs(noise.strengthZ) * maxAmplitude;
+      const noiseMaxX = Math.abs(noise.strengthX);
+      const noiseMaxY = Math.abs(noise.strengthY);
+      const noiseMaxZ = Math.abs(noise.strengthZ);
       min.set(min.x - noiseMaxX, min.y - noiseMaxY, min.z - noiseMaxZ);
       max.set(max.x + noiseMaxX, max.y + noiseMaxY, max.z + noiseMaxZ);
     }
