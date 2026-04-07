@@ -1,5 +1,5 @@
 import { BackgroundMode, DiffuseMode, Scene } from "@galacean/engine-core";
-import type { IHierarchyFile } from "../../../scene-format/types";
+import { assetRefToEngine, type IHierarchyFile } from "../../../scene-format/types";
 import { HierarchyParser } from "../parser/HierarchyParser";
 import { ParserContext } from "../parser/ParserContext";
 import { ReflectionParser } from "../parser/ReflectionParser";
@@ -30,11 +30,11 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
       const { customAmbientLight, ambientLight } = ambient;
       if (useCustomAmbient && customAmbientLight) {
         // @ts-ignore
-        context._addDependentAsset(customAmbientLight.$ref, resourceManager.getResourceByRef({ refId: customAmbientLight.$ref, key: customAmbientLight.key }));
+        context._addDependentAsset(customAmbientLight.$ref, resourceManager.getResourceByRef(assetRefToEngine(customAmbientLight)));
       }
       if (ambientLight && (!useCustomAmbient || useSH)) {
         // @ts-ignore
-        context._addDependentAsset(ambientLight.$ref, resourceManager.getResourceByRef({ refId: ambientLight.$ref, key: ambientLight.key }));
+        context._addDependentAsset(ambientLight.$ref, resourceManager.getResourceByRef(assetRefToEngine(ambientLight)));
       }
     }
 
@@ -44,15 +44,15 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
       const texture = background.texture;
       if (texture) {
         // @ts-ignore
-        context._addDependentAsset(texture.$ref, resourceManager.getResourceByRef({ refId: texture.$ref, key: texture.key }));
+        context._addDependentAsset(texture.$ref, resourceManager.getResourceByRef(assetRefToEngine(texture)));
       }
     } else if (backgroundMode === BackgroundMode.Sky) {
       const { skyMesh, skyMaterial } = background;
       if (skyMesh && skyMaterial) {
         // @ts-ignore
-        context._addDependentAsset(skyMesh.$ref, resourceManager.getResourceByRef({ refId: skyMesh.$ref, key: skyMesh.key }));
+        context._addDependentAsset(skyMesh.$ref, resourceManager.getResourceByRef(assetRefToEngine(skyMesh)));
         // @ts-ignore
-        context._addDependentAsset(skyMaterial.$ref, resourceManager.getResourceByRef({ refId: skyMaterial.$ref, key: skyMaterial.key }));
+        context._addDependentAsset(skyMaterial.$ref, resourceManager.getResourceByRef(assetRefToEngine(skyMaterial)));
       }
     }
   }
@@ -78,9 +78,9 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
     for (let i = 0, n = entities.length; i < n; i++) {
       const entity = entities[i];
       if (entity.instance) {
-        const $ref = entity.instance.asset.$ref;
+        const asset = entity.instance.asset;
         // @ts-ignore
-        context._addDependentAsset($ref, context.resourceManager.getResourceByRef({ refId: $ref }));
+        context._addDependentAsset(asset.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(asset)));
       } else {
         const componentIndices = entity.components;
         if (!componentIndices) continue;
@@ -88,7 +88,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
           const comp = components[componentIndices[j]];
           if (comp.script) {
             // @ts-ignore
-            context._addDependentAsset(comp.script.$ref, context.resourceManager.getResourceByRef({ refId: comp.script.$ref, key: comp.script.key }));
+            context._addDependentAsset(comp.script.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(comp.script)));
           }
           if (comp.props) {
             this._searchDependentAssets(comp.props);
@@ -108,7 +108,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Sc
       if (ReflectionParser._isAssetRef(value)) {
         const context = this.context;
         // @ts-ignore
-        context._addDependentAsset(value.$ref, context.resourceManager.getResourceByRef({ refId: value.$ref, key: value.key }));
+        context._addDependentAsset(value.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(value)));
       } else {
         for (const key in value) {
           this._searchDependentAssets(value[key]);

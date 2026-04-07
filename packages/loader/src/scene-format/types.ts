@@ -11,6 +11,11 @@ export interface AssetRef {
   key?: string;
 }
 
+/** Convert v2 AssetRef { $ref } → engine format { url } for getResourceByRef. */
+export function assetRefToEngine(ref: AssetRef): { url: string; key?: string } {
+  return ref.key ? { url: ref.$ref, key: ref.key } : { url: ref.$ref };
+}
+
 export interface GalaceanAssetInfo {
   version: string;
   generator?: string;

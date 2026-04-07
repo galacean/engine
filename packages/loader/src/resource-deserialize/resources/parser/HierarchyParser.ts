@@ -1,11 +1,12 @@
 import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
-import type {
-  GalaceanEntityOverrideProps,
-  GalaceanEntitySchema,
-  GalaceanInlineEntitySchema,
-  IHierarchyFile
+import {
+  assetRefToEngine,
+  type GalaceanEntityOverrideProps,
+  type GalaceanEntitySchema,
+  type GalaceanInlineEntitySchema,
+  type IHierarchyFile
 } from "../../../scene-format/types";
 import { ParserContext, type PrefabInstanceContext } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
@@ -20,14 +21,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected _reflectionParser: ReflectionParser;
 
   private _prefabContextMap = new WeakMap<Entity, PrefabInstanceContext>();
-
-  private _prefabPromiseMap = new Map<
-    number,
-    {
-      resolve: (context: PrefabInstanceContext) => void;
-      reject: (reason: any) => void;
-    }[]
-  >();
 
   constructor(
     public readonly data: IHierarchyFile,
@@ -89,7 +82,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
       if (entityConfig.instance) {
         promises.push(
-          this._loadPrefabInstance(i, entityConfig, engine).then((entity) => {
+          this._loadPrefabInstance(entityConfig, engine).then((entity) => {
             entityMap.set(i, entity);
           })
         );
@@ -279,18 +272,13 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Prefab instance loading
   // ---------------------------------------------------------------------------
 
-  private _loadPrefabInstance(
-    entityIndex: number,
-    entityConfig: GalaceanEntitySchema,
-    engine: Engine
-  ): Promise<Entity> {
+  private _loadPrefabInstance(entityConfig: GalaceanEntitySchema, engine: Engine): Promise<Entity> {
     const instance = entityConfig.instance;
-    const $ref = instance.asset.$ref;
 
     return (
       engine.resourceManager
         // @ts-ignore
-        .getResourceByRef<Entity>({ refId: $ref })
+        .getResourceByRef<Entity>(assetRefToEngine(instance.asset))
         .then((prefabResource: PrefabResource | GLTFResource) => {
           const entity =
             prefabResource instanceof PrefabResource
@@ -301,15 +289,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
           const instanceContext = HierarchyParser._buildInstanceContext(entity);
           this._prefabContextMap.set(entity, instanceContext);
-
-          // Notify any pending override resolution
-          const cbArray = this._prefabPromiseMap.get(entityIndex);
-          if (cbArray) {
-            for (let j = 0, m = cbArray.length; j < m; j++) {
-              cbArray[j].resolve(instanceContext);
-            }
-            this._prefabPromiseMap.delete(entityIndex);
-          }
 
           return entity;
         })

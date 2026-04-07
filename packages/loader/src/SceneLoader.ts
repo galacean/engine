@@ -3,6 +3,7 @@ import {
   AssetType,
   BackgroundMode,
   DiffuseMode,
+  Font,
   Loader,
   LoadItem,
   Logger,
@@ -11,7 +12,7 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import type { AssetRef } from "./scene-format/types";
+import { assetRefToEngine } from "./scene-format/types";
 import { IScene, ParserContext, ParserType, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
@@ -177,11 +178,6 @@ class SceneLoader extends Loader<Scene> {
         .catch(reject);
     });
   }
-}
-
-/** Convert v2 AssetRef { $ref } → engine format { refId } for getResourceByRef. */
-function assetRefToEngine(ref: AssetRef): { refId: string; key?: string } {
-  return ref.key ? { refId: ref.$ref, key: ref.key } : { refId: ref.$ref };
 }
 
 ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: { props?: Record<string, unknown> }) => {

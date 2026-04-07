@@ -1,9 +1,9 @@
 import { Loader } from "@galacean/engine-core";
-import type { IHierarchyFile } from "../../../scene-format/types";
+import { assetRefToEngine, type IHierarchyFile } from "../../../scene-format/types";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
-  static customParseComponentHandles = new Map<string, Function>();
+  static customParseComponentHandles: Record<string, Function> = {};
 
   static registerCustomParseComponent(componentType: string, handle: Function) {
     this.customParseComponentHandles[componentType] = handle;
@@ -54,7 +54,7 @@ export class ReflectionParser {
       const { _context: context } = this;
       const ref = obj as { $ref: string; key?: string };
       // @ts-ignore
-      return context.resourceManager.getResourceByRef({ refId: ref.$ref, key: ref.key }).then((resource) => {
+      return context.resourceManager.getResourceByRef(assetRefToEngine(ref)).then((resource) => {
         if (context.type === ParserType.Prefab) {
           // @ts-ignore
           context.resource._addDependenceAsset(resource);
@@ -91,9 +91,10 @@ export class ReflectionParser {
       return Promise.resolve(null);
     }
 
-    // $signal — signal binding
+    // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
       return this._resolveSignal(
+        originValue,
         obj.$signal as Array<{
           target: { $component: { entity: number; type: string; index: number } };
           methodName: string;
@@ -121,6 +122,7 @@ export class ReflectionParser {
   }
 
   private _resolveSignal(
+    signal: any,
     listeners: Array<{
       target: { $component: { entity: number; type: string; index: number } };
       methodName: string;
@@ -136,17 +138,21 @@ export class ReflectionParser {
         targetComponent = components[comp.index] ?? null;
       }
 
+      if (!targetComponent) return Promise.resolve();
+
       const argPromise = listener.arguments
         ? Promise.all(listener.arguments.map((a) => this._resolveValue(a)))
         : Promise.resolve(undefined);
 
-      return argPromise.then((resolvedArgs) => ({
-        target: targetComponent,
-        methodName: listener.methodName,
-        ...(resolvedArgs ? { arguments: resolvedArgs } : {})
-      }));
+      return argPromise.then((resolvedArgs) => {
+        if (resolvedArgs) {
+          signal.on(targetComponent, listener.methodName, ...resolvedArgs);
+        } else {
+          signal.on(targetComponent, listener.methodName);
+        }
+      });
     });
-    return Promise.all(promises).then((resolved) => ({ listeners: resolved }));
+    return Promise.all(promises).then(() => signal);
   }
 
   /**
