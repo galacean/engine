@@ -14,7 +14,7 @@ export class InstanceDataPackerPool {
   }
 
   getOrCreate(): InstanceDataPacker {
-    return this._pool[this._poolIndex++] ||= new InstanceDataPacker(this._engine);
+    return (this._pool[this._poolIndex++] ||= new InstanceDataPacker(this._engine));
   }
 
   uploadBuffer(): void {

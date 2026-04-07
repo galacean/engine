@@ -110,7 +110,11 @@ export class RenderQueue {
       } else {
         // Union render global macro and material self macro
         compileMacros = Shader._compileMacros;
-        ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
+        ShaderMacroCollection.unionCollection(
+          renderer._globalShaderMacro,
+          materialData._macroCollection,
+          compileMacros
+        );
         ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
       }
 
@@ -139,7 +143,11 @@ export class RenderQueue {
           }
         }
 
-        const program = shaderPass._getShaderProgram(engine, compileMacros, isInstanced ? instanceDataPacker.instanceFields : undefined);
+        const program = shaderPass._getShaderProgram(
+          engine,
+          compileMacros,
+          isInstanced ? instanceDataPacker.instanceFields : undefined
+        );
         if (!program.isValid) {
           continue;
         }
@@ -215,7 +223,10 @@ export class RenderQueue {
         if (isInstanced) {
           if (instanceDataPacker.uboBuffer) {
             program.bindUniformBlocks(InstanceDataPacker.uniformBlockBindingMap);
-            rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceDataPacker.uboBuffer._platformBuffer);
+            rhi.bindUniformBufferBase(
+              ConstantBufferBindingPoint.RendererInstance,
+              instanceDataPacker.uboBuffer._platformBuffer
+            );
           }
           primitive.instanceCount = instanceDataPacker.instanceCount;
           rhi.drawPrimitive(primitive, subElement.subPrimitive, program);

@@ -30,7 +30,6 @@ export class ShaderFactory {
   /** @internal */
   static readonly RENDERER_INSTANCE_BLOCK_NAME = "RendererInstanceData";
 
-
   /** @internal */
   static readonly _shaderExtension = [
     "GL_EXT_shader_texture_lod",
@@ -119,8 +118,10 @@ export class ShaderFactory {
 
   /** Names that are macro-derived in instancing mode — remove but do not add to UBO. */
   private static _uboDerivedNames = new Set([
-    "renderer_MVMat", "renderer_MVPMat",
-    "renderer_NormalMat", "renderer_MVInvMat",
+    "renderer_MVMat",
+    "renderer_MVPMat",
+    "renderer_NormalMat",
+    "renderer_MVInvMat",
     "renderer_LocalMat"
   ]);
 
@@ -142,18 +143,50 @@ export class ShaderFactory {
 
   /** Pack functions for writing typed values into ArrayBuffer views. */
   private static _packFuncMap: Record<string, InstanceFieldInfo["pack"]> = {
-    float: (v, o, val: number) => { v[o] = val; },
-    int: (v, o, val: number) => { v[o] = val; },
-    uint: (v, o, val: number) => { v[o] = val; },
-    vec2: (v, o, val: Vector2) => { v[o] = val.x; v[o + 1] = val.y; },
-    ivec2: (v, o, val: Vector2) => { v[o] = val.x; v[o + 1] = val.y; },
-    vec3: (v, o, val: Vector3) => { v[o] = val.x; v[o + 1] = val.y; v[o + 2] = val.z; },
-    ivec3: (v, o, val: Vector3) => { v[o] = val.x; v[o + 1] = val.y; v[o + 2] = val.z; },
-    vec4: (v, o, val: Vector4) => { v[o] = val.x; v[o + 1] = val.y; v[o + 2] = val.z; v[o + 3] = val.w; },
-    ivec4: (v, o, val: Vector4) => { v[o] = val.x; v[o + 1] = val.y; v[o + 2] = val.z; v[o + 3] = val.w; },
-    mat4: (v, o, val: Matrix) => { const e = val.elements; for (let k = 0; k < 16; k++) v[o + k] = e[k]; }
+    float: (v, o, val: number) => {
+      v[o] = val;
+    },
+    int: (v, o, val: number) => {
+      v[o] = val;
+    },
+    uint: (v, o, val: number) => {
+      v[o] = val;
+    },
+    vec2: (v, o, val: Vector2) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+    },
+    ivec2: (v, o, val: Vector2) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+    },
+    vec3: (v, o, val: Vector3) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+    },
+    ivec3: (v, o, val: Vector3) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+    },
+    vec4: (v, o, val: Vector4) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+      v[o + 3] = val.w;
+    },
+    ivec4: (v, o, val: Vector4) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+      v[o + 3] = val.w;
+    },
+    mat4: (v, o, val: Matrix) => {
+      const e = val.elements;
+      for (let k = 0; k < 16; k++) v[o + k] = e[k];
+    }
   };
-
 
   /**
    * @internal
@@ -167,7 +200,6 @@ export class ShaderFactory {
     fragmentSource: string,
     externalFields?: InstanceFieldInfo[]
   ): { vertexSource: string; fragmentSource: string; instanceFields: InstanceFieldInfo[]; instanceMaxCount: number } {
-
     const fieldMap: Record<number, string> = Object.create(null);
     vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap, true);
     fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap, true);
@@ -183,14 +215,19 @@ export class ShaderFactory {
       instanceMaxCount = Math.floor(maxUBOSize / structSize);
     } else {
       let hasField = false;
-      for (const _ in fieldMap) { hasField = true; break; }
+      for (const _ in fieldMap) {
+        hasField = true;
+        break;
+      }
       if (!hasField) return { vertexSource, fragmentSource, instanceFields: null, instanceMaxCount: 0 };
       ({ instanceFields, instanceMaxCount } = ShaderFactory._buildLayout(engine, fieldMap));
     }
 
     // Generate UBO struct and #define remapping
     const structFields = instanceFields.map((f) => `        ${f.type} ${f.property.name};`).join("\n");
-    const defines = instanceFields.map((f) => `#define ${f.property.name} rendererData[gl_InstanceID].${f.property.name}`).join("\n");
+    const defines = instanceFields
+      .map((f) => `#define ${f.property.name} rendererData[gl_InstanceID].${f.property.name}`)
+      .join("\n");
     const derivedDefines = [
       "#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)",
       "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)",
@@ -234,12 +271,8 @@ export class ShaderFactory {
     return remove ? result : found;
   }
 
-
   /** @internal */
-  static _buildLayout(
-    engine: Engine,
-    fieldMap: Record<number, string>
-  ): InstanceLayout {
+  static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
     const maxUBOSize = engine._hardwareRenderer.getMaxUniformBlockSize();
     const std140Map = ShaderFactory._std140Map;
     const instanceFields: InstanceFieldInfo[] = [];
@@ -264,8 +297,14 @@ export class ShaderFactory {
     // Priority fields first
     const modelMatId = Renderer._worldMatrixProperty._uniqueId;
     const layerId = Renderer._rendererLayerProperty._uniqueId;
-    if (modelMatId in fieldMap) { addField(modelMatId); delete fieldMap[modelMatId]; }
-    if (layerId in fieldMap) { addField(layerId); delete fieldMap[layerId]; }
+    if (modelMatId in fieldMap) {
+      addField(modelMatId);
+      delete fieldMap[modelMatId];
+    }
+    if (layerId in fieldMap) {
+      addField(layerId);
+      delete fieldMap[layerId];
+    }
 
     // Remaining fields sorted by id
     const keys: number[] = [];

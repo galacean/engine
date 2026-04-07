@@ -33,7 +33,6 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   static _shaderRootPath = "shaders://root/";
 
-
   /**
    * @internal
    */
@@ -167,7 +166,11 @@ export class ShaderPass extends ShaderPart {
   /**
    * @internal
    */
-  _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection, instanceFields?: InstanceFieldInfo[]): ShaderProgram {
+  _getShaderProgram(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    instanceFields?: InstanceFieldInfo[]
+  ): ShaderProgram {
     const shaderProgramPool = engine._getMacroCachePool(this._shaderPassId, this._shaderProgramPools);
     let shaderProgram = shaderProgramPool.get(macroCollection);
     if (shaderProgram) {
@@ -184,7 +187,11 @@ export class ShaderPass extends ShaderPart {
    * @internal
    * Scan renderer-group uniforms from this pass into fieldMap, without GPU compilation.
    */
-  _scanInstanceFields(engine: Engine, macroCollection: ShaderMacroCollection, fieldMap: Record<number, string>): boolean {
+  _scanInstanceFields(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    fieldMap: Record<number, string>
+  ): boolean {
     let vertexSource: string;
     let fragmentSource: string;
 
@@ -239,7 +246,14 @@ export class ShaderPass extends ShaderPart {
     isGpuInstance: boolean,
     instanceFields?: InstanceFieldInfo[]
   ): { vertexSource: string; fragmentSource: string; instanceFields: InstanceFieldInfo[]; instanceMaxCount: number } {
-    return ShaderFactory.compilePlatformSource(engine, macroCollection, this._vertexSource, this._fragmentSource, isGpuInstance, instanceFields);
+    return ShaderFactory.compilePlatformSource(
+      engine,
+      macroCollection,
+      this._vertexSource,
+      this._fragmentSource,
+      isGpuInstance,
+      instanceFields
+    );
   }
 
   private _compileShaderLabSource(

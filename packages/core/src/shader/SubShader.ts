@@ -41,10 +41,7 @@ export class SubShader extends ShaderPart {
   /**
    * @internal
    */
-  _getInstanceLayout(
-    engine: Engine,
-    macroCollection: ShaderMacroCollection
-  ): InstanceLayout | null {
+  _getInstanceLayout(engine: Engine, macroCollection: ShaderMacroCollection): InstanceLayout | null {
     const cached = this._layoutCache.get(macroCollection);
     if (cached) return cached;
 
