@@ -9,10 +9,11 @@ uniform vec4 renderer_NoiseParams;
 uniform vec4 renderer_NoiseOctaveParams;
 
 vec3 sampleSimplexNoise3D(vec3 coord) {
+    float d = 100.0;
     return vec3(
-        simplex(coord),
-        simplex(coord + vec3(17.0, 31.0, 47.0)),
-        simplex(coord + vec3(67.0, 89.0, 113.0))
+        simplex(vec3(coord.z, coord.y, coord.x)),
+        simplex(vec3(coord.x + d, coord.z, coord.y)),
+        simplex(vec3(coord.y, coord.x + d, coord.z))
     );
 }
 
