@@ -16,8 +16,8 @@ vec3 sampleNoise3D(vec3 coord) {
     );
 }
 
-vec3 computeNoisePositionOffset(vec3 birthPosition, float normalizedAge, float age) {
-    vec3 coord = birthPosition * renderer_NoiseFrequency
+vec3 computeNoisePositionOffset(vec3 currentPosition) {
+    vec3 coord = currentPosition * renderer_NoiseFrequency
                + vec3(renderer_CurrentTime * renderer_NoiseScrollSpeed);
 
     float amplitude = 1.0;
@@ -40,6 +40,7 @@ vec3 computeNoisePositionOffset(vec3 birthPosition, float normalizedAge, float a
     vec3 offset = noiseValue * renderer_NoiseStrength;
 
     #ifdef RENDERER_NOISE_DAMPING
+        float normalizedAge = (renderer_CurrentTime - a_DirectionTime.w) / a_ShapePositionStartLifeTime.w;
         offset *= (1.0 - normalizedAge);
     #endif
 

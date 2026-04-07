@@ -166,7 +166,12 @@ void main() {
         #endif
 
         #ifdef RENDERER_NOISE_MODULE_ENABLED
-            center += computeNoisePositionOffset(a_ShapePositionStartLifeTime.xyz, normalizedAge, age);
+            vec3 noiseOffset = computeNoisePositionOffset(a_FeedbackPosition);
+            if (renderer_SimulationSpace == 0) {
+                center += rotationByQuaternions(noiseOffset, worldRotation);
+            } else {
+                center += noiseOffset;
+            }
         #endif
 
         #include <sphere_billboard>

@@ -706,7 +706,7 @@ export class ParticleGenerator {
    * @internal
    */
   _cloneTo(target: ParticleGenerator): void {
-    if (target.limitVelocityOverLifetime.enabled) {
+    if (target.limitVelocityOverLifetime.enabled || target.noise.enabled) {
       target._setTransformFeedback(true);
     }
   }
