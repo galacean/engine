@@ -62,6 +62,7 @@ struct EnvMapLight {
 
 
 uniform EnvMapLight scene_EnvMapLight;
+uniform ivec4 renderer_Layer;
 
 #ifdef SCENE_USE_SH
     uniform vec3 scene_EnvSH[9];
