@@ -86,7 +86,7 @@ export class ParticleGenerator {
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
   /** Noise module. */
   @deepClone
-  readonly noise = new NoiseModule(this);
+  readonly noise: NoiseModule;
 
   /** @internal */
   _currentParticleCount = 0;
@@ -194,6 +194,7 @@ export class ParticleGenerator {
     this.forceOverLifetime = new ForceOverLifetimeModule(this);
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
     this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
+    this.noise = new NoiseModule(this);
 
     this.emission.enabled = true;
   }
