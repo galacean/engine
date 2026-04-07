@@ -693,7 +693,10 @@ export class Entity extends EngineObject {
   private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const activeChangedComponents = this._activeChangedComponents;
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
-      activeChangedComponents[i]._setActive(isActive, activeChangeFlag);
+      const component = activeChangedComponents[i];
+      // Skip components whose scene was already cleared by an earlier callback's removeChild
+      if (!isActive && !component._entity._scene) continue;
+      component._setActive(isActive, activeChangeFlag);
     }
     this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
@@ -715,17 +718,18 @@ export class Entity extends EngineObject {
   }
 
   private _setInActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
+    // Children-first, reverse traversal for safe removeChild during callbacks
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
+    }
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       component.enabled && activeChangedComponents.push(component);
-    }
-    const children = this._children;
-    for (let i = 0, n = children.length; i < n; i++) {
-      const child = children[i];
-      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
     }
   }
 
