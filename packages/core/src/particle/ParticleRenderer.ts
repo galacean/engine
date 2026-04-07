@@ -5,7 +5,7 @@ import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -47,7 +47,9 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   _transformedBounds = new BoundingBox();
 
+  @assignmentClone
   private _renderMode: ParticleRenderMode;
+  @assignmentClone
   private _currentRenderModeMacro: ShaderMacro;
   private _mesh: ModelMesh;
   private _supportInstancedArrays: boolean;

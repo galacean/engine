@@ -9,7 +9,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
@@ -125,8 +125,10 @@ export class Camera extends Component {
   @deepClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
+  @assignmentClone
   _replacementShader: Shader = null;
   /** @internal */
+  @assignmentClone
   _replacementSubShaderTag: ShaderTagKey = null;
   /** @internal */
   _replacementFailureStrategy: ReplacementFailureStrategy = null;

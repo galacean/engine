@@ -195,16 +195,18 @@ export class CloneManager {
         }
         break;
       default:
+        // Check if we've already visited this source object (cycle detection)
+        if (deepInstanceMap.has(sourceProperty)) {
+          target[k] = deepInstanceMap.get(sourceProperty);
+          return;
+        }
+
         let targetProperty = <Object>target[k];
-        // If the target property is undefined, create new instance and keep reference sharing like the source
         if (!targetProperty) {
-          targetProperty = deepInstanceMap.get(sourceProperty);
-          if (!targetProperty) {
-            targetProperty = new sourceProperty.constructor();
-            deepInstanceMap.set(sourceProperty, targetProperty);
-          }
+          targetProperty = new sourceProperty.constructor();
           target[k] = targetProperty;
         }
+        deepInstanceMap.set(sourceProperty, targetProperty);
 
         if ((<ICustomClone>sourceProperty).copyFrom) {
           (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);

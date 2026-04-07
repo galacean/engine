@@ -1,6 +1,7 @@
 import {
   BoundingBox,
   Entity,
+  FilledSpriteAssembler,
   ISpriteAssembler,
   ISpriteRenderer,
   MathUtil,
@@ -10,6 +11,8 @@ import {
   SlicedSpriteAssembler,
   Sprite,
   SpriteDrawMode,
+  SpriteFilledMode,
+  SpriteFilledOrigin,
   SpriteModifyFlags,
   SpriteTileMode,
   TiledSpriteAssembler,
@@ -46,6 +49,14 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
   @assignmentClone
+  private _filledMode: SpriteFilledMode = SpriteFilledMode.Radial360;
+  @assignmentClone
+  private _filledAmount: number = 1;
+  @assignmentClone
+  private _filledOrigin: SpriteFilledOrigin = SpriteFilledOrigin.Bottom;
+  @assignmentClone
+  private _filledClockWise: boolean = true;
+  @assignmentClone
   private _sizeMode: SpriteSizeMode = SpriteSizeMode.Custom;
 
   /**
@@ -67,6 +78,9 @@ export class Image extends UIRenderer implements ISpriteRenderer {
           break;
         case SpriteDrawMode.Tiled:
           this._assembler = TiledSpriteAssembler;
+          break;
+        case SpriteDrawMode.Filled:
+          this._assembler = FilledSpriteAssembler;
           break;
         default:
           break;
@@ -122,6 +136,73 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
         this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
+      }
+    }
+  }
+
+  /**
+   * The fill amount of the image, range from 0 to 1. (Only works in filled mode.)
+   */
+  get filledAmount(): number {
+    return this._filledAmount;
+  }
+
+  set filledAmount(value: number) {
+    value = MathUtil.clamp(value, 0, 1);
+    if (this._filledAmount !== value) {
+      this._filledAmount = value;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndUV;
+      }
+    }
+  }
+
+  /**
+   * The fill mode of the image. (Only works in filled mode.)
+   */
+  get filledMode(): SpriteFilledMode {
+    return this._filledMode;
+  }
+
+  set filledMode(value: SpriteFilledMode) {
+    if (this._filledMode !== value) {
+      this._filledMode = value;
+      this._filledOrigin =
+        value === SpriteFilledMode.Radial90 ? SpriteFilledOrigin.BottomLeft : SpriteFilledOrigin.Bottom;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndUV;
+      }
+    }
+  }
+
+  /**
+   * The fill origin of the image. (Only works in filled mode.)
+   */
+  get filledOrigin(): SpriteFilledOrigin {
+    return this._filledOrigin;
+  }
+
+  set filledOrigin(value: SpriteFilledOrigin) {
+    if (this._filledOrigin !== value) {
+      this._filledOrigin = value;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndUV;
+      }
+    }
+  }
+
+  /**
+   * Whether the fill is clockwise. (Only works in filled radial mode.)
+   */
+  get filledClockWise(): boolean {
+    return this._filledClockWise;
+  }
+
+  set filledClockWise(value: boolean) {
+    if (this._filledClockWise !== value) {
+      this._filledClockWise = value;
+      if (this._drawMode === SpriteDrawMode.Filled) {
+        this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeAndUV;
       }
     }
   }
@@ -314,6 +395,9 @@ export class Image extends UIRenderer implements ISpriteRenderer {
             this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
             break;
           case SpriteDrawMode.Tiled:
+            this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
+            break;
+          case SpriteDrawMode.Filled:
             this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
             break;
           default:
