@@ -91,6 +91,7 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   set frequency(value: number) {
+    value = Math.max(1e-6, value);
     if (value !== this._frequency) {
       this._frequency = value;
       this._generator._renderer._onGeneratorParamsChanged();
@@ -136,6 +137,7 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   set octaveIntensityMultiplier(value: number) {
+    value = Math.max(0, Math.min(1, value));
     if (value !== this._octaveIntensityMultiplier) {
       this._octaveIntensityMultiplier = value;
       this._generator._renderer._onGeneratorParamsChanged();
@@ -151,6 +153,7 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   set octaveFrequencyMultiplier(value: number) {
+    value = Math.max(1, Math.min(4, value));
     if (value !== this._octaveFrequencyMultiplier) {
       this._octaveFrequencyMultiplier = value;
       this._generator._renderer._onGeneratorParamsChanged();
