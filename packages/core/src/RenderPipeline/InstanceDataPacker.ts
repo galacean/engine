@@ -83,10 +83,7 @@ export class InstanceDataPacker {
 
         if (propertyId === modelMatId) {
           // ModelMat must go through getter to trigger Transform lazy update
-          const e = renderer.entity.transform.worldMatrix.elements;
-          for (let k = 0; k < 16; k++) {
-            floatView[fieldOffset + k] = e[k];
-          }
+          field.pack(floatView, fieldOffset, renderer.entity.transform.worldMatrix);
         } else {
           const value = propertyValueMap[propertyId];
           if (value != null) {

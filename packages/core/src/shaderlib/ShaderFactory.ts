@@ -116,13 +116,15 @@ export class ShaderFactory {
     };
   }
 
-  /** Names that are macro-derived in instancing mode — remove but do not add to UBO. */
-  private static _uboDerivedNames = new Set([
-    "renderer_MVMat",
-    "renderer_MVPMat",
-    "renderer_NormalMat",
-    "renderer_MVInvMat",
-    "renderer_LocalMat"
+  /** Built-in renderer uniforms. value=true means derived (remove but not added to UBO). */
+  private static _builtinRendererUniforms = new Map([
+    ["renderer_ModelMat", false],
+    ["renderer_Layer", false],
+    ["renderer_LocalMat", true],
+    ["renderer_MVMat", true],
+    ["renderer_MVPMat", true],
+    ["renderer_NormalMat", true],
+    ["renderer_MVInvMat", true]
   ]);
 
   private static _uboUniformRegex = /^([ \t]*)uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
@@ -138,7 +140,8 @@ export class ShaderFactory {
     ivec3: { size: 12, align: 16 },
     vec4: { size: 16, align: 16 },
     ivec4: { size: 16, align: 16 },
-    mat4: { size: 64, align: 16 }
+    mat4: { size: 64, align: 16 },
+    mat4_affine: { size: 48, align: 16 }
   };
 
   /** Pack functions for writing typed values into ArrayBuffer views. */
@@ -185,6 +188,17 @@ export class ShaderFactory {
     mat4: (v, o, val: Matrix) => {
       const e = val.elements;
       for (let k = 0; k < 16; k++) v[o + k] = e[k];
+    },
+    // Affine mat4 → 3 rows (vec4 each), skip row3 (0,0,0,1). Transposed layout.
+    mat4_affine: (v, o, val: Matrix) => {
+      const e = val.elements;
+      // row0=(e0,e4,e8,e12) row1=(e1,e5,e9,e13) row2=(e2,e6,e10,e14)
+      for (let r = 0; r < 3; r++) {
+        v[o + r * 4] = e[r];
+        v[o + r * 4 + 1] = e[r + 4];
+        v[o + r * 4 + 2] = e[r + 8];
+        v[o + r * 4 + 3] = e[r + 12];
+      }
     }
   };
 
@@ -223,29 +237,34 @@ export class ShaderFactory {
       ({ instanceFields, instanceMaxCount } = ShaderFactory._buildLayout(engine, fieldMap));
     }
 
-    // Generate UBO struct and #define remapping
-    const structFields = instanceFields.map((f) => `        ${f.type} ${f.property.name};`).join("\n");
-    const defines = instanceFields
-      .map((f) => `#define ${f.property.name} rendererData[gl_InstanceID].${f.property.name}`)
-      .join("\n");
-    const derivedDefines = [
-      "#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)",
-      "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)",
-      "#define renderer_NormalMat transpose(inverse(mat3(renderer_ModelMat)))"
-    ].join("\n");
+    // Generate UBO struct fields and per-field #define remapping
+    const structFieldLines: string[] = [];
+    for (let i = 0; i < instanceFields.length; i++) {
+      const { type, property } = instanceFields[i];
+      if (type === "mat4_affine") {
+        for (let r = 0; r < 3; r++) structFieldLines.push(`        vec4 ${property.name}R${r};`);
+      } else {
+        structFieldLines.push(`        ${type} ${property.name};`);
+      }
+    }
 
-    const uboBlock =
+    const uboStruct =
       `#define INSTANCE_MAX_COUNT ${instanceMaxCount}\n` +
+      `struct RendererInstanceStruct {\n${structFieldLines.join("\n")}\n};\n` +
       `layout(std140) uniform ${ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME} {\n` +
-      `    struct {\n` +
-      `${structFields}\n` +
-      `    } rendererData[INSTANCE_MAX_COUNT];\n` +
-      `};\n` +
-      `${defines}\n` +
-      `${derivedDefines}\n`;
+      `    RendererInstanceStruct rendererData[INSTANCE_MAX_COUNT];\n};\n`;
 
-    vertexSource = ShaderFactory._insertUBOBlock(vertexSource, uboBlock);
-    fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, uboBlock);
+    const derivedDefines =
+      "#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)\n" +
+      "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)\n" +
+      "#define renderer_NormalMat transpose(inverse(mat3(renderer_ModelMat)))";
+
+    const vsUboBlock = `${uboStruct}flat out int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID")}\n${derivedDefines}\n`;
+    const fsUboBlock = `${uboStruct}flat in int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID")}\n${derivedDefines}\n`;
+
+    vertexSource = ShaderFactory._insertUBOBlock(vertexSource, vsUboBlock);
+    vertexSource = vertexSource.replace(/void\s+main\s*\(\s*\)\s*\{/, "void main() {\n    v_instanceID = gl_InstanceID;");
+    fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, fsUboBlock);
 
     return { vertexSource, fragmentSource, instanceFields, instanceMaxCount };
   }
@@ -258,13 +277,15 @@ export class ShaderFactory {
   static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>, remove: true): string;
   static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): boolean;
   static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>, remove?: boolean): string | boolean {
-    const derivedNames = ShaderFactory._uboDerivedNames;
+    const builtinUniforms = ShaderFactory._builtinRendererUniforms;
     let found = false;
     const result = source.replace(ShaderFactory._uboUniformRegex, (match, _indent, type, name) => {
       if (type.indexOf("sampler") !== -1) return match;
-      if (ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer) return match;
-      if (derivedNames.has(name)) return remove ? "" : match;
-      fieldMap[ShaderProperty.getByName(name)._uniqueId] = type;
+      const isDerived = builtinUniforms.get(name);
+      if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer) return match;
+      if (isDerived) return remove ? "" : match;
+      // Store ModelMat as affine (3×vec4) to save UBO space
+      fieldMap[ShaderProperty.getByName(name)._uniqueId] = type === "mat4" && name === "renderer_ModelMat" ? "mat4_affine" : type;
       found = true;
       return remove ? "" : match;
     });
@@ -318,6 +339,28 @@ export class ShaderFactory {
     return { instanceFields, instanceMaxCount, structSize };
   }
 
+  /** Build per-field #define lines, using `idExpr` as the instance index (gl_InstanceID or v_instanceID). */
+  private static _buildFieldDefines(fields: InstanceFieldInfo[], idExpr: string): string {
+    const lines: string[] = [];
+    for (let i = 0; i < fields.length; i++) {
+      const { type, property } = fields[i];
+      const d = `rendererData[${idExpr}]`;
+      if (type === "mat4_affine") {
+        const n = property.name;
+        lines.push(
+          `#define ${n} mat4(` +
+          `vec4(${d}.${n}R0.x,${d}.${n}R1.x,${d}.${n}R2.x,0.0),` +
+          `vec4(${d}.${n}R0.y,${d}.${n}R1.y,${d}.${n}R2.y,0.0),` +
+          `vec4(${d}.${n}R0.z,${d}.${n}R1.z,${d}.${n}R2.z,0.0),` +
+          `vec4(${d}.${n}R0.w,${d}.${n}R1.w,${d}.${n}R2.w,1.0))`
+        );
+      } else {
+        lines.push(`#define ${property.name} ${d}.${property.name}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
   /**
    * Insert a UBO block into source after the macro section.
    */
@@ -325,8 +368,11 @@ export class ShaderFactory {
     const lines = source.split("\n");
     let insertIdx = 0;
     for (let i = 0; i < lines.length; i++) {
-      if (lines[i].trimStart().startsWith("#define ")) {
+      const trimmed = lines[i].trimStart();
+      if (trimmed.startsWith("#define ")) {
         insertIdx = i + 1;
+      } else if (trimmed.length > 0) {
+        break;
       }
     }
     lines.splice(insertIdx, 0, uboBlock);

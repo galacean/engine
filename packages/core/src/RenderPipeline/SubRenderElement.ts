@@ -37,6 +37,7 @@ export class SubRenderElement implements IPoolElement {
     this.subPrimitive = subPrimitive;
     this.texture = texture;
     this.subChunk = subChunk;
+    this.instanceDataPacker = null;
   }
 
   dispose(): void {
