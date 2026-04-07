@@ -10,7 +10,6 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
  */
 export class NoiseModule extends ParticleGeneratorModule {
   static readonly _enabledMacro = ShaderMacro.getByName("RENDERER_NOISE_MODULE_ENABLED");
-  static readonly _dampingMacro = ShaderMacro.getByName("RENDERER_NOISE_DAMPING");
 
   static readonly _strengthProperty = ShaderProperty.getByName("renderer_NoiseStrength");
   static readonly _frequencyProperty = ShaderProperty.getByName("renderer_NoiseFrequency");
@@ -19,8 +18,6 @@ export class NoiseModule extends ParticleGeneratorModule {
 
   @ignoreClone
   private _enabledModuleMacro: ShaderMacro;
-  @ignoreClone
-  private _dampingModuleMacro: ShaderMacro;
 
   @ignoreClone
   private _strengthVec = new Vector3();
@@ -32,7 +29,6 @@ export class NoiseModule extends ParticleGeneratorModule {
   private _strengthZ: number = 1.0;
   private _frequency: number = 0.5;
   private _scrollSpeed: number = 0.0;
-  private _damping: boolean = true;
   private _octaves: number = 1;
   private _octaveMultiplier: number = 0.5;
   private _octaveScale: number = 2.0;
@@ -108,20 +104,6 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Whether noise strength diminishes with particle age.
-   */
-  get damping(): boolean {
-    return this._damping;
-  }
-
-  set damping(value: boolean) {
-    if (value !== this._damping) {
-      this._damping = value;
-      this._generator._renderer._onGeneratorParamsChanged();
-    }
-  }
-
-  /**
    * Number of noise octaves (1-3).
    */
   get octaves(): number {
@@ -188,13 +170,15 @@ export class NoiseModule extends ParticleGeneratorModule {
    */
   _updateShaderData(shaderData: ShaderData): void {
     let enabledMacro = <ShaderMacro>null;
-    let dampingMacro = <ShaderMacro>null;
 
     if (this.enabled) {
       enabledMacro = NoiseModule._enabledMacro;
 
+      // Bake strength / frequency on CPU to keep parameters orthogonal:
+      // frequency controls spatial detail, strength controls displacement amplitude.
+      const invFreq = 1.0 / this._frequency;
       const strength = this._strengthVec;
-      strength.set(this._strengthX, this._strengthY, this._strengthZ);
+      strength.set(this._strengthX * invFreq, this._strengthY * invFreq, this._strengthZ * invFreq);
       shaderData.setVector3(NoiseModule._strengthProperty, strength);
 
       shaderData.setFloat(NoiseModule._frequencyProperty, this._frequency);
@@ -203,13 +187,8 @@ export class NoiseModule extends ParticleGeneratorModule {
       const octaveInfo = this._octaveInfoVec;
       octaveInfo.set(this._octaves, this._octaveMultiplier, this._octaveScale);
       shaderData.setVector3(NoiseModule._octaveInfoProperty, octaveInfo);
-
-      if (this._damping) {
-        dampingMacro = NoiseModule._dampingMacro;
-      }
     }
 
     this._enabledModuleMacro = this._enableMacro(shaderData, this._enabledModuleMacro, enabledMacro);
-    this._dampingModuleMacro = this._enableMacro(shaderData, this._dampingModuleMacro, dampingMacro);
   }
 }

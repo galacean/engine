@@ -40,14 +40,7 @@ vec3 computeNoisePositionOffset(vec3 currentPosition) {
         }
     }
 
-    vec3 offset = (noiseValue / totalWeight) * renderer_NoiseStrength;
-
-    #ifdef RENDERER_NOISE_DAMPING
-        float normalizedAge = (renderer_CurrentTime - a_DirectionTime.w) / a_ShapePositionStartLifeTime.w;
-        offset *= (1.0 - normalizedAge);
-    #endif
-
-    return offset;
+    return (noiseValue / totalWeight) * renderer_NoiseStrength;
 }
 
 #endif

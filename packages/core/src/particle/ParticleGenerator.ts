@@ -1390,14 +1390,14 @@ export class ParticleGenerator {
     min.add(worldOffsetMin);
     max.add(worldOffsetMax);
 
-    // Noise module impact: noise output is normalized to [-1, 1] regardless of octave count,
-    // so max displacement equals strength. Applied after rotation since noise acts in simulation space
-    // then transformed to world space.
+    // Noise module impact: noise output is normalized to [-1, 1], and strength is damped
+    // by frequency (strength / frequency) so max displacement = |strength| / frequency.
     const { noise } = this;
     if (noise.enabled) {
-      const noiseMaxX = Math.abs(noise.strengthX);
-      const noiseMaxY = Math.abs(noise.strengthY);
-      const noiseMaxZ = Math.abs(noise.strengthZ);
+      const invFreq = 1.0 / noise.frequency;
+      const noiseMaxX = Math.abs(noise.strengthX) * invFreq;
+      const noiseMaxY = Math.abs(noise.strengthY) * invFreq;
+      const noiseMaxZ = Math.abs(noise.strengthZ) * invFreq;
       min.set(min.x - noiseMaxX, min.y - noiseMaxY, min.z - noiseMaxZ);
       max.set(max.x + noiseMaxX, max.y + noiseMaxY, max.z + noiseMaxZ);
     }
