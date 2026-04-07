@@ -17,7 +17,7 @@ vec3 sampleSimplexNoise3D(vec3 coord) {
     );
 }
 
-vec3 computeNoisePositionOffset(vec3 currentPosition) {
+vec3 computeNoisePositionOffset(vec3 currentPosition, float normalizedAge) {
     vec3 coord = currentPosition * renderer_NoiseParams.w
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
 
@@ -41,7 +41,7 @@ vec3 computeNoisePositionOffset(vec3 currentPosition) {
         }
     }
 
-    return (noiseValue / totalWeight) * renderer_NoiseParams.xyz;
+    return (noiseValue / totalWeight) * renderer_NoiseParams.xyz * (1.0 - normalizedAge);
 }
 
 #endif

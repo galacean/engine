@@ -166,7 +166,7 @@ void main() {
         #endif
 
         #ifdef RENDERER_NOISE_MODULE_ENABLED
-            vec3 noiseOffset = computeNoisePositionOffset(a_FeedbackPosition);
+            vec3 noiseOffset = computeNoisePositionOffset(a_FeedbackPosition, normalizedAge);
             if (renderer_SimulationSpace == 0) {
                 center += rotationByQuaternions(noiseOffset, worldRotation);
             } else {
