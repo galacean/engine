@@ -236,7 +236,11 @@ void main() {
     // recovers the original displacement magnitude.
     vec3 noiseVelocity = vec3(0.0);
     #ifdef RENDERER_NOISE_MODULE_ENABLED
-        noiseVelocity = computeNoiseVelocity(a_FeedbackPosition, normalizedAge) / lifetime;
+        // Use analytical base position (birth + initial velocity * age) instead of
+        // a_FeedbackPosition to avoid feedback loop: position → noise → velocity → position.
+        // At high strength the loop becomes unstable (particle overshoots noise cells).
+        vec3 noiseBasePos = a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age;
+        noiseVelocity = computeNoiseVelocity(noiseBasePos, normalizedAge) / lifetime;
     #endif
 
     vec3 totalVelocity;
