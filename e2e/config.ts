@@ -435,7 +435,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-noise",
       threshold: 0,
-      diffPercentage: 0.15
+      diffPercentage: 0
     }
   },
   PostProcess: {

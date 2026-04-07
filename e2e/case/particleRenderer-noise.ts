@@ -43,7 +43,7 @@ WebGLEngine.create({
     .then((texture) => {
       createNoiseParticle(engine, rootEntity, <Texture2D>texture);
 
-      updateForE2E(engine, 30);
+      updateForE2E(engine, 200);
       initScreenshot(engine, camera);
     });
 });
@@ -67,8 +67,8 @@ function createNoiseParticle(engine: Engine, rootEntity: Entity, texture: Textur
   // Main
   main.duration = 3;
   main.isLoop = true;
-  main.startLifetime.constantMin = 1;
-  main.startLifetime.constantMax = 2;
+  main.startLifetime.constantMin = 0.3;
+  main.startLifetime.constantMax = 0.6;
   main.startLifetime.mode = ParticleCurveMode.TwoConstants;
   main.startSpeed.constantMin = 2;
   main.startSpeed.constantMax = 5;
