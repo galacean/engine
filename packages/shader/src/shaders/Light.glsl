@@ -2,7 +2,6 @@
 #define LIGHT_INCLUDED
 
 
-ivec4 renderer_Layer;
 #ifndef GRAPHICS_API_WEBGL2
     bool isBitSet(float value, float mask, float bitIndex){
         return mod(floor(value / pow(2.0, bitIndex)), 2.0) == 1.0 && mod(floor(mask / pow(2.0, bitIndex)), 2.0) == 1.0;

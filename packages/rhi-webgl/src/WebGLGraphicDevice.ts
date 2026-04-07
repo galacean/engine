@@ -280,6 +280,25 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return new GLTransformFeedbackPrimitive(<WebGL2RenderingContext>this._gl);
   }
 
+  bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer | null): void {
+    const gl = <WebGL2RenderingContext>this._gl;
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, buffer ? (<GLBuffer>buffer)._glBuffer : null);
+  }
+
+  bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
+    const gl = <WebGL2RenderingContext>this._gl;
+    const blockIndex = gl.getUniformBlockIndex(program, blockName);
+    if (blockIndex !== gl.INVALID_INDEX) {
+      gl.uniformBlockBinding(program, blockIndex, bindingPoint);
+    }
+    return blockIndex;
+  }
+
+  getMaxUniformBlockSize(): number {
+    const gl = <WebGL2RenderingContext>this._gl;
+    return gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
+  }
+
   /**
    * Enable GL_RASTERIZER_DISCARD (WebGL2 only).
    */

@@ -28,7 +28,7 @@ export class TransformFeedbackShader {
    * Get or compile a shader program for the given engine and macro combination.
    */
   getProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram | null {
-    const pool = engine._getShaderProgramPool(this._id);
+    const pool = engine._getMacroCachePool(this._id);
 
     let program = pool.get(macroCollection);
     if (program) return program;

@@ -1,10 +1,11 @@
 import { Renderer } from "../Renderer";
 import { Primitive, SubMesh } from "../graphic";
 import { Material } from "../material";
-import { ShaderData, ShaderPass } from "../shader";
+import { ShaderData, SubShader } from "../shader";
 import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/ObjectPool";
 import { RenderQueueFlags } from "./BasicRenderPipeline";
+import { InstanceDataPacker } from "./InstanceDataPacker";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 export class SubRenderElement implements IPoolElement {
@@ -12,10 +13,11 @@ export class SubRenderElement implements IPoolElement {
   primitive: Primitive;
   material: Material;
   subPrimitive: SubMesh;
-  shaderPasses: ReadonlyArray<ShaderPass>;
+  subShader: SubShader;
   shaderData?: ShaderData;
   batched: boolean;
   renderQueueFlags: RenderQueueFlags;
+  instanceDataPacker: InstanceDataPacker;
 
   // @todo: maybe should remove later
   texture?: Texture2D;
@@ -42,8 +44,9 @@ export class SubRenderElement implements IPoolElement {
     this.material = null;
     this.primitive = null;
     this.subPrimitive = null;
-    this.shaderPasses = null;
+    this.subShader = null;
     this.shaderData && (this.shaderData = null);
+    this.instanceDataPacker = null;
 
     this.texture && (this.texture = null);
     this.subChunk && (this.subChunk = null);

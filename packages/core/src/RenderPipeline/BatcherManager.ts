@@ -1,5 +1,6 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
+import { InstanceDataPackerPool } from "./InstanceDataPackerPool";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
@@ -11,8 +12,13 @@ export class BatcherManager {
   private _primitiveChunkManager2D: PrimitiveChunkManager;
   private _primitiveChunkManagerMask: PrimitiveChunkManager;
   private _primitiveChunkManagerUI: PrimitiveChunkManager;
+  private _instanceDataPackerPool: InstanceDataPackerPool;
 
   constructor(public engine: Engine) {}
+
+  get instanceDataPackerPool(): InstanceDataPackerPool {
+    return (this._instanceDataPackerPool ||= new InstanceDataPackerPool(this.engine));
+  }
 
   get primitiveChunkManager2D(): PrimitiveChunkManager {
     return (this._primitiveChunkManager2D ||= new PrimitiveChunkManager(this.engine));
@@ -39,10 +45,22 @@ export class BatcherManager {
       this._primitiveChunkManagerUI.destroy();
       this._primitiveChunkManagerUI = null;
     }
+    if (this._instanceDataPackerPool) {
+      this._instanceDataPackerPool.destroy();
+      this._instanceDataPackerPool = null;
+    }
+  }
+
+  /**
+   * Reset instance batch pool at the start of each frame's batch phase.
+   */
+  resetInstanceDataPackerPool(): void {
+    this._instanceDataPackerPool?.reset();
   }
 
   batch(renderQueue: RenderQueue): void {
     const { elements, batchedSubElements, renderQueueType } = renderQueue;
+
     let preSubElement: SubRenderElement;
     let preRenderer: Renderer;
     let preConstructor: Function;
@@ -86,5 +104,6 @@ export class BatcherManager {
     this._primitiveChunkManager2D?.uploadBuffer();
     this._primitiveChunkManagerMask?.uploadBuffer();
     this._primitiveChunkManagerUI?.uploadBuffer();
+    this._instanceDataPackerPool?.uploadBuffer();
   }
 }

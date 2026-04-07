@@ -239,9 +239,9 @@ export class Shader implements IReferable {
           const pass = passes[j];
           const passShaderProgramPools = pass._shaderProgramPools;
           for (let k = passShaderProgramPools.length - 1; k >= 0; k--) {
-            const shaderProgramPool = passShaderProgramPools[k];
-            if (shaderProgramPool.engine !== engine) continue;
-            shaderProgramPool._destroy();
+            const pool = passShaderProgramPools[k];
+            if (pool.engine !== engine) continue;
+            pool.clear((program) => program.destroy());
             passShaderProgramPools.splice(k, 1);
           }
         }
@@ -438,7 +438,9 @@ export class Shader implements IReferable {
 
     const subShaders = this._subShaders;
     for (let i = 0, n = subShaders.length; i < n; i++) {
-      const passes = subShaders[i].passes;
+      const subShader = subShaders[i];
+      subShader._destroy();
+      const passes = subShader.passes;
       for (let j = 0, m = passes.length; j < m; j++) {
         passes[j]._destroy();
       }

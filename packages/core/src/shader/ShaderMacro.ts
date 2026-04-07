@@ -8,6 +8,8 @@ export class ShaderMacro {
   static _macroMaskMap: ShaderMacro[][] = [];
   /** @internal */
   static _macroNameIdMap: Record<string, number> = Object.create(null);
+  /** @internal */
+  static _gpuInstanceMacro = ShaderMacro.getByName("RENDERER_GPU_INSTANCE");
 
   private static _macroNameCounter: number = 0;
   private static _macroCounter: number = 0;

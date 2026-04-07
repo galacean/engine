@@ -7,6 +7,7 @@ import { ShaderData } from "./ShaderData";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
+import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 
 /**
@@ -32,6 +33,7 @@ export class ShaderProgram {
       .join("\n");
   }
 
+
   id: number;
 
   readonly sceneUniformBlock: ShaderUniformBlock = new ShaderUniformBlock();
@@ -53,6 +55,7 @@ export class ShaderProgram {
   _uploadMaterialId: number = -1;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
+  uniformBlockIds: number[] = [];
 
   // @todo: move to RHI.
   private _isValid: boolean;
@@ -476,6 +479,30 @@ export class ShaderProgram {
     attributeInfos.forEach(({ name }) => {
       this.attributeLocation[name] = gl.getAttribLocation(program, name);
     });
+
+    // Record uniform block indices (WebGL2 only)
+    if (this._engine._hardwareRenderer.isWebGL2) {
+      const gl2 = <WebGL2RenderingContext>gl;
+      const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
+      for (let i = 0; i < blockCount; i++) {
+        this.uniformBlockIds[i] = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i))._uniqueId;
+      }
+    }
+  }
+
+  /**
+   * Bind uniform blocks to the specified binding points.
+   * @param bindingMap - Map of ShaderBlockProperty._uniqueId to binding point
+   */
+  bindUniformBlocks(bindingMap: Record<number, number>): void {
+    const gl = <WebGL2RenderingContext>this._gl;
+    const ids = this.uniformBlockIds;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      const bindingPoint = bindingMap[ids[i]];
+      if (bindingPoint !== undefined) {
+        gl.uniformBlockBinding(this._glProgram, i, bindingPoint);
+      }
+    }
   }
 
   private _getUniformInfos(): WebGLActiveInfo[] {

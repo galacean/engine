@@ -363,7 +363,7 @@ export class Text extends UIRenderer implements ITextRenderer {
       subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       subRenderElement.shaderData.setTexture(Text._textTextureProperty, texture);
       if (isOverlay) {
-        subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+        subRenderElement.subShader = material.shader.subShaders[0];
         subRenderElement.renderQueueFlags = RenderQueueFlags.All;
       }
       renderElement.addSubRenderElement(subRenderElement);

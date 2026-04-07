@@ -10,7 +10,7 @@ import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/Scal
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { ShaderPass } from "../shader/ShaderPass";
+import { SubShader } from "../shader/SubShader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
@@ -385,7 +385,7 @@ export class BasicRenderPipeline {
           for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
             const subShader = replacementSubShaders[j];
             if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-              this.pushRenderElementByType(renderElement, subRenderElement, subShader.passes, renderStates);
+              this.pushRenderElementByType(renderElement, subRenderElement, subShader, renderStates);
               replacementSuccess = true;
             }
           }
@@ -394,13 +394,13 @@ export class BasicRenderPipeline {
             !replacementSuccess &&
             context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
           ) {
-            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
+            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader, renderStates);
           }
         } else {
-          this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
+          this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0], renderStates);
         }
       } else {
-        this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
+        this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader, renderStates);
       }
     }
   }
@@ -408,9 +408,10 @@ export class BasicRenderPipeline {
   private pushRenderElementByType(
     renderElement: RenderElement,
     subRenderElement: SubRenderElement,
-    shaderPasses: ReadonlyArray<ShaderPass>,
+    subShader: SubShader,
     renderStates: ReadonlyArray<RenderState>
   ): void {
+    const shaderPasses = subShader.passes;
     const cullingResults = this._cullingResults;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       // Get render queue type
@@ -428,7 +429,7 @@ export class BasicRenderPipeline {
 
       const flag = 1 << renderQueueType;
 
-      subRenderElement.shaderPasses = shaderPasses;
+      subRenderElement.subShader = subShader;
       subRenderElement.renderQueueFlags |= flag;
 
       if (renderElement.renderQueueFlags & flag) {

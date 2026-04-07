@@ -33,7 +33,8 @@ import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
-import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { MacroCachePool } from "./shader/MacroCachePool";
+import { ShaderProgram } from "./shader/ShaderProgram";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
 import { UIUtils } from "./ui/UIUtils";
@@ -112,7 +113,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
-  _shaderProgramPools: ShaderProgramPool[] = [];
+  _shaderProgramPools: MacroCachePool<ShaderProgram>[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal */
@@ -541,7 +542,7 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(index: number, trackPools?: ShaderProgramPool[]): ShaderProgramPool {
+  _getMacroCachePool(index: number, trackPools?: MacroCachePool<ShaderProgram>[]): MacroCachePool<ShaderProgram> {
     const shaderProgramPools = this._shaderProgramPools;
     let pool = shaderProgramPools[index];
     if (!pool) {
@@ -549,7 +550,7 @@ export class Engine extends EventDispatcher {
       if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
-      shaderProgramPools[index] = pool = new ShaderProgramPool(this);
+      shaderProgramPools[index] = pool = new MacroCachePool<ShaderProgram>(this);
       trackPools?.push(pool);
     }
     return pool;

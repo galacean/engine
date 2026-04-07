@@ -1,3 +1,7 @@
+import { Engine } from "../Engine";
+import { ShaderFactory, InstanceLayout } from "../shaderlib/ShaderFactory";
+import { MacroCachePool } from "./MacroCachePool";
+import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
 import { ShaderPass } from "./ShaderPass";
 
@@ -6,6 +10,7 @@ import { ShaderPass } from "./ShaderPass";
  */
 export class SubShader extends ShaderPart {
   private _passes: ShaderPass[];
+  private _layoutCache: MacroCachePool<InstanceLayout> = new MacroCachePool();
 
   /**
    * Sub shader passes.
@@ -31,5 +36,35 @@ export class SubShader extends ShaderPart {
     for (const key in tags) {
       this.setTag(key, tags[key]);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _getInstanceLayout(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection
+  ): InstanceLayout | null {
+    const cached = this._layoutCache.get(macroCollection);
+    if (cached) return cached;
+
+    const passes = this._passes;
+    const fieldMap: Record<number, string> = Object.create(null);
+    let hasField = false;
+    for (let i = 0, n = passes.length; i < n; i++) {
+      if (passes[i]._scanInstanceFields(engine, macroCollection, fieldMap)) hasField = true;
+    }
+    if (!hasField) return null;
+
+    const result = ShaderFactory._buildLayout(engine, fieldMap);
+    this._layoutCache.cache(result);
+    return result;
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._layoutCache.clear();
   }
 }

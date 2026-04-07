@@ -1,6 +1,7 @@
 import { BoundingBox, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
@@ -118,6 +119,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     localBounds.min._onValueChanged = this._onLocalBoundsChanged;
     // @ts-ignore
     localBounds.max._onValueChanged = this._onLocalBoundsChanged;
+  }
+
+  /**
+   * @internal
+   */
+  override _canBatch(_elementA: SubRenderElement, _elementB: SubRenderElement): boolean {
+    return false;
   }
 
   /**

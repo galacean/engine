@@ -1,11 +1,14 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+
 
 /**
  * MeshRenderer Component.
@@ -168,6 +171,49 @@ export class MeshRenderer extends Renderer {
       renderElement.addSubRenderElement(subRenderElement);
     }
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
+  }
+
+
+  /**
+   * @internal
+   */
+  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+    if (!this._engine._hardwareRenderer.isWebGL2) return false;
+
+    const batch = elementA.instanceDataPacker;
+    return (
+      (!batch || batch.instanceCount < batch.maxInstanceCount) &&
+      elementA.primitive === elementB.primitive &&
+      elementA.subPrimitive === elementB.subPrimitive &&
+      elementA.material === elementB.material &&
+      this._isFrontFaceInvert() === (<MeshRenderer>elementB.component)._isFrontFaceInvert()
+    );
+  }
+
+  /**
+   * @internal
+   */
+  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
+    if (!elementB) return;
+
+    let batch = elementA.instanceDataPacker;
+    if (!batch) {
+      const engine = this._engine;
+      batch = engine._batcherManager.instanceDataPackerPool.getOrCreate();
+      const compileMacros = batch.compileMacros;
+      const materialData = elementA.material.shaderData;
+      ShaderMacroCollection.unionCollection(this._globalShaderMacro, materialData._macroCollection, compileMacros);
+      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+      compileMacros.enable(ShaderMacro._gpuInstanceMacro);
+
+      const layout = elementA.subShader._getInstanceLayout(engine, compileMacros);
+      if (layout) {
+        batch.setLayout(layout.instanceFields, layout.instanceMaxCount, layout.structSize);
+      }
+      batch.addRenderer(elementA.component);
+      elementA.instanceDataPacker = batch;
+    }
+    batch.addRenderer(elementB.component);
   }
 
   private _setMesh(mesh: Mesh): void {

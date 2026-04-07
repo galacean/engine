@@ -23,14 +23,17 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 
+  /** @internal */
+  static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
+  /** @internal */
+  static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
+
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
   private static _localMatrixProperty = ShaderProperty.getByName("renderer_LocalMat");
-  private static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
   private static _mvMatrixProperty = ShaderProperty.getByName("renderer_MVMat");
   private static _mvpMatrixProperty = ShaderProperty.getByName("renderer_MVPMat");
   private static _mvInvMatrixProperty = ShaderProperty.getByName("renderer_MVInvMat");
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
-  private static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
 
   /** @internal */
   @ignoreClone

@@ -26,7 +26,7 @@ void main() {
     #include <blendShape_vert>
     #include <skinning_vert>
     #include <uv_vert>
-    
+
     vec4 positionWS = renderer_ModelMat * position;
 
     positionWS.xyz = applyShadowBias(positionWS.xyz);

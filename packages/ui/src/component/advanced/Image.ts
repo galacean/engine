@@ -242,7 +242,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
     if (canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
-      subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+      subRenderElement.subShader = material.shader.subShaders[0];
       subRenderElement.renderQueueFlags = RenderQueueFlags.All;
     }
     canvas._renderElement.addSubRenderElement(subRenderElement);

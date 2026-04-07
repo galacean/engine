@@ -69,10 +69,11 @@ VertexInputs getVertexInputs(Attributes attributes){
 
     // TBN world space
     #ifdef RENDERER_HAS_NORMAL
-        inputs.normalWS = normalize( mat3(renderer_NormalMat) * normal );
+        mat3 normalMat = mat3(renderer_NormalMat);
+        inputs.normalWS = normalize( normalMat * normal );
 
         #ifdef RENDERER_HAS_TANGENT
-            vec3 tangentWS = normalize( mat3(renderer_NormalMat) * tangent.xyz );
+            vec3 tangentWS = normalize( normalMat * tangent.xyz );
             vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * tangent.w;
 
             inputs.tangentWS = tangentWS;
@@ -85,7 +86,7 @@ VertexInputs getVertexInputs(Attributes attributes){
     vec4 positionWS = renderer_ModelMat * position;
     inputs.positionWS = positionWS.xyz / positionWS.w;
 
-     #if SCENE_FOG_MODE != 0
+    #if SCENE_FOG_MODE != 0
         vec4 positionVS = renderer_MVMat * position;
         inputs.positionVS = positionVS.xyz / positionVS.w;
     #endif

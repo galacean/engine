@@ -302,7 +302,7 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
 
     const subChunk = this._subChunk;
     subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+    subRenderElement.subShader = material.shader.subShaders[0];
     subRenderElement.renderQueueFlags = RenderQueueFlags.All;
     renderElement.addSubRenderElement(subRenderElement);
   }
