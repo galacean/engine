@@ -542,7 +542,7 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getMacroCachePool(index: number, trackPools?: MacroCachePool<ShaderProgram>[]): MacroCachePool<ShaderProgram> {
+  _getShaderProgramPool(index: number, trackPools?: MacroCachePool<ShaderProgram>[]): MacroCachePool<ShaderProgram> {
     const shaderProgramPools = this._shaderProgramPools;
     let pool = shaderProgramPools[index];
     if (!pool) {

@@ -171,7 +171,7 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     instanceFields?: InstanceFieldInfo[]
   ): ShaderProgram {
-    const shaderProgramPool = engine._getMacroCachePool(this._shaderPassId, this._shaderProgramPools);
+    const shaderProgramPool = engine._getShaderProgramPool(this._shaderPassId, this._shaderProgramPools);
     let shaderProgram = shaderProgramPool.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
