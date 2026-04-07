@@ -1391,14 +1391,18 @@ export class ParticleGenerator {
     min.add(worldOffsetMin);
     max.add(worldOffsetMax);
 
-    // Noise module impact: noise output is normalized to [-1, 1], and strength is damped
-    // by frequency (strength / frequency) so max displacement = |strength_max| / frequency.
+    // Noise module impact: noise output is normalized to [-1, 1],
+    // max displacement = |strength_max|.
     const { noise } = this;
     if (noise.enabled) {
-      const invFreq = 1.0 / noise.frequency;
-      const noiseMaxX = noise.strengthX._getMax() * invFreq;
-      const noiseMaxY = noise.strengthY._getMax() * invFreq;
-      const noiseMaxZ = noise.strengthZ._getMax() * invFreq;
+      let noiseMaxX: number, noiseMaxY: number, noiseMaxZ: number;
+      if (noise.separateAxes) {
+        noiseMaxX = noise.strengthX._getMax();
+        noiseMaxY = noise.strengthY._getMax();
+        noiseMaxZ = noise.strengthZ._getMax();
+      } else {
+        noiseMaxX = noiseMaxY = noiseMaxZ = noise.strengthX._getMax();
+      }
       min.set(min.x - noiseMaxX, min.y - noiseMaxY, min.z - noiseMaxZ);
       max.set(max.x + noiseMaxX, max.y + noiseMaxY, max.z + noiseMaxZ);
     }

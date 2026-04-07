@@ -156,6 +156,7 @@ void main() {
                     worldVelocity += instantVOLVelocity;
                 }
             #endif
+
         #else
             // Original analytical path
             vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
@@ -163,15 +164,6 @@ void main() {
             localVelocity = startVelocity;
             worldVelocity = gravityVelocity;
             vec3 center = computeParticlePosition(startVelocity, age, normalizedAge, gravityVelocity, worldRotation, localVelocity, worldVelocity);
-        #endif
-
-        #ifdef RENDERER_NOISE_MODULE_ENABLED
-            vec3 noiseOffset = computeNoisePositionOffset(a_FeedbackPosition, normalizedAge);
-            if (renderer_SimulationSpace == 0) {
-                center += rotationByQuaternions(noiseOffset, worldRotation);
-            } else {
-                center += noiseOffset;
-            }
         #endif
 
         #include <sphere_billboard>

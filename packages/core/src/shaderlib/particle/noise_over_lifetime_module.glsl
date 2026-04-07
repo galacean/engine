@@ -3,7 +3,7 @@
 #include <noise_common>
 #include <noise_simplex_3D>
 
-// renderer_NoiseParams: xyz = strength/frequency, w = frequency
+// renderer_NoiseParams: xyz = strength, w = frequency
 // renderer_NoiseOctaveParams: x = scrollSpeed, y = octaveCount, z = octaveIntensityMul, w = octaveFreqMul
 uniform vec4 renderer_NoiseParams;
 uniform vec4 renderer_NoiseOctaveParams;
@@ -17,8 +17,11 @@ vec3 sampleSimplexNoise3D(vec3 coord) {
     );
 }
 
-vec3 computeNoisePositionOffset(vec3 currentPosition, float normalizedAge) {
+vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
+    // Per-particle random offset (in noise space) ensures particles emitted from the
+    // same position sample different regions of the noise field.
     vec3 coord = currentPosition * renderer_NoiseParams.w
+               + a_Random0.yzw * 50.0
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
 
     int octaveCount = int(renderer_NoiseOctaveParams.y);
@@ -41,7 +44,7 @@ vec3 computeNoisePositionOffset(vec3 currentPosition, float normalizedAge) {
         }
     }
 
-    return (noiseValue / totalWeight) * renderer_NoiseParams.xyz * (1.0 - normalizedAge);
+    return (noiseValue / totalWeight) * renderer_NoiseParams.xyz;
 }
 
 #endif

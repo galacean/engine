@@ -34,6 +34,7 @@ varying vec3 v_FeedbackVelocity;
 #include <velocity_over_lifetime_module>
 #include <force_over_lifetime_module>
 #include <limit_velocity_over_lifetime_module>
+#include <noise_over_lifetime_module>
 
 // Get VOL instantaneous velocity at normalizedAge
 vec3 getVOLVelocity(float normalizedAge) {
@@ -227,15 +228,25 @@ void main() {
     // World mode: position in world space, velocity rotated to world
     // =====================================================
     // FOL is now fully in localVelocity (both local and world-space FOL).
-    // Only VOL overlay needs to be added here.
+    // VOL and Noise overlays are added here (not persisted).
+
+    // Noise velocity overlay (not persisted).
+    // computeNoiseVelocity returns noise * strength (position-scale).
+    // Dividing by lifetime converts to velocity so that integration over lifetime
+    // recovers the original displacement magnitude.
+    vec3 noiseVelocity = vec3(0.0);
+    #ifdef RENDERER_NOISE_MODULE_ENABLED
+        noiseVelocity = computeNoiseVelocity(a_FeedbackPosition, normalizedAge) / lifetime;
+    #endif
+
     vec3 totalVelocity;
     if (renderer_SimulationSpace == 0) {
       // Local: integrate in local space
-      totalVelocity = localVelocity + volLocal
+      totalVelocity = localVelocity + volLocal + noiseVelocity
         + rotationByQuaternions(volWorld, invWorldRotation);
     } else {
       // World: integrate in world space
-      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
+      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld + noiseVelocity;
     }
     vec3 position = a_FeedbackPosition + totalVelocity * dt;
 

@@ -15,7 +15,7 @@ import {
   ParticleMaterial,
   ParticleRenderer,
   ParticleSimulationSpace,
-  SphereShape,
+  ConeShape,
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
@@ -31,7 +31,7 @@ WebGLEngine.create({
   scene.background.solidColor = new Color(0, 0, 0, 1);
 
   const cameraEntity = rootEntity.createChild("camera");
-  cameraEntity.transform.setPosition(0, 2, 20);
+  cameraEntity.transform.setPosition(0, 0, 0);
   const camera = cameraEntity.addComponent(Camera);
   camera.fieldOfView = 60;
 
@@ -50,7 +50,7 @@ WebGLEngine.create({
 
 function createNoiseParticle(engine: Engine, rootEntity: Entity, texture: Texture2D): void {
   const particleEntity = new Entity(engine, "Noise");
-  particleEntity.transform.setPosition(0, 2, 0);
+  particleEntity.transform.setPosition(0, 0, -2);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
   const generator = particleRenderer.generator;
@@ -70,39 +70,40 @@ function createNoiseParticle(engine: Engine, rootEntity: Entity, texture: Textur
   main.startLifetime.constantMin = 0.3;
   main.startLifetime.constantMax = 0.6;
   main.startLifetime.mode = ParticleCurveMode.TwoConstants;
-  main.startSpeed.constantMin = 2;
-  main.startSpeed.constantMax = 5;
+  main.startSpeed.constantMin = 4;
+  main.startSpeed.constantMax = 4;
   main.startSpeed.mode = ParticleCurveMode.TwoConstants;
-  main.startSize.constantMin = 0.1;
-  main.startSize.constantMax = 0.3;
+  main.startSize.constantMin = 0.05;
+  main.startSize.constantMax = 0.1;
   main.startSize.mode = ParticleCurveMode.TwoConstants;
   main.gravityModifier.constant = -0.5;
-  main.simulationSpace = ParticleSimulationSpace.World;
+  main.simulationSpace = ParticleSimulationSpace.Local;
   main.maxParticles = 200;
 
   // Emission
   emission.rateOverTime.constant = 40;
-  const sphereShape = new SphereShape();
-  sphereShape.radius = 0.5;
-  emission.shape = sphereShape;
+  const coneShape = new ConeShape();
+  coneShape.angle = 25;
+  coneShape.radius = 0.00001;
+  emission.shape = coneShape;
 
   // Color over lifetime
-  colorOverLifetime.enabled = true;
-  colorOverLifetime.color.mode = ParticleGradientMode.Gradient;
-  const gradient = colorOverLifetime.color.gradient;
-  gradient.alphaKeys[0].alpha = 0;
-  gradient.alphaKeys[1].alpha = 0;
-  gradient.addAlphaKey(0.1, 1.0);
-  gradient.addAlphaKey(0.8, 1.0);
+  // colorOverLifetime.enabled = true;
+  // colorOverLifetime.color.mode = ParticleGradientMode.Gradient;
+  // const gradient = colorOverLifetime.color.gradient;
+  // gradient.alphaKeys[0].alpha = 0;
+  // gradient.alphaKeys[1].alpha = 0;
+  // gradient.addAlphaKey(0.1, 1.0);
+  // gradient.addAlphaKey(0.8, 1.0);
 
   // Noise
   noise.enabled = true;
-  noise.strengthX = new ParticleCompositeCurve(3);
-  noise.strengthY = new ParticleCompositeCurve(3);
-  noise.strengthZ = new ParticleCompositeCurve(3);
-  noise.frequency = 0.8;
-  noise.scrollSpeed = new ParticleCompositeCurve(0.5);
-  noise.octaveCount = 2;
+  noise.strengthX = new ParticleCompositeCurve(1);
+  noise.strengthY = new ParticleCompositeCurve(1);
+  noise.strengthZ = new ParticleCompositeCurve(1);
+  noise.frequency = 1;
+  noise.scrollSpeed = new ParticleCompositeCurve(0);
+  noise.octaveCount = 1;
   noise.octaveIntensityMultiplier = 0.5;
   noise.octaveFrequencyMultiplier = 2.0;
 

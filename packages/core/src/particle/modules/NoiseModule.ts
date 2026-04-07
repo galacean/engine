@@ -31,13 +31,29 @@ export class NoiseModule extends ParticleGeneratorModule {
   private _strengthZ: ParticleCompositeCurve;
   @deepClone
   private _scrollSpeed: ParticleCompositeCurve;
+  private _separateAxes: boolean = false;
   private _frequency: number = 0.5;
   private _octaveCount: number = 1;
   private _octaveIntensityMultiplier: number = 0.5;
   private _octaveFrequencyMultiplier: number = 2.0;
 
   /**
-   * Noise strength for x axis.
+   * Specifies whether the strength is separate on each axis, when disabled, only `strength` is used.
+   */
+  get separateAxes(): boolean {
+    return this._separateAxes;
+  }
+
+  set separateAxes(value: boolean) {
+    if (value !== this._separateAxes) {
+      this._separateAxes = value;
+      this._generator._renderer._onGeneratorParamsChanged();
+    }
+  }
+
+  /**
+   * Noise strength. When `separateAxes` is disabled, applies to all axes.
+   * When `separateAxes` is enabled, applies only to x axis.
    */
   get strengthX(): ParticleCompositeCurve {
     return this._strengthX;
@@ -52,7 +68,7 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Noise strength for y axis.
+   * Noise strength for y axis, used when `separateAxes` is enabled.
    */
   get strengthY(): ParticleCompositeCurve {
     return this._strengthY;
@@ -67,7 +83,7 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Noise strength for z axis.
+   * Noise strength for z axis, used when `separateAxes` is enabled.
    */
   get strengthZ(): ParticleCompositeCurve {
     return this._strengthZ;
@@ -192,16 +208,20 @@ export class NoiseModule extends ParticleGeneratorModule {
       enabledMacro = NoiseModule._enabledMacro;
 
       // Pack into 2 vec4s to reduce uniform slot usage.
-      // noiseParams = (strengthX/freq, strengthY/freq, strengthZ/freq, frequency)
+      // noiseParams = (strengthX, strengthY, strengthZ, frequency)
       // noiseOctaveParams = (scrollSpeed, octaveCount, octaveIntensityMul, octaveFreqMul)
-      const invFreq = 1.0 / this._frequency;
       const noiseParams = this._noiseParams;
-      noiseParams.set(
-        this._strengthX.constantMax * invFreq,
-        this._strengthY.constantMax * invFreq,
-        this._strengthZ.constantMax * invFreq,
-        this._frequency
-      );
+      if (this._separateAxes) {
+        noiseParams.set(
+          this._strengthX.constantMax,
+          this._strengthY.constantMax,
+          this._strengthZ.constantMax,
+          this._frequency
+        );
+      } else {
+        const strength = this._strengthX.constantMax;
+        noiseParams.set(strength, strength, strength, this._frequency);
+      }
       shaderData.setVector4(NoiseModule._noiseParamsProperty, noiseParams);
 
       const noiseOctaveParams = this._noiseOctaveParams;
