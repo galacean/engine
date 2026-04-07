@@ -3,10 +3,10 @@
 #include <noise_common>
 #include <noise_simplex_3D>
 
-uniform vec3 renderer_NoiseStrength;
-uniform float renderer_NoiseFrequency;
-uniform float renderer_NoiseScrollSpeed;
-uniform vec3 renderer_NoiseOctaveInfo; // x=octaveCount, y=octaveIntensityMultiplier, z=octaveFrequencyMultiplier
+// renderer_NoiseParams: xyz = strength/frequency, w = frequency
+// renderer_NoiseOctaveParams: x = scrollSpeed, y = octaveCount, z = octaveIntensityMul, w = octaveFreqMul
+uniform vec4 renderer_NoiseParams;
+uniform vec4 renderer_NoiseOctaveParams;
 
 vec3 sampleSimplexNoise3D(vec3 coord) {
     return vec3(
@@ -17,12 +17,12 @@ vec3 sampleSimplexNoise3D(vec3 coord) {
 }
 
 vec3 computeNoisePositionOffset(vec3 currentPosition) {
-    vec3 coord = currentPosition * renderer_NoiseFrequency
-               + vec3(renderer_CurrentTime * renderer_NoiseScrollSpeed);
+    vec3 coord = currentPosition * renderer_NoiseParams.w
+               + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
 
-    int octaveCount = int(renderer_NoiseOctaveInfo.x);
-    float octaveIntensityMultiplier = renderer_NoiseOctaveInfo.y;
-    float octaveFrequencyMultiplier = renderer_NoiseOctaveInfo.z;
+    int octaveCount = int(renderer_NoiseOctaveParams.y);
+    float octaveIntensityMultiplier = renderer_NoiseOctaveParams.z;
+    float octaveFrequencyMultiplier = renderer_NoiseOctaveParams.w;
 
     vec3 noiseValue = sampleSimplexNoise3D(coord);
     float totalWeight = 1.0;
@@ -40,7 +40,7 @@ vec3 computeNoisePositionOffset(vec3 currentPosition) {
         }
     }
 
-    return (noiseValue / totalWeight) * renderer_NoiseStrength;
+    return (noiseValue / totalWeight) * renderer_NoiseParams.xyz;
 }
 
 #endif

@@ -1,4 +1,4 @@
-import { Vector3 } from "@galacean/engine-math";
+import { Vector4 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
@@ -12,18 +12,16 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 export class NoiseModule extends ParticleGeneratorModule {
   static readonly _enabledMacro = ShaderMacro.getByName("RENDERER_NOISE_MODULE_ENABLED");
 
-  static readonly _strengthProperty = ShaderProperty.getByName("renderer_NoiseStrength");
-  static readonly _frequencyProperty = ShaderProperty.getByName("renderer_NoiseFrequency");
-  static readonly _scrollSpeedProperty = ShaderProperty.getByName("renderer_NoiseScrollSpeed");
-  static readonly _octaveInfoProperty = ShaderProperty.getByName("renderer_NoiseOctaveInfo");
+  static readonly _noiseParamsProperty = ShaderProperty.getByName("renderer_NoiseParams");
+  static readonly _noiseOctaveParamsProperty = ShaderProperty.getByName("renderer_NoiseOctaveParams");
 
   @ignoreClone
   private _enabledModuleMacro: ShaderMacro;
 
   @ignoreClone
-  private _strengthVec = new Vector3();
+  private _noiseParams = new Vector4();
   @ignoreClone
-  private _octaveInfoVec = new Vector3();
+  private _noiseOctaveParams = new Vector4();
 
   @deepClone
   private _strengthX: ParticleCompositeCurve;
@@ -193,23 +191,27 @@ export class NoiseModule extends ParticleGeneratorModule {
     if (this.enabled) {
       enabledMacro = NoiseModule._enabledMacro;
 
-      // Bake strength / frequency on CPU to keep parameters orthogonal:
-      // frequency controls spatial detail, strength controls displacement amplitude.
+      // Pack into 2 vec4s to reduce uniform slot usage.
+      // noiseParams = (strengthX/freq, strengthY/freq, strengthZ/freq, frequency)
+      // noiseOctaveParams = (scrollSpeed, octaveCount, octaveIntensityMul, octaveFreqMul)
       const invFreq = 1.0 / this._frequency;
-      const strength = this._strengthVec;
-      strength.set(
+      const noiseParams = this._noiseParams;
+      noiseParams.set(
         this._strengthX.constantMax * invFreq,
         this._strengthY.constantMax * invFreq,
-        this._strengthZ.constantMax * invFreq
+        this._strengthZ.constantMax * invFreq,
+        this._frequency
       );
-      shaderData.setVector3(NoiseModule._strengthProperty, strength);
+      shaderData.setVector4(NoiseModule._noiseParamsProperty, noiseParams);
 
-      shaderData.setFloat(NoiseModule._frequencyProperty, this._frequency);
-      shaderData.setFloat(NoiseModule._scrollSpeedProperty, this._scrollSpeed.constantMax);
-
-      const octaveInfo = this._octaveInfoVec;
-      octaveInfo.set(this._octaveCount, this._octaveIntensityMultiplier, this._octaveFrequencyMultiplier);
-      shaderData.setVector3(NoiseModule._octaveInfoProperty, octaveInfo);
+      const noiseOctaveParams = this._noiseOctaveParams;
+      noiseOctaveParams.set(
+        this._scrollSpeed.constantMax,
+        this._octaveCount,
+        this._octaveIntensityMultiplier,
+        this._octaveFrequencyMultiplier
+      );
+      shaderData.setVector4(NoiseModule._noiseOctaveParamsProperty, noiseOctaveParams);
     }
 
     this._enabledModuleMacro = this._enableMacro(shaderData, this._enabledModuleMacro, enabledMacro);
