@@ -13,7 +13,8 @@ import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { Material } from "../../material";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
-import { SpriteRenderable } from "./SpriteRenderable";
+import { SpriteDrawMode } from "../enums/SpriteDrawMode";
+import { SpriteRenderable, SpriteRenderableFlags } from "./SpriteRenderable";
 import { SpriteMaskUtils } from "./SpriteMaskUtils";
 
 /**
@@ -35,69 +36,54 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
   @ignoreClone
   _maskIndex: number = -1;
 
-  @ignoreClone
-  private _automaticWidth: number = 0;
-  @ignoreClone
-  private _automaticHeight: number = 0;
-  @assignmentClone
-  private _customWidth: number = undefined;
-  @assignmentClone
-  private _customHeight: number = undefined;
-  @assignmentClone
-  private _flipX: boolean = false;
-  @assignmentClone
-  private _flipY: boolean = false;
-  @ignoreClone
-  private _autoSizeDirty: boolean = true;
-
   @assignmentClone
   private _alphaCutoff: number = 0.5;
 
   /**
-   * Render width (in world coordinates).
-   *
-   * @remarks
-   * If width is set, return the set value,
-   * otherwise return `SpriteMask.sprite.width`.
+   * The minimum alpha value used by the mask to select the area of influence defined over the mask's sprite. Value between 0 and 1.
+   */
+  get alphaCutoff(): number {
+    return this._alphaCutoff;
+  }
+
+  set alphaCutoff(value: number) {
+    if (this._alphaCutoff !== value) {
+      this._alphaCutoff = value;
+      this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, value);
+    }
+  }
+
+  /**
+   * Render width. If set, uses custom value; otherwise uses sprite's natural width.
    */
   get width(): number {
-    if (this._customWidth !== undefined) {
-      return this._customWidth;
-    }
-    if (this._autoSizeDirty) {
-      this._calDefaultSize();
-    }
-    return this._automaticWidth;
+    return this._getWidth();
   }
 
   set width(value: number) {
     if (this._customWidth !== value) {
       this._customWidth = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |=
+        this.drawMode === SpriteDrawMode.Tiled
+          ? SpriteRenderableFlags.WorldVolumeUVAndColor
+          : RendererUpdateFlags.WorldVolume;
     }
   }
 
   /**
-   * Render height (in world coordinates).
-   *
-   * @remarks
-   * If height is set, return the set value,
-   * otherwise return `SpriteMask.sprite.height`.
+   * Render height. If set, uses custom value; otherwise uses sprite's natural height.
    */
   get height(): number {
-    if (this._customHeight !== undefined) {
-      return this._customHeight;
-    }
-    if (this._autoSizeDirty) {
-      this._calDefaultSize();
-    }
-    return this._automaticHeight;
+    return this._getHeight();
   }
 
   set height(value: number) {
     if (this._customHeight !== value) {
       this._customHeight = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |=
+        this.drawMode === SpriteDrawMode.Tiled
+          ? SpriteRenderableFlags.WorldVolumeUVAndColor
+          : RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -130,20 +116,6 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
   }
 
   /**
-   * The minimum alpha value used by the mask to select the area of influence defined over the mask's sprite. Value between 0 and 1.
-   */
-  get alphaCutoff(): number {
-    return this._alphaCutoff;
-  }
-
-  set alphaCutoff(value: number) {
-    if (this._alphaCutoff !== value) {
-      this._alphaCutoff = value;
-      this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, value);
-    }
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -155,6 +127,43 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
   }
 
   // ===== SpriteRenderable abstract implementations =====
+
+  /** @internal */
+  override _getWidth(): number {
+    if (this._customWidth !== undefined) {
+      return this._customWidth;
+    }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticWidth;
+  }
+
+  /** @internal */
+  override _getHeight(): number {
+    if (this._customHeight !== undefined) {
+      return this._customHeight;
+    }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticHeight;
+  }
+
+  /** @internal */
+  override _getAlpha(): number {
+    return 1;
+  }
+
+  /** @internal */
+  override _getPivot(): Vector2 {
+    return this.sprite?.pivot;
+  }
+
+  /** @internal */
+  override _getReferenceResolutionPerUnit(): number | undefined {
+    return undefined;
+  }
 
   /** @internal */
   override _getChunkManager(): PrimitiveChunkManager {
@@ -180,39 +189,6 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
     subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
     subRenderElement.renderQueueFlags = RenderQueueFlags.All;
     renderElement.addSubRenderElement(subRenderElement);
-  }
-
-  /** @internal */
-  override _getSpriteWidth(): number {
-    return this.width;
-  }
-
-  /** @internal */
-  override _getSpriteHeight(): number {
-    return this.height;
-  }
-
-  /** @internal */
-  override _getSpriteFlipX(): boolean {
-    return this._flipX;
-  }
-
-  /** @internal */
-  override _getSpriteFlipY(): boolean {
-    return this._flipY;
-  }
-
-  /** @internal */
-  override _onSpriteSizeChanged(): void {
-    this._autoSizeDirty = true;
-    if (this._customWidth === undefined || this._customHeight === undefined) {
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-    }
-  }
-
-  /** @internal */
-  override _onSpritePivotChanged(): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   // ===== Mask-specific overrides =====
@@ -251,8 +227,8 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
       this.width,
       this.height,
       sprite.pivot,
-      this._getSpriteFlipX(),
-      this._getSpriteFlipY(),
+      this.flipX,
+      this.flipY,
       this.alphaCutoff
     );
   }
@@ -260,16 +236,5 @@ export class SpriteMask extends SpriteRenderable(Renderer) {
   protected override _onDestroy(): void {
     super._onDestroy();
     this._renderElement = null;
-  }
-
-  private _calDefaultSize(): void {
-    const sprite = this.sprite;
-    if (sprite) {
-      this._automaticWidth = sprite.width;
-      this._automaticHeight = sprite.height;
-    } else {
-      this._automaticWidth = this._automaticHeight = 0;
-    }
-    this._autoSizeDirty = false;
   }
 }

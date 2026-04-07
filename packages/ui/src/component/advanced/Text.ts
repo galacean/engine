@@ -27,26 +27,6 @@ export class Text extends TextRenderable(UIRenderer) {
 
   // ===== Abstract implementations =====
 
-  override _getTextWidth(): number {
-    return (<UITransform>this._transformEntity.transform).size.x;
-  }
-
-  override _getTextHeight(): number {
-    return (<UITransform>this._transformEntity.transform).size.y;
-  }
-
-  override _getTextPivotX(): number {
-    return (<UITransform>this._transformEntity.transform).pivot.x;
-  }
-
-  override _getTextPivotY(): number {
-    return (<UITransform>this._transformEntity.transform).pivot.y;
-  }
-
-  override _getTextReferenceResolutionPerUnit(): number | undefined {
-    return this._getRootCanvas()?.referenceResolutionPerUnit;
-  }
-
   override _submitText(context: RenderContext, material: Material): void {
     const canvas = this._getRootCanvas();
     if (!canvas) return;
@@ -79,10 +59,6 @@ export class Text extends TextRenderable(UIRenderer) {
   }
 
   // ===== Override defaults =====
-
-  override _getTextAlpha(): number {
-    return this._getGlobalAlpha();
-  }
 
   override _isTextHostInvisible(): boolean {
     return !this._getRootCanvas();

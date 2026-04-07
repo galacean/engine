@@ -30,21 +30,6 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
 
-  @ignoreClone
-  private _customWidth: number = undefined;
-  @ignoreClone
-  private _customHeight: number = undefined;
-  @ignoreClone
-  private _automaticWidth: number = 0;
-  @ignoreClone
-  private _automaticHeight: number = 0;
-  @ignoreClone
-  private _autoSizeDirty: boolean = true;
-  @ignoreClone
-  private _flipX: boolean = false;
-  @ignoreClone
-  private _flipY: boolean = false;
-
   /**
    * Rendering color for the Sprite graphic.
    */
@@ -59,20 +44,10 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
   }
 
   /**
-   * Render width (in world coordinates).
-   *
-   * @remarks
-   * If width is set, return the set value,
-   * otherwise return `SpriteRenderer.sprite.width`.
+   * Render width. If set, uses custom value; otherwise uses sprite's natural width.
    */
   get width(): number {
-    if (this._customWidth !== undefined) {
-      return this._customWidth;
-    }
-    if (this._autoSizeDirty) {
-      this._calDefaultSize();
-    }
-    return this._automaticWidth;
+    return this._getWidth();
   }
 
   set width(value: number) {
@@ -86,20 +61,10 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
   }
 
   /**
-   * Render height (in world coordinates).
-   *
-   * @remarks
-   * If height is set, return the set value,
-   * otherwise return `SpriteRenderer.sprite.height`.
+   * Render height. If set, uses custom value; otherwise uses sprite's natural height.
    */
   get height(): number {
-    if (this._customHeight !== undefined) {
-      return this._customHeight;
-    }
-    if (this._autoSizeDirty) {
-      this._calDefaultSize();
-    }
-    return this._automaticHeight;
+    return this._getHeight();
   }
 
   set height(value: number) {
@@ -177,8 +142,45 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
   // ===== Abstract implementations =====
 
   /** @internal */
-  override _getSpriteColor(): Color {
+  override _getColor(): Color {
     return this._color;
+  }
+
+  /** @internal */
+  override _getWidth(): number {
+    if (this._customWidth !== undefined) {
+      return this._customWidth;
+    }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticWidth;
+  }
+
+  /** @internal */
+  override _getHeight(): number {
+    if (this._customHeight !== undefined) {
+      return this._customHeight;
+    }
+    if (this._autoSizeDirty) {
+      this._calDefaultSize();
+    }
+    return this._automaticHeight;
+  }
+
+  /** @internal */
+  override _getAlpha(): number {
+    return 1;
+  }
+
+  /** @internal */
+  override _getPivot(): Vector2 {
+    return this.sprite?.pivot;
+  }
+
+  /** @internal */
+  override _getReferenceResolutionPerUnit(): number | undefined {
+    return undefined;
   }
 
   /** @internal */
@@ -208,56 +210,7 @@ export class SpriteRenderer extends SpriteRenderable(Renderer) {
     camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
-  /** @internal */
-  override _getSpriteWidth(): number {
-    return this.width;
-  }
-
-  /** @internal */
-  override _getSpriteHeight(): number {
-    return this.height;
-  }
-
-  /** @internal */
-  override _getSpritePivot(): Vector2 {
-    return this.sprite?.pivot;
-  }
-
-  /** @internal */
-  override _getSpriteFlipX(): boolean {
-    return this._flipX;
-  }
-
-  /** @internal */
-  override _getSpriteFlipY(): boolean {
-    return this._flipY;
-  }
-
-  /** @internal */
-  override _onSpriteSizeChanged(): void {
-    this._autoSizeDirty = true;
-    if (this._customWidth === undefined || this._customHeight === undefined) {
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-    }
-  }
-
-  /** @internal */
-  override _onSpritePivotChanged(): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
-  }
-
   // ===== Private =====
-
-  private _calDefaultSize(): void {
-    const sprite = this.sprite;
-    if (sprite) {
-      this._automaticWidth = sprite.width;
-      this._automaticHeight = sprite.height;
-    } else {
-      this._automaticWidth = this._automaticHeight = 0;
-    }
-    this._autoSizeDirty = false;
-  }
 
   @ignoreClone
   private _onColorChanged(): void {

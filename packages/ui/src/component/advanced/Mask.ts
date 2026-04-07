@@ -4,7 +4,7 @@ import {
   Material,
   PrimitiveChunkManager,
   RenderContext,
-  RenderQueueFlags,
+  RendererUpdateFlags,
   ShaderProperty,
   SubPrimitiveChunk,
   Texture2D,
@@ -12,10 +12,7 @@ import {
   assignmentClone,
   ignoreClone
 } from "@galacean/engine";
-import type { Vector2 } from "@galacean/engine";
-import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { UIRenderer } from "../UIRenderer";
-import { UITransform } from "../UITransform";
 
 /**
  * UI component that masks descendant UI elements using a sprite shape.
@@ -79,35 +76,8 @@ export class Mask extends SpriteRenderable(UIRenderer) {
     subChunk: SubPrimitiveChunk,
     texture: Texture2D
   ): void {
-    const canvas = this._getRootCanvas();
-    if (!canvas) return;
-
-    const engine = context.camera.engine;
-    const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-    subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-
-    // Mark as stencil write (increment) at current stencil depth
-    subRenderElement.uiStencilDepth = this._uiStencilDepth;
-    subRenderElement.uiStencilOp = 1; // increment
-
-    canvas._renderElement.addSubRenderElement(subRenderElement);
-  }
-
-  /** @internal */
-  override _getSpriteWidth(): number {
-    return (<UITransform>this._transformEntity.transform).size.x;
-  }
-
-  /** @internal */
-  override _getSpriteHeight(): number {
-    return (<UITransform>this._transformEntity.transform).size.y;
-  }
-
-  /** @internal */
-  override _getSpritePivot(): Vector2 {
-    return (<UITransform>this._transformEntity.transform).pivot;
+    // stencilOp = 1 (increment), forceAllRenderQueue = true
+    this._submitToCanvas(context, material, subChunk, texture, 1, true);
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -123,7 +93,6 @@ export class Mask extends SpriteRenderable(UIRenderer) {
 
   @ignoreClone
   protected override _onTransformChanged(type: number): void {
-    // @ts-ignore
-    this._dirtyUpdateFlag |= 0x1; // RendererUpdateFlags.WorldVolume
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }

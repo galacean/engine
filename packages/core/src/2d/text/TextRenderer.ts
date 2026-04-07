@@ -107,12 +107,28 @@ export class TextRenderer extends TextRenderable(Renderer) {
     return this.engine._batcherManager.primitiveChunkManager2D;
   }
 
-  override _getTextWidth(): number {
+  override _getWidth(): number {
     return this._width;
   }
 
-  override _getTextHeight(): number {
+  override _getHeight(): number {
     return this._height;
+  }
+
+  override _getAlpha(): number {
+    return 1;
+  }
+
+  override _getPivotX(): number {
+    return 0.5;
+  }
+
+  override _getPivotY(): number {
+    return 0.5;
+  }
+
+  override _getReferenceResolutionPerUnit(): number | undefined {
+    return undefined;
   }
 
   override _submitText(context: RenderContext, material: Material): void {

@@ -3,7 +3,6 @@ import {
   Entity,
   Material,
   RenderContext,
-  RenderQueueFlags,
   RendererUpdateFlags,
   SpriteDrawMode,
   SpriteRenderable,
@@ -12,8 +11,6 @@ import {
   Texture2D,
   ignoreClone
 } from "@galacean/engine";
-import type { Vector2 } from "@galacean/engine";
-import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
@@ -33,7 +30,7 @@ export class Image extends SpriteRenderable(UIRenderer) {
   // ===== Abstract implementations =====
 
   /** @internal */
-  override _getSpriteColor() {
+  override _getColor() {
     return this._color;
   }
 
@@ -50,51 +47,7 @@ export class Image extends SpriteRenderable(UIRenderer) {
     subChunk: SubPrimitiveChunk,
     texture: Texture2D
   ): void {
-    const canvas = this._getRootCanvas();
-    if (!canvas) return;
-
-    const engine = context.camera.engine;
-    const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-
-    if (canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
-      subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-      subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-    }
-
-    // Set UI stencil depth for hierarchy-based masking
-    const stencilDepth = this._uiStencilDepth;
-    if (stencilDepth > 0) {
-      subRenderElement.uiStencilDepth = stencilDepth;
-      subRenderElement.uiStencilOp = 0; // test (read stencil)
-    }
-
-    canvas._renderElement.addSubRenderElement(subRenderElement);
-  }
-
-  /** @internal */
-  override _getSpriteWidth(): number {
-    return (<UITransform>this._transformEntity.transform).size.x;
-  }
-
-  /** @internal */
-  override _getSpriteHeight(): number {
-    return (<UITransform>this._transformEntity.transform).size.y;
-  }
-
-  /** @internal */
-  override _getSpritePivot(): Vector2 {
-    return (<UITransform>this._transformEntity.transform).pivot;
-  }
-
-  // ===== Override defaults =====
-
-  override _getSpriteAlpha(): number {
-    return this._getGlobalAlpha();
-  }
-
-  override _getReferenceResolutionPerUnit(): number | undefined {
-    return this._getRootCanvas()?.referenceResolutionPerUnit;
+    this._submitToCanvas(context, material, subChunk, texture);
   }
 
   // ===== Image-specific =====

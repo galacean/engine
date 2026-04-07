@@ -59,12 +59,12 @@ export interface ITextRenderable {
   _subFont: SubFont;
   _getChunkManager(): PrimitiveChunkManager;
   _getSubFont(): SubFont;
-  _getTextWidth(): number;
-  _getTextHeight(): number;
-  _getTextPivotX(): number;
-  _getTextPivotY(): number;
-  _getTextReferenceResolutionPerUnit(): number | undefined;
-  _getTextAlpha(): number;
+  _getWidth(): number;
+  _getHeight(): number;
+  _getPivotX(): number;
+  _getPivotY(): number;
+  _getReferenceResolutionPerUnit(): number | undefined;
+  _getAlpha(): number;
   _submitText(context: RenderContext, material: Material): void;
   _isTextHostInvisible(): boolean;
   _isContainDirtyFlag(type: number): boolean;
@@ -123,34 +123,29 @@ export function TextRenderable<T extends RendererConstructor>(
     abstract _submitText(context: RenderContext, material: Material): void;
 
     /** The text layout width. */
-    abstract _getTextWidth(): number;
+    abstract _getWidth(): number;
 
     /** The text layout height. */
-    abstract _getTextHeight(): number;
+    abstract _getHeight(): number;
+
+    // ===== Abstract methods: host MUST implement (avoids MRO shadowing) =====
+
+    /** Final alpha multiplier. 2D hosts return 1; UI hosts return globalAlpha. */
+    abstract _getAlpha(): number;
+
+    /** Text pivot X. 2D hosts return 0.5; UI hosts return UITransform pivot. */
+    abstract _getPivotX(): number;
+
+    /** Text pivot Y. 2D hosts return 0.5; UI hosts return UITransform pivot. */
+    abstract _getPivotY(): number;
+
+    /** Reference resolution per unit. 2D hosts return undefined; UI hosts return canvas value. */
+    abstract _getReferenceResolutionPerUnit(): number | undefined;
 
     // ===== Methods with defaults =====
 
-    _getTextAlpha(): number {
-      return 1;
-    }
-
     _isTextHostInvisible(): boolean {
       return false;
-    }
-
-    /** Text pivot X. Default: 0.5. */
-    _getTextPivotX(): number {
-      return 0.5;
-    }
-
-    /** Text pivot Y. Default: 0.5. */
-    _getTextPivotY(): number {
-      return 0.5;
-    }
-
-    /** Reference resolution per unit. Default: undefined (no scaling). */
-    _getTextReferenceResolutionPerUnit(): number | undefined {
-      return undefined;
     }
 
     // ===== Text properties =====
@@ -409,8 +404,8 @@ export function TextRenderable<T extends RendererConstructor>(
     // ===== Private =====
 
     private _isTextNoVisible(): boolean {
-      const textWidth = this._getTextWidth();
-      const textHeight = this._getTextHeight();
+      const textWidth = this._getWidth();
+      const textHeight = this._getHeight();
       return (
         !this._font ||
         this._text === "" ||
@@ -480,7 +475,7 @@ export function TextRenderable<T extends RendererConstructor>(
 
     private _updateColor(): void {
       const { r, g, b, a } = this.color;
-      const finalAlpha = a * this._getTextAlpha();
+      const finalAlpha = a * this._getAlpha();
       const textChunks = this._textChunks;
       for (let i = 0, n = textChunks.length; i < n; ++i) {
         const subChunk = textChunks[i].subChunk;
@@ -497,11 +492,11 @@ export function TextRenderable<T extends RendererConstructor>(
     }
 
     private _updateLocalData(): void {
-      let rendererWidth = this._getTextWidth();
-      let rendererHeight = this._getTextHeight();
-      const pivotX = this._getTextPivotX();
-      const pivotY = this._getTextPivotY();
-      const resPerUnit = this._getTextReferenceResolutionPerUnit();
+      let rendererWidth = this._getWidth();
+      let rendererHeight = this._getHeight();
+      const pivotX = this._getPivotX();
+      const pivotY = this._getPivotY();
+      const resPerUnit = this._getReferenceResolutionPerUnit();
       const pixelsPerUnit = resPerUnit ? Engine._pixelsPerUnit / resPerUnit : Engine._pixelsPerUnit;
       const offsetWidth = rendererWidth * (0.5 - pivotX);
       const offsetHeight = rendererHeight * (0.5 - pivotY);
@@ -659,7 +654,7 @@ export function TextRenderable<T extends RendererConstructor>(
 
     private _buildChunk(textChunk: TextChunk, count: number): SubPrimitiveChunk {
       const { r, g, b, a } = this.color;
-      const finalAlpha = a * this._getTextAlpha();
+      const finalAlpha = a * this._getAlpha();
       const tempIndices = CharRenderInfo.triangles;
       const tempIndicesLength = tempIndices.length;
       const subChunk = (textChunk.subChunk = this._getChunkManager().allocateSubChunk(count * 4));

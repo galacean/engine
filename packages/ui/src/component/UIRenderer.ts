@@ -4,14 +4,20 @@ import {
   DependentMode,
   Entity,
   EntityModifyFlags,
+  Material,
   Matrix,
   Plane,
   Ray,
+  RenderContext,
+  RenderQueueFlags,
   Renderer,
   RendererUpdateFlags,
   ShaderMacroCollection,
   ShaderProperty,
   SpriteMaskInteraction,
+  SubPrimitiveChunk,
+  Texture2D,
+  Vector2,
   Vector3,
   Vector4,
   assignmentClone,
@@ -20,6 +26,7 @@ import {
   ignoreClone
 } from "@galacean/engine";
 import { Utils } from "../Utils";
+import { CanvasRenderMode } from "../enums/CanvasRenderMode";
 import { UIHitResult } from "../input/UIHitResult";
 import { IGraphics } from "../interface/IGraphics";
 import { RectMask2D } from "./advanced/RectMask2D";
@@ -269,6 +276,105 @@ export class UIRenderer extends Renderer implements IGraphics {
   _getChunkManager() {
     // @ts-ignore
     return this.engine._batcherManager.primitiveChunkManagerUI;
+  }
+
+  // ===== Layout methods: default implementations for UI =====
+
+  /**
+   * Get width from UITransform.
+   * @internal
+   */
+  _getWidth(): number {
+    return (<UITransform>this._transformEntity.transform).size.x;
+  }
+
+  /**
+   * Get height from UITransform.
+   * @internal
+   */
+  _getHeight(): number {
+    return (<UITransform>this._transformEntity.transform).size.y;
+  }
+
+  /**
+   * Get pivot from UITransform.
+   * @internal
+   */
+  _getPivot(): Vector2 {
+    return (<UITransform>this._transformEntity.transform).pivot;
+  }
+
+  /**
+   * Get pivot X from UITransform.
+   * @internal
+   */
+  _getPivotX(): number {
+    return (<UITransform>this._transformEntity.transform).pivot.x;
+  }
+
+  /**
+   * Get pivot Y from UITransform.
+   * @internal
+   */
+  _getPivotY(): number {
+    return (<UITransform>this._transformEntity.transform).pivot.y;
+  }
+
+  /**
+   * Get alpha from UIGroup.
+   * @internal
+   */
+  _getAlpha(): number {
+    return this._getGlobalAlpha();
+  }
+
+  /**
+   * Get reference resolution per unit from UICanvas.
+   * @internal
+   */
+  _getReferenceResolutionPerUnit(): number | undefined {
+    return this._getRootCanvas()?.referenceResolutionPerUnit;
+  }
+
+  /**
+   * Submit render element to canvas for UI rendering.
+   * @param context - The render context
+   * @param material - The material to use
+   * @param subChunk - The sub primitive chunk
+   * @param texture - The texture to use
+   * @param stencilOp - Stencil operation: 0 = test (read), 1 = increment (write). Default is 0.
+   * @param forceAllRenderQueue - Whether to force render in all render queues. Default is false.
+   * @internal
+   */
+  _submitToCanvas(
+    context: RenderContext,
+    material: Material,
+    subChunk: SubPrimitiveChunk,
+    texture: Texture2D,
+    stencilOp: number = 0,
+    forceAllRenderQueue: boolean = false
+  ): void {
+    const canvas = this._getRootCanvas();
+    if (!canvas) return;
+
+    const engine = context.camera.engine;
+    const subRenderElement = engine._subRenderElementPool.get();
+    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
+
+    // Set shader passes and render queue flags for overlay mode or forced all queues
+    if (forceAllRenderQueue || canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
+      subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
+      subRenderElement.renderQueueFlags = RenderQueueFlags.All;
+    }
+
+    // Set stencil for hierarchy-based masking
+    const stencilDepth = this._uiStencilDepth;
+    if (stencilDepth > 0 || stencilOp !== 0) {
+      subRenderElement.uiStencilDepth = stencilDepth;
+      subRenderElement.uiStencilOp = stencilOp;
+    }
+
+    canvas._renderElement.addSubRenderElement(subRenderElement);
   }
 
   /**

@@ -47,15 +47,31 @@ export interface ISpriteRenderable {
   tileMode: SpriteTileMode;
   tiledAdaptiveThreshold: number;
   _spriteData: SpritePrimitive;
+  /** @internal */
+  _customWidth?: number;
+  /** @internal */
+  _customHeight?: number;
+  /** @internal */
+  _automaticWidth: number;
+  /** @internal */
+  _automaticHeight: number;
+  /** @internal */
+  _autoSizeDirty: boolean;
+  /** @internal */
+  _flipX: boolean;
+  /** @internal */
+  _flipY: boolean;
+  /** @internal */
+  _calDefaultSize(): void;
   _getChunkManager(): PrimitiveChunkManager;
   _getDefaultSpriteMaterial(): Material;
-  _getSpriteColor(): Color | null;
-  _getSpriteAlpha(): number;
-  _getSpriteWidth(): number;
-  _getSpriteHeight(): number;
-  _getSpritePivot(): Vector2;
-  _getSpriteFlipX(): boolean;
-  _getSpriteFlipY(): boolean;
+  _getColor(): Color | null;
+  _getAlpha(): number;
+  _getWidth(): number;
+  _getHeight(): number;
+  _getPivot(): Vector2;
+  _getFlipX(): boolean;
+  _getFlipY(): boolean;
   _getReferenceResolutionPerUnit(): number | undefined;
   _onSpriteSizeChanged(): void;
   _onSpritePivotChanged(): void;
@@ -92,6 +108,30 @@ export function SpriteRenderable<T extends RendererConstructor>(
     @assignmentClone
     private _tiledAdaptiveThreshold: number = 0.5;
 
+    // ===== Size management (optional, for 2D sprites) =====
+
+    /** @internal */
+    @ignoreClone
+    protected _customWidth?: number;
+    /** @internal */
+    @ignoreClone
+    protected _customHeight?: number;
+    /** @internal */
+    @ignoreClone
+    protected _automaticWidth: number = 0;
+    /** @internal */
+    @ignoreClone
+    protected _automaticHeight: number = 0;
+    /** @internal */
+    @ignoreClone
+    protected _autoSizeDirty: boolean = true;
+    /** @internal */
+    @assignmentClone
+    protected _flipX: boolean = false;
+    /** @internal */
+    @assignmentClone
+    protected _flipY: boolean = false;
+
     // ===== Abstract methods: host MUST implement =====
 
     /** Which PrimitiveChunkManager to allocate vertex data from. */
@@ -108,49 +148,69 @@ export function SpriteRenderable<T extends RendererConstructor>(
       texture: Texture2D
     ): void;
 
-    /** The sprite width for layout. */
-    abstract _getSpriteWidth(): number;
+    // ===== Abstract methods: host MUST implement (avoids MRO shadowing) =====
 
-    /** The sprite height for layout. */
-    abstract _getSpriteHeight(): number;
+    /** Get width for rendering. 2D hosts use custom/automatic size; UI hosts use UITransform.size. */
+    abstract _getWidth(): number;
+
+    /** Get height for rendering. 2D hosts use custom/automatic size; UI hosts use UITransform.size. */
+    abstract _getHeight(): number;
+
+    /** Final alpha multiplier. 2D hosts return 1; UI hosts return globalAlpha. */
+    abstract _getAlpha(): number;
+
+    /** Pivot for rendering. 2D hosts return sprite pivot; UI hosts return UITransform pivot. */
+    abstract _getPivot(): Vector2;
+
+    /** Reference resolution per unit. 2D hosts return undefined; UI hosts return canvas value. */
+    abstract _getReferenceResolutionPerUnit(): number | undefined;
 
     // ===== Methods with defaults: host CAN override =====
 
-    /** Sprite color for vertex coloring. Default: null (no color, for masks). */
-    _getSpriteColor(): Color | null {
+    /** Color for vertex coloring. Default: null (no color, for masks). */
+    _getColor(): Color | null {
       return null;
     }
 
-    /** Final alpha multiplier. Default: 1. UI hosts override to globalAlpha. */
-    _getSpriteAlpha(): number {
-      return 1;
+    /** Whether to flip X. Default: returns internal _flipX. */
+    _getFlipX(): boolean {
+      return this._flipX;
     }
 
-    /** Sprite pivot. Default: sprite's own pivot. */
-    _getSpritePivot(): Vector2 {
-      return this._spriteData.sprite?.pivot;
+    /** Whether to flip Y. Default: returns internal _flipY. */
+    _getFlipY(): boolean {
+      return this._flipY;
     }
 
-    /** Whether to flip X. Default: false. */
-    _getSpriteFlipX(): boolean {
-      return false;
+    /** Called when sprite size changes. Default: mark auto size dirty. */
+    _onSpriteSizeChanged(): void {
+      this._autoSizeDirty = true;
+      if (this._customWidth === undefined || this._customHeight === undefined) {
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      }
     }
 
-    /** Whether to flip Y. Default: false. */
-    _getSpriteFlipY(): boolean {
-      return false;
+    /** Called when sprite pivot changes. Default: mark world volume dirty. */
+    _onSpritePivotChanged(): void {
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
 
-    /** Reference resolution per unit. Default: undefined. */
-    _getReferenceResolutionPerUnit(): number | undefined {
-      return undefined;
+    // ===== Internal helpers =====
+
+    /**
+     * Calculate default size from sprite.
+     * @internal
+     */
+    protected _calDefaultSize(): void {
+      const sprite = this._spriteData.sprite;
+      if (sprite) {
+        this._automaticWidth = sprite.width;
+        this._automaticHeight = sprite.height;
+      } else {
+        this._automaticWidth = this._automaticHeight = 0;
+      }
+      this._autoSizeDirty = false;
     }
-
-    /** Called when sprite size changes. Host can override to mark dirty flags. */
-    _onSpriteSizeChanged(): void {}
-
-    /** Called when sprite pivot changes. Host can override to mark dirty flags. */
-    _onSpritePivotChanged(): void {}
 
     // ===== Public API (forwarding) =====
 
@@ -281,11 +341,11 @@ export function SpriteRenderable<T extends RendererConstructor>(
           this._spriteData,
           this._getChunkManager(),
           this._transformEntity.transform.worldMatrix,
-          this._getSpriteWidth(),
-          this._getSpriteHeight(),
-          this._getSpritePivot(),
-          this._getSpriteFlipX(),
-          this._getSpriteFlipY(),
+          this._getWidth(),
+          this._getHeight(),
+          this._getPivot(),
+          this._getFlipX(),
+          this._getFlipY(),
           this._bounds,
           this._getReferenceResolutionPerUnit(),
           this._tileMode,
@@ -300,8 +360,8 @@ export function SpriteRenderable<T extends RendererConstructor>(
 
     protected override _render(context: RenderContext): void {
       const sprite = this._spriteData.sprite;
-      const width = this._getSpriteWidth();
-      const height = this._getSpriteHeight();
+      const width = this._getWidth();
+      const height = this._getHeight();
       if (!sprite?.texture || !width || !height) {
         return;
       }
@@ -315,8 +375,8 @@ export function SpriteRenderable<T extends RendererConstructor>(
         material = this._getDefaultSpriteMaterial();
       }
 
-      const color = this._getSpriteColor();
-      const alpha = this._getSpriteAlpha();
+      const color = this._getColor();
+      const alpha = this._getAlpha();
       if (color && color.a * alpha <= 0) {
         return;
       }
@@ -327,11 +387,11 @@ export function SpriteRenderable<T extends RendererConstructor>(
           this._spriteData,
           this._getChunkManager(),
           this._transformEntity.transform.worldMatrix,
-          this._getSpriteWidth(),
-          this._getSpriteHeight(),
-          this._getSpritePivot(),
-          this._getSpriteFlipX(),
-          this._getSpriteFlipY(),
+          this._getWidth(),
+          this._getHeight(),
+          this._getPivot(),
+          this._getFlipX(),
+          this._getFlipY(),
           this._bounds,
           this._getReferenceResolutionPerUnit(),
           this._tileMode,
