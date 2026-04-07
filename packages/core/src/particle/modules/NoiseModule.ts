@@ -34,9 +34,9 @@ export class NoiseModule extends ParticleGeneratorModule {
   @deepClone
   private _scrollSpeed: ParticleCompositeCurve;
   private _frequency: number = 0.5;
-  private _octaves: number = 1;
-  private _octaveMultiplier: number = 0.5;
-  private _octaveScale: number = 2.0;
+  private _octaveCount: number = 1;
+  private _octaveIntensityMultiplier: number = 0.5;
+  private _octaveFrequencyMultiplier: number = 2.0;
 
   /**
    * Noise strength for x axis.
@@ -113,44 +113,46 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Number of noise octaves (1-3).
+   * Number of noise octave layers (1-3).
    */
-  get octaves(): number {
-    return this._octaves;
+  get octaveCount(): number {
+    return this._octaveCount;
   }
 
-  set octaves(value: number) {
+  set octaveCount(value: number) {
     value = Math.max(1, Math.min(3, Math.floor(value)));
-    if (value !== this._octaves) {
-      this._octaves = value;
+    if (value !== this._octaveCount) {
+      this._octaveCount = value;
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
 
   /**
-   * Amplitude decay factor per octave.
+   * Intensity multiplier for each successive octave.
+   * Each layer's contribution is scaled by this factor relative to the previous layer, range [0, 1].
    */
-  get octaveMultiplier(): number {
-    return this._octaveMultiplier;
+  get octaveIntensityMultiplier(): number {
+    return this._octaveIntensityMultiplier;
   }
 
-  set octaveMultiplier(value: number) {
-    if (value !== this._octaveMultiplier) {
-      this._octaveMultiplier = value;
+  set octaveIntensityMultiplier(value: number) {
+    if (value !== this._octaveIntensityMultiplier) {
+      this._octaveIntensityMultiplier = value;
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
 
   /**
-   * Frequency increase factor per octave.
+   * Frequency multiplier for each successive octave.
+   * Each layer samples at this multiple of the previous layer's frequency, range [1, 4].
    */
-  get octaveScale(): number {
-    return this._octaveScale;
+  get octaveFrequencyMultiplier(): number {
+    return this._octaveFrequencyMultiplier;
   }
 
-  set octaveScale(value: number) {
-    if (value !== this._octaveScale) {
-      this._octaveScale = value;
+  set octaveFrequencyMultiplier(value: number) {
+    if (value !== this._octaveFrequencyMultiplier) {
+      this._octaveFrequencyMultiplier = value;
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
@@ -203,7 +205,7 @@ export class NoiseModule extends ParticleGeneratorModule {
       shaderData.setFloat(NoiseModule._scrollSpeedProperty, this._scrollSpeed.constantMax);
 
       const octaveInfo = this._octaveInfoVec;
-      octaveInfo.set(this._octaves, this._octaveMultiplier, this._octaveScale);
+      octaveInfo.set(this._octaveCount, this._octaveIntensityMultiplier, this._octaveFrequencyMultiplier);
       shaderData.setVector3(NoiseModule._octaveInfoProperty, octaveInfo);
     }
 
