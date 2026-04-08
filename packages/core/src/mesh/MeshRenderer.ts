@@ -178,9 +178,9 @@ export class MeshRenderer extends Renderer {
   override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
     if (!this._engine._hardwareRenderer.isWebGL2) return false;
 
-    const batch = elementA.instanceDataPacker;
+    const packer = elementA.instanceDataPacker;
     return (
-      (!batch || batch.instanceCount < batch.maxInstanceCount) &&
+      (!packer || packer.instanceCount < packer.maxInstanceCount) &&
       elementA.primitive === elementB.primitive &&
       elementA.subPrimitive === elementB.subPrimitive &&
       elementA.material === elementB.material &&
@@ -194,11 +194,11 @@ export class MeshRenderer extends Renderer {
   override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
     if (!elementB) return;
 
-    let batch = elementA.instanceDataPacker;
-    if (!batch) {
+    let packer = elementA.instanceDataPacker;
+    if (!packer) {
       const engine = this._engine;
-      batch = engine._batcherManager.instanceDataPackerPool.getOrCreate();
-      const compileMacros = batch.compileMacros;
+      packer = engine._batcherManager.instanceDataPackerPool.getOrCreate();
+      const compileMacros = packer.compileMacros;
       const materialData = elementA.material.shaderData;
       ShaderMacroCollection.unionCollection(this._globalShaderMacro, materialData._macroCollection, compileMacros);
       ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
@@ -206,12 +206,12 @@ export class MeshRenderer extends Renderer {
 
       const layout = elementA.subShader._getInstanceLayout(engine, compileMacros);
       if (layout) {
-        batch.setLayout(layout.instanceFields, layout.instanceMaxCount, layout.structSize);
+        packer.setLayout(layout.instanceFields, layout.instanceMaxCount, layout.structSize);
       }
-      batch.addRenderer(elementA.component);
-      elementA.instanceDataPacker = batch;
+      packer.addRenderer(elementA.component);
+      elementA.instanceDataPacker = packer;
     }
-    batch.addRenderer(elementB.component);
+    packer.addRenderer(elementB.component);
   }
 
   private _setMesh(mesh: Mesh): void {

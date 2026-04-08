@@ -20,9 +20,9 @@ export class InstanceDataPackerPool {
   uploadBuffer(): void {
     const pool = this._pool;
     for (let i = 0, n = this._poolIndex; i < n; i++) {
-      const batch = pool[i];
-      if (batch.instanceCount > 1) {
-        batch.prepare();
+      const packer = pool[i];
+      if (packer.instanceCount > 1) {
+        packer.prepare();
       }
     }
   }
