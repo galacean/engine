@@ -1397,11 +1397,11 @@ export class ParticleGenerator {
     if (noise.enabled) {
       let noiseMaxX: number, noiseMaxY: number, noiseMaxZ: number;
       if (noise.separateAxes) {
-        noiseMaxX = noise.strengthX._getMax();
-        noiseMaxY = noise.strengthY._getMax();
-        noiseMaxZ = noise.strengthZ._getMax();
+        noiseMaxX = Math.abs(noise.strengthX._getMax());
+        noiseMaxY = Math.abs(noise.strengthY._getMax());
+        noiseMaxZ = Math.abs(noise.strengthZ._getMax());
       } else {
-        noiseMaxX = noiseMaxY = noiseMaxZ = noise.strengthX._getMax();
+        noiseMaxX = noiseMaxY = noiseMaxZ = Math.abs(noise.strengthX._getMax());
       }
       min.set(min.x - noiseMaxX, min.y - noiseMaxY, min.z - noiseMaxZ);
       max.set(max.x + noiseMaxX, max.y + noiseMaxY, max.z + noiseMaxZ);

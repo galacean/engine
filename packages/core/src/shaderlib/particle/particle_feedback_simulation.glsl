@@ -239,7 +239,15 @@ void main() {
         // Use analytical base position (birth + initial velocity * age) instead of
         // a_FeedbackPosition to avoid feedback loop: position → noise → velocity → position.
         // At high strength the loop becomes unstable (particle overshoots noise cells).
-        vec3 noiseBasePos = a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age;
+        vec3 noiseBasePos;
+        if (renderer_SimulationSpace == 0) {
+            // Local: sample in local space
+            noiseBasePos = a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age;
+        } else {
+            // World: sample in world space so noise direction is world-aligned
+            noiseBasePos = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz, worldRotation) + a_SimulationWorldPosition
+                         + rotationByQuaternions(a_DirectionTime.xyz * a_StartSpeed, worldRotation) * age;
+        }
         noiseVelocity = computeNoiseVelocity(noiseBasePos, normalizedAge) / lifetime;
     #endif
 
