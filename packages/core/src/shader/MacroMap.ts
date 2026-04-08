@@ -6,7 +6,7 @@ type Tree<T> = {
 };
 
 /**
- * Cache pool keyed by ShaderMacroCollection bitmask.
+ * Map keyed by ShaderMacroCollection bitmask.
  * @internal
  */
 export class MacroMap<T> {

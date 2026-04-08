@@ -237,12 +237,12 @@ export class Shader implements IReferable {
         const passes = subShaders[i].passes;
         for (let j = 0, m = passes.length; j < m; j++) {
           const pass = passes[j];
-          const passShaderProgramPools = pass._shaderProgramPools;
-          for (let k = passShaderProgramPools.length - 1; k >= 0; k--) {
-            const pool = passShaderProgramPools[k];
-            if (pool.engine !== engine) continue;
-            pool.clear((program) => program.destroy());
-            passShaderProgramPools.splice(k, 1);
+          const passShaderProgramMaps = pass._shaderProgramMaps;
+          for (let k = passShaderProgramMaps.length - 1; k >= 0; k--) {
+            const map = passShaderProgramMaps[k];
+            if (map.engine !== engine) continue;
+            map.clear((program) => program.destroy());
+            passShaderProgramMaps.splice(k, 1);
           }
         }
       }

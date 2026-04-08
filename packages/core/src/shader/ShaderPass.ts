@@ -55,7 +55,7 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
-  _shaderProgramPools: MacroMap<ShaderProgram>[] = [];
+  _shaderProgramMaps: MacroMap<ShaderProgram>[] = [];
 
   private _vertexSource?: string;
   private _fragmentSource?: string;
@@ -172,15 +172,15 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     instanceFields?: InstanceFieldInfo[]
   ): ShaderProgram {
-    const shaderProgramPool = engine._getShaderProgramPool(this._shaderPassId, this._shaderProgramPools);
-    let shaderProgram = shaderProgramPool.get(macroCollection);
+    const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
+    let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
     }
 
     shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection, instanceFields);
 
-    shaderProgramPool.cache(shaderProgram);
+    shaderProgramMap.cache(shaderProgram);
     return shaderProgram;
   }
 
@@ -218,13 +218,13 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   _destroy(): void {
-    const shaderProgramPools = this._shaderProgramPools;
-    for (let i = 0, n = shaderProgramPools.length; i < n; i++) {
-      const pool = shaderProgramPools[i];
-      pool.clear((program) => program.destroy());
-      delete pool.engine._shaderProgramPools[this._shaderPassId];
+    const shaderProgramMaps = this._shaderProgramMaps;
+    for (let i = 0, n = shaderProgramMaps.length; i < n; i++) {
+      const map = shaderProgramMaps[i];
+      map.clear((program) => program.destroy());
+      delete map.engine._shaderProgramMaps[this._shaderPassId];
     }
-    shaderProgramPools.length = 0;
+    shaderProgramMaps.length = 0;
   }
 
   private _getCanonicalShaderProgram(

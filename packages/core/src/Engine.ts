@@ -113,7 +113,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
-  _shaderProgramPools: MacroMap<ShaderProgram>[] = [];
+  _shaderProgramMaps: MacroMap<ShaderProgram>[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal */
@@ -542,18 +542,18 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(index: number, trackPools?: MacroMap<ShaderProgram>[]): MacroMap<ShaderProgram> {
-    const shaderProgramPools = this._shaderProgramPools;
-    let pool = shaderProgramPools[index];
-    if (!pool) {
+  _getShaderProgramMap(index: number, trackMaps?: MacroMap<ShaderProgram>[]): MacroMap<ShaderProgram> {
+    const shaderProgramMaps = this._shaderProgramMaps;
+    let map = shaderProgramMaps[index];
+    if (!map) {
       const length = index + 1;
-      if (length > shaderProgramPools.length) {
-        shaderProgramPools.length = length;
+      if (length > shaderProgramMaps.length) {
+        shaderProgramMaps.length = length;
       }
-      shaderProgramPools[index] = pool = new MacroMap<ShaderProgram>(this);
-      trackPools?.push(pool);
+      shaderProgramMaps[index] = map = new MacroMap<ShaderProgram>(this);
+      trackMaps?.push(map);
     }
-    return pool;
+    return map;
   }
 
   /**
@@ -675,9 +675,9 @@ export class Engine extends EventDispatcher {
   private _onDeviceRestored(): void {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
-    // Clear shader pools
+    // Clear shader program maps
     Shader._clear(this);
-    this._shaderProgramPools.length = 0;
+    this._shaderProgramMaps.length = 0;
 
     const { resourceManager } = this;
     // Restore graphic resources
