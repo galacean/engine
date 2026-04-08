@@ -257,7 +257,7 @@ export class ShaderFactory {
     const derivedDefines =
       "#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)\n" +
       "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)\n" +
-      "#define renderer_NormalMat transpose(inverse(mat3(renderer_ModelMat)))";
+      "#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))";
 
     const vsUboBlock = `${uboStruct}flat out int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID")}\n${derivedDefines}\n`;
     const fsUboBlock = `${uboStruct}flat in int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID")}\n${derivedDefines}\n`;
