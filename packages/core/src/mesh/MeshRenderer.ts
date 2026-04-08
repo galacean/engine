@@ -1,6 +1,7 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
+import { InstanceDataPacker } from "../RenderPipeline/InstanceDataPacker";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
@@ -197,12 +198,12 @@ export class MeshRenderer extends Renderer {
     let packer = preSubElement.instanceDataPacker;
     if (!packer) {
       const engine = this._engine;
-      packer = engine._batcherManager.instanceDataPackerPool.getOrCreate();
+      packer = engine._batcherManager.instanceDataPackerPool.get();
       const compileMacros = packer.compileMacros;
       const materialData = preSubElement.material.shaderData;
       ShaderMacroCollection.unionCollection(this._globalShaderMacro, materialData._macroCollection, compileMacros);
       ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
-      compileMacros.enable(ShaderMacro._gpuInstanceMacro);
+      compileMacros.enable(InstanceDataPacker.gpuInstanceMacro);
 
       const layout = preSubElement.subShader._getInstanceLayout(engine, compileMacros);
       if (layout) {

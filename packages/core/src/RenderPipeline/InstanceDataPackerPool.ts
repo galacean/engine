@@ -13,7 +13,7 @@ export class InstanceDataPackerPool {
     this._engine = engine;
   }
 
-  getOrCreate(): InstanceDataPacker {
+  get(): InstanceDataPacker {
     return (this._pool[this._poolIndex++] ||= new InstanceDataPacker(this._engine));
   }
 

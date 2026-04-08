@@ -13,9 +13,6 @@ export class ShaderMacro {
   private static _macroCounter: number = 0;
   private static _macroMap: Record<string, ShaderMacro> = Object.create(null);
 
-  /** @internal */
-  static _gpuInstanceMacro = ShaderMacro.getByName("RENDERER_GPU_INSTANCE");
-
   /**
    * Get shader macro by name.
    * @param name - Name of the shader macro

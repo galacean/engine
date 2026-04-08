@@ -7,6 +7,7 @@ import { Renderer } from "../Renderer";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderBlockProperty } from "../shader/ShaderBlockProperty";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
+import { ShaderMacro } from "../shader/ShaderMacro";
 import { InstanceFieldInfo, ShaderFactory } from "../shaderlib/ShaderFactory";
 
 /**
@@ -14,6 +15,8 @@ import { InstanceFieldInfo, ShaderFactory } from "../shaderlib/ShaderFactory";
  * Packs per-instance renderer data (ModelMat, Layer, etc.) into a shared UBO for GPU instancing.
  */
 export class InstanceDataPacker {
+  static gpuInstanceMacro = ShaderMacro.getByName("RENDERER_GPU_INSTANCE");
+
   static readonly uniformBlockBindingMap: Record<number, number> = {
     [ShaderBlockProperty.getByName(ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME)._uniqueId]:
       ConstantBufferBindingPoint.RendererInstance
@@ -99,6 +102,7 @@ export class InstanceDataPacker {
 
   reset(): void {
     this.instanceCount = 0;
+    this.compileMacros.clear();
   }
 
   destroy(): void {
