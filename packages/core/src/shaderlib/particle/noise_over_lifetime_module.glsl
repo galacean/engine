@@ -37,48 +37,50 @@ vec3 sampleSimplexNoise3D(vec3 coord) {
 }
 
 vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
-    // Per-particle random offset (in noise space) ensures particles emitted from the
-    // same position sample different regions of the noise field.
+    // Per-particle noise offset derived from a_Random0.z (noise-dedicated random).
+    // Three decorrelated values are derived from one random to avoid consuming extra buffer slots.
     // 50.0: empirical value large enough to decorrelate adjacent particles across
     // typical frequency ranges (0.1–10), yet small relative to simplex noise's
-    // effectively infinite non-repeating domain. Larger values work equally well.
+    // effectively infinite non-repeating domain.
+    float _nr = a_Random0.z;
+    vec3 noiseRandOffset = vec3(_nr, fract(_nr * 314.159), fract(_nr * 271.828)) * 50.0;
     vec3 coord = currentPosition * renderer_NoiseParams.w
-               + a_Random0.yzw * 50.0
+               + noiseRandOffset
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
 
     int octaveCount = int(renderer_NoiseOctaveParams.y);
-    float octaveIntensityMultiplier = renderer_NoiseOctaveParams.z;
-    float octaveFrequencyMultiplier = renderer_NoiseOctaveParams.w;
+    float octavePersistence = renderer_NoiseOctaveParams.z;
+    float octaveLacunarity = renderer_NoiseOctaveParams.w;
 
     vec3 noiseValue = sampleSimplexNoise3D(coord);
     float totalWeight = 1.0;
 
     // Unrolled octave loop (GLSL ES 1.0 requires constant loop bounds)
     if (octaveCount >= 2) {
-        float weight = octaveIntensityMultiplier;
+        float weight = octavePersistence;
         totalWeight += weight;
-        noiseValue += weight * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier);
+        noiseValue += weight * sampleSimplexNoise3D(coord * octaveLacunarity);
 
         if (octaveCount >= 3) {
-            weight *= octaveIntensityMultiplier;
+            weight *= octavePersistence;
             totalWeight += weight;
-            noiseValue += weight * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier * octaveFrequencyMultiplier);
+            noiseValue += weight * sampleSimplexNoise3D(coord * octaveLacunarity * octaveLacunarity);
         }
     }
 
-    // Evaluate strength (supports Constant, TwoConstants, Curve, TwoCurves)
+    // Evaluate strength (supports Constant, TwoConstants, Curve, TwoCurves).
     vec3 strength;
     #ifdef RENDERER_NOISE_STRENGTH_CURVE
         float sx = evaluateParticleCurve(renderer_NoiseStrengthMaxCurveX, normalizedAge);
         #ifdef RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO
-            sx = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveX, normalizedAge), sx, a_Random0.y);
+            sx = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveX, normalizedAge), sx, a_Random0.z);
         #endif
         #ifdef RENDERER_NOISE_IS_SEPARATE
             float sy = evaluateParticleCurve(renderer_NoiseStrengthMaxCurveY, normalizedAge);
             float sz = evaluateParticleCurve(renderer_NoiseStrengthMaxCurveZ, normalizedAge);
             #ifdef RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO
-                sy = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveY, normalizedAge), sy, a_Random0.y);
-                sz = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveZ, normalizedAge), sz, a_Random0.y);
+                sy = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveY, normalizedAge), sy, a_Random0.z);
+                sz = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveZ, normalizedAge), sz, a_Random0.z);
             #endif
             strength = vec3(sx, sy, sz);
         #else
@@ -87,7 +89,7 @@ vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
     #else
         strength = renderer_NoiseParams.xyz;
         #ifdef RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO
-            strength = mix(renderer_NoiseStrengthMinConst, strength, a_Random0.y);
+            strength = mix(renderer_NoiseStrengthMinConst, strength, a_Random0.z);
         #endif
     #endif
 

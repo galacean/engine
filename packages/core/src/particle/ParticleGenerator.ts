@@ -634,6 +634,7 @@ export class ParticleGenerator {
     this.limitVelocityOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
+    this.noise._resetRandomSeed(seed);
   }
 
   /**
@@ -948,7 +949,9 @@ export class ParticleGenerator {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
     }
 
-    // instanceVertices[offset + 21] = rand.random();
+    if (this.noise.enabled) {
+      instanceVertices[offset + 21] = this.noise._noiseRand.random();
+    }
 
     const rotationOverLifetime = this.rotationOverLifetime;
     if (rotationOverLifetime.enabled && rotationOverLifetime.rotationZ.mode === ParticleCurveMode.TwoConstants) {

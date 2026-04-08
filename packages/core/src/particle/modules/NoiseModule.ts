@@ -1,8 +1,9 @@
-import { Vector3, Vector4 } from "@galacean/engine-math";
+import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
@@ -35,6 +36,10 @@ export class NoiseModule extends ParticleGeneratorModule {
   @ignoreClone
   private _separateAxesModeMacro: ShaderMacro;
 
+  /** @internal */
+  @ignoreClone
+  _noiseRand = new Rand(0, ParticleRandomSubSeeds.Noise);
+
   @ignoreClone
   private _noiseParams = new Vector4();
   @ignoreClone
@@ -53,8 +58,8 @@ export class NoiseModule extends ParticleGeneratorModule {
   private _separateAxes: boolean = false;
   private _frequency: number = 0.5;
   private _octaveCount: number = 1;
-  private _octaveIntensityMultiplier: number = 0.5;
-  private _octaveFrequencyMultiplier: number = 2.0;
+  private _octavePersistence: number = 0.5;
+  private _octaveLacunarity: number = 2.0;
 
   /**
    * Specifies whether the strength is separate on each axis, when disabled, only `strength` is used.
@@ -162,33 +167,33 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Intensity multiplier for each successive octave.
-   * Each layer's contribution is scaled by this factor relative to the previous layer, range [0, 1].
+   * Persistence (amplitude retention) for each successive octave, only effective when `octaveCount` > 1.
+   * Each layer retains this fraction of the previous layer's intensity, range [0, 1].
    */
-  get octaveIntensityMultiplier(): number {
-    return this._octaveIntensityMultiplier;
+  get octavePersistence(): number {
+    return this._octavePersistence;
   }
 
-  set octaveIntensityMultiplier(value: number) {
+  set octavePersistence(value: number) {
     value = Math.max(0, Math.min(1, value));
-    if (value !== this._octaveIntensityMultiplier) {
-      this._octaveIntensityMultiplier = value;
+    if (value !== this._octavePersistence) {
+      this._octavePersistence = value;
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
 
   /**
-   * Frequency multiplier for each successive octave.
+   * Lacunarity (frequency scaling) for each successive octave, only effective when `octaveCount` > 1.
    * Each layer samples at this multiple of the previous layer's frequency, range [1, 4].
    */
-  get octaveFrequencyMultiplier(): number {
-    return this._octaveFrequencyMultiplier;
+  get octaveLacunarity(): number {
+    return this._octaveLacunarity;
   }
 
-  set octaveFrequencyMultiplier(value: number) {
+  set octaveLacunarity(value: number) {
     value = Math.max(1, Math.min(4, value));
-    if (value !== this._octaveFrequencyMultiplier) {
-      this._octaveFrequencyMultiplier = value;
+    if (value !== this._octaveLacunarity) {
+      this._octaveLacunarity = value;
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
@@ -225,7 +230,6 @@ export class NoiseModule extends ParticleGeneratorModule {
     let strengthCurveMacro = <ShaderMacro>null;
     let strengthIsRandomTwoMacro = <ShaderMacro>null;
     let separateAxesMacro = <ShaderMacro>null;
-
     if (this.enabled) {
       enabledMacro = NoiseModule._enabledMacro;
 
@@ -308,8 +312,8 @@ export class NoiseModule extends ParticleGeneratorModule {
       noiseOctaveParams.set(
         this._scrollSpeed.constantMax,
         this._octaveCount,
-        this._octaveIntensityMultiplier,
-        this._octaveFrequencyMultiplier
+        this._octavePersistence,
+        this._octaveLacunarity
       );
       shaderData.setVector4(NoiseModule._noiseOctaveProperty, noiseOctaveParams);
     }
@@ -322,5 +326,12 @@ export class NoiseModule extends ParticleGeneratorModule {
       strengthIsRandomTwoMacro
     );
     this._separateAxesModeMacro = this._enableMacro(shaderData, this._separateAxesModeMacro, separateAxesMacro);
+  }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._noiseRand.reset(seed, ParticleRandomSubSeeds.Noise);
   }
 }
