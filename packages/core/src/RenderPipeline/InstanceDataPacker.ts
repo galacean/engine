@@ -4,10 +4,9 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { Renderer } from "../Renderer";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderBlockProperty } from "../shader/ShaderBlockProperty";
-import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacro } from "../shader/ShaderMacro";
+import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { InstanceFieldInfo, ShaderFactory } from "../shaderlib/ShaderFactory";
 
 /**
@@ -22,17 +21,13 @@ export class InstanceDataPacker {
       ConstantBufferBindingPoint.RendererInstance
   };
 
-  instanceCount = 0;
-  maxInstanceCount = Infinity;
   instanceFields: InstanceFieldInfo[];
-  compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
   uboBuffer: Buffer;
 
   private _engine: Engine;
   private _uboData: ArrayBuffer;
   private _floatView: Float32Array;
   private _intView: Int32Array;
-  private _renderers: Renderer[] = [];
   private _structSize = 0;
 
   constructor(engine: Engine) {
@@ -40,11 +35,10 @@ export class InstanceDataPacker {
   }
 
   /**
-   * Set UBO layout from instance fields.
+   * Set UBO layout and allocate buffer if needed.
    */
   setLayout(instanceFields: InstanceFieldInfo[], maxInstanceCount: number, structSize: number): void {
     this.instanceFields = instanceFields;
-    this.maxInstanceCount = maxInstanceCount;
     this._structSize = structSize;
     const totalBytes = maxInstanceCount * structSize;
     // Only reallocate when buffer is too small
@@ -57,25 +51,20 @@ export class InstanceDataPacker {
     }
   }
 
-  addRenderer(renderer: Renderer): void {
-    this._renderers[this.instanceCount++] = renderer;
-  }
-
-  prepare(): void {
-    const count = this.instanceCount;
-    if (count === 0) return;
-
+  /**
+   * Pack renderer data into UBO and upload to GPU.
+   */
+  packAndUpload(renderers: Renderer[], start: number, count: number): void {
     const fields = this.instanceFields;
     if (!fields) return;
     const structSize = this._structSize;
     const elementsPerInstance = structSize / 4;
     const floatView = this._floatView;
     const intView = this._intView;
-    const renderers = this._renderers;
     const modelMatId = Renderer._worldMatrixProperty._uniqueId;
 
     for (let i = 0; i < count; i++) {
-      const renderer = renderers[i];
+      const renderer = renderers[start + i];
       const propertyValueMap = renderer.shaderData._propertyValueMap;
       const baseOffset = i * elementsPerInstance;
 
@@ -100,16 +89,12 @@ export class InstanceDataPacker {
     this.uboBuffer.setData(floatView, 0, 0, uploadElements, SetDataOptions.Discard);
   }
 
-  reset(): void {
-    this.instanceCount = 0;
-    this.compileMacros.clear();
-  }
+
 
   destroy(): void {
     this.uboBuffer?.destroy();
     this._uboData = null;
     this._floatView = null;
     this._intView = null;
-    this._renderers = null;
   }
 }

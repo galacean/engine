@@ -104,6 +104,5 @@ export class BatcherManager {
     this._primitiveChunkManager2D?.uploadBuffer();
     this._primitiveChunkManagerMask?.uploadBuffer();
     this._primitiveChunkManagerUI?.uploadBuffer();
-    this._instanceDataPackerPool?.uploadBuffer();
   }
 }

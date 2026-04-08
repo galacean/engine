@@ -17,21 +17,7 @@ export class InstanceDataPackerPool {
     return (this._pool[this._poolIndex++] ||= new InstanceDataPacker(this._engine));
   }
 
-  uploadBuffer(): void {
-    const pool = this._pool;
-    for (let i = 0, n = this._poolIndex; i < n; i++) {
-      const packer = pool[i];
-      if (packer.instanceCount > 1) {
-        packer.prepare();
-      }
-    }
-  }
-
   reset(): void {
-    const pool = this._pool;
-    for (let i = 0, n = this._poolIndex; i < n; i++) {
-      pool[i].reset();
-    }
     this._poolIndex = 0;
   }
 

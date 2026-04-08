@@ -1,14 +1,12 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { InstanceDataPacker } from "../RenderPipeline/InstanceDataPacker";
 import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
 /**
  * MeshRenderer Component.
@@ -178,10 +176,7 @@ export class MeshRenderer extends Renderer {
    */
   override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
     if (!this._engine._hardwareRenderer.isWebGL2) return false;
-
-    const packer = preSubElement.instanceDataPacker;
     return (
-      (!packer || packer.instanceCount < packer.maxInstanceCount) &&
       preSubElement.primitive === subElement.primitive &&
       preSubElement.subPrimitive === subElement.subPrimitive &&
       preSubElement.material === subElement.material &&
@@ -194,25 +189,11 @@ export class MeshRenderer extends Renderer {
    */
   override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
     if (!preSubElement) return;
-
-    let packer = preSubElement.instanceDataPacker;
-    if (!packer) {
-      const engine = this._engine;
-      packer = engine._batcherManager.instanceDataPackerPool.get();
-      const compileMacros = packer.compileMacros;
-      const materialData = preSubElement.material.shaderData;
-      ShaderMacroCollection.unionCollection(this._globalShaderMacro, materialData._macroCollection, compileMacros);
-      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
-      compileMacros.enable(InstanceDataPacker.gpuInstanceMacro);
-
-      const layout = preSubElement.subShader._getInstanceLayout(engine, compileMacros);
-      if (layout) {
-        packer.setLayout(layout.instanceFields, layout.instanceMaxCount, layout.structSize);
-      }
-      packer.addRenderer(preSubElement.component);
-      preSubElement.instanceDataPacker = packer;
+    const renderers = preSubElement.instancedRenderers;
+    if (renderers.length === 0) {
+      renderers.push(preSubElement.component);
     }
-    packer.addRenderer(subElement.component);
+    renderers.push(subElement.component);
   }
 
   private _setMesh(mesh: Mesh): void {

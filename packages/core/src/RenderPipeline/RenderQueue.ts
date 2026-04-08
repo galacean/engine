@@ -62,8 +62,8 @@ export class RenderQueue {
 
     for (let i = 0; i < length; i++) {
       const subElement = batchedSubElements[i];
-      const { component: renderer, material, instanceDataPacker } = subElement;
-      const isInstanced = !!instanceDataPacker;
+      const { component: renderer, material, instancedRenderers } = subElement;
+      const isInstanced = instancedRenderers.length > 0;
 
       // Instancing: transform data is packed in UBO, skip per-renderer update
       if (!isInstanced) {
@@ -104,18 +104,24 @@ export class RenderQueue {
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
-      let compileMacros: ShaderMacroCollection;
+      // Build compile macros
+      const compileMacros = Shader._compileMacros;
+      ShaderMacroCollection.unionCollection(
+        renderer._globalShaderMacro,
+        materialData._macroCollection,
+        compileMacros
+      );
+      ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+
+      // For instancing: enable macro and get layout
+      let instanceFields = undefined;
+      let layout = undefined;
       if (isInstanced) {
-        compileMacros = instanceDataPacker.compileMacros;
-      } else {
-        // Union render global macro and material self macro
-        compileMacros = Shader._compileMacros;
-        ShaderMacroCollection.unionCollection(
-          renderer._globalShaderMacro,
-          materialData._macroCollection,
-          compileMacros
-        );
-        ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
+        compileMacros.enable(InstanceDataPacker.gpuInstanceMacro);
+        layout = subElement.subShader._getInstanceLayout(engine, compileMacros);
+        if (layout) {
+          instanceFields = layout.instanceFields;
+        }
       }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
@@ -143,11 +149,7 @@ export class RenderQueue {
           }
         }
 
-        const program = shaderPass._getShaderProgram(
-          engine,
-          compileMacros,
-          isInstanced ? instanceDataPacker.instanceFields : undefined
-        );
+        const program = shaderPass._getShaderProgram(engine, compileMacros, instanceFields);
         if (!program.isValid) {
           continue;
         }
@@ -220,17 +222,26 @@ export class RenderQueue {
           customStates
         );
 
-        if (isInstanced) {
-          if (instanceDataPacker.uboBuffer) {
+        if (isInstanced && layout) {
+          const totalCount = instancedRenderers.length;
+          const maxCount = layout.instanceMaxCount;
+          const packerPool = engine._batcherManager.instanceDataPackerPool;
+
+          for (let start = 0; start < totalCount; start += maxCount) {
+            const count = Math.min(maxCount, totalCount - start);
+            const packer = packerPool.get();
+            packer.setLayout(instanceFields, maxCount, layout.structSize);
+            packer.packAndUpload(instancedRenderers, start, count);
+
             program.bindUniformBlocks(InstanceDataPacker.uniformBlockBindingMap);
             rhi.bindUniformBufferBase(
               ConstantBufferBindingPoint.RendererInstance,
-              instanceDataPacker.uboBuffer._platformBuffer
+              packer.uboBuffer._platformBuffer
             );
+            primitive.instanceCount = count;
+            rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
+            primitive.instanceCount = 0;
           }
-          primitive.instanceCount = instanceDataPacker.instanceCount;
-          rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
-          primitive.instanceCount = 0;
         } else {
           rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
         }

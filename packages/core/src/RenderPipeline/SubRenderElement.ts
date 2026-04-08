@@ -5,7 +5,6 @@ import { ShaderData, SubShader } from "../shader";
 import { Texture2D } from "../texture";
 import { IPoolElement } from "../utils/ObjectPool";
 import { RenderQueueFlags } from "./BasicRenderPipeline";
-import { InstanceDataPacker } from "./InstanceDataPacker";
 import { SubPrimitiveChunk } from "./SubPrimitiveChunk";
 
 export class SubRenderElement implements IPoolElement {
@@ -17,7 +16,7 @@ export class SubRenderElement implements IPoolElement {
   shaderData?: ShaderData;
   batched: boolean;
   renderQueueFlags: RenderQueueFlags;
-  instanceDataPacker: InstanceDataPacker;
+  instancedRenderers: Renderer[] = [];
 
   // @todo: maybe should remove later
   texture?: Texture2D;
@@ -37,7 +36,7 @@ export class SubRenderElement implements IPoolElement {
     this.subPrimitive = subPrimitive;
     this.texture = texture;
     this.subChunk = subChunk;
-    this.instanceDataPacker = null;
+    this.instancedRenderers.length = 0;
   }
 
   dispose(): void {
@@ -47,7 +46,7 @@ export class SubRenderElement implements IPoolElement {
     this.subPrimitive = null;
     this.subShader = null;
     this.shaderData && (this.shaderData = null);
-    this.instanceDataPacker = null;
+    this.instancedRenderers.length = 0;
 
     this.texture && (this.texture = null);
     this.subChunk && (this.subChunk = null);
