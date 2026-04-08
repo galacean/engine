@@ -4,7 +4,7 @@
 #include <noise_simplex_3D>
 
 // renderer_NoiseParams: xyz = strength (constant mode only), w = frequency
-// renderer_NoiseOctaveParams: x = scrollSpeed, y = octaveCount, z = octaveIntensityMul, w = octaveFreqMul
+// renderer_NoiseOctaveParams: x = scrollSpeed, y = octaveCount, z = octavePersistence, w = octaveLacunarity
 uniform vec4 renderer_NoiseParams;
 uniform vec4 renderer_NoiseOctaveParams;
 

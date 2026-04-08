@@ -53,8 +53,7 @@ export class NoiseModule extends ParticleGeneratorModule {
   private _strengthY: ParticleCompositeCurve;
   @deepClone
   private _strengthZ: ParticleCompositeCurve;
-  @deepClone
-  private _scrollSpeed: ParticleCompositeCurve;
+  private _scrollSpeed: number = 0;
   private _separateAxes: boolean = false;
   private _frequency: number = 0.5;
   private _octaveCount: number = 1;
@@ -139,15 +138,14 @@ export class NoiseModule extends ParticleGeneratorModule {
   /**
    * Noise field scroll speed over time.
    */
-  get scrollSpeed(): ParticleCompositeCurve {
+  get scrollSpeed(): number {
     return this._scrollSpeed;
   }
 
-  set scrollSpeed(value: ParticleCompositeCurve) {
-    const lastValue = this._scrollSpeed;
-    if (value !== lastValue) {
+  set scrollSpeed(value: number) {
+    if (value !== this._scrollSpeed) {
       this._scrollSpeed = value;
-      this._onCompositeCurveChange(lastValue, value);
+      this._generator._renderer._onGeneratorParamsChanged();
     }
   }
 
@@ -219,7 +217,7 @@ export class NoiseModule extends ParticleGeneratorModule {
     this.strengthX = new ParticleCompositeCurve(1);
     this.strengthY = new ParticleCompositeCurve(1);
     this.strengthZ = new ParticleCompositeCurve(1);
-    this.scrollSpeed = new ParticleCompositeCurve(0);
+    this._scrollSpeed = 0;
   }
 
   /**
@@ -309,12 +307,7 @@ export class NoiseModule extends ParticleGeneratorModule {
       }
 
       const noiseOctaveParams = this._noiseOctaveParams;
-      noiseOctaveParams.set(
-        this._scrollSpeed.constantMax,
-        this._octaveCount,
-        this._octavePersistence,
-        this._octaveLacunarity
-      );
+      noiseOctaveParams.set(this._scrollSpeed, this._octaveCount, this._octavePersistence, this._octaveLacunarity);
       shaderData.setVector4(NoiseModule._noiseOctaveProperty, noiseOctaveParams);
     }
 

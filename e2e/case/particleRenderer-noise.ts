@@ -102,7 +102,7 @@ function createNoiseParticle(engine: Engine, rootEntity: Entity, texture: Textur
   noise.strengthY = new ParticleCompositeCurve(1);
   noise.strengthZ = new ParticleCompositeCurve(1);
   noise.frequency = 1;
-  noise.scrollSpeed = new ParticleCompositeCurve(0);
+  noise.scrollSpeed = 0;
   noise.octaveCount = 1;
   noise.octavePersistence = 0.5;
   noise.octaveLacunarity = 2.0;
