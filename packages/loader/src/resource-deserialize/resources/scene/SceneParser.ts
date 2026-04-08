@@ -6,10 +6,10 @@ import { ReflectionParser } from "../parser/ReflectionParser";
 import { SpecularMode, type IScene } from "../schema";
 
 /** @Internal */
-export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene, Scene>> {
+export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
   constructor(
     data: IScene,
-    context: ParserContext<IScene, Scene>,
+    context: ParserContext<IScene>,
     public readonly scene: Scene
   ) {
     super(data, context);

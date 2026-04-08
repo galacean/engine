@@ -12,7 +12,7 @@ import { ParserContext, type PrefabInstanceContext } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
-export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {
+export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile>> {
   readonly promise: Promise<T>;
 
   protected _resolve: (item: T) => void;

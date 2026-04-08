@@ -25,7 +25,7 @@ class SceneLoader extends Loader<Scene> {
         ._request<IScene>(item.url, { ...item, type: "json" })
         .then((data: IScene) => {
           const scene = new Scene(engine, data.name ?? "");
-          const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+          const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
           const parser = new SceneParser(data, context, scene);
           parser._collectDependentAssets(data);
           context._setTaskCompleteProgress = setTaskCompleteProgress;

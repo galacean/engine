@@ -2,7 +2,6 @@ import {
   AssetPromise,
   Component,
   Engine,
-  EngineObject,
   Entity,
   ReferResource,
   ResourceManager,
@@ -26,7 +25,7 @@ export interface PrefabInstanceContext {
 /**
  * @internal
  */
-export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
+export class ParserContext<T extends IHierarchyFile> {
   /** Flat entity index → Entity instance */
   entityMap: Map<number, Entity> = new Map();
   /** Component instance → config pairs for props application */

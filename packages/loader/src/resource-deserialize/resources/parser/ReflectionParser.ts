@@ -9,7 +9,7 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  constructor(private readonly _context: ParserContext<IHierarchyFile, any>) {}
+  constructor(private readonly _context: ParserContext<IHierarchyFile>) {}
 
   /**
    * Apply v2 props to a component/object instance.
@@ -24,7 +24,7 @@ export class ReflectionParser {
       promises.push(promise);
     }
     return Promise.all(promises).then(() => {
-      const handle = ReflectionParser.customParseComponentHandles[instance.constructor.name];
+      const handle = ReflectionParser.customParseComponentHandles[Loader.getClassName(instance.constructor)];
       if (handle) return handle(instance, { props });
       return instance;
     });

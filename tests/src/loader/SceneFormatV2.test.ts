@@ -1,5 +1,5 @@
 import "@galacean/engine-loader";
-import { Entity, Loader, Scene, Transform } from "@galacean/engine-core";
+import { Camera, Entity, Loader, Scene, Transform } from "@galacean/engine-core";
 import {
   ParserContext,
   ParserType,
@@ -11,6 +11,13 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 Loader.registerClass("Transform", Transform);
+Loader.registerClass("Camera", Camera);
+
+class TestValueType {
+  x = 0;
+  y = 0;
+}
+Loader.registerClass("TestValueType", TestValueType);
 
 let engine: WebGLEngine;
 
@@ -32,7 +39,7 @@ afterAll(() => {
 describe("ReflectionParser v2 props resolution", () => {
   it("should resolve primitive values directly", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -47,7 +54,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve nested plain objects recursively", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -58,7 +65,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should modify existing object properties in place", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const original = { x: 0, y: 0, z: 0 };
     const target: any = { position: original };
@@ -74,7 +81,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve arrays recursively", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -85,7 +92,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve $entity by flat index", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "entity0");
     const entity1 = new Entity(engine, "entity1");
     context.entityMap.set(0, entity0);
@@ -101,7 +108,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve $component by entity index + type + index", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const entity = new Entity(engine, "test");
     context.entityMap.set(0, entity);
 
@@ -165,7 +172,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -190,7 +197,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -217,7 +224,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -242,7 +249,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -265,7 +272,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -281,7 +288,7 @@ describe("SceneParser v2 entity tree", () => {
     const data = createSceneData([{ name: "Default" }], [], [0]);
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene, Scene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -293,5 +300,57 @@ describe("SceneParser v2 entity tree", () => {
     expect(entity.transform.scale.x).to.equal(1);
     expect(entity.transform.scale.y).to.equal(1);
     expect(entity.transform.scale.z).to.equal(1);
+  });
+
+  it("should add components and apply props (Stage 3-4)", async () => {
+    const data = createSceneData(
+      [{ name: "CamEntity", components: [0] }],
+      [{ type: "Camera", props: { nearClipPlane: 0.5, farClipPlane: 500 } }],
+      [0]
+    );
+
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const parser = new SceneParser(data, context, scene);
+    parser.start();
+    await parser.promise;
+
+    const entity = scene.rootEntities[0];
+    const camera = entity.getComponent(Camera);
+    expect(camera).to.not.be.null;
+    expect(camera.nearClipPlane).to.equal(0.5);
+    expect(camera.farClipPlane).to.equal(500);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// ReflectionParser — $type polymorphic resolution
+// ---------------------------------------------------------------------------
+
+describe("ReflectionParser $type resolution", () => {
+  it("should construct $type instance and apply remaining props", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+    const target: any = {};
+    await parser.parseProps(target, {
+      value: { $type: "TestValueType", x: 10, y: 20 }
+    });
+    expect(target.value).to.be.instanceOf(TestValueType);
+    expect(target.value.x).to.equal(10);
+    expect(target.value.y).to.equal(20);
+  });
+
+  it("should construct $type instance without props", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+    const target: any = {};
+    await parser.parseProps(target, {
+      value: { $type: "TestValueType" }
+    });
+    expect(target.value).to.be.instanceOf(TestValueType);
+    expect(target.value.x).to.equal(0);
+    expect(target.value.y).to.equal(0);
   });
 });
