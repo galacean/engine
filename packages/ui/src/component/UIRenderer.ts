@@ -113,13 +113,13 @@ export class UIRenderer extends Renderer implements IGraphics {
   }
 
   // @ts-ignore
-  override _canBatch(elementA, elementB): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
+  override _canBatch(preSubElement, subElement): boolean {
+    return BatchUtils.canBatchSprite(preSubElement, subElement);
   }
 
   // @ts-ignore
-  override _batch(elementA, elementB?): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  override _batch(preSubElement, subElement): void {
+    BatchUtils.batchFor2D(preSubElement, subElement);
   }
 
   // @ts-ignore

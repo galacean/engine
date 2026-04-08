@@ -8,29 +8,29 @@ import { SubRenderElement } from "./SubRenderElement";
 export class BatchUtils {
   protected static _disableBatchTag: ShaderTagKey = ShaderTagKey.getByName("spriteDisableBatching");
 
-  static canBatchSprite(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    if (elementB.subShader.passes[0].getTagValue(BatchUtils._disableBatchTag) === true) {
+  static canBatchSprite(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
+    if (subElement.subShader.passes[0].getTagValue(BatchUtils._disableBatchTag) === true) {
       return false;
     }
-    if (elementA.subChunk.chunk !== elementB.subChunk.chunk) {
+    if (preSubElement.subChunk.chunk !== subElement.subChunk.chunk) {
       return false;
     }
 
-    const rendererA = <SpriteRenderer>elementA.component;
-    const rendererB = <SpriteRenderer>elementB.component;
-    const maskInteractionA = rendererA.maskInteraction;
+    const preRenderer = <SpriteRenderer>preSubElement.component;
+    const renderer = <SpriteRenderer>subElement.component;
+    const maskInteractionA = preRenderer.maskInteraction;
 
     // Compare mask, texture and material
     return (
-      maskInteractionA === rendererB.maskInteraction &&
-      (maskInteractionA === SpriteMaskInteraction.None || rendererA.maskLayer === rendererB.maskLayer) &&
-      elementA.texture === elementB.texture &&
-      elementA.material === elementB.material
+      maskInteractionA === renderer.maskInteraction &&
+      (maskInteractionA === SpriteMaskInteraction.None || preRenderer.maskLayer === renderer.maskLayer) &&
+      preSubElement.texture === subElement.texture &&
+      preSubElement.material === subElement.material
     );
   }
 
-  static canBatchSpriteMask(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    if (elementA.subChunk.chunk !== elementB.subChunk.chunk) {
+  static canBatchSpriteMask(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
+    if (preSubElement.subChunk.chunk !== subElement.subChunk.chunk) {
       return false;
     }
 
@@ -38,20 +38,20 @@ export class BatchUtils {
 
     // Compare renderer property
     return (
-      elementA.texture === elementB.texture &&
-      (<SpriteMask>elementA.component).shaderData.getFloat(alphaCutoffProperty) ===
-        (<SpriteMask>elementB.component).shaderData.getFloat(alphaCutoffProperty)
+      preSubElement.texture === subElement.texture &&
+      (<SpriteMask>preSubElement.component).shaderData.getFloat(alphaCutoffProperty) ===
+        (<SpriteMask>subElement.component).shaderData.getFloat(alphaCutoffProperty)
     );
   }
 
-  static batchFor2D(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    const subChunk = elementB ? elementB.subChunk : elementA.subChunk;
+  static batchFor2D(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
+    const subChunk = subElement.subChunk;
     const { chunk, indices: subChunkIndices } = subChunk;
 
     const length = subChunkIndices.length;
     let startIndex = chunk.updateIndexLength;
-    if (elementB) {
-      elementA.subChunk.subMesh.count += length;
+    if (preSubElement) {
+      preSubElement.subChunk.subMesh.count += length;
     } else {
       // Reset subMesh
       const subMesh = subChunk.subMesh;

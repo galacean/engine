@@ -175,43 +175,43 @@ export class MeshRenderer extends Renderer {
   /**
    * @internal
    */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+  override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
     if (!this._engine._hardwareRenderer.isWebGL2) return false;
 
-    const packer = elementA.instanceDataPacker;
+    const packer = preSubElement.instanceDataPacker;
     return (
       (!packer || packer.instanceCount < packer.maxInstanceCount) &&
-      elementA.primitive === elementB.primitive &&
-      elementA.subPrimitive === elementB.subPrimitive &&
-      elementA.material === elementB.material &&
-      this._isFrontFaceInvert() === (<MeshRenderer>elementB.component)._isFrontFaceInvert()
+      preSubElement.primitive === subElement.primitive &&
+      preSubElement.subPrimitive === subElement.subPrimitive &&
+      preSubElement.material === subElement.material &&
+      this._isFrontFaceInvert() === (<MeshRenderer>subElement.component)._isFrontFaceInvert()
     );
   }
 
   /**
    * @internal
    */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    if (!elementB) return;
+  override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
+    if (!preSubElement) return;
 
-    let packer = elementA.instanceDataPacker;
+    let packer = preSubElement.instanceDataPacker;
     if (!packer) {
       const engine = this._engine;
       packer = engine._batcherManager.instanceDataPackerPool.getOrCreate();
       const compileMacros = packer.compileMacros;
-      const materialData = elementA.material.shaderData;
+      const materialData = preSubElement.material.shaderData;
       ShaderMacroCollection.unionCollection(this._globalShaderMacro, materialData._macroCollection, compileMacros);
       ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
       compileMacros.enable(ShaderMacro._gpuInstanceMacro);
 
-      const layout = elementA.subShader._getInstanceLayout(engine, compileMacros);
+      const layout = preSubElement.subShader._getInstanceLayout(engine, compileMacros);
       if (layout) {
         packer.setLayout(layout.instanceFields, layout.instanceMaxCount, layout.structSize);
       }
-      packer.addRenderer(elementA.component);
-      elementA.instanceDataPacker = packer;
+      packer.addRenderer(preSubElement.component);
+      preSubElement.instanceDataPacker = packer;
     }
-    packer.addRenderer(elementB.component);
+    packer.addRenderer(subElement.component);
   }
 
   private _setMesh(mesh: Mesh): void {

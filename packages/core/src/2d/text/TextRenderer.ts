@@ -381,15 +381,15 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   /**
    * @internal
    */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
+  override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
+    return BatchUtils.canBatchSprite(preSubElement, subElement);
   }
 
   /**
    * @internal
    */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
+    BatchUtils.batchFor2D(preSubElement, subElement);
   }
 
   /**

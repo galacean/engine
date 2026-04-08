@@ -204,15 +204,15 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSpriteMask(elementA, elementB);
+  override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
+    return BatchUtils.canBatchSpriteMask(preSubElement, subElement);
   }
 
   /**
    * @internal
    */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
+    BatchUtils.batchFor2D(preSubElement, subElement);
   }
 
   /**

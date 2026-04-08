@@ -408,14 +408,14 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+  _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
     return false;
   }
 
   /**
    * @internal
    */
-  _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
+  _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {}
 
   /**
    * Update once per frame per renderer, not influenced by batched.

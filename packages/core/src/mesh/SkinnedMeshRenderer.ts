@@ -124,7 +124,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  override _canBatch(_elementA: SubRenderElement, _elementB: SubRenderElement): boolean {
+  override _canBatch(_preSubElement: SubRenderElement, _subElement: SubRenderElement): boolean {
     return false;
   }
 

@@ -85,14 +85,14 @@ export class BatcherManager {
             preSubElement = subElement;
             preRenderer = renderer;
             preConstructor = constructor;
-            renderer._batch(subElement);
+            renderer._batch(null, subElement);
             subElement.batched = false;
           }
         } else {
           preSubElement = subElement;
           preRenderer = renderer;
           preConstructor = constructor;
-          renderer._batch(subElement);
+          renderer._batch(null, subElement);
           subElement.batched = false;
         }
       }
