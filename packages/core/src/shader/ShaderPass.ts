@@ -1,6 +1,6 @@
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { Engine } from "../Engine";
-import { InstanceDataPacker } from "../RenderPipeline/InstanceDataPacker";
+import { InstanceBatch } from "../RenderPipeline/InstanceBatch";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
 import { ShaderFactory, InstanceFieldInfo } from "../shaderlib/ShaderFactory";
@@ -232,7 +232,7 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     instanceFields?: InstanceFieldInfo[]
   ): ShaderProgram {
-    const isGpuInstance = macroCollection.isEnable(InstanceDataPacker.gpuInstanceMacro);
+    const isGpuInstance = macroCollection.isEnable(InstanceBatch.gpuInstanceMacro);
     const { vertexSource, fragmentSource } =
       this._platformTarget != undefined
         ? this._compileShaderLabSource(engine, macroCollection, isGpuInstance, instanceFields)

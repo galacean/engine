@@ -11,9 +11,9 @@ import { InstanceFieldInfo, ShaderFactory } from "../shaderlib/ShaderFactory";
 
 /**
  * @internal
- * Packs per-instance renderer data (ModelMat, Layer, etc.) into a shared UBO for GPU instancing.
+ * Manages a UBO for GPU instancing, packing per-instance renderer data (ModelMat, Layer, etc.).
  */
-export class InstanceDataPacker {
+export class InstanceBatch {
   static gpuInstanceMacro = ShaderMacro.getByName("RENDERER_GPU_INSTANCE");
 
   static readonly uniformBlockBindingMap: Record<number, number> = {
@@ -22,7 +22,7 @@ export class InstanceDataPacker {
   };
 
   instanceFields: InstanceFieldInfo[];
-  uboBuffer: Buffer;
+  nativeBuffer: Buffer;
 
   private _engine: Engine;
   private _uboData: ArrayBuffer;
@@ -42,19 +42,19 @@ export class InstanceDataPacker {
     this._structSize = structSize;
     const totalBytes = maxInstanceCount * structSize;
     // Only reallocate when buffer is too small
-    if (!this.uboBuffer || totalBytes > this.uboBuffer.byteLength) {
+    if (!this.nativeBuffer || totalBytes > this.nativeBuffer.byteLength) {
       this._uboData = new ArrayBuffer(totalBytes);
       this._floatView = new Float32Array(this._uboData);
       this._intView = new Int32Array(this._uboData);
-      this.uboBuffer?.destroy();
-      this.uboBuffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, totalBytes, BufferUsage.Dynamic);
+      this.nativeBuffer?.destroy();
+      this.nativeBuffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, totalBytes, BufferUsage.Dynamic);
     }
   }
 
   /**
    * Pack renderer data into UBO and upload to GPU.
    */
-  packAndUpload(renderers: Renderer[], start: number, count: number): void {
+  upload(renderers: Renderer[], start: number, count: number): void {
     const fields = this.instanceFields;
     if (!fields) return;
     const structSize = this._structSize;
@@ -86,13 +86,11 @@ export class InstanceDataPacker {
     }
 
     const uploadElements = count * elementsPerInstance;
-    this.uboBuffer.setData(floatView, 0, 0, uploadElements, SetDataOptions.Discard);
+    this.nativeBuffer.setData(floatView, 0, 0, uploadElements, SetDataOptions.Discard);
   }
 
-
-
   destroy(): void {
-    this.uboBuffer?.destroy();
+    this.nativeBuffer?.destroy();
     this._uboData = null;
     this._floatView = null;
     this._intView = null;
