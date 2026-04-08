@@ -280,9 +280,9 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     return new GLTransformFeedbackPrimitive(<WebGL2RenderingContext>this._gl);
   }
 
-  bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer | null): void {
+  bindUniformBufferBase(bindingPoint: number, buffer: IPlatformBuffer): void {
     const gl = <WebGL2RenderingContext>this._gl;
-    gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, buffer ? (<GLBuffer>buffer)._glBuffer : null);
+    gl.bindBufferBase(gl.UNIFORM_BUFFER, bindingPoint, (<GLBuffer>buffer)._glBuffer);
   }
 
   bindUniformBlock(program: WebGLProgram, blockName: string, bindingPoint: number): number {
