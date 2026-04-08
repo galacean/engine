@@ -5,19 +5,19 @@
  */
 import { OrbitControl } from "@galacean/engine-toolkit";
 import {
-  BlinnPhongMaterial,
+  AmbientLight,
+  AssetType,
   Camera,
   Color,
   DirectLight,
+  GLTFResource,
   Logger,
-  MeshRenderer,
-  PrimitiveMesh,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
 
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas" }).then(async (engine) => {
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
@@ -36,26 +36,31 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   lightEntity.transform.setRotation(-45, -45, 0);
   lightEntity.addComponent(DirectLight).color = new Color(1, 1, 1, 1);
 
-  // Shared mesh and material — all renderers use the same instances to enable auto-batching
-  const mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
-  const material = new BlinnPhongMaterial(engine);
-  material.baseColor = new Color(0.6, 0.75, 1.0, 1.0);
+  // Load Duck model and ambient light
+  const [glTF, ambientLight] = await Promise.all([
+    engine.resourceManager.load<GLTFResource>({
+      url: "https://gw.alipayobjects.com/os/bmw-prod/6cb8f543-285c-491a-8cfd-57a1160dc9ab.glb",
+      type: AssetType.GLTF
+    }),
+    engine.resourceManager.load<AmbientLight>({
+      url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*eRJ8QKzf5zAAAAAAgBAAAAgAekp5AQ/ambient.ambLight",
+      type: AssetType.AmbientLight
+    })
+  ]);
+  scene.ambientLight = ambientLight;
 
-  // Create 1000 cubes with random positions
+  // Clone 1000 ducks with random positions
   const count = 1000;
   const spread = 50;
   for (let i = 0; i < count; i++) {
-    const entity = rootEntity.createChild("Cube" + i);
-    entity.transform.setPosition(
+    const duck = glTF.instantiateSceneRoot();
+    duck.transform.setPosition(
       (Math.random() - 0.5) * spread,
       (Math.random() - 0.5) * spread,
       (Math.random() - 0.5) * spread
     );
-    entity.transform.setRotation(Math.random() * 360, Math.random() * 360, Math.random() * 360);
-
-    const renderer = entity.addComponent(MeshRenderer);
-    renderer.mesh = mesh;
-    renderer.setMaterial(material);
+    duck.transform.setRotation(Math.random() * 360, Math.random() * 360, Math.random() * 360);
+    rootEntity.addChild(duck);
   }
 
   engine.run();
