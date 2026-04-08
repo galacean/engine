@@ -7,8 +7,8 @@
     #define FXAA_GLSL_120 1
 #endif
 
-#include <common>
-#include <FXAA3_11>
+#include <Common.glsl>
+#include <FXAA3_11.glsl>
 
 const FxaaFloat FXAA_SUBPIXEL_BLEND_AMOUNT = 0.75;
 const FxaaFloat FXAA_RELATIVE_CONTRAST_THRESHOLD = 0.166;

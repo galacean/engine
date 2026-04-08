@@ -1,7 +1,7 @@
-#include <PostCommon>
-#include <Filtering>
-#include <NeutralTonemapping>
-#include <ACESTonemapping>
+#include <PostCommon.glsl>
+#include <Filtering.glsl>
+#include <NeutralTonemapping.glsl>
+#include <ACESTonemapping.glsl>
 
 varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;

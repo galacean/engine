@@ -1,6 +1,6 @@
 import { Color } from "@galacean/engine-math";
 import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
-import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
+import blitVs from "../../shaderlib/Blit.vs.glsl";
 
 import { PostProcessEffect } from "../PostProcessEffect";
 import {

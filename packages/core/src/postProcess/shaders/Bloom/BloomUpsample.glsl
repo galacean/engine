@@ -1,5 +1,5 @@
-#include <PostCommon>
-#include <Filtering>
+#include <PostCommon.glsl>
+#include <Filtering.glsl>
 
 varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;

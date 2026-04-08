@@ -5,20 +5,11 @@ import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Shader } from "../shader";
-import { ShaderLib } from "../shaderlib";
-import blitVs from "../shaderlib/extra/Blit.vs.glsl";
+import blitVs from "../shaderlib/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
-import Filtering from "./shaders/Filtering.glsl";
-import PostCommon from "./shaders/PostCommon.glsl";
-import ACESTonemapping from "./shaders/Tonemapping/ACES/ACESTonemapping.glsl";
-import ColorTransform from "./shaders/Tonemapping/ACES/ColorTransform.glsl";
-import ODT from "./shaders/Tonemapping/ACES/ODT.glsl";
-import RRT from "./shaders/Tonemapping/ACES/RRT.glsl";
-import Tonescale from "./shaders/Tonemapping/ACES/Tonescale.glsl";
-import NeutralTonemapping from "./shaders/Tonemapping/NeutralTonemapping.glsl";
 import UberPost from "./shaders/UberPost.glsl";
 
 export class PostProcessUberPass extends PostProcessPass {
@@ -263,16 +254,5 @@ export class PostProcessUberPass extends PostProcessPass {
     this._mipUpRT.length = 0;
   }
 }
-
-Object.assign(ShaderLib, {
-  PostCommon,
-  Filtering,
-  ODT,
-  RRT,
-  Tonescale,
-  ColorTransform,
-  NeutralTonemapping,
-  ACESTonemapping
-});
 
 Shader.create(PostProcessUberPass.UBER_SHADER_NAME, blitVs, UberPost);

@@ -7,12 +7,10 @@ import { PipelinePass } from "../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
-import { ShaderLib } from "../shaderlib";
-import BlitVS from "../shaderlib/extra/Blit.vs.glsl";
+import BlitVS from "../shaderlib/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import FinalAntiAliasingFS from "./shaders/FinalAntiAliasing.fs.glsl";
 import SRGBFS from "./shaders/FinalSRGB.fs.glsl";
-import FXAA3_11 from "./shaders/FXAA/FXAA3_11.glsl";
 
 /**
  * @internal
@@ -92,10 +90,6 @@ export class FinalPass extends PipelinePass {
     this._inputRenderTarget = null;
   }
 }
-
-Object.assign(ShaderLib, {
-  FXAA3_11
-});
 
 Shader.create("FinalSRGB", BlitVS, SRGBFS);
 Shader.create("FinalAntiAliasing", BlitVS, FinalAntiAliasingFS);

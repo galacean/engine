@@ -1,4 +1,4 @@
-#include <common>
+#include <Common.glsl>
 varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;
 

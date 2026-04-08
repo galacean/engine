@@ -1,4 +1,4 @@
-#include <PostCommon>
+#include <PostCommon.glsl>
 
 varying vec2 v_uv;
 uniform sampler2D renderer_BlitTexture;
