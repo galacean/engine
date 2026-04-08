@@ -128,8 +128,6 @@ export class BasicRenderPipeline {
       !(finalClearFlags & CameraClearFlags.Color) &&
       (!this._canUseBlitFrameBuffer || isSRGBBackground);
 
-    const batcherManager = engine._batcherManager;
-
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
     }
@@ -141,6 +139,7 @@ export class BasicRenderPipeline {
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
+    const batcherManager = engine._batcherManager;
     cullingResults.sortBatch(batcherManager);
     batcherManager.uploadBuffer();
 
