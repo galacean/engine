@@ -1,6 +1,6 @@
 import { Engine } from "../Engine";
 import { ShaderFactory, InstanceLayout } from "../shaderlib/ShaderFactory";
-import { MacroCachePool } from "./MacroCachePool";
+import { MacroMap } from "./MacroMap";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
 import { ShaderPass } from "./ShaderPass";
@@ -10,7 +10,7 @@ import { ShaderPass } from "./ShaderPass";
  */
 export class SubShader extends ShaderPart {
   private _passes: ShaderPass[];
-  private _layoutCache: MacroCachePool<InstanceLayout> = new MacroCachePool();
+  private _layoutCache: MacroMap<InstanceLayout> = new MacroMap();
 
   /**
    * Sub shader passes.

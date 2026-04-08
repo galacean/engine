@@ -8,7 +8,7 @@ import { resolveIfdef } from "../shaderlib/GLSLIfdefResolver";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
-import { MacroCachePool } from "./MacroCachePool";
+import { MacroMap } from "./MacroMap";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
@@ -55,7 +55,7 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
-  _shaderProgramPools: MacroCachePool<ShaderProgram>[] = [];
+  _shaderProgramPools: MacroMap<ShaderProgram>[] = [];
 
   private _vertexSource?: string;
   private _fragmentSource?: string;

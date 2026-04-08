@@ -9,7 +9,7 @@ type Tree<T> = {
  * Cache pool keyed by ShaderMacroCollection bitmask.
  * @internal
  */
-export class MacroCachePool<T> {
+export class MacroMap<T> {
   engine: Engine;
 
   private _cacheHierarchyDepth: number = 1;
