@@ -39,11 +39,10 @@ vec3 sampleSimplexNoise3D(vec3 coord) {
 vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
     // Per-particle noise offset derived from a_Random0.z (noise-dedicated random).
     // Three decorrelated values are derived from one random to avoid consuming extra buffer slots.
-    // 50.0: empirical value large enough to decorrelate adjacent particles across
-    // typical frequency ranges (0.1–10), yet small relative to simplex noise's
-    // effectively infinite non-repeating domain.
+    // 5.0: small enough to preserve spatial coherence (nearby particles sample similar noise),
+    // large enough to decorrelate particles emitted from the same position.
     float _nr = a_Random0.z;
-    vec3 noiseRandOffset = vec3(_nr, fract(_nr * 314.159), fract(_nr * 271.828)) * 50.0;
+    vec3 noiseRandOffset = vec3(_nr, fract(_nr * 314.159), fract(_nr * 271.828)) * 5.0;
     vec3 coord = currentPosition * renderer_NoiseParams.w
                + noiseRandOffset
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
