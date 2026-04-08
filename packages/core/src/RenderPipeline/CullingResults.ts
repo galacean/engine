@@ -25,7 +25,6 @@ export class CullingResults {
   }
 
   sortBatch(batcherManager: BatcherManager) {
-    batcherManager.resetInstanceDataPackerPool();
     this.opaqueQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
     this.alphaTestQueue.sortBatch(RenderQueue.compareForOpaque, batcherManager);
     this.transparentQueue.sortBatch(RenderQueue.compareForTransparent, batcherManager);

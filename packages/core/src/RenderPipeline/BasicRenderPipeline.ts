@@ -128,11 +128,12 @@ export class BasicRenderPipeline {
       !(finalClearFlags & CameraClearFlags.Color) &&
       (!this._canUseBlitFrameBuffer || isSRGBBackground);
 
+    const batcherManager = engine._batcherManager;
+
     if (scene.castShadows && sunlight && sunlight.shadowType !== ShadowType.None) {
       this._cascadedShadowCasterPass.onRender(context);
     }
 
-    const batcherManager = engine._batcherManager;
     cullingResults.reset();
 
     // Depth use camera's view and projection matrix

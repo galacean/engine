@@ -1,6 +1,6 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
-import { InstanceDataPackerPool } from "./InstanceDataPackerPool";
+import { InstanceDataPacker } from "./InstanceDataPacker";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 import { RenderQueue } from "./RenderQueue";
 import { SubRenderElement } from "./SubRenderElement";
@@ -12,12 +12,12 @@ export class BatcherManager {
   private _primitiveChunkManager2D: PrimitiveChunkManager;
   private _primitiveChunkManagerMask: PrimitiveChunkManager;
   private _primitiveChunkManagerUI: PrimitiveChunkManager;
-  private _instanceDataPackerPool: InstanceDataPackerPool;
+  private _instanceDataPacker: InstanceDataPacker;
 
   constructor(public engine: Engine) {}
 
-  get instanceDataPackerPool(): InstanceDataPackerPool {
-    return (this._instanceDataPackerPool ||= new InstanceDataPackerPool(this.engine));
+  get instanceDataPacker(): InstanceDataPacker {
+    return (this._instanceDataPacker ||= new InstanceDataPacker(this.engine));
   }
 
   get primitiveChunkManager2D(): PrimitiveChunkManager {
@@ -45,17 +45,10 @@ export class BatcherManager {
       this._primitiveChunkManagerUI.destroy();
       this._primitiveChunkManagerUI = null;
     }
-    if (this._instanceDataPackerPool) {
-      this._instanceDataPackerPool.destroy();
-      this._instanceDataPackerPool = null;
+    if (this._instanceDataPacker) {
+      this._instanceDataPacker.destroy();
+      this._instanceDataPacker = null;
     }
-  }
-
-  /**
-   * Reset instance batch pool at the start of each frame's batch phase.
-   */
-  resetInstanceDataPackerPool(): void {
-    this._instanceDataPackerPool?.reset();
   }
 
   batch(renderQueue: RenderQueue): void {

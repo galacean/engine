@@ -225,12 +225,11 @@ export class RenderQueue {
         if (isInstanced && layout) {
           const totalCount = instancedRenderers.length;
           const maxCount = layout.instanceMaxCount;
-          const packerPool = engine._batcherManager.instanceDataPackerPool;
+          const packer = engine._batcherManager.instanceDataPacker;
 
+          packer.setLayout(instanceFields, maxCount, layout.structSize);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);
-            const packer = packerPool.get();
-            packer.setLayout(instanceFields, maxCount, layout.structSize);
             packer.packAndUpload(instancedRenderers, start, count);
 
             program.bindUniformBlocks(InstanceDataPacker.uniformBlockBindingMap);
