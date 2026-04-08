@@ -640,15 +640,17 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _setTransformFeedback(enabled: boolean): void {
-    this._useTransformFeedback = enabled;
+  _setTransformFeedback(): void {
+    const needed = this.limitVelocityOverLifetime.enabled || this.noise.enabled;
+    if (needed === this._useTransformFeedback) return;
+    this._useTransformFeedback = needed;
 
     // Switching TF mode invalidates all active particle state: feedback buffers and instance
     // buffer layout are incompatible between the two paths. Clear rather than show a one-frame
     // jump; new particles will fill in naturally from the next emit cycle.
     this._clearActiveParticles();
 
-    if (enabled) {
+    if (needed) {
       if (!this._feedbackSimulator) {
         this._feedbackSimulator = new ParticleTransformFeedbackSimulator(this._renderer.engine);
       }
@@ -708,9 +710,7 @@ export class ParticleGenerator {
    * @internal
    */
   _cloneTo(target: ParticleGenerator): void {
-    if (target.limitVelocityOverLifetime.enabled || target.noise.enabled) {
-      target._setTransformFeedback(true);
-    }
+    target._setTransformFeedback();
   }
 
   /**
