@@ -34,6 +34,7 @@ varying vec3 v_FeedbackVelocity;
 #include <velocity_over_lifetime_module>
 #include <force_over_lifetime_module>
 #include <limit_velocity_over_lifetime_module>
+#include <noise_module>
 
 // Get VOL instantaneous velocity at normalizedAge
 vec3 getVOLVelocity(float normalizedAge) {
@@ -227,16 +228,31 @@ void main() {
     // World mode: position in world space, velocity rotated to world
     // =====================================================
     // FOL is now fully in localVelocity (both local and world-space FOL).
-    // Only VOL overlay needs to be added here.
+    // VOL and Noise overlays are added here (not persisted).
+
     vec3 totalVelocity;
     if (renderer_SimulationSpace == 0) {
-      // Local: integrate in local space
-      totalVelocity = localVelocity + volLocal
-        + rotationByQuaternions(volWorld, invWorldRotation);
+      totalVelocity = localVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
     } else {
-      // World: integrate in world space
       totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
     }
+    #ifdef RENDERER_NOISE_MODULE_ENABLED
+        // Noise velocity overlay (not persisted)
+        // computeNoiseDisplacement returns noise * strength (position-scale)
+        // Dividing by lifetime converts to velocity so that integration over lifetime
+        // recovers the original displacement magnitude
+        // Use analytical base position (birth + initial velocity * age) instead of
+        // a_FeedbackPosition to avoid feedback loop: position → noise → velocity → position
+        vec3 noiseBasePos;
+        if (renderer_SimulationSpace == 0) {
+            noiseBasePos = a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age;
+        } else {
+            noiseBasePos = rotationByQuaternions(
+                a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age,
+                worldRotation) + a_SimulationWorldPosition;
+        }
+        totalVelocity += computeNoiseDisplacement(noiseBasePos, normalizedAge) / lifetime;
+    #endif
     vec3 position = a_FeedbackPosition + totalVelocity * dt;
 
     v_FeedbackPosition = position;
