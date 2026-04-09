@@ -10,7 +10,6 @@ mat4 renderer_MVPMat;
 mat4 renderer_NormalMat;
 
 vec3 camera_Position;
-vec3 camera_Forward; 
-vec4 camera_ProjectionParams;
+vec3 camera_Forward;
 
 #endif

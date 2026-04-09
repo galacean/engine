@@ -38,14 +38,16 @@ describe("ShaderLab", async () => {
     const pass1 = passList[2];
 
     // shader name
-    expect(shader.name).to.equal("PBRShaderName");
+    expect(shader.name).to.equal("pbr");
     expect(subShader.name).to.equal("Default");
     expect(pass1.name).to.equal("Forward Pass");
     expect(passList.length).to.eq(3);
 
-    // Pass
-    expect(passList[0].isUsePass).to.be.true;
-    expect(passList[1].isUsePass).to.be.true;
+    // Pass (ShadowCaster and DepthOnly are now inlined, not UsePass)
+    expect(passList[0].isUsePass).to.not.be.ok;
+    expect(passList[0].name).to.equal("ShadowCaster");
+    expect(passList[1].isUsePass).to.not.be.ok;
+    expect(passList[1].name).to.equal("DepthOnly");
     expect(passList[2].name).eq("Forward Pass");
 
     // renderState

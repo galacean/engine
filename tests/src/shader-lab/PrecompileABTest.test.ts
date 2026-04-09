@@ -494,8 +494,9 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     it("PBR: different macro combos produce different evaluated output", () => {
       const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
-      const pass = precompiled.subShaders[0].passes[0];
-      if (!pass.fragmentShaderInstructions) return;
+      // Find the Forward Pass (not ShadowCaster/DepthOnly which have simple shaders)
+      const pass = precompiled.subShaders[0].passes.find((p) => p.name === "Forward Pass");
+      if (!pass?.fragmentShaderInstructions) return;
 
       const baseMap = makeMacroMap(baseMacros);
       const clearCoatMap = makeMacroMap([...baseMacros, ...clearCoatMacros]);
