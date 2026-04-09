@@ -100,7 +100,9 @@ export interface GalaceanSceneSchema {
 export interface IHierarchyFile {
   entities: GalaceanEntitySchema[];
   components: GalaceanComponentSchema[];
+  /** Editor-only: stable entity IDs for round-trip serialization. Not consumed at runtime. */
   _entityIds?: string[];
+  /** Editor-only: stable component IDs for round-trip serialization. Not consumed at runtime. */
   _componentIds?: string[];
 }
 

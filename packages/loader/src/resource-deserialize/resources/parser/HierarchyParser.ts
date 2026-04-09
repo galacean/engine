@@ -56,14 +56,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
   protected _applyEntityData(entity: Entity, entityConfig: GalaceanEntitySchema): Entity {
-    entity.isActive = entityConfig.isActive ?? entity.isActive;
-    entity.name = entityConfig.name ?? entity.name;
-    const transform = entity.transform;
-    const { position, rotation, scale } = entityConfig;
-    if (position) transform.position.set(position[0], position[1], position[2]);
-    if (rotation) transform.rotation.set(rotation[0], rotation[1], rotation[2]);
-    if (scale) transform.scale.set(scale[0], scale[1], scale[2]);
-    if (entityConfig.layer != null) entity.layer = entityConfig.layer;
+    HierarchyParser._applyEntityProps(entity, entityConfig);
     return entity;
   }
 
@@ -193,7 +186,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           const path = HierarchyParser._overrideKeyToPath(key);
           const target = ctx.entityMap.get(path);
           if (target) {
-            HierarchyParser._applyEntityOverrides(target, overrides.entityProps[key]);
+            HierarchyParser._applyEntityProps(target, overrides.entityProps[key]);
           }
         }
       }
@@ -332,11 +325,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     promises: Promise<any>[]
   ): void {
     const entity = new Entity(this._engine, config.name);
-    entity.isActive = config.isActive ?? true;
-    if (config.layer != null) entity.layer = config.layer;
-    if (config.position) entity.transform.position.set(config.position[0], config.position[1], config.position[2]);
-    if (config.rotation) entity.transform.rotation.set(config.rotation[0], config.rotation[1], config.rotation[2]);
-    if (config.scale) entity.transform.scale.set(config.scale[0], config.scale[1], config.scale[2]);
+    HierarchyParser._applyEntityProps(entity, config);
     parent.addChild(entity);
 
     if (config.components) {
@@ -363,15 +352,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   /** Convert override key "[0,1]" → path string "0/1" */
   private static _overrideKeyToPath(key: string): string {
-    const arr: number[] = JSON.parse(key);
-    return arr.join("/");
+    return key.slice(1, -1).replace(/,/g, "/");
   }
 
-  /** Apply entity-level override props to an entity. */
-  private static _applyEntityOverrides(entity: Entity, props: GalaceanEntityOverrideProps): void {
-    if (props.name !== undefined) entity.name = props.name;
-    if (props.isActive !== undefined) entity.isActive = props.isActive;
-    if (props.layer !== undefined) entity.layer = props.layer;
+  /** Apply entity-level props (name, isActive, layer, transform) to an entity. */
+  private static _applyEntityProps(entity: Entity, props: GalaceanEntityOverrideProps): void {
+    if (props.name != null) entity.name = props.name;
+    if (props.isActive != null) entity.isActive = props.isActive;
+    if (props.layer != null) entity.layer = props.layer;
     if (props.position) entity.transform.position.set(props.position[0], props.position[1], props.position[2]);
     if (props.rotation) entity.transform.rotation.set(props.rotation[0], props.rotation[1], props.rotation[2]);
     if (props.scale) entity.transform.scale.set(props.scale[0], props.scale[1], props.scale[2]);

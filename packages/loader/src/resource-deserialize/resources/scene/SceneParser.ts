@@ -81,6 +81,31 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
         const asset = entity.instance.asset;
         // @ts-ignore
         context._addDependentAsset(asset.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(asset)));
+
+        // Scan overrides for additional asset refs
+        const overrides = entity.instance.overrides;
+        if (overrides) {
+          if (overrides.componentProps) {
+            for (const key in overrides.componentProps) {
+              const componentMap = overrides.componentProps[key];
+              for (const selector in componentMap) {
+                this._searchDependentAssets(componentMap[selector]);
+              }
+            }
+          }
+          if (overrides.addedComponents) {
+            for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
+              const comp = overrides.addedComponents[j].component;
+              if (comp.script) {
+                // @ts-ignore
+                context._addDependentAsset(comp.script.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(comp.script)));
+              }
+              if (comp.props) {
+                this._searchDependentAssets(comp.props);
+              }
+            }
+          }
+        }
       } else {
         const componentIndices = entity.components;
         if (!componentIndices) continue;
@@ -104,7 +129,6 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
         this._searchDependentAssets(value[i]);
       }
     } else if (value != null && typeof value === "object") {
-      // @ts-ignore
       if (ReflectionParser._isAssetRef(value)) {
         const context = this.context;
         // @ts-ignore

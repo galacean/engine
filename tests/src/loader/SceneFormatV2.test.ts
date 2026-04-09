@@ -324,6 +324,76 @@ describe("SceneParser v2 entity tree", () => {
 });
 
 // ---------------------------------------------------------------------------
+// ReflectionParser — $signal binding
+// ---------------------------------------------------------------------------
+
+describe("ReflectionParser $signal resolution", () => {
+  it("should bind listeners to target component method", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const entity0 = new Entity(engine, "source");
+    const entity1 = new Entity(engine, "target");
+    context.entityMap.set(0, entity0);
+    context.entityMap.set(1, entity1);
+
+    const parser = new ReflectionParser(context);
+
+    const bound: Array<{ target: any; method: string; args: any[] }> = [];
+    const mockSignal = {
+      on(target: any, method: string, ...args: any[]) {
+        bound.push({ target, method, args });
+      }
+    };
+
+    const target: any = { onClick: mockSignal };
+    await parser.parseProps(target, {
+      onClick: {
+        $signal: [
+          { target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }
+        ]
+      }
+    });
+
+    // Signal object should be preserved (not replaced)
+    expect(target.onClick).to.equal(mockSignal);
+    // Listener should be bound to entity1's Transform
+    expect(bound.length).to.equal(1);
+    expect(bound[0].target).to.equal(entity1.transform);
+    expect(bound[0].method).to.equal("reset");
+  });
+
+  it("should skip binding when target component is missing", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const entity0 = new Entity(engine, "source");
+    context.entityMap.set(0, entity0);
+    // entity 1 does NOT exist in entityMap
+
+    const parser = new ReflectionParser(context);
+
+    const bound: any[] = [];
+    const mockSignal = {
+      on(target: any, method: string, ...args: any[]) {
+        bound.push({ target, method, args });
+      }
+    };
+
+    const target: any = { onClick: mockSignal };
+    await parser.parseProps(target, {
+      onClick: {
+        $signal: [
+          { target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }
+        ]
+      }
+    });
+
+    // Signal preserved, but no listener bound (entity missing)
+    expect(target.onClick).to.equal(mockSignal);
+    expect(bound.length).to.equal(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
 // ReflectionParser — $type polymorphic resolution
 // ---------------------------------------------------------------------------
 

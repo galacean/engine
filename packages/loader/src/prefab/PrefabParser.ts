@@ -10,7 +10,7 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext<
     const context = new ParserContext<IHierarchyFile>(engine, ParserType.Prefab, prefabResource);
     const parser = new PrefabParser(data, context, prefabResource);
     parser.start();
-    return parser.promise.then(() => prefabResource);
+    return parser.promise;
   }
 
   constructor(
