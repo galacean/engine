@@ -156,7 +156,6 @@ void main() {
                     worldVelocity += instantVOLVelocity;
                 }
             #endif
-
         #else
             // Original analytical path
             vec3 startVelocity = a_DirectionTime.xyz * a_StartSpeed;
