@@ -33,6 +33,7 @@ import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
+import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 
 /**
@@ -83,6 +84,9 @@ export class ParticleGenerator {
   /** Texture sheet animation module. */
   @deepClone
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
+  /** Noise module. */
+  @deepClone
+  readonly noise: NoiseModule;
 
   /** @internal */
   _currentParticleCount = 0;
@@ -190,6 +194,7 @@ export class ParticleGenerator {
     this.forceOverLifetime = new ForceOverLifetimeModule(this);
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
     this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
+    this.noise = new NoiseModule(this);
 
     this.emission.enabled = true;
   }
@@ -613,6 +618,7 @@ export class ParticleGenerator {
     this.sizeOverLifetime._updateShaderData(shaderData);
     this.rotationOverLifetime._updateShaderData(shaderData);
     this.colorOverLifetime._updateShaderData(shaderData);
+    this.noise._updateShaderData(shaderData);
   }
 
   /**
@@ -628,20 +634,23 @@ export class ParticleGenerator {
     this.limitVelocityOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
+    this.noise._resetRandomSeed(seed);
   }
 
   /**
    * @internal
    */
-  _setTransformFeedback(enabled: boolean): void {
-    this._useTransformFeedback = enabled;
+  _setTransformFeedback(): void {
+    const needed = this.limitVelocityOverLifetime.enabled || this.noise.enabled;
+    if (needed === this._useTransformFeedback) return;
+    this._useTransformFeedback = needed;
 
     // Switching TF mode invalidates all active particle state: feedback buffers and instance
     // buffer layout are incompatible between the two paths. Clear rather than show a one-frame
     // jump; new particles will fill in naturally from the next emit cycle.
     this._clearActiveParticles();
 
-    if (enabled) {
+    if (needed) {
       if (!this._feedbackSimulator) {
         this._feedbackSimulator = new ParticleTransformFeedbackSimulator(this._renderer.engine);
       }
@@ -701,9 +710,7 @@ export class ParticleGenerator {
    * @internal
    */
   _cloneTo(target: ParticleGenerator): void {
-    if (target.limitVelocityOverLifetime.enabled) {
-      target._setTransformFeedback(true);
-    }
+    target._setTransformFeedback();
   }
 
   /**
@@ -942,7 +949,9 @@ export class ParticleGenerator {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
     }
 
-    // instanceVertices[offset + 21] = rand.random();
+    if (this.noise.enabled) {
+      instanceVertices[offset + 21] = this.noise._noiseRand.random();
+    }
 
     const rotationOverLifetime = this.rotationOverLifetime;
     if (rotationOverLifetime.enabled && rotationOverLifetime.rotationZ.mode === ParticleCurveMode.TwoConstants) {
@@ -1384,6 +1393,22 @@ export class ParticleGenerator {
     out.transform(rotateMat);
     min.add(worldOffsetMin);
     max.add(worldOffsetMax);
+
+    // Noise module impact: noise output is normalized to [-1, 1],
+    // max displacement = |strength_max|
+    const { noise } = this;
+    if (noise.enabled) {
+      let noiseMaxX: number, noiseMaxY: number, noiseMaxZ: number;
+      if (noise.separateAxes) {
+        noiseMaxX = Math.abs(noise.strengthX._getMax());
+        noiseMaxY = Math.abs(noise.strengthY._getMax());
+        noiseMaxZ = Math.abs(noise.strengthZ._getMax());
+      } else {
+        noiseMaxX = noiseMaxY = noiseMaxZ = Math.abs(noise.strengthX._getMax());
+      }
+      min.set(min.x - noiseMaxX, min.y - noiseMaxY, min.z - noiseMaxZ);
+      max.set(max.x + noiseMaxX, max.y + noiseMaxY, max.z + noiseMaxZ);
+    }
 
     min.add(worldPosition);
     max.add(worldPosition);
