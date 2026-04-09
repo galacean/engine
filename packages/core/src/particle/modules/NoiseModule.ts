@@ -57,8 +57,8 @@ export class NoiseModule extends ParticleGeneratorModule {
   private _separateAxes: boolean = false;
   private _frequency: number = 0.5;
   private _octaveCount: number = 1;
-  private _octavePersistence: number = 0.5;
-  private _octaveLacunarity: number = 2.0;
+  private _octaveIntensityMultiplier: number = 0.5;
+  private _octaveFrequencyMultiplier: number = 2.0;
 
   /**
    * Specifies whether the strength is separate on each axis, when disabled, only `strength` is used.
@@ -165,33 +165,33 @@ export class NoiseModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Persistence (amplitude retention) for each successive octave, only effective when `octaveCount` > 1.
-   * Each layer retains this fraction of the previous layer's intensity, range [0, 1].
+   * Intensity multiplier for each successive octave, only effective when `octaveCount` > 1.
+   * Each layer's contribution is scaled by this factor relative to the previous layer, range [0, 1].
    */
-  get octavePersistence(): number {
-    return this._octavePersistence;
+  get octaveIntensityMultiplier(): number {
+    return this._octaveIntensityMultiplier;
   }
 
-  set octavePersistence(value: number) {
+  set octaveIntensityMultiplier(value: number) {
     value = Math.max(0, Math.min(1, value));
-    if (value !== this._octavePersistence) {
-      this._octavePersistence = value;
+    if (value !== this._octaveIntensityMultiplier) {
+      this._octaveIntensityMultiplier = value;
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
 
   /**
-   * Lacunarity (frequency scaling) for each successive octave, only effective when `octaveCount` > 1.
+   * Frequency multiplier for each successive octave, only effective when `octaveCount` > 1.
    * Each layer samples at this multiple of the previous layer's frequency, range [1, 4].
    */
-  get octaveLacunarity(): number {
-    return this._octaveLacunarity;
+  get octaveFrequencyMultiplier(): number {
+    return this._octaveFrequencyMultiplier;
   }
 
-  set octaveLacunarity(value: number) {
+  set octaveFrequencyMultiplier(value: number) {
     value = Math.max(1, Math.min(4, value));
-    if (value !== this._octaveLacunarity) {
-      this._octaveLacunarity = value;
+    if (value !== this._octaveFrequencyMultiplier) {
+      this._octaveFrequencyMultiplier = value;
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
@@ -306,7 +306,7 @@ export class NoiseModule extends ParticleGeneratorModule {
       }
 
       const noiseOctaveParams = this._noiseOctaveParams;
-      noiseOctaveParams.set(this._scrollSpeed, this._octaveCount, this._octavePersistence, this._octaveLacunarity);
+      noiseOctaveParams.set(this._scrollSpeed, this._octaveCount, this._octaveIntensityMultiplier, this._octaveFrequencyMultiplier);
       shaderData.setVector4(NoiseModule._noiseOctaveProperty, noiseOctaveParams);
     }
 

@@ -104,8 +104,8 @@ function createNoiseParticle(engine: Engine, rootEntity: Entity, texture: Textur
   noise.frequency = 1;
   noise.scrollSpeed = 0;
   noise.octaveCount = 1;
-  noise.octavePersistence = 0.5;
-  noise.octaveLacunarity = 2.0;
+  noise.octaveIntensityMultiplier = 0.5;
+  noise.octaveFrequencyMultiplier = 2.0;
 
   rootEntity.addChild(particleEntity);
 }

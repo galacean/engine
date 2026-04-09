@@ -4,7 +4,7 @@
 #include <noise_simplex_3D>
 
 uniform vec4 renderer_NoiseParams; // xyz = strength (constant mode only), w = frequency
-uniform vec4 renderer_NoiseOctaveParams; // x = scrollSpeed, y = octaveCount, z = octavePersistence, w = octaveLacunarity
+uniform vec4 renderer_NoiseOctaveParams; // x = scrollSpeed, y = octaveCount, z = octaveIntensityMultiplier, w = octaveFrequencyMultiplier
 
 #ifdef RENDERER_NOISE_STRENGTH_CURVE
     uniform vec2 renderer_NoiseStrengthMaxCurveX[4];
@@ -39,22 +39,22 @@ vec3 computeNoiseDisplacement(vec3 currentPosition, float normalizedAge) {
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
 
     int octaveCount = int(renderer_NoiseOctaveParams.y);
-    float octavePersistence = renderer_NoiseOctaveParams.z;
-    float octaveLacunarity = renderer_NoiseOctaveParams.w;
+    float octaveIntensityMultiplier = renderer_NoiseOctaveParams.z;
+    float octaveFrequencyMultiplier = renderer_NoiseOctaveParams.w;
 
     vec3 noiseValue = sampleSimplexNoise3D(coord);
     float totalWeight = 1.0;
 
     // Unrolled octave loop (GLSL ES 1.0 requires constant loop bounds)
     if (octaveCount >= 2) {
-        float weight = octavePersistence;
+        float weight = octaveIntensityMultiplier;
         totalWeight += weight;
-        noiseValue += weight * sampleSimplexNoise3D(coord * octaveLacunarity);
+        noiseValue += weight * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier);
 
         if (octaveCount >= 3) {
-            weight *= octavePersistence;
+            weight *= octaveIntensityMultiplier;
             totalWeight += weight;
-            noiseValue += weight * sampleSimplexNoise3D(coord * octaveLacunarity * octaveLacunarity);
+            noiseValue += weight * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier * octaveFrequencyMultiplier);
         }
     }
 
