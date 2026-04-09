@@ -217,7 +217,6 @@ export class NoiseModule extends ParticleGeneratorModule {
     this.strengthX = new ParticleCompositeCurve(1);
     this.strengthY = new ParticleCompositeCurve(1);
     this.strengthZ = new ParticleCompositeCurve(1);
-    this._scrollSpeed = 0;
   }
 
   /**
