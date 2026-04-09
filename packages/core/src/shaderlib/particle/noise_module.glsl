@@ -43,18 +43,18 @@ vec3 computeNoiseDisplacement(vec3 currentPosition, float normalizedAge) {
     float octaveFrequencyMultiplier = renderer_NoiseOctaveParams.w;
 
     vec3 noiseValue = sampleSimplexNoise3D(coord);
-    float totalWeight = 1.0;
+    float totalAmplitude = 1.0;
 
     // Unrolled octave loop (GLSL ES 1.0 requires constant loop bounds)
     if (octaveCount >= 2) {
-        float weight = octaveIntensityMultiplier;
-        totalWeight += weight;
-        noiseValue += weight * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier);
+        float amplitude = octaveIntensityMultiplier;
+        totalAmplitude += amplitude;
+        noiseValue += amplitude * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier);
 
         if (octaveCount >= 3) {
-            weight *= octaveIntensityMultiplier;
-            totalWeight += weight;
-            noiseValue += weight * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier * octaveFrequencyMultiplier);
+            amplitude *= octaveIntensityMultiplier;
+            totalAmplitude += amplitude;
+            noiseValue += amplitude * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier * octaveFrequencyMultiplier);
         }
     }
 
@@ -83,7 +83,7 @@ vec3 computeNoiseDisplacement(vec3 currentPosition, float normalizedAge) {
         #endif
     #endif
 
-    return (noiseValue / totalWeight) * strength;
+    return (noiseValue / totalAmplitude) * strength;
 }
 
 #endif
