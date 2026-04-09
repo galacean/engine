@@ -53,12 +53,12 @@ export class NoiseModule extends ParticleGeneratorModule {
   private _strengthY: ParticleCompositeCurve;
   @deepClone
   private _strengthZ: ParticleCompositeCurve;
-  private _scrollSpeed: number = 0;
-  private _separateAxes: boolean = false;
-  private _frequency: number = 0.5;
-  private _octaveCount: number = 1;
-  private _octaveIntensityMultiplier: number = 0.5;
-  private _octaveFrequencyMultiplier: number = 2.0;
+  private _scrollSpeed = 0;
+  private _separateAxes = false;
+  private _frequency = 0.5;
+  private _octaveCount = 1;
+  private _octaveIntensityMultiplier = 0.5;
+  private _octaveFrequencyMultiplier = 2.0;
 
   /**
    * Specifies whether the strength is separate on each axis, when disabled, only `strength` is used.
