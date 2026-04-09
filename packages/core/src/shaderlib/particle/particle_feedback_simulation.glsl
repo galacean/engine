@@ -231,7 +231,7 @@ void main() {
     // VOL and Noise overlays are added here (not persisted).
 
     // Noise velocity overlay (not persisted)
-    // computeNoiseVelocity returns noise * strength (position-scale)
+    // computeNoiseDisplacement returns noise * strength (position-scale)
     // Dividing by lifetime converts to velocity so that integration over lifetime
     // recovers the original displacement magnitude
     #ifdef RENDERER_NOISE_MODULE_ENABLED
@@ -246,7 +246,7 @@ void main() {
                 a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age,
                 worldRotation) + a_SimulationWorldPosition;
         }
-        vec3 noiseVelocity = computeNoiseVelocity(noiseBasePos, normalizedAge) / lifetime;
+        vec3 noiseVelocity = computeNoiseDisplacement(noiseBasePos, normalizedAge) / lifetime;
     #endif
 
     vec3 totalVelocity;

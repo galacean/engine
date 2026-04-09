@@ -36,7 +36,7 @@ vec3 sampleSimplexNoise3D(vec3 coord) {
     );
 }
 
-vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
+vec3 computeNoiseDisplacement(vec3 currentPosition, float normalizedAge) {
     // Per-particle noise offset derived from a_Random0.z (noise-dedicated random).
     // Three decorrelated values are derived from one random to avoid consuming extra buffer slots.
     // 5.0: small enough to preserve spatial coherence (nearby particles sample similar noise),
