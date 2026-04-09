@@ -3,10 +3,8 @@
 #include <noise_common>
 #include <noise_simplex_3D>
 
-// renderer_NoiseParams: xyz = strength (constant mode only), w = frequency
-// renderer_NoiseOctaveParams: x = scrollSpeed, y = octaveCount, z = octavePersistence, w = octaveLacunarity
-uniform vec4 renderer_NoiseParams;
-uniform vec4 renderer_NoiseOctaveParams;
+uniform vec4 renderer_NoiseParams; // xyz = strength (constant mode only), w = frequency
+uniform vec4 renderer_NoiseOctaveParams; // x = scrollSpeed, y = octaveCount, z = octavePersistence, w = octaveLacunarity
 
 #ifdef RENDERER_NOISE_STRENGTH_CURVE
     uniform vec2 renderer_NoiseStrengthMaxCurveX[4];
@@ -28,11 +26,11 @@ uniform vec4 renderer_NoiseOctaveParams;
 #endif
 
 vec3 sampleSimplexNoise3D(vec3 coord) {
-    float d = 100.0;
+    float axisOffset = 100.0;
     return vec3(
         simplex(vec3(coord.z, coord.y, coord.x)),
-        simplex(vec3(coord.x + d, coord.z, coord.y)),
-        simplex(vec3(coord.y, coord.x + d, coord.z))
+        simplex(vec3(coord.x + axisOffset, coord.z, coord.y)),
+        simplex(vec3(coord.y, coord.x + axisOffset, coord.z))
     );
 }
 
@@ -41,8 +39,8 @@ vec3 computeNoiseDisplacement(vec3 currentPosition, float normalizedAge) {
     // Three decorrelated values are derived from one random to avoid consuming extra buffer slots.
     // 5.0: small enough to preserve spatial coherence (nearby particles sample similar noise),
     // large enough to decorrelate particles emitted from the same position.
-    float _nr = a_Random0.z;
-    vec3 noiseRandOffset = vec3(_nr, fract(_nr * 314.159), fract(_nr * 271.828)) * 5.0;
+    float noiseRand = a_Random0.z;
+    vec3 noiseRandOffset = vec3(noiseRand, fract(noiseRand * 314.159), fract(noiseRand * 271.828)) * 5.0;
     vec3 coord = currentPosition * renderer_NoiseParams.w
                + noiseRandOffset
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
