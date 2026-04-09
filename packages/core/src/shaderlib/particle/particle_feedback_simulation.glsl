@@ -34,7 +34,7 @@ varying vec3 v_FeedbackVelocity;
 #include <velocity_over_lifetime_module>
 #include <force_over_lifetime_module>
 #include <limit_velocity_over_lifetime_module>
-#include <noise_over_lifetime_module>
+#include <noise_module>
 
 // Get VOL instantaneous velocity at normalizedAge
 vec3 getVOLVelocity(float normalizedAge) {

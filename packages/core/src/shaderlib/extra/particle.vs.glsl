@@ -74,7 +74,7 @@ uniform int renderer_SimulationSpace;
 #include <size_over_lifetime_module>
 #include <rotation_over_lifetime_module>
 #include <texture_sheet_animation_module>
-#include <noise_over_lifetime_module>
+#include <noise_module>
 
 vec3 computeParticlePosition(in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
     vec3 startPosition = startVelocity * age;

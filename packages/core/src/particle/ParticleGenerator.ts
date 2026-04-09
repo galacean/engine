@@ -1395,7 +1395,7 @@ export class ParticleGenerator {
     max.add(worldOffsetMax);
 
     // Noise module impact: noise output is normalized to [-1, 1],
-    // max displacement = |strength_max|.
+    // max displacement = |strength_max|
     const { noise } = this;
     if (noise.enabled) {
       let noiseMaxX: number, noiseMaxY: number, noiseMaxZ: number;
