@@ -306,7 +306,12 @@ export class NoiseModule extends ParticleGeneratorModule {
       }
 
       const noiseOctaveParams = this._noiseOctaveParams;
-      noiseOctaveParams.set(this._scrollSpeed, this._octaveCount, this._octaveIntensityMultiplier, this._octaveFrequencyMultiplier);
+      noiseOctaveParams.set(
+        this._scrollSpeed,
+        this._octaveCount,
+        this._octaveIntensityMultiplier,
+        this._octaveFrequencyMultiplier
+      );
       shaderData.setVector4(NoiseModule._noiseOctaveProperty, noiseOctaveParams);
     }
 
