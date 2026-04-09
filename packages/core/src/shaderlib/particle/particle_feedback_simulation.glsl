@@ -230,36 +230,34 @@ void main() {
     // FOL is now fully in localVelocity (both local and world-space FOL).
     // VOL and Noise overlays are added here (not persisted).
 
-    // Noise velocity overlay (not persisted).
-    // computeNoiseVelocity returns noise * strength (position-scale).
+    // Noise velocity overlay (not persisted)
+    // computeNoiseVelocity returns noise * strength (position-scale)
     // Dividing by lifetime converts to velocity so that integration over lifetime
-    // recovers the original displacement magnitude.
-    vec3 noiseVelocity = vec3(0.0);
+    // recovers the original displacement magnitude
     #ifdef RENDERER_NOISE_MODULE_ENABLED
         // Use analytical base position (birth + initial velocity * age) instead of
-        // a_FeedbackPosition to avoid feedback loop: position → noise → velocity → position.
-        // At high strength the loop becomes unstable (particle overshoots noise cells).
+        // a_FeedbackPosition to avoid feedback loop: position → noise → velocity → position
+        // At high strength the loop becomes unstable (particle overshoots noise cells)
         vec3 noiseBasePos;
         if (renderer_SimulationSpace == 0) {
-            // Local: sample in local space
             noiseBasePos = a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age;
         } else {
-            // World: sample in world space so noise direction is world-aligned
-            noiseBasePos = rotationByQuaternions(a_ShapePositionStartLifeTime.xyz, worldRotation) + a_SimulationWorldPosition
-                         + rotationByQuaternions(a_DirectionTime.xyz * a_StartSpeed, worldRotation) * age;
+            noiseBasePos = rotationByQuaternions(
+                a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age,
+                worldRotation) + a_SimulationWorldPosition;
         }
-        noiseVelocity = computeNoiseVelocity(noiseBasePos, normalizedAge) / lifetime;
+        vec3 noiseVelocity = computeNoiseVelocity(noiseBasePos, normalizedAge) / lifetime;
     #endif
 
     vec3 totalVelocity;
     if (renderer_SimulationSpace == 0) {
-      // Local: integrate in local space
-      totalVelocity = localVelocity + volLocal + noiseVelocity
-        + rotationByQuaternions(volWorld, invWorldRotation);
+      totalVelocity = localVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
     } else {
-      // World: integrate in world space
-      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld + noiseVelocity;
+      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
     }
+    #ifdef RENDERER_NOISE_MODULE_ENABLED
+        totalVelocity += noiseVelocity;
+    #endif
     vec3 position = a_FeedbackPosition + totalVelocity * dt;
 
     v_FeedbackPosition = position;
