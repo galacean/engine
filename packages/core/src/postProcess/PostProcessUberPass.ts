@@ -5,49 +5,43 @@ import { Material } from "../material";
 import { Blitter } from "../RenderPipeline/Blitter";
 import { PipelineUtils } from "../RenderPipeline/PipelineUtils";
 import { Shader } from "../shader";
-import blitVs from "../shaderlib/Blit.vs.glsl";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureWrapMode } from "../texture";
 import { BloomDownScaleMode, BloomEffect, TonemappingEffect } from "./effects";
 import { PostProcessManager } from "./PostProcessManager";
 import { PostProcessPass, PostProcessPassEvent } from "./PostProcessPass";
-import UberPost from "./shaders/UberPost.glsl";
 
 export class PostProcessUberPass extends PostProcessPass {
-  static readonly UBER_SHADER_NAME = "UberPost";
+  static readonly UBER_SHADER_NAME = "PostProcess/Uber";
 
-  private _uberMaterial: Material;
-
-  // Bloom
-  private _bloomMaterial: Material;
+  private __uberMaterial: Material;
+  private __bloomMaterial: Material;
   private _mipDownRT: RenderTarget[] = [];
   private _mipUpRT: RenderTarget[] = [];
+
+  private get _uberMaterial(): Material {
+    if (!this.__uberMaterial) {
+      const material = new Material(this.engine, Shader.find(PostProcessUberPass.UBER_SHADER_NAME));
+      material.shaderData.setVector4(BloomEffect._bloomIntensityParams, new Vector4());
+      material.shaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4());
+      material.shaderData.setColor(BloomEffect._tintProp, new Color());
+      this.__uberMaterial = material;
+    }
+    return this.__uberMaterial;
+  }
+
+  private get _bloomMaterial(): Material {
+    if (!this.__bloomMaterial) {
+      const material = new Material(this.engine, Shader.find(BloomEffect.SHADER_NAME));
+      material.shaderData.setVector4(BloomEffect._bloomParams, new Vector4());
+      material.shaderData.setVector4(BloomEffect._lowMipTexelSizeProp, new Vector4());
+      this.__bloomMaterial = material;
+    }
+    return this.__bloomMaterial;
+  }
 
   constructor(engine: Engine) {
     super(engine);
     this.event = PostProcessPassEvent.AfterUber - 1;
-
-    // Uber Material
-    const uberMaterial = new Material(engine, Shader.find(PostProcessUberPass.UBER_SHADER_NAME));
-    const uberDepthState = uberMaterial.renderState.depthState;
-    uberDepthState.enabled = false;
-    uberDepthState.writeEnabled = false;
-    this._uberMaterial = uberMaterial;
-
-    // Bloom Material
-    const bloomMaterial = new Material(engine, Shader.find(BloomEffect.SHADER_NAME));
-    const bloomDepthState = bloomMaterial.renderState.depthState;
-    bloomDepthState.enabled = false;
-    bloomDepthState.writeEnabled = false;
-    this._bloomMaterial = bloomMaterial;
-
-    // ShaderData initialization
-    const bloomShaderData = bloomMaterial.shaderData;
-    const uberShaderData = uberMaterial.shaderData;
-    bloomShaderData.setVector4(BloomEffect._bloomParams, new Vector4());
-    bloomShaderData.setVector4(BloomEffect._lowMipTexelSizeProp, new Vector4());
-    uberShaderData.setVector4(BloomEffect._bloomIntensityParams, new Vector4());
-    uberShaderData.setVector4(BloomEffect._dirtTilingOffsetProp, new Vector4());
-    uberShaderData.setColor(BloomEffect._tintProp, new Color());
   }
 
   /** @inheritdoc */
@@ -94,8 +88,8 @@ export class PostProcessUberPass extends PostProcessPass {
   override _onDestroy() {
     super._onDestroy();
     this._releaseBloomRenderTargets();
-    this._uberMaterial.destroy();
-    this._bloomMaterial.destroy();
+    this.__uberMaterial?.destroy();
+    this.__bloomMaterial?.destroy();
   }
 
   private _setupBloom(bloomBlend: BloomEffect, camera: Camera, srcTexture: Texture2D) {
@@ -254,5 +248,3 @@ export class PostProcessUberPass extends PostProcessPass {
     this._mipUpRT.length = 0;
   }
 }
-
-Shader.create(PostProcessUberPass.UBER_SHADER_NAME, blitVs, UberPost);

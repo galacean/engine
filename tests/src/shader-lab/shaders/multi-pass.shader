@@ -143,6 +143,6 @@ Shader "multi-pass-test" {
       VertexShader = vert;
       FragmentShader = frag;
     }
-    UsePass "blinn-phong/Default/Forward"
+    UsePass "BlinnPhong/Default/Forward Pass"
   }
 }

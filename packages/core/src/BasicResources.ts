@@ -107,23 +107,49 @@ export class BasicResources {
    */
   readonly blitMesh: ModelMesh;
   readonly flipYBlitMesh: ModelMesh;
-  readonly blitMaterial: Material;
-  readonly blitScreenMaterial: Material;
 
   readonly whiteTexture2D: Texture2D;
   readonly whiteTextureCube: TextureCube;
   readonly whiteTexture2DArray: Texture2DArray;
   readonly uintWhiteTexture2D: Texture2D;
 
-  readonly spriteDefaultMaterial: Material;
-  readonly textDefaultMaterial: Material;
-  readonly spriteMaskDefaultMaterial: Material;
-
-  readonly meshMagentaMaterial: Material;
-  readonly particleMagentaMaterial: Material;
-
+  private _blitMaterial: Material;
+  private _blitScreenMaterial: Material;
+  private _spriteDefaultMaterial: Material;
+  private _textDefaultMaterial: Material;
+  private _spriteMaskDefaultMaterial: Material;
+  private _meshMagentaMaterial: Material;
+  private _particleMagentaMaterial: Material;
   private _blinnPhongMaterial: BlinnPhongMaterial;
   private _prefilteredDFGTexture: Texture2D;
+
+  get blitMaterial(): Material {
+    return (this._blitMaterial ||= this._createBlitMaterial("Utility/Blit"));
+  }
+
+  get blitScreenMaterial(): Material {
+    return (this._blitScreenMaterial ||= this._createBlitMaterial("Utility/BlitScreen"));
+  }
+
+  get spriteDefaultMaterial(): Material {
+    return (this._spriteDefaultMaterial ||= this._create2DMaterial(this.engine, Shader.find("2D/Sprite")));
+  }
+
+  get textDefaultMaterial(): Material {
+    return (this._textDefaultMaterial ||= this._create2DMaterial(this.engine, Shader.find("2D/Text")));
+  }
+
+  get spriteMaskDefaultMaterial(): Material {
+    return (this._spriteMaskDefaultMaterial ||= this._createSpriteMaskMaterial(this.engine));
+  }
+
+  get meshMagentaMaterial(): Material {
+    return (this._meshMagentaMaterial ||= this._createMagentaMaterial(this.engine, "Unlit"));
+  }
+
+  get particleMagentaMaterial(): Material {
+    return (this._particleMagentaMaterial ||= this._createMagentaMaterial(this.engine, "Particle"));
+  }
 
   get prefilteredDFGTexture(): Texture2D {
     return this._prefilteredDFGTexture;
@@ -141,19 +167,6 @@ export class BasicResources {
       3, -1, 2, 0,  // right-bottom
       -1, -1, 0, 0, // left-bottom
       -1, 3, 0, 2]); // left-top
-
-    const blitMaterial = new Material(engine, Shader.find("blit"));
-    blitMaterial._addReferCount(1);
-    blitMaterial.renderState.depthState.enabled = false;
-    blitMaterial.renderState.depthState.writeEnabled = false;
-
-    const blitScreenMaterial = new Material(engine, Shader.find("blit-screen"));
-    blitScreenMaterial._addReferCount(1);
-    blitScreenMaterial.renderState.depthState.enabled = false;
-    blitScreenMaterial.renderState.depthState.writeEnabled = false;
-
-    this.blitMaterial = blitMaterial;
-    this.blitScreenMaterial = blitScreenMaterial;
 
     this.blitMesh = this._createBlitMesh(engine, vertices);
     this.flipYBlitMesh = this._createBlitMesh(engine, flipYVertices);
@@ -195,13 +208,6 @@ export class BasicResources {
         false
       );
     }
-
-    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("Sprite"));
-    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("Text"));
-    this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
-
-    this.meshMagentaMaterial = this._createMagentaMaterial(engine, "unlit");
-    this.particleMagentaMaterial = this._createMagentaMaterial(engine, "particle-shader");
   }
 
   /**
@@ -326,8 +332,16 @@ export class BasicResources {
     return material;
   }
 
+  private _createBlitMaterial(shaderName: string): Material {
+    const material = new Material(this.engine, Shader.find(shaderName));
+    material._addReferCount(1);
+    material.renderState.depthState.enabled = false;
+    material.renderState.depthState.writeEnabled = false;
+    return material;
+  }
+
   private _createSpriteMaskMaterial(engine: Engine): Material {
-    const material = new Material(engine, Shader.find("SpriteMask"));
+    const material = new Material(engine, Shader.find("2D/SpriteMask"));
     material.isGCIgnored = true;
     return material;
   }

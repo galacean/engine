@@ -1,6 +1,5 @@
 import { Color } from "@galacean/engine-math";
-import { Shader, ShaderMacro, ShaderPass, ShaderProperty } from "../../shader";
-import blitVs from "../../shaderlib/Blit.vs.glsl";
+import { ShaderMacro, ShaderProperty } from "../../shader";
 
 import { PostProcessEffect } from "../PostProcessEffect";
 import {
@@ -10,10 +9,6 @@ import {
   PostProcessEffectFloatParameter,
   PostProcessEffectTextureParameter
 } from "../PostProcessEffectParameter";
-import fragBlurH from "../shaders/Bloom/BloomBlurH.glsl";
-import fragBlurV from "../shaders/Bloom/BloomBlurV.glsl";
-import fragPrefilter from "../shaders/Bloom/BloomPrefilter.glsl";
-import fragUpsample from "../shaders/Bloom/BloomUpsample.glsl";
 
 /**
  * This controls the size of the bloom texture.
@@ -26,7 +21,7 @@ export enum BloomDownScaleMode {
 }
 
 export class BloomEffect extends PostProcessEffect {
-  static readonly SHADER_NAME = "PostProcessEffect Bloom";
+  static readonly SHADER_NAME = "PostProcess/Bloom";
 
   // Bloom shader properties
   /** @internal */
@@ -103,10 +98,3 @@ export class BloomEffect extends PostProcessEffect {
     return this.enabled && this.intensity.value > 0;
   }
 }
-
-Shader.create(BloomEffect.SHADER_NAME, [
-  new ShaderPass("Bloom Prefilter", blitVs, fragPrefilter),
-  new ShaderPass("Bloom Blur Horizontal", blitVs, fragBlurH),
-  new ShaderPass("Bloom Blur Vertical", blitVs, fragBlurV),
-  new ShaderPass("Bloom Upsample", blitVs, fragUpsample)
-]);

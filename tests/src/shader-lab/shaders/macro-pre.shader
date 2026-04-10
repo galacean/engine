@@ -2,7 +2,7 @@ Shader "macro-pre-test" {
   SubShader "subname" {
     Tags { LightMode = "ForwardBase" }
 
-    UsePass "pbr/Default/Forward"
+    UsePass "PBR/Default/Forward Pass"
 
     Pass "default" {
       Tags { ReplacementTag = "Opaque" }
@@ -108,6 +108,6 @@ float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoo
 
      
     }
-    UsePass "blinn-phong/Default/Forward"
+    UsePass "BlinnPhong/Default/Forward Pass"
   }
 }

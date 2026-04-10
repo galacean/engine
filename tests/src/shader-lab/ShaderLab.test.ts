@@ -38,7 +38,7 @@ describe("ShaderLab", async () => {
     const pass1 = passList[2];
 
     // shader name
-    expect(shader.name).to.equal("pbr");
+    expect(shader.name).to.equal("PBR");
     expect(subShader.name).to.equal("Default");
     expect(pass1.name).to.equal("Forward Pass");
     expect(passList.length).to.eq(3);

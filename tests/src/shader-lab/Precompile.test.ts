@@ -1,6 +1,6 @@
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { IPrecompiledShader } from "@galacean/engine-design";
-import { registerIncludes, PBRSource } from "@galacean/engine-shader";
+import { registerIncludes, registerShaders, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { ShaderInstructionEncoder, ShaderInstruction } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
@@ -26,6 +26,7 @@ describe("ShaderLab Precompile", async () => {
 
   // @ts-ignore
   Shader._shaderLab = shaderLab;
+  registerShaders();
 
   const basePath = new URL("", ShaderPass._shaderRootPath).href;
 

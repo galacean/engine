@@ -15,7 +15,7 @@ export class ShaderPool {
 
   static init(): void {
     ShaderPool.particleFeedbackShader = new TransformFeedbackShader(
-      `#include <ParticleFeedback.glsl>`,
+      `#include <Particle/ParticleFeedback.glsl>`,
       `void main() { discard; }`,
       ["v_FeedbackPosition", "v_FeedbackVelocity"]
     );

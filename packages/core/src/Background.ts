@@ -31,8 +31,8 @@ export class Background {
 
   /** @internal */
   _mesh: ModelMesh;
-  /** @internal */
-  _material: Material;
+
+  private __material: Material;
 
   private _solidColor = new Color(0.05087608817155679, 0.05087608817155679, 0.05087608817155679, 1.0);
   private _texture: Texture2D = null;
@@ -93,8 +93,10 @@ export class Background {
     this.texture = null;
     this._mesh._addReferCount(-1);
     this._mesh = null;
-    this._material._addReferCount(-1);
-    this._material = null;
+    if (this.__material) {
+      this.__material._addReferCount(-1);
+      this.__material = null;
+    }
     this.sky.destroy();
   }
 
@@ -102,9 +104,23 @@ export class Background {
    * Constructor of Background.
    * @param _engine Engine Which the background belongs to.
    */
+  /** @internal */
+  get _material(): Material {
+    if (!this.__material) {
+      const material = new Material(this._engine, Shader.find("Sky/BackgroundTexture"));
+      material.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+      material._addReferCount(1);
+      this.__material = material;
+    }
+    return this.__material;
+  }
+
+  set _material(value: Material) {
+    this.__material = value;
+  }
+
   constructor(private _engine: Engine) {
     this._initMesh(_engine);
-    this._initMaterial(_engine);
   }
 
   /**
@@ -160,12 +176,6 @@ export class Background {
       })()
     );
     this._mesh._addReferCount(1);
-  }
-
-  private _initMaterial(engine: Engine): void {
-    const material = (this._material = new Material(engine, Shader.find("background-texture")));
-    material.renderState.depthState.compareFunction = CompareFunction.LessEqual;
-    material._addReferCount(1);
   }
 
   private _createPlane(engine: Engine): ModelMesh {

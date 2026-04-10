@@ -92,7 +92,7 @@ export class ShaderFactory {
    * @param regex The default regex is for engine's builtin glsl `#include` syntax,
    * since `ShaderLab` use the same parsing function but different syntax for `#include` --- `/^[ \t]*#include +"([\w\d.]+)"/gm`
    */
-  static parseIncludes(src: string, regex = /^[ \t]*#include +<([\w\d.]+)>/gm) {
+  static parseIncludes(src: string, regex = /^[ \t]*#include +<([\w\d./]+)>/gm) {
     function replace(match, slice) {
       var replace = ShaderLib[slice];
 

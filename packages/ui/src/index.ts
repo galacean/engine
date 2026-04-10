@@ -6,14 +6,10 @@ import {
   Entity,
   Loader,
   Material,
-  PipelineStage,
   RenderQueueType,
-  Shader,
-  ShaderPass
+  Shader
 } from "@galacean/engine";
 import * as GUIComponent from "./component";
-import uiDefaultFs from "./shader/uiDefault.fs.glsl";
-import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { HorizontalAlignmentMode } from "./enums/HorizontalAlignmentMode";
@@ -98,13 +94,5 @@ export function registerGUI() {
 }
 
 function _getOrCreateUIShader(): Shader {
-  let shader = Shader.find("ui");
-  if (!shader) {
-    shader = Shader.create("ui", [
-      new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
-        pipelineStage: PipelineStage.Forward
-      })
-    ]);
-  }
-  return shader;
+  return Shader.find("2D/UIDefault");
 }

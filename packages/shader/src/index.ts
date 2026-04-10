@@ -17,8 +17,13 @@ import {
   ShadowMapSource,
   BlitSource,
   BlitScreenSource,
-  ParticleSource
-} from "./shaders";
+  ParticleSource,
+  UberShaderSource,
+  FinalSRGBShaderSource,
+  FinalAntiAliasingShaderSource,
+  BloomShaderSource,
+  SAOShaderSource
+} from "./Shaders";
 
 let includeRegistered = false;
 let shaderRegistered = false;
@@ -62,7 +67,7 @@ export function registerShaders() {
   // Ensure include fragments are registered first
   registerIncludes();
 
-  // PBR must be created first — other shaders UsePass from "pbr/Default/ShadowCaster" and "pbr/Default/DepthOnly"
+  // PBR must be created first — other shaders UsePass from "PBR/Default/ShadowCaster" and "PBR/Default/DepthOnly"
   _createShader(PBRSource);
 
   // Material shaders that UsePass from PBR
@@ -87,11 +92,17 @@ export function registerShaders() {
   _createShader(TextSource);
   _createShader(TrailSource);
 
-  // UIDefault ("ui") is created by the @galacean/engine-ui package lazily.
-  // Export the source so it can be used if needed.
-
   // Particle shader
   _createShader(ParticleSource);
+
+  // PostProcess shaders
+  _createShader(UberShaderSource);
+  _createShader(FinalSRGBShaderSource);
+  _createShader(FinalAntiAliasingShaderSource);
+  _createShader(BloomShaderSource);
+
+  // AO shader
+  _createShader(SAOShaderSource);
 
   shaderRegistered = true;
 }
@@ -114,5 +125,10 @@ export {
   BlitSource,
   BlitScreenSource,
   ParticleSource,
+  UberShaderSource,
+  FinalSRGBShaderSource,
+  FinalAntiAliasingShaderSource,
+  BloomShaderSource,
+  SAOShaderSource,
   fragmentList
 };
