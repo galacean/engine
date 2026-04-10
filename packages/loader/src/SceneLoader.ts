@@ -49,14 +49,15 @@ class SceneLoader extends Loader<Scene> {
                   scene.ambientLight.diffuseSolidColor.copyFrom(solidColor);
                 }
               }
-              scene.ambientLight.specularTextureDecodeRGBM = true;
 
               if (useCustomAmbient && ambient.customAmbientLight) {
                 promises.push(
                   // @ts-ignore
-                  resourceManager.getResourceByRef<any>(assetRefToEngine(ambient.customAmbientLight)).then((ambientLight) => {
-                    scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-                  })
+                  resourceManager
+                    .getResourceByRef<any>(assetRefToEngine(ambient.customAmbientLight))
+                    .then((ambientLight) => {
+                      scene.ambientLight.specularTexture = ambientLight?.specularTexture;
+                    })
                 );
               }
 
@@ -93,13 +94,17 @@ class SceneLoader extends Loader<Scene> {
               case BackgroundMode.Sky:
                 if (background.skyMesh && background.skyMaterial) {
                   // @ts-ignore
-                  const skyMeshPromise = resourceManager.getResourceByRef<Mesh>(assetRefToEngine(background.skyMesh)).then((mesh) => {
-                    scene.background.sky.mesh = mesh;
-                  });
+                  const skyMeshPromise = resourceManager
+                    .getResourceByRef<Mesh>(assetRefToEngine(background.skyMesh))
+                    .then((mesh) => {
+                      scene.background.sky.mesh = mesh;
+                    });
                   // @ts-ignore
-                  const skyMaterialPromise = resourceManager.getResourceByRef(assetRefToEngine(background.skyMaterial)).then((material) => {
-                    scene.background.sky.material = material;
-                  });
+                  const skyMaterialPromise = resourceManager
+                    .getResourceByRef(assetRefToEngine(background.skyMaterial))
+                    .then((material) => {
+                      scene.background.sky.material = material;
+                    });
                   promises.push(skyMeshPromise, skyMaterialPromise);
                 } else {
                   Logger.warn("Sky background mode requires skyMesh and skyMaterial");
@@ -108,9 +113,11 @@ class SceneLoader extends Loader<Scene> {
               case BackgroundMode.Texture:
                 if (background.texture) {
                   // @ts-ignore
-                  const backgroundPromise = resourceManager.getResourceByRef<any>(assetRefToEngine(background.texture)).then((texture) => {
-                    scene.background.texture = texture;
-                  });
+                  const backgroundPromise = resourceManager
+                    .getResourceByRef<any>(assetRefToEngine(background.texture))
+                    .then((texture) => {
+                      scene.background.texture = texture;
+                    });
                   promises.push(backgroundPromise);
                   scene.background.textureFillMode = background.textureFillMode ?? scene.background.textureFillMode;
                 }
@@ -180,11 +187,14 @@ class SceneLoader extends Loader<Scene> {
   }
 }
 
-ReflectionParser.registerCustomParseComponent("TextRenderer", async (instance: any, item: { props?: Record<string, unknown> }) => {
-  const { props } = item;
-  if (!props?.font) {
-    // @ts-ignore
-    instance.font = Font.createFromOS(instance.engine, (props?.fontFamily as string) || "Arial");
+ReflectionParser.registerCustomParseComponent(
+  "TextRenderer",
+  async (instance: any, item: { props?: Record<string, unknown> }) => {
+    const { props } = item;
+    if (!props?.font) {
+      // @ts-ignore
+      instance.font = Font.createFromOS(instance.engine, (props?.fontFamily as string) || "Arial");
+    }
+    return instance;
   }
-  return instance;
-});
+);
