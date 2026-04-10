@@ -1,7 +1,7 @@
 #ifdef RENDERER_NOISE_MODULE_ENABLED
 
 #include <noise_common>
-#include <noise_simplex_3D>
+#include <noise_simplex_3D_grad>
 
 uniform vec4 renderer_NoiseParams; // xyz = strength (constant mode only), w = frequency
 uniform vec4 renderer_NoiseOctaveParams; // x = scrollSpeed, y = octaveCount, z = octaveIntensityMultiplier, w = octaveFrequencyMultiplier
@@ -25,12 +25,15 @@ uniform vec4 renderer_NoiseOctaveParams; // x = scrollSpeed, y = octaveCount, z 
     #endif
 #endif
 
-vec3 sampleSimplexNoise3D(vec3 coord) {
+vec3 sampleCurlNoise3D(vec3 coord) {
     float axisOffset = 100.0;
+    vec3 gradX = simplexGrad(vec3(coord.z, coord.y, coord.x));
+    vec3 gradY = simplexGrad(vec3(coord.x + axisOffset, coord.z, coord.y));
+    vec3 gradZ = simplexGrad(vec3(coord.y, coord.x + axisOffset, coord.z));
     return vec3(
-        simplex(vec3(coord.z, coord.y, coord.x)),
-        simplex(vec3(coord.x + axisOffset, coord.z, coord.y)),
-        simplex(vec3(coord.y, coord.x + axisOffset, coord.z))
+        gradZ.y - gradY.z,
+        gradX.z - gradZ.x,
+        gradY.x - gradX.y
     );
 }
 
@@ -42,19 +45,19 @@ vec3 computeNoiseDisplacement(vec3 currentPosition, float normalizedAge) {
     float octaveIntensityMultiplier = renderer_NoiseOctaveParams.z;
     float octaveFrequencyMultiplier = renderer_NoiseOctaveParams.w;
 
-    vec3 noiseValue = sampleSimplexNoise3D(coord);
+    vec3 noiseValue = sampleCurlNoise3D(coord);
     float totalAmplitude = 1.0;
 
     // Unrolled octave loop (GLSL ES 1.0 requires constant loop bounds)
     if (octaveCount >= 2) {
         float amplitude = octaveIntensityMultiplier;
         totalAmplitude += amplitude;
-        noiseValue += amplitude * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier);
+        noiseValue += amplitude * sampleCurlNoise3D(coord * octaveFrequencyMultiplier);
 
         if (octaveCount >= 3) {
             amplitude *= octaveIntensityMultiplier;
             totalAmplitude += amplitude;
-            noiseValue += amplitude * sampleSimplexNoise3D(coord * octaveFrequencyMultiplier * octaveFrequencyMultiplier);
+            noiseValue += amplitude * sampleCurlNoise3D(coord * octaveFrequencyMultiplier * octaveFrequencyMultiplier);
         }
     }
 
