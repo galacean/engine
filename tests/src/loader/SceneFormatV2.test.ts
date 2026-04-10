@@ -321,6 +321,41 @@ describe("SceneParser v2 entity tree", () => {
     expect(camera.nearClipPlane).to.equal(0.5);
     expect(camera.farClipPlane).to.equal(500);
   });
+
+  it("should throw a clear error when component type is not registered", async () => {
+    const data = createSceneData(
+      [{ name: "Entity", components: [0] }],
+      [{ type: "UnregisteredComponent999" }],
+      [0]
+    );
+
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const parser = new SceneParser(data, context, scene);
+    parser.start();
+    await expect(parser.promise).rejects.toThrow("UnregisteredComponent999");
+  });
+
+  it("should trigger customParseComponentHandles even without props", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+
+    let handleCalled = false;
+    let receivedProps: Record<string, unknown> | undefined;
+    ReflectionParser.registerCustomParseComponent("TestValueType", async (instance, item) => {
+      handleCalled = true;
+      receivedProps = item.props;
+      return instance;
+    });
+
+    const target = new TestValueType();
+    await parser.parseProps(target, undefined);
+
+    expect(handleCalled).to.equal(true);
+    expect(receivedProps).to.equal(undefined);
+    delete ReflectionParser.customParseComponentHandles["TestValueType"];
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -422,5 +457,17 @@ describe("ReflectionParser $type resolution", () => {
     expect(target.value).to.be.instanceOf(TestValueType);
     expect(target.value.x).to.equal(0);
     expect(target.value.y).to.equal(0);
+  });
+
+  it("should throw a clear error when $type references an unregistered class", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+    const target: any = {};
+    await expect(
+      parser.parseProps(target, {
+        value: { $type: "NonExistentClass123" }
+      })
+    ).rejects.toThrow("NonExistentClass123");
   });
 });

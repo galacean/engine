@@ -67,6 +67,12 @@ describe("$ref null guard in Prefab mode", () => {
     const prefab = await PrefabParser.parse(engine, "test.prefab", prefabData);
     // @ts-ignore — access private field for verification
     expect(prefab._dependenceAssets.size).toBe(0);
+
+    // Verify the component property was actually resolved to null (not skipped)
+    const root = prefab.instantiate();
+    const script = root.getComponent(DiceScript);
+    expect(script.skinMesh).toBeNull();
+    root.destroy();
   });
 });
 
@@ -120,6 +126,222 @@ describe("Prefab instance overrides", () => {
     root.destroy();
     // @ts-ignore
     delete engine.resourceManager._objectPool["nested.prefab"];
+  });
+
+  it("should override component props via componentProps", async () => {
+    const nestedPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [{ name: "root", components: [0] }],
+      components: [{ type: "MeshRenderer" }],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-cp.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-cp.prefab"] = nestedPrefab;
+
+    const outerPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          name: "instance",
+          instance: {
+            asset: { $ref: "nested-cp.prefab" },
+            overrides: {
+              componentProps: {
+                "[]": { "MeshRenderer/0": { enabled: false } }
+              }
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "outer-cp.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+
+    const instanceEntity = root.children[0];
+    const meshRenderer = instanceEntity.getComponent(MeshRenderer);
+    expect(meshRenderer.enabled).toBe(false);
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-cp.prefab"];
+  });
+
+  it("should add components via addedComponents", async () => {
+    const nestedPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [{ name: "root" }],
+      components: [],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-ac.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-ac.prefab"] = nestedPrefab;
+
+    const outerPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          name: "instance",
+          instance: {
+            asset: { $ref: "nested-ac.prefab" },
+            overrides: {
+              addedComponents: [{ target: [], component: { type: "MeshRenderer" } }]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "outer-ac.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+
+    const instanceEntity = root.children[0];
+    const meshRenderer = instanceEntity.getComponent(MeshRenderer);
+    expect(meshRenderer).not.toBeNull();
+    expect(meshRenderer).toBeInstanceOf(MeshRenderer);
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-ac.prefab"];
+  });
+
+  it("should add entities via addedEntities", async () => {
+    const nestedPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [{ name: "root" }],
+      components: [],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-ae.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-ae.prefab"] = nestedPrefab;
+
+    const outerPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          name: "instance",
+          instance: {
+            asset: { $ref: "nested-ae.prefab" },
+            overrides: {
+              addedEntities: [{ parent: [], entity: { name: "addedChild", position: [1, 2, 3] } }]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "outer-ae.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+
+    const instanceEntity = root.children[0];
+    expect(instanceEntity.children.length).toBe(1);
+    const addedChild = instanceEntity.children[0];
+    expect(addedChild.name).toBe("addedChild");
+    expect(addedChild.transform.position.x).toBe(1);
+    expect(addedChild.transform.position.y).toBe(2);
+    expect(addedChild.transform.position.z).toBe(3);
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-ae.prefab"];
+  });
+
+  it("should remove entities via removedEntities", async () => {
+    const nestedPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [
+        { name: "root", children: [1] },
+        { name: "child" }
+      ],
+      components: [],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-re.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-re.prefab"] = nestedPrefab;
+
+    const outerPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          name: "instance",
+          instance: {
+            asset: { $ref: "nested-re.prefab" },
+            overrides: {
+              removedEntities: [[0]]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "outer-re.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+
+    const instanceEntity = root.children[0];
+    expect(instanceEntity.children.length).toBe(0);
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-re.prefab"];
+  });
+
+  it("should remove components via removedComponents", async () => {
+    const nestedPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [{ name: "root", components: [0] }],
+      components: [{ type: "MeshRenderer" }],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-rc.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-rc.prefab"] = nestedPrefab;
+
+    const outerPrefabData: GalaceanPrefabFile = {
+      asset: { version: "2.0" },
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          name: "instance",
+          instance: {
+            asset: { $ref: "nested-rc.prefab" },
+            overrides: {
+              removedComponents: {
+                "[]": ["MeshRenderer/0"]
+              }
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "outer-rc.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+
+    const instanceEntity = root.children[0];
+    const meshRenderer = instanceEntity.getComponent(MeshRenderer);
+    expect(meshRenderer).toBeNull();
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-rc.prefab"];
   });
 });
 

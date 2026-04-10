@@ -136,7 +136,9 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       for (let j = 0, m = componentIndices.length; j < m; j++) {
         const config = allComponents[componentIndices[j]];
         const key = config.script ? config.script.$ref : config.type;
-        const component = entity.addComponent(Loader.getClass(key));
+        const Class = Loader.getClass(key);
+        if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
+        const component = entity.addComponent(Class);
         componentPairs.push({ component, config });
       }
     }
@@ -153,9 +155,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
     for (let i = 0, n = componentPairs.length; i < n; i++) {
       const { component, config } = componentPairs[i];
-      if (config.props) {
-        promises.push(reflectionParser.parseProps(component, config.props));
-      }
+      promises.push(reflectionParser.parseProps(component, config.props));
     }
 
     return Promise.all(promises).then(() => {});
@@ -215,10 +215,10 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           if (target) {
             const compConfig = added.component;
             const compKey = compConfig.script ? compConfig.script.$ref : compConfig.type;
-            const component = target.addComponent(Loader.getClass(compKey));
-            if (compConfig.props) {
-              promises.push(this._reflectionParser.parseProps(component, compConfig.props));
-            }
+            const CompClass = Loader.getClass(compKey);
+            if (!CompClass) throw new Error(`Loader.getClass: class "${compKey}" is not registered`);
+            const component = target.addComponent(CompClass);
+            promises.push(this._reflectionParser.parseProps(component, compConfig.props));
           }
         }
       }
@@ -328,10 +328,10 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       for (let i = 0, n = config.components.length; i < n; i++) {
         const compConfig = config.components[i];
         const key = compConfig.script ? compConfig.script.$ref : compConfig.type;
-        const component = entity.addComponent(Loader.getClass(key));
-        if (compConfig.props) {
-          promises.push(this._reflectionParser.parseProps(component, compConfig.props));
-        }
+        const InlineClass = Loader.getClass(key);
+        if (!InlineClass) throw new Error(`Loader.getClass: class "${key}" is not registered`);
+        const component = entity.addComponent(InlineClass);
+        promises.push(this._reflectionParser.parseProps(component, compConfig.props));
       }
     }
 

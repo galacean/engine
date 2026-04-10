@@ -20,13 +20,15 @@ export class ReflectionParser {
    * Apply v2 props to a component/object instance.
    * Each prop value is resolved recursively (handling $ref, $type, $entity, $component, $signal).
    */
-  parseProps(instance: any, props: Record<string, unknown>): Promise<any> {
+  parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
     const promises: Promise<any>[] = [];
-    for (const key in props) {
-      const promise = this._resolveValue(props[key], instance[key]).then((v) => {
-        instance[key] = v;
-      });
-      promises.push(promise);
+    if (props) {
+      for (const key in props) {
+        const promise = this._resolveValue(props[key], instance[key]).then((v) => {
+          instance[key] = v;
+        });
+        promises.push(promise);
+      }
     }
     return Promise.all(promises).then(() => {
       const handle = ReflectionParser.customParseComponentHandles[Loader.getClassName(instance.constructor)];
@@ -71,7 +73,9 @@ export class ReflectionParser {
     // $type — polymorphic type: construct instance and apply remaining props
     if ("$type" in obj) {
       const { $type, ...rest } = obj;
-      const Class = Loader.getClass($type as string);
+      const typeName = $type as string;
+      const Class = Loader.getClass(typeName);
+      if (!Class) return Promise.reject(new Error(`Loader.getClass: class "${typeName}" is not registered`));
       const instance = new Class();
       if (Object.keys(rest).length > 0) {
         return this.parseProps(instance, rest);

@@ -1,5 +1,10 @@
 import { BackgroundMode, DiffuseMode, Scene } from "@galacean/engine-core";
-import { assetRefToEngine, type IHierarchyFile } from "../../../scene-format/types";
+import {
+  assetRefToEngine,
+  type GalaceanComponentSchema,
+  type GalaceanInlineEntitySchema,
+  type IHierarchyFile
+} from "../../../scene-format/types";
 import { HierarchyParser } from "../parser/HierarchyParser";
 import { ParserContext } from "../parser/ParserContext";
 import { ReflectionParser } from "../parser/ReflectionParser";
@@ -99,16 +104,12 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
           if (overrides.addedComponents) {
             for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
               const comp = overrides.addedComponents[j].component;
-              if (comp.script) {
-                context._addDependentAsset(
-                  comp.script.$ref,
-                  // @ts-ignore
-                  context.resourceManager.getResourceByRef(assetRefToEngine(comp.script))
-                );
-              }
-              if (comp.props) {
-                this._searchDependentAssets(comp.props);
-              }
+              this._searchComponentDependentAssets(comp);
+            }
+          }
+          if (overrides.addedEntities) {
+            for (let j = 0, m = overrides.addedEntities.length; j < m; j++) {
+              this._searchInlineEntityDependentAssets(overrides.addedEntities[j].entity);
             }
           }
         }
@@ -116,18 +117,35 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
         const componentIndices = entity.components;
         if (!componentIndices) continue;
         for (let j = 0, m = componentIndices.length; j < m; j++) {
-          const comp = components[componentIndices[j]];
-          if (comp.script) {
-            context._addDependentAsset(
-              comp.script.$ref,
-              // @ts-ignore
-              context.resourceManager.getResourceByRef(assetRefToEngine(comp.script))
-            );
-          }
-          if (comp.props) {
-            this._searchDependentAssets(comp.props);
-          }
+          this._searchComponentDependentAssets(components[componentIndices[j]]);
         }
+      }
+    }
+  }
+
+  private _searchComponentDependentAssets(comp: GalaceanComponentSchema): void {
+    const context = this.context;
+    if (comp.script) {
+      context._addDependentAsset(
+        comp.script.$ref,
+        // @ts-ignore
+        context.resourceManager.getResourceByRef(assetRefToEngine(comp.script))
+      );
+    }
+    if (comp.props) {
+      this._searchDependentAssets(comp.props);
+    }
+  }
+
+  private _searchInlineEntityDependentAssets(entity: GalaceanInlineEntitySchema): void {
+    if (entity.components) {
+      for (let i = 0, n = entity.components.length; i < n; i++) {
+        this._searchComponentDependentAssets(entity.components[i]);
+      }
+    }
+    if (entity.children) {
+      for (let i = 0, n = entity.children.length; i < n; i++) {
+        this._searchInlineEntityDependentAssets(entity.children[i]);
       }
     }
   }
