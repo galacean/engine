@@ -319,11 +319,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Inline entity creation (for addedEntities overrides)
   // ---------------------------------------------------------------------------
 
-  private _createInlineEntity(
-    config: GalaceanInlineEntitySchema,
-    parent: Entity,
-    promises: Promise<any>[]
-  ): void {
+  private _createInlineEntity(config: GalaceanInlineEntitySchema, parent: Entity, promises: Promise<any>[]): void {
     const entity = new Entity(this._engine, config.name);
     HierarchyParser._applyEntityProps(entity, config);
     parent.addChild(entity);

@@ -1,12 +1,4 @@
-import {
-  AssetPromise,
-  Component,
-  Engine,
-  Entity,
-  ReferResource,
-  ResourceManager,
-  Scene
-} from "@galacean/engine-core";
+import { AssetPromise, Component, Engine, Entity, ReferResource, ResourceManager, Scene } from "@galacean/engine-core";
 import type { GalaceanComponentSchema, IHierarchyFile } from "../../../scene-format/types";
 
 export enum ParserType {

@@ -52,8 +52,8 @@ class SceneLoader extends Loader<Scene> {
 
               if (useCustomAmbient && ambient.customAmbientLight) {
                 promises.push(
-                  // @ts-ignore
                   resourceManager
+                    // @ts-ignore
                     .getResourceByRef<any>(assetRefToEngine(ambient.customAmbientLight))
                     .then((ambientLight) => {
                       scene.ambientLight.specularTexture = ambientLight?.specularTexture;
@@ -93,14 +93,14 @@ class SceneLoader extends Loader<Scene> {
               }
               case BackgroundMode.Sky:
                 if (background.skyMesh && background.skyMaterial) {
-                  // @ts-ignore
                   const skyMeshPromise = resourceManager
+                    // @ts-ignore
                     .getResourceByRef<Mesh>(assetRefToEngine(background.skyMesh))
                     .then((mesh) => {
                       scene.background.sky.mesh = mesh;
                     });
-                  // @ts-ignore
                   const skyMaterialPromise = resourceManager
+                    // @ts-ignore
                     .getResourceByRef(assetRefToEngine(background.skyMaterial))
                     .then((material) => {
                       scene.background.sky.material = material;
@@ -112,8 +112,8 @@ class SceneLoader extends Loader<Scene> {
                 break;
               case BackgroundMode.Texture:
                 if (background.texture) {
-                  // @ts-ignore
                   const backgroundPromise = resourceManager
+                    // @ts-ignore
                     .getResourceByRef<any>(assetRefToEngine(background.texture))
                     .then((texture) => {
                       scene.background.texture = texture;

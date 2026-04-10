@@ -29,8 +29,11 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
       const useSH = ambient.diffuseMode === DiffuseMode.SphericalHarmonics;
       const { customAmbientLight, ambientLight } = ambient;
       if (useCustomAmbient && customAmbientLight) {
-        // @ts-ignore
-        context._addDependentAsset(customAmbientLight.$ref, resourceManager.getResourceByRef(assetRefToEngine(customAmbientLight)));
+        context._addDependentAsset(
+          customAmbientLight.$ref,
+          // @ts-ignore
+          resourceManager.getResourceByRef(assetRefToEngine(customAmbientLight))
+        );
       }
       if (ambientLight && (!useCustomAmbient || useSH)) {
         // @ts-ignore
@@ -97,8 +100,11 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
             for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
               const comp = overrides.addedComponents[j].component;
               if (comp.script) {
-                // @ts-ignore
-                context._addDependentAsset(comp.script.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(comp.script)));
+                context._addDependentAsset(
+                  comp.script.$ref,
+                  // @ts-ignore
+                  context.resourceManager.getResourceByRef(assetRefToEngine(comp.script))
+                );
               }
               if (comp.props) {
                 this._searchDependentAssets(comp.props);
@@ -112,8 +118,11 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
         for (let j = 0, m = componentIndices.length; j < m; j++) {
           const comp = components[componentIndices[j]];
           if (comp.script) {
-            // @ts-ignore
-            context._addDependentAsset(comp.script.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(comp.script)));
+            context._addDependentAsset(
+              comp.script.$ref,
+              // @ts-ignore
+              context.resourceManager.getResourceByRef(assetRefToEngine(comp.script))
+            );
           }
           if (comp.props) {
             this._searchDependentAssets(comp.props);

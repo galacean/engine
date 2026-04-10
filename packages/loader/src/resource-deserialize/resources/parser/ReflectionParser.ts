@@ -2,7 +2,10 @@ import { Loader } from "@galacean/engine-core";
 import { assetRefToEngine, type IHierarchyFile } from "../../../scene-format/types";
 import { ParserContext, ParserType } from "./ParserContext";
 
-export type CustomParseComponentHandle = (instance: any, item: { props?: Record<string, unknown> }) => Promise<any> | any;
+export type CustomParseComponentHandle = (
+  instance: any,
+  item: { props?: Record<string, unknown> }
+) => Promise<any> | any;
 
 export class ReflectionParser {
   static customParseComponentHandles: Record<string, CustomParseComponentHandle> = {};
