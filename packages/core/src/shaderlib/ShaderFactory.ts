@@ -70,7 +70,7 @@ export class ShaderFactory {
   private static readonly _uboUniformRegex = /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
 
   /** Pack functions for writing typed values into ArrayBuffer views */
-  private static _packFuncMap: Record<string, InstanceFieldInfo["pack"]> = (() => {
+  private static _packFuncMap: Record<string, InstancePackFunc> = (() => {
     const packScalar = (v: Float32Array | Int32Array, o: number, val: number) => {
       v[o] = val;
     };
@@ -407,12 +407,14 @@ export class ShaderFactory {
 /**
  * @internal
  */
+type InstancePackFunc = (view: Float32Array | Int32Array, offset: number, value: any) => void;
+
 export interface InstanceFieldInfo {
   property: ShaderProperty;
   type: string;
   offset: number;
   useIntView: boolean;
-  pack: (view: Float32Array | Int32Array, offset: number, value: any) => void;
+  pack: InstancePackFunc;
 }
 
 /**
