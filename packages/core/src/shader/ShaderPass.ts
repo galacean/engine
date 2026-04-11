@@ -152,7 +152,7 @@ export class ShaderPass extends ShaderPart {
       return shaderProgram;
     }
 
-    shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
+    shaderProgram = this._compileShaderProgram(engine, macroCollection);
 
     shaderProgramMap.cache(shaderProgram);
     return shaderProgram;
@@ -171,7 +171,7 @@ export class ShaderPass extends ShaderPart {
     shaderProgramMaps.length = 0;
   }
 
-  private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  private _compileShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const isGPUInstance = macroCollection.isEnable(InstanceBatch.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } =
       this._platformTarget != undefined
