@@ -17,7 +17,8 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  WebGLEngine
+  WebGLEngine,
+  WebGLMode
 } from "@galacean/engine";
 
 const _customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
@@ -94,7 +95,7 @@ Shader.create(
   `
 );
 
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 } }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
@@ -120,7 +121,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const material = new Material(engine, Shader.find("CustomInstanceShader"));
   const customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
 
-  const count = 3000;
+  const count = 5000;
   for (let i = 0; i < count; i++) {
     const entity = rootEntity.createChild("Cube" + i);
     const ti = i / count;

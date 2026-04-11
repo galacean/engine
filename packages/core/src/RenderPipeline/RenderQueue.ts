@@ -15,8 +15,15 @@ import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
  * @internal
  */
 export class RenderQueue {
+  // @todo: Sort at SubRenderElement level instead of RenderElement level to avoid multi-submesh objects breaking batches
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
-    return a.priority - b.priority || a.distanceForSort - b.distanceForSort;
+    const sa = a.subRenderElements[0],
+      sb = b.subRenderElements[0];
+    return (
+      a.priority - b.priority ||
+      sa.material.instanceId - sb.material.instanceId ||
+      sa.primitive.instanceId - sb.primitive.instanceId
+    );
   }
 
   static compareForTransparent(a: RenderElement, b: RenderElement): number {

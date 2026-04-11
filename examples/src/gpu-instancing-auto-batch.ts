@@ -10,16 +10,23 @@ import {
   Camera,
   Color,
   DirectLight,
-  Entity,
   GLTFResource,
   Logger,
+  Material,
+  MeshRenderer,
+  PrimitiveMesh,
   Script,
+  Shader,
+  ShaderProperty,
   Vector3,
-  WebGLEngine
+  Vector4,
+  WebGLEngine,
+  WebGLMode
 } from "@galacean/engine";
 
+const _customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
+
 class SpiralAnimate extends Script {
-  // Spherical spiral parameters — unique per object
   radius: number = 0;
   radiusSpeed: number = 0;
   theta: number = 0;
@@ -29,19 +36,22 @@ class SpiralAnimate extends Script {
   rotateSpeed: Vector3 = new Vector3();
   scaleBase: number = 1;
   scaleFreq: number = 0;
+  colorPhase: number = 0;
+  colorSpeed: number = 0;
   private _time: number = 0;
+  private _color: Vector4 = new Vector4();
+  private _hasColor: boolean = false;
 
   onUpdate(deltaTime: number): void {
     this._time += deltaTime;
     const t = this._time;
     const transform = this.entity.transform;
 
-    // Spiral outward and inward with a breathing motion
+    // Spiral breathing motion
     const r = this.radius * (0.6 + 0.4 * Math.sin(t * this.radiusSpeed));
     const theta = this.theta + t * this.thetaSpeed;
     const phi = this.phi + t * this.phiSpeed;
 
-    // Spherical to cartesian
     const sinTheta = Math.sin(theta);
     transform.setPosition(r * sinTheta * Math.cos(phi), r * Math.cos(theta), r * sinTheta * Math.sin(phi));
 
@@ -52,11 +62,54 @@ class SpiralAnimate extends Script {
     // Scale pulse
     const s = this.scaleBase * (0.7 + 0.3 * Math.sin(t * this.scaleFreq));
     transform.setScale(s, s, s);
+
+    // Color animation (cubes only)
+    if (this._hasColor) {
+      const ct = t * this.colorSpeed + this.colorPhase;
+      this._color.set(
+        0.5 + 0.5 * Math.sin(ct),
+        0.5 + 0.5 * Math.sin(ct + 2.094),
+        0.5 + 0.5 * Math.sin(ct + 4.189),
+        1.0
+      );
+      this.entity.getComponent(MeshRenderer).shaderData.setVector4(_customColorProperty, this._color);
+    }
+  }
+
+  enableColor(): void {
+    this._hasColor = true;
   }
 }
 
-Logger.enable();
-WebGLEngine.create({ canvas: "canvas" }).then(async (engine) => {
+// Custom shader for cubes
+Shader.create(
+  "CustomInstanceShader",
+  `
+  #include <transform_declare>
+  attribute vec3 POSITION;
+  attribute vec3 NORMAL;
+
+  varying vec3 v_normal;
+
+  void main() {
+    gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
+    v_normal = normalize((renderer_NormalMat * vec4(NORMAL, 0.0)).xyz);
+  }
+  `,
+  `
+  uniform vec4 renderer_CustomColor;
+
+  varying vec3 v_normal;
+
+  void main() {
+    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+    float NdotL = max(dot(v_normal, lightDir), 0.2);
+    gl_FragColor = vec4(renderer_CustomColor.rgb * NdotL, 1.0);
+  }
+  `
+);
+
+WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 } }).then(async (engine) => {
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
@@ -91,26 +144,50 @@ WebGLEngine.create({ canvas: "canvas" }).then(async (engine) => {
   ]);
   scene.ambientLight = ambientLight;
 
-  const count = 3000;
-  for (let i = 0; i < count; i++) {
-    const duck = glTF.instantiateSceneRoot();
-    const t = i / count;
+  // Cube resources
+  const cubeMesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
+  const cubeMaterial = new Material(engine, Shader.find("CustomInstanceShader"));
+  const customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
 
-    const anim = duck.addComponent(SpiralAnimate);
-    // Distribute across a sphere with varying radii
+  // Interleave ducks and cubes to break batching — instancing shines here
+  const duckCount = 1500;
+  const cubeCount = 1500;
+  const totalCount = duckCount + cubeCount;
+
+  for (let i = 0; i < totalCount; i++) {
+    const ti = i / totalCount;
+    const isDuck = i % 2 === 0 && i / 2 < duckCount;
+    const isCube = !isDuck;
+
+    let entity;
+    if (isDuck) {
+      entity = glTF.instantiateSceneRoot();
+      rootEntity.addChild(entity);
+    } else {
+      entity = rootEntity.createChild("Cube" + i);
+      const renderer = entity.addComponent(MeshRenderer);
+      renderer.mesh = cubeMesh;
+      renderer.setMaterial(cubeMaterial);
+      const initColor = new Vector4(Math.random(), Math.random(), Math.random(), 1.0);
+      renderer.shaderData.setVector4(customColorProperty, initColor);
+    }
+
+    const anim = entity.addComponent(SpiralAnimate);
     anim.radius = 10 + Math.random() * 40;
     anim.radiusSpeed = 0.3 + Math.random() * 0.6;
-    // Start at different points on the sphere
-    anim.theta = t * Math.PI * 2 * 13.7; // Golden-angle-ish spread
-    anim.phi = t * Math.PI * 2 * 7.3;
-    // Different orbit speeds
+    anim.theta = ti * Math.PI * 2 * 13.7;
+    anim.phi = ti * Math.PI * 2 * 7.3;
     anim.thetaSpeed = (0.2 + Math.random() * 0.4) * (Math.random() > 0.5 ? 1 : -1);
     anim.phiSpeed = (0.3 + Math.random() * 0.5) * (Math.random() > 0.5 ? 1 : -1);
     anim.rotateSpeed = new Vector3((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60);
     anim.scaleBase = 0.6 + Math.random() * 0.8;
     anim.scaleFreq = 0.5 + Math.random() * 2;
 
-    rootEntity.addChild(duck);
+    if (isCube) {
+      anim.colorPhase = Math.random() * Math.PI * 2;
+      anim.colorSpeed = 0.5 + Math.random() * 2;
+      anim.enableColor();
+    }
   }
 
   engine.run();
