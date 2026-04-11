@@ -176,6 +176,21 @@ export class ShaderProgram {
   }
 
   /**
+   * Bind uniform blocks to the specified binding points.
+   * @param bindingMap - Map of ShaderBlockProperty._uniqueId to binding point
+   */
+  bindUniformBlocks(bindingMap: Record<number, number>): void {
+    const gl = <WebGL2RenderingContext>this._gl;
+    const ids = this.uniformBlockIds;
+    for (let i = 0, n = ids.length; i < n; i++) {
+      const bindingPoint = bindingMap[ids[i]];
+      if (bindingPoint !== undefined) {
+        gl.uniformBlockBinding(this._glProgram, i, bindingPoint);
+      }
+    }
+  }
+
+  /**
    * Destroy this shader program.
    */
   destroy(): void {
@@ -489,21 +504,6 @@ export class ShaderProgram {
       const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
       for (let i = 0; i < blockCount; i++) {
         this.uniformBlockIds[i] = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i))._uniqueId;
-      }
-    }
-  }
-
-  /**
-   * Bind uniform blocks to the specified binding points.
-   * @param bindingMap - Map of ShaderBlockProperty._uniqueId to binding point
-   */
-  bindUniformBlocks(bindingMap: Record<number, number>): void {
-    const gl = <WebGL2RenderingContext>this._gl;
-    const ids = this.uniformBlockIds;
-    for (let i = 0, n = ids.length; i < n; i++) {
-      const bindingPoint = bindingMap[ids[i]];
-      if (bindingPoint !== undefined) {
-        gl.uniformBlockBinding(this._glProgram, i, bindingPoint);
       }
     }
   }
