@@ -172,11 +172,11 @@ export class ShaderPass extends ShaderPart {
   }
 
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const isGpuInstance = macroCollection.isEnable(InstanceBatch.gpuInstanceMacro);
+    const isGPUInstance = macroCollection.isEnable(InstanceBatch.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } =
       this._platformTarget != undefined
-        ? this._compileShaderLabSource(engine, macroCollection, isGpuInstance)
-        : this._compilePlatformSource(engine, macroCollection, isGpuInstance);
+        ? this._compileShaderLabSource(engine, macroCollection, isGPUInstance)
+        : this._compilePlatformSource(engine, macroCollection, isGPUInstance);
 
     const program = new ShaderProgram(engine, vertexSource, fragmentSource);
     program._instanceLayout = instanceLayout;
@@ -186,21 +186,21 @@ export class ShaderPass extends ShaderPart {
   private _compilePlatformSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    isGpuInstance: boolean
+    isGPUInstance: boolean
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     return ShaderFactory.compilePlatformSource(
       engine,
       macroCollection,
       this._vertexSource,
       this._fragmentSource,
-      isGpuInstance
+      isGPUInstance
     );
   }
 
   private _compileShaderLabSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    isGpuInstance: boolean
+    isGPUInstance: boolean
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     const rhi = engine._hardwareRenderer;
     const isWebGL2 = rhi.isWebGL2;
@@ -224,7 +224,7 @@ export class ShaderPass extends ShaderPart {
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
     let instanceLayout: InstanceLayout | null = null;
-    if (isGpuInstance) {
+    if (isGPUInstance) {
       const injected = ShaderFactory._injectInstanceUBO(engine, vertexSource, fragmentSource);
       vertexSource = injected.vertexSource;
       fragmentSource = injected.fragmentSource;

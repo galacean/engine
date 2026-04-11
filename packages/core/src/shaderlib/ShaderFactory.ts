@@ -60,7 +60,7 @@ export class ShaderFactory {
     macroCollection: ShaderMacroCollection,
     vertexSource: string,
     fragmentSource: string,
-    isGpuInstance: boolean = false
+    isGPUInstance: boolean = false
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     const rhi = engine._hardwareRenderer;
     const isWebGL2 = rhi.isWebGL2;
@@ -82,7 +82,7 @@ export class ShaderFactory {
     noIncludeFrag = macroStr + noIncludeFrag;
 
     let instanceLayout: InstanceLayout | null = null;
-    if (isGpuInstance) {
+    if (isGPUInstance) {
       const injected = ShaderFactory._injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag);
       noIncludeVertex = injected.vertexSource;
       noIncludeFrag = injected.fragmentSource;
