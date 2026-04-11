@@ -204,7 +204,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
           );
 
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid, `Pass "${pass.name}" should compile to valid WebGL`).toBe(true);
         }
       }
@@ -322,7 +322,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
           );
 
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid, `.gsp round-trip pass "${pass.name}" should compile`).toBe(true);
         }
       }
@@ -539,7 +539,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             pass.tags
           );
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);
         }
       }
@@ -569,7 +569,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             pass.tags
           );
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);
         }
       }

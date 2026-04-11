@@ -357,7 +357,7 @@ describe("Precompile Benchmark", async () => {
   // 6. Variant switch breakdown: CPU / GPU / Total
   //
   //    CPU measured via _compileShaderLabSource / compilePlatformSource
-  //    Total measured via _getCanonicalShaderProgram (CPU + GPU)
+  //    Total measured via _compileShaderProgram (CPU + GPU)
   //    GPU = Total - CPU
   //
   //    GSP CPU:  buildMacroList + evaluateShaderInstructions + convertTo300 + assemble
@@ -425,7 +425,7 @@ describe("Precompile Benchmark", async () => {
         // Warmup
         for (let i = 0; i < warmup; i++) {
           // @ts-ignore
-          shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          shaderPass._compileShaderProgram(engine, macroCollection);
         }
 
         const cpuTimes: number[] = [];
