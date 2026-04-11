@@ -32,9 +32,4 @@ export class SubShader extends ShaderPart {
       this.setTag(key, tags[key]);
     }
   }
-
-  /**
-   * @internal
-   */
-  _destroy(): void {}
 }
