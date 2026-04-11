@@ -2,16 +2,16 @@ import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core"
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 import {
-  type GalaceanEntityOverrideProps,
-  type GalaceanEntitySchema,
-  type GalaceanInlineEntitySchema,
-  type IHierarchyFile
+  type EntityOverrideProps,
+  type EntitySchema,
+  type HierarchyFile,
+  type InlineEntitySchema
 } from "../../../scene-format/types";
 import { ParserContext, type PrefabInstanceContext } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
-export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile>> {
+export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
   readonly promise: Promise<T>;
 
   protected _resolve: (item: T) => void;
@@ -22,7 +22,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _prefabContextMap = new WeakMap<Entity, PrefabInstanceContext>();
 
   constructor(
-    public readonly data: IHierarchyFile,
+    public readonly data: HierarchyFile,
     public readonly context: V
   ) {
     this._engine = this.context.engine;
@@ -54,7 +54,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected abstract _handleRootEntity(index: number): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
-  protected _applyEntityData(entity: Entity, entityConfig: GalaceanEntitySchema): Entity {
+  protected _applyEntityData(entity: Entity, entityConfig: EntitySchema): Entity {
     HierarchyParser._applyEntityProps(entity, entityConfig);
     return entity;
   }
@@ -264,7 +264,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Prefab instance loading
   // ---------------------------------------------------------------------------
 
-  private _loadPrefabInstance(entityConfig: GalaceanEntitySchema, engine: Engine): Promise<Entity> {
+  private _loadPrefabInstance(entityConfig: EntitySchema, engine: Engine): Promise<Entity> {
     const instance = entityConfig.instance;
 
     return (
@@ -318,7 +318,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Inline entity creation (for addedEntities overrides)
   // ---------------------------------------------------------------------------
 
-  private _createInlineEntity(config: GalaceanInlineEntitySchema, parent: Entity, promises: Promise<any>[]): void {
+  private _createInlineEntity(config: InlineEntitySchema, parent: Entity, promises: Promise<any>[]): void {
     const entity = new Entity(this._engine, config.name);
     HierarchyParser._applyEntityProps(entity, config);
     parent.addChild(entity);
@@ -351,7 +351,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   /** Apply entity-level props (name, isActive, layer, transform) to an entity. */
-  private static _applyEntityProps(entity: Entity, props: GalaceanEntityOverrideProps): void {
+  private static _applyEntityProps(entity: Entity, props: EntityOverrideProps): void {
     if (props.name != null) entity.name = props.name;
     if (props.isActive != null) entity.isActive = props.isActive;
     if (props.layer != null) entity.layer = props.layer;

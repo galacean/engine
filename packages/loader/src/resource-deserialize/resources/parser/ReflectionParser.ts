@@ -1,5 +1,4 @@
 import { Loader } from "@galacean/engine-core";
-import type { IHierarchyFile } from "../../../scene-format/types";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export type CustomParseComponentHandle = (
@@ -14,7 +13,7 @@ export class ReflectionParser {
     this.customParseComponentHandles[componentType] = handle;
   }
 
-  constructor(private readonly _context: ParserContext<IHierarchyFile>) {}
+  constructor(private readonly _context: ParserContext) {}
 
   /**
    * Apply v2 props to a component/object instance.

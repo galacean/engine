@@ -1,19 +1,20 @@
 import { BackgroundMode, DiffuseMode, Scene } from "@galacean/engine-core";
 import {
-  type GalaceanComponentSchema,
-  type GalaceanInlineEntitySchema,
-  type IHierarchyFile
+  SpecularMode,
+  type ComponentSchema,
+  type InlineEntitySchema,
+  type SceneFile,
+  type HierarchyFile
 } from "../../../scene-format/types";
 import { HierarchyParser } from "../parser/HierarchyParser";
 import { ParserContext } from "../parser/ParserContext";
 import { ReflectionParser } from "../parser/ReflectionParser";
-import { SpecularMode, type IScene } from "../schema";
 
 /** @Internal */
-export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
+export class SceneParser extends HierarchyParser<Scene, ParserContext> {
   constructor(
-    data: IScene,
-    context: ParserContext<IScene>,
+    data: SceneFile,
+    context: ParserContext,
     public readonly scene: Scene
   ) {
     super(data, context);
@@ -22,7 +23,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
   /**
    * @internal
    */
-  _collectDependentAssets(data: IScene): void {
+  _collectDependentAssets(data: SceneFile): void {
     const context = this.context;
     const resourceManager = context.resourceManager;
     this._parseDependentAssets(data);
@@ -65,7 +66,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
   }
 
   protected override _getRootIndices(): number[] {
-    return (this.data as IScene).scene.entities;
+    return (this.data as SceneFile).scene.entities;
   }
 
   protected override _handleRootEntity(index: number): void {
@@ -77,7 +78,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
     return this.scene;
   }
 
-  private _parseDependentAssets(file: IHierarchyFile): void {
+  private _parseDependentAssets(file: HierarchyFile): void {
     const entities = file.entities;
     const components = file.components;
     const context = this.context;
@@ -122,7 +123,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
     }
   }
 
-  private _searchComponentDependentAssets(comp: GalaceanComponentSchema): void {
+  private _searchComponentDependentAssets(comp: ComponentSchema): void {
     const context = this.context;
     if (comp.script) {
       context._addDependentAsset(
@@ -136,7 +137,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
     }
   }
 
-  private _searchInlineEntityDependentAssets(entity: GalaceanInlineEntitySchema): void {
+  private _searchInlineEntityDependentAssets(entity: InlineEntitySchema): void {
     if (entity.components) {
       for (let i = 0, n = entity.components.length; i < n; i++) {
         this._searchComponentDependentAssets(entity.components[i]);

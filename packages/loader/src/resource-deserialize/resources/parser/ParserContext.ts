@@ -1,5 +1,5 @@
 import { AssetPromise, Component, Engine, Entity, ReferResource, ResourceManager, Scene } from "@galacean/engine-core";
-import type { GalaceanComponentSchema, IHierarchyFile } from "../../../scene-format/types";
+import type { ComponentSchema } from "../../../scene-format/types";
 
 export enum ParserType {
   Prefab,
@@ -17,11 +17,11 @@ export interface PrefabInstanceContext {
 /**
  * @internal
  */
-export class ParserContext<T extends IHierarchyFile> {
+export class ParserContext {
   /** Flat entity index → Entity instance */
   entityMap: Map<number, Entity> = new Map();
   /** Component instance → config pairs for props application */
-  componentPairs: Array<{ component: Component; config: GalaceanComponentSchema }> = [];
+  componentPairs: Array<{ component: Component; config: ComponentSchema }> = [];
 
   readonly resourceManager: ResourceManager;
 

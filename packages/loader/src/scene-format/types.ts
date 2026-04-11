@@ -1,7 +1,16 @@
 /**
  * Galacean Scene/Prefab v2 file format types.
- * glTF-inspired flat-array structure with integer index references.
+ * Flat-array structure with integer index references.
  */
+
+import {
+  BackgroundMode,
+  BackgroundTextureFillMode,
+  DiffuseMode,
+  FogMode,
+  ShadowCascadesMode,
+  ShadowResolution
+} from "@galacean/engine-core";
 
 export type Vec3Tuple = [number, number, number];
 export type Vec4Tuple = [number, number, number, number];
@@ -11,13 +20,13 @@ export interface AssetRef {
   key?: string;
 }
 
-export interface GalaceanComponentSchema {
+export interface ComponentSchema {
   type: string;
   script?: AssetRef;
   props?: Record<string, unknown>;
 }
 
-export interface GalaceanEntityOverrideProps {
+export interface EntityOverrideProps {
   name?: string;
   isActive?: boolean;
   layer?: number;
@@ -26,42 +35,42 @@ export interface GalaceanEntityOverrideProps {
   scale?: Vec3Tuple;
 }
 
-export interface GalaceanInlineEntitySchema {
+export interface InlineEntitySchema {
   name?: string;
   position?: Vec3Tuple;
   rotation?: Vec3Tuple;
   scale?: Vec3Tuple;
-  children?: GalaceanInlineEntitySchema[];
-  components?: GalaceanComponentSchema[];
+  children?: InlineEntitySchema[];
+  components?: ComponentSchema[];
   isActive?: boolean;
   layer?: number;
 }
 
-export interface GalaceanAddedEntityOverride {
+export interface AddedEntityOverride {
   parent: number[];
-  entity: GalaceanInlineEntitySchema;
+  entity: InlineEntitySchema;
 }
 
-export interface GalaceanAddedComponentOverride {
+export interface AddedComponentOverride {
   target: number[];
-  component: GalaceanComponentSchema;
+  component: ComponentSchema;
 }
 
-export interface GalaceanInstanceOverrides {
-  entityProps?: Record<string, GalaceanEntityOverrideProps>;
+export interface InstanceOverrides {
+  entityProps?: Record<string, EntityOverrideProps>;
   componentProps?: Record<string, Record<string, Record<string, unknown>>>;
   removedEntities?: number[][];
   removedComponents?: Record<string, string[]>;
-  addedEntities?: GalaceanAddedEntityOverride[];
-  addedComponents?: GalaceanAddedComponentOverride[];
+  addedEntities?: AddedEntityOverride[];
+  addedComponents?: AddedComponentOverride[];
 }
 
-export interface GalaceanInstanceSchema {
+export interface InstanceSchema {
   asset: AssetRef;
-  overrides?: GalaceanInstanceOverrides;
+  overrides?: InstanceOverrides;
 }
 
-export interface GalaceanEntitySchema {
+export interface EntitySchema {
   name?: string;
   children?: number[];
   position?: Vec3Tuple;
@@ -70,30 +79,72 @@ export interface GalaceanEntitySchema {
   components?: number[];
   isActive?: boolean;
   layer?: number;
-  instance?: GalaceanInstanceSchema;
+  instance?: InstanceSchema;
 }
 
-export interface GalaceanSceneSchema {
-  name?: string;
-  entities: number[];
-  background?: Record<string, unknown>;
-  ambient?: Record<string, unknown>;
-  shadow?: Record<string, unknown>;
-  fog?: Record<string, unknown>;
-  ambientOcclusion?: Record<string, unknown>;
+export enum SpecularMode {
+  Sky = "Sky",
+  Custom = "Custom"
 }
 
 /** Common base for v2 scene and prefab files. */
-export interface IHierarchyFile {
+export interface HierarchyFile {
   version: string;
-  entities: GalaceanEntitySchema[];
-  components: GalaceanComponentSchema[];
+  entities: EntitySchema[];
+  components: ComponentSchema[];
 }
 
-export interface GalaceanSceneFile extends IHierarchyFile {
-  scene: GalaceanSceneSchema;
+export interface SceneFile extends HierarchyFile {
+  scene: {
+    name?: string;
+    entities: number[];
+    background: {
+      mode: BackgroundMode;
+      color: Vec4Tuple;
+      texture?: AssetRef;
+      textureFillMode?: BackgroundTextureFillMode;
+      skyMesh?: AssetRef;
+      skyMaterial?: AssetRef;
+    };
+    ambient?: {
+      diffuseMode: DiffuseMode;
+      ambientLight?: AssetRef;
+      customAmbientLight?: AssetRef;
+      diffuseSolidColor?: Vec4Tuple;
+      diffuseIntensity: number;
+      specularIntensity: number;
+      specularMode: SpecularMode;
+    };
+    shadow?: {
+      castShadows: boolean;
+      enableTransparentShadow: boolean;
+      shadowResolution: ShadowResolution;
+      shadowDistance: number;
+      shadowCascades: ShadowCascadesMode;
+      shadowTwoCascadeSplits: number;
+      shadowFourCascadeSplits: Vec3Tuple;
+      shadowFadeBorder: number;
+    };
+    fog?: {
+      fogMode: FogMode;
+      fogStart: number;
+      fogEnd: number;
+      fogDensity: number;
+      fogColor: Vec4Tuple;
+    };
+    ambientOcclusion?: {
+      bias: number;
+      bilateralThreshold: number;
+      enabledAmbientOcclusion: boolean;
+      intensity: number;
+      power: number;
+      quality: number;
+      radius: number;
+      minHorizonAngle: number;
+    };
+  };
 }
 
-export interface GalaceanPrefabFile extends IHierarchyFile {
+export interface PrefabFile extends HierarchyFile {
   root: number;
 }

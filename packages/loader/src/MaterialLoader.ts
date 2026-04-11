@@ -11,9 +11,9 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import type { AssetRef } from "./scene-format/types";
 import {
   MaterialLoaderType,
-  type AssetRef,
   type IColor,
   type IMaterialSchema,
   type IVector2,

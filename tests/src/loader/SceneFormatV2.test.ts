@@ -1,12 +1,24 @@
 import "@galacean/engine-loader";
-import { Camera, Entity, Loader, Scene, Transform } from "@galacean/engine-core";
+import {
+  BackgroundMode,
+  Camera,
+  Entity,
+  FogMode,
+  Loader,
+  Scene,
+  ShadowCascadesMode,
+  ShadowResolution,
+  Transform
+} from "@galacean/engine-core";
 import {
   ParserContext,
   ParserType,
   ReflectionParser,
   SceneParser,
-  type IScene
+  SpecularMode,
+  type SceneFile
 } from "@galacean/engine-loader";
+import { applySceneData } from "../../../packages/loader/src/SceneLoader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -39,7 +51,7 @@ afterAll(() => {
 describe("ReflectionParser v2 props resolution", () => {
   it("should resolve primitive values directly", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -54,7 +66,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve nested plain objects recursively", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -65,7 +77,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should modify existing object properties in place", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const original = { x: 0, y: 0, z: 0 };
     const target: any = { position: original };
@@ -81,7 +93,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve arrays recursively", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -92,7 +104,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve $entity by flat index", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "entity0");
     const entity1 = new Entity(engine, "entity1");
     context.entityMap.set(0, entity0);
@@ -108,7 +120,7 @@ describe("ReflectionParser v2 props resolution", () => {
 
   it("should resolve $component by entity index + type + index", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity = new Entity(engine, "test");
     context.entityMap.set(0, entity);
 
@@ -136,11 +148,12 @@ describe("ReflectionParser v2 props resolution", () => {
 
 describe("SceneParser v2 entity tree", () => {
   function createSceneData(
-    entities: IScene["entities"],
-    components: IScene["components"],
+    entities: SceneFile["entities"],
+    components: SceneFile["components"],
     rootEntities: number[]
-  ): IScene {
+  ): SceneFile {
     return {
+      version: "2.0",
       entities,
       components,
       scene: {
@@ -153,8 +166,7 @@ describe("SceneParser v2 entity tree", () => {
           diffuseMode: 0,
           diffuseIntensity: 1,
           specularIntensity: 1,
-          specularMode: "Sky" as any,
-          bakerResolution: 0
+          specularMode: SpecularMode.Sky
         }
       }
     };
@@ -172,7 +184,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -197,7 +209,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -224,7 +236,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -249,7 +261,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -272,7 +284,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -288,7 +300,7 @@ describe("SceneParser v2 entity tree", () => {
     const data = createSceneData([{ name: "Default" }], [], [0]);
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -310,7 +322,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await parser.promise;
@@ -330,7 +342,7 @@ describe("SceneParser v2 entity tree", () => {
     );
 
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await expect(parser.promise).rejects.toThrow("UnregisteredComponent999");
@@ -338,7 +350,7 @@ describe("SceneParser v2 entity tree", () => {
 
   it("should trigger customParseComponentHandles even without props", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
 
     let handleCalled = false;
@@ -365,7 +377,7 @@ describe("SceneParser v2 entity tree", () => {
 describe("ReflectionParser $signal resolution", () => {
   it("should bind listeners to target component method", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "source");
     const entity1 = new Entity(engine, "target");
     context.entityMap.set(0, entity0);
@@ -399,7 +411,7 @@ describe("ReflectionParser $signal resolution", () => {
 
   it("should skip binding when target component is missing", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "source");
     context.entityMap.set(0, entity0);
     // entity 1 does NOT exist in entityMap
@@ -435,7 +447,7 @@ describe("ReflectionParser $signal resolution", () => {
 describe("ReflectionParser $type resolution", () => {
   it("should construct $type instance and apply remaining props", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -448,7 +460,7 @@ describe("ReflectionParser $type resolution", () => {
 
   it("should construct $type instance without props", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await parser.parseProps(target, {
@@ -461,7 +473,7 @@ describe("ReflectionParser $type resolution", () => {
 
   it("should throw a clear error when $type references an unregistered class", async () => {
     const scene = new Scene(engine);
-    const context = new ParserContext<IScene>(engine, ParserType.Scene, scene);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
     const target: any = {};
     await expect(
@@ -469,5 +481,143 @@ describe("ReflectionParser $type resolution", () => {
         value: { $type: "NonExistentClass123" }
       })
     ).rejects.toThrow("NonExistentClass123");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applySceneData — scene property parsing (shadow / fog / AO / background)
+// ---------------------------------------------------------------------------
+// Tests call the same applySceneData function that SceneLoader.load() uses,
+// so any change to the parsing logic is automatically covered.
+
+describe("applySceneData scene property parsing", () => {
+  it("should apply shadow properties to scene", async () => {
+    const scene = new Scene(engine);
+    await applySceneData(
+      scene,
+      {
+        entities: [0],
+        background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
+        shadow: {
+          castShadows: false,
+          enableTransparentShadow: true,
+          shadowResolution: ShadowResolution.High,
+          shadowDistance: 100,
+          shadowCascades: ShadowCascadesMode.FourCascades,
+          shadowTwoCascadeSplits: 0.5,
+          shadowFourCascadeSplits: [0.1, 0.3, 0.7],
+          shadowFadeBorder: 0.2
+        }
+      },
+      engine.resourceManager
+    );
+
+    expect(scene.castShadows).to.equal(false);
+    expect(scene.enableTransparentShadow).to.equal(true);
+    expect(scene.shadowResolution).to.equal(ShadowResolution.High);
+    expect(scene.shadowDistance).to.equal(100);
+    expect(scene.shadowCascades).to.equal(ShadowCascadesMode.FourCascades);
+    expect(scene.shadowTwoCascadeSplits).to.equal(0.5);
+    expect(scene.shadowFourCascadeSplits.x).to.be.closeTo(0.1, 0.001);
+    expect(scene.shadowFourCascadeSplits.y).to.be.closeTo(0.3, 0.001);
+    expect(scene.shadowFourCascadeSplits.z).to.be.closeTo(0.7, 0.001);
+    expect(scene.shadowFadeBorder).to.equal(0.2);
+  });
+
+  it("should apply fog properties to scene", async () => {
+    const scene = new Scene(engine);
+    await applySceneData(
+      scene,
+      {
+        entities: [0],
+        background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
+        fog: {
+          fogMode: FogMode.ExponentialSquared,
+          fogStart: 10,
+          fogEnd: 200,
+          fogDensity: 0.05,
+          fogColor: [1, 0, 0, 1]
+        }
+      },
+      engine.resourceManager
+    );
+
+    expect(scene.fogMode).to.equal(FogMode.ExponentialSquared);
+    expect(scene.fogStart).to.equal(10);
+    expect(scene.fogEnd).to.equal(200);
+    expect(scene.fogDensity).to.equal(0.05);
+    expect(scene.fogColor.r).to.equal(1);
+    expect(scene.fogColor.g).to.equal(0);
+    expect(scene.fogColor.b).to.equal(0);
+    expect(scene.fogColor.a).to.equal(1);
+  });
+
+  it("should apply ambient occlusion properties to scene", async () => {
+    const scene = new Scene(engine);
+    await applySceneData(
+      scene,
+      {
+        entities: [0],
+        background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
+        ambientOcclusion: {
+          enabledAmbientOcclusion: true,
+          intensity: 0.8,
+          radius: 0.5,
+          bias: 0.02,
+          power: 3,
+          quality: 2,
+          bilateralThreshold: 0.1,
+          minHorizonAngle: 0.04
+        }
+      },
+      engine.resourceManager
+    );
+
+    const ao = scene.ambientOcclusion;
+    expect(ao.enabled).to.equal(true);
+    expect(ao.intensity).to.equal(0.8);
+    expect(ao.radius).to.equal(0.5);
+    expect(ao.bias).to.equal(0.02);
+    expect(ao.power).to.equal(3);
+    expect(ao.quality).to.equal(2);
+    expect(ao.bilateralThreshold).to.equal(0.1);
+    expect(ao.minHorizonAngle).to.equal(0.04);
+  });
+
+  it("should apply SolidColor background from Vec4Tuple", async () => {
+    const scene = new Scene(engine);
+    await applySceneData(
+      scene,
+      {
+        entities: [0],
+        background: {
+          mode: BackgroundMode.SolidColor,
+          color: [0.5, 0.6, 0.7, 1]
+        }
+      },
+      engine.resourceManager
+    );
+
+    expect(scene.background.mode).to.equal(BackgroundMode.SolidColor);
+    expect(scene.background.solidColor.r).to.be.closeTo(0.5, 0.001);
+    expect(scene.background.solidColor.g).to.be.closeTo(0.6, 0.001);
+    expect(scene.background.solidColor.b).to.be.closeTo(0.7, 0.001);
+    expect(scene.background.solidColor.a).to.equal(1);
+  });
+
+  it("should preserve defaults when shadow/fog/AO sections are absent", async () => {
+    const scene = new Scene(engine);
+    await applySceneData(
+      scene,
+      {
+        entities: [0],
+        background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] }
+      },
+      engine.resourceManager
+    );
+
+    expect(scene.castShadows).to.equal(true);
+    expect(scene.fogMode).to.equal(FogMode.None);
+    expect(scene.ambientOcclusion.enabled).to.equal(false);
   });
 });

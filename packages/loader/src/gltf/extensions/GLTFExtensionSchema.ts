@@ -1,4 +1,5 @@
 import type { IMaterialNormalTextureInfo, ITextureInfo } from "../GLTFSchema";
+import type { AssetRef } from "../../scene-format/types";
 
 /**
  * Interfaces from the KHR_lights_punctual extension
@@ -152,9 +153,7 @@ export interface IEXTMeshoptCompressionSchema {
   filter?: "NONE" | "OCTAHEDRAL" | "QUATERNION" | "EXPONENTIAL";
 }
 
-export interface IGalaceanMaterialRemap {
-  $ref: string;
-  key?: string;
+export interface IGalaceanMaterialRemap extends AssetRef {
   isClone?: boolean;
 }
 
