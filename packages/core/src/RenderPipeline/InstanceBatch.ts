@@ -53,12 +53,9 @@ export class InstanceBatch {
    * Pack renderer data into UBO and upload to GPU.
    */
   upload(renderers: Renderer[], start: number, count: number): void {
-    const layout = this._layout;
-    if (!layout) return;
-    const { instanceFields: fields, structSize } = layout;
+    const { instanceFields, structSize } = this._layout;
     const elementsPerInstance = structSize / 4;
-    const floatView = this._floatView;
-    const intView = this._intView;
+    const { _floatView: floatView, _intView: intView } = this;
     const modelMatId = Renderer._worldMatrixProperty._uniqueId;
 
     for (let i = 0; i < count; i++) {
@@ -66,13 +63,14 @@ export class InstanceBatch {
       const propertyValueMap = renderer.shaderData._propertyValueMap;
       const baseOffset = i * elementsPerInstance;
 
-      for (let j = 0, n = fields.length; j < n; j++) {
-        const field = fields[j];
+      for (let j = 0, n = instanceFields.length; j < n; j++) {
+        const field = instanceFields[j];
         const fieldOffset = baseOffset + field.offset / 4;
         const propertyId = field.property._uniqueId;
 
         if (propertyId === modelMatId) {
-          // ModelMat must go through getter to trigger Transform lazy update
+          // Instancing skips _updateTransformShaderData, so worldMatrix is not in propertyValueMap
+          // Must read from transform getter to trigger lazy update
           field.pack(floatView, fieldOffset, renderer.entity.transform.worldMatrix);
         } else {
           const value = propertyValueMap[propertyId];
@@ -83,8 +81,7 @@ export class InstanceBatch {
       }
     }
 
-    const uploadElements = count * elementsPerInstance;
-    this.buffer.setData(floatView, 0, 0, uploadElements, SetDataOptions.Discard);
+    this.buffer.setData(floatView, 0, 0, count * elementsPerInstance, SetDataOptions.Discard);
   }
 
   destroy(): void {
