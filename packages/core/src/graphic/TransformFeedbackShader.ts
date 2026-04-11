@@ -37,7 +37,8 @@ export class TransformFeedbackShader {
       engine,
       macroCollection,
       this.vertexSource,
-      this.fragmentSource
+      this.fragmentSource,
+      false
     );
 
     program = new ShaderProgram(engine, vertexSource, fragmentSource, this.feedbackVaryings);

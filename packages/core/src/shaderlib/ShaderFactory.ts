@@ -43,7 +43,7 @@ export class ShaderFactory {
     macroCollection: ShaderMacroCollection,
     vertexSource: string,
     fragmentSource: string,
-    isGPUInstance: boolean = false
+    isGPUInstance: boolean
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     const rhi = engine._hardwareRenderer;
     const isWebGL2 = rhi.isWebGL2;
