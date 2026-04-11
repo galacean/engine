@@ -65,7 +65,7 @@ export class InstanceBatch {
 
       for (let j = 0, n = instanceFields.length; j < n; j++) {
         const field = instanceFields[j];
-        const fieldOffset = baseOffset + field.offset / 4;
+        const fieldOffset = baseOffset + field.offsetInElements;
         const propertyId = field.property._uniqueId;
 
         if (propertyId === modelMatId) {

@@ -106,13 +106,21 @@ export class ShaderFactory {
       // Affine mat4 stored as mat3x4: write 3 transposed rows (row3 is always 0,0,0,1)
       mat3x4: (v: Float32Array | Int32Array, o: number, val: Matrix) => {
         const e = val.elements;
-        // col0=(row0) col1=(row1) col2=(row2), each vec4 = one row of the original mat4
-        for (let r = 0; r < 3; r++) {
-          v[o + r * 4] = e[r];
-          v[o + r * 4 + 1] = e[r + 4];
-          v[o + r * 4 + 2] = e[r + 8];
-          v[o + r * 4 + 3] = e[r + 12];
-        }
+        // Row 0
+        v[o] = e[0];
+        v[o + 1] = e[4];
+        v[o + 2] = e[8];
+        v[o + 3] = e[12];
+        // Row 1
+        v[o + 4] = e[1];
+        v[o + 5] = e[5];
+        v[o + 6] = e[9];
+        v[o + 7] = e[13];
+        // Row 2
+        v[o + 8] = e[2];
+        v[o + 9] = e[6];
+        v[o + 10] = e[10];
+        v[o + 11] = e[14];
       }
     };
   })();
@@ -313,6 +321,7 @@ export class ShaderFactory {
         property: ShaderProperty._propertyIdMap[id],
         type,
         offset: currentOffset,
+        offsetInElements: currentOffset / 4,
         useIntView: type[0] === "i" || type[0] === "u",
         pack: packFuncMap[type]
       });
@@ -413,6 +422,8 @@ export interface InstanceFieldInfo {
   property: ShaderProperty;
   type: string;
   offset: number;
+  /** offset / 4, precomputed to avoid repeated division in upload loop */
+  offsetInElements: number;
   useIntView: boolean;
   pack: InstancePackFunc;
 }
