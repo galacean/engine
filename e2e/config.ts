@@ -135,7 +135,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.0080
+      diffPercentage: 0.008
     },
     shaderLab: {
       category: "Material",
@@ -462,6 +462,20 @@ export const E2E_CONFIG = {
       caseFileName: "postProcess-customPass",
       threshold: 0,
       diffPercentage: 0.03
+    }
+  },
+  GPUInstancing: {
+    autoBatch: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-auto-batch",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    customData: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-custom-data",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   SpriteMask: {
