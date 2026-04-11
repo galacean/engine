@@ -25,7 +25,7 @@ export class ShaderFactory {
     .join("");
 
   /** std140 layout info by GLSL type string */
-  private static readonly _std140Map: Record<string, { size: number; align: number }> = {
+  private static readonly _std140TypeInfoMap: Record<string, { size: number; align: number }> = {
     float: { size: 4, align: 4 },
     int: { size: 4, align: 4 },
     uint: { size: 4, align: 4 },
@@ -36,7 +36,7 @@ export class ShaderFactory {
     vec4: { size: 16, align: 16 },
     ivec4: { size: 16, align: 16 },
     mat4: { size: 64, align: 16 },
-    mat4_affine: { size: 48, align: 16 }
+    mat3x4: { size: 48, align: 16 }
   };
 
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?vec4\s+\w+\s*;/;
@@ -57,7 +57,7 @@ export class ShaderFactory {
     "#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))";
 
   /** Built-in renderer uniforms. value=true means derived (remove but not added to UBO) */
-  private static _builtinRendererUniforms = new Map([
+  private static readonly _builtinRendererUniforms = new Map([
     ["renderer_ModelMat", false],
     ["renderer_Layer", false],
     ["renderer_LocalMat", true],
@@ -67,7 +67,7 @@ export class ShaderFactory {
     ["renderer_MVInvMat", true]
   ]);
 
-  private static _uboUniformRegex = /^([ \t]*)uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
+  private static readonly _uboUniformRegex = /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
 
   /** Pack functions for writing typed values into ArrayBuffer views */
   private static _packFuncMap: Record<string, InstanceFieldInfo["pack"]> = (() => {
@@ -103,16 +103,10 @@ export class ShaderFactory {
         const e = val.elements;
         for (let k = 0; k < 16; k++) v[o + k] = e[k];
       },
-      // Affine mat4 → 3 rows (vec4 each), skip row3 (0,0,0,1). Transposed layout
-      mat4_affine: (v: Float32Array | Int32Array, o: number, val: Matrix) => {
+      // Affine mat4 stored as mat3x4: write first 3 columns (skip col3 which is 0,0,0,1)
+      mat3x4: (v: Float32Array | Int32Array, o: number, val: Matrix) => {
         const e = val.elements;
-        // row0=(e0,e4,e8,e12) row1=(e1,e5,e9,e13) row2=(e2,e6,e10,e14)
-        for (let r = 0; r < 3; r++) {
-          v[o + r * 4] = e[r];
-          v[o + r * 4 + 1] = e[r + 4];
-          v[o + r * 4 + 2] = e[r + 8];
-          v[o + r * 4 + 3] = e[r + 12];
-        }
+        for (let k = 0; k < 12; k++) v[o + k] = e[k];
       }
     };
   })();
@@ -173,57 +167,47 @@ export class ShaderFactory {
   }
 
   /**
-   * For GPU instancing shaders, scan VS and FS for `uniform ... renderer_*` declarations,
-   * compute their union, generate a full UBO struct + `#define` remapping, and inject into source.
-   * Also computes std140 layout and INSTANCE_MAX_COUNT from maxUBOSize.
+   * Scan VS/FS for renderer-group `uniform` declarations, replace them with a shared
+   * std140 UBO (instanced array), and emit `#define` remapping so original uniform
+   * names resolve to `rendererData[instanceID].field`.
    */
   static injectInstanceUBO(
     engine: Engine,
     vertexSource: string,
     fragmentSource: string
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
+    // 1. Scan & strip renderer uniforms from both stages, collect into fieldMap
     const fieldMap: Record<number, string> = Object.create(null);
     vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
     fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
 
+    // Fast empty check without allocating an array
     let hasField = false;
     for (const _ in fieldMap) {
       hasField = true;
       break;
     }
     if (!hasField) return { vertexSource, fragmentSource, instanceLayout: null };
+
+    // 2. Compute std140 layout (field offsets, struct size, max instance count)
     const instanceLayout = ShaderFactory._buildLayout(engine, fieldMap);
 
-    const { instanceFields, instanceMaxCount } = instanceLayout;
-
-    // Generate UBO struct fields and per-field #define remapping
-    const structFieldLines: string[] = [];
-    for (let i = 0; i < instanceFields.length; i++) {
-      const { type, property } = instanceFields[i];
-      if (type === "mat4_affine") {
-        for (let r = 0; r < 3; r++) structFieldLines.push(`        vec4 ${property.name}R${r};`);
-      } else {
-        structFieldLines.push(`        ${type} ${property.name};`);
-      }
-    }
-
-    const uboStruct =
-      `#define INSTANCE_MAX_COUNT ${instanceMaxCount}\n` +
-      `struct RendererInstanceStruct {\n${structFieldLines.join("\n")}\n};\n` +
-      `layout(std140) uniform ${ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME} {\n` +
-      `    RendererInstanceStruct rendererData[INSTANCE_MAX_COUNT];\n};\n`;
-
+    // 3. Generate GLSL UBO block and inject into both stages
+    const { instanceFields } = instanceLayout;
+    const uboDecl = ShaderFactory._buildUBODeclaration(instanceLayout);
+    const fieldDefinesVS = ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID");
+    const fieldDefinesFS = ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID");
     const derivedDefines = ShaderFactory._derivedDefines;
 
-    const vsUboBlock = `${uboStruct}flat out int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID")}\n${derivedDefines}\n`;
-    const fsUboBlock = `${uboStruct}flat in int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID")}\n${derivedDefines}\n`;
+    const vsBlock = `${uboDecl}flat out int v_instanceID;\n${fieldDefinesVS}\n${derivedDefines}\n`;
+    const fsBlock = `${uboDecl}flat in int v_instanceID;\n${fieldDefinesFS}\n${derivedDefines}\n`;
 
-    vertexSource = ShaderFactory._insertUBOBlock(vertexSource, vsUboBlock);
+    vertexSource = ShaderFactory._insertUBOBlock(vertexSource, vsBlock);
     vertexSource = vertexSource.replace(
       /void\s+main\s*\(\s*\)\s*\{/,
       "void main() {\n    v_instanceID = gl_InstanceID;"
     );
-    fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, fsUboBlock);
+    fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, fsBlock);
 
     return { vertexSource, fragmentSource, instanceLayout };
   }
@@ -294,22 +278,22 @@ export class ShaderFactory {
    */
   private static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): string {
     const builtinUniforms = ShaderFactory._builtinRendererUniforms;
-    return source.replace(ShaderFactory._uboUniformRegex, (match, _indent, type, name) => {
-      if (type.indexOf("sampler") !== -1) return match;
+    return source.replace(ShaderFactory._uboUniformRegex, (match, type, name) => {
+      if (type.includes("sampler")) return match;
       const isDerived = builtinUniforms.get(name);
       if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
         return match;
       if (isDerived) return "";
-      // Store ModelMat as affine (3×vec4) to save UBO space
+      // ModelMat is affine, store as mat3x4 (3 columns) to save 16 bytes per instance
       fieldMap[ShaderProperty.getByName(name)._uniqueId] =
-        type === "mat4" && name === "renderer_ModelMat" ? "mat4_affine" : type;
+        type === "mat4" && name === "renderer_ModelMat" ? "mat3x4" : type;
       return "";
     });
   }
 
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
     const maxUBOSize = engine._hardwareRenderer.getMaxUniformBlockSize();
-    const std140Map = ShaderFactory._std140Map;
+    const std140Map = ShaderFactory._std140TypeInfoMap;
     const instanceFields: InstanceFieldInfo[] = [];
     let currentOffset = 0;
 
@@ -353,23 +337,36 @@ export class ShaderFactory {
     return { instanceFields, instanceMaxCount, structSize };
   }
 
-  /** Build per-field #define lines, using `idExpr` as the instance index (gl_InstanceID or v_instanceID) */
+  /** Generate the GLSL UBO struct declaration + layout uniform block */
+  private static _buildUBODeclaration(layout: InstanceLayout): string {
+    const { instanceFields, instanceMaxCount } = layout;
+    const structLines: string[] = [];
+    for (let i = 0; i < instanceFields.length; i++) {
+      const { type, property } = instanceFields[i];
+      structLines.push(`        ${type} ${property.name};`);
+    }
+    return (
+      `#define INSTANCE_MAX_COUNT ${instanceMaxCount}\n` +
+      `struct RendererInstanceStruct {\n${structLines.join("\n")}\n};\n` +
+      `layout(std140) uniform ${ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME} {\n` +
+      `    RendererInstanceStruct rendererData[INSTANCE_MAX_COUNT];\n};\n`
+    );
+  }
+
+  /** Build per-field #define lines remapping uniform names to UBO array access */
   private static _buildFieldDefines(fields: InstanceFieldInfo[], idExpr: string): string {
+    const accessor = `rendererData[${idExpr}]`;
     const lines: string[] = [];
     for (let i = 0; i < fields.length; i++) {
       const { type, property } = fields[i];
-      const d = `rendererData[${idExpr}]`;
-      if (type === "mat4_affine") {
-        const n = property.name;
+      const n = property.name;
+      if (type === "mat3x4") {
+        // Reconstruct mat4 from mat3x4 columns + implicit (0,0,0,1) last column
         lines.push(
-          `#define ${n} mat4(` +
-            `vec4(${d}.${n}R0.x,${d}.${n}R1.x,${d}.${n}R2.x,0.0),` +
-            `vec4(${d}.${n}R0.y,${d}.${n}R1.y,${d}.${n}R2.y,0.0),` +
-            `vec4(${d}.${n}R0.z,${d}.${n}R1.z,${d}.${n}R2.z,0.0),` +
-            `vec4(${d}.${n}R0.w,${d}.${n}R1.w,${d}.${n}R2.w,1.0))`
+          `#define ${n} mat4(${accessor}.${n}[0],${accessor}.${n}[1],${accessor}.${n}[2],vec4(0.0,0.0,0.0,1.0))`
         );
       } else {
-        lines.push(`#define ${property.name} ${d}.${property.name}`);
+        lines.push(`#define ${n} ${accessor}.${n}`);
       }
     }
     return lines.join("\n");
