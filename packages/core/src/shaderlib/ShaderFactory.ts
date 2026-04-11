@@ -9,12 +9,13 @@ import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ShaderLib } from "./ShaderLib";
 
+/**
+ * @internal
+ */
 export class ShaderFactory {
-  /** @internal */
   static readonly RENDERER_INSTANCE_BLOCK_NAME = "RendererInstanceData";
 
-  /** @internal */
-  static readonly _shaderExtension = [
+  static readonly shaderExtension = [
     "GL_EXT_shader_texture_lod",
     "GL_OES_standard_derivatives",
     "GL_EXT_draw_buffers",
@@ -23,8 +24,8 @@ export class ShaderFactory {
     .map((e) => `#extension ${e} : enable\n`)
     .join("");
 
-  /** @internal std140 layout info by GLSL type string. */
-  static _std140Map: Record<string, { size: number; align: number }> = {
+  /** std140 layout info by GLSL type string */
+  private static readonly _std140Map: Record<string, { size: number; align: number }> = {
     float: { size: 4, align: 4 },
     int: { size: 4, align: 4 },
     uint: { size: 4, align: 4 },
@@ -116,13 +117,7 @@ export class ShaderFactory {
   }
 
   /**
-   * @internal
    * Compile vertex and fragment source with standard macros, includes, and version header.
-   * @param engine - Engine instance
-   * @param macroCollection - Current macro collection
-   * @param vertexSource - Raw vertex shader source (may contain #include)
-   * @param fragmentSource - Raw fragment shader source
-   * @returns Compiled { vertexSource, fragmentSource } ready for ShaderProgram
    */
   static compilePlatformSource(
     engine: Engine,
@@ -152,7 +147,7 @@ export class ShaderFactory {
 
     let instanceLayout: InstanceLayout | null = null;
     if (isGPUInstance) {
-      const injected = ShaderFactory._injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag);
+      const injected = ShaderFactory.injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag);
       noIncludeVertex = injected.vertexSource;
       noIncludeFrag = injected.fragmentSource;
       instanceLayout = injected.instanceLayout;
@@ -176,18 +171,17 @@ export class ShaderFactory {
 
     return {
       vertexSource: `${versionStr}\nprecision highp float;\n${noIncludeVertex}`,
-      fragmentSource: `${versionStr}\n${isWebGL2 ? "" : ShaderFactory._shaderExtension}${precisionStr}${noIncludeFrag}`,
+      fragmentSource: `${versionStr}\n${isWebGL2 ? "" : ShaderFactory.shaderExtension}${precisionStr}${noIncludeFrag}`,
       instanceLayout
     };
   }
 
   /**
-   * @internal
    * For GPU instancing shaders, scan VS and FS for `uniform ... renderer_*` declarations,
    * compute their union, generate a full UBO struct + `#define` remapping, and inject into source.
    * Also computes std140 layout and INSTANCE_MAX_COUNT from maxUBOSize.
    */
-  static _injectInstanceUBO(
+  static injectInstanceUBO(
     engine: Engine,
     vertexSource: string,
     fragmentSource: string
@@ -239,25 +233,6 @@ export class ShaderFactory {
     fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, fsUboBlock);
 
     return { vertexSource, fragmentSource, instanceLayout };
-  }
-
-  /**
-   * @internal
-   * Scan source for renderer-group uniforms, collect into fieldMap, and remove matched declarations
-   */
-  static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): string {
-    const builtinUniforms = ShaderFactory._builtinRendererUniforms;
-    return source.replace(ShaderFactory._uboUniformRegex, (match, _indent, type, name) => {
-      if (type.indexOf("sampler") !== -1) return match;
-      const isDerived = builtinUniforms.get(name);
-      if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
-        return match;
-      if (isDerived) return "";
-      // Store ModelMat as affine (3×vec4) to save UBO space
-      fieldMap[ShaderProperty.getByName(name)._uniqueId] =
-        type === "mat4" && name === "renderer_ModelMat" ? "mat4_affine" : type;
-      return "";
-    });
   }
 
   static registerInclude(includeName: string, includeSource: string) {
@@ -323,6 +298,24 @@ export class ShaderFactory {
     }
 
     return shader;
+  }
+
+  /**
+   * Scan source for renderer-group uniforms, collect into fieldMap, and remove matched declarations
+   */
+  private static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): string {
+    const builtinUniforms = ShaderFactory._builtinRendererUniforms;
+    return source.replace(ShaderFactory._uboUniformRegex, (match, _indent, type, name) => {
+      if (type.indexOf("sampler") !== -1) return match;
+      const isDerived = builtinUniforms.get(name);
+      if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
+        return match;
+      if (isDerived) return "";
+      // Store ModelMat as affine (3×vec4) to save UBO space
+      fieldMap[ShaderProperty.getByName(name)._uniqueId] =
+        type === "mat4" && name === "renderer_ModelMat" ? "mat4_affine" : type;
+      return "";
+    });
   }
 
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {

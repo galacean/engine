@@ -217,7 +217,7 @@ export class ShaderPass extends ShaderPart {
 
     let instanceLayout: InstanceLayout | null = null;
     if (isGPUInstance) {
-      const injected = ShaderFactory._injectInstanceUBO(engine, vertexSource, fragmentSource);
+      const injected = ShaderFactory.injectInstanceUBO(engine, vertexSource, fragmentSource);
       vertexSource = injected.vertexSource;
       fragmentSource = injected.fragmentSource;
       instanceLayout = injected.instanceLayout;
@@ -235,7 +235,7 @@ export class ShaderPass extends ShaderPart {
         ${vertexSource}
       `,
       fragmentSource: ` ${versionStr}
-        ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
+        ${isWebGL2 ? "" : ShaderFactory.shaderExtension}
         ${precisionStr}
         ${fragmentSource}
       `,
