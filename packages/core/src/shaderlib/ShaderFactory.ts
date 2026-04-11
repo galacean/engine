@@ -9,23 +9,6 @@ import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ShaderLib } from "./ShaderLib";
 
-/**
- * @internal
- */
-export interface InstanceFieldInfo {
-  property: ShaderProperty;
-  type: string;
-  offset: number;
-  useIntView: boolean;
-  pack: (view: Float32Array | Int32Array, offset: number, value: any) => void;
-}
-
-export interface InstanceLayout {
-  instanceFields: InstanceFieldInfo[];
-  instanceMaxCount: number;
-  structSize: number;
-}
-
 export class ShaderFactory {
   /** @internal */
   static readonly RENDERER_INSTANCE_BLOCK_NAME = "RendererInstanceData";
@@ -451,4 +434,24 @@ export class ShaderFactory {
     shader = shader.replace(/void\s+?main\s*\(/g, declaration);
     return shader;
   }
+}
+
+/**
+ * @internal
+ */
+export interface InstanceFieldInfo {
+  property: ShaderProperty;
+  type: string;
+  offset: number;
+  useIntView: boolean;
+  pack: (view: Float32Array | Int32Array, offset: number, value: any) => void;
+}
+
+/**
+ * @internal
+ */
+export interface InstanceLayout {
+  instanceFields: InstanceFieldInfo[];
+  instanceMaxCount: number;
+  structSize: number;
 }
