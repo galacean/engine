@@ -6,8 +6,7 @@ import {
   ShadowCascadesMode,
   ShadowResolution
 } from "@galacean/engine-core";
-import type { AssetRef, IHierarchyFile, Vec4Tuple } from "../../../scene-format/types";
-import type { IColor, IVector3 } from "./BasicSchema";
+import type { AssetRef, IHierarchyFile, Vec3Tuple, Vec4Tuple } from "../../../scene-format/types";
 
 export enum SpecularMode {
   Sky = "Sky",
@@ -20,7 +19,7 @@ export interface IScene extends IHierarchyFile {
     entities: number[];
     background: {
       mode: BackgroundMode;
-      color: Vec4Tuple | IColor;
+      color: Vec4Tuple;
       texture?: AssetRef;
       textureFillMode?: BackgroundTextureFillMode;
       skyMesh?: AssetRef;
@@ -31,7 +30,7 @@ export interface IScene extends IHierarchyFile {
       ambientLight?: AssetRef;
       customAmbientLight?: AssetRef;
       customSpecularTexture?: AssetRef;
-      diffuseSolidColor?: Vec4Tuple | IColor;
+      diffuseSolidColor?: Vec4Tuple;
       diffuseIntensity: number;
       specularIntensity: number;
       specularMode: SpecularMode;
@@ -44,7 +43,7 @@ export interface IScene extends IHierarchyFile {
       shadowDistance: number;
       shadowCascades: ShadowCascadesMode;
       shadowTwoCascadeSplits: number;
-      shadowFourCascadeSplits: IVector3;
+      shadowFourCascadeSplits: Vec3Tuple;
       shadowFadeBorder: number;
     };
     fog?: {
@@ -52,7 +51,7 @@ export interface IScene extends IHierarchyFile {
       fogStart: number;
       fogEnd: number;
       fogDensity: number;
-      fogColor: Vec4Tuple | IColor;
+      fogColor: Vec4Tuple;
     };
     ambientOcclusion?: {
       bias: number;

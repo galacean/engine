@@ -42,11 +42,7 @@ class SceneLoader extends Loader<Scene> {
               scene.ambientLight.diffuseMode = ambient.diffuseMode;
               const solidColor = ambient.diffuseSolidColor;
               if (solidColor) {
-                if (Array.isArray(solidColor)) {
-                  scene.ambientLight.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
-                } else {
-                  scene.ambientLight.diffuseSolidColor.copyFrom(solidColor);
-                }
+                scene.ambientLight.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
               }
 
               if (useCustomAmbient && ambient.customAmbientLight) {
@@ -83,11 +79,7 @@ class SceneLoader extends Loader<Scene> {
             switch (scene.background.mode) {
               case BackgroundMode.SolidColor: {
                 const color = background.color;
-                if (Array.isArray(color)) {
-                  scene.background.solidColor.set(color[0], color[1], color[2], color[3]);
-                } else {
-                  scene.background.solidColor.copyFrom(color);
-                }
+                scene.background.solidColor.set(color[0], color[1], color[2], color[3]);
                 break;
               }
               case BackgroundMode.Sky:
@@ -134,7 +126,10 @@ class SceneLoader extends Loader<Scene> {
                 scene.enableTransparentShadow = shadow.enableTransparentShadow;
               }
               scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits ?? scene.shadowTwoCascadeSplits;
-              shadow.shadowFourCascadeSplits && scene.shadowFourCascadeSplits.copyFrom(shadow.shadowFourCascadeSplits);
+              if (shadow.shadowFourCascadeSplits) {
+                const splits = shadow.shadowFourCascadeSplits;
+                scene.shadowFourCascadeSplits.set(splits[0], splits[1], splits[2]);
+              }
               scene.shadowFadeBorder = shadow.shadowFadeBorder ?? scene.shadowFadeBorder;
             }
 
@@ -146,11 +141,7 @@ class SceneLoader extends Loader<Scene> {
               if (fog.fogEnd != undefined) scene.fogEnd = fog.fogEnd;
               if (fog.fogDensity != undefined) scene.fogDensity = fog.fogDensity;
               if (fog.fogColor != undefined) {
-                if (Array.isArray(fog.fogColor)) {
-                  scene.fogColor.set(fog.fogColor[0], fog.fogColor[1], fog.fogColor[2], fog.fogColor[3]);
-                } else {
-                  scene.fogColor.copyFrom(fog.fogColor);
-                }
+                scene.fogColor.set(fog.fogColor[0], fog.fogColor[1], fog.fogColor[2], fog.fogColor[3]);
               }
             }
 
