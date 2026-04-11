@@ -26,7 +26,7 @@ import "./RenderTargetLoader";
 
 export { GLTFLoader } from "./GLTFLoader";
 export type { GLTFParams } from "./GLTFLoader";
-export * from "./SceneLoader";
+import "./SceneLoader";
 export type { TextureParams } from "./TextureLoader";
 export { parseSingleKTX } from "./compressed-texture";
 export * from "./gltf";
