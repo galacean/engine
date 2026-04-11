@@ -39,7 +39,22 @@ export class ShaderFactory {
     mat4_affine: { size: 48, align: 16 }
   };
 
-  private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
+  private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?vec4\s+\w+\s*;/;
+
+  private static readonly _precisionStr = `
+#ifdef GL_FRAGMENT_PRECISION_HIGH
+  precision highp float;
+  precision highp int;
+#else
+  precision mediump float;
+  precision mediump int;
+#endif
+`;
+
+  private static readonly _derivedDefines =
+    "#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)\n" +
+    "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)\n" +
+    "#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))";
 
   /** Built-in renderer uniforms. value=true means derived (remove but not added to UBO) */
   private static _builtinRendererUniforms = new Map([
@@ -55,62 +70,52 @@ export class ShaderFactory {
   private static _uboUniformRegex = /^([ \t]*)uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
 
   /** Pack functions for writing typed values into ArrayBuffer views */
-  private static _packFuncMap: Record<string, InstanceFieldInfo["pack"]> = {
-    float: (v, o, val: number) => {
+  private static _packFuncMap: Record<string, InstanceFieldInfo["pack"]> = (() => {
+    const packScalar = (v: Float32Array | Int32Array, o: number, val: number) => {
       v[o] = val;
-    },
-    int: (v, o, val: number) => {
-      v[o] = val;
-    },
-    uint: (v, o, val: number) => {
-      v[o] = val;
-    },
-    vec2: (v, o, val: Vector2) => {
+    };
+    const packVec2 = (v: Float32Array | Int32Array, o: number, val: Vector2) => {
       v[o] = val.x;
       v[o + 1] = val.y;
-    },
-    ivec2: (v, o, val: Vector2) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-    },
-    vec3: (v, o, val: Vector3) => {
+    };
+    const packVec3 = (v: Float32Array | Int32Array, o: number, val: Vector3) => {
       v[o] = val.x;
       v[o + 1] = val.y;
       v[o + 2] = val.z;
-    },
-    ivec3: (v, o, val: Vector3) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-      v[o + 2] = val.z;
-    },
-    vec4: (v, o, val: Vector4) => {
+    };
+    const packVec4 = (v: Float32Array | Int32Array, o: number, val: Vector4) => {
       v[o] = val.x;
       v[o + 1] = val.y;
       v[o + 2] = val.z;
       v[o + 3] = val.w;
-    },
-    ivec4: (v, o, val: Vector4) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-      v[o + 2] = val.z;
-      v[o + 3] = val.w;
-    },
-    mat4: (v, o, val: Matrix) => {
-      const e = val.elements;
-      for (let k = 0; k < 16; k++) v[o + k] = e[k];
-    },
-    // Affine mat4 → 3 rows (vec4 each), skip row3 (0,0,0,1). Transposed layout
-    mat4_affine: (v, o, val: Matrix) => {
-      const e = val.elements;
-      // row0=(e0,e4,e8,e12) row1=(e1,e5,e9,e13) row2=(e2,e6,e10,e14)
-      for (let r = 0; r < 3; r++) {
-        v[o + r * 4] = e[r];
-        v[o + r * 4 + 1] = e[r + 4];
-        v[o + r * 4 + 2] = e[r + 8];
-        v[o + r * 4 + 3] = e[r + 12];
+    };
+    return {
+      float: packScalar,
+      int: packScalar,
+      uint: packScalar,
+      vec2: packVec2,
+      ivec2: packVec2,
+      vec3: packVec3,
+      ivec3: packVec3,
+      vec4: packVec4,
+      ivec4: packVec4,
+      mat4: (v: Float32Array | Int32Array, o: number, val: Matrix) => {
+        const e = val.elements;
+        for (let k = 0; k < 16; k++) v[o + k] = e[k];
+      },
+      // Affine mat4 → 3 rows (vec4 each), skip row3 (0,0,0,1). Transposed layout
+      mat4_affine: (v: Float32Array | Int32Array, o: number, val: Matrix) => {
+        const e = val.elements;
+        // row0=(e0,e4,e8,e12) row1=(e1,e5,e9,e13) row2=(e2,e6,e10,e14)
+        for (let r = 0; r < 3; r++) {
+          v[o + r * 4] = e[r];
+          v[o + r * 4 + 1] = e[r + 4];
+          v[o + r * 4 + 2] = e[r + 8];
+          v[o + r * 4 + 3] = e[r + 12];
+        }
       }
-    }
-  };
+    };
+  })();
 
   static parseCustomMacros(macros: ShaderMacro[]) {
     return macros.map((m) => `#define ${m.value ? m.name + ` ` + m.value : m.name}\n`).join("");
@@ -159,19 +164,10 @@ export class ShaderFactory {
     }
 
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
-    const precisionStr = `
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-  precision highp float;
-  precision highp int;
-#else
-  precision mediump float;
-  precision mediump int;
-#endif
-`;
 
     return {
       vertexSource: `${versionStr}\nprecision highp float;\n${noIncludeVertex}`,
-      fragmentSource: `${versionStr}\n${isWebGL2 ? "" : ShaderFactory.shaderExtension}${precisionStr}${noIncludeFrag}`,
+      fragmentSource: `${versionStr}\n${isWebGL2 ? "" : ShaderFactory.shaderExtension}${ShaderFactory._precisionStr}${noIncludeFrag}`,
       instanceLayout
     };
   }
@@ -217,10 +213,7 @@ export class ShaderFactory {
       `layout(std140) uniform ${ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME} {\n` +
       `    RendererInstanceStruct rendererData[INSTANCE_MAX_COUNT];\n};\n`;
 
-    const derivedDefines =
-      "#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)\n" +
-      "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)\n" +
-      "#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))";
+    const derivedDefines = ShaderFactory._derivedDefines;
 
     const vsUboBlock = `${uboStruct}flat out int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID")}\n${derivedDefines}\n`;
     const fsUboBlock = `${uboStruct}flat in int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID")}\n${derivedDefines}\n`;
@@ -251,18 +244,14 @@ export class ShaderFactory {
    * since `ShaderLab` use the same parsing function but different syntax for `#include` --- `/^[ \t]*#include +"([\w\d.]+)"/gm`
    */
   static parseIncludes(src: string, regex = /^[ \t]*#include +<([\w\d.]+)>/gm) {
-    function replace(match, slice) {
-      var replace = ShaderLib[slice];
-
-      if (replace === undefined) {
+    return src.replace(regex, (match, slice) => {
+      const replacement = ShaderLib[slice];
+      if (replacement === undefined) {
         Logger.error(`Shader slice "${match.trim()}" not founded.`);
         return "";
       }
-
-      return ShaderFactory.parseIncludes(replace, regex);
-    }
-
-    return src.replace(regex, replace);
+      return ShaderFactory.parseIncludes(replacement, regex);
+    });
   }
 
   /**
@@ -282,7 +271,7 @@ export class ShaderFactory {
     if (isFrag) {
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
 
-      if (!ShaderFactory._has300Output(shader)) {
+      if (!ShaderFactory._has300OutInFragReg.test(shader)) {
         const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
         if (isMRT) {
           shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
@@ -402,10 +391,6 @@ export class ShaderFactory {
     }
     lines.splice(insertIdx, 0, uboBlock);
     return lines.join("\n");
-  }
-
-  private static _has300Output(fragmentShader: string): boolean {
-    return ShaderFactory._has300OutInFragReg.test(fragmentShader);
   }
 
   private static _replaceMRTShader(shader: string, result: string[]): string {
