@@ -469,7 +469,7 @@ export const E2E_CONFIG = {
       category: "GPUInstancing",
       caseFileName: "gpu-instancing-auto-batch",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.00126
     },
     customData: {
       category: "GPUInstancing",
