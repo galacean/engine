@@ -60,9 +60,8 @@ export class ShaderFactory {
     macroCollection: ShaderMacroCollection,
     vertexSource: string,
     fragmentSource: string,
-    isGpuInstance: boolean = false,
-    instanceFields?: InstanceFieldInfo[]
-  ): { vertexSource: string; fragmentSource: string; instanceFields: InstanceFieldInfo[]; instanceMaxCount: number } {
+    isGpuInstance: boolean = false
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     const rhi = engine._hardwareRenderer;
     const isWebGL2 = rhi.isWebGL2;
     const shaderMacroList = new Array<ShaderMacro>();
@@ -82,14 +81,12 @@ export class ShaderFactory {
     noIncludeVertex = macroStr + noIncludeVertex;
     noIncludeFrag = macroStr + noIncludeFrag;
 
-    let injectedInstanceFields: InstanceFieldInfo[] = null;
-    let injectedInstanceMaxCount = 0;
+    let instanceLayout: InstanceLayout | null = null;
     if (isGpuInstance) {
-      const injected = ShaderFactory._injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag, instanceFields);
+      const injected = ShaderFactory._injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag);
       noIncludeVertex = injected.vertexSource;
       noIncludeFrag = injected.fragmentSource;
-      injectedInstanceFields = injected.instanceFields;
-      injectedInstanceMaxCount = injected.instanceMaxCount;
+      instanceLayout = injected.instanceLayout;
     }
 
     if (isWebGL2) {
@@ -111,8 +108,7 @@ export class ShaderFactory {
     return {
       vertexSource: `${versionStr}\nprecision highp float;\n${noIncludeVertex}`,
       fragmentSource: `${versionStr}\n${isWebGL2 ? "" : ShaderFactory._shaderExtension}${precisionStr}${noIncludeFrag}`,
-      instanceFields: injectedInstanceFields,
-      instanceMaxCount: injectedInstanceMaxCount
+      instanceLayout
     };
   }
 
@@ -211,31 +207,21 @@ export class ShaderFactory {
   static _injectInstanceUBO(
     engine: Engine,
     vertexSource: string,
-    fragmentSource: string,
-    externalFields?: InstanceFieldInfo[]
-  ): { vertexSource: string; fragmentSource: string; instanceFields: InstanceFieldInfo[]; instanceMaxCount: number } {
+    fragmentSource: string
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     const fieldMap: Record<number, string> = Object.create(null);
-    vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap, true);
-    fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap, true);
+    vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
+    fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
 
-    let instanceFields: InstanceFieldInfo[];
-    let instanceMaxCount: number;
-    if (externalFields) {
-      instanceFields = externalFields;
-      const maxUBOSize = engine._hardwareRenderer.getMaxUniformBlockSize();
-      const last = externalFields[externalFields.length - 1];
-      const lastSize = ShaderFactory._std140Map[last.type]?.size ?? 0;
-      const structSize = Math.ceil((last.offset + lastSize) / 16) * 16;
-      instanceMaxCount = Math.floor(maxUBOSize / structSize);
-    } else {
-      let hasField = false;
-      for (const _ in fieldMap) {
-        hasField = true;
-        break;
-      }
-      if (!hasField) return { vertexSource, fragmentSource, instanceFields: null, instanceMaxCount: 0 };
-      ({ instanceFields, instanceMaxCount } = ShaderFactory._buildLayout(engine, fieldMap));
+    let hasField = false;
+    for (const _ in fieldMap) {
+      hasField = true;
+      break;
     }
+    if (!hasField) return { vertexSource, fragmentSource, instanceLayout: null };
+    const instanceLayout = ShaderFactory._buildLayout(engine, fieldMap);
+
+    const { instanceFields, instanceMaxCount } = instanceLayout;
 
     // Generate UBO struct fields and per-field #define remapping
     const structFieldLines: string[] = [];
@@ -269,36 +255,29 @@ export class ShaderFactory {
     );
     fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, fsUboBlock);
 
-    return { vertexSource, fragmentSource, instanceFields, instanceMaxCount };
+    return { vertexSource, fragmentSource, instanceLayout };
   }
 
   /**
    * @internal
-   * Scan source for renderer-group uniforms and collect into fieldMap.
-   * @param remove - If true, remove matched declarations from source.
+   * Scan source for renderer-group uniforms, collect into fieldMap, and remove matched declarations
    */
-  static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>, remove: true): string;
-  static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): boolean;
-  static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>, remove?: boolean): string | boolean {
+  static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): string {
     const builtinUniforms = ShaderFactory._builtinRendererUniforms;
-    let found = false;
-    const result = source.replace(ShaderFactory._uboUniformRegex, (match, _indent, type, name) => {
+    return source.replace(ShaderFactory._uboUniformRegex, (match, _indent, type, name) => {
       if (type.indexOf("sampler") !== -1) return match;
       const isDerived = builtinUniforms.get(name);
       if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
         return match;
-      if (isDerived) return remove ? "" : match;
+      if (isDerived) return "";
       // Store ModelMat as affine (3×vec4) to save UBO space
       fieldMap[ShaderProperty.getByName(name)._uniqueId] =
         type === "mat4" && name === "renderer_ModelMat" ? "mat4_affine" : type;
-      found = true;
-      return remove ? "" : match;
+      return "";
     });
-    return remove ? result : found;
   }
 
-  /** @internal */
-  static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
+  private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
     const maxUBOSize = engine._hardwareRenderer.getMaxUniformBlockSize();
     const std140Map = ShaderFactory._std140Map;
     const instanceFields: InstanceFieldInfo[] = [];

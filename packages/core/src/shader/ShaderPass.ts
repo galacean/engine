@@ -3,8 +3,7 @@ import { Engine } from "../Engine";
 import { InstanceBatch } from "../RenderPipeline/InstanceBatch";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
-import { ShaderFactory, InstanceFieldInfo } from "../shaderlib/ShaderFactory";
-import { resolveIfdef } from "../shaderlib/GLSLIfdefResolver";
+import { ShaderFactory, InstanceLayout } from "../shaderlib/ShaderFactory";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
@@ -167,51 +166,17 @@ export class ShaderPass extends ShaderPart {
   /**
    * @internal
    */
-  _getShaderProgram(
-    engine: Engine,
-    macroCollection: ShaderMacroCollection,
-    instanceFields?: InstanceFieldInfo[]
-  ): ShaderProgram {
+  _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
     let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
     }
 
-    shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection, instanceFields);
+    shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
 
     shaderProgramMap.cache(shaderProgram);
     return shaderProgram;
-  }
-
-  /**
-   * @internal
-   * Scan renderer-group uniforms from this pass into fieldMap, without GPU compilation.
-   */
-  _scanInstanceFields(
-    engine: Engine,
-    macroCollection: ShaderMacroCollection,
-    fieldMap: Record<number, string>
-  ): boolean {
-    let vertexSource: string;
-    let fragmentSource: string;
-
-    if (this._platformTarget != undefined) {
-      const macroMap = ShaderPass._buildMacroMap(engine, macroCollection);
-      vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
-      fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
-    } else {
-      vertexSource = ShaderFactory.parseIncludes(this._vertexSource);
-      fragmentSource = ShaderFactory.parseIncludes(this._fragmentSource);
-
-      const macroMap = ShaderPass._buildMacroMap(engine, macroCollection);
-      vertexSource = resolveIfdef(vertexSource, macroMap);
-      fragmentSource = resolveIfdef(fragmentSource, macroMap);
-    }
-
-    const a = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
-    const b = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
-    return a || b;
   }
 
   /**
@@ -227,55 +192,48 @@ export class ShaderPass extends ShaderPart {
     shaderProgramMaps.length = 0;
   }
 
-  private _getCanonicalShaderProgram(
-    engine: Engine,
-    macroCollection: ShaderMacroCollection,
-    instanceFields?: InstanceFieldInfo[]
-  ): ShaderProgram {
+  private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const isGpuInstance = macroCollection.isEnable(InstanceBatch.gpuInstanceMacro);
-    const { vertexSource, fragmentSource } =
+    const { vertexSource, fragmentSource, instanceLayout } =
       this._platformTarget != undefined
-        ? this._compileShaderLabSource(engine, macroCollection, isGpuInstance, instanceFields)
-        : this._compilePlatformSource(engine, macroCollection, isGpuInstance, instanceFields);
+        ? this._compileShaderLabSource(engine, macroCollection, isGpuInstance)
+        : this._compilePlatformSource(engine, macroCollection, isGpuInstance);
 
-    return new ShaderProgram(engine, vertexSource, fragmentSource);
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource);
+    program._instanceLayout = instanceLayout;
+    return program;
   }
 
   private _compilePlatformSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    isGpuInstance: boolean,
-    instanceFields?: InstanceFieldInfo[]
-  ): { vertexSource: string; fragmentSource: string; instanceFields: InstanceFieldInfo[]; instanceMaxCount: number } {
+    isGpuInstance: boolean
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     return ShaderFactory.compilePlatformSource(
       engine,
       macroCollection,
       this._vertexSource,
       this._fragmentSource,
-      isGpuInstance,
-      instanceFields
+      isGpuInstance
     );
   }
 
   private _compileShaderLabSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection,
-    isGpuInstance: boolean,
-    instanceFields?: InstanceFieldInfo[]
-  ): { vertexSource: string; fragmentSource: string; instanceFields: InstanceFieldInfo[]; instanceMaxCount: number } {
+    isGpuInstance: boolean
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const macroMap = ShaderPass._buildMacroMap(engine, macroCollection);
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
-    let injectedInstanceFields: InstanceFieldInfo[] = null;
-    let injectedInstanceMaxCount = 0;
+    let instanceLayout: InstanceLayout | null = null;
     if (isGpuInstance) {
-      const injected = ShaderFactory._injectInstanceUBO(engine, vertexSource, fragmentSource, instanceFields);
+      const injected = ShaderFactory._injectInstanceUBO(engine, vertexSource, fragmentSource);
       vertexSource = injected.vertexSource;
       fragmentSource = injected.fragmentSource;
-      injectedInstanceFields = injected.instanceFields;
-      injectedInstanceMaxCount = injected.instanceMaxCount;
+      instanceLayout = injected.instanceLayout;
     }
 
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
@@ -294,8 +252,7 @@ export class ShaderPass extends ShaderPart {
         ${precisionStr}
         ${fragmentSource}
       `,
-      instanceFields: injectedInstanceFields,
-      instanceMaxCount: injectedInstanceMaxCount
+      instanceLayout
     };
   }
 }

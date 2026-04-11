@@ -28,9 +28,9 @@ export class TransformFeedbackShader {
    * Get or compile a shader program for the given engine and macro combination.
    */
   getProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram | null {
-    const pool = engine._getShaderProgramPool(this._id);
+    const map = engine._getShaderProgramMap(this._id);
 
-    let program = pool.get(macroCollection);
+    let program = map.get(macroCollection);
     if (program) return program;
 
     const { vertexSource, fragmentSource } = ShaderFactory.compilePlatformSource(
@@ -47,7 +47,7 @@ export class TransformFeedbackShader {
       return null;
     }
 
-    pool.cache(program);
+    map.cache(program);
     return program;
   }
 }

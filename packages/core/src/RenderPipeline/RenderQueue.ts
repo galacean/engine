@@ -109,11 +109,8 @@ export class RenderQueue {
       ShaderMacroCollection.unionCollection(component._globalShaderMacro, materialData._macroCollection, compileMacros);
       ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
-      // For instancing: enable macro and get layout
-      let layout;
       if (isInstanced) {
         compileMacros.enable(InstanceBatch.gpuInstanceMacro);
-        layout = subElement.subShader._getInstanceLayout(engine, compileMacros);
       }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
@@ -141,7 +138,7 @@ export class RenderQueue {
           }
         }
 
-        const program = shaderPass._getShaderProgram(engine, compileMacros, layout?.instanceFields);
+        const program = shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -214,6 +211,7 @@ export class RenderQueue {
           customStates
         );
 
+        const layout = program._instanceLayout;
         if (isInstanced && layout) {
           const totalCount = instancedRenderers.length;
           const maxCount = layout.instanceMaxCount;

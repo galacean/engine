@@ -13,7 +13,7 @@ export class ShaderBlockProperty {
    */
   static getByName(name: string): ShaderBlockProperty {
     const nameMap = ShaderBlockProperty._nameMap;
-    return nameMap[name] ?? (nameMap[name] = new ShaderBlockProperty(name));
+    return (nameMap[name] ??= new ShaderBlockProperty(name));
   }
 
   /** Uniform block name. */
