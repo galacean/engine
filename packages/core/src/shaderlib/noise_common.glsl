@@ -1,3 +1,12 @@
+//
+// Description : Common helper functions for simplex / cellular noise.
+//      Author : Ian McEwan, Ashima Arts.
+//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
+//               Distributed under the MIT License. See LICENSE file.
+//               https://github.com/ashima/webgl-noise
+//               https://github.com/stegu/webgl-noise
+//
+
 // Modulo 289 without a division (only multiplications)
 vec4 mod289( vec4 x ) {
 
