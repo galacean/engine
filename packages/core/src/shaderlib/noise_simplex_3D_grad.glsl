@@ -1,14 +1,7 @@
-//
-// Description : Array and textureless GLSL 2D/3D/4D simplex
-//               noise functions.
-//      Author : Ian McEwan, Ashima Arts.
-//  Maintainer : stegu
-//     Lastmod : 20150104 (JcBernack)
-//     License : Copyright (C) 2011 Ashima Arts. All rights reserved.
-//               Distributed under the MIT License. See LICENSE file.
-//               https://github.com/ashima/webgl-noise
-//               https://github.com/stegu/webgl-noise
-//
+// 3D simplex noise analytical gradient.
+// Algorithm: Ken Perlin, "Noise hardware" (2001) — simplex lattice improvement over classic Perlin noise (1985).
+// Curl noise: Robert Bridson et al., "Curl-noise for procedural fluid flow" (2007).
+// GLSL implementation: Ian McEwan, Ashima Arts (MIT License) — https://github.com/ashima/webgl-noise
 
 vec3 simplexGrad( vec3 v ) {
 
