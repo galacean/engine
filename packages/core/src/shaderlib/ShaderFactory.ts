@@ -263,7 +263,10 @@ export class ShaderFactory {
     const fsUboBlock = `${uboStruct}flat in int v_instanceID;\n${ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID")}\n${derivedDefines}\n`;
 
     vertexSource = ShaderFactory._insertUBOBlock(vertexSource, vsUboBlock);
-    vertexSource = vertexSource.replace(/void\s+main\s*\(\s*\)\s*\{/, "void main() {\n    v_instanceID = gl_InstanceID;");
+    vertexSource = vertexSource.replace(
+      /void\s+main\s*\(\s*\)\s*\{/,
+      "void main() {\n    v_instanceID = gl_InstanceID;"
+    );
     fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, fsUboBlock);
 
     return { vertexSource, fragmentSource, instanceFields, instanceMaxCount };
@@ -282,10 +285,12 @@ export class ShaderFactory {
     const result = source.replace(ShaderFactory._uboUniformRegex, (match, _indent, type, name) => {
       if (type.indexOf("sampler") !== -1) return match;
       const isDerived = builtinUniforms.get(name);
-      if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer) return match;
+      if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
+        return match;
       if (isDerived) return remove ? "" : match;
       // Store ModelMat as affine (3×vec4) to save UBO space
-      fieldMap[ShaderProperty.getByName(name)._uniqueId] = type === "mat4" && name === "renderer_ModelMat" ? "mat4_affine" : type;
+      fieldMap[ShaderProperty.getByName(name)._uniqueId] =
+        type === "mat4" && name === "renderer_ModelMat" ? "mat4_affine" : type;
       found = true;
       return remove ? "" : match;
     });
@@ -349,10 +354,10 @@ export class ShaderFactory {
         const n = property.name;
         lines.push(
           `#define ${n} mat4(` +
-          `vec4(${d}.${n}R0.x,${d}.${n}R1.x,${d}.${n}R2.x,0.0),` +
-          `vec4(${d}.${n}R0.y,${d}.${n}R1.y,${d}.${n}R2.y,0.0),` +
-          `vec4(${d}.${n}R0.z,${d}.${n}R1.z,${d}.${n}R2.z,0.0),` +
-          `vec4(${d}.${n}R0.w,${d}.${n}R1.w,${d}.${n}R2.w,1.0))`
+            `vec4(${d}.${n}R0.x,${d}.${n}R1.x,${d}.${n}R2.x,0.0),` +
+            `vec4(${d}.${n}R0.y,${d}.${n}R1.y,${d}.${n}R2.y,0.0),` +
+            `vec4(${d}.${n}R0.z,${d}.${n}R1.z,${d}.${n}R2.z,0.0),` +
+            `vec4(${d}.${n}R0.w,${d}.${n}R1.w,${d}.${n}R2.w,1.0))`
         );
       } else {
         lines.push(`#define ${property.name} ${d}.${property.name}`);
