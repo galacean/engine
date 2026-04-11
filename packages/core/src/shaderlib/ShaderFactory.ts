@@ -23,7 +23,93 @@ export class ShaderFactory {
     .map((e) => `#extension ${e} : enable\n`)
     .join("");
 
+  /** @internal std140 layout info by GLSL type string. */
+  static _std140Map: Record<string, { size: number; align: number }> = {
+    float: { size: 4, align: 4 },
+    int: { size: 4, align: 4 },
+    uint: { size: 4, align: 4 },
+    vec2: { size: 8, align: 8 },
+    ivec2: { size: 8, align: 8 },
+    vec3: { size: 12, align: 16 },
+    ivec3: { size: 12, align: 16 },
+    vec4: { size: 16, align: 16 },
+    ivec4: { size: 16, align: 16 },
+    mat4: { size: 64, align: 16 },
+    mat4_affine: { size: 48, align: 16 }
+  };
+
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
+
+  /** Built-in renderer uniforms. value=true means derived (remove but not added to UBO) */
+  private static _builtinRendererUniforms = new Map([
+    ["renderer_ModelMat", false],
+    ["renderer_Layer", false],
+    ["renderer_LocalMat", true],
+    ["renderer_MVMat", true],
+    ["renderer_MVPMat", true],
+    ["renderer_NormalMat", true],
+    ["renderer_MVInvMat", true]
+  ]);
+
+  private static _uboUniformRegex = /^([ \t]*)uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
+
+  /** Pack functions for writing typed values into ArrayBuffer views */
+  private static _packFuncMap: Record<string, InstanceFieldInfo["pack"]> = {
+    float: (v, o, val: number) => {
+      v[o] = val;
+    },
+    int: (v, o, val: number) => {
+      v[o] = val;
+    },
+    uint: (v, o, val: number) => {
+      v[o] = val;
+    },
+    vec2: (v, o, val: Vector2) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+    },
+    ivec2: (v, o, val: Vector2) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+    },
+    vec3: (v, o, val: Vector3) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+    },
+    ivec3: (v, o, val: Vector3) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+    },
+    vec4: (v, o, val: Vector4) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+      v[o + 3] = val.w;
+    },
+    ivec4: (v, o, val: Vector4) => {
+      v[o] = val.x;
+      v[o + 1] = val.y;
+      v[o + 2] = val.z;
+      v[o + 3] = val.w;
+    },
+    mat4: (v, o, val: Matrix) => {
+      const e = val.elements;
+      for (let k = 0; k < 16; k++) v[o + k] = e[k];
+    },
+    // Affine mat4 → 3 rows (vec4 each), skip row3 (0,0,0,1). Transposed layout
+    mat4_affine: (v, o, val: Matrix) => {
+      const e = val.elements;
+      // row0=(e0,e4,e8,e12) row1=(e1,e5,e9,e13) row2=(e2,e6,e10,e14)
+      for (let r = 0; r < 3; r++) {
+        v[o + r * 4] = e[r];
+        v[o + r * 4 + 1] = e[r + 4];
+        v[o + r * 4 + 2] = e[r + 8];
+        v[o + r * 4 + 3] = e[r + 12];
+      }
+    }
+  };
 
   static parseCustomMacros(macros: ShaderMacro[]) {
     return macros.map((m) => `#define ${m.value ? m.name + ` ` + m.value : m.name}\n`).join("");
@@ -94,92 +180,6 @@ export class ShaderFactory {
       instanceLayout
     };
   }
-
-  /** Built-in renderer uniforms. value=true means derived (remove but not added to UBO). */
-  private static _builtinRendererUniforms = new Map([
-    ["renderer_ModelMat", false],
-    ["renderer_Layer", false],
-    ["renderer_LocalMat", true],
-    ["renderer_MVMat", true],
-    ["renderer_MVPMat", true],
-    ["renderer_NormalMat", true],
-    ["renderer_MVInvMat", true]
-  ]);
-
-  private static _uboUniformRegex = /^([ \t]*)uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
-
-  /** @internal std140 layout info by GLSL type string. */
-  static _std140Map: Record<string, { size: number; align: number }> = {
-    float: { size: 4, align: 4 },
-    int: { size: 4, align: 4 },
-    uint: { size: 4, align: 4 },
-    vec2: { size: 8, align: 8 },
-    ivec2: { size: 8, align: 8 },
-    vec3: { size: 12, align: 16 },
-    ivec3: { size: 12, align: 16 },
-    vec4: { size: 16, align: 16 },
-    ivec4: { size: 16, align: 16 },
-    mat4: { size: 64, align: 16 },
-    mat4_affine: { size: 48, align: 16 }
-  };
-
-  /** Pack functions for writing typed values into ArrayBuffer views. */
-  private static _packFuncMap: Record<string, InstanceFieldInfo["pack"]> = {
-    float: (v, o, val: number) => {
-      v[o] = val;
-    },
-    int: (v, o, val: number) => {
-      v[o] = val;
-    },
-    uint: (v, o, val: number) => {
-      v[o] = val;
-    },
-    vec2: (v, o, val: Vector2) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-    },
-    ivec2: (v, o, val: Vector2) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-    },
-    vec3: (v, o, val: Vector3) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-      v[o + 2] = val.z;
-    },
-    ivec3: (v, o, val: Vector3) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-      v[o + 2] = val.z;
-    },
-    vec4: (v, o, val: Vector4) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-      v[o + 2] = val.z;
-      v[o + 3] = val.w;
-    },
-    ivec4: (v, o, val: Vector4) => {
-      v[o] = val.x;
-      v[o + 1] = val.y;
-      v[o + 2] = val.z;
-      v[o + 3] = val.w;
-    },
-    mat4: (v, o, val: Matrix) => {
-      const e = val.elements;
-      for (let k = 0; k < 16; k++) v[o + k] = e[k];
-    },
-    // Affine mat4 → 3 rows (vec4 each), skip row3 (0,0,0,1). Transposed layout.
-    mat4_affine: (v, o, val: Matrix) => {
-      const e = val.elements;
-      // row0=(e0,e4,e8,e12) row1=(e1,e5,e9,e13) row2=(e2,e6,e10,e14)
-      for (let r = 0; r < 3; r++) {
-        v[o + r * 4] = e[r];
-        v[o + r * 4 + 1] = e[r + 4];
-        v[o + r * 4 + 2] = e[r + 8];
-        v[o + r * 4 + 3] = e[r + 12];
-      }
-    }
-  };
 
   /**
    * @internal
@@ -260,92 +260,6 @@ export class ShaderFactory {
     });
   }
 
-  private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
-    const maxUBOSize = engine._hardwareRenderer.getMaxUniformBlockSize();
-    const std140Map = ShaderFactory._std140Map;
-    const instanceFields: InstanceFieldInfo[] = [];
-    let currentOffset = 0;
-
-    const packFuncMap = ShaderFactory._packFuncMap;
-    const addField = (id: number): void => {
-      const type = fieldMap[id];
-      const info = std140Map[type];
-      if (!info) return;
-      currentOffset = Math.ceil(currentOffset / info.align) * info.align;
-      instanceFields.push({
-        property: ShaderProperty._propertyIdMap[id],
-        type,
-        offset: currentOffset,
-        useIntView: type[0] === "i" || type[0] === "u",
-        pack: packFuncMap[type]
-      });
-      currentOffset += info.size;
-    };
-
-    // Priority fields first
-    const modelMatId = Renderer._worldMatrixProperty._uniqueId;
-    const layerId = Renderer._rendererLayerProperty._uniqueId;
-    if (modelMatId in fieldMap) {
-      addField(modelMatId);
-      delete fieldMap[modelMatId];
-    }
-    if (layerId in fieldMap) {
-      addField(layerId);
-      delete fieldMap[layerId];
-    }
-
-    // Remaining fields sorted by id
-    const keys: number[] = [];
-    for (const k in fieldMap) keys.push(+k);
-    keys.sort((a, b) => a - b);
-    for (let i = 0; i < keys.length; i++) addField(keys[i]);
-
-    const structSize = Math.ceil(currentOffset / 16) * 16;
-    const instanceMaxCount = Math.floor(maxUBOSize / structSize);
-
-    return { instanceFields, instanceMaxCount, structSize };
-  }
-
-  /** Build per-field #define lines, using `idExpr` as the instance index (gl_InstanceID or v_instanceID). */
-  private static _buildFieldDefines(fields: InstanceFieldInfo[], idExpr: string): string {
-    const lines: string[] = [];
-    for (let i = 0; i < fields.length; i++) {
-      const { type, property } = fields[i];
-      const d = `rendererData[${idExpr}]`;
-      if (type === "mat4_affine") {
-        const n = property.name;
-        lines.push(
-          `#define ${n} mat4(` +
-            `vec4(${d}.${n}R0.x,${d}.${n}R1.x,${d}.${n}R2.x,0.0),` +
-            `vec4(${d}.${n}R0.y,${d}.${n}R1.y,${d}.${n}R2.y,0.0),` +
-            `vec4(${d}.${n}R0.z,${d}.${n}R1.z,${d}.${n}R2.z,0.0),` +
-            `vec4(${d}.${n}R0.w,${d}.${n}R1.w,${d}.${n}R2.w,1.0))`
-        );
-      } else {
-        lines.push(`#define ${property.name} ${d}.${property.name}`);
-      }
-    }
-    return lines.join("\n");
-  }
-
-  /**
-   * Insert a UBO block into source after the macro section.
-   */
-  private static _insertUBOBlock(source: string, uboBlock: string): string {
-    const lines = source.split("\n");
-    let insertIdx = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trimStart();
-      if (trimmed.startsWith("#define ")) {
-        insertIdx = i + 1;
-      } else if (trimmed.length > 0) {
-        break;
-      }
-    }
-    lines.splice(insertIdx, 0, uboBlock);
-    return lines.join("\n");
-  }
-
   static registerInclude(includeName: string, includeSource: string) {
     if (ShaderLib[includeName]) {
       throw `The "${includeName}" shader include already exist`;
@@ -409,6 +323,92 @@ export class ShaderFactory {
     }
 
     return shader;
+  }
+
+  private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
+    const maxUBOSize = engine._hardwareRenderer.getMaxUniformBlockSize();
+    const std140Map = ShaderFactory._std140Map;
+    const instanceFields: InstanceFieldInfo[] = [];
+    let currentOffset = 0;
+
+    const packFuncMap = ShaderFactory._packFuncMap;
+    const addField = (id: number): void => {
+      const type = fieldMap[id];
+      const info = std140Map[type];
+      if (!info) return;
+      currentOffset = Math.ceil(currentOffset / info.align) * info.align;
+      instanceFields.push({
+        property: ShaderProperty._propertyIdMap[id],
+        type,
+        offset: currentOffset,
+        useIntView: type[0] === "i" || type[0] === "u",
+        pack: packFuncMap[type]
+      });
+      currentOffset += info.size;
+    };
+
+    // Priority fields first
+    const modelMatId = Renderer._worldMatrixProperty._uniqueId;
+    const layerId = Renderer._rendererLayerProperty._uniqueId;
+    if (modelMatId in fieldMap) {
+      addField(modelMatId);
+      delete fieldMap[modelMatId];
+    }
+    if (layerId in fieldMap) {
+      addField(layerId);
+      delete fieldMap[layerId];
+    }
+
+    // Remaining fields sorted by id
+    const keys: number[] = [];
+    for (const k in fieldMap) keys.push(+k);
+    keys.sort((a, b) => a - b);
+    for (let i = 0; i < keys.length; i++) addField(keys[i]);
+
+    const structSize = Math.ceil(currentOffset / 16) * 16;
+    const instanceMaxCount = Math.floor(maxUBOSize / structSize);
+
+    return { instanceFields, instanceMaxCount, structSize };
+  }
+
+  /** Build per-field #define lines, using `idExpr` as the instance index (gl_InstanceID or v_instanceID) */
+  private static _buildFieldDefines(fields: InstanceFieldInfo[], idExpr: string): string {
+    const lines: string[] = [];
+    for (let i = 0; i < fields.length; i++) {
+      const { type, property } = fields[i];
+      const d = `rendererData[${idExpr}]`;
+      if (type === "mat4_affine") {
+        const n = property.name;
+        lines.push(
+          `#define ${n} mat4(` +
+            `vec4(${d}.${n}R0.x,${d}.${n}R1.x,${d}.${n}R2.x,0.0),` +
+            `vec4(${d}.${n}R0.y,${d}.${n}R1.y,${d}.${n}R2.y,0.0),` +
+            `vec4(${d}.${n}R0.z,${d}.${n}R1.z,${d}.${n}R2.z,0.0),` +
+            `vec4(${d}.${n}R0.w,${d}.${n}R1.w,${d}.${n}R2.w,1.0))`
+        );
+      } else {
+        lines.push(`#define ${property.name} ${d}.${property.name}`);
+      }
+    }
+    return lines.join("\n");
+  }
+
+  /**
+   * Insert a UBO block into source after the macro section.
+   */
+  private static _insertUBOBlock(source: string, uboBlock: string): string {
+    const lines = source.split("\n");
+    let insertIdx = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const trimmed = lines[i].trimStart();
+      if (trimmed.startsWith("#define ")) {
+        insertIdx = i + 1;
+      } else if (trimmed.length > 0) {
+        break;
+      }
+    }
+    lines.splice(insertIdx, 0, uboBlock);
+    return lines.join("\n");
   }
 
   private static _has300Output(fragmentShader: string): boolean {
