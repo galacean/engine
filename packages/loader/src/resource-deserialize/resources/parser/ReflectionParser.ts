@@ -1,5 +1,5 @@
 import { Loader } from "@galacean/engine-core";
-import { assetRefToEngine, type IHierarchyFile } from "../../../scene-format/types";
+import type { IHierarchyFile } from "../../../scene-format/types";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export type CustomParseComponentHandle = (
@@ -61,7 +61,7 @@ export class ReflectionParser {
       const { _context: context } = this;
       const ref = obj as { $ref: string; key?: string };
       // @ts-ignore
-      return context.resourceManager.getResourceByRef(assetRefToEngine(ref)).then((resource) => {
+      return context.resourceManager.getResourceByRef(ref).then((resource) => {
         if (resource && context.type === ParserType.Prefab) {
           // @ts-ignore
           context.resource._addDependenceAsset(resource);

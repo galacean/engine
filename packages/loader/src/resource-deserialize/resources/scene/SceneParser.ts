@@ -1,6 +1,5 @@
 import { BackgroundMode, DiffuseMode, Scene } from "@galacean/engine-core";
 import {
-  assetRefToEngine,
   type GalaceanComponentSchema,
   type GalaceanInlineEntitySchema,
   type IHierarchyFile
@@ -37,12 +36,12 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
         context._addDependentAsset(
           customAmbientLight.$ref,
           // @ts-ignore
-          resourceManager.getResourceByRef(assetRefToEngine(customAmbientLight))
+          resourceManager.getResourceByRef(customAmbientLight)
         );
       }
       if (ambientLight && (!useCustomAmbient || useSH)) {
         // @ts-ignore
-        context._addDependentAsset(ambientLight.$ref, resourceManager.getResourceByRef(assetRefToEngine(ambientLight)));
+        context._addDependentAsset(ambientLight.$ref, resourceManager.getResourceByRef(ambientLight));
       }
     }
 
@@ -52,15 +51,15 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
       const texture = background.texture;
       if (texture) {
         // @ts-ignore
-        context._addDependentAsset(texture.$ref, resourceManager.getResourceByRef(assetRefToEngine(texture)));
+        context._addDependentAsset(texture.$ref, resourceManager.getResourceByRef(texture));
       }
     } else if (backgroundMode === BackgroundMode.Sky) {
       const { skyMesh, skyMaterial } = background;
       if (skyMesh && skyMaterial) {
         // @ts-ignore
-        context._addDependentAsset(skyMesh.$ref, resourceManager.getResourceByRef(assetRefToEngine(skyMesh)));
+        context._addDependentAsset(skyMesh.$ref, resourceManager.getResourceByRef(skyMesh));
         // @ts-ignore
-        context._addDependentAsset(skyMaterial.$ref, resourceManager.getResourceByRef(assetRefToEngine(skyMaterial)));
+        context._addDependentAsset(skyMaterial.$ref, resourceManager.getResourceByRef(skyMaterial));
       }
     }
   }
@@ -88,7 +87,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
       if (entity.instance) {
         const asset = entity.instance.asset;
         // @ts-ignore
-        context._addDependentAsset(asset.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(asset)));
+        context._addDependentAsset(asset.$ref, context.resourceManager.getResourceByRef(asset));
 
         // Scan overrides for additional asset refs
         const overrides = entity.instance.overrides;
@@ -129,7 +128,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
       context._addDependentAsset(
         comp.script.$ref,
         // @ts-ignore
-        context.resourceManager.getResourceByRef(assetRefToEngine(comp.script))
+        context.resourceManager.getResourceByRef(comp.script)
       );
     }
     if (comp.props) {
@@ -159,7 +158,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext<IScene>> {
       if (ReflectionParser._isAssetRef(value)) {
         const context = this.context;
         // @ts-ignore
-        context._addDependentAsset(value.$ref, context.resourceManager.getResourceByRef(assetRefToEngine(value)));
+        context._addDependentAsset(value.$ref, context.resourceManager.getResourceByRef(value));
       } else {
         for (const key in value) {
           this._searchDependentAssets(value[key]);

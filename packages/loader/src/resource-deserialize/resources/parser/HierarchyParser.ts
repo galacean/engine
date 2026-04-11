@@ -2,7 +2,6 @@ import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core"
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 import {
-  assetRefToEngine,
   type GalaceanEntityOverrideProps,
   type GalaceanEntitySchema,
   type GalaceanInlineEntitySchema,
@@ -271,7 +270,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return (
       engine.resourceManager
         // @ts-ignore
-        .getResourceByRef<Entity>(assetRefToEngine(instance.asset))
+        .getResourceByRef<Entity>(instance.asset)
         .then((prefabResource: PrefabResource | GLTFResource) => {
           const entity =
             prefabResource instanceof PrefabResource

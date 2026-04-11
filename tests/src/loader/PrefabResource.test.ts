@@ -28,7 +28,7 @@ afterAll(() => {
 describe("PrefabResource refCount", () => {
   it("should increase and decrease with instantiated entities", async () => {
     const prefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "root", children: [1] },
         { name: "child" }
@@ -58,7 +58,7 @@ describe("PrefabResource refCount", () => {
 describe("$ref null guard in Prefab mode", () => {
   it("should not add null to dependence assets when $ref resolves to null", async () => {
     const prefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [{ name: "root", components: [0] }],
       components: [{ type: "DiceScript", props: { skinMesh: { $ref: "missing-asset.png" } } }],
       root: 0
@@ -80,7 +80,7 @@ describe("Prefab instance overrides", () => {
   it("should apply entityProps overrides to nested prefab entities", async () => {
     // Nested prefab: root → child
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "originalRoot", children: [1] },
         { name: "originalChild" }
@@ -95,7 +95,7 @@ describe("Prefab instance overrides", () => {
     // Outer prefab with instance overrides: rename child entity
     // entityProps key "[0]" → path "0" → first child of instance root
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "outerRoot", children: [1] },
         {
@@ -130,7 +130,7 @@ describe("Prefab instance overrides", () => {
 
   it("should override component props via componentProps", async () => {
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [{ name: "root", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -140,7 +140,7 @@ describe("Prefab instance overrides", () => {
     engine.resourceManager._objectPool["nested-cp.prefab"] = nestedPrefab;
 
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "outerRoot", children: [1] },
         {
@@ -173,7 +173,7 @@ describe("Prefab instance overrides", () => {
 
   it("should add components via addedComponents", async () => {
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [{ name: "root" }],
       components: [],
       root: 0
@@ -183,7 +183,7 @@ describe("Prefab instance overrides", () => {
     engine.resourceManager._objectPool["nested-ac.prefab"] = nestedPrefab;
 
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "outerRoot", children: [1] },
         {
@@ -215,7 +215,7 @@ describe("Prefab instance overrides", () => {
 
   it("should add entities via addedEntities", async () => {
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [{ name: "root" }],
       components: [],
       root: 0
@@ -225,7 +225,7 @@ describe("Prefab instance overrides", () => {
     engine.resourceManager._objectPool["nested-ae.prefab"] = nestedPrefab;
 
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "outerRoot", children: [1] },
         {
@@ -260,7 +260,7 @@ describe("Prefab instance overrides", () => {
 
   it("should remove entities via removedEntities", async () => {
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "root", children: [1] },
         { name: "child" }
@@ -273,7 +273,7 @@ describe("Prefab instance overrides", () => {
     engine.resourceManager._objectPool["nested-re.prefab"] = nestedPrefab;
 
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "outerRoot", children: [1] },
         {
@@ -303,7 +303,7 @@ describe("Prefab instance overrides", () => {
 
   it("should remove components via removedComponents", async () => {
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [{ name: "root", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -313,7 +313,7 @@ describe("Prefab instance overrides", () => {
     engine.resourceManager._objectPool["nested-rc.prefab"] = nestedPrefab;
 
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "outerRoot", children: [1] },
         {
@@ -349,7 +349,7 @@ describe("Cross-prefab $component ref", () => {
   it("should resolve component ref inside nested prefab instance", async () => {
     // 1. nested prefab (dice.prefab): single root entity with MeshRenderer
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [{ name: "diceRoot", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -362,7 +362,7 @@ describe("Cross-prefab $component ref", () => {
     //    Entity 0: DiceNode (root) — has DiceScript referencing entity 1's MeshRenderer
     //    Entity 1: dice (nested prefab instance)
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "DiceNode", children: [1], components: [0] },
         { name: "dice", instance: { asset: { $ref: "dice.prefab" } } }
@@ -394,7 +394,7 @@ describe("Cross-prefab $component ref", () => {
 
   it("should resolve both local and cross-prefab refs, and survive clone independently", async () => {
     const nestedPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [{ name: "diceRoot", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -407,7 +407,7 @@ describe("Cross-prefab $component ref", () => {
     // Entity 1: numCube — local entity with MeshRenderer
     // Entity 2: dice — nested prefab instance
     const outerPrefabData: GalaceanPrefabFile = {
-      asset: { version: "2.0" },
+      version: "2.0",
       entities: [
         { name: "DiceNode", children: [1, 2], components: [0] },
         { name: "numCube", components: [1] },

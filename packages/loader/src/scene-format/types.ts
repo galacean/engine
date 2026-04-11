@@ -11,16 +11,6 @@ export interface AssetRef {
   key?: string;
 }
 
-/** Convert v2 AssetRef { $ref } → engine format { url } for getResourceByRef. */
-export function assetRefToEngine(ref: AssetRef): { url: string; key?: string } {
-  return ref.key ? { url: ref.$ref, key: ref.key } : { url: ref.$ref };
-}
-
-export interface GalaceanAssetInfo {
-  version: string;
-  generator?: string;
-}
-
 export interface GalaceanComponentSchema {
   type: string;
   script?: AssetRef;
@@ -31,7 +21,6 @@ export interface GalaceanEntityOverrideProps {
   name?: string;
   isActive?: boolean;
   layer?: number;
-  isLocked?: boolean;
   position?: Vec3Tuple;
   rotation?: Vec3Tuple;
   scale?: Vec3Tuple;
@@ -46,7 +35,6 @@ export interface GalaceanInlineEntitySchema {
   components?: GalaceanComponentSchema[];
   isActive?: boolean;
   layer?: number;
-  isLocked?: boolean;
 }
 
 export interface GalaceanAddedEntityOverride {
@@ -82,7 +70,6 @@ export interface GalaceanEntitySchema {
   components?: number[];
   isActive?: boolean;
   layer?: number;
-  isLocked?: boolean;
   instance?: GalaceanInstanceSchema;
 }
 
@@ -98,20 +85,15 @@ export interface GalaceanSceneSchema {
 
 /** Common base for v2 scene and prefab files. */
 export interface IHierarchyFile {
+  version: string;
   entities: GalaceanEntitySchema[];
   components: GalaceanComponentSchema[];
-  /** Editor-only: stable entity IDs for round-trip serialization. Not consumed at runtime. */
-  _entityIds?: string[];
-  /** Editor-only: stable component IDs for round-trip serialization. Not consumed at runtime. */
-  _componentIds?: string[];
 }
 
 export interface GalaceanSceneFile extends IHierarchyFile {
-  asset: GalaceanAssetInfo;
   scene: GalaceanSceneSchema;
 }
 
 export interface GalaceanPrefabFile extends IHierarchyFile {
-  asset: GalaceanAssetInfo;
   root: number;
 }

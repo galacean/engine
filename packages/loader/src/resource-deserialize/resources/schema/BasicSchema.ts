@@ -22,8 +22,3 @@ export interface IColor {
   a: number;
 }
 
-/**
- * Legacy asset reference format used by material/animation loaders.
- * Scene/prefab v2 format uses AssetRef { $ref } from scene-format/types instead.
- */
-export type IAssetRef = { key?: string; url: string };

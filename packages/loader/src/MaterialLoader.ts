@@ -13,7 +13,7 @@ import {
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import {
   MaterialLoaderType,
-  type IAssetRef,
+  type AssetRef,
   type IColor,
   type IMaterialSchema,
   type IVector2,
@@ -51,7 +51,7 @@ class MaterialLoader extends Loader<Material> {
             resolve(
               resourceManager
                 // @ts-ignore
-                .getResourceByRef<Shader>(<IAssetRef>shaderRef)
+                .getResourceByRef<Shader>(<AssetRef>shaderRef)
                 .then((shader) => this._getMaterialByShader(materialSchema, shader, engine))
             );
           }
@@ -99,7 +99,7 @@ class MaterialLoader extends Loader<Material> {
         case MaterialLoaderType.Texture:
           texturePromises.push(
             // @ts-ignore
-            engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
+            engine.resourceManager.getResourceByRef<Texture2D>(<AssetRef>value).then((texture) => {
               materialShaderData.setTexture(key, texture);
             })
           );

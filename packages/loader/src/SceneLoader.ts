@@ -12,7 +12,6 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { assetRefToEngine } from "./scene-format/types";
 import { IScene, ParserContext, ParserType, ReflectionParser, SceneParser, SpecularMode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["scene"], true)
@@ -54,7 +53,7 @@ class SceneLoader extends Loader<Scene> {
                 promises.push(
                   resourceManager
                     // @ts-ignore
-                    .getResourceByRef<any>(assetRefToEngine(ambient.customAmbientLight))
+                    .getResourceByRef<any>(ambient.customAmbientLight)
                     .then((ambientLight) => {
                       scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                     })
@@ -64,7 +63,7 @@ class SceneLoader extends Loader<Scene> {
               if (ambient.ambientLight && (!useCustomAmbient || useSH)) {
                 promises.push(
                   // @ts-ignore
-                  resourceManager.getResourceByRef<any>(assetRefToEngine(ambient.ambientLight)).then((ambientLight) => {
+                  resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
                     if (!useCustomAmbient) {
                       scene.ambientLight.specularTexture = ambientLight?.specularTexture;
                     }
@@ -95,13 +94,13 @@ class SceneLoader extends Loader<Scene> {
                 if (background.skyMesh && background.skyMaterial) {
                   const skyMeshPromise = resourceManager
                     // @ts-ignore
-                    .getResourceByRef<Mesh>(assetRefToEngine(background.skyMesh))
+                    .getResourceByRef<Mesh>(background.skyMesh)
                     .then((mesh) => {
                       scene.background.sky.mesh = mesh;
                     });
                   const skyMaterialPromise = resourceManager
                     // @ts-ignore
-                    .getResourceByRef(assetRefToEngine(background.skyMaterial))
+                    .getResourceByRef(background.skyMaterial)
                     .then((material) => {
                       scene.background.sky.material = material;
                     });
@@ -114,7 +113,7 @@ class SceneLoader extends Loader<Scene> {
                 if (background.texture) {
                   const backgroundPromise = resourceManager
                     // @ts-ignore
-                    .getResourceByRef<any>(assetRefToEngine(background.texture))
+                    .getResourceByRef<any>(background.texture)
                     .then((texture) => {
                       scene.background.texture = texture;
                     });

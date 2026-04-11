@@ -45,7 +45,7 @@ class AnimationClipLoader extends Loader<AnimationClip> {
   private _parseKeyframeValue(keyframe: any, resourceManager: ResourceManager): Promise<any> {
     const value = keyframe.value;
 
-    if (typeof value === "object" && (value as any)?.url) {
+    if (typeof value === "object" && (value as any)?.$ref) {
       return new Promise((resolve) => {
         resourceManager
           // @ts-ignore
