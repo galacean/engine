@@ -7,7 +7,7 @@ import { Renderer } from "../Renderer";
 import { ShaderBlockProperty } from "../shader/ShaderBlockProperty";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
-import { InstanceFieldInfo, ShaderFactory } from "../shaderlib/ShaderFactory";
+import { InstanceLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
 
 /**
  * @internal
@@ -21,14 +21,13 @@ export class InstanceBatch {
       ConstantBufferBindingPoint.RendererInstance
   };
 
-  instanceFields: InstanceFieldInfo[];
-  nativeBuffer: Buffer;
+  buffer: Buffer;
 
   private _engine: Engine;
-  private _uboData: ArrayBuffer;
+  private _layout: InstanceLayout;
+  private _data: ArrayBuffer;
   private _floatView: Float32Array;
   private _intView: Int32Array;
-  private _structSize = 0;
 
   constructor(engine: Engine) {
     this._engine = engine;
@@ -37,17 +36,16 @@ export class InstanceBatch {
   /**
    * Set UBO layout and allocate buffer if needed.
    */
-  setLayout(instanceFields: InstanceFieldInfo[], maxInstanceCount: number, structSize: number): void {
-    this.instanceFields = instanceFields;
-    this._structSize = structSize;
-    const totalBytes = maxInstanceCount * structSize;
+  setLayout(layout: InstanceLayout): void {
+    this._layout = layout;
+    const totalBytes = layout.instanceMaxCount * layout.structSize;
     // Only reallocate when buffer is too small
-    if (!this.nativeBuffer || totalBytes > this.nativeBuffer.byteLength) {
-      this._uboData = new ArrayBuffer(totalBytes);
-      this._floatView = new Float32Array(this._uboData);
-      this._intView = new Int32Array(this._uboData);
-      this.nativeBuffer?.destroy();
-      this.nativeBuffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, totalBytes, BufferUsage.Dynamic);
+    if (!this.buffer || totalBytes > this.buffer.byteLength) {
+      this._data = new ArrayBuffer(totalBytes);
+      this._floatView = new Float32Array(this._data);
+      this._intView = new Int32Array(this._data);
+      this.buffer?.destroy();
+      this.buffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, totalBytes, BufferUsage.Dynamic);
     }
   }
 
@@ -55,9 +53,9 @@ export class InstanceBatch {
    * Pack renderer data into UBO and upload to GPU.
    */
   upload(renderers: Renderer[], start: number, count: number): void {
-    const fields = this.instanceFields;
-    if (!fields) return;
-    const structSize = this._structSize;
+    const layout = this._layout;
+    if (!layout) return;
+    const { instanceFields: fields, structSize } = layout;
     const elementsPerInstance = structSize / 4;
     const floatView = this._floatView;
     const intView = this._intView;
@@ -86,12 +84,12 @@ export class InstanceBatch {
     }
 
     const uploadElements = count * elementsPerInstance;
-    this.nativeBuffer.setData(floatView, 0, 0, uploadElements, SetDataOptions.Discard);
+    this.buffer.setData(floatView, 0, 0, uploadElements, SetDataOptions.Discard);
   }
 
   destroy(): void {
-    this.nativeBuffer?.destroy();
-    this._uboData = null;
+    this.buffer?.destroy();
+    this._data = null;
     this._floatView = null;
     this._intView = null;
   }

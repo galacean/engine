@@ -106,22 +106,14 @@ export class RenderQueue {
 
       // Build compile macros
       const compileMacros = Shader._compileMacros;
-      ShaderMacroCollection.unionCollection(
-        renderer._globalShaderMacro,
-        materialData._macroCollection,
-        compileMacros
-      );
+      ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
       ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
       // For instancing: enable macro and get layout
-      let instanceFields = undefined;
       let layout = undefined;
       if (isInstanced) {
         compileMacros.enable(InstanceBatch.gpuInstanceMacro);
         layout = subElement.subShader._getInstanceLayout(engine, compileMacros);
-        if (layout) {
-          instanceFields = layout.instanceFields;
-        }
       }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
@@ -149,7 +141,7 @@ export class RenderQueue {
           }
         }
 
-        const program = shaderPass._getShaderProgram(engine, compileMacros, instanceFields);
+        const program = shaderPass._getShaderProgram(engine, compileMacros, layout?.instanceFields);
         if (!program.isValid) {
           continue;
         }
@@ -227,7 +219,7 @@ export class RenderQueue {
           const maxCount = layout.instanceMaxCount;
           const instanceBatch = engine._batcherManager.instanceBatch;
 
-          instanceBatch.setLayout(instanceFields, maxCount, layout.structSize);
+          instanceBatch.setLayout(layout);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);
             instanceBatch.upload(instancedRenderers, start, count);
@@ -235,7 +227,7 @@ export class RenderQueue {
             program.bindUniformBlocks(InstanceBatch.uniformBlockBindingMap);
             rhi.bindUniformBufferBase(
               ConstantBufferBindingPoint.RendererInstance,
-              instanceBatch.nativeBuffer._platformBuffer
+              instanceBatch.buffer._platformBuffer
             );
             primitive.instanceCount = count;
             rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
