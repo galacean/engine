@@ -103,10 +103,16 @@ export class ShaderFactory {
         const e = val.elements;
         for (let k = 0; k < 16; k++) v[o + k] = e[k];
       },
-      // Affine mat4 stored as mat3x4: write first 3 columns (skip col3 which is 0,0,0,1)
+      // Affine mat4 stored as mat3x4: write 3 transposed rows (row3 is always 0,0,0,1)
       mat3x4: (v: Float32Array | Int32Array, o: number, val: Matrix) => {
         const e = val.elements;
-        for (let k = 0; k < 12; k++) v[o + k] = e[k];
+        // col0=(row0) col1=(row1) col2=(row2), each vec4 = one row of the original mat4
+        for (let r = 0; r < 3; r++) {
+          v[o + r * 4] = e[r];
+          v[o + r * 4 + 1] = e[r + 4];
+          v[o + r * 4 + 2] = e[r + 8];
+          v[o + r * 4 + 3] = e[r + 12];
+        }
       }
     };
   })();
@@ -202,12 +208,12 @@ export class ShaderFactory {
     const vsBlock = `${uboDecl}flat out int v_instanceID;\n${fieldDefinesVS}\n${derivedDefines}\n`;
     const fsBlock = `${uboDecl}flat in int v_instanceID;\n${fieldDefinesFS}\n${derivedDefines}\n`;
 
-    vertexSource = ShaderFactory._insertUBOBlock(vertexSource, vsBlock);
+    vertexSource = vsBlock + vertexSource;
     vertexSource = vertexSource.replace(
       /void\s+main\s*\(\s*\)\s*\{/,
       "void main() {\n    v_instanceID = gl_InstanceID;"
     );
-    fragmentSource = ShaderFactory._insertUBOBlock(fragmentSource, fsBlock);
+    fragmentSource = fsBlock + fragmentSource;
 
     return { vertexSource, fragmentSource, instanceLayout };
   }
@@ -361,32 +367,19 @@ export class ShaderFactory {
       const { type, property } = fields[i];
       const n = property.name;
       if (type === "mat3x4") {
-        // Reconstruct mat4 from mat3x4 columns + implicit (0,0,0,1) last column
+        // mat3x4 stores 3 transposed rows; reconstruct column-major mat4 with row3=(0,0,0,1)
+        const m = `${accessor}.${n}`;
         lines.push(
-          `#define ${n} mat4(${accessor}.${n}[0],${accessor}.${n}[1],${accessor}.${n}[2],vec4(0.0,0.0,0.0,1.0))`
+          `#define ${n} mat4(` +
+            `vec4(${m}[0].x,${m}[1].x,${m}[2].x,0.0),` +
+            `vec4(${m}[0].y,${m}[1].y,${m}[2].y,0.0),` +
+            `vec4(${m}[0].z,${m}[1].z,${m}[2].z,0.0),` +
+            `vec4(${m}[0].w,${m}[1].w,${m}[2].w,1.0))`
         );
       } else {
         lines.push(`#define ${n} ${accessor}.${n}`);
       }
     }
-    return lines.join("\n");
-  }
-
-  /**
-   * Insert a UBO block into source after the macro section.
-   */
-  private static _insertUBOBlock(source: string, uboBlock: string): string {
-    const lines = source.split("\n");
-    let insertIdx = 0;
-    for (let i = 0; i < lines.length; i++) {
-      const trimmed = lines[i].trimStart();
-      if (trimmed.startsWith("#define ")) {
-        insertIdx = i + 1;
-      } else if (trimmed.length > 0) {
-        break;
-      }
-    }
-    lines.splice(insertIdx, 0, uboBlock);
     return lines.join("\n");
   }
 

@@ -360,6 +360,9 @@ export class ShaderProgram {
       }
 
       const location = gl.getUniformLocation(program, name);
+      // UBO members have no individual location, skip them
+      if (location === null) return;
+
       shaderUniform.name = name;
       shaderUniform.propertyId = ShaderProperty.getByName(name)._uniqueId;
       shaderUniform.location = location;
