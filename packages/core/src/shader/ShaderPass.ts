@@ -62,27 +62,6 @@ export class ShaderPass extends ShaderPart {
   private static _shaderMacroList: ShaderMacro[] = [];
   private static _macroMap: Map<string, string> = new Map();
 
-  private static _buildMacroMap(engine: Engine, macroCollection: ShaderMacroCollection): Map<string, string> {
-    const rhi = engine._hardwareRenderer;
-    const shaderMacroList = ShaderPass._shaderMacroList;
-    shaderMacroList.length = 0;
-    ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
-    shaderMacroList.push(ShaderMacro.getByName(rhi.isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
-    if (rhi.canIUse(GLCapabilityType.shaderTextureLod)) {
-      shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
-    }
-    if (rhi.canIUse(GLCapabilityType.standardDerivatives)) {
-      shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
-    }
-    const macroMap = ShaderPass._macroMap;
-    macroMap.clear();
-    for (let i = 0, n = shaderMacroList.length; i < n; i++) {
-      const macro = shaderMacroList[i];
-      macroMap.set(macro.name, macro.value ?? "");
-    }
-    return macroMap;
-  }
-
   /**
    * Create a shader pass.
    * @param name - Shader pass name
@@ -223,8 +202,24 @@ export class ShaderPass extends ShaderPart {
     macroCollection: ShaderMacroCollection,
     isGpuInstance: boolean
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
-    const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
-    const macroMap = ShaderPass._buildMacroMap(engine, macroCollection);
+    const rhi = engine._hardwareRenderer;
+    const isWebGL2 = rhi.isWebGL2;
+    const shaderMacroList = ShaderPass._shaderMacroList;
+    shaderMacroList.length = 0;
+    ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
+    shaderMacroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
+    if (rhi.canIUse(GLCapabilityType.shaderTextureLod)) {
+      shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
+    }
+    if (rhi.canIUse(GLCapabilityType.standardDerivatives)) {
+      shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
+    }
+    const macroMap = ShaderPass._macroMap;
+    macroMap.clear();
+    for (let i = 0, n = shaderMacroList.length; i < n; i++) {
+      const macro = shaderMacroList[i];
+      macroMap.set(macro.name, macro.value ?? "");
+    }
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
