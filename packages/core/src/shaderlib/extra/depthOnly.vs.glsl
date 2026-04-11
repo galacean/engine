@@ -2,8 +2,6 @@
 #include <common>
 #include <common_vert>
 #include <blendShape_input>
-uniform mat4 camera_VPMat;
-
 
 void main() {
 

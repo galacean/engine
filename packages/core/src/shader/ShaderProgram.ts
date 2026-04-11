@@ -436,8 +436,32 @@ export class ShaderProgram {
             shaderUniform.cacheValue = new Vector4(0, 0, 0);
           }
           break;
+        case gl.FLOAT_MAT2:
+          shaderUniform.applyFunc = shaderUniform.uploadMat2;
+          break;
+        case gl.FLOAT_MAT3:
+          shaderUniform.applyFunc = shaderUniform.uploadMat3;
+          break;
         case gl.FLOAT_MAT4:
           shaderUniform.applyFunc = isArray ? shaderUniform.uploadMat4v : shaderUniform.uploadMat4;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT2x3:
+          shaderUniform.applyFunc = shaderUniform.uploadMat2x3;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT2x4:
+          shaderUniform.applyFunc = shaderUniform.uploadMat2x4;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT3x2:
+          shaderUniform.applyFunc = shaderUniform.uploadMat3x2;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT3x4:
+          shaderUniform.applyFunc = shaderUniform.uploadMat3x4;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT4x2:
+          shaderUniform.applyFunc = shaderUniform.uploadMat4x2;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT4x3:
+          shaderUniform.applyFunc = shaderUniform.uploadMat4x3;
           break;
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:

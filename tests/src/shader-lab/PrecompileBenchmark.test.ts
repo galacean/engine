@@ -416,16 +416,14 @@ describe("Precompile Benchmark", async () => {
 
       // Split-timing bench: measure CPU and GPU within the same iteration
       function benchSplit(
-        shaderPass: ShaderPass,
+        compileFn: (macros: ShaderMacroCollection) => { vertexSource: string; fragmentSource: string },
         macroCollection: ShaderMacroCollection,
-        compileMethod: string,
         runs: number,
         warmup: number
       ): { cpu: number; gpu: number; total: number; vsLen: number; fsLen: number } {
         // Warmup
         for (let i = 0; i < warmup; i++) {
-          // @ts-ignore
-          shaderPass._compileShaderProgram(engine, macroCollection);
+          compileFn(macroCollection);
         }
 
         const cpuTimes: number[] = [];
@@ -436,8 +434,7 @@ describe("Precompile Benchmark", async () => {
         for (let i = 0; i < runs; i++) {
           // CPU: compile source
           const t0 = performance.now();
-          // @ts-ignore
-          const { vertexSource, fragmentSource } = shaderPass[compileMethod](engine, macroCollection);
+          const { vertexSource, fragmentSource } = compileFn(macroCollection);
           const t1 = performance.now();
           vsLen = vertexSource.length;
           fsLen = fragmentSource.length;
@@ -458,9 +455,16 @@ describe("Precompile Benchmark", async () => {
         return { cpu: cpuAvg, gpu: gpuAvg, total: cpuAvg + gpuAvg, vsLen, fsLen };
       }
 
+      // @ts-ignore
+      const gspCompile = (macros: ShaderMacroCollection) =>
+        gspShaderPass._compileShaderLabSource(engine, macros, false);
+      // @ts-ignore
+      const glslCompile = (macros: ShaderMacroCollection) =>
+        glslShaderPass._compilePlatformSource(engine, macros, false);
+
       for (const { label, macros } of scenarios) {
-        const gsp = benchSplit(gspShaderPass, macros, "_compileShaderLabSource", 10, 3);
-        const glsl = benchSplit(glslShaderPass, macros, "_compilePlatformSource", 10, 3);
+        const gsp = benchSplit(gspCompile, macros, 10, 3);
+        const glsl = benchSplit(glslCompile, macros, 10, 3);
 
         console.log(
           `| ${label.padEnd(8)} | ${gsp.cpu.toFixed(3).padStart(11)} | ${glsl.cpu.toFixed(3).padStart(12)} | ${gsp.gpu.toFixed(2).padStart(11)} | ${glsl.gpu.toFixed(2).padStart(12)} | ${gsp.total.toFixed(2).padStart(13)} | ${glsl.total.toFixed(2).padStart(14)} | ${(gsp.vsLen + gsp.fsLen).toString().padStart(9)} | ${(glsl.vsLen + glsl.fsLen).toString().padStart(10)} |`

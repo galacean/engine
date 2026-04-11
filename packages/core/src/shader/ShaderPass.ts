@@ -176,17 +176,25 @@ export class ShaderPass extends ShaderPart {
     const { vertexSource, fragmentSource, instanceLayout } =
       this._platformTarget != undefined
         ? this._compileShaderLabSource(engine, macroCollection, isGPUInstance)
-        : ShaderFactory.compilePlatformSource(
-            engine,
-            macroCollection,
-            this._vertexSource,
-            this._fragmentSource,
-            isGPUInstance
-          );
+        : this._compilePlatformSource(engine, macroCollection, isGPUInstance);
 
     const program = new ShaderProgram(engine, vertexSource, fragmentSource);
     program._instanceLayout = instanceLayout;
     return program;
+  }
+
+  private _compilePlatformSource(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    isGPUInstance: boolean
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
+    return ShaderFactory.compilePlatformSource(
+      engine,
+      macroCollection,
+      this._vertexSource,
+      this._fragmentSource,
+      isGPUInstance
+    );
   }
 
   private _compileShaderLabSource(
