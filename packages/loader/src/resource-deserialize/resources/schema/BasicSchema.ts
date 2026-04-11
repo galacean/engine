@@ -21,4 +21,3 @@ export interface IColor {
   b: number;
   a: number;
 }
-
