@@ -90,13 +90,7 @@ export class ReflectionParser {
 
     // $component — component reference: { entity, type, index }
     if ("$component" in obj) {
-      const comp = obj.$component as { entity: number; type: string; index: number };
-      const entity = this._context.entityMap.get(comp.entity);
-      if (entity) {
-        const components = entity.getComponents(Loader.getClass(comp.type), []);
-        return Promise.resolve(components[comp.index] ?? null);
-      }
-      return Promise.resolve(null);
+      return Promise.resolve(this._resolveComponent(obj.$component as { entity: number; type: string; index: number }));
     }
 
     // $signal — signal binding: register listeners on the existing Signal instance
@@ -111,22 +105,16 @@ export class ReflectionParser {
       );
     }
 
-    // Plain object — recurse each value, modifying originValue in place if it exists
-    if (originValue && typeof originValue === "object" && !Array.isArray(originValue)) {
-      const promises: Promise<any>[] = [];
-      for (const key in obj) {
-        promises.push(this._resolveValue(obj[key], originValue[key]).then((v) => (originValue[key] = v)));
-      }
-      return Promise.all(promises).then(() => originValue);
-    }
-
-    // No originValue — build a new object
-    const result: Record<string, unknown> = {};
+    // Plain object — recurse each value, modifying originValue in place or building a new object
+    const target =
+      originValue && typeof originValue === "object" && !Array.isArray(originValue)
+        ? originValue
+        : ({} as Record<string, unknown>);
     const promises: Promise<any>[] = [];
     for (const key in obj) {
-      promises.push(this._resolveValue(obj[key]).then((v) => (result[key] = v)));
+      promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
     }
-    return Promise.all(promises).then(() => result);
+    return Promise.all(promises).then(() => target);
   }
 
   private _resolveSignal(
@@ -138,29 +126,20 @@ export class ReflectionParser {
     }>
   ): Promise<any> {
     const promises = listeners.map((listener) => {
-      const comp = listener.target.$component;
-      const entity = this._context.entityMap.get(comp.entity);
-      let targetComponent = null;
-      if (entity) {
-        const components = entity.getComponents(Loader.getClass(comp.type), []);
-        targetComponent = components[comp.index] ?? null;
-      }
-
+      const targetComponent = this._resolveComponent(listener.target.$component);
       if (!targetComponent) return Promise.resolve();
 
-      const argPromise = listener.arguments
-        ? Promise.all(listener.arguments.map((a) => this._resolveValue(a)))
-        : Promise.resolve(undefined);
-
-      return argPromise.then((resolvedArgs) => {
-        if (resolvedArgs) {
-          signal.on(targetComponent, listener.methodName, ...resolvedArgs);
-        } else {
-          signal.on(targetComponent, listener.methodName);
-        }
+      return Promise.all((listener.arguments ?? []).map((a) => this._resolveValue(a))).then((resolvedArgs) => {
+        signal.on(targetComponent, listener.methodName, ...resolvedArgs);
       });
     });
     return Promise.all(promises).then(() => signal);
+  }
+
+  private _resolveComponent(comp: { entity: number; type: string; index: number }): any {
+    const entity = this._context.entityMap.get(comp.entity);
+    if (!entity) return null;
+    return entity.getComponents(Loader.getClass(comp.type), [])[comp.index] ?? null;
   }
 
   /**

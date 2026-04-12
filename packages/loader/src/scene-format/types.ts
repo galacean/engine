@@ -35,15 +35,9 @@ export interface EntityOverrideProps {
   scale?: Vec3Tuple;
 }
 
-export interface InlineEntitySchema {
-  name?: string;
-  position?: Vec3Tuple;
-  rotation?: Vec3Tuple;
-  scale?: Vec3Tuple;
+export interface InlineEntitySchema extends EntityOverrideProps {
   children?: InlineEntitySchema[];
   components?: ComponentSchema[];
-  isActive?: boolean;
-  layer?: number;
 }
 
 export interface AddedEntityOverride {
@@ -70,15 +64,9 @@ export interface InstanceSchema {
   overrides?: InstanceOverrides;
 }
 
-export interface EntitySchema {
-  name?: string;
+export interface EntitySchema extends EntityOverrideProps {
   children?: number[];
-  position?: Vec3Tuple;
-  rotation?: Vec3Tuple;
-  scale?: Vec3Tuple;
   components?: number[];
-  isActive?: boolean;
-  layer?: number;
   instance?: InstanceSchema;
 }
 

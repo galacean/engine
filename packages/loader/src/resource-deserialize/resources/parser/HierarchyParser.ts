@@ -26,11 +26,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     public readonly context: V
   ) {
     this._engine = this.context.engine;
-    this._organizeEntities = this._organizeEntities.bind(this);
-    this._parseComponents = this._parseComponents.bind(this);
-    this._parseComponentsProps = this._parseComponentsProps.bind(this);
-    this._parsePrefabOverrides = this._parsePrefabOverrides.bind(this);
-    this._clearAndResolve = this._clearAndResolve.bind(this);
     this.promise = new Promise<T>((resolve, reject) => {
       this._reject = reject;
       this._resolve = resolve;
@@ -40,11 +35,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   public start() {
     this._parseEntities()
-      .then(this._organizeEntities)
-      .then(this._parseComponents)
-      .then(this._parseComponentsProps)
-      .then(this._parsePrefabOverrides)
-      .then(this._clearAndResolve)
+      .then(() => this._organizeEntities())
+      .then(() => this._parseComponents())
+      .then(() => this._parseComponentsProps())
+      .then(() => this._parsePrefabOverrides())
+      .then(() => this._clearAndResolve())
       .then(this._resolve)
       .catch(this._reject);
   }
