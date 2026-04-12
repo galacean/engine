@@ -180,7 +180,8 @@ export class MeshRenderer extends Renderer {
       preSubElement.primitive === subElement.primitive &&
       preSubElement.subPrimitive === subElement.subPrimitive &&
       preSubElement.material === subElement.material &&
-      this._isFrontFaceInvert() === (<MeshRenderer>subElement.component)._isFrontFaceInvert()
+      this._isFrontFaceInvert() === (<MeshRenderer>subElement.component)._isFrontFaceInvert() &&
+      this.shaderData._macroCollection.isEqual(subElement.component.shaderData._macroCollection)
     );
   }
 
