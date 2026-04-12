@@ -134,7 +134,7 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLM
   // Load Duck model and ambient light
   const [glTF, ambientLight] = await Promise.all([
     engine.resourceManager.load<GLTFResource>({
-      url: "https://gw.alipayobjects.com/os/bmw-prod/6cb8f543-285c-491a-8cfd-57a1160dc9ab.glb",
+      url: "https://mdn.alipayobjects.com/rms/afts/file/A*9R-_TY9K_6oAAAAAgIAAAAgAehQnAQ/Avocado.glb",
       type: AssetType.GLTF
     }),
     engine.resourceManager.load<AmbientLight>({
@@ -150,8 +150,8 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLM
   const customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
 
   // Interleave ducks and cubes to break batching — instancing shines here
-  const duckCount = 1500;
-  const cubeCount = 1500;
+  const duckCount = 2500;
+  const cubeCount = 2500;
   const totalCount = duckCount + cubeCount;
 
   for (let i = 0; i < totalCount; i++) {
@@ -180,7 +180,7 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLM
     anim.thetaSpeed = (0.2 + Math.random() * 0.4) * (Math.random() > 0.5 ? 1 : -1);
     anim.phiSpeed = (0.3 + Math.random() * 0.5) * (Math.random() > 0.5 ? 1 : -1);
     anim.rotateSpeed = new Vector3((Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60, (Math.random() - 0.5) * 60);
-    anim.scaleBase = 0.6 + Math.random() * 0.8;
+    anim.scaleBase = (isDuck ? 20 : 1) * (0.6 + Math.random() * 0.8);
     anim.scaleFreq = 0.5 + Math.random() * 2;
 
     if (isCube) {
