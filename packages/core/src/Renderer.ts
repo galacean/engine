@@ -29,10 +29,8 @@ export class Renderer extends Component {
   static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
 
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
-  private static _localMatrixProperty = ShaderProperty.getByName("renderer_LocalMat");
   private static _mvMatrixProperty = ShaderProperty.getByName("renderer_MVMat");
   private static _mvpMatrixProperty = ShaderProperty.getByName("renderer_MVPMat");
-  private static _mvInvMatrixProperty = ShaderProperty.getByName("renderer_MVInvMat");
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
 
   /** @internal */
@@ -76,8 +74,6 @@ export class Renderer extends Component {
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
   private _mvpMatrix: Matrix = new Matrix();
-  @ignoreClone
-  private _mvInvMatrix: Matrix = new Matrix();
   @ignoreClone
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -387,7 +383,6 @@ export class Renderer extends Component {
     this._shaderData = null;
     this._mvMatrix = null;
     this._mvpMatrix = null;
-    this._mvInvMatrix = null;
     this._normalMatrix = null;
     this._materialsInstanced = null;
     this._rendererLayer = null;
@@ -426,31 +421,24 @@ export class Renderer extends Component {
   }
 
   protected _updateWorldViewRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    const { shaderData, _mvInvMatrix: mvInvMatrix } = this;
+    const { shaderData } = this;
     if (batched) {
       // @ts-ignore
       const identityMatrix = Matrix._identity;
 
-      Matrix.invert(context.viewMatrix, mvInvMatrix);
-
-      shaderData.setMatrix(Renderer._localMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, context.viewMatrix);
-      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
       shaderData.setMatrix(Renderer._normalMatrixProperty, identityMatrix);
     } else {
       const mvMatrix = this._mvMatrix;
       const normalMatrix = this._normalMatrix;
 
       Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
-      Matrix.invert(mvMatrix, mvInvMatrix);
       Matrix.invert(worldMatrix, normalMatrix);
       normalMatrix.transpose();
 
-      shaderData.setMatrix(Renderer._localMatrixProperty, this._transformEntity.transform.localMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
       shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
     }
 

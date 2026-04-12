@@ -60,11 +60,9 @@ export class ShaderFactory {
   private static readonly _builtinRendererUniforms = new Map([
     ["renderer_ModelMat", false],
     ["renderer_Layer", false],
-    ["renderer_LocalMat", true],
     ["renderer_MVMat", true],
     ["renderer_MVPMat", true],
-    ["renderer_NormalMat", true],
-    ["renderer_MVInvMat", true]
+    ["renderer_NormalMat", true]
   ]);
 
   private static readonly _uboUniformRegex = /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
