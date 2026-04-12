@@ -33,7 +33,7 @@ import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
-import { MacroMap } from "./shader/MacroMap";
+import { ShaderProgramMap } from "./shader/ShaderProgramMap";
 import { ShaderProgram } from "./shader/ShaderProgram";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
@@ -113,7 +113,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
-  _shaderProgramMaps: MacroMap<ShaderProgram>[] = [];
+  _shaderProgramMaps: ShaderProgramMap[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal */
@@ -542,7 +542,7 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramMap(index: number, trackMaps?: MacroMap<ShaderProgram>[]): MacroMap<ShaderProgram> {
+  _getShaderProgramMap(index: number, trackMaps?: ShaderProgramMap[]): ShaderProgramMap {
     const shaderProgramMaps = this._shaderProgramMaps;
     let map = shaderProgramMaps[index];
     if (!map) {
@@ -550,7 +550,7 @@ export class Engine extends EventDispatcher {
       if (length > shaderProgramMaps.length) {
         shaderProgramMaps.length = length;
       }
-      shaderProgramMaps[index] = map = new MacroMap<ShaderProgram>(this);
+      shaderProgramMaps[index] = map = new ShaderProgramMap(this);
       trackMaps?.push(map);
     }
     return map;

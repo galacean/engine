@@ -1,27 +1,28 @@
 import { Engine } from "../Engine";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
+import { ShaderProgram } from "./ShaderProgram";
 
-type Tree<T> = {
-  [key: number]: Tree<T> | T;
+type Tree = {
+  [key: number]: Tree | ShaderProgram;
 };
 
 /**
- * Map keyed by ShaderMacroCollection bitmask.
+ * Map keyed by ShaderMacroCollection bitmask, caching ShaderProgram instances.
  * @internal
  */
-export class MacroMap<T> {
+export class ShaderProgramMap {
   engine: Engine;
 
   private _cacheHierarchyDepth: number = 1;
-  private _cacheMap: Tree<T> = Object.create(null);
-  private _lastQueryMap: Record<number, T>;
+  private _cacheMap: Tree = Object.create(null);
+  private _lastQueryMap: Record<number, ShaderProgram>;
   private _lastQueryKey: number;
 
   constructor(engine?: Engine) {
     this.engine = engine;
   }
 
-  get(macros: ShaderMacroCollection): T | null {
+  get(macros: ShaderMacroCollection): ShaderProgram | null {
     let cacheMap = this._cacheMap;
     const maskLength = macros._length;
     const cacheHierarchyDepth = this._cacheHierarchyDepth;
@@ -35,54 +36,52 @@ export class MacroMap<T> {
     const maxEndIndex = this._cacheHierarchyDepth - 1;
     for (let i = 0; i < maxEndIndex; i++) {
       const subMask = endIndex < i ? 0 : mask[i];
-      let subCache = <Tree<T>>cacheMap[subMask];
+      let subCache = <Tree>cacheMap[subMask];
       subCache || (cacheMap[subMask] = subCache = Object.create(null));
       cacheMap = subCache;
     }
 
     const cacheKey = endIndex < maxEndIndex ? 0 : mask[maxEndIndex];
-    const value = (<Record<number, T>>cacheMap)[cacheKey];
+    const value = (<Record<number, ShaderProgram>>cacheMap)[cacheKey];
     if (!value) {
       this._lastQueryKey = cacheKey;
-      this._lastQueryMap = <Record<number, T>>cacheMap;
+      this._lastQueryMap = <Record<number, ShaderProgram>>cacheMap;
     }
     return value;
   }
 
-  cache(value: T): void {
+  cache(value: ShaderProgram): void {
     this._lastQueryMap[this._lastQueryKey] = value;
   }
 
-  clear(callback?: (value: T) => void): void {
-    if (callback) {
-      this._recursiveForEach(0, this._cacheMap, callback);
-    }
+  destroy(): void {
+    this._recursiveForEach(0, this._cacheMap);
     this._cacheMap = Object.create(null);
     this._cacheHierarchyDepth = 1;
   }
 
-  private _recursiveForEach(hierarchy: number, cacheMap: Tree<T>, callback: (value: T) => void): void {
+  private _recursiveForEach(hierarchy: number, cacheMap: Tree): void {
     if (hierarchy === this._cacheHierarchyDepth - 1) {
       for (let k in cacheMap) {
-        callback(<T>cacheMap[k]);
+        (<ShaderProgram>cacheMap[k]).destroy();
       }
       return;
     }
     ++hierarchy;
     for (let k in cacheMap) {
-      this._recursiveForEach(hierarchy, <Tree<T>>cacheMap[k], callback);
+      this._recursiveForEach(hierarchy, <Tree>cacheMap[k]);
     }
   }
 
   private _resizeCacheMapHierarchy(
-    cacheMap: Tree<T>,
+    cacheMap: Tree,
     hierarchy: number,
     currentHierarchy: number,
     increaseHierarchy: number
   ): void {
     if (hierarchy == currentHierarchy - 1) {
       for (let k in cacheMap) {
-        const value = <T>cacheMap[k];
+        const value = <ShaderProgram>cacheMap[k];
         let subCacheMap = cacheMap;
         for (let i = 0; i < increaseHierarchy; i++) {
           subCacheMap[i == 0 ? k : 0] = subCacheMap = Object.create(null);
@@ -92,7 +91,7 @@ export class MacroMap<T> {
     } else {
       hierarchy++;
       for (let k in cacheMap) {
-        this._resizeCacheMapHierarchy(<Tree<T>>cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
+        this._resizeCacheMapHierarchy(<Tree>cacheMap[k], hierarchy, currentHierarchy, increaseHierarchy);
       }
     }
   }

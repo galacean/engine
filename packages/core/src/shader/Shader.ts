@@ -241,7 +241,7 @@ export class Shader implements IReferable {
           for (let k = passShaderProgramMaps.length - 1; k >= 0; k--) {
             const map = passShaderProgramMaps[k];
             if (map.engine !== engine) continue;
-            map.clear((program) => program.destroy());
+            map.destroy();
             passShaderProgramMaps.splice(k, 1);
           }
         }

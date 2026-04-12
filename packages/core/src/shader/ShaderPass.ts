@@ -7,7 +7,7 @@ import { ShaderFactory, InstanceLayout } from "../shaderlib/ShaderFactory";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
-import { MacroMap } from "./MacroMap";
+import { ShaderProgramMap } from "./ShaderProgramMap";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
@@ -54,7 +54,7 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
-  _shaderProgramMaps: MacroMap<ShaderProgram>[] = [];
+  _shaderProgramMaps: ShaderProgramMap[] = [];
 
   private _vertexSource?: string;
   private _fragmentSource?: string;
@@ -165,7 +165,7 @@ export class ShaderPass extends ShaderPart {
     const shaderProgramMaps = this._shaderProgramMaps;
     for (let i = 0, n = shaderProgramMaps.length; i < n; i++) {
       const map = shaderProgramMaps[i];
-      map.clear((program) => program.destroy());
+      map.destroy();
       delete map.engine._shaderProgramMaps[this._shaderPassId];
     }
     shaderProgramMaps.length = 0;
