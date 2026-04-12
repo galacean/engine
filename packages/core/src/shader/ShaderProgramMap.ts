@@ -18,7 +18,7 @@ export class ShaderProgramMap {
   private _lastQueryMap: Record<number, ShaderProgram>;
   private _lastQueryKey: number;
 
-  constructor(engine?: Engine) {
+  constructor(engine: Engine) {
     this.engine = engine;
   }
 
