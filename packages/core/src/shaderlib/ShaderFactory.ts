@@ -57,15 +57,16 @@ export class ShaderFactory {
     "#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))";
 
   /** Built-in renderer uniforms. value=true means derived (remove but not added to UBO) */
-  private static readonly _builtinRendererUniforms = new Map([
-    ["renderer_ModelMat", false],
-    ["renderer_Layer", false],
-    ["renderer_MVMat", true],
-    ["renderer_MVPMat", true],
-    ["renderer_NormalMat", true]
-  ]);
+  private static readonly _builtinRendererUniforms: Record<string, boolean> = {
+    renderer_ModelMat: false,
+    renderer_Layer: false,
+    renderer_MVMat: true,
+    renderer_MVPMat: true,
+    renderer_NormalMat: true
+  };
 
-  private static readonly _uboUniformRegex = /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*;/gm;
+  private static readonly _uboUniformRegex =
+    /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*(\[.+?\])?\s*;/gm;
 
   /** Pack functions for writing typed values into ArrayBuffer views */
   private static _packFuncMap: Record<string, InstancePackFunc> = (() => {
@@ -290,12 +291,17 @@ export class ShaderFactory {
    */
   private static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): string {
     const builtinUniforms = ShaderFactory._builtinRendererUniforms;
-    return source.replace(ShaderFactory._uboUniformRegex, (match, type, name) => {
+    return source.replace(ShaderFactory._uboUniformRegex, (match, type, name, arraySize) => {
       if (type.includes("sampler")) return match;
-      const isDerived = builtinUniforms.get(name);
+      const isDerived = builtinUniforms[name];
       if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
         return match;
       if (isDerived) return "";
+      // Array uniforms not supported in instancing UBO, remove to fail shader compilation
+      if (arraySize) {
+        Logger.error(`GPU Instancing does not support array uniform "${name}${arraySize}"`);
+        return "";
+      }
       // ModelMat is affine, store as mat3x4 (3 columns) to save 16 bytes per instance
       fieldMap[ShaderProperty.getByName(name)._uniqueId] =
         type === "mat4" && name === "renderer_ModelMat" ? "mat3x4" : type;
