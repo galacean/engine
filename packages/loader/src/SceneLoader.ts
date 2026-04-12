@@ -3,7 +3,6 @@ import {
   AssetType,
   BackgroundMode,
   DiffuseMode,
-  Font,
   Loader,
   LoadItem,
   Logger,
@@ -13,7 +12,7 @@ import {
   Scene
 } from "@galacean/engine-core";
 import { SpecularMode, type SceneFile } from "./scene-format/types";
-import { ParserContext, ParserType, ReflectionParser, SceneParser } from "./resource-deserialize";
+import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
 /** Apply scene-level data (ambient, background, shadow, fog, AO) to a Scene. */
 export function applySceneData(
@@ -185,15 +184,3 @@ class SceneLoader extends Loader<Scene> {
     });
   }
 }
-
-ReflectionParser.registerCustomParseComponent(
-  "TextRenderer",
-  async (instance: any, item: { props?: Record<string, unknown> }) => {
-    const { props } = item;
-    if (!props?.font) {
-      // @ts-ignore
-      instance.font = Font.createFromOS(instance.engine, (props?.fontFamily as string) || "Arial");
-    }
-    return instance;
-  }
-);
