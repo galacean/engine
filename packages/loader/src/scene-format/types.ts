@@ -103,7 +103,7 @@ export enum SpecularMode {
 
 /** Common base for v2 scene and prefab files. */
 export interface HierarchyFile {
-  version: string;
+  version: "2.0";
   entities: EntitySchema[];
   components: ComponentSchema[];
 }

@@ -35,6 +35,19 @@ afterAll(() => {
 });
 
 describe("PrefabResource refCount", () => {
+  it("should reject prefab data with an unsupported version", () => {
+    const prefabData = {
+      version: "1.0",
+      entities: [{ name: "root" }],
+      components: [],
+      root: 0
+    } as any;
+
+    expect(() => PrefabParser.parse(engine, "invalid.prefab", prefabData)).toThrow(
+      'Unsupported prefab format version "1.0". Expected "2.0".'
+    );
+  });
+
   it("should increase and decrease with instantiated entities", async () => {
     const prefabData: PrefabFile = {
       version: "2.0",

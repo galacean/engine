@@ -295,6 +295,27 @@ describe("SceneParser v2 entity tree", () => {
     };
   }
 
+  it("should reject scene data without the v2 version marker", () => {
+    const data = {
+      entities: [{ name: "Entity" }],
+      components: [],
+      scene: {
+        entities: [0],
+        background: {
+          mode: BackgroundMode.SolidColor,
+          color: [0.25, 0.25, 0.25, 1]
+        }
+      }
+    } as any;
+
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+
+    expect(() => new SceneParser(data, context, scene)).toThrow(
+      'Unsupported scene format version "missing". Expected "2.0".'
+    );
+  });
+
   it("should build single-root entity tree from flat array", async () => {
     const data = createSceneData([{ name: "Root", children: [1, 2] }, { name: "Camera" }, { name: "Light" }], [], [0]);
 
