@@ -104,6 +104,45 @@ describe("PrefabResource refCount", () => {
     instance2.destroy();
     expect(prefab.refCount).toBe(0);
   });
+
+  it("should count instances when prefab root comes from a nested prefab instance", async () => {
+    const nestedPrefabData: PrefabFile = {
+      version: "2.0",
+      entities: [{ name: "nestedRoot", children: [1] }, { name: "nestedChild" }],
+      components: [],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-root-instance.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-root-instance.prefab"] = nestedPrefab;
+
+    try {
+      const outerPrefabData: PrefabFile = {
+        version: "2.0",
+        entities: [{ instance: { asset: { $ref: "nested-root-instance.prefab" } } }],
+        components: [],
+        root: 0
+      };
+
+      const outerPrefab = await PrefabParser.parse(engine, "outer-root-instance.prefab", outerPrefabData);
+
+      expect(outerPrefab.refCount).toBe(0);
+
+      const instance1 = outerPrefab.instantiate();
+      const instance2 = outerPrefab.instantiate();
+
+      expect(outerPrefab.refCount).toBe(2);
+
+      instance1.destroy();
+      expect(outerPrefab.refCount).toBe(1);
+
+      instance2.destroy();
+      expect(outerPrefab.refCount).toBe(0);
+    } finally {
+      // @ts-ignore
+      delete engine.resourceManager._objectPool["nested-root-instance.prefab"];
+    }
+  });
 });
 
 describe("$ref null guard in Prefab mode", () => {
@@ -152,7 +191,7 @@ describe("Prefab instance overrides", () => {
       root: 0
     } as any;
 
-    await expect(PrefabParser.parse(engine, "invalid-instance.prefab", invalidPrefabData)).rejects.toThrow(
+    expect(() => PrefabParser.parse(engine, "invalid-instance.prefab", invalidPrefabData)).toThrow(
       "Prefab instance entity cannot declare name directly. Move root overrides to instance.overrides.entityProps with path: []."
     );
 
@@ -364,10 +403,10 @@ describe("Prefab instance overrides", () => {
             overrides: {
               addedEntities: [
                 {
-                  parent: [],
+                  parent: [] as number[],
                   entity: {
                     name: "addedChild",
-                    position: [1, 2, 3],
+                    position: [1, 2, 3] as [number, number, number],
                     components: [
                       {
                         type: "OverrideCallScript",

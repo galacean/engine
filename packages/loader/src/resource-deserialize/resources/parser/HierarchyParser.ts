@@ -66,6 +66,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return entity;
   }
 
+  protected _onEntityCreated(_entity: Entity): void {}
+
   // ---------------------------------------------------------------------------
   // Stage 1: Create entity instances
   // ---------------------------------------------------------------------------
@@ -89,6 +91,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       } else {
         const entity = new Entity(engine, entityConfig.name);
         this._applyEntityData(entity, entityConfig);
+        this._onEntityCreated(entity);
         entityMap.set(i, entity);
       }
     }
@@ -196,8 +199,11 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     const promises: Promise<any>[] = [];
 
     for (let i = 0, n = entities.length; i < n; i++) {
-      const instance = entities[i].instance;
-      if (!instance?.overrides) continue;
+      const entityConfig = entities[i];
+      if (!HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
+
+      const instance = entityConfig.instance;
+      if (!instance.overrides) continue;
 
       const rootEntity = entityMap.get(i);
       const ctx = this._prefabContextMap.get(rootEntity);
@@ -305,6 +311,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
               ? prefabResource.instantiate()
               : prefabResource.instantiateSceneRoot();
 
+          this._onEntityCreated(entity);
           const instanceContext = HierarchyParser._buildInstanceContext(entity);
           this._prefabContextMap.set(entity, instanceContext);
 
@@ -349,6 +356,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _createInlineEntity(config: InlineEntitySchema, parent: Entity, promises: Promise<any>[]): void {
     const entity = new Entity(this._engine, config.name);
     HierarchyParser._applyEntityProps(entity, config);
+    this._onEntityCreated(entity);
     parent.addChild(entity);
 
     if (config.components) {
@@ -379,7 +387,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   private static _isPrefabInstanceEntity(entityConfig: EntitySchema): entityConfig is PrefabInstanceEntitySchema {
-    return !!entityConfig.instance;
+    return "instance" in entityConfig;
   }
 
   private static _assertPrefabInstanceEntityShape(entityConfig: PrefabInstanceEntitySchema): void {
