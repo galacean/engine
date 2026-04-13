@@ -20,7 +20,6 @@ import "./TextureLoader";
 import "./AudioLoader";
 import "./ktx2/KTX2Loader";
 import "./ShaderLoader";
-import "./ShaderChunkLoader";
 import "./PhysicsMaterialLoader";
 import "./RenderTargetLoader";
 

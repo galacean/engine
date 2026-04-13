@@ -1,4 +1,4 @@
-import { Logger, ShaderPass } from "@galacean/engine";
+import { Logger } from "@galacean/engine";
 /** @ts-ignore */
 import { ShaderLib } from "@galacean/engine";
 
@@ -35,18 +35,11 @@ export class Preprocessor {
    */
   static _repeatIncludeSet = new Set<string>();
 
-  static parse(
-    source: string,
-    basePathForIncludeKey: string,
-    outMacroDefineList: MacroDefineList,
-    parseMacro = true
-  ): string {
+  static parse(source: string, outMacroDefineList: MacroDefineList, parseMacro = true): string {
     if (parseMacro) {
       this._parseMacroDefines(source, outMacroDefineList);
     }
-    return source.replace(this._includeReg, (_, includeName) =>
-      this._replace(includeName, basePathForIncludeKey, outMacroDefineList)
-    );
+    return source.replace(this._includeReg, (_, includeName) => this._replace(includeName, outMacroDefineList));
   }
 
   static getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): void {
@@ -151,39 +144,27 @@ export class Preprocessor {
     }
   }
 
-  private static _replace(
-    includeName: string,
-    basePathForIncludeKey: string,
-    outMacroDefineList: MacroDefineList
-  ): string {
-    let path: string;
-    if (includeName[0] === ".") {
-      // @ts-ignore
-      path = new URL(includeName, basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
-    } else {
-      path = includeName;
-    }
-
-    const chunk = (ShaderLib as any)[path];
+  private static _replace(includeName: string, outMacroDefineList: MacroDefineList): string {
+    const chunk = (ShaderLib as any)[includeName];
     if (!chunk) {
-      Logger.error(`Shader slice "${path}" not founded.`);
+      Logger.error(`Shader slice "${includeName}" not founded.`);
       return "";
     }
 
-    if (this._repeatIncludeSet.has(path)) {
-      Logger.warn(`Shader slice "${path}" is included multiple times.`);
+    if (this._repeatIncludeSet.has(includeName)) {
+      Logger.warn(`Shader slice "${includeName}" is included multiple times.`);
     }
-    this._repeatIncludeSet.add(path);
+    this._repeatIncludeSet.add(includeName);
 
-    if (this._macroDefineIncludeMap.has(path)) {
-      this._mergeMacroDefineLists(this._macroDefineIncludeMap.get(path)!, outMacroDefineList);
+    if (this._macroDefineIncludeMap.has(includeName)) {
+      this._mergeMacroDefineLists(this._macroDefineIncludeMap.get(includeName)!, outMacroDefineList);
     } else {
       const chunkMacroDefineList: MacroDefineList = {};
       this._parseMacroDefines(chunk, chunkMacroDefineList);
-      this._macroDefineIncludeMap.set(path, chunkMacroDefineList);
+      this._macroDefineIncludeMap.set(includeName, chunkMacroDefineList);
       this._mergeMacroDefineLists(chunkMacroDefineList, outMacroDefineList);
     }
 
-    return this.parse(chunk, basePathForIncludeKey, outMacroDefineList, false);
+    return this.parse(chunk, outMacroDefineList, false);
   }
 }

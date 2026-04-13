@@ -46,13 +46,12 @@ export class Shader implements IReferable {
    *
    * @param shaderSource - Shader code
    * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES300
-   * @param path - Shader location path
    * @returns Shader
    *
    * @throws
    * Throw string exception if shaderLab has not been enabled properly.
    */
-  static create(shaderSource: string, platformTarget?: ShaderLanguage, path?: string): Shader;
+  static create(shaderSource: string, platformTarget?: ShaderLanguage): Shader;
 
   /**
    * Create a shader.
@@ -82,7 +81,7 @@ export class Shader implements IReferable {
   static create(
     nameOrShaderSource: string,
     vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[] | string,
-    fragmentSourceOrPath?: string
+    fragmentSource?: string
   ): Shader {
     let shader: Shader;
     const shaderMap = Shader._shaderMap;
@@ -113,8 +112,7 @@ export class Shader implements IReferable {
             passSource.contents,
             passSource.vertexEntry,
             passSource.fragmentEntry,
-            vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget,
-            new URL(fragmentSourceOrPath ?? "", ShaderPass._shaderRootPath).href
+            vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget
           );
 
           if (!shaderPassSource) {
@@ -151,7 +149,7 @@ export class Shader implements IReferable {
         return;
       }
       if (typeof vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === "string") {
-        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget, fragmentSourceOrPath);
+        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget, fragmentSource);
         shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
       } else {
         if (vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget.length > 0) {

@@ -119,8 +119,6 @@ describe("Precompile Benchmark", async () => {
   const engine = await WebGLEngine.create({ canvas });
   // @ts-ignore
   Shader._shaderLab = shaderLab;
-  // @ts-ignore
-  const basePath = new URL("", ShaderPass._shaderRootPath).href;
 
   // Create Utility shaders first — PBR uses UsePass from them
   if (!Shader.find("Utility/ShadowMap")) Shader.create(ShadowMapSource);
@@ -154,7 +152,7 @@ describe("Precompile Benchmark", async () => {
           bench(
             label,
             () => {
-              shaderLab._precompile(source!, ShaderLanguage.GLSLES100, basePath);
+              shaderLab._precompile(source!, ShaderLanguage.GLSLES100);
             },
             10,
             2
@@ -171,7 +169,7 @@ describe("Precompile Benchmark", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("2. Per-stage: parseShaderInstructions", () => {
     it("parseShaderInstructions timing for PBR vertex/fragment", () => {
-      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
+      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100);
       const results: BenchResult[] = [];
 
       for (const sub of precompiled.subShaders) {
@@ -221,7 +219,7 @@ describe("Precompile Benchmark", async () => {
       const results: Array<{ label: string; size: number; stringify: BenchResult; parse: BenchResult }> = [];
 
       for (const { label, source } of shaderFiles) {
-        const precompiled = shaderLab._precompile(source!, ShaderLanguage.GLSLES100, basePath);
+        const precompiled = shaderLab._precompile(source!, ShaderLanguage.GLSLES100);
         const strResult = bench(
           `${label} stringify`,
           () => {
@@ -259,7 +257,7 @@ describe("Precompile Benchmark", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("4. Shader reconstruction", () => {
     it("_createFromPrecompiled vs Shader.create (PBR)", () => {
-      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
+      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100);
       const jsonStr = JSON.stringify(precompiled);
 
       Logger.disable();
@@ -304,7 +302,7 @@ describe("Precompile Benchmark", async () => {
   // ═══════════════════════════════════════════════════════════
   describe("5. Macro expansion: evaluateShaderInstructions", () => {
     it("PBR fragment with different macro combos", () => {
-      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
+      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100);
 
       let fragShaderInstructions: ShaderInstruction[] | undefined;
       for (const sub of precompiled.subShaders) {
@@ -372,7 +370,7 @@ describe("Precompile Benchmark", async () => {
     it("precompiled (GSP) vs raw GLSL path", () => {
       // @ts-ignore
       Shader._shaderLab = shaderLab;
-      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100, basePath);
+      const precompiled = shaderLab._precompile(PBRSource, ShaderLanguage.GLSLES100);
       const forwardPassData = precompiled.subShaders[0].passes.find((p) => !p.isUsePass)!;
 
       // GSP ShaderPass (with instructions)
@@ -391,8 +389,7 @@ describe("Precompile Benchmark", async () => {
         livePassSource.contents,
         livePassSource.vertexEntry,
         livePassSource.fragmentEntry,
-        ShaderLanguage.GLSLES100,
-        basePath
+        ShaderLanguage.GLSLES100
       )!;
       // Use original CodeGen GLSL (with all #ifdef branches preserved)
       const glslShaderPass = new ShaderPass(

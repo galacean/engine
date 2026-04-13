@@ -52,13 +52,12 @@ export class ShaderLab implements IShaderLab {
     source: string,
     vertexEntry: string,
     fragmentEntry: string,
-    backend: ShaderLanguage,
-    basePathForIncludeKey: string
+    backend: ShaderLanguage
   ): IShaderProgramSource | undefined {
     const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();
-    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey, macroDefineList);
+    const noIncludeContent = Preprocessor.parse(source, macroDefineList);
     Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);
@@ -99,7 +98,7 @@ export class ShaderLab implements IShaderLab {
     return ret;
   }
 
-  _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePath: string): IPrecompiledShader {
+  _precompile(sourceCode: string, platformTarget: ShaderLanguage): IPrecompiledShader {
     const shaderSource = this._parseShaderSource(sourceCode);
 
     const subShaders = shaderSource.subShaders.map((sub) => ({
@@ -119,8 +118,7 @@ export class ShaderLab implements IShaderLab {
           pass.contents,
           pass.vertexEntry,
           pass.fragmentEntry,
-          platformTarget,
-          basePath
+          platformTarget
         );
 
         if (!programSource) {

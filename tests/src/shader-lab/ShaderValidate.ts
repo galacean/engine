@@ -39,9 +39,7 @@ export function glslValidate(
           passSource.contents,
           passSource.vertexEntry,
           passSource.fragmentEntry,
-          platform,
-          // @ts-ignore
-          new URL("", ShaderPass._shaderRootPath).href
+          platform
         );
 
         if (!shaderPassSource) {
