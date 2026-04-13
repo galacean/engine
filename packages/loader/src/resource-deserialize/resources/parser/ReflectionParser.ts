@@ -41,13 +41,13 @@ export class ReflectionParser {
         return Promise.all((call.args ?? []).map((arg) => this._resolveValue(arg)))
           .then((resolvedArgs) => Promise.resolve(method.apply(instance, resolvedArgs)))
           .then((result) => {
-            if (!call.onResult) return result;
+            if (!call.result) return result;
             if (result == null || (typeof result !== "object" && typeof result !== "function")) {
               return Promise.reject(
-                new Error(`Call "${call.method}" returned ${result} and cannot be mutated by onResult`)
+                new Error(`Call "${call.method}" returned ${result} and cannot be mutated by result`)
               );
             }
-            return this.parseMutationBlock(result, call.onResult);
+            return this.parseMutationBlock(result, call.result);
           });
       });
     }

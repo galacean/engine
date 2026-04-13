@@ -8,7 +8,9 @@ import {
   type EntityOverrideProps,
   type EntitySchema,
   type HierarchyFile,
-  type InlineEntitySchema
+  type InlineEntitySchema,
+  type NormalEntitySchema,
+  type PrefabInstanceEntitySchema
 } from "../../../scene-format/types";
 import { ParserContext, ParserType, type PrefabInstanceContext } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
@@ -59,7 +61,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected abstract _handleRootEntity(index: number): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
-  protected _applyEntityData(entity: Entity, entityConfig: EntitySchema): Entity {
+  protected _applyEntityData(entity: Entity, entityConfig: NormalEntitySchema): Entity {
     HierarchyParser._applyEntityProps(entity, entityConfig);
     return entity;
   }
@@ -77,7 +79,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
 
-      if (entityConfig.instance) {
+      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
+        HierarchyParser._assertPrefabInstanceEntityShape(entityConfig);
         promises.push(
           this._loadPrefabInstance(entityConfig, engine).then((entity) => {
             entityMap.set(i, entity);
@@ -102,10 +105,12 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     const entityMap = this.context.entityMap;
 
     for (let i = 0, n = entities.length; i < n; i++) {
-      const children = entities[i].children;
+      const entityConfig = entities[i];
+      // Prefab instance entities manage their own children.
+      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
+
+      const children = entityConfig.children;
       if (!children) continue;
-      // Prefab instance entities manage their own children
-      if (entities[i].instance) continue;
 
       const parent = entityMap.get(i);
       for (let j = 0, m = children.length; j < m; j++) {
@@ -131,7 +136,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
-      if (entityConfig.instance) continue;
+      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
 
       const entity = entityMap.get(i);
       const componentIndices = entityConfig.components;
@@ -271,8 +276,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           const override = overrides.removedComponents[j];
           const path = override.path.join("/");
           const selectors = override.selectors;
-          for (let j = 0, m = selectors.length; j < m; j++) {
-            const componentKey = path ? `${path}:${selectors[j]}` : `:${selectors[j]}`;
+          for (let k = 0, n = selectors.length; k < n; k++) {
+            const componentKey = path ? `${path}:${selectors[k]}` : `:${selectors[k]}`;
             const target = ctx.components.get(componentKey);
             if (target) target.destroy();
           }
@@ -287,7 +292,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Prefab instance loading
   // ---------------------------------------------------------------------------
 
-  private _loadPrefabInstance(entityConfig: EntitySchema, engine: Engine): Promise<Entity> {
+  private _loadPrefabInstance(entityConfig: PrefabInstanceEntitySchema, engine: Engine): Promise<Entity> {
     const instance = entityConfig.instance;
 
     return (
@@ -299,8 +304,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
             prefabResource instanceof PrefabResource
               ? prefabResource.instantiate()
               : prefabResource.instantiateSceneRoot();
-
-          this._applyEntityData(entity, entityConfig);
 
           const instanceContext = HierarchyParser._buildInstanceContext(entity);
           this._prefabContextMap.set(entity, instanceContext);
@@ -373,6 +376,24 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     const Class = Loader.getClass(key);
     if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
     return entity.addComponent(Class);
+  }
+
+  private static _isPrefabInstanceEntity(entityConfig: EntitySchema): entityConfig is PrefabInstanceEntitySchema {
+    return !!entityConfig.instance;
+  }
+
+  private static _assertPrefabInstanceEntityShape(entityConfig: PrefabInstanceEntitySchema): void {
+    const shape = entityConfig as unknown as Record<string, unknown>;
+    const invalidKeys = ["name", "isActive", "layer", "position", "rotation", "scale", "children", "components"].filter(
+      (key) => shape[key] != null
+    );
+    if (invalidKeys.length > 0) {
+      throw new Error(
+        `Prefab instance entity cannot declare ${invalidKeys.join(
+          ", "
+        )} directly. Move root overrides to instance.overrides.entityProps with path: [].`
+      );
+    }
   }
 
   /** Apply entity-level props (name, isActive, layer, transform) to an entity. */

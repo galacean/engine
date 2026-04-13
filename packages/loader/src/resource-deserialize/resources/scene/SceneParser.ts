@@ -4,6 +4,7 @@ import {
   type MutationBlock,
   SpecularMode,
   type ComponentSchema,
+  type EntitySchema,
   type InlineEntitySchema,
   type SceneFile,
   type HierarchyFile
@@ -86,7 +87,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entity = entities[i];
-      if (entity.instance) {
+      if (this._isPrefabInstanceEntity(entity)) {
         const asset = entity.instance.asset;
         // @ts-ignore
         context._addDependentAsset(asset.$ref, context.resourceManager.getResourceByRef(asset));
@@ -119,6 +120,10 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
         }
       }
     }
+  }
+
+  private _isPrefabInstanceEntity(entity: EntitySchema): entity is Extract<EntitySchema, { instance: unknown }> {
+    return !!entity.instance;
   }
 
   private _searchComponentDependentAssets(comp: ComponentSchema): void {
@@ -186,8 +191,8 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
       if (call.args) {
         this._searchDependentAssets(call.args);
       }
-      if (call.onResult) {
-        this._searchMutationBlock(call.onResult);
+      if (call.result) {
+        this._searchMutationBlock(call.result);
       }
     }
   }

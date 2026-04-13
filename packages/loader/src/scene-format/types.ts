@@ -23,7 +23,7 @@ export interface AssetRef {
 export interface CallSpec {
   method: string;
   args?: unknown[];
-  onResult?: MutationBlock;
+  result?: MutationBlock;
 }
 
 export interface MutationBlock {
@@ -90,11 +90,17 @@ export interface InstanceSchema {
   overrides?: InstanceOverrides;
 }
 
-export interface EntitySchema extends EntityOverrideProps {
+export interface NormalEntitySchema extends EntityOverrideProps {
   children?: number[];
   components?: number[];
-  instance?: InstanceSchema;
+  instance?: undefined;
 }
+
+export interface PrefabInstanceEntitySchema {
+  instance: InstanceSchema;
+}
+
+export type EntitySchema = NormalEntitySchema | PrefabInstanceEntitySchema;
 
 export enum SpecularMode {
   Sky = "Sky",

@@ -13,15 +13,14 @@ import {
   ShadowResolution,
   Transform
 } from "@galacean/engine-core";
+import { SpecularMode, type SceneFile } from "../../../packages/loader/src/scene-format/types";
+import { applySceneData } from "../../../packages/loader/src/SceneLoader";
 import {
   ParserContext,
-  ParserType,
-  ReflectionParser,
-  SceneParser,
-  SpecularMode,
-  type SceneFile
-} from "@galacean/engine-loader";
-import { applySceneData } from "../../../packages/loader/src/SceneLoader";
+  ParserType
+} from "../../../packages/loader/src/resource-deserialize/resources/parser/ParserContext";
+import { ReflectionParser } from "../../../packages/loader/src/resource-deserialize/resources/parser/ReflectionParser";
+import { SceneParser } from "../../../packages/loader/src/resource-deserialize/resources/scene/SceneParser";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -192,7 +191,9 @@ describe("ReflectionParser calls resolution", () => {
     context.entityMap.set(1, entity);
 
     const asset = { name: "call-asset" };
-    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockResolvedValue(asset as any);
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
+      .mockResolvedValue(asset as any);
     const parser = new ReflectionParser(context);
     const target = new CallOrderComponent(new Entity(engine, "host"));
 
@@ -220,7 +221,7 @@ describe("ReflectionParser calls resolution", () => {
     expect(target.receivedArgs[3]).to.equal(entity.transform);
   });
 
-  it("should apply onResult props and nested calls", async () => {
+  it("should apply result props and nested calls", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new ReflectionParser(context);
@@ -230,7 +231,7 @@ describe("ReflectionParser calls resolution", () => {
       {
         method: "createResult",
         args: [0],
-        onResult: {
+        result: {
           props: { x: 1 },
           calls: [{ method: "setY", args: [2] }]
         }
@@ -493,7 +494,6 @@ describe("SceneParser v2 entity tree", () => {
       entities: [
         { name: "Root", components: [0], children: [1] },
         {
-          name: "Instance",
           instance: {
             asset: { $ref: "nested.prefab" },
             overrides: {
@@ -505,7 +505,7 @@ describe("SceneParser v2 entity tree", () => {
                     {
                       method: "setMaterial",
                       args: [{ $ref: "override-call.mat" }],
-                      onResult: {
+                      result: {
                         props: {
                           nested: { $ref: "override-result.mat" }
                         }
@@ -548,7 +548,7 @@ describe("SceneParser v2 entity tree", () => {
             {
               method: "captureResolvedArgs",
               args: [{ $ref: "component-call.mat" }],
-              onResult: {
+              result: {
                 props: {
                   linked: { $ref: "component-result.mat" }
                 }
@@ -574,13 +574,13 @@ describe("SceneParser v2 entity tree", () => {
     context._setTaskCompleteProgress = () => {};
     const parser = new SceneParser(data, context, scene);
     const getResourceByRef = vi
-      .spyOn(engine.resourceManager, "getResourceByRef")
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockResolvedValue({ _addReferCount() {} } as any);
 
     let refs: string[];
     try {
       parser._collectDependentAssets(data);
-      refs = getResourceByRef.mock.calls.map(([ref]) => ref.$ref);
+      refs = getResourceByRef.mock.calls.map((args) => (args[0] as any).$ref);
     } finally {
       getResourceByRef.mockRestore();
     }
@@ -754,19 +754,21 @@ describe("applySceneData scene property parsing", () => {
     const customAmbientTexture = { name: "custom-specular-texture", _addReferCount: noop };
     const ambientTexture = { name: "sh-specular-texture", _addReferCount: noop };
     const diffuseSphericalHarmonics = { name: "ambient-sh", coefficients: new Float32Array(27) };
-    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
-      switch (ref.$ref) {
-        case "custom-ambient":
-          return Promise.resolve({ specularTexture: customAmbientTexture }) as any;
-        case "ambient-light":
-          return Promise.resolve({
-            specularTexture: ambientTexture,
-            diffuseSphericalHarmonics
-          }) as any;
-        default:
-          return Promise.resolve(null) as any;
-      }
-    });
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
+      .mockImplementation((ref: any) => {
+        switch (ref.$ref) {
+          case "custom-ambient":
+            return Promise.resolve({ specularTexture: customAmbientTexture }) as any;
+          case "ambient-light":
+            return Promise.resolve({
+              specularTexture: ambientTexture,
+              diffuseSphericalHarmonics
+            }) as any;
+          default:
+            return Promise.resolve(null) as any;
+        }
+      });
 
     try {
       await applySceneData(
@@ -798,16 +800,18 @@ describe("applySceneData scene property parsing", () => {
     const noop = () => {};
     const skyMesh = { name: "sky-mesh", _addReferCount: noop };
     const skyMaterial = { name: "sky-material", _addReferCount: noop };
-    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
-      switch (ref.$ref) {
-        case "sky-mesh":
-          return Promise.resolve(skyMesh) as any;
-        case "sky-material":
-          return Promise.resolve(skyMaterial) as any;
-        default:
-          return Promise.resolve(null) as any;
-      }
-    });
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
+      .mockImplementation((ref: any) => {
+        switch (ref.$ref) {
+          case "sky-mesh":
+            return Promise.resolve(skyMesh) as any;
+          case "sky-material":
+            return Promise.resolve(skyMaterial) as any;
+          default:
+            return Promise.resolve(null) as any;
+        }
+      });
 
     try {
       await applySceneData(
@@ -834,12 +838,14 @@ describe("applySceneData scene property parsing", () => {
   it("should apply texture background resources and fill mode", async () => {
     const scene = new Scene(engine);
     const backgroundTexture = { name: "background-texture", _addReferCount: () => {} };
-    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
-      if (ref.$ref === "background-texture") {
-        return Promise.resolve(backgroundTexture) as any;
-      }
-      return Promise.resolve(null) as any;
-    });
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
+      .mockImplementation((ref: any) => {
+        if (ref.$ref === "background-texture") {
+          return Promise.resolve(backgroundTexture) as any;
+        }
+        return Promise.resolve(null) as any;
+      });
 
     try {
       await applySceneData(

@@ -1,5 +1,5 @@
 import { Engine, Entity } from "@galacean/engine-core";
-import type { EntitySchema, HierarchyFile, PrefabFile } from "../scene-format/types";
+import type { HierarchyFile, NormalEntitySchema, PrefabFile } from "../scene-format/types";
 import { HierarchyParser } from "../resource-deserialize/resources/parser/HierarchyParser";
 import { ParserContext, ParserType } from "../resource-deserialize/resources/parser/ParserContext";
 import { PrefabResource } from "./PrefabResource";
@@ -21,7 +21,7 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext>
     super(data, context);
   }
 
-  protected override _applyEntityData(entity: Entity, entityConfig: EntitySchema): Entity {
+  protected override _applyEntityData(entity: Entity, entityConfig: NormalEntitySchema): Entity {
     super._applyEntityData(entity, entityConfig);
     // @ts-ignore
     entity._markAsTemplate(this.context.resource);

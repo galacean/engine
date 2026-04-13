@@ -1,8 +1,8 @@
 import { expect, beforeAll, afterAll, describe, it } from "vitest";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import type { PrefabFile } from "@galacean/engine-loader";
 import { Loader, MeshRenderer, Script } from "@galacean/engine-core";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
+import type { PrefabFile } from "../../../packages/loader/src/scene-format/types";
 
 let engine: WebGLEngine;
 
@@ -128,6 +128,38 @@ describe("$ref null guard in Prefab mode", () => {
 });
 
 describe("Prefab instance overrides", () => {
+  it("should reject direct root props on prefab instance entities", async () => {
+    const nestedPrefabData: PrefabFile = {
+      version: "2.0",
+      entities: [{ name: "nestedRoot" }],
+      components: [],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-invalid.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-invalid.prefab"] = nestedPrefab;
+
+    const invalidPrefabData = {
+      version: "2.0",
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          name: "invalidRootName",
+          instance: { asset: { $ref: "nested-invalid.prefab" } }
+        }
+      ],
+      components: [],
+      root: 0
+    } as any;
+
+    await expect(PrefabParser.parse(engine, "invalid-instance.prefab", invalidPrefabData)).rejects.toThrow(
+      "Prefab instance entity cannot declare name directly. Move root overrides to instance.overrides.entityProps with path: []."
+    );
+
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-invalid.prefab"];
+  });
+
   it("should apply entityProps overrides to nested prefab entities", async () => {
     // Nested prefab: root → child
     const nestedPrefabData: PrefabFile = {
@@ -146,7 +178,6 @@ describe("Prefab instance overrides", () => {
       entities: [
         { name: "outerRoot", children: [1] },
         {
-          name: "instance",
           instance: {
             asset: { $ref: "nested.prefab" },
             overrides: {
@@ -191,7 +222,6 @@ describe("Prefab instance overrides", () => {
       entities: [
         { name: "outerRoot", children: [1] },
         {
-          name: "instance",
           instance: {
             asset: { $ref: "nested-cp.prefab" },
             overrides: {
@@ -232,7 +262,6 @@ describe("Prefab instance overrides", () => {
       entities: [
         { name: "outerRoot", children: [1] },
         {
-          name: "instance",
           instance: {
             asset: { $ref: "nested-calls.prefab" },
             overrides: {
@@ -280,7 +309,6 @@ describe("Prefab instance overrides", () => {
       entities: [
         { name: "outerRoot", children: [1] },
         {
-          name: "instance",
           instance: {
             asset: { $ref: "nested-ac.prefab" },
             overrides: {
@@ -331,7 +359,6 @@ describe("Prefab instance overrides", () => {
       entities: [
         { name: "outerRoot", children: [1] },
         {
-          name: "instance",
           instance: {
             asset: { $ref: "nested-ae.prefab" },
             overrides: {
@@ -392,7 +419,6 @@ describe("Prefab instance overrides", () => {
       entities: [
         { name: "outerRoot", children: [1] },
         {
-          name: "instance",
           instance: {
             asset: { $ref: "nested-re.prefab" },
             overrides: {
@@ -432,7 +458,6 @@ describe("Prefab instance overrides", () => {
       entities: [
         { name: "outerRoot", children: [1] },
         {
-          name: "instance",
           instance: {
             asset: { $ref: "nested-rc.prefab" },
             overrides: {
@@ -478,7 +503,12 @@ describe("Cross-prefab $component ref", () => {
       version: "2.0",
       entities: [
         { name: "DiceNode", children: [1], components: [0] },
-        { name: "dice", instance: { asset: { $ref: "dice.prefab" } } }
+        {
+          instance: {
+            asset: { $ref: "dice.prefab" },
+            overrides: { entityProps: [{ path: [], name: "dice" }] }
+          }
+        }
       ],
       components: [
         {
@@ -524,7 +554,12 @@ describe("Cross-prefab $component ref", () => {
       entities: [
         { name: "DiceNode", children: [1, 2], components: [0] },
         { name: "numCube", components: [1] },
-        { name: "dice", instance: { asset: { $ref: "dice.prefab" } } }
+        {
+          instance: {
+            asset: { $ref: "dice.prefab" },
+            overrides: { entityProps: [{ path: [], name: "dice" }] }
+          }
+        }
       ],
       components: [
         {
