@@ -35,8 +35,8 @@ Shader "BlinnPhong" {
   }
 
   SubShader "Default" {
-    UsePass "PBR/Default/ShadowCaster"
-    UsePass "PBR/Default/DepthOnly"
+    UsePass "Utility/ShadowMap/Default/ShadowCaster"
+    UsePass "Utility/DepthOnly/Default/DepthOnly"
 
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }

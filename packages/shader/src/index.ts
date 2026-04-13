@@ -67,19 +67,17 @@ export function registerShaders() {
   // Ensure include fragments are registered first
   registerIncludes();
 
-  // PBR must be created first — other shaders UsePass from "PBR/Default/ShadowCaster" and "PBR/Default/DepthOnly"
-  _createShader(PBRSource);
-
-  // Material shaders that UsePass from PBR
-  _createShader(PBRSpecularSource);
-  _createShader(BlinnPhongSource);
-  _createShader(UnlitSource);
-
-  // Utility shaders
+  // Utility shaders must be created first — material shaders UsePass from them
   _createShader(BlitSource);
   _createShader(BlitScreenSource);
   _createShader(ShadowMapSource);
   _createShader(DepthOnlySource);
+
+  // Material shaders — UsePass from Utility/ShadowMap and Utility/DepthOnly
+  _createShader(PBRSource);
+  _createShader(PBRSpecularSource);
+  _createShader(BlinnPhongSource);
+  _createShader(UnlitSource);
 
   // Sky shaders
   _createShader(SkyboxSource);

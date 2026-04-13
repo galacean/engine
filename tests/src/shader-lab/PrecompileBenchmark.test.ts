@@ -5,7 +5,7 @@
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
-import { registerIncludes, PBRSource } from "@galacean/engine-shader";
+import { registerIncludes, PBRSource, ShadowMapSource, DepthOnlySource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { ShaderInstructionEncoder } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
@@ -121,6 +121,10 @@ describe("Precompile Benchmark", async () => {
   Shader._shaderLab = shaderLab;
   // @ts-ignore
   const basePath = new URL("", ShaderPass._shaderRootPath).href;
+
+  // Create Utility shaders first — PBR uses UsePass from them
+  if (!Shader.find("Utility/ShadowMap")) Shader.create(ShadowMapSource);
+  if (!Shader.find("Utility/DepthOnly")) Shader.create(DepthOnlySource);
 
   // Load all test shaders upfront
   const shaderFiles = [

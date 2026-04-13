@@ -43,11 +43,9 @@ describe("ShaderLab", async () => {
     expect(pass1.name).to.equal("Forward Pass");
     expect(passList.length).to.eq(3);
 
-    // Pass (ShadowCaster and DepthOnly are now inlined, not UsePass)
-    expect(passList[0].isUsePass).to.not.be.ok;
-    expect(passList[0].name).to.equal("ShadowCaster");
-    expect(passList[1].isUsePass).to.not.be.ok;
-    expect(passList[1].name).to.equal("DepthOnly");
+    // Pass (ShadowCaster and DepthOnly are UsePass from Utility shaders)
+    expect(passList[0].isUsePass).to.be.true;
+    expect(passList[1].isUsePass).to.be.true;
     expect(passList[2].name).eq("Forward Pass");
 
     // renderState

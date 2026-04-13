@@ -250,7 +250,12 @@ export class Shader implements IReferable {
   }
 
   private static _resolveUsePass(passName: string): ShaderPass | undefined {
-    const [shaderName, subShaderName, passNamePart] = passName.split("/");
+    // Parse from the end: last segment is pass name, second-to-last is subshader name,
+    // everything before is the shader name (which may contain "/" like "Utility/ShadowMap").
+    const parts = passName.split("/");
+    const passNamePart = parts.pop();
+    const subShaderName = parts.pop();
+    const shaderName = parts.join("/");
     return Shader.find(shaderName)
       ?.subShaders.find((subShader) => subShader.name === subShaderName)
       ?.passes.find((pass) => pass.name === passNamePart);
