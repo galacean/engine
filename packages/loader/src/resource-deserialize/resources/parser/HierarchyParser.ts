@@ -2,6 +2,7 @@ import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core"
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 import {
+  type ComponentSchema,
   type EntityOverrideProps,
   type EntitySchema,
   type HierarchyFile,
@@ -129,10 +130,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
       for (let j = 0, m = componentIndices.length; j < m; j++) {
         const config = allComponents[componentIndices[j]];
-        const key = config.script ? config.script.$ref : config.type;
-        const Class = Loader.getClass(key);
-        if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
-        const component = entity.addComponent(Class);
+        const component = HierarchyParser._addComponentFromConfig(entity, config);
         componentPairs.push({ component, config });
       }
     }
@@ -208,10 +206,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           const target = ctx.entityMap.get(path);
           if (target) {
             const compConfig = added.component;
-            const compKey = compConfig.script ? compConfig.script.$ref : compConfig.type;
-            const CompClass = Loader.getClass(compKey);
-            if (!CompClass) throw new Error(`Loader.getClass: class "${compKey}" is not registered`);
-            const component = target.addComponent(CompClass);
+            const component = HierarchyParser._addComponentFromConfig(target, compConfig);
             promises.push(this._reflectionParser.parseProps(component, compConfig.props));
           }
         }
@@ -321,10 +316,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     if (config.components) {
       for (let i = 0, n = config.components.length; i < n; i++) {
         const compConfig = config.components[i];
-        const key = compConfig.script ? compConfig.script.$ref : compConfig.type;
-        const InlineClass = Loader.getClass(key);
-        if (!InlineClass) throw new Error(`Loader.getClass: class "${key}" is not registered`);
-        const component = entity.addComponent(InlineClass);
+        const component = HierarchyParser._addComponentFromConfig(entity, compConfig);
         promises.push(this._reflectionParser.parseProps(component, compConfig.props));
       }
     }
@@ -339,6 +331,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // ---------------------------------------------------------------------------
   // Utilities
   // ---------------------------------------------------------------------------
+
+  /** Resolve component class from config and add to entity. Throws if class is not registered. */
+  private static _addComponentFromConfig(entity: Entity, config: ComponentSchema): Component {
+    const key = config.script ? config.script.$ref : config.type;
+    const Class = Loader.getClass(key);
+    if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
+    return entity.addComponent(Class);
+  }
 
   /** Convert override key "[0,1]" → path string "0/1" */
   private static _overrideKeyToPath(key: string): string {

@@ -1,18 +1,7 @@
 import { Loader } from "@galacean/engine-core";
 import { ParserContext, ParserType } from "./ParserContext";
 
-export type CustomParseComponentHandle = (
-  instance: any,
-  item: { props?: Record<string, unknown> }
-) => Promise<any> | any;
-
 export class ReflectionParser {
-  static customParseComponentHandles: Record<string, CustomParseComponentHandle> = {};
-
-  static registerCustomParseComponent(componentType: string, handle: CustomParseComponentHandle) {
-    this.customParseComponentHandles[componentType] = handle;
-  }
-
   constructor(private readonly _context: ParserContext) {}
 
   /**
@@ -29,11 +18,7 @@ export class ReflectionParser {
         promises.push(promise);
       }
     }
-    return Promise.all(promises).then(() => {
-      const handle = ReflectionParser.customParseComponentHandles[Loader.getClassName(instance.constructor)];
-      if (handle) return handle(instance, { props });
-      return instance;
-    });
+    return Promise.all(promises).then(() => instance);
   }
 
   /**
@@ -85,7 +70,7 @@ export class ReflectionParser {
     // $entity — entity reference by flat index
     if ("$entity" in obj) {
       const entity = this._context.entityMap.get(obj.$entity as number);
-      return Promise.resolve(entity);
+      return Promise.resolve(entity ?? null);
     }
 
     // $component — component reference: { entity, type, index }

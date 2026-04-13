@@ -1,7 +1,9 @@
 import "@galacean/engine-loader";
 import {
+  BackgroundTextureFillMode,
   BackgroundMode,
   Camera,
+  DiffuseMode,
   Entity,
   FogMode,
   Loader,
@@ -20,7 +22,7 @@ import {
 } from "@galacean/engine-loader";
 import { applySceneData } from "../../../packages/loader/src/SceneLoader";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 Loader.registerClass("Transform", Transform);
 Loader.registerClass("Camera", Camera);
@@ -118,6 +120,17 @@ describe("ReflectionParser v2 props resolution", () => {
     expect(target.target).to.equal(entity1);
   });
 
+  it("should resolve missing $entity to null", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+    const target: any = {};
+    await parser.parseProps(target, {
+      target: { $entity: 999 }
+    });
+    expect(target.target).to.be.null;
+  });
+
   it("should resolve $component by entity index + type + index", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
@@ -173,15 +186,7 @@ describe("SceneParser v2 entity tree", () => {
   }
 
   it("should build single-root entity tree from flat array", async () => {
-    const data = createSceneData(
-      [
-        { name: "Root", children: [1, 2] },
-        { name: "Camera" },
-        { name: "Light" }
-      ],
-      [],
-      [0]
-    );
+    const data = createSceneData([{ name: "Root", children: [1, 2] }, { name: "Camera" }, { name: "Light" }], [], [0]);
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
@@ -198,15 +203,7 @@ describe("SceneParser v2 entity tree", () => {
   });
 
   it("should build multi-root entity tree", async () => {
-    const data = createSceneData(
-      [
-        { name: "Root1", children: [2] },
-        { name: "Root2" },
-        { name: "Child" }
-      ],
-      [],
-      [0, 1]
-    );
+    const data = createSceneData([{ name: "Root1", children: [2] }, { name: "Root2" }, { name: "Child" }], [], [0, 1]);
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
@@ -254,11 +251,7 @@ describe("SceneParser v2 entity tree", () => {
   });
 
   it("should set entity isActive and layer", async () => {
-    const data = createSceneData(
-      [{ name: "Inactive", isActive: false, layer: 3 }],
-      [],
-      [0]
-    );
+    const data = createSceneData([{ name: "Inactive", isActive: false, layer: 3 }], [], [0]);
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
@@ -273,12 +266,7 @@ describe("SceneParser v2 entity tree", () => {
 
   it("should handle deep entity nesting", async () => {
     const data = createSceneData(
-      [
-        { name: "A", children: [1] },
-        { name: "B", children: [2] },
-        { name: "C", children: [3] },
-        { name: "D" }
-      ],
+      [{ name: "A", children: [1] }, { name: "B", children: [2] }, { name: "C", children: [3] }, { name: "D" }],
       [],
       [0]
     );
@@ -335,38 +323,13 @@ describe("SceneParser v2 entity tree", () => {
   });
 
   it("should throw a clear error when component type is not registered", async () => {
-    const data = createSceneData(
-      [{ name: "Entity", components: [0] }],
-      [{ type: "UnregisteredComponent999" }],
-      [0]
-    );
+    const data = createSceneData([{ name: "Entity", components: [0] }], [{ type: "UnregisteredComponent999" }], [0]);
 
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await expect(parser.promise).rejects.toThrow("UnregisteredComponent999");
-  });
-
-  it("should trigger customParseComponentHandles even without props", async () => {
-    const scene = new Scene(engine);
-    const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
-
-    let handleCalled = false;
-    let receivedProps: Record<string, unknown> | undefined;
-    ReflectionParser.registerCustomParseComponent("TestValueType", async (instance, item) => {
-      handleCalled = true;
-      receivedProps = item.props;
-      return instance;
-    });
-
-    const target = new TestValueType();
-    await parser.parseProps(target, undefined);
-
-    expect(handleCalled).to.equal(true);
-    expect(receivedProps).to.equal(undefined);
-    delete ReflectionParser.customParseComponentHandles["TestValueType"];
   });
 });
 
@@ -395,9 +358,7 @@ describe("ReflectionParser $signal resolution", () => {
     const target: any = { onClick: mockSignal };
     await parser.parseProps(target, {
       onClick: {
-        $signal: [
-          { target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }
-        ]
+        $signal: [{ target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }]
       }
     });
 
@@ -428,9 +389,7 @@ describe("ReflectionParser $signal resolution", () => {
     const target: any = { onClick: mockSignal };
     await parser.parseProps(target, {
       onClick: {
-        $signal: [
-          { target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }
-        ]
+        $signal: [{ target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }]
       }
     });
 
@@ -454,9 +413,7 @@ describe("ReflectionParser $signal resolution", () => {
     await expect(
       parser.parseProps(target, {
         onClick: {
-          $signal: [
-            { target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }
-          ]
+          $signal: [{ target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }]
         }
       })
     ).rejects.toThrow("$signal");
@@ -528,6 +485,119 @@ describe("ReflectionParser $type resolution", () => {
 // so any change to the parsing logic is automatically covered.
 
 describe("applySceneData scene property parsing", () => {
+  it("should resolve ambient resources for custom specular and spherical harmonics", async () => {
+    const scene = new Scene(engine);
+    const customAmbientTexture = { name: "custom-specular-texture" };
+    const ambientTexture = { name: "sh-specular-texture" };
+    const diffuseSphericalHarmonics = { name: "ambient-sh" };
+    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
+      switch (ref.$ref) {
+        case "custom-ambient":
+          return Promise.resolve({ specularTexture: customAmbientTexture }) as any;
+        case "ambient-light":
+          return Promise.resolve({
+            specularTexture: ambientTexture,
+            diffuseSphericalHarmonics
+          }) as any;
+        default:
+          return Promise.resolve(null) as any;
+      }
+    });
+
+    try {
+      await applySceneData(
+        scene,
+        {
+          entities: [0],
+          background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
+          ambient: {
+            diffuseMode: DiffuseMode.SphericalHarmonics,
+            diffuseIntensity: 1,
+            specularIntensity: 1,
+            specularMode: SpecularMode.Custom,
+            customAmbientLight: { $ref: "custom-ambient" },
+            ambientLight: { $ref: "ambient-light" }
+          }
+        },
+        engine.resourceManager
+      );
+    } finally {
+      getResourceByRef.mockRestore();
+    }
+
+    expect(scene.ambientLight.specularTexture).to.equal(customAmbientTexture);
+    expect(scene.ambientLight.diffuseSphericalHarmonics).to.equal(diffuseSphericalHarmonics);
+  });
+
+  it("should apply sky background resources", async () => {
+    const scene = new Scene(engine);
+    const skyMesh = { name: "sky-mesh" };
+    const skyMaterial = { name: "sky-material" };
+    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
+      switch (ref.$ref) {
+        case "sky-mesh":
+          return Promise.resolve(skyMesh) as any;
+        case "sky-material":
+          return Promise.resolve(skyMaterial) as any;
+        default:
+          return Promise.resolve(null) as any;
+      }
+    });
+
+    try {
+      await applySceneData(
+        scene,
+        {
+          entities: [0],
+          background: {
+            mode: BackgroundMode.Sky,
+            color: [0, 0, 0, 1],
+            skyMesh: { $ref: "sky-mesh" },
+            skyMaterial: { $ref: "sky-material" }
+          }
+        },
+        engine.resourceManager
+      );
+    } finally {
+      getResourceByRef.mockRestore();
+    }
+
+    expect(scene.background.sky.mesh).to.equal(skyMesh);
+    expect(scene.background.sky.material).to.equal(skyMaterial);
+  });
+
+  it("should apply texture background resources and fill mode", async () => {
+    const scene = new Scene(engine);
+    const backgroundTexture = { name: "background-texture" };
+    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
+      if (ref.$ref === "background-texture") {
+        return Promise.resolve(backgroundTexture) as any;
+      }
+      return Promise.resolve(null) as any;
+    });
+
+    try {
+      await applySceneData(
+        scene,
+        {
+          entities: [0],
+          background: {
+            mode: BackgroundMode.Texture,
+            color: [0, 0, 0, 1],
+            texture: { $ref: "background-texture" },
+            textureFillMode: BackgroundTextureFillMode.Fill
+          }
+        },
+        engine.resourceManager
+      );
+    } finally {
+      getResourceByRef.mockRestore();
+    }
+
+    expect(scene.background.texture).to.equal(backgroundTexture);
+    expect(scene.background.textureFillMode).to.equal(BackgroundTextureFillMode.Fill);
+  });
+
   it("should apply shadow properties to scene", async () => {
     const scene = new Scene(engine);
     await applySceneData(
