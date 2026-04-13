@@ -487,9 +487,10 @@ describe("ReflectionParser $type resolution", () => {
 describe("applySceneData scene property parsing", () => {
   it("should resolve ambient resources for custom specular and spherical harmonics", async () => {
     const scene = new Scene(engine);
-    const customAmbientTexture = { name: "custom-specular-texture" };
-    const ambientTexture = { name: "sh-specular-texture" };
-    const diffuseSphericalHarmonics = { name: "ambient-sh" };
+    const noop = () => {};
+    const customAmbientTexture = { name: "custom-specular-texture", _addReferCount: noop };
+    const ambientTexture = { name: "sh-specular-texture", _addReferCount: noop };
+    const diffuseSphericalHarmonics = { name: "ambient-sh", coefficients: new Float32Array(27) };
     const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
       switch (ref.$ref) {
         case "custom-ambient":
@@ -531,8 +532,9 @@ describe("applySceneData scene property parsing", () => {
 
   it("should apply sky background resources", async () => {
     const scene = new Scene(engine);
-    const skyMesh = { name: "sky-mesh" };
-    const skyMaterial = { name: "sky-material" };
+    const noop = () => {};
+    const skyMesh = { name: "sky-mesh", _addReferCount: noop };
+    const skyMaterial = { name: "sky-material", _addReferCount: noop };
     const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
       switch (ref.$ref) {
         case "sky-mesh":
@@ -568,7 +570,7 @@ describe("applySceneData scene property parsing", () => {
 
   it("should apply texture background resources and fill mode", async () => {
     const scene = new Scene(engine);
-    const backgroundTexture = { name: "background-texture" };
+    const backgroundTexture = { name: "background-texture", _addReferCount: () => {} };
     const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockImplementation((ref: any) => {
       if (ref.$ref === "background-texture") {
         return Promise.resolve(backgroundTexture) as any;
