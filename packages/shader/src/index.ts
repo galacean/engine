@@ -39,27 +39,9 @@ export function registerIncludes() {
 }
 
 /**
- * Create a shader from ShaderLab source, replacing any existing shader with the same name.
- * @internal
- */
-function _createShader(source: string): void {
-  // Extract the shader name from `Shader "name" {` declaration
-  const match = source.match(/Shader\s+"([^"]+)"/);
-  if (match) {
-    const name = match[1];
-    if (Shader.find(name)) {
-      // Remove existing shader (e.g., from ShaderPool's VS/FS fallback) to allow ShaderLab re-creation
-      delete (Shader as any)._shaderMap[name];
-    }
-  }
-  Shader.create(source);
-}
-
-/**
  * Register all built-in shaders via ShaderLab.
  * Must be called after engine creation (requires ShaderLab to be set).
  * Automatically calls registerIncludes() if not already done.
- * Replaces any existing shaders with the same name (e.g., from ShaderPool fallback).
  */
 export function registerShaders() {
   if (shaderRegistered) return;
@@ -68,39 +50,39 @@ export function registerShaders() {
   registerIncludes();
 
   // Utility shaders must be created first — material shaders UsePass from them
-  _createShader(BlitSource);
-  _createShader(BlitScreenSource);
-  _createShader(ShadowMapSource);
-  _createShader(DepthOnlySource);
+  Shader.create(BlitSource);
+  Shader.create(BlitScreenSource);
+  Shader.create(ShadowMapSource);
+  Shader.create(DepthOnlySource);
 
   // Material shaders — UsePass from Utility/ShadowMap and Utility/DepthOnly
-  _createShader(PBRSource);
-  _createShader(PBRSpecularSource);
-  _createShader(BlinnPhongSource);
-  _createShader(UnlitSource);
+  Shader.create(PBRSource);
+  Shader.create(PBRSpecularSource);
+  Shader.create(BlinnPhongSource);
+  Shader.create(UnlitSource);
 
   // Sky shaders
-  _createShader(SkyboxSource);
-  _createShader(SkyProceduralSource);
-  _createShader(BackgroundTextureSource);
+  Shader.create(SkyboxSource);
+  Shader.create(SkyProceduralSource);
+  Shader.create(BackgroundTextureSource);
 
   // 2D shaders
-  _createShader(SpriteSource);
-  _createShader(SpriteMaskSource);
-  _createShader(TextSource);
-  _createShader(TrailSource);
+  Shader.create(SpriteSource);
+  Shader.create(SpriteMaskSource);
+  Shader.create(TextSource);
+  Shader.create(TrailSource);
 
   // Particle shader
-  _createShader(ParticleSource);
+  Shader.create(ParticleSource);
 
   // PostProcess shaders
-  _createShader(UberShaderSource);
-  _createShader(FinalSRGBShaderSource);
-  _createShader(FinalAntiAliasingShaderSource);
-  _createShader(BloomShaderSource);
+  Shader.create(UberShaderSource);
+  Shader.create(FinalSRGBShaderSource);
+  Shader.create(FinalAntiAliasingShaderSource);
+  Shader.create(BloomShaderSource);
 
   // AO shader
-  _createShader(SAOShaderSource);
+  Shader.create(SAOShaderSource);
 
   shaderRegistered = true;
 }
