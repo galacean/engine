@@ -14,7 +14,10 @@ import {
 import { SpecularMode, type SceneFile } from "./scene-format/types";
 import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
-/** Apply scene-level data (ambient, background, shadow, fog, AO) to a Scene. */
+/**
+ * Apply scene-level data (ambient, background, shadow, fog, AO) to a Scene.
+ * @internal
+ */
 export function applySceneData(
   scene: Scene,
   sceneData: SceneFile["scene"],
@@ -142,13 +145,15 @@ export function applySceneData(
   const ambientOcclusion = sceneData.ambientOcclusion;
   if (ambientOcclusion) {
     const sceneAO = scene.ambientOcclusion;
-    if (ambientOcclusion.enabledAmbientOcclusion != undefined) sceneAO.enabled = ambientOcclusion.enabledAmbientOcclusion;
+    if (ambientOcclusion.enabledAmbientOcclusion != undefined)
+      sceneAO.enabled = ambientOcclusion.enabledAmbientOcclusion;
     if (ambientOcclusion.quality != undefined) sceneAO.quality = ambientOcclusion.quality;
     if (ambientOcclusion.intensity != undefined) sceneAO.intensity = ambientOcclusion.intensity;
     if (ambientOcclusion.radius != undefined) sceneAO.radius = ambientOcclusion.radius;
     if (ambientOcclusion.bias != undefined) sceneAO.bias = ambientOcclusion.bias;
     if (ambientOcclusion.power != undefined) sceneAO.power = ambientOcclusion.power;
-    if (ambientOcclusion.bilateralThreshold != undefined) sceneAO.bilateralThreshold = ambientOcclusion.bilateralThreshold;
+    if (ambientOcclusion.bilateralThreshold != undefined)
+      sceneAO.bilateralThreshold = ambientOcclusion.bilateralThreshold;
     if (ambientOcclusion.minHorizonAngle != undefined) sceneAO.minHorizonAngle = ambientOcclusion.minHorizonAngle;
   }
 

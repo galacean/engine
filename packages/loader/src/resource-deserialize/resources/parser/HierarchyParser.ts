@@ -290,6 +290,8 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     ctx.entityMap.set(path, entity);
     const componentIndexMap: Record<string, number> = {};
 
+    // Must iterate _components directly to preserve insertion order — the per-type index
+    // (e.g. "MeshRenderer/0") used by prefab override selectors depends on this ordering.
     // @ts-ignore
     entity._components.forEach((component: Component) => {
       // @ts-ignore
