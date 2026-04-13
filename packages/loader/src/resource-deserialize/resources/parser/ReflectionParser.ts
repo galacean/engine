@@ -125,6 +125,9 @@ export class ReflectionParser {
       arguments?: unknown[];
     }>
   ): Promise<any> {
+    if (!signal || typeof signal.on !== "function") {
+      return Promise.reject(new Error("$signal requires a pre-initialized Signal instance on the target property"));
+    }
     const promises = listeners.map((listener) => {
       const targetComponent = this._resolveComponent(listener.target.$component);
       if (!targetComponent) return Promise.resolve();
@@ -139,7 +142,9 @@ export class ReflectionParser {
   private _resolveComponent(comp: { entity: number; type: string; index: number }): any {
     const entity = this._context.entityMap.get(comp.entity);
     if (!entity) return null;
-    return entity.getComponents(Loader.getClass(comp.type), [])[comp.index] ?? null;
+    const type = Loader.getClass(comp.type);
+    if (!type) return null;
+    return entity.getComponents(type, [])[comp.index] ?? null;
   }
 
   /**

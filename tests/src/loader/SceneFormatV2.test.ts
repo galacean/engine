@@ -438,6 +438,43 @@ describe("ReflectionParser $signal resolution", () => {
     expect(target.onClick).to.equal(mockSignal);
     expect(bound.length).to.equal(0);
   });
+
+  it("should throw a clear error when $signal target property is not initialized", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const entity0 = new Entity(engine, "source");
+    const entity1 = new Entity(engine, "target");
+    context.entityMap.set(0, entity0);
+    context.entityMap.set(1, entity1);
+
+    const parser = new ReflectionParser(context);
+
+    // onClick is undefined — not initialized as a Signal
+    const target: any = { onClick: undefined };
+    await expect(
+      parser.parseProps(target, {
+        onClick: {
+          $signal: [
+            { target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }
+          ]
+        }
+      })
+    ).rejects.toThrow("$signal");
+  });
+
+  it("should return null when $component references an unregistered type", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const entity = new Entity(engine, "test");
+    context.entityMap.set(0, entity);
+
+    const parser = new ReflectionParser(context);
+    const target: any = {};
+    await parser.parseProps(target, {
+      comp: { $component: { entity: 0, type: "NonExistentType999", index: 0 } }
+    });
+    expect(target.comp).to.be.null;
+  });
 });
 
 // ---------------------------------------------------------------------------
