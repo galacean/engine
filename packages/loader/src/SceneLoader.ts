@@ -113,15 +113,13 @@ export function applySceneData(
     if (shadow.shadowResolution != undefined) scene.shadowResolution = shadow.shadowResolution;
     if (shadow.shadowDistance != undefined) scene.shadowDistance = shadow.shadowDistance;
     if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
-    if (shadow.enableTransparentShadow != undefined) {
-      scene.enableTransparentShadow = shadow.enableTransparentShadow;
-    }
-    scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits ?? scene.shadowTwoCascadeSplits;
+    if (shadow.enableTransparentShadow != undefined) scene.enableTransparentShadow = shadow.enableTransparentShadow;
+    if (shadow.shadowTwoCascadeSplits != undefined) scene.shadowTwoCascadeSplits = shadow.shadowTwoCascadeSplits;
     if (shadow.shadowFourCascadeSplits) {
       const splits = shadow.shadowFourCascadeSplits;
       scene.shadowFourCascadeSplits.set(splits[0], splits[1], splits[2]);
     }
-    scene.shadowFadeBorder = shadow.shadowFadeBorder ?? scene.shadowFadeBorder;
+    if (shadow.shadowFadeBorder != undefined) scene.shadowFadeBorder = shadow.shadowFadeBorder;
   }
 
   // parse fog
@@ -131,9 +129,7 @@ export function applySceneData(
     if (fog.fogStart != undefined) scene.fogStart = fog.fogStart;
     if (fog.fogEnd != undefined) scene.fogEnd = fog.fogEnd;
     if (fog.fogDensity != undefined) scene.fogDensity = fog.fogDensity;
-    if (fog.fogColor != undefined) {
-      scene.fogColor.set(fog.fogColor[0], fog.fogColor[1], fog.fogColor[2], fog.fogColor[3]);
-    }
+    if (fog.fogColor) scene.fogColor.set(fog.fogColor[0], fog.fogColor[1], fog.fogColor[2], fog.fogColor[3]);
   }
 
   // Post Process
@@ -145,15 +141,15 @@ export function applySceneData(
   // Ambient Occlusion
   const ambientOcclusion = sceneData.ambientOcclusion;
   if (ambientOcclusion) {
-    const sceneAmbientOcclusion = scene.ambientOcclusion;
-    sceneAmbientOcclusion.enabled = ambientOcclusion.enabledAmbientOcclusion;
-    sceneAmbientOcclusion.intensity = ambientOcclusion.intensity;
-    sceneAmbientOcclusion.radius = ambientOcclusion.radius;
-    sceneAmbientOcclusion.bias = ambientOcclusion.bias;
-    sceneAmbientOcclusion.power = ambientOcclusion.power;
-    sceneAmbientOcclusion.quality = ambientOcclusion.quality;
-    sceneAmbientOcclusion.bilateralThreshold = ambientOcclusion.bilateralThreshold;
-    sceneAmbientOcclusion.minHorizonAngle = ambientOcclusion.minHorizonAngle;
+    const sceneAO = scene.ambientOcclusion;
+    if (ambientOcclusion.enabledAmbientOcclusion != undefined) sceneAO.enabled = ambientOcclusion.enabledAmbientOcclusion;
+    if (ambientOcclusion.quality != undefined) sceneAO.quality = ambientOcclusion.quality;
+    if (ambientOcclusion.intensity != undefined) sceneAO.intensity = ambientOcclusion.intensity;
+    if (ambientOcclusion.radius != undefined) sceneAO.radius = ambientOcclusion.radius;
+    if (ambientOcclusion.bias != undefined) sceneAO.bias = ambientOcclusion.bias;
+    if (ambientOcclusion.power != undefined) sceneAO.power = ambientOcclusion.power;
+    if (ambientOcclusion.bilateralThreshold != undefined) sceneAO.bilateralThreshold = ambientOcclusion.bilateralThreshold;
+    if (ambientOcclusion.minHorizonAngle != undefined) sceneAO.minHorizonAngle = ambientOcclusion.minHorizonAngle;
   }
 
   return Promise.all(promises).then(() => {});

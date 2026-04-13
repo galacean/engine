@@ -104,31 +104,31 @@ export interface SceneFile extends HierarchyFile {
       specularMode: SpecularMode;
     };
     shadow?: {
-      castShadows: boolean;
-      enableTransparentShadow: boolean;
-      shadowResolution: ShadowResolution;
-      shadowDistance: number;
-      shadowCascades: ShadowCascadesMode;
-      shadowTwoCascadeSplits: number;
-      shadowFourCascadeSplits: Vec3Tuple;
-      shadowFadeBorder: number;
+      castShadows?: boolean;
+      enableTransparentShadow?: boolean;
+      shadowResolution?: ShadowResolution;
+      shadowDistance?: number;
+      shadowCascades?: ShadowCascadesMode;
+      shadowTwoCascadeSplits?: number;
+      shadowFourCascadeSplits?: Vec3Tuple;
+      shadowFadeBorder?: number;
     };
     fog?: {
-      fogMode: FogMode;
-      fogStart: number;
-      fogEnd: number;
-      fogDensity: number;
-      fogColor: Vec4Tuple;
+      fogMode?: FogMode;
+      fogStart?: number;
+      fogEnd?: number;
+      fogDensity?: number;
+      fogColor?: Vec4Tuple;
     };
     ambientOcclusion?: {
-      bias: number;
-      bilateralThreshold: number;
-      enabledAmbientOcclusion: boolean;
-      intensity: number;
-      power: number;
-      quality: number;
-      radius: number;
-      minHorizonAngle: number;
+      enabledAmbientOcclusion?: boolean;
+      quality?: number;
+      intensity?: number;
+      radius?: number;
+      bias?: number;
+      power?: number;
+      bilateralThreshold?: number;
+      minHorizonAngle?: number;
     };
   };
 }
