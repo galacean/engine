@@ -3,6 +3,8 @@ Shader "Utility/ShadowMap" {
     Pass "ShadowCaster" {
       Tags { pipelineStage = "ShadowCaster" }
 
+      RenderQueueType = material_ShadowCasterRenderQueue;
+
       VertexShader = vert;
       FragmentShader = frag;
 

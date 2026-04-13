@@ -3,6 +3,8 @@ Shader "Utility/DepthOnly" {
     Pass "DepthOnly" {
       Tags { pipelineStage = "DepthOnly" }
 
+      RenderQueueType = material_DepthOnlyRenderQueue;
+
       VertexShader = vert;
       FragmentShader = frag;
 
