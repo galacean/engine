@@ -1,3 +1,7 @@
+// Common helper functions for simplex noise.
+// Algorithm: Ken Perlin, "Noise hardware" (2001) — simplex lattice improvement over classic Perlin noise (1985).
+// GLSL implementation: Ian McEwan, Ashima Arts (MIT License) — https://github.com/ashima/webgl-noise
+
 // Modulo 289 without a division (only multiplications)
 vec4 mod289( vec4 x ) {
 
