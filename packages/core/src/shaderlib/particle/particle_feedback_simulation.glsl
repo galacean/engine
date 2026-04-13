@@ -247,7 +247,7 @@ void main() {
                 a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age,
                 worldRotation) + a_SimulationWorldPosition;
         }
-        totalVelocity += computeNoiseDisplacement(noiseBasePos, normalizedAge);
+        totalVelocity += computeNoiseVelocity(noiseBasePos, normalizedAge);
     #endif
     vec3 position = a_FeedbackPosition + totalVelocity * dt;
 

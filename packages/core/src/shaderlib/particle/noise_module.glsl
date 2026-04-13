@@ -31,13 +31,13 @@ vec3 sampleCurlNoise3D(vec3 coord) {
     vec3 gradY = simplexGrad(vec3(coord.x + axisOffset, coord.z, coord.y));
     vec3 gradZ = simplexGrad(vec3(coord.y, coord.x + axisOffset, coord.z));
     return vec3(
-        gradZ.y - gradY.z,
-        gradX.z - gradZ.x,
+        gradZ.x - gradY.y,
+        gradX.x - gradZ.y,
         gradY.x - gradX.y
     );
 }
 
-vec3 computeNoiseDisplacement(vec3 currentPosition, float normalizedAge) {
+vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
     vec3 coord = currentPosition * renderer_NoiseParams.w
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
 
