@@ -8,6 +8,7 @@ import {
   FogMode,
   Loader,
   Scene,
+  Script,
   ShadowCascadesMode,
   ShadowResolution,
   Transform
@@ -32,6 +33,39 @@ class TestValueType {
   y = 0;
 }
 Loader.registerClass("TestValueType", TestValueType);
+
+class CallOrderComponent extends Script {
+  value = "";
+  receivedArgs: any[] = [];
+  lastResult: any = null;
+
+  appendSuffix(suffix: string): void {
+    this.value += suffix;
+  }
+
+  captureResolvedArgs(...args: any[]): void {
+    this.receivedArgs = args;
+  }
+
+  setBaseDelayed(base: string): Promise<void> {
+    return Promise.resolve().then(() => {
+      this.value = base;
+    });
+  }
+
+  createResult(seed: number) {
+    const result = {
+      x: seed,
+      y: 0,
+      setY(next: number) {
+        this.y = next;
+      }
+    };
+    this.lastResult = result;
+    return result;
+  }
+}
+Loader.registerClass("CallOrderComponent", CallOrderComponent);
 
 let engine: WebGLEngine;
 
@@ -144,7 +178,91 @@ describe("ReflectionParser v2 props resolution", () => {
     });
     expect(target.comp).to.equal(entity.transform);
   });
+});
 
+// ---------------------------------------------------------------------------
+// ReflectionParser — calls execution
+// ---------------------------------------------------------------------------
+
+describe("ReflectionParser calls resolution", () => {
+  it("should resolve special call args through v2 value rules", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const entity = new Entity(engine, "target");
+    context.entityMap.set(1, entity);
+
+    const asset = { name: "call-asset" };
+    const getResourceByRef = vi.spyOn(engine.resourceManager, "getResourceByRef").mockResolvedValue(asset as any);
+    const parser = new ReflectionParser(context);
+    const target = new CallOrderComponent(new Entity(engine, "host"));
+
+    try {
+      await parser.parseCalls(target, [
+        {
+          method: "captureResolvedArgs",
+          args: [
+            { $ref: "call-asset" },
+            { $type: "TestValueType", x: 3, y: 4 },
+            { $entity: 1 },
+            { $component: { entity: 1, type: "Transform", index: 0 } }
+          ]
+        }
+      ]);
+    } finally {
+      getResourceByRef.mockRestore();
+    }
+
+    expect(target.receivedArgs[0]).to.equal(asset);
+    expect(target.receivedArgs[1]).to.be.instanceOf(TestValueType);
+    expect(target.receivedArgs[1].x).to.equal(3);
+    expect(target.receivedArgs[1].y).to.equal(4);
+    expect(target.receivedArgs[2]).to.equal(entity);
+    expect(target.receivedArgs[3]).to.equal(entity.transform);
+  });
+
+  it("should apply onResult props and nested calls", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+    const target = new CallOrderComponent(new Entity(engine, "host"));
+
+    await parser.parseCalls(target, [
+      {
+        method: "createResult",
+        args: [0],
+        onResult: {
+          props: { x: 1 },
+          calls: [{ method: "setY", args: [2] }]
+        }
+      }
+    ]);
+
+    expect(target.lastResult.x).to.equal(1);
+    expect(target.lastResult.y).to.equal(2);
+  });
+
+  it("should await each call before executing the next one", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+    const target = new CallOrderComponent(new Entity(engine, "host"));
+
+    await parser.parseCalls(target, [
+      { method: "setBaseDelayed", args: ["base"] },
+      { method: "appendSuffix", args: ["-after"] }
+    ]);
+
+    expect(target.value).to.equal("base-after");
+  });
+
+  it("should throw a clear error when the target method is missing", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context);
+    const target: any = {};
+
+    await expect(parser.parseCalls(target, [{ method: "missingMethod" }])).rejects.toThrow("missingMethod");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -314,6 +432,30 @@ describe("SceneParser v2 entity tree", () => {
     expect(camera.farClipPlane).to.equal(500);
   });
 
+  it("should apply component calls after props", async () => {
+    const data = createSceneData(
+      [{ name: "CallEntity", components: [0] }],
+      [
+        {
+          type: "CallOrderComponent",
+          props: { value: "base" },
+          calls: [{ method: "appendSuffix", args: ["-after"] }]
+        } as any
+      ],
+      [0]
+    );
+
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new SceneParser(data, context, scene);
+    parser.start();
+    await parser.promise;
+
+    const component = scene.rootEntities[0].getComponent(CallOrderComponent);
+    expect(component).to.not.be.null;
+    expect(component.value).to.equal("base-after");
+  });
+
   it("should throw a clear error when component type is not registered", async () => {
     const data = createSceneData([{ name: "Entity", components: [0] }], [{ type: "UnregisteredComponent999" }], [0]);
 
@@ -322,6 +464,114 @@ describe("SceneParser v2 entity tree", () => {
     const parser = new SceneParser(data, context, scene);
     parser.start();
     await expect(parser.promise).rejects.toThrow("UnregisteredComponent999");
+  });
+
+  it("should collect dependent assets from component calls and override calls", () => {
+    const data: SceneFile = {
+      version: "2.0",
+      entities: [
+        { name: "Root", components: [0], children: [1] },
+        {
+          name: "Instance",
+          instance: {
+            asset: { $ref: "nested.prefab" },
+            overrides: {
+              componentProps: [
+                {
+                  path: [],
+                  selector: "MeshRenderer/0",
+                  calls: [
+                    {
+                      method: "setMaterial",
+                      args: [{ $ref: "override-call.mat" }],
+                      onResult: {
+                        props: {
+                          nested: { $ref: "override-result.mat" }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ],
+              addedComponents: [
+                {
+                  target: [],
+                  component: {
+                    type: "CallOrderComponent",
+                    calls: [{ method: "captureResolvedArgs", args: [{ $ref: "added-component.mat" }] }]
+                  } as any
+                }
+              ],
+              addedEntities: [
+                {
+                  parent: [],
+                  entity: {
+                    name: "Inline",
+                    components: [
+                      {
+                        type: "CallOrderComponent",
+                        calls: [{ method: "captureResolvedArgs", args: [{ $ref: "inline-component.mat" }] }]
+                      } as any
+                    ]
+                  }
+                }
+              ]
+            } as any
+          }
+        }
+      ],
+      components: [
+        {
+          type: "CallOrderComponent",
+          calls: [
+            {
+              method: "captureResolvedArgs",
+              args: [{ $ref: "component-call.mat" }],
+              onResult: {
+                props: {
+                  linked: { $ref: "component-result.mat" }
+                }
+              }
+            }
+          ]
+        } as any
+      ],
+      scene: {
+        entities: [0],
+        background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
+        ambient: {
+          diffuseMode: DiffuseMode.SolidColor,
+          diffuseIntensity: 1,
+          specularIntensity: 1,
+          specularMode: SpecularMode.Sky
+        }
+      }
+    };
+
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    context._setTaskCompleteProgress = () => {};
+    const parser = new SceneParser(data, context, scene);
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager, "getResourceByRef")
+      .mockResolvedValue({ _addReferCount() {} } as any);
+
+    try {
+      parser._collectDependentAssets(data);
+    } finally {
+      getResourceByRef.mockRestore();
+    }
+
+    const refs = getResourceByRef.mock.calls.map(([ref]) => ref.$ref);
+    expect(refs).to.include.members([
+      "nested.prefab",
+      "component-call.mat",
+      "component-result.mat",
+      "override-call.mat",
+      "override-result.mat",
+      "added-component.mat",
+      "inline-component.mat"
+    ]);
   });
 });
 

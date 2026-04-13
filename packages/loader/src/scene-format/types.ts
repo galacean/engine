@@ -20,10 +20,22 @@ export interface AssetRef {
   key?: string;
 }
 
+export interface CallSpec {
+  method: string;
+  args?: unknown[];
+  onResult?: MutationBlock;
+}
+
+export interface MutationBlock {
+  props?: Record<string, unknown>;
+  calls?: CallSpec[];
+}
+
 export interface ComponentSchema {
   type: string;
   script?: AssetRef;
   props?: Record<string, unknown>;
+  calls?: CallSpec[];
 }
 
 export interface EntityOverrideProps {
@@ -50,11 +62,25 @@ export interface AddedComponentOverride {
   component: ComponentSchema;
 }
 
+export interface EntityPropOverride extends EntityOverrideProps {
+  path: number[];
+}
+
+export interface ComponentOverride extends MutationBlock {
+  path: number[];
+  selector: string;
+}
+
+export interface RemovedComponentOverride {
+  path: number[];
+  selectors: string[];
+}
+
 export interface InstanceOverrides {
-  entityProps?: Record<string, EntityOverrideProps>;
-  componentProps?: Record<string, Record<string, Record<string, unknown>>>;
+  entityProps?: EntityPropOverride[];
+  componentProps?: ComponentOverride[];
   removedEntities?: number[][];
-  removedComponents?: Record<string, string[]>;
+  removedComponents?: RemovedComponentOverride[];
   addedEntities?: AddedEntityOverride[];
   addedComponents?: AddedComponentOverride[];
 }

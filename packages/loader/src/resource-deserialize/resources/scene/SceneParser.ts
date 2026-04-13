@@ -1,5 +1,7 @@
 import { BackgroundMode, DiffuseMode, Scene } from "@galacean/engine-core";
 import {
+  type CallSpec,
+  type MutationBlock,
   SpecularMode,
   type ComponentSchema,
   type InlineEntitySchema,
@@ -93,11 +95,8 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
         const overrides = entity.instance.overrides;
         if (overrides) {
           if (overrides.componentProps) {
-            for (const key in overrides.componentProps) {
-              const componentMap = overrides.componentProps[key];
-              for (const selector in componentMap) {
-                this._searchDependentAssets(componentMap[selector]);
-              }
+            for (let j = 0, m = overrides.componentProps.length; j < m; j++) {
+              this._searchMutationBlock(overrides.componentProps[j]);
             }
           }
           if (overrides.addedComponents) {
@@ -134,6 +133,9 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
     if (comp.props) {
       this._searchDependentAssets(comp.props);
     }
+    if (comp.calls) {
+      this._searchCalls(comp.calls);
+    }
   }
 
   private _searchInlineEntityDependentAssets(entity: InlineEntitySchema): void {
@@ -163,6 +165,29 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
         for (const key in value) {
           this._searchDependentAssets(value[key]);
         }
+      }
+    }
+  }
+
+  private _searchMutationBlock(block?: MutationBlock): void {
+    if (!block) return;
+    if (block.props) {
+      this._searchDependentAssets(block.props);
+    }
+    if (block.calls) {
+      this._searchCalls(block.calls);
+    }
+  }
+
+  private _searchCalls(calls?: CallSpec[]): void {
+    if (!calls) return;
+    for (let i = 0, n = calls.length; i < n; i++) {
+      const call = calls[i];
+      if (call.args) {
+        this._searchDependentAssets(call.args);
+      }
+      if (call.onResult) {
+        this._searchMutationBlock(call.onResult);
       }
     }
   }

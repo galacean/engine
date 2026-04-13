@@ -3,6 +3,8 @@ import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
 import {
   type ComponentSchema,
+  type ComponentOverride,
+  type EntityPropOverride,
   type EntityOverrideProps,
   type EntitySchema,
   type HierarchyFile,
@@ -39,6 +41,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .then(() => this._organizeEntities())
       .then(() => this._parseComponents())
       .then(() => this._parseComponentsProps())
+      .then(() => this._parseComponentsCalls())
       .then(() => this._parsePrefabOverrides())
       .then(() => this._clearAndResolve())
       .then(this._resolve)
@@ -154,6 +157,25 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   }
 
   // ---------------------------------------------------------------------------
+  // Stage 4.5: Execute component calls after props
+  // ---------------------------------------------------------------------------
+
+  private _parseComponentsCalls(): Promise<void> {
+    const { componentPairs } = this.context;
+    const reflectionParser = this._reflectionParser;
+    const promises: Promise<any>[] = [];
+
+    for (let i = 0, n = componentPairs.length; i < n; i++) {
+      const { component, config } = componentPairs[i];
+      if (config.calls) {
+        promises.push(reflectionParser.parseCalls(component, config.calls));
+      }
+    }
+
+    return Promise.all(promises).then(() => {});
+  }
+
+  // ---------------------------------------------------------------------------
   // Stage 5: Apply prefab instance overrides
   // ---------------------------------------------------------------------------
 
@@ -174,26 +196,30 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
       // entityProps — entity-level property overrides
       if (overrides.entityProps) {
-        for (const key in overrides.entityProps) {
-          const path = HierarchyParser._overrideKeyToPath(key);
-          const target = ctx.entityMap.get(path);
+        for (let j = 0, m = overrides.entityProps.length; j < m; j++) {
+          const override = overrides.entityProps[j] as EntityPropOverride;
+          const target = ctx.entityMap.get(override.path.join("/"));
           if (target) {
-            HierarchyParser._applyEntityProps(target, overrides.entityProps[key]);
+            HierarchyParser._applyEntityProps(target, override);
           }
         }
       }
 
       // componentProps — component-level property overrides
       if (overrides.componentProps) {
-        for (const key in overrides.componentProps) {
-          const path = HierarchyParser._overrideKeyToPath(key);
-          const componentMap = overrides.componentProps[key];
-          for (const selector in componentMap) {
-            const componentKey = path ? `${path}:${selector}` : `:${selector}`;
-            const target = ctx.components.get(componentKey);
-            if (target) {
-              promises.push(this._reflectionParser.parseProps(target, componentMap[selector]));
-            }
+        const seenTargets = new Set<string>();
+        for (let j = 0, m = overrides.componentProps.length; j < m; j++) {
+          const override = overrides.componentProps[j] as ComponentOverride;
+          const path = override.path.join("/");
+          const componentKey = path ? `${path}:${override.selector}` : `:${override.selector}`;
+          if (seenTargets.has(componentKey)) {
+            return Promise.reject(new Error(`Duplicate component override for "${componentKey}"`));
+          }
+          seenTargets.add(componentKey);
+
+          const target = ctx.components.get(componentKey);
+          if (target) {
+            promises.push(this._reflectionParser.parseMutationBlock(target, override));
           }
         }
       }
@@ -207,7 +233,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           if (target) {
             const compConfig = added.component;
             const component = HierarchyParser._addComponentFromConfig(target, compConfig);
-            promises.push(this._reflectionParser.parseProps(component, compConfig.props));
+            promises.push(this._reflectionParser.parseMutationBlock(component, compConfig));
           }
         }
       }
@@ -235,9 +261,10 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
       // removedComponents — destroy components from prefab entities
       if (overrides.removedComponents) {
-        for (const key in overrides.removedComponents) {
-          const path = HierarchyParser._overrideKeyToPath(key);
-          const selectors = overrides.removedComponents[key];
+        for (let j = 0, m = overrides.removedComponents.length; j < m; j++) {
+          const override = overrides.removedComponents[j];
+          const path = override.path.join("/");
+          const selectors = override.selectors;
           for (let j = 0, m = selectors.length; j < m; j++) {
             const componentKey = path ? `${path}:${selectors[j]}` : `:${selectors[j]}`;
             const target = ctx.components.get(componentKey);
@@ -319,7 +346,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       for (let i = 0, n = config.components.length; i < n; i++) {
         const compConfig = config.components[i];
         const component = HierarchyParser._addComponentFromConfig(entity, compConfig);
-        promises.push(this._reflectionParser.parseProps(component, compConfig.props));
+        promises.push(this._reflectionParser.parseMutationBlock(component, compConfig));
       }
     }
 
@@ -340,11 +367,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     const Class = Loader.getClass(key);
     if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
     return entity.addComponent(Class);
-  }
-
-  /** Convert override key "[0,1]" → path string "0/1" */
-  private static _overrideKeyToPath(key: string): string {
-    return key.slice(1, -1).replace(/,/g, "/");
   }
 
   /** Apply entity-level props (name, isActive, layer, transform) to an entity. */

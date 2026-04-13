@@ -1,4 +1,5 @@
 import { Loader } from "@galacean/engine-core";
+import type { CallSpec, MutationBlock } from "../../../scene-format/types";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
@@ -19,6 +20,47 @@ export class ReflectionParser {
       }
     }
     return Promise.all(promises).then(() => instance);
+  }
+
+  /**
+   * Execute calls sequentially on a target instance.
+   * Call args are resolved with the same v2 value rules as props.
+   */
+  parseCalls(instance: any, calls?: CallSpec[]): Promise<any> {
+    if (!calls?.length) return Promise.resolve(instance);
+
+    let chain = Promise.resolve();
+    for (let i = 0, n = calls.length; i < n; i++) {
+      const call = calls[i];
+      chain = chain.then(() => {
+        const method = instance?.[call.method];
+        if (typeof method !== "function") {
+          return Promise.reject(new Error(`Call target does not have method "${call.method}"`));
+        }
+
+        return Promise.all((call.args ?? []).map((arg) => this._resolveValue(arg)))
+          .then((resolvedArgs) => Promise.resolve(method.apply(instance, resolvedArgs)))
+          .then((result) => {
+            if (!call.onResult) return result;
+            if (result == null || (typeof result !== "object" && typeof result !== "function")) {
+              return Promise.reject(
+                new Error(`Call "${call.method}" returned ${result} and cannot be mutated by onResult`)
+              );
+            }
+            return this.parseMutationBlock(result, call.onResult);
+          });
+      });
+    }
+
+    return chain.then(() => instance);
+  }
+
+  /**
+   * Apply props first, then calls, to preserve declarative-before-command ordering.
+   */
+  parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
+    if (!block) return Promise.resolve(target);
+    return this.parseProps(target, block.props).then(() => this.parseCalls(target, block.calls));
   }
 
   /**
