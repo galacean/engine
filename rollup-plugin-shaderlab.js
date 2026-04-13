@@ -49,14 +49,8 @@ export default function shaderlab(userOptions = {}) {
         globalThis.document = { createElement: () => ({}) };
       }
       const { ShaderLab } = require("@galacean/engine-shaderlab");
-      // Register built-in include fragments (Common.glsl, Light.glsl, etc.)
-      // so that #include directives in .gs files can be resolved.
-      try {
-        const { registerIncludes } = require("@galacean/engine-shader");
-        registerIncludes();
-      } catch (e) {
-        // @galacean/engine-shader may not be available in all contexts
-      }
+      // Built-in include fragments are auto-registered by core's ShaderPool.init()
+      // which runs when @galacean/engine-core is loaded.
       shaderLabInstance = new ShaderLab();
     }
     return shaderLabInstance;

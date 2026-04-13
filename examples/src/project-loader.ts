@@ -4,12 +4,8 @@
  */
 import { AssetType, Logger, WebGLEngine } from "@galacean/engine";
 import { ShaderLab } from "@galacean/engine-shaderlab";
-import { registerIncludes } from "@galacean/engine-shader";
 
 Logger.enable();
-
-const shaderLab = new ShaderLab();
-registerIncludes();
 
 WebGLEngine.create({
   canvas: document.getElementById("canvas") as HTMLCanvasElement,

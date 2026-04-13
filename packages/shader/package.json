@@ -18,19 +18,10 @@
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.ShaderFragment",
-    "globals": {
-      "@galacean/engine": "Galacean"
-    }
+    "name": "Galacean.ShaderFragment"
   },
   "files": [
     "dist/**/*",
     "types/**/*"
-  ],
-  "devDependencies": {
-    "@galacean/engine": "workspace:*"
-  },
-  "peerDependencies": {
-    "@galacean/engine": "workspace:*"
-  }
+  ]
 }

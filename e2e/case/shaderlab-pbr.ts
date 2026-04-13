@@ -18,14 +18,12 @@ import {
   Vector3
 } from "@galacean/engine";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { registerIncludes } from "@galacean/engine-shader";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 
 Logger.enable();
 
 const shaderLab = new ShaderLab();
-registerIncludes();
 
 // const pbrShaderSource = `Shader "Water" {
 

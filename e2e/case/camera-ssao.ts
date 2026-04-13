@@ -22,13 +22,11 @@ import {
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
-import { PBRSource, registerIncludes } from "@galacean/engine-shader";
+import { PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
-
-registerIncludes();
 
 // Create engine
 WebGLEngine.create({

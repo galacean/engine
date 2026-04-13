@@ -3,9 +3,9 @@
  */
 
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import { PBRSource, ShadowMapSource, DepthOnlySource } from "@galacean/engine-shader";
 import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
-import { registerIncludes, PBRSource, ShadowMapSource, DepthOnlySource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { ShaderInstructionEncoder } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
@@ -16,7 +16,6 @@ import { describe, expect, it } from "vitest";
 
 const { readFile } = server.commands;
 Logger.enable();
-registerIncludes();
 
 const shaderLab = new ShaderLab();
 

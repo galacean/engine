@@ -376,14 +376,7 @@ MRT frag(Varyings input) {
 
 ## 注册代码片段
 
-官方提供了很多内置代码段，开发者可以直接注册后使用:
-
-```ts showLineNumbers {4} filename="Typescript"
-import { registerIncludes } from "@galacean/engine-shader";
-
-// 对内置 ShaderLab 代码段注册。
-registerIncludes();
-```
+内置代码段会在引擎创建时自动注册，无需手动调用。
 
 如果是自定义的片段，可以通过接口进行手动注册:
 ```ts

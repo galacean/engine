@@ -372,14 +372,7 @@ Include code snippets using the `#include` directive:
 
 ## Registering Code Snippets
 
-The framework provides many built-in code snippets; developers can register them directly for use:
-
-```ts showLineNumbers {4} filename="Typescript"
-import { registerIncludes } from "@galacean/engine-shader";
-
-// Register the built-in ShaderLab code snippets.
-registerIncludes();
-```
+Built-in code snippets are automatically registered when the engine is created — no manual registration is needed.
 
 For custom snippets, you can register them manually through an interface...
 

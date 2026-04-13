@@ -7,7 +7,7 @@ import {
   RenderStateElementKey,
   StencilOperation
 } from "@galacean/engine-core";
-import { PBRSource, registerIncludes } from "@galacean/engine-shader";
+import { PBRSource } from "@galacean/engine-shader";
 import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
 import { ShaderLab as ShaderLabVerbose } from "@galacean/engine-shaderlab/verbose";
 import { glslValidate } from "./ShaderValidate";
@@ -17,7 +17,6 @@ import { server } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
 const { readFile } = server.commands;
 Logger.enable();
-registerIncludes();
 
 const shaderLabVerbose = new ShaderLabVerbose();
 const shaderLabRelease = new ShaderLabRelease();

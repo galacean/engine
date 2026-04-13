@@ -21,7 +21,8 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@galacean/engine-math": "workspace:*"
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-shader": "workspace:*"
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*"

@@ -1,6 +1,6 @@
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection } from "@galacean/engine-core";
+import { PBRSource } from "@galacean/engine-shader";
 import { IPrecompiledShader } from "@galacean/engine-design";
-import { registerIncludes, registerShaders, PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { ShaderInstructionEncoder, ShaderInstruction } from "@galacean/engine-shaderlab/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
@@ -11,7 +11,6 @@ import { describe, expect, it } from "vitest";
 
 const { readFile } = server.commands;
 Logger.enable();
-registerIncludes();
 
 const shaderLab = new ShaderLab();
 
@@ -22,11 +21,7 @@ function makeMacroMap(entries: Array<[string, string]>): Map<string, string> {
 
 describe("ShaderLab Precompile", async () => {
   const canvas = document.createElement("canvas");
-  const engine = await WebGLEngine.create({ canvas });
-
-  // @ts-ignore
-  Shader._shaderLab = shaderLab;
-  registerShaders();
+  const engine = await WebGLEngine.create({ canvas, shaderLab });
 
 
   // ─────────────────────────────────────────────────────────

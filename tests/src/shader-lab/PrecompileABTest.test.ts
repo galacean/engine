@@ -11,7 +11,7 @@
  */
 
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
-import { registerIncludes, PBRSource } from "@galacean/engine-shader";
+import { PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
@@ -21,7 +21,6 @@ import { describe, expect, it } from "vitest";
 
 const { readFile } = server.commands;
 Logger.enable();
-registerIncludes();
 
 const shaderLab = new ShaderLab();
 

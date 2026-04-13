@@ -204,6 +204,9 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
+      '@galacean/engine-shader':
+        specifier: workspace:*
+        version: link:../shader
     devDependencies:
       '@galacean/engine-design':
         specifier: workspace:*
@@ -275,11 +278,7 @@ importers:
         specifier: workspace:*
         version: link:../design
 
-  packages/shader:
-    devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
+  packages/shader: {}
 
   packages/shader-lab:
     devDependencies:

@@ -633,6 +633,7 @@ export class Engine extends EventDispatcher {
 
     if (shaderLab && !Shader._shaderLab) {
       Shader._shaderLab = shaderLab;
+      ShaderPool.registerShaders();
     }
 
     const initializePromises = new Array<Promise<any>>();
