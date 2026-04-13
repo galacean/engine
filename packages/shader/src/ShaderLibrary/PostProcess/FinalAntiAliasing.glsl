@@ -4,13 +4,18 @@
 #define FXAA_PC 1
 #define FXAA_QUALITY_PRESET 12
 #define FXAA_GREEN_AS_LUMA 0
+#if defined(GRAPHICS_API_WEBGL2)
+    #define FXAA_GLSL_130 1
+#elif defined(GRAPHICS_API_WEBGL1)
+    #define FXAA_GLSL_120 1
+#endif
 
 #include "Common/Common.glsl"
 #include "PostProcess/FXAA/FXAA3_11.glsl"
 
-const float FXAA_SUBPIXEL_BLEND_AMOUNT = 0.75;
-const float FXAA_RELATIVE_CONTRAST_THRESHOLD = 0.166;
-const float FXAA_ABSOLUTE_CONTRAST_THRESHOLD = 0.0833;
+const FxaaFloat FXAA_SUBPIXEL_BLEND_AMOUNT = 0.75;
+const FxaaFloat FXAA_RELATIVE_CONTRAST_THRESHOLD = 0.166;
+const FxaaFloat FXAA_ABSOLUTE_CONTRAST_THRESHOLD = 0.0833;
 
 sampler2D renderer_BlitTexture;
 vec4 renderer_texelSize;
