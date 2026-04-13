@@ -237,10 +237,6 @@ void main() {
       totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
     }
     #ifdef RENDERER_NOISE_MODULE_ENABLED
-        // Noise velocity overlay (not persisted)
-        // computeNoiseDisplacement returns noise * strength (position-scale)
-        // Dividing by lifetime converts to velocity so that integration over lifetime
-        // recovers the original displacement magnitude
         // Use analytical base position (birth + initial velocity * age) instead of
         // a_FeedbackPosition to avoid feedback loop: position → noise → velocity → position
         vec3 noiseBasePos;
@@ -251,7 +247,7 @@ void main() {
                 a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age,
                 worldRotation) + a_SimulationWorldPosition;
         }
-        totalVelocity += computeNoiseDisplacement(noiseBasePos, normalizedAge) / lifetime;
+        totalVelocity += computeNoiseVelocity(noiseBasePos, normalizedAge);
     #endif
     vec3 position = a_FeedbackPosition + totalVelocity * dt;
 
