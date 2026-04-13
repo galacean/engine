@@ -131,13 +131,4 @@ export class ReflectionParser {
     if (!type) return null;
     return entity.getComponents(type, [])[comp.index] ?? null;
   }
-
-  /**
-   * Check if a value is a v2 asset reference ($ref).
-   * Used by SceneParser for dependency collection.
-   * @internal
-   */
-  static _isAssetRef(value: any): boolean {
-    return value != null && typeof value === "object" && "$ref" in value;
-  }
 }

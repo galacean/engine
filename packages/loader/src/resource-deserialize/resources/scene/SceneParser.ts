@@ -8,7 +8,6 @@ import {
 } from "../../../scene-format/types";
 import { HierarchyParser } from "../parser/HierarchyParser";
 import { ParserContext } from "../parser/ParserContext";
-import { ReflectionParser } from "../parser/ReflectionParser";
 
 /** @Internal */
 export class SceneParser extends HierarchyParser<Scene, ParserContext> {
@@ -156,7 +155,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
         this._searchDependentAssets(value[i]);
       }
     } else if (value != null && typeof value === "object") {
-      if (ReflectionParser._isAssetRef(value)) {
+      if ("$ref" in value) {
         const context = this.context;
         // @ts-ignore
         context._addDependentAsset(value.$ref, context.resourceManager.getResourceByRef(value));

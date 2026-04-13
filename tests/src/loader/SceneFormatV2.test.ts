@@ -145,14 +145,6 @@ describe("ReflectionParser v2 props resolution", () => {
     expect(target.comp).to.equal(entity.transform);
   });
 
-  it("should detect $ref values via _isAssetRef", () => {
-    expect(ReflectionParser._isAssetRef({ $ref: "some-uuid" })).to.be.true;
-    expect(ReflectionParser._isAssetRef({ $ref: "uuid", key: "k" })).to.be.true;
-    expect(ReflectionParser._isAssetRef({ refId: "old-format" })).to.be.false;
-    expect(ReflectionParser._isAssetRef(null)).to.be.false;
-    expect(ReflectionParser._isAssetRef(42)).to.be.false;
-    expect(ReflectionParser._isAssetRef("string")).to.be.false;
-  });
 });
 
 // ---------------------------------------------------------------------------
