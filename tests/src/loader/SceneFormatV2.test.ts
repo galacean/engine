@@ -556,13 +556,13 @@ describe("SceneParser v2 entity tree", () => {
       .spyOn(engine.resourceManager, "getResourceByRef")
       .mockResolvedValue({ _addReferCount() {} } as any);
 
+    let refs: string[];
     try {
       parser._collectDependentAssets(data);
+      refs = getResourceByRef.mock.calls.map(([ref]) => ref.$ref);
     } finally {
       getResourceByRef.mockRestore();
     }
-
-    const refs = getResourceByRef.mock.calls.map(([ref]) => ref.$ref);
     expect(refs).to.include.members([
       "nested.prefab",
       "component-call.mat",
