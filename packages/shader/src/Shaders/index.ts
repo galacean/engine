@@ -56,13 +56,11 @@ import ColorOverLifetime from "../ShaderLibrary/Particle/Module/ColorOverLifetim
 import TextureSheetAnimation from "../ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl";
 import ForceOverLifetime from "../ShaderLibrary/Particle/Module/ForceOverLifetime.glsl";
 import LimitVelocityOverLifetime from "../ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl";
+import NoiseModule from "../ShaderLibrary/Particle/Module/NoiseModule.glsl";
 
 // Noise
 import NoiseCommon from "../ShaderLibrary/Noise/NoiseCommon.glsl";
-import NoiseSimplex from "../ShaderLibrary/Noise/NoiseSimplex.glsl";
-import NoisePerlin from "../ShaderLibrary/Noise/NoisePerlin.glsl";
-import NoiseCellular from "../ShaderLibrary/Noise/NoiseCellular.glsl";
-import NoisePsrd from "../ShaderLibrary/Noise/NoisePsrd.glsl";
+import NoiseSimplexGrad from "../ShaderLibrary/Noise/NoiseSimplexGrad.glsl";
 
 // Post-process
 import PostCommon from "../ShaderLibrary/PostProcess/PostCommon.glsl";
@@ -186,13 +184,11 @@ const fragmentList: IShaderFragment[] = [
   { source: TextureSheetAnimation, includeKey: "Particle/Module/TextureSheetAnimation.glsl" },
   { source: ForceOverLifetime, includeKey: "Particle/Module/ForceOverLifetime.glsl" },
   { source: LimitVelocityOverLifetime, includeKey: "Particle/Module/LimitVelocityOverLifetime.glsl" },
+  { source: NoiseModule, includeKey: "Particle/Module/NoiseModule.glsl" },
 
   // Noise
   { source: NoiseCommon, includeKey: "Noise/NoiseCommon.glsl" },
-  { source: NoiseSimplex, includeKey: "Noise/NoiseSimplex.glsl" },
-  { source: NoisePerlin, includeKey: "Noise/NoisePerlin.glsl" },
-  { source: NoiseCellular, includeKey: "Noise/NoiseCellular.glsl" },
-  { source: NoisePsrd, includeKey: "Noise/NoisePsrd.glsl" },
+  { source: NoiseSimplexGrad, includeKey: "Noise/NoiseSimplexGrad.glsl" },
 
   // Post-process
   { source: PostCommon, includeKey: "PostProcess/PostCommon.glsl" },

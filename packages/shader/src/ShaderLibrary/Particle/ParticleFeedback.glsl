@@ -37,6 +37,7 @@ vec3 v_FeedbackVelocity;
 #include <Particle/Module/VelocityOverLifetime.glsl>
 #include <Particle/Module/ForceOverLifetime.glsl>
 #include <Particle/Module/LimitVelocityOverLifetime.glsl>
+#include <Particle/Module/NoiseModule.glsl>
 
 // Get VOL instantaneous velocity at normalizedAge
 vec3 getVOLVelocity(float normalizedAge) {
@@ -230,16 +231,27 @@ void main() {
     // World mode: position in world space, velocity rotated to world
     // =====================================================
     // FOL is now fully in localVelocity (both local and world-space FOL).
-    // Only VOL overlay needs to be added here.
+    // VOL and Noise overlays are added here (not persisted).
+
     vec3 totalVelocity;
     if (renderer_SimulationSpace == 0) {
-      // Local: integrate in local space
-      totalVelocity = localVelocity + volLocal
-        + rotationByQuaternions(volWorld, invWorldRotation);
+      totalVelocity = localVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
     } else {
-      // World: integrate in world space
       totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
     }
+    #ifdef RENDERER_NOISE_MODULE_ENABLED
+        // Use analytical base position (birth + initial velocity * age) instead of
+        // a_FeedbackPosition to avoid feedback loop: position → noise → velocity → position
+        vec3 noiseBasePos;
+        if (renderer_SimulationSpace == 0) {
+            noiseBasePos = a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age;
+        } else {
+            noiseBasePos = rotationByQuaternions(
+                a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age,
+                worldRotation) + a_SimulationWorldPosition;
+        }
+        totalVelocity += computeNoiseVelocity(noiseBasePos, normalizedAge);
+    #endif
     vec3 position = a_FeedbackPosition + totalVelocity * dt;
 
     v_FeedbackPosition = position;
