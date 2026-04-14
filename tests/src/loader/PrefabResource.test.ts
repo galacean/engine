@@ -38,6 +38,7 @@ describe("PrefabResource refCount", () => {
   it("should reject prefab data with an unsupported version", () => {
     const prefabData = {
       version: "1.0",
+      refs: [],
       entities: [{ name: "root" }],
       components: [],
       root: 0
@@ -51,6 +52,7 @@ describe("PrefabResource refCount", () => {
   it("should increase and decrease with instantiated entities", async () => {
     const prefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root", children: [1] }, { name: "child" }],
       components: [],
       root: 0
@@ -76,6 +78,7 @@ describe("PrefabResource refCount", () => {
   it("should support destroy then re-instantiate cycle", async () => {
     const prefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root", children: [1] }, { name: "child" }],
       components: [],
       root: 0
@@ -108,6 +111,7 @@ describe("PrefabResource refCount", () => {
   it("should count instances when prefab root comes from a nested prefab instance", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "nestedRoot", children: [1] }, { name: "nestedChild" }],
       components: [],
       root: 0
@@ -119,7 +123,8 @@ describe("PrefabResource refCount", () => {
     try {
       const outerPrefabData: PrefabFile = {
         version: "2.0",
-        entities: [{ instance: { asset: { $ref: "nested-root-instance.prefab" } } }],
+        refs: [{ url: "nested-root-instance.prefab" }],
+        entities: [{ instance: { asset: 0 } }],
         components: [],
         root: 0
       };
@@ -149,8 +154,9 @@ describe("$ref null guard in Prefab mode", () => {
   it("should not add null to dependence assets when $ref resolves to null", async () => {
     const prefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "missing-asset.png" }],
       entities: [{ name: "root", components: [0] }],
-      components: [{ type: "DiceScript", props: { skinMesh: { $ref: "missing-asset.png" } } }],
+      components: [{ type: "DiceScript", props: { skinMesh: { $ref: 0 } } }],
       root: 0
     };
 
@@ -167,42 +173,11 @@ describe("$ref null guard in Prefab mode", () => {
 });
 
 describe("Prefab instance overrides", () => {
-  it("should reject direct root props on prefab instance entities", async () => {
-    const nestedPrefabData: PrefabFile = {
-      version: "2.0",
-      entities: [{ name: "nestedRoot" }],
-      components: [],
-      root: 0
-    };
-    const nestedPrefab = await PrefabParser.parse(engine, "nested-invalid.prefab", nestedPrefabData);
-    // @ts-ignore
-    engine.resourceManager._objectPool["nested-invalid.prefab"] = nestedPrefab;
-
-    const invalidPrefabData = {
-      version: "2.0",
-      entities: [
-        { name: "outerRoot", children: [1] },
-        {
-          name: "invalidRootName",
-          instance: { asset: { $ref: "nested-invalid.prefab" } }
-        }
-      ],
-      components: [],
-      root: 0
-    } as any;
-
-    expect(() => PrefabParser.parse(engine, "invalid-instance.prefab", invalidPrefabData)).toThrow(
-      "Prefab instance entity cannot declare name directly. Move root overrides to instance.overrides.entityProps with path: []."
-    );
-
-    // @ts-ignore
-    delete engine.resourceManager._objectPool["nested-invalid.prefab"];
-  });
-
   it("should apply entityProps overrides to nested prefab entities", async () => {
     // Nested prefab: root → child
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "originalRoot", children: [1] }, { name: "originalChild" }],
       components: [],
       root: 0
@@ -214,11 +189,12 @@ describe("Prefab instance overrides", () => {
     // Outer prefab with instance overrides: rename child entity
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "nested.prefab" }],
       entities: [
         { name: "outerRoot", children: [1] },
         {
           instance: {
-            asset: { $ref: "nested.prefab" },
+            asset: 0,
             overrides: {
               entityProps: [
                 { path: [], name: "renamedRoot" },
@@ -248,6 +224,7 @@ describe("Prefab instance overrides", () => {
   it("should override component props via componentProps", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -258,13 +235,14 @@ describe("Prefab instance overrides", () => {
 
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "nested-cp.prefab" }],
       entities: [
         { name: "outerRoot", children: [1] },
         {
           instance: {
-            asset: { $ref: "nested-cp.prefab" },
+            asset: 0,
             overrides: {
-              componentProps: [{ path: [], selector: "MeshRenderer/0", props: { enabled: false } }]
+              componentProps: [{ path: [], selector: { type: "MeshRenderer", index: 0 }, props: { enabled: false } }]
             }
           }
         }
@@ -288,6 +266,7 @@ describe("Prefab instance overrides", () => {
   it("should execute component override calls after props", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root", components: [0] }],
       components: [{ type: "OverrideCallScript" }],
       root: 0
@@ -298,16 +277,17 @@ describe("Prefab instance overrides", () => {
 
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "nested-calls.prefab" }],
       entities: [
         { name: "outerRoot", children: [1] },
         {
           instance: {
-            asset: { $ref: "nested-calls.prefab" },
+            asset: 0,
             overrides: {
               componentProps: [
                 {
                   path: [],
-                  selector: "OverrideCallScript/0",
+                  selector: { type: "OverrideCallScript", index: 0 },
                   props: { value: "base" },
                   calls: [{ method: "appendSuffix", args: ["-override"] }]
                 }
@@ -335,6 +315,7 @@ describe("Prefab instance overrides", () => {
   it("should add components via addedComponents", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root" }],
       components: [],
       root: 0
@@ -345,11 +326,12 @@ describe("Prefab instance overrides", () => {
 
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "nested-ac.prefab" }],
       entities: [
         { name: "outerRoot", children: [1] },
         {
           instance: {
-            asset: { $ref: "nested-ac.prefab" },
+            asset: 0,
             overrides: {
               addedComponents: [
                 {
@@ -385,6 +367,7 @@ describe("Prefab instance overrides", () => {
   it("should add entities via addedEntities", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root" }],
       components: [],
       root: 0
@@ -395,11 +378,12 @@ describe("Prefab instance overrides", () => {
 
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "nested-ae.prefab" }],
       entities: [
         { name: "outerRoot", children: [1] },
         {
           instance: {
-            asset: { $ref: "nested-ae.prefab" },
+            asset: 0,
             overrides: {
               addedEntities: [
                 {
@@ -445,6 +429,7 @@ describe("Prefab instance overrides", () => {
   it("should remove entities via removedEntities", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root", children: [1] }, { name: "child" }],
       components: [],
       root: 0
@@ -455,11 +440,12 @@ describe("Prefab instance overrides", () => {
 
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "nested-re.prefab" }],
       entities: [
         { name: "outerRoot", children: [1] },
         {
           instance: {
-            asset: { $ref: "nested-re.prefab" },
+            asset: 0,
             overrides: {
               removedEntities: [[0]]
             }
@@ -484,6 +470,7 @@ describe("Prefab instance overrides", () => {
   it("should remove components via removedComponents", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "root", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -494,13 +481,14 @@ describe("Prefab instance overrides", () => {
 
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "nested-rc.prefab" }],
       entities: [
         { name: "outerRoot", children: [1] },
         {
           instance: {
-            asset: { $ref: "nested-rc.prefab" },
+            asset: 0,
             overrides: {
-              removedComponents: [{ path: [], selectors: ["MeshRenderer/0"] }]
+              removedComponents: [{ path: [], selectors: [{ type: "MeshRenderer", index: 0 }] }]
             }
           }
         }
@@ -527,6 +515,7 @@ describe("Cross-prefab $component ref", () => {
     // 1. nested prefab (dice.prefab): single root entity with MeshRenderer
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "diceRoot", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -540,11 +529,12 @@ describe("Cross-prefab $component ref", () => {
     //    Entity 1: dice (nested prefab instance)
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "dice.prefab" }],
       entities: [
         { name: "DiceNode", children: [1], components: [0] },
         {
           instance: {
-            asset: { $ref: "dice.prefab" },
+            asset: 0,
             overrides: { entityProps: [{ path: [], name: "dice" }] }
           }
         }
@@ -577,6 +567,7 @@ describe("Cross-prefab $component ref", () => {
   it("should resolve both local and cross-prefab refs, and survive clone independently", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [],
       entities: [{ name: "diceRoot", components: [0] }],
       components: [{ type: "MeshRenderer" }],
       root: 0
@@ -590,12 +581,13 @@ describe("Cross-prefab $component ref", () => {
     // Entity 2: dice — nested prefab instance
     const outerPrefabData: PrefabFile = {
       version: "2.0",
+      refs: [{ url: "dice.prefab" }],
       entities: [
         { name: "DiceNode", children: [1, 2], components: [0] },
         { name: "numCube", components: [1] },
         {
           instance: {
-            asset: { $ref: "dice.prefab" },
+            asset: 0,
             overrides: { entityProps: [{ path: [], name: "dice" }] }
           }
         }

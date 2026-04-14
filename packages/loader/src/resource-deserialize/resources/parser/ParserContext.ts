@@ -6,14 +6,6 @@ export enum ParserType {
   Scene
 }
 
-/** Prefab instance context for override resolution. */
-export interface PrefabInstanceContext {
-  /** Path string → Entity (e.g., "" → root, "0" → first child, "0/1" → ...) */
-  entityMap: Map<string, Entity>;
-  /** Component key → Component (e.g., "0:MeshRenderer/0") */
-  components: Map<string, Component>;
-}
-
 /**
  * @internal
  */

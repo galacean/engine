@@ -11,7 +11,7 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { SpecularMode, type SceneFile } from "./scene-format/types";
+import { SpecularMode, type RefItem, type SceneFile } from "./scene-format/types";
 import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
 /**
@@ -21,7 +21,8 @@ import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 export function applySceneData(
   scene: Scene,
   sceneData: SceneFile["scene"],
-  resourceManager: ResourceManager
+  resourceManager: ResourceManager,
+  refs: RefItem[]
 ): Promise<void> {
   const promises: Promise<any>[] = [];
 
@@ -39,21 +40,23 @@ export function applySceneData(
       scene.ambientLight.diffuseSolidColor.set(solidColor[0], solidColor[1], solidColor[2], solidColor[3]);
     }
 
-    if (useCustomAmbient && ambient.customAmbientLight) {
+    if (useCustomAmbient && ambient.customAmbientLight != null) {
+      const ref = refs[ambient.customAmbientLight];
       promises.push(
         resourceManager
           // @ts-ignore
-          .getResourceByRef<any>(ambient.customAmbientLight)
+          .getResourceByRef<any>({ $ref: ref.url, key: ref.key })
           .then((ambientLight) => {
             scene.ambientLight.specularTexture = ambientLight?.specularTexture;
           })
       );
     }
 
-    if (ambient.ambientLight && (!useCustomAmbient || useSH)) {
+    if (ambient.ambientLight != null && (!useCustomAmbient || useSH)) {
+      const ref = refs[ambient.ambientLight];
       promises.push(
         // @ts-ignore
-        resourceManager.getResourceByRef<any>(ambient.ambientLight).then((ambientLight) => {
+        resourceManager.getResourceByRef<any>({ $ref: ref.url, key: ref.key }).then((ambientLight) => {
           if (!useCustomAmbient) {
             scene.ambientLight.specularTexture = ambientLight?.specularTexture;
           }
@@ -77,16 +80,18 @@ export function applySceneData(
       break;
     }
     case BackgroundMode.Sky:
-      if (background.skyMesh && background.skyMaterial) {
+      if (background.skyMesh != null && background.skyMaterial != null) {
+        const meshRef = refs[background.skyMesh];
+        const matRef = refs[background.skyMaterial];
         const skyMeshPromise = resourceManager
           // @ts-ignore
-          .getResourceByRef<Mesh>(background.skyMesh)
+          .getResourceByRef<Mesh>({ $ref: meshRef.url, key: meshRef.key })
           .then((mesh) => {
             scene.background.sky.mesh = mesh;
           });
         const skyMaterialPromise = resourceManager
           // @ts-ignore
-          .getResourceByRef(background.skyMaterial)
+          .getResourceByRef({ $ref: matRef.url, key: matRef.key })
           .then((material) => {
             scene.background.sky.material = material;
           });
@@ -96,10 +101,11 @@ export function applySceneData(
       }
       break;
     case BackgroundMode.Texture:
-      if (background.texture) {
+      if (background.texture != null) {
+        const texRef = refs[background.texture];
         const backgroundPromise = resourceManager
           // @ts-ignore
-          .getResourceByRef<any>(background.texture)
+          .getResourceByRef<any>({ $ref: texRef.url, key: texRef.key })
           .then((texture) => {
             scene.background.texture = texture;
           });
@@ -176,7 +182,7 @@ class SceneLoader extends Loader<Scene> {
           context._setTaskCompleteProgress = setTaskCompleteProgress;
           parser.start();
           return parser.promise.then(() => {
-            return applySceneData(scene, data.scene, resourceManager).then(() => {
+            return applySceneData(scene, data.scene, resourceManager, data.refs).then(() => {
               resolve(scene);
             });
           });

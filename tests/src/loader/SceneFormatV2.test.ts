@@ -87,7 +87,7 @@ describe("ReflectionParser v2 props resolution", () => {
   it("should resolve primitive values directly", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       name: "test",
@@ -102,7 +102,7 @@ describe("ReflectionParser v2 props resolution", () => {
   it("should resolve nested plain objects recursively", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       nested: { a: 1, b: { c: 2 } }
@@ -113,7 +113,7 @@ describe("ReflectionParser v2 props resolution", () => {
   it("should modify existing object properties in place", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const original = { x: 0, y: 0, z: 0 };
     const target: any = { position: original };
     await parser.parseProps(target, {
@@ -129,7 +129,7 @@ describe("ReflectionParser v2 props resolution", () => {
   it("should resolve arrays recursively", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       items: [1, "two", { key: 3 }]
@@ -145,7 +145,7 @@ describe("ReflectionParser v2 props resolution", () => {
     context.entityMap.set(0, entity0);
     context.entityMap.set(1, entity1);
 
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       target: { $entity: 1 }
@@ -156,7 +156,7 @@ describe("ReflectionParser v2 props resolution", () => {
   it("should resolve missing $entity to null", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       target: { $entity: 999 }
@@ -170,7 +170,7 @@ describe("ReflectionParser v2 props resolution", () => {
     const entity = new Entity(engine, "test");
     context.entityMap.set(0, entity);
 
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       comp: { $component: { entity: 0, type: "Transform", index: 0 } }
@@ -194,7 +194,8 @@ describe("ReflectionParser calls resolution", () => {
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockResolvedValue(asset as any);
-    const parser = new ReflectionParser(context);
+    const refs = [{ url: "call-asset" }];
+    const parser = new ReflectionParser(context, refs);
     const target = new CallOrderComponent(new Entity(engine, "host"));
 
     try {
@@ -202,7 +203,7 @@ describe("ReflectionParser calls resolution", () => {
         {
           method: "captureResolvedArgs",
           args: [
-            { $ref: "call-asset" },
+            { $ref: 0 },
             { $type: "TestValueType", x: 3, y: 4 },
             { $entity: 1 },
             { $component: { entity: 1, type: "Transform", index: 0 } }
@@ -224,7 +225,7 @@ describe("ReflectionParser calls resolution", () => {
   it("should apply result props and nested calls", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target = new CallOrderComponent(new Entity(engine, "host"));
 
     await parser.parseCalls(target, [
@@ -245,7 +246,7 @@ describe("ReflectionParser calls resolution", () => {
   it("should await each call before executing the next one", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target = new CallOrderComponent(new Entity(engine, "host"));
 
     await parser.parseCalls(target, [
@@ -259,7 +260,7 @@ describe("ReflectionParser calls resolution", () => {
   it("should throw a clear error when the target method is missing", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
 
     await expect(parser.parseCalls(target, [{ method: "missingMethod" }])).rejects.toThrow("missingMethod");
@@ -274,10 +275,12 @@ describe("SceneParser v2 entity tree", () => {
   function createSceneData(
     entities: SceneFile["entities"],
     components: SceneFile["components"],
-    rootEntities: number[]
+    rootEntities: number[],
+    refs: SceneFile["refs"] = []
   ): SceneFile {
     return {
       version: "2.0",
+      refs,
       entities,
       components,
       scene: {
@@ -313,7 +316,7 @@ describe("SceneParser v2 entity tree", () => {
     const context = new ParserContext(engine, ParserType.Scene, scene);
 
     expect(() => new SceneParser(data, context, scene)).toThrow(
-      'Unsupported scene format version "missing". Expected "2.0".'
+      'Unsupported scene format version "undefined". Expected "2.0".'
     );
   });
 
@@ -488,75 +491,17 @@ describe("SceneParser v2 entity tree", () => {
     await expect(parser.promise).rejects.toThrow("UnregisteredComponent999");
   });
 
-  it("should collect dependent assets from component calls and override calls", () => {
+  it("should collect dependent assets from refs array", () => {
     const data: SceneFile = {
       version: "2.0",
-      entities: [
-        { name: "Root", components: [0], children: [1] },
-        {
-          instance: {
-            asset: { $ref: "nested.prefab" },
-            overrides: {
-              componentProps: [
-                {
-                  path: [],
-                  selector: "MeshRenderer/0",
-                  calls: [
-                    {
-                      method: "setMaterial",
-                      args: [{ $ref: "override-call.mat" }],
-                      result: {
-                        props: {
-                          nested: { $ref: "override-result.mat" }
-                        }
-                      }
-                    }
-                  ]
-                }
-              ],
-              addedComponents: [
-                {
-                  target: [],
-                  component: {
-                    type: "CallOrderComponent",
-                    calls: [{ method: "captureResolvedArgs", args: [{ $ref: "added-component.mat" }] }]
-                  } as any
-                }
-              ],
-              addedEntities: [
-                {
-                  parent: [],
-                  entity: {
-                    name: "Inline",
-                    components: [
-                      {
-                        type: "CallOrderComponent",
-                        calls: [{ method: "captureResolvedArgs", args: [{ $ref: "inline-component.mat" }] }]
-                      } as any
-                    ]
-                  }
-                }
-              ]
-            } as any
-          }
-        }
+      refs: [
+        { url: "nested.prefab" },
+        { url: "component-call.mat" },
+        { url: "override-call.mat" },
+        { url: "texture.png", key: "mipmap" }
       ],
-      components: [
-        {
-          type: "CallOrderComponent",
-          calls: [
-            {
-              method: "captureResolvedArgs",
-              args: [{ $ref: "component-call.mat" }],
-              result: {
-                props: {
-                  linked: { $ref: "component-result.mat" }
-                }
-              }
-            }
-          ]
-        } as any
-      ],
+      entities: [{ name: "Root", components: [0] }],
+      components: [{ type: "CallOrderComponent" }],
       scene: {
         entities: [0],
         background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
@@ -577,22 +522,21 @@ describe("SceneParser v2 entity tree", () => {
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockResolvedValue({ _addReferCount() {} } as any);
 
-    let refs: string[];
+    let collectedRefs: Array<{ $ref: string; key?: string }>;
     try {
       parser._collectDependentAssets(data);
-      refs = getResourceByRef.mock.calls.map((args) => (args[0] as any).$ref);
+      collectedRefs = getResourceByRef.mock.calls.map((args) => args[0] as any);
     } finally {
       getResourceByRef.mockRestore();
     }
-    expect(refs).to.include.members([
+    expect(collectedRefs).to.have.length(4);
+    expect(collectedRefs.map((r) => r.$ref)).to.deep.equal([
       "nested.prefab",
       "component-call.mat",
-      "component-result.mat",
       "override-call.mat",
-      "override-result.mat",
-      "added-component.mat",
-      "inline-component.mat"
+      "texture.png"
     ]);
+    expect(collectedRefs[3].key).to.equal("mipmap");
   });
 });
 
@@ -609,7 +553,7 @@ describe("ReflectionParser $signal resolution", () => {
     context.entityMap.set(0, entity0);
     context.entityMap.set(1, entity1);
 
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
 
     const bound: Array<{ target: any; method: string; args: any[] }> = [];
     const mockSignal = {
@@ -640,7 +584,7 @@ describe("ReflectionParser $signal resolution", () => {
     context.entityMap.set(0, entity0);
     // entity 1 does NOT exist in entityMap
 
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
 
     const bound: any[] = [];
     const mockSignal = {
@@ -669,7 +613,7 @@ describe("ReflectionParser $signal resolution", () => {
     context.entityMap.set(0, entity0);
     context.entityMap.set(1, entity1);
 
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
 
     // onClick is undefined — not initialized as a Signal
     const target: any = { onClick: undefined };
@@ -688,7 +632,7 @@ describe("ReflectionParser $signal resolution", () => {
     const entity = new Entity(engine, "test");
     context.entityMap.set(0, entity);
 
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       comp: { $component: { entity: 0, type: "NonExistentType999", index: 0 } }
@@ -705,7 +649,7 @@ describe("ReflectionParser $type resolution", () => {
   it("should construct $type instance and apply remaining props", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       value: { $type: "TestValueType", x: 10, y: 20 }
@@ -718,7 +662,7 @@ describe("ReflectionParser $type resolution", () => {
   it("should construct $type instance without props", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
       value: { $type: "TestValueType" }
@@ -731,7 +675,7 @@ describe("ReflectionParser $type resolution", () => {
   it("should throw a clear error when $type references an unregistered class", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context);
+    const parser = new ReflectionParser(context, []);
     const target: any = {};
     await expect(
       parser.parseProps(target, {
@@ -770,6 +714,7 @@ describe("applySceneData scene property parsing", () => {
         }
       });
 
+    const refs = [{ url: "custom-ambient" }, { url: "ambient-light" }];
     try {
       await applySceneData(
         scene,
@@ -781,11 +726,12 @@ describe("applySceneData scene property parsing", () => {
             diffuseIntensity: 1,
             specularIntensity: 1,
             specularMode: SpecularMode.Custom,
-            customAmbientLight: { $ref: "custom-ambient" },
-            ambientLight: { $ref: "ambient-light" }
+            customAmbientLight: 0,
+            ambientLight: 1
           }
         },
-        engine.resourceManager
+        engine.resourceManager,
+        refs
       );
     } finally {
       getResourceByRef.mockRestore();
@@ -813,6 +759,7 @@ describe("applySceneData scene property parsing", () => {
         }
       });
 
+    const refs = [{ url: "sky-mesh" }, { url: "sky-material" }];
     try {
       await applySceneData(
         scene,
@@ -821,11 +768,12 @@ describe("applySceneData scene property parsing", () => {
           background: {
             mode: BackgroundMode.Sky,
             color: [0, 0, 0, 1],
-            skyMesh: { $ref: "sky-mesh" },
-            skyMaterial: { $ref: "sky-material" }
+            skyMesh: 0,
+            skyMaterial: 1
           }
         },
-        engine.resourceManager
+        engine.resourceManager,
+        refs
       );
     } finally {
       getResourceByRef.mockRestore();
@@ -847,6 +795,7 @@ describe("applySceneData scene property parsing", () => {
         return Promise.resolve(null) as any;
       });
 
+    const refs = [{ url: "background-texture" }];
     try {
       await applySceneData(
         scene,
@@ -855,11 +804,12 @@ describe("applySceneData scene property parsing", () => {
           background: {
             mode: BackgroundMode.Texture,
             color: [0, 0, 0, 1],
-            texture: { $ref: "background-texture" },
+            texture: 0,
             textureFillMode: BackgroundTextureFillMode.Fill
           }
         },
-        engine.resourceManager
+        engine.resourceManager,
+        refs
       );
     } finally {
       getResourceByRef.mockRestore();
@@ -887,7 +837,8 @@ describe("applySceneData scene property parsing", () => {
           shadowFadeBorder: 0.2
         }
       },
-      engine.resourceManager
+      engine.resourceManager,
+      []
     );
 
     expect(scene.castShadows).to.equal(false);
@@ -917,7 +868,8 @@ describe("applySceneData scene property parsing", () => {
           fogColor: [1, 0, 0, 1]
         }
       },
-      engine.resourceManager
+      engine.resourceManager,
+      []
     );
 
     expect(scene.fogMode).to.equal(FogMode.ExponentialSquared);
@@ -948,7 +900,8 @@ describe("applySceneData scene property parsing", () => {
           minHorizonAngle: 0.04
         }
       },
-      engine.resourceManager
+      engine.resourceManager,
+      []
     );
 
     const ao = scene.ambientOcclusion;
@@ -973,7 +926,8 @@ describe("applySceneData scene property parsing", () => {
           color: [0.5, 0.6, 0.7, 1]
         }
       },
-      engine.resourceManager
+      engine.resourceManager,
+      []
     );
 
     expect(scene.background.mode).to.equal(BackgroundMode.SolidColor);
@@ -991,7 +945,8 @@ describe("applySceneData scene property parsing", () => {
         entities: [0],
         background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] }
       },
-      engine.resourceManager
+      engine.resourceManager,
+      []
     );
 
     expect(scene.castShadows).to.equal(true);

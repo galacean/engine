@@ -1,9 +1,14 @@
-import { Loader } from "@galacean/engine-core";
-import type { CallSpec, MutationBlock } from "../../../scene-format/types";
+import { Component, Loader } from "@galacean/engine-core";
+import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../scene-format/types";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
-  constructor(private readonly _context: ParserContext) {}
+  private static _componentBuffer: Component[] = [];
+
+  constructor(
+    private readonly _context: ParserContext,
+    private readonly _refs: RefItem[]
+  ) {}
 
   /**
    * Apply v2 props to a component/object instance.
@@ -82,12 +87,12 @@ export class ReflectionParser {
 
     const obj = value as Record<string, unknown>;
 
-    // $ref — asset reference
+    // $ref — asset reference (index into refs array)
     if ("$ref" in obj) {
       const { _context: context } = this;
-      const ref = obj as { $ref: string; key?: string };
+      const refItem = this._refs[obj.$ref as number];
       // @ts-ignore
-      return context.resourceManager.getResourceByRef(ref).then((resource) => {
+      return context.resourceManager.getResourceByRef({ $ref: refItem.url, key: refItem.key }).then((resource) => {
         if (resource && context.type === ParserType.Prefab) {
           // @ts-ignore
           context.resource._addDependenceAsset(resource);
@@ -117,19 +122,12 @@ export class ReflectionParser {
 
     // $component — component reference: { entity, type, index }
     if ("$component" in obj) {
-      return Promise.resolve(this._resolveComponent(obj.$component as { entity: number; type: string; index: number }));
+      return Promise.resolve(this._resolveComponent(obj.$component as ComponentRef));
     }
 
     // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
-      return this._resolveSignal(
-        originValue,
-        obj.$signal as Array<{
-          target: { $component: { entity: number; type: string; index: number } };
-          methodName: string;
-          arguments?: unknown[];
-        }>
-      );
+      return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
     }
 
     // Plain object — recurse each value, modifying originValue in place or building a new object
@@ -144,14 +142,7 @@ export class ReflectionParser {
     return Promise.all(promises).then(() => target);
   }
 
-  private _resolveSignal(
-    signal: any,
-    listeners: Array<{
-      target: { $component: { entity: number; type: string; index: number } };
-      methodName: string;
-      arguments?: unknown[];
-    }>
-  ): Promise<any> {
+  private _resolveSignal(signal: any, listeners: SignalListener[]): Promise<any> {
     if (!signal || typeof signal.on !== "function") {
       return Promise.reject(new Error("$signal requires a pre-initialized Signal instance on the target property"));
     }
@@ -159,18 +150,23 @@ export class ReflectionParser {
       const targetComponent = this._resolveComponent(listener.target.$component);
       if (!targetComponent) return Promise.resolve();
 
-      return Promise.all((listener.arguments ?? []).map((a) => this._resolveValue(a))).then((resolvedArgs) => {
+      return Promise.all((listener.args ?? []).map((a) => this._resolveValue(a))).then((resolvedArgs) => {
         signal.on(targetComponent, listener.methodName, ...resolvedArgs);
       });
     });
     return Promise.all(promises).then(() => signal);
   }
 
-  private _resolveComponent(comp: { entity: number; type: string; index: number }): any {
+  private _resolveComponent(comp: ComponentRef): Component | null {
     const entity = this._context.entityMap.get(comp.entity);
     if (!entity) return null;
     const type = Loader.getClass(comp.type);
     if (!type) return null;
-    return entity.getComponents(type, [])[comp.index] ?? null;
+    const buffer = ReflectionParser._componentBuffer;
+    buffer.length = 0;
+    entity.getComponents(type, buffer);
+    const result = buffer[comp.index] ?? null;
+    buffer.length = 0;
+    return result;
   }
 }
