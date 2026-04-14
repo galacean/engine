@@ -15,6 +15,9 @@ export class AudioManager {
    * @returns A promise that resolves when the audio context is suspended
    */
   static suspend(): Promise<void> {
+    if (!AudioManager._context) {
+      return Promise.resolve();
+    }
     return AudioManager._context.suspend();
   }
 
@@ -24,6 +27,9 @@ export class AudioManager {
    * @returns A promise that resolves when the audio context is resumed
    */
   static resume(): Promise<void> {
+    if (!AudioManager._context) {
+      return Promise.resolve();
+    }
     return (AudioManager._resumePromise ??= AudioManager._context
       .resume()
       .then(() => {
