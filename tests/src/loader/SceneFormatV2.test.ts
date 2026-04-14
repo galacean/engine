@@ -164,6 +164,19 @@ describe("ReflectionParser v2 props resolution", () => {
     expect(target.target).to.be.null;
   });
 
+  it("should throw a clear error when $ref index is out of range", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+
+    await expect(
+      parser.parseProps(target, {
+        asset: { $ref: 0 }
+      })
+    ).rejects.toThrow("ReflectionParser: invalid ref index 0 for $ref");
+  });
+
   it("should resolve $component by entity index + type + index", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
@@ -817,6 +830,26 @@ describe("applySceneData scene property parsing", () => {
 
     expect(scene.background.texture).to.equal(backgroundTexture);
     expect(scene.background.textureFillMode).to.equal(BackgroundTextureFillMode.Fill);
+  });
+
+  it("should throw a clear error when scene ref index is out of range", async () => {
+    const scene = new Scene(engine);
+
+    await expect(
+      applySceneData(
+        scene,
+        {
+          entities: [0],
+          background: {
+            mode: BackgroundMode.Texture,
+            color: [0, 0, 0, 1],
+            texture: 0
+          }
+        },
+        engine.resourceManager,
+        []
+      )
+    ).rejects.toThrow("SceneLoader: invalid ref index 0 for scene.background.texture");
   });
 
   it("should apply shadow properties to scene", async () => {

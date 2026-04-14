@@ -1,6 +1,7 @@
 import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
+import { resolveRefItem } from "../../../scene-format/refs";
 import {
   type ComponentSchema,
   type ComponentSelector,
@@ -256,7 +257,12 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _loadPrefabInstance(entityConfig: PrefabInstanceEntitySchema, engine: Engine): Promise<Entity> {
     const instance = entityConfig.instance;
-    const refItem = this.data.refs[instance.asset];
+    let refItem: RefItem;
+    try {
+      refItem = resolveRefItem(this.data.refs, instance.asset, "HierarchyParser", "instance.asset");
+    } catch (error) {
+      return Promise.reject(error);
+    }
 
     return (
       engine.resourceManager
@@ -330,7 +336,9 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   /** Resolve component class from config and add to entity. Throws if class is not registered. */
   private static _addComponentFromConfig(entity: Entity, config: ComponentSchema, refs: RefItem[]): Component {
-    const key = config.script ? refs[config.script.$ref].url : config.type;
+    const key = config.script
+      ? resolveRefItem(refs, config.script.$ref, "HierarchyParser", "component.script").url
+      : config.type;
     const Class = Loader.getClass(key);
     if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
     return entity.addComponent(Class);

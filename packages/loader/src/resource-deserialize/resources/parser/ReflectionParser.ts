@@ -1,4 +1,5 @@
 import { Component, Loader } from "@galacean/engine-core";
+import { resolveRefItem } from "../../../scene-format/refs";
 import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../scene-format/types";
 import { ParserContext, ParserType } from "./ParserContext";
 
@@ -90,7 +91,12 @@ export class ReflectionParser {
     // $ref — asset reference (index into refs array)
     if ("$ref" in obj) {
       const { _context: context } = this;
-      const refItem = this._refs[obj.$ref as number];
+      let refItem: RefItem;
+      try {
+        refItem = resolveRefItem(this._refs, obj.$ref as number, "ReflectionParser", "$ref");
+      } catch (error) {
+        return Promise.reject(error);
+      }
       // @ts-ignore
       return context.resourceManager.getResourceByRef({ $ref: refItem.url, key: refItem.key }).then((resource) => {
         if (resource && context.type === ParserType.Prefab) {

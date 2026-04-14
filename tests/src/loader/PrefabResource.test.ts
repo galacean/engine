@@ -173,6 +173,20 @@ describe("$ref null guard in Prefab mode", () => {
 });
 
 describe("Prefab instance overrides", () => {
+  it("should throw a clear error when prefab instance asset ref index is out of range", async () => {
+    const prefabData = {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "outerRoot", children: [1] }, { instance: { asset: 0 } }],
+      components: [],
+      root: 0
+    } as any;
+
+    await expect(PrefabParser.parse(engine, "invalid-ref.prefab", prefabData)).rejects.toThrow(
+      "HierarchyParser: invalid ref index 0 for instance.asset"
+    );
+  });
+
   it("should apply entityProps overrides to nested prefab entities", async () => {
     // Nested prefab: root → child
     const nestedPrefabData: PrefabFile = {
