@@ -14,6 +14,18 @@
   "debug": "src/index.ts",
   "browser": "dist/browser.js",
   "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "module": "./dist/module.js",
+      "default": "./dist/main.js",
+      "types": "./types/index.d.ts"
+    },
+    "./sources": {
+      "module": "./dist/sources.module.js",
+      "default": "./dist/sources.main.js",
+      "types": "./types/sources.d.ts"
+    }
+  },
   "scripts": {
     "b:types": "tsc"
   },

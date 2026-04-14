@@ -8,6 +8,7 @@ import {
   SpriteMaskSource,
   TextSource,
   TrailSource,
+  UIDefaultSource,
   SkyboxSource,
   BackgroundTextureSource,
   SkyProceduralSource,
@@ -77,6 +78,7 @@ export class ShaderPool {
       SpriteMaskSource,
       TextSource,
       TrailSource,
+      UIDefaultSource,
       // Particle shader
       ParticleSource,
       // PostProcess shaders

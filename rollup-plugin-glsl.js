@@ -35,7 +35,7 @@ function compressShader(code) {
 export default function glsl(userOptions = {}) {
   const options = Object.assign(
     {
-      include: ["**/*.vs", "**/*.fs", "**/*.vert", "**/*.frag", "**/*.glsl", "**/*.shader"]
+      include: ["**/*.vs", "**/*.fs", "**/*.vert", "**/*.frag", "**/*.glsl", "**/*.shader", "**/*.gsp"]
     },
     userOptions
   );
@@ -46,6 +46,14 @@ export default function glsl(userOptions = {}) {
     name: "glsl",
     transform(code, id) {
       if (!filter(id)) return;
+
+      // .gsp files contain precompiled JSON — export as object, no compression
+      if (/\.gsp$/.test(id)) {
+        return {
+          code: `export default ${code}; // eslint-disable-line`,
+          map: { mappings: "" }
+        };
+      }
 
       if (typeof options.compress === "function") {
         code = options.compress(code);

@@ -19,7 +19,8 @@ export {
   ParticleSource,
   UberShaderSource,
   FinalSRGBShaderSource,
-  FinalAntiAliasingShaderSource,
   BloomShaderSource,
   SAOShaderSource
-} from "./Shaders";
+} from "../libs";
+// FinalAntiAliasing cannot be precompiled yet (ShaderLab FXAA limitation), kept as string source
+export { default as FinalAntiAliasingShaderSource } from "./Shaders/PostProcess/FinalAntiAliasing.shader";

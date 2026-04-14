@@ -35,7 +35,7 @@ const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : un
 const PRECOMPILE = process.env.PRECOMPILE === "true";
 
 const glslPlugin = glsl({
-  include: [/\.glsl$/],
+  include: [/\.(glsl|shader|gsp)$/],
   compress: false
 });
 
@@ -100,7 +100,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.glsl$/],
+            include: [/\.(glsl|shader|gsp)$/],
             compress: true
           })
         );
@@ -155,6 +155,28 @@ function config({ location, pkgJson, verboseMode }) {
         plugins: curPlugins
       };
     },
+    sources: () => {
+      // Build the "sources" subpath entry for @galacean/engine-shader.
+      // Exports raw .shader source strings (for editor use).
+      const sourcesInput = path.join(location, "src", "sources.ts");
+      return {
+        input: sourcesInput,
+        external,
+        output: [
+          {
+            file: path.join(location, "dist", "sources.module.js"),
+            format: "es",
+            sourcemap: true
+          },
+          {
+            file: path.join(location, "dist", "sources.main.js"),
+            format: "commonjs",
+            sourcemap: true
+          }
+        ],
+        plugins: curPlugins
+      };
+    },
     bundled: (compress) => {
       // ES module format with no external dependencies (bundled)
       const bundledFile = path.join(location, "dist", compress ? "bundled.module.min.js" : "bundled.module.js");
@@ -167,7 +189,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.glsl$/],
+            include: [/\.(glsl|shader|gsp)$/],
             compress: true
           })
         );
@@ -234,7 +256,15 @@ function getUMD() {
 
 function getModule() {
   const configs = [...pkgs];
-  return configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+  const result = configs.map((config) => makeRollupConfig({ ...config, type: "module" }));
+
+  // Build shader package "sources" subpath entry (raw .shader strings for editor)
+  const shaderPkg = pkgs.find((pkg) => pkg.pkgJson.name === "@galacean/engine-shader");
+  if (shaderPkg) {
+    result.push(makeRollupConfig({ ...shaderPkg, type: "sources" }));
+  }
+
+  return result;
 }
 
 function getBundled() {
