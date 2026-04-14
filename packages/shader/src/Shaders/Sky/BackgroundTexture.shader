@@ -3,6 +3,10 @@ Shader "Sky/BackgroundTexture" {
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }
 
+      DepthState = {
+        CompareFunction = CompareFunction.LessEqual;
+      }
+
       VertexShader = BackgroundTextureVertex;
       FragmentShader = BackgroundTextureFragment;
 

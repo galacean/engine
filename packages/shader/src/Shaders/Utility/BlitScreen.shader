@@ -3,6 +3,11 @@ Shader "Utility/BlitScreen" {
     Pass "Forward" {
       Tags { pipelineStage = "Forward" }
 
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
+
       VertexShader = vert;
       FragmentShader = frag;
 

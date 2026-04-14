@@ -12,12 +12,9 @@ import { BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
-import { BlendFactor } from "./shader/enums/BlendFactor";
-import { BlendOperation } from "./shader/enums/BlendOperation";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CompareFunction } from "./shader/enums/CompareFunction";
 import { CullMode } from "./shader/enums/CullMode";
-import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderStateElementKey } from "./shader/enums/RenderStateElementKey";
 import { StencilOperation } from "./shader/enums/StencilOperation";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
@@ -107,49 +104,23 @@ export class BasicResources {
    */
   readonly blitMesh: ModelMesh;
   readonly flipYBlitMesh: ModelMesh;
+  readonly blitMaterial: Material;
+  readonly blitScreenMaterial: Material;
 
   readonly whiteTexture2D: Texture2D;
   readonly whiteTextureCube: TextureCube;
   readonly whiteTexture2DArray: Texture2DArray;
   readonly uintWhiteTexture2D: Texture2D;
 
-  private _blitMaterial: Material;
-  private _blitScreenMaterial: Material;
-  private _spriteDefaultMaterial: Material;
-  private _textDefaultMaterial: Material;
-  private _spriteMaskDefaultMaterial: Material;
-  private _meshMagentaMaterial: Material;
-  private _particleMagentaMaterial: Material;
+  readonly spriteDefaultMaterial: Material;
+  readonly textDefaultMaterial: Material;
+  readonly spriteMaskDefaultMaterial: Material;
+
+  readonly meshMagentaMaterial: Material;
+  readonly particleMagentaMaterial: Material;
+
   private _blinnPhongMaterial: BlinnPhongMaterial;
   private _prefilteredDFGTexture: Texture2D;
-
-  get blitMaterial(): Material {
-    return (this._blitMaterial ||= this._createBlitMaterial("Utility/Blit"));
-  }
-
-  get blitScreenMaterial(): Material {
-    return (this._blitScreenMaterial ||= this._createBlitMaterial("Utility/BlitScreen"));
-  }
-
-  get spriteDefaultMaterial(): Material {
-    return (this._spriteDefaultMaterial ||= this._create2DMaterial(this.engine, Shader.find("2D/Sprite")));
-  }
-
-  get textDefaultMaterial(): Material {
-    return (this._textDefaultMaterial ||= this._create2DMaterial(this.engine, Shader.find("2D/Text")));
-  }
-
-  get spriteMaskDefaultMaterial(): Material {
-    return (this._spriteMaskDefaultMaterial ||= this._createSpriteMaskMaterial(this.engine));
-  }
-
-  get meshMagentaMaterial(): Material {
-    return (this._meshMagentaMaterial ||= this._createMagentaMaterial(this.engine, "Unlit"));
-  }
-
-  get particleMagentaMaterial(): Material {
-    return (this._particleMagentaMaterial ||= this._createMagentaMaterial(this.engine, "Particle"));
-  }
 
   get prefilteredDFGTexture(): Texture2D {
     return this._prefilteredDFGTexture;
@@ -167,6 +138,15 @@ export class BasicResources {
       3, -1, 2, 0,  // right-bottom
       -1, -1, 0, 0, // left-bottom
       -1, 3, 0, 2]); // left-top
+
+    const blitMaterial = new Material(engine, Shader.find("Utility/Blit"));
+    blitMaterial._addReferCount(1);
+
+    const blitScreenMaterial = new Material(engine, Shader.find("Utility/BlitScreen"));
+    blitScreenMaterial._addReferCount(1);
+
+    this.blitMaterial = blitMaterial;
+    this.blitScreenMaterial = blitScreenMaterial;
 
     this.blitMesh = this._createBlitMesh(engine, vertices);
     this.flipYBlitMesh = this._createBlitMesh(engine, flipYVertices);
@@ -208,6 +188,13 @@ export class BasicResources {
         false
       );
     }
+
+    this.spriteDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Sprite"));
+    this.textDefaultMaterial = this._create2DMaterial(engine, Shader.find("2D/Text"));
+    this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
+
+    this.meshMagentaMaterial = this._createMagentaMaterial(engine, "Unlit");
+    this.particleMagentaMaterial = this._createMagentaMaterial(engine, "Particle");
   }
 
   /**
@@ -310,17 +297,6 @@ export class BasicResources {
 
   private _create2DMaterial(engine: Engine, shader: Shader): Material {
     const material = new Material(engine, shader);
-    const renderState = material.renderState;
-    const target = renderState.blendState.targetBlendState;
-    target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-    target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.sourceAlphaBlendFactor = BlendFactor.One;
-    target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-    target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-    renderState.depthState.writeEnabled = false;
-    renderState.rasterState.cullMode = CullMode.Off;
-    renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }
@@ -329,14 +305,6 @@ export class BasicResources {
     const material = new Material(engine, Shader.find(shaderName));
     material.isGCIgnored = true;
     material.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
-    return material;
-  }
-
-  private _createBlitMaterial(shaderName: string): Material {
-    const material = new Material(this.engine, Shader.find(shaderName));
-    material._addReferCount(1);
-    material.renderState.depthState.enabled = false;
-    material.renderState.depthState.writeEnabled = false;
     return material;
   }
 

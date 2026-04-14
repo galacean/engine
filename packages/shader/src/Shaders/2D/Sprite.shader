@@ -3,6 +3,23 @@ Shader "2D/Sprite" {
     Pass "Default" {
       Tags { pipelineStage = "Forward" }
 
+      BlendState = {
+        Enabled = true;
+        SourceColorBlendFactor = BlendFactor.SourceAlpha;
+        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        SourceAlphaBlendFactor = BlendFactor.One;
+        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        ColorBlendOperation = BlendOperation.Add;
+        AlphaBlendOperation = BlendOperation.Add;
+      }
+      DepthState = {
+        WriteEnabled = false;
+      }
+      RasterState = {
+        CullMode = CullMode.Off;
+      }
+      RenderQueueType = RenderQueueType.Transparent;
+
       VertexShader = SpriteVertex;
       FragmentShader = SpriteFragment;
 
