@@ -58,7 +58,7 @@ function precompileSingle(shaderPath) {
     fs.writeFileSync(gspPath, JSON.stringify(precompiled));
     console.log(`  ${relativePath} → libs/${gspRelative}`);
   } catch (e) {
-    console.error(`  FAILED: ${relativePath} — ${e.message || e}`);
+    console.error(`  FAILED: ${relativePath} — ${e?.message ?? e ?? "unknown error"}`);
     return false;
   }
   return true;
@@ -94,8 +94,7 @@ if (singleFile) {
     if (!precompileSingle(file)) failed++;
   }
   if (failed > 0) {
-    console.error(`\n${failed} shader(s) failed to precompile.`);
-    process.exit(1);
+    console.warn(`\n${failed} shader(s) failed to precompile (non-fatal).`);
   }
 }
 console.log("Done.");

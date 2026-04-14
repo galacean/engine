@@ -38,6 +38,7 @@ export default function shaderlab(userOptions = {}) {
 
   // Lazy-loaded ShaderLab instance (only when precompile=true)
   let shaderLabInstance = null;
+  let precompiled = false;
 
   function getShaderLab() {
     if (!shaderLabInstance) {
@@ -62,7 +63,8 @@ export default function shaderlab(userOptions = {}) {
     name: "shaderlab",
 
     buildStart() {
-      if (!options.precompile) return;
+      if (!options.precompile || precompiled) return;
+      precompiled = true;
       try {
         console.log("[shaderlab] Precompiling all .shader files → libs/*.gsp ...");
         execSync("node scripts/precompile-shaders.mjs", { cwd: ROOT, stdio: "inherit" });

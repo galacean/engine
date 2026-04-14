@@ -3,6 +3,13 @@ Shader "Sky/Skybox" {
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }
 
+      DepthState = {
+        CompareFunction = CompareFunction.LessEqual;
+      }
+      RasterState = {
+        CullMode = CullMode.Off;
+      }
+
       VertexShader = SkyboxVertex;
       FragmentShader = SkyboxFragment;
 

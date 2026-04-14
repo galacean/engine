@@ -6,6 +6,13 @@ Shader "Sky/SkyProcedural" {
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }
 
+      DepthState = {
+        CompareFunction = CompareFunction.LessEqual;
+      }
+      RasterState = {
+        CullMode = CullMode.Off;
+      }
+
       VertexShader = SkyProceduralVertex;
       FragmentShader = SkyProceduralFragment;
 

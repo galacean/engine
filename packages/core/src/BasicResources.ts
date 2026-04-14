@@ -12,9 +12,11 @@ import { BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
+import { BlendFactor } from "./shader/enums/BlendFactor";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CompareFunction } from "./shader/enums/CompareFunction";
 import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderStateElementKey } from "./shader/enums/RenderStateElementKey";
 import { StencilOperation } from "./shader/enums/StencilOperation";
 import { Texture, Texture2D, TextureCube, TextureCubeFace } from "./texture";
@@ -297,6 +299,15 @@ export class BasicResources {
 
   private _create2DMaterial(engine: Engine, shader: Shader): Material {
     const material = new Material(engine, shader);
+    const { shaderData } = material;
+    shaderData.setInt("blendEnabled", 1);
+    shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
+    shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
+    shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
+    shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
+    shaderData.setInt("depthWriteEnabled", 0);
+    shaderData.setInt("rasterStateCullMode", CullMode.Off);
+    shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
     material.isGCIgnored = true;
     return material;
   }
