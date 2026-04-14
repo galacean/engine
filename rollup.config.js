@@ -35,7 +35,7 @@ const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : un
 const PRECOMPILE = process.env.PRECOMPILE === "true";
 
 const glslPlugin = glsl({
-  include: [/\.(glsl|shader)$/],
+  include: [/\.glsl$/],
   compress: false
 });
 
@@ -100,7 +100,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.(glsl|shader)$/],
+            include: [/\.glsl$/],
             compress: true
           })
         );
@@ -167,7 +167,7 @@ function config({ location, pkgJson, verboseMode }) {
           glslifyPluginIdx,
           1,
           glsl({
-            include: [/\.(glsl|shader)$/],
+            include: [/\.glsl$/],
             compress: true
           })
         );

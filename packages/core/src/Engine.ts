@@ -278,6 +278,14 @@ export class Engine extends EventDispatcher {
       this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
 
+    // Set ShaderLab early so built-in shaders can be registered in the constructor.
+    // In release builds, shader sources are precompiled objects and don't need ShaderLab.
+    const { shaderLab } = configuration;
+    if (shaderLab && !Shader._shaderLab) {
+      Shader._shaderLab = shaderLab;
+    }
+    ShaderPool.registerShaders();
+
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
 
@@ -629,12 +637,7 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const { shaderLab, physics } = configuration;
-
-    if (shaderLab && !Shader._shaderLab) {
-      Shader._shaderLab = shaderLab;
-      ShaderPool.registerShaders();
-    }
+    const { physics } = configuration;
 
     const initializePromises = new Array<Promise<any>>();
     if (physics) {

@@ -11,7 +11,6 @@
  */
 
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
-import { PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
@@ -105,6 +104,7 @@ const normalize = (s: string) =>
 describe("Precompile A/B Test: Live vs Precompiled", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
+  const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
 
   // @ts-ignore
   Shader._shaderLab = shaderLab;

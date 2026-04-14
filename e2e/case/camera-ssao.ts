@@ -22,7 +22,6 @@ import {
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
-import { PBRSource } from "@galacean/engine-shader";
 import { ShaderLab } from "@galacean/engine-shaderlab";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
@@ -38,8 +37,6 @@ WebGLEngine.create({
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-
-  const pbrShader = Shader.create(PBRSource);
 
   // camera
   const cameraEntity = rootEntity.createChild("camera_node");

@@ -3,7 +3,6 @@
  */
 
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
-import { PBRSource, ShadowMapSource, DepthOnlySource } from "@galacean/engine-shader";
 import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { ShaderLab } from "@galacean/engine-shaderlab";
@@ -118,6 +117,10 @@ describe("Precompile Benchmark", async () => {
   const engine = await WebGLEngine.create({ canvas });
   // @ts-ignore
   Shader._shaderLab = shaderLab;
+
+  const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
+  const ShadowMapSource = await readFile("../../../packages/shader/src/Shaders/Utility/ShadowMap.shader");
+  const DepthOnlySource = await readFile("../../../packages/shader/src/Shaders/Utility/DepthOnly.shader");
 
   // Create Utility shaders first — PBR uses UsePass from them
   if (!Shader.find("Utility/ShadowMap")) Shader.create(ShadowMapSource);

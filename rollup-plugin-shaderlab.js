@@ -1,13 +1,14 @@
 /**
  * Rollup plugin for ShaderLab precompilation.
  *
- * Transforms .gs ShaderLab source files at build time.
+ * Transforms .gs and .shader ShaderLab source files at build time.
  *
  * When precompile=false: exports source as string (same as glsl plugin).
  * When precompile=true:
- *   - Emits a standalone .gsp JSON file to dist/
- *   - JS module exports the raw ShaderLab source string (unchanged)
- *   - The .gsp file can be loaded at runtime via ShaderLoader
+ *   - .gs files: emits a .gsp JSON file to dist/, JS module exports raw source string
+ *   - .shader files: JS module exports the precompiled IPrecompiledShader JSON object
+ *     so that ShaderPool.registerShaders() can call Shader._createFromPrecompiled()
+ *     without needing ShaderLab at runtime
  *
  * Usage in rollup.config.js:
  *   import shaderlab from "./rollup-plugin-shaderlab";
@@ -20,9 +21,9 @@ import { createFilter } from "@rollup/pluginutils";
 export default function shaderlab(userOptions = {}) {
   const options = Object.assign(
     {
-      include: [/\.gs$/],
+      include: [/\.(gs|shader)$/],
       exclude: [],
-      /** When true, emit .gsp JSON to dist/. When false, just export string. */
+      /** When true, precompile shader sources. When false, just export string. */
       precompile: true,
       /** ShaderLanguage enum value: 0 = GLSLES100, 1 = GLSLES300 */
       platformTarget: 0,
@@ -62,43 +63,54 @@ export default function shaderlab(userOptions = {}) {
     transform(code, id) {
       if (!filter(id)) return;
 
-      // JS module always exports the raw source string.
-      const jsOutput = {
+      const isShaderFile = /\.shader$/.test(id);
+
+      // JS module exports the raw source string (fallback for non-precompile mode).
+      const stringOutput = {
         code: `export default ${JSON.stringify(code)}; // eslint-disable-line`,
         map: { mappings: "" }
       };
 
       if (!options.precompile) {
-        return jsOutput;
+        return stringOutput;
       }
 
-      // Precompile mode: additionally emit a .gsp JSON file to dist/.
       try {
         const shaderLab = getShaderLab();
 
         // Guard: _precompile may not exist if shader-lab dist is stale.
         if (typeof shaderLab._precompile !== "function") {
           this.warn(
-            `_precompile not available (shader-lab dist may be stale), skipping .gsp for ${path.basename(id)}. Re-run build to generate .gsp.`
+            `_precompile not available (shader-lab dist may be stale), skipping precompile for ${path.basename(id)}. Re-run build.`
           );
-          return jsOutput;
+          return stringOutput;
         }
 
         const precompiled = shaderLab._precompile(code, options.platformTarget, options.basePath);
-        const gspFileName = path.basename(id).replace(/\.gs$/, ".gsp");
 
-        this.emitFile({
-          type: "asset",
-          fileName: gspFileName,
-          source: JSON.stringify(precompiled)
-        });
-
-        return jsOutput;
+        if (isShaderFile) {
+          // .shader files: export the precompiled IPrecompiledShader object directly.
+          // This allows ShaderPool.registerShaders() to call Shader._createFromPrecompiled()
+          // without needing ShaderLab at runtime.
+          return {
+            code: `export default ${JSON.stringify(precompiled)}; // eslint-disable-line`,
+            map: { mappings: "" }
+          };
+        } else {
+          // .gs files: emit a standalone .gsp JSON file to dist/, keep source string export.
+          const gspFileName = path.basename(id).replace(/\.gs$/, ".gsp");
+          this.emitFile({
+            type: "asset",
+            fileName: gspFileName,
+            source: JSON.stringify(precompiled)
+          });
+          return stringOutput;
+        }
       } catch (e) {
         this.warn(
           `ShaderLab precompilation failed for ${path.basename(id)}: ${e.message || e}. Falling back to string export.`
         );
-        return jsOutput;
+        return stringOutput;
       }
     }
   };

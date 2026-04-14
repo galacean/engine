@@ -7,7 +7,6 @@ import {
   RenderStateElementKey,
   StencilOperation
 } from "@galacean/engine-core";
-import { PBRSource } from "@galacean/engine-shader";
 import { ShaderLab as ShaderLabRelease } from "@galacean/engine-shaderlab";
 import { ShaderLab as ShaderLabVerbose } from "@galacean/engine-shaderlab/verbose";
 import { glslValidate } from "./ShaderValidate";
@@ -24,6 +23,7 @@ const shaderLabRelease = new ShaderLabRelease();
 describe("ShaderLab", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
+  const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
 
   it("create shaderLab", async () => {
     expect(shaderLabVerbose).not.be.null;

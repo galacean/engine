@@ -22,6 +22,7 @@ import {
   BloomShaderSource,
   SAOShaderSource
 } from "@galacean/engine-shader";
+import { IPrecompiledShader } from "@galacean/engine-design";
 import { Logger } from "../base/Logger";
 import { TransformFeedbackShader } from "../graphic/TransformFeedbackShader";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
@@ -49,11 +50,14 @@ export class ShaderPool {
   }
 
   /**
-   * Register all built-in shaders via ShaderLab.
-   * Must be called after ShaderLab is set on Shader._shaderLab.
+   * Register all built-in shaders.
+   *
+   * In release builds, sources are precompiled IPrecompiledShader objects
+   * (registered via Shader._createFromPrecompiled, no ShaderLab needed).
+   * In dev/test mode, sources are strings (registered via Shader.create, needs ShaderLab).
    */
   static registerShaders(): void {
-    const sources = [
+    const sources: (string | IPrecompiledShader)[] = [
       // Utility shaders must be created first — material shaders UsePass from them
       BlitSource,
       BlitScreenSource,
@@ -86,7 +90,11 @@ export class ShaderPool {
 
     for (const source of sources) {
       try {
-        Shader.create(source);
+        if (typeof source === "string") {
+          Shader.create(source);
+        } else {
+          Shader._createFromPrecompiled(source);
+        }
       } catch (e) {
         Logger.warn(`Failed to register built-in shader: ${e.message || e}`);
       }
