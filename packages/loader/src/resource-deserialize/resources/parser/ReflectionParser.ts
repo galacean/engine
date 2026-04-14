@@ -62,11 +62,11 @@ export class ReflectionParser {
   }
 
   /**
-   * Apply props first, then calls, to preserve declarative-before-command ordering.
+   * Apply props and calls from the same mutation block without imposing ordering between them.
    */
   parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
     if (!block) return Promise.resolve(target);
-    return this.parseProps(target, block.props).then(() => this.parseCalls(target, block.calls));
+    return Promise.all([this.parseProps(target, block.props), this.parseCalls(target, block.calls)]).then(() => target);
   }
 
   /**

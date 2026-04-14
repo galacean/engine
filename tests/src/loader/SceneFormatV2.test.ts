@@ -470,7 +470,7 @@ describe("SceneParser v2 entity tree", () => {
     expect(camera.farClipPlane).to.equal(500);
   });
 
-  it("should apply component calls after props", async () => {
+  it("should apply component props and calls from the same schema", async () => {
     const data = createSceneData(
       [{ name: "CallEntity", components: [0] }],
       [

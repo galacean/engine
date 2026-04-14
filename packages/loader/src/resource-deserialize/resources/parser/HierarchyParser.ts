@@ -164,10 +164,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
     for (let i = 0, n = componentPairs.length; i < n; i++) {
       const { component, config } = componentPairs[i];
-      promises.push(reflectionParser.parseProps(component, config.props));
-      if (config.calls) {
-        promises.push(reflectionParser.parseCalls(component, config.calls));
-      }
+      promises.push(reflectionParser.parseMutationBlock(component, config));
     }
 
     return Promise.all(promises) as any;

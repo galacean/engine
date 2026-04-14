@@ -277,7 +277,7 @@ describe("Prefab instance overrides", () => {
     delete engine.resourceManager._objectPool["nested-cp.prefab"];
   });
 
-  it("should execute component override calls after props", async () => {
+  it("should apply component override props and calls from the same schema", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
       refs: [],
