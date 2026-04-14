@@ -1,5 +1,5 @@
 import { AssetPromise, Component, Engine, Entity, ReferResource, ResourceManager, Scene } from "@galacean/engine-core";
-import type { ComponentSchema } from "../../../scene-format/types";
+import type { ComponentSchema } from "../../../schema/HierarchySchema";
 
 export enum ParserType {
   Prefab,

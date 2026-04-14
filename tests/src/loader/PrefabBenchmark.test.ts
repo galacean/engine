@@ -2,7 +2,8 @@ import { describe, it, expect, beforeAll, afterAll } from "vitest";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Loader, MeshRenderer } from "@galacean/engine-core";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
-import type { PrefabFile, NormalEntitySchema, ComponentSchema } from "../../../packages/loader/src/scene-format/types";
+import type { ComponentSchema, NormalEntitySchema } from "../../../packages/loader/src/schema/HierarchySchema";
+import type { PrefabFile } from "../../../packages/loader/src/schema/PrefabSchema";
 
 let engine: WebGLEngine;
 

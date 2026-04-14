@@ -1,5 +1,6 @@
 import { Engine, Entity } from "@galacean/engine-core";
-import type { HierarchyFile, PrefabFile } from "../scene-format/types";
+import type { HierarchyFile } from "../schema/HierarchySchema";
+import type { PrefabFile } from "../schema/PrefabSchema";
 import { HierarchyParser } from "../resource-deserialize/resources/parser/HierarchyParser";
 import { ParserContext, ParserType } from "../resource-deserialize/resources/parser/ParserContext";
 import { PrefabResource } from "./PrefabResource";

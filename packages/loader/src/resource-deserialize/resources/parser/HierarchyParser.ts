@@ -1,7 +1,7 @@
 import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
-import { resolveRefItem } from "../../../scene-format/refs";
+import { resolveRefItem } from "../../../schema/refs";
 import {
   type ComponentSchema,
   type ComponentSelector,
@@ -9,12 +9,11 @@ import {
   type EntityPropOverride,
   type EntityOverrideProps,
   type EntitySchema,
-  type HierarchyFile,
   type InlineEntitySchema,
-  type NormalEntitySchema,
-  type PrefabInstanceEntitySchema,
-  type RefItem
-} from "../../../scene-format/types";
+  type PrefabInstanceEntitySchema
+} from "../../../schema/HierarchySchema";
+import type { RefItem } from "../../../schema/CommonSchema";
+import type { HierarchyFile } from "../../../schema/HierarchySchema";
 import { ParserContext, ParserType } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
 
@@ -62,11 +61,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected abstract _handleRootEntity(index: number): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
-  protected _applyEntityData(entity: Entity, entityConfig: NormalEntitySchema): Entity {
-    HierarchyParser._applyEntityProps(entity, entityConfig);
-    return entity;
-  }
-
   protected _onEntityCreated(_entity: Entity): void {}
 
   // ---------------------------------------------------------------------------
@@ -90,7 +84,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         );
       } else {
         const entity = new Entity(engine, entityConfig.name);
-        this._applyEntityData(entity, entityConfig);
+        HierarchyParser._applyEntityProps(entity, entityConfig);
         this._onEntityCreated(entity);
         entityMap.set(i, entity);
       }

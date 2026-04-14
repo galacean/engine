@@ -1,6 +1,6 @@
 import { Component, Loader } from "@galacean/engine-core";
-import { resolveRefItem } from "../../../scene-format/refs";
-import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../scene-format/types";
+import { resolveRefItem } from "../../../schema/refs";
+import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../schema/CommonSchema";
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {

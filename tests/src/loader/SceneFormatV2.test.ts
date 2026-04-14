@@ -13,7 +13,7 @@ import {
   ShadowResolution,
   Transform
 } from "@galacean/engine-core";
-import { SpecularMode, type SceneFile } from "../../../packages/loader/src/scene-format/types";
+import { SpecularMode, type SceneFile } from "../../../packages/loader/src/schema/SceneSchema";
 import { applySceneData } from "../../../packages/loader/src/SceneLoader";
 import {
   ParserContext,

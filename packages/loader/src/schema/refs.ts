@@ -1,4 +1,4 @@
-import type { RefItem } from "./types";
+import type { RefItem } from "./CommonSchema";
 
 export function resolveRefItem(refs: RefItem[], index: number, owner: string, label: string): RefItem {
   if (!Number.isInteger(index) || index < 0 || index >= refs.length) {

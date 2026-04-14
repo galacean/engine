@@ -11,7 +11,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import type { AssetRef } from "./scene-format/types";
+import type { AssetRef } from "./schema/CommonSchema";
 import {
   MaterialLoaderType,
   type IColor,
@@ -19,7 +19,7 @@ import {
   type IVector2,
   type IVector3,
   type IVector4
-} from "./resource-deserialize";
+} from "./schema";
 
 function parseProperty(object: Object, key: string, value: any) {
   if (typeof value === "object") {

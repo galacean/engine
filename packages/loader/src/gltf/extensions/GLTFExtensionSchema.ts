@@ -1,5 +1,5 @@
 import type { IMaterialNormalTextureInfo, ITextureInfo } from "../GLTFSchema";
-import type { AssetRef } from "../../scene-format/types";
+import type { AssetRef } from "../../schema/CommonSchema";
 
 /**
  * Interfaces from the KHR_lights_punctual extension

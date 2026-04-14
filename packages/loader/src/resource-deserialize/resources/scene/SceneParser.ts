@@ -1,5 +1,5 @@
 import { Scene } from "@galacean/engine-core";
-import { type SceneFile } from "../../../scene-format/types";
+import type { SceneFile } from "../../../schema/SceneSchema";
 import { HierarchyParser } from "../parser/HierarchyParser";
 import { ParserContext } from "../parser/ParserContext";
 

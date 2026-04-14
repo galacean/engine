@@ -11,8 +11,9 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { resolveRefItem } from "./scene-format/refs";
-import { SpecularMode, type RefItem, type SceneFile } from "./scene-format/types";
+import { resolveRefItem } from "./schema/refs";
+import type { RefItem } from "./schema/CommonSchema";
+import { SpecularMode, type SceneFile } from "./schema/SceneSchema";
 import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
 /**
