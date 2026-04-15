@@ -118,6 +118,14 @@ export class GLTFAnimationParser extends GLTFParser {
           continue;
         }
 
+        // For single-root scenes, the scene root IS the top-level node (e.g. mixamorig:Hips).
+        // When this clip is used on a multi-root model (which wraps nodes in a GLTF_ROOT container),
+        // the Animator sits on GLTF_ROOT and needs the root node name in the path.
+        // Include the scene root name for single-root scenes to ensure consistent bone paths.
+        const sceneNodes = context.glTF.scenes[context.glTF.scene ?? 0]?.nodes;
+        if (sceneNodes?.length === 1) {
+          relativePath = relativePath === "" ? entity.name : `${entity.name}/${relativePath}`;
+        }
         let ComponentType: ComponentConstructor<Component>;
         let propertyName: string;
         switch (target.path) {
