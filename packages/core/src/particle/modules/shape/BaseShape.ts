@@ -25,7 +25,7 @@ export abstract class BaseShape {
   @ignoreClone
   private _rotationQuaternion = new Quaternion();
   @ignoreClone
-  private _rsMatrix = new Matrix3x3();
+  private _matrix = new Matrix3x3();
   @ignoreClone
   private _transformDirty = false;
 
@@ -203,7 +203,7 @@ export abstract class BaseShape {
 
   private _getRSMatrix(): Matrix3x3 {
     if (this._transformDirty) {
-      const { _rotation: r, _scale: s, _rotationQuaternion: q, _rsMatrix: rs } = this;
+      const { _rotation: r, _scale: s, _rotationQuaternion: q, _matrix: rs } = this;
       Quaternion.rotationEuler(
         MathUtil.degreeToRadian(r.x),
         MathUtil.degreeToRadian(r.y),
@@ -224,7 +224,7 @@ export abstract class BaseShape {
       e[8] *= s.z;
       this._transformDirty = false;
     }
-    return this._rsMatrix;
+    return this._matrix;
   }
 
   private _hasShapeTransform(): boolean {
