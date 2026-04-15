@@ -5,7 +5,7 @@ import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
@@ -403,14 +403,14 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
+  _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
     return false;
   }
 
   /**
    * @internal
    */
-  _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {}
+  _batch(preElement: RenderElement | null, curElement: RenderElement): void {}
 
   /**
    * Update once per frame per renderer, not influenced by batched.

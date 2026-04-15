@@ -3,7 +3,7 @@ import { Renderer } from "../Renderer";
 import { InstanceBatch } from "./InstanceBatch";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 import { RenderQueue } from "./RenderQueue";
-import { SubRenderElement } from "./SubRenderElement";
+import { RenderElement } from "./RenderElement";
 
 /**
  * @internal
@@ -52,45 +52,36 @@ export class BatcherManager {
   }
 
   batch(renderQueue: RenderQueue): void {
-    const { elements, batchedSubElements, renderQueueType } = renderQueue;
+    const { elements, batchedElements } = renderQueue;
 
-    let preSubElement: SubRenderElement;
+    let preElement: RenderElement;
     let preRenderer: Renderer;
     let preConstructor: Function;
     for (let i = 0, n = elements.length; i < n; ++i) {
-      const subElements = elements[i].subRenderElements;
-      for (let j = 0, m = subElements.length; j < m; ++j) {
-        const subElement = subElements[j];
-
-        // Some sub render elements may not belong to the current render queue
-        if (!(subElement.renderQueueFlags & (1 << renderQueueType))) {
-          continue;
-        }
-
-        const renderer = subElement.component;
-        const constructor = renderer.constructor;
-        if (preSubElement) {
-          if (preConstructor === constructor && preRenderer._canBatch(preSubElement, subElement)) {
-            preRenderer._batch(preSubElement, subElement);
-            preSubElement.batched = true;
-          } else {
-            batchedSubElements.push(preSubElement);
-            preSubElement = subElement;
-            preRenderer = renderer;
-            preConstructor = constructor;
-            renderer._batch(null, subElement);
-            subElement.batched = false;
-          }
+      const curElement = elements[i];
+      const renderer = curElement.component;
+      const constructor = renderer.constructor;
+      if (preElement) {
+        if (preConstructor === constructor && preRenderer._canBatch(preElement, curElement)) {
+          preRenderer._batch(preElement, curElement);
+          preElement.batched = true;
         } else {
-          preSubElement = subElement;
+          batchedElements.push(preElement);
+          preElement = curElement;
           preRenderer = renderer;
           preConstructor = constructor;
-          renderer._batch(null, subElement);
-          subElement.batched = false;
+          renderer._batch(null, curElement);
+          curElement.batched = false;
         }
+      } else {
+        preElement = curElement;
+        preRenderer = renderer;
+        preConstructor = constructor;
+        renderer._batch(null, curElement);
+        curElement.batched = false;
       }
     }
-    preSubElement && batchedSubElements.push(preSubElement);
+    preElement && batchedElements.push(preElement);
   }
 
   uploadBuffer() {

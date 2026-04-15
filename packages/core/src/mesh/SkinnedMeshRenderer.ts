@@ -1,7 +1,7 @@
 import { BoundingBox, Vector2 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
@@ -124,7 +124,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  override _canBatch(_preSubElement: SubRenderElement, _subElement: SubRenderElement): boolean {
+  override _canBatch(_preElement: RenderElement, _curElement: RenderElement): boolean {
     return false;
   }
 

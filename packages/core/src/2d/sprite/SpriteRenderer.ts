@@ -4,7 +4,7 @@ import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -295,15 +295,15 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(preSubElement, subElement);
+  override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
+    return BatchUtils.canBatchSprite(preElement, curElement);
   }
 
   /**
    * @internal
    */
-  override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
-    BatchUtils.batchFor2D(preSubElement, subElement);
+  override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
+    BatchUtils.batchFor2D(preElement, curElement);
   }
 
   /**
@@ -377,11 +377,10 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     const camera = context.camera;
     const engine = camera.engine;
     const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    renderElement.addSubRenderElement(subRenderElement);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.priority = this.priority;
+    renderElement.distanceForSort = this._distanceForSort;
     camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 

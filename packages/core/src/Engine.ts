@@ -15,9 +15,8 @@ import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderElement } from "./RenderPipeline/RenderElement";
 import { RenderTargetPool } from "./RenderPipeline/RenderTargetPool";
-import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { RenderingStatistics } from "./asset/RenderingStatistics";
@@ -94,9 +93,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
-  _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
-  /* @internal */
-  _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
+  _textRenderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
   _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
@@ -330,9 +327,8 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._subRenderElementPool.clear();
-    this._textSubRenderElementPool.clear();
     this._renderElementPool.clear();
+    this._textRenderElementPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -698,9 +694,8 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
-    this._subRenderElementPool.garbageCollection();
-    this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
+    this._textRenderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
     const scenes = this._sceneManager._scenes.getLoopArray();
     for (let i = 0, n = scenes.length; i < n; i++) {

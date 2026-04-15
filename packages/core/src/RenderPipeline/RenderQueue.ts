@@ -8,21 +8,17 @@ import { BatcherManager } from "./BatcherManager";
 import { InstanceBatch } from "./InstanceBatch";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { SubRenderElement } from "./SubRenderElement";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
 /**
  * @internal
  */
 export class RenderQueue {
-  // @todo: Sort at SubRenderElement level instead of RenderElement level to avoid multi-submesh objects breaking batches
   static compareForOpaque(a: RenderElement, b: RenderElement): number {
-    const sa = a.subRenderElements[0],
-      sb = b.subRenderElements[0];
     return (
       a.priority - b.priority ||
-      sa.material.instanceId - sb.material.instanceId ||
-      sa.primitive.instanceId - sb.primitive.instanceId
+      a.material.instanceId - b.material.instanceId ||
+      a.primitive.instanceId - b.primitive.instanceId
     );
   }
 
@@ -31,7 +27,7 @@ export class RenderQueue {
   }
 
   readonly elements = new Array<RenderElement>();
-  readonly batchedSubElements = new Array<SubRenderElement>();
+  readonly batchedElements = new Array<RenderElement>();
   rendererUpdateFlag = ContextRendererUpdateFlag.None;
 
   constructor(public renderQueueType: RenderQueueType) {}
@@ -54,8 +50,8 @@ export class RenderQueue {
     pipelineStageTagValue: string,
     maskType: RenderQueueMaskType = RenderQueueMaskType.No
   ): void {
-    const batchedSubElements = this.batchedSubElements;
-    const length = batchedSubElements.length;
+    const batchedElements = this.batchedElements;
+    const length = batchedElements.length;
     if (length === 0) {
       return;
     }
@@ -68,14 +64,14 @@ export class RenderQueue {
     const renderQueueType = this.renderQueueType;
 
     for (let i = 0; i < length; i++) {
-      const subElement = batchedSubElements[i];
-      const { component, material, instancedRenderers } = subElement;
+      const curElement = batchedElements[i];
+      const { component, material, instancedRenderers } = curElement;
       const isInstanced = instancedRenderers.length > 0;
 
       // Instancing: transform data is packed in UBO, skip per-renderer update
       if (!isInstanced) {
         // @todo: Can optimize update view projection matrix updated
-        const batched = subElement.batched;
+        const batched = curElement.batched;
         if (
           this.rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix ||
           component._batchedTransformShaderData != batched
@@ -106,8 +102,8 @@ export class RenderQueue {
         maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
       }
 
-      const { primitive, shaderData: renderElementShaderData } = subElement;
-      const shaderPasses = subElement.subShader.passes;
+      const { primitive, shaderData: renderElementShaderData } = curElement;
+      const shaderPasses = curElement.subShader.passes;
       const { shaderData: rendererData, instanceId: rendererId } = component;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
 
@@ -230,11 +226,11 @@ export class RenderQueue {
             const count = Math.min(maxCount, totalCount - start);
             instanceBatch.upload(instancedRenderers, start, count);
             primitive.instanceCount = count;
-            rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
+            rhi.drawPrimitive(primitive, curElement.subPrimitive, program);
           }
           primitive.instanceCount = 0;
         } else {
-          rhi.drawPrimitive(primitive, subElement.subPrimitive, program);
+          rhi.drawPrimitive(primitive, curElement.subPrimitive, program);
         }
       }
     }
@@ -244,7 +240,7 @@ export class RenderQueue {
 
   clear(): void {
     this.elements.length = 0;
-    this.batchedSubElements.length = 0;
+    this.batchedElements.length = 0;
   }
 
   destroy(): void {}

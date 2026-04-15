@@ -1,12 +1,10 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
-import { RenderQueueFlags } from "../../RenderPipeline/BasicRenderPipeline";
 import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
@@ -181,7 +179,6 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     this.setMaterial(this._engine._basicResources.spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._renderElement = new RenderElement();
-    this._renderElement.addSubRenderElement(new SubRenderElement());
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
@@ -204,15 +201,15 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
-    return BatchUtils.canBatchSpriteMask(preSubElement, subElement);
+  override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
+    return BatchUtils.canBatchSpriteMask(preElement, curElement);
   }
 
   /**
    * @internal
    */
-  override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
-    BatchUtils.batchFor2D(preSubElement, subElement);
+  override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
+    BatchUtils.batchFor2D(preElement, curElement);
   }
 
   /**
@@ -297,14 +294,11 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     }
 
     const renderElement = this._renderElement;
-    const subRenderElement = renderElement.subRenderElements[0];
-    renderElement.set(this.priority, this._distanceForSort);
-
     const subChunk = this._subChunk;
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    subRenderElement.subShader = material.shader.subShaders[0];
-    subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-    renderElement.addSubRenderElement(subRenderElement);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.priority = this.priority;
+    renderElement.distanceForSort = this._distanceForSort;
+    renderElement.subShader = material.shader.subShaders[0];
   }
 
   /**

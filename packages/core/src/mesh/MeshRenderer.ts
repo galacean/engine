@@ -1,7 +1,7 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { SubRenderElement } from "../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
@@ -152,9 +152,10 @@ export class MeshRenderer extends Renderer {
 
     const { _materials: materials, _engine: engine } = this;
     const subMeshes = mesh.subMeshes;
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElementPool = engine._subRenderElementPool;
+    const priority = this.priority;
+    const distanceForSort = this._distanceForSort;
+    const renderElementPool = engine._renderElementPool;
+    const renderPipeline = context.camera._renderPipeline;
     for (let i = 0, n = subMeshes.length; i < n; i++) {
       let material = materials[i];
       if (!material) {
@@ -164,37 +165,38 @@ export class MeshRenderer extends Renderer {
         material = this.engine._basicResources.meshMagentaMaterial;
       }
 
-      const subRenderElement = subRenderElementPool.get();
-      subRenderElement.set(this, material, mesh._primitive, subMeshes[i]);
-      renderElement.addSubRenderElement(subRenderElement);
+      const renderElement = renderElementPool.get();
+      renderElement.set(this, material, mesh._primitive, subMeshes[i]);
+      renderElement.priority = priority;
+      renderElement.distanceForSort = distanceForSort;
+      renderPipeline.pushRenderElement(context, renderElement);
     }
-    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   /**
    * @internal
    */
-  override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
+  override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
     if (!this._engine._hardwareRenderer.isWebGL2) return false;
     return (
-      preSubElement.primitive === subElement.primitive &&
-      preSubElement.subPrimitive === subElement.subPrimitive &&
-      preSubElement.material === subElement.material &&
-      this._isFrontFaceInvert() === (<MeshRenderer>subElement.component)._isFrontFaceInvert() &&
-      this.shaderData._macroCollection.isEqual(subElement.component.shaderData._macroCollection)
+      preElement.primitive === curElement.primitive &&
+      preElement.subPrimitive === curElement.subPrimitive &&
+      preElement.material === curElement.material &&
+      this._isFrontFaceInvert() === (<MeshRenderer>curElement.component)._isFrontFaceInvert() &&
+      this.shaderData._macroCollection.isEqual(curElement.component.shaderData._macroCollection)
     );
   }
 
   /**
    * @internal
    */
-  override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
-    if (!preSubElement) return;
-    const renderers = preSubElement.instancedRenderers;
+  override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
+    if (!preElement) return;
+    const renderers = preElement.instancedRenderers;
     if (renderers.length === 0) {
-      renderers.push(preSubElement.component);
+      renderers.push(preElement.component);
     }
-    renderers.push(subElement.component);
+    renderers.push(curElement.component);
   }
 
   private _setMesh(mesh: Mesh): void {

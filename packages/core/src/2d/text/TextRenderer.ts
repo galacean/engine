@@ -5,7 +5,7 @@ import { BatchUtils } from "../../RenderPipeline/BatchUtils";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
@@ -381,15 +381,15 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   /**
    * @internal
    */
-  override _canBatch(preSubElement: SubRenderElement, subElement: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(preSubElement, subElement);
+  override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
+    return BatchUtils.canBatchSprite(preElement, curElement);
   }
 
   /**
    * @internal
    */
-  override _batch(preSubElement: SubRenderElement | null, subElement: SubRenderElement): void {
-    BatchUtils.batchFor2D(preSubElement, subElement);
+  override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
+    BatchUtils.batchFor2D(preElement, curElement);
   }
 
   /**
@@ -430,20 +430,22 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
     const camera = context.camera;
     const engine = camera.engine;
-    const textSubRenderElementPool = engine._textSubRenderElementPool;
+    const textRenderElementPool = engine._textRenderElementPool;
     const material = this.getMaterial();
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
+    const priority = this.priority;
+    const distanceForSort = this._distanceForSort;
+    const renderPipeline = camera._renderPipeline;
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
-      const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
-      renderElement.addSubRenderElement(subRenderElement);
+      const renderElement = textRenderElementPool.get();
+      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
+      renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
+      renderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
+      renderElement.priority = priority;
+      renderElement.distanceForSort = distanceForSort;
+      renderPipeline.pushRenderElement(context, renderElement);
     }
-    camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   private _resetSubFont(): void {
