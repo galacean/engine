@@ -417,11 +417,6 @@ export class ShaderFactory {
   }
 }
 
-/**
- * @internal
- */
-type InstancePackFunc = (view: Float32Array | Int32Array, offset: number, value: any) => void;
-
 export interface InstanceFieldInfo {
   property: ShaderProperty;
   type: string;
@@ -440,3 +435,5 @@ export interface InstanceLayout {
   instanceMaxCount: number;
   structSize: number;
 }
+
+type InstancePackFunc = (view: Float32Array | Int32Array, offset: number, value: any) => void;
