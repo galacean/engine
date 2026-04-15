@@ -50,10 +50,10 @@ export class ShaderFactory {
 #endif
 `;
 
-  private static readonly _derivedDefines =
-    "#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)\n" +
-    "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)\n" +
-    "#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))";
+  private static readonly _derivedDefines = `\
+#define renderer_MVMat (camera_ViewMat * renderer_ModelMat)
+#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)
+#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))`;
 
   // Built-in renderer uniforms. value=true means derived (remove but not added to UBO)
   private static readonly _builtinRendererUniforms: Record<string, boolean> = {
