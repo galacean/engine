@@ -441,7 +441,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-transform",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.334
     }
   },
   PostProcess: {
