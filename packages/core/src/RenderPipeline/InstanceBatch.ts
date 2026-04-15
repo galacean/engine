@@ -4,10 +4,8 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { Renderer } from "../Renderer";
-import { ShaderBlockProperty } from "../shader/ShaderBlockProperty";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
-import { InstanceLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
+import { InstanceLayout } from "../shaderlib/ShaderFactory";
 
 /**
  * @internal
@@ -15,11 +13,6 @@ import { InstanceLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
  */
 export class InstanceBatch {
   static gpuInstanceMacro = ShaderMacro.getByName("RENDERER_GPU_INSTANCE");
-
-  static readonly uniformBlockBindingMap: Record<number, number> = {
-    [ShaderBlockProperty.getByName(ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME)._uniqueId]:
-      ConstantBufferBindingPoint.RendererInstance
-  };
 
   buffer: Buffer;
 

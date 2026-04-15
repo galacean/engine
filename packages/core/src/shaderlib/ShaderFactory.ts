@@ -7,6 +7,8 @@ import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProperty } from "../shader/ShaderProperty";
+import { ShaderBlockProperty } from "../shader/ShaderBlockProperty";
+import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderLib } from "./ShaderLib";
 
 /**
@@ -14,6 +16,11 @@ import { ShaderLib } from "./ShaderLib";
  */
 export class ShaderFactory {
   static readonly RENDERER_INSTANCE_BLOCK_NAME = "RendererInstanceData";
+
+  static readonly uniformBlockBindingMap: Record<number, number> = {
+    [ShaderBlockProperty.getByName(ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME)._uniqueId]:
+      ConstantBufferBindingPoint.RendererInstance
+  };
 
   static readonly shaderExtension = [
     "GL_EXT_shader_texture_lod",

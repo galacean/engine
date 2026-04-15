@@ -10,7 +10,6 @@ import { ShaderUniformBlock } from "./ShaderUniformBlock";
 import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { InstanceLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
-import { ConstantBufferBindingPoint } from "./enums/ConstantBufferBindingPoint";
 
 /**
  * Shader program, corresponding to the GPU shader program.
@@ -514,13 +513,14 @@ export class ShaderProgram {
     // Record uniform block indices and bind binding points (WebGL2 only)
     if (this._engine._hardwareRenderer.isWebGL2) {
       const gl2 = <WebGL2RenderingContext>gl;
-      const instanceBlockId = ShaderBlockProperty.getByName(ShaderFactory.RENDERER_INSTANCE_BLOCK_NAME)._uniqueId;
+      const bindingMap = ShaderFactory.uniformBlockBindingMap;
       const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
       for (let i = 0; i < blockCount; i++) {
         const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i))._uniqueId;
         this.uniformBlockIds[i] = id;
-        if (id === instanceBlockId) {
-          gl2.uniformBlockBinding(program, i, ConstantBufferBindingPoint.RendererInstance);
+        const bindingPoint = bindingMap[id];
+        if (bindingPoint !== undefined) {
+          gl2.uniformBlockBinding(program, i, bindingPoint);
         }
       }
     }
