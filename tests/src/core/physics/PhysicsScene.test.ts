@@ -504,7 +504,6 @@ describe("Physics Test", () => {
       expect(physicsScene.raycast(ray, Number.MAX_VALUE, Layer.Everything, outHitResult)).to.eq(false);
 
       const rootEntityCharacter = root.createChild("root_character");
-      rootEntityCharacter.layer = Layer.Layer3;
       rootEntityCharacter.transform.position = new Vector3(0, 0, 0);
 
       const characterController = rootEntityCharacter.addComponent(CharacterController);
