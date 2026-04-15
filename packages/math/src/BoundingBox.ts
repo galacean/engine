@@ -65,7 +65,8 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    */
   static transform(source: BoundingBox, matrix: Matrix, out: BoundingBox): void {
     // Arvo's min/max method: for each matrix element, positive values multiply min for new min (max for new max),
-    // negative values multiply max for new min (min for new max), then add translation
+    // negative values multiply max for new min (min for new max), then add translation.
+    // Zero check avoids 0 * Infinity = NaN
     const { x: minX, y: minY, z: minZ } = source.min;
     const { x: maxX, y: maxY, z: maxZ } = source.max;
     const e = matrix.elements;
@@ -75,15 +76,33 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
       e8 = e[8], e9 = e[9], e10 = e[10];
 
     out.min.set(
-      (e0 > 0 ? e0 * minX : e0 * maxX) + (e4 > 0 ? e4 * minY : e4 * maxY) + (e8 > 0 ? e8 * minZ : e8 * maxZ) + e[12],
-      (e1 > 0 ? e1 * minX : e1 * maxX) + (e5 > 0 ? e5 * minY : e5 * maxY) + (e9 > 0 ? e9 * minZ : e9 * maxZ) + e[13],
-      (e2 > 0 ? e2 * minX : e2 * maxX) + (e6 > 0 ? e6 * minY : e6 * maxY) + (e10 > 0 ? e10 * minZ : e10 * maxZ) + e[14]
+      (e0 > 0 ? e0 * minX : e0 < 0 ? e0 * maxX : 0) +
+        (e4 > 0 ? e4 * minY : e4 < 0 ? e4 * maxY : 0) +
+        (e8 > 0 ? e8 * minZ : e8 < 0 ? e8 * maxZ : 0) +
+        e[12],
+      (e1 > 0 ? e1 * minX : e1 < 0 ? e1 * maxX : 0) +
+        (e5 > 0 ? e5 * minY : e5 < 0 ? e5 * maxY : 0) +
+        (e9 > 0 ? e9 * minZ : e9 < 0 ? e9 * maxZ : 0) +
+        e[13],
+      (e2 > 0 ? e2 * minX : e2 < 0 ? e2 * maxX : 0) +
+        (e6 > 0 ? e6 * minY : e6 < 0 ? e6 * maxY : 0) +
+        (e10 > 0 ? e10 * minZ : e10 < 0 ? e10 * maxZ : 0) +
+        e[14]
     );
 
     out.max.set(
-      (e0 > 0 ? e0 * maxX : e0 * minX) + (e4 > 0 ? e4 * maxY : e4 * minY) + (e8 > 0 ? e8 * maxZ : e8 * minZ) + e[12],
-      (e1 > 0 ? e1 * maxX : e1 * minX) + (e5 > 0 ? e5 * maxY : e5 * minY) + (e9 > 0 ? e9 * maxZ : e9 * minZ) + e[13],
-      (e2 > 0 ? e2 * maxX : e2 * minX) + (e6 > 0 ? e6 * maxY : e6 * minY) + (e10 > 0 ? e10 * maxZ : e10 * minZ) + e[14]
+      (e0 > 0 ? e0 * maxX : e0 < 0 ? e0 * minX : 0) +
+        (e4 > 0 ? e4 * maxY : e4 < 0 ? e4 * minY : 0) +
+        (e8 > 0 ? e8 * maxZ : e8 < 0 ? e8 * minZ : 0) +
+        e[12],
+      (e1 > 0 ? e1 * maxX : e1 < 0 ? e1 * minX : 0) +
+        (e5 > 0 ? e5 * maxY : e5 < 0 ? e5 * minY : 0) +
+        (e9 > 0 ? e9 * maxZ : e9 < 0 ? e9 * minZ : 0) +
+        e[13],
+      (e2 > 0 ? e2 * maxX : e2 < 0 ? e2 * minX : 0) +
+        (e6 > 0 ? e6 * maxY : e6 < 0 ? e6 * minY : 0) +
+        (e10 > 0 ? e10 * maxZ : e10 < 0 ? e10 * minZ : 0) +
+        e[14]
     );
   }
 

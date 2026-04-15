@@ -1,5 +1,5 @@
 import { BoxShape, SphereShape, ConeShape } from "@galacean/engine-core";
-import { Rand, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Rand, Vector3 } from "@galacean/engine-math";
 import { describe, beforeEach, expect, it } from "vitest";
 
 describe("ParticleShapeTransform", function () {
@@ -26,14 +26,13 @@ describe("ParticleShapeTransform", function () {
       shape.size.set(2, 2, 2);
       shape.position.set(10, 0, 0);
 
-      const min = new Vector3();
-      const max = new Vector3();
-      shape._getPositionRange(min, max);
+      const bounds = new BoundingBox();
+      shape._getPositionRange(bounds);
 
-      expect(min.x).to.be.closeTo(9, epsilon);
-      expect(max.x).to.be.closeTo(11, epsilon);
-      expect(min.y).to.be.closeTo(-1, epsilon);
-      expect(max.y).to.be.closeTo(1, epsilon);
+      expect(bounds.min.x).to.be.closeTo(9, epsilon);
+      expect(bounds.max.x).to.be.closeTo(11, epsilon);
+      expect(bounds.min.y).to.be.closeTo(-1, epsilon);
+      expect(bounds.max.y).to.be.closeTo(1, epsilon);
     });
   });
 
@@ -43,15 +42,14 @@ describe("ParticleShapeTransform", function () {
       shape.size.set(2, 0, 0);
       shape.rotation.set(0, 0, 90);
 
-      const min = new Vector3();
-      const max = new Vector3();
-      shape._getPositionRange(min, max);
+      const bounds = new BoundingBox();
+      shape._getPositionRange(bounds);
 
       // Local range: (-1,0,0) to (1,0,0), rotated 90 around Z -> (0,-1,0) to (0,1,0)
-      expect(min.x).to.be.closeTo(0, epsilon);
-      expect(max.x).to.be.closeTo(0, epsilon);
-      expect(min.y).to.be.closeTo(-1, epsilon);
-      expect(max.y).to.be.closeTo(1, epsilon);
+      expect(bounds.min.x).to.be.closeTo(0, epsilon);
+      expect(bounds.max.x).to.be.closeTo(0, epsilon);
+      expect(bounds.min.y).to.be.closeTo(-1, epsilon);
+      expect(bounds.max.y).to.be.closeTo(1, epsilon);
     });
 
     it("should rotate box position range", function () {
@@ -59,38 +57,39 @@ describe("ParticleShapeTransform", function () {
       shape.size.set(2, 4, 2);
       shape.rotation.set(0, 0, 90);
 
-      const min = new Vector3();
-      const max = new Vector3();
-      shape._getPositionRange(min, max);
+      const bounds = new BoundingBox();
+      shape._getPositionRange(bounds);
 
       // Original range: (-1,-2,-1) to (1,2,1)
       // After 90 Z rotation: x<->y swapped
-      expect(min.x).to.be.closeTo(-2, epsilon);
-      expect(max.x).to.be.closeTo(2, epsilon);
-      expect(min.y).to.be.closeTo(-1, epsilon);
-      expect(max.y).to.be.closeTo(1, epsilon);
+      expect(bounds.min.x).to.be.closeTo(-2, epsilon);
+      expect(bounds.max.x).to.be.closeTo(2, epsilon);
+      expect(bounds.min.y).to.be.closeTo(-1, epsilon);
+      expect(bounds.max.y).to.be.closeTo(1, epsilon);
     });
 
     it("sphere bounds should be conservative after rotation", function () {
       const shape = new SphereShape();
       shape.radius = 2;
 
+      const boundsBefore = new BoundingBox();
+      shape._getPositionRange(boundsBefore);
       const minBefore = new Vector3();
       const maxBefore = new Vector3();
-      shape._getPositionRange(minBefore, maxBefore);
+      minBefore.copyFrom(boundsBefore.min);
+      maxBefore.copyFrom(boundsBefore.max);
 
       shape.rotation.set(45, 30, 60);
-      const minAfter = new Vector3();
-      const maxAfter = new Vector3();
-      shape._getPositionRange(minAfter, maxAfter);
+      const boundsAfter = new BoundingBox();
+      shape._getPositionRange(boundsAfter);
 
       // Arvo rotates the AABB (cube), which expands it. Bounds should be >= original.
-      expect(minAfter.x).to.be.lessThanOrEqual(minBefore.x + epsilon);
-      expect(minAfter.y).to.be.lessThanOrEqual(minBefore.y + epsilon);
-      expect(minAfter.z).to.be.lessThanOrEqual(minBefore.z + epsilon);
-      expect(maxAfter.x).to.be.greaterThanOrEqual(maxBefore.x - epsilon);
-      expect(maxAfter.y).to.be.greaterThanOrEqual(maxBefore.y - epsilon);
-      expect(maxAfter.z).to.be.greaterThanOrEqual(maxBefore.z - epsilon);
+      expect(boundsAfter.min.x).to.be.lessThanOrEqual(minBefore.x + epsilon);
+      expect(boundsAfter.min.y).to.be.lessThanOrEqual(minBefore.y + epsilon);
+      expect(boundsAfter.min.z).to.be.lessThanOrEqual(minBefore.z + epsilon);
+      expect(boundsAfter.max.x).to.be.greaterThanOrEqual(maxBefore.x - epsilon);
+      expect(boundsAfter.max.y).to.be.greaterThanOrEqual(maxBefore.y - epsilon);
+      expect(boundsAfter.max.z).to.be.greaterThanOrEqual(maxBefore.z - epsilon);
     });
   });
 
@@ -113,15 +112,14 @@ describe("ParticleShapeTransform", function () {
       shape.size.set(2, 2, 2);
       shape.scale.set(3, 1, 1);
 
-      const min = new Vector3();
-      const max = new Vector3();
-      shape._getPositionRange(min, max);
+      const bounds = new BoundingBox();
+      shape._getPositionRange(bounds);
 
       // Original: (-1,-1,-1) to (1,1,1), scaled X by 3
-      expect(min.x).to.be.closeTo(-3, epsilon);
-      expect(max.x).to.be.closeTo(3, epsilon);
-      expect(min.y).to.be.closeTo(-1, epsilon);
-      expect(max.y).to.be.closeTo(1, epsilon);
+      expect(bounds.min.x).to.be.closeTo(-3, epsilon);
+      expect(bounds.max.x).to.be.closeTo(3, epsilon);
+      expect(bounds.min.y).to.be.closeTo(-1, epsilon);
+      expect(bounds.max.y).to.be.closeTo(1, epsilon);
     });
 
     it("negative scale should flip and reorder min/max", function () {
@@ -129,13 +127,12 @@ describe("ParticleShapeTransform", function () {
       shape.size.set(2, 2, 2);
       shape.scale.set(-1, 1, 1);
 
-      const min = new Vector3();
-      const max = new Vector3();
-      shape._getPositionRange(min, max);
+      const bounds = new BoundingBox();
+      shape._getPositionRange(bounds);
 
       // After negative X scale, reorder ensures min < max
-      expect(min.x).to.be.closeTo(-1, epsilon);
-      expect(max.x).to.be.closeTo(1, epsilon);
+      expect(bounds.min.x).to.be.closeTo(-1, epsilon);
+      expect(bounds.max.x).to.be.closeTo(1, epsilon);
     });
   });
 
@@ -164,20 +161,18 @@ describe("ParticleShapeTransform", function () {
       shape1.size.set(2, 3, 4);
       shape2.size.set(2, 3, 4);
 
-      const min1 = new Vector3();
-      const max1 = new Vector3();
-      const min2 = new Vector3();
-      const max2 = new Vector3();
+      const bounds1 = new BoundingBox();
+      const bounds2 = new BoundingBox();
 
-      shape1._getPositionRange(min1, max1);
-      shape2._getPositionRange(min2, max2);
+      shape1._getPositionRange(bounds1);
+      shape2._getPositionRange(bounds2);
 
-      expect(min1.x).to.be.closeTo(min2.x, epsilon);
-      expect(min1.y).to.be.closeTo(min2.y, epsilon);
-      expect(min1.z).to.be.closeTo(min2.z, epsilon);
-      expect(max1.x).to.be.closeTo(max2.x, epsilon);
-      expect(max1.y).to.be.closeTo(max2.y, epsilon);
-      expect(max1.z).to.be.closeTo(max2.z, epsilon);
+      expect(bounds1.min.x).to.be.closeTo(bounds2.min.x, epsilon);
+      expect(bounds1.min.y).to.be.closeTo(bounds2.min.y, epsilon);
+      expect(bounds1.min.z).to.be.closeTo(bounds2.min.z, epsilon);
+      expect(bounds1.max.x).to.be.closeTo(bounds2.max.x, epsilon);
+      expect(bounds1.max.y).to.be.closeTo(bounds2.max.y, epsilon);
+      expect(bounds1.max.z).to.be.closeTo(bounds2.max.z, epsilon);
     });
   });
 
@@ -231,19 +226,17 @@ describe("ParticleShapeTransform", function () {
       clone.size.set(2, 0, 0);
 
       // Verify clone's rotation produces same bounds as original
-      const minOrig = new Vector3();
-      const maxOrig = new Vector3();
-      shape._getPositionRange(minOrig, maxOrig);
+      const boundsOrig = new BoundingBox();
+      shape._getPositionRange(boundsOrig);
 
-      const minClone = new Vector3();
-      const maxClone = new Vector3();
-      clone._getPositionRange(minClone, maxClone);
+      const boundsClone = new BoundingBox();
+      clone._getPositionRange(boundsClone);
 
       // Both should have: local (-1,0,0)~(1,0,0) rotated 90Z -> (0,-1,0)~(0,1,0)
-      expect(minClone.x).to.be.closeTo(minOrig.x, epsilon);
-      expect(minClone.y).to.be.closeTo(minOrig.y, epsilon);
-      expect(maxClone.x).to.be.closeTo(maxOrig.x, epsilon);
-      expect(maxClone.y).to.be.closeTo(maxOrig.y, epsilon);
+      expect(boundsClone.min.x).to.be.closeTo(boundsOrig.min.x, epsilon);
+      expect(boundsClone.min.y).to.be.closeTo(boundsOrig.min.y, epsilon);
+      expect(boundsClone.max.x).to.be.closeTo(boundsOrig.max.x, epsilon);
+      expect(boundsClone.max.y).to.be.closeTo(boundsOrig.max.y, epsilon);
     });
 
     it("modifying clone should not affect original", function () {
