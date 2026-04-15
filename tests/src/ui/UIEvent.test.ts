@@ -74,17 +74,20 @@ describe("UIEvent", async () => {
 
   // Add Image
   const imageEntity1 = canvasEntity.createChild("Image1");
-  imageEntity1.addComponent(Image);
+  const image1 = imageEntity1.addComponent(Image);
+  image1.raycastEnabled = true;
   (<UITransform>imageEntity1.transform).size.set(300, 300);
   const script1 = imageEntity1.addComponent(TestScript);
 
   const imageEntity2 = imageEntity1.createChild("Image2");
-  imageEntity2.addComponent(Image);
+  const image2 = imageEntity2.addComponent(Image);
+  image2.raycastEnabled = true;
   (<UITransform>imageEntity2.transform).size.set(200, 200);
   const script2 = imageEntity2.addComponent(TestScript);
 
   const imageEntity3 = imageEntity2.createChild("Image3");
   const image3 = imageEntity3.addComponent(Image);
+  image3.raycastEnabled = true;
   (<UITransform>imageEntity3.transform).size.set(100, 100);
   const script3 = imageEntity3.addComponent(TestScript);
 
@@ -93,6 +96,7 @@ describe("UIEvent", async () => {
     const { _pointerManager: pointerManager } = inputManager;
     const { _target: target } = pointerManager;
     const { left, top } = target.getBoundingClientRect();
+
     target.dispatchEvent(generatePointerEvent("pointerdown", 2, left + 2, top + 2));
     engine.update();
 

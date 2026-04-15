@@ -121,12 +121,13 @@ export class CloneManager {
     }
 
     // 4. Determine effective clone mode
-    let effectiveCloneMode = cloneMode;
+    let effectiveCloneMode: CloneMode = cloneMode;
     if (effectiveCloneMode === undefined) {
       // Undecorated: infer from runtime type
       effectiveCloneMode = CloneManager._inferCloneMode(sourceProperty, target[k]);
-    } else {
-      // Decorated: upgrade to Deep if target already has independent same-type instance
+    } else if (effectiveCloneMode !== CloneMode.Assignment) {
+      // Decorated Shallow/Deep: upgrade to Deep if target already has independent same-type instance.
+      // Assignment is never upgraded — it means the user explicitly wants a reference copy.
       const targetProperty = target[k];
       if (
         targetProperty &&

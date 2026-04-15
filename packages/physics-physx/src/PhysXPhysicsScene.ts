@@ -214,19 +214,37 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           return 0; // eNONE
         }
+      },
+      postFilter: (filterData, hit) => {
+        // Skip shapes that contain the ray origin (distance === 0).
+        // This matches Bullet physics behavior used by Cocos Creator,
+        // where raycasts do not report shapes enclosing the ray origin.
+        if (hit.distance === 0) {
+          return 0; // eNONE — skip this hit, PhysX will continue to the next candidate
+        }
+        return 2; // eBLOCK
       }
     };
 
-    const pxRaycastCallback = this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback);
+    // Use POST_FILTER in addition to PRE_FILTER so postFilter callback is invoked
+    const physX = this._physXPhysics._physX;
+    const pxRaycastFilterData = new physX.PxQueryFilterData();
+    pxRaycastFilterData.flags = new physX.PxQueryFlags(
+      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER
+    );
+
+    const pxRaycastCallback = physX.PxQueryFilterCallback.implement(raycastCallback);
     const result = this._pxScene.raycastSingle(
       ray.origin,
       ray.direction,
       distance,
       pxHitResult,
-      this._pxFilterData,
+      pxRaycastFilterData,
       pxRaycastCallback
     );
 
+    pxRaycastFilterData.flags.delete();
+    pxRaycastFilterData.delete();
     pxRaycastCallback.delete();
 
     if (result && hit != undefined) {
