@@ -115,8 +115,9 @@ export class CloneManager {
     if (effectiveCloneMode === CloneMode.Ignore) return;
 
     const targetProperty = target[k];
-    if (
-      effectiveCloneMode === undefined &&
+    if (effectiveCloneMode === undefined) {
+      effectiveCloneMode = CloneMode.Assignment;
+    } else if (
       sourceProperty instanceof Object &&
       targetProperty &&
       targetProperty !== sourceProperty &&

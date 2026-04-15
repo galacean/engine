@@ -218,7 +218,7 @@ export class Entity extends EngineObject {
 
     if (this._isRoot) {
       this._setSiblingIndex(this._scene._rootEntities, value);
-    } else {
+    } else if (this._parent) {
       const parent = this._parent;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
