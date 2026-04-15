@@ -214,7 +214,7 @@ export abstract class BaseShape {
   }
 
   /**
-   * Arvo method: transform AABB by matrix
+   * Arvo method: transform AABB by matrix.
    */
   private _transformBoundingBox(outMin: Vector3, outMax: Vector3, includeTranslation: boolean): void {
     const e = this._getMatrix().elements;
