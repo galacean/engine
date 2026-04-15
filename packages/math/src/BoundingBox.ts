@@ -64,6 +64,8 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    * @param out - The transformed bounding box
    */
   static transform(source: BoundingBox, matrix: Matrix, out: BoundingBox): void {
+    // Arvo's min/max method: for each matrix element, positive values multiply min for new min (max for new max),
+    // negative values multiply max for new min (min for new max), then add translation
     const { x: minX, y: minY, z: minZ } = source.min;
     const { x: maxX, y: maxY, z: maxZ } = source.max;
     const e = matrix.elements;

@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Quaternion, Rand, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { ignoreClone } from "../../../clone/CloneManager";
@@ -157,10 +157,10 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
-    this._getLocalPositionRange(outMin, outMax);
+  _getPositionRange(bounds: BoundingBox): void {
+    this._getLocalPositionRange(bounds.min, bounds.max);
     if (this._hasShapeTransform()) {
-      this._transformBoundingBox(outMin, outMax, true);
+      BoundingBox.transform(bounds, this._getMatrix(), bounds);
     }
   }
 
@@ -170,7 +170,7 @@ export abstract class BaseShape {
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     this._getLocalDirectionRange(outMin, outMax);
     if (this._hasShapeTransform()) {
-      this._transformBoundingBox(outMin, outMax, false);
+      this._transformDirectionRange(outMin, outMax);
     }
   }
 
@@ -213,28 +213,15 @@ export abstract class BaseShape {
     );
   }
 
-  /**
-   * Arvo method: transform AABB by matrix.
-   */
-  private _transformBoundingBox(outMin: Vector3, outMax: Vector3, includeTranslation: boolean): void {
+  // Arvo min/max method without translation, only apply RS part of the matrix
+  private _transformDirectionRange(outMin: Vector3, outMax: Vector3): void {
     const e = this._getMatrix().elements;
-
-    const minX = outMin.x,
-      minY = outMin.y,
-      minZ = outMin.z;
-    const maxX = outMax.x,
-      maxY = outMax.y,
-      maxZ = outMax.z;
-
-    const e0 = e[0],
-      e1 = e[1],
-      e2 = e[2];
-    const e4 = e[4],
-      e5 = e[5],
-      e6 = e[6];
-    const e8 = e[8],
-      e9 = e[9],
-      e10 = e[10];
+    const { x: minX, y: minY, z: minZ } = outMin;
+    const { x: maxX, y: maxY, z: maxZ } = outMax;
+    // prettier-ignore
+    const e0 = e[0], e1 = e[1], e2 = e[2],
+      e4 = e[4], e5 = e[5], e6 = e[6],
+      e8 = e[8], e9 = e[9], e10 = e[10];
 
     outMin.set(
       (e0 > 0 ? e0 * minX : e0 * maxX) + (e4 > 0 ? e4 * minY : e4 * maxY) + (e8 > 0 ? e8 * minZ : e8 * maxZ),
@@ -247,14 +234,5 @@ export abstract class BaseShape {
       (e1 > 0 ? e1 * maxX : e1 * minX) + (e5 > 0 ? e5 * maxY : e5 * minY) + (e9 > 0 ? e9 * maxZ : e9 * minZ),
       (e2 > 0 ? e2 * maxX : e2 * minX) + (e6 > 0 ? e6 * maxY : e6 * minY) + (e10 > 0 ? e10 * maxZ : e10 * minZ)
     );
-
-    if (includeTranslation) {
-      outMin.x += e[12];
-      outMin.y += e[13];
-      outMin.z += e[14];
-      outMax.x += e[12];
-      outMax.y += e[13];
-      outMax.z += e[14];
-    }
   }
 }
