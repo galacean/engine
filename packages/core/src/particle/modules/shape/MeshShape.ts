@@ -54,7 +54,7 @@ export class MeshShape extends BaseShape {
   /**
    * @internal
    */
-  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+  _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const {
       _positionBuffer: positions,
       _positionElementInfo: positionInfo,
@@ -78,7 +78,7 @@ export class MeshShape extends BaseShape {
   /**
    * @internal
    */
-  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
+  _getLocalPositionRange(outMin: Vector3, outMax: Vector3): void {
     const { bounds } = this._mesh;
     bounds.min.copyTo(outMin);
     bounds.max.copyTo(outMax);
@@ -87,7 +87,7 @@ export class MeshShape extends BaseShape {
   /**
    * @internal
    */
-  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
+  _getLocalDirectionRange(outMin: Vector3, outMax: Vector3): void {
     // @todo: Should use min and max of normal, use bounds is worst, but we can't get the min and max of normal by fast way.
     const { bounds } = this._mesh;
     bounds.min.copyTo(outMin);

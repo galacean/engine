@@ -146,23 +146,8 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  abstract _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void;
-
-  /**
-   * @internal
-   */
-  abstract _getDirectionRange(outMin: Vector3, outMax: Vector3): void;
-
-  /**
-   * @internal
-   */
-  abstract _getPositionRange(outMin: Vector3, outMax: Vector3): void;
-
-  /**
-   * @internal
-   */
-  _generateTransformedPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
-    this._generatePositionAndDirection(rand, emitTime, position, direction);
+  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+    this._generateLocalPositionAndDirection(rand, emitTime, position, direction);
     if (this._hasShapeTransform()) {
       const { _scale: scale } = this;
       position.multiply(scale);
@@ -178,8 +163,8 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _getTransformedPositionRange(outMin: Vector3, outMax: Vector3): void {
-    this._getPositionRange(outMin, outMax);
+  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
+    this._getLocalPositionRange(outMin, outMax);
     if (this._hasShapeTransform()) {
       const { _scale: scale } = this;
       outMin.multiply(scale);
@@ -194,8 +179,8 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _getTransformedDirectionRange(outMin: Vector3, outMax: Vector3): void {
-    this._getDirectionRange(outMin, outMax);
+  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
+    this._getLocalDirectionRange(outMin, outMax);
     if (this._hasShapeTransform()) {
       const { _scale: scale } = this;
       outMin.multiply(scale);
@@ -204,6 +189,17 @@ export abstract class BaseShape {
       this._rotateBoundingBox(outMin, outMax);
     }
   }
+
+  protected abstract _generateLocalPositionAndDirection(
+    rand: Rand,
+    emitTime: number,
+    position: Vector3,
+    direction: Vector3
+  ): void;
+
+  protected abstract _getLocalPositionRange(outMin: Vector3, outMax: Vector3): void;
+
+  protected abstract _getLocalDirectionRange(outMin: Vector3, outMax: Vector3): void;
 
   @ignoreClone
   protected _onTransformChanged = (): void => {
