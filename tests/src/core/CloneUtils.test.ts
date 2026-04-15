@@ -244,7 +244,9 @@ describe("Clone remap", async () => {
       expect(clonedScript.speed).eq(42);
       expect(clonedScript.name2).eq("test");
       expect(clonedScript.flag).eq(true);
-      expect(clonedScript.data).eq(obj);
+      // Plain objects are now deep cloned (independent copy) for undecorated properties
+      expect(clonedScript.data).not.eq(obj);
+      expect((<any>clonedScript.data).x).eq(1);
 
       rootEntity.destroy();
     });
