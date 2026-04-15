@@ -10,9 +10,9 @@ export abstract class BaseShape {
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
 
-  private static _tempVector30 = new Vector3();
-  private static _tempVector31 = new Vector3();
-  private static _tempVector32 = new Vector3();
+  private static _tempBasisX = new Vector3();
+  private static _tempBasisY = new Vector3();
+  private static _tempBasisZ = new Vector3();
 
   @ignoreClone
   protected _updateManager = new UpdateFlagManager();
@@ -181,9 +181,9 @@ export abstract class BaseShape {
   private _rotateBoundingBox(outMin: Vector3, outMax: Vector3): void {
     const quaternion = this._getRotationQuaternion();
 
-    const right = BaseShape._tempVector30;
-    const up = BaseShape._tempVector31;
-    const forward = BaseShape._tempVector32;
+    const right = BaseShape._tempBasisX;
+    const up = BaseShape._tempBasisY;
+    const forward = BaseShape._tempBasisZ;
 
     right.set(1, 0, 0);
     Vector3.transformByQuat(right, quaternion, right);
