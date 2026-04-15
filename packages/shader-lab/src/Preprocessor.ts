@@ -1,6 +1,7 @@
 import { Logger } from "@galacean/engine";
 /** @ts-ignore */
 import { ShaderLib } from "@galacean/engine";
+import { ShaderLabUtils } from "./ShaderLabUtils";
 
 export enum MacroValueType {
   Number, // 1, 1.1
@@ -36,6 +37,7 @@ export class Preprocessor {
   static _repeatIncludeSet = new Set<string>();
 
   static parse(source: string, outMacroDefineList: MacroDefineList, parseMacro = true): string {
+    source = ShaderLabUtils.removeComments(source);
     if (parseMacro) {
       this._parseMacroDefines(source, outMacroDefineList);
     }

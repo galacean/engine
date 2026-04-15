@@ -21,7 +21,7 @@ export interface IShaderLab {
     vertexEntry: string,
     fragmentEntry: string,
     backend: any
-  ): IShaderProgramSource;
+  ): IShaderProgramSource | undefined;
 
   /**
    * @internal

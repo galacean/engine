@@ -5,6 +5,8 @@ import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { BaseToken } from "./BaseToken";
 
+const { skipComment } = ShaderLabUtils;
+
 export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
 
 /**
@@ -134,28 +136,10 @@ export abstract class BaseLexer {
         index++;
       }
 
-      // Check for comments: 47 is '/'
-      if (index + 1 >= length || source.charCodeAt(index) !== 47) break;
-
-      const nextChar = source.charCodeAt(index + 1);
-      if (nextChar === 47) {
-        // Single line comment: 10 is '\n', 13 is '\r'
-        index += 2;
-        while (index < length) {
-          const charCode = source.charCodeAt(index);
-          if (charCode === 10 || charCode === 13) break;
-          index++;
-        }
-      } else if (nextChar === 42) {
-        // Multi-line comment: 42 is '*'
-        index += 2;
-        while (index + 1 < length && !(source.charCodeAt(index) === 42 && source.charCodeAt(index + 1) === 47)) {
-          index++;
-        }
-        index += 2; // Skip '*/'
-      } else {
-        break; // Not a comment, stop
-      }
+      // Skip comment (returns same index if not a comment)
+      const newIndex = skipComment(source, index);
+      if (newIndex === index) break;
+      index = newIndex;
     }
 
     this.advance(index - this._currentIndex);

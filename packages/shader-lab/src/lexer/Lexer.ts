@@ -101,6 +101,11 @@ export class Lexer extends BaseLexer {
     super(source);
   }
 
+  // Comments are already stripped by Preprocessor, only skip whitespace.
+  override skipCommentsAndSpace(): void {
+    this.skipSpace(true);
+  }
+
   override scanToken(): BaseToken {
     this.skipCommentsAndSpace();
     if (this.isEnd()) {
