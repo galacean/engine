@@ -436,6 +436,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-noise",
       threshold: 0,
       diffPercentage: 0
+    },
+    shapeTransform: {
+      category: "Particle",
+      caseFileName: "particleRenderer-shape-transform",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   PostProcess: {
