@@ -305,7 +305,7 @@ export class ShaderFactory {
   }
 
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
-    const maxUBOSize = engine._hardwareRenderer.getMaxUniformBlockSize();
+    const maxUBOSize = engine._hardwareRenderer.maxUniformBlockSize;
     const std140Map = ShaderFactory._std140TypeInfoMap;
     const instanceFields: InstanceFieldInfo[] = [];
     let currentOffset = 0;

@@ -89,6 +89,8 @@ export interface WebGLGraphicDeviceOptions {
  * WebGL graphic device, including WebGL1.0 and WebGL2.0.
  */
 export class WebGLGraphicDevice implements IHardwareRenderer {
+  maxUniformBlockSize: number;
+
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer = null;
   /** @internal */
@@ -292,11 +294,6 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       gl.uniformBlockBinding(program, blockIndex, bindingPoint);
     }
     return blockIndex;
-  }
-
-  getMaxUniformBlockSize(): number {
-    const gl = <WebGL2RenderingContext>this._gl;
-    return gl.getParameter(gl.MAX_UNIFORM_BLOCK_SIZE);
   }
 
   /**
@@ -641,6 +638,11 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
+    }
+    if (this._isWebGL2) {
+      this.maxUniformBlockSize = (<WebGL2RenderingContext>gl).getParameter(
+        (<WebGL2RenderingContext>gl).MAX_UNIFORM_BLOCK_SIZE
+      );
     }
   }
 

@@ -225,7 +225,6 @@ export class RenderQueue {
           const instanceBatch = engine._batcherManager.instanceBatch;
 
           instanceBatch.setLayout(layout);
-          program.bindUniformBlocks(InstanceBatch.uniformBlockBindingMap);
           rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBatch.buffer._platformBuffer);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);

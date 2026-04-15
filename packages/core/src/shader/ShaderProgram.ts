@@ -10,6 +10,7 @@ import { ShaderUniformBlock } from "./ShaderUniformBlock";
 import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { InstanceLayout } from "../shaderlib/ShaderFactory";
+import { InstanceBatch } from "../RenderPipeline/InstanceBatch";
 
 /**
  * Shader program, corresponding to the GPU shader program.
@@ -172,21 +173,6 @@ export class ShaderProgram {
       return true;
     } else {
       return false;
-    }
-  }
-
-  /**
-   * Bind uniform blocks to the specified binding points.
-   * @param bindingMap - Map of ShaderBlockProperty._uniqueId to binding point
-   */
-  bindUniformBlocks(bindingMap: Record<number, number>): void {
-    const gl = <WebGL2RenderingContext>this._gl;
-    const ids = this.uniformBlockIds;
-    for (let i = 0, n = ids.length; i < n; i++) {
-      const bindingPoint = bindingMap[ids[i]];
-      if (bindingPoint !== undefined) {
-        gl.uniformBlockBinding(this._glProgram, i, bindingPoint);
-      }
     }
   }
 
@@ -525,12 +511,18 @@ export class ShaderProgram {
       this.attributeLocation[name] = gl.getAttribLocation(program, name);
     });
 
-    // Record uniform block indices (WebGL2 only)
+    // Record uniform block indices and bind binding points (WebGL2 only)
     if (this._engine._hardwareRenderer.isWebGL2) {
       const gl2 = <WebGL2RenderingContext>gl;
+      const bindingMap = InstanceBatch.uniformBlockBindingMap;
       const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
       for (let i = 0; i < blockCount; i++) {
-        this.uniformBlockIds[i] = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i))._uniqueId;
+        const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i))._uniqueId;
+        this.uniformBlockIds[i] = id;
+        const bindingPoint = bindingMap[id];
+        if (bindingPoint !== undefined) {
+          gl2.uniformBlockBinding(program, i, bindingPoint);
+        }
       }
     }
   }
