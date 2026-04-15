@@ -24,7 +24,6 @@ export class ShaderFactory {
     .map((e) => `#extension ${e} : enable\n`)
     .join("");
 
-  /** std140 layout info by GLSL type string */
   private static readonly _std140TypeInfoMap: Record<string, { size: number; align: number }> = {
     float: { size: 4, align: 4 },
     int: { size: 4, align: 4 },
@@ -56,7 +55,7 @@ export class ShaderFactory {
     "#define renderer_MVPMat (camera_VPMat * renderer_ModelMat)\n" +
     "#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))";
 
-  /** Built-in renderer uniforms. value=true means derived (remove but not added to UBO) */
+  // Built-in renderer uniforms. value=true means derived (remove but not added to UBO)
   private static readonly _builtinRendererUniforms: Record<string, boolean> = {
     renderer_ModelMat: false,
     renderer_Layer: false,
@@ -68,7 +67,6 @@ export class ShaderFactory {
   private static readonly _uboUniformRegex =
     /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*(\[.+?\])?\s*;/gm;
 
-  /** Pack functions for writing typed values into ArrayBuffer views */
   private static _packFuncMap: Record<string, InstancePackFunc> = (() => {
     const packScalar = (v: Float32Array | Int32Array, o: number, val: number) => {
       v[o] = val;
@@ -286,9 +284,6 @@ export class ShaderFactory {
     return shader;
   }
 
-  /**
-   * Scan source for renderer-group uniforms, collect into fieldMap, and remove matched declarations
-   */
   private static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): string {
     const builtinUniforms = ShaderFactory._builtinRendererUniforms;
     return source.replace(ShaderFactory._uboUniformRegex, (match, type, name, arraySize) => {
@@ -356,7 +351,6 @@ export class ShaderFactory {
     return { instanceFields, instanceMaxCount, structSize };
   }
 
-  /** Generate the GLSL UBO struct declaration + layout uniform block */
   private static _buildUBODeclaration(layout: InstanceLayout): string {
     const { instanceFields, instanceMaxCount } = layout;
     const structLines: string[] = [];
@@ -372,7 +366,6 @@ export class ShaderFactory {
     );
   }
 
-  /** Build per-field #define lines remapping uniform names to UBO array access */
   private static _buildFieldDefines(fields: InstanceFieldInfo[], idExpr: string): string {
     const accessor = `rendererData[${idExpr}]`;
     const lines: string[] = [];
