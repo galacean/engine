@@ -24,6 +24,8 @@ export abstract class BaseShape {
   private _position = new Vector3(0, 0, 0);
   @deepClone
   private _rotation = new Vector3(0, 0, 0);
+  @deepClone
+  private _scale = new Vector3(1, 1, 1);
   @ignoreClone
   private _rotationQuaternion = new Quaternion();
   @ignoreClone
@@ -83,11 +85,26 @@ export abstract class BaseShape {
     }
   }
 
+  /**
+   * Apply a local scale to the shape.
+   */
+  get scale(): Vector3 {
+    return this._scale;
+  }
+
+  set scale(value: Vector3) {
+    if (value !== this._scale) {
+      this._scale.copyFrom(value);
+    }
+  }
+
   constructor() {
     // @ts-ignore
     this._position._onValueChanged = this._updateManager.dispatch.bind(this._updateManager);
     // @ts-ignore
     this._rotation._onValueChanged = this._onRotationChanged.bind(this);
+    // @ts-ignore
+    this._scale._onValueChanged = this._updateManager.dispatch.bind(this._updateManager);
   }
 
   /**
@@ -112,6 +129,8 @@ export abstract class BaseShape {
     target._position._onValueChanged = target._updateManager.dispatch.bind(target._updateManager);
     // @ts-ignore
     target._rotation._onValueChanged = target._onRotationChanged.bind(target);
+    // @ts-ignore
+    target._scale._onValueChanged = target._updateManager.dispatch.bind(target._updateManager);
     target._rotationDirty = true;
   }
 
@@ -136,9 +155,13 @@ export abstract class BaseShape {
   _generateTransformedPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     this._generatePositionAndDirection(rand, emitTime, position, direction);
     if (this._hasShapeTransform()) {
+      const { _scale: scale } = this;
+      position.multiply(scale);
+      direction.multiply(scale);
       const quaternion = this._getRotationQuaternion();
       Vector3.transformByQuat(position, quaternion, position);
       Vector3.transformByQuat(direction, quaternion, direction);
+      direction.normalize();
       position.add(this._position);
     }
   }
@@ -149,6 +172,10 @@ export abstract class BaseShape {
   _getTransformedPositionRange(outMin: Vector3, outMax: Vector3): void {
     this._getPositionRange(outMin, outMax);
     if (this._hasShapeTransform()) {
+      const { _scale: scale } = this;
+      outMin.multiply(scale);
+      outMax.multiply(scale);
+      this._reorderMinMax(outMin, outMax);
       this._rotateBoundingBox(outMin, outMax);
       outMin.add(this._position);
       outMax.add(this._position);
@@ -161,6 +188,10 @@ export abstract class BaseShape {
   _getTransformedDirectionRange(outMin: Vector3, outMax: Vector3): void {
     this._getDirectionRange(outMin, outMax);
     if (this._hasShapeTransform()) {
+      const { _scale: scale } = this;
+      outMin.multiply(scale);
+      outMax.multiply(scale);
+      this._reorderMinMax(outMin, outMax);
       this._rotateBoundingBox(outMin, outMax);
     }
   }
@@ -185,8 +216,29 @@ export abstract class BaseShape {
   }
 
   private _hasShapeTransform(): boolean {
-    const { _position: p, _rotation: r } = this;
-    return p.x !== 0 || p.y !== 0 || p.z !== 0 || r.x !== 0 || r.y !== 0 || r.z !== 0;
+    const { _position: p, _rotation: r, _scale: s } = this;
+    return (
+      p.x !== 0 || p.y !== 0 || p.z !== 0 || r.x !== 0 || r.y !== 0 || r.z !== 0 || s.x !== 1 || s.y !== 1 || s.z !== 1
+    );
+  }
+
+  private _reorderMinMax(min: Vector3, max: Vector3): void {
+    let tmp: number;
+    if (min.x > max.x) {
+      tmp = min.x;
+      min.x = max.x;
+      max.x = tmp;
+    }
+    if (min.y > max.y) {
+      tmp = min.y;
+      min.y = max.y;
+      max.y = tmp;
+    }
+    if (min.z > max.z) {
+      tmp = min.z;
+      min.z = max.z;
+      max.z = tmp;
+    }
   }
 
   private _rotateBoundingBox(outMin: Vector3, outMax: Vector3): void {
