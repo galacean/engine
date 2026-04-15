@@ -39,6 +39,60 @@ beforeAll(async function () {
   @registerGLTFParser(GLTFParserType.Schema)
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
+      if (context.glTFResource.url.endsWith("testSkinRoot.gltf")) {
+        context.buffers = [new ArrayBuffer(128)];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              nodes: [0, 1]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Man"
+            },
+            {
+              name: "mixamorig:Hips",
+              children: [2]
+            },
+            {
+              name: "mixamorig:Spine"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              joints: [1, 2]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "MAT4"
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 128
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 128
+            }
+          ]
+        });
+      }
+
       const glTF = <any>{
         buffers: [
           {
@@ -525,6 +579,33 @@ describe("glTF instance test", function () {
     glTFResourceCache = engine.resourceManager.getFromCache("mock/path/testB.gltf");
     expect(glTFResourceCache).to.be.null;
     expect(materials[0].destroyed).to.be.true;
+  });
+});
+
+describe("glTF scene root structure", function () {
+  it("Single root scene should have GLTF_ROOT container", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testRoot.gltf"
+    });
+    const { defaultSceneRoot } = glTFResource;
+
+    // Should always create GLTF_ROOT container, even for single-root scenes
+    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
+    expect(defaultSceneRoot.children.length).to.equal(1);
+    expect(defaultSceneRoot.children[0].name).to.equal("entity1");
+  });
+
+  it("Multi-root skins without skeleton should use the scene wrapper as rootBone", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testSkinRoot.gltf"
+    });
+    const { defaultSceneRoot, skins } = glTFResource;
+
+    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
+    expect(defaultSceneRoot.children.length).to.equal(2);
+    expect(skins[0].rootBone).to.equal(defaultSceneRoot);
   });
 });
 
