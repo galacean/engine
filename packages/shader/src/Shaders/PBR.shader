@@ -39,7 +39,7 @@ Shader "PBR" {
       Header("Occlusion") {
         material_OcclusionTexture("OcclusionTexture", Texture2D);
         material_OcclusionIntensity("OcclusionIntensity", Range(0, 5, 0.01)) = 1;
-        material_OcclusionTextureCoord("OcclusionTextureCoord", Float) = 0;
+        material_OcclusionTextureCoord("OcclusionTextureCoord", Enum(UV0:0, UV1:1)) = 0;
       }
       
       Header("Clear Coat") {
@@ -73,7 +73,7 @@ Shader "PBR" {
         material_ThicknessTexture("ThicknessTexture", Texture2D);
         refractionMode("RefractionMode", Enum(Sphere:0, Planar:1)) = 1;
         material_AttenuationColor("AttenuationColor", Color ) = (1, 1, 1, 1);
-        material_AttenuationDistance("AttenuationDistance", Range(0, 1, 0.01)) = 0;
+        material_AttenuationDistance("AttenuationDistance", Range(0, 5, 0.01)) = 0;
       }
 
       Header("Common") {

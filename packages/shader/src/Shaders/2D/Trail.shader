@@ -1,4 +1,24 @@
 Shader "2D/Trail" {
+  Editor {
+    Properties {
+      Header("Base") {
+        material_BaseColor("BaseColor", Color) = (1, 1, 1, 1);
+        material_BaseTexture("BaseTexture", Texture2D);
+      }
+      Header("Emissive") {
+        material_EmissiveColor("EmissiveColor", HDRColor) = (0, 0, 0, 1);
+        material_EmissiveTexture("EmissiveTexture", Texture2D);
+      }
+      Header("Common") {
+        isTransparent("Transparent", Boolean) = false;
+        renderFace("Render Face", Enum(Front:0, Back:1, Double:2)) = 0;
+        blendMode("Blend Mode", Enum(Normal:0, Additive:1)) = 0;
+        material_AlphaCutoff("AlphaCutoff", Range(0, 1, 0.01)) = 0;
+      }
+    }
+    UIScript "UIScriptPath";
+  }
+
   SubShader "Default" {
     Pass "Default" {
       Tags { pipelineStage = "Forward" }

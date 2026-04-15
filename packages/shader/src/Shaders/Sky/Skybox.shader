@@ -1,4 +1,15 @@
 Shader "Sky/Skybox" {
+  Editor {
+    Properties {
+      Header("Base") {
+        material_TintColor("TintColor", Color) = (1, 1, 1, 1);
+        material_Exposure("Exposure", Range(0, 8, 0.1)) = 1;
+        material_Rotation("Rotation", Range(0, 360, 1)) = 0;
+        material_CubeTexture("CubeTexture", TextureCube);
+      }
+    }
+  }
+
   SubShader "Default" {
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }

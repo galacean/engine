@@ -28,9 +28,7 @@ if (typeof globalThis.document === "undefined") {
 
 // Load ShaderLab — this transitively loads engine-core,
 // which runs ShaderPool.init() and registers all include fragments.
-const { ShaderLab } = await import(
-  path.resolve(ROOT, "packages/shader-lab/dist/main.js")
-);
+const { ShaderLab } = await import(path.resolve(ROOT, "packages/shader-lab/dist/main.js"));
 const shaderLab = new ShaderLab();
 
 if (typeof shaderLab._precompile !== "function") {
@@ -58,7 +56,8 @@ function precompileSingle(shaderPath) {
     fs.writeFileSync(gspPath, JSON.stringify(precompiled));
     console.log(`  ${relativePath} → libs/${gspRelative}`);
   } catch (e) {
-    console.error(`  FAILED: ${relativePath} — ${e?.message ?? e ?? "unknown error"}`);
+    console.error(`  FAILED: ${relativePath}`);
+    console.error(e);
     return false;
   }
   return true;

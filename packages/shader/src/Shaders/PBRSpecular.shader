@@ -26,7 +26,15 @@ Shader "PBRSpecular" {
       Header("Occlusion") {
         material_OcclusionTexture("OcclusionTexture", Texture2D);
         material_OcclusionIntensity("OcclusionIntensity", Range(0, 5, 0.01)) = 1;
-        material_OcclusionTextureCoord("OcclusionTextureCoord", Float) = 0;
+        material_OcclusionTextureCoord("OcclusionTextureCoord", Enum(UV0:0, UV1:1)) = 0;
+      }
+
+      Header("Clear Coat") {
+        material_ClearCoat("ClearCoat", Range(0, 1, 0.01)) = 0;
+        material_ClearCoatTexture("ClearCoatTexture", Texture2D);
+        material_ClearCoatRoughness("ClearCoatRoughness", Range(0, 1, 0.01)) = 0;
+        material_ClearCoatRoughnessTexture("ClearCoatRoughnessTexture", Texture2D);
+        material_ClearCoatNormalTexture("ClearCoatNormalTexture", Texture2D);
       }
 
       Header("Common") {

@@ -2,6 +2,20 @@
 // The original implementation can be found at unity build-in shader(DefaultResourcesExtra/Skybox-Procedural.shader)
 
 Shader "Sky/SkyProcedural" {
+  Editor {
+    Properties {
+      Header("Base") {
+        material_Exposure("Exposure", Range(0, 8, 0.1)) = 1;
+        sunMode("SunMode", Enum(HighQuality:0, Simple:1, None:2)) = 0;
+        material_SunSize("SunSize", Range(0, 1, 0.01)) = 0.04;
+        material_SunSizeConvergence("SunSizeConvergence", Range(0, 20, 0.1)) = 5;
+        material_AtmosphereThickness("AtmosphereThickness", Range(0, 5, 0.1)) = 1;
+        material_SkyTint("SkyTint", Color) = (0.214, 0.214, 0.214, 1);
+        material_GroundTint("GroundTint", Color) = (0.112, 0.1, 0.095, 1);
+      }
+    }
+  }
+
   SubShader "Default" {
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }

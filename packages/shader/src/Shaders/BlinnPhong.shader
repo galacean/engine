@@ -7,7 +7,7 @@ Shader "BlinnPhong" {
       }
 
       Header("Emissive") {
-        material_EmissiveColor("EmissiveColor", Color) = (0, 0, 0, 1);
+        material_EmissiveColor("EmissiveColor", HDRColor) = (0, 0, 0, 1);
         material_EmissiveTexture("EmissiveTexture", Texture2D);
       }
 
@@ -19,7 +19,7 @@ Shader "BlinnPhong" {
       Header("Specular") {
         material_SpecularColor("SpecularColor", Color) = (1, 1, 1, 1);
         material_SpecularTexture("SpecularTexture", Texture2D);
-        material_Shininess("Shininess", Range(1, 1024, 1)) = 16;
+        material_Shininess("Shininess", Range(0, 100, 1)) = 16;
       }
 
       Header("Common") {
