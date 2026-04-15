@@ -50,7 +50,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     this._pxRaycastHit = new physX.PxRaycastHit();
     this._pxFilterData = new physX.PxQueryFilterData();
-    this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
+    this._pxFilterData.flags = new physX.PxQueryFlags(
+      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER
+    );
 
     const triggerCallback = {
       onContactBegin: (collision) => {
@@ -214,6 +216,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           return 0; // eNONE
         }
+      },
+      postFilter: (filterData, distance) => {
+        if (distance <= 0) {
+          return 0; // eNONE — skip initial overlap
+        }
+        return 2; // eBLOCK
       }
     };
 
@@ -452,6 +460,12 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         } else {
           return 0; // eNONE
         }
+      },
+      postFilter: (filterData, distance) => {
+        if (distance <= 0) {
+          return 0; // eNONE — skip initial overlap
+        }
+        return 2; // eBLOCK
       }
     };
 
