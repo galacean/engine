@@ -6,5 +6,18 @@ import PBRSource from "./Shaders/PBR.shader";
 import PBRSpecularSource from "./Shaders/PBRSpecular.shader";
 import BlinnPhongSource from "./Shaders/BlinnPhong.shader";
 import UnlitSource from "./Shaders/Unlit.shader";
+import ParticleSource from "./Shaders/Particle.shader";
+import TrailSource from "./Shaders/2D/Trail.shader";
+import SkyboxSource from "./Shaders/Sky/Skybox.shader";
+import SkyProceduralSource from "./Shaders/Sky/SkyProcedural.shader";
 
-export { PBRSource, PBRSpecularSource, BlinnPhongSource, UnlitSource };
+export {
+  PBRSource,
+  PBRSpecularSource,
+  BlinnPhongSource,
+  UnlitSource,
+  ParticleSource,
+  TrailSource,
+  SkyboxSource,
+  SkyProceduralSource
+};
