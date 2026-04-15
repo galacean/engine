@@ -8,9 +8,6 @@ import { Vector3, Vector3Like } from "./Vector3";
  * Axis Aligned Bound Box (AABB).
  */
 export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, BoundingBox> {
-  private static _tempVec30: Vector3 = new Vector3();
-  private static _tempVec31: Vector3 = new Vector3();
-
   /**
    * Calculate a bounding box from the center point and the extent of the bounding box.
    * @param center - The center point
@@ -67,26 +64,25 @@ export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, Boun
    * @param out - The transformed bounding box
    */
   static transform(source: BoundingBox, matrix: Matrix, out: BoundingBox): void {
-    // https://zeux.io/2010/10/17/aabb-from-obb-with-component-wise-abs/
-    const center = BoundingBox._tempVec30;
-    const extent = BoundingBox._tempVec31;
-    source.getCenter(center);
-    source.getExtent(extent);
-    Vector3.transformCoordinate(center, matrix, center);
-    const { x, y, z } = extent;
+    const { x: minX, y: minY, z: minZ } = source.min;
+    const { x: maxX, y: maxY, z: maxZ } = source.max;
     const e = matrix.elements;
     // prettier-ignore
     const e0 = e[0], e1 = e[1], e2 = e[2],
       e4 = e[4], e5 = e[5], e6 = e[6],
       e8 = e[8], e9 = e[9], e10 = e[10];
-    extent.set(
-      (e0 === 0 ? 0 : Math.abs(x * e0)) + (e4 === 0 ? 0 : Math.abs(y * e4)) + (e8 === 0 ? 0 : Math.abs(z * e8)),
-      (e1 === 0 ? 0 : Math.abs(x * e1)) + (e5 === 0 ? 0 : Math.abs(y * e5)) + (e9 === 0 ? 0 : Math.abs(z * e9)),
-      (e2 === 0 ? 0 : Math.abs(x * e2)) + (e6 === 0 ? 0 : Math.abs(y * e6)) + (e10 === 0 ? 0 : Math.abs(z * e10))
+
+    out.min.set(
+      (e0 > 0 ? e0 * minX : e0 * maxX) + (e4 > 0 ? e4 * minY : e4 * maxY) + (e8 > 0 ? e8 * minZ : e8 * maxZ) + e[12],
+      (e1 > 0 ? e1 * minX : e1 * maxX) + (e5 > 0 ? e5 * minY : e5 * maxY) + (e9 > 0 ? e9 * minZ : e9 * maxZ) + e[13],
+      (e2 > 0 ? e2 * minX : e2 * maxX) + (e6 > 0 ? e6 * minY : e6 * maxY) + (e10 > 0 ? e10 * minZ : e10 * maxZ) + e[14]
     );
-    // set min、max
-    Vector3.subtract(center, extent, out.min);
-    Vector3.add(center, extent, out.max);
+
+    out.max.set(
+      (e0 > 0 ? e0 * maxX : e0 * minX) + (e4 > 0 ? e4 * maxY : e4 * minY) + (e8 > 0 ? e8 * maxZ : e8 * minZ) + e[12],
+      (e1 > 0 ? e1 * maxX : e1 * minX) + (e5 > 0 ? e5 * maxY : e5 * minY) + (e9 > 0 ? e9 * maxZ : e9 * minZ) + e[13],
+      (e2 > 0 ? e2 * maxX : e2 * minX) + (e6 > 0 ? e6 * maxY : e6 * minY) + (e10 > 0 ? e10 * maxZ : e10 * minZ) + e[14]
+    );
   }
 
   /**
