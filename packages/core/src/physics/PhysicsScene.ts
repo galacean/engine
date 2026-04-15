@@ -835,7 +835,7 @@ export class PhysicsScene {
       if (!shape) {
         return false;
       }
-      return shape.collider.entity.layer & mask && shape.isSceneQuery;
+      return shape.collider.collisionLayer & mask && shape.isSceneQuery;
     };
   }
 
