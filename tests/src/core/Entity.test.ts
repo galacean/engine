@@ -333,6 +333,17 @@ describe("Entity", async () => {
       expect(parent.findByPath("parent/child/grandson")).eq(grandson);
     });
 
+    it("findByPath prefers a real same-name child over legacy self-name prefix", () => {
+      const outerRoot = new Entity(engine, "GLTF_ROOT");
+      outerRoot.parent = scene.getRootEntity();
+      const innerRoot = new Entity(engine, "GLTF_ROOT");
+      innerRoot.parent = outerRoot;
+      const hips = new Entity(engine, "mixamorig:Hips");
+      hips.parent = innerRoot;
+
+      expect(outerRoot.findByPath("GLTF_ROOT/mixamorig:Hips")).eq(hips);
+    });
+
     it("clearChildren", () => {
       const parent = new Entity(engine, "parent");
 

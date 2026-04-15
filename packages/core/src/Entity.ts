@@ -377,11 +377,10 @@ export class Entity extends EngineObject {
       return this;
     }
 
-    // Some imported animation clips are normalized to include the single scene root
-    // name (for example "mixamorig:Hips/..."), while the Animator may already sit on
-    // that root entity. Accept a self-name prefix so wrapped model roots and
-    // standalone single-root clips resolve through the same path convention.
-    if (splits[0] === this.name) {
+    // Some imported clips may redundantly prefix the current entity name
+    // (for example "GLTF_ROOT/hips"). Keep accepting that legacy shape,
+    // but only when it doesn't shadow a real same-name child.
+    if (splits[0] === this.name && !this._children.some((child) => child.name === this.name)) {
       return splits.length === 1 ? this : Entity._findChildByName(this, 0, splits, 1);
     }
 
