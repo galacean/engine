@@ -39,7 +39,7 @@ export class GLTFSkinParser extends GLTFParser {
         const rootBone = entities[skeleton];
         skin.rootBone = rootBone;
       } else {
-        const rootBone = this._findSkeletonRootBone(joints, entities);
+        const rootBone = this._findSceneRootBone(context, joints, entities) ?? this._findSkeletonRootBone(joints, entities);
         if (rootBone) {
           skin.rootBone = rootBone;
         } else {
@@ -51,6 +51,49 @@ export class GLTFSkinParser extends GLTFParser {
     });
 
     return AssetPromise.resolve(skinPromise);
+  }
+
+  private _findSceneRootBone(context: GLTFParserContext, joints: number[], entities: Entity[]): Entity | null {
+    const { glTF, glTFResource } = context;
+    const scenes = glTF.scenes;
+    const sceneRoots = glTFResource._sceneRoots;
+
+    if (!scenes?.length || !sceneRoots?.length) {
+      return null;
+    }
+
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      const sceneNodes = scenes[i].nodes ?? [];
+      if (sceneNodes.length <= 1) {
+        continue;
+      }
+
+      const sceneRoot = sceneRoots[i];
+      if (!sceneRoot) {
+        continue;
+      }
+
+      const sceneRootChildren = new Set<Entity>(sceneNodes.map((nodeIndex) => entities[nodeIndex]));
+      let allJointsUnderSceneRoot = true;
+
+      for (let j = 0, m = joints.length; j < m; j++) {
+        let entity = entities[joints[j]];
+        while (entity?.parent) {
+          entity = entity.parent;
+        }
+
+        if (!sceneRootChildren.has(entity)) {
+          allJointsUnderSceneRoot = false;
+          break;
+        }
+      }
+
+      if (allJointsUnderSceneRoot) {
+        return sceneRoot;
+      }
+    }
+
+    return null;
   }
 
   private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {
