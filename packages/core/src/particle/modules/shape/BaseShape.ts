@@ -107,6 +107,17 @@ export abstract class BaseShape {
   /**
    * @internal
    */
+  _cloneTo(target: BaseShape): void {
+    // @ts-ignore
+    target._position._onValueChanged = target._updateManager.dispatch.bind(target._updateManager);
+    // @ts-ignore
+    target._rotation._onValueChanged = target._onRotationChanged.bind(target);
+    target._rotationDirty = true;
+  }
+
+  /**
+   * @internal
+   */
   abstract _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void;
 
   /**
@@ -154,7 +165,7 @@ export abstract class BaseShape {
     }
   }
 
-  private _onRotationChanged(): void {
+  protected _onRotationChanged(): void {
     this._rotationDirty = true;
     this._updateManager.dispatch();
   }
