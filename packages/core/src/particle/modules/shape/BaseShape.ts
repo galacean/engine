@@ -1,4 +1,4 @@
-import { MathUtil, Quaternion, Rand, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Matrix3x3, Quaternion, Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { ignoreClone } from "../../../clone/CloneManager";
@@ -9,10 +9,6 @@ import { ignoreClone } from "../../../clone/CloneManager";
 export abstract class BaseShape {
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
-
-  private static _tempBasisX = new Vector3();
-  private static _tempBasisY = new Vector3();
-  private static _tempBasisZ = new Vector3();
 
   @ignoreClone
   protected _updateManager = new UpdateFlagManager();
@@ -29,7 +25,9 @@ export abstract class BaseShape {
   @ignoreClone
   private _rotationQuaternion = new Quaternion();
   @ignoreClone
-  private _rotationDirty = false;
+  private _rsMatrix = new Matrix3x3();
+  @ignoreClone
+  private _transformDirty = false;
 
   /**
    * Specifies whether the ShapeModule is enabled or disabled.
@@ -102,7 +100,7 @@ export abstract class BaseShape {
     // @ts-ignore
     this._position._onValueChanged = this._onTransformChanged;
     // @ts-ignore
-    this._rotation._onValueChanged = this._onRotationChanged;
+    this._rotation._onValueChanged = this._onTransformChanged;
     // @ts-ignore
     this._scale._onValueChanged = this._onTransformChanged;
   }
@@ -137,10 +135,10 @@ export abstract class BaseShape {
     // @ts-ignore
     position._onValueChanged = target._onTransformChanged;
     // @ts-ignore
-    rotation._onValueChanged = target._onRotationChanged;
+    rotation._onValueChanged = target._onTransformChanged;
     // @ts-ignore
     scale._onValueChanged = target._onTransformChanged;
-    target._rotationDirty = true;
+    target._transformDirty = true;
   }
 
   /**
@@ -149,13 +147,17 @@ export abstract class BaseShape {
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     this._generateLocalPositionAndDirection(rand, emitTime, position, direction);
     if (this._hasShapeTransform()) {
-      const { _scale: scale } = this;
-      position.multiply(scale);
-      direction.multiply(scale);
-      const quaternion = this._getRotationQuaternion();
-      Vector3.transformByQuat(position, quaternion, position);
-      Vector3.transformByQuat(direction, quaternion, direction);
-      direction.normalize();
+      const e = this._getRSMatrix().elements;
+      const { x: px, y: py, z: pz } = position;
+      position.set(
+        e[0] * px + e[3] * py + e[6] * pz,
+        e[1] * px + e[4] * py + e[7] * pz,
+        e[2] * px + e[5] * py + e[8] * pz
+      );
+      const { x: dx, y: dy, z: dz } = direction;
+      direction
+        .set(e[0] * dx + e[3] * dy + e[6] * dz, e[1] * dx + e[4] * dy + e[7] * dz, e[2] * dx + e[5] * dy + e[8] * dz)
+        .normalize();
       position.add(this._position);
     }
   }
@@ -166,11 +168,7 @@ export abstract class BaseShape {
   _getPositionRange(outMin: Vector3, outMax: Vector3): void {
     this._getLocalPositionRange(outMin, outMax);
     if (this._hasShapeTransform()) {
-      const { _scale: scale } = this;
-      outMin.multiply(scale);
-      outMax.multiply(scale);
-      this._reorderMinMax(outMin, outMax);
-      this._rotateBoundingBox(outMin, outMax);
+      this._transformBoundingBox(outMin, outMax);
       outMin.add(this._position);
       outMax.add(this._position);
     }
@@ -182,11 +180,7 @@ export abstract class BaseShape {
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     this._getLocalDirectionRange(outMin, outMax);
     if (this._hasShapeTransform()) {
-      const { _scale: scale } = this;
-      outMin.multiply(scale);
-      outMax.multiply(scale);
-      this._reorderMinMax(outMin, outMax);
-      this._rotateBoundingBox(outMin, outMax);
+      this._transformBoundingBox(outMin, outMax);
     }
   }
 
@@ -203,27 +197,34 @@ export abstract class BaseShape {
 
   @ignoreClone
   protected _onTransformChanged = (): void => {
+    this._transformDirty = true;
     this._updateManager.dispatch();
   };
 
-  @ignoreClone
-  protected _onRotationChanged = (): void => {
-    this._rotationDirty = true;
-    this._updateManager.dispatch();
-  };
-
-  private _getRotationQuaternion(): Quaternion {
-    if (this._rotationDirty) {
-      const { x, y, z } = this._rotation;
+  private _getRSMatrix(): Matrix3x3 {
+    if (this._transformDirty) {
+      const { _rotation: r, _scale: s, _rotationQuaternion: q, _rsMatrix: rs } = this;
       Quaternion.rotationEuler(
-        MathUtil.degreeToRadian(x),
-        MathUtil.degreeToRadian(y),
-        MathUtil.degreeToRadian(z),
-        this._rotationQuaternion
+        MathUtil.degreeToRadian(r.x),
+        MathUtil.degreeToRadian(r.y),
+        MathUtil.degreeToRadian(r.z),
+        q
       );
-      this._rotationDirty = false;
+      Matrix3x3.rotationQuaternion(q, rs);
+      // Multiply each column by scale: col0 *= sx, col1 *= sy, col2 *= sz
+      const e = rs.elements;
+      e[0] *= s.x;
+      e[1] *= s.x;
+      e[2] *= s.x;
+      e[3] *= s.y;
+      e[4] *= s.y;
+      e[5] *= s.y;
+      e[6] *= s.z;
+      e[7] *= s.z;
+      e[8] *= s.z;
+      this._transformDirty = false;
     }
-    return this._rotationQuaternion;
+    return this._rsMatrix;
   }
 
   private _hasShapeTransform(): boolean {
@@ -233,38 +234,11 @@ export abstract class BaseShape {
     );
   }
 
-  private _reorderMinMax(min: Vector3, max: Vector3): void {
-    let tmp: number;
-    if (min.x > max.x) {
-      tmp = min.x;
-      min.x = max.x;
-      max.x = tmp;
-    }
-    if (min.y > max.y) {
-      tmp = min.y;
-      min.y = max.y;
-      max.y = tmp;
-    }
-    if (min.z > max.z) {
-      tmp = min.z;
-      min.z = max.z;
-      max.z = tmp;
-    }
-  }
-
-  private _rotateBoundingBox(outMin: Vector3, outMax: Vector3): void {
-    const quaternion = this._getRotationQuaternion();
-
-    const right = BaseShape._tempBasisX;
-    const up = BaseShape._tempBasisY;
-    const forward = BaseShape._tempBasisZ;
-
-    right.set(1, 0, 0);
-    Vector3.transformByQuat(right, quaternion, right);
-    up.set(0, 1, 0);
-    Vector3.transformByQuat(up, quaternion, up);
-    forward.set(0, 0, 1);
-    Vector3.transformByQuat(forward, quaternion, forward);
+  /**
+   * Arvo method: transform AABB by RS matrix
+   */
+  private _transformBoundingBox(outMin: Vector3, outMax: Vector3): void {
+    const e = this._getRSMatrix().elements;
 
     const minX = outMin.x,
       minY = outMin.y,
@@ -273,26 +247,26 @@ export abstract class BaseShape {
       maxY = outMax.y,
       maxZ = outMax.z;
 
-    const xa = right.x,
-      xb = up.x,
-      xc = forward.x;
-    const ya = right.y,
-      yb = up.y,
-      yc = forward.y;
-    const za = right.z,
-      zb = up.z,
-      zc = forward.z;
+    const e0 = e[0],
+      e1 = e[1],
+      e2 = e[2];
+    const e3 = e[3],
+      e4 = e[4],
+      e5 = e[5];
+    const e6 = e[6],
+      e7 = e[7],
+      e8 = e[8];
 
     outMin.set(
-      (xa > 0 ? xa * minX : xa * maxX) + (xb > 0 ? xb * minY : xb * maxY) + (xc > 0 ? xc * minZ : xc * maxZ),
-      (ya > 0 ? ya * minX : ya * maxX) + (yb > 0 ? yb * minY : yb * maxY) + (yc > 0 ? yc * minZ : yc * maxZ),
-      (za > 0 ? za * minX : za * maxX) + (zb > 0 ? zb * minY : zb * maxY) + (zc > 0 ? zc * minZ : zc * maxZ)
+      (e0 > 0 ? e0 * minX : e0 * maxX) + (e3 > 0 ? e3 * minY : e3 * maxY) + (e6 > 0 ? e6 * minZ : e6 * maxZ),
+      (e1 > 0 ? e1 * minX : e1 * maxX) + (e4 > 0 ? e4 * minY : e4 * maxY) + (e7 > 0 ? e7 * minZ : e7 * maxZ),
+      (e2 > 0 ? e2 * minX : e2 * maxX) + (e5 > 0 ? e5 * minY : e5 * maxY) + (e8 > 0 ? e8 * minZ : e8 * maxZ)
     );
 
     outMax.set(
-      (xa > 0 ? xa * maxX : xa * minX) + (xb > 0 ? xb * maxY : xb * minY) + (xc > 0 ? xc * maxZ : xc * minZ),
-      (ya > 0 ? ya * maxX : ya * minX) + (yb > 0 ? yb * maxY : yb * minY) + (yc > 0 ? yc * maxZ : yc * minZ),
-      (za > 0 ? za * maxX : za * minX) + (zb > 0 ? zb * maxY : zb * minY) + (zc > 0 ? zc * maxZ : zc * minZ)
+      (e0 > 0 ? e0 * maxX : e0 * minX) + (e3 > 0 ? e3 * maxY : e3 * minY) + (e6 > 0 ? e6 * maxZ : e6 * minZ),
+      (e1 > 0 ? e1 * maxX : e1 * minX) + (e4 > 0 ? e4 * maxY : e4 * minY) + (e7 > 0 ? e7 * maxZ : e7 * minZ),
+      (e2 > 0 ? e2 * maxX : e2 * minX) + (e5 > 0 ? e5 * maxY : e5 * minY) + (e8 > 0 ? e8 * maxZ : e8 * minZ)
     );
   }
 }
