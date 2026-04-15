@@ -1,7 +1,7 @@
 import { MathUtil, Quaternion, Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../../clone/CloneManager";
+import { ignoreClone } from "../../../clone/CloneManager";
 
 /**
  * Base class for all particle shapes.
@@ -20,11 +20,11 @@ export abstract class BaseShape {
   private _enabled = true;
   private _randomDirectionAmount = 0;
 
-  @deepClone
+  @ignoreClone
   private _position = new Vector3(0, 0, 0);
-  @deepClone
+  @ignoreClone
   private _rotation = new Vector3(0, 0, 0);
-  @deepClone
+  @ignoreClone
   private _scale = new Vector3(1, 1, 1);
   @ignoreClone
   private _rotationQuaternion = new Quaternion();
@@ -100,11 +100,11 @@ export abstract class BaseShape {
 
   constructor() {
     // @ts-ignore
-    this._position._onValueChanged = this._updateManager.dispatch.bind(this._updateManager);
+    this._position._onValueChanged = this._onTransformChanged;
     // @ts-ignore
-    this._rotation._onValueChanged = this._onRotationChanged.bind(this);
+    this._rotation._onValueChanged = this._onRotationChanged;
     // @ts-ignore
-    this._scale._onValueChanged = this._updateManager.dispatch.bind(this._updateManager);
+    this._scale._onValueChanged = this._onTransformChanged;
   }
 
   /**
@@ -125,12 +125,21 @@ export abstract class BaseShape {
    * @internal
    */
   _cloneTo(target: BaseShape): void {
+    const { _position: position, _rotation: rotation, _scale: scale } = target;
+
     // @ts-ignore
-    target._position._onValueChanged = target._updateManager.dispatch.bind(target._updateManager);
+    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
+
+    position.copyFrom(this._position);
+    rotation.copyFrom(this._rotation);
+    scale.copyFrom(this._scale);
+
     // @ts-ignore
-    target._rotation._onValueChanged = target._onRotationChanged.bind(target);
+    position._onValueChanged = target._onTransformChanged;
     // @ts-ignore
-    target._scale._onValueChanged = target._updateManager.dispatch.bind(target._updateManager);
+    rotation._onValueChanged = target._onRotationChanged;
+    // @ts-ignore
+    scale._onValueChanged = target._onTransformChanged;
     target._rotationDirty = true;
   }
 
@@ -196,10 +205,16 @@ export abstract class BaseShape {
     }
   }
 
-  protected _onRotationChanged(): void {
+  @ignoreClone
+  protected _onTransformChanged = (): void => {
+    this._updateManager.dispatch();
+  };
+
+  @ignoreClone
+  protected _onRotationChanged = (): void => {
     this._rotationDirty = true;
     this._updateManager.dispatch();
-  }
+  };
 
   private _getRotationQuaternion(): Quaternion {
     if (this._rotationDirty) {
