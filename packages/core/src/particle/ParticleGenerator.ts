@@ -278,7 +278,7 @@ export class ParticleGenerator {
       const positionScale = main._getPositionScale();
       for (let i = 0; i < count; i++) {
         if (shape?.enabled) {
-          shape._generatePositionAndDirection(emission._shapeRand, playTime, position, direction);
+          shape._generateTransformedPositionAndDirection(emission._shapeRand, playTime, position, direction);
           position.multiply(positionScale);
           direction.normalize().multiply(positionScale);
         } else {
@@ -1228,8 +1228,8 @@ export class ParticleGenerator {
     // StartSpeed's impact
     const { shape } = this.emission;
     if (shape?.enabled) {
-      shape._getPositionRange(min, max);
-      shape._getDirectionRange(directionMin, directionMax);
+      shape._getTransformedPositionRange(min, max);
+      shape._getTransformedDirectionRange(directionMin, directionMax);
     } else {
       min.set(0, 0, 0);
       max.set(0, 0, 0);
