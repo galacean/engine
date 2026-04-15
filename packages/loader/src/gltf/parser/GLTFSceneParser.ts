@@ -38,6 +38,7 @@ export class GLTFSceneParser extends GLTFParser {
       sceneRoot.addChild(context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]));
     }
 
+    (glTFResource._sceneRoots ||= [])[index] = sceneRoot;
     if (isDefaultScene) {
       glTFResource._defaultSceneRoot = sceneRoot;
     }
