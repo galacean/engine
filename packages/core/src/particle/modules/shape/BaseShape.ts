@@ -7,8 +7,6 @@ import { deepClone, ignoreClone } from "../../../clone/CloneManager";
  * Base class for all particle shapes.
  */
 export abstract class BaseShape {
-  /** The type of shape to emit particles from. */
-  abstract readonly shapeType: ParticleShapeType;
   /** @internal */
   static _tempVector20 = new Vector2();
   /** @internal */
@@ -18,6 +16,8 @@ export abstract class BaseShape {
   /** @internal */
   static _tempVector31 = new Vector3();
   private static _tempQuaternion = new Quaternion();
+  /** The type of shape to emit particles from. */
+  abstract readonly shapeType: ParticleShapeType;
 
   @ignoreClone
   protected _updateManager = new UpdateFlagManager();
