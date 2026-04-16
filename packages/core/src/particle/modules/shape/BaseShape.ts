@@ -1,7 +1,7 @@
 import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { ignoreClone } from "../../../clone/CloneManager";
+import { deepClone, ignoreClone } from "../../../clone/CloneManager";
 
 /**
  * Base class for all particle shapes.
@@ -16,11 +16,11 @@ export abstract class BaseShape {
   private _enabled = true;
   private _randomDirectionAmount = 0;
 
-  @ignoreClone
+  @deepClone
   private _position = new Vector3(0, 0, 0);
-  @ignoreClone
+  @deepClone
   private _rotation = new Vector3(0, 0, 0);
-  @ignoreClone
+  @deepClone
   private _scale = new Vector3(1, 1, 1);
   @ignoreClone
   private _rotationQuaternion = new Quaternion();
@@ -123,21 +123,6 @@ export abstract class BaseShape {
    * @internal
    */
   _cloneTo(target: BaseShape): void {
-    const { _position: position, _rotation: rotation, _scale: scale } = target;
-
-    // @ts-ignore
-    position._onValueChanged = rotation._onValueChanged = scale._onValueChanged = null;
-
-    position.copyFrom(this._position);
-    rotation.copyFrom(this._rotation);
-    scale.copyFrom(this._scale);
-
-    // @ts-ignore
-    position._onValueChanged = target._onTransformChanged;
-    // @ts-ignore
-    rotation._onValueChanged = target._onTransformChanged;
-    // @ts-ignore
-    scale._onValueChanged = target._onTransformChanged;
     target._transformDirty = true;
   }
 

@@ -196,17 +196,26 @@ describe("ParticleShapeTransform", function () {
   });
 
   describe("Clone", function () {
+    // Simulate CloneManager: deepClone calls copyFrom, then _cloneTo
+    function simulateClone(source: BoxShape): BoxShape {
+      const clone = new BoxShape();
+      // @deepClone step: copyFrom on existing Vector3 (preserves constructor-bound callbacks)
+      clone.position.copyFrom(source.position);
+      clone.rotation.copyFrom(source.rotation);
+      clone.scale.copyFrom(source.scale);
+      // _cloneTo step
+      // @ts-ignore
+      source._cloneTo(clone);
+      return clone;
+    }
+
     it("cloned shape should have correct transform values", function () {
       const shape = new BoxShape();
       shape.position.set(1, 2, 3);
       shape.rotation.set(45, 0, 0);
       shape.scale.set(2, 2, 2);
-      shape.size.set(4, 4, 4);
 
-      // Clone via _cloneTo
-      const clone = new BoxShape();
-      // @ts-ignore - access internal _cloneTo
-      shape._cloneTo(clone);
+      const clone = simulateClone(shape);
 
       expect(clone.position.x).to.be.closeTo(1, epsilon);
       expect(clone.position.y).to.be.closeTo(2, epsilon);
@@ -215,17 +224,14 @@ describe("ParticleShapeTransform", function () {
       expect(clone.scale.x).to.be.closeTo(2, epsilon);
     });
 
-    it("cloned shape should rebuild rotation quaternion correctly", function () {
+    it("cloned shape should rebuild matrix correctly", function () {
       const shape = new BoxShape();
       shape.size.set(2, 0, 0);
       shape.rotation.set(0, 0, 90);
 
-      const clone = new BoxShape();
-      // @ts-ignore
-      shape._cloneTo(clone);
+      const clone = simulateClone(shape);
       clone.size.set(2, 0, 0);
 
-      // Verify clone's rotation produces same bounds as original
       const boundsOrig = new BoundingBox();
       shape._getPositionRange(boundsOrig);
 
@@ -243,10 +249,7 @@ describe("ParticleShapeTransform", function () {
       const shape = new BoxShape();
       shape.position.set(1, 2, 3);
 
-      const clone = new BoxShape();
-      // @ts-ignore
-      shape._cloneTo(clone);
-
+      const clone = simulateClone(shape);
       clone.position.set(10, 20, 30);
 
       expect(shape.position.x).to.be.closeTo(1, epsilon);
@@ -256,9 +259,7 @@ describe("ParticleShapeTransform", function () {
 
     it("clone callback should trigger on cloned shape", function () {
       const shape = new BoxShape();
-      const clone = new BoxShape();
-      // @ts-ignore
-      shape._cloneTo(clone);
+      const clone = simulateClone(shape);
 
       let notified = false;
       clone._registerOnValueChanged(() => {
