@@ -1233,7 +1233,7 @@ export class ParticleGenerator {
     // StartSpeed's impact
     const { shape } = this.emission;
     if (shape?.enabled) {
-      shape._getPositionRange(min, max);
+      shape._getPositionRange(bounds);
       shape._getDirectionRange(directionMin, directionMax);
     } else {
       min.set(0, 0, 0);
