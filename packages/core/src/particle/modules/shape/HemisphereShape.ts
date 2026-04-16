@@ -28,7 +28,7 @@ export class HemisphereShape extends BaseShape {
   /**
    * @internal
    */
-  _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
+  _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     ShapeUtils._randomPointInsideUnitSphere(position, rand);
     position.scale(this.radius);
 
@@ -42,7 +42,7 @@ export class HemisphereShape extends BaseShape {
   /**
    * @internal
    */
-  _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
+  _getLocalDirectionRange(outMin: Vector3, outMax: Vector3): void {
     const randomDir = Math.sin(0.5 * this.randomDirectionAmount * Math.PI);
     outMin.set(-1, -1, -1);
     outMax.set(1, 1, randomDir);
@@ -51,7 +51,7 @@ export class HemisphereShape extends BaseShape {
   /**
    * @internal
    */
-  _getPositionRange(outMin: Vector3, outMax: Vector3): void {
+  _getLocalPositionRange(outMin: Vector3, outMax: Vector3): void {
     const radius = this._radius;
     outMin.set(-radius, -radius, -radius);
     outMax.set(radius, radius, 0);
