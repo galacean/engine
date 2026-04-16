@@ -7,11 +7,6 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Cone shape.
  */
 export class ConeShape extends BaseShape {
-  private static _tempVector20 = new Vector2();
-  private static _tempVector21 = new Vector2();
-  private static _tempVector30 = new Vector3();
-  private static _tempVector31 = new Vector3();
-
   readonly shapeType = ParticleShapeType.Cone;
 
   private _angle = 25.0;
@@ -79,7 +74,7 @@ export class ConeShape extends BaseShape {
    * @internal
    */
   _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
-    const unitPosition = ConeShape._tempVector20;
+    const unitPosition = BaseShape._tempVector20;
     const radian = MathUtil.degreeToRadian(this.angle);
     const dirSinA = Math.sin(radian);
     const dirCosA = Math.cos(radian);
@@ -89,7 +84,7 @@ export class ConeShape extends BaseShape {
         ShapeUtils.randomPointInsideUnitCircle(unitPosition, rand);
         position.set(unitPosition.x * this.radius, unitPosition.y * this.radius, 0);
 
-        const unitDirection = ConeShape._tempVector21;
+        const unitDirection = BaseShape._tempVector21;
         ShapeUtils.randomPointInsideUnitCircle(unitDirection, rand);
         Vector2.lerp(unitPosition, unitDirection, this.randomDirectionAmount, unitDirection);
         direction.set(unitDirection.x * dirSinA, unitDirection.y * dirSinA, -dirCosA);
@@ -101,11 +96,11 @@ export class ConeShape extends BaseShape {
         direction.set(unitPosition.x * dirSinA, unitPosition.y * dirSinA, -dirCosA);
         direction.normalize();
 
-        const distance = ConeShape._tempVector30;
+        const distance = BaseShape._tempVector30;
         Vector3.scale(direction, this.length * rand.random(), distance);
         position.add(distance);
 
-        const randomDirection = ConeShape._tempVector31;
+        const randomDirection = BaseShape._tempVector31;
         ShapeUtils._randomPointUnitSphere(randomDirection, rand);
         Vector3.lerp(direction, randomDirection, this.randomDirectionAmount, direction);
         break;

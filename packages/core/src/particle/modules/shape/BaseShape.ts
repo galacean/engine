@@ -1,4 +1,4 @@
-import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
 import { deepClone, ignoreClone } from "../../../clone/CloneManager";
@@ -15,6 +15,15 @@ export abstract class BaseShape {
 
   private _enabled = true;
   private _randomDirectionAmount = 0;
+  /** @internal */
+  static _tempVector20 = new Vector2();
+  /** @internal */
+  static _tempVector21 = new Vector2();
+  /** @internal */
+  static _tempVector30 = new Vector3();
+  /** @internal */
+  static _tempVector31 = new Vector3();
+  private static _tempQuaternion = new Quaternion();
 
   @deepClone
   private _position = new Vector3(0, 0, 0);
@@ -22,8 +31,6 @@ export abstract class BaseShape {
   private _rotation = new Vector3(0, 0, 0);
   @deepClone
   private _scale = new Vector3(1, 1, 1);
-  @ignoreClone
-  private _rotationQuaternion = new Quaternion();
   @ignoreClone
   private _matrix = new Matrix();
   @ignoreClone
@@ -178,7 +185,8 @@ export abstract class BaseShape {
 
   private _getMatrix(): Matrix {
     if (this._transformDirty) {
-      const { _rotation: r, _rotationQuaternion: q } = this;
+      const { _rotation: r } = this;
+      const q = BaseShape._tempQuaternion;
       Quaternion.rotationEuler(
         MathUtil.degreeToRadian(r.x),
         MathUtil.degreeToRadian(r.y),

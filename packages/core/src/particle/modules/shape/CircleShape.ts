@@ -1,4 +1,4 @@
-import { MathUtil, Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeArcMode } from "./enums/ParticleShapeArcMode";
@@ -8,8 +8,6 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
  * Particle shape that emits particles from a circle.
  */
 export class CircleShape extends BaseShape {
-  private static _tempPositionPoint = new Vector2();
-
   readonly shapeType = ParticleShapeType.Circle;
 
   private _radius = 1.0;
@@ -77,7 +75,7 @@ export class CircleShape extends BaseShape {
    * @internal
    */
   _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
-    const positionPoint = CircleShape._tempPositionPoint;
+    const positionPoint = BaseShape._tempVector20;
 
     switch (this.arcMode) {
       case ParticleShapeArcMode.Loop:
