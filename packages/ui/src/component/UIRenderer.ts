@@ -123,9 +123,9 @@ export class UIRenderer extends Renderer implements IGraphics {
   }
 
   // @ts-ignore
-  override _updateTransformShaderData(context, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context, onlyMVP: boolean): void {
     // @ts-ignore
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
   // @ts-ignore

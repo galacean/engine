@@ -15,7 +15,6 @@ export class RenderElement implements IPoolElement {
   subPrimitive: SubMesh;
   subShader: SubShader;
   shaderData?: ShaderData;
-  batched: boolean;
   instancedRenderers: Renderer[] = [];
 
   // @todo: maybe should remove later

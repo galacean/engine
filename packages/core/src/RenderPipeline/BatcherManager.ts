@@ -64,21 +64,18 @@ export class BatcherManager {
       if (preElement) {
         if (preConstructor === constructor && preRenderer._canBatch(preElement, curElement)) {
           preRenderer._batch(preElement, curElement);
-          preElement.batched = true;
         } else {
           batchedElements.push(preElement);
           preElement = curElement;
           preRenderer = renderer;
           preConstructor = constructor;
           renderer._batch(null, curElement);
-          curElement.batched = false;
         }
       } else {
         preElement = curElement;
         preRenderer = renderer;
         preConstructor = constructor;
         renderer._batch(null, curElement);
-        curElement.batched = false;
       }
     }
     preElement && batchedElements.push(preElement);

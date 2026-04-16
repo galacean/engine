@@ -50,9 +50,6 @@ export class Renderer extends Component {
   /** @internal */
   @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  /** @internal */
-  @ignoreClone
-  _batchedTransformShaderData: boolean = false;
   @assignmentClone
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
@@ -391,12 +388,28 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     const worldMatrix = this._transformEntity.transform.worldMatrix;
+    const { shaderData } = this;
     if (onlyMVP) {
-      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
+      const mvpMatrix = this._mvpMatrix;
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     } else {
-      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
+      const mvMatrix = this._mvMatrix;
+      const normalMatrix = this._normalMatrix;
+
+      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
+      Matrix.invert(worldMatrix, normalMatrix);
+      normalMatrix.transpose();
+
+      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
+      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+
+      const mvpMatrix = this._mvpMatrix;
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     }
   }
 
@@ -413,45 +426,28 @@ export class Renderer extends Component {
   _batch(preElement: RenderElement | null, curElement: RenderElement): void {}
 
   /**
-   * Update once per frame per renderer, not influenced by batched.
+   * Update once per frame per renderer.
    */
   protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
-  protected _updateWorldViewRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
+  /**
+   * Update transform shader data for world-space vertices (2D renderers).
+   * Vertices are already in world space, so model matrix is identity.
+   */
+  protected _updateWorldSpaceTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     const { shaderData } = this;
-    if (batched) {
+    if (onlyMVP) {
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
+    } else {
       // @ts-ignore
       const identityMatrix = Matrix._identity;
-
       shaderData.setMatrix(Renderer._worldMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, context.viewMatrix);
       shaderData.setMatrix(Renderer._normalMatrixProperty, identityMatrix);
-    } else {
-      const mvMatrix = this._mvMatrix;
-      const normalMatrix = this._normalMatrix;
-
-      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
-      Matrix.invert(worldMatrix, normalMatrix);
-      normalMatrix.transpose();
-
-      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
-    }
-
-    this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-  }
-
-  protected _updateProjectionRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    if (batched) {
-      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
-    } else {
-      const mvpMatrix = this._mvpMatrix;
-      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
-      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
     }
   }
 

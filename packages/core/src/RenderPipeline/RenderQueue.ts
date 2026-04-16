@@ -70,18 +70,10 @@ export class RenderQueue {
 
       // Instancing: transform data is packed in UBO, skip per-renderer update
       if (!isInstanced) {
-        // @todo: Can optimize update view projection matrix updated
-        const batched = curElement.batched;
-        if (
-          this.rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix ||
-          component._batchedTransformShaderData != batched
-        ) {
-          // Update world matrix and view matrix and model matrix
-          component._updateTransformShaderData(context, false, batched);
-          component._batchedTransformShaderData = batched;
+        if (this.rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix) {
+          component._updateTransformShaderData(context, false);
         } else if (this.rendererUpdateFlag & ContextRendererUpdateFlag.ProjectionMatrix) {
-          // Only projection matrix need updated
-          component._updateTransformShaderData(context, true, batched);
+          component._updateTransformShaderData(context, true);
         }
       }
 

@@ -174,9 +174,9 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Don't need to update transform shader data, temp solution
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const { generator } = this;
