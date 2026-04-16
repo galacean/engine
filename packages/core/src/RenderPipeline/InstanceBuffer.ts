@@ -5,19 +5,19 @@ import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { Renderer } from "../Renderer";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { InstanceLayout } from "../shaderlib/ShaderFactory";
+import { InstanceBufferLayout } from "../shaderlib/ShaderFactory";
 
 /**
  * @internal
  * Manages a UBO for GPU instancing, packing per-instance renderer data (ModelMat, Layer, etc.).
  */
-export class InstanceBatch {
+export class InstanceBuffer {
   static gpuInstanceMacro = ShaderMacro.getByName("RENDERER_GPU_INSTANCE");
 
   buffer: Buffer;
 
   private _engine: Engine;
-  private _layout: InstanceLayout;
+  private _layout: InstanceBufferLayout;
   private _data: ArrayBuffer;
   private _floatView: Float32Array;
   private _intView: Int32Array;
@@ -29,7 +29,7 @@ export class InstanceBatch {
   /**
    * Set UBO layout and allocate buffer if needed.
    */
-  setLayout(layout: InstanceLayout): void {
+  setLayout(layout: InstanceBufferLayout): void {
     this._layout = layout;
     const totalBytes = layout.instanceMaxCount * layout.structSize;
     // Only reallocate when buffer is too small

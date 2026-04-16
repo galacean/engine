@@ -1,6 +1,6 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
-import { InstanceBatch } from "./InstanceBatch";
+import { InstanceBuffer } from "./InstanceBuffer";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
 import { RenderQueue } from "./RenderQueue";
 import { RenderElement } from "./RenderElement";
@@ -12,12 +12,12 @@ export class BatcherManager {
   private _primitiveChunkManager2D: PrimitiveChunkManager;
   private _primitiveChunkManagerMask: PrimitiveChunkManager;
   private _primitiveChunkManagerUI: PrimitiveChunkManager;
-  private _instanceBatch: InstanceBatch;
+  private _instanceBatch: InstanceBuffer;
 
   constructor(public engine: Engine) {}
 
-  get instanceBatch(): InstanceBatch {
-    return (this._instanceBatch ||= new InstanceBatch(this.engine));
+  get instanceBatch(): InstanceBuffer {
+    return (this._instanceBatch ||= new InstanceBuffer(this.engine));
   }
 
   get primitiveChunkManager2D(): PrimitiveChunkManager {

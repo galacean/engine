@@ -9,7 +9,7 @@ import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
 import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
-import { InstanceLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
+import { InstanceBufferLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
 
 /**
  * Shader program, corresponding to the GPU shader program.
@@ -55,7 +55,7 @@ export class ShaderProgram {
   _uploadMaterialId: number = -1;
 
   /** @internal */
-  _instanceLayout: InstanceLayout | null = null;
+  _instanceLayout: InstanceBufferLayout | null = null;
 
   attributeLocation: Record<string, GLint> = Object.create(null);
   uniformBlockIds: number[] = [];

@@ -5,7 +5,7 @@ import { RenderQueueType, Shader } from "../shader";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { BatcherManager } from "./BatcherManager";
-import { InstanceBatch } from "./InstanceBatch";
+import { InstanceBuffer } from "./InstanceBuffer";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
@@ -105,7 +105,7 @@ export class RenderQueue {
       ShaderMacroCollection.unionCollection(compileMacros, engine._macroCollection, compileMacros);
 
       if (isInstanced) {
-        compileMacros.enable(InstanceBatch.gpuInstanceMacro);
+        compileMacros.enable(InstanceBuffer.gpuInstanceMacro);
       }
 
       for (let j = 0, m = shaderPasses.length; j < m; j++) {

@@ -142,7 +142,7 @@ export class ShaderFactory {
     vertexSource: string,
     fragmentSource: string,
     isGPUInstance: boolean
-  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const rhi = engine._hardwareRenderer;
     const isWebGL2 = rhi.isWebGL2;
     const shaderMacroList = new Array<ShaderMacro>();
@@ -162,7 +162,7 @@ export class ShaderFactory {
     noIncludeVertex = macroStr + noIncludeVertex;
     noIncludeFrag = macroStr + noIncludeFrag;
 
-    let instanceLayout: InstanceLayout | null = null;
+    let instanceLayout: InstanceBufferLayout | null = null;
     if (isGPUInstance) {
       const injected = ShaderFactory.injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag);
       noIncludeVertex = injected.vertexSource;
@@ -193,7 +193,7 @@ export class ShaderFactory {
     engine: Engine,
     vertexSource: string,
     fragmentSource: string
-  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     // 1. Scan & strip renderer uniforms from both stages, collect into fieldMap
     const fieldMap: Record<number, string> = Object.create(null);
     vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
@@ -311,7 +311,7 @@ export class ShaderFactory {
     });
   }
 
-  private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceLayout {
+  private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceBufferLayout {
     const maxUBOSize = engine._hardwareRenderer.maxUniformBlockSize;
     const std140Map = ShaderFactory._std140TypeInfoMap;
     const instanceFields: InstanceFieldInfo[] = [];
@@ -358,7 +358,7 @@ export class ShaderFactory {
     return { instanceFields, instanceMaxCount, structSize };
   }
 
-  private static _buildUBODeclaration(layout: InstanceLayout): string {
+  private static _buildUBODeclaration(layout: InstanceBufferLayout): string {
     const { instanceFields, instanceMaxCount } = layout;
     const structLines: string[] = [];
     for (let i = 0; i < instanceFields.length; i++) {
@@ -430,7 +430,7 @@ export interface InstanceFieldInfo {
 /**
  * @internal
  */
-export interface InstanceLayout {
+export interface InstanceBufferLayout {
   instanceFields: InstanceFieldInfo[];
   instanceMaxCount: number;
   structSize: number;

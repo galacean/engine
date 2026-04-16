@@ -1,9 +1,9 @@
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { Engine } from "../Engine";
-import { InstanceBatch } from "../RenderPipeline/InstanceBatch";
+import { InstanceBuffer } from "../RenderPipeline/InstanceBuffer";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
-import { ShaderFactory, InstanceLayout } from "../shaderlib/ShaderFactory";
+import { ShaderFactory, InstanceBufferLayout } from "../shaderlib/ShaderFactory";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
@@ -172,7 +172,7 @@ export class ShaderPass extends ShaderPart {
   }
 
   private _compileShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const isGPUInstance = macroCollection.isEnable(InstanceBatch.gpuInstanceMacro);
+    const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
     const { vertexSource, fragmentSource, instanceLayout } =
       this._platformTarget != undefined
         ? this._compileShaderLabSource(engine, macroCollection, isGPUInstance)
@@ -187,7 +187,7 @@ export class ShaderPass extends ShaderPart {
     engine: Engine,
     macroCollection: ShaderMacroCollection,
     isGPUInstance: boolean
-  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     return ShaderFactory.compilePlatformSource(
       engine,
       macroCollection,
@@ -201,7 +201,7 @@ export class ShaderPass extends ShaderPart {
     engine: Engine,
     macroCollection: ShaderMacroCollection,
     isGPUInstance: boolean
-  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceLayout | null } {
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const rhi = engine._hardwareRenderer;
     const isWebGL2 = rhi.isWebGL2;
     const shaderMacroList = ShaderPass._shaderMacroList;
@@ -223,7 +223,7 @@ export class ShaderPass extends ShaderPart {
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
-    let instanceLayout: InstanceLayout | null = null;
+    let instanceLayout: InstanceBufferLayout | null = null;
     if (isGPUInstance) {
       const injected = ShaderFactory.injectInstanceUBO(engine, vertexSource, fragmentSource);
       vertexSource = injected.vertexSource;
