@@ -203,9 +203,6 @@ describe("ParticleShapeTransform", function () {
       clone.position.copyFrom(source.position);
       clone.rotation.copyFrom(source.rotation);
       clone.scale.copyFrom(source.scale);
-      // _cloneTo step
-      // @ts-ignore
-      source._cloneTo(clone);
       return clone;
     }
 

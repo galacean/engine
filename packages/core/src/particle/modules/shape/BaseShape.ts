@@ -35,6 +35,8 @@ export abstract class BaseShape {
   private _matrix = new Matrix();
   @ignoreClone
   private _transformDirty = false;
+  @ignoreClone
+  private _hasShapeTransform = false;
 
   /**
    * Specifies whether the ShapeModule is enabled or disabled.
@@ -129,16 +131,9 @@ export abstract class BaseShape {
   /**
    * @internal
    */
-  _cloneTo(target: BaseShape): void {
-    target._transformDirty = true;
-  }
-
-  /**
-   * @internal
-   */
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     this._generateLocalPositionAndDirection(rand, emitTime, position, direction);
-    if (this._hasShapeTransform()) {
+    if (this._hasShapeTransform) {
       const matrix = this._getMatrix();
       Vector3.transformToVec3(position, matrix, position);
       Vector3.transformNormal(direction, matrix, direction);
@@ -151,7 +146,7 @@ export abstract class BaseShape {
    */
   _getPositionRange(bounds: BoundingBox): void {
     this._getLocalPositionRange(bounds.min, bounds.max);
-    if (this._hasShapeTransform()) {
+    if (this._hasShapeTransform) {
       BoundingBox.transform(bounds, this._getMatrix(), bounds);
     }
   }
@@ -161,7 +156,7 @@ export abstract class BaseShape {
    */
   _getDirectionRange(outMin: Vector3, outMax: Vector3): void {
     this._getLocalDirectionRange(outMin, outMax);
-    if (this._hasShapeTransform()) {
+    if (this._hasShapeTransform) {
       this._transformDirectionRange(outMin, outMax);
     }
   }
@@ -180,6 +175,9 @@ export abstract class BaseShape {
   @ignoreClone
   protected _onTransformChanged = (): void => {
     this._transformDirty = true;
+    const { _position: p, _rotation: r, _scale: s } = this;
+    this._hasShapeTransform =
+      p.x !== 0 || p.y !== 0 || p.z !== 0 || r.x !== 0 || r.y !== 0 || r.z !== 0 || s.x !== 1 || s.y !== 1 || s.z !== 1;
     this._updateManager.dispatch();
   };
 
@@ -197,13 +195,6 @@ export abstract class BaseShape {
       this._transformDirty = false;
     }
     return this._matrix;
-  }
-
-  private _hasShapeTransform(): boolean {
-    const { _position: p, _rotation: r, _scale: s } = this;
-    return (
-      p.x !== 0 || p.y !== 0 || p.z !== 0 || r.x !== 0 || r.y !== 0 || r.z !== 0 || s.x !== 1 || s.y !== 1 || s.z !== 1
-    );
   }
 
   // Arvo min/max method without translation, only apply RS part of the matrix
