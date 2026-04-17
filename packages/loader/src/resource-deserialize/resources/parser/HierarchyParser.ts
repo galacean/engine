@@ -219,22 +219,31 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
         }
       }
 
-      // removedEntities — destroy entities from prefab tree
+      // removedEntities — pre-resolve all targets then destroy (destroy shifts sibling indices)
       if (overrides.removedEntities) {
-        for (let j = 0, m = overrides.removedEntities.length; j < m; j++) {
-          HierarchyParser._resolveEntity(rootEntity, overrides.removedEntities[j]).destroy();
+        const removed = overrides.removedEntities;
+        const targets = new Array<Entity>(removed.length);
+        for (let j = 0, m = removed.length; j < m; j++) {
+          targets[j] = HierarchyParser._resolveEntity(rootEntity, removed[j]);
+        }
+        for (let j = 0, m = targets.length; j < m; j++) {
+          targets[j].destroy();
         }
       }
 
-      // removedComponents — destroy components from prefab entities
+      // removedComponents — pre-resolve all targets then destroy (destroy shifts component indices)
       if (overrides.removedComponents) {
+        const targets: Component[] = [];
         for (let j = 0, m = overrides.removedComponents.length; j < m; j++) {
           const override = overrides.removedComponents[j];
           const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
           const selectors = override.selectors;
           for (let k = 0, p = selectors.length; k < p; k++) {
-            HierarchyParser._resolveComponent(entity, selectors[k]).destroy();
+            targets.push(HierarchyParser._resolveComponent(entity, selectors[k]));
           }
+        }
+        for (let j = 0, m = targets.length; j < m; j++) {
+          targets[j].destroy();
         }
       }
     }

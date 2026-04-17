@@ -481,6 +481,91 @@ describe("Prefab instance overrides", () => {
     delete engine.resourceManager._objectPool["nested-re.prefab"];
   });
 
+  it("should remove multiple sibling entities via removedEntities", async () => {
+    const nestedPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "root", children: [1, 2, 3] }, { name: "A" }, { name: "B" }, { name: "C" }],
+      components: [],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-re-multi.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-re-multi.prefab"] = nestedPrefab;
+
+    const outerPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [{ url: "nested-re-multi.prefab" }],
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              removedEntities: [[0], [2]]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "outer-re-multi.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+
+    const instanceEntity = root.children[0];
+    expect(instanceEntity.children.length).toBe(1);
+    expect(instanceEntity.children[0].name).toBe("B");
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-re-multi.prefab"];
+  });
+
+  it("should remove multiple components of same type via removedComponents", async () => {
+    const nestedPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "root", components: [0, 1, 2] }],
+      components: [{ type: "MeshRenderer" }, { type: "MeshRenderer" }, { type: "MeshRenderer" }],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "nested-rc-multi.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["nested-rc-multi.prefab"] = nestedPrefab;
+
+    const outerPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [{ url: "nested-rc-multi.prefab" }],
+      entities: [
+        { name: "outerRoot", children: [1] },
+        {
+          instance: {
+            asset: 0,
+            overrides: {
+              removedComponents: [{ path: [], selectors: [{ type: "MeshRenderer", index: 0 }, { type: "MeshRenderer", index: 2 }] }]
+            }
+          }
+        }
+      ],
+      components: [],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "outer-rc-multi.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+
+    const instanceEntity = root.children[0];
+    const buffer: MeshRenderer[] = [];
+    instanceEntity.getComponents(MeshRenderer, buffer);
+    expect(buffer.length).toBe(1);
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["nested-rc-multi.prefab"];
+  });
+
   it("should remove components via removedComponents", async () => {
     const nestedPrefabData: PrefabFile = {
       version: "2.0",
