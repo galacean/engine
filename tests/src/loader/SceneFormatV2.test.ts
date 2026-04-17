@@ -148,7 +148,7 @@ describe("ReflectionParser v2 props resolution", () => {
     const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
-      target: { $entity: 1 }
+      target: { $entity: [1] }
     });
     expect(target.target).to.equal(entity1);
   });
@@ -159,7 +159,43 @@ describe("ReflectionParser v2 props resolution", () => {
     const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
-      target: { $entity: 999 }
+      target: { $entity: [999] }
+    });
+    expect(target.target).to.be.null;
+  });
+
+  it("should resolve $entity deep child by path", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const root = new Entity(engine, "root");
+    const child = new Entity(engine, "child");
+    const grandchild = new Entity(engine, "grandchild");
+    root.addChild(child);
+    child.addChild(grandchild);
+    context.entityMap.set(0, root);
+
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await parser.parseProps(target, {
+      a: { $entity: [0] },
+      b: { $entity: [0, 0] },
+      c: { $entity: [0, 0, 0] }
+    });
+    expect(target.a).to.equal(root);
+    expect(target.b).to.equal(child);
+    expect(target.c).to.equal(grandchild);
+  });
+
+  it("should resolve $entity with out-of-range path element to null", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const root = new Entity(engine, "root");
+    context.entityMap.set(0, root);
+
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await parser.parseProps(target, {
+      target: { $entity: [0, 5] }
     });
     expect(target.target).to.be.null;
   });
@@ -186,7 +222,7 @@ describe("ReflectionParser v2 props resolution", () => {
     const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
-      comp: { $component: { entity: 0, type: "Transform", index: 0 } }
+      comp: { $component: { entity: [0], type: "Transform", index: 0 } }
     });
     expect(target.comp).to.equal(entity.transform);
   });
@@ -218,8 +254,8 @@ describe("ReflectionParser calls resolution", () => {
           args: [
             { $ref: 0 },
             { $type: "TestValueType", x: 3, y: 4 },
-            { $entity: 1 },
-            { $component: { entity: 1, type: "Transform", index: 0 } }
+            { $entity: [1] },
+            { $component: { entity: [1], type: "Transform", index: 0 } }
           ]
         }
       ]);
@@ -578,7 +614,7 @@ describe("ReflectionParser $signal resolution", () => {
     const target: any = { onClick: mockSignal };
     await parser.parseProps(target, {
       onClick: {
-        $signal: [{ target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }]
+        $signal: [{ target: { $component: { entity: [1], type: "Transform", index: 0 } }, methodName: "reset" }]
       }
     });
 
@@ -609,7 +645,7 @@ describe("ReflectionParser $signal resolution", () => {
     const target: any = { onClick: mockSignal };
     await parser.parseProps(target, {
       onClick: {
-        $signal: [{ target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }]
+        $signal: [{ target: { $component: { entity: [1], type: "Transform", index: 0 } }, methodName: "reset" }]
       }
     });
 
@@ -633,7 +669,7 @@ describe("ReflectionParser $signal resolution", () => {
     await expect(
       parser.parseProps(target, {
         onClick: {
-          $signal: [{ target: { $component: { entity: 1, type: "Transform", index: 0 } }, methodName: "reset" }]
+          $signal: [{ target: { $component: { entity: [1], type: "Transform", index: 0 } }, methodName: "reset" }]
         }
       })
     ).rejects.toThrow("$signal");
@@ -648,7 +684,7 @@ describe("ReflectionParser $signal resolution", () => {
     const parser = new ReflectionParser(context, []);
     const target: any = {};
     await parser.parseProps(target, {
-      comp: { $component: { entity: 0, type: "NonExistentType999", index: 0 } }
+      comp: { $component: { entity: [0], type: "NonExistentType999", index: 0 } }
     });
     expect(target.comp).to.be.null;
   });

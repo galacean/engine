@@ -642,7 +642,7 @@ describe("Cross-prefab $component ref", () => {
         {
           type: "DiceScript",
           props: {
-            skinMesh: { $component: { entity: 1, type: "MeshRenderer", index: 0 } }
+            skinMesh: { $component: { entity: [1], type: "MeshRenderer", index: 0 } }
           }
         }
       ],
@@ -695,8 +695,8 @@ describe("Cross-prefab $component ref", () => {
         {
           type: "DiceScript",
           props: {
-            numMesh: { $component: { entity: 1, type: "MeshRenderer", index: 0 } },
-            skinMesh: { $component: { entity: 2, type: "MeshRenderer", index: 0 } }
+            numMesh: { $component: { entity: [1], type: "MeshRenderer", index: 0 } },
+            skinMesh: { $component: { entity: [2], type: "MeshRenderer", index: 0 } }
           }
         },
         { type: "MeshRenderer" }
@@ -732,5 +732,107 @@ describe("Cross-prefab $component ref", () => {
     instance2.destroy();
     // @ts-ignore
     delete engine.resourceManager._objectPool["dice.prefab"];
+  });
+
+  it("should resolve $entity into prefab instance deep child", async () => {
+    // nested prefab: root with a child "inner"
+    const nestedPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      entities: [{ name: "nestedRoot", children: [1] }, { name: "inner" }],
+      components: [],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "deep-entity-nested.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["deep-entity-nested.prefab"] = nestedPrefab;
+
+    // outer prefab: DiceScript.skinMesh is Entity (we reuse skinMesh field as any Entity holder via getComponent)
+    // We need a script holding an Entity ref — reuse OverrideCallScript? It doesn't have an Entity field.
+    // Use DiceScript but expose a targetEntity through a separate Script below.
+    class EntityRefScript extends Script {
+      target: Entity = null;
+    }
+    Loader.registerClass("EntityRefScript", EntityRefScript);
+
+    const outerPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [{ url: "deep-entity-nested.prefab" }],
+      entities: [
+        { name: "outerRoot", children: [1], components: [0] },
+        { instance: { asset: 0 } }
+      ],
+      components: [
+        {
+          type: "EntityRefScript",
+          props: {
+            // Reference entities[1]'s child at path [0] — the "inner" entity inside the prefab instance
+            target: { $entity: [1, 0] }
+          }
+        }
+      ],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "deep-entity-outer.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+    const script = root.getComponent(EntityRefScript);
+
+    expect(script.target).not.toBeNull();
+    expect(script.target.name).toBe("inner");
+    // Confirm it's really the child inside the prefab instance
+    expect(script.target.parent).toBe(root.children[0]);
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["deep-entity-nested.prefab"];
+  });
+
+  it("should resolve $component into prefab instance deep child component", async () => {
+    // nested prefab: root with child "inner" holding a MeshRenderer
+    const nestedPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [],
+      entities: [
+        { name: "nestedRoot", children: [1] },
+        { name: "inner", components: [0] }
+      ],
+      components: [{ type: "MeshRenderer" }],
+      root: 0
+    };
+    const nestedPrefab = await PrefabParser.parse(engine, "deep-comp-nested.prefab", nestedPrefabData);
+    // @ts-ignore
+    engine.resourceManager._objectPool["deep-comp-nested.prefab"] = nestedPrefab;
+
+    const outerPrefabData: PrefabFile = {
+      version: "2.0",
+      refs: [{ url: "deep-comp-nested.prefab" }],
+      entities: [
+        { name: "outerRoot", children: [1], components: [0] },
+        { instance: { asset: 0 } }
+      ],
+      components: [
+        {
+          type: "DiceScript",
+          props: {
+            // Reference the MeshRenderer on the "inner" entity inside the prefab instance
+            skinMesh: { $component: { entity: [1, 0], type: "MeshRenderer", index: 0 } }
+          }
+        }
+      ],
+      root: 0
+    };
+
+    const outerPrefab = await PrefabParser.parse(engine, "deep-comp-outer.prefab", outerPrefabData);
+    const root = outerPrefab.instantiate();
+    const script = root.getComponent(DiceScript);
+
+    const innerEntity = root.children[0].children[0];
+    const innerMeshRenderer = innerEntity.getComponent(MeshRenderer);
+    expect(script.skinMesh).toBe(innerMeshRenderer);
+
+    root.destroy();
+    // @ts-ignore
+    delete engine.resourceManager._objectPool["deep-comp-nested.prefab"];
   });
 });

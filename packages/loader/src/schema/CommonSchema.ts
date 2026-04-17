@@ -10,8 +10,11 @@ export interface AssetRef {
   $ref: number;
 }
 
+/** path[0] = flat index into top-level entities[]; subsequent indices descend via children. */
+export type EntityRef = number[];
+
 export interface ComponentRef {
-  entity: number;
+  entity: EntityRef;
   type: string;
   index: number;
 }

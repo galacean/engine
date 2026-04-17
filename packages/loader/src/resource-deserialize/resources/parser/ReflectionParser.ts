@@ -1,4 +1,4 @@
-import { Component, Loader } from "@galacean/engine-core";
+import { Component, Entity, Loader } from "@galacean/engine-core";
 import { resolveRefItem } from "../../../schema/refs";
 import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } from "../../../schema/CommonSchema";
 import { ParserContext, ParserType } from "./ParserContext";
@@ -77,7 +77,7 @@ export class ReflectionParser {
    * 2. Array → recurse each element
    * 3. { $ref }       → asset reference
    * 4. { $type }      → polymorphic type construct
-   * 5. { $entity }    → entity reference (flat index)
+   * 5. { $entity }    → entity reference by path (flat index + optional children descent)
    * 6. { $component } → component reference
    * 7. { $signal }    → signal binding
    * 8. plain object   → recurse values (modify originValue in place if exists)
@@ -120,10 +120,9 @@ export class ReflectionParser {
       return Promise.resolve(instance);
     }
 
-    // $entity — entity reference by flat index
+    // $entity — entity reference by path (first element = flat index, subsequent = children indices)
     if ("$entity" in obj) {
-      const entity = this._context.entityMap.get(obj.$entity as number);
-      return Promise.resolve(entity ?? null);
+      return Promise.resolve(this._resolveEntityRef(obj.$entity as number[]));
     }
 
     // $component — component reference: { entity, type, index }
@@ -164,7 +163,7 @@ export class ReflectionParser {
   }
 
   private _resolveComponent(comp: ComponentRef): Component | null {
-    const entity = this._context.entityMap.get(comp.entity);
+    const entity = this._resolveEntityRef(comp.entity);
     if (!entity) return null;
     const type = Loader.getClass(comp.type);
     if (!type) return null;
@@ -174,5 +173,14 @@ export class ReflectionParser {
     const result = buffer[comp.index] ?? null;
     buffer.length = 0;
     return result;
+  }
+
+  private _resolveEntityRef(path: number[]): Entity | null {
+    if (!path || path.length === 0) return null;
+    let entity = this._context.entityMap.get(path[0]) ?? null;
+    for (let i = 1, n = path.length; entity && i < n; i++) {
+      entity = entity.children[path[i]] ?? null;
+    }
+    return entity;
   }
 }

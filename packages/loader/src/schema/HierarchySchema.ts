@@ -20,16 +20,19 @@ export interface InlineEntitySchema extends EntityOverrideProps {
 }
 
 export interface AddedEntityOverride {
+  /** Parent path from prefab instance root via children indices. `[]` = instance root. */
   parent: number[];
   entity: InlineEntitySchema;
 }
 
 export interface AddedComponentOverride {
+  /** Target entity path from prefab instance root via children indices. `[]` = instance root. */
   target: number[];
   component: ComponentSchema;
 }
 
 export interface EntityPropOverride extends EntityOverrideProps {
+  /** Path from prefab instance root via children indices. `[]` = instance root. */
   path: number[];
 }
 
@@ -39,11 +42,13 @@ export interface ComponentSelector {
 }
 
 export interface ComponentOverride extends MutationBlock {
+  /** Path from prefab instance root via children indices. `[]` = instance root. */
   path: number[];
   selector: ComponentSelector;
 }
 
 export interface RemovedComponentOverride {
+  /** Path from prefab instance root via children indices. `[]` = instance root. */
   path: number[];
   selectors: ComponentSelector[];
 }
@@ -51,6 +56,7 @@ export interface RemovedComponentOverride {
 export interface InstanceOverrides {
   entityProps?: EntityPropOverride[];
   componentProps?: ComponentOverride[];
+  /** Each element is a path from prefab instance root via children indices. */
   removedEntities?: number[][];
   removedComponents?: RemovedComponentOverride[];
   addedEntities?: AddedEntityOverride[];
