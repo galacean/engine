@@ -1,34 +1,69 @@
 /**
- * Rollup plugin for ShaderLab precompilation.
+ * Rollup plugin for ShaderLab.
  *
- * Transforms .gs ShaderLab source files at build time.
+ * - Transforms .gs ShaderLab source files: exports source as string, optionally emits .gsp to dist/
+ * - In watch mode: detects shader/compiler changes and runs precompile at the right timing
  *
- * When precompile=false: exports source as string (same as glsl plugin).
- * When precompile=true:
- *   - .gs files: emits a .gsp JSON file to dist/, JS module exports raw source string
- *   - buildStart: runs full precompile of all .shader files → libs/*.gsp
- *   - watchChange: incrementally precompiles changed .shader files → libs/*.gsp
- *
- * Usage in rollup.config.js:
- *   import shaderlab from "./rollup-plugin-shaderlab";
- *   plugins: [shaderlab({ precompile: true, platformTarget: 0 })]
+ * Note: for non-watch builds (b:module, b:all etc.), precompile runs as a separate
+ * npm script step BEFORE rollup to avoid stale dist issues.
  */
 
+import fs from "fs";
 import path from "path";
 import { createFilter } from "@rollup/pluginutils";
 import { execSync } from "child_process";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname));
 const SHADERS_DIR = path.join(ROOT, "packages/shader/src/Shaders");
+const LIBS_DIR = path.join(ROOT, "packages/shader/libs");
+const SHADERLAB_SRC = path.join(ROOT, "packages/shader-lab/src");
+const SHADERLIB_SRC = path.join(ROOT, "packages/shader/src/ShaderLibrary");
+
+// Module-level: deferred full precompile flag (for shader-lab source changes)
+let _pendingFullPrecompile = false;
+
+/**
+ * If the .shader was deleted, remove its .gsp and update libs/index.ts.
+ * Returns true if shader exists (needs precompile), false if deleted.
+ */
+function syncGsp(shaderPath) {
+  const rel = path.relative(SHADERS_DIR, shaderPath).replace(/\.shader$/, ".gsp");
+  const gspPath = path.join(LIBS_DIR, rel);
+
+  if (fs.existsSync(shaderPath)) return true;
+
+  if (fs.existsSync(gspPath)) {
+    fs.unlinkSync(gspPath);
+    console.log(`[shaderlab] Removed gsp: libs/${rel}`);
+    let dir = path.dirname(gspPath);
+    while (dir !== LIBS_DIR && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
+      fs.rmdirSync(dir);
+      dir = path.dirname(dir);
+    }
+    // Regenerate libs/index.ts to remove the deleted import
+    execSync("node scripts/precompile-shaders.mjs --index-only", { cwd: ROOT, stdio: "inherit" });
+  }
+  return false;
+}
+
+function runPrecompile(mode) {
+  try {
+    if (mode === "full") {
+      execSync("node scripts/precompile-shaders.mjs", { cwd: ROOT, stdio: "inherit" });
+    } else {
+      execSync(`node scripts/precompile-shaders.mjs "${mode}"`, { cwd: ROOT, stdio: "inherit" });
+    }
+  } catch (e) {
+    console.warn(`[shaderlab] Precompile failed: ${e.message || e}`);
+  }
+}
 
 export default function shaderlab(userOptions = {}) {
   const options = Object.assign(
     {
       include: [/\.gs$/],
       exclude: [],
-      /** When true, precompile shader sources. When false, just export string. */
       precompile: true,
-      /** ShaderLanguage enum value: 0 = GLSLES100, 1 = GLSLES300 */
       platformTarget: 0
     },
     userOptions
@@ -36,15 +71,11 @@ export default function shaderlab(userOptions = {}) {
 
   const filter = createFilter(options.include, options.exclude);
 
-  // Lazy-loaded ShaderLab instance (only when precompile=true)
   let shaderLabInstance = null;
-  let precompiled = false;
+  let initialPrecompileDone = false;
 
   function getShaderLab() {
     if (!shaderLabInstance) {
-      // ShaderLab transitively loads @galacean/engine-core which has browser-only
-      // top-level code (window.devicePixelRatio etc.). Provide a minimal shim so
-      // the module can be loaded in Node.js at build time.
       if (typeof globalThis.window === "undefined") {
         globalThis.window = { devicePixelRatio: 1 };
       }
@@ -52,8 +83,6 @@ export default function shaderlab(userOptions = {}) {
         globalThis.document = { createElement: () => ({}) };
       }
       const { ShaderLab } = require("@galacean/engine-shaderlab");
-      // Built-in include fragments are auto-registered by core's ShaderPool.init()
-      // which runs when @galacean/engine-core is loaded.
       shaderLabInstance = new ShaderLab();
     }
     return shaderLabInstance;
@@ -63,32 +92,39 @@ export default function shaderlab(userOptions = {}) {
     name: "shaderlab",
 
     buildStart() {
-      if (!options.precompile || precompiled) return;
-      precompiled = true;
-      try {
-        console.log("[shaderlab] Precompiling all .shader files → libs/*.gsp ...");
-        execSync("node scripts/precompile-shaders.mjs", { cwd: ROOT, stdio: "inherit" });
-      } catch (e) {
-        this.warn(`Shader precompilation failed: ${e.message || e}`);
-      }
+      if (!options.precompile || initialPrecompileDone || !this.meta.watchMode) return;
+      initialPrecompileDone = true;
+      console.log("[shaderlab] Initial precompile for watch mode...");
+      runPrecompile("full");
     },
 
     watchChange(id) {
       if (!options.precompile) return;
+
+      // .shader file changed → handle immediately (shader-lab dist is stable)
       if (id.endsWith(".shader") && id.includes(SHADERS_DIR)) {
-        try {
-          console.log(`[shaderlab] Incremental precompile: ${path.basename(id)}`);
-          execSync(`node scripts/precompile-shaders.mjs "${id}"`, { cwd: ROOT, stdio: "inherit" });
-        } catch (e) {
-          this.warn(`Incremental precompile failed for ${path.basename(id)}: ${e.message || e}`);
-        }
+        if (!syncGsp(id)) return; // deleted — gsp removed
+        console.log(`[shaderlab] Precompile: ${path.basename(id)}`);
+        runPrecompile(id);
+        return;
       }
+
+      // Shader-lab source or glsl include changed → defer full precompile to writeBundle
+      if (id.includes(SHADERLAB_SRC) || (id.endsWith(".glsl") && id.includes(SHADERLIB_SRC))) {
+        _pendingFullPrecompile = true;
+      }
+    },
+
+    writeBundle() {
+      if (!options.precompile || !_pendingFullPrecompile) return;
+      _pendingFullPrecompile = false;
+      console.log("[shaderlab] Full precompile (compiler/include changed)...");
+      runPrecompile("full");
     },
 
     transform(code, id) {
       if (!filter(id)) return;
 
-      // JS module always exports the raw source string.
       const jsOutput = {
         code: `export default ${JSON.stringify(code)}; // eslint-disable-line`,
         map: { mappings: "" }
@@ -98,15 +134,11 @@ export default function shaderlab(userOptions = {}) {
         return jsOutput;
       }
 
-      // Precompile mode: additionally emit a .gsp JSON file to dist/.
       try {
         const shaderLab = getShaderLab();
 
-        // Guard: _precompile may not exist if shader-lab dist is stale.
         if (typeof shaderLab._precompile !== "function") {
-          this.warn(
-            `_precompile not available (shader-lab dist may be stale), skipping .gsp for ${path.basename(id)}. Re-run build to generate .gsp.`
-          );
+          this.warn(`_precompile not available, skipping .gsp for ${path.basename(id)}.`);
           return jsOutput;
         }
 
@@ -121,9 +153,7 @@ export default function shaderlab(userOptions = {}) {
 
         return jsOutput;
       } catch (e) {
-        this.warn(
-          `ShaderLab precompilation failed for ${path.basename(id)}: ${e.message || e}. Falling back to string export.`
-        );
+        this.warn(`Precompilation failed for ${path.basename(id)}: ${e.message || e}`);
         return jsOutput;
       }
     }

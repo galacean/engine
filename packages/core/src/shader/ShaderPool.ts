@@ -17,11 +17,11 @@ import {
   BlitSource,
   BlitScreenSource,
   ParticleSource,
-  UberShaderSource,
-  FinalSRGBShaderSource,
-  FinalAntiAliasingShaderSource,
-  BloomShaderSource,
-  SAOShaderSource
+  UberSource,
+  FinalSRGBSource,
+  FinalAntiAliasingSource,
+  BloomSource,
+  ScalableAmbientOcclusionSource
 } from "@galacean/engine-shader";
 import { IPrecompiledShader } from "@galacean/engine-design";
 import { Logger } from "../base/Logger";
@@ -82,12 +82,12 @@ export class ShaderPool {
       // Particle shader
       ParticleSource,
       // PostProcess shaders
-      UberShaderSource,
-      FinalSRGBShaderSource,
-      FinalAntiAliasingShaderSource,
-      BloomShaderSource,
+      UberSource,
+      FinalSRGBSource,
+      FinalAntiAliasingSource,
+      BloomSource,
       // AO shader
-      SAOShaderSource
+      ScalableAmbientOcclusionSource
     ];
 
     for (const source of sources) {

@@ -26,13 +26,13 @@ import BlitScreenSource from "./Utility/BlitScreen.shader";
 import ParticleSource from "./Particle.shader";
 
 // PostProcess shaders
-import UberShaderSource from "./PostProcess/Uber.shader";
-import FinalSRGBShaderSource from "./PostProcess/FinalSRGB.shader";
-import FinalAntiAliasingShaderSource from "./PostProcess/FinalAntiAliasing.shader";
-import BloomShaderSource from "./PostProcess/Bloom.shader";
+import UberSource from "./PostProcess/Uber.shader";
+import FinalSRGBSource from "./PostProcess/FinalSRGB.shader";
+import FinalAntiAliasingSource from "./PostProcess/FinalAntiAliasing.shader";
+import BloomSource from "./PostProcess/Bloom.shader";
 
 // AO shader
-import SAOShaderSource from "./AO/ScalableAmbientOcclusion.shader";
+import ScalableAmbientOcclusionSource from "./AO/ScalableAmbientOcclusion.shader";
 
 export {
   PBRSource,
@@ -52,9 +52,9 @@ export {
   BlitSource,
   BlitScreenSource,
   ParticleSource,
-  UberShaderSource,
-  FinalSRGBShaderSource,
-  FinalAntiAliasingShaderSource,
-  BloomShaderSource,
-  SAOShaderSource
+  UberSource,
+  FinalSRGBSource,
+  FinalAntiAliasingSource,
+  BloomSource,
+  ScalableAmbientOcclusionSource
 };
