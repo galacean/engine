@@ -46,7 +46,6 @@ Shader "PBRSpecular" {
       }
     }
 
-    UIScript "UIScriptPath";
   }
 
   SubShader "Default" {

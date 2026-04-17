@@ -31,7 +31,6 @@ Shader "BlinnPhong" {
       }
     }
 
-    UIScript "UIScriptPath";
   }
 
   SubShader "Default" {

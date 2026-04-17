@@ -15,7 +15,6 @@ Shader "Unlit" {
       }
     }
 
-    UIScript "UIScriptPath";
   }
 
   SubShader "Default" {

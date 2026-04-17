@@ -16,7 +16,6 @@ Shader "2D/Trail" {
         material_AlphaCutoff("AlphaCutoff", Range(0, 1, 0.01)) = 0;
       }
     }
-    UIScript "UIScriptPath";
   }
 
   SubShader "Default" {
