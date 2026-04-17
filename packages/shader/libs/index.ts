@@ -9,7 +9,7 @@ import FinalAntiAliasingSource from "./PostProcess/FinalAntiAliasing.gsp";
 import FinalSRGBSource from "./PostProcess/FinalSRGB.gsp";
 import ParticleSource from "./Particle.gsp";
 import PBRSource from "./PBR.gsp";
-import PBRSpecularSource from "./PBRSpecular.gsp";
+
 import ScalableAmbientOcclusionSource from "./AO/ScalableAmbientOcclusion.gsp";
 import ShadowMapSource from "./Utility/ShadowMap.gsp";
 import SkyboxSource from "./Sky/Skybox.gsp";
@@ -33,7 +33,6 @@ export {
   FinalSRGBSource,
   ParticleSource,
   PBRSource,
-  PBRSpecularSource,
   ScalableAmbientOcclusionSource,
   ShadowMapSource,
   SkyboxSource,

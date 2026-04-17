@@ -1,7 +1,6 @@
 import {
   fragmentList,
   PBRSource,
-  PBRSpecularSource,
   BlinnPhongSource,
   UnlitSource,
   SpriteSource,
@@ -65,7 +64,7 @@ export class ShaderPool {
       DepthOnlySource,
       // Material shaders
       PBRSource,
-      PBRSpecularSource,
+
       BlinnPhongSource,
       UnlitSource,
       // Sky shaders

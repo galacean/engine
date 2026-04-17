@@ -3,7 +3,7 @@
  * Import from "@galacean/engine-shader/sources".
  */
 import PBRSource from "./Shaders/PBR.shader";
-import PBRSpecularSource from "./Shaders/PBRSpecular.shader";
+
 import BlinnPhongSource from "./Shaders/BlinnPhong.shader";
 import UnlitSource from "./Shaders/Unlit.shader";
 import ParticleSource from "./Shaders/Particle.shader";
@@ -14,7 +14,6 @@ import SkyProceduralSource from "./Shaders/Sky/SkyProcedural.shader";
 
 export {
   PBRSource,
-  PBRSpecularSource,
   BlinnPhongSource,
   UnlitSource,
   ParticleSource,

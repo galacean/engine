@@ -1,6 +1,5 @@
 // Material shaders
 import PBRSource from "./PBR.shader";
-import PBRSpecularSource from "./PBRSpecular.shader";
 import BlinnPhongSource from "./BlinnPhong.shader";
 import UnlitSource from "./Unlit.shader";
 
@@ -36,7 +35,6 @@ import ScalableAmbientOcclusionSource from "./AO/ScalableAmbientOcclusion.shader
 
 export {
   PBRSource,
-  PBRSpecularSource,
   BlinnPhongSource,
   UnlitSource,
   SpriteSource,
