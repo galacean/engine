@@ -129,7 +129,7 @@ Varyings BlinnPhongVertex(Attributes attr) {
     #ifdef RENDERER_HAS_SKIN
         mat4 skinMatrix = getSkinMatrix(attr);
         position = skinMatrix * position;
-        #ifdef RENDERER_HAS_NORMAL
+        #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef RENDERER_HAS_TANGENT
@@ -154,10 +154,10 @@ Varyings BlinnPhongVertex(Attributes attr) {
     #endif
 
     // Normal
-    #ifdef RENDERER_HAS_NORMAL
-        v.v_normalWS = normalize((renderer_NormalMat * vec4(normal, 0.0)).xyz);
+    #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
+        v.v_normalWS = normalize( mat3(renderer_NormalMat) * normal );
         #ifdef RENDERER_HAS_TANGENT
-            vec3 tangentWS = normalize((renderer_ModelMat * vec4(tangent.xyz, 0.0)).xyz);
+            vec3 tangentWS = normalize( mat3(renderer_NormalMat) * tangent.xyz );
             v.v_tangentWS = tangentWS;
             v.v_bitangentWS = cross(v.v_normalWS, tangentWS) * tangent.w;
         #endif

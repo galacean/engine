@@ -58,7 +58,7 @@ VertexInputs getVertexInputs(Attributes attributes){
         mat4 skinMatrix = getSkinMatrix(attributes);
         position = skinMatrix * position;
 
-        #if defined(RENDERER_HAS_NORMAL)
+        #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
             #ifdef RENDERER_HAS_TANGENT
@@ -68,7 +68,7 @@ VertexInputs getVertexInputs(Attributes attributes){
     #endif
 
     // TBN world space
-    #ifdef RENDERER_HAS_NORMAL
+    #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
         inputs.normalWS = normalize( mat3(renderer_NormalMat) * normal );
 
         #ifdef RENDERER_HAS_TANGENT

@@ -7,6 +7,8 @@ import { ShaderLab } from "@galacean/engine-shaderlab";
 
 Logger.enable();
 
+const shaderLab = new ShaderLab();
+
 WebGLEngine.create({
   canvas: document.getElementById("canvas") as HTMLCanvasElement,
   shaderLab

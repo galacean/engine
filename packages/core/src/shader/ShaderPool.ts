@@ -24,7 +24,6 @@ import {
   ScalableAmbientOcclusionSource
 } from "@galacean/engine-shader";
 import { IPrecompiledShader } from "@galacean/engine-design";
-import { Logger } from "../base/Logger";
 import { TransformFeedbackShader } from "../graphic/TransformFeedbackShader";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
@@ -91,14 +90,10 @@ export class ShaderPool {
     ];
 
     for (const source of sources) {
-      try {
-        if (typeof source === "string") {
-          Shader.create(source);
-        } else {
-          Shader._createFromPrecompiled(source);
-        }
-      } catch (e) {
-        Logger.warn(`Failed to register built-in shader: ${e.message || e}`);
+      if (typeof source === "string") {
+        Shader.create(source);
+      } else {
+        Shader._createFromPrecompiled(source);
       }
     }
   }

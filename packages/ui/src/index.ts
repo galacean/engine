@@ -1,14 +1,4 @@
-import {
-  BlendFactor,
-  BlendOperation,
-  CullMode,
-  Engine,
-  Entity,
-  Loader,
-  Material,
-  RenderQueueType,
-  Shader
-} from "@galacean/engine";
+import { Engine, Entity, Loader, Material, Shader } from "@galacean/engine";
 import * as GUIComponent from "./component";
 export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
@@ -24,17 +14,6 @@ export class EngineExtension {
       const shader = _getOrCreateUIShader();
       // @ts-ignore
       const material = new Material(this, shader);
-      const renderState = material.renderState;
-      const target = renderState.blendState.targetBlendState;
-      target.enabled = true;
-      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.sourceAlphaBlendFactor = BlendFactor.One;
-      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-      renderState.depthState.writeEnabled = false;
-      renderState.rasterState.cullMode = CullMode.Off;
-      renderState.renderQueueType = RenderQueueType.Transparent;
       material.isGCIgnored = true;
       this._uiDefaultMaterial = material;
     }

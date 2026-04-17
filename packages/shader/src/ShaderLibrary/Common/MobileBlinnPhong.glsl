@@ -67,7 +67,7 @@ void calculateBlinnPhongLighting(
         for (int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++) {
             if (!isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) {
                 directionalLight.color = scene_DirectLightColor[i];
-                #ifdef SCENE_IS_CALCULATE_SHADOWS
+                #ifdef NEED_CALCULATE_SHADOWS
                     if (i == 0) {
                         directionalLight.color *= shadowAttenuation;
                     }
