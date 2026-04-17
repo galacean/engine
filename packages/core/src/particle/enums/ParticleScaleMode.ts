@@ -6,6 +6,6 @@ export enum ParticleScaleMode {
   World,
   /** Scale the Particle Generator using only its own transform scale, ignoring parent scale. */
   Local,
-  /** Only scale the emission shape, particles themselves are not affected. */
+  /** Scale only the emitter shape positions; particle size and movement are unaffected. */
   Shape
 }
