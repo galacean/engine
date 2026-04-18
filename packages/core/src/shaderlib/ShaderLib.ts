@@ -34,22 +34,8 @@ import begin_viewdir_frag from "./begin_viewdir_frag.glsl";
 
 import mobile_blinnphong_frag from "./mobile_blinnphong_frag.glsl";
 
-import noise_cellular from "./noise_cellular.glsl";
-import noise_cellular_2D from "./noise_cellular_2D.glsl";
-import noise_cellular_2x2 from "./noise_cellular_2x2.glsl";
-import noise_cellular_2x2x2 from "./noise_cellular_2x2x2.glsl";
-import noise_cellular_3D from "./noise_cellular_3D.glsl";
 import noise_common from "./noise_common.glsl";
-import noise_perlin from "./noise_perlin.glsl";
-import noise_perlin_2D from "./noise_perlin_2D.glsl";
-import noise_perlin_3D from "./noise_perlin_3D.glsl";
-import noise_perlin_4D from "./noise_perlin_4D.glsl";
-import noise_psrd_2D from "./noise_psrd_2D.glsl";
-import noise_simplex from "./noise_simplex.glsl";
-import noise_simplex_2D from "./noise_simplex_2D.glsl";
-import noise_simplex_3D from "./noise_simplex_3D.glsl";
 import noise_simplex_3D_grad from "./noise_simplex_3D_grad.glsl";
-import noise_simplex_4D from "./noise_simplex_4D.glsl";
 
 import PBRShaderLib from "./pbr";
 import ShadowLib from "./shadow";
@@ -95,21 +81,7 @@ export const ShaderLib = {
   mobile_blinnphong_frag,
 
   noise_common,
-  noise_cellular_2D,
-  noise_cellular_2x2,
-  noise_cellular_2x2x2,
-  noise_cellular_3D,
-  noise_cellular,
-  noise_perlin_2D,
-  noise_perlin_3D,
-  noise_perlin_4D,
-  noise_perlin,
-  noise_psrd_2D,
-  noise_simplex_2D,
   noise_simplex_3D_grad,
-  noise_simplex_3D,
-  noise_simplex_4D,
-  noise_simplex,
 
   ...ShadowLib,
   ...PBRShaderLib,

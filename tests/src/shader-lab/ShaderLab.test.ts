@@ -108,7 +108,8 @@ describe("ShaderLab", async () => {
       [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha,
       // Pass level (traditional syntax)
       [RenderStateElementKey.BlendStateEnabled0]: true, // Pass overrides inherited "subShaderBlendEnabled"
-      [RenderStateElementKey.BlendStateColorWriteMask0]: ColorWriteMask.Red | ColorWriteMask.Green | ColorWriteMask.Blue,
+      [RenderStateElementKey.BlendStateColorWriteMask0]:
+        ColorWriteMask.Red | ColorWriteMask.Green | ColorWriteMask.Blue,
       [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
       [RenderStateElementKey.StencilStateEnabled]: true,
       [RenderStateElementKey.StencilStateMask]: 1.3,
@@ -250,5 +251,11 @@ describe("ShaderLab", async () => {
   it("mrt-struct", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
+  });
+
+  it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
+    const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
   });
 });
