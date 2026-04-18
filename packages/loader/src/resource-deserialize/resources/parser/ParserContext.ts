@@ -17,7 +17,6 @@ export class ParserContext {
 
   readonly resourceManager: ResourceManager;
 
-  private _tasks: Set<string> = new Set();
   private _loaded: number = 0;
   private _total: number = 0;
 
@@ -38,11 +37,8 @@ export class ParserContext {
   _setTaskCompleteProgress: (loaded: number, total: number) => void;
 
   /** @internal */
-  _addDependentAsset(url: string, promise: AssetPromise<any>): void {
-    const tasks = this._tasks;
-    if (tasks.has(url)) return;
+  _addDependentAsset(promise: AssetPromise<any>): void {
     ++this._total;
-    tasks.add(url);
     promise.finally(() => {
       ++this._loaded;
       this._setTaskCompleteProgress(this._loaded, this._total);
