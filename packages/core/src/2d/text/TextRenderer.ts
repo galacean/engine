@@ -1,7 +1,7 @@
 import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
@@ -382,14 +382,14 @@ export class TextRenderer extends Renderer implements ITextRenderer {
    * @internal
    */
   override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    return BatchUtils.canBatchSprite(preElement, curElement);
+    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
   /**
    * @internal
    */
   override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
-    BatchUtils.batchFor2D(preElement, curElement);
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
   /**

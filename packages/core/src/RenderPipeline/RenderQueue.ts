@@ -62,13 +62,15 @@ export class RenderQueue {
     const rhi = engine._hardwareRenderer;
     const pipelineStageKey = RenderContext.pipelineStageKey;
     const renderQueueType = this.renderQueueType;
+    const needMaskType = maskType !== RenderQueueMaskType.No;
 
     for (let i = 0; i < length; i++) {
       const curElement = batchedElements[i];
-      const { component, material, instancedRenderers } = curElement;
-      const isInstanced = instancedRenderers.length > 0;
+      const { component, material } = curElement;
+      const isInstanced = curElement.instancedRenderers.length > 0;
 
-      // Instancing: transform data is packed in UBO, skip per-renderer update
+      // Update transform shader data
+      // Instancing packs per-renderer transforms into the instance UBO at draw time, so skip here
       if (!isInstanced) {
         if (this.rendererUpdateFlag & ContextRendererUpdateFlag.WorldViewMatrix) {
           component._updateTransformShaderData(context, false);
@@ -77,9 +79,9 @@ export class RenderQueue {
         }
       }
 
+      // Resolve mask render states
       const maskInteraction = component._maskInteraction;
       const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
-      const needMaskType = maskType !== RenderQueueMaskType.No;
       let customStates: RenderStateElementMap = null;
 
       if (needMaskType) {
@@ -94,7 +96,7 @@ export class RenderQueue {
         maskManager.isStencilWritten(material) && (maskManager.hasStencilWritten = true);
       }
 
-      const { primitive, shaderData: renderElementShaderData } = curElement;
+      const { shaderData: renderElementShaderData } = curElement;
       const shaderPasses = curElement.subShader.passes;
       const { shaderData: rendererData, instanceId: rendererId } = component;
       const { shaderData: materialData, instanceId: materialId, renderStates } = material;
@@ -114,6 +116,7 @@ export class RenderQueue {
           continue;
         }
 
+        // Pick render state and filter by queue type
         let renderState = shaderPass._renderState;
         if (needMaskType) {
           // Mask don't care render queue type
@@ -141,6 +144,7 @@ export class RenderQueue {
         const switchProgram = program.bind();
         const switchRenderCount = renderCount !== program._uploadRenderCount;
 
+        // Upload uniforms (cache-aware per block)
         if (switchRenderCount) {
           program.groupingOtherUniformBlock();
           program.uploadAll(program.sceneUniformBlock, sceneData);
@@ -153,7 +157,7 @@ export class RenderQueue {
           }
           program.uploadAll(program.materialUniformBlock, materialData);
           renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
-          // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
+          // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind
           program.uploadUnGroupTextures();
           program._uploadSceneId = sceneId;
           program._uploadCameraId = cameraId;
@@ -192,12 +196,13 @@ export class RenderQueue {
 
           renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
 
-          // We only consider switchProgram case, because UnGroup texture's value is always default.
+          // We only consider switchProgram case, because UnGroup texture's value is always default
           if (switchProgram) {
             program.uploadUnGroupTextures();
           }
         }
 
+        // Apply render state
         renderState._applyStates(
           engine,
           component._isFrontFaceInvert(),
@@ -206,23 +211,25 @@ export class RenderQueue {
           customStates
         );
 
+        // Draw
         const layout = program._instanceLayout;
         if (isInstanced && layout) {
+          const { primitive, subPrimitive, instancedRenderers } = curElement;
           const totalCount = instancedRenderers.length;
           const maxCount = layout.instanceMaxCount;
-          const instanceBatch = engine._batcherManager.instanceBatch;
+          const instanceBuffer = engine._batcherManager.instanceBuffer;
 
-          instanceBatch.setLayout(layout);
-          rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBatch.buffer._platformBuffer);
+          instanceBuffer.setLayout(layout);
+          rhi.bindUniformBufferBase(ConstantBufferBindingPoint.RendererInstance, instanceBuffer.buffer._platformBuffer);
           for (let start = 0; start < totalCount; start += maxCount) {
             const count = Math.min(maxCount, totalCount - start);
-            instanceBatch.upload(instancedRenderers, start, count);
+            instanceBuffer.upload(instancedRenderers, start, count);
             primitive.instanceCount = count;
-            rhi.drawPrimitive(primitive, curElement.subPrimitive, program);
+            rhi.drawPrimitive(primitive, subPrimitive, program);
           }
           primitive.instanceCount = 0;
         } else {
-          rhi.drawPrimitive(primitive, curElement.subPrimitive, program);
+          rhi.drawPrimitive(curElement.primitive, curElement.subPrimitive, program);
         }
       }
     }

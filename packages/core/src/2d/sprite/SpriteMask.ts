@@ -1,6 +1,6 @@
 import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
@@ -202,14 +202,14 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
    * @internal
    */
   override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    return BatchUtils.canBatchSpriteMask(preElement, curElement);
+    return VertexMergeBatcher.canBatchSpriteMask(preElement, curElement);
   }
 
   /**
    * @internal
    */
   override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
-    BatchUtils.batchFor2D(preElement, curElement);
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
   /**

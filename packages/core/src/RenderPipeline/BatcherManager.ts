@@ -12,12 +12,12 @@ export class BatcherManager {
   private _primitiveChunkManager2D: PrimitiveChunkManager;
   private _primitiveChunkManagerMask: PrimitiveChunkManager;
   private _primitiveChunkManagerUI: PrimitiveChunkManager;
-  private _instanceBatch: InstanceBuffer;
+  private _instanceBuffer: InstanceBuffer;
 
   constructor(public engine: Engine) {}
 
-  get instanceBatch(): InstanceBuffer {
-    return (this._instanceBatch ||= new InstanceBuffer(this.engine));
+  get instanceBuffer(): InstanceBuffer {
+    return (this._instanceBuffer ||= new InstanceBuffer(this.engine));
   }
 
   get primitiveChunkManager2D(): PrimitiveChunkManager {
@@ -45,9 +45,9 @@ export class BatcherManager {
       this._primitiveChunkManagerUI.destroy();
       this._primitiveChunkManagerUI = null;
     }
-    if (this._instanceBatch) {
-      this._instanceBatch.destroy();
-      this._instanceBatch = null;
+    if (this._instanceBuffer) {
+      this._instanceBuffer.destroy();
+      this._instanceBuffer = null;
     }
   }
 

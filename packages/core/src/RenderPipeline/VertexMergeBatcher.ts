@@ -5,27 +5,22 @@ import { RenderElement } from "./RenderElement";
 /**
  * @internal
  */
-export class BatchUtils {
+export class VertexMergeBatcher {
   protected static _disableBatchTag: ShaderTagKey = ShaderTagKey.getByName("spriteDisableBatching");
 
   static canBatchSprite(preElement: RenderElement, curElement: RenderElement): boolean {
-    if (curElement.subShader.passes[0].getTagValue(BatchUtils._disableBatchTag) === true) {
-      return false;
-    }
-    if (preElement.subChunk.chunk !== curElement.subChunk.chunk) {
-      return false;
-    }
-
     const preRenderer = <SpriteRenderer>preElement.component;
     const renderer = <SpriteRenderer>curElement.component;
-    const maskInteractionA = preRenderer.maskInteraction;
+    const maskInteraction = preRenderer.maskInteraction;
 
-    // Compare mask, texture and material
+    // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
     return (
-      maskInteractionA === renderer.maskInteraction &&
-      (maskInteractionA === SpriteMaskInteraction.None || preRenderer.maskLayer === renderer.maskLayer) &&
+      preElement.subChunk.chunk === curElement.subChunk.chunk &&
       preElement.texture === curElement.texture &&
-      preElement.material === curElement.material
+      preElement.material === curElement.material &&
+      maskInteraction === renderer.maskInteraction &&
+      (maskInteraction === SpriteMaskInteraction.None || preRenderer.maskLayer === renderer.maskLayer) &&
+      curElement.subShader.passes[0].getTagValue(VertexMergeBatcher._disableBatchTag) !== true
     );
   }
 
@@ -44,7 +39,7 @@ export class BatchUtils {
     );
   }
 
-  static batchFor2D(preElement: RenderElement | null, curElement: RenderElement): void {
+  static batch(preElement: RenderElement | null, curElement: RenderElement): void {
     const subChunk = curElement.subChunk;
     const { chunk, indices: subChunkIndices } = subChunk;
 
