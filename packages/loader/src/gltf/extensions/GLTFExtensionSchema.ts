@@ -1,5 +1,5 @@
 import type { IMaterialNormalTextureInfo, ITextureInfo } from "../GLTFSchema";
-import type { AssetRef } from "../../schema/CommonSchema";
+import type { RefItem } from "../../schema/CommonSchema";
 
 /**
  * Interfaces from the KHR_lights_punctual extension
@@ -153,7 +153,7 @@ export interface IEXTMeshoptCompressionSchema {
   filter?: "NONE" | "OCTAHEDRAL" | "QUATERNION" | "EXPONENTIAL";
 }
 
-export interface IGalaceanMaterialRemap extends AssetRef {
+export interface IGalaceanMaterialRemap extends RefItem {
   isClone?: boolean;
 }
 

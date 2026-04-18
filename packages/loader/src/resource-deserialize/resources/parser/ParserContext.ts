@@ -10,10 +10,10 @@ export enum ParserType {
  * @internal
  */
 export class ParserContext {
-  /** Flat entity index → Entity instance */
-  entityMap: Map<number, Entity> = new Map();
-  /** Component instance → config pairs for props application */
-  componentPairs: Array<{ component: Component; config: ComponentSchema }> = [];
+  /** Runtime Entity instances, indexed by the flat entities[] position. */
+  entityInstances: Entity[] = [];
+  /** Components waiting for props/calls application (Stage 4). */
+  pendingComponents: Array<{ instance: Component; config: ComponentSchema }> = [];
 
   readonly resourceManager: ResourceManager;
 
@@ -30,8 +30,8 @@ export class ParserContext {
   }
 
   clear() {
-    this.entityMap.clear();
-    this.componentPairs.length = 0;
+    this.entityInstances.length = 0;
+    this.pendingComponents.length = 0;
   }
 
   /** @internal */

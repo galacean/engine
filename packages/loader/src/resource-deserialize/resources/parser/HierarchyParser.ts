@@ -68,7 +68,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _parseEntities(): Promise<unknown> {
     const entities = this.data.entities;
-    const entityMap = this.context.entityMap;
+    const entityInstances = this.context.entityInstances;
     const engine = this._engine;
     const promises: Promise<void>[] = [];
 
@@ -78,14 +78,14 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
         promises.push(
           this._loadPrefabInstance(entityConfig, engine).then((entity) => {
-            entityMap.set(i, entity);
+            entityInstances[i] = entity;
           })
         );
       } else {
         const entity = new Entity(engine, entityConfig.name);
         HierarchyParser._applyEntityProps(entity, entityConfig);
         this._onEntityCreated(entity);
-        entityMap.set(i, entity);
+        entityInstances[i] = entity;
       }
     }
 
@@ -98,7 +98,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _organizeEntities(): void {
     const entities = this.data.entities;
-    const entityMap = this.context.entityMap;
+    const entityInstances = this.context.entityInstances;
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
@@ -108,9 +108,9 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const children = entityConfig.children;
       if (!children) continue;
 
-      const parent = entityMap.get(i);
+      const parent = entityInstances[i];
       for (let j = 0, m = children.length; j < m; j++) {
-        parent.addChild(entityMap.get(children[j]));
+        parent.addChild(entityInstances[children[j]]);
       }
     }
 
@@ -127,22 +127,22 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _parseComponents(): void {
     const entities = this.data.entities;
     const allComponents = this.data.components;
-    const entityMap = this.context.entityMap;
-    const componentPairs = this.context.componentPairs;
+    const entityInstances = this.context.entityInstances;
+    const pendingComponents = this.context.pendingComponents;
     const refs = this.data.refs;
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
       if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
 
-      const entity = entityMap.get(i);
+      const entity = entityInstances[i];
       const componentIndices = entityConfig.components;
       if (!componentIndices) continue;
 
       for (let j = 0, m = componentIndices.length; j < m; j++) {
         const config = allComponents[componentIndices[j]];
-        const component = HierarchyParser._addComponentFromConfig(entity, config, refs);
-        componentPairs.push({ component, config });
+        const instance = HierarchyParser._addComponentFromConfig(entity, config, refs);
+        pendingComponents.push({ instance, config });
       }
     }
   }
@@ -152,13 +152,13 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // ---------------------------------------------------------------------------
 
   private _parseComponentsPropsAndCalls(): Promise<unknown> {
-    const { componentPairs } = this.context;
+    const { pendingComponents } = this.context;
     const reflectionParser = this._reflectionParser;
     const promises: Promise<unknown>[] = [];
 
-    for (let i = 0, n = componentPairs.length; i < n; i++) {
-      const { component, config } = componentPairs[i];
-      promises.push(reflectionParser.parseMutationBlock(component, config));
+    for (let i = 0, n = pendingComponents.length; i < n; i++) {
+      const { instance, config } = pendingComponents[i];
+      promises.push(reflectionParser.parseMutationBlock(instance, config));
     }
 
     return Promise.all(promises);
@@ -170,7 +170,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   private _parsePrefabOverrides(): Promise<unknown> {
     const entities = this.data.entities;
-    const entityMap = this.context.entityMap;
+    const entityInstances = this.context.entityInstances;
     const promises: Promise<unknown>[] = [];
 
     for (let i = 0, n = entities.length; i < n; i++) {
@@ -180,7 +180,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       const overrides = entityConfig.instance.overrides;
       if (!overrides) continue;
 
-      this._applyOverrides(entityMap.get(i), overrides, promises);
+      this._applyOverrides(entityInstances[i], overrides, promises);
     }
 
     return Promise.all(promises);
@@ -271,13 +271,12 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     return (
       engine.resourceManager
         // @ts-ignore
-        .getResourceByRef<Entity>({ $ref: refItem.url, key: refItem.key })
+        .getResourceByRef<Entity>(refItem)
         .then((prefabResource: PrefabResource | GLTFResource) => {
           const entity =
             prefabResource instanceof PrefabResource
               ? prefabResource.instantiate()
               : prefabResource.instantiateSceneRoot();
-
           this._onEntityCreated(entity);
           return entity;
         })

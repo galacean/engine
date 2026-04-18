@@ -99,7 +99,7 @@ export class ReflectionParser {
         return Promise.reject(error);
       }
       // @ts-ignore
-      return context.resourceManager.getResourceByRef({ $ref: refItem.url, key: refItem.key }).then((resource) => {
+      return context.resourceManager.getResourceByRef(refItem).then((resource) => {
         if (resource && context.type === ParserType.Prefab) {
           // @ts-ignore
           context.resource._addDependenceAsset(resource);
@@ -178,7 +178,7 @@ export class ReflectionParser {
 
   private _resolveEntityRef(path: number[]): Entity | null {
     if (!path || path.length === 0) return null;
-    let entity = this._context.entityMap.get(path[0]) ?? null;
+    let entity = this._context.entityInstances[path[0]] ?? null;
     for (let i = 1, n = path.length; entity && i < n; i++) {
       entity = entity.children[path[i]] ?? null;
     }

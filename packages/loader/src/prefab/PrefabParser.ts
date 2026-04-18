@@ -32,7 +32,7 @@ export class PrefabParser extends HierarchyParser<PrefabResource, ParserContext>
   }
 
   protected override _handleRootEntity(index: number): void {
-    this.prefabResource._root = this.context.entityMap.get(index);
+    this.prefabResource._root = this.context.entityInstances[index];
   }
 
   protected override _clearAndResolve(): PrefabResource {

@@ -142,8 +142,8 @@ describe("ReflectionParser v2 props resolution", () => {
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "entity0");
     const entity1 = new Entity(engine, "entity1");
-    context.entityMap.set(0, entity0);
-    context.entityMap.set(1, entity1);
+    context.entityInstances[0] = entity0;
+    context.entityInstances[1] = entity1;
 
     const parser = new ReflectionParser(context, []);
     const target: any = {};
@@ -172,7 +172,7 @@ describe("ReflectionParser v2 props resolution", () => {
     const grandchild = new Entity(engine, "grandchild");
     root.addChild(child);
     child.addChild(grandchild);
-    context.entityMap.set(0, root);
+    context.entityInstances[0] = root;
 
     const parser = new ReflectionParser(context, []);
     const target: any = {};
@@ -190,7 +190,7 @@ describe("ReflectionParser v2 props resolution", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const root = new Entity(engine, "root");
-    context.entityMap.set(0, root);
+    context.entityInstances[0] = root;
 
     const parser = new ReflectionParser(context, []);
     const target: any = {};
@@ -217,7 +217,7 @@ describe("ReflectionParser v2 props resolution", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity = new Entity(engine, "test");
-    context.entityMap.set(0, entity);
+    context.entityInstances[0] = entity;
 
     const parser = new ReflectionParser(context, []);
     const target: any = {};
@@ -237,7 +237,7 @@ describe("ReflectionParser calls resolution", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity = new Entity(engine, "target");
-    context.entityMap.set(1, entity);
+    context.entityInstances[1] = entity;
 
     const asset = { name: "call-asset" };
     const getResourceByRef = vi
@@ -571,7 +571,7 @@ describe("SceneParser v2 entity tree", () => {
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockResolvedValue({ _addReferCount() {} } as any);
 
-    let collectedRefs: Array<{ $ref: string; key?: string }>;
+    let collectedRefs: Array<{ url: string; key?: string }>;
     try {
       parser._collectDependentAssets(data);
       collectedRefs = getResourceByRef.mock.calls.map((args) => args[0] as any);
@@ -579,7 +579,7 @@ describe("SceneParser v2 entity tree", () => {
       getResourceByRef.mockRestore();
     }
     expect(collectedRefs).to.have.length(4);
-    expect(collectedRefs.map((r) => r.$ref)).to.deep.equal([
+    expect(collectedRefs.map((r) => r.url)).to.deep.equal([
       "nested.prefab",
       "component-call.mat",
       "override-call.mat",
@@ -599,8 +599,8 @@ describe("ReflectionParser $signal resolution", () => {
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "source");
     const entity1 = new Entity(engine, "target");
-    context.entityMap.set(0, entity0);
-    context.entityMap.set(1, entity1);
+    context.entityInstances[0] = entity0;
+    context.entityInstances[1] = entity1;
 
     const parser = new ReflectionParser(context, []);
 
@@ -630,7 +630,7 @@ describe("ReflectionParser $signal resolution", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "source");
-    context.entityMap.set(0, entity0);
+    context.entityInstances[0] = entity0;
     // entity 1 does NOT exist in entityMap
 
     const parser = new ReflectionParser(context, []);
@@ -659,8 +659,8 @@ describe("ReflectionParser $signal resolution", () => {
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity0 = new Entity(engine, "source");
     const entity1 = new Entity(engine, "target");
-    context.entityMap.set(0, entity0);
-    context.entityMap.set(1, entity1);
+    context.entityInstances[0] = entity0;
+    context.entityInstances[1] = entity1;
 
     const parser = new ReflectionParser(context, []);
 
@@ -679,7 +679,7 @@ describe("ReflectionParser $signal resolution", () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
     const entity = new Entity(engine, "test");
-    context.entityMap.set(0, entity);
+    context.entityInstances[0] = entity;
 
     const parser = new ReflectionParser(context, []);
     const target: any = {};
@@ -750,7 +750,7 @@ describe("applySceneData scene property parsing", () => {
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockImplementation((ref: any) => {
-        switch (ref.$ref) {
+        switch (ref.url) {
           case "custom-ambient":
             return Promise.resolve({ specularTexture: customAmbientTexture }) as any;
           case "ambient-light":
@@ -798,7 +798,7 @@ describe("applySceneData scene property parsing", () => {
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockImplementation((ref: any) => {
-        switch (ref.$ref) {
+        switch (ref.url) {
           case "sky-mesh":
             return Promise.resolve(skyMesh) as any;
           case "sky-material":
@@ -838,7 +838,7 @@ describe("applySceneData scene property parsing", () => {
     const getResourceByRef = vi
       .spyOn(engine.resourceManager as any, "getResourceByRef")
       .mockImplementation((ref: any) => {
-        if (ref.$ref === "background-texture") {
+        if (ref.url === "background-texture") {
           return Promise.resolve(backgroundTexture) as any;
         }
         return Promise.resolve(null) as any;

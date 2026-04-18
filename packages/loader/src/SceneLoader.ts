@@ -19,7 +19,7 @@ import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 function loadRef<T>(refs: RefItem[], index: number, resourceManager: ResourceManager, label: string): Promise<T> {
   const ref = resolveRefItem(refs, index, "SceneLoader", label);
   // @ts-ignore
-  return resourceManager.getResourceByRef<T>({ $ref: ref.url, key: ref.key });
+  return resourceManager.getResourceByRef<T>(ref);
 }
 
 /**
