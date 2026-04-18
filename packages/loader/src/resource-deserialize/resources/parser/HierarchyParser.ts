@@ -19,8 +19,6 @@ import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
-  private static _componentBuffer: Component[] = [];
-
   readonly promise: Promise<T>;
 
   protected _resolve: (item: T) => void;
@@ -324,7 +322,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private static _resolveComponent(entity: Entity, selector: ComponentSelector): Component {
     const type = Loader.getClass(selector.type);
     if (!type) throw new Error(`HierarchyParser: override target component type "${selector.type}" is not registered`);
-    const buffer = HierarchyParser._componentBuffer;
+    const buffer = ReflectionParser._componentBuffer;
     buffer.length = 0;
     entity.getComponents(type, buffer);
     const result = buffer[selector.index];

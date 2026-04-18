@@ -4,7 +4,8 @@ import type { CallSpec, ComponentRef, MutationBlock, RefItem, SignalListener } f
 import { ParserContext, ParserType } from "./ParserContext";
 
 export class ReflectionParser {
-  private static _componentBuffer: Component[] = [];
+  /** @internal shared with HierarchyParser; each use must length=0 -> getComponents -> read -> length=0 synchronously. */
+  static _componentBuffer: Component[] = [];
 
   constructor(
     private readonly _context: ParserContext,
