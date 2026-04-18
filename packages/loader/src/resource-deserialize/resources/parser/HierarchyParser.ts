@@ -10,6 +10,7 @@ import {
   type EntityOverrideProps,
   type EntitySchema,
   type InlineEntitySchema,
+  type InstanceOverrides,
   type PrefabInstanceEntitySchema
 } from "../../../schema/HierarchySchema";
 import type { RefItem } from "../../../schema/CommonSchema";
@@ -65,7 +66,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Stage 1: Create entity instances
   // ---------------------------------------------------------------------------
 
-  private _parseEntities(): Promise<void> {
+  private _parseEntities(): Promise<unknown> {
     const entities = this.data.entities;
     const entityMap = this.context.entityMap;
     const engine = this._engine;
@@ -88,7 +89,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       }
     }
 
-    return Promise.all(promises) as any;
+    return Promise.all(promises);
   }
 
   // ---------------------------------------------------------------------------
@@ -128,6 +129,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
     const allComponents = this.data.components;
     const entityMap = this.context.entityMap;
     const componentPairs = this.context.componentPairs;
+    const refs = this.data.refs;
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
@@ -139,7 +141,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
       for (let j = 0, m = componentIndices.length; j < m; j++) {
         const config = allComponents[componentIndices[j]];
-        const component = HierarchyParser._addComponentFromConfig(entity, config, this.data.refs);
+        const component = HierarchyParser._addComponentFromConfig(entity, config, refs);
         componentPairs.push({ component, config });
       }
     }
@@ -149,104 +151,108 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Stage 4: Apply props and execute calls on components
   // ---------------------------------------------------------------------------
 
-  private _parseComponentsPropsAndCalls(): Promise<void> {
+  private _parseComponentsPropsAndCalls(): Promise<unknown> {
     const { componentPairs } = this.context;
     const reflectionParser = this._reflectionParser;
-    const promises: Promise<any>[] = [];
+    const promises: Promise<unknown>[] = [];
 
     for (let i = 0, n = componentPairs.length; i < n; i++) {
       const { component, config } = componentPairs[i];
       promises.push(reflectionParser.parseMutationBlock(component, config));
     }
 
-    return Promise.all(promises) as any;
+    return Promise.all(promises);
   }
 
   // ---------------------------------------------------------------------------
   // Stage 5: Apply prefab instance overrides
   // ---------------------------------------------------------------------------
 
-  private _parsePrefabOverrides(): Promise<void> {
+  private _parsePrefabOverrides(): Promise<unknown> {
     const entities = this.data.entities;
     const entityMap = this.context.entityMap;
-    const promises: Promise<any>[] = [];
+    const promises: Promise<unknown>[] = [];
 
     for (let i = 0, n = entities.length; i < n; i++) {
       const entityConfig = entities[i];
       if (!HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
 
-      const instance = entityConfig.instance;
-      if (!instance.overrides) continue;
+      const overrides = entityConfig.instance.overrides;
+      if (!overrides) continue;
 
-      const rootEntity = entityMap.get(i);
-      const overrides = instance.overrides;
+      this._applyOverrides(entityMap.get(i), overrides, promises);
+    }
 
-      // entityProps — entity-level property overrides
-      if (overrides.entityProps) {
-        for (let j = 0, m = overrides.entityProps.length; j < m; j++) {
-          const override = overrides.entityProps[j] as EntityPropOverride;
-          HierarchyParser._applyEntityProps(HierarchyParser._resolveEntity(rootEntity, override.path), override);
-        }
-      }
+    return Promise.all(promises);
+  }
 
-      // componentProps — component-level property overrides
-      if (overrides.componentProps) {
-        for (let j = 0, m = overrides.componentProps.length; j < m; j++) {
-          const override = overrides.componentProps[j] as ComponentOverride;
-          const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
-          const target = HierarchyParser._resolveComponent(entity, override.selector);
-          promises.push(this._reflectionParser.parseMutationBlock(target, override));
-        }
-      }
+  private _applyOverrides(rootEntity: Entity, overrides: InstanceOverrides, promises: Promise<unknown>[]): void {
+    const refs = this.data.refs;
+    const reflectionParser = this._reflectionParser;
 
-      // addedComponents — new components on existing prefab entities
-      if (overrides.addedComponents) {
-        for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
-          const added = overrides.addedComponents[j];
-          const entity = HierarchyParser._resolveEntity(rootEntity, added.target);
-          const component = HierarchyParser._addComponentFromConfig(entity, added.component, this.data.refs);
-          promises.push(this._reflectionParser.parseMutationBlock(component, added.component));
-        }
-      }
-
-      // addedEntities — new child entities in prefab tree
-      if (overrides.addedEntities) {
-        for (let j = 0, m = overrides.addedEntities.length; j < m; j++) {
-          const added = overrides.addedEntities[j];
-          this._createInlineEntity(added.entity, HierarchyParser._resolveEntity(rootEntity, added.parent), promises);
-        }
-      }
-
-      // removedEntities — pre-resolve all targets then destroy (destroy shifts sibling indices)
-      if (overrides.removedEntities) {
-        const removed = overrides.removedEntities;
-        const targets = new Array<Entity>(removed.length);
-        for (let j = 0, m = removed.length; j < m; j++) {
-          targets[j] = HierarchyParser._resolveEntity(rootEntity, removed[j]);
-        }
-        for (let j = 0, m = targets.length; j < m; j++) {
-          targets[j].destroy();
-        }
-      }
-
-      // removedComponents — pre-resolve all targets then destroy (destroy shifts component indices)
-      if (overrides.removedComponents) {
-        const targets: Component[] = [];
-        for (let j = 0, m = overrides.removedComponents.length; j < m; j++) {
-          const override = overrides.removedComponents[j];
-          const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
-          const selectors = override.selectors;
-          for (let k = 0, p = selectors.length; k < p; k++) {
-            targets.push(HierarchyParser._resolveComponent(entity, selectors[k]));
-          }
-        }
-        for (let j = 0, m = targets.length; j < m; j++) {
-          targets[j].destroy();
-        }
+    // entityProps — entity-level property overrides
+    if (overrides.entityProps) {
+      for (let j = 0, m = overrides.entityProps.length; j < m; j++) {
+        const override = overrides.entityProps[j] as EntityPropOverride;
+        HierarchyParser._applyEntityProps(HierarchyParser._resolveEntity(rootEntity, override.path), override);
       }
     }
 
-    return Promise.all(promises) as any;
+    // componentProps — component-level property overrides
+    if (overrides.componentProps) {
+      for (let j = 0, m = overrides.componentProps.length; j < m; j++) {
+        const override = overrides.componentProps[j] as ComponentOverride;
+        const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
+        const target = HierarchyParser._resolveComponent(entity, override.selector);
+        promises.push(reflectionParser.parseMutationBlock(target, override));
+      }
+    }
+
+    // addedComponents — new components on existing prefab entities
+    if (overrides.addedComponents) {
+      for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
+        const added = overrides.addedComponents[j];
+        const entity = HierarchyParser._resolveEntity(rootEntity, added.target);
+        const component = HierarchyParser._addComponentFromConfig(entity, added.component, refs);
+        promises.push(reflectionParser.parseMutationBlock(component, added.component));
+      }
+    }
+
+    // addedEntities — new child entities in prefab tree
+    if (overrides.addedEntities) {
+      for (let j = 0, m = overrides.addedEntities.length; j < m; j++) {
+        const added = overrides.addedEntities[j];
+        this._createInlineEntity(added.entity, HierarchyParser._resolveEntity(rootEntity, added.parent), promises);
+      }
+    }
+
+    // removedEntities — pre-resolve all targets then destroy (destroy shifts sibling indices)
+    if (overrides.removedEntities) {
+      const removed = overrides.removedEntities;
+      const targets = new Array<Entity>(removed.length);
+      for (let j = 0, m = removed.length; j < m; j++) {
+        targets[j] = HierarchyParser._resolveEntity(rootEntity, removed[j]);
+      }
+      for (let j = 0, m = targets.length; j < m; j++) {
+        targets[j].destroy();
+      }
+    }
+
+    // removedComponents — pre-resolve all targets then destroy (destroy shifts component indices)
+    if (overrides.removedComponents) {
+      const targets: Component[] = [];
+      for (let j = 0, m = overrides.removedComponents.length; j < m; j++) {
+        const override = overrides.removedComponents[j];
+        const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
+        const selectors = override.selectors;
+        for (let k = 0, p = selectors.length; k < p; k++) {
+          targets.push(HierarchyParser._resolveComponent(entity, selectors[k]));
+        }
+      }
+      for (let j = 0, m = targets.length; j < m; j++) {
+        targets[j].destroy();
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -282,7 +288,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   // Inline entity creation (for addedEntities overrides)
   // ---------------------------------------------------------------------------
 
-  private _createInlineEntity(config: InlineEntitySchema, parent: Entity, promises: Promise<any>[]): void {
+  private _createInlineEntity(config: InlineEntitySchema, parent: Entity, promises: Promise<unknown>[]): void {
     const entity = new Entity(this._engine, config.name);
     HierarchyParser._applyEntityProps(entity, config);
     this._onEntityCreated(entity);
@@ -334,9 +340,10 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
 
   /** Resolve component class from config and add to entity. Throws if class is not registered. */
   private static _addComponentFromConfig(entity: Entity, config: ComponentSchema, refs: RefItem[]): Component {
-    const key = config.script
-      ? resolveRefItem(refs, config.script.$ref, "HierarchyParser", "component.script").url
-      : config.type;
+    const key =
+      config.script != null
+        ? resolveRefItem(refs, config.script, "HierarchyParser", "component.script").url
+        : config.type;
     const Class = Loader.getClass(key);
     if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
     return entity.addComponent(Class);

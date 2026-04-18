@@ -62,5 +62,7 @@ export interface SceneFile extends HierarchyFile {
       bilateralThreshold?: number;
       minHorizonAngle?: number;
     };
+    /** Not supported in scene yet; presence triggers a warning. */
+    postProcess?: unknown;
   };
 }

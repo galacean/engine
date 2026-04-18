@@ -1,8 +1,8 @@
-import type { AssetRef, MutationBlock, RefItem, Vec3Tuple } from "./CommonSchema";
+import type { MutationBlock, RefItem, Vec3Tuple } from "./CommonSchema";
 
 export interface ComponentSchema extends MutationBlock {
   type: string;
-  script?: AssetRef;
+  script?: number;
 }
 
 export interface EntityOverrideProps {
@@ -71,7 +71,6 @@ export interface InstanceSchema {
 export interface NormalEntitySchema extends EntityOverrideProps {
   children?: number[];
   components?: number[];
-  instance?: undefined;
 }
 
 export interface PrefabInstanceEntitySchema {
