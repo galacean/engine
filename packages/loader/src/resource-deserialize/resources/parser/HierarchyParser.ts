@@ -335,7 +335,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   /** Resolve component class from config and add to entity. Throws if class is not registered. */
   private static _addComponentFromConfig(entity: Entity, config: ComponentSchema, refs: RefItem[]): Component {
     const key = config.script
-      ? resolveRefItem(refs, config.script.$ref, "HierarchyParser", "component.script").url
+      ? resolveRefItem(refs, config.script, "HierarchyParser", "component.script").url
       : config.type;
     const Class = Loader.getClass(key);
     if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
