@@ -13,9 +13,14 @@ class DiceScript extends Script {
 
 class OverrideCallScript extends Script {
   value = "";
+  receivedArgs: string[] = [];
 
   appendSuffix(suffix: string): void {
     this.value += suffix;
+  }
+
+  captureResolvedArgs(...args: string[]): void {
+    this.receivedArgs = args;
   }
 }
 
@@ -303,7 +308,7 @@ describe("Prefab instance overrides", () => {
                   path: [],
                   selector: { type: "OverrideCallScript", index: 0 },
                   props: { value: "base" },
-                  calls: [{ method: "appendSuffix", args: ["-override"] }]
+                  calls: [{ method: "captureResolvedArgs", args: ["override"] }]
                 }
               ]
             }
@@ -319,7 +324,8 @@ describe("Prefab instance overrides", () => {
 
     const instanceEntity = root.children[0];
     const overrideScript = instanceEntity.getComponent(OverrideCallScript);
-    expect(overrideScript.value).toBe("base-override");
+    expect(overrideScript.value).toBe("base");
+    expect(overrideScript.receivedArgs).toEqual(["override"]);
 
     root.destroy();
     // @ts-ignore
@@ -353,7 +359,7 @@ describe("Prefab instance overrides", () => {
                   component: {
                     type: "OverrideCallScript",
                     props: { value: "base" },
-                    calls: [{ method: "appendSuffix", args: ["-added"] }]
+                    calls: [{ method: "captureResolvedArgs", args: ["added"] }]
                   }
                 }
               ]
@@ -371,7 +377,8 @@ describe("Prefab instance overrides", () => {
     const instanceEntity = root.children[0];
     const overrideScript = instanceEntity.getComponent(OverrideCallScript);
     expect(overrideScript).not.toBeNull();
-    expect(overrideScript.value).toBe("base-added");
+    expect(overrideScript.value).toBe("base");
+    expect(overrideScript.receivedArgs).toEqual(["added"]);
 
     root.destroy();
     // @ts-ignore
@@ -409,7 +416,7 @@ describe("Prefab instance overrides", () => {
                       {
                         type: "OverrideCallScript",
                         props: { value: "base" },
-                        calls: [{ method: "appendSuffix", args: ["-inline"] }]
+                        calls: [{ method: "captureResolvedArgs", args: ["inline"] }]
                       }
                     ]
                   }
@@ -433,7 +440,9 @@ describe("Prefab instance overrides", () => {
     expect(addedChild.transform.position.x).toBe(1);
     expect(addedChild.transform.position.y).toBe(2);
     expect(addedChild.transform.position.z).toBe(3);
-    expect(addedChild.getComponent(OverrideCallScript).value).toBe("base-inline");
+    const overrideScript = addedChild.getComponent(OverrideCallScript);
+    expect(overrideScript.value).toBe("base");
+    expect(overrideScript.receivedArgs).toEqual(["inline"]);
 
     root.destroy();
     // @ts-ignore

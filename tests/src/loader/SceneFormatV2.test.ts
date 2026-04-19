@@ -513,7 +513,7 @@ describe("SceneParser v2 entity tree", () => {
         {
           type: "CallOrderComponent",
           props: { value: "base" },
-          calls: [{ method: "appendSuffix", args: ["-after"] }]
+          calls: [{ method: "captureResolvedArgs", args: ["after"] }]
         } as any
       ],
       [0]
@@ -527,7 +527,8 @@ describe("SceneParser v2 entity tree", () => {
 
     const component = scene.rootEntities[0].getComponent(CallOrderComponent);
     expect(component).to.not.be.null;
-    expect(component.value).to.equal("base-after");
+    expect(component.value).to.equal("base");
+    expect(component.receivedArgs).to.deep.equal(["after"]);
   });
 
   it("should throw a clear error when component type is not registered", async () => {
