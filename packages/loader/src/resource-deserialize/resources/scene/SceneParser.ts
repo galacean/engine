@@ -21,9 +21,8 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
     const resourceManager = context.resourceManager;
     const refs = data.refs;
     for (let i = 0, n = refs.length; i < n; i++) {
-      const ref = refs[i];
       // @ts-ignore
-      context._addDependentAsset(ref.url, resourceManager.getResourceByRef({ $ref: ref.url, key: ref.key }));
+      context._addDependentAsset(resourceManager.getResourceByRef(refs[i]));
     }
   }
 
@@ -32,7 +31,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
   }
 
   protected override _handleRootEntity(index: number): void {
-    this.scene.addRootEntity(this.context.entityMap.get(index));
+    this.scene.addRootEntity(this.context.entityInstances[index]);
   }
 
   protected override _clearAndResolve() {

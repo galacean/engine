@@ -16,6 +16,12 @@ import type { RefItem } from "./schema/CommonSchema";
 import { SpecularMode, type SceneFile } from "./schema/SceneSchema";
 import { ParserContext, ParserType, SceneParser } from "./resource-deserialize";
 
+function loadRef<T>(refs: RefItem[], index: number, resourceManager: ResourceManager, label: string): Promise<T> {
+  const ref = resolveRefItem(refs, index, "SceneLoader", label);
+  // @ts-ignore
+  return resourceManager.getResourceByRef<T>(ref);
+}
+
 /**
  * Apply scene-level data (ambient, background, shadow, fog, AO) to a Scene.
  * @internal
@@ -26,7 +32,7 @@ export function applySceneData(
   resourceManager: ResourceManager,
   refs: RefItem[]
 ): Promise<void> {
-  const promises: Promise<any>[] = [];
+  const promises: Promise<unknown>[] = [];
 
   try {
     // parse ambient light
@@ -44,30 +50,28 @@ export function applySceneData(
       }
 
       if (useCustomAmbient && ambient.customAmbientLight != null) {
-        const ref = resolveRefItem(refs, ambient.customAmbientLight, "SceneLoader", "scene.ambient.customAmbientLight");
         promises.push(
-          resourceManager
-            // @ts-ignore
-            .getResourceByRef<any>({ $ref: ref.url, key: ref.key })
-            .then((ambientLight) => {
+          loadRef<any>(refs, ambient.customAmbientLight, resourceManager, "scene.ambient.customAmbientLight").then(
+            (ambientLight) => {
               scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-            })
+            }
+          )
         );
       }
 
       if (ambient.ambientLight != null && (!useCustomAmbient || useSH)) {
-        const ref = resolveRefItem(refs, ambient.ambientLight, "SceneLoader", "scene.ambient.ambientLight");
         promises.push(
-          // @ts-ignore
-          resourceManager.getResourceByRef<any>({ $ref: ref.url, key: ref.key }).then((ambientLight) => {
-            if (!useCustomAmbient) {
-              scene.ambientLight.specularTexture = ambientLight?.specularTexture;
-            }
+          loadRef<any>(refs, ambient.ambientLight, resourceManager, "scene.ambient.ambientLight").then(
+            (ambientLight) => {
+              if (!useCustomAmbient) {
+                scene.ambientLight.specularTexture = ambientLight?.specularTexture;
+              }
 
-            if (useSH) {
-              scene.ambientLight.diffuseSphericalHarmonics = ambientLight?.diffuseSphericalHarmonics;
+              if (useSH) {
+                scene.ambientLight.diffuseSphericalHarmonics = ambientLight?.diffuseSphericalHarmonics;
+              }
             }
-          })
+          )
         );
       }
     }
@@ -84,35 +88,27 @@ export function applySceneData(
       }
       case BackgroundMode.Sky:
         if (background.skyMesh != null && background.skyMaterial != null) {
-          const meshRef = resolveRefItem(refs, background.skyMesh, "SceneLoader", "scene.background.skyMesh");
-          const matRef = resolveRefItem(refs, background.skyMaterial, "SceneLoader", "scene.background.skyMaterial");
-          const skyMeshPromise = resourceManager
-            // @ts-ignore
-            .getResourceByRef<Mesh>({ $ref: meshRef.url, key: meshRef.key })
-            .then((mesh) => {
+          promises.push(
+            loadRef<Mesh>(refs, background.skyMesh, resourceManager, "scene.background.skyMesh").then((mesh) => {
               scene.background.sky.mesh = mesh;
-            });
-          const skyMaterialPromise = resourceManager
-            // @ts-ignore
-            .getResourceByRef({ $ref: matRef.url, key: matRef.key })
-            .then((material) => {
-              scene.background.sky.material = material;
-            });
-          promises.push(skyMeshPromise, skyMaterialPromise);
+            }),
+            loadRef<any>(refs, background.skyMaterial, resourceManager, "scene.background.skyMaterial").then(
+              (material) => {
+                scene.background.sky.material = material;
+              }
+            )
+          );
         } else {
           Logger.warn("Sky background mode requires skyMesh and skyMaterial");
         }
         break;
       case BackgroundMode.Texture:
         if (background.texture != null) {
-          const texRef = resolveRefItem(refs, background.texture, "SceneLoader", "scene.background.texture");
-          const backgroundPromise = resourceManager
-            // @ts-ignore
-            .getResourceByRef<any>({ $ref: texRef.url, key: texRef.key })
-            .then((texture) => {
+          promises.push(
+            loadRef<any>(refs, background.texture, resourceManager, "scene.background.texture").then((texture) => {
               scene.background.texture = texture;
-            });
-          promises.push(backgroundPromise);
+            })
+          );
           scene.background.textureFillMode = background.textureFillMode ?? scene.background.textureFillMode;
         }
         break;
@@ -148,8 +144,7 @@ export function applySceneData(
   }
 
   // Post Process
-  const postProcessData = (sceneData as any).postProcess;
-  if (postProcessData) {
+  if (sceneData.postProcess) {
     Logger.warn("Post Process is not supported in scene yet, please add PostProcess component in entity instead.");
   }
 

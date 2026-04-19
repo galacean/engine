@@ -353,21 +353,18 @@ describe("Prefab instance overrides", () => {
           instance: {
             asset: 0,
             overrides: {
-              addedComponents: [
-                {
-                  target: [],
-                  component: {
-                    type: "OverrideCallScript",
-                    props: { value: "base" },
-                    calls: [{ method: "captureResolvedArgs", args: ["added"] }]
-                  }
-                }
-              ]
+              addedComponents: [{ target: [], component: 0 }]
             }
           }
         }
       ],
-      components: [],
+      components: [
+        {
+          type: "OverrideCallScript",
+          props: { value: "base" },
+          calls: [{ method: "captureResolvedArgs", args: ["added"] }]
+        }
+      ],
       root: 0
     };
 
@@ -406,27 +403,23 @@ describe("Prefab instance overrides", () => {
           instance: {
             asset: 0,
             overrides: {
-              addedEntities: [
-                {
-                  parent: [] as number[],
-                  entity: {
-                    name: "addedChild",
-                    position: [1, 2, 3] as [number, number, number],
-                    components: [
-                      {
-                        type: "OverrideCallScript",
-                        props: { value: "base" },
-                        calls: [{ method: "captureResolvedArgs", args: ["inline"] }]
-                      }
-                    ]
-                  }
-                }
-              ]
+              addedEntities: [{ parent: [] as number[], entity: 2 }]
             }
           }
+        },
+        {
+          name: "addedChild",
+          position: [1, 2, 3] as [number, number, number],
+          components: [0]
         }
       ],
-      components: [],
+      components: [
+        {
+          type: "OverrideCallScript",
+          props: { value: "base" },
+          calls: [{ method: "captureResolvedArgs", args: ["inline"] }]
+        }
+      ],
       root: 0
     };
 

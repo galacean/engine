@@ -11,7 +11,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import type { AssetRef } from "./schema/CommonSchema";
+import type { RefItem } from "./schema/CommonSchema";
 import {
   MaterialLoaderType,
   type IColor,
@@ -51,7 +51,7 @@ class MaterialLoader extends Loader<Material> {
             resolve(
               resourceManager
                 // @ts-ignore
-                .getResourceByRef<Shader>(<AssetRef>shaderRef)
+                .getResourceByRef<Shader>(<RefItem>shaderRef)
                 .then((shader) => this._getMaterialByShader(materialSchema, shader, engine))
             );
           }
@@ -99,7 +99,7 @@ class MaterialLoader extends Loader<Material> {
         case MaterialLoaderType.Texture:
           texturePromises.push(
             // @ts-ignore
-            engine.resourceManager.getResourceByRef<Texture2D>(<AssetRef>value).then((texture) => {
+            engine.resourceManager.getResourceByRef<Texture2D>(<RefItem>value).then((texture) => {
               materialShaderData.setTexture(key, texture);
             })
           );

@@ -14,21 +14,18 @@ export interface EntityOverrideProps {
   scale?: Vec3Tuple;
 }
 
-export interface InlineEntitySchema extends EntityOverrideProps {
-  children?: InlineEntitySchema[];
-  components?: ComponentSchema[];
-}
-
 export interface AddedEntityOverride {
   /** Parent path from prefab instance root via children indices. `[]` = instance root. */
   parent: number[];
-  entity: InlineEntitySchema;
+  /** Index into the top-level entities[] array. */
+  entity: number;
 }
 
 export interface AddedComponentOverride {
   /** Target entity path from prefab instance root via children indices. `[]` = instance root. */
   target: number[];
-  component: ComponentSchema;
+  /** Index into the top-level components[] array. */
+  component: number;
 }
 
 export interface EntityPropOverride extends EntityOverrideProps {
@@ -71,7 +68,6 @@ export interface InstanceSchema {
 export interface NormalEntitySchema extends EntityOverrideProps {
   children?: number[];
   components?: number[];
-  instance?: undefined;
 }
 
 export interface PrefabInstanceEntitySchema {
