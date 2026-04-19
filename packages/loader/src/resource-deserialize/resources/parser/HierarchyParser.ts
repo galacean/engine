@@ -9,7 +9,6 @@ import {
   type EntityPropOverride,
   type EntityOverrideProps,
   type EntitySchema,
-  type InlineEntitySchema,
   type InstanceOverrides,
   type PrefabInstanceEntitySchema
 } from "../../../schema/HierarchySchema";
@@ -208,21 +207,25 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       }
     }
 
-    // addedComponents — new components on existing prefab entities
+    // addedComponents — attach top-level components[index] to a prefab entity and parse props
     if (overrides.addedComponents) {
+      const allComponents = this.data.components;
       for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
         const added = overrides.addedComponents[j];
         const entity = HierarchyParser._resolveEntity(rootEntity, added.target);
-        const component = HierarchyParser._addComponentFromConfig(entity, added.component, refs);
-        promises.push(reflectionParser.parseMutationBlock(component, added.component));
+        const config = allComponents[added.component];
+        const component = HierarchyParser._addComponentFromConfig(entity, config, refs);
+        promises.push(reflectionParser.parseMutationBlock(component, config));
       }
     }
 
-    // addedEntities — new child entities in prefab tree
+    // addedEntities — attach already-created top-level entityInstances[index] as a child
     if (overrides.addedEntities) {
+      const entityInstances = this.context.entityInstances;
       for (let j = 0, m = overrides.addedEntities.length; j < m; j++) {
         const added = overrides.addedEntities[j];
-        this._createInlineEntity(added.entity, HierarchyParser._resolveEntity(rootEntity, added.parent), promises);
+        const parent = HierarchyParser._resolveEntity(rootEntity, added.parent);
+        parent.addChild(entityInstances[added.entity]);
       }
     }
 
@@ -281,31 +284,6 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
           return entity;
         })
     );
-  }
-
-  // ---------------------------------------------------------------------------
-  // Inline entity creation (for addedEntities overrides)
-  // ---------------------------------------------------------------------------
-
-  private _createInlineEntity(config: InlineEntitySchema, parent: Entity, promises: Promise<unknown>[]): void {
-    const entity = new Entity(this._engine, config.name);
-    HierarchyParser._applyEntityProps(entity, config);
-    this._onEntityCreated(entity);
-    parent.addChild(entity);
-
-    if (config.components) {
-      for (let i = 0, n = config.components.length; i < n; i++) {
-        const compConfig = config.components[i];
-        const component = HierarchyParser._addComponentFromConfig(entity, compConfig, this.data.refs);
-        promises.push(this._reflectionParser.parseMutationBlock(component, compConfig));
-      }
-    }
-
-    if (config.children) {
-      for (let i = 0, n = config.children.length; i < n; i++) {
-        this._createInlineEntity(config.children[i], entity, promises);
-      }
-    }
   }
 
   // ---------------------------------------------------------------------------
