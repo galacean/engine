@@ -1,4 +1,4 @@
-import { deepClone, Entity, Scene, Transform } from "@galacean/engine-core";
+import { deepClone, Entity, Scene, Transform, TransformModifyFlags } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -72,6 +72,108 @@ describe("Transform test", function () {
     // Check child transform parent cache
     // @ts-ignore
     expect(parent.transform.instanceId).eq(child.transform._getParentTransform()?.instanceId);
+  });
+
+  it("Reparent propagates world matrix dirty to deep descendants after clone", () => {
+    // Build source hierarchy: source -> middle -> inner (with local offset)
+    const source = new Entity(engine, "source");
+    const srcMiddle = source.createChild("middle");
+    const srcInner = srcMiddle.createChild("inner");
+    srcInner.transform.setPosition(10, 20, 30);
+
+    // Clone (equivalent to PrefabResource.instantiate)
+    const clone = source.clone();
+    const cloneMiddle = clone.findByName("middle")!;
+    const cloneInner = cloneMiddle.findByName("inner")!;
+
+    // Access cloneInner.worldMatrix before adding clone to a positioned parent.
+    const worldBeforeReparent = cloneInner.transform.worldMatrix;
+    expect(worldBeforeReparent.elements[12]).to.equal(10);
+    expect(worldBeforeReparent.elements[13]).to.equal(20);
+    expect(worldBeforeReparent.elements[14]).to.equal(30);
+
+    // Reparent the clone under a positioned root — same as `table.addChild(levelNode)`.
+    const root = scene.createRootEntity("reparent-root");
+    root.transform.setPosition(1000, 2000, 3000);
+    root.addChild(clone);
+
+    // cloneInner.worldMatrix must reflect root's offset (deep descendant of moved subtree).
+    const worldAfterReparent = cloneInner.transform.worldMatrix;
+    expect(worldAfterReparent.elements[12]).to.equal(1010);
+    expect(worldAfterReparent.elements[13]).to.equal(2020);
+    expect(worldAfterReparent.elements[14]).to.equal(3030);
+  });
+
+  it("Reparent invalidates descendant world caches even when parent has all world flags set (engine dirty-flag bug)", () => {
+    // Reproduces a Galacean 2.0-alpha.24 engine bug observed in Screw game:
+    //   Transform._parentChange() calls _updateAllWorldFlag which early-exits
+    //   if `this` already has all target world dirty flags set. This skips
+    //   propagation to descendants. After reparent, a descendant whose
+    //   WorldMatrix flag was previously cleared keeps returning stale cache.
+    const parent = new Entity(engine, "parent");
+    const child = parent.createChild("child");
+    child.transform.setPosition(10, 20, 30);
+
+    // 1) Access child.worldMatrix to CLEAR child's WorldMatrix dirty flag.
+    //    The access also clears parent's WorldMatrix flag (chain compute).
+    const cached = child.transform.worldMatrix;
+    expect(cached.elements[12]).to.equal(10);
+
+    // 2) Force parent into the failure state:
+    //    "all world dirty flags set" (as if never accessed) — simulates the
+    //    post-clone / lifecycle state where PARENT's world hasn't been read
+    //    but a DESCENDANT's world was.
+    // @ts-ignore - white-box access for precise engine bug reproduction
+    parent.transform._dirtyFlag |= TransformModifyFlags.WmWpWeWqWsWus;
+
+    // Sanity: child's WorldMatrix is CLEAR, parent has ALL world flags SET.
+    // @ts-ignore
+    expect(child.transform._dirtyFlag & TransformModifyFlags.WorldMatrix).to.equal(0);
+    // @ts-ignore
+    expect(parent.transform._dirtyFlag & TransformModifyFlags.WmWpWeWqWsWus).to.equal(TransformModifyFlags.WmWpWeWqWsWus);
+
+    // 3) Reparent `parent` under a positioned root (triggers _parentChange on parent).
+    const root = scene.createRootEntity("reparent-root");
+    root.transform.setPosition(1000, 2000, 3000);
+    root.addChild(parent);
+
+    // 4) Child's worldMatrix MUST now reflect root's offset.
+    //    Under the bug: early-exit in _updateAllWorldFlag skips propagation → child's
+    //    WorldMatrix flag stays CLEAR → getter returns stale cached (10, 20, 30).
+    const afterReparent = child.transform.worldMatrix;
+    expect(afterReparent.elements[12]).to.equal(1010);
+    expect(afterReparent.elements[13]).to.equal(2020);
+    expect(afterReparent.elements[14]).to.equal(3030);
+  });
+
+  it("Reparent re-resolves descendant parent cache even when cached as null", () => {
+    // Reproduces the second half of the Galacean 2.0-alpha.24 bug: a descendant
+    // whose `_parentTransformCache` was resolved to `null` (because
+    // `_getParentTransform` was called while its ancestor chain was partially
+    // constructed) keeps returning identity worldMatrix even after the
+    // ancestor chain is fully wired up.
+    const parent = new Entity(engine, "parent");
+    const child = parent.createChild("child");
+    child.transform.setPosition(10, 20, 30);
+
+    // Force child's parent cache to null with `_isParentDirty = false` —
+    // simulates the state observed in Screw where layer-001 had
+    // `_parentTransformCache = null, _isParentDirty = false` after clone.
+    // @ts-ignore
+    child.transform._parentTransformCache = null;
+    // @ts-ignore
+    child.transform._isParentDirty = false;
+
+    // Add parent under a positioned root. If _parentChange on parent fails to
+    // invalidate child's parent cache, child.worldMatrix returns identity.
+    const root = scene.createRootEntity("cache-null-root");
+    root.transform.setPosition(500, 600, 700);
+    root.addChild(parent);
+
+    const after = child.transform.worldMatrix;
+    expect(after.elements[12]).to.equal(510); // 500 + 10
+    expect(after.elements[13]).to.equal(620); // 600 + 20
+    expect(after.elements[14]).to.equal(730); // 700 + 30
   });
 
   it("Subclasses of Transform", () => {

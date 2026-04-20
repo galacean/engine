@@ -251,7 +251,49 @@ export class UITransform extends Transform {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    this._updateWorldFlagWithParentRectChange(TransformModifyFlags.WmWpWeWqWsWus);
+    // Reparent invalidates the world state of the entire subtree:
+    // 1) `_updateWorldFlagWithParentRectChange` has an early-exit that skips
+    //    propagation when self's world dirty flags are already all set —
+    //    invalid after reparent.
+    // 2) Descendants may have cached a stale `_parentTransformCache`
+    //    (e.g. `_getParentTransform` called while ancestor chain was partially
+    //    constructed during clone/instantiate). Force them to re-resolve on
+    //    next access.
+    this._propagateReparentDirtyUI(TransformModifyFlags.WmWpWeWqWsWus);
+  }
+
+  private _propagateReparentDirtyUI(flags: number): void {
+    let selfChange = false;
+    const { _horizontalAlignment: horizontalAlignment, _verticalAlignment: verticalAlignment } = this;
+    if (horizontalAlignment || verticalAlignment) {
+      if (
+        horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
+        verticalAlignment === VerticalAlignmentMode.TopAndBottom
+      ) {
+        this._updateSizeByAlignment();
+        this._updateRectBySizeAndPivot();
+        selfChange = true;
+      }
+      this._updatePositionByAlignment();
+      this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
+      flags |= TransformModifyFlags.WmWp;
+    }
+    this._worldAssociatedChange(flags);
+    const children = this.entity.children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const transform = children[i].transform as any;
+      if (!transform) continue;
+      transform._isParentDirty = true;
+      if (typeof transform._propagateReparentDirtyUI === "function") {
+        transform._propagateReparentDirtyUI(flags);
+      } else if (typeof transform._propagateReparentDirty === "function") {
+        transform._propagateReparentDirty(flags);
+      }
+    }
+    if (selfChange) {
+      // @ts-ignore
+      this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
+    }
   }
 
   // @ts-ignore

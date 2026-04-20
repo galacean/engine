@@ -563,7 +563,26 @@ export class Transform extends Component {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    // Reparent invalidates the world state of the entire subtree:
+    // 1) `_updateAllWorldFlag` has an early-exit that skips propagation when
+    //    self's world dirty flags are already set — invalid after reparent.
+    // 2) Descendants may have cached a stale `_parentTransformCache` (e.g. if
+    //    `_getParentTransform` was ever called while their ancestor chain was
+    //    partially constructed during clone/instantiate). Force them to
+    //    re-resolve the parent transform on next access.
+    this._propagateReparentDirty(TransformModifyFlags.WmWpWeWqWsWus);
+  }
+
+  private _propagateReparentDirty(flags: TransformModifyFlags): void {
+    this._worldAssociatedChange(flags);
+    const children = this._entity._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const transform = children[i].transform;
+      if (transform) {
+        transform._isParentDirty = true;
+        transform._propagateReparentDirty(flags);
+      }
+    }
   }
 
   /**
