@@ -32,9 +32,6 @@ export class EmissionModule extends ParticleGeneratorModule {
   @deepClone
   private _bursts: Burst[] = [];
 
-  private _currentBurstIndex = 0;
-  private _currentBurstCycleIndex = 0;
-
   @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
@@ -147,8 +144,6 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _reset(): void {
     this._frameRateTime = 0;
-    this._currentBurstIndex = 0;
-    this._currentBurstCycleIndex = 0;
   }
 
   /**
@@ -182,15 +177,11 @@ export class EmissionModule extends ParticleGeneratorModule {
     if (main.isLoop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
       let middleTime = Math.ceil(lastPlayTime / duration) * duration;
       this._emitBySubBurst(lastPlayTime, middleTime, duration);
-      this._currentBurstIndex = 0;
-      this._currentBurstCycleIndex = 0;
 
       for (let i = 0; i < cycleCount; i++) {
         const lastMiddleTime = middleTime;
         middleTime += duration;
         this._emitBySubBurst(lastMiddleTime, middleTime, duration);
-        this._currentBurstIndex = 0;
-        this._currentBurstCycleIndex = 0;
       }
 
       this._emitBySubBurst(middleTime, playTime, duration);
@@ -202,53 +193,36 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number): void {
-    const generator = this._generator;
-    const rand = this._burstRand;
+    const { _generator: generator, _burstRand: rand } = this;
     const bursts = this.bursts;
-
-    // Calculate the relative time of the burst
     const baseTime = Math.floor(lastPlayTime / duration) * duration;
     const startTime = lastPlayTime % duration;
     const endTime = startTime + (playTime - lastPlayTime);
 
-    let firstPendingIndex = -1;
-    let firstPendingCycleIndex = 0;
-    let index = this._currentBurstIndex;
-    for (let n = bursts.length; index < n; index++) {
-      const burst = bursts[index];
+    for (let i = 0, n = bursts.length; i < n; i++) {
+      const burst = bursts[i];
       const burstTime = burst.time;
-
-      if (burstTime > endTime) {
-        break;
-      }
+      if (burstTime >= endTime) break;
 
       const cycles = Math.max(burst.cycles, 1);
-      const repeatInterval = Math.max(burst.repeatInterval, 0.01);
-      const infinite = cycles === Infinity;
-      const startCycle = index === this._currentBurstIndex ? this._currentBurstCycleIndex : 0;
-      let c = startCycle;
-      for (; infinite || c < cycles; c++) {
-        const effectiveTime = burstTime + c * repeatInterval;
-        if (effectiveTime >= duration) break;
-        // Half-open interval [startTime, endTime): each effectiveTime fires in exactly one frame.
-        // _currentBurstCycleIndex ensures already-fired cycles are skipped on revisit.
-        if (effectiveTime >= endTime) break;
-        if (effectiveTime >= startTime) {
-          const count = burst.count.evaluate(undefined, rand.random());
-          generator._emit(baseTime + effectiveTime, count);
+      if (cycles === 1) {
+        if (burstTime >= startTime) {
+          generator._emit(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
         }
+        continue;
       }
 
-      // Track the first burst that still has pending cycles:
-      // After the loop, c stopped at a cycle that didn't fire. If that cycle's time
-      // is still within duration, this burst has pending work for future frames.
-      const hasMoreCycles = (infinite || c < cycles) && burstTime + c * repeatInterval < duration;
-      if (hasMoreCycles && firstPendingIndex === -1) {
-        firstPendingIndex = index;
-        firstPendingCycleIndex = c;
+      const repeatInterval = Math.max(burst.repeatInterval, 0.01);
+      const maxCycles =
+        cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
+
+      const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
+      const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / repeatInterval) - 1);
+      for (let c = first; c <= last; c++) {
+        const effectiveTime = burstTime + c * repeatInterval;
+        if (effectiveTime >= duration) break;
+        generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
       }
     }
-    this._currentBurstIndex = firstPendingIndex !== -1 ? firstPendingIndex : index;
-    this._currentBurstCycleIndex = firstPendingIndex !== -1 ? firstPendingCycleIndex : 0;
   }
 }
