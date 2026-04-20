@@ -26,37 +26,90 @@ function isGenericType(t: BuiltinType) {
   return t >= EGenType.GenType && t <= EGenType.GSampler2DArray;
 }
 
-/**
- * Resolve a generic return type from the actual type of a generic parameter.
- *
- * For GVec4 return type, maps sampler variants to the correct vec4 type:
- *   sampler2D/sampler3D/samplerCube → vec4
- *   isampler2D/isampler3D/...       → ivec4
- *   usampler2D/usampler3D/...       → uvec4
- *
- * For all other generic return types (GenType etc.), passes through the actual param type directly.
- */
-function resolveGenericReturnType(
-  genericReturnType: EGenType,
-  actualParamType: NonGenericGalaceanType
-): NonGenericGalaceanType {
-  if (genericReturnType === EGenType.GVec4) {
-    switch (actualParamType) {
-      case Keyword.I_SAMPLER2D:
-      case Keyword.I_SAMPLER3D:
-      case Keyword.I_SAMPLER_CUBE:
-      case Keyword.I_SAMPLER2D_ARRAY:
-        return Keyword.IVEC4;
-      case Keyword.U_SAMPLER2D:
-      case Keyword.U_SAMPLER3D:
-      case Keyword.U_SAMPLER_CUBE:
-      case Keyword.U_SAMPLER2D_ARRAY:
-        return Keyword.UVEC4;
-      default:
-        return Keyword.VEC4;
-    }
-  }
-  return actualParamType;
+// Generic type system.
+//
+// A generic family declares its concrete members and the dimension along which
+// members vary. Matching a generic position locks an index; projecting a return
+// family uses that index. Two families can only share an index if they vary
+// along the same dimension.
+//
+// Example: `texture(GSampler2D, vec2) → GVec4` against `texture(sampler2D, uv)`.
+//   1. Locate `sampler2D` in GSampler2D (prefix dimension) → index 0
+//   2. Project GVec4 (prefix dimension) at index 0         → vec4
+//
+// `ivec4 = texture(isampler2D, uv)` locks index 1, projects to `ivec4`.
+// `min(vec3, vec3)` locks index 2 in GenType (size dimension) and returns vec3.
+// `min(vec3, vec2)` fails because the second arg would need index 1 but 2 is locked.
+
+const enum GenericDim {
+  // Varies along vector size: scalar / vec2 / vec3 / vec4 (or equivalents).
+  Size,
+  // Varies along scalar type prefix: float / int / uint (sometimes with bool).
+  Prefix
+}
+
+type FamilySpec = {
+  readonly dim: GenericDim;
+  readonly members: readonly NonGenericGalaceanType[];
+};
+
+const GenericFamilies: Partial<Record<EGenType, FamilySpec>> = {
+  // Size-varying families: index 0 → scalar, 1 → vec2, 2 → vec3, 3 → vec4.
+  [EGenType.GenType]: { dim: GenericDim.Size, members: [Keyword.FLOAT, Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
+  [EGenType.GenIntType]: { dim: GenericDim.Size, members: [Keyword.INT, Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
+  [EGenType.GenUintType]: {
+    dim: GenericDim.Size,
+    members: [Keyword.UINT, Keyword.UVEC2, Keyword.UVEC3, Keyword.UVEC4]
+  },
+  [EGenType.GenBoolType]: {
+    dim: GenericDim.Size,
+    members: [Keyword.BOOL, Keyword.BVEC2, Keyword.BVEC3, Keyword.BVEC4]
+  },
+  // Vec-only sub-families (no scalar): index 0 → vec2, 1 → vec3, 2 → vec4.
+  [EGenType.Vec]: { dim: GenericDim.Size, members: [Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
+  [EGenType.IntVec]: { dim: GenericDim.Size, members: [Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
+  [EGenType.UintVec]: { dim: GenericDim.Size, members: [Keyword.UVEC2, Keyword.UVEC3, Keyword.UVEC4] },
+  [EGenType.BoolVec]: { dim: GenericDim.Size, members: [Keyword.BVEC2, Keyword.BVEC3, Keyword.BVEC4] },
+  [EGenType.Mat]: { dim: GenericDim.Size, members: [Keyword.MAT2, Keyword.MAT3, Keyword.MAT4] },
+
+  // Prefix-varying families: index 0 → no prefix, 1 → i prefix, 2 → u prefix.
+  [EGenType.GSampler2D]: {
+    dim: GenericDim.Prefix,
+    members: [Keyword.SAMPLER2D, Keyword.I_SAMPLER2D, Keyword.U_SAMPLER2D]
+  },
+  [EGenType.GSampler3D]: {
+    dim: GenericDim.Prefix,
+    members: [Keyword.SAMPLER3D, Keyword.I_SAMPLER3D, Keyword.U_SAMPLER3D]
+  },
+  [EGenType.GSamplerCube]: {
+    dim: GenericDim.Prefix,
+    members: [Keyword.SAMPLER_CUBE, Keyword.I_SAMPLER_CUBE, Keyword.U_SAMPLER_CUBE]
+  },
+  [EGenType.GSampler2DArray]: {
+    dim: GenericDim.Prefix,
+    members: [Keyword.SAMPLER2D_ARRAY, Keyword.I_SAMPLER2D_ARRAY, Keyword.U_SAMPLER2D_ARRAY]
+  },
+  [EGenType.GVec4]: { dim: GenericDim.Prefix, members: [Keyword.VEC4, Keyword.IVEC4, Keyword.UVEC4] }
+};
+
+// Reverse lookup per family: concrete → index. A single concrete (e.g. VEC4 appears in
+// both GenType and GVec4) can resolve to different indices in different families, so the
+// cache is keyed by (family, concrete) rather than by concrete alone.
+const FamilyIndexCache = new Map<EGenType, Map<NonGenericGalaceanType, number>>();
+for (const key in GenericFamilies) {
+  const family = Number(key) as EGenType;
+  const spec = GenericFamilies[family]!;
+  const indexMap = new Map<NonGenericGalaceanType, number>();
+  for (let i = 0; i < spec.members.length; i++) indexMap.set(spec.members[i], i);
+  FamilyIndexCache.set(family, indexMap);
+}
+
+// Locate a concrete type in a family. Returns index on hit, -1 on miss.
+function familyIndexOf(family: EGenType, type: NonGenericGalaceanType): number {
+  const map = FamilyIndexCache.get(family);
+  if (!map) return -1;
+  const idx = map.get(type);
+  return idx === undefined ? -1 : idx;
 }
 
 const BuiltinFunctionTable: Map<string, BuiltinFunction[]> = new Map();
@@ -99,41 +152,81 @@ export class BuiltinFunction {
     BuiltinFunctionTable.set(ident, list);
   }
 
-  // TODO: correct the type deduce, consider the following case:
-  // It incorrectly inferred the type of the following expression as float, which should be vec3.
-  // max(scatterAmt.xyz,0.0001)
+  // Overload resolution against the generic family system.
+  //
+  // For each candidate signature: concrete positions require exact type match;
+  // generic positions locate the actual arg's index within the declared family,
+  // and lock an index per dimension (size / prefix) shared across positions.
+  // The return type is resolved by projecting the appropriate lock through the
+  // return family, or passed through verbatim if the return is concrete.
   static getFn(ident: string, parameterTypes: NonGenericGalaceanType[]): BuiltinFunction | undefined {
     const list = BuiltinFunctionTable.get(ident);
-    if (list) {
-      for (let length = list.length, i = 0; i < length; i++) {
-        const fn = list[i];
-        const fnArgs = fn.args;
-        const argLength = fnArgs.length;
-        if (argLength !== parameterTypes.length) continue;
-        // Try to match generic parameter type.
-        let resolvedReturnType: NonGenericGalaceanType = TypeAny;
-        let found = true;
-        for (let i = 0; i < argLength; i++) {
-          const curFnArg = fnArgs[i];
-          if (isGenericType(curFnArg)) {
-            if (resolvedReturnType === TypeAny) {
-              resolvedReturnType = resolveGenericReturnType(fn._returnType as EGenType, parameterTypes[i]);
+    if (!list) return undefined;
+    const argCount = parameterTypes.length;
+
+    for (let i = 0, len = list.length; i < len; i++) {
+      const fn = list[i];
+      const fnArgs = fn.args;
+      if (fnArgs.length !== argCount) continue;
+
+      let sizeLock = -1;
+      let prefixLock = -1;
+      let matched = true;
+
+      for (let j = 0; j < argCount; j++) {
+        const declared = fnArgs[j];
+        const actual = parameterTypes[j];
+        if (actual === TypeAny) continue;
+
+        if (isGenericType(declared)) {
+          const family = GenericFamilies[declared as EGenType];
+          if (!family) {
+            matched = false;
+            break;
+          }
+          const idx = familyIndexOf(declared as EGenType, actual);
+          if (idx === -1) {
+            matched = false;
+            break;
+          }
+          if (family.dim === GenericDim.Size) {
+            if (sizeLock === -1) sizeLock = idx;
+            else if (sizeLock !== idx) {
+              matched = false;
+              break;
             }
           } else {
-            if (curFnArg !== parameterTypes[i] && parameterTypes[i] !== TypeAny) {
-              found = false;
+            if (prefixLock === -1) prefixLock = idx;
+            else if (prefixLock !== idx) {
+              matched = false;
               break;
             }
           }
-        }
-        if (found) {
-          fn._realReturnType = isGenericType(fn._returnType)
-            ? resolvedReturnType
-            : (fn._returnType as NonGenericGalaceanType);
-          return fn;
+        } else if (declared !== actual) {
+          matched = false;
+          break;
         }
       }
+
+      if (!matched) continue;
+
+      const returnDecl = fn._returnType;
+      if (!isGenericType(returnDecl)) {
+        fn._realReturnType = returnDecl as NonGenericGalaceanType;
+        return fn;
+      }
+
+      const returnFamily = GenericFamilies[returnDecl as EGenType];
+      if (!returnFamily) continue;
+      const lock = returnFamily.dim === GenericDim.Size ? sizeLock : prefixLock;
+      // No argument locked the dimension (all relevant args were TypeAny): fall
+      // through as TypeAny so downstream overload resolution treats the result
+      // as a wildcard rather than a specific guess.
+      fn._realReturnType = lock === -1 ? TypeAny : returnFamily.members[lock];
+      return fn;
     }
+
+    return undefined;
   }
 
   static isExist(ident: string) {
@@ -300,8 +393,8 @@ BuiltinFunction._create("textureSize", Keyword.IVEC2, Keyword.SAMPLER_CUBE_SHADO
 BuiltinFunction._create("textureSize", Keyword.IVEC3, EGenType.GSampler2DArray, Keyword.INT);
 BuiltinFunction._create("textureSize", Keyword.IVEC3, Keyword.SAMPLER2D_ARRAY_SHADOW, Keyword.INT);
 
-BuiltinFunction._create("texture2D", Keyword.VEC4, Keyword.SAMPLER2D, Keyword.VEC2);
-BuiltinFunction._create("texture2D", Keyword.VEC4, Keyword.SAMPLER2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture2D", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2);
+BuiltinFunction._create("texture2D", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
 
 BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
 BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2);
@@ -337,14 +430,13 @@ BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler3D, Keywo
 BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureLod", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("texture2DLod", Keyword.VEC4, Keyword.SAMPLER2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture2DLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
 BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
 BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
 
-BuiltinFunction._create("textureCube", Keyword.VEC4, Keyword.SAMPLER_CUBE, Keyword.VEC3);
-BuiltinFunction._create("textureCube", Keyword.VEC4, Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCube", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3);
 BuiltinFunction._create("textureCube", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureCubeLod", Keyword.VEC4, Keyword.SAMPLER_CUBE, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCubeLod", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 
 BuiltinFunction._create(

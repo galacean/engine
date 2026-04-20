@@ -266,11 +266,13 @@ describe("ShaderLab", async () => {
 
   it("texture-generic (GVec4 → vec4 resolve)", async () => {
     const shaderSource = await readFile("./shaders/texture-generic.shader");
+    glslValidate(engine, shaderSource, shaderLabVerbose);
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
 
   it("generic-return-type (builtin generic return as arg to user function)", async () => {
     const shaderSource = await readFile("./shaders/generic-return-type.shader");
+    glslValidate(engine, shaderSource, shaderLabVerbose);
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
 });
