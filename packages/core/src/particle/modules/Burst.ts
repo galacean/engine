@@ -52,6 +52,6 @@ export class Burst {
     this.time = time;
     this.count = count;
     this._cycles = Math.max(cycles ?? 1, 1);
-    this._repeatInterval = repeatInterval != null ? Math.max(repeatInterval, 0.01) : 0;
+    this._repeatInterval = Math.max(repeatInterval ?? 0.01, 0.01);
   }
 }
