@@ -218,7 +218,8 @@ export class EmissionModule extends ParticleGeneratorModule {
       } else {
         const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
 
-        // Absorb float drift so accumulated times like 0.1+0.2 still map to cycle 3
+        // Absorb float drift: (startTime - burstTime) / repeatInterval may land at k + 1e-15
+        // when it should be exactly k, and ceil would then skip to cycle k + 1.
         const tolerance = MathUtil.zeroTolerance;
         const lastCycle = Math.ceil((endTime - burstTime) / repeatInterval - tolerance) - 1;
         const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval - tolerance));
