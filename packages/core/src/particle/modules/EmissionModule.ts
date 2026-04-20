@@ -33,6 +33,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   private _bursts: Burst[] = [];
 
   private _currentBurstIndex: number = 0;
+  private _currentBurstCycleIndex: number = 0;
 
   @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
@@ -147,6 +148,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   _reset(): void {
     this._frameRateTime = 0;
     this._currentBurstIndex = 0;
+    this._currentBurstCycleIndex = 0;
   }
 
   /**
@@ -181,17 +183,21 @@ export class EmissionModule extends ParticleGeneratorModule {
       let middleTime = Math.ceil(lastPlayTime / duration) * duration;
       this._emitBySubBurst(lastPlayTime, middleTime, duration);
       this._currentBurstIndex = 0;
+      this._currentBurstCycleIndex = 0;
 
       for (let i = 0; i < cycleCount; i++) {
         const lastMiddleTime = middleTime;
         middleTime += duration;
         this._emitBySubBurst(lastMiddleTime, middleTime, duration);
         this._currentBurstIndex = 0;
+        this._currentBurstCycleIndex = 0;
       }
 
       this._emitBySubBurst(middleTime, playTime, duration);
     } else {
-      this._emitBySubBurst(lastPlayTime, playTime, duration);
+      if (lastPlayTime < duration) {
+        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration);
+      }
     }
   }
 
@@ -205,6 +211,8 @@ export class EmissionModule extends ParticleGeneratorModule {
     const startTime = lastPlayTime % duration;
     const endTime = startTime + (playTime - lastPlayTime);
 
+    let firstPendingIndex = -1;
+    let firstPendingCycleIndex = 0;
     let index = this._currentBurstIndex;
     for (let n = bursts.length; index < n; index++) {
       const burst = bursts[index];
@@ -214,11 +222,31 @@ export class EmissionModule extends ParticleGeneratorModule {
         break;
       }
 
-      if (burstTime >= startTime) {
-        const count = burst.count.evaluate(undefined, rand.random());
-        generator._emit(baseTime + burstTime, count);
+      const cycles = burst.cycles;
+      const repeatInterval = Math.max(burst.repeatInterval, 0.01);
+      const infinite = cycles === Infinity;
+      const startCycle = index === this._currentBurstIndex ? this._currentBurstCycleIndex : 0;
+      let c = startCycle;
+      for (; infinite || c < cycles; c++) {
+        const effectiveTime = burstTime + c * repeatInterval;
+        if (effectiveTime >= duration) break;
+        // Repeated cycles (c > 0) use half-open interval [startTime, endTime) to prevent
+        // double-firing at frame boundaries, since _currentBurstIndex may not advance past this burst
+        if (c > 0 ? effectiveTime >= endTime : effectiveTime > endTime) break;
+        if (effectiveTime >= startTime) {
+          const count = burst.count.evaluate(undefined, rand.random());
+          generator._emit(baseTime + effectiveTime, count);
+        }
+      }
+
+      // Track the first burst that still has pending cycles
+      const lastCycleTime = infinite ? duration : cycles > 1 ? burstTime + (cycles - 1) * repeatInterval : burstTime;
+      if ((infinite || cycles > 1 ? lastCycleTime >= endTime : lastCycleTime > endTime) && firstPendingIndex === -1) {
+        firstPendingIndex = index;
+        firstPendingCycleIndex = c;
       }
     }
-    this._currentBurstIndex = index;
+    this._currentBurstIndex = firstPendingIndex !== -1 ? firstPendingIndex : index;
+    this._currentBurstCycleIndex = firstPendingIndex !== -1 ? firstPendingCycleIndex : 0;
   }
 }

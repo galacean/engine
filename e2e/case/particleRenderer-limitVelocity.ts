@@ -99,7 +99,7 @@ function createParticle(engine: Engine, rootEntity: Entity, texture: Texture2D):
 
   // Emission
   emission.rateOverTime.constant = 0;
-  emission.addBurst(new Burst(0, new ParticleCompositeCurve(10, 30)));
+  emission.addBurst(new Burst(0, new ParticleCompositeCurve(10, 30), 1, 0.01));
   const sphereShape = new SphereShape();
   sphereShape.radius = 0.8;
   emission.shape = sphereShape;

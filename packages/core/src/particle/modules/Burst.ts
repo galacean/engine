@@ -8,14 +8,20 @@ export class Burst {
   public time: number;
   @deepClone
   public count: ParticleCompositeCurve;
+  public cycles: number;
+  public repeatInterval: number;
 
   /**
    * Create burst object.
    * @param time - Time to emit the burst
    * @param count - Count of particles to emit
+   * @param cycles - Number of times to repeat the burst
+   * @param repeatInterval - Time interval between each repeated burst
    */
-  constructor(time: number, count: ParticleCompositeCurve) {
+  constructor(time: number, count: ParticleCompositeCurve, cycles: number, repeatInterval: number) {
     this.time = time;
     this.count = count;
+    this.cycles = cycles;
+    this.repeatInterval = repeatInterval;
   }
 }

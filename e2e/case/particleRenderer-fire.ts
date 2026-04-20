@@ -44,7 +44,7 @@ WebGLEngine.create({
 
   // Create camera
   const cameraEntity = rootEntity.createChild("camera_entity");
-  cameraEntity.transform.position = new Vector3(-10, 1, 3);// -10 can test bounds transform
+  cameraEntity.transform.position = new Vector3(-10, 1, 3); // -10 can test bounds transform
   const camera = cameraEntity.addComponent(Camera);
   camera.fieldOfView = 60;
 
@@ -357,7 +357,7 @@ function createFireEmbersParticle(fireEntity: Entity, texture: Texture2D): void 
 
   // Emission module
   emission.rateOverTime.constant = 65;
-  emission.addBurst(new Burst(0, new ParticleCompositeCurve(15)));
+  emission.addBurst(new Burst(0, new ParticleCompositeCurve(15), 1, 0.01));
 
   const sphereShape = new SphereShape();
   sphereShape.radius = 0.01;
