@@ -49,7 +49,7 @@ type FamilySpec = {
   readonly members: readonly NonGenericGalaceanType[];
 };
 
-const FamilyMembers: Partial<Record<GenericType, FamilySpec>> = {
+const FamilyMembers: Partial<Record<BuiltinType, FamilySpec>> = {
   // Size-varying families: index 0 → scalar, 1 → vec2, 2 → vec3, 3 → vec4
   [GenericType.GenType]: { dimension: GenericDimension.Size, members: [Keyword.FLOAT, Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
   [GenericType.GenIntType]: { dimension: GenericDimension.Size, members: [Keyword.INT, Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
@@ -91,9 +91,9 @@ const FamilyMembers: Partial<Record<GenericType, FamilySpec>> = {
 // Reverse of `FamilyMembers`: given a concrete type, find its index within a family.
 // Keyed by (family, type) rather than just by type because the same concrete can appear
 // in multiple families at different indices (VEC4 is index 3 in GenType, index 0 in GVec4)
-const FamilyMemberIndex = new Map<GenericType, Map<NonGenericGalaceanType, number>>();
+const FamilyMemberIndex = new Map<BuiltinType, Map<NonGenericGalaceanType, number>>();
 for (const key in FamilyMembers) {
-  const family = Number(key) as GenericType;
+  const family = Number(key) as BuiltinType;
   const spec = FamilyMembers[family]!;
   const indexMap = new Map<NonGenericGalaceanType, number>();
   for (let i = 0; i < spec.members.length; i++) indexMap.set(spec.members[i], i);
@@ -103,7 +103,7 @@ for (const key in FamilyMembers) {
 // Locate a concrete type in a family. Returns index on hit, -1 on miss.
 // The `!` is safe: callers only reach here after confirming the family is in
 // `FamilyMembers`, and `FamilyMemberIndex` is built from the same key set.
-function familyIndexOf(family: GenericType, type: NonGenericGalaceanType): number {
+function familyIndexOf(family: BuiltinType, type: NonGenericGalaceanType): number {
   return FamilyMemberIndex.get(family)!.get(type) ?? -1;
 }
 
@@ -150,48 +150,48 @@ export class BuiltinFunction {
   // The return type is resolved by projecting the appropriate lock through the
   // return family, or passed through verbatim if the return is concrete
   static resolveOverload(
-    ident: string,
-    parameterTypes: NonGenericGalaceanType[] | undefined
+    funcName: string,
+    callArgTypes: NonGenericGalaceanType[] | undefined
   ): BuiltinFunction | undefined {
-    const list = BuiltinFunctionTable.get(ident);
-    if (!list) return undefined;
-    const argCount = parameterTypes?.length ?? 0;
+    const overloads = BuiltinFunctionTable.get(funcName);
+    if (!overloads) return undefined;
+    const argCount = callArgTypes?.length ?? 0;
 
-    for (let i = 0, len = list.length; i < len; i++) {
-      const fn = list[i];
-      const fnArgs = fn.args;
-      if (fnArgs.length !== argCount) continue;
+    for (let candidateIdx = 0, overloadCount = overloads.length; candidateIdx < overloadCount; candidateIdx++) {
+      const candidate = overloads[candidateIdx];
+      const declaredArgs = candidate.args;
+      if (declaredArgs.length !== argCount) continue;
 
       let sizeLock = -1;
       let scalarTypeLock = -1;
       let matched = true;
 
-      for (let j = 0; j < argCount; j++) {
-        const declared = fnArgs[j];
-        const actual = parameterTypes![j];
-        if (actual === TypeAny) continue;
+      for (let argIdx = 0; argIdx < argCount; argIdx++) {
+        const declaredType = declaredArgs[argIdx];
+        const actualType = callArgTypes![argIdx];
+        if (actualType === TypeAny) continue;
 
-        const family = FamilyMembers[declared as GenericType];
-        if (family) {
-          const idx = familyIndexOf(declared as GenericType, actual);
-          if (idx === -1) {
+        const paramFamily = FamilyMembers[declaredType];
+        if (paramFamily) {
+          const memberIdx = familyIndexOf(declaredType, actualType);
+          if (memberIdx === -1) {
             matched = false;
             break;
           }
-          if (family.dimension === GenericDimension.Size) {
-            if (sizeLock === -1) sizeLock = idx;
-            else if (sizeLock !== idx) {
+          if (paramFamily.dimension === GenericDimension.Size) {
+            if (sizeLock === -1) sizeLock = memberIdx;
+            else if (sizeLock !== memberIdx) {
               matched = false;
               break;
             }
           } else {
-            if (scalarTypeLock === -1) scalarTypeLock = idx;
-            else if (scalarTypeLock !== idx) {
+            if (scalarTypeLock === -1) scalarTypeLock = memberIdx;
+            else if (scalarTypeLock !== memberIdx) {
               matched = false;
               break;
             }
           }
-        } else if (declared !== actual) {
+        } else if (declaredType !== actualType) {
           matched = false;
           break;
         }
@@ -199,24 +199,24 @@ export class BuiltinFunction {
 
       if (!matched) continue;
 
-      const returnFamily = FamilyMembers[fn._returnType as GenericType];
+      const returnFamily = FamilyMembers[candidate._returnType];
       if (!returnFamily) {
-        fn._realReturnType = fn._returnType as NonGenericGalaceanType;
-        return fn;
+        candidate._realReturnType = candidate._returnType as NonGenericGalaceanType;
+        return candidate;
       }
-      const lock = returnFamily.dimension === GenericDimension.Size ? sizeLock : scalarTypeLock;
+      const returnIdx = returnFamily.dimension === GenericDimension.Size ? sizeLock : scalarTypeLock;
       // No argument locked the dimension (all relevant args were TypeAny): fall
       // through as TypeAny so downstream overload resolution treats the result
       // as a wildcard rather than a specific guess
-      fn._realReturnType = lock === -1 ? TypeAny : returnFamily.members[lock];
-      return fn;
+      candidate._realReturnType = returnIdx === -1 ? TypeAny : returnFamily.members[returnIdx];
+      return candidate;
     }
 
     return undefined;
   }
 
   static isExist(ident: string) {
-    return !!BuiltinFunctionTable.get(ident);
+    return BuiltinFunctionTable.has(ident);
   }
 }
 
