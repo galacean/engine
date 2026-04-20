@@ -28,7 +28,7 @@ export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine, ...args: any
 export * from "./resources/parser/HierarchyParser";
 export * from "./resources/parser/ParserContext";
 export * from "./resources/scene/SceneParser";
-export * from "./resources/schema";
+export * from "../schema";
 
 export * from "./utils/BufferReader";
 export * from "./utils/Decorator";
