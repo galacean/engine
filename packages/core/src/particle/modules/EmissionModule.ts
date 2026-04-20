@@ -203,14 +203,12 @@ export class EmissionModule extends ParticleGeneratorModule {
     const startTime = lastPlayTime % duration;
     const endTime = startTime + (playTime - lastPlayTime);
 
-    let nextIndex = bursts.length;
-    for (let i = this._currentBurstIndex, n = bursts.length; i < n; i++) {
-      const burst = bursts[i];
+    let pendingIndex = -1;
+    let index = this._currentBurstIndex;
+    for (let n = bursts.length; index < n; index++) {
+      const burst = bursts[index];
       const burstTime = burst.time;
-      if (burstTime >= endTime) {
-        nextIndex = i;
-        break;
-      }
+      if (burstTime >= endTime) break;
 
       const cycles = Math.max(burst.cycles, 1);
       if (cycles === 1) {
@@ -223,7 +221,6 @@ export class EmissionModule extends ParticleGeneratorModule {
       const repeatInterval = Math.max(burst.repeatInterval, 0.01);
       const maxCycles =
         cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
-      const lastEffectiveTime = burstTime + (maxCycles - 1) * repeatInterval;
 
       const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
       const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / repeatInterval) - 1);
@@ -233,11 +230,10 @@ export class EmissionModule extends ParticleGeneratorModule {
         generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
       }
 
-      // First burst with pending future cycles pins _currentBurstIndex
-      if (lastEffectiveTime >= endTime && nextIndex === bursts.length) {
-        nextIndex = i;
+      if (pendingIndex < 0 && burstTime + (maxCycles - 1) * repeatInterval >= endTime) {
+        pendingIndex = index;
       }
     }
-    this._currentBurstIndex = nextIndex;
+    this._currentBurstIndex = pendingIndex >= 0 ? pendingIndex : index;
   }
 }
