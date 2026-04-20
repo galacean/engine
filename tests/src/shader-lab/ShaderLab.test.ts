@@ -258,6 +258,12 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
 
+  it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
+    const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
   it("texture-generic (GVec4 → vec4 resolve)", async () => {
     const shaderSource = await readFile("./shaders/texture-generic.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);

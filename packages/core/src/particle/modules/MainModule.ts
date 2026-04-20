@@ -277,8 +277,8 @@ export class MainModule implements ICustomClone {
   _getPositionScale(): Vector3 {
     const transform = this._generator._renderer.entity.transform;
     switch (this.scalingMode) {
-      case ParticleScaleMode.Hierarchy:
       case ParticleScaleMode.World:
+      case ParticleScaleMode.Shape:
         return transform.lossyWorldScale;
       case ParticleScaleMode.Local:
         return transform.scale;
@@ -306,7 +306,7 @@ export class MainModule implements ICustomClone {
     }
 
     switch (this.scalingMode) {
-      case ParticleScaleMode.Hierarchy:
+      case ParticleScaleMode.World:
         var scale = transform.lossyWorldScale;
         shaderData.setVector3(MainModule._positionScale, scale);
         shaderData.setVector3(MainModule._sizeScale, scale);
@@ -316,7 +316,7 @@ export class MainModule implements ICustomClone {
         shaderData.setVector3(MainModule._positionScale, scale);
         shaderData.setVector3(MainModule._sizeScale, scale);
         break;
-      case ParticleScaleMode.World:
+      case ParticleScaleMode.Shape:
         shaderData.setVector3(MainModule._positionScale, transform.lossyWorldScale);
         shaderData.setVector3(MainModule._sizeScale, MainModule._vector3One);
         break;
