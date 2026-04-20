@@ -250,4 +250,10 @@ describe("ShaderLab", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
+
+  it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
+    const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
 });

@@ -47,7 +47,7 @@ export class GLES100Visitor extends GLESVisitor {
         return "";
       }
       const expression = node.children[1] as ASTNode.Expression;
-      return `gl_FragColor = ${expression.codeGen(this)}`;
+      return `gl_FragColor = ${expression.codeGen(this)};`;
     }
     return super.visitJumpStatement(node);
   }

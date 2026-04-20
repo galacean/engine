@@ -20,4 +20,5 @@ export { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 export { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 export { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 export { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
+export { NoiseModule } from "./modules/NoiseModule";
 export * from "./modules/shape/index";

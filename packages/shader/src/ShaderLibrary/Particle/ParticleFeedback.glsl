@@ -33,11 +33,11 @@ int renderer_SimulationSpace;
 vec3 v_FeedbackPosition;
 vec3 v_FeedbackVelocity;
 
-#include <Particle/ParticleCommon.glsl>
-#include <Particle/Module/VelocityOverLifetime.glsl>
-#include <Particle/Module/ForceOverLifetime.glsl>
-#include <Particle/Module/LimitVelocityOverLifetime.glsl>
-#include <Particle/Module/NoiseModule.glsl>
+#include "Particle/ParticleCommon.glsl"
+#include "Particle/Module/VelocityOverLifetime.glsl"
+#include "Particle/Module/ForceOverLifetime.glsl"
+#include "Particle/Module/LimitVelocityOverLifetime.glsl"
+#include "Particle/Module/NoiseModule.glsl"
 
 // Get VOL instantaneous velocity at normalizedAge
 vec3 getVOLVelocity(float normalizedAge) {
