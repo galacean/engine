@@ -1,4 +1,4 @@
-import { Rand } from "@galacean/engine-math";
+import { MathUtil, Rand } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -218,10 +218,10 @@ export class EmissionModule extends ParticleGeneratorModule {
       } else {
         const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
 
-        // Epsilon absorbs float drift so accumulated times like 0.1+0.2 still map to cycle 3
-        const epsilon = 1e-6;
-        const lastCycle = Math.ceil((endTime - burstTime) / repeatInterval - epsilon) - 1;
-        const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval - epsilon));
+        // Absorb float drift so accumulated times like 0.1+0.2 still map to cycle 3
+        const tolerance = MathUtil.zeroTolerance;
+        const lastCycle = Math.ceil((endTime - burstTime) / repeatInterval - tolerance) - 1;
+        const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval - tolerance));
         const last = Math.min(maxCycles - 1, lastCycle);
         for (let c = first; c <= last; c++) {
           const effectiveTime = burstTime + c * repeatInterval;
