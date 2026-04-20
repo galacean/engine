@@ -210,7 +210,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const burstTime = burst.time;
       if (burstTime > endTime) break;
 
-      const cycles = Math.max(burst.cycles, 1);
+      const { cycles, repeatInterval } = burst;
       if (cycles === 1) {
         if (burstTime >= startTime) {
           generator._emit(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
@@ -218,19 +218,19 @@ export class EmissionModule extends ParticleGeneratorModule {
         continue;
       }
 
-      const repeatInterval = Math.max(burst.repeatInterval, 0.01);
+      const clampedInterval = Math.max(repeatInterval, 0.01);
       const maxCycles =
-        cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
+        cycles === Infinity ? Math.ceil((duration - burstTime) / clampedInterval) : cycles;
 
-      const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
-      const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / repeatInterval) - 1);
+      const first = Math.max(0, Math.ceil((startTime - burstTime) / clampedInterval));
+      const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / clampedInterval) - 1);
       for (let c = first; c <= last; c++) {
-        const effectiveTime = burstTime + c * repeatInterval;
+        const effectiveTime = burstTime + c * clampedInterval;
         if (effectiveTime >= duration) break;
         generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
       }
 
-      if (pendingIndex < 0 && burstTime + (maxCycles - 1) * repeatInterval >= endTime) {
+      if (pendingIndex < 0 && burstTime + (maxCycles - 1) * clampedInterval >= endTime) {
         pendingIndex = index;
       }
     }

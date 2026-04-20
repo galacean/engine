@@ -8,8 +8,31 @@ export class Burst {
   public time: number;
   @deepClone
   public count: ParticleCompositeCurve;
-  public cycles: number;
-  public repeatInterval: number;
+
+  private _cycles: number;
+  private _repeatInterval: number;
+
+  /**
+   * Number of times to repeat the burst.
+   */
+  get cycles(): number {
+    return this._cycles;
+  }
+
+  set cycles(value: number) {
+    this._cycles = Math.max(value, 1);
+  }
+
+  /**
+   * Time interval between each repeated burst.
+   */
+  get repeatInterval(): number {
+    return this._repeatInterval;
+  }
+
+  set repeatInterval(value: number) {
+    this._repeatInterval = Math.max(value, 0);
+  }
 
   /**
    * Create a single-shot burst.
@@ -28,7 +51,7 @@ export class Burst {
   constructor(time: number, count: ParticleCompositeCurve, cycles?: number, repeatInterval?: number) {
     this.time = time;
     this.count = count;
-    this.cycles = cycles ?? 1;
-    this.repeatInterval = repeatInterval ?? 0;
+    this._cycles = Math.max(cycles ?? 1, 1);
+    this._repeatInterval = Math.max(repeatInterval ?? 0, 0);
   }
 }
