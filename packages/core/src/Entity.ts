@@ -9,7 +9,7 @@ import { Script } from "./Script";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
-import { EngineObject } from "./base";
+import { EngineObject, Logger } from "./base";
 import { CloneUtils } from "./clone/CloneUtils";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
@@ -212,16 +212,14 @@ export class Entity extends EngineObject {
   }
 
   set siblingIndex(value: number) {
-    if (this._siblingIndex === -1) {
-      throw `The entity ${this.name} is not in the hierarchy`;
-    }
-
     if (this._isRoot) {
       this._setSiblingIndex(this._scene._rootEntities, value);
     } else if (this._parent) {
       const parent = this._parent;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
+    } else {
+      Logger.warn(`The entity ${this.name} is not in the hierarchy`);
     }
   }
 
