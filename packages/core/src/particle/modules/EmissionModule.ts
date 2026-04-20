@@ -218,19 +218,18 @@ export class EmissionModule extends ParticleGeneratorModule {
         continue;
       }
 
-      const clampedInterval = Math.max(repeatInterval, 0.01);
       const maxCycles =
-        cycles === Infinity ? Math.ceil((duration - burstTime) / clampedInterval) : cycles;
+        cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
 
-      const first = Math.max(0, Math.ceil((startTime - burstTime) / clampedInterval));
-      const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / clampedInterval) - 1);
+      const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
+      const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / repeatInterval) - 1);
       for (let c = first; c <= last; c++) {
-        const effectiveTime = burstTime + c * clampedInterval;
+        const effectiveTime = burstTime + c * repeatInterval;
         if (effectiveTime >= duration) break;
         generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
       }
 
-      if (pendingIndex < 0 && burstTime + (maxCycles - 1) * clampedInterval >= endTime) {
+      if (pendingIndex < 0 && burstTime + (maxCycles - 1) * repeatInterval >= endTime) {
         pendingIndex = index;
       }
     }
