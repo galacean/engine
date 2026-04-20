@@ -216,8 +216,7 @@ export class EmissionModule extends ParticleGeneratorModule {
           generator._emit(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
         }
       } else {
-        const maxCycles =
-          cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
+        const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
 
         const lastCycle = Math.ceil((endTime - burstTime) / repeatInterval) - 1;
         const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
