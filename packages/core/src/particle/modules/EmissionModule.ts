@@ -222,7 +222,7 @@ export class EmissionModule extends ParticleGeneratorModule {
         break;
       }
 
-      const cycles = burst.cycles;
+      const cycles = Math.max(burst.cycles, 1);
       const repeatInterval = Math.max(burst.repeatInterval, 0.01);
       const infinite = cycles === Infinity;
       const startCycle = index === this._currentBurstIndex ? this._currentBurstCycleIndex : 0;
