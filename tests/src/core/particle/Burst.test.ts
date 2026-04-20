@@ -125,6 +125,37 @@ describe("Burst", () => {
     entity.destroy();
   });
 
+  it("Burst cycles survive float drift (no skipped cycle)", () => {
+    const scene = engine.sceneManager.activeScene;
+    const entity = scene.createRootEntity("FloatDrift");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const material = new ParticleMaterial(engine);
+    material.baseColor = new Color(1, 1, 1, 1);
+    renderer.setMaterial(material);
+
+    const generator = renderer.generator;
+    generator.useAutoRandomSeed = false;
+    generator.main.duration = 5;
+    generator.main.isLoop = false;
+    generator.main.maxParticles = 1000;
+    generator.main.startLifetime.constant = 10;
+    generator.emission.rateOverTime.constant = 0;
+
+    // interval=0.1 triggers IEEE 754 drift (e.g. 0.1+0.2 != 0.3). Without tolerance in the
+    // cycle-index math, `ceil((startTime - burstTime) / 0.1)` can land at cycle + 1 and
+    // permanently skip a cycle at accumulated integer-multiple times.
+    generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 10, 0.1));
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+
+    // 15 frames at 100ms = 1.5s, all 10 cycles (0, 0.1, 0.2, ..., 0.9) must have fired
+    updateEngine(engine, 15);
+    expect(generator._getAliveParticleCount()).to.equal(10);
+
+    entity.destroy();
+  });
+
   it("Burst cycles=Infinity emits infinitely within duration", () => {
     const scene = engine.sceneManager.activeScene;
     const entity = scene.createRootEntity("InfiniteCycles");
