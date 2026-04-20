@@ -18,7 +18,7 @@ export class Burst {
    * @param cycles - Number of times to repeat the burst
    * @param repeatInterval - Time interval between each repeated burst
    */
-  constructor(time: number, count: ParticleCompositeCurve, cycles: number, repeatInterval: number) {
+  constructor(time: number, count: ParticleCompositeCurve, cycles: number = 1, repeatInterval: number = 0.01) {
     this.time = time;
     this.count = count;
     this.cycles = cycles;
