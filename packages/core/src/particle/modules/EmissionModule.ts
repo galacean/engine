@@ -215,22 +215,24 @@ export class EmissionModule extends ParticleGeneratorModule {
         if (burstTime >= startTime) {
           generator._emit(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
         }
-        continue;
-      }
+      } else {
+        const maxCycles =
+          cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
 
-      const maxCycles =
-        cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
+        const lastCycle = Math.ceil((endTime - burstTime) / repeatInterval) - 1;
+        const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
+        const last = Math.min(maxCycles - 1, lastCycle);
+        for (let c = first; c <= last; c++) {
+          const effectiveTime = burstTime + c * repeatInterval;
+          if (effectiveTime >= duration) break;
+          generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
+        }
 
-      const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
-      const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / repeatInterval) - 1);
-      for (let c = first; c <= last; c++) {
-        const effectiveTime = burstTime + c * repeatInterval;
-        if (effectiveTime >= duration) break;
-        generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
-      }
-
-      if (pendingIndex < 0 && burstTime + (maxCycles - 1) * repeatInterval >= endTime) {
-        pendingIndex = index;
+        // `_currentBurstIndex` caches next frame's scan start, so only the earliest unfinished
+        // burst can be the entry point — skipping past it would drop its remaining cycles
+        if (pendingIndex < 0 && lastCycle < maxCycles - 1) {
+          pendingIndex = index;
+        }
       }
     }
     this._currentBurstIndex = pendingIndex >= 0 ? pendingIndex : index;
