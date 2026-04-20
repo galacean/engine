@@ -141,7 +141,7 @@ describe("Burst", () => {
     generator.main.startLifetime.constant = 10;
     generator.emission.rateOverTime.constant = 0;
 
-    // cycles=0 means infinite, interval=0.5 -> fires at 0, 0.5, 1.0, 1.5 within duration=2
+    // cycles=Infinity means unlimited, interval=0.5 -> fires at 0, 0.5, 1.0, 1.5 within duration=2
     generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(5), Infinity, 0.5));
 
     generator.stop(true, ParticleStopMode.StopEmittingAndClear);
