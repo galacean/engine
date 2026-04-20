@@ -208,7 +208,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     for (let n = bursts.length; index < n; index++) {
       const burst = bursts[index];
       const burstTime = burst.time;
-      if (burstTime > endTime) break;
+      if (burstTime >= endTime) break;
 
       const { cycles, repeatInterval } = burst;
       if (cycles === 1) {
