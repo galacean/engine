@@ -100,12 +100,11 @@ for (const key in FamilyMembers) {
   FamilyMemberIndex.set(family, indexMap);
 }
 
-// Locate a concrete type in a family. Returns index on hit, -1 on miss
+// Locate a concrete type in a family. Returns index on hit, -1 on miss.
+// The `!` is safe: callers only reach here after confirming the family is in
+// `FamilyMembers`, and `FamilyMemberIndex` is built from the same key set.
 function familyIndexOf(family: GenericType, type: NonGenericGalaceanType): number {
-  const map = FamilyMemberIndex.get(family);
-  if (!map) return -1;
-  const idx = map.get(type);
-  return idx === undefined ? -1 : idx;
+  return FamilyMemberIndex.get(family)!.get(type) ?? -1;
 }
 
 const BuiltinFunctionTable: Map<string, BuiltinFunction[]> = new Map();
