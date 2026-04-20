@@ -107,9 +107,9 @@ void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 
 
 Besides the general API, PBR also encapsulates APIs for various lighting models, such as `BSDF`. Users can reuse these APIs by using `#include` when extending other materials.
 
-### AttributesPBR
+### Attributes
 
-Encapsulates all attribute variables required for PBR. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/AttributesPBR.glsl).
+Encapsulates all standard vertex attribute variables (BlendShape, Skin, UV, Normal, Tangent). Can be used by any shader via `#include "Common/Attributes.glsl"`. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/Common/Attributes.glsl).
 
 ### VaryingsPBR
 

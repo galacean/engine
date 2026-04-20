@@ -111,9 +111,9 @@ void calculateBlendShape(Attributes attributes, inout vec4 position, inout vec3 
 
 除了通用 API，PBR 也封装了一些列如 `BSDF` 光照模型的 API，用户拓展别的材质时可以尝试 `#include` 复用这些 API。
 
-### AttributesPBR
+### Attributes
 
-封装了 PBR 所需要的所有 Attribute 变量，详见[源码](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/AttributesPBR.glsl)。
+封装了所有标准顶点属性变量（BlendShape、Skin、UV、Normal、Tangent），任何 shader 均可通过 `#include "Common/Attributes.glsl"` 使用。详见[源码](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/Common/Attributes.glsl)。
 
 ### VaryingsPBR
 

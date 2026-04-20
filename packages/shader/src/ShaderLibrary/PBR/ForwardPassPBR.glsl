@@ -8,7 +8,7 @@
 #include "Skin/BlendShape.glsl"
 #include "Shadow/Shadow.glsl"
 
-#include "PBR/AttributesPBR.glsl"
+#include "Common/Attributes.glsl"
 #include "PBR/VaryingsPBR.glsl"
 #include "PBR/LightDirectPBR.glsl"
 #include "PBR/LightIndirectPBR.glsl"

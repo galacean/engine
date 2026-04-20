@@ -13,13 +13,13 @@ import UV from "./Common/UV.glsl";
 import ViewDirection from "./Common/ViewDirection.glsl";
 import WorldPosition from "./Common/WorldPosition.glsl";
 import BlitVertex from "./Common/BlitVertex.glsl";
+import Attributes from "./Common/Attributes.glsl";
 import Shadow from "./Shadow/Shadow.glsl";
 import ShadowSampleTent from "./Shadow/ShadowSampleTent.glsl";
 import Skin from "./Skin/Skin.glsl";
 
 // PBR shading
 import ForwardPassPBR from "./PBR/ForwardPassPBR.glsl";
-import AttributesPBR from "./PBR/AttributesPBR.glsl";
 import VaryingsPBR from "./PBR/VaryingsPBR.glsl";
 import FragmentPBR from "./PBR/FragmentPBR.glsl";
 import LightDirectPBR from "./PBR/LightDirectPBR.glsl";
@@ -97,13 +97,13 @@ const fragmentList: IShaderFragment[] = [
   { source: ViewDirection, includeKey: "Common/ViewDirection.glsl" },
   { source: WorldPosition, includeKey: "Common/WorldPosition.glsl" },
   { source: BlitVertex, includeKey: "Common/BlitVertex.glsl" },
+  { source: Attributes, includeKey: "Common/Attributes.glsl" },
   { source: Shadow, includeKey: "Shadow/Shadow.glsl" },
   { source: ShadowSampleTent, includeKey: "Shadow/ShadowSampleTent.glsl" },
   { source: Skin, includeKey: "Skin/Skin.glsl" },
 
   // PBR shading
   { source: ForwardPassPBR, includeKey: "PBR/ForwardPassPBR.glsl" },
-  { source: AttributesPBR, includeKey: "PBR/AttributesPBR.glsl" },
   { source: VaryingsPBR, includeKey: "PBR/VaryingsPBR.glsl" },
   { source: FragmentPBR, includeKey: "PBR/FragmentPBR.glsl" },
   { source: LightDirectPBR, includeKey: "PBR/LightDirectPBR.glsl" },
