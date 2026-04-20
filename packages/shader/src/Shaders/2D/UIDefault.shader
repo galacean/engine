@@ -18,7 +18,7 @@ Shader "2D/UIDefault" {
       RasterState = {
         CullMode = CullMode.Off;
       }
-      RenderQueueType = RenderQueueType.Transparent;
+      RenderQueueType = Transparent;
 
       VertexShader = vert;
       FragmentShader = frag;

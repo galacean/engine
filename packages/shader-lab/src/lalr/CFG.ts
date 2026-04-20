@@ -119,7 +119,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [
       [NoneTerminal.fully_specified_type, ETokenType.ID],
       [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
     ASTNode.VariableDeclaration.pool
   ),
@@ -301,6 +307,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.struct_declarator,
         ETokenType.SEMICOLON
       ],
+      [NoneTerminal.macro_call_symbol, NoneTerminal.struct_declarator_list, ETokenType.SEMICOLON],
       [NoneTerminal.macro_struct_declaration]
     ],
     ASTNode.StructDeclaration.pool
@@ -714,7 +721,10 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_header,
-    [[NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN]],
+    [
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.LEFT_PAREN]
+    ],
     ASTNode.FunctionHeader.pool
   ),
 
@@ -777,7 +787,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     NoneTerminal.parameter_declarator,
     [
       [NoneTerminal.type_specifier, ETokenType.ID],
-      [NoneTerminal.type_specifier, ETokenType.ID, NoneTerminal.array_specifier]
+      [NoneTerminal.type_specifier, ETokenType.ID, NoneTerminal.array_specifier],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier]
     ],
     ASTNode.ParameterDeclarator.pool
   ),
@@ -890,7 +902,23 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.EQUAL,
         NoneTerminal.initializer
       ],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier],
+      [
+        NoneTerminal.macro_call_symbol,
+        ETokenType.ID,
+        NoneTerminal.array_specifier,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.macro_call_symbol, Keyword.MACRO_CALL],
+      [NoneTerminal.macro_call_symbol, Keyword.MACRO_CALL, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, Keyword.MACRO_CALL],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, Keyword.MACRO_CALL, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
     ASTNode.SingleDeclaration.pool
   ),

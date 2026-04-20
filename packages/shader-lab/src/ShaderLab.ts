@@ -54,6 +54,7 @@ export class ShaderLab implements IShaderLab {
     fragmentEntry: string,
     backend: ShaderLanguage
   ): IShaderProgramSource | undefined {
+    ShaderLabUtils.clearAllShaderLabObjectPool();
     const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();
