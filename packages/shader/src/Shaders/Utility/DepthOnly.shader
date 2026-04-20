@@ -69,13 +69,7 @@ Shader "Utility/DepthOnly" {
         #endif
       };
 
-      struct Varyings {
-        float _placeholder;
-      };
-
-      Varyings vert(Attributes attr) {
-        Varyings v;
-
+      void vert(Attributes attr) {
         vec4 position = vec4(attr.POSITION, 1.0);
 
         #ifdef RENDERER_HAS_NORMAL
@@ -102,11 +96,9 @@ Shader "Utility/DepthOnly" {
         #endif
 
         gl_Position = camera_VPMat * renderer_ModelMat * position;
-
-        return v;
       }
 
-      void frag(Varyings v) {
+      void frag() {
       }
     }
   }
