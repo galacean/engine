@@ -198,8 +198,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number): void {
-    const { _generator: generator, _burstRand: rand } = this;
-    const bursts = this.bursts;
+    const { _generator: generator, _burstRand: rand, bursts } = this;
     const baseTime = Math.floor(lastPlayTime / duration) * duration;
     const startTime = lastPlayTime % duration;
     const endTime = startTime + (playTime - lastPlayTime);
