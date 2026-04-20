@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc && cp src/global.d.ts types/src/global.d.ts"
   },
   "umd": {
     "name": "Galacean.ShaderFragment"
