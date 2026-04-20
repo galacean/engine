@@ -24,6 +24,6 @@ export class Burst {
     this.time = time;
     this.count = count;
     this.cycles = cycles ?? 1;
-    this.repeatInterval = repeatInterval ?? 0.01;
+    this.repeatInterval = repeatInterval ?? 0;
   }
 }
