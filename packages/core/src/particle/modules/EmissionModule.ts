@@ -239,9 +239,11 @@ export class EmissionModule extends ParticleGeneratorModule {
         }
       }
 
-      // Track the first burst that still has pending cycles
-      const lastCycleTime = infinite ? duration : cycles > 1 ? burstTime + (cycles - 1) * repeatInterval : burstTime;
-      if ((infinite || cycles > 1 ? lastCycleTime >= endTime : lastCycleTime > endTime) && firstPendingIndex === -1) {
+      // Track the first burst that still has pending cycles:
+      // After the loop, c stopped at a cycle that didn't fire. If that cycle's time
+      // is still within duration, this burst has pending work for future frames.
+      const hasMoreCycles = (infinite || c < cycles) && burstTime + c * repeatInterval < duration;
+      if (hasMoreCycles && firstPendingIndex === -1) {
         firstPendingIndex = index;
         firstPendingCycleIndex = c;
       }
