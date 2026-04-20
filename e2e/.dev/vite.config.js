@@ -59,20 +59,6 @@ module.exports = {
       "@galacean/engine-spine",
       "@galacean/engine-shaderlab",
       "@galacean/tools-baker",
-      "@galacean/engine-toolkit",
-      "@galacean/engine-toolkit-auxiliary-lines",
-      "@galacean/engine-toolkit-controls",
-      "@galacean/engine-toolkit-framebuffer-picker",
-      "@galacean/engine-toolkit-gizmo",
-      "@galacean/engine-toolkit-lines",
-      "@galacean/engine-toolkit-outline",
-      "@galacean/engine-toolkit-planar-shadow-material",
-      "@galacean/engine-toolkit-skeleton-viewer",
-      "@galacean/engine-toolkit-grid-material",
-      "@galacean/engine-toolkit-navigation-gizmo",
-      "@galacean/engine-toolkit-geometry-sketch",
-      "@galacean/engine-toolkit-stats",
-      "@galacean/engine-toolkit-input-logger"
     ]
   }
 };

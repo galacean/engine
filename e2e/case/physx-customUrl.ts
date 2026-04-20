@@ -21,7 +21,6 @@ import {
   BlinnPhongMaterial,
   Entity
 } from "@galacean/engine";
-import { WireframeManager } from "@galacean/engine-toolkit";
 
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
@@ -108,10 +107,6 @@ WebGLEngine.create({
   sphereCollider.addShape(physicsSphere);
 
   rootEntity.addComponent(MeshRenderer);
-  const wireframe = rootEntity.addComponent(WireframeManager); // debug draw
-  wireframe.addEntityWireframe(sphereEntity);
-  wireframe.addEntityWireframe(boxEntity1);
-  wireframe.addEntityWireframe(boxEntity2);
 
   class MoveScript extends Script {
     pos: number = -5;
