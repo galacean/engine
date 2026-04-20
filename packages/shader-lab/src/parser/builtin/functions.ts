@@ -2,7 +2,7 @@ import { GalaceanDataType, TypeAny } from "../../common";
 import { Keyword } from "../../common/enums/Keyword";
 import { EShaderStage } from "../../common/enums/ShaderStage";
 
-export enum EGenType {
+export enum GenericType {
   GenType = 200,
   GenIntType,
   GenUintType,
@@ -20,93 +20,89 @@ export enum EGenType {
 }
 
 export type NonGenericGalaceanType = Exclude<GalaceanDataType, string>;
-type BuiltinType = NonGenericGalaceanType | EGenType;
+type BuiltinType = NonGenericGalaceanType | GenericType;
 
-function isGenericType(t: BuiltinType) {
-  return t >= EGenType.GenType && t <= EGenType.GSampler2DArray;
-}
-
-// Generic type system.
+// Generic type system
 //
 // A generic family declares its concrete members and the dimension along which
 // members vary. Matching a generic position locks an index; projecting a return
 // family uses that index. Two families can only share an index if they vary
-// along the same dimension.
+// along the same dimension
 //
-// Example: `texture(GSampler2D, vec2) → GVec4` against `texture(sampler2D, uv)`.
-//   1. Locate `sampler2D` in GSampler2D (prefix dimension) → index 0
-//   2. Project GVec4 (prefix dimension) at index 0         → vec4
+// Example: `texture(GSampler2D, vec2) → GVec4` against `texture(sampler2D, uv)`
+//   1. Locate `sampler2D` in GSampler2D (ScalarType dimension) → index 0
+//   2. Project GVec4 (ScalarType dimension) at index 0         → vec4
 //
-// `ivec4 = texture(isampler2D, uv)` locks index 1, projects to `ivec4`.
-// `min(vec3, vec3)` locks index 2 in GenType (size dimension) and returns vec3.
-// `min(vec3, vec2)` fails because the second arg would need index 1 but 2 is locked.
+// `ivec4 = texture(isampler2D, uv)` locks index 1, projects to `ivec4`
+// `min(vec3, vec3)` locks index 2 in GenType (Size dimension) and returns vec3
+// `min(vec3, vec2)` fails because the second arg would need index 1 but 2 is locked
 
-const enum GenericDim {
-  // Varies along vector size: scalar / vec2 / vec3 / vec4 (or equivalents).
+const enum GenericDimension {
+  // Varies along vector size: scalar / vec2 / vec3 / vec4 (or equivalents)
   Size,
-  // Varies along scalar type prefix: float / int / uint (sometimes with bool).
-  Prefix
+  // Varies along the underlying scalar type: float / int / uint (sometimes with bool)
+  ScalarType
 }
 
 type FamilySpec = {
-  readonly dim: GenericDim;
+  readonly dimension: GenericDimension;
   readonly members: readonly NonGenericGalaceanType[];
 };
 
-const GenericFamilies: Partial<Record<EGenType, FamilySpec>> = {
-  // Size-varying families: index 0 → scalar, 1 → vec2, 2 → vec3, 3 → vec4.
-  [EGenType.GenType]: { dim: GenericDim.Size, members: [Keyword.FLOAT, Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
-  [EGenType.GenIntType]: { dim: GenericDim.Size, members: [Keyword.INT, Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
-  [EGenType.GenUintType]: {
-    dim: GenericDim.Size,
+const FamilyMembers: Partial<Record<GenericType, FamilySpec>> = {
+  // Size-varying families: index 0 → scalar, 1 → vec2, 2 → vec3, 3 → vec4
+  [GenericType.GenType]: { dimension: GenericDimension.Size, members: [Keyword.FLOAT, Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
+  [GenericType.GenIntType]: { dimension: GenericDimension.Size, members: [Keyword.INT, Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
+  [GenericType.GenUintType]: {
+    dimension: GenericDimension.Size,
     members: [Keyword.UINT, Keyword.UVEC2, Keyword.UVEC3, Keyword.UVEC4]
   },
-  [EGenType.GenBoolType]: {
-    dim: GenericDim.Size,
+  [GenericType.GenBoolType]: {
+    dimension: GenericDimension.Size,
     members: [Keyword.BOOL, Keyword.BVEC2, Keyword.BVEC3, Keyword.BVEC4]
   },
-  // Vec-only sub-families (no scalar): index 0 → vec2, 1 → vec3, 2 → vec4.
-  [EGenType.Vec]: { dim: GenericDim.Size, members: [Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
-  [EGenType.IntVec]: { dim: GenericDim.Size, members: [Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
-  [EGenType.UintVec]: { dim: GenericDim.Size, members: [Keyword.UVEC2, Keyword.UVEC3, Keyword.UVEC4] },
-  [EGenType.BoolVec]: { dim: GenericDim.Size, members: [Keyword.BVEC2, Keyword.BVEC3, Keyword.BVEC4] },
-  [EGenType.Mat]: { dim: GenericDim.Size, members: [Keyword.MAT2, Keyword.MAT3, Keyword.MAT4] },
+  // Vec-only sub-families (no scalar): index 0 → vec2, 1 → vec3, 2 → vec4
+  [GenericType.Vec]: { dimension: GenericDimension.Size, members: [Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
+  [GenericType.IntVec]: { dimension: GenericDimension.Size, members: [Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
+  [GenericType.UintVec]: { dimension: GenericDimension.Size, members: [Keyword.UVEC2, Keyword.UVEC3, Keyword.UVEC4] },
+  [GenericType.BoolVec]: { dimension: GenericDimension.Size, members: [Keyword.BVEC2, Keyword.BVEC3, Keyword.BVEC4] },
+  [GenericType.Mat]: { dimension: GenericDimension.Size, members: [Keyword.MAT2, Keyword.MAT3, Keyword.MAT4] },
 
-  // Prefix-varying families: index 0 → no prefix, 1 → i prefix, 2 → u prefix.
-  [EGenType.GSampler2D]: {
-    dim: GenericDim.Prefix,
+  // ScalarType-varying families: index 0 → float base, 1 → int base, 2 → uint base
+  [GenericType.GSampler2D]: {
+    dimension: GenericDimension.ScalarType,
     members: [Keyword.SAMPLER2D, Keyword.I_SAMPLER2D, Keyword.U_SAMPLER2D]
   },
-  [EGenType.GSampler3D]: {
-    dim: GenericDim.Prefix,
+  [GenericType.GSampler3D]: {
+    dimension: GenericDimension.ScalarType,
     members: [Keyword.SAMPLER3D, Keyword.I_SAMPLER3D, Keyword.U_SAMPLER3D]
   },
-  [EGenType.GSamplerCube]: {
-    dim: GenericDim.Prefix,
+  [GenericType.GSamplerCube]: {
+    dimension: GenericDimension.ScalarType,
     members: [Keyword.SAMPLER_CUBE, Keyword.I_SAMPLER_CUBE, Keyword.U_SAMPLER_CUBE]
   },
-  [EGenType.GSampler2DArray]: {
-    dim: GenericDim.Prefix,
+  [GenericType.GSampler2DArray]: {
+    dimension: GenericDimension.ScalarType,
     members: [Keyword.SAMPLER2D_ARRAY, Keyword.I_SAMPLER2D_ARRAY, Keyword.U_SAMPLER2D_ARRAY]
   },
-  [EGenType.GVec4]: { dim: GenericDim.Prefix, members: [Keyword.VEC4, Keyword.IVEC4, Keyword.UVEC4] }
+  [GenericType.GVec4]: { dimension: GenericDimension.ScalarType, members: [Keyword.VEC4, Keyword.IVEC4, Keyword.UVEC4] }
 };
 
-// Reverse lookup per family: concrete → index. A single concrete (e.g. VEC4 appears in
-// both GenType and GVec4) can resolve to different indices in different families, so the
-// cache is keyed by (family, concrete) rather than by concrete alone.
-const FamilyIndexCache = new Map<EGenType, Map<NonGenericGalaceanType, number>>();
-for (const key in GenericFamilies) {
-  const family = Number(key) as EGenType;
-  const spec = GenericFamilies[family]!;
+// Reverse of `FamilyMembers`: given a concrete type, find its index within a family.
+// Keyed by (family, type) rather than just by type because the same concrete can appear
+// in multiple families at different indices (VEC4 is index 3 in GenType, index 0 in GVec4)
+const FamilyMemberIndex = new Map<GenericType, Map<NonGenericGalaceanType, number>>();
+for (const key in FamilyMembers) {
+  const family = Number(key) as GenericType;
+  const spec = FamilyMembers[family]!;
   const indexMap = new Map<NonGenericGalaceanType, number>();
   for (let i = 0; i < spec.members.length; i++) indexMap.set(spec.members[i], i);
-  FamilyIndexCache.set(family, indexMap);
+  FamilyMemberIndex.set(family, indexMap);
 }
 
-// Locate a concrete type in a family. Returns index on hit, -1 on miss.
-function familyIndexOf(family: EGenType, type: NonGenericGalaceanType): number {
-  const map = FamilyIndexCache.get(family);
+// Locate a concrete type in a family. Returns index on hit, -1 on miss
+function familyIndexOf(family: GenericType, type: NonGenericGalaceanType): number {
+  const map = FamilyMemberIndex.get(family);
   if (!map) return -1;
   const idx = map.get(type);
   return idx === undefined ? -1 : idx;
@@ -133,11 +129,6 @@ export class BuiltinFunction {
     this.scope = scope;
   }
 
-  static getReturnType(fn: BuiltinFunction, genType?: NonGenericGalaceanType) {
-    if (!isGenericType(fn._returnType)) return fn._returnType as NonGenericGalaceanType;
-    return genType;
-  }
-
   static _create(ident: string, returnType: BuiltinType, ...args: BuiltinType[]) {
     const fn = new BuiltinFunction(ident, returnType, EShaderStage.ALL, ...args);
     const list = BuiltinFunctionTable.get(ident) ?? [];
@@ -152,17 +143,20 @@ export class BuiltinFunction {
     BuiltinFunctionTable.set(ident, list);
   }
 
-  // Overload resolution against the generic family system.
+  // Overload resolution against the generic family system
   //
   // For each candidate signature: concrete positions require exact type match;
   // generic positions locate the actual arg's index within the declared family,
-  // and lock an index per dimension (size / prefix) shared across positions.
+  // and lock an index per dimension (size / scalar-type) shared across positions.
   // The return type is resolved by projecting the appropriate lock through the
-  // return family, or passed through verbatim if the return is concrete.
-  static getFn(ident: string, parameterTypes: NonGenericGalaceanType[]): BuiltinFunction | undefined {
+  // return family, or passed through verbatim if the return is concrete
+  static resolveOverload(
+    ident: string,
+    parameterTypes: NonGenericGalaceanType[] | undefined
+  ): BuiltinFunction | undefined {
     const list = BuiltinFunctionTable.get(ident);
     if (!list) return undefined;
-    const argCount = parameterTypes.length;
+    const argCount = parameterTypes?.length ?? 0;
 
     for (let i = 0, len = list.length; i < len; i++) {
       const fn = list[i];
@@ -170,34 +164,30 @@ export class BuiltinFunction {
       if (fnArgs.length !== argCount) continue;
 
       let sizeLock = -1;
-      let prefixLock = -1;
+      let scalarTypeLock = -1;
       let matched = true;
 
       for (let j = 0; j < argCount; j++) {
         const declared = fnArgs[j];
-        const actual = parameterTypes[j];
+        const actual = parameterTypes![j];
         if (actual === TypeAny) continue;
 
-        if (isGenericType(declared)) {
-          const family = GenericFamilies[declared as EGenType];
-          if (!family) {
-            matched = false;
-            break;
-          }
-          const idx = familyIndexOf(declared as EGenType, actual);
+        const family = FamilyMembers[declared as GenericType];
+        if (family) {
+          const idx = familyIndexOf(declared as GenericType, actual);
           if (idx === -1) {
             matched = false;
             break;
           }
-          if (family.dim === GenericDim.Size) {
+          if (family.dimension === GenericDimension.Size) {
             if (sizeLock === -1) sizeLock = idx;
             else if (sizeLock !== idx) {
               matched = false;
               break;
             }
           } else {
-            if (prefixLock === -1) prefixLock = idx;
-            else if (prefixLock !== idx) {
+            if (scalarTypeLock === -1) scalarTypeLock = idx;
+            else if (scalarTypeLock !== idx) {
               matched = false;
               break;
             }
@@ -210,18 +200,15 @@ export class BuiltinFunction {
 
       if (!matched) continue;
 
-      const returnDecl = fn._returnType;
-      if (!isGenericType(returnDecl)) {
-        fn._realReturnType = returnDecl as NonGenericGalaceanType;
+      const returnFamily = FamilyMembers[fn._returnType as GenericType];
+      if (!returnFamily) {
+        fn._realReturnType = fn._returnType as NonGenericGalaceanType;
         return fn;
       }
-
-      const returnFamily = GenericFamilies[returnDecl as EGenType];
-      if (!returnFamily) continue;
-      const lock = returnFamily.dim === GenericDim.Size ? sizeLock : prefixLock;
+      const lock = returnFamily.dimension === GenericDimension.Size ? sizeLock : scalarTypeLock;
       // No argument locked the dimension (all relevant args were TypeAny): fall
       // through as TypeAny so downstream overload resolution treats the result
-      // as a wildcard rather than a specific guess.
+      // as a wildcard rather than a specific guess
       fn._realReturnType = lock === -1 ? TypeAny : returnFamily.members[lock];
       return fn;
     }
@@ -234,77 +221,77 @@ export class BuiltinFunction {
   }
 }
 
-BuiltinFunction._create("radians", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("degrees", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("sin", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("cos", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("tan", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("asin", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("acos", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("atan", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("atan", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("sinh", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("cosh", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("tanh", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("asinh", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("acosh", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("atanh", EGenType.GenType, EGenType.GenType);
+BuiltinFunction._create("radians", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("degrees", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("sin", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("cos", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("tan", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("asin", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("acos", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("atan", GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("atan", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("sinh", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("cosh", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("tanh", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("asinh", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("acosh", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("atanh", GenericType.GenType, GenericType.GenType);
 
-BuiltinFunction._create("pow", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("exp", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("log", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("exp2", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("log2", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("sqrt", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("inversesqrt", EGenType.GenType, EGenType.GenType);
+BuiltinFunction._create("pow", GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("exp", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("log", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("exp2", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("log2", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("sqrt", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("inversesqrt", GenericType.GenType, GenericType.GenType);
 
-BuiltinFunction._create("abs", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("abs", EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("sign", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("sign", EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("floor", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("trunc", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("round", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("roundEven", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("ceil", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("fract", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("mod", EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
-BuiltinFunction._create("mod", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("min", EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
-BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("min", EGenType.GenIntType, EGenType.GenIntType, Keyword.INT);
-BuiltinFunction._create("min", EGenType.GenUintType, EGenType.GenUintType, EGenType.GenUintType);
-BuiltinFunction._create("min", EGenType.GenUintType, EGenType.GenUintType, Keyword.UINT);
-BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("max", EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
-BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("max", EGenType.GenIntType, EGenType.GenIntType, Keyword.INT);
-BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("clamp", EGenType.GenType, EGenType.GenType, Keyword.FLOAT, Keyword.FLOAT);
-BuiltinFunction._create("clamp", EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType, EGenType.GenIntType);
-BuiltinFunction._create("clamp", EGenType.GenIntType, EGenType.GenIntType, Keyword.INT, Keyword.INT);
+BuiltinFunction._create("abs", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("abs", GenericType.GenIntType, GenericType.GenIntType);
+BuiltinFunction._create("sign", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("sign", GenericType.GenIntType, GenericType.GenIntType);
+BuiltinFunction._create("floor", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("trunc", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("round", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("roundEven", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("ceil", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("fract", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("mod", GenericType.GenType, GenericType.GenType, Keyword.FLOAT);
+BuiltinFunction._create("mod", GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("min", GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("min", GenericType.GenType, GenericType.GenType, Keyword.FLOAT);
+BuiltinFunction._create("min", GenericType.GenIntType, GenericType.GenIntType, GenericType.GenIntType);
+BuiltinFunction._create("min", GenericType.GenIntType, GenericType.GenIntType, Keyword.INT);
+BuiltinFunction._create("min", GenericType.GenUintType, GenericType.GenUintType, GenericType.GenUintType);
+BuiltinFunction._create("min", GenericType.GenUintType, GenericType.GenUintType, Keyword.UINT);
+BuiltinFunction._create("max", GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("max", GenericType.GenType, GenericType.GenType, Keyword.FLOAT);
+BuiltinFunction._create("max", GenericType.GenIntType, GenericType.GenIntType, GenericType.GenIntType);
+BuiltinFunction._create("max", GenericType.GenIntType, GenericType.GenIntType, Keyword.INT);
+BuiltinFunction._create("clamp", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("clamp", GenericType.GenType, GenericType.GenType, Keyword.FLOAT, Keyword.FLOAT);
+BuiltinFunction._create("clamp", GenericType.GenIntType, GenericType.GenIntType, GenericType.GenIntType, GenericType.GenIntType);
+BuiltinFunction._create("clamp", GenericType.GenIntType, GenericType.GenIntType, Keyword.INT, Keyword.INT);
 BuiltinFunction._create(
   "clamp",
-  EGenType.GenUintType,
-  EGenType.GenUintType,
-  EGenType.GenUintType,
-  EGenType.GenUintType
+  GenericType.GenUintType,
+  GenericType.GenUintType,
+  GenericType.GenUintType,
+  GenericType.GenUintType
 );
-BuiltinFunction._create("clamp", EGenType.GenUintType, EGenType.GenUintType, Keyword.UINT, Keyword.UINT);
-BuiltinFunction._create("mix", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("mix", EGenType.GenType, EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
-BuiltinFunction._create("mix", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenBoolType);
-BuiltinFunction._create("step", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("step", EGenType.GenType, Keyword.FLOAT, EGenType.GenType);
-BuiltinFunction._create("smoothstep", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("smoothstep", EGenType.GenType, Keyword.FLOAT, Keyword.FLOAT, EGenType.GenType);
-BuiltinFunction._create("isnan", EGenType.GenBoolType, EGenType.GenType);
-BuiltinFunction._create("isinf", EGenType.GenBoolType, EGenType.GenType);
-BuiltinFunction._create("floatBitsToInt", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("floatBitsToUint", EGenType.GenUintType, EGenType.GenType);
-BuiltinFunction._create("intBitsToFloat", EGenType.GenType, EGenType.GenIntType);
-BuiltinFunction._create("uintBitsToFloat", EGenType.GenType, EGenType.GenUintType);
+BuiltinFunction._create("clamp", GenericType.GenUintType, GenericType.GenUintType, Keyword.UINT, Keyword.UINT);
+BuiltinFunction._create("mix", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("mix", GenericType.GenType, GenericType.GenType, GenericType.GenType, Keyword.FLOAT);
+BuiltinFunction._create("mix", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenBoolType);
+BuiltinFunction._create("step", GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("step", GenericType.GenType, Keyword.FLOAT, GenericType.GenType);
+BuiltinFunction._create("smoothstep", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("smoothstep", GenericType.GenType, Keyword.FLOAT, Keyword.FLOAT, GenericType.GenType);
+BuiltinFunction._create("isnan", GenericType.GenBoolType, GenericType.GenType);
+BuiltinFunction._create("isinf", GenericType.GenBoolType, GenericType.GenType);
+BuiltinFunction._create("floatBitsToInt", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("floatBitsToUint", GenericType.GenUintType, GenericType.GenType);
+BuiltinFunction._create("intBitsToFloat", GenericType.GenType, GenericType.GenIntType);
+BuiltinFunction._create("uintBitsToFloat", GenericType.GenType, GenericType.GenUintType);
 
 BuiltinFunction._create("packSnorm2x16", Keyword.UINT, Keyword.VEC2);
 BuiltinFunction._create("unpackSnorm2x16", Keyword.VEC2, Keyword.UINT);
@@ -313,15 +300,15 @@ BuiltinFunction._create("unpackUnorm2x16", Keyword.VEC2, Keyword.UINT);
 BuiltinFunction._create("packHalf2x16", Keyword.UINT, Keyword.VEC2);
 BuiltinFunction._create("unpackHalf2x16", Keyword.VEC2, Keyword.UINT);
 
-BuiltinFunction._create("length", Keyword.FLOAT, EGenType.GenType);
-BuiltinFunction._create("distance", Keyword.FLOAT, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("dot", Keyword.FLOAT, EGenType.GenType, EGenType.GenType);
+BuiltinFunction._create("length", Keyword.FLOAT, GenericType.GenType);
+BuiltinFunction._create("distance", Keyword.FLOAT, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("dot", Keyword.FLOAT, GenericType.GenType, GenericType.GenType);
 BuiltinFunction._create("cross", Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
-BuiltinFunction._create("normalize", EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("faceforward", EGenType.GenType, EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("reflect", EGenType.GenType, EGenType.GenType, EGenType.GenType);
-BuiltinFunction._create("refract", EGenType.GenType, EGenType.GenType, EGenType.GenType, Keyword.FLOAT);
-BuiltinFunction._create("matrixCompMult", EGenType.Mat, EGenType.Mat, EGenType.Mat);
+BuiltinFunction._create("normalize", GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("faceforward", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("reflect", GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create("refract", GenericType.GenType, GenericType.GenType, GenericType.GenType, Keyword.FLOAT);
+BuiltinFunction._create("matrixCompMult", GenericType.Mat, GenericType.Mat, GenericType.Mat);
 BuiltinFunction._create("outerProduct", Keyword.MAT2, Keyword.VEC2, Keyword.VEC2);
 BuiltinFunction._create("outerProduct", Keyword.MAT3, Keyword.VEC3, Keyword.VEC3);
 BuiltinFunction._create("outerProduct", Keyword.MAT4, Keyword.VEC4, Keyword.VEC4);
@@ -353,56 +340,56 @@ BuiltinFunction._create("inverse", Keyword.MAT2, Keyword.MAT2);
 BuiltinFunction._create("inverse", Keyword.MAT3, Keyword.MAT3);
 BuiltinFunction._create("inverse", Keyword.MAT4, Keyword.MAT4);
 
-BuiltinFunction._create("lessThan", EGenType.BoolVec, EGenType.Vec, EGenType.Vec);
-BuiltinFunction._create("lessThan", EGenType.BoolVec, EGenType.IntVec, EGenType.IntVec);
-BuiltinFunction._create("lessThan", EGenType.BoolVec, EGenType.UintVec, EGenType.UintVec);
+BuiltinFunction._create("lessThan", GenericType.BoolVec, GenericType.Vec, GenericType.Vec);
+BuiltinFunction._create("lessThan", GenericType.BoolVec, GenericType.IntVec, GenericType.IntVec);
+BuiltinFunction._create("lessThan", GenericType.BoolVec, GenericType.UintVec, GenericType.UintVec);
 
-BuiltinFunction._create("lessThanEqual", EGenType.BoolVec, EGenType.Vec, EGenType.Vec);
-BuiltinFunction._create("lessThanEqual", EGenType.BoolVec, EGenType.IntVec, EGenType.IntVec);
-BuiltinFunction._create("lessThanEqual", EGenType.BoolVec, EGenType.UintVec, EGenType.UintVec);
+BuiltinFunction._create("lessThanEqual", GenericType.BoolVec, GenericType.Vec, GenericType.Vec);
+BuiltinFunction._create("lessThanEqual", GenericType.BoolVec, GenericType.IntVec, GenericType.IntVec);
+BuiltinFunction._create("lessThanEqual", GenericType.BoolVec, GenericType.UintVec, GenericType.UintVec);
 
-BuiltinFunction._create("greaterThan", EGenType.BoolVec, EGenType.Vec, EGenType.Vec);
-BuiltinFunction._create("greaterThan", EGenType.BoolVec, EGenType.IntVec, EGenType.IntVec);
-BuiltinFunction._create("greaterThan", EGenType.BoolVec, EGenType.UintVec, EGenType.UintVec);
+BuiltinFunction._create("greaterThan", GenericType.BoolVec, GenericType.Vec, GenericType.Vec);
+BuiltinFunction._create("greaterThan", GenericType.BoolVec, GenericType.IntVec, GenericType.IntVec);
+BuiltinFunction._create("greaterThan", GenericType.BoolVec, GenericType.UintVec, GenericType.UintVec);
 
-BuiltinFunction._create("greaterThanEqual", EGenType.BoolVec, EGenType.Vec, EGenType.Vec);
-BuiltinFunction._create("greaterThanEqual", EGenType.BoolVec, EGenType.IntVec, EGenType.IntVec);
-BuiltinFunction._create("greaterThanEqual", EGenType.BoolVec, EGenType.UintVec, EGenType.UintVec);
+BuiltinFunction._create("greaterThanEqual", GenericType.BoolVec, GenericType.Vec, GenericType.Vec);
+BuiltinFunction._create("greaterThanEqual", GenericType.BoolVec, GenericType.IntVec, GenericType.IntVec);
+BuiltinFunction._create("greaterThanEqual", GenericType.BoolVec, GenericType.UintVec, GenericType.UintVec);
 
-BuiltinFunction._create("equal", EGenType.BoolVec, EGenType.Vec, EGenType.Vec);
-BuiltinFunction._create("equal", EGenType.BoolVec, EGenType.IntVec, EGenType.IntVec);
-BuiltinFunction._create("equal", EGenType.BoolVec, EGenType.UintVec, EGenType.UintVec);
-BuiltinFunction._create("equal", EGenType.BoolVec, EGenType.BoolVec, EGenType.BoolVec);
+BuiltinFunction._create("equal", GenericType.BoolVec, GenericType.Vec, GenericType.Vec);
+BuiltinFunction._create("equal", GenericType.BoolVec, GenericType.IntVec, GenericType.IntVec);
+BuiltinFunction._create("equal", GenericType.BoolVec, GenericType.UintVec, GenericType.UintVec);
+BuiltinFunction._create("equal", GenericType.BoolVec, GenericType.BoolVec, GenericType.BoolVec);
 
-BuiltinFunction._create("notEqual", EGenType.BoolVec, EGenType.Vec, EGenType.Vec);
-BuiltinFunction._create("notEqual", EGenType.BoolVec, EGenType.IntVec, EGenType.IntVec);
-BuiltinFunction._create("notEqual", EGenType.BoolVec, EGenType.UintVec, EGenType.UintVec);
-BuiltinFunction._create("notEqual", EGenType.BoolVec, EGenType.BoolVec, EGenType.BoolVec);
+BuiltinFunction._create("notEqual", GenericType.BoolVec, GenericType.Vec, GenericType.Vec);
+BuiltinFunction._create("notEqual", GenericType.BoolVec, GenericType.IntVec, GenericType.IntVec);
+BuiltinFunction._create("notEqual", GenericType.BoolVec, GenericType.UintVec, GenericType.UintVec);
+BuiltinFunction._create("notEqual", GenericType.BoolVec, GenericType.BoolVec, GenericType.BoolVec);
 
-BuiltinFunction._create("any", Keyword.BOOL, EGenType.BoolVec);
-BuiltinFunction._create("all", Keyword.BOOL, EGenType.BoolVec);
-BuiltinFunction._create("not", EGenType.BoolVec, EGenType.BoolVec);
+BuiltinFunction._create("any", Keyword.BOOL, GenericType.BoolVec);
+BuiltinFunction._create("all", Keyword.BOOL, GenericType.BoolVec);
+BuiltinFunction._create("not", GenericType.BoolVec, GenericType.BoolVec);
 
-BuiltinFunction._create("textureSize", Keyword.IVEC2, EGenType.GSampler2D, Keyword.INT);
-BuiltinFunction._create("textureSize", Keyword.IVEC3, EGenType.GSampler3D, Keyword.INT);
-BuiltinFunction._create("textureSize", Keyword.IVEC2, EGenType.GSamplerCube, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC2, GenericType.GSampler2D, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC3, GenericType.GSampler3D, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC2, GenericType.GSamplerCube, Keyword.INT);
 
 BuiltinFunction._create("textureSize", Keyword.IVEC2, Keyword.SAMPLER2D_SHADOW, Keyword.INT);
 BuiltinFunction._create("textureSize", Keyword.IVEC2, Keyword.SAMPLER_CUBE_SHADOW, Keyword.INT);
 
-BuiltinFunction._create("textureSize", Keyword.IVEC3, EGenType.GSampler2DArray, Keyword.INT);
+BuiltinFunction._create("textureSize", Keyword.IVEC3, GenericType.GSampler2DArray, Keyword.INT);
 BuiltinFunction._create("textureSize", Keyword.IVEC3, Keyword.SAMPLER2D_ARRAY_SHADOW, Keyword.INT);
 
-BuiltinFunction._create("texture2D", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2);
-BuiltinFunction._create("texture2D", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture2D", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2);
+BuiltinFunction._create("texture2D", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
 
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3);
+BuiltinFunction._create("texture", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2);
+BuiltinFunction._create("texture", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC3);
 
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3);
+BuiltinFunction._create("texture", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3);
 
 BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3);
@@ -410,54 +397,54 @@ BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyw
 BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER_CUBE_SHADOW, Keyword.VEC4, Keyword.FLOAT);
 BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER_CUBE_SHADOW, Keyword.VEC4);
 
-BuiltinFunction._create("texture", EGenType.GVec4, Keyword.SAMPLER2D_ARRAY, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("texture", EGenType.GVec4, Keyword.SAMPLER2D_ARRAY, Keyword.VEC3);
+BuiltinFunction._create("texture", GenericType.GVec4, Keyword.SAMPLER2D_ARRAY, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture", GenericType.GVec4, Keyword.SAMPLER2D_ARRAY, Keyword.VEC3);
 
 BuiltinFunction._create("texture", Keyword.FLOAT, Keyword.SAMPLER2D_ARRAY_SHADOW, Keyword.VEC4);
 
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4, Keyword.FLOAT);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4, Keyword.FLOAT);
-BuiltinFunction._create("textureProj", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4);
+BuiltinFunction._create("textureProj", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureProj", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC3);
+BuiltinFunction._create("textureProj", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProj", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC4);
+BuiltinFunction._create("textureProj", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProj", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC4);
 
 BuiltinFunction._create("textureProj", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC4, Keyword.FLOAT);
 BuiltinFunction._create("textureProj", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC4);
 
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 BuiltinFunction._create("textureLod", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureLod", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("texture2DLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
-BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
-BuiltinFunction._create("texture2DLodEXT", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureLod", GenericType.GVec4, GenericType.GSampler2DArray, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("texture2DLod", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture2DLodEXT", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.FLOAT);
+BuiltinFunction._create("texture2DLodEXT", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC3, Keyword.FLOAT);
 
-BuiltinFunction._create("textureCube", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3);
-BuiltinFunction._create("textureCube", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureCubeLod", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureCubeLodEXT", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCube", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3);
+BuiltinFunction._create("textureCube", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCubeLod", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureCubeLodEXT", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3, Keyword.FLOAT);
 
 BuiltinFunction._create(
   "textureOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC2,
   Keyword.IVEC2,
   Keyword.FLOAT
 );
-BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.IVEC2);
+BuiltinFunction._create("textureOffset", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.IVEC2);
 
 BuiltinFunction._create(
   "textureOffset",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.VEC3,
   Keyword.IVEC3,
   Keyword.FLOAT
 );
-BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.IVEC3);
+BuiltinFunction._create("textureOffset", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC3, Keyword.IVEC3);
 
 BuiltinFunction._create(
   "textureOffset",
@@ -470,38 +457,38 @@ BuiltinFunction._create(
 BuiltinFunction._create("textureOffset", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC3, Keyword.IVEC2);
 BuiltinFunction._create(
   "textureOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2DArray,
+  GenericType.GVec4,
+  GenericType.GSampler2DArray,
   Keyword.VEC3,
   Keyword.IVEC2,
   Keyword.FLOAT
 );
-BuiltinFunction._create("textureOffset", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.VEC3, Keyword.IVEC2);
+BuiltinFunction._create("textureOffset", GenericType.GVec4, GenericType.GSampler2DArray, Keyword.VEC3, Keyword.IVEC2);
 
-BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler2D, Keyword.IVEC2, Keyword.INT);
-BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler3D, Keyword.IVEC3, Keyword.INT);
-BuiltinFunction._create("texelFetch", EGenType.GVec4, EGenType.GSampler2DArray, Keyword.IVEC3, Keyword.INT);
+BuiltinFunction._create("texelFetch", GenericType.GVec4, GenericType.GSampler2D, Keyword.IVEC2, Keyword.INT);
+BuiltinFunction._create("texelFetch", GenericType.GVec4, GenericType.GSampler3D, Keyword.IVEC3, Keyword.INT);
+BuiltinFunction._create("texelFetch", GenericType.GVec4, GenericType.GSampler2DArray, Keyword.IVEC3, Keyword.INT);
 
 BuiltinFunction._create(
   "texelFetchOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.IVEC2,
   Keyword.INT,
   Keyword.IVEC2
 );
 BuiltinFunction._create(
   "texelFetchOffset",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.IVEC3,
   Keyword.INT,
   Keyword.IVEC3
 );
 BuiltinFunction._create(
   "texelFetchOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2DArray,
+  GenericType.GVec4,
+  GenericType.GSampler2DArray,
   Keyword.IVEC3,
   Keyword.INT,
   Keyword.IVEC2
@@ -509,33 +496,33 @@ BuiltinFunction._create(
 
 BuiltinFunction._create(
   "textureProjOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC3,
   Keyword.IVEC2,
   Keyword.FLOAT
 );
-BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3, Keyword.IVEC2);
+BuiltinFunction._create("textureProjOffset", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC3, Keyword.IVEC2);
 
 BuiltinFunction._create(
   "textureProjOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC4,
   Keyword.IVEC2,
   Keyword.FLOAT
 );
-BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4, Keyword.IVEC2);
+BuiltinFunction._create("textureProjOffset", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC4, Keyword.IVEC2);
 
 BuiltinFunction._create(
   "textureProjOffset",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.VEC4,
   Keyword.IVEC3,
   Keyword.FLOAT
 );
-BuiltinFunction._create("textureProjOffset", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4, Keyword.IVEC3);
+BuiltinFunction._create("textureProjOffset", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC4, Keyword.IVEC3);
 
 BuiltinFunction._create(
   "textureProjOffset",
@@ -549,16 +536,16 @@ BuiltinFunction._create("textureProjOffset", Keyword.FLOAT, Keyword.SAMPLER2D_SH
 
 BuiltinFunction._create(
   "textureLodOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC2,
   Keyword.FLOAT,
   Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureLodOffset",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.VEC3,
   Keyword.FLOAT,
   Keyword.IVEC3
@@ -574,38 +561,38 @@ BuiltinFunction._create(
 );
 BuiltinFunction._create(
   "textureLodOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2DArray,
+  GenericType.GVec4,
+  GenericType.GSampler2DArray,
   Keyword.VEC3,
   Keyword.FLOAT,
   Keyword.IVEC2
 );
 
-BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC3, Keyword.FLOAT);
-BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC4, Keyword.FLOAT);
-BuiltinFunction._create("textureProjLod", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProjLod", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC3, Keyword.FLOAT);
+BuiltinFunction._create("textureProjLod", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC4, Keyword.FLOAT);
+BuiltinFunction._create("textureProjLod", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC4, Keyword.FLOAT);
 BuiltinFunction._create("textureProjLod", Keyword.FLOAT, Keyword.SAMPLER2D_SHADOW, Keyword.VEC4, Keyword.FLOAT);
 
 BuiltinFunction._create(
   "textureProjLodOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC3,
   Keyword.FLOAT,
   Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureProjLodOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC4,
   Keyword.FLOAT,
   Keyword.IVEC2
 );
 BuiltinFunction._create(
   "textureProjLodOffset",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.VEC4,
   Keyword.FLOAT,
   Keyword.IVEC3
@@ -619,9 +606,9 @@ BuiltinFunction._create(
   Keyword.IVEC2
 );
 
-BuiltinFunction._create("textureGrad", EGenType.GVec4, EGenType.GSampler2D, Keyword.VEC2, Keyword.VEC2, Keyword.VEC2);
-BuiltinFunction._create("textureGrad", EGenType.GVec4, EGenType.GSampler3D, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
-BuiltinFunction._create("textureGrad", EGenType.GVec4, EGenType.GSamplerCube, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
+BuiltinFunction._create("textureGrad", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.VEC2, Keyword.VEC2);
+BuiltinFunction._create("textureGrad", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
+BuiltinFunction._create("textureGrad", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
 
 BuiltinFunction._create(
   "textureGrad",
@@ -642,8 +629,8 @@ BuiltinFunction._create(
 
 BuiltinFunction._create(
   "textureGrad",
-  EGenType.GVec4,
-  EGenType.GSampler2DArray,
+  GenericType.GVec4,
+  GenericType.GSampler2DArray,
   Keyword.VEC3,
   Keyword.VEC2,
   Keyword.VEC2
@@ -659,8 +646,8 @@ BuiltinFunction._create(
 
 BuiltinFunction._create(
   "textureGradOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC2,
   Keyword.VEC2,
   Keyword.VEC2,
@@ -668,8 +655,8 @@ BuiltinFunction._create(
 );
 BuiltinFunction._create(
   "textureGradOffset",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.VEC3,
   Keyword.VEC3,
   Keyword.VEC3,
@@ -686,8 +673,8 @@ BuiltinFunction._create(
 );
 BuiltinFunction._create(
   "textureGradOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2DArray,
+  GenericType.GVec4,
+  GenericType.GSampler2DArray,
   Keyword.VEC3,
   Keyword.VEC2,
   Keyword.VEC2,
@@ -705,24 +692,24 @@ BuiltinFunction._create(
 
 BuiltinFunction._create(
   "textureProjGrad",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC3,
   Keyword.VEC2,
   Keyword.VEC2
 );
 BuiltinFunction._create(
   "textureProjGrad",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC4,
   Keyword.VEC2,
   Keyword.VEC2
 );
 BuiltinFunction._create(
   "textureProjGrad",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.VEC4,
   Keyword.VEC3,
   Keyword.VEC3
@@ -738,8 +725,8 @@ BuiltinFunction._create(
 
 BuiltinFunction._create(
   "textureProjGradOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC3,
   Keyword.VEC2,
   Keyword.VEC2,
@@ -747,8 +734,8 @@ BuiltinFunction._create(
 );
 BuiltinFunction._create(
   "textureProjGradOffset",
-  EGenType.GVec4,
-  EGenType.GSampler2D,
+  GenericType.GVec4,
+  GenericType.GSampler2D,
   Keyword.VEC4,
   Keyword.VEC2,
   Keyword.VEC2,
@@ -756,8 +743,8 @@ BuiltinFunction._create(
 );
 BuiltinFunction._create(
   "textureProjGradOffset",
-  EGenType.GVec4,
-  EGenType.GSampler3D,
+  GenericType.GVec4,
+  GenericType.GSampler3D,
   Keyword.VEC4,
   Keyword.VEC3,
   Keyword.VEC3,
@@ -772,6 +759,6 @@ BuiltinFunction._create(
   Keyword.VEC2,
   Keyword.IVEC2
 );
-BuiltinFunction._createWithScop("dFdx", EGenType.GenType, EShaderStage.FRAGMENT, EGenType.GenType);
-BuiltinFunction._createWithScop("dFdy", EGenType.GenType, EShaderStage.FRAGMENT, EGenType.GenType);
-BuiltinFunction._createWithScop("fwidth", EGenType.GenType, EShaderStage.FRAGMENT, EGenType.GenType);
+BuiltinFunction._createWithScop("dFdx", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
+BuiltinFunction._createWithScop("dFdy", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
+BuiltinFunction._createWithScop("fwidth", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
