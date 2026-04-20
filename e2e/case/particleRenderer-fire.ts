@@ -357,7 +357,7 @@ function createFireEmbersParticle(fireEntity: Entity, texture: Texture2D): void 
 
   // Emission module
   emission.rateOverTime.constant = 65;
-  emission.addBurst(new Burst(0, new ParticleCompositeCurve(15), 1, 0.01));
+  emission.addBurst(new Burst(0, new ParticleCompositeCurve(15)));
 
   const sphereShape = new SphereShape();
   sphereShape.radius = 0.01;
