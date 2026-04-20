@@ -32,6 +32,8 @@ export class EmissionModule extends ParticleGeneratorModule {
   @deepClone
   private _bursts: Burst[] = [];
 
+  private _currentBurstIndex = 0;
+
   @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
@@ -144,6 +146,7 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _reset(): void {
     this._frameRateTime = 0;
+    this._currentBurstIndex = 0;
   }
 
   /**
@@ -177,11 +180,13 @@ export class EmissionModule extends ParticleGeneratorModule {
     if (main.isLoop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
       let middleTime = Math.ceil(lastPlayTime / duration) * duration;
       this._emitBySubBurst(lastPlayTime, middleTime, duration);
+      this._currentBurstIndex = 0;
 
       for (let i = 0; i < cycleCount; i++) {
         const lastMiddleTime = middleTime;
         middleTime += duration;
         this._emitBySubBurst(lastMiddleTime, middleTime, duration);
+        this._currentBurstIndex = 0;
       }
 
       this._emitBySubBurst(middleTime, playTime, duration);
@@ -199,10 +204,14 @@ export class EmissionModule extends ParticleGeneratorModule {
     const startTime = lastPlayTime % duration;
     const endTime = startTime + (playTime - lastPlayTime);
 
-    for (let i = 0, n = bursts.length; i < n; i++) {
+    let nextIndex = bursts.length;
+    for (let i = this._currentBurstIndex, n = bursts.length; i < n; i++) {
       const burst = bursts[i];
       const burstTime = burst.time;
-      if (burstTime >= endTime) break;
+      if (burstTime >= endTime) {
+        nextIndex = i;
+        break;
+      }
 
       const cycles = Math.max(burst.cycles, 1);
       if (cycles === 1) {
@@ -215,6 +224,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const repeatInterval = Math.max(burst.repeatInterval, 0.01);
       const maxCycles =
         cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
+      const lastEffectiveTime = burstTime + (maxCycles - 1) * repeatInterval;
 
       const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval));
       const last = Math.min(maxCycles - 1, Math.ceil((endTime - burstTime) / repeatInterval) - 1);
@@ -223,6 +233,12 @@ export class EmissionModule extends ParticleGeneratorModule {
         if (effectiveTime >= duration) break;
         generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
       }
+
+      // First burst with pending future cycles pins _currentBurstIndex
+      if (lastEffectiveTime >= endTime && nextIndex === bursts.length) {
+        nextIndex = i;
+      }
     }
+    this._currentBurstIndex = nextIndex;
   }
 }
