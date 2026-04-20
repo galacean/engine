@@ -230,9 +230,9 @@ export class EmissionModule extends ParticleGeneratorModule {
       for (; infinite || c < cycles; c++) {
         const effectiveTime = burstTime + c * repeatInterval;
         if (effectiveTime >= duration) break;
-        // Repeated cycles (c > 0) use half-open interval [startTime, endTime) to prevent
-        // double-firing at frame boundaries, since _currentBurstIndex may not advance past this burst
-        if (c > 0 ? effectiveTime >= endTime : effectiveTime > endTime) break;
+        // Half-open interval [startTime, endTime): each effectiveTime fires in exactly one frame.
+        // _currentBurstCycleIndex ensures already-fired cycles are skipped on revisit.
+        if (effectiveTime >= endTime) break;
         if (effectiveTime >= startTime) {
           const count = burst.count.evaluate(undefined, rand.random());
           generator._emit(baseTime + effectiveTime, count);
