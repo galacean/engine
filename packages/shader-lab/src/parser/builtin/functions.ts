@@ -51,6 +51,7 @@ type FamilySpec = {
 
 const FamilyMembers: Partial<Record<BuiltinType, FamilySpec>> = {
   // Size-varying families: index 0 → scalar, 1 → vec2, 2 → vec3, 3 → vec4
+  // Per GLSL Spec §5.1, these appear in both parameter and return positions
   [GenericType.GenType]: { dimension: GenericDimension.Size, members: [Keyword.FLOAT, Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
   [GenericType.GenIntType]: { dimension: GenericDimension.Size, members: [Keyword.INT, Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
   [GenericType.GenUintType]: {
@@ -69,6 +70,9 @@ const FamilyMembers: Partial<Record<BuiltinType, FamilySpec>> = {
   [GenericType.Mat]: { dimension: GenericDimension.Size, members: [Keyword.MAT2, Keyword.MAT3, Keyword.MAT4] },
 
   // ScalarType-varying families: index 0 → float base, 1 → int base, 2 → uint base
+  // Per GLSL Spec §5.1:
+  //   GSampler* families are parameter-only (passed as texture samplers)
+  //   GVec4 is return-only (projected from a GSampler* parameter into the matching vec4 variant)
   [GenericType.GSampler2D]: {
     dimension: GenericDimension.ScalarType,
     members: [Keyword.SAMPLER2D, Keyword.I_SAMPLER2D, Keyword.U_SAMPLER2D]
