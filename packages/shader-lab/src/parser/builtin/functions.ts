@@ -52,8 +52,14 @@ type FamilySpec = {
 const FamilyMembers: Partial<Record<BuiltinType, FamilySpec>> = {
   // Size-varying families: index 0 → scalar, 1 → vec2, 2 → vec3, 3 → vec4
   // Per GLSL Spec §5.1, these appear in both parameter and return positions
-  [GenericType.GenType]: { dimension: GenericDimension.Size, members: [Keyword.FLOAT, Keyword.VEC2, Keyword.VEC3, Keyword.VEC4] },
-  [GenericType.GenIntType]: { dimension: GenericDimension.Size, members: [Keyword.INT, Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4] },
+  [GenericType.GenType]: {
+    dimension: GenericDimension.Size,
+    members: [Keyword.FLOAT, Keyword.VEC2, Keyword.VEC3, Keyword.VEC4]
+  },
+  [GenericType.GenIntType]: {
+    dimension: GenericDimension.Size,
+    members: [Keyword.INT, Keyword.IVEC2, Keyword.IVEC3, Keyword.IVEC4]
+  },
   [GenericType.GenUintType]: {
     dimension: GenericDimension.Size,
     members: [Keyword.UINT, Keyword.UVEC2, Keyword.UVEC3, Keyword.UVEC4]
@@ -272,7 +278,13 @@ BuiltinFunction._create("max", GenericType.GenIntType, GenericType.GenIntType, G
 BuiltinFunction._create("max", GenericType.GenIntType, GenericType.GenIntType, Keyword.INT);
 BuiltinFunction._create("clamp", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenType);
 BuiltinFunction._create("clamp", GenericType.GenType, GenericType.GenType, Keyword.FLOAT, Keyword.FLOAT);
-BuiltinFunction._create("clamp", GenericType.GenIntType, GenericType.GenIntType, GenericType.GenIntType, GenericType.GenIntType);
+BuiltinFunction._create(
+  "clamp",
+  GenericType.GenIntType,
+  GenericType.GenIntType,
+  GenericType.GenIntType,
+  GenericType.GenIntType
+);
 BuiltinFunction._create("clamp", GenericType.GenIntType, GenericType.GenIntType, Keyword.INT, Keyword.INT);
 BuiltinFunction._create(
   "clamp",
@@ -287,7 +299,13 @@ BuiltinFunction._create("mix", GenericType.GenType, GenericType.GenType, Generic
 BuiltinFunction._create("mix", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenBoolType);
 BuiltinFunction._create("step", GenericType.GenType, GenericType.GenType, GenericType.GenType);
 BuiltinFunction._create("step", GenericType.GenType, Keyword.FLOAT, GenericType.GenType);
-BuiltinFunction._create("smoothstep", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create(
+  "smoothstep",
+  GenericType.GenType,
+  GenericType.GenType,
+  GenericType.GenType,
+  GenericType.GenType
+);
 BuiltinFunction._create("smoothstep", GenericType.GenType, Keyword.FLOAT, Keyword.FLOAT, GenericType.GenType);
 BuiltinFunction._create("isnan", GenericType.GenBoolType, GenericType.GenType);
 BuiltinFunction._create("isinf", GenericType.GenBoolType, GenericType.GenType);
@@ -308,7 +326,13 @@ BuiltinFunction._create("distance", Keyword.FLOAT, GenericType.GenType, GenericT
 BuiltinFunction._create("dot", Keyword.FLOAT, GenericType.GenType, GenericType.GenType);
 BuiltinFunction._create("cross", Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
 BuiltinFunction._create("normalize", GenericType.GenType, GenericType.GenType);
-BuiltinFunction._create("faceforward", GenericType.GenType, GenericType.GenType, GenericType.GenType, GenericType.GenType);
+BuiltinFunction._create(
+  "faceforward",
+  GenericType.GenType,
+  GenericType.GenType,
+  GenericType.GenType,
+  GenericType.GenType
+);
 BuiltinFunction._create("reflect", GenericType.GenType, GenericType.GenType, GenericType.GenType);
 BuiltinFunction._create("refract", GenericType.GenType, GenericType.GenType, GenericType.GenType, Keyword.FLOAT);
 BuiltinFunction._create("matrixCompMult", GenericType.Mat, GenericType.Mat, GenericType.Mat);
@@ -609,9 +633,30 @@ BuiltinFunction._create(
   Keyword.IVEC2
 );
 
-BuiltinFunction._create("textureGrad", GenericType.GVec4, GenericType.GSampler2D, Keyword.VEC2, Keyword.VEC2, Keyword.VEC2);
-BuiltinFunction._create("textureGrad", GenericType.GVec4, GenericType.GSampler3D, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
-BuiltinFunction._create("textureGrad", GenericType.GVec4, GenericType.GSamplerCube, Keyword.VEC3, Keyword.VEC3, Keyword.VEC3);
+BuiltinFunction._create(
+  "textureGrad",
+  GenericType.GVec4,
+  GenericType.GSampler2D,
+  Keyword.VEC2,
+  Keyword.VEC2,
+  Keyword.VEC2
+);
+BuiltinFunction._create(
+  "textureGrad",
+  GenericType.GVec4,
+  GenericType.GSampler3D,
+  Keyword.VEC3,
+  Keyword.VEC3,
+  Keyword.VEC3
+);
+BuiltinFunction._create(
+  "textureGrad",
+  GenericType.GVec4,
+  GenericType.GSamplerCube,
+  Keyword.VEC3,
+  Keyword.VEC3,
+  Keyword.VEC3
+);
 
 BuiltinFunction._create(
   "textureGrad",
