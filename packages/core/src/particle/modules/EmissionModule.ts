@@ -32,8 +32,8 @@ export class EmissionModule extends ParticleGeneratorModule {
   @deepClone
   private _bursts: Burst[] = [];
 
-  private _currentBurstIndex: number = 0;
-  private _currentBurstCycleIndex: number = 0;
+  private _currentBurstIndex = 0;
+  private _currentBurstCycleIndex = 0;
 
   @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);

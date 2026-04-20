@@ -12,13 +12,18 @@ export class Burst {
   public repeatInterval: number;
 
   /**
-   * Create burst object.
+   * Create a single-shot burst.
+   * @param time - Time to emit the burst
+   * @param count - Count of particles to emit
+   */
+  constructor(time: number, count: ParticleCompositeCurve);
+  /**
+   * Create a repeated burst.
    * @param time - Time to emit the burst
    * @param count - Count of particles to emit
    * @param cycles - Number of times to repeat the burst
    * @param repeatInterval - Time interval between each repeated burst
    */
-  constructor(time: number, count: ParticleCompositeCurve);
   constructor(time: number, count: ParticleCompositeCurve, cycles: number, repeatInterval: number);
   constructor(time: number, count: ParticleCompositeCurve, cycles?: number, repeatInterval?: number) {
     this.time = time;
