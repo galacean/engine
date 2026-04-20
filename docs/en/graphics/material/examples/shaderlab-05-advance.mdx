@@ -22,8 +22,8 @@ src="https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*YPhHTr6_96AAAAAAQ-AA
 The `#include` directive allows you to reference external code snippets, enabling code reuse:
 
 ```glsl
-#include "Common.glsl"      // Common functions
-#include "Skin.glsl"        // Skeletal animation
+#include "Common/Common.glsl"      // Common functions
+#include "Skin/Skin.glsl"        // Skeletal animation
 ```
 
 **Benefits:**
@@ -43,7 +43,7 @@ These snippets are registered by default in the editor.  Learn more about the AP
 
 #### Common.glsl - Common Functions
 ```glsl
-#include "Common.glsl"
+#include "Common/Common.glsl"
 
 // Provides common mathematical functions and constants
 float value = pow2(0.5);    // Square function
@@ -52,7 +52,7 @@ vec4 linearColor = sRGBToLinear(color); // sRGB to linear color conversion
 
 #### Skin.glsl - Skeletal Animation
 ```glsl
-#include "Skin.glsl"
+#include "Skin/Skin.glsl"
 
 // Provides skeletal animation-related functions
 mat4 skinMatrix = getSkinMatrix(attr);
@@ -75,7 +75,7 @@ vec4 WEIGHTS_0;   // Bone weight
 };
 ``` Skeleton Transformation Calculation
 ```glsl
-#include "Skin.glsl"
+#include "Skin/Skin.glsl"
 
 Varyings vert(Attributes Attribute) {
 Varyings output;
@@ -102,7 +102,7 @@ Shader "Tutorial/05-SkinnedUnlit" {
 SubShader "Default" {
 Pass "Forward" {
 // Engine-provided variables and matrices
-#include "Transform.glsl"
+#include "Common/Transform.glsl"
 
 // Material properties
 vec4 material_BaseColor;
@@ -122,7 +122,7 @@ vec2 uv;
 };
 
 // Include engine-provided skinned animation code snippet
-#include "Skin.glsl"
+#include "Skin/Skin.glsl"
 
 VertexShader = vert;
 FragmentShader = frag;

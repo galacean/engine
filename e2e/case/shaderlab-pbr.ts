@@ -288,7 +288,7 @@ const pbrShaderSource = `Shader "PBRShaderName" {
   }
         
     SubShader "Default" {
-      UsePass "pbr/Default/ShadowCaster"
+      UsePass "Utility/ShadowMap/Default/ShadowCaster"
 
       Pass "Forward Pass" {
         Tags { pipelineStage = "Forward"} 
@@ -326,7 +326,7 @@ const pbrShaderSource = `Shader "PBRShaderName" {
         VertexShader = PBRVertex;
         FragmentShader = PBRFragment;
 
-        #include "ForwardPassPBR.glsl"
+        #include "PBR/ForwardPassPBR.glsl"
       }
     }
   }`;

@@ -22,8 +22,8 @@ title: 高级特性与代码复用
 `#include` 指令允许引用外部代码片段，实现代码复用：
 
 ```glsl
-#include "Common.glsl"      // 通用函数
-#include "Skin.glsl"        // 骨骼动画
+#include "Common/Common.glsl"      // 通用函数
+#include "Skin/Skin.glsl"        // 骨骼动画
 ```
 
 **作用**：
@@ -43,7 +43,7 @@ Galacean 引擎提供了丰富的内置代码片段：
 
 #### Common.glsl - 通用函数
 ```glsl
-#include "Common.glsl"
+#include "Common/Common.glsl"
 
 // 提供常用的数学函数和常量
 float value = pow2(0.5);    // 平方函数
@@ -52,7 +52,7 @@ vec4 linearColor = sRGBToLinear(color); // sRGB 转线性
 
 #### Skin.glsl - 骨骼动画
 ```glsl
-#include "Skin.glsl"
+#include "Skin/Skin.glsl"
 
 // 提供骨骼动画相关函数
 mat4 skinMatrix = getSkinMatrix(attr);
@@ -77,7 +77,7 @@ mat4 skinMatrix = getSkinMatrix(attr);
 
 ### 骨骼变换计算
 ```glsl
-#include "Skin.glsl"
+#include "Skin/Skin.glsl"
 
 Varyings vert(Attributes Attribute) {
   Varyings output;
@@ -104,7 +104,7 @@ Shader "Tutorial/05-SkinnedUnlit" {
   SubShader "Default" {
     Pass "Forward" {
       // 引擎内置变量和矩阵
-      #include "Transform.glsl"
+      #include "Common/Transform.glsl"
       
       // 材质属性
       vec4 material_BaseColor;
@@ -124,7 +124,7 @@ Shader "Tutorial/05-SkinnedUnlit" {
       };
       
       // 引用引擎内置的骨骼动画代码片段
-      #include "Skin.glsl"
+      #include "Skin/Skin.glsl"
 
       VertexShader = vert;
       FragmentShader = frag;

@@ -78,7 +78,7 @@ DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
 // -------------------- SubShader Definition --------------------
 SubShader "Default" {
 // Include Shadow Caster Pass
-UsePass "pbr/Default/ShadowCaster"
+UsePass "Utility/ShadowMap/Default/ShadowCaster"
 
 // Custom Pass
 Pass "Forward Pass" {
@@ -100,7 +100,7 @@ DepthState = customDepthState;
 
 
 // Include code snippets
-#include "Common.glsl"
+#include "Common/Common.glsl"
 
 
 // Specify vertex and fragment shader entry points
@@ -363,10 +363,10 @@ return output;
 Include code snippets using the `#include` directive:
 
 ```glsl showLineNumbers
-#include "Common.glsl"      // Common functions
-#include "Light.glsl"       // Lighting calculation
-#include "Shadow.glsl"      // Shadow calculation
-#include "Fog.glsl"         // Fog effect calculation
+#include "Common/Common.glsl"      // Common functions
+#include "Common/Light.glsl"       // Lighting calculation
+#include "Shadow/Shadow.glsl"      // Shadow calculation
+#include "Common/Fog.glsl"         // Fog effect calculation
 #include "./MyCustom.glsl" // Custom snippet
 ```
 

@@ -80,7 +80,7 @@ Shader "Custom/MyShader" {
     // -------------------- SubShader 定义区 --------------------
     SubShader "Default" {
         // 引入阴影投射 Pass
-        UsePass "pbr/Default/ShadowCaster"
+        UsePass "Utility/ShadowMap/Default/ShadowCaster"
 
         // 自定义 Pass
         Pass "Forward Pass" {
@@ -102,7 +102,7 @@ Shader "Custom/MyShader" {
           
 
             // 代码段引用
-            #include "Common.glsl"
+            #include "Common/Common.glsl"
                 
 
             // 指定 顶点、片元 入口
@@ -367,10 +367,10 @@ MRT frag(Varyings input) {
 通过 `#include` 指令引入代码片段：
 
 ```glsl showLineNumbers
-#include "Common.glsl"      // 通用函数
-#include "Light.glsl"       // 光照计算
-#include "Shadow.glsl"      // 阴影计算
-#include "Fog.glsl"         // 雾效计算
+#include "Common/Common.glsl"      // 通用函数
+#include "Common/Light.glsl"       // 光照计算
+#include "Shadow/Shadow.glsl"      // 阴影计算
+#include "Common/Fog.glsl"         // 雾效计算
 #include "./MyCustom.glsl" // 自定义片段
 ```
 

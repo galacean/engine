@@ -11,7 +11,7 @@ const shaderLab = new ShaderLab();
 
 const shaderSource = `Shader "/custom.shader" {
           SubShader "Default" {
-            UsePass "pbr/Default/ShadowCaster"
+            UsePass "Utility/ShadowMap/Default/ShadowCaster"
 
             Pass "Pass0" {
               struct Attributes {

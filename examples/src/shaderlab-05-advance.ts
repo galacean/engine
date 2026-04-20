@@ -22,7 +22,7 @@ Shader "Tutorial/05-SkinnedUnlit" {
   SubShader "Default" {
     Pass "Forward" {
       // 引擎内置变量和矩阵
-      #include "Transform.glsl"
+      #include "Common/Transform.glsl"
       
       // 材质属性
       vec4 material_BaseColor;
@@ -42,7 +42,7 @@ Shader "Tutorial/05-SkinnedUnlit" {
       };
       
       // 引用引擎内置的骨骼动画代码片段
-      #include "Skin.glsl"
+      #include "Skin/Skin.glsl"
 
       VertexShader = vert;
       FragmentShader = frag;
@@ -128,7 +128,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then(async 
 
   // 展示着色器代码的关键特性
   console.log("\n=== 着色器关键特性解析 ===");
-  console.log('1. #include "Skin.glsl" - 引用引擎内置骨骼动画代码');
+  console.log('1. #include "Skin/Skin.glsl" - 引用引擎内置骨骼动画代码');
   console.log("3. getSkinMatrix(Attributes) - 内置函数，计算骨骼变换矩阵");
 
   console.log("\n=== 引擎内置Shader片段的优势 ===");
