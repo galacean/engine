@@ -10,7 +10,7 @@ describe("BaseMaterial", () => {
 
   class TestMaterial extends BaseMaterial {
     constructor(engine) {
-      super(engine, Shader.find("blinn-phong"));
+      super(engine, Shader.find("BlinnPhong"));
     }
 
     clone(): TestMaterial {
@@ -42,24 +42,30 @@ describe("BaseMaterial", () => {
   it("renderFace", () => {
     const material = new TestMaterial(engine);
 
-    material.renderFace = RenderFace.Front;
-    expect(material.renderState.rasterState.cullMode).to.eq(CullMode.Back);
+    expect(material.renderFace).to.eq(RenderFace.Front);
+
     material.renderFace = RenderFace.Back;
-    expect(material.renderState.rasterState.cullMode).to.eq(CullMode.Front);
+    expect(material.shaderData.getInt("rasterStateCullMode")).to.eq(CullMode.Front);
     material.renderFace = RenderFace.Double;
-    expect(material.renderState.rasterState.cullMode).to.eq(CullMode.Off);
+    expect(material.shaderData.getInt("rasterStateCullMode")).to.eq(CullMode.Off);
+    material.renderFace = RenderFace.Front;
+    expect(material.shaderData.getInt("rasterStateCullMode")).to.eq(CullMode.Back);
   });
 
   it("isTransparent", () => {
     const material = new TestMaterial(engine);
 
-    expect(material.renderState.blendState.targetBlendState.enabled).to.eq(false);
-    expect(material.renderState.depthState.writeEnabled).to.eq(true);
+    expect(material.isTransparent).to.eq(false);
 
     material.isTransparent = true;
 
-    expect(material.renderState.blendState.targetBlendState.enabled).to.eq(true);
-    expect(material.renderState.depthState.writeEnabled).to.eq(false);
+    expect(material.shaderData.getInt("blendEnabled")).to.eq(1);
+    expect(material.shaderData.getInt("depthWriteEnabled")).to.eq(0);
+
+    material.isTransparent = false;
+
+    expect(material.shaderData.getInt("blendEnabled")).to.eq(0);
+    expect(material.shaderData.getInt("depthWriteEnabled")).to.eq(1);
   });
 
   it("clone", () => {

@@ -400,7 +400,7 @@ const testShaderLabCode = `
     SubShader "Default" {
       Tags { ReplacementTag = "transparent" }
 
-      UsePass "pbr-specular/Default/Forward"
+      UsePass "Utility/ShadowMap/Default/ShadowCaster"
 
       Pass "test" {
         RenderQueueType = Opaque;
