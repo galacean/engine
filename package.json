@@ -7,7 +7,7 @@
     "preinstall": "npx only-allow pnpm",
     "pretest": "vitest --version && playwright install --with-deps chromium",
     "test": "vitest",
-    "coverage": "cross-env HEADLESS=true vitest --coverage --exclude='**/PrefabBenchmark.test.ts'",
+    "coverage": "cross-env HEADLESS=true vitest --coverage",
     "examples": "pnpm --filter @galacean/engine-examples dev",
     "build": "npm run b:module && npm run b:types",
     "lint": "eslint packages/*/src --ext .ts",
