@@ -52,47 +52,63 @@ graph TD;
 
 算法没有特殊的， 需要注意 `renderer_BlitTexture` 这个内置变量就是上一个 Pass 的后处理渲染结果，在此处就是 Bloom 和 Tonemapping 后的结果，我们针对这个结果进行了灰度显示。
 
-```ts showLineNumbers {14} filename="CustomPostProcessPass.ts"
-const customShader = Shader.create(
-  "Gray Scale Shader",
-  `
-  attribute vec4 POSITION_UV;
-  varying vec2 v_uv;
+```glsl showLineNumbers filename="GrayScale.shader"
+Shader "Custom/GrayScale" {
+  SubShader "Default" {
+    Pass "0" {
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
 
-  void main() {	
-	  gl_Position = vec4(POSITION_UV.xy, 0.0, 1.0);	
-	  v_uv = POSITION_UV.zw;
-  }
-  `,
-  `
-  varying vec2 v_uv;
-  uniform sampler2D renderer_BlitTexture;
+      VertexShader = vert;
+      FragmentShader = frag;
 
-  void main(){
-    vec4 color = texture2D(renderer_BlitTexture, v_uv);
-    float grayScale = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
-    gl_FragColor = vec4(vec3(grayScale), 1.0);
+      struct Attributes {
+        vec4 POSITION_UV;
+      };
+
+      struct Varyings {
+        vec2 v_uv;
+      };
+
+      sampler2D renderer_BlitTexture;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0);
+        v.v_uv = attr.POSITION_UV.zw;
+        return v;
+      }
+
+      void frag(Varyings v) {
+        vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
+        float grayScale = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+        gl_FragColor = vec4(vec3(grayScale), 1.0);
+      }
+    }
   }
-  `
-);
+}
+```
+
+编写好上面的 ShaderLab 源码后（如在编辑器中创建 `.shader` 文件），在代码中注册：
+
+```ts filename="CustomPostProcessPass.ts"
+Shader.create(grayScaleShaderSource); // 传入上面的 ShaderLab 字符串
+const customShader = Shader.find("Custom/GrayScale");
 ```
 
 ### 3. 新建 Pass
 
 我们新建一个 Pass，在 [onRender 钩子](/apis/core/#PostProcessUberPass-onRender) 里面直接 [Blitter](/apis/core/#Blitter) 到屏幕，然后将这个 Pass 添加到引擎中。
 
-```ts showLineNumbers {15,20} filename="CustomPostProcessPass.ts"
+```ts showLineNumbers {6,10} filename="CustomPostProcessPass.ts"
 class CustomPass extends PostProcessPass {
   private _blitMaterial: Material;
 
   constructor(engine: Engine) {
     super(engine);
-    this._blitMaterial = new Material(this.engine, customShader);
-
-    // 我们这里关掉深度测试和深度写入，保证每次 Blit 都能覆盖到屏幕上。
-    const depthState = this._blitMaterial.renderState.depthState;
-    depthState.enabled = false;
-    depthState.writeEnabled = false;
+    this._blitMaterial = new Material(this.engine, Shader.find("Custom/GrayScale"));
   }
 
   onRender(_, srcTexture: Texture2D, dst: RenderTarget): void {
@@ -157,24 +173,18 @@ class CustomPass extends PostProcessPass {
 }
 ```
 
-可以看到，我们在自定义管线的 `onRender` 钩子中，不断设置融合后的强度，然后在 shader 中消费这个数据即可：
+可以看到，我们在自定义管线的 `onRender` 钩子中，不断设置融合后的强度，然后在 shader 中消费这个数据即可。只需在 Pass 中添加 `u_intensity` uniform 并修改片元着色器：
 
-```ts showLineNumbers {8,12} filename="CustomPostProcessPass.ts"
-const customShader = Shader.create(
-  "Gray Scale Shader",
-  `
-   ......
-  `,
-  `
-  ......
-  uniform float u_intensity;
+```glsl showLineNumbers {7,12} filename="GrayScale.shader"
+      // ...同上，在 Pass 中做如下修改:
 
-  void main(){
-    ......
-    gl_FragColor = vec4(mix(color.rgb, vec3(grayScale), u_intensity), 1.0);
-  }
-  `
-);
+      float u_intensity;
+
+      void frag(Varyings v) {
+        vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
+        float grayScale = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+        gl_FragColor = vec4(mix(color.rgb, vec3(grayScale), u_intensity), 1.0);
+      }
 ```
 
 如果你的后处理组件是局部模式，我们还可以通过 [Blend Distance](/apis/core/#PostProcess-blendDistance) 来设置相机靠近碰撞体多少距离时开始混合：

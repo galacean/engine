@@ -14,7 +14,7 @@ float f2 = pow2(0.5);
 
 ### Common
 
-This module provides commonly used macros such as `PI`, and general-purpose functions like `gammaToLinear` and `pow2`.  See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/Common.glsl) for details. ### Fog
+This module provides commonly used macros such as `PI`, and general-purpose functions like `gammaToLinear` and `pow2`.  See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/Common/Common.glsl) for details. ### Fog
 
 Provides a fog effect function:
 
@@ -76,7 +76,7 @@ mat3 getTBNByDerivatives(vec2 uv, vec3 normal, vec3 position, bool isFrontFacing
 
 ### Shadow
 
-Provides shadow-related functions. See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/Shadow.glsl) for details. ```glsl
+Provides shadow-related functions. See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/Shadow/Shadow.glsl) for details. ```glsl
 // Get the cascade index of the shadow map, e.g., if the number of cascades is 4, it returns 0~3
 int computeCascadeIndex(vec3 positionWS);
 
@@ -113,11 +113,11 @@ Encapsulates all standard vertex attribute variables (BlendShape, Skin, UV, Norm
 
 ### VaryingsPBR
 
-Encapsulates all varying variables required for PBR. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/VaryingsPBR.glsl).
+Encapsulates all varying variables required for PBR. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/PBR/VaryingsPBR.glsl).
 
 ### LightDirectPBR
 
-Encapsulates direct light calculation based on the BSDF lighting model. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/LightDirectPBR.glsl). Generally, you can call it directly:
+Encapsulates direct light calculation based on the BSDF lighting model. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/PBR/LightDirectPBR.glsl). Generally, you can call it directly:
 
 ```glsl
 // Evaluate direct lighting
@@ -142,7 +142,7 @@ void sheenLobe(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, ve
 
 ### LightInDirectPBR
 
-This encapsulates the calculation of [ambient light](/en/docs/graphics/light/ambient) based on the BSDF lighting model. See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/LightIndirectPBR.glsl) for details. Generally, you can call it directly:
+This encapsulates the calculation of [ambient light](/en/docs/graphics/light/ambient) based on the BSDF lighting model. See the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/PBR/LightIndirectPBR.glsl) for details. Generally, you can call it directly:
 
 ```glsl
 // IBL
@@ -165,7 +165,7 @@ void evaluateSheenIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfD
 
 ### VertexPBR
 
-Some methods required by the PBR vertex shader, such as obtaining the UV coordinates after TilingOffset, obtaining the world coordinates, normals, and tangents after bone and BS calculations, etc., please refer to the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/VertexPBR.glsl).
+Some methods required by the PBR vertex shader, such as obtaining the UV coordinates after TilingOffset, obtaining the world coordinates, normals, and tangents after bone and BS calculations, etc., please refer to the [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/PBR/VertexPBR.glsl).
 
 ```glsl showLineNumbers
 VertexInputs vertexInputs = getVertexInputs(attributes);
@@ -175,12 +175,12 @@ gl_Position = renderer_MVPMat * vertexInputs.positionOS;
 
 ### BSDF
 
-This is a key file for the PBR lighting model, encapsulating common calculation functions for BRDF, projection, refraction, etc., as well as the `SurfaceData` and `BSDFData` structures used in subsequent lighting model calculations. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/BSDF.glsl) for details.
+This is a key file for the PBR lighting model, encapsulating common calculation functions for BRDF, projection, refraction, etc., as well as the `SurfaceData` and `BSDFData` structures used in subsequent lighting model calculations. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/PBR/BSDF.glsl) for details.
 
 
 ### FragmentPBR
 
-This file contains numerous variables passed from the CPU, such as metalness, roughness, and textures.  It initializes the `SurfaceData` structure using `getSurfaceData`. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/FragmentPBR.glsl) for details.
+This file contains numerous variables passed from the CPU, such as metalness, roughness, and textures.  It initializes the `SurfaceData` structure using `getSurfaceData`. See [source code](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/PBR/FragmentPBR.glsl) for details.
 
 ```glsl showLineNumbers
 BSDFData bsdfData;
@@ -194,4 +194,4 @@ initBSDFData(surfaceData, bsdfData);
 
 ### Finally
 
-Besides the functionality and usage of key APIs, the overall file organization can be referenced in the official website's [ForwardPassPBR](https://github.com/galacean/engine/blob/main/packages/shader/src/shaders/shadingPBR/ForwardPassPBR.glsl).
+Besides the functionality and usage of key APIs, the overall file organization can be referenced in the official website's [ForwardPassPBR](https://github.com/galacean/engine/blob/main/packages/shader/src/ShaderLibrary/PBR/ForwardPassPBR.glsl).

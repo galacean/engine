@@ -256,4 +256,10 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabRelease);
     glslValidate(engine, shaderSource, shaderLabVerbose);
   });
+
+  it("macro-type-alias (macro-defined type aliases in declarations, params, struct members, return types)", async () => {
+    const shaderSource = await readFile("./shaders/macro-type-alias.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
 });
