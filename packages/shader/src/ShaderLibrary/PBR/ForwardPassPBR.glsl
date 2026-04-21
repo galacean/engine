@@ -4,11 +4,10 @@
 #include "Common/Common.glsl"
 #include "Common/Fog.glsl"
 #include "Common/Transform.glsl"
+#include "Common/Attributes.glsl"
 #include "Skin/Skin.glsl"
 #include "Skin/BlendShape.glsl"
 #include "Shadow/Shadow.glsl"
-
-#include "Common/Attributes.glsl"
 #include "PBR/VaryingsPBR.glsl"
 #include "PBR/LightDirectPBR.glsl"
 #include "PBR/LightIndirectPBR.glsl"
