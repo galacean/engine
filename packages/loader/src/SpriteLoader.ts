@@ -32,7 +32,7 @@ class SpriteLoader extends Loader<Sprite> {
     return (
       resourceManager
         // @ts-ignore
-        .getResourceByRef(data.belongToAtlas)
+        .getResourceByRef<SpriteAtlas>(data.belongToAtlas)
         .then((atlas: SpriteAtlas) => {
           return atlas.getSprite(data.fullPath) || this._loadFromTexture(resourceManager, data);
         })
@@ -44,7 +44,7 @@ class SpriteLoader extends Loader<Sprite> {
       return (
         resourceManager
           // @ts-ignore
-          .getResourceByRef(data.texture)
+          .getResourceByRef<Texture2D>(data.texture)
           .then((texture: Texture2D) => {
             const sprite = new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border);
             const { width, height } = data;
