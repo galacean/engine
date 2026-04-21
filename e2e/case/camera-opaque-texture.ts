@@ -19,10 +19,75 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
+import { ShaderLab } from "@galacean/engine-shaderlab";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
+Shader.create(`
+  Shader "RenderOpaqueTexture" {
+    SubShader "Default" {
+      Pass "Forward" {
+        Tags { pipelineStage = "Forward" }
+
+        #include "Common/Common.glsl"
+        #include "Common/Transform.glsl"
+        #include "Common/Fog.glsl"
+        #include "Common/Attributes.glsl"
+        #include "Skin/Skin.glsl"
+        #include "Skin/BlendShape.glsl"
+
+        sampler2D camera_OpaqueTexture;
+
+        struct Varyings {
+          vec2 v_uv;
+          #if SCENE_FOG_MODE != 0
+            vec3 v_positionVS;
+          #endif
+        };
+
+        Varyings vert(Attributes attr) {
+          Varyings v;
+
+          vec4 position = vec4(attr.POSITION, 1.0);
+
+          #ifdef RENDERER_HAS_BLENDSHAPE
+            calculateBlendShape(attr, position);
+          #endif
+
+          #ifdef RENDERER_HAS_SKIN
+            mat4 skinMatrix = getSkinMatrix(attr);
+            position = skinMatrix * position;
+          #endif
+
+          gl_Position = renderer_MVPMat * position;
+          #ifdef RENDERER_HAS_UV
+            v.v_uv = attr.TEXCOORD_0;
+          #endif
+
+          #if SCENE_FOG_MODE != 0
+            v.v_positionVS = (renderer_MVMat * position).xyz;
+          #endif
+
+          return v;
+        }
+
+        void frag(Varyings v) {
+          vec4 baseColor = texture2D(camera_OpaqueTexture, v.v_uv);
+          gl_FragColor = baseColor;
+
+          #ifndef MATERIAL_IS_TRANSPARENT
+            gl_FragColor.a = 1.0;
+          #endif
+        }
+
+        VertexShader = vert;
+        FragmentShader = frag;
+      }
+    }
+  }
+`);
+
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
   engine.canvas.resizeByClientSize(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
@@ -54,7 +119,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
       showOpaquePlane(engine, cameraEntity);
 
-
       updateForE2E(engine);
 
       initScreenshot(engine, camera);
@@ -73,41 +137,3 @@ function showOpaquePlane(engine: Engine, camera: Entity): void {
   material.isTransparent = true;
   renderer.setMaterial(material);
 }
-
-const renderOpaqueVS = `
-    #include <common>
-    #include <common_vert>
-    #include <blendShape_input>
-    #include <uv_share>
-    #include <FogVertexDeclaration>
-
-    void main() {
-        #include <begin_position_vert>
-        #include <blendShape_vert>
-        #include <skinning_vert>
-        #include <uv_vert>
-        #include <position_vert>
-
-        #include <FogVertex>
-    }`;
-
-const renderOpaqueFS = `
-    #include <common>
-    #include <uv_share>
-    #include <FogFragmentDeclaration>
-
-    uniform sampler2D camera_OpaqueTexture;
-
-    void main() {
-        vec4 baseColor = texture2D(camera_OpaqueTexture, v_uv);
-
-        gl_FragColor = baseColor;
-
-        #ifndef MATERIAL_IS_TRANSPARENT
-            gl_FragColor.a = 1.0;
-        #endif
-
-        #include <FogFragment>
-    }`;
-
-Shader.create("RenderOpaqueTexture", renderOpaqueVS, renderOpaqueFS);
