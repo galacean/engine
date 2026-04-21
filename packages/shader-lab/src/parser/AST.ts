@@ -757,7 +757,7 @@ export namespace ASTNode {
           }
         }
         // #if _VERBOSE
-        const builtinFn = BuiltinFunction.getFn(fnIdent, paramSig);
+        const builtinFn = BuiltinFunction.resolveOverload(fnIdent, paramSig);
         if (builtinFn) {
           this.type = builtinFn.realReturnType;
           return;
