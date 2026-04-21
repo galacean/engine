@@ -146,20 +146,20 @@ export class BuiltinFunction {
   ): BuiltinFunction | undefined {
     const overloads = BuiltinFunctionTable.get(funcName);
     if (!overloads) return undefined;
-    const argCount = callArgTypes?.length ?? 0;
+    const n = callArgTypes?.length ?? 0;
 
-    for (let candidateIdx = 0, overloadCount = overloads.length; candidateIdx < overloadCount; candidateIdx++) {
-      const candidate = overloads[candidateIdx];
+    for (let i = 0, m = overloads.length; i < m; i++) {
+      const candidate = overloads[i];
       const declaredArgs = candidate.args;
-      if (declaredArgs.length !== argCount) continue;
+      if (declaredArgs.length !== n) continue;
 
       let sizeLock = -1;
       let scalarTypeLock = -1;
       let matched = true;
 
-      for (let argIdx = 0; argIdx < argCount; argIdx++) {
-        const declaredType = declaredArgs[argIdx];
-        const actualType = callArgTypes![argIdx];
+      for (let j = 0; j < n; j++) {
+        const declaredType = declaredArgs[j];
+        const actualType = callArgTypes![j];
         if (actualType === TypeAny) continue;
 
         const paramFamily = FamilyMembers[declaredType];
