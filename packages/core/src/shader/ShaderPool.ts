@@ -22,7 +22,6 @@ import {
   BloomSource,
   ScalableAmbientOcclusionSource
 } from "@galacean/engine-shader";
-import { IPrecompiledShader } from "@galacean/engine-design";
 import { TransformFeedbackShader } from "../graphic/TransformFeedbackShader";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
@@ -49,14 +48,10 @@ export class ShaderPool {
   }
 
   /**
-   * Register all built-in shaders.
-   *
-   * In release builds, sources are precompiled IPrecompiledShader objects
-   * (registered via Shader._createFromPrecompiled, no ShaderLab needed).
-   * In dev/test mode, sources are strings (registered via Shader.create, needs ShaderLab).
+   * Register all built-in shaders from precompiled .gsp sources.
    */
   static registerShaders(): void {
-    const sources: (string | IPrecompiledShader)[] = [
+    const sources = [
       // Utility shaders must be created first — material shaders UsePass from them
       BlitSource,
       BlitScreenSource,
@@ -64,7 +59,6 @@ export class ShaderPool {
       DepthOnlySource,
       // Material shaders
       PBRSource,
-
       BlinnPhongSource,
       UnlitSource,
       // Sky shaders
@@ -89,11 +83,7 @@ export class ShaderPool {
     ];
 
     for (const source of sources) {
-      if (typeof source === "string") {
-        Shader.create(source);
-      } else {
-        Shader._createFromPrecompiled(source);
-      }
+      Shader._createFromPrecompiled(source);
     }
   }
 }

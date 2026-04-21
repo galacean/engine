@@ -60,7 +60,7 @@ export class BaseMaterial extends Material {
     if (lastStatesCount < maxPassCount) {
       for (let i = lastStatesCount; i < maxPassCount; i++) {
         renderStates.push(new RenderState());
-        this.setBlendMode(i, BlendMode.Normal);
+        this.setBlendMode(BlendMode.Normal);
       }
     } else {
       renderStates.length = maxPassCount;
@@ -88,7 +88,7 @@ export class BaseMaterial extends Material {
 
   set blendMode(value: BlendMode) {
     if (value !== this._blendMode) {
-      this.setBlendMode(0, value);
+      this.setBlendMode(value);
       this._blendMode = value;
     }
   }
@@ -116,7 +116,7 @@ export class BaseMaterial extends Material {
 
   set renderFace(value: RenderFace) {
     if (value !== this._renderFace) {
-      this.setRenderFace(0, value);
+      this.setRenderFace(value);
       this._renderFace = value;
     }
   }
@@ -137,10 +137,9 @@ export class BaseMaterial extends Material {
 
   /**
    * Set if is transparent of the shader pass render state.
-   * @param passIndex - Shader pass index
    * @param isTransparent - If is transparent
    */
-  setIsTransparent(passIndex: number, isTransparent: boolean): void {
+  setIsTransparent(isTransparent: boolean): void {
     const { shaderData } = this;
 
     if (isTransparent) {
@@ -161,10 +160,9 @@ export class BaseMaterial extends Material {
 
   /**
    * Set the blend mode of shader pass render state.
-   * @param passIndex - Shader pass index
    * @param blendMode - Blend mode
    */
-  setBlendMode(passIndex: number, blendMode: BlendMode): void {
+  setBlendMode(blendMode: BlendMode): void {
     const { shaderData } = this;
 
     switch (blendMode) {
@@ -185,10 +183,9 @@ export class BaseMaterial extends Material {
 
   /**
    * Set the render face of shader pass render state.
-   * @param passIndex - Shader pass index
    * @param renderFace - Render face
    */
-  setRenderFace(passIndex: number, renderFace: RenderFace): void {
+  setRenderFace(renderFace: RenderFace): void {
     const { shaderData } = this;
 
     switch (renderFace) {
@@ -227,7 +224,7 @@ export class BaseMaterial extends Material {
   protected _seIsTransparent(value: boolean): void {
     if (value !== this._isTransparent) {
       // Forward pass
-      this.setIsTransparent(0, value);
+      this.setIsTransparent(value);
 
       // Shadow caster pass and depth only pass
       const { shaderData } = this;
