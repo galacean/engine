@@ -356,6 +356,12 @@ describe("ShaderLab", async () => {
     expect(varyingMatches).to.have.lengthOf(1);
   });
 
+  it("define-ctor-with-member (constructor-style macro with struct member access)", async () => {
+    const shaderSource = await readFile("./shaders/define-ctor-with-member.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
   it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
     const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);

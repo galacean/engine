@@ -491,22 +491,51 @@ export class Lexer extends BaseLexer {
    * expanding into a declaration/statement (type alias, qualifier alias, etc.)
    * and must stay on the legacy opaque path.
    *
-   * Kept as a whitelist rather than a blacklist because the keyword table is
-   * dominated by type/qualifier names — enumerating the small set of
-   * expression-leader keywords is less error-prone and survives new types being
-   * added to GLSL without needing to remember to update a blacklist.
+   * Two flavors of expression-starter keywords:
+   *   - Boolean literals: `true`, `false`
+   *   - Type constructors: `vec2(...)`, `mat3(...)`, `float(...)` etc. — GLSL
+   *     allows any scalar/vector/matrix type name to start a constructor-call
+   *     expression. Sampler types are excluded (no sampler constructor in
+   *     GLSL ES).
    *
-   * `uniform`, `varying`, `attribute` appear in shader source but aren't in
-   * `_lexemeTable` as keywords; they're plain identifiers to the lexer and
-   * naturally fall through as valid "expression-start" identifiers (they aren't
-   * expression starters syntactically, but any legitimate use of them leading a
-   * `#define` value is already malformed — the LALR parser will surface the
-   * error).
+   * Qualifier keywords (`highp`, `mediump`, `in`, `out`, `uniform`, `struct`,
+   * `precision`, `layout`, `invariant`, `const`, etc.) are intentionally NOT
+   * here — starting a `#define` value with them means it's a declaration-style
+   * macro that should stay opaque.
    */
   private static readonly _expressionValueLeaderKeywords = new Set<string>([
     // Boolean literals
     "true",
-    "false"
+    "false",
+    // Scalar type constructors
+    "bool",
+    "int",
+    "uint",
+    "float",
+    "double",
+    // Vector type constructors
+    "bvec2",
+    "bvec3",
+    "bvec4",
+    "ivec2",
+    "ivec3",
+    "ivec4",
+    "uvec2",
+    "uvec3",
+    "uvec4",
+    "vec2",
+    "vec3",
+    "vec4",
+    // Matrix type constructors
+    "mat2",
+    "mat3",
+    "mat4",
+    "mat2x3",
+    "mat2x4",
+    "mat3x2",
+    "mat3x4",
+    "mat4x2",
+    "mat4x3"
   ]);
 
   /**
