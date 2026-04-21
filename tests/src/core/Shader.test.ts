@@ -142,6 +142,11 @@ describe("Shader", () => {
 
       // Call update will compile shader internally
       engine.update();
+
+      // Compile custom shader to verify it works end-to-end
+      const customMaterial = new Material(engine, Shader.find("custom"));
+      meshRenderer.setMaterial(customMaterial);
+      engine.update();
     });
 
     it("ShaderLab", async function () {
@@ -338,60 +343,19 @@ describe("Shader", () => {
 });
 
 const customVS = `
-#include <common>
-#include <common_vert>
-#include <blendShape_input>
-#include <uv_share>
-#include <FogVertexDeclaration>
+attribute vec3 POSITION;
+uniform mat4 renderer_MVPMat;
 
 void main() {
-
-    #include <begin_position_vert>
-    #include <blendShape_vert>
-    #include <skinning_vert>
-    #include <uv_vert>
-    #include <position_vert>
-
-    #include <FogVertex>
+    gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
 }
 `;
 
 const customFS = `
-#include <common>
-#include <uv_share>
-#include <FogFragmentDeclaration>
-
 uniform vec4 material_BaseColor;
-uniform float material_AlphaCutoff;
-
-#ifdef MATERIAL_HAS_BASETEXTURE
-    uniform sampler2D material_BaseTexture;
-#endif
 
 void main() {
-     vec4 baseColor = material_BaseColor;
-
-    #ifdef MATERIAL_HAS_BASETEXTURE
-        vec4 textureColor = texture2D(material_BaseTexture, v_uv);
-        textureColor = gammaToLinear(textureColor);
-        baseColor *= textureColor;
-    #endif
-
-    #ifdef MATERIAL_IS_ALPHA_CUTOFF
-        if( baseColor.a < material_AlphaCutoff ) {
-            discard;
-        }
-    #endif
-
-    gl_FragColor = baseColor;
-
-    #ifndef MATERIAL_IS_TRANSPARENT
-        gl_FragColor.a = 1.0;
-    #endif
-
-    #include <FogFragment>
-
-    gl_FragColor = linearToGamma(gl_FragColor);
+    gl_FragColor = material_BaseColor;
 }
 `;
 
