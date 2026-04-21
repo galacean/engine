@@ -98,25 +98,6 @@ const FamilyMembers: Partial<Record<BuiltinType, FamilySpec>> = {
   [GenericType.GVec4]: { dimension: GenericDimension.ScalarType, members: [Keyword.VEC4, Keyword.IVEC4, Keyword.UVEC4] }
 };
 
-// Reverse of `FamilyMembers`: given a concrete type, find its index within a family.
-// Keyed by (family, type) rather than just by type because the same concrete can appear
-// in multiple families at different indices (VEC4 is index 3 in GenType, index 0 in GVec4)
-const FamilyMemberIndex = new Map<BuiltinType, Map<NonGenericGalaceanType, number>>();
-for (const key in FamilyMembers) {
-  const family = Number(key) as BuiltinType;
-  const spec = FamilyMembers[family]!;
-  const indexMap = new Map<NonGenericGalaceanType, number>();
-  for (let i = 0; i < spec.members.length; i++) indexMap.set(spec.members[i], i);
-  FamilyMemberIndex.set(family, indexMap);
-}
-
-// Locate a concrete type in a family. Returns index on hit, -1 on miss.
-// The `!` is safe: callers only reach here after confirming the family is in
-// `FamilyMembers`, and `FamilyMemberIndex` is built from the same key set.
-function familyIndexOf(family: BuiltinType, type: NonGenericGalaceanType): number {
-  return FamilyMemberIndex.get(family)!.get(type) ?? -1;
-}
-
 const BuiltinFunctionTable: Map<string, BuiltinFunction[]> = new Map();
 
 export class BuiltinFunction {
@@ -145,7 +126,7 @@ export class BuiltinFunction {
     BuiltinFunctionTable.set(ident, list);
   }
 
-  static _createWithScop(ident: string, returnType: BuiltinType, scope: EShaderStage, ...args: BuiltinType[]) {
+  static _createWithScope(ident: string, returnType: BuiltinType, scope: EShaderStage, ...args: BuiltinType[]) {
     const fn = new BuiltinFunction(ident, returnType, scope, ...args);
     const list = BuiltinFunctionTable.get(ident) ?? [];
     list.push(fn);
@@ -183,7 +164,8 @@ export class BuiltinFunction {
 
         const paramFamily = FamilyMembers[declaredType];
         if (paramFamily) {
-          const memberIdx = familyIndexOf(declaredType, actualType);
+          // Families have at most 4 members; linear indexOf beats Map.get on this size
+          const memberIdx = paramFamily.members.indexOf(actualType);
           if (memberIdx === -1) {
             matched = false;
             break;
@@ -807,6 +789,6 @@ BuiltinFunction._create(
   Keyword.VEC2,
   Keyword.IVEC2
 );
-BuiltinFunction._createWithScop("dFdx", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
-BuiltinFunction._createWithScop("dFdy", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
-BuiltinFunction._createWithScop("fwidth", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
+BuiltinFunction._createWithScope("dFdx", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
+BuiltinFunction._createWithScope("dFdy", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
+BuiltinFunction._createWithScope("fwidth", GenericType.GenType, EShaderStage.FRAGMENT, GenericType.GenType);
