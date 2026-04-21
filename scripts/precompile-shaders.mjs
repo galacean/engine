@@ -131,10 +131,10 @@ function generateLibsIndex() {
   const entries = [];
 
   for (const gspFile of gspFiles) {
-    const rel = path.relative(LIBS_DIR, gspFile).replace(/\.gsp$/, "");
+    const rel = path.relative(LIBS_DIR, gspFile).replace(/\\/g, "/").replace(/\.gsp$/, "");
     const varName = nameMap.get(rel);
     if (!varName) continue; // gsp exists but not in Shaders/index.ts, skip
-    const importPath = "./" + rel.replace(/\\/g, "/") + ".gsp";
+    const importPath = "./" + rel + ".gsp";
     entries.push({ varName, importPath });
   }
 
