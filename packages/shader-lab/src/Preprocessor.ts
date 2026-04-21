@@ -1,7 +1,14 @@
 import { Logger, ShaderPass } from "@galacean/engine";
 /** @ts-ignore */
 import { ShaderLib } from "@galacean/engine";
+import type { ASTNode } from "./parser/AST";
 
+/**
+ * Classification of a `#define` value. Used by the opaque-token (legacy) path;
+ * expression-style macros go straight to AST and don't need this tag.
+ *
+ * @internal
+ */
 export enum MacroValueType {
   Number, // 1, 1.1
   Symbol, // variable name
@@ -9,12 +16,34 @@ export enum MacroValueType {
   Other // shaderLab does not check this
 }
 
+/**
+ * Record for a single `#define` directive. Two shapes coexist:
+ *
+ * - **Expression macros** — have `valueAst` pointing at an `AssignmentExpression`
+ *   subtree. These participate in type inference, varying flattening, and reference
+ *   tracking through the normal visitor pattern, just like inline expressions.
+ * - **Opaque macros** — the value is a qualifier/type/partial-syntax form that can't
+ *   be parsed as a GLSL expression. `valueAst` is undefined and the lexer kept the
+ *   whole directive in a legacy `MACRO_DEFINE_EXPRESSION` token.
+ *
+ * Both shapes share `isFunction`, `name`, `params`, and `value` for display and
+ * reference tracking. `functionCallName` is set only for opaque macros whose value
+ * is a function-call form, enabling `getReferenceSymbolNames` to record the callee.
+ */
 export interface MacroDefineInfo {
   isFunction: boolean;
   name: string;
-  value: string;
+  /** Classification of the raw value text. Populated for opaque (legacy) macros
+   *  only — AST-form macros leave this as `Other` since classification doesn't
+   *  drive their semantics. */
   valueType: MacroValueType;
+  /** Raw value text for opaque macros; empty string for AST-form macros. */
+  value: string;
+  /** AST for expression-style macros. Absent for opaque macros. */
+  valueAst?: ASTNode.AssignmentExpression;
   params: string[];
+  /** Function callee name for opaque macros classified as `FunctionCall`; empty
+   *  string otherwise. */
   functionCallName: string;
 }
 
@@ -49,6 +78,12 @@ export class Preprocessor {
     );
   }
 
+  /**
+   * For a given macro name, collect the external symbols its body references so
+   * callers of the macro can drive symbol-table lookup. Only the opaque-macro path
+   * needs this preprocessor-driven collection; expression macros carry their refs
+   * in the AST and `MacroDefine.semanticAnalyze` collects them directly.
+   */
   static getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): void {
     out.length = 0;
     const infos = macroDefineList[macroName];
@@ -56,6 +91,9 @@ export class Preprocessor {
 
     for (let i = 0; i < infos.length; i++) {
       const info = infos[i];
+      // Expression macros handle their own reference tracking via the AST subtree
+      // (see `MacroDefine.semanticAnalyze`). Nothing to collect here for them.
+      if (info.valueAst) continue;
       const valueType = info.valueType;
       if (valueType === MacroValueType.FunctionCall || valueType === MacroValueType.Symbol) {
         const referencedName = valueType === MacroValueType.FunctionCall ? info.functionCallName : info.value;

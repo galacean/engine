@@ -23,9 +23,38 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.function_definition],
       [NoneTerminal.global_macro_if_statement],
       [NoneTerminal.macro_undef],
+      [NoneTerminal.macro_define],
       [Keyword.MACRO_DEFINE_EXPRESSION]
     ],
     ASTNode.GlobalDeclaration.pool
+  ),
+
+  // Expression-style `#define` — lexer emits either:
+  //   `MACRO_DEFINE ID <value tokens> MACRO_DEFINE_END`                 (object macro)
+  //   `MACRO_DEFINE ID MACRO_DEFINE_PARAMS <value tokens> MACRO_DEFINE_END` (function macro)
+  //
+  // The `(param1, param2, …)` block is captured by the lexer as a single opaque
+  // `MACRO_DEFINE_PARAMS` token. Capturing in the lexer (rather than recursively in
+  // the CFG via a `macro_define_param_list` non-terminal) avoids an LALR(1) conflict
+  // between `macro_define_param_list` and the visually similar
+  // `function_call_parameter_list` when the parser is in a state that could follow
+  // either `LEFT_PAREN ID , ID` pattern.
+  //
+  // Empty-value `#define X\n` and function-like without body stay on the legacy
+  // opaque `MACRO_DEFINE_EXPRESSION` path.
+  ...GrammarUtils.createProductionWithOptions(
+    NoneTerminal.macro_define,
+    [
+      [Keyword.MACRO_DEFINE, ETokenType.ID, NoneTerminal.assignment_expression, Keyword.MACRO_DEFINE_END],
+      [
+        Keyword.MACRO_DEFINE,
+        ETokenType.ID,
+        Keyword.MACRO_DEFINE_PARAMS,
+        NoneTerminal.assignment_expression,
+        Keyword.MACRO_DEFINE_END
+      ]
+    ],
+    ASTNode.MacroDefine.pool
   ),
 
   ...GrammarUtils.createProductionWithOptions(
@@ -826,6 +855,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
       [NoneTerminal.jump_statement],
       [NoneTerminal.macro_if_statement],
       [NoneTerminal.macro_undef],
+      [NoneTerminal.macro_define],
       [Keyword.MACRO_DEFINE_EXPRESSION]
     ],
     // #if _VERBOSE

@@ -4,7 +4,7 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
-import { Preprocessor } from "../Preprocessor";
+import { MacroDefineInfo, MacroValueType, Preprocessor } from "../Preprocessor";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -94,6 +94,7 @@ export namespace ASTNode {
     | MacroElseExpression
     | MacroElifExpression
     | MacroUndef
+    | MacroDefine
     | BaseToken;
 
   export type ASTNodePool = ClearableObjectPool<
@@ -1424,7 +1425,13 @@ export namespace ASTNode {
           sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
           // #endif
         } else {
-          this.typeInfo = symbols[0].dataType?.type;
+          // Expression-style macros have their own value AST; its real type isn't
+          // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
+          // is a `Varyings` struct but the macro call site's type should be the
+          // member type). Skip type inference for those and keep TypeAny.
+          if (child instanceof BaseToken || !child.hasAstValue) {
+            this.typeInfo = symbols[0].dataType?.type;
+          }
           const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
           if (currentScopeSymbol) {
             if (
@@ -1478,7 +1485,12 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0];
 
-      if (child instanceof MacroUndef || child instanceof GlobalMacroIfStatement || child instanceof BaseToken) {
+      if (
+        child instanceof MacroUndef ||
+        child instanceof GlobalMacroIfStatement ||
+        child instanceof MacroDefine ||
+        child instanceof BaseToken
+      ) {
         sa.shaderData.globalMacroDeclarations.push(this);
 
         if (child instanceof GlobalMacroIfStatement) {
@@ -1625,35 +1637,117 @@ export namespace ASTNode {
   export class MacroCallSymbol extends TreeNode {
     referenceSymbolNames: string[] = [];
     macroName: string;
+    /** True when at least one `MacroDefineInfo` for this macro has a `valueAst`,
+     *  i.e. the macro was parsed via the `macro_define` CFG rule. Call sites use
+     *  this to skip naive type inference: an AST-form macro drives the call site's
+     *  type through its own value subtree, not through a root of `referenceSymbolNames`. */
+    hasAstValue: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames.length = 0;
+      this.hasAstValue = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const children = this.children;
-      const macroName = (children[0] as BaseToken).lexeme;
-
+      const macroName = (this.children[0] as BaseToken).lexeme;
       this.macroName = macroName;
 
       Preprocessor.getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
+      this.hasAstValue = sa.macroDefineList[macroName]?.some((info) => info.valueAst != null) ?? false;
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
-    referenceSymbolNames: string[];
-    macroName: string;
+    referenceSymbolNames: string[] = [];
+    macroName: string = "";
+    hasAstValue: boolean = false;
+
+    override init(): void {
+      this.referenceSymbolNames = [];
+      this.macroName = "";
+      this.hasAstValue = false;
+    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0] as MacroCallSymbol;
 
       this.referenceSymbolNames = child.referenceSymbolNames;
       this.macroName = child.macroName;
+      this.hasAstValue = child.hasAstValue;
     }
 
     override codeGen(visitor: CodeGenVisitor) {
       return this.setCache(visitor.visitMacroCallFunction(this));
+    }
+  }
+
+  /**
+   * `#define NAME [(params)] [value]` — expression-style macro.
+   *
+   * Expression-form macros are parsed into AST rather than kept as raw lexemes. The
+   * optional `valueExpression` is an `AssignmentExpression` subtree that participates
+   * in normal codegen — so `v.v_normal.xyz` inside a `#define` flows through
+   * `visitPostfixExpression` just like an inline expression would, and varying
+   * flattening/type inference/reference tracking all come for free.
+   *
+   * Semantic analysis does not resolve symbols inside the value (the definition-site
+   * scope is not the call-site scope). Lookup happens lazily during codegen.
+   */
+  @ASTNodeDecorator(NoneTerminal.macro_define)
+  export class MacroDefine extends TreeNode {
+    macroName: string;
+    isFunction: boolean;
+    valueExpression?: AssignmentExpression;
+
+    override init(): void {
+      this.macroName = "";
+      this.isFunction = false;
+      this.valueExpression = undefined;
+    }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const children = this.children;
+      // children[0] is MACRO_DEFINE head token, children[1] is ID.
+      this.macroName = (children[1] as BaseToken).lexeme;
+
+      // If children[2] is a MACRO_DEFINE_PARAMS token, the macro is function-like
+      // and its parameter list lives in that token's lexeme (e.g. "(a, b, c)").
+      let params: string[] = [];
+      let valueIdx = 2;
+      if (children[2] instanceof BaseToken && (children[2] as BaseToken).type === Keyword.MACRO_DEFINE_PARAMS) {
+        this.isFunction = true;
+        params = ParserUtils.parseMacroParamList((children[2] as BaseToken).lexeme);
+        valueIdx = 3;
+      }
+
+      if (children[valueIdx] instanceof AssignmentExpression) {
+        this.valueExpression = children[valueIdx] as AssignmentExpression;
+      }
+
+      // Register this macro in the preprocessor's define list so downstream passes
+      // (e.g. `MacroCallSymbol.semanticAnalyze` resolving references) see it. The
+      // AST path stores `valueAst` and leaves the legacy opaque fields empty.
+      const info: MacroDefineInfo = {
+        isFunction: this.isFunction,
+        name: this.macroName,
+        value: "",
+        valueType: MacroValueType.Other,
+        valueAst: this.valueExpression,
+        params,
+        functionCallName: ""
+      };
+
+      const list = sa.macroDefineList;
+      if (list[this.macroName]) {
+        list[this.macroName].push(info);
+      } else {
+        list[this.macroName] = [info];
+      }
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return this.setCache(visitor.visitMacroDefine(this));
     }
   }
 }

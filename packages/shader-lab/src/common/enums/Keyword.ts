@@ -111,7 +111,21 @@ export enum Keyword {
   MACRO_ELIF,
   MACRO_ENDIF,
   MACRO_UNDEF,
+  /** Legacy opaque `#define` token — whole directive packed into one lexeme. Retained
+   *  for macros whose value can't be parsed as a GLSL expression (type aliases,
+   *  qualifier aliases, partial-syntax macros). Expression-style macros instead emit
+   *  `MACRO_DEFINE` + ID + value tokens + `MACRO_DEFINE_END`. */
   MACRO_DEFINE_EXPRESSION,
   MACRO_CONDITIONAL_EXPRESSION,
-  MACRO_CALL
+  MACRO_CALL,
+  /** `#define` directive head for expression-style macros. */
+  MACRO_DEFINE,
+  /** Terminates a `MACRO_DEFINE` directive at end-of-line. */
+  MACRO_DEFINE_END,
+  /** `(params)` block for a function-like `#define`. The lexer captures the entire
+   *  parenthesized parameter list as one opaque token so the macro-define CFG rule
+   *  doesn't need its own parameter-list production (which would conflict with
+   *  function_call_parameter_list under LALR(1)). The AST consumer parses the
+   *  lexeme to recover the individual parameter names. */
+  MACRO_DEFINE_PARAMS
 }
