@@ -12,7 +12,7 @@
 
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, "..");
@@ -54,7 +54,7 @@ if (needsRebuild()) {
 
 // Load ShaderLab — this transitively loads engine-core,
 // which runs ShaderPool.init() and registers all include fragments.
-const { ShaderLab } = await import(shaderLabDist);
+const { ShaderLab } = await import(pathToFileURL(shaderLabDist).href);
 const shaderLab = new ShaderLab();
 
 if (typeof shaderLab._precompile !== "function") {
