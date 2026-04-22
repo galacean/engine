@@ -135,7 +135,7 @@ void BlinnPhongFragment(Varyings v) {
     // Normal
     vec3 N;
     #ifdef RENDERER_HAS_NORMAL
-        N = v.v_normalWS;
+        N = normalize(v.v_normalWS);
         #ifdef MATERIAL_HAS_NORMALTEXTURE
             #ifdef RENDERER_HAS_TANGENT
                 mat3 tbn = mat3(v.v_tangentWS, v.v_bitangentWS, v.v_normalWS);
