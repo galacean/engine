@@ -14,7 +14,6 @@ Shader "Utility/ShadowMap" {
       #include "Skin/Skin.glsl"
       #include "Skin/BlendShape.glsl"
 
-      mat4 camera_VPMat;
       vec2 scene_ShadowBias;
       vec3 scene_LightDirection;
 

@@ -14,8 +14,6 @@ Shader "Utility/DepthOnly" {
       #include "Skin/Skin.glsl"
       #include "Skin/BlendShape.glsl"
 
-      mat4 camera_VPMat;
-
       void vert(Attributes attr) {
         vec4 position = vec4(attr.POSITION, 1.0);
 
