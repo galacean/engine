@@ -409,6 +409,11 @@ export class Entity extends EngineObject {
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       child._parent = null;
+      child._siblingIndex = -1;
+      // Dispatch `Child` to the old parent before `_processInActive` (which unregisters
+      // UI listeners via `cleanRootCanvas`), so subscribers such as UICanvas can react
+      // to the hierarchy change while still attached.
+      this._dispatchModify(EntityModifyFlags.Child, this);
 
       let activeChangeFlag = ActiveChangeFlag.None;
       child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -416,6 +421,8 @@ export class Entity extends EngineObject {
       activeChangeFlag && child._processInActive(activeChangeFlag);
 
       Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
+
+      child._setParentChange();
     }
     children.length = 0;
   }

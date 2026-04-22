@@ -341,8 +341,29 @@ describe("Entity", async () => {
       child.parent = parent;
       const child2 = new Entity(engine, "child2");
       child2.parent = parent;
+
+      const parentModifyCount = [0, 0, 0];
+      const childModifyCount = [0, 0, 0];
+      const child2ModifyCount = [0, 0, 0];
+      // @ts-ignore
+      parent._registerModifyListener((flag: EntityModifyFlags) => ++parentModifyCount[flag]);
+      // @ts-ignore
+      child._registerModifyListener((flag: EntityModifyFlags) => ++childModifyCount[flag]);
+      // @ts-ignore
+      child2._registerModifyListener((flag: EntityModifyFlags) => ++child2ModifyCount[flag]);
+
       parent.clearChildren();
       expect(parent.children.length).eq(0);
+
+      // Parent should receive a single `Child` modify event for the whole clear so
+      // listeners (e.g. UICanvas) can invalidate their cached state.
+      expect(parentModifyCount[EntityModifyFlags.Child]).eq(1);
+      // Each detached child should receive a `Parent` modify event.
+      expect(childModifyCount[EntityModifyFlags.Parent]).eq(1);
+      expect(child2ModifyCount[EntityModifyFlags.Parent]).eq(1);
+      // Sibling index must be reset so the entity is treated as lonely afterwards.
+      expect(child.siblingIndex).eq(-1);
+      expect(child2.siblingIndex).eq(-1);
     });
     it("sibling index", () => {
       const root = scene.createRootEntity();
