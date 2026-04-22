@@ -21,7 +21,6 @@ Shader "Sky/BackgroundTexture" {
         vec2 v_uv;
       };
 
-      vec4 camera_ProjectionParams;
       sampler2D material_BaseTexture;
 
       Varyings BackgroundTextureVertex(Attributes attributes) {
