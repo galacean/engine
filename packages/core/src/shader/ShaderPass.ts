@@ -54,6 +54,8 @@ export class ShaderPass extends ShaderPart {
   _managedGroupMask: number = 0;
   /** @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
+  /** @internal Transform feedback output varyings (WebGL2 only). */
+  _feedbackVaryings?: string[];
 
   private _vertexSource?: string;
   private _fragmentSource?: string;
@@ -177,7 +179,7 @@ export class ShaderPass extends ShaderPart {
         ? this._compileShaderLabSource(engine, macroCollection)
         : this._compilePlatformSource(engine, macroCollection);
 
-    return new ShaderProgram(engine, vertexSource, fragmentSource);
+    return new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
   }
 
   private _compilePlatformSource(

@@ -16,15 +16,16 @@ import {
   BlitSource,
   BlitScreenSource,
   ParticleSource,
+  ParticleFeedbackSource,
   UberSource,
   FinalSRGBSource,
   FinalAntiAliasingSource,
   BloomSource,
   ScalableAmbientOcclusionSource
 } from "@galacean/engine-shader";
-import { TransformFeedbackShader } from "../graphic/TransformFeedbackShader";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
+import { ShaderPass } from "./ShaderPass";
 
 /**
  * Internal shader pool.
@@ -32,15 +33,9 @@ import { Shader } from "./Shader";
  */
 export class ShaderPool {
   /** @internal */
-  static particleFeedbackShader: TransformFeedbackShader;
+  static particleFeedbackPass: ShaderPass;
 
   static init(): void {
-    ShaderPool.particleFeedbackShader = new TransformFeedbackShader(
-      `#include <Particle/ParticleFeedback.glsl>`,
-      `void main() { discard; }`,
-      ["v_FeedbackPosition", "v_FeedbackVelocity"]
-    );
-
     // Register all include fragments (does not require ShaderLab)
     for (const fragment of fragmentList) {
       ShaderFactory.registerInclude(fragment.includeKey, fragment.source);
@@ -71,8 +66,9 @@ export class ShaderPool {
       TextSource,
       TrailSource,
       UIDefaultSource,
-      // Particle shader
+      // Particle shaders
       ParticleSource,
+      ParticleFeedbackSource,
       // PostProcess shaders
       UberSource,
       FinalSRGBSource,
@@ -85,5 +81,10 @@ export class ShaderPool {
     for (const source of sources) {
       Shader._createFromPrecompiled(source);
     }
+
+    // Cache the particle feedback pass and configure transform feedback varyings
+    const feedbackPass = Shader.find("Particle/Feedback").subShaders[0].passes[0];
+    feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
+    ShaderPool.particleFeedbackPass = feedbackPass;
   }
 }

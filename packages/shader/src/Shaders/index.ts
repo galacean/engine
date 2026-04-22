@@ -21,8 +21,9 @@ import ShadowMapSource from "./Utility/ShadowMap.shader";
 import BlitSource from "./Utility/Blit.shader";
 import BlitScreenSource from "./Utility/BlitScreen.shader";
 
-// Particle shader
+// Particle shaders
 import ParticleSource from "./Particle.shader";
+import ParticleFeedbackSource from "./ParticleFeedback.shader";
 
 // PostProcess shaders
 import UberSource from "./PostProcess/Uber.shader";
@@ -50,6 +51,7 @@ export {
   BlitSource,
   BlitScreenSource,
   ParticleSource,
+  ParticleFeedbackSource,
   UberSource,
   FinalSRGBSource,
   FinalAntiAliasingSource,

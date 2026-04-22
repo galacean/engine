@@ -36,7 +36,6 @@ import ForwardPassBlinnPhong from "./BlinnPhong/ForwardPassBlinnPhong.glsl";
 // Particle
 import ParticleCommon from "./Particle/ParticleCommon.glsl";
 import ParticleMesh from "./Particle/ParticleMesh.glsl";
-import ParticleFeedback from "./Particle/ParticleFeedback.glsl";
 import SphereBillboard from "./Particle/Billboard/SphereBillboard.glsl";
 import StretchedBillboard from "./Particle/Billboard/StretchedBillboard.glsl";
 import VerticalBillboard from "./Particle/Billboard/VerticalBillboard.glsl";
@@ -120,7 +119,6 @@ const fragmentList: IShaderFragment[] = [
   // Particle
   { source: ParticleCommon, includeKey: "Particle/ParticleCommon.glsl" },
   { source: ParticleMesh, includeKey: "Particle/ParticleMesh.glsl" },
-  { source: ParticleFeedback, includeKey: "Particle/ParticleFeedback.glsl" },
   { source: SphereBillboard, includeKey: "Particle/Billboard/SphereBillboard.glsl" },
   { source: StretchedBillboard, includeKey: "Particle/Billboard/StretchedBillboard.glsl" },
   { source: VerticalBillboard, includeKey: "Particle/Billboard/VerticalBillboard.glsl" },

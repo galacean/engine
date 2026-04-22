@@ -11,13 +11,13 @@
     #endif
 #endif
 
-vec2 computeParticleUV(in vec2 uv, in float normalizedAge) {
+vec2 computeParticleUV(Attributes attributes, in vec2 uv, in float normalizedAge) {
     #if defined(RENDERER_TSA_FRAME_CURVE) || defined(RENDERER_TSA_FRAME_RANDOM_CURVES)
         float scaledNormalizedAge = normalizedAge * renderer_TSACycles;
         float cycleNormalizedAge = scaledNormalizedAge - floor(scaledNormalizedAge);
         float normalizedFrame = evaluateParticleCurve(renderer_TSAFrameMaxCurve, cycleNormalizedAge);
         #ifdef RENDERER_TSA_FRAME_RANDOM_CURVES
-            normalizedFrame = mix(evaluateParticleCurve(renderer_TSAFrameMinCurve, cycleNormalizedAge), normalizedFrame, a_Random1.x);
+            normalizedFrame = mix(evaluateParticleCurve(renderer_TSAFrameMinCurve, cycleNormalizedAge), normalizedFrame, attributes.a_Random1.x);
         #endif
 
         float frame = floor(normalizedFrame * renderer_TSATillingParams.z);

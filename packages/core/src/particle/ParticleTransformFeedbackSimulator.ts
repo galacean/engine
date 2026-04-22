@@ -35,7 +35,7 @@ export class ParticleTransformFeedbackSimulator {
     this._simulator = new TransformFeedbackSimulator(
       engine,
       ParticleBufferUtils.feedbackVertexStride,
-      ShaderPool.particleFeedbackShader
+      ShaderPool.particleFeedbackPass
     );
   }
 

@@ -14,13 +14,13 @@
 #endif
 
 
-vec4 computeParticleColor(in vec4 color, in float normalizedAge) {
+vec4 computeParticleColor(Attributes attributes, in vec4 color, in float normalizedAge) {
     #if defined(RENDERER_COL_GRADIENT) || defined(RENDERER_COL_RANDOM_GRADIENTS)
        vec4 gradientColor = evaluateParticleGradient(renderer_COLMaxGradientColor, renderer_COLGradientKeysMaxTime.z, renderer_COLMaxGradientAlpha, renderer_COLGradientKeysMaxTime.w, normalizedAge);
     #endif
 
     #ifdef RENDERER_COL_RANDOM_GRADIENTS
-        gradientColor = mix(evaluateParticleGradient(renderer_COLMinGradientColor,renderer_COLGradientKeysMaxTime.x, renderer_COLMinGradientAlpha, renderer_COLGradientKeysMaxTime.y, normalizedAge), gradientColor, a_Random0.y);
+        gradientColor = mix(evaluateParticleGradient(renderer_COLMinGradientColor,renderer_COLGradientKeysMaxTime.x, renderer_COLMinGradientAlpha, renderer_COLGradientKeysMaxTime.y, normalizedAge), gradientColor, attributes.a_Random0.y);
     #endif
 
     #if defined(RENDERER_COL_GRADIENT) || defined(RENDERER_COL_RANDOM_GRADIENTS)

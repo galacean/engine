@@ -40,7 +40,7 @@ vec3 sampleCurlNoise3D(vec3 coord) {
     );
 }
 
-vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
+vec3 computeNoiseVelocity(Attributes attributes, vec3 currentPosition, float normalizedAge) {
     vec3 coord = currentPosition * renderer_NoiseParams.w
                + vec3(renderer_CurrentTime * renderer_NoiseOctaveParams.x);
 
@@ -69,14 +69,14 @@ vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
     #ifdef RENDERER_NOISE_STRENGTH_CURVE
         float sx = evaluateParticleCurve(renderer_NoiseStrengthMaxCurveX, normalizedAge);
         #ifdef RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO
-            sx = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveX, normalizedAge), sx, a_Random0.z);
+            sx = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveX, normalizedAge), sx, attributes.a_Random0.z);
         #endif
         #ifdef RENDERER_NOISE_IS_SEPARATE
             float sy = evaluateParticleCurve(renderer_NoiseStrengthMaxCurveY, normalizedAge);
             float sz = evaluateParticleCurve(renderer_NoiseStrengthMaxCurveZ, normalizedAge);
             #ifdef RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO
-                sy = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveY, normalizedAge), sy, a_Random0.z);
-                sz = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveZ, normalizedAge), sz, a_Random0.z);
+                sy = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveY, normalizedAge), sy, attributes.a_Random0.z);
+                sz = mix(evaluateParticleCurve(renderer_NoiseStrengthMinCurveZ, normalizedAge), sz, attributes.a_Random0.z);
             #endif
             strength = vec3(sx, sy, sz);
         #else
@@ -85,7 +85,7 @@ vec3 computeNoiseVelocity(vec3 currentPosition, float normalizedAge) {
     #else
         strength = renderer_NoiseParams.xyz;
         #ifdef RENDERER_NOISE_STRENGTH_IS_RANDOM_TWO
-            strength = mix(renderer_NoiseStrengthMinConst, strength, a_Random0.z);
+            strength = mix(renderer_NoiseStrengthMinConst, strength, attributes.a_Random0.z);
         #endif
     #endif
 

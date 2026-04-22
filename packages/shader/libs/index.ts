@@ -7,6 +7,7 @@ import BloomSource from "./PostProcess/Bloom.gsp";
 import DepthOnlySource from "./Utility/DepthOnly.gsp";
 import FinalAntiAliasingSource from "./PostProcess/FinalAntiAliasing.gsp";
 import FinalSRGBSource from "./PostProcess/FinalSRGB.gsp";
+import ParticleFeedbackSource from "./ParticleFeedback.gsp";
 import ParticleSource from "./Particle.gsp";
 import PBRSource from "./PBR.gsp";
 import ScalableAmbientOcclusionSource from "./AO/ScalableAmbientOcclusion.gsp";
@@ -30,6 +31,7 @@ export {
   DepthOnlySource,
   FinalAntiAliasingSource,
   FinalSRGBSource,
+  ParticleFeedbackSource,
   ParticleSource,
   PBRSource,
   ScalableAmbientOcclusionSource,
