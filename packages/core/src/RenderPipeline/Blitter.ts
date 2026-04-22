@@ -84,7 +84,11 @@ export class Blitter {
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || blitMaterial.renderState)._applyStates(
+    const renderState = pass._renderState;
+    if (renderState) {
+      renderState._mergeUnmanagedFrom(blitMaterial.renderState, pass._managedGroupMask);
+    }
+    (renderState || blitMaterial.renderState)._applyStates(
       engine,
       false,
       pass._renderStateDataMap,

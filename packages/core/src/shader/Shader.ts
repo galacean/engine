@@ -14,6 +14,7 @@ import { CompareFunction } from "./enums/CompareFunction";
 import { CullMode } from "./enums/CullMode";
 import { RenderQueueType } from "./enums/RenderQueueType";
 import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { RenderStateGroupFlag } from "./enums/RenderStateGroupFlag";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { StencilOperation } from "./enums/StencilOperation";
 import { RenderState } from "./state/RenderState";
@@ -267,21 +268,37 @@ export class Shader implements IReferable {
   ): void {
     if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
       const renderState = new RenderState();
+      let managedGroupMask = 0;
+
       for (const k in constantMap) {
+        const key = +k;
         const value = constantMap[k];
         if (deserializeColor && Array.isArray(value)) {
-          Shader._applyConstRenderStates(renderState, +k, new Color(value[0], value[1], value[2], value[3]));
+          Shader._applyConstRenderStates(renderState, key, new Color(value[0], value[1], value[2], value[3]));
         } else {
-          Shader._applyConstRenderStates(renderState, +k, value);
+          Shader._applyConstRenderStates(renderState, key, value);
         }
+        managedGroupMask |= Shader._getGroupFlag(key);
       }
       shaderPass._renderState = renderState;
+
       const renderStateDataMap = <Record<number, ShaderProperty>>{};
       for (const k in variableMap) {
-        renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
+        const key = +k;
+        renderStateDataMap[key] = ShaderProperty.getByName(variableMap[k]);
+        managedGroupMask |= Shader._getGroupFlag(key);
       }
       shaderPass._renderStateDataMap = renderStateDataMap;
+      shaderPass._managedGroupMask = managedGroupMask;
     }
+  }
+
+  private static _getGroupFlag(key: number): RenderStateGroupFlag {
+    if (key <= 9) return RenderStateGroupFlag.Blend;
+    if (key <= 12) return RenderStateGroupFlag.Depth;
+    if (key <= 24) return RenderStateGroupFlag.Stencil;
+    if (key <= 27) return RenderStateGroupFlag.Raster;
+    return RenderStateGroupFlag.RenderQueueType;
   }
 
   private static _applyConstRenderStates(

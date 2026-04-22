@@ -4,6 +4,7 @@ import { Engine } from "../../Engine";
 import { deepClone } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
+import { RenderStateGroupFlag } from "../enums/RenderStateGroupFlag";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";
@@ -69,6 +70,21 @@ export class RenderState {
     } else {
       return shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
     }
+  }
+
+  /**
+   * @internal
+   * Merge values from materialRenderState for state groups NOT managed by the shader.
+   * Shader constants/variables have highest priority; Material.renderState fills the rest.
+   * @param source - Material's render state
+   * @param managedGroupMask - Bitmask of RenderStateGroupFlag values
+   */
+  _mergeUnmanagedFrom(source: RenderState, managedGroupMask: number): void {
+    if (!(managedGroupMask & RenderStateGroupFlag.Blend)) this.blendState._copyFrom(source.blendState);
+    if (!(managedGroupMask & RenderStateGroupFlag.Depth)) this.depthState._copyFrom(source.depthState);
+    if (!(managedGroupMask & RenderStateGroupFlag.Stencil)) this.stencilState._copyFrom(source.stencilState);
+    if (!(managedGroupMask & RenderStateGroupFlag.Raster)) this.rasterState._copyFrom(source.rasterState);
+    if (!(managedGroupMask & RenderStateGroupFlag.RenderQueueType)) this.renderQueueType = source.renderQueueType;
   }
 
   private _applyStatesByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {

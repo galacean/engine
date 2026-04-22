@@ -43,6 +43,15 @@ export class DepthState {
   /**
    * @internal
    */
+  _copyFrom(source: DepthState): void {
+    this.enabled = source.enabled;
+    this.writeEnabled = source.writeEnabled;
+    this.compareFunction = source.compareFunction;
+  }
+
+  /**
+   * @internal
+   */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     const enableProperty = renderStateDataMap[RenderStateElementKey.DepthStateEnabled];
     if (enableProperty !== undefined) {

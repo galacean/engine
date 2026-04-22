@@ -7,7 +7,6 @@ import {
   AmbientOcclusionQuality,
   AssetType,
   BackgroundMode,
-  BlendFactor,
   Camera,
   Color,
   DirectLight,
@@ -15,8 +14,6 @@ import {
   MeshRenderer,
   PBRMaterial,
   PrimitiveMesh,
-  RenderQueueType,
-  Shader,
   SkyBoxMaterial,
   Vector3,
   WebGLEngine,
@@ -60,8 +57,6 @@ WebGLEngine.create({
   // Sphere
   const sphereMaterial = new PBRMaterial(engine);
   sphereMaterial.baseColor = new Color(1, 1, 1, 1);
-  sphereMaterial.shader = pbrShader;
-  sphereMaterial.shaderData.setInt("depthWriteEnabled", 1);
   const sphere = rootEntity.createChild("sphere");
   sphere.transform.setPosition(0, 1, 0);
   sphere.transform.setRotation(45, 45, 0);
@@ -72,8 +67,6 @@ WebGLEngine.create({
   // Box
   const boxMaterial = new PBRMaterial(engine);
   boxMaterial.baseColor = new Color(1, 1, 1, 1);
-  boxMaterial.shader = pbrShader;
-  boxMaterial.shaderData.setInt("depthWriteEnabled", 1);
   const box = rootEntity.createChild("box");
   box.transform.setPosition(1, 0.9, 0.1);
   box.transform.setRotation(30, 30, 0);
@@ -85,19 +78,6 @@ WebGLEngine.create({
   const capsuleMaterial = new PBRMaterial(engine);
   capsuleMaterial.baseColor = new Color(1, 1, 1, 0.5);
   capsuleMaterial.isTransparent = true;
-  capsuleMaterial.shader = pbrShader;
-  {
-    const shaderData = capsuleMaterial.shaderData;
-    shaderData.setInt("depthWriteEnabled", 1);
-    shaderData.setInt("blendEnabled", 1);
-    shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
-    shaderData.enableMacro("MATERIAL_IS_TRANSPARENT");
-
-    shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
-    shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
-    shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
-    shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
-  }
 
   const capsule = rootEntity.createChild("capsule");
   capsule.transform.setPosition(1, 0.9, 0.1);

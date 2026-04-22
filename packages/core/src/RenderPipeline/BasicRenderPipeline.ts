@@ -418,6 +418,7 @@ export class BasicRenderPipeline {
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
       if (renderState) {
+        renderState._mergeUnmanagedFrom(renderStates[i], shaderPass._managedGroupMask);
         renderQueueType = renderState._getRenderQueueByShaderData(
           shaderPass._renderStateDataMap,
           subRenderElement.material.shaderData
@@ -473,7 +474,11 @@ export class BasicRenderPipeline {
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || material.renderState)._applyStates(
+    const bgRenderState = pass._renderState;
+    if (bgRenderState) {
+      bgRenderState._mergeUnmanagedFrom(material.renderState, pass._managedGroupMask);
+    }
+    (bgRenderState || material.renderState)._applyStates(
       engine,
       false,
       pass._renderStateDataMap,

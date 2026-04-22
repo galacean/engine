@@ -25,6 +25,15 @@ export class RasterState {
   /**
    * @internal
    */
+  _copyFrom(source: RasterState): void {
+    this.cullMode = source.cullMode;
+    this.depthBias = source.depthBias;
+    this.slopeScaledDepthBias = source.slopeScaledDepthBias;
+  }
+
+  /**
+   * @internal
+   */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     const cullModeProperty = renderStateDataMap[RenderStateElementKey.RasterStateCullMode];
     if (cullModeProperty !== undefined) {

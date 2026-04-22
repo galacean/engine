@@ -50,6 +50,8 @@ export class ShaderPass extends ShaderPart {
   _renderState: RenderState;
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
+  /** @internal Bitmask of RenderStateGroupFlag values indicating which state groups are managed by shader constants/variables. */
+  _managedGroupMask: number = 0;
   /** @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
 

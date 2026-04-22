@@ -84,6 +84,24 @@ export class BlendState {
   /**
    * @internal
    */
+  _copyFrom(source: BlendState): void {
+    const srcTarget = source.targetBlendState;
+    const dstTarget = this.targetBlendState;
+    dstTarget.enabled = srcTarget.enabled;
+    dstTarget.colorBlendOperation = srcTarget.colorBlendOperation;
+    dstTarget.alphaBlendOperation = srcTarget.alphaBlendOperation;
+    dstTarget.sourceColorBlendFactor = srcTarget.sourceColorBlendFactor;
+    dstTarget.sourceAlphaBlendFactor = srcTarget.sourceAlphaBlendFactor;
+    dstTarget.destinationColorBlendFactor = srcTarget.destinationColorBlendFactor;
+    dstTarget.destinationAlphaBlendFactor = srcTarget.destinationAlphaBlendFactor;
+    dstTarget.colorWriteMask = srcTarget.colorWriteMask;
+    this.blendColor.copyFrom(source.blendColor);
+    this.alphaToCoverage = source.alphaToCoverage;
+  }
+
+  /**
+   * @internal
+   */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     const blendState = this.targetBlendState;
 

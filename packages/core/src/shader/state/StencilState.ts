@@ -85,6 +85,24 @@ export class StencilState {
   /**
    * @internal
    */
+  _copyFrom(source: StencilState): void {
+    this.enabled = source.enabled;
+    this.referenceValue = source.referenceValue;
+    this.mask = source.mask;
+    this.writeMask = source.writeMask;
+    this.compareFunctionFront = source.compareFunctionFront;
+    this.compareFunctionBack = source.compareFunctionBack;
+    this.passOperationFront = source.passOperationFront;
+    this.passOperationBack = source.passOperationBack;
+    this.failOperationFront = source.failOperationFront;
+    this.failOperationBack = source.failOperationBack;
+    this.zFailOperationFront = source.zFailOperationFront;
+    this.zFailOperationBack = source.zFailOperationBack;
+  }
+
+  /**
+   * @internal
+   */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     const enableProperty = renderStateDataMap[RenderStateElementKey.StencilStateEnabled];
     if (enableProperty !== undefined) {
