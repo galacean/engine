@@ -248,7 +248,6 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #endif
 
         surfaceData.clearCoat = saturate( surfaceData.clearCoat );
-        surfaceData.clearCoatRoughness = max(MIN_PERCEPTUAL_ROUGHNESS, min(surfaceData.clearCoatRoughness + getAARoughnessFactor(surfaceData.clearCoatNormal), 1.0));
     #endif
 
     // Anisotropy
