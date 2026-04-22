@@ -159,27 +159,11 @@ export class AudioSource extends Component {
     if (AudioManager.isAudioContextRunning()) {
       this._startPlayback();
     } else {
-      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
-      // Document-level events won't work - must call resume() directly here in play().
       this._pendingPlay = true;
-      AudioManager.resume().then(
-        () => {
-          // Check if cancelled by stop()/pause()
-          if (!this._pendingPlay) {
-            return;
-          }
-          this._pendingPlay = false;
-          // Check if still valid to play after async resume
-          if (this._destroyed || !this.enabled || !this._clip) {
-            return;
-          }
-          this._startPlayback();
-        },
-        (e) => {
-          this._pendingPlay = false;
-          console.warn("Failed to resume AudioContext:", e);
-        }
-      );
+      AudioManager._registerPendingSource(this);
+      AudioManager.resume().catch((e) => {
+        console.warn("Failed to resume AudioContext:", e);
+      });
     }
   }
 
@@ -187,7 +171,7 @@ export class AudioSource extends Component {
    * Stops playing the clip.
    */
   stop(): void {
-    this._pendingPlay = false;
+    this._cancelPendingPlayback();
 
     if (this._isPlaying) {
       this._clearSourceNode();
@@ -203,7 +187,7 @@ export class AudioSource extends Component {
    * Pauses playing the clip.
    */
   pause(): void {
-    this._pendingPlay = false;
+    this._cancelPendingPlayback();
 
     if (this._isPlaying) {
       this._clearSourceNode();
@@ -250,6 +234,21 @@ export class AudioSource extends Component {
     this.stop();
   }
 
+  /** @internal */
+  _resumePendingPlayback(): void {
+    if (!this._pendingPlay) {
+      return;
+    }
+
+    this._pendingPlay = false;
+
+    if (this._destroyed || !this.enabled || !this._clip?._getAudioSource()) {
+      return;
+    }
+
+    this._startPlayback();
+  }
+
   private _startPlayback(): void {
     const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
     this._initSourceNode(startTime);
@@ -279,5 +278,14 @@ export class AudioSource extends Component {
     this._sourceNode.disconnect();
     this._sourceNode.onended = null;
     this._sourceNode = null;
+  }
+
+  private _cancelPendingPlayback(): void {
+    if (!this._pendingPlay) {
+      return;
+    }
+
+    this._pendingPlay = false;
+    AudioManager._unregisterPendingSource(this);
   }
 }

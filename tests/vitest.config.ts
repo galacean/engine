@@ -1,8 +1,17 @@
+import glsl from "../rollup-plugin-glsl";
 import { defineProject } from "vitest/config";
 
 export default defineProject({
   server: {
     port: 51204
+  },
+  plugins: [
+    glsl({
+      include: [/\.(glsl|gs)$/]
+    })
+  ],
+  resolve: {
+    mainFields: ["debug", "module", "main"]
   },
   optimizeDeps: {
     exclude: [
