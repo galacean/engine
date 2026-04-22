@@ -22,6 +22,26 @@ Shader "Particle" {
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }
 
+      BlendFactor sourceColorBlendFactor;
+      BlendFactor destinationColorBlendFactor;
+      BlendFactor sourceAlphaBlendFactor;
+      BlendFactor destinationAlphaBlendFactor;
+
+      BlendState = {
+        Enabled = true;
+        SourceColorBlendFactor = sourceColorBlendFactor;
+        DestinationColorBlendFactor = destinationColorBlendFactor;
+        SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+        DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+      }
+      DepthState = {
+        WriteEnabled = false;
+      }
+      RasterState = {
+        CullMode = CullMode.Off;
+      }
+      RenderQueueType = Transparent;
+
       VertexShader = vert;
       FragmentShader = frag;
 

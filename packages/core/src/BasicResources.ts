@@ -8,11 +8,10 @@ import { BufferBindFlag } from "./graphic/enums/BufferBindFlag";
 import { BufferUsage } from "./graphic/enums/BufferUsage";
 import { MeshTopology } from "./graphic/enums/MeshTopology";
 import { VertexElementFormat } from "./graphic/enums/VertexElementFormat";
-import { BlinnPhongMaterial, Material } from "./material";
+import { BaseMaterial, BlinnPhongMaterial, Material } from "./material";
 import { PrefilteredDFG } from "./material/utils/PrefilteredDFG";
 import { ModelMesh } from "./mesh";
 import { Shader } from "./shader/Shader";
-import { BlendFactor } from "./shader/enums/BlendFactor";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CompareFunction } from "./shader/enums/CompareFunction";
 import { CullMode } from "./shader/enums/CullMode";
@@ -299,21 +298,12 @@ export class BasicResources {
 
   private _create2DMaterial(engine: Engine, shader: Shader): Material {
     const material = new Material(engine, shader);
-    const { shaderData } = material;
-    shaderData.setInt("blendEnabled", 1);
-    shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
-    shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
-    shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
-    shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
-    shaderData.setInt("depthWriteEnabled", 0);
-    shaderData.setInt("rasterStateCullMode", CullMode.Off);
-    shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
     material.isGCIgnored = true;
     return material;
   }
 
-  private _createMagentaMaterial(engine: Engine, shaderName: string): Material {
-    const material = new Material(engine, Shader.find(shaderName));
+  private _createMagentaMaterial(engine: Engine, shaderName: string): BaseMaterial {
+    const material = new BaseMaterial(engine, Shader.find(shaderName));
     material.isGCIgnored = true;
     material.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     return material;

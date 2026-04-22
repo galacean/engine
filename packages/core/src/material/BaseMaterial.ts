@@ -60,7 +60,6 @@ export class BaseMaterial extends Material {
     if (lastStatesCount < maxPassCount) {
       for (let i = lastStatesCount; i < maxPassCount; i++) {
         renderStates.push(new RenderState());
-        this.setBlendMode(BlendMode.Normal);
       }
     } else {
       renderStates.length = maxPassCount;
@@ -133,6 +132,12 @@ export class BaseMaterial extends Material {
     shaderData.setFloat(BaseMaterial._alphaCutoffProp, 0);
     shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
     shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Opaque);
+
+    // Initialize render state shader data values so shaders with variable-based render state
+    // (e.g. `Bool depthWriteEnabled;`) do not fall back to undefined and disable depth writes.
+    this.setIsTransparent(false);
+    this.setRenderFace(RenderFace.Front);
+    this.setBlendMode(BlendMode.Normal);
   }
 
   /**
