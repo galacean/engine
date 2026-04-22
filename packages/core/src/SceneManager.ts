@@ -91,7 +91,18 @@ export class SceneManager {
    * @returns scene promise
    */
   loadScene(url: string, destroyOldScene: boolean = true): AssetPromise<Scene> {
-    const scenePromise = this.engine.resourceManager.load<Scene>({ url, type: AssetType.Scene });
+    const resourceManager = this.engine.resourceManager;
+    // Evict the Scene asset cache for managed scenes about to be destroyed, so a fresh Scene
+    // instance is created by the loader instead of returning the same instance we're about to
+    // destroy (self-destroy would leave the active scene in a zombie state).
+    if (destroyOldScene) {
+      const realPath = resourceManager._virtualPathResourceMap[url]?.path ?? url;
+      const cached = resourceManager.getFromCache<Scene>(realPath);
+      if (cached && this._scenes.indexOf(cached) !== -1) {
+        resourceManager._deleteAsset(cached);
+      }
+    }
+    const scenePromise = resourceManager.load<Scene>({ url, type: AssetType.Scene });
     scenePromise.then((scene: Scene) => {
       if (destroyOldScene) {
         const scenes = this._scenes.getLoopArray();
