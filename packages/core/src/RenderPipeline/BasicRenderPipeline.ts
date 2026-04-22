@@ -478,12 +478,7 @@ export class BasicRenderPipeline {
     if (bgRenderState) {
       bgRenderState._mergeUnmanagedFrom(material.renderState, pass._managedGroupMask);
     }
-    (bgRenderState || material.renderState)._applyStates(
-      engine,
-      false,
-      pass._renderStateDataMap,
-      material.shaderData
-    );
+    (bgRenderState || material.renderState)._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 

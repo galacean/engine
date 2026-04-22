@@ -9,7 +9,6 @@ import {
   BackgroundTextureFillMode,
   BlendFactor,
   BlendMode,
-  BlendOperation,
   Camera,
   Color,
   Engine,
@@ -69,17 +68,14 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { alpha: false } })
 
       // Use premultiplied blend mode to simulate canvas transparency blending
       canvasMaterial.isTransparent = true;
-      const target = canvasMaterial.renderState.blendState.targetBlendState;
-      target.sourceColorBlendFactor = BlendFactor.One;
-      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.colorBlendOperation = BlendOperation.Add;
-
+      const { shaderData } = canvasMaterial;
+      shaderData.setInt("sourceColorBlendFactor", BlendFactor.One);
+      shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
       // This setup is to simulate canvas transparency blending with browser
       // Browser don't care alpha, but need to avoid 0,we use dest(is 1.0)
       // Zero also will cause can't revert un-premultiplied color in sRGB Pass in this simulation mode
-      target.sourceAlphaBlendFactor = BlendFactor.Zero;
-      target.destinationAlphaBlendFactor = BlendFactor.One;
-      target.alphaBlendOperation = BlendOperation.Add;
+      shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.Zero);
+      shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.One);
 
       // Use big plane to simulate transparency canvas
       const canvasPlaneEntity = canvasRootEntity.createChild("Plane");
