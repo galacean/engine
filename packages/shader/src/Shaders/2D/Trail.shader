@@ -22,25 +22,29 @@ Shader "2D/Trail" {
     Pass "Default" {
       Tags { pipelineStage = "Forward" }
 
+      RenderQueueType renderQueueType;
       BlendFactor sourceColorBlendFactor;
       BlendFactor destinationColorBlendFactor;
       BlendFactor sourceAlphaBlendFactor;
       BlendFactor destinationAlphaBlendFactor;
+      CullMode rasterStateCullMode;
+      Bool blendEnabled;
+      Bool depthWriteEnabled;
 
       BlendState = {
-        Enabled = true;
+        Enabled = blendEnabled;
         SourceColorBlendFactor = sourceColorBlendFactor;
         DestinationColorBlendFactor = destinationColorBlendFactor;
         SourceAlphaBlendFactor = sourceAlphaBlendFactor;
         DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
       }
       DepthState = {
-        WriteEnabled = false;
+        WriteEnabled = depthWriteEnabled;
       }
       RasterState = {
-        CullMode = CullMode.Off;
+        CullMode = rasterStateCullMode;
       }
-      RenderQueueType = Transparent;
+      RenderQueueType = renderQueueType;
 
       VertexShader = TrailVertex;
       FragmentShader = TrailFragment;
