@@ -62,7 +62,7 @@ export class UICanvas extends Component implements IElement {
   _isRootCanvas: boolean = false;
   /** @internal */
   @ignoreClone
-  _renderElement: any;
+  _renderElements: any[] = [];
   /** @internal */
   @ignoreClone
   _sortDistance: number = 0;
@@ -307,11 +307,10 @@ export class UICanvas extends Component implements IElement {
     const { engine, _realRenderMode: mode } = this;
     const { enableFrustumCulling, cullingMask, _frustum: frustum } = context.camera;
     const { frameCount } = engine.time;
-    // @ts-ignore
-    const renderElement = (this._renderElement = engine._renderElementPool.get());
+    const renderElements = this._renderElements;
+    renderElements.length = 0;
     const virtualCamera = context.virtualCamera;
     this._updateSortDistance(virtualCamera.isOrthographic, virtualCamera.position, virtualCamera.forward);
-    renderElement.set(this.sortOrder, this._sortDistance);
     const { width, height } = engine.canvas;
     const renderers = this._getRenderers();
     for (let i = 0, n = renderers.length; i < n; i++) {

@@ -65,7 +65,7 @@ export function glslValidate(
         });
 
         // @ts-ignore
-        const shaderProgram = shaderPass._getCanonicalShaderProgram(engine, macroMockCollection);
+        const shaderProgram = shaderPass._compileShaderProgram(engine, macroMockCollection);
         expect(shaderProgram.isValid).to.be.true;
       });
     });

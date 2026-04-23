@@ -1,13 +1,14 @@
 import { Engine } from "../Engine";
+import { InstanceBuffer } from "../RenderPipeline/InstanceBuffer";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
-import { ShaderFactory } from "../shaderlib";
+import { ShaderFactory, InstanceBufferLayout } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
+import { ShaderProgramMap } from "./ShaderProgramMap";
 import { ShaderProgram } from "./ShaderProgram";
-import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { RenderState } from "./state/RenderState";
@@ -47,7 +48,7 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
-  _shaderProgramPools: ShaderProgramPool[] = [];
+  _shaderProgramMaps: ShaderProgramMap[] = [];
 
   private _vertexSource: string;
   private _fragmentSource: string;
@@ -110,15 +111,15 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const shaderProgramPool = engine._getShaderProgramPool(this._shaderPassId, this._shaderProgramPools);
-    let shaderProgram = shaderProgramPool.get(macroCollection);
+    const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
+    let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
     }
 
-    shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
+    shaderProgram = this._compileShaderProgram(engine, macroCollection);
 
-    shaderProgramPool.cache(shaderProgram);
+    shaderProgramMap.cache(shaderProgram);
     return shaderProgram;
   }
 
@@ -126,32 +127,46 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   _destroy(): void {
-    const shaderProgramPools = this._shaderProgramPools;
-    for (let i = 0, n = shaderProgramPools.length; i < n; i++) {
-      const shaderProgramPool = shaderProgramPools[i];
-      shaderProgramPool._destroy();
-      delete shaderProgramPool.engine._shaderProgramPools[this._shaderPassId];
+    const shaderProgramMaps = this._shaderProgramMaps;
+    for (let i = 0, n = shaderProgramMaps.length; i < n; i++) {
+      const map = shaderProgramMaps[i];
+      map.destroy();
+      delete map.engine._shaderProgramMaps[this._shaderPassId];
     }
-    // Clear array storing multiple engine shader program pools
-    shaderProgramPools.length = 0;
+    shaderProgramMaps.length = 0;
   }
 
-  private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    if (this._platformTarget != undefined) {
-      return this._getShaderLabProgram(engine, macroCollection);
-    }
+  private _compileShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+    const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
+    const { vertexSource, fragmentSource, instanceLayout } =
+      this._platformTarget != undefined
+        ? this._compileShaderLabSource(engine, macroCollection, isGPUInstance)
+        : this._compilePlatformSource(engine, macroCollection, isGPUInstance);
 
-    const { vertexSource, fragmentSource } = ShaderFactory.compilePlatformSource(
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource);
+    program._instanceLayout = instanceLayout;
+    return program;
+  }
+
+  private _compilePlatformSource(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    isGPUInstance: boolean
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
+    return ShaderFactory.compilePlatformSource(
       engine,
       macroCollection,
       this._vertexSource,
-      this._fragmentSource
+      this._fragmentSource,
+      isGPUInstance
     );
-
-    return new ShaderProgram(engine, vertexSource, fragmentSource);
   }
 
-  private _getShaderLabProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+  private _compileShaderLabSource(
+    engine: Engine,
+    macroCollection: ShaderMacroCollection,
+    isGPUInstance: boolean
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = new Array<ShaderMacro>();
     ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
@@ -169,6 +184,14 @@ export class ShaderPass extends ShaderPart {
     noIncludeVertex = Shader._shaderLab._parseMacros(noIncludeVertex, shaderMacroList);
     noIncludeFrag = Shader._shaderLab._parseMacros(noIncludeFrag, shaderMacroList);
 
+    let instanceLayout: InstanceBufferLayout | null = null;
+    if (isGPUInstance) {
+      const injected = ShaderFactory.injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag);
+      noIncludeVertex = injected.vertexSource;
+      noIncludeFrag = injected.fragmentSource;
+      instanceLayout = injected.instanceLayout;
+    }
+
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
       noIncludeVertex = ShaderFactory.convertTo300(noIncludeVertex);
       noIncludeFrag = ShaderFactory.convertTo300(noIncludeFrag, true);
@@ -176,15 +199,16 @@ export class ShaderPass extends ShaderPart {
 
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
 
-    const vertexSource = ` ${versionStr}
+    return {
+      vertexSource: ` ${versionStr}
         ${noIncludeVertex}
-      `;
-    const fragmentSource = ` ${versionStr}
-        ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
+      `,
+      fragmentSource: ` ${versionStr}
+        ${isWebGL2 ? "" : ShaderFactory.shaderExtension}
         ${precisionStr}
         ${noIncludeFrag}
-      `;
-
-    return new ShaderProgram(engine, vertexSource, fragmentSource);
+      `,
+      instanceLayout
+    };
   }
 }

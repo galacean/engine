@@ -5,7 +5,7 @@ import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
@@ -23,14 +23,15 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 
+  /** @internal */
+  static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
+  /** @internal */
+  static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
+
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
-  private static _localMatrixProperty = ShaderProperty.getByName("renderer_LocalMat");
-  private static _worldMatrixProperty = ShaderProperty.getByName("renderer_ModelMat");
   private static _mvMatrixProperty = ShaderProperty.getByName("renderer_MVMat");
   private static _mvpMatrixProperty = ShaderProperty.getByName("renderer_MVPMat");
-  private static _mvInvMatrixProperty = ShaderProperty.getByName("renderer_MVInvMat");
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
-  private static _rendererLayerProperty = ShaderProperty.getByName("renderer_Layer");
 
   /** @internal */
   @ignoreClone
@@ -49,9 +50,6 @@ export class Renderer extends Component {
   /** @internal */
   @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  /** @internal */
-  @ignoreClone
-  _batchedTransformShaderData: boolean = false;
   @assignmentClone
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
@@ -73,8 +71,6 @@ export class Renderer extends Component {
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
   private _mvpMatrix: Matrix = new Matrix();
-  @ignoreClone
-  private _mvInvMatrix: Matrix = new Matrix();
   @ignoreClone
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -384,7 +380,6 @@ export class Renderer extends Component {
     this._shaderData = null;
     this._mvMatrix = null;
     this._mvpMatrix = null;
-    this._mvInvMatrix = null;
     this._normalMatrix = null;
     this._materialsInstanced = null;
     this._rendererLayer = null;
@@ -393,74 +388,66 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     const worldMatrix = this._transformEntity.transform.worldMatrix;
+    const { shaderData } = this;
     if (onlyMVP) {
-      this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
+      const mvpMatrix = this._mvpMatrix;
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     } else {
-      this._updateWorldViewRelatedShaderData(context, worldMatrix, batched);
+      const mvMatrix = this._mvMatrix;
+      const normalMatrix = this._normalMatrix;
+
+      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
+      Matrix.invert(worldMatrix, normalMatrix);
+      normalMatrix.transpose();
+
+      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
+      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+
+      const mvpMatrix = this._mvpMatrix;
+      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     }
   }
 
   /**
    * @internal
    */
-  _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
+  _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
     return false;
   }
 
   /**
    * @internal
    */
-  _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {}
+  _batch(preElement: RenderElement | null, curElement: RenderElement): void {}
 
   /**
-   * Update once per frame per renderer, not influenced by batched.
+   * Update once per frame per renderer.
    */
   protected _update(context: RenderContext): void {
     const { layer } = this.entity;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
-  protected _updateWorldViewRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    const { shaderData, _mvInvMatrix: mvInvMatrix } = this;
-    if (batched) {
+  /**
+   * Update transform shader data for world-space vertices (2D renderers).
+   * Vertices are already in world space, so model matrix is identity.
+   */
+  protected _updateWorldSpaceTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
+    const { shaderData } = this;
+    if (onlyMVP) {
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
+    } else {
       // @ts-ignore
       const identityMatrix = Matrix._identity;
-
-      Matrix.invert(context.viewMatrix, mvInvMatrix);
-
-      shaderData.setMatrix(Renderer._localMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._worldMatrixProperty, identityMatrix);
       shaderData.setMatrix(Renderer._mvMatrixProperty, context.viewMatrix);
-      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
       shaderData.setMatrix(Renderer._normalMatrixProperty, identityMatrix);
-    } else {
-      const mvMatrix = this._mvMatrix;
-      const normalMatrix = this._normalMatrix;
-
-      Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
-      Matrix.invert(mvMatrix, mvInvMatrix);
-      Matrix.invert(worldMatrix, normalMatrix);
-      normalMatrix.transpose();
-
-      shaderData.setMatrix(Renderer._localMatrixProperty, this._transformEntity.transform.localMatrix);
-      shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-      shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-      shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
-      shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
-    }
-
-    this._updateProjectionRelatedShaderData(context, worldMatrix, batched);
-  }
-
-  protected _updateProjectionRelatedShaderData(context: RenderContext, worldMatrix: Matrix, batched: boolean): void {
-    if (batched) {
-      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
-    } else {
-      const mvpMatrix = this._mvpMatrix;
-      Matrix.multiply(context.viewProjectionMatrix, worldMatrix, mvpMatrix);
-      this.shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+      shaderData.setMatrix(Renderer._mvpMatrixProperty, context.viewProjectionMatrix);
     }
   }
 
