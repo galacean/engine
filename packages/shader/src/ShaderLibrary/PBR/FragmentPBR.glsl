@@ -230,7 +230,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     // Clear Coat
      #ifdef MATERIAL_ENABLE_CLEAR_COAT
         #ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
-            surfaceData.clearCoatNormal = getNormalByNormalTexture(mat3(surfaceData.tangent, surfaceData.bitangent, surfaceData.normal), material_ClearCoatNormalTexture, material_NormalIntensity, uv, isFrontFacing);
+            surfaceData.clearCoatNormal = getNormalByNormalTexture(tbn, material_ClearCoatNormalTexture, material_NormalIntensity, uv, isFrontFacing);
         #else
             surfaceData.clearCoatNormal = normal;
         #endif
