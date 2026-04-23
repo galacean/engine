@@ -10,7 +10,7 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { ShaderBlockProperty } from "../shader/ShaderBlockProperty";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderLib } from "./ShaderLib";
-console.log(123);
+
 /**
  * @internal
  */
