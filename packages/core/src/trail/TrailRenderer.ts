@@ -1,7 +1,6 @@
 import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
@@ -232,8 +231,9 @@ export class TrailRenderer extends Renderer {
 
     const { _firstActiveElement: firstActive, _firstFreeElement: firstFree } = this;
 
-    const renderElement = this._engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
+    const priority = this.priority;
+    const distanceForSort = this._distanceForSort;
+    const renderPipeline = context.camera._renderPipeline;
 
     // spansBoundary: active points cross buffer end
     // wrapped: spansBoundary AND point 0 has been written (need bridge + second segment)
@@ -241,13 +241,19 @@ export class TrailRenderer extends Renderer {
     const wrapped = spansBoundary && firstFree > 0;
     const mainCount =
       (spansBoundary ? this._currentPointCapacity - firstActive + (wrapped ? 1 : 0) : firstFree - firstActive) * 2;
-    this._addSubRenderElement(renderElement, material, this._mainSubPrimitive, firstActive * 2, mainCount);
+    this._addRenderElement(
+      context,
+      material,
+      this._mainSubPrimitive,
+      firstActive * 2,
+      mainCount,
+      priority,
+      distanceForSort
+    );
 
     if (wrapped) {
-      this._addSubRenderElement(renderElement, material, this._wrapSubPrimitive, 0, firstFree * 2);
+      this._addRenderElement(context, material, this._wrapSubPrimitive, 0, firstFree * 2, priority, distanceForSort);
     }
-
-    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -588,18 +594,22 @@ export class TrailRenderer extends Renderer {
     this._bufferResized = false;
   }
 
-  private _addSubRenderElement(
-    renderElement: RenderElement,
+  private _addRenderElement(
+    context: RenderContext,
     material: Material,
     subPrimitive: SubPrimitive,
     start: number,
-    count: number
+    count: number,
+    priority: number,
+    distanceForSort: number
   ): void {
     subPrimitive.start = start;
     subPrimitive.count = count;
-    const subRenderElement = this._engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, this._primitive, subPrimitive);
-    renderElement.addSubRenderElement(subRenderElement);
+    const renderElement = this._engine._renderElementPool.get();
+    renderElement.set(this, material, this._primitive, subPrimitive);
+    renderElement.priority = priority;
+    renderElement.distanceForSort = distanceForSort;
+    context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   @ignoreClone

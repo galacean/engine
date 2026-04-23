@@ -237,12 +237,44 @@ export class ShaderUniform {
     this._gl.uniform4iv(shaderUniform.location, value);
   }
 
+  uploadMat2(shaderUniform: ShaderUniform, value: Float32Array): void {
+    this._gl.uniformMatrix2fv(shaderUniform.location, false, value);
+  }
+
+  uploadMat3(shaderUniform: ShaderUniform, value: Float32Array): void {
+    this._gl.uniformMatrix3fv(shaderUniform.location, false, value);
+  }
+
   uploadMat4(shaderUniform: ShaderUniform, value: Matrix): void {
     this._gl.uniformMatrix4fv(shaderUniform.location, false, value.elements);
   }
 
   uploadMat4v(shaderUniform: ShaderUniform, value: Float32Array): void {
     this._gl.uniformMatrix4fv(shaderUniform.location, false, value);
+  }
+
+  uploadMat2x3(shaderUniform: ShaderUniform, value: Float32Array): void {
+    (<WebGL2RenderingContext>this._gl).uniformMatrix2x3fv(shaderUniform.location, false, value);
+  }
+
+  uploadMat2x4(shaderUniform: ShaderUniform, value: Float32Array): void {
+    (<WebGL2RenderingContext>this._gl).uniformMatrix2x4fv(shaderUniform.location, false, value);
+  }
+
+  uploadMat3x2(shaderUniform: ShaderUniform, value: Float32Array): void {
+    (<WebGL2RenderingContext>this._gl).uniformMatrix3x2fv(shaderUniform.location, false, value);
+  }
+
+  uploadMat3x4(shaderUniform: ShaderUniform, value: Float32Array): void {
+    (<WebGL2RenderingContext>this._gl).uniformMatrix3x4fv(shaderUniform.location, false, value);
+  }
+
+  uploadMat4x2(shaderUniform: ShaderUniform, value: Float32Array): void {
+    (<WebGL2RenderingContext>this._gl).uniformMatrix4x2fv(shaderUniform.location, false, value);
+  }
+
+  uploadMat4x3(shaderUniform: ShaderUniform, value: Float32Array): void {
+    (<WebGL2RenderingContext>this._gl).uniformMatrix4x3fv(shaderUniform.location, false, value);
   }
 
   uploadTexture(shaderUniform: ShaderUniform, value: Texture): void {

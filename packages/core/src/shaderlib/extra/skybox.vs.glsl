@@ -1,7 +1,5 @@
 #include <common_vert>
 
-uniform mat4 camera_VPMat;
-
 varying vec3 v_cubeUV;
 uniform float material_Rotation;
 

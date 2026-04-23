@@ -7,7 +7,9 @@ import { ShaderData } from "./ShaderData";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
+import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
+import { InstanceBufferLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
 
 /**
  * Shader program, corresponding to the GPU shader program.
@@ -52,7 +54,11 @@ export class ShaderProgram {
   /** @internal */
   _uploadMaterialId: number = -1;
 
+  /** @internal */
+  _instanceLayout: InstanceBufferLayout | null = null;
+
   attributeLocation: Record<string, GLint> = Object.create(null);
+  uniformBlockIds: number[] = [];
 
   // @todo: move to RHI.
   private _isValid: boolean;
@@ -339,6 +345,9 @@ export class ShaderProgram {
       }
 
       const location = gl.getUniformLocation(program, name);
+      // UBO members have no individual location, skip them
+      if (location === null) return;
+
       shaderUniform.name = name;
       shaderUniform.propertyId = ShaderProperty.getByName(name)._uniqueId;
       shaderUniform.location = location;
@@ -412,8 +421,32 @@ export class ShaderProgram {
             shaderUniform.cacheValue = new Vector4(0, 0, 0);
           }
           break;
+        case gl.FLOAT_MAT2:
+          shaderUniform.applyFunc = shaderUniform.uploadMat2;
+          break;
+        case gl.FLOAT_MAT3:
+          shaderUniform.applyFunc = shaderUniform.uploadMat3;
+          break;
         case gl.FLOAT_MAT4:
           shaderUniform.applyFunc = isArray ? shaderUniform.uploadMat4v : shaderUniform.uploadMat4;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT2x3:
+          shaderUniform.applyFunc = shaderUniform.uploadMat2x3;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT2x4:
+          shaderUniform.applyFunc = shaderUniform.uploadMat2x4;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT3x2:
+          shaderUniform.applyFunc = shaderUniform.uploadMat3x2;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT3x4:
+          shaderUniform.applyFunc = shaderUniform.uploadMat3x4;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT4x2:
+          shaderUniform.applyFunc = shaderUniform.uploadMat4x2;
+          break;
+        case (<WebGL2RenderingContext>gl).FLOAT_MAT4x3:
+          shaderUniform.applyFunc = shaderUniform.uploadMat4x3;
           break;
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
@@ -476,6 +509,21 @@ export class ShaderProgram {
     attributeInfos.forEach(({ name }) => {
       this.attributeLocation[name] = gl.getAttribLocation(program, name);
     });
+
+    // Record uniform block indices and bind binding points (WebGL2 only)
+    if (this._engine._hardwareRenderer.isWebGL2) {
+      const gl2 = <WebGL2RenderingContext>gl;
+      const bindingMap = ShaderFactory.uniformBlockBindingMap;
+      const blockCount = gl2.getProgramParameter(program, gl2.ACTIVE_UNIFORM_BLOCKS) ?? 0;
+      for (let i = 0; i < blockCount; i++) {
+        const id = ShaderBlockProperty.getByName(gl2.getActiveUniformBlockName(program, i))._uniqueId;
+        this.uniformBlockIds[i] = id;
+        const bindingPoint = bindingMap[id];
+        if (bindingPoint !== undefined) {
+          gl2.uniformBlockBinding(program, i, bindingPoint);
+        }
+      }
+    }
   }
 
   private _getUniformInfos(): WebGLActiveInfo[] {

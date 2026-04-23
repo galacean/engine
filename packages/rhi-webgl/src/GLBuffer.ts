@@ -21,7 +21,18 @@ export class GLBuffer implements IPlatformBuffer {
     const gl = rhi.gl;
     const glBuffer = gl.createBuffer();
     const glBufferUsage = this._getGLBufferUsage(gl, bufferUsage);
-    const glBindTarget = type === BufferBindFlag.VertexBuffer ? gl.ARRAY_BUFFER : gl.ELEMENT_ARRAY_BUFFER;
+    let glBindTarget: number;
+    switch (type) {
+      case BufferBindFlag.VertexBuffer:
+        glBindTarget = gl.ARRAY_BUFFER;
+        break;
+      case BufferBindFlag.IndexBuffer:
+        glBindTarget = gl.ELEMENT_ARRAY_BUFFER;
+        break;
+      case BufferBindFlag.ConstantBuffer:
+        glBindTarget = (<WebGL2RenderingContext>gl).UNIFORM_BUFFER;
+        break;
+    }
     this._gl = gl;
     this._glBuffer = glBuffer;
     this._glBufferUsage = glBufferUsage;
