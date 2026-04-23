@@ -109,22 +109,16 @@ export class RenderQueue {
 
         let renderState = shaderPass._renderState;
         const materialRenderState = renderStates[j];
-        if (renderState) {
-          renderState._mergeUnmanagedFrom(materialRenderState, shaderPass._managedGroupMask);
+        if (!renderState) {
+          renderState = materialRenderState;
         }
-        if (needMaskType) {
-          // Mask don't care render queue type
-          if (!renderState) {
-            renderState = materialRenderState;
-          }
-        } else {
-          let passQueueType: RenderQueueType;
-          if (renderState) {
-            passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
-          } else {
-            renderState = materialRenderState;
-            passQueueType = renderState.renderQueueType;
-          }
+        if (!needMaskType) {
+          const passQueueType = renderState._getRenderQueueByShaderData(
+            shaderPass._renderStateDataMap,
+            materialData,
+            shaderPass._constantPropertyMask,
+            materialRenderState.renderQueueType
+          );
           if (passQueueType !== renderQueueType) {
             continue;
           }
@@ -194,6 +188,8 @@ export class RenderQueue {
           renderer._isFrontFaceInvert(),
           shaderPass._renderStateDataMap,
           material.shaderData,
+          shaderPass._constantPropertyMask,
+          materialRenderState,
           customStates
         );
         rhi.drawPrimitive(primitive, subElement.subPrimitive, program);

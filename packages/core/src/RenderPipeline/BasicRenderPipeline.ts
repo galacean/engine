@@ -416,16 +416,13 @@ export class BasicRenderPipeline {
       // Get render queue type
       let renderQueueType: RenderQueueType;
       const shaderPass = shaderPasses[i];
-      const renderState = shaderPass._renderState;
-      if (renderState) {
-        renderState._mergeUnmanagedFrom(renderStates[i], shaderPass._managedGroupMask);
-        renderQueueType = renderState._getRenderQueueByShaderData(
-          shaderPass._renderStateDataMap,
-          subRenderElement.material.shaderData
-        );
-      } else {
-        renderQueueType = renderStates[i].renderQueueType;
-      }
+      const renderState = shaderPass._renderState || renderStates[i];
+      renderQueueType = renderState._getRenderQueueByShaderData(
+        shaderPass._renderStateDataMap,
+        subRenderElement.material.shaderData,
+        shaderPass._constantPropertyMask,
+        renderStates[i].renderQueueType
+      );
 
       const flag = 1 << renderQueueType;
 
@@ -474,11 +471,15 @@ export class BasicRenderPipeline {
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();
 
-    const bgRenderState = pass._renderState;
-    if (bgRenderState) {
-      bgRenderState._mergeUnmanagedFrom(material.renderState, pass._managedGroupMask);
-    }
-    (bgRenderState || material.renderState)._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
+    const renderState = pass._renderState || material.renderState;
+    renderState._applyStates(
+      engine,
+      false,
+      pass._renderStateDataMap,
+      material.shaderData,
+      pass._constantPropertyMask,
+      material.renderState
+    );
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 

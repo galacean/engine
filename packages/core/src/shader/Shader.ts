@@ -14,7 +14,6 @@ import { CompareFunction } from "./enums/CompareFunction";
 import { CullMode } from "./enums/CullMode";
 import { RenderQueueType } from "./enums/RenderQueueType";
 import { RenderStateElementKey } from "./enums/RenderStateElementKey";
-import { RenderStateGroupFlag } from "./enums/RenderStateGroupFlag";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { StencilOperation } from "./enums/StencilOperation";
 import { RenderState } from "./state/RenderState";
@@ -268,7 +267,7 @@ export class Shader implements IReferable {
   ): void {
     if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
       const renderState = new RenderState();
-      let managedGroupMask = 0;
+      let constantPropertyMask = 0;
 
       for (const k in constantMap) {
         const key = +k;
@@ -278,7 +277,7 @@ export class Shader implements IReferable {
         } else {
           Shader._applyConstRenderStates(renderState, key, value);
         }
-        managedGroupMask |= Shader._getGroupFlag(key);
+        constantPropertyMask |= 1 << key;
       }
       shaderPass._renderState = renderState;
 
@@ -286,19 +285,10 @@ export class Shader implements IReferable {
       for (const k in variableMap) {
         const key = +k;
         renderStateDataMap[key] = ShaderProperty.getByName(variableMap[k]);
-        managedGroupMask |= Shader._getGroupFlag(key);
       }
       shaderPass._renderStateDataMap = renderStateDataMap;
-      shaderPass._managedGroupMask = managedGroupMask;
+      shaderPass._constantPropertyMask = constantPropertyMask;
     }
-  }
-
-  private static _getGroupFlag(key: number): RenderStateGroupFlag {
-    if (key <= 9) return RenderStateGroupFlag.Blend;
-    if (key <= 12) return RenderStateGroupFlag.Depth;
-    if (key <= 24) return RenderStateGroupFlag.Stencil;
-    if (key <= 27) return RenderStateGroupFlag.Raster;
-    return RenderStateGroupFlag.RenderQueueType;
   }
 
   private static _applyConstRenderStates(

@@ -4,7 +4,6 @@ import { Engine } from "../../Engine";
 import { deepClone } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
-import { RenderStateGroupFlag } from "../enums/RenderStateGroupFlag";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";
@@ -38,10 +37,35 @@ export class RenderState {
     frontFaceInvert: boolean,
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
+    constantPropertyMask: number,
+    materialRenderState: RenderState,
     customRenderStates?: RenderStateElementMap
   ): void {
-    // @todo: Should merge when we can delete material render state
-    renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
+    this.blendState._applyShaderDataValue(
+      renderStateDataMap,
+      shaderData,
+      constantPropertyMask,
+      materialRenderState.blendState
+    );
+    this.depthState._applyShaderDataValue(
+      renderStateDataMap,
+      shaderData,
+      constantPropertyMask,
+      materialRenderState.depthState
+    );
+    this.stencilState._applyShaderDataValue(
+      renderStateDataMap,
+      shaderData,
+      constantPropertyMask,
+      materialRenderState.stencilState
+    );
+    this.rasterState._applyShaderDataValue(
+      renderStateDataMap,
+      shaderData,
+      constantPropertyMask,
+      materialRenderState.rasterState
+    );
+
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     const context = engine._renderContext;
@@ -58,39 +82,21 @@ export class RenderState {
 
   /**
    * @internal
-   * @todo Should merge when we can delete material render state
    */
   _getRenderQueueByShaderData(
     renderStateDataMap: Record<number, ShaderProperty>,
-    shaderData: ShaderData
+    shaderData: ShaderData,
+    constantPropertyMask: number,
+    materialRenderQueueType: RenderQueueType
   ): RenderQueueType {
-    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (renderQueueType === undefined) {
+    if ((constantPropertyMask >> RenderStateElementKey.RenderQueueType) & 1) {
       return this.renderQueueType;
-    } else {
-      return shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
     }
-  }
-
-  /**
-   * @internal
-   * Merge values from materialRenderState for state groups NOT managed by the shader.
-   * Shader constants/variables have highest priority; Material.renderState fills the rest.
-   * @param source - Material's render state
-   * @param managedGroupMask - Bitmask of RenderStateGroupFlag values
-   */
-  _mergeUnmanagedFrom(source: RenderState, managedGroupMask: number): void {
-    if (!(managedGroupMask & RenderStateGroupFlag.Blend)) this.blendState._copyFrom(source.blendState);
-    if (!(managedGroupMask & RenderStateGroupFlag.Depth)) this.depthState._copyFrom(source.depthState);
-    if (!(managedGroupMask & RenderStateGroupFlag.Stencil)) this.stencilState._copyFrom(source.stencilState);
-    if (!(managedGroupMask & RenderStateGroupFlag.Raster)) this.rasterState._copyFrom(source.rasterState);
-    if (!(managedGroupMask & RenderStateGroupFlag.RenderQueueType)) this.renderQueueType = source.renderQueueType;
-  }
-
-  private _applyStatesByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+    const prop = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (prop) {
+      const v = shaderData.getFloat(prop);
+      if (v !== undefined) return v;
+    }
+    return materialRenderQueueType;
   }
 }
