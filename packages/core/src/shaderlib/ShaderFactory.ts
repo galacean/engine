@@ -10,7 +10,7 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { ShaderBlockProperty } from "../shader/ShaderBlockProperty";
 import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderLib } from "./ShaderLib";
-
+console.log(123);
 /**
  * @internal
  */
@@ -164,7 +164,9 @@ export class ShaderFactory {
 
     let instanceLayout: InstanceBufferLayout | null = null;
     if (isGPUInstance) {
-      const injected = ShaderFactory.injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag);
+      const activeMacros = new Set<string>();
+      for (let i = 0, len = shaderMacroList.length; i < len; i++) activeMacros.add(shaderMacroList[i].name);
+      const injected = ShaderFactory.injectInstanceUBO(engine, noIncludeVertex, noIncludeFrag, activeMacros);
       noIncludeVertex = injected.vertexSource;
       noIncludeFrag = injected.fragmentSource;
       instanceLayout = injected.instanceLayout;
@@ -192,12 +194,18 @@ export class ShaderFactory {
   static injectInstanceUBO(
     engine: Engine,
     vertexSource: string,
-    fragmentSource: string
+    fragmentSource: string,
+    activeMacros?: Set<string>
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     // 1. Scan & strip renderer uniforms from both stages, collect into fieldMap
     const fieldMap: Record<number, string> = Object.create(null);
-    vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
-    fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
+    if (activeMacros) {
+      vertexSource = ShaderFactory._scanInstanceUniformsWithMacros(vertexSource, fieldMap, activeMacros);
+      fragmentSource = ShaderFactory._scanInstanceUniformsWithMacros(fragmentSource, fieldMap, activeMacros);
+    } else {
+      vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
+      fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
+    }
 
     // Fast empty check without allocating an array
     let hasField = false;
@@ -299,16 +307,69 @@ export class ShaderFactory {
       if (isDerived === undefined && ShaderProperty._getShaderPropertyGroup(name) !== ShaderDataGroup.Renderer)
         return match;
       if (isDerived) return "";
-      // Array uniforms not supported in instancing UBO, remove to fail shader compilation
+      // Array uniforms not supported in instancing UBO, keep as regular uniform
       if (arraySize) {
         Logger.error(`GPU Instancing does not support array uniform "${name}${arraySize}"`);
-        return "";
+        return match;
       }
       // ModelMat is affine, store as mat3x4 (3 columns) to save 16 bytes per instance
       fieldMap[ShaderProperty.getByName(name)._uniqueId] =
         type === "mat4" && name === "renderer_ModelMat" ? "mat3x4" : type;
       return "";
     });
+  }
+
+  // Matches preprocessor directives at line start. Only `#ifdef / #ifndef / #else / #endif` are
+  // supported; `#if` with expressions is not recognized (such blocks are treated as always-active).
+  private static readonly _ifdefRegex = /^[ \t]*#ifdef\s+(\w+)/;
+  private static readonly _ifndefRegex = /^[ \t]*#ifndef\s+(\w+)/;
+  private static readonly _elseRegex = /^[ \t]*#else\b/;
+  private static readonly _endifRegex = /^[ \t]*#endif\b/;
+
+  /**
+   * Scan with preprocessor awareness, for raw GLSL paths where `#ifdef` blocks are not yet
+   * expanded. Uniforms inside inactive branches are skipped.
+   */
+  private static _scanInstanceUniformsWithMacros(
+    source: string,
+    fieldMap: Record<number, string>,
+    activeMacros: Set<string>
+  ): string {
+    // Preprocessor branch stack: each frame tracks whether current branch is active
+    const branchStack: boolean[] = [true];
+    const lines = source.split("\n");
+
+    for (let i = 0, n = lines.length; i < n; i++) {
+      const line = lines[i];
+
+      let m = line.match(ShaderFactory._ifdefRegex);
+      if (m) {
+        const parentActive = branchStack[branchStack.length - 1];
+        branchStack.push(parentActive && activeMacros.has(m[1]));
+        continue;
+      }
+      m = line.match(ShaderFactory._ifndefRegex);
+      if (m) {
+        const parentActive = branchStack[branchStack.length - 1];
+        branchStack.push(parentActive && !activeMacros.has(m[1]));
+        continue;
+      }
+      if (ShaderFactory._elseRegex.test(line)) {
+        const parentActive = branchStack.length >= 2 ? branchStack[branchStack.length - 2] : true;
+        const currentActive = branchStack[branchStack.length - 1];
+        branchStack[branchStack.length - 1] = parentActive && !currentActive;
+        continue;
+      }
+      if (ShaderFactory._endifRegex.test(line)) {
+        if (branchStack.length > 1) branchStack.pop();
+        continue;
+      }
+      if (!branchStack[branchStack.length - 1]) continue;
+
+      lines[i] = ShaderFactory._scanInstanceUniforms(line, fieldMap);
+    }
+
+    return lines.join("\n");
   }
 
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceBufferLayout {
