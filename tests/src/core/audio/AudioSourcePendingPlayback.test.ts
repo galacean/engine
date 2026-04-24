@@ -92,6 +92,8 @@ describe("AudioSource pending playback", () => {
     (AudioManager as any)._gainNode = null;
     (AudioManager as any)._needsUserGestureResume = false;
     (AudioManager as any)._pendingSources = new Set();
+    (AudioManager as any)._playingSources = new Set();
+    (AudioManager as any)._interruptedSources = new Set();
     MockAudioContext.shouldResumeSucceed = true;
     MockAudioContext.resumeResultQueue = null;
     AudioManager._playingCount = 0;
@@ -175,6 +177,36 @@ describe("AudioSource pending playback", () => {
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });
 
+  it("recreates active source nodes after a background interruption", async () => {
+    const audioSource = createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+
+    context.state = "running";
+    audioSource.play();
+
+    const firstSourceNode = (audioSource as any)._sourceNode as MockBufferSourceNode;
+    expect(audioSource.isPlaying).to.be.true;
+    expect(AudioManager._playingCount).to.equal(1);
+
+    const hiddenSpy = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+
+    expect(firstSourceNode.stop).toHaveBeenCalledTimes(1);
+    expect(audioSource.isPlaying).to.be.false;
+    expect(AudioManager._playingCount).to.equal(0);
+    expect((AudioManager as any)._interruptedSources.size).to.equal(1);
+
+    hiddenSpy.mockReturnValue(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    await flushAsync();
+
+    expect(audioSource.isPlaying).to.be.true;
+    expect(AudioManager._playingCount).to.equal(1);
+    expect((AudioManager as any)._interruptedSources.size).to.equal(0);
+    expect((audioSource as any)._sourceNode).not.to.equal(firstSourceNode);
+  });
+
   it("falls back to gesture recovery when foreground auto-resume fails", async () => {
     createAudioSource();
     const context = (AudioManager as any)._context as MockAudioContext;
@@ -216,10 +248,12 @@ describe("AudioSource pending playback", () => {
 
     expect(resumeSpy).toHaveBeenCalledTimes(1);
 
-    MockAudioContext.resumeResultQueue = [Promise.resolve().then(() => {
-      context.state = "running";
-      context.onstatechange?.();
-    })];
+    MockAudioContext.resumeResultQueue = [
+      Promise.resolve().then(() => {
+        context.state = "running";
+        context.onstatechange?.();
+      })
+    ];
     (AudioManager as any)._needsUserGestureResume = true;
 
     document.dispatchEvent(new Event("click"));
