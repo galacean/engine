@@ -62,6 +62,7 @@
 %token MACRO_UNDEF
 %token MACRO_DEFINE_EXPRESSION MACRO_CONDITIONAL_EXPRESSION
 %token MACRO_CALL
+%token MACRO_DEFINE MACRO_DEFINE_END MACRO_DEFINE_PARAMS
 
 
 %%
@@ -82,6 +83,11 @@ macro_call_function:
 macro_undef:
     MACRO_UNDEF id
     | MACRO_UNDEF MACRO_CALL
+    ;
+
+macro_define:
+    MACRO_DEFINE id assignment_expression MACRO_DEFINE_END
+    | MACRO_DEFINE id MACRO_DEFINE_PARAMS assignment_expression MACRO_DEFINE_END
     ;
 
 macro_push_context:
@@ -111,6 +117,7 @@ global_declaration:
     | function_definition
     | global_macro_if_statement
     | macro_undef
+    | macro_define
     | MACRO_DEFINE_EXPRESSION
     ;
 
@@ -534,6 +541,7 @@ simple_statement:
     | jump_statement
     | macro_if_statement
     | macro_undef
+    | macro_define
     | MACRO_DEFINE_EXPRESSION
     ;
 
