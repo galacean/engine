@@ -136,10 +136,12 @@ export class BasicRenderPipeline {
     // Depth use camera's view and projection matrix
     this._cullingResults.setRenderUpdateFlagTrue(ContextRendererUpdateFlag.viewProjectionMatrix);
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
-    this._prepareRender(context);
+    this._prepareWorldRender(context);
 
     const batcherManager = engine._batcherManager;
-    cullingResults.sortBatch(batcherManager);
+    cullingResults.sort();
+    this._prepareUIRender(context);
+    cullingResults.batch(batcherManager);
     batcherManager.uploadBuffer();
 
     if (depthPassEnabled) {
@@ -475,10 +477,10 @@ export class BasicRenderPipeline {
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 
-  private _prepareRender(context: RenderContext): void {
+  private _prepareWorldRender(context: RenderContext): void {
     const camera = context.camera;
     const { engine, enableFrustumCulling, cullingMask, _frustum: frustum } = camera;
-    const { _renderers: renderers, _canvases: canvases } = camera.scene._componentsManager;
+    const renderers = camera.scene._componentsManager._renderers;
 
     const rendererElements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
@@ -497,7 +499,12 @@ export class BasicRenderPipeline {
       renderer._prepareRender(context);
       renderer._renderFrameCount = engine.time.frameCount;
     }
+  }
 
+  private _prepareUIRender(context: RenderContext): void {
+    const camera = context.camera;
+    const { cullingMask } = camera;
+    const canvases = camera.scene._componentsManager._canvases;
     const canvasesElements = canvases._elements;
     for (let i = canvases.length - 1; i >= 0; i--) {
       const canvas = canvasesElements[i];

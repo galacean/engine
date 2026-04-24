@@ -30,6 +30,18 @@ export class CullingResults {
     this.transparentQueue.sortBatch(RenderQueue.compareForTransparent, batcherManager);
   }
 
+  sort() {
+    this.opaqueQueue.sort(RenderQueue.compareForOpaque);
+    this.alphaTestQueue.sort(RenderQueue.compareForOpaque);
+    this.transparentQueue.sort(RenderQueue.compareForTransparent);
+  }
+
+  batch(batcherManager: BatcherManager): void {
+    this.opaqueQueue.batch(batcherManager);
+    this.alphaTestQueue.batch(batcherManager);
+    this.transparentQueue.batch(batcherManager);
+  }
+
   setRenderUpdateFlagTrue(rendererUpdateFlag: ContextRendererUpdateFlag): void {
     this.opaqueQueue.rendererUpdateFlag |= rendererUpdateFlag;
     this.transparentQueue.rendererUpdateFlag |= rendererUpdateFlag;

@@ -2,8 +2,8 @@ import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { BasicResources, RenderStateElementMap } from "../BasicResources";
 import { Utils } from "../Utils";
 import { RenderQueueType, Shader } from "../shader";
-import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { ConstantBufferBindingPoint } from "../shader/enums/ConstantBufferBindingPoint";
 import { BatcherManager } from "./BatcherManager";
 import { InstanceBuffer } from "./InstanceBuffer";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
@@ -39,6 +39,10 @@ export class RenderQueue {
   sortBatch(compareFunc: Function, batcherManager: BatcherManager): void {
     Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
     this.batch(batcherManager);
+  }
+
+  sort(compareFunc: Function): void {
+    Utils._quickSort(this.elements, 0, this.elements.length, compareFunc);
   }
 
   batch(batcherManager: BatcherManager): void {
