@@ -721,9 +721,14 @@ export class Lexer extends BaseLexer {
       // Bypass MACRO_CALL classification for this one word. Used for the name of
       // a `#define` directive so redefining a known macro still yields a declarer ID.
       this._macroDefineExpectsNameToken = false;
-      // If we're inside a `#define` directive, this ID *is* the macro name and the
-      // next character, if `(`, begins the parameter list.
-      if (this._inMacroDefineValue) this._macroDefineExpectsParamsToken = true;
+      // C99 §6.10.3/3: the macro is function-like only when `(` appears *immediately*
+      // after the name (no intervening whitespace). `#define FOO (1+2)` is
+      // object-like with value `(1+2)`, not a function-like macro `FOO()` with
+      // body `1+2`. Check the current char before any whitespace-skipping happens
+      // on the next `scanToken`, so a space-separated `(` stays part of the value.
+      if (this._inMacroDefineValue) {
+        this._macroDefineExpectsParamsToken = this.getCurChar() === "(";
+      }
       token.set(ETokenType.ID, word, start);
     } else if (this.macroDefineList[word]) {
       token.set(Keyword.MACRO_CALL, word, start);
