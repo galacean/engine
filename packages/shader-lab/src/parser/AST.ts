@@ -1642,10 +1642,15 @@ export namespace ASTNode {
      *  this to skip naive type inference: an AST-form macro drives the call site's
      *  type through its own value subtree, not through a root of `referenceSymbolNames`. */
     hasAstValue: boolean = false;
+    /** True when the macro is defined as function-like (`#define NAME(params) …`).
+     *  Used by `MacroCallFunction` codegen to pick between the two call shapes
+     *  — object-like-macro-as-function-name vs true function-like macro. */
+    isFunctionLikeMacro: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames.length = 0;
       this.hasAstValue = false;
+      this.isFunctionLikeMacro = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1653,7 +1658,9 @@ export namespace ASTNode {
       this.macroName = macroName;
 
       Preprocessor.getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
-      this.hasAstValue = sa.macroDefineList[macroName]?.some((info) => info.valueAst != null) ?? false;
+      const defList = sa.macroDefineList[macroName];
+      this.hasAstValue = defList?.some((info) => info.valueAst != null) ?? false;
+      this.isFunctionLikeMacro = defList?.some((info) => info.isFunction) ?? false;
     }
   }
 
@@ -1662,11 +1669,13 @@ export namespace ASTNode {
     referenceSymbolNames: string[] = [];
     macroName: string = "";
     hasAstValue: boolean = false;
+    isFunctionLikeMacro: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames = [];
       this.macroName = "";
       this.hasAstValue = false;
+      this.isFunctionLikeMacro = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1675,6 +1684,7 @@ export namespace ASTNode {
       this.referenceSymbolNames = child.referenceSymbolNames;
       this.macroName = child.macroName;
       this.hasAstValue = child.hasAstValue;
+      this.isFunctionLikeMacro = child.isFunctionLikeMacro;
     }
 
     override codeGen(visitor: CodeGenVisitor) {

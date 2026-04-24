@@ -156,32 +156,48 @@ export abstract class CodeGenVisitor {
     const paramList = children[2];
     if (paramList instanceof ASTNode.FunctionCallParameterList) {
       const astNodes = paramList.paramNodes;
-
       const context = VisitorContext.context;
-      const params = astNodes.filter((node) => {
-        if (node instanceof ASTNode.AssignmentExpression) {
-          const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
-            node,
-            NoneTerminal.variable_identifier
-          );
-          if (
-            variableParam &&
-            typeof variableParam.typeInfo === "string" &&
-            context.getStructRole(variableParam.typeInfo)
-          ) {
-            return false;
-          }
-        }
 
-        return true;
-      });
+      // `MacroCallFunction` covers two call shapes sharing the same AST:
+      //   (a) object-like macro whose value is a function name, used as a call —
+      //       `#define FN foo` + `FN(varyings, …)`. The driver expands `FN` to
+      //       `foo`, and `foo` is a ShaderLab function whose IO-struct params
+      //       have been flattened. The call site must drop IO-struct args to
+      //       match the flattened signature — same rule as `visitFunctionCall`.
+      //   (b) true function-like macro — `#define MAX3(a,b,c) …` + `MAX3(v.x, …)`.
+      //       ShaderLab doesn't expand the macro; the driver does, and the
+      //       `#define` fixes the parameter count. Args must be preserved
+      //       verbatim — a member-access arg like `v.v_uv` unwraps to a root
+      //       identifier whose type is an IO struct, but dropping the arg
+      //       would change the macro's arity.
+      //
+      // `isFunctionLikeMacro` is set by `MacroCallSymbol.semanticAnalyze` from
+      // `macroDefineList[name][*].isFunction` and carries the definition shape.
+      const params = node.isFunctionLikeMacro
+        ? astNodes
+        : astNodes.filter((arg) => {
+            if (arg instanceof ASTNode.AssignmentExpression) {
+              const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
+                arg,
+                NoneTerminal.variable_identifier
+              );
+              if (
+                variableParam &&
+                typeof variableParam.typeInfo === "string" &&
+                context.getStructRole(variableParam.typeInfo)
+              ) {
+                return false;
+              }
+            }
+            return true;
+          });
 
       let paramsCode = "";
       for (let i = 0, length = params.length; i < length; i++) {
-        const node = params[i];
-        const code = node.codeGen(this);
+        const argNode = params[i];
+        const code = argNode.codeGen(this);
 
-        if (node instanceof ASTNode.MacroCallArgBlock || i === 0) {
+        if (argNode instanceof ASTNode.MacroCallArgBlock || i === 0) {
           paramsCode += code;
         } else {
           paramsCode += `, ${code}`;
