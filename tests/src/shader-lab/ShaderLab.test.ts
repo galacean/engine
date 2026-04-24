@@ -14,7 +14,7 @@ import { glslValidate } from "./ShaderValidate";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 const { readFile } = server.commands;
 Logger.enable();
 registerIncludes();
@@ -300,28 +300,42 @@ describe("ShaderLab", async () => {
 
   it("macro-member-access-builtin-arg (Cocos FSInput pattern: member access macro as builtin fn arg)", async () => {
     const shaderSource = await readFile("./shaders/macro-member-access-builtin-arg.shader");
-    glslValidate(engine, shaderSource, shaderLabRelease);
 
-    // Also verify verbose mode (semantic analysis) succeeds — this was the original bug:
-    // member access macros like #define FSInput_worldNormal v.v_normal.xyz resolved to
-    // struct type "Varyings" instead of TypeAny, causing builtin overload matching to fail.
-    const shader = shaderLabVerbose._parseShaderSource(shaderSource);
-    const passSource = shader.subShaders[0].passes[0];
-    const { vertex, fragment } = shaderLabVerbose._parseShaderPass(
-      passSource.contents,
-      passSource.vertexEntry,
-      passSource.fragmentEntry,
-      0,
-      ""
-    )!;
+    // Regression guard: before the preprocessor/AST deduplication fix, each
+    // AST-form member-access macro (e.g. `#define FSInput_worldNormal v.v_normal.xyz`)
+    // fired a spurious "has an unrecognized value" warning on every access.
+    const warnSpy = vi.spyOn(Logger, "warn");
+    try {
+      glslValidate(engine, shaderSource, shaderLabRelease);
 
-    expect(vertex).to.be.a("string").and.not.empty;
-    expect(fragment).to.be.a("string").and.not.empty;
+      // Also verify verbose mode (semantic analysis) succeeds — this was the original bug:
+      // member access macros resolved to struct type "Varyings" instead of TypeAny,
+      // causing builtin overload matching to fail.
+      const shader = shaderLabVerbose._parseShaderSource(shaderSource);
+      const passSource = shader.subShaders[0].passes[0];
+      const { vertex, fragment } = shaderLabVerbose._parseShaderPass(
+        passSource.contents,
+        passSource.vertexEntry,
+        passSource.fragmentEntry,
+        0,
+        ""
+      )!;
 
-    // Verify key builtins are present in output (macros expanded correctly)
-    expect(fragment).to.contain("normalize");
-    expect(fragment).to.contain("dot");
-    expect(fragment).to.contain("texture2D");
+      expect(vertex).to.be.a("string").and.not.empty;
+      expect(fragment).to.be.a("string").and.not.empty;
+
+      // Verify key builtins are present in output (macros expanded correctly)
+      expect(fragment).to.contain("normalize");
+      expect(fragment).to.contain("dot");
+      expect(fragment).to.contain("texture2D");
+
+      const unrecognizedCalls = warnSpy.mock.calls.filter((args) =>
+        args.some((a) => typeof a === "string" && a.includes("unrecognized value"))
+      );
+      expect(unrecognizedCalls).to.have.lengthOf(0);
+    } finally {
+      warnSpy.mockRestore();
+    }
   });
 
   it("global-varying-var (Cocos VSOutput pattern: global Varyings var with #define macros)", async () => {

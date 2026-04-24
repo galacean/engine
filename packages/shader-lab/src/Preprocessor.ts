@@ -4,47 +4,32 @@ import { ShaderLib } from "@galacean/engine";
 import type { ASTNode } from "./parser/AST";
 
 /**
- * Classification of a `#define` value. Used by the opaque-token (legacy) path;
- * expression-style macros go straight to AST and don't need this tag.
+ * Record for a single `#define` directive.
  *
- * @internal
- */
-export enum MacroValueType {
-  Number, // 1, 1.1
-  Symbol, // variable name
-  FunctionCall, // function call, e.g. clamp(a, 0.0, 1.0)
-  Other // shaderLab does not check this
-}
-
-/**
- * Record for a single `#define` directive. Two shapes coexist:
+ * Two shapes coexist and can be combined on the same entry:
  *
- * - **Expression macros** — have `valueAst` pointing at an `AssignmentExpression`
- *   subtree. These participate in type inference, varying flattening, and reference
- *   tracking through the normal visitor pattern, just like inline expressions.
- * - **Opaque macros** — the value is a qualifier/type/partial-syntax form that can't
- *   be parsed as a GLSL expression. `valueAst` is undefined and the lexer kept the
- *   whole directive in a legacy `MACRO_DEFINE_EXPRESSION` token.
+ * - **Expression macros** — `valueAst` holds an `AssignmentExpression` subtree
+ *   produced by the `macro_define` CFG rule. These participate in type
+ *   inference, varying flattening, and visitor-based codegen.
+ * - **Legacy opaque macros** — the directive is emitted verbatim as a
+ *   `MACRO_DEFINE_EXPRESSION` token and expanded by the GLSL driver. `valueAst`
+ *   is undefined.
  *
- * Both shapes share `isFunction`, `name`, `params`, and `value` for display and
- * reference tracking. `functionCallName` is set only for opaque macros whose value
- * is a function-call form, enabling `getReferenceSymbolNames` to record the callee.
+ * `referenceName` captures the top-level external identifier the value refers
+ * to, if any — the callee of a function-call value (`#define F foo(a,b)`
+ * → `foo`) or the single-identifier value (`#define F foo` → `foo`). Empty
+ * for numeric literals, qualifier fragments, or structurally complex values.
+ * Populated by the regex pass; drives symbol-table lookup for macro call
+ * sites, independent of whether the value also has an AST form.
  */
 export interface MacroDefineInfo {
   isFunction: boolean;
   name: string;
-  /** Classification of the raw value text. Populated for opaque (legacy) macros
-   *  only — AST-form macros leave this as `Other` since classification doesn't
-   *  drive their semantics. */
-  valueType: MacroValueType;
-  /** Raw value text for opaque macros; empty string for AST-form macros. */
-  value: string;
+  params: string[];
   /** AST for expression-style macros. Absent for opaque macros. */
   valueAst?: ASTNode.AssignmentExpression;
-  params: string[];
-  /** Function callee name for opaque macros classified as `FunctionCall`; empty
-   *  string otherwise. */
-  functionCallName: string;
+  /** Top-level external identifier the value references, or empty string. */
+  referenceName: string;
 }
 
 export interface MacroDefineList {
@@ -56,7 +41,7 @@ export class Preprocessor {
   private static readonly _macroRegex =
     /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?[ ]+(\(?\w+\)?.*?)(?:\/\/.*|\/\*.*?\*\/)?\s*$/gm;
   private static readonly _symbolReg = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-  private static readonly _funcCallReg = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*)\)$/;
+  private static readonly _funcCallReg = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\(.*\)$/;
   private static readonly _macroDefineIncludeMap = new Map<string, MacroDefineList>();
 
   /**
@@ -79,47 +64,40 @@ export class Preprocessor {
   }
 
   /**
-   * For a given macro name, collect the external symbols its body references so
-   * callers of the macro can drive symbol-table lookup. Only the opaque-macro path
-   * needs this preprocessor-driven collection; expression macros carry their refs
-   * in the AST and `MacroDefine.semanticAnalyze` collects them directly.
+   * For each registered definition of `macroName`, push its `referenceName`
+   * (when non-empty and not a macro parameter) so call sites can drive
+   * symbol-table lookup.
    */
   static getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): void {
     out.length = 0;
     const infos = macroDefineList[macroName];
     if (!infos) return;
 
-    for (let i = 0; i < infos.length; i++) {
+    for (let i = 0, n = infos.length; i < n; i++) {
       const info = infos[i];
-      // Expression macros handle their own reference tracking via the AST subtree
-      // (see `MacroDefine.semanticAnalyze`). Nothing to collect here for them.
-      if (info.valueAst) continue;
-      const valueType = info.valueType;
-      if (valueType === MacroValueType.FunctionCall || valueType === MacroValueType.Symbol) {
-        const referencedName = valueType === MacroValueType.FunctionCall ? info.functionCallName : info.value;
-        if (info.params.indexOf(referencedName) !== -1) continue;
-        if (out.indexOf(referencedName) === -1) out.push(referencedName);
-      } else if (valueType === MacroValueType.Other) {
-        // #if _VERBOSE
-        Logger.warn(
-          `Warning: Macro "${info.name}" has an unrecognized value "${info.value}". ShaderLab does not validate this type.`
-        );
-        // #endif
-      }
+      const ref = info.referenceName;
+      if (!ref) continue;
+      if (info.params.indexOf(ref) !== -1) continue;
+      if (out.indexOf(ref) === -1) out.push(ref);
     }
   }
 
-  private static _isNumber(str: string): boolean {
-    return !isNaN(Number(str));
+  /**
+   * Extract the top-level identifier a value refers to, or empty string if
+   * the value is a numeric literal, qualifier fragment, or structurally
+   * complex form we don't try to introspect.
+   */
+  private static _extractReferenceName(value: string): string {
+    if (this._symbolReg.test(value)) return value;
+    const callMatch = this._funcCallReg.exec(value);
+    return callMatch ? callMatch[1] : "";
   }
 
   private static _isExist(list: MacroDefineInfo[], item: MacroDefineInfo): boolean {
     return list.some(
       (e) =>
-        e.valueType === item.valueType &&
-        e.value === item.value &&
         e.isFunction === item.isFunction &&
-        e.functionCallName === item.functionCallName &&
+        e.referenceName === item.referenceName &&
         e.params.length === item.params.length &&
         e.params.every((p, i) => p === item.params[i])
     );
@@ -140,30 +118,9 @@ export class Preprocessor {
               .filter(Boolean)
           : [];
       const value = valueRaw ? valueRaw.trim() : "";
+      const referenceName = value ? this._extractReferenceName(value) : "";
 
-      let valueType = MacroValueType.Other;
-      let functionCallName = "";
-
-      if (this._isNumber(value)) {
-        valueType = MacroValueType.Number;
-      } else if (this._symbolReg.test(value)) {
-        valueType = MacroValueType.Symbol;
-      } else {
-        const callMatch = this._funcCallReg.exec(value);
-        if (callMatch) {
-          valueType = MacroValueType.FunctionCall;
-          functionCallName = callMatch[1];
-        }
-      }
-
-      const info: MacroDefineInfo = {
-        isFunction,
-        name,
-        value,
-        valueType,
-        params,
-        functionCallName
-      };
+      const info: MacroDefineInfo = { isFunction, name, params, referenceName };
 
       const arr = outMacroList[name];
       if (arr) {

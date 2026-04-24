@@ -4,7 +4,7 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
-import { MacroDefineInfo, MacroValueType, Preprocessor } from "../Preprocessor";
+import { MacroDefineInfo, Preprocessor } from "../Preprocessor";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -1735,24 +1735,33 @@ export namespace ASTNode {
         this.valueExpression = children[valueIdx] as AssignmentExpression;
       }
 
-      // Register this macro in the preprocessor's define list so downstream passes
-      // (e.g. `MacroCallSymbol.semanticAnalyze` resolving references) see it. The
-      // AST path stores `valueAst` and leaves the legacy opaque fields empty.
-      const info: MacroDefineInfo = {
-        isFunction: this.isFunction,
-        name: this.macroName,
-        value: "",
-        valueType: MacroValueType.Other,
-        valueAst: this.valueExpression,
-        params,
-        functionCallName: ""
-      };
-
+      // `Preprocessor._parseMacroDefines` already registered a regex-derived
+      // entry for this directive (so the lexer can classify the name as
+      // `MACRO_CALL`). Upgrade that entry in place by attaching the AST subtree,
+      // rather than pushing a duplicate record — duplicates leak into
+      // `getReferenceSymbolNames` and cause phantom issues like spurious
+      // warnings or double-counted references.
       const list = sa.macroDefineList;
-      if (list[this.macroName]) {
-        list[this.macroName].push(info);
+      const entries = list[this.macroName];
+      const sameArity = (info: MacroDefineInfo) =>
+        info.isFunction === this.isFunction &&
+        info.params.length === params.length &&
+        info.params.every((p, i) => p === params[i]);
+      const upgradable = entries?.find((info) => !info.valueAst && sameArity(info));
+      if (upgradable) {
+        upgradable.valueAst = this.valueExpression;
       } else {
-        list[this.macroName] = [info];
+        // No matching preprocessor entry (e.g. the lexer was fed the directive
+        // directly without a `Preprocessor.parse` pass). Push a fresh entry.
+        const info: MacroDefineInfo = {
+          isFunction: this.isFunction,
+          name: this.macroName,
+          params,
+          valueAst: this.valueExpression,
+          referenceName: ""
+        };
+        if (entries) entries.push(info);
+        else list[this.macroName] = [info];
       }
     }
 
