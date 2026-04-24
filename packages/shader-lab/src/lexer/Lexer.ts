@@ -569,39 +569,27 @@ export class Lexer extends BaseLexer {
     // Line-continuation: `\` + newline — treat as no value for simplicity.
     if (ch === "\\" && (src[i + 1] === "\n" || src[i + 1] === "\r")) return false;
 
-    // GLSL ES 3.00 §3.4: a `#define` replacement list is any sequence of
-    // preprocessor tokens, not necessarily a valid expression. Route to the
-    // AST path only when the value is *likely* a well-formed
-    // `assignment_expression`; otherwise fall back to the opaque legacy path,
-    // which emits the directive verbatim for the GLSL driver to handle.
-    //
-    //   - alpha start  → identifier, or a keyword-starter (constructor / bool
-    //                     literal in the whitelist; declaration-style keywords
-    //                     like `highp` / `uniform` fall to legacy)
-    //   - digit / `.`  → numeric literal
-    //
-    // Other value shapes (values starting with `(`, `-`, `+`, `!`, `~`, `{`,
-    // `,`, `;`, `:`, `[`, `=`, `*`, `/`, `|`, `^`, `%`, `?`, …) take the legacy
-    // opaque path. This is a deliberately conservative classifier: anything
-    // that isn't obviously an identifier or numeric literal stays opaque so
-    // that non-expression replacement lists (e.g. `#define COMMA ,`,
-    // `#define PAREN (`) round-trip through the driver untouched.
-    if (BaseLexer.isAlpha(src.charCodeAt(i))) {
-      const wordStart = i;
-      while (i < src.length && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
-      const firstWord = src.substring(wordStart, i);
-      const kw = Lexer._lexemeTable[firstWord];
-      if (kw !== undefined && !Lexer._expressionLeaderKeywords.has(kw)) {
-        return false;
-      }
-      return true;
-    }
-    if (BaseLexer.isDigit(src.charCodeAt(i))) return true;
-    if (ch === ".") {
-      // `.5` numeric literal; `.` alone or `.ident` is not a valid expression start.
-      return i + 1 < src.length && BaseLexer.isDigit(src.charCodeAt(i + 1));
-    }
-    return false;
+    // GLSL ES 3.00 §3.4: a `#define` replacement list is any token sequence,
+    // not necessarily a valid expression. Route to the AST path only when the
+    // value *looks like* a well-formed `assignment_expression`; otherwise fall
+    // back to the opaque legacy path (the directive is emitted verbatim for
+    // the driver). Conservative-by-design: only identifier and numeric-literal
+    // leaders go AST. `(`, unary prefixes, `{`, `,`, `;`, `:`, … stay opaque —
+    // real shader code doesn't lead a `#define` value with those shapes, and
+    // keeping them opaque lets non-expression replacement lists like
+    // `#define COMMA ,` round-trip through the driver untouched.
+    const c = src.charCodeAt(i);
+    if (BaseLexer.isDigit(c)) return true;
+    if (ch === "." && i + 1 < src.length && BaseLexer.isDigit(src.charCodeAt(i + 1))) return true;
+    if (!BaseLexer.isAlpha(c)) return false;
+    // Alpha-leader: identifier, or a whitelist-approved expression-starter
+    // keyword. Other GLSL keywords (declaration / qualifier / control-flow)
+    // fall to the legacy path.
+    let j = i;
+    while (j < src.length && BaseLexer.isAlnum(src.charCodeAt(j))) j++;
+    const firstWord = src.substring(i, j);
+    const kw = Lexer._lexemeTable[firstWord];
+    return kw === undefined || Lexer._expressionLeaderKeywords.has(kw);
   }
 
   /**
