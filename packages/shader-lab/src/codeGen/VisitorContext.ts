@@ -116,24 +116,6 @@ export class VisitorContext {
     return this._referenceProp("mrt", ident.lexeme, this.mrtList, this._referencedMRTList, ident.location);
   }
 
-  /**
-   * Register a struct property reference by name, driven by macro-value rewriting
-   * where the caller has only the role and the property name, not a lexed token.
-   * Returns a GSError if the property doesn't exist — callers should surface this
-   * instead of silently stripping the prefix, which would defer the error to the
-   * downstream GLSL compiler as "undeclared identifier" and be hard to diagnose.
-   */
-  referenceStructPropByName(role: StructRole, propName: string): Error | void {
-    const list = role === "varying" ? this.varyingList : role === "attribute" ? this.attributeList : this.mrtList;
-    const refList =
-      role === "varying"
-        ? this._referencedVaryingList
-        : role === "attribute"
-          ? this._referencedAttributeList
-          : this._referencedMRTList;
-    return this._referenceProp(role, propName, list, refList, undefined as any);
-  }
-
   referenceGlobal(ident: string, type: ESymbolType): void {
     if (this._referencedGlobals[ident]) return;
 

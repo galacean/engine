@@ -486,56 +486,50 @@ export class Lexer extends BaseLexer {
   }
 
   /**
-   * Keywords that CAN legitimately start a GLSL expression. Any other keyword
-   * appearing as the first token of a `#define` value means the macro is
-   * expanding into a declaration/statement (type alias, qualifier alias, etc.)
-   * and must stay on the legacy opaque path.
+   * Keywords that CAN legitimately start a GLSL expression — boolean literals and
+   * scalar/vector/matrix type constructors. Any other keyword appearing as the
+   * first token of a `#define` value means the macro is expanding into a
+   * declaration/statement (type alias, qualifier alias, etc.) and must stay on
+   * the legacy opaque path.
    *
-   * Two flavors of expression-starter keywords:
-   *   - Boolean literals: `true`, `false`
-   *   - Type constructors: `vec2(...)`, `mat3(...)`, `float(...)` etc. — GLSL
-   *     allows any scalar/vector/matrix type name to start a constructor-call
-   *     expression. Sampler types are excluded (no sampler constructor in
-   *     GLSL ES).
-   *
-   * Qualifier keywords (`highp`, `mediump`, `in`, `out`, `uniform`, `struct`,
-   * `precision`, `layout`, `invariant`, `const`, etc.) are intentionally NOT
-   * here — starting a `#define` value with them means it's a declaration-style
-   * macro that should stay opaque.
+   * Sampler types and `void` are intentionally excluded (no sampler/void
+   * constructor in GLSL ES). Qualifier keywords (`highp`, `in`, `uniform`,
+   * `struct`, `const`, `precision`, …) are also excluded — they open
+   * declarations, not expressions.
    */
-  private static readonly _expressionValueLeaderKeywords = new Set<string>([
+  private static readonly _expressionLeaderKeywords = new Set<Keyword>([
     // Boolean literals
-    "true",
-    "false",
+    Keyword.True,
+    Keyword.False,
     // Scalar type constructors
-    "bool",
-    "int",
-    "uint",
-    "float",
-    "double",
+    Keyword.BOOL,
+    Keyword.INT,
+    Keyword.UINT,
+    Keyword.FLOAT,
+    Keyword.DOUBLE,
     // Vector type constructors
-    "bvec2",
-    "bvec3",
-    "bvec4",
-    "ivec2",
-    "ivec3",
-    "ivec4",
-    "uvec2",
-    "uvec3",
-    "uvec4",
-    "vec2",
-    "vec3",
-    "vec4",
+    Keyword.BVEC2,
+    Keyword.BVEC3,
+    Keyword.BVEC4,
+    Keyword.IVEC2,
+    Keyword.IVEC3,
+    Keyword.IVEC4,
+    Keyword.UVEC2,
+    Keyword.UVEC3,
+    Keyword.UVEC4,
+    Keyword.VEC2,
+    Keyword.VEC3,
+    Keyword.VEC4,
     // Matrix type constructors
-    "mat2",
-    "mat3",
-    "mat4",
-    "mat2x3",
-    "mat2x4",
-    "mat3x2",
-    "mat3x4",
-    "mat4x2",
-    "mat4x3"
+    Keyword.MAT2,
+    Keyword.MAT3,
+    Keyword.MAT4,
+    Keyword.MAT2X3,
+    Keyword.MAT2X4,
+    Keyword.MAT3X2,
+    Keyword.MAT3X4,
+    Keyword.MAT4X2,
+    Keyword.MAT4X3
   ]);
 
   /**
@@ -583,7 +577,8 @@ export class Lexer extends BaseLexer {
       const wordStart = i;
       while (i < src.length && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
       const firstWord = src.substring(wordStart, i);
-      if (Lexer._lexemeTable[firstWord] !== undefined && !Lexer._expressionValueLeaderKeywords.has(firstWord)) {
+      const kw = Lexer._lexemeTable[firstWord];
+      if (kw !== undefined && !Lexer._expressionLeaderKeywords.has(kw)) {
         return false;
       }
     }

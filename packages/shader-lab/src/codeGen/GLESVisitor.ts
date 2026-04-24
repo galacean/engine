@@ -347,7 +347,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       GLESVisitor._serializedGlobalKey.add(ident);
 
       const symbols = _referencedGlobals[ident];
-      for (let i = 0; i < symbols.length; i++) {
+      for (let i = 0, n = symbols.length; i < n; i++) {
         const sm = symbols[i];
         const codeGenResult = sm.astNode.codeGen(this);
         if (!codeGenResult) continue;
