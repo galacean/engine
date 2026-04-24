@@ -569,10 +569,23 @@ export class Lexer extends BaseLexer {
     // Line-continuation: `\` + newline — treat as no value for simplicity.
     if (ch === "\\" && (src[i + 1] === "\n" || src[i + 1] === "\r")) return false;
 
-    // Peek the first word of the value. If it's a GLSL keyword that doesn't start
-    // expressions (type, qualifier, statement leader), the value isn't
-    // expression-shaped — use the legacy path. Non-keyword identifiers and the
-    // explicit expression-starter keywords (`true`/`false`) go through the AST path.
+    // GLSL ES 3.00 §3.4: a `#define` replacement list is any sequence of
+    // preprocessor tokens, not necessarily a valid expression. Route to the
+    // AST path only when the value is *likely* a well-formed
+    // `assignment_expression`; otherwise fall back to the opaque legacy path,
+    // which emits the directive verbatim for the GLSL driver to handle.
+    //
+    //   - alpha start  → identifier, or a keyword-starter (constructor / bool
+    //                     literal in the whitelist; declaration-style keywords
+    //                     like `highp` / `uniform` fall to legacy)
+    //   - digit / `.`  → numeric literal
+    //
+    // Other value shapes (values starting with `(`, `-`, `+`, `!`, `~`, `{`,
+    // `,`, `;`, `:`, `[`, `=`, `*`, `/`, `|`, `^`, `%`, `?`, …) take the legacy
+    // opaque path. This is a deliberately conservative classifier: anything
+    // that isn't obviously an identifier or numeric literal stays opaque so
+    // that non-expression replacement lists (e.g. `#define COMMA ,`,
+    // `#define PAREN (`) round-trip through the driver untouched.
     if (BaseLexer.isAlpha(src.charCodeAt(i))) {
       const wordStart = i;
       while (i < src.length && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
@@ -581,8 +594,14 @@ export class Lexer extends BaseLexer {
       if (kw !== undefined && !Lexer._expressionLeaderKeywords.has(kw)) {
         return false;
       }
+      return true;
     }
-    return true;
+    if (BaseLexer.isDigit(src.charCodeAt(i))) return true;
+    if (ch === ".") {
+      // `.5` numeric literal; `.` alone or `.ident` is not a valid expression start.
+      return i + 1 < src.length && BaseLexer.isDigit(src.charCodeAt(i + 1));
+    }
+    return false;
   }
 
   /**
