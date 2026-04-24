@@ -17,6 +17,10 @@ export class AudioManager {
   private static _pendingSources = new Set<ResumableAudioSource>();
   private static _playingSources = new Set<ResumableAudioSource>();
   private static _interruptedSources = new Set<ResumableAudioSource>();
+  private static _foregroundRestoreDelay = 300;
+  private static _foregroundRestoreTimer: number | undefined;
+  private static _hidden = false;
+  private static _eventsBound = false;
 
   /**
    * Suspend the audio context.
@@ -38,12 +42,14 @@ export class AudioManager {
       return Promise.resolve();
     }
     if (context.state === "running") {
+      AudioManager._clearForegroundRestore();
       AudioManager._needsUserGestureResume = false;
       AudioManager._resumePendingSources();
       AudioManager._resumeInterruptedSources();
       return Promise.resolve();
     }
     return context.resume().then(() => {
+      AudioManager._clearForegroundRestore();
       AudioManager._needsUserGestureResume = false;
       AudioManager._resumePendingSources();
       AudioManager._resumeInterruptedSources();
@@ -83,11 +89,11 @@ export class AudioManager {
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
       context.onstatechange = AudioManager._onContextStateChange;
-      document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
-      // iOS Safari requires user gesture to resume AudioContext
-      document.addEventListener("touchstart", AudioManager._resumeAfterInterruption, { passive: true });
-      document.addEventListener("touchend", AudioManager._resumeAfterInterruption, { passive: true });
-      document.addEventListener("click", AudioManager._resumeAfterInterruption);
+      if (!AudioManager._eventsBound) {
+        AudioManager._eventsBound = true;
+        AudioManager._bindLifecycleEvents();
+        AudioManager._bindGestureEvents();
+      }
     }
     return context;
   }
@@ -114,6 +120,9 @@ export class AudioManager {
 
   private static _onContextStateChange(): void {
     if (AudioManager._context?.state === "running") {
+      if (AudioManager._hidden || AudioManager._needsUserGestureResume) {
+        return;
+      }
       AudioManager._needsUserGestureResume = false;
       AudioManager._resumePendingSources();
       AudioManager._resumeInterruptedSources();
@@ -160,60 +169,102 @@ export class AudioManager {
     }
   }
 
-  private static _onVisibilityChange(): void {
-    const context = AudioManager._context;
-    if (!context) {
-      return;
-    }
+  private static _bindLifecycleEvents(): void {
+    const hiddenProp = AudioManager._getHiddenProp();
+    const visibilityEvents = [
+      "visibilitychange",
+      "mozvisibilitychange",
+      "msvisibilitychange",
+      "webkitvisibilitychange",
+      "qbrowserVisibilityChange"
+    ];
 
-    if (document.hidden) {
-      AudioManager.suspend().catch(() => {});
-      return;
-    }
-
-    if (
-      (AudioManager._playingCount === 0 &&
-        AudioManager._pendingSources.size === 0 &&
-        AudioManager._interruptedSources.size === 0) ||
-      context.state === "running"
-    ) {
-      AudioManager._resumePendingSources();
-      AudioManager._resumeInterruptedSources();
-      return;
-    }
-
-    AudioManager.resume()
-      .then(() => {
-        if (AudioManager._context?.state !== "running") {
-          return AudioManager._prepareGestureResume();
-        }
-      })
-      .catch(() => {
-        return AudioManager._prepareGestureResume();
+    for (let i = 0, n = visibilityEvents.length; i < n; i++) {
+      document.addEventListener(visibilityEvents[i], (event) => {
+        const hidden = hiddenProp ? Boolean((document as any)[hiddenProp] || (event as any)?.hidden) : document.hidden;
+        hidden ? AudioManager._onHidden() : AudioManager._onShown();
       });
+    }
+
+    window.addEventListener("pagehide", AudioManager._onHidden);
+    window.addEventListener("pageshow", AudioManager._onShown);
+    document.addEventListener("pagehide", AudioManager._onHidden);
+    document.addEventListener("pageshow", AudioManager._onShown);
   }
 
-  private static _resumeAfterInterruption(): void {
-    if (
+  private static _bindGestureEvents(): void {
+    const gestureEvents = ["pointerdown", "pointerup", "touchstart", "touchend", "mouseup", "click"];
+    for (let i = 0, n = gestureEvents.length; i < n; i++) {
+      document.addEventListener(gestureEvents[i], AudioManager._resumeAfterInterruption, { passive: true });
+    }
+  }
+
+  private static _getHiddenProp(): string {
+    const doc = document as any;
+    if (typeof doc.hidden !== "undefined") return "hidden";
+    if (typeof doc.mozHidden !== "undefined") return "mozHidden";
+    if (typeof doc.msHidden !== "undefined") return "msHidden";
+    if (typeof doc.webkitHidden !== "undefined") return "webkitHidden";
+    return "";
+  }
+
+  private static _hasResumeWork(): boolean {
+    return (
       AudioManager._needsUserGestureResume ||
       AudioManager._pendingSources.size > 0 ||
       AudioManager._interruptedSources.size > 0
-    ) {
+    );
+  }
+
+  private static _onHidden(): void {
+    if (AudioManager._hidden) {
+      return;
+    }
+    AudioManager._hidden = true;
+    AudioManager._clearForegroundRestore();
+    AudioManager.suspend().catch(() => {});
+  }
+
+  private static _onShown(): void {
+    if (!AudioManager._hidden) {
+      return;
+    }
+    AudioManager._hidden = false;
+
+    if (AudioManager._hasResumeWork()) {
+      AudioManager._prepareGestureResume();
+      AudioManager._scheduleForegroundRestore();
+    }
+  }
+
+  private static _resumeAfterInterruption(): void {
+    if (AudioManager._hasResumeWork()) {
       AudioManager.resume().catch((e) => {
         console.warn("Failed to resume AudioContext:", e);
       });
     }
   }
 
+  private static _scheduleForegroundRestore(): void {
+    AudioManager._clearForegroundRestore();
+    AudioManager._foregroundRestoreTimer = window.setTimeout(() => {
+      AudioManager._foregroundRestoreTimer = undefined;
+      AudioManager.resume().catch(() => AudioManager._prepareGestureResume());
+    }, AudioManager._foregroundRestoreDelay);
+  }
+
+  private static _clearForegroundRestore(): void {
+    if (AudioManager._foregroundRestoreTimer === undefined) {
+      return;
+    }
+    window.clearTimeout(AudioManager._foregroundRestoreTimer);
+    AudioManager._foregroundRestoreTimer = undefined;
+  }
+
   private static _prepareGestureResume(): Promise<void> {
-    // iOS WKWebView WebKit bug(Triggered in LingGuang App): AudioContext may be in a "zombie" state where
-    // state reports "suspended" but resume() alone won't restart audio rendering.
-    // Calling suspend() first forces a clean internal state reset before user gesture triggers resume.
-    // Related: https://bugs.webkit.org/show_bug.cgi?id=263627
-    return AudioManager.suspend()
-      .catch(() => {})
-      .then(() => {
-        AudioManager._needsUserGestureResume = true;
-      });
+    // iOS WKWebView may report a resumable state while rendering is still frozen.
+    // Force a clean context edge, then let a gesture or foreground retry restore sources.
+    AudioManager._needsUserGestureResume = true;
+    return AudioManager.suspend().catch(() => {});
   }
 }
