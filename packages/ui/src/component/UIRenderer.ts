@@ -1,5 +1,5 @@
 import {
-  BatchUtils,
+  VertexMergeBatcher,
   Color,
   DependentMode,
   Entity,
@@ -114,12 +114,12 @@ export class UIRenderer extends Renderer implements IGraphics {
 
   // @ts-ignore
   override _canBatch(preElement, curElement): boolean {
-    return BatchUtils.canBatchSprite(preElement, curElement);
+    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
   // @ts-ignore
   override _batch(preElement, curElement): void {
-    BatchUtils.batchFor2D(preElement, curElement);
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
   // @ts-ignore
