@@ -248,6 +248,12 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
 
+  it("macro-negate-number (!0, !1 in #if expressions)", async () => {
+    const shaderSource = await readFile("./shaders/macro-negate-number.shader");
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+    glslValidate(engine, shaderSource, shaderLabRelease);
+  });
+
   it("mrt-struct", async () => {
     const shaderSource = await readFile("./shaders/mrt-struct.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
@@ -257,5 +263,17 @@ describe("ShaderLab", async () => {
     const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
     glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("texture-generic (GVec4 → vec4 resolve)", async () => {
+    const shaderSource = await readFile("./shaders/texture-generic.shader");
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+    glslValidate(engine, shaderSource, shaderLabRelease);
+  });
+
+  it("generic-return-type (builtin generic return as arg to user function)", async () => {
+    const shaderSource = await readFile("./shaders/generic-return-type.shader");
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+    glslValidate(engine, shaderSource, shaderLabRelease);
   });
 });

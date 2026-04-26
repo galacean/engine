@@ -1,4 +1,4 @@
-import { Rand } from "@galacean/engine-math";
+import { MathUtil, Rand } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -32,7 +32,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   @deepClone
   private _bursts: Burst[] = [];
 
-  private _currentBurstIndex: number = 0;
+  private _currentBurstIndex = 0;
 
   @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
@@ -191,34 +191,52 @@ export class EmissionModule extends ParticleGeneratorModule {
 
       this._emitBySubBurst(middleTime, playTime, duration);
     } else {
-      this._emitBySubBurst(lastPlayTime, playTime, duration);
+      if (lastPlayTime < duration) {
+        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration);
+      }
     }
   }
 
   private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number): void {
-    const generator = this._generator;
-    const rand = this._burstRand;
-    const bursts = this.bursts;
-
-    // Calculate the relative time of the burst
+    const { _generator: generator, _burstRand: rand, bursts } = this;
     const baseTime = Math.floor(lastPlayTime / duration) * duration;
     const startTime = lastPlayTime % duration;
     const endTime = startTime + (playTime - lastPlayTime);
 
+    let pendingIndex = -1;
     let index = this._currentBurstIndex;
     for (let n = bursts.length; index < n; index++) {
       const burst = bursts[index];
       const burstTime = burst.time;
+      if (burstTime >= endTime) break;
 
-      if (burstTime > endTime) {
-        break;
-      }
+      const { cycles, repeatInterval } = burst;
+      if (cycles === 1) {
+        if (burstTime >= startTime) {
+          generator._emit(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
+        }
+      } else {
+        const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
 
-      if (burstTime >= startTime) {
-        const count = burst.count.evaluate(undefined, rand.random());
-        generator._emit(baseTime + burstTime, count);
+        // Absorb float drift: (startTime - burstTime) / repeatInterval may land at cycle + 1e-15
+        // when it should be exactly cycle, and ceil would then skip ahead to cycle + 1.
+        const tolerance = MathUtil.zeroTolerance;
+        const lastCycle = Math.ceil((endTime - burstTime) / repeatInterval - tolerance) - 1;
+        const first = Math.max(0, Math.ceil((startTime - burstTime) / repeatInterval - tolerance));
+        const last = Math.min(maxCycles - 1, lastCycle);
+        for (let c = first; c <= last; c++) {
+          const effectiveTime = burstTime + c * repeatInterval;
+          if (effectiveTime >= duration) break;
+          generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
+        }
+
+        // `_currentBurstIndex` caches next frame's scan start, so only the earliest unfinished
+        // burst can be the entry point — skipping past it would drop its remaining cycles
+        if (pendingIndex < 0 && lastCycle < maxCycles - 1) {
+          pendingIndex = index;
+        }
       }
     }
-    this._currentBurstIndex = index;
+    this._currentBurstIndex = pendingIndex >= 0 ? pendingIndex : index;
   }
 }
