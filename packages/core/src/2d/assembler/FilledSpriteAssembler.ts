@@ -80,13 +80,31 @@ export class FilledSpriteAssembler {
         this._filledLinear(renderer, modelMatrix, false);
         break;
       case SpriteFilledMode.Radial90:
-        this._filledRadial90(renderer, modelMatrix, renderer.filledOrigin, renderer.filledAmount, renderer.filledClockWise);
+        this._filledRadial90(
+          renderer,
+          modelMatrix,
+          renderer.filledOrigin,
+          renderer.filledAmount,
+          renderer.filledClockWise
+        );
         break;
       case SpriteFilledMode.Radial180:
-        this._filledRadial180(renderer, modelMatrix, renderer.filledOrigin, renderer.filledAmount, renderer.filledClockWise);
+        this._filledRadial180(
+          renderer,
+          modelMatrix,
+          renderer.filledOrigin,
+          renderer.filledAmount,
+          renderer.filledClockWise
+        );
         break;
       case SpriteFilledMode.Radial360:
-        this._filledRadial360(renderer, modelMatrix, renderer.filledOrigin, renderer.filledAmount, renderer.filledClockWise);
+        this._filledRadial360(
+          renderer,
+          modelMatrix,
+          renderer.filledOrigin,
+          renderer.filledAmount,
+          renderer.filledClockWise
+        );
         break;
       default:
         break;
@@ -125,7 +143,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[3];
+    const { x: right, y: top } = spriteUVs[15];
 
     const subChunk = renderer._subChunk;
     const vertices = subChunk.chunk.vertices;
@@ -210,7 +228,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[3];
+    const { x: right, y: top } = spriteUVs[15];
 
     // Transform 4 corners to world space
     const [wLB, wRB, wLT, wRT] = this._worldPositions;
@@ -276,7 +294,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[3];
+    const { x: right, y: top } = spriteUVs[15];
 
     // Transform corners and compute edge midpoints
     const [wLB, wMB, wRB, wLM, , wRM, wLT, wMT, wRT] = this._worldPositions;
@@ -402,7 +420,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[3];
+    const { x: right, y: top } = spriteUVs[15];
 
     // ---------------
     //   LT  - MT -  RT
