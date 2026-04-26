@@ -23,7 +23,9 @@ export class RenderQueue {
   }
 
   static compareForTransparent(a: RenderElement, b: RenderElement): number {
-    return a.priority - b.priority || b.distanceForSort - a.distanceForSort;
+    return (
+      a.priority - b.priority || b.distanceForSort - a.distanceForSort || a.subDistancePriority - b.subDistancePriority
+    );
   }
 
   readonly elements = new Array<RenderElement>();
@@ -42,7 +44,7 @@ export class RenderQueue {
   }
 
   batch(batcherManager: BatcherManager): void {
-    batcherManager.batch(this);
+    batcherManager.batch(this.elements, this.batchedElements);
   }
 
   render(

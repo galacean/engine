@@ -355,7 +355,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     const priority = canvas.sortOrder;
     const distanceForSort = canvas._sortDistance;
     const textChunks = this._textChunks;
-    const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;
+    const subShader = material.shader.subShaders[0];
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
@@ -363,9 +363,7 @@ export class Text extends UIRenderer implements ITextRenderer {
       // @ts-ignore
       renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
-      if (isOverlay) {
-        renderElement.subShader = material.shader.subShaders[0];
-      }
+      renderElement.subShader = subShader;
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;
       renderElements.push(renderElement);

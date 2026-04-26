@@ -2,7 +2,6 @@ import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
 import { InstanceBuffer } from "./InstanceBuffer";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
-import { RenderQueue } from "./RenderQueue";
 import { RenderElement } from "./RenderElement";
 
 /**
@@ -51,21 +50,20 @@ export class BatcherManager {
     }
   }
 
-  batch(renderQueue: RenderQueue): void {
-    const { elements, batchedElements } = renderQueue;
-
+  batch(input: RenderElement[], output: RenderElement[]): void {
     let preElement: RenderElement;
     let preRenderer: Renderer;
     let preConstructor: Function;
-    for (let i = 0, n = elements.length; i < n; ++i) {
-      const curElement = elements[i];
+    for (let i = 0, n = input.length; i < n; ++i) {
+      const curElement = input[i];
       const renderer = curElement.component;
       const constructor = renderer.constructor;
       if (preElement) {
         if (preConstructor === constructor && preRenderer._canBatch(preElement, curElement)) {
           preRenderer._batch(preElement, curElement);
         } else {
-          batchedElements.push(preElement);
+          preElement._isBatched = true;
+          output.push(preElement);
           preElement = curElement;
           preRenderer = renderer;
           preConstructor = constructor;
@@ -78,7 +76,10 @@ export class BatcherManager {
         renderer._batch(null, curElement);
       }
     }
-    preElement && batchedElements.push(preElement);
+    if (preElement) {
+      preElement._isBatched = true;
+      output.push(preElement);
+    }
   }
 
   uploadBuffer() {

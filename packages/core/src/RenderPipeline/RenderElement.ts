@@ -16,6 +16,9 @@ export class RenderElement implements IPoolElement {
   subShader: SubShader;
   shaderData?: ShaderData;
   instancedRenderers: Renderer[] = [];
+  subDistancePriority: number = 0;
+  /** @internal Set when canvas-internal batching wrote to the chunk this frame; protects leader from main-pipeline _batch(null, leader) re-init within the same frame */
+  _isBatched: boolean = false;
 
   // @todo: maybe should remove later
   texture?: Texture2D;
@@ -36,6 +39,8 @@ export class RenderElement implements IPoolElement {
     this.texture = texture;
     this.subChunk = subChunk;
     this.instancedRenderers.length = 0;
+    this.subDistancePriority = 0;
+    this._isBatched = false;
   }
 
   dispose(): void {

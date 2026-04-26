@@ -41,24 +41,27 @@ export class VertexMergeBatcher {
 
   static batch(preElement: RenderElement | null, curElement: RenderElement): void {
     const subChunk = curElement.subChunk;
-    const { chunk, indices: subChunkIndices } = subChunk;
+    const { chunk, indices: localIndices } = subChunk;
 
-    const length = subChunkIndices.length;
-    let startIndex = chunk.updateIndexLength;
+    const length = localIndices.length;
     if (preElement) {
       preElement.subChunk.subMesh.count += length;
+    } else if (curElement._isBatched) {
+      // Already wrote to chunk this frame (canvas-internal batching) — main pipeline must not re-init
+      return;
     } else {
-      // Reset subMesh
-      const subMesh = subChunk.subMesh;
-      subMesh.start = startIndex;
-      subMesh.count = length;
+      // First write this frame — init subMesh range
+      subChunk.subMesh.start = chunk.updateIndexLength;
+      subChunk.subMesh.count = length;
     }
 
+    let startIndex = chunk.updateIndexLength;
     const { start, size } = subChunk.vertexArea;
+    // PrimitiveChunk vertex layout: pos(3) + uv(2) + color(4) = 9 floats per vertex
     const vertexOffset = start / 9;
     const indices = chunk.indices;
     for (let i = 0; i < length; ++i) {
-      indices[startIndex++] = vertexOffset + subChunkIndices[i];
+      indices[startIndex++] = vertexOffset + localIndices[i];
     }
     chunk.updateIndexLength += length;
     chunk.updateVertexStart = Math.min(chunk.updateVertexStart, start);

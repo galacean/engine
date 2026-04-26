@@ -509,7 +509,7 @@ export class BasicRenderPipeline {
         continue;
       }
       canvas._prepareRender(context);
-      const canvasElements = canvas._renderElements;
+      const canvasElements = canvas._batchedRenderElements;
       for (let j = 0, m = canvasElements.length; j < m; j++) {
         this.pushRenderElement(context, canvasElements[j]);
       }

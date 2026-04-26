@@ -540,5 +540,13 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.044
     }
+  },
+  UI: {
+    batchOrder: {
+      category: "UI",
+      caseFileName: "ui-batch-order",
+      threshold: 0,
+      diffPercentage: 0.01
+    }
   }
 };

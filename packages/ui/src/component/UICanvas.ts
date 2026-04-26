@@ -17,7 +17,8 @@ import {
   deepClone,
   dependentComponents,
   ignoreClone,
-  CloneUtils
+  // @ts-ignore — internal API
+  UIBatchSorter
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
@@ -63,6 +64,9 @@ export class UICanvas extends Component implements IElement {
   /** @internal */
   @ignoreClone
   _renderElements: any[] = [];
+  /** @internal */
+  @ignoreClone
+  _batchedRenderElements: any[] = [];
   /** @internal */
   @ignoreClone
   _sortDistance: number = 0;
@@ -340,6 +344,15 @@ export class UICanvas extends Component implements IElement {
       }
       renderer._prepareRender(context);
       renderer._renderFrameCount = frameCount;
+    }
+
+    const batchedRenderElements = this._batchedRenderElements;
+    batchedRenderElements.length = 0;
+    const { x: refX, y: refY } = this._referenceResolution;
+    UIBatchSorter.sort(renderElements, this.entity.transform.worldMatrix, Math.max(refX, refY));
+    (engine as any)._batcherManager.batch(renderElements, batchedRenderElements);
+    for (let i = 0, n = batchedRenderElements.length; i < n; i++) {
+      batchedRenderElements[i].subDistancePriority = i;
     }
   }
 

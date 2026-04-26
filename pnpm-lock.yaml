@@ -146,6 +146,9 @@ importers:
       '@galacean/engine-toolkit':
         specifier: ^1.3.9
         version: 1.3.9(@galacean/engine@packages+galacean)
+      '@galacean/engine-ui':
+        specifier: workspace:*
+        version: link:../packages/ui
       dat.gui:
         specifier: ^0.7.9
         version: 0.7.9
