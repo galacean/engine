@@ -55,13 +55,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     new Sprite(engine, iconAtlasTexture, new Rect(0.5, 0.5, 0.5, 0.5)) // gem
   ];
 
-  // 100×60 = 6000 buttons → 12000 sub-elements
-  const cols = 100;
-  const rows = 60;
-  const buttonW = 10;
-  const buttonH = 8;
-  const gapX = 12;
-  const gapY = 10;
+  // 128×72 = 9216 buttons → 18432 sub-elements
+  const cols = 128;
+  const rows = 72;
+  const buttonW = 7;
+  const buttonH = 6;
+  const gapX = 9;
+  const gapY = 8;
   const startX = -((cols - 1) * gapX) / 2;
   const startY = -((rows - 1) * gapY) / 2;
 
