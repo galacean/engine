@@ -21,14 +21,19 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const scene = engine.sceneManager.activeScene;
   const root = scene.createRootEntity("root");
 
-  // Camera
+  // Camera (ScreenSpaceCamera mode is required: ScreenSpaceOverlay UI renders in a
+  // separate overlay pass that bypasses camera.render(), so initScreenshot's
+  // off-screen render-target won't capture it.)
   const cameraEntity = root.createChild("camera");
+  cameraEntity.transform.setPosition(0, 0, 50);
   const camera = cameraEntity.addComponent(Camera);
 
-  // Canvas (overlay)
+  // Canvas
   const canvasEntity = root.createChild("canvas");
   const canvas = canvasEntity.addComponent(UICanvas);
-  canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+  canvas.renderMode = CanvasRenderMode.ScreenSpaceCamera;
+  canvas.renderCamera = camera;
+  canvas.referenceResolution.set(1280, 720);
 
   // Two solid-color textures → distinct materials, so bg/text are batch-incompatible
   const bgTex = createSolidTexture(engine, 64, 64, [255, 80, 80, 255]); // red

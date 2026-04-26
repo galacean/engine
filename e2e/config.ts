@@ -552,7 +552,7 @@ export const E2E_CONFIG = {
       category: "UI",
       caseFileName: "ui-batch-order",
       threshold: 0,
-      diffPercentage: 0.01
+      diffPercentage: 0
     }
   }
 };
