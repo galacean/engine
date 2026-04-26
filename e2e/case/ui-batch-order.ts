@@ -1,10 +1,13 @@
 /**
  * @title UI Batch Order
  * @category UI
- * @description Verifies that canvas-internal batching preserves hierarchy order:
- *   each "button" stacks (bg, text) where text must render on top of bg.
- *   Multiple buttons of the same materials should batch together without breaking
- *   the per-button visual stacking. Regression for the canvas-vs-3D sort bug.
+ * @description Regression guard for the canvas hierarchy-order bug introduced when
+ *   SubRenderElement was flattened into RenderElement: canvas sub-elements entered
+ *   the main transparent queue directly and could be shuffled by unstable quicksort
+ *   under equal (priority, distance), making `text` render below `bg` on some buttons.
+ *   Fixed by canvas-internal batching + subDistancePriority tiebreaker.
+ *   This case lays out a 4×3 grid of (bg + text) buttons; if hierarchy order ever
+ *   breaks again, the green text would be hidden behind red bg in the screenshot.
  */
 import { Camera, Color, Sprite, Texture2D, TextureFormat, WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Image, registerGUI, UICanvas, UITransform } from "@galacean/engine-ui";
