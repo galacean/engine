@@ -91,125 +91,76 @@ export class StencilState {
     constantPropertyMask: number,
     materialStencilState: StencilState
   ): void {
-    // StencilStateEnabled
-    {
-      const key = RenderStateElementKey.StencilStateEnabled;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.enabled = v !== undefined ? !!v : materialStencilState.enabled;
-      }
-    }
+    const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
+    const m = materialStencilState;
 
-    // StencilStateReferenceValue
-    {
-      const key = RenderStateElementKey.StencilStateReferenceValue;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.referenceValue = v !== undefined ? v : materialStencilState.referenceValue;
-      }
-    }
-
-    // StencilStateMask
-    {
-      const key = RenderStateElementKey.StencilStateMask;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.mask = v !== undefined ? v : materialStencilState.mask;
-      }
-    }
-
-    // StencilStateWriteMask
-    {
-      const key = RenderStateElementKey.StencilStateWriteMask;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.writeMask = v !== undefined ? v : materialStencilState.writeMask;
-      }
-    }
-
-    // StencilStateCompareFunctionFront
-    {
-      const key = RenderStateElementKey.StencilStateCompareFunctionFront;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.compareFunctionFront = v !== undefined ? v : materialStencilState.compareFunctionFront;
-      }
-    }
-
-    // StencilStateCompareFunctionBack
-    {
-      const key = RenderStateElementKey.StencilStateCompareFunctionBack;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.compareFunctionBack = v !== undefined ? v : materialStencilState.compareFunctionBack;
-      }
-    }
-
-    // StencilStatePassOperationFront
-    {
-      const key = RenderStateElementKey.StencilStatePassOperationFront;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.passOperationFront = v !== undefined ? v : materialStencilState.passOperationFront;
-      }
-    }
-
-    // StencilStatePassOperationBack
-    {
-      const key = RenderStateElementKey.StencilStatePassOperationBack;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.passOperationBack = v !== undefined ? v : materialStencilState.passOperationBack;
-      }
-    }
-
-    // StencilStateFailOperationFront
-    {
-      const key = RenderStateElementKey.StencilStateFailOperationFront;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.failOperationFront = v !== undefined ? v : materialStencilState.failOperationFront;
-      }
-    }
-
-    // StencilStateFailOperationBack
-    {
-      const key = RenderStateElementKey.StencilStateFailOperationBack;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.failOperationBack = v !== undefined ? v : materialStencilState.failOperationBack;
-      }
-    }
-
-    // StencilStateZFailOperationFront
-    {
-      const key = RenderStateElementKey.StencilStateZFailOperationFront;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.zFailOperationFront = v !== undefined ? v : materialStencilState.zFailOperationFront;
-      }
-    }
-
-    // StencilStateZFailOperationBack
-    {
-      const key = RenderStateElementKey.StencilStateZFailOperationBack;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.zFailOperationBack = v !== undefined ? v : materialStencilState.zFailOperationBack;
-      }
-    }
+    this.enabled = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateEnabled,
+      ...args,
+      this.enabled,
+      m.enabled
+    );
+    this.referenceValue = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateReferenceValue,
+      ...args,
+      this.referenceValue,
+      m.referenceValue
+    );
+    this.mask = RenderState._resolveValue(RenderStateElementKey.StencilStateMask, ...args, this.mask, m.mask);
+    this.writeMask = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateWriteMask,
+      ...args,
+      this.writeMask,
+      m.writeMask
+    );
+    this.compareFunctionFront = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateCompareFunctionFront,
+      ...args,
+      this.compareFunctionFront,
+      m.compareFunctionFront
+    );
+    this.compareFunctionBack = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateCompareFunctionBack,
+      ...args,
+      this.compareFunctionBack,
+      m.compareFunctionBack
+    );
+    this.passOperationFront = RenderState._resolveValue(
+      RenderStateElementKey.StencilStatePassOperationFront,
+      ...args,
+      this.passOperationFront,
+      m.passOperationFront
+    );
+    this.passOperationBack = RenderState._resolveValue(
+      RenderStateElementKey.StencilStatePassOperationBack,
+      ...args,
+      this.passOperationBack,
+      m.passOperationBack
+    );
+    this.failOperationFront = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateFailOperationFront,
+      ...args,
+      this.failOperationFront,
+      m.failOperationFront
+    );
+    this.failOperationBack = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateFailOperationBack,
+      ...args,
+      this.failOperationBack,
+      m.failOperationBack
+    );
+    this.zFailOperationFront = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateZFailOperationFront,
+      ...args,
+      this.zFailOperationFront,
+      m.zFailOperationFront
+    );
+    this.zFailOperationBack = RenderState._resolveValue(
+      RenderStateElementKey.StencilStateZFailOperationBack,
+      ...args,
+      this.zFailOperationBack,
+      m.zFailOperationBack
+    );
   }
 
   /**

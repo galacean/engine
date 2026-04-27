@@ -606,6 +606,16 @@ export class PBRMaterial extends BaseMaterial {
         this.shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
       } else {
         this.shaderData.disableMacro(PBRMaterial._transmissionMacro);
+        // Restore renderQueueType based on isTransparent / alphaCutoff state
+        let queue: RenderQueueType;
+        if (this._isTransparent) {
+          queue = RenderQueueType.Transparent;
+        } else if (this.shaderData.getFloat(BaseMaterial._alphaCutoffProp)) {
+          queue = RenderQueueType.AlphaTest;
+        } else {
+          queue = RenderQueueType.Opaque;
+        }
+        this.shaderData.setInt("renderQueueType", queue);
       }
     }
     this.shaderData.setFloat(PBRMaterial._transmissionProp, value);

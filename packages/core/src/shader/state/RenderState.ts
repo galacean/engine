@@ -13,6 +13,29 @@ import { StencilState } from "./StencilState";
  * Render state.
  */
 export class RenderState {
+  /**
+   * @internal
+   * Resolve a single render-state property with 3-tier priority:
+   * shader constant (currentValue) > shaderData value > materialValue.
+   * Boolean fields are coerced via `!!` based on the type of `currentValue`.
+   */
+  static _resolveValue<T>(
+    key: RenderStateElementKey,
+    constantPropertyMask: number,
+    renderStateDataMap: Record<number, ShaderProperty>,
+    shaderData: ShaderData,
+    currentValue: T,
+    materialValue: T
+  ): T {
+    if ((constantPropertyMask >> key) & 1) return currentValue;
+    const prop = renderStateDataMap[key];
+    if (prop) {
+      const v = shaderData.getFloat(prop);
+      if (v !== undefined) return <T>(typeof currentValue === "boolean" ? !!v : v);
+    }
+    return materialValue;
+  }
+
   /** Blend state. */
   @deepClone
   readonly blendState: BlendState = new BlendState();
@@ -89,14 +112,13 @@ export class RenderState {
     constantPropertyMask: number,
     materialRenderQueueType: RenderQueueType
   ): RenderQueueType {
-    if ((constantPropertyMask >> RenderStateElementKey.RenderQueueType) & 1) {
-      return this.renderQueueType;
-    }
-    const prop = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (prop) {
-      const v = shaderData.getFloat(prop);
-      if (v !== undefined) return v;
-    }
-    return materialRenderQueueType;
+    return RenderState._resolveValue(
+      RenderStateElementKey.RenderQueueType,
+      constantPropertyMask,
+      renderStateDataMap,
+      shaderData,
+      this.renderQueueType,
+      materialRenderQueueType
+    );
   }
 }

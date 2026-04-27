@@ -251,11 +251,20 @@ export class Shader implements IReferable {
     // Parse from the end: last segment is pass name, second-to-last is subshader name,
     // everything before is the shader name (which may contain "/" like "Utility/ShadowMap").
     const parts = passName.split("/");
+    if (parts.length < 3) {
+      throw new Error(`UsePass "${passName}" must be formatted as "shaderName/subShaderName/passName".`);
+    }
     const passNamePart = parts.pop();
     const subShaderName = parts.pop();
     const shaderName = parts.join("/");
-    return Shader.find(shaderName)
-      ?.subShaders.find((subShader) => subShader.name === subShaderName)
+    const shader = Shader.find(shaderName);
+    if (!shader) {
+      throw new Error(
+        `UsePass "${passName}" failed: shader "${shaderName}" not found. Ensure referenced shaders are registered first.`
+      );
+    }
+    return shader.subShaders
+      .find((subShader) => subShader.name === subShaderName)
       ?.passes.find((pass) => pass.name === passNamePart);
   }
 

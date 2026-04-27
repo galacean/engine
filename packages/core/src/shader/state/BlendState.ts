@@ -92,114 +92,73 @@ export class BlendState {
   ): void {
     const target = this.targetBlendState;
     const materialTarget = materialBlendState.targetBlendState;
+    const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
 
-    // BlendStateEnabled0
-    {
-      const key = RenderStateElementKey.BlendStateEnabled0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.enabled = v !== undefined ? !!v : materialTarget.enabled;
-      }
-    }
+    target.enabled = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateEnabled0,
+      ...args,
+      target.enabled,
+      materialTarget.enabled
+    );
+    target.colorBlendOperation = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateColorBlendOperation0,
+      ...args,
+      target.colorBlendOperation,
+      materialTarget.colorBlendOperation
+    );
+    target.alphaBlendOperation = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateAlphaBlendOperation0,
+      ...args,
+      target.alphaBlendOperation,
+      materialTarget.alphaBlendOperation
+    );
+    target.sourceColorBlendFactor = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateSourceColorBlendFactor0,
+      ...args,
+      target.sourceColorBlendFactor,
+      materialTarget.sourceColorBlendFactor
+    );
+    target.sourceAlphaBlendFactor = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateSourceAlphaBlendFactor0,
+      ...args,
+      target.sourceAlphaBlendFactor,
+      materialTarget.sourceAlphaBlendFactor
+    );
+    target.destinationColorBlendFactor = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateDestinationColorBlendFactor0,
+      ...args,
+      target.destinationColorBlendFactor,
+      materialTarget.destinationColorBlendFactor
+    );
+    target.destinationAlphaBlendFactor = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0,
+      ...args,
+      target.destinationAlphaBlendFactor,
+      materialTarget.destinationAlphaBlendFactor
+    );
+    target.colorWriteMask = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateColorWriteMask0,
+      ...args,
+      target.colorWriteMask,
+      materialTarget.colorWriteMask
+    );
 
-    // BlendStateColorBlendOperation0
-    {
-      const key = RenderStateElementKey.BlendStateColorBlendOperation0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.colorBlendOperation = v !== undefined ? v : materialTarget.colorBlendOperation;
-      }
-    }
-
-    // BlendStateAlphaBlendOperation0
-    {
-      const key = RenderStateElementKey.BlendStateAlphaBlendOperation0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.alphaBlendOperation = v !== undefined ? v : materialTarget.alphaBlendOperation;
-      }
-    }
-
-    // BlendStateSourceColorBlendFactor0
-    {
-      const key = RenderStateElementKey.BlendStateSourceColorBlendFactor0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.sourceColorBlendFactor = v !== undefined ? v : materialTarget.sourceColorBlendFactor;
-      }
-    }
-
-    // BlendStateSourceAlphaBlendFactor0
-    {
-      const key = RenderStateElementKey.BlendStateSourceAlphaBlendFactor0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.sourceAlphaBlendFactor = v !== undefined ? v : materialTarget.sourceAlphaBlendFactor;
-      }
-    }
-
-    // BlendStateDestinationColorBlendFactor0
-    {
-      const key = RenderStateElementKey.BlendStateDestinationColorBlendFactor0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.destinationColorBlendFactor = v !== undefined ? v : materialTarget.destinationColorBlendFactor;
-      }
-    }
-
-    // BlendStateDestinationAlphaBlendFactor0
-    {
-      const key = RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.destinationAlphaBlendFactor = v !== undefined ? v : materialTarget.destinationAlphaBlendFactor;
-      }
-    }
-
-    // BlendStateColorWriteMask0
-    {
-      const key = RenderStateElementKey.BlendStateColorWriteMask0;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        target.colorWriteMask = v !== undefined ? v : materialTarget.colorWriteMask;
-      }
-    }
-
-    // BlendStateBlendColor
+    // BlendStateBlendColor (Color type — uses getColor, separate path)
     {
       const key = RenderStateElementKey.BlendStateBlendColor;
       if (!((constantPropertyMask >> key) & 1)) {
         const prop = renderStateDataMap[key];
-        if (prop) {
-          const v = shaderData.getColor(prop);
-          if (v !== undefined) {
-            this.blendColor.copyFrom(v);
-          } else {
-            this.blendColor.copyFrom(materialBlendState.blendColor);
-          }
-        } else {
-          this.blendColor.copyFrom(materialBlendState.blendColor);
-        }
+        const v = prop ? shaderData.getColor(prop) : undefined;
+        this.blendColor.copyFrom(v ?? materialBlendState.blendColor);
       }
     }
 
-    // BlendStateAlphaToCoverage
-    {
-      const key = RenderStateElementKey.BlendStateAlphaToCoverage;
-      if (!((constantPropertyMask >> key) & 1)) {
-        const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getFloat(prop) : undefined;
-        this.alphaToCoverage = v !== undefined ? !!v : materialBlendState.alphaToCoverage;
-      }
-    }
+    this.alphaToCoverage = RenderState._resolveValue(
+      RenderStateElementKey.BlendStateAlphaToCoverage,
+      ...args,
+      this.alphaToCoverage,
+      materialBlendState.alphaToCoverage
+    );
   }
 
   /**
