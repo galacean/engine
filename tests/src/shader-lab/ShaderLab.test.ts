@@ -419,6 +419,18 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabVerbose);
   });
 
+  it("define-in-comment-repro (Issue 2980 ex.1: regex must not false-positive on /* #define */)", async () => {
+    const shaderSource = await readFile("./shaders/define-in-comment-repro.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("define-line-continuation-repro (Issue 2980 ex.2: \\-continuation in #define value)", async () => {
+    const shaderSource = await readFile("./shaders/define-line-continuation-repro.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
   it("define-comment-in-peek (block comment between macro name and value)", async () => {
     const shaderSource = await readFile("./shaders/define-comment-in-peek.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);

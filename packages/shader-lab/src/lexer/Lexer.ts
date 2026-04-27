@@ -2,7 +2,7 @@ import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
-import { MacroDefineList } from "../Preprocessor";
+import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
 import { ShaderLab } from "../ShaderLab";
 
 /**
@@ -85,6 +85,17 @@ export class Lexer extends BaseLexer {
     "#undef": Keyword.MACRO_UNDEF
   };
 
+  // Parses a `#define <name>[(params)] [value]` directive lexeme, sliced from
+  // `_source` between the `#` and the directive-terminating newline. Used by
+  // `_registerMacroDefine` to feed `macroDefineList` from both the AST and
+  // legacy `#define` paths — single source of truth, no drift between two
+  // analyzers.
+  private static readonly _defineDirectiveReg = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?(?:[ \t]+([^\n\r]*?))?\s*$/;
+  // Anchors a `#define` value to a bare identifier or function-call form
+  // (`foo` or `foo(a, b)`); mixed-operator values like `a + b` reject. The
+  // captured identifier becomes `MacroDefineInfo.referenceName`.
+  private static readonly _referenceReg = /^([a-zA-Z_]\w*)(?:\s*\(.*\))?$/;
+
   private _needScanMacroConditionExpression = false;
 
   // --- `#define` scanning state machine ---
@@ -104,6 +115,13 @@ export class Lexer extends BaseLexer {
   private _inMacroDefineValue = false;
   private _macroDefineExpectsNameToken = false;
   private _macroDefineExpectsParamsToken = false;
+
+  // Source offset of the current `#define` directive's start (the `#`).
+  // Set when `_scanDirectives` consumes `#define`, used by
+  // `_registerMacroDefine` at MACRO_DEFINE_END to slice out the directive
+  // text and parse it with the same regex the legacy path uses — single
+  // source of truth.
+  private _macroDefineDirectiveStart: number = -1;
 
   *tokenize() {
     while (!this.isEnd()) {
@@ -453,9 +471,10 @@ export class Lexer extends BaseLexer {
     const word = buffer.join("");
 
     if (word === "#define") {
-      // Peek the rest of the line: if the directive has no value (`#define X\n`),
-      // fall back to the legacy opaque path. Only directives with a non-empty
-      // value enter expression-mode (AST parsing).
+      // Mark the directive's start offset (the `#`) so the regex-based
+      // registrar can later slice out the full directive text from `_source`.
+      // Two paths share the same registrar — single source of truth.
+      this._macroDefineDirectiveStart = start.index;
       if (this._defineHasValue()) {
         this._inMacroDefineValue = true;
         // The next word is the macro name: force ID type even if a prior `#define`
@@ -466,6 +485,8 @@ export class Lexer extends BaseLexer {
       } else {
         this._scanUtilBreakLine(buffer);
         const lexeme = "\n" + buffer.join("") + "\n";
+        // Legacy path: register immediately by parsing the buffered directive.
+        this._registerMacroDefine(this._source.slice(this._macroDefineDirectiveStart, this._currentIndex));
         token.set(Keyword.MACRO_DEFINE_EXPRESSION, lexeme, start);
       }
     } else {
@@ -646,10 +667,53 @@ export class Lexer extends BaseLexer {
         this.advance(1);
       }
     }
+    // Register the directive into macroDefineList — single source of truth.
+    this._registerMacroDefine(this._source.slice(this._macroDefineDirectiveStart, this._currentIndex));
     this._inMacroDefineValue = false;
     const token = BaseToken.pool.get();
     token.set(Keyword.MACRO_DEFINE_END, "\n", start);
     return token;
+  }
+
+  // Parse a `#define <name>[(params)] [value]` directive (already lexed to
+  // its newline) and register it. Both AST and legacy paths funnel through
+  // here — single source of truth, no drift between two analyzers.
+  private _registerMacroDefine(directive: string): void {
+    const m = Lexer._defineDirectiveReg.exec(directive);
+    if (!m) return;
+    const name = m[1];
+    const paramsStr = m[3];
+    const valueRaw = m[4];
+    const params = paramsStr
+      ? paramsStr
+          .split(",")
+          .map((p) => p.trim())
+          .filter(Boolean)
+      : [];
+    const refMatch = valueRaw ? Lexer._referenceReg.exec(valueRaw.trim()) : null;
+    const info: MacroDefineInfo = {
+      isFunction: m[2] !== undefined,
+      name,
+      params,
+      referenceName: refMatch ? refMatch[1] : ""
+    };
+    const arr = this.macroDefineList[name];
+    if (!arr) {
+      this.macroDefineList[name] = [info];
+      return;
+    }
+    // Skip duplicates from re-includes / re-definitions in #ifdef branches.
+    for (let i = 0, n = arr.length; i < n; i++) {
+      const e = arr[i];
+      if (
+        e.isFunction === info.isFunction &&
+        e.referenceName === info.referenceName &&
+        e.params.length === info.params.length &&
+        e.params.every((p, idx) => p === info.params[idx])
+      )
+        return;
+    }
+    arr.push(info);
   }
 
   private _scanMacroConditionExpression(): BaseToken {
