@@ -522,18 +522,18 @@ export class Lexer extends BaseLexer {
         i++;
       }
     }
-    // Scan the rest of the line for a member-access `.`. Skip the decimal
-    // point inside numeric literals (`3.14`, `1.0e-5`) by checking the prior
-    // char is not a digit.
+    // Scan to end-of-line. A `.` is a member-access operator iff its preceding
+    // alnum-or-underscore run starts with an identifier char (alpha or `_`).
+    // Numeric literals (`3.14`, `1e-5`) start with a digit; non-token contexts
+    // (`vec2(1.0).x`, `.5`) leave the run empty. Both naturally fail the
+    // `isAlpha` check on the run-start char.
     for (let k = i; k < len; k++) {
       const c = src.charCodeAt(k);
       if (c === 10 || c === 13) break;
-      // Line-continuation: `\` + newline — treat as no value for simplicity.
-      if (c === 92 && (src.charCodeAt(k + 1) === 10 || src.charCodeAt(k + 1) === 13)) return false;
-      if (c === 46 /* `.` */) {
-        const prev = k > 0 ? src.charCodeAt(k - 1) : 0;
-        if (prev < 48 || prev > 57) return true;
-      }
+      if (c !== 46 /* `.` */) continue;
+      let m = k - 1;
+      while (m >= 0 && BaseLexer.isAlnum(src.charCodeAt(m))) m--;
+      if (BaseLexer.isAlpha(src.charCodeAt(m + 1))) return true;
     }
     return false;
   }

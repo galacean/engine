@@ -407,6 +407,12 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabVerbose);
   });
 
+  it("digit-ending-id-repro (struct field ending in digit: v0.xyz, uv1.xy)", async () => {
+    const shaderSource = await readFile("./shaders/digit-ending-id-repro.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
   it("define-comment-in-peek (block comment between macro name and value)", async () => {
     const shaderSource = await readFile("./shaders/define-comment-in-peek.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
