@@ -108,7 +108,8 @@ describe("ShaderLab", async () => {
       [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: BlendFactor.SourceAlpha,
       // Pass level (traditional syntax)
       [RenderStateElementKey.BlendStateEnabled0]: true, // Pass overrides inherited "subShaderBlendEnabled"
-      [RenderStateElementKey.BlendStateColorWriteMask0]: ColorWriteMask.Red | ColorWriteMask.Green | ColorWriteMask.Blue,
+      [RenderStateElementKey.BlendStateColorWriteMask0]:
+        ColorWriteMask.Red | ColorWriteMask.Green | ColorWriteMask.Blue,
       [RenderStateElementKey.BlendStateAlphaBlendOperation0]: BlendOperation.Max,
       [RenderStateElementKey.StencilStateEnabled]: true,
       [RenderStateElementKey.StencilStateMask]: 1.3,
@@ -390,6 +391,18 @@ describe("ShaderLab", async () => {
 
   it("non-expression-define (replacement list is not an expression)", async () => {
     const shaderSource = await readFile("./shaders/non-expression-define-repro.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("type-alias-repro (FXAA-style portability macros aliasing GLSL types)", async () => {
+    const shaderSource = await readFile("./shaders/type-alias-repro.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("type-alias-sampler-only (sampler2D alias alone — should pass via legacy path)", async () => {
+    const shaderSource = await readFile("./shaders/type-alias-sampler-only.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
     glslValidate(engine, shaderSource, shaderLabVerbose);
   });

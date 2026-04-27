@@ -486,74 +486,35 @@ export class Lexer extends BaseLexer {
   }
 
   /**
-   * Keywords that CAN legitimately start a GLSL expression — boolean literals and
-   * scalar/vector/matrix type constructors. Any other keyword appearing as the
-   * first token of a `#define` value means the macro is expanding into a
-   * declaration/statement (type alias, qualifier alias, etc.) and must stay on
-   * the legacy opaque path.
-   *
-   * Sampler types and `void` are intentionally excluded (no sampler/void
-   * constructor in GLSL ES). Qualifier keywords (`highp`, `in`, `uniform`,
-   * `struct`, `const`, `precision`, …) are also excluded — they open
-   * declarations, not expressions.
-   */
-  private static readonly _expressionLeaderKeywords = new Set<Keyword>([
-    // Boolean literals
-    Keyword.True,
-    Keyword.False,
-    // Scalar type constructors
-    Keyword.BOOL,
-    Keyword.INT,
-    Keyword.UINT,
-    Keyword.FLOAT,
-    Keyword.DOUBLE,
-    // Vector type constructors
-    Keyword.BVEC2,
-    Keyword.BVEC3,
-    Keyword.BVEC4,
-    Keyword.IVEC2,
-    Keyword.IVEC3,
-    Keyword.IVEC4,
-    Keyword.UVEC2,
-    Keyword.UVEC3,
-    Keyword.UVEC4,
-    Keyword.VEC2,
-    Keyword.VEC3,
-    Keyword.VEC4,
-    // Matrix type constructors
-    Keyword.MAT2,
-    Keyword.MAT3,
-    Keyword.MAT4,
-    Keyword.MAT2X3,
-    Keyword.MAT2X4,
-    Keyword.MAT3X2,
-    Keyword.MAT3X4,
-    Keyword.MAT4X2,
-    Keyword.MAT4X3
-  ]);
-
-  /**
    * Peek forward from `#define` and decide whether this directive should use the
-   * expression-AST path or the legacy opaque path. Returns true for values that
-   * can plausibly be parsed as a GLSL expression; returns false for:
-   *   - empty bodies (`#define FOO\n`)
-   *   - values whose first token is a type/qualifier keyword (the macro is
-   *     expanding into a declaration, not an expression)
-   *   - values using `\` line continuation (rare; simpler to stay opaque)
+   * expression-AST path or the legacy opaque path.
+   *
+   * The AST path's only purpose is to enable ShaderLab's structural rewrites
+   * (varying flatten, struct-property reference tracking) on macro values that
+   * mention struct members. Every other shape — bare identifiers, numeric
+   * literals, type-alias keywords (`#define FxaaFloat2 vec2`), constructor
+   * calls, qualifier fragments, `#define COMMA ,` etc. — is correctly handled
+   * by the GLSL driver via textual substitution and needs no AST.
+   *
+   * So the routing rule is positive and information-driven: **AST iff the
+   * replacement list contains a `.` member-access operator**. This is robust
+   * against new GLSL keywords / extensions and incidentally moves all simple
+   * constants and type aliases off the 18-layer expression precedence chain.
    */
   private _defineHasValue(): boolean {
     const src = this._source;
+    const len = src.length;
     let i = this._currentIndex;
     // Skip inline whitespace after `#define`
-    while (i < src.length && (src[i] === " " || src[i] === "\t")) i++;
+    while (i < len && (src[i] === " " || src[i] === "\t")) i++;
     // Skip macro name
-    if (!(i < src.length && BaseLexer.isAlpha(src.charCodeAt(i)))) return false;
-    while (i < src.length && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
+    if (!(i < len && BaseLexer.isAlpha(src.charCodeAt(i)))) return false;
+    while (i < len && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
     // Optional `(params)`: scan past a balanced pair on the same line
     if (src[i] === "(") {
       let depth = 1;
       i++;
-      while (i < src.length && depth > 0) {
+      while (i < len && depth > 0) {
         const ch = src[i];
         if (ch === "\n" || ch === "\r") return false; // malformed: stay legacy
         if (ch === "(") depth++;
@@ -561,35 +522,20 @@ export class Lexer extends BaseLexer {
         i++;
       }
     }
-    // Skip trailing whitespace between `)` (or name) and the value
-    while (i < src.length && (src[i] === " " || src[i] === "\t")) i++;
-    if (i >= src.length) return false;
-    const ch = src[i];
-    if (ch === "\n" || ch === "\r") return false;
-    // Line-continuation: `\` + newline — treat as no value for simplicity.
-    if (ch === "\\" && (src[i + 1] === "\n" || src[i + 1] === "\r")) return false;
-
-    // GLSL ES 3.00 §3.4: a `#define` replacement list is any token sequence,
-    // not necessarily a valid expression. Route to the AST path only when the
-    // value *looks like* a well-formed `assignment_expression`; otherwise fall
-    // back to the opaque legacy path (the directive is emitted verbatim for
-    // the driver). Conservative-by-design: only identifier and numeric-literal
-    // leaders go AST. `(`, unary prefixes, `{`, `,`, `;`, `:`, … stay opaque —
-    // real shader code doesn't lead a `#define` value with those shapes, and
-    // keeping them opaque lets non-expression replacement lists like
-    // `#define COMMA ,` round-trip through the driver untouched.
-    const c = src.charCodeAt(i);
-    if (BaseLexer.isDigit(c)) return true;
-    if (ch === "." && i + 1 < src.length && BaseLexer.isDigit(src.charCodeAt(i + 1))) return true;
-    if (!BaseLexer.isAlpha(c)) return false;
-    // Alpha-leader: identifier, or a whitelist-approved expression-starter
-    // keyword. Other GLSL keywords (declaration / qualifier / control-flow)
-    // fall to the legacy path.
-    let j = i;
-    while (j < src.length && BaseLexer.isAlnum(src.charCodeAt(j))) j++;
-    const firstWord = src.substring(i, j);
-    const kw = Lexer._lexemeTable[firstWord];
-    return kw === undefined || Lexer._expressionLeaderKeywords.has(kw);
+    // Scan the rest of the line for a member-access `.`. Skip the decimal
+    // point inside numeric literals (`3.14`, `1.0e-5`) by checking the prior
+    // char is not a digit.
+    for (let k = i; k < len; k++) {
+      const c = src.charCodeAt(k);
+      if (c === 10 || c === 13) break;
+      // Line-continuation: `\` + newline — treat as no value for simplicity.
+      if (c === 92 && (src.charCodeAt(k + 1) === 10 || src.charCodeAt(k + 1) === 13)) return false;
+      if (c === 46 /* `.` */) {
+        const prev = k > 0 ? src.charCodeAt(k - 1) : 0;
+        if (prev < 48 || prev > 57) return true;
+      }
+    }
+    return false;
   }
 
   /**
