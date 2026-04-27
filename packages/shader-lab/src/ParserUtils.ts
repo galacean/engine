@@ -39,20 +39,24 @@ export class ParserUtils {
   static extractDirectIdentLexeme(expr: TreeNode): string | null {
     let cur: TreeNode | Token = expr;
     while (cur) {
-      if (cur instanceof ASTNode.PostfixExpression) {
-        if (cur.children.length !== 1) return null;
-        cur = cur.children[0];
-        continue;
-      }
-      if (cur instanceof ASTNode.PrimaryExpression) {
-        if (cur.children.length !== 1) return null;
-        cur = cur.children[0];
-        continue;
-      }
       if (cur instanceof ASTNode.VariableIdentifier) {
         const child = cur.children[0];
-        if (child instanceof Token) return child.lexeme;
-        return null;
+        return child instanceof Token ? child.lexeme : null;
+      }
+      // `( expression )` form on PrimaryExpression — descend through the
+      // wrapped Expression so `(v)` resolves to `v`. All other compound
+      // forms (member access, function call, comma, …) bail out.
+      if (cur instanceof ASTNode.PrimaryExpression && cur.children.length === 3) {
+        cur = cur.children[1];
+        continue;
+      }
+      // Any precedence-chain wrapper with a single child forwards through.
+      // Covers PostfixExpression / PrimaryExpression(len=1) / Assignment /
+      // Conditional / LogicalOr / … all the way down — including the verbose
+      // build's full chain and the release build's elision-flattened chain.
+      if (cur instanceof ASTNode.ExpressionAstNode && cur.children.length === 1) {
+        cur = cur.children[0];
+        continue;
       }
       return null;
     }

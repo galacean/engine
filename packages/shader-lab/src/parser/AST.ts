@@ -849,7 +849,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.assignment_expression)
   export class AssignmentExpression extends ExpressionAstNode {
-    // #if _VERBOSE
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
@@ -859,7 +858,6 @@ export namespace ASTNode {
         this.type = expr.type ?? TypeAny;
       }
     }
-    // #endif
   }
 
   // #if _VERBOSE
@@ -869,7 +867,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.expression)
   export class Expression extends ExpressionAstNode {
-    // #if _VERBOSE
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
@@ -879,7 +876,6 @@ export namespace ASTNode {
         this.type = expr.type;
       }
     }
-    // #endif
   }
 
   @ASTNodeDecorator(NoneTerminal.primary_expression)

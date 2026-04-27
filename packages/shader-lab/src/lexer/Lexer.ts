@@ -522,18 +522,22 @@ export class Lexer extends BaseLexer {
         i++;
       }
     }
-    // Scan to end-of-line. A `.` is a member-access operator iff its preceding
-    // alnum-or-underscore run starts with an identifier char (alpha or `_`).
-    // Numeric literals (`3.14`, `1e-5`) start with a digit; non-token contexts
-    // (`vec2(1.0).x`, `.5`) leave the run empty. Both naturally fail the
-    // `isAlpha` check on the run-start char.
+    // Scan to end-of-line. A `.` is a member-access operator unless it's a
+    // decimal point inside a numeric literal — the latter has digits on both
+    // sides (`3.14`, `1.0e-5`). Member access covers `v.x`, `v0.x`, `(v).x`,
+    // `v . x`, `arr[i].field`, `(a+b).field`, etc. — all need AST routing
+    // for varying-flatten / type-propagation. Edge cases like `.5` go AST
+    // too (false positive, but the AST path handles bare floats correctly).
     for (let k = i; k < len; k++) {
       const c = src.charCodeAt(k);
       if (c === 10 || c === 13) break;
       if (c !== 46 /* `.` */) continue;
-      let m = k - 1;
-      while (m >= 0 && BaseLexer.isAlnum(src.charCodeAt(m))) m--;
-      if (BaseLexer.isAlpha(src.charCodeAt(m + 1))) return true;
+      const prev = k > 0 ? src.charCodeAt(k - 1) : 0;
+      const next = k + 1 < len ? src.charCodeAt(k + 1) : 0;
+      const prevIsDigit = prev >= 48 && prev <= 57;
+      const nextIsDigit = next >= 48 && next <= 57;
+      if (prevIsDigit && nextIsDigit) continue; // numeric literal `3.14`
+      return true;
     }
     return false;
   }

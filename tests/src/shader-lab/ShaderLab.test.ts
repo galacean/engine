@@ -413,6 +413,12 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabVerbose);
   });
 
+  it("paren-member-access-repro (inline (v).v_uv release-mode flatten)", async () => {
+    const shaderSource = await readFile("./shaders/paren-member-access-repro.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
   it("define-comment-in-peek (block comment between macro name and value)", async () => {
     const shaderSource = await readFile("./shaders/define-comment-in-peek.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);
