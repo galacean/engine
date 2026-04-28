@@ -223,50 +223,33 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const childrenLen = children.length;
-      const firstChild = children[0];
 
-      let typeSpecifier: TypeSpecifier;
-      let dataType: GalaceanDataType;
-      let typeLexeme: string;
-      let idIndex: number;
-
-      if (firstChild instanceof TypeQualifier && children[1] instanceof MacroCallSymbol) {
-        // type_qualifier macro_call_symbol id/MACRO_CALL [= initializer]
-        dataType = TypeAny;
-        typeLexeme = (children[1] as MacroCallSymbol).macroName;
-        typeSpecifier = { lexeme: typeLexeme, type: TypeAny, arraySpecifier: undefined } as any;
-        idIndex = 2;
-      } else if (firstChild instanceof MacroCallSymbol) {
-        // macro_call_symbol id/MACRO_CALL [array_specifier] [= initializer]
-        dataType = TypeAny;
-        typeLexeme = firstChild.macroName;
-        typeSpecifier = { lexeme: typeLexeme, type: TypeAny, arraySpecifier: undefined } as any;
-        idIndex = 1;
-      } else {
-        // fully_specified_type id [array_specifier] [= initializer]
-        const fullyType = firstChild as FullySpecifiedType;
-        typeSpecifier = fullyType.typeSpecifier;
-        dataType = fullyType.type;
-        typeLexeme = typeSpecifier.lexeme;
-        idIndex = 1;
-      }
+      // fully_specified_type id [array_specifier] [= initializer]
+      // Macro-as-type-alias is handled inside FullySpecifiedType (via
+      // `type_specifier_nonarray → macro_call_symbol`), producing a normal
+      // FullySpecifiedType whose `type === TypeAny` and lexeme is the macro
+      // name — so no special branching is needed here.
+      const fullyType = children[0] as FullySpecifiedType;
+      const typeSpecifier = fullyType.typeSpecifier;
+      const dataType = fullyType.type;
+      const typeLexeme = typeSpecifier.lexeme;
 
       this.typeSpecifier = typeSpecifier;
       this.arraySpecifier = typeSpecifier.arraySpecifier;
 
-      const id = children[idIndex] as BaseToken;
-      const afterId = childrenLen - idIndex - 1;
+      const id = children[1] as BaseToken;
+      const afterId = childrenLen - 2;
 
       let sm: VarSymbol;
       if (afterId === 0 || afterId === 2) {
         // No array specifier: just id, or id = initializer
         const symbolType = new SymbolType(dataType, typeLexeme, this.arraySpecifier);
-        const initializer = afterId === 2 ? (children[idIndex + 2] as Initializer) : undefined;
+        const initializer = afterId === 2 ? (children[3] as Initializer) : undefined;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
         // Has array specifier: id array_specifier [= initializer]
-        const arraySpecifier = children[idIndex + 1] as ArraySpecifier;
+        const arraySpecifier = children[2] as ArraySpecifier;
         // #if _VERBOSE
         if (arraySpecifier && this.arraySpecifier) {
           sa.reportError(arraySpecifier.location, "Array of array is not supported.");
@@ -274,7 +257,7 @@ export namespace ASTNode {
         // #endif
         this.arraySpecifier = arraySpecifier;
         const symbolType = new SymbolType(dataType, typeLexeme, this.arraySpecifier);
-        const initializer = afterId === 3 ? (children[idIndex + 3] as Initializer) : undefined;
+        const initializer = afterId === 3 ? (children[3] as Initializer) : undefined;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
@@ -443,6 +426,14 @@ export namespace ASTNode {
       if (tt instanceof BaseToken) {
         this.type = tt.lexeme;
         this.lexeme = tt.lexeme;
+      } else if (tt instanceof MacroCallSymbol) {
+        // Macro-as-type-alias: `#define FXAA_FLT float; FXAA_FLT x;`. The
+        // shader compiler doesn't expand opaque macros (the GLSL driver does),
+        // so we type the declaration as TypeAny and pass the macro name
+        // through verbatim — the driver's textual substitution at link time
+        // produces the actual type.
+        this.type = TypeAny;
+        this.lexeme = tt.macroName;
       } else {
         this.type = (tt as ExtBuiltinTypeSpecifierNonArray).type as GalaceanDataType;
         this.lexeme = (tt as ExtBuiltinTypeSpecifierNonArray).lexeme;
@@ -577,17 +568,10 @@ export namespace ASTNode {
       sa.pushScope();
       const children = this.children;
       this.ident = children[1] as BaseToken;
-      const firstChild = children[0];
-      if (firstChild instanceof MacroCallSymbol) {
-        // macro_call_symbol as return type: create a compatible FullySpecifiedType-like object
-        this.returnType = {
-          type: TypeAny,
-          typeSpecifier: { lexeme: firstChild.macroName, type: TypeAny },
-          location: firstChild.location
-        } as any;
-      } else {
-        this.returnType = firstChild as FullySpecifiedType;
-      }
+      // Macro-as-return-type funnels through `type_specifier_nonarray →
+      // macro_call_symbol` into a normal FullySpecifiedType (with
+      // `type === TypeAny` and the macro name as lexeme).
+      this.returnType = children[0] as FullySpecifiedType;
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -690,15 +674,12 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       this.ident = children[1] as BaseToken;
-      const firstChild = children[0];
       const arraySpecifier = children[2] as ArraySpecifier;
-
-      if (firstChild instanceof MacroCallSymbol) {
-        this.typeInfo = new SymbolType(TypeAny, firstChild.macroName, arraySpecifier);
-      } else {
-        const typeSpecifier = firstChild as TypeSpecifier;
-        this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
-      }
+      // Macro-as-type funnels through `type_specifier_nonarray →
+      // macro_call_symbol`, producing a normal TypeSpecifier (with
+      // `type === TypeAny` and the macro name as lexeme).
+      const typeSpecifier = children[0] as TypeSpecifier;
+      this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
     }
   }
 
@@ -1211,15 +1192,12 @@ export namespace ASTNode {
       const firstChild = children[0];
 
       if (children.length === 3) {
-        if (firstChild instanceof MacroCallSymbol) {
-          type = TypeAny;
-          lexeme = firstChild.macroName;
-          this._typeSpecifier = { type, lexeme } as any;
-        } else {
-          this._typeSpecifier = firstChild as TypeSpecifier;
-          type = this._typeSpecifier.type;
-          lexeme = this._typeSpecifier.lexeme;
-        }
+        // Macro-as-struct-member-type funnels through `type_specifier_nonarray
+        // → macro_call_symbol`, producing a normal TypeSpecifier (with
+        // `type === TypeAny` and the macro name as lexeme).
+        this._typeSpecifier = firstChild as TypeSpecifier;
+        type = this._typeSpecifier.type;
+        lexeme = this._typeSpecifier.lexeme;
         this._declaratorList = children[1] as StructDeclaratorList;
       } else {
         this._typeSpecifier = children[1] as TypeSpecifier;
@@ -1368,38 +1346,20 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const childrenLen = children.length;
-      const firstChild = children[0];
 
-      let dataType: GalaceanDataType;
-      let typeLexeme: string;
-      let idIndex: number;
+      // fully_specified_type id [array_specifier] [= initializer]
+      // Macro-as-type-alias is unified through `type_specifier_nonarray →
+      // macro_call_symbol`, which produces a FullySpecifiedType whose
+      // `type === TypeAny` and whose lexeme is the macro name — same shape as
+      // a normal user-defined type.
+      const type = children[0] as FullySpecifiedType;
+      this.type = type;
 
-      if (firstChild instanceof TypeQualifier && children[1] instanceof MacroCallSymbol) {
-        // type_qualifier macro_call_symbol id [array_specifier] [= initializer]
-        dataType = TypeAny;
-        typeLexeme = (children[1] as MacroCallSymbol).macroName;
-        this.type = { type: TypeAny, typeSpecifier: { lexeme: typeLexeme } } as any;
-        idIndex = 2;
-      } else if (firstChild instanceof MacroCallSymbol) {
-        // macro_call_symbol id [array_specifier] [= initializer]
-        dataType = TypeAny;
-        typeLexeme = firstChild.macroName;
-        this.type = { type: TypeAny, typeSpecifier: { lexeme: typeLexeme } } as any;
-        idIndex = 1;
-      } else {
-        // fully_specified_type id [array_specifier] [= initializer]
-        const type = firstChild as FullySpecifiedType;
-        this.type = type;
-        dataType = type.type;
-        typeLexeme = type.typeSpecifier.lexeme;
-        idIndex = 1;
-      }
-
-      const ident = children[idIndex] as BaseToken;
-      const sm = new VarSymbol(ident.lexeme, new SymbolType(dataType, typeLexeme), true, this);
+      const ident = children[1] as BaseToken;
+      const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
       sa.symbolTableStack.insert(sm);
 
-      const afterId = childrenLen - idIndex - 1;
+      const afterId = childrenLen - 2;
       this.isStatic = afterId >= 2;
     }
 
