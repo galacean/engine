@@ -13,6 +13,36 @@ export class VertexMergeBatcher {
     const renderer = <SpriteRenderer>curElement.component;
     const maskInteraction = preRenderer.maskInteraction;
 
+    const preRendererAny = preRenderer as any;
+    const curRendererAny = renderer as any;
+    const rectMaskEnabledA = preRendererAny._rectMaskEnabled;
+    if (rectMaskEnabledA !== curRendererAny._rectMaskEnabled) {
+      return false;
+    }
+    if (rectMaskEnabledA) {
+      const rectMaskRectA = preRendererAny._rectMaskRect;
+      const rectMaskRectB = curRendererAny._rectMaskRect;
+      const rectMaskSoftnessA = preRendererAny._rectMaskSoftness;
+      const rectMaskSoftnessB = curRendererAny._rectMaskSoftness;
+      if (
+        !rectMaskRectA ||
+        !rectMaskRectB ||
+        !rectMaskSoftnessA ||
+        !rectMaskSoftnessB ||
+        rectMaskRectA.x !== rectMaskRectB.x ||
+        rectMaskRectA.y !== rectMaskRectB.y ||
+        rectMaskRectA.z !== rectMaskRectB.z ||
+        rectMaskRectA.w !== rectMaskRectB.w ||
+        rectMaskSoftnessA.x !== rectMaskSoftnessB.x ||
+        rectMaskSoftnessA.y !== rectMaskSoftnessB.y ||
+        rectMaskSoftnessA.z !== rectMaskSoftnessB.z ||
+        rectMaskSoftnessA.w !== rectMaskSoftnessB.w ||
+        preRendererAny._rectMaskHardClip !== curRendererAny._rectMaskHardClip
+      ) {
+        return false;
+      }
+    }
+
     // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
     return (
       preElement.subChunk.chunk === curElement.subChunk.chunk &&

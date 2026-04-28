@@ -205,17 +205,6 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The mask layer the sprite renderer belongs to.
-   */
-  get maskLayer(): number {
-    return this._maskLayer;
-  }
-
-  set maskLayer(value: number) {
-    this._maskLayer = value;
-  }
-
-  /**
    * The bounding volume of the TextRenderer.
    */
   override get bounds(): BoundingBox {

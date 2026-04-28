@@ -1,10 +1,67 @@
-import { Entity } from "@galacean/engine";
+import { Entity, Matrix, Plane, Ray, Vector2, Vector3 } from "@galacean/engine";
+import { UITransform } from "./component";
 import { RootCanvasModifyFlags, UICanvas } from "./component/UICanvas";
 import { GroupModifyFlags, UIGroup } from "./component/UIGroup";
+import { CanvasRenderMode } from "./enums/CanvasRenderMode";
 import { IElement } from "./interface/IElement";
 import { IGroupAble } from "./interface/IGroupAble";
 
 export class Utils {
+  static _tempRay: Ray = new Ray();
+  static _tempPlane: Plane = new Plane();
+  static _tempVec3: Vector3 = new Vector3();
+  static _tempMat: Matrix = new Matrix();
+
+  /**
+   * Local position of a screen point in the component
+   */
+  static screenToLocalPoint(position: Vector2, transform: UITransform, out: Vector3): Boolean {
+    const engine = transform.engine;
+    // Get root canvas
+    let entity = transform.entity;
+    let rootCanvas: UICanvas;
+    while (entity) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component instanceof UICanvas && component._isRootCanvas) {
+          rootCanvas = component;
+        }
+      }
+      entity = entity.parent;
+    }
+    if (!rootCanvas) return false;
+    // Calculate ray
+    const ray = this._tempRay;
+    switch (rootCanvas._realRenderMode) {
+      case CanvasRenderMode.ScreenSpaceOverlay:
+        // Screen to world ( Assume that world units have a one-to-one relationship with pixel units )
+        ray.origin.set(position.x, engine.canvas.height - position.y, 1);
+        ray.direction.set(0, 0, -1);
+        break;
+      case CanvasRenderMode.ScreenSpaceCamera:
+        rootCanvas.renderCamera.screenPointToRay(position, ray);
+        break;
+      default:
+        // World space not yet supported, see issue #2793
+        return false;
+    }
+    // Intersect ray with UI plane to get local coordinates
+    const plane = this._tempPlane;
+    const normal = plane.normal.copyFrom(transform.worldForward);
+    plane.distance = -Vector3.dot(normal, transform.worldPosition);
+    const curDistance = ray.intersectPlane(plane);
+    if (curDistance >= 0 && curDistance < Number.MAX_SAFE_INTEGER) {
+      const hitPointWorld = ray.getPoint(curDistance, this._tempVec3);
+      const worldMatrixInv = this._tempMat;
+      Matrix.invert(transform.worldMatrix, worldMatrixInv);
+      Vector3.transformCoordinate(hitPointWorld, worldMatrixInv, out);
+      return true;
+    }
+    return false;
+  }
+
   static setRootCanvasDirty(element: IElement): void {
     if (element._isRootCanvasDirty) return;
     element._isRootCanvasDirty = true;

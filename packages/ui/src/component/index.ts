@@ -1,11 +1,13 @@
-export { UICanvas } from "./UICanvas";
-export { UIGroup } from "./UIGroup";
-export { UIRenderer } from "./UIRenderer";
-export { UITransform } from "./UITransform";
 export { Button } from "./advanced/Button";
 export { Image, SpriteSizeMode } from "./advanced/Image";
+export { Mask } from "./advanced/Mask";
+export { RectMask2D } from "./advanced/RectMask2D";
 export { Text } from "./advanced/Text";
 export { ColorTransition } from "./interactive/transition/ColorTransition";
 export { ScaleTransition } from "./interactive/transition/ScaleTransition";
 export { SpriteTransition } from "./interactive/transition/SpriteTransition";
 export { Transition } from "./interactive/transition/Transition";
+export { UICanvas } from "./UICanvas";
+export { UIGroup } from "./UIGroup";
+export { UIRenderer } from "./UIRenderer";
+export { UITransform } from "./UITransform";
