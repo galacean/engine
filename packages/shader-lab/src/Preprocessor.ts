@@ -2,6 +2,7 @@ import { Logger, ShaderPass } from "@galacean/engine";
 /** @ts-ignore */
 import { ShaderLib } from "@galacean/engine";
 import type { ASTNode } from "./parser/AST";
+import type { BranchSignature } from "./common/BaseToken";
 
 /**
  * Record for a single `#define` directive. `valueAst` is set for expression
@@ -17,6 +18,10 @@ export interface MacroDefineInfo {
    *  → `foo`), or empty for literals / operator expressions. Drives symbol-table
    *  lookup at macro call sites. */
   referenceName: string;
+  /** Branch signature at the point of registration. The same `#define` repeated
+   *  in different `#ifdef` branches produces multiple entries with different
+   *  signatures; call sites filter to those visible from their own position. */
+  branch: BranchSignature;
 }
 
 export interface MacroDefineList {
@@ -37,27 +42,9 @@ export class Preprocessor {
 
   static parse(source: string, basePathForIncludeKey: string): string {
     // Preprocessor only handles `#include` expansion. `#define` registration
-    // is done by the Lexer in a single pass over the same token stream it
-    // tokenizes — eliminating the long-standing drift between two
-    // independent analyzers (regex vs Lexer state machine) interpreting the
-    // same source differently (comments, line-continuation, etc.).
+    // and `#ifdef` branch tracking are done by the Lexer in a single pass
+    // over the same token stream it tokenizes.
     return source.replace(this._includeReg, (_, includeName) => this._replace(includeName, basePathForIncludeKey));
-  }
-
-  /** Collect unique `referenceName`s of `macroName`'s definitions, skipping
-   *  names that shadow a macro parameter. */
-  static getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): void {
-    out.length = 0;
-    const infos = macroDefineList[macroName];
-    if (!infos) return;
-
-    for (let i = 0, n = infos.length; i < n; i++) {
-      const info = infos[i];
-      const ref = info.referenceName;
-      if (!ref) continue;
-      if (info.params.indexOf(ref) !== -1) continue;
-      if (out.indexOf(ref) === -1) out.push(ref);
-    }
   }
 
   private static _replace(includeName: string, basePathForIncludeKey: string): string {

@@ -1,6 +1,6 @@
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
-import { BaseToken, EOF } from "../common/BaseToken";
+import { BaseToken, BranchConstraint, BranchSignature, EMPTY_BRANCH, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
 import { ShaderLab } from "../ShaderLab";
@@ -96,6 +96,39 @@ export class Lexer extends BaseLexer {
   // captured identifier becomes `MacroDefineInfo.referenceName`.
   private static readonly _referenceReg = /^([a-zA-Z_]\w*)(?:\s*\(.*\))?$/;
 
+  /** Two branch signatures are equal iff they have the same constraints in the
+   *  same order with the same polarity. Used by `#define` dedup and AST upgrade
+   *  matching. */
+  static sameBranch(a: BranchSignature, b: BranchSignature): boolean {
+    if (a.length !== b.length) return false;
+    for (let i = 0, n = a.length; i < n; i++) {
+      if (a[i].name !== b[i].name || a[i].defined !== b[i].defined) return false;
+    }
+    return true;
+  }
+
+  /**
+   * Returns true if a `#define` registered under `defBranch` is reachable from
+   * a call site under `callSiteBranch`. Two signatures are mutually exclusive
+   * iff some flag appears in both with opposite `defined` polarity. Anything
+   * else is compatible — the same flag with the same polarity, or flags that
+   * simply don't intersect.
+   *
+   * Conservative for `#if expr` (not modeled — its branch is empty, so
+   * compatible with everything) and exact for the common `#ifdef` / `#ifndef`
+   * / `#else` cases that drive real shader code.
+   */
+  static isVisibleFrom(defBranch: BranchSignature, callSiteBranch: BranchSignature): boolean {
+    for (let i = 0, n = defBranch.length; i < n; i++) {
+      const d = defBranch[i];
+      for (let j = 0, m = callSiteBranch.length; j < m; j++) {
+        const c = callSiteBranch[j];
+        if (d.name === c.name && d.defined !== c.defined) return false;
+      }
+    }
+    return true;
+  }
+
   private _needScanMacroConditionExpression = false;
 
   // --- `#define` scanning state machine ---
@@ -123,9 +156,55 @@ export class Lexer extends BaseLexer {
   // source of truth.
   private _macroDefineDirectiveStart: number = -1;
 
+  // Active `#ifdef`/`#ifndef`/`#else` stack. Updated by `tokenize` between
+  // emitting tokens; read by `_registerMacroDefine` (when it registers a
+  // legacy entry mid-scan) and stamped onto every emitted token's `branch`
+  // field so AST nodes know which branch they're inside.
+  private _branchStack: BranchConstraint[] = [];
+  // True when the previous token was `#ifdef`/`#ifndef` and we're waiting on
+  // the next ID token (the flag name) to actually push onto the stack.
+  private _pendingBranchPushDefined: boolean | null = null;
+
   *tokenize() {
     while (!this.isEnd()) {
-      yield this.scanToken();
+      const tok = this.scanToken();
+
+      // Resolve a pending #ifdef/#ifndef push using the flag-name token that
+      // immediately follows the keyword. Grammar allows the name to be either
+      // a plain `id` or a `MACRO_CALL` (for `#ifdef <previously-defined-macro>`).
+      if (this._pendingBranchPushDefined !== null && (tok.type === ETokenType.ID || tok.type === Keyword.MACRO_CALL)) {
+        this._branchStack.push({ name: tok.lexeme, defined: this._pendingBranchPushDefined });
+        this._pendingBranchPushDefined = null;
+      }
+
+      // Stamp the branch onto the token only when inside an `#ifdef`. The
+      // top-level case keeps the BaseToken default (shared empty signature),
+      // so the hot path stays allocation-free.
+      if (this._branchStack.length > 0) tok.branch = this._branchStack.slice();
+
+      // Update stack state based on the just-emitted token, so the *next*
+      // token sees the correct snapshot.
+      switch (tok.type as Keyword) {
+        case Keyword.MACRO_IFDEF:
+          this._pendingBranchPushDefined = true;
+          break;
+        case Keyword.MACRO_IFNDEF:
+          this._pendingBranchPushDefined = false;
+          break;
+        case Keyword.MACRO_ELSE: {
+          // Flip the polarity of the topmost constraint. `#else` after
+          // `#if expr` (which we don't model) leaves the empty placeholder
+          // alone — empty signature is conservatively visible from anywhere.
+          const top = this._branchStack[this._branchStack.length - 1];
+          if (top) this._branchStack[this._branchStack.length - 1] = { name: top.name, defined: !top.defined };
+          break;
+        }
+        case Keyword.MACRO_ENDIF:
+          this._branchStack.pop();
+          break;
+      }
+
+      yield tok;
     }
     return EOF;
   }
@@ -695,21 +774,25 @@ export class Lexer extends BaseLexer {
       isFunction: m[2] !== undefined,
       name,
       params,
-      referenceName: refMatch ? refMatch[1] : ""
+      referenceName: refMatch ? refMatch[1] : "",
+      branch: this._branchStack.length === 0 ? EMPTY_BRANCH : this._branchStack.slice()
     };
     const arr = this.macroDefineList[name];
     if (!arr) {
       this.macroDefineList[name] = [info];
       return;
     }
-    // Skip duplicates from re-includes / re-definitions in #ifdef branches.
+    // Skip duplicates from re-includes / re-definitions in the same `#ifdef`
+    // branch. Different branches → different entries (the call-site filter
+    // picks the visible one); same branch + same shape → drop.
     for (let i = 0, n = arr.length; i < n; i++) {
       const e = arr[i];
       if (
         e.isFunction === info.isFunction &&
         e.referenceName === info.referenceName &&
         e.params.length === info.params.length &&
-        e.params.every((p, idx) => p === info.params[idx])
+        e.params.every((p, idx) => p === info.params[idx]) &&
+        Lexer.sameBranch(e.branch, info.branch)
       )
         return;
     }

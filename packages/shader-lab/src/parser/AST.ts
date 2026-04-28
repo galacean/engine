@@ -4,7 +4,8 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
-import { MacroDefineInfo, Preprocessor } from "../Preprocessor";
+import { Lexer } from "../lexer/Lexer";
+import { MacroDefineInfo } from "../Preprocessor";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -1633,10 +1634,12 @@ export namespace ASTNode {
   export class MacroCallSymbol extends TreeNode {
     referenceSymbolNames: string[] = [];
     macroName: string;
-    /** True when at least one `MacroDefineInfo` for this macro has a `valueAst`,
-     *  i.e. the macro was parsed via the `macro_define` CFG rule. Call sites use
-     *  this to skip naive type inference: an AST-form macro drives the call site's
-     *  type through its own value subtree, not through a root of `referenceSymbolNames`. */
+    /** True iff every `MacroDefineInfo` visible from this call site's branch
+     *  has a `valueAst` (i.e. was parsed via the `macro_define` CFG rule).
+     *  Call sites use this to skip naive type inference: an AST-form macro
+     *  drives the call site's type through its own value subtree, not through
+     *  a root of `referenceSymbolNames`. Mixed forms across branches → false,
+     *  fall back to legacy inference. */
     hasAstValue: boolean = false;
     /** True when the macro is defined as function-like (`#define NAME(params) …`).
      *  Used by `MacroCallFunction` codegen to pick between the two call shapes
@@ -1650,13 +1653,39 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const macroName = (this.children[0] as BaseToken).lexeme;
+      const nameToken = this.children[0] as BaseToken;
+      const macroName = nameToken.lexeme;
       this.macroName = macroName;
 
-      Preprocessor.getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
+      // Filter `defList` to only entries reachable from this call site's
+      // `#ifdef` branch (Issue #2980 nit fix). Without filtering, definitions
+      // in disjoint branches conflate at the call site and pollute type
+      // inference; with it, what remains is exactly what could substitute at
+      // this position.
+      const callSiteBranch = nameToken.branch;
       const defList = sa.macroDefineList[macroName];
-      this.hasAstValue = defList?.some((info) => info.valueAst != null) ?? false;
-      this.isFunctionLikeMacro = defList?.some((info) => info.isFunction) ?? false;
+      const refs = this.referenceSymbolNames;
+      refs.length = 0;
+      let visibleCount = 0;
+      let allAst = true;
+      let isFn = false;
+      if (defList) {
+        for (let i = 0, n = defList.length; i < n; i++) {
+          const info = defList[i];
+          if (!Lexer.isVisibleFrom(info.branch, callSiteBranch)) continue;
+          visibleCount++;
+          if (info.valueAst == null) allAst = false;
+          if (info.isFunction) isFn = true;
+          const ref = info.referenceName;
+          if (ref && info.params.indexOf(ref) === -1 && refs.indexOf(ref) === -1) refs.push(ref);
+        }
+      }
+      // Require *every* visible entry to be AST-form before taking the AST
+      // shortcut: residual ambiguity (e.g. unmodeled `#if expr` letting both
+      // forms through) falls back to legacy `referenceSymbolNames` inference
+      // instead of polluting the call site with TypeAny.
+      this.hasAstValue = visibleCount > 0 && allAst;
+      this.isFunctionLikeMacro = isFn;
     }
   }
 
@@ -1731,19 +1760,22 @@ export namespace ASTNode {
         this.valueExpression = children[valueIdx] as AssignmentExpression;
       }
 
-      // `Preprocessor._parseMacroDefines` already registered a regex-derived
-      // entry for this directive (so the lexer can classify the name as
-      // `MACRO_CALL`). Upgrade that entry in place by attaching the AST subtree,
-      // rather than pushing a duplicate record — duplicates leak into
-      // `getReferenceSymbolNames` and cause phantom issues like spurious
-      // warnings or double-counted references.
+      // The Lexer already registered a regex-derived entry for this directive.
+      // Upgrade that entry in place by attaching the AST subtree, rather than
+      // pushing a duplicate. Match must be branch-aware: `#define X` in
+      // `#ifdef A` and another `#define X` in `#else` are separate entries
+      // with disjoint branch signatures, and `valueExpression` belongs to
+      // whichever branch actually parsed it.
+      const definingBranch = (children[1] as BaseToken).branch;
       const list = sa.macroDefineList;
       const entries = list[this.macroName];
       const sameArity = (info: MacroDefineInfo) =>
         info.isFunction === this.isFunction &&
         info.params.length === params.length &&
         info.params.every((p, i) => p === params[i]);
-      const upgradable = entries?.find((info) => !info.valueAst && sameArity(info));
+      const upgradable = entries?.find(
+        (info) => !info.valueAst && sameArity(info) && Lexer.sameBranch(info.branch, definingBranch)
+      );
       if (upgradable) {
         upgradable.valueAst = this.valueExpression;
       } else {
@@ -1754,7 +1786,8 @@ export namespace ASTNode {
           name: this.macroName,
           params,
           valueAst: this.valueExpression,
-          referenceName: ""
+          referenceName: "",
+          branch: definingBranch
         };
         if (entries) entries.push(info);
         else list[this.macroName] = [info];

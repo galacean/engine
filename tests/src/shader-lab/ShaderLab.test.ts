@@ -454,4 +454,59 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabVerbose);
     glslValidate(engine, shaderSource, shaderLabRelease);
   });
+
+  it("define-nested-ifdef (branch stack: nested #ifdef registers entries under combined signatures)", async () => {
+    const shaderSource = await readFile("./shaders/define-nested-ifdef.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("define-branch-scoped-ast (per-branch filtering: same flag, both AST forms, different members)", async () => {
+    const shaderSource = await readFile("./shaders/define-branch-scoped-ast.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+
+    // Default macro state activates the `#else` branch — codegen must reference
+    // `v_tangent`, not `v_normal`, in the macro substitution path.
+    const shader = shaderLabVerbose._parseShaderSource(shaderSource);
+    const passSource = shader.subShaders[0].passes[0];
+    const { fragment } = shaderLabVerbose._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0,
+      ""
+    )!;
+    expect(fragment).to.contain("v_tangent");
+    // The output preserves `#ifdef` so both members may textually appear in the
+    // GLSL (driver picks one). What matters is that the AST-path substitution
+    // for the call site uses the correct branch's value — `v_tangent`.
+  });
+
+  it("define-mixed-form-repro (Issue 2980 nit: AST/legacy mixed across #ifdef branches must not pollute call-site type)", async () => {
+    const shaderSource = await readFile("./shaders/define-mixed-form-repro.shader");
+
+    // Both branches of the mixed `#define LIGHT_INPUT` are legal GLSL on their
+    // own. The bug was that `MacroCallSymbol.hasAstValue` used `.some(...)`,
+    // setting the flag whenever *any* branch was AST-form, which silently
+    // disabled call-site type inference and stranded `TypeAny` whenever the
+    // legacy branch was active. Fix: switch to `.every(...)` so mixed forms
+    // fall back to legacy `referenceSymbolNames`-based inference.
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+
+    // Default macro state activates the legacy branch — generated GLSL must
+    // reference `u_globalLightDir`, not the AST-form `v.v_normal` substitution.
+    const shader = shaderLabVerbose._parseShaderSource(shaderSource);
+    const passSource = shader.subShaders[0].passes[0];
+    const { fragment } = shaderLabVerbose._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0,
+      ""
+    )!;
+    expect(fragment).to.contain("u_globalLightDir");
+    expect(fragment).to.contain("normalize");
+  });
 });
