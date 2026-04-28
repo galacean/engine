@@ -3,8 +3,7 @@ const path = require("path");
 
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import glsl from "./rollup-plugin-glsl";
-import shaderlab from "./rollup-plugin-shaderlab";
+import { shaderLab } from "@galacean/engine-shaderlab/bundler";
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
@@ -32,23 +31,17 @@ pkgs.push({ ...shaderLabPkg, verboseMode: true });
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
-const PRECOMPILE = process.env.PRECOMPILE === "true";
-
-const glslPlugin = glsl({
-  include: [/\.(glsl|shader|gsp)$/],
-  compress: false
-});
-
-const shaderlabPlugin = shaderlab({
-  precompile: PRECOMPILE,
-  platformTarget: 0,
-  basePath: "shaders://root/"
+const shaderLabPlugin = shaderLab({
+  precompile: {
+    input: path.join(__dirname, "packages/shader/src/Shaders"),
+    output: path.join(__dirname, "packages/shader/libs"),
+    library: path.join(__dirname, "packages/shader/src/ShaderLibrary")
+  }
 });
 
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
-  glslPlugin,
-  shaderlabPlugin,
+  shaderLabPlugin,
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
@@ -95,15 +88,6 @@ function config({ location, pkgJson, verboseMode }) {
       let file = path.join(location, "dist", "browser.js");
 
       if (compress) {
-        const glslifyPluginIdx = curPlugins.findIndex((item) => item === glslPlugin);
-        curPlugins.splice(
-          glslifyPluginIdx,
-          1,
-          glsl({
-            include: [/\.(glsl|shader|gsp)$/],
-            compress: true
-          })
-        );
         curPlugins.push(minify({ sourceMap: true }));
       }
 
@@ -184,15 +168,6 @@ function config({ location, pkgJson, verboseMode }) {
       const bundledPlugins = Array.from(curPlugins);
 
       if (compress) {
-        const glslifyPluginIdx = bundledPlugins.findIndex((item) => item === glslPlugin);
-        bundledPlugins.splice(
-          glslifyPluginIdx,
-          1,
-          glsl({
-            include: [/\.(glsl|shader|gsp)$/],
-            compress: true
-          })
-        );
         bundledPlugins.push(minify({
           sourceMap: true,
           module: true // Indicate this is an ES module

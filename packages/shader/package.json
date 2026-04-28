@@ -27,13 +27,15 @@
     }
   },
   "scripts": {
+    "precompile": "shaderlab-precompile src/Shaders libs --clean --emit-index",
     "b:types": "tsc"
   },
   "umd": {
     "name": "Galacean.ShaderFragment"
   },
   "devDependencies": {
-    "@galacean/engine-design": "workspace:*"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-shaderlab": "workspace:*"
   },
   "files": [
     "dist/**/*",
