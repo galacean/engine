@@ -69,7 +69,9 @@ export function shaderCompiler(options: ShaderPluginOptions = {}): Plugin {
 
       if (this.meta.watchMode && !watcherStarted) {
         watcherStarted = true;
-        startWatcher(precompileOptions).catch((e) => this.warn(`[shader-compiler] watcher failed: ${(e as Error).message}`));
+        startWatcher(precompileOptions).catch((e) =>
+          this.warn(`[shader-compiler] watcher failed: ${(e as Error).message}`)
+        );
       }
     },
 
