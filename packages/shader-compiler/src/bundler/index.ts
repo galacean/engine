@@ -8,11 +8,6 @@ export interface ShaderPrecompileOptions {
   input: string;
   /** Directory where `.gsp` outputs are written. */
   output: string;
-  /**
-   * Optional directory of `.glsl` include fragments. In watch mode, changes to
-   * `.glsl` here trigger a full recompile (since includes affect every `.shader`).
-   */
-  library?: string;
   /** Remove `.gsp` whose source no longer exists. Default `true`. */
   clean?: boolean;
   /** Emit an aggregated `<output>/index.ts`. Default `true`. */

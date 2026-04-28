@@ -35,11 +35,7 @@ export async function precompile(options: PrecompileOptions): Promise<void> {
   await runFull(options);
 
   if (options.watch) {
-    const inputDir = path.resolve(options.input);
-    const outputDir = path.resolve(options.output);
-    const platformTarget = options.platformTarget ?? 0;
-    const shaderCompiler = await loadShaderCompiler();
-    await watchInput(inputDir, outputDir, platformTarget, shaderCompiler, options.emitIndex === true);
+    await startWatcher(options);
   } else {
     console.log("[shader-compiler-bundler] Done.");
   }
@@ -278,51 +274,6 @@ function emitIndex(outputDir: string): void {
     fs.writeFileSync(indexPath, content);
     console.log("  Updated index.ts");
   }
-}
-
-/**
- * Watch the input directory for `.shader` / `.glsl` changes using Node's
- * recursive `fs.watch`. On change: deletions remove the matching `.gsp` (and
- * regenerate the index if requested); other events recompile the single file.
- *
- * `fs.watch` recursive is supported on macOS and Windows since Node 14, and on
- * Linux since Node 20 — we accept that and avoid pulling in `chokidar`.
- */
-async function watchInput(
-  inputDir: string,
-  outputDir: string,
-  platformTarget: number,
-  shaderCompiler: ShaderCompilerInstance,
-  emitIndexOnChange: boolean
-): Promise<void> {
-  console.log(`[shader-compiler-bundler] Watching ${inputDir} ...`);
-
-  const handle = (filename: string | null) => {
-    if (!filename) return;
-    const norm = normalizePath(filename);
-    if (!norm.match(/\.(shader|glsl)$/)) return;
-
-    const fullPath = path.join(inputDir, filename);
-    if (!fs.existsSync(fullPath)) {
-      if (norm.endsWith(".shader")) removeGspFor(fullPath, inputDir, outputDir);
-      if (emitIndexOnChange) emitIndex(outputDir);
-      return;
-    }
-    if (norm.endsWith(".shader")) {
-      compileSingle(shaderCompiler, fullPath, inputDir, outputDir, platformTarget);
-      if (emitIndexOnChange) emitIndex(outputDir);
-    }
-  };
-
-  try {
-    fs.watch(inputDir, { recursive: true }, (_event, filename) => handle(filename));
-  } catch (e) {
-    throw new Error(
-      `Failed to watch ${inputDir}: ${(e as Error).message}. Recursive fs.watch may be unsupported on this platform.`
-    );
-  }
-
-  await new Promise<void>(() => {});
 }
 
 /**
