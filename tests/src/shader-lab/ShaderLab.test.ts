@@ -437,6 +437,30 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabVerbose);
   });
 
+  it("define-comment-with-dot (reviewer P1-1: `.` inside block comment must not route to AST)", async () => {
+    const shaderSource = await readFile("./shaders/define-comment-with-dot.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("define-line-continuation-member-access (reviewer P1-2: `\\\\\\n` followed by .field must route to AST)", async () => {
+    const shaderSource = await readFile("./shaders/define-line-continuation-member-access.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("define-line-continuation-no-dot (`\\\\\\n` in directive without member access — `_registerMacroDefine` must fold before regex)", async () => {
+    const shaderSource = await readFile("./shaders/define-line-continuation-no-dot.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+  it("define-multiline-params (`\\\\\\n` inside function-like macro header — `_scanUtilBreakLine`/`_scanMacroDefineParams` must honor line continuation)", async () => {
+    const shaderSource = await readFile("./shaders/define-multiline-params.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
   it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
     const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
     glslValidate(engine, shaderSource, shaderLabRelease);

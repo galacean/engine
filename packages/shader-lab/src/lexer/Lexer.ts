@@ -95,6 +95,9 @@ export class Lexer extends BaseLexer {
   // (`foo` or `foo(a, b)`); mixed-operator values like `a + b` reject. The
   // captured identifier becomes `MacroDefineInfo.referenceName`.
   private static readonly _referenceReg = /^([a-zA-Z_]\w*)(?:\s*\(.*\))?$/;
+  // C preprocessor line continuation: `\` followed by `\r\n`, `\n`, or `\r`.
+  // The pair is removed (the next physical line is part of the same logical line).
+  private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
 
   /** Two branch signatures are equal iff they have the same constraints in the
    *  same order with the same polarity. Used by `#define` dedup and AST upgrade
@@ -532,8 +535,19 @@ export class Lexer extends BaseLexer {
   }
 
   private _scanUtilBreakLine(outBuffer: string[]): void {
-    while (this.getCurChar() !== "\n" && !this.isEnd()) {
-      outBuffer.push(this.getCurChar());
+    const src = this._source;
+    const len = src.length;
+    while (!this.isEnd()) {
+      // Honor line-continuation so multi-line directives (`#define X a \\\n + b`)
+      // are not cut short at the first physical newline.
+      const afterContinuation = Lexer._skipLineContinuation(src, this._currentIndex, len);
+      if (afterContinuation !== this._currentIndex) {
+        this.advance(afterContinuation - this._currentIndex);
+        continue;
+      }
+      const c = src.charCodeAt(this._currentIndex);
+      if (c === 10) break;
+      outBuffer.push(src[this._currentIndex]);
       this.advance(1);
     }
   }
@@ -604,103 +618,113 @@ export class Lexer extends BaseLexer {
   private _defineHasValue(): boolean {
     const src = this._source;
     const len = src.length;
-    let i = this._currentIndex;
-    // Skip inline whitespace after `#define`
-    while (i < len && (src[i] === " " || src[i] === "\t")) i++;
+    // All position advancement goes through `_skipNonSemantic`, which honors
+    // line-continuation (`\` + newline) and skips comments. This is critical:
+    // `#define UV foo \\\n  .field` is one logical directive whose value
+    // contains `.field`, and `#define HP /* a.b */ highp` must not let the
+    // `.` inside the comment trigger AST routing.
+    let i = Lexer._skipNonSemantic(src, this._currentIndex, len);
     // Skip macro name
     if (!(i < len && BaseLexer.isAlpha(src.charCodeAt(i)))) return false;
     while (i < len && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
-    // Optional `(params)`: scan past a balanced pair on the same line
-    if (src[i] === "(") {
+    i = Lexer._skipNonSemantic(src, i, len);
+    // Optional `(params)`: scan past a balanced pair on the same logical line
+    if (src.charCodeAt(i) === 40 /* '(' */) {
       let depth = 1;
       i++;
       while (i < len && depth > 0) {
-        const ch = src[i];
-        if (ch === "\n" || ch === "\r") return false; // malformed: stay legacy
-        if (ch === "(") depth++;
-        else if (ch === ")") depth--;
+        i = Lexer._skipNonSemantic(src, i, len);
+        const c = src.charCodeAt(i);
+        if (c === 10 || c === 13) return false; // malformed: stay legacy
+        if (c === 40) depth++;
+        else if (c === 41 /* ')' */) depth--;
         i++;
       }
     }
-    // Scan to end-of-line. A `.` is a member-access operator unless it's a
-    // decimal point inside a numeric literal — the latter has digits on both
-    // sides (`3.14`, `1.0e-5`). Member access covers `v.x`, `v0.x`, `(v).x`,
-    // `v . x`, `arr[i].field`, `(a+b).field`, etc. — all need AST routing
-    // for varying-flatten / type-propagation. Edge cases like `.5` go AST
-    // too (false positive, but the AST path handles bare floats correctly).
-    for (let k = i; k < len; k++) {
-      const c = src.charCodeAt(k);
-      if (c === 10 || c === 13) break;
-      if (c !== 46 /* `.` */) continue;
-      const prev = k > 0 ? src.charCodeAt(k - 1) : 0;
-      const next = k + 1 < len ? src.charCodeAt(k + 1) : 0;
-      const prevIsDigit = prev >= 48 && prev <= 57;
-      const nextIsDigit = next >= 48 && next <= 57;
-      if (prevIsDigit && nextIsDigit) continue; // numeric literal `3.14`
-      return true;
+    // Scan to end-of-directive looking for a `.` member-access operator.
+    // A `.` is member-access unless it's a decimal point inside a numeric
+    // literal — the latter has digits on both physical sides (`3.14`).
+    // Edge cases like `.5` go AST too (false positive, but AST path
+    // handles bare floats correctly).
+    while (i < len) {
+      i = Lexer._skipNonSemantic(src, i, len);
+      if (i >= len) break;
+      const c = src.charCodeAt(i);
+      if (c === 10 || c === 13) break; // real newline ends directive
+      if (c === 46 /* '.' */) {
+        const prev = i > 0 ? src.charCodeAt(i - 1) : 0;
+        const next = i + 1 < len ? src.charCodeAt(i + 1) : 0;
+        const prevIsDigit = prev >= 48 && prev <= 57;
+        const nextIsDigit = next >= 48 && next <= 57;
+        if (!(prevIsDigit && nextIsDigit)) return true;
+      }
+      i++;
     }
     return false;
   }
 
-  /**
-   * Inside a `#define` value, skip spaces/tabs and block comments (`/* … *\/`) but
-   * never newlines. Also tolerates line-continuation (`\` immediately before a
-   * newline) by skipping the backslash + newline pair per the C preprocessor rule.
+/**
+   * If `i` points at a `\` immediately followed by a newline (`\n`, `\r`, or
+   * `\r\n`), return the index just past the pair (a single atom in the C/GLSL
+   * preprocessor view). Otherwise return `i` unchanged. This is the single
+   * source of truth for line-continuation detection — callers along the
+   * directive-scanning path (`_skipNonSemantic`, `_scanUtilBreakLine`,
+   * `_scanMacroDefineParams`) all delegate here so the rule stays in one
+   * place. The string-level `_lineContinuationReg` covers the regex path
+   * used by `_registerMacroDefine` for one-shot folding.
    */
-  private _skipInlineSpaceAndComments(): void {
-    const source = this._source;
-    while (this._currentIndex < source.length) {
-      const c = source.charCodeAt(this._currentIndex);
+  private static _skipLineContinuation(src: string, i: number, len: number): number {
+    if (src.charCodeAt(i) !== 92 /* '\\' */ || i + 1 >= len) return i;
+    const n = src.charCodeAt(i + 1);
+    if (n === 10) return i + 2;
+    if (n === 13) return i + 2 < len && src.charCodeAt(i + 2) === 10 ? i + 3 : i + 2;
+    return i;
+  }
+
+  /**
+   * Pure positional version of "skip non-semantic characters within a single
+   * `#define` directive": spaces, tabs, `\` + newline line-continuation, block
+   * comments, line comments. A real `\n` (without preceding `\`) is *not*
+   * consumed — it terminates the directive — so callers can detect
+   * end-of-directive after this returns. Shared by `_defineHasValue` (peek
+   * path) and `_skipInlineSpaceAndComments` (consuming path) so both honor
+   * the same lexical view.
+   */
+  private static _skipNonSemantic(src: string, from: number, len: number): number {
+    let i = from;
+    while (i < len) {
+      const c = src.charCodeAt(i);
       if (c === 32 || c === 9) {
-        this.advance(1);
+        i++;
         continue;
       }
-      // Line continuation: `\` immediately before newline — consume both.
-      if (
-        c === 92 && // '\\'
-        this._currentIndex + 1 < source.length &&
-        (source.charCodeAt(this._currentIndex + 1) === 10 || source.charCodeAt(this._currentIndex + 1) === 13)
-      ) {
-        this.advance(
-          source.charCodeAt(this._currentIndex + 1) === 13 && source.charCodeAt(this._currentIndex + 2) === 10 ? 3 : 2
-        );
+      const afterContinuation = Lexer._skipLineContinuation(src, i, len);
+      if (afterContinuation !== i) {
+        i = afterContinuation;
         continue;
       }
-      // Block comment — stays on the same logical line for preprocessor purposes.
-      if (
-        c === 47 && // '/'
-        this._currentIndex + 1 < source.length &&
-        source.charCodeAt(this._currentIndex + 1) === 42 // '*'
-      ) {
-        this.advance(2);
-        while (this._currentIndex + 1 < source.length) {
-          if (source.charCodeAt(this._currentIndex) === 42 && source.charCodeAt(this._currentIndex + 1) === 47) {
-            this.advance(2);
-            break;
-          }
-          this.advance(1);
-        }
+      const afterBlock = Lexer._skipBlockComment(src, i, len);
+      if (afterBlock !== i) {
+        i = afterBlock;
         continue;
       }
-      // Line comment `// …` — consume up to but not including the newline, so the
-      // newline still terminates the directive below.
-      if (
-        c === 47 && // '/'
-        this._currentIndex + 1 < source.length &&
-        source.charCodeAt(this._currentIndex + 1) === 47
-      ) {
-        this.advance(2);
-        while (
-          this._currentIndex < source.length &&
-          source.charCodeAt(this._currentIndex) !== 10 &&
-          source.charCodeAt(this._currentIndex) !== 13
-        ) {
-          this.advance(1);
-        }
+      const afterLine = Lexer._skipLineComment(src, i, len);
+      if (afterLine !== i) {
+        i = afterLine;
         continue;
       }
       break;
     }
+    return i;
+  }
+
+  /** Consuming wrapper around `_skipNonSemantic` operating on the lexer's
+   *  current position. Used by the `#define`-value scan state machine. Goes
+   *  through `advance(diff)` so verbose builds keep their line/column counters
+   *  in sync (advance walks the consumed slice and bumps `_line` on `\n`). */
+  private _skipInlineSpaceAndComments(): void {
+    const next = Lexer._skipNonSemantic(this._source, this._currentIndex, this._source.length);
+    if (next > this._currentIndex) this.advance(next - this._currentIndex);
   }
 
   /**
@@ -715,9 +739,18 @@ export class Lexer extends BaseLexer {
   private _scanMacroDefineParams(): BaseToken {
     const start = this.getShaderPosition();
     const src = this._source;
+    const len = src.length;
     const buffer: string[] = [];
     let depth = 0;
-    while (this._currentIndex < src.length) {
+    while (this._currentIndex < len) {
+      // Honor line-continuation so `#define MAX3( \\\n a, b, c \\\n ) …`
+      // collapses onto one logical line. The `\` and `\n` must not enter the
+      // params buffer or the grammar will reject the lexeme.
+      const afterContinuation = Lexer._skipLineContinuation(src, this._currentIndex, len);
+      if (afterContinuation !== this._currentIndex) {
+        this.advance(afterContinuation - this._currentIndex);
+        continue;
+      }
       const ch = src[this._currentIndex];
       buffer.push(ch);
       if (ch === "(") depth++;
@@ -758,7 +791,13 @@ export class Lexer extends BaseLexer {
   // its newline) and register it. Both AST and legacy paths funnel through
   // here — single source of truth, no drift between two analyzers.
   private _registerMacroDefine(directive: string): void {
-    const m = Lexer._defineDirectiveReg.exec(directive);
+    // Fold line-continuations before matching: per C/GLSL preprocessor rules
+    // `\` immediately before a newline removes both characters and stitches
+    // the next physical line onto this one. The regex's value group rejects
+    // newlines, so without folding any multi-line directive (`#define X a \\\n + b`)
+    // would NO MATCH and registration would silently fail.
+    const folded = directive.replace(Lexer._lineContinuationReg, "");
+    const m = Lexer._defineDirectiveReg.exec(folded);
     if (!m) return;
     const name = m[1];
     const paramsStr = m[3];

@@ -33,6 +33,39 @@ export abstract class BaseLexer {
     return charCode === 35; // #
   }
 
+  /**
+   * If `i` points at the start of a `/* … *\/` block comment, return the index
+   * just past the closing `*\/`. Otherwise return `i` unchanged. If the
+   * comment is unterminated, returns `len` (clamped, never overshoots).
+   * Single source of truth for block-comment scanning across the lexer.
+   */
+  protected static _skipBlockComment(src: string, i: number, len: number): number {
+    if (src.charCodeAt(i) !== 47 /* '/' */ || i + 1 >= len || src.charCodeAt(i + 1) !== 42 /* '*' */) return i;
+    let j = i + 2;
+    while (j + 1 < len) {
+      if (src.charCodeAt(j) === 42 && src.charCodeAt(j + 1) === 47) return j + 2;
+      j++;
+    }
+    return len;
+  }
+
+  /**
+   * If `i` points at the start of a `//` line comment, return the index of the
+   * terminating newline (or `len` at EOF). The newline itself is NOT consumed
+   * — callers decide whether `\n` is whitespace or a logical separator.
+   * Otherwise return `i` unchanged.
+   */
+  protected static _skipLineComment(src: string, i: number, len: number): number {
+    if (src.charCodeAt(i) !== 47 /* '/' */ || i + 1 >= len || src.charCodeAt(i + 1) !== 47) return i;
+    let j = i + 2;
+    while (j < len) {
+      const c = src.charCodeAt(j);
+      if (c === 10 || c === 13) break;
+      j++;
+    }
+    return j;
+  }
+
   static isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
     // Space || Tab
     if (charCode === 32 || charCode === 9) {
@@ -129,33 +162,22 @@ export abstract class BaseLexer {
     let index = this._currentIndex;
 
     while (index < length) {
-      // Skip whitespace
+      // Whitespace including newlines — `\n` is just a separator in the
+      // top-level (non-directive) scan path.
       while (index < length && BaseLexer.isWhiteSpaceChar(source.charCodeAt(index), true)) {
         index++;
       }
-
-      // Check for comments: 47 is '/'
-      if (index + 1 >= length || source.charCodeAt(index) !== 47) break;
-
-      const nextChar = source.charCodeAt(index + 1);
-      if (nextChar === 47) {
-        // Single line comment: 10 is '\n', 13 is '\r'
-        index += 2;
-        while (index < length) {
-          const charCode = source.charCodeAt(index);
-          if (charCode === 10 || charCode === 13) break;
-          index++;
-        }
-      } else if (nextChar === 42) {
-        // Multi-line comment: 42 is '*'
-        index += 2;
-        while (index + 1 < length && !(source.charCodeAt(index) === 42 && source.charCodeAt(index + 1) === 47)) {
-          index++;
-        }
-        index += 2; // Skip '*/'
-      } else {
-        break; // Not a comment, stop
+      const afterBlock = BaseLexer._skipBlockComment(source, index, length);
+      if (afterBlock !== index) {
+        index = afterBlock;
+        continue;
       }
+      const afterLine = BaseLexer._skipLineComment(source, index, length);
+      if (afterLine !== index) {
+        index = afterLine;
+        continue;
+      }
+      break;
     }
 
     this.advance(index - this._currentIndex);
