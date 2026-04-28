@@ -37,7 +37,7 @@
     "shader-compiler-precompile": "./dist/bundler/cli.js"
   },
   "scripts": {
-    "build:bundler": "rollup -c rollup.config.js && chmod +x dist/bundler/cli.js",
+    "build": "rollup -c rollup.config.js && chmod +x dist/bundler/cli.js",
     "b:types": "tsc"
   },
   "umd": {
