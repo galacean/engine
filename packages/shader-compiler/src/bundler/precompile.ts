@@ -29,6 +29,10 @@ interface ShaderCompilerInstance {
   _precompile: (source: string, target: number) => unknown;
 }
 
+interface EngineModule {
+  ShaderFactory: { registerInclude: (key: string, source: string) => void };
+}
+
 /**
  * Top-level entry: load the shader compiler, dispatch by mode (single / full / watch),
  * and optionally emit the aggregated index file.
@@ -64,6 +68,8 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
   fs.mkdirSync(outputDir, { recursive: true });
 
   const shaderCompiler = await loadShaderCompiler();
+
+  await registerLocalIncludes(inputDir);
 
   if (options.only) {
     const target = path.resolve(options.only);
@@ -155,6 +161,31 @@ async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
     throw new Error("ShaderCompiler._precompile is not available; rebuild @galacean/engine-shader-compiler first.");
   }
   return instance;
+}
+
+/**
+ * Register every `.glsl` file under `inputDir` as a relative-path include.
+ *
+ * `.shader` sources commonly use `#include "./Foo.glsl"` (relative to the
+ * source file). The engine's preprocessor resolves these against
+ * `ShaderFactory`'s registered include map keyed by exact string. We mirror
+ * the basename under `./Name.glsl` so relative includes resolve.
+ *
+ * Engine's own includes (e.g. `Common/Common.glsl`, `PBR/VertexPBR.glsl`) are
+ * already registered by `ShaderPool.init()` when `@galacean/engine` loads —
+ * this function only handles project-local fragments.
+ */
+async function registerLocalIncludes(inputDir: string): Promise<void> {
+  // Use a dynamic import so this works both in the ESM bundler entry and the
+  // CJS one — rollup leaves `import()` as native dynamic import in both.
+  const eng = (await import("@galacean/engine")) as unknown as EngineModule;
+  if (!eng?.ShaderFactory?.registerInclude) return;
+
+  for (const file of findFiles(inputDir, ".glsl")) {
+    const source = fs.readFileSync(file, "utf-8");
+    const basename = path.basename(file);
+    eng.ShaderFactory.registerInclude(`./${basename}`, source);
+  }
 }
 
 /**

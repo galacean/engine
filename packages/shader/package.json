@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "precompile": "shader-precompile src/Shaders libs --clean --emit-index",
+    "precompile": "shader-compiler-precompile src/Shaders libs --clean --emit-index",
     "b:types": "tsc"
   },
   "umd": {

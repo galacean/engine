@@ -16,6 +16,7 @@ const bundlerExternal = [
   // out of the bundler output so the runtime compiler is loaded at runtime
   // from the parent dist/ directory rather than re-bundled here.
   "../main.js",
+  "@galacean/engine",
   "@galacean/engine-shader-compiler",
   "@rollup/pluginutils",
   "rollup",
