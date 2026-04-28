@@ -1,5 +1,5 @@
 /**
- * @title ShaderLab 02 - 渲染状态控制
+ * @title Shader 02 - 渲染状态控制
  * @category Shader 教程
  * @thumbnail https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*cKkoT57kv5kAAAAAQYAAAAgAeuuHAQ/original
  */

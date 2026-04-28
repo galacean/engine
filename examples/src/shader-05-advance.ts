@@ -1,5 +1,5 @@
 /**
- * @title ShaderLab 05 - 引入内置shader片段实现骨骼动画
+ * @title Shader 05 - 引入内置shader片段实现骨骼动画
  * @category Shader 教程
  * @thumbnail https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*YPhHTr6_96AAAAAAQ-AAAAgAeuuHAQ/original
  */

@@ -1,5 +1,5 @@
 /**
- * @title ShaderLab 04 - 多Pass渲染（描边效果）
+ * @title Shader 04 - 多Pass渲染（描边效果）
  * @category Shader 教程
  * @thumbnail https://mdn.alipayobjects.com/huamei_dmxymu/afts/img/A*h7mASJQZe5wAAAAATUAAAAgAeuuHAQ/original
  */
@@ -131,11 +131,11 @@ Shader "Tutorial/04-Outline" {
 // 创建球体
 function createSphere(engine: Engine, name: string, position: Vector3): Entity {
   const entity = engine.sceneManager.activeScene.createRootEntity(name);
-  entity.transform.position=position;
-  
+  entity.transform.position = position;
+
   const renderer = entity.addComponent(MeshRenderer);
   renderer.mesh = PrimitiveMesh.createSphere(engine, 0.8, 64);
-  
+
   return entity;
 }
 
@@ -143,77 +143,77 @@ function createSphere(engine: Engine, name: string, position: Vector3): Entity {
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
   engine.canvas.resizeByClientSize();
-  
+
   // 创建场景和相机
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
-  
+
   const cameraEntity = rootEntity.createChild("camera");
   cameraEntity.transform.setPosition(0, 2, 8);
   cameraEntity.transform.lookAt(new Vector3(0));
   const camera = cameraEntity.addComponent(Camera);
-  
+
   // 创建描边着色器和材质
   const outlineShader = Shader.create(outlineShaderSource);
   const outlineMaterial = new Material(engine, outlineShader);
-  
+
   // 设置描边材质属性
   outlineMaterial.shaderData.setColor("material_OutlineColor", new Color(0, 0, 0, 1)); // 黑色描边
   outlineMaterial.shaderData.setFloat("material_OutlineWidth", 0.05);
   outlineMaterial.shaderData.setColor("material_BaseColor", new Color(0.8, 0.3, 0.3, 1)); // 红色主体
-  
+
   // 创建多个球体展示不同的描边效果
   const sphere1 = createSphere(engine, "sphere1", new Vector3(-2, 0, 0));
   const sphere2 = createSphere(engine, "sphere2", new Vector3(0, 0, 0));
   const sphere3 = createSphere(engine, "sphere3", new Vector3(2, 0, 0));
-  
+
   // 为每个球体创建不同的颜色
   const material1 = outlineMaterial.clone();
   material1.shaderData.setColor("material_BaseColor", new Color(0.8, 0.3, 0.3, 1));
   material1.shaderData.setColor("material_OutlineColor", new Color(0, 0, 0, 1));
   material1.shaderData.setFloat("material_OutlineWidth", 0.03);
-  
+
   const material2 = outlineMaterial.clone();
   material2.shaderData.setColor("material_BaseColor", new Color(0.3, 0.8, 0.3, 1));
   material2.shaderData.setColor("material_OutlineColor", new Color(0.2, 0.2, 0.8, 1));
   material2.shaderData.setFloat("material_OutlineWidth", 0.05);
-  
+
   const material3 = outlineMaterial.clone();
   material3.shaderData.setColor("material_BaseColor", new Color(0.3, 0.3, 0.8, 1));
   material3.shaderData.setColor("material_OutlineColor", new Color(0.8, 0.8, 0.2, 1));
   material3.shaderData.setFloat("material_OutlineWidth", 0.08);
-  
+
   // 应用材质
   sphere1.getComponent(MeshRenderer).setMaterial(material1);
   sphere2.getComponent(MeshRenderer).setMaterial(material2);
   sphere3.getComponent(MeshRenderer).setMaterial(material3);
-  
+
   // 运行引擎
   engine.run();
-  
+
   // 添加旋转动画
   let time = 0;
   const animate = () => {
     time += 0.016;
-    
+
     // 旋转球体
     sphere1.transform.setRotation(time * 20, time * 30, 0);
     sphere2.transform.setRotation(0, time * 40, time * 25);
     sphere3.transform.setRotation(time * 15, 0, time * 35);
-    
+
     // 动态调整描边宽度
     const outlineWidth1 = 0.02 + 0.03 * Math.sin(time * 2);
     const outlineWidth2 = 0.03 + 0.04 * Math.sin(time * 1.5 + 1);
     const outlineWidth3 = 0.04 + 0.05 * Math.sin(time * 1.8 + 2);
-    
+
     material1.shaderData.setFloat("material_OutlineWidth", outlineWidth1);
     material2.shaderData.setFloat("material_OutlineWidth", outlineWidth2);
     material3.shaderData.setFloat("material_OutlineWidth", outlineWidth3);
-    
+
     requestAnimationFrame(animate);
   };
   animate();
-  
+
   console.log("ShaderLab 04 - 多Pass渲染（描边效果）");
   console.log("- 第一个Pass：描边Pass，剔除正面，沿法线扩展顶点");
   console.log("- 第二个Pass：主体Pass，正常渲染物体表面");
