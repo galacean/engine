@@ -75,16 +75,26 @@ export class RenderQueue {
         renderer._updateTransformShaderData(context, true, batched);
       }
 
-      const maskInteraction = renderer._maskInteraction;
+      const maskInteraction = (renderer as any)._maskInteraction ?? SpriteMaskInteraction.None;
       const needMaskInteraction = maskInteraction !== SpriteMaskInteraction.None;
       const needMaskType = maskType !== RenderQueueMaskType.No;
       let customStates: RenderStateElementMap = null;
 
-      if (needMaskType) {
+      // UI hierarchy-based stencil mask
+      const uiStencilDepth = subElement.uiStencilDepth;
+      if (uiStencilDepth > 0) {
+        if (subElement.uiStencilOp === 1) {
+          // Mask shape: write stencil (increment)
+          customStates = BasicResources.getUIStencilWriteStates();
+        } else {
+          // Masked content: test stencil
+          customStates = BasicResources.getUIStencilTestStates(uiStencilDepth);
+        }
+      } else if (needMaskType) {
         customStates = BasicResources.getMaskTypeRenderStates(maskType);
       } else {
         if (needMaskInteraction) {
-          maskManager.drawMask(context, pipelineStageTagValue, subElement.component._maskLayer);
+          maskManager.drawMask(context, pipelineStageTagValue, (renderer as any)._maskLayer);
           customStates = BasicResources.getMaskInteractionRenderStates(maskInteraction);
         } else {
           maskManager.isReadStencil(material) && maskManager.clearMask(context, pipelineStageTagValue);
@@ -108,8 +118,8 @@ export class RenderQueue {
         }
 
         let renderState = shaderPass._renderState;
-        if (needMaskType) {
-          // Mask don't care render queue type
+        if (needMaskType || uiStencilDepth > 0) {
+          // Mask and UI stencil elements don't care about render queue type
           if (!renderState) {
             renderState = renderStates[j];
           }

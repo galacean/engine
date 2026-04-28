@@ -1,4 +1,6 @@
+import { Vector3 } from "@galacean/engine-math";
 import { SpriteMask } from "../2d";
+import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Material } from "../material";
@@ -29,16 +31,55 @@ export class MaskManager {
 
   private _preMaskLayer = SpriteMaskLayer.Nothing;
   private _allSpriteMasks = new DisorderedArray<SpriteMask>();
+  private _filteredMasksByLayer = new Map<SpriteMaskLayer, SpriteMask[]>();
+  private _isFilteredMasksDirty = true;
 
   addSpriteMask(mask: SpriteMask): void {
     mask._maskIndex = this._allSpriteMasks.length;
     this._allSpriteMasks.add(mask);
+    this._isFilteredMasksDirty = true;
   }
 
   removeSpriteMask(mask: SpriteMask): void {
     const replaced = this._allSpriteMasks.deleteByIndex(mask._maskIndex);
     replaced && (replaced._maskIndex = mask._maskIndex);
     mask._maskIndex = -1;
+    this._isFilteredMasksDirty = true;
+  }
+
+  /**
+   * Called when a mask's influenceLayers changes.
+   */
+  onMaskInfluenceLayersChange(): void {
+    this._isFilteredMasksDirty = true;
+  }
+
+  /**
+   * Check if a world point is visible given the mask interaction and layer.
+   */
+  isVisibleByMask(
+    maskInteraction: SpriteMaskInteraction,
+    maskLayer: SpriteMaskLayer,
+    worldPoint: Vector3
+  ): boolean {
+    if (maskInteraction === SpriteMaskInteraction.None) {
+      return true;
+    }
+
+    const masks = this._getMasksByLayer(maskLayer);
+    if (!masks || masks.length === 0) {
+      return maskInteraction === SpriteMaskInteraction.VisibleOutsideMask;
+    }
+
+    let insideAny = false;
+    for (let i = 0, n = masks.length; i < n; i++) {
+      if (masks[i]._containsWorldPoint(worldPoint)) {
+        insideAny = true;
+        break;
+      }
+    }
+
+    return maskInteraction === SpriteMaskInteraction.VisibleInsideMask ? insideAny : !insideAny;
   }
 
   drawMask(context: RenderContext, pipelineStageTagValue: string, maskLayer: SpriteMaskLayer): void {
@@ -118,6 +159,28 @@ export class MaskManager {
     const allSpriteMasks = this._allSpriteMasks;
     allSpriteMasks.length = 0;
     allSpriteMasks.garbageCollection();
+    this._filteredMasksByLayer.clear();
+  }
+
+  private _getMasksByLayer(maskLayer: SpriteMaskLayer): SpriteMask[] | undefined {
+    if (this._isFilteredMasksDirty) {
+      this._filteredMasksByLayer.clear();
+      this._isFilteredMasksDirty = false;
+    }
+
+    let filtered = this._filteredMasksByLayer.get(maskLayer);
+    if (filtered === undefined) {
+      filtered = [];
+      const masks = this._allSpriteMasks;
+      for (let i = 0, n = masks.length; i < n; i++) {
+        const mask = masks.get(i);
+        if (mask.influenceLayers & maskLayer) {
+          filtered.push(mask);
+        }
+      }
+      this._filteredMasksByLayer.set(maskLayer, filtered);
+    }
+    return filtered;
   }
 
   private _buildMaskRenderElement(

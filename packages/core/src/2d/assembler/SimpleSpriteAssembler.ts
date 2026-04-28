@@ -1,7 +1,8 @@
-import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
+import { BoundingBox, Color, Matrix, Vector2 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
+import { SpritePrimitive } from "../sprite/SpritePrimitive";
 import { ISpriteAssembler } from "./ISpriteAssembler";
-import { ISpriteRenderer } from "./ISpriteRenderer";
 
 /**
  * Assemble vertex data for the sprite renderer in simple mode.
@@ -11,25 +12,26 @@ export class SimpleSpriteAssembler {
   private static _rectangleTriangles = [0, 1, 2, 2, 1, 3];
   private static _matrix = new Matrix();
 
-  static resetData(renderer: ISpriteRenderer): void {
-    const manager = renderer._getChunkManager();
-    const lastSubChunk = renderer._subChunk;
-    lastSubChunk && manager.freeSubChunk(lastSubChunk);
-    const subChunk = manager.allocateSubChunk(4);
+  static resetData(primitive: SpritePrimitive, chunkManager: PrimitiveChunkManager): void {
+    const lastSubChunk = primitive.subChunk;
+    lastSubChunk && chunkManager.freeSubChunk(lastSubChunk);
+    const subChunk = chunkManager.allocateSubChunk(4);
     subChunk.indices = SimpleSpriteAssembler._rectangleTriangles;
-    renderer._subChunk = subChunk;
+    primitive.subChunk = subChunk;
   }
 
   static updatePositions(
-    renderer: ISpriteRenderer,
+    primitive: SpritePrimitive,
+    chunkManager: PrimitiveChunkManager,
     worldMatrix: Matrix,
     width: number,
     height: number,
     pivot: Vector2,
     flipX: boolean,
-    flipY: boolean
+    flipY: boolean,
+    outBounds: BoundingBox
   ): void {
-    const { sprite } = renderer;
+    const { sprite } = primitive;
     const { x: pivotX, y: pivotY } = pivot;
     // Position to World
     const modelMatrix = SimpleSpriteAssembler._matrix;
@@ -52,7 +54,7 @@ export class SimpleSpriteAssembler {
     // ---------------
     // Update positions
     const spritePositions = sprite._getPositions();
-    const subChunk = renderer._subChunk;
+    const subChunk = primitive.subChunk;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start; i < 4; ++i, o += 9) {
       const { x, y } = spritePositions[i];
@@ -62,14 +64,14 @@ export class SimpleSpriteAssembler {
     }
 
     // @ts-ignore
-    BoundingBox.transform(sprite._getBounds(), modelMatrix, renderer._bounds);
+    BoundingBox.transform(sprite._getBounds(), modelMatrix, outBounds);
   }
 
-  static updateUVs(renderer: ISpriteRenderer): void {
-    const spriteUVs = renderer.sprite._getUVs();
+  static updateUVs(primitive: SpritePrimitive): void {
+    const spriteUVs = primitive.sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
-    const subChunk = renderer._subChunk;
+    const subChunk = primitive.subChunk;
     const vertices = subChunk.chunk.vertices;
     const offset = subChunk.vertexArea.start + 3;
     vertices[offset] = left;
@@ -82,9 +84,9 @@ export class SimpleSpriteAssembler {
     vertices[offset + 28] = top;
   }
 
-  static updateColor(renderer: ISpriteRenderer, alpha: number): void {
-    const subChunk = renderer._subChunk;
-    const { r, g, b, a } = renderer.color;
+  static updateColor(primitive: SpritePrimitive, color: Color, alpha: number): void {
+    const subChunk = primitive.subChunk;
+    const { r, g, b, a } = color;
     const finalAlpha = a * alpha;
     const vertices = subChunk.chunk.vertices;
     for (let i = 0, o = subChunk.vertexArea.start + 5; i < 4; ++i, o += 9) {

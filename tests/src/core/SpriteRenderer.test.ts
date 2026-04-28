@@ -189,7 +189,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.width = 4;
     spriteRenderer.height = 5;
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
@@ -261,7 +261,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
@@ -365,7 +365,7 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
@@ -1521,7 +1521,7 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     expect(spriteRenderer._assembler).to.eq(null);
     // @ts-ignore
-    expect(spriteRenderer._subChunk).to.eq(null);
+    expect(spriteRenderer._spriteData.subChunk).to.eq(null);
   });
 
   it("_render", () => {
@@ -1532,7 +1532,7 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     spriteRenderer._render(context);
     // @ts-ignore
-    const subChunk = spriteRenderer._subChunk;
+    const subChunk = spriteRenderer._spriteData.subChunk;
     const vertices = subChunk.chunk.vertices;
     const positions: Array<Vector3> = [];
     const uvs: Array<Vector2> = [];
@@ -1584,17 +1584,15 @@ describe("SpriteRenderer", async () => {
  * @remarks Extends `RendererUpdateFlags`.
  */
 enum SpriteRendererUpdateFlags {
-  /** UV. */
-  UV = 0x2,
   /** Color. */
-  Color = 0x4,
-  /** Automatic Size. */
-  AutomaticSize = 0x8,
+  Color = 0x2,
+  /** UV. */
+  UV = 0x4,
 
   /** WorldVolume and UV. */
-  WorldVolumeAndUV = 0x3,
+  WorldVolumeAndUV = 0x5,
   /** WorldVolume, UV and Color. */
   WorldVolumeUVAndColor = 0x7,
   /** All. */
-  All = 0xf
+  All = 0x7
 }

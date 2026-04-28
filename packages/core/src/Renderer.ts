@@ -1,6 +1,5 @@
 // @ts-ignore
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
-import { SpriteMaskInteraction } from "./2d/enums/SpriteMaskInteraction";
 import { Component } from "./Component";
 import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
@@ -8,7 +7,6 @@ import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
-import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -47,13 +45,8 @@ export class Renderer extends Component {
   @ignoreClone
   _renderFrameCount: number;
   /** @internal */
-  @assignmentClone
-  _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  /** @internal */
   @ignoreClone
   _batchedTransformShaderData: boolean = false;
-  @assignmentClone
-  _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
