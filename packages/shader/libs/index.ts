@@ -22,6 +22,7 @@ import UberSource from "./PostProcess/Uber.gsp";
 import UIDefaultSource from "./2D/UIDefault.gsp";
 import UnlitSource from "./Unlit.gsp";
 
+// prettier-ignore
 export {
   BackgroundTextureSource,
   BlinnPhongSource,
