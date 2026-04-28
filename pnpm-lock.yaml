@@ -283,9 +283,6 @@ importers:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
-      '@galacean/engine-shader-compiler':
-        specifier: workspace:*
-        version: link:../shader-compiler
 
   packages/shader-compiler:
     dependencies:

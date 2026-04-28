@@ -61,7 +61,8 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  const shaderCompiler = await loadShaderCompiler();
+  const shaderCompiler = await tryLoadShaderCompiler();
+  if (!shaderCompiler) return;
 
   await registerLocalIncludes(inputDir);
 
@@ -150,6 +151,26 @@ async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
     throw new Error("ShaderCompiler._precompile is not available; rebuild @galacean/engine-shader-compiler first.");
   }
   return instance;
+}
+
+/**
+ * Test whether the shader-compiler runtime + its `@galacean/engine` peer can
+ * be loaded right now. Returns `null` (with a log line) when prerequisites
+ * are missing — typical on a cold-start CI build where the rollup plugin's
+ * `buildStart` fires before any package's `dist/` exists. The plugin uses
+ * this to gracefully skip precompile and let the rollup itself build the
+ * runtimes; a follow-up `npm run precompile` (or watch-mode change) does
+ * the actual gsp emission afterwards.
+ */
+async function tryLoadShaderCompiler(): Promise<ShaderCompilerInstance | null> {
+  try {
+    return await loadShaderCompiler();
+  } catch (e) {
+    const msg = (e as Error).message;
+    console.warn(`[shader-compiler-bundler] Precompile skipped — runtime not yet built (${msg})`);
+    console.warn("[shader-compiler-bundler] Re-run after the workspace build to regenerate .gsp outputs.");
+    return null;
+  }
 }
 
 /**

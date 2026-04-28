@@ -27,15 +27,14 @@
     }
   },
   "scripts": {
-    "precompile": "shader-compiler-precompile src/Shaders libs --clean --emit-index",
+    "precompile": "node ../shader-compiler/dist/bundler/cli.js src/Shaders libs --clean --emit-index",
     "b:types": "tsc"
   },
   "umd": {
     "name": "Galacean.ShaderFragment"
   },
   "devDependencies": {
-    "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-shader-compiler": "workspace:*"
+    "@galacean/engine-design": "workspace:*"
   },
   "files": [
     "dist/**/*",
