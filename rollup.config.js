@@ -34,8 +34,7 @@ const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : un
 const shaderCompilerPlugin = shaderCompiler({
   precompile: {
     input: path.join(__dirname, "packages/shader/src/Shaders"),
-    output: path.join(__dirname, "packages/shader/libs"),
-    library: path.join(__dirname, "packages/shader/src/ShaderLibrary")
+    output: path.join(__dirname, "packages/shader/libs")
   }
 });
 

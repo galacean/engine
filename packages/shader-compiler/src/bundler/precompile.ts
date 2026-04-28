@@ -7,12 +7,6 @@ export interface PrecompileOptions {
   input: string;
   /** Absolute or relative path to the directory where `.gsp` outputs are written. */
   output: string;
-  /**
-   * Optional directory of `.glsl` include fragments. When provided, watch mode
-   * also monitors this directory and triggers a full recompile when any
-   * `.glsl` here changes (since includes affect every dependent `.shader`).
-   */
-  library?: string;
   /** Remove `.gsp` files whose `.shader` source no longer exists, and prune empty dirs. */
   clean?: boolean;
   /** Watch the input dir and re-run incrementally on `.shader` / `.glsl` changes. */
@@ -100,16 +94,25 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
 export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "only">): Promise<void> {
   const inputDir = path.resolve(options.input);
   const outputDir = path.resolve(options.output);
-  const libraryDir = options.library ? path.resolve(options.library) : undefined;
   const platformTarget = options.platformTarget ?? 0;
   const shaderCompiler = await loadShaderCompiler();
 
+  // A `.glsl` change invalidates every `.shader` that may include it, since we
+  // can't cheaply track include graphs across files. Recompile everything
+  // under `inputDir` on any `.glsl` event; recompile the single touched
+  // `.shader` on a `.shader` event.
   const handleInputChange = (filename: string | null) => {
     if (!filename) return;
     const norm = normalizePath(filename);
-    if (!norm.endsWith(".shader")) return;
-
     const fullPath = path.join(inputDir, filename);
+
+    if (norm.endsWith(".glsl")) {
+      console.log(`[shader-compiler-bundler] Include changed (${norm}), full recompile...`);
+      runFull(options as Omit<PrecompileOptions, "watch" | "only">).catch((e) => console.error(e));
+      return;
+    }
+
+    if (!norm.endsWith(".shader")) return;
     if (!fs.existsSync(fullPath)) {
       removeGspFor(fullPath, inputDir, outputDir);
     } else {
@@ -118,22 +121,8 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
     if (options.emitIndex) emitIndex(outputDir);
   };
 
-  // Any .glsl change in the include library invalidates every dependent .shader,
-  // so we trigger a full recompile pass rather than try to track include graphs.
-  const handleLibraryChange = (filename: string | null) => {
-    if (!filename) return;
-    const norm = normalizePath(filename);
-    if (!norm.endsWith(".glsl")) return;
-    console.log(`[shader-compiler-bundler] Library changed (${norm}), full recompile...`);
-    runFull({ ...options, only: undefined } as PrecompileOptions).catch((e) => console.error(e));
-  };
-
   console.log(`[shader-compiler-bundler] Watching ${inputDir} ...`);
   fs.watch(inputDir, { recursive: true }, (_event, filename) => handleInputChange(filename));
-  if (libraryDir) {
-    console.log(`[shader-compiler-bundler] Watching ${libraryDir} ...`);
-    fs.watch(libraryDir, { recursive: true }, (_event, filename) => handleLibraryChange(filename));
-  }
 }
 
 /**
