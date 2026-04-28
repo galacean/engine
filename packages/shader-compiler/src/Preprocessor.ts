@@ -3,6 +3,7 @@ import { Logger } from "@galacean/engine";
 import { ShaderLib } from "@galacean/engine";
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
+import { ShaderCompilerUtils } from "./ShaderCompilerUtils";
 
 /**
  * Record for a single `#define` directive. `valueAst` is set for expression
@@ -41,6 +42,12 @@ export class Preprocessor {
   static _repeatIncludeSet = new Set<string>();
 
   static parse(source: string): string {
+    // Strip comments BEFORE the include regex runs — block comments commonly
+    // wrap `#include` directives in third-party shader fragments (e.g.
+    // FXAA3_11.glsl) and the regex would otherwise expand them as live
+    // includes. Newlines inside the stripped comments are preserved so line
+    // numbers in subsequent error messages still line up with the source.
+    source = ShaderCompilerUtils.removeComments(source);
     // Preprocessor only handles `#include` expansion. `#define` registration
     // and `#ifdef` branch tracking are done by the Lexer in a single pass
     // over the same token stream it tokenizes.
