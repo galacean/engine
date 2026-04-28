@@ -1,21 +1,27 @@
 import { Logger, ShaderPass } from "@galacean/engine";
 /** @ts-ignore */
 import { ShaderLib } from "@galacean/engine";
+import type { ASTNode } from "./parser/AST";
+import type { BranchSignature } from "./common/BaseToken";
 
-export enum MacroValueType {
-  Number, // 1, 1.1
-  Symbol, // variable name
-  FunctionCall, // function call, e.g. clamp(a, 0.0, 1.0)
-  Other // shaderLab does not check this
-}
-
+/**
+ * Record for a single `#define` directive. `valueAst` is set for expression
+ * macros (joined into the AST pipeline); opaque macros leave it undefined and
+ * are emitted verbatim to the GLSL driver.
+ */
 export interface MacroDefineInfo {
   isFunction: boolean;
   name: string;
-  value: string;
-  valueType: MacroValueType;
   params: string[];
-  functionCallName: string;
+  valueAst?: ASTNode.AssignmentExpression;
+  /** Leading identifier of the value (`#define F foo` → `foo`, `#define F foo(a)`
+   *  → `foo`), or empty for literals / operator expressions. Drives symbol-table
+   *  lookup at macro call sites. */
+  referenceName: string;
+  /** Branch signature at the point of registration. The same `#define` repeated
+   *  in different `#ifdef` branches produces multiple entries with different
+   *  signatures; call sites filter to those visible from their own position. */
+  branch: BranchSignature;
 }
 
 export interface MacroDefineList {
@@ -24,138 +30,24 @@ export interface MacroDefineList {
 
 export class Preprocessor {
   private static readonly _includeReg = /^[ \t]*#include +"([\w\d./]+)"/gm;
-  private static readonly _macroRegex =
-    /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?[ ]+(\(?\w+\)?.*?)(?:\/\/.*|\/\*.*?\*\/)?\s*$/gm;
-  private static readonly _symbolReg = /^[a-zA-Z_][a-zA-Z0-9_]*$/;
-  private static readonly _funcCallReg = /^([a-zA-Z_][a-zA-Z0-9_]*)\s*\((.*)\)$/;
-  private static readonly _macroDefineIncludeMap = new Map<string, MacroDefineList>();
+  // Caches the post-include-expansion output keyed by chunk path. `#define`
+  // registration is no longer pre-scanned here — the Lexer fills
+  // `macroDefineList` while it tokenizes the cached output.
+  private static readonly _chunkOutputCache = new Map<string, string>();
 
   /**
    * @internal
    */
   static _repeatIncludeSet = new Set<string>();
 
-  static parse(
-    source: string,
-    basePathForIncludeKey: string,
-    outMacroDefineList: MacroDefineList,
-    parseMacro = true
-  ): string {
-    if (parseMacro) {
-      this._parseMacroDefines(source, outMacroDefineList);
-    }
-    return source.replace(this._includeReg, (_, includeName) =>
-      this._replace(includeName, basePathForIncludeKey, outMacroDefineList)
-    );
+  static parse(source: string, basePathForIncludeKey: string): string {
+    // Preprocessor only handles `#include` expansion. `#define` registration
+    // and `#ifdef` branch tracking are done by the Lexer in a single pass
+    // over the same token stream it tokenizes.
+    return source.replace(this._includeReg, (_, includeName) => this._replace(includeName, basePathForIncludeKey));
   }
 
-  static getReferenceSymbolNames(macroDefineList: MacroDefineList, macroName: string, out: string[]): void {
-    out.length = 0;
-    const infos = macroDefineList[macroName];
-    if (!infos) return;
-
-    for (let i = 0; i < infos.length; i++) {
-      const info = infos[i];
-      const valueType = info.valueType;
-      if (valueType === MacroValueType.FunctionCall || valueType === MacroValueType.Symbol) {
-        const referencedName = valueType === MacroValueType.FunctionCall ? info.functionCallName : info.value;
-        if (info.params.indexOf(referencedName) !== -1) continue;
-        if (out.indexOf(referencedName) === -1) out.push(referencedName);
-      } else if (valueType === MacroValueType.Other) {
-        // #if _VERBOSE
-        Logger.warn(
-          `Warning: Macro "${info.name}" has an unrecognized value "${info.value}". ShaderLab does not validate this type.`
-        );
-        // #endif
-      }
-    }
-  }
-
-  private static _isNumber(str: string): boolean {
-    return !isNaN(Number(str));
-  }
-
-  private static _isExist(list: MacroDefineInfo[], item: MacroDefineInfo): boolean {
-    return list.some(
-      (e) =>
-        e.valueType === item.valueType &&
-        e.value === item.value &&
-        e.isFunction === item.isFunction &&
-        e.functionCallName === item.functionCallName &&
-        e.params.length === item.params.length &&
-        e.params.every((p, i) => p === item.params[i])
-    );
-  }
-
-  private static _parseMacroDefines(source: string, outMacroList: MacroDefineList): void {
-    let match: RegExpExecArray | null;
-    this._macroRegex.lastIndex = 0;
-
-    while ((match = this._macroRegex.exec(source)) !== null) {
-      const [, name, paramsGroup, paramsStr, valueRaw] = match;
-      const isFunction = !!paramsGroup && !!valueRaw;
-      const params =
-        isFunction && paramsStr
-          ? paramsStr
-              .split(",")
-              .map((p) => p.trim())
-              .filter(Boolean)
-          : [];
-      const value = valueRaw ? valueRaw.trim() : "";
-
-      let valueType = MacroValueType.Other;
-      let functionCallName = "";
-
-      if (this._isNumber(value)) {
-        valueType = MacroValueType.Number;
-      } else if (this._symbolReg.test(value)) {
-        valueType = MacroValueType.Symbol;
-      } else {
-        const callMatch = this._funcCallReg.exec(value);
-        if (callMatch) {
-          valueType = MacroValueType.FunctionCall;
-          functionCallName = callMatch[1];
-        }
-      }
-
-      const info: MacroDefineInfo = {
-        isFunction,
-        name,
-        value,
-        valueType,
-        params,
-        functionCallName
-      };
-
-      const arr = outMacroList[name];
-      if (arr) {
-        if (!this._isExist(arr, info)) arr.push(info);
-      } else {
-        outMacroList[name] = [info];
-      }
-    }
-  }
-
-  private static _mergeMacroDefineLists(from: MacroDefineList, to: MacroDefineList): void {
-    for (const macroName in from) {
-      if (to[macroName]) {
-        const target = to[macroName];
-        const src = from[macroName];
-        for (let i = 0; i < src.length; i++) {
-          const info = src[i];
-          if (!this._isExist(target, info)) target.push(info);
-        }
-      } else {
-        to[macroName] = from[macroName];
-      }
-    }
-  }
-
-  private static _replace(
-    includeName: string,
-    basePathForIncludeKey: string,
-    outMacroDefineList: MacroDefineList
-  ): string {
+  private static _replace(includeName: string, basePathForIncludeKey: string): string {
     let path: string;
     if (includeName[0] === ".") {
       // @ts-ignore
@@ -175,15 +67,11 @@ export class Preprocessor {
     }
     this._repeatIncludeSet.add(path);
 
-    if (this._macroDefineIncludeMap.has(path)) {
-      this._mergeMacroDefineLists(this._macroDefineIncludeMap.get(path)!, outMacroDefineList);
-    } else {
-      const chunkMacroDefineList: MacroDefineList = {};
-      this._parseMacroDefines(chunk, chunkMacroDefineList);
-      this._macroDefineIncludeMap.set(path, chunkMacroDefineList);
-      this._mergeMacroDefineLists(chunkMacroDefineList, outMacroDefineList);
+    let cached = this._chunkOutputCache.get(path);
+    if (cached === undefined) {
+      cached = this.parse(chunk, basePathForIncludeKey);
+      this._chunkOutputCache.set(path, cached);
     }
-
-    return this.parse(chunk, basePathForIncludeKey, outMacroDefineList, false);
+    return cached;
   }
 }

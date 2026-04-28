@@ -131,6 +131,9 @@ export enum NoneTerminal {
   macro_call_symbol,
   macro_call_function,
 
+  // Macro define (expression-style): `#define NAME [(params)] VALUE`
+  macro_define,
+
   _ignore
 }
 

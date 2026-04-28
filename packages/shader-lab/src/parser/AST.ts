@@ -4,7 +4,8 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
-import { Preprocessor } from "../Preprocessor";
+import { Lexer } from "../lexer/Lexer";
+import { MacroDefineInfo } from "../Preprocessor";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
 import { NoneTerminal } from "./GrammarSymbol";
@@ -94,6 +95,7 @@ export namespace ASTNode {
     | MacroElseExpression
     | MacroElifExpression
     | MacroUndef
+    | MacroDefine
     | BaseToken;
 
   export type ASTNodePool = ClearableObjectPool<
@@ -848,7 +850,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.assignment_expression)
   export class AssignmentExpression extends ExpressionAstNode {
-    // #if _VERBOSE
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as ConditionalExpression;
@@ -858,7 +859,6 @@ export namespace ASTNode {
         this.type = expr.type ?? TypeAny;
       }
     }
-    // #endif
   }
 
   // #if _VERBOSE
@@ -868,7 +868,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.expression)
   export class Expression extends ExpressionAstNode {
-    // #if _VERBOSE
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length === 1) {
         const expr = this.children[0] as AssignmentExpression;
@@ -878,7 +877,6 @@ export namespace ASTNode {
         this.type = expr.type;
       }
     }
-    // #endif
   }
 
   @ASTNodeDecorator(NoneTerminal.primary_expression)
@@ -1424,7 +1422,13 @@ export namespace ASTNode {
           sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
           // #endif
         } else {
-          this.typeInfo = symbols[0].dataType?.type;
+          // Expression-style macros have their own value AST; its real type isn't
+          // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
+          // is a `Varyings` struct but the macro call site's type should be the
+          // member type). Skip type inference for those and keep TypeAny.
+          if (child instanceof BaseToken || !child.hasAstValue) {
+            this.typeInfo = symbols[0].dataType?.type;
+          }
           const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
           if (currentScopeSymbol) {
             if (
@@ -1478,7 +1482,12 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0];
 
-      if (child instanceof MacroUndef || child instanceof GlobalMacroIfStatement || child instanceof BaseToken) {
+      if (
+        child instanceof MacroUndef ||
+        child instanceof GlobalMacroIfStatement ||
+        child instanceof MacroDefine ||
+        child instanceof BaseToken
+      ) {
         sa.shaderData.globalMacroDeclarations.push(this);
 
         if (child instanceof GlobalMacroIfStatement) {
@@ -1625,35 +1634,168 @@ export namespace ASTNode {
   export class MacroCallSymbol extends TreeNode {
     referenceSymbolNames: string[] = [];
     macroName: string;
+    /** True iff every `MacroDefineInfo` visible from this call site's branch
+     *  has a `valueAst` (i.e. was parsed via the `macro_define` CFG rule).
+     *  Call sites use this to skip naive type inference: an AST-form macro
+     *  drives the call site's type through its own value subtree, not through
+     *  a root of `referenceSymbolNames`. Mixed forms across branches → false,
+     *  fall back to legacy inference. */
+    hasAstValue: boolean = false;
+    /** True when the macro is defined as function-like (`#define NAME(params) …`).
+     *  Used by `MacroCallFunction` codegen to pick between the two call shapes
+     *  — object-like-macro-as-function-name vs true function-like macro. */
+    isFunctionLikeMacro: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames.length = 0;
+      this.hasAstValue = false;
+      this.isFunctionLikeMacro = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const children = this.children;
-      const macroName = (children[0] as BaseToken).lexeme;
-
+      const nameToken = this.children[0] as BaseToken;
+      const macroName = nameToken.lexeme;
       this.macroName = macroName;
 
-      Preprocessor.getReferenceSymbolNames(sa.macroDefineList, macroName, this.referenceSymbolNames);
+      // Filter `defList` to only entries reachable from this call site's
+      // `#ifdef` branch (Issue #2980 nit fix). Without filtering, definitions
+      // in disjoint branches conflate at the call site and pollute type
+      // inference; with it, what remains is exactly what could substitute at
+      // this position.
+      const callSiteBranch = nameToken.branch;
+      const defList = sa.macroDefineList[macroName];
+      const refs = this.referenceSymbolNames;
+      refs.length = 0;
+      let visibleCount = 0;
+      let allAst = true;
+      let isFn = false;
+      if (defList) {
+        for (let i = 0, n = defList.length; i < n; i++) {
+          const info = defList[i];
+          if (!Lexer.isVisibleFrom(info.branch, callSiteBranch)) continue;
+          visibleCount++;
+          if (info.valueAst == null) allAst = false;
+          if (info.isFunction) isFn = true;
+          const ref = info.referenceName;
+          if (ref && info.params.indexOf(ref) === -1 && refs.indexOf(ref) === -1) refs.push(ref);
+        }
+      }
+      // Require *every* visible entry to be AST-form before taking the AST
+      // shortcut: residual ambiguity (e.g. unmodeled `#if expr` letting both
+      // forms through) falls back to legacy `referenceSymbolNames` inference
+      // instead of polluting the call site with TypeAny.
+      this.hasAstValue = visibleCount > 0 && allAst;
+      this.isFunctionLikeMacro = isFn;
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_call_function)
   export class MacroCallFunction extends TreeNode {
-    referenceSymbolNames: string[];
-    macroName: string;
+    referenceSymbolNames: string[] = [];
+    macroName: string = "";
+    hasAstValue: boolean = false;
+    isFunctionLikeMacro: boolean = false;
+
+    override init(): void {
+      this.referenceSymbolNames = [];
+      this.macroName = "";
+      this.hasAstValue = false;
+      this.isFunctionLikeMacro = false;
+    }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const child = this.children[0] as MacroCallSymbol;
 
       this.referenceSymbolNames = child.referenceSymbolNames;
       this.macroName = child.macroName;
+      this.hasAstValue = child.hasAstValue;
+      this.isFunctionLikeMacro = child.isFunctionLikeMacro;
     }
 
     override codeGen(visitor: CodeGenVisitor) {
       return this.setCache(visitor.visitMacroCallFunction(this));
+    }
+  }
+
+  /**
+   * `#define NAME [(params)] [value]` — expression-style macro.
+   *
+   * Expression-form macros are parsed into AST rather than kept as raw lexemes. The
+   * optional `valueExpression` is an `AssignmentExpression` subtree that participates
+   * in normal codegen — so `v.v_normal.xyz` inside a `#define` flows through
+   * `visitPostfixExpression` just like an inline expression would, and varying
+   * flattening/type inference/reference tracking all come for free.
+   *
+   * Semantic analysis does not resolve symbols inside the value (the definition-site
+   * scope is not the call-site scope). Lookup happens lazily during codegen.
+   */
+  @ASTNodeDecorator(NoneTerminal.macro_define)
+  export class MacroDefine extends TreeNode {
+    macroName: string;
+    isFunction: boolean;
+    valueExpression?: AssignmentExpression;
+
+    override init(): void {
+      this.macroName = "";
+      this.isFunction = false;
+      this.valueExpression = undefined;
+    }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      const children = this.children;
+      // children[0] is MACRO_DEFINE head token, children[1] is ID.
+      this.macroName = (children[1] as BaseToken).lexeme;
+
+      // If children[2] is a MACRO_DEFINE_PARAMS token, the macro is function-like
+      // and its parameter list lives in that token's lexeme (e.g. "(a, b, c)").
+      let params: string[] = [];
+      let valueIdx = 2;
+      if (children[2] instanceof BaseToken && (children[2] as BaseToken).type === Keyword.MACRO_DEFINE_PARAMS) {
+        this.isFunction = true;
+        params = ParserUtils.parseMacroParamList((children[2] as BaseToken).lexeme);
+        valueIdx = 3;
+      }
+
+      if (children[valueIdx] instanceof AssignmentExpression) {
+        this.valueExpression = children[valueIdx] as AssignmentExpression;
+      }
+
+      // The Lexer already registered a regex-derived entry for this directive.
+      // Upgrade that entry in place by attaching the AST subtree, rather than
+      // pushing a duplicate. Match must be branch-aware: `#define X` in
+      // `#ifdef A` and another `#define X` in `#else` are separate entries
+      // with disjoint branch signatures, and `valueExpression` belongs to
+      // whichever branch actually parsed it.
+      const definingBranch = (children[1] as BaseToken).branch;
+      const list = sa.macroDefineList;
+      const entries = list[this.macroName];
+      const sameArity = (info: MacroDefineInfo) =>
+        info.isFunction === this.isFunction &&
+        info.params.length === params.length &&
+        info.params.every((p, i) => p === params[i]);
+      const upgradable = entries?.find(
+        (info) => !info.valueAst && sameArity(info) && Lexer.sameBranch(info.branch, definingBranch)
+      );
+      if (upgradable) {
+        upgradable.valueAst = this.valueExpression;
+      } else {
+        // No matching preprocessor entry (e.g. the lexer was fed the directive
+        // directly without a `Preprocessor.parse` pass). Push a fresh entry.
+        const info: MacroDefineInfo = {
+          isFunction: this.isFunction,
+          name: this.macroName,
+          params,
+          valueAst: this.valueExpression,
+          referenceName: "",
+          branch: definingBranch
+        };
+        if (entries) entries.push(info);
+        else list[this.macroName] = [info];
+      }
+    }
+
+    override codeGen(visitor: CodeGenVisitor): string {
+      return this.setCache(visitor.visitMacroDefine(this));
     }
   }
 }

@@ -8,6 +8,9 @@ import { StructProp } from "../parser/types";
 import { ShaderLab } from "../ShaderLab";
 import { ShaderLabUtils } from "../ShaderLabUtils";
 
+/** Role of a struct type in ShaderLab's IO flattening. */
+export type StructRole = "varying" | "attribute" | "mrt";
+
 /** @internal */
 export class VisitorContext {
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
@@ -38,6 +41,13 @@ export class VisitorContext {
   _referencedMRTList: Record<string, StructProp[]>;
   _referencedGlobals: Record<string, SymbolInfo[]>;
   _referencedGlobalMacroASTs: TreeNode[] = [];
+  /**
+   * Maps variable names (function params, locals, and globals whose type is a
+   * varying/attribute/mrt struct) to their role. Populated during stage setup and
+   * used by macro-value rewriting to recognize `varName.prop` patterns that should
+   * be flattened against the IO lists.
+   */
+  _structVarMap: Record<string, StructRole>;
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
@@ -56,6 +66,12 @@ export class VisitorContext {
     this._referencedMRTList = Object.create(null);
     this._referencedGlobals = Object.create(null);
     this._referencedGlobalMacroASTs.length = 0;
+    if (resetAll) {
+      // Struct-var bindings are pass-scoped, not stage-scoped — global `#define`
+      // values must see the same bindings in both the vertex and fragment outputs,
+      // so we keep the map across the vertex→fragment stage transition.
+      this._structVarMap = Object.create(null);
+    }
   }
 
   isAttributeStruct(type: string) {
@@ -70,52 +86,34 @@ export class VisitorContext {
     return this.mrtStructs.findIndex((item) => item.ident!.lexeme === type) !== -1;
   }
 
-  referenceAttribute(ident: BaseToken): Error | void {
-    const lexeme = ident.lexeme;
-    if (this._referencedAttributeList[lexeme]) return;
+  /** Return the role of a struct type, or undefined if it isn't one of the IO roles. */
+  getStructRole(typeLexeme: string): StructRole | undefined {
+    if (this.isAttributeStruct(typeLexeme)) return "attribute";
+    if (this.isVaryingStruct(typeLexeme)) return "varying";
+    if (this.isMRTStruct(typeLexeme)) return "mrt";
+  }
 
-    const props = this.attributeList.filter((item) => item.ident.lexeme === lexeme);
-    if (!props.length) {
-      return ShaderLabUtils.createGSError(
-        `referenced attribute not found: ${lexeme}`,
-        GSErrorName.CompilationError,
-        ShaderLab._processingPassText,
-        ident.location
-      );
-    }
-    this._referencedAttributeList[lexeme] = props;
+  /** Register a variable as holding a value of a varying/attribute/mrt struct type. */
+  registerStructVar(varName: string, role: StructRole): void {
+    this._structVarMap[varName] = role;
+  }
+
+  referenceAttribute(ident: BaseToken): Error | void {
+    return this._referenceProp(
+      "attribute",
+      ident.lexeme,
+      this.attributeList,
+      this._referencedAttributeList,
+      ident.location
+    );
   }
 
   referenceVarying(ident: BaseToken): Error | void {
-    const lexeme = ident.lexeme;
-    if (this._referencedVaryingList[lexeme]) return;
-
-    const props = this.varyingList.filter((item) => item.ident.lexeme === lexeme);
-    if (!props.length) {
-      return ShaderLabUtils.createGSError(
-        `referenced varying not found: ${lexeme}`,
-        GSErrorName.CompilationError,
-        ShaderLab._processingPassText,
-        ident.location
-      );
-    }
-    this._referencedVaryingList[lexeme] = props;
+    return this._referenceProp("varying", ident.lexeme, this.varyingList, this._referencedVaryingList, ident.location);
   }
 
   referenceMRTProp(ident: BaseToken): Error | void {
-    const lexeme = ident.lexeme;
-    if (this._referencedMRTList[lexeme]) return;
-
-    const props = this.mrtList.filter((item) => item.ident.lexeme === lexeme);
-    if (!props.length) {
-      return ShaderLabUtils.createGSError(
-        `referenced mrt not found: ${lexeme}`,
-        GSErrorName.CompilationError,
-        ShaderLab._processingPassText,
-        ident.location
-      );
-    }
-    this._referencedMRTList[lexeme] = props;
+    return this._referenceProp("mrt", ident.lexeme, this.mrtList, this._referencedMRTList, ident.location);
   }
 
   referenceGlobal(ident: string, type: ESymbolType): void {
@@ -126,5 +124,25 @@ export class VisitorContext {
     const lookupSymbol = VisitorContext._lookupSymbol;
     lookupSymbol.set(ident, type);
     this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
+  }
+
+  private _referenceProp(
+    role: StructRole,
+    name: string,
+    list: StructProp[],
+    refList: Record<string, StructProp[]>,
+    location: any
+  ): Error | void {
+    if (refList[name]) return;
+    const props = list.filter((item) => item.ident.lexeme === name);
+    if (!props.length) {
+      return ShaderLabUtils.createGSError(
+        `referenced ${role} not found: ${name}`,
+        GSErrorName.CompilationError,
+        ShaderLab._processingPassText,
+        location
+      );
+    }
+    refList[name] = props;
   }
 }

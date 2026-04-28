@@ -58,7 +58,7 @@ export class ShaderLab implements IShaderLab {
     const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();
-    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey, macroDefineList);
+    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey);
     Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);

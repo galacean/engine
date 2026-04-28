@@ -55,4 +55,13 @@ export class SymbolTable<T extends IBaseSymbol> {
 
     return out;
   }
+
+  /** Iterate every registered symbol. Order within a name bucket is insertion order. */
+  forEach(callback: (symbol: T) => void): void {
+    for (const entries of this._table.values()) {
+      for (let i = 0, n = entries.length; i < n; i++) {
+        callback(entries[i]);
+      }
+    }
+  }
 }
