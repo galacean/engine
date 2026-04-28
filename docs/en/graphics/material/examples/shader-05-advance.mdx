@@ -238,7 +238,7 @@ gl_FragColor = vec4(normal * 0.5 + 0.5, 1.0);
 
 
 ### 3. Leveraging the Advantages of Macros
-During compilation, ShaderLab will remove unused code blocks. Therefore, using macros appropriately can significantly improve performance.
+During compilation, the shader compiler will remove unused code blocks. Therefore, using macros appropriately can significantly improve performance.
 
 ```glsl
 // Without macros: Every pixel needs to be checked

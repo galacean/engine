@@ -91,10 +91,10 @@ Shader "Custom/GrayScale" {
 }
 ```
 
-After creating the ShaderLab source above (e.g. in the editor's `.shader` file), register it in code:
+After creating the Galacean Shader source above (e.g. in the editor's `.shader` file), register it in code:
 
 ```ts filename="CustomPostProcessPass.ts"
-Shader.create(grayScaleShaderSource); // Pass the ShaderLab string shown above
+Shader.create(grayScaleShaderSource); // Pass the Galacean Shader string shown above
 const customShader = Shader.find("Custom/GrayScale");
 ```
 

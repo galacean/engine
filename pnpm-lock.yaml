@@ -14,9 +14,9 @@ importers:
       '@commitlint/config-conventional':
         specifier: ^11.0.0
         version: 11.0.0
-      '@galacean/engine-shaderlab':
+      '@galacean/engine-shader-compiler':
         specifier: workspace:*
-        version: link:packages/shader-lab
+        version: link:packages/shader-compiler
       '@playwright/test':
         specifier: ^1.53.1
         version: 1.55.0
@@ -143,9 +143,9 @@ importers:
       '@galacean/engine-shader':
         specifier: workspace:*
         version: link:../packages/shader
-      '@galacean/engine-shaderlab':
+      '@galacean/engine-shader-compiler':
         specifier: workspace:*
-        version: link:../packages/shader-lab
+        version: link:../packages/shader-compiler
       dat.gui:
         specifier: ^0.7.9
         version: 0.7.9
@@ -182,9 +182,9 @@ importers:
       '@galacean/engine-shader':
         specifier: workspace:*
         version: link:../packages/shader
-      '@galacean/engine-shaderlab':
+      '@galacean/engine-shader-compiler':
         specifier: workspace:*
-        version: link:../packages/shader-lab
+        version: link:../packages/shader-compiler
       '@galacean/engine-toolkit':
         specifier: latest
         version: 1.5.3(@galacean/engine-ui@packages+ui)(@galacean/engine@packages+galacean)
@@ -283,11 +283,11 @@ importers:
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design
-      '@galacean/engine-shaderlab':
+      '@galacean/engine-shader-compiler':
         specifier: workspace:*
-        version: link:../shader-lab
+        version: link:../shader-compiler
 
-  packages/shader-lab:
+  packages/shader-compiler:
     dependencies:
       '@rollup/pluginutils':
         specifier: ^5.0.0
@@ -357,9 +357,9 @@ importers:
       '@galacean/engine-shader':
         specifier: workspace:*
         version: link:../packages/shader
-      '@galacean/engine-shaderlab':
+      '@galacean/engine-shader-compiler':
         specifier: workspace:*
-        version: link:../packages/shader-lab
+        version: link:../packages/shader-compiler
       '@galacean/engine-ui':
         specifier: workspace:*
         version: link:../packages/ui

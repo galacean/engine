@@ -16,9 +16,9 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
-// ShaderLab 基础语法示例
+// ShaderCompiler 基础语法示例
 const shaderSource = `
 Shader "Tutorial/01-BasicShader" {
   SubShader "Default" {
@@ -112,7 +112,7 @@ function createTexture(engine: Engine): Promise<Texture2D> {
 }
 
 // 主程序
-WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then(async (engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then(async (engine) => {
   engine.canvas.resizeByClientSize();
 
   // 创建场景和相机
@@ -151,7 +151,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then(async 
   };
   animate();
 
-  console.log("ShaderLab 01 - 基础着色器语法");
+  console.log("ShaderCompiler 01 - 基础着色器语法");
   console.log("- 展示了 Shader/SubShader/Pass 的基本结构");
   console.log("- 演示了顶点着色器的 MVP 变换");
   console.log("- 展示了 UV 坐标的传递和纹理采样");

@@ -16,7 +16,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 // 带有 Editor 属性和UIScript 的着色器（注意：属性面板和 UIScript 仅在编辑器中生效）
 // 实际的 UIScript 文件内容如下：
@@ -159,7 +159,7 @@ function createCheckerTexture(engine: Engine): Texture2D {
 
 // 主程序
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   // 创建场景和相机
@@ -243,7 +243,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engin
   };
   animate();
 
-  console.log("ShaderLab 03 - UIScript 交互");
+  console.log("ShaderCompiler 03 - UIScript 交互");
   console.log("- 展示了 Editor Properties 的定义和分组");
   console.log("- 演示了宏定义的条件编译（#ifdef USE_TEXTURE, ENABLE_ANIMATION）");
   console.log("- 模拟了 UIScript 中的属性联动逻辑");

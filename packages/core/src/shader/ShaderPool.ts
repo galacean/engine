@@ -36,7 +36,7 @@ export class ShaderPool {
   static particleFeedbackPass: ShaderPass;
 
   static init(): void {
-    // Register all include fragments (does not require ShaderLab)
+    // Register all include fragments (does not require the shader compiler)
     for (const fragment of fragmentList) {
       ShaderFactory.registerInclude(fragment.includeKey, fragment.source);
     }

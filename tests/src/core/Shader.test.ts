@@ -15,10 +15,10 @@ import {
   SubShader
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { vi, describe, expect, it } from "vitest";
 
-const shaderLab = new ShaderLab();
+const shaderCompiler = new ShaderCompiler();
 
 describe("Shader", () => {
   describe("Custom Shader", () => {
@@ -149,14 +149,14 @@ describe("Shader", () => {
       engine.update();
     });
 
-    it("ShaderLab", async function () {
+    it("ShaderCompiler", async function () {
       const engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        shaderLab
+        shaderCompiler
       });
 
-      // Test that shader created successfully, if use shaderLab.
-      let shader = Shader.create(testShaderLabCode, ShaderLanguage.GLSLES300);
+      // Test that shader created successfully, if use shaderCompiler.
+      let shader = Shader.create(testShaderCompilerCode, ShaderLanguage.GLSLES300);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
@@ -164,9 +164,9 @@ describe("Shader", () => {
       expect(shader.subShaders[0].passes[1]._platformTarget).to.equal(ShaderLanguage.GLSLES300);
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
-      // Test that throw error, if shader was created with same name in shaderLab.
+      // Test that throw error, if shader was created with same name in shaderCompiler.
       // expect(() => {
-      //   Shader.create(testShaderLabCode);
+      //   Shader.create(testShaderCompilerCode);
       // }).throw();
 
       const scene = engine.sceneManager.activeScene;
@@ -183,7 +183,7 @@ describe("Shader", () => {
       mr.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
       mr.setMaterial(new Material(engine, shader));
 
-      // Test that shader compile variant successfully, if use shaderLab.
+      // Test that shader compile variant successfully, if use shaderCompiler.
       expect(shader.compileVariant(engine, ["SET_TEXTURE_GRAY"])).to.be.equal(true);
       const macro = ShaderMacro.getByName("SET_TEXTURE_GRAY");
 
@@ -359,7 +359,7 @@ void main() {
 }
 `;
 
-const testShaderLabCode = `
+const testShaderCompilerCode = `
   Shader "Test-Default" {
     SubShader "Default" {
       Tags { ReplacementTag = "transparent" }

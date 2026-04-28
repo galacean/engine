@@ -91,10 +91,10 @@ Shader "Custom/GrayScale" {
 }
 ```
 
-编写好上面的 ShaderLab 源码后（如在编辑器中创建 `.shader` 文件），在代码中注册：
+编写好上面的 Galacean Shader 源码后（如在编辑器中创建 `.shader` 文件），在代码中注册：
 
 ```ts filename="CustomPostProcessPass.ts"
-Shader.create(grayScaleShaderSource); // 传入上面的 ShaderLab 字符串
+Shader.create(grayScaleShaderSource); // 传入上面的 Galacean Shader 字符串
 const customShader = Shader.find("Custom/GrayScale");
 ```
 

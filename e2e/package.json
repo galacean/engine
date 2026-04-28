@@ -9,7 +9,7 @@
   },
   "files": [],
   "dependencies": {
-    "@galacean/engine-shaderlab": "workspace:*",
+    "@galacean/engine-shader-compiler": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",

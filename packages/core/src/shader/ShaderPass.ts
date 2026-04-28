@@ -191,7 +191,7 @@ export class ShaderPass extends ShaderPart {
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
     const { vertexSource, fragmentSource } =
       this._platformTarget != undefined
-        ? this._compileShaderLabSource(engine, macroCollection)
+        ? this._compileShaderSource(engine, macroCollection)
         : this._compilePlatformSource(engine, macroCollection);
 
     return new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
@@ -204,7 +204,7 @@ export class ShaderPass extends ShaderPart {
     return ShaderFactory.compilePlatformSource(engine, macroCollection, this._vertexSource, this._fragmentSource);
   }
 
-  private _compileShaderLabSource(
+  private _compileShaderSource(
     engine: Engine,
     macroCollection: ShaderMacroCollection
   ): { vertexSource: string; fragmentSource: string } {

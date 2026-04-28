@@ -16,7 +16,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 // 不透明物体的着色器
 const opaqueShaderSource = `
@@ -120,7 +120,7 @@ function createPlane(engine: Engine, name: string, position: Vector3): Entity {
 
 // 主程序
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   // 创建场景和相机
@@ -166,7 +166,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engin
   };
   animate();
 
-  console.log("ShaderLab 02 - 渲染状态控制");
+  console.log("ShaderCompiler 02 - 渲染状态控制");
   console.log("- 左侧绿色平面：不透明渲染状态（关闭混合，开启深度写入）");
   console.log("- 右侧红色平面：透明渲染状态（开启混合，关闭深度写入）");
   console.log("- 展示了 BlendState 和 DepthState 的配置");

@@ -3,7 +3,7 @@ const path = require("path");
 
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import { shaderLab } from "@galacean/engine-shaderlab/bundler";
+import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler";
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
@@ -24,14 +24,14 @@ const pkgs = fs
     };
   });
 
-const shaderLabPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shaderlab");
-pkgs.push({ ...shaderLabPkg, verboseMode: true });
+const shaderCompilerPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-compiler");
+pkgs.push({ ...shaderCompilerPkg, verboseMode: true });
 
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;
 
-const shaderLabPlugin = shaderLab({
+const shaderCompilerPlugin = shaderCompiler({
   precompile: {
     input: path.join(__dirname, "packages/shader/src/Shaders"),
     output: path.join(__dirname, "packages/shader/libs"),
@@ -41,7 +41,7 @@ const shaderLabPlugin = shaderLab({
 
 const commonPlugins = [
   resolve({ extensions, preferBuiltins: true, mainFields }),
-  shaderLabPlugin,
+  shaderCompilerPlugin,
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,

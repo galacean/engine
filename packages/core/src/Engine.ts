@@ -3,7 +3,7 @@ import {
   IInputOptions,
   IPhysics,
   IPhysicsManager,
-  IShaderLab,
+  IShaderCompiler,
   IXRDevice
 } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
@@ -631,10 +631,10 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const { shaderLab, physics } = configuration;
+    const { shaderCompiler, physics } = configuration;
 
-    if (shaderLab && !Shader._shaderLab) {
-      Shader._shaderLab = shaderLab;
+    if (shaderCompiler && !Shader._shaderCompiler) {
+      Shader._shaderCompiler = shaderCompiler;
     }
 
     const initializePromises = new Array<Promise<any>>();
@@ -726,8 +726,8 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** XR Device. */
   xrDevice?: IXRDevice;
-  /** Shader lab. */
-  shaderLab?: IShaderLab;
+  /** Shader compiler. */
+  shaderCompiler?: IShaderCompiler;
   /** Input options. */
   input?: IInputOptions;
 }

@@ -16,7 +16,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 // 多Pass描边着色器
 const outlineShaderSource = `
@@ -141,7 +141,7 @@ function createSphere(engine: Engine, name: string, position: Vector3): Entity {
 
 // 主程序
 Logger.enable();
-WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   // 创建场景和相机
@@ -214,7 +214,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engin
   };
   animate();
 
-  console.log("ShaderLab 04 - 多Pass渲染（描边效果）");
+  console.log("ShaderCompiler 04 - 多Pass渲染（描边效果）");
   console.log("- 第一个Pass：描边Pass，剔除正面，沿法线扩展顶点");
   console.log("- 第二个Pass：主体Pass，正常渲染物体表面");
   console.log("- 展示了不同的 RasterState CullMode 设置");

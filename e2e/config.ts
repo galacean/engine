@@ -137,15 +137,15 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.0080
     },
-    shaderLab: {
+    shader: {
       category: "Material",
-      caseFileName: "material-shaderLab",
+      caseFileName: "material-shader",
       threshold: 0,
       diffPercentage: 0
     },
-    shaderLabMRT: {
+    shaderMRT: {
       category: "Material",
-      caseFileName: "shaderLab-mrt",
+      caseFileName: "shader-mrt",
       threshold: 0,
       diffPercentage: 0
     },
@@ -161,9 +161,9 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.033
     },
-    "shaderLab-renderState": {
+    "shader-renderState": {
       category: "Material",
-      caseFileName: "shaderLab-renderState",
+      caseFileName: "shader-renderState",
       threshold: 0,
       diffPercentage: 0
     },

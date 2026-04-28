@@ -19,7 +19,7 @@ import {
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
@@ -27,7 +27,7 @@ Logger.enable();
 // Create engine
 WebGLEngine.create({
   canvas: "canvas",
-  shaderLab: new ShaderLab(),
+  shaderCompiler: new ShaderCompiler(),
   graphicDeviceOptions: { webGLMode: WebGLMode.WebGL1 }
 }).then((engine) => {
   engine.canvas.resizeByClientSize(2);

@@ -14,7 +14,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 // 使用引擎内置Shader片段的骨骼动画Unlit着色器
 const skinnedUnlitShaderSource = `
@@ -80,7 +80,7 @@ Shader "Tutorial/05-SkinnedUnlit" {
 // 主程序
 Logger.enable();
 
-WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then(async (engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then(async (engine) => {
   engine.canvas.resizeByClientSize();
 
   // 创建场景和相机

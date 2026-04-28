@@ -13,7 +13,7 @@ import {
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 /**
@@ -23,7 +23,7 @@ async function main() {
   Logger.enable();
 
   // Create engine
-  const engine = await WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() });
+  const engine = await WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() });
   engine.canvas.resizeByClientSize();
 
   initShader();

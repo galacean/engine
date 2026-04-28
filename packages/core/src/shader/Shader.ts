@@ -1,4 +1,4 @@
-import { IShaderLab, IPrecompiledShader } from "@galacean/engine-design";
+import { IShaderCompiler, IPrecompiledShader } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { IReferable } from "../asset/IReferable";
@@ -26,7 +26,7 @@ export class Shader implements IReferable {
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
 
   /** @internal */
-  static _shaderLab?: IShaderLab;
+  static _shaderCompiler?: IShaderCompiler;
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
 
@@ -35,12 +35,12 @@ export class Shader implements IReferable {
    *
    * @remarks
    *
-   * ShaderLab must be enabled first as follows:
+   * The shader compiler must be enabled first as follows:
    * ```ts
-   * // Import shaderLab
-   * import { ShaderLab } from "@galacean/engine-shaderlab";
-   * // Create engine with shaderLab
-   * const engine = await WebGLEngine.create({ canvas: "canvas", shader: new ShaderLab() });
+   * // Import the shader compiler
+   * import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+   * // Create engine with the shader compiler
+   * const engine = await WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() });
    * ...
    * ```
    *
@@ -49,7 +49,7 @@ export class Shader implements IReferable {
    * @returns Shader
    *
    * @throws
-   * Throw string exception if shaderLab has not been enabled properly.
+   * Throw string exception if the shader compiler has not been enabled properly.
    */
   static create(shaderSource: string, platformTarget?: ShaderLanguage): Shader;
 
@@ -91,12 +91,12 @@ export class Shader implements IReferable {
     }
 
     if (typeof vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === "number") {
-      const shaderLab = Shader._shaderLab;
-      if (!shaderLab) {
-        throw "ShaderLab has not been set up yet.";
+      const shaderCompiler = Shader._shaderCompiler;
+      if (!shaderCompiler) {
+        throw "ShaderCompiler has not been set up yet.";
       }
 
-      const shaderSource = shaderLab._parseShaderSource(nameOrShaderSource);
+      const shaderSource = shaderCompiler._parseShaderSource(nameOrShaderSource);
       if (shaderMap[shaderSource.name]) {
         console.error(`Shader named "${shaderSource.name}" already exists.`);
         return;
@@ -108,7 +108,7 @@ export class Shader implements IReferable {
             return Shader._resolveUsePass(passSource.name);
           }
 
-          const shaderPassSource = Shader._shaderLab._parseShaderPass(
+          const shaderPassSource = Shader._shaderCompiler._parseShaderPass(
             passSource.contents,
             passSource.vertexEntry,
             passSource.fragmentEntry,

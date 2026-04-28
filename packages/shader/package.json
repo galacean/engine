@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "precompile": "shaderlab-precompile src/Shaders libs --clean --emit-index",
+    "precompile": "shader-precompile src/Shaders libs --clean --emit-index",
     "b:types": "tsc"
   },
   "umd": {
@@ -35,7 +35,7 @@
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*",
-    "@galacean/engine-shaderlab": "workspace:*"
+    "@galacean/engine-shader-compiler": "workspace:*"
   },
   "files": [
     "dist/**/*",
