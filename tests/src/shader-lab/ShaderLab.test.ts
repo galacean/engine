@@ -467,6 +467,13 @@ describe("ShaderLab", async () => {
     glslValidate(engine, shaderSource, shaderLabVerbose);
   });
 
+  it("define-elif-polarity (#elif arm must not inherit previous arm's branch tag)", async () => {
+    const shaderSource = await readFile("./shaders/define-elif-polarity.shader");
+    glslValidate(engine, shaderSource, shaderLabRelease);
+    glslValidate(engine, shaderSource, shaderLabVerbose);
+  });
+
+
 
 
   it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {

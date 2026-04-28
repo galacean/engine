@@ -195,11 +195,9 @@ export class Lexer extends BaseLexer {
 
       // Update stack state based on the just-emitted token, so the *next*
       // token sees the correct snapshot. `#if expr` opens a level we can't
-      // address (we don't model expressions), but it must still consume one
-      // stack slot so the matching `#endif` pops the right depth — otherwise
-      // an outer `#ifdef A`'s constraint would be wrongly popped. `#elif`
-      // doesn't change depth (it's another arm at the same level), so no
-      // case is needed.
+      // address (we don't model expressions), but must consume a stack slot
+      // so the matching `#endif` pops the right depth — without it, an
+      // outer `#ifdef A`'s constraint would be wrongly popped.
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
           this._pendingBranchPushDefined = true;
@@ -210,11 +208,26 @@ export class Lexer extends BaseLexer {
         case Keyword.MACRO_IF:
           this._branchStack.push(Lexer._IF_SENTINEL);
           break;
+        case Keyword.MACRO_ELIF:
+          // `#elif` ends the previous arm and opens a new one at the same
+          // depth. The new arm's actual condition is `(none of the previous
+          // arms held) AND <elif expr>`. We don't model expressions, but
+          // we *also* must not inherit the previous arm's tag — e.g.
+          // `#ifdef A / def X1 / #elif B / def X2 / #endif` would tag X2
+          // with `[A=true]`, which is the opposite of where X2 is actually
+          // active. Flipping polarity (like `#else` does) only works for
+          // the first `#elif` of a chain; longer chains would ping-pong.
+          // Degrade to sentinel uniformly: drops precision but never wrong.
+          if (this._branchStack.length > 0) {
+            this._branchStack[this._branchStack.length - 1] = Lexer._IF_SENTINEL;
+          }
+          break;
         case Keyword.MACRO_ELSE: {
           // Flip the polarity of the topmost constraint. For `#ifdef X` this
-          // turns `[X=true]` into `[X=false]`. For `#if expr` chains the top
-          // is the sentinel (`name=""`), and flipping its `defined` is
-          // harmless — `isVisibleFrom` ignores empty-name entries.
+          // turns `[X=true]` into `[X=false]`. For `#if expr` / `#elif`
+          // chains the top is the sentinel (`name=""`), and flipping its
+          // `defined` is harmless — `isVisibleFrom` ignores empty-name
+          // entries.
           const top = this._branchStack[this._branchStack.length - 1];
           if (top) this._branchStack[this._branchStack.length - 1] = { name: top.name, defined: !top.defined };
           break;
