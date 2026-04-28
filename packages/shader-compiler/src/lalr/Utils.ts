@@ -29,16 +29,29 @@ export default class GrammarUtils {
       { set: (loc: ShaderRange, children: NodeChild[]) => void } & IPoolElement & TreeNode
     >
   ) {
+    // Resolve the AST pool once per grammar production (not per reduce).
+    const pool = astTypePool ?? ASTNode.TrivialNode.pool;
     const ret: [GrammarSymbol[], TranslationRule | undefined][] = [];
     for (const opt of options) {
+      // Single-`NonTerminal` RHS + no typed class → this production reduces
+      // to a semantic-empty `TrivialNode` wrapper. Elide it at reduce time
+      // by pushing the child directly onto the semantic stack. Safe because
+      // the parser's GOTO runs off `reduceProduction.goal`, not off the node
+      // type on the stack. Single-Terminal RHS (e.g. `unary_operator → PLUS`)
+      // isn't eligible — a `BaseToken` can't stand in for an AST node.
+      const canElide = !astTypePool && opt.length === 1 && !GrammarUtils.isTerminal(opt[0]);
       ret.push([
         [goal, ...opt],
         function (sa, ...children) {
           if (!children[0]) return;
-          const start = children[0].location.start;
-          const end = children[children.length - 1].location.end;
-          const location = ShaderCompiler.createRange(start, end);
-          ASTNode.get(astTypePool ?? ASTNode.TrivialNode.pool, sa, location, children);
+          if (canElide) {
+            sa.semanticStack.push(children[0] as TreeNode);
+          } else {
+            const start = children[0].location.start;
+            const end = children[children.length - 1].location.end;
+            const location = ShaderCompiler.createRange(start, end);
+            ASTNode.get(pool, sa, location, children);
+          }
         }
       ]);
     }

@@ -3,11 +3,12 @@ import { BaseToken } from "../common/BaseToken";
 import { EShaderStage } from "../common/enums/ShaderStage";
 import { Keyword } from "../common/enums/Keyword";
 import { ASTNode, TreeNode } from "../parser/AST";
+import { NodeChild } from "../parser/types";
 import { ShaderData } from "../parser/ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
-import { VisitorContext } from "./VisitorContext";
+import { StructRole, VisitorContext } from "./VisitorContext";
 
 /**
  * @internal
@@ -37,14 +38,97 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     this.reset();
 
     const shaderData = node.shaderData;
-    VisitorContext.context._passSymbolTable = shaderData.symbolTable;
+    const context = VisitorContext.context;
+    context._passSymbolTable = shaderData.symbolTable;
 
     const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
+
+    // Resolve struct roles for both stages' IO structs, then register every variable
+    // whose type is a role-carrying struct — vertex params/locals, fragment
+    // params/locals, and module-level globals. The resulting `_structVarMap` lives
+    // across both stages so a global `#define` referencing, say, the fragment's `v`
+    // parameter is rewritten consistently in both the vertex and fragment outputs.
+    this._collectAllStructVars(vertexEntry, fragmentEntry);
 
     return {
       vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroDeclarations),
       fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroDeclarations)
     };
+  }
+
+  /**
+   * Populate `_structVarMap` with every variable whose declared type resolves to a
+   * varying/attribute/mrt struct. Walks both entry functions (plus any overloads)
+   * and the module-level symbol table. Runs before either stage's codegen so the
+   * map is complete from the start and doesn't depend on stage ordering.
+   */
+  private _collectAllStructVars(vertexEntry: string, fragmentEntry: string): void {
+    const context = VisitorContext.context;
+    const lookupSymbol = GLESVisitor._lookupSymbol;
+    const symbolTable = context._passSymbolTable;
+
+    // Derive role-per-struct-type from entry function signatures. Vertex param[0] is
+    // attribute, vertex return is varying; fragment param[0] is varying, fragment
+    // return is mrt.
+    const structRoles: Record<string, StructRole> = Object.create(null);
+
+    const addEntryRoles = (entry: string, paramRole: StructRole, returnRole: StructRole): FnSymbol[] => {
+      lookupSymbol.set(entry, ESymbolType.FN);
+      const fns = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
+      for (const fn of fns) {
+        const proto = fn.astNode.protoType;
+        const param0 = proto.parameterList?.[0];
+        if (param0 && typeof param0.typeInfo?.type === "string") {
+          structRoles[param0.typeInfo.typeLexeme] = paramRole;
+        }
+        if (typeof proto.returnType.type === "string") {
+          structRoles[<string>proto.returnType.type] = returnRole;
+        }
+      }
+      return fns;
+    };
+
+    const entryFns = addEntryRoles(vertexEntry, "attribute", "varying").concat(
+      addEntryRoles(fragmentEntry, "varying", "mrt")
+    );
+
+    // Walk each entry function's params and locals, registering any struct-typed
+    // variable whose type is a role-carrying struct.
+    const registerByType = (typeLexeme: string | undefined, varName: string): void => {
+      if (!typeLexeme) return;
+      const role = structRoles[typeLexeme];
+      if (role) context.registerStructVar(varName, role);
+    };
+
+    const walkLocals = (node: TreeNode): void => {
+      for (const child of node.children) {
+        if (child instanceof ASTNode.InitDeclaratorList) {
+          const typeLexeme = child.typeInfo?.typeLexeme;
+          if (typeLexeme && structRoles[typeLexeme]) {
+            this._extractLocalVarNames(child, context, structRoles[typeLexeme]);
+          }
+        } else if (child instanceof TreeNode) {
+          walkLocals(child);
+        }
+      }
+    };
+
+    for (const fn of entryFns) {
+      const proto = fn.astNode.protoType;
+      if (proto.parameterList) {
+        for (const param of proto.parameterList) {
+          if (param.ident && typeof param.typeInfo?.type === "string") {
+            registerByType(param.typeInfo.typeLexeme, param.ident.lexeme);
+          }
+        }
+      }
+      walkLocals(fn.astNode.statements);
+    }
+
+    // Register module-level globals whose type carries a role (e.g. `Varyings o;`).
+    symbolTable.forEach((sym) => {
+      if (sym.type === ESymbolType.VAR) registerByType(sym.dataType?.typeLexeme, sym.ident);
+    });
   }
 
   private _vertexMain(
@@ -109,6 +193,12 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     });
 
+    // Pre-walk global `#define` values to register any struct-property references
+    // before struct codegen, so the relevant `attribute`/`varying` declarations land
+    // in the output. `_structVarMap` is already populated by `_collectAllStructVars`
+    // in `visitShaderProgram`.
+    this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
+
     const globalCodeArray = this._globalCodeArray;
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
@@ -144,6 +234,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
     if (!fnSymbols?.length) throw `no entry function found: ${entry}`;
 
+    // Fragment's varying info comes from the vertex stage. The vertex stage has
+    // already populated varyingStructs/varyingList via `_vertexMain`, and those are
+    // preserved across the `context.reset(false)` call, so `isVaryingStruct` works
+    // correctly here.
+
     fnSymbols.forEach((fnSymbol) => {
       const fnNode = fnSymbol.astNode;
       const { returnStatement } = fnNode;
@@ -173,6 +268,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     });
 
+    // `_structVarMap` is already populated in `visitShaderProgram` with both stages'
+    // variables; just pre-walk macro refs so struct codegen sees the references.
+    this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
+
     const globalCodeArray = this._globalCodeArray;
     VisitorContext.context.referenceGlobal(entry, ESymbolType.FN);
 
@@ -193,9 +292,53 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     return globalCode;
   }
 
-  private _getGlobalSymbol(out: ICodeSegment[]): void {
-    const { _referencedGlobals } = VisitorContext.context;
+  private _extractLocalVarNames(node: ASTNode.InitDeclaratorList, context: VisitorContext, role: StructRole): void {
+    const children = node.children;
+    if (children.length === 1) {
+      const singleDecl = children[0] as ASTNode.SingleDeclaration;
+      const identChildren = singleDecl.children;
+      if (identChildren.length >= 2 && identChildren[1] instanceof BaseToken) {
+        context.registerStructVar(identChildren[1].lexeme, role);
+      }
+    } else if (children.length >= 3) {
+      const initDeclList = children[0];
+      if (initDeclList instanceof ASTNode.InitDeclaratorList) {
+        this._extractLocalVarNames(initDeclList, context, role);
+      }
+      if (children[2] instanceof BaseToken) {
+        context.registerStructVar((children[2] as BaseToken).lexeme, role);
+      }
+    }
+  }
 
+  /**
+   * Pre-walk `#define` values in global macro declarations and register any
+   * `structVar.prop` member accesses as referenced struct props. This must run before
+   * struct codegen emits the declaration lists (`attribute …`, `varying …`, `MRT …`),
+   * otherwise properties used only from macros would be missing from the output.
+   */
+  private _preRegisterGlobalMacroRefs(macros: ASTNode.GlobalDeclaration[]): void {
+    for (const macro of macros) {
+      this._walkMacroDefineTokens(macro.children);
+    }
+  }
+
+  private _walkMacroDefineTokens(children: NodeChild[]): void {
+    for (const child of children) {
+      if (child instanceof ASTNode.MacroDefine) {
+        // Codegen the value once so the enclosed `visitPostfixExpression` calls
+        // register their struct-prop references. The returned string is discarded
+        // — the real emit happens later in `_getGlobalMacroDeclarations`.
+        if (child.valueExpression) child.valueExpression.codeGen(this);
+      } else if (child instanceof TreeNode) {
+        this._walkMacroDefineTokens(child.children);
+      }
+    }
+  }
+
+  private _getGlobalSymbol(out: ICodeSegment[]): void {
+    const context = VisitorContext.context;
+    const { _referencedGlobals } = context;
     const lastLength = Object.keys(_referencedGlobals).length;
     if (lastLength === 0) return;
 
@@ -204,9 +347,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       GLESVisitor._serializedGlobalKey.add(ident);
 
       const symbols = _referencedGlobals[ident];
-      for (let i = 0; i < symbols.length; i++) {
+      for (let i = 0, n = symbols.length; i < n; i++) {
         const sm = symbols[i];
-        const text = sm.astNode.codeGen(this) + (sm.type === ESymbolType.VAR ? ";" : "");
+        const codeGenResult = sm.astNode.codeGen(this);
+        if (!codeGenResult) continue;
+        const text = codeGenResult + (sm.type === ESymbolType.VAR ? ";" : "");
         if (!sm.isInMacroBranch) {
           out.push({
             text,
@@ -264,6 +409,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           .sort((a, b) => a.index - b.index)
           .map((item) => item.text)
           .join("\n");
+      } else if (child instanceof BaseToken && child.type === Keyword.MACRO_DEFINE_EXPRESSION) {
+        // Legacy opaque `#define` — its lexeme is the complete directive text,
+        // newlines included; emit verbatim.
+        text = child.lexeme;
       } else {
         text = macro.codeGen(this);
       }

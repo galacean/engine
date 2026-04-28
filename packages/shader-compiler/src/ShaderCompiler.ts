@@ -58,7 +58,7 @@ export class ShaderCompiler implements IShaderCompiler {
     const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();
-    const noIncludeContent = Preprocessor.parse(source, macroDefineList);
+    const noIncludeContent = Preprocessor.parse(source);
     Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);

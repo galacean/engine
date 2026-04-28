@@ -7,7 +7,7 @@ import { ESymbolType, FnSymbol } from "../parser/symbolTable";
 import { NodeChild, StructProp } from "../parser/types";
 import { ParserUtils } from "../ParserUtils";
 import { ShaderCompiler } from "../ShaderCompiler";
-import { VisitorContext } from "./VisitorContext";
+import { StructRole, VisitorContext } from "./VisitorContext";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
@@ -37,6 +37,10 @@ export abstract class CodeGenVisitor {
     ret.dispose();
     for (const child of children) {
       if (child instanceof BaseToken) {
+        // Legacy opaque `#define` lexemes already contain the directive verbatim
+        // (including leading/trailing newlines); emit them as-is. Expression-style
+        // defines take the `MacroDefine` AST path and never reach this branch as a
+        // `MACRO_DEFINE_EXPRESSION` token.
         ret.array.push(child.lexeme);
       } else {
         ret.array.push(child.codeGen(this));
@@ -56,28 +60,30 @@ export abstract class CodeGenVisitor {
       const prop = children[2];
 
       if (prop instanceof BaseToken) {
-        if (context.isAttributeStruct(<string>postExpr.type)) {
-          const error = context.referenceAttribute(prop);
+        // Resolve the struct role of the left-hand side. Two sources, in priority
+        // order:
+        //   1. `_structVarMap` keyed by the bare root identifier — covers
+        //      variables whose declared type hadn't been resolved when the macro
+        //      body was semantic-analyzed (e.g. forward-declared `Varyings o;`).
+        //      Only consulted for a single bare identifier so swizzles like
+        //      `foo.xyz` don't accidentally match a registered variable.
+        //   2. The AST's static type on the left sub-expression — the normal path
+        //      for inline code where `semanticAnalyze` resolved `postExpr.type`
+        //      to the struct type already.
+        let role: StructRole | undefined;
+        const directRoot = ParserUtils.extractDirectIdentLexeme(postExpr);
+        if (directRoot) role = context._structVarMap[directRoot];
+        if (!role) role = context.getStructRole(<string>postExpr.type);
+
+        if (role) {
+          const error =
+            role === "attribute"
+              ? context.referenceAttribute(prop)
+              : role === "varying"
+                ? context.referenceVarying(prop)
+                : context.referenceMRTProp(prop);
           // #if _VERBOSE
-          if (error) {
-            this.errors.push(<GSError>error);
-          }
-          // #endif
-          return prop.lexeme;
-        } else if (context.isVaryingStruct(<string>postExpr.type)) {
-          const error = context.referenceVarying(prop);
-          // #if _VERBOSE
-          if (error) {
-            this.errors.push(<GSError>error);
-          }
-          // #endif
-          return prop.lexeme;
-        } else if (context.isMRTStruct(<string>postExpr.type)) {
-          const error = context.referenceMRTProp(prop);
-          // #if _VERBOSE
-          if (error) {
-            this.errors.push(<GSError>error);
-          }
+          if (error) this.errors.push(<GSError>error);
           // #endif
           return prop.lexeme;
         }
@@ -118,14 +124,12 @@ export abstract class CodeGenVisitor {
         const astNodes = paramList.paramNodes;
         const paramInfoList = call.fnSymbol.astNode.protoType.parameterList;
 
+        const context = VisitorContext.context;
         const params = astNodes.filter((_, i) => {
           const typeInfo = paramInfoList?.[i]?.typeInfo;
-          return (
-            !typeInfo ||
-            (!VisitorContext.context.isAttributeStruct(typeInfo.typeLexeme) &&
-              !VisitorContext.context.isVaryingStruct(typeInfo.typeLexeme) &&
-              !VisitorContext.context.isMRTStruct(typeInfo.typeLexeme))
-          );
+          // Drop struct-IO parameters (attribute/varying/mrt) — they're flattened
+          // into top-level declarations and no longer exist as function-call args.
+          return !typeInfo || !context.getStructRole(typeInfo.typeLexeme);
         });
 
         let paramsCode = "";
@@ -152,33 +156,48 @@ export abstract class CodeGenVisitor {
     const paramList = children[2];
     if (paramList instanceof ASTNode.FunctionCallParameterList) {
       const astNodes = paramList.paramNodes;
+      const context = VisitorContext.context;
 
-      const params = astNodes.filter((node) => {
-        if (node instanceof ASTNode.AssignmentExpression) {
-          const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
-            node,
-            NoneTerminal.variable_identifier
-          );
-          if (
-            variableParam &&
-            typeof variableParam.typeInfo === "string" &&
-            (VisitorContext.context.isAttributeStruct(variableParam.typeInfo) ||
-              VisitorContext.context.isVaryingStruct(variableParam.typeInfo) ||
-              VisitorContext.context.isMRTStruct(variableParam.typeInfo))
-          ) {
-            return false;
-          }
-        }
-
-        return true;
-      });
+      // `MacroCallFunction` covers two call shapes sharing the same AST:
+      //   (a) object-like macro whose value is a function name, used as a call —
+      //       `#define FN foo` + `FN(varyings, …)`. The driver expands `FN` to
+      //       `foo`, and `foo` is a shader function whose IO-struct params
+      //       have been flattened. The call site must drop IO-struct args to
+      //       match the flattened signature — same rule as `visitFunctionCall`.
+      //   (b) true function-like macro — `#define MAX3(a,b,c) …` + `MAX3(v.x, …)`.
+      //       The shader compiler doesn't expand the macro; the driver does, and the
+      //       `#define` fixes the parameter count. Args must be preserved
+      //       verbatim — a member-access arg like `v.v_uv` unwraps to a root
+      //       identifier whose type is an IO struct, but dropping the arg
+      //       would change the macro's arity.
+      //
+      // `isFunctionLikeMacro` is set by `MacroCallSymbol.semanticAnalyze` from
+      // `macroDefineList[name][*].isFunction` and carries the definition shape.
+      const params = node.isFunctionLikeMacro
+        ? astNodes
+        : astNodes.filter((arg) => {
+            if (arg instanceof ASTNode.AssignmentExpression) {
+              const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
+                arg,
+                NoneTerminal.variable_identifier
+              );
+              if (
+                variableParam &&
+                typeof variableParam.typeInfo === "string" &&
+                context.getStructRole(variableParam.typeInfo)
+              ) {
+                return false;
+              }
+            }
+            return true;
+          });
 
       let paramsCode = "";
       for (let i = 0, length = params.length; i < length; i++) {
-        const node = params[i];
-        const code = node.codeGen(this);
+        const argNode = params[i];
+        const code = argNode.codeGen(this);
 
-        if (node instanceof ASTNode.MacroCallArgBlock || i === 0) {
+        if (argNode instanceof ASTNode.MacroCallArgBlock || i === 0) {
           paramsCode += code;
         } else {
           paramsCode += `, ${code}`;
@@ -200,6 +219,25 @@ export abstract class CodeGenVisitor {
     }
   }
 
+  /**
+   * Code-generate a `#define` macro parsed as expression AST. Produces a `#define`
+   * directive whose value is the AST-rewritten string — so varying flattening
+   * happens naturally via `visitPostfixExpression` inside the AST walk.
+   */
+  visitMacroDefine(node: ASTNode.MacroDefine): string {
+    // For function-like macros, preserve the original `(params)` lexeme verbatim —
+    // the parameter list is user-authored text that shouldn't be canonicalized.
+    let paramsLexeme = "";
+    if (node.isFunction) {
+      const paramsToken = node.children[2];
+      if (paramsToken instanceof BaseToken) paramsLexeme = paramsToken.lexeme;
+    }
+    const valueCode = node.valueExpression ? node.valueExpression.codeGen(this) : "";
+    // Newlines around the directive keep `#` at the start of its physical line per
+    // GLSL ES 3.0 §3.4, regardless of how surrounding tokens are joined.
+    return `\n#define ${node.macroName}${paramsLexeme}${valueCode ? " " + valueCode : ""}\n`;
+  }
+
   visitSingleDeclaration(node: ASTNode.SingleDeclaration): string {
     const type = node.typeSpecifier.type;
     if (typeof type === "string") {
@@ -212,7 +250,16 @@ export abstract class CodeGenVisitor {
     const children = node.children;
     const fullType = children[0];
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
-      VisitorContext.context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
+      const context = VisitorContext.context;
+      // Global variables whose declared type is a varying/attribute/mrt struct
+      // (e.g. `Varyings o;`) are not emitted as `uniform`. The variable itself is
+      // already registered in `_structVarMap` by the pre-pass in
+      // `GLESVisitor._collectAllStructVars`, so `visitPostfixExpression` can
+      // flatten `o.field` at macro-value codegen time.
+      if (context.getStructRole(fullType.typeSpecifier.lexeme)) {
+        return "";
+      }
+      context.referenceGlobal(<string>fullType.type, ESymbolType.STRUCT);
     }
     return `uniform ${this.defaultCodeGen(children)}`;
   }
@@ -230,12 +277,9 @@ export abstract class CodeGenVisitor {
   }
 
   visitFunctionParameterList(node: ASTNode.FunctionParameterList): string {
+    const context = VisitorContext.context;
     const params = node.parameterInfoList.filter(
-      (item) =>
-        !item.typeInfo ||
-        (!VisitorContext.context.isAttributeStruct(item.typeInfo.typeLexeme) &&
-          !VisitorContext.context.isVaryingStruct(item.typeInfo.typeLexeme) &&
-          !VisitorContext.context.isMRTStruct(item.typeInfo.typeLexeme))
+      (item) => !item.typeInfo || !context.getStructRole(item.typeInfo.typeLexeme)
     );
 
     let out = "";

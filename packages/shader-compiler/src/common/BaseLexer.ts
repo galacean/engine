@@ -5,8 +5,6 @@ import { ShaderCompiler } from "../ShaderCompiler";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BaseToken } from "./BaseToken";
 
-const { skipComment } = ShaderCompilerUtils;
-
 export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
 
 /**
@@ -33,6 +31,39 @@ export abstract class BaseLexer {
 
   static isPreprocessorStartChar(charCode: number): boolean {
     return charCode === 35; // #
+  }
+
+  /**
+   * If `i` points at the start of a `/* … *\/` block comment, return the index
+   * just past the closing `*\/`. Otherwise return `i` unchanged. If the
+   * comment is unterminated, returns `len` (clamped, never overshoots).
+   * Single source of truth for block-comment scanning across the lexer.
+   */
+  protected static _skipBlockComment(src: string, i: number, len: number): number {
+    if (src.charCodeAt(i) !== 47 /* '/' */ || i + 1 >= len || src.charCodeAt(i + 1) !== 42 /* '*' */) return i;
+    let j = i + 2;
+    while (j + 1 < len) {
+      if (src.charCodeAt(j) === 42 && src.charCodeAt(j + 1) === 47) return j + 2;
+      j++;
+    }
+    return len;
+  }
+
+  /**
+   * If `i` points at the start of a `//` line comment, return the index of the
+   * terminating newline (or `len` at EOF). The newline itself is NOT consumed
+   * — callers decide whether `\n` is whitespace or a logical separator.
+   * Otherwise return `i` unchanged.
+   */
+  protected static _skipLineComment(src: string, i: number, len: number): number {
+    if (src.charCodeAt(i) !== 47 /* '/' */ || i + 1 >= len || src.charCodeAt(i + 1) !== 47) return i;
+    let j = i + 2;
+    while (j < len) {
+      const c = src.charCodeAt(j);
+      if (c === 10 || c === 13) break;
+      j++;
+    }
+    return j;
   }
 
   static isWhiteSpaceChar(charCode: number, includeBreak: boolean): boolean {
@@ -131,15 +162,22 @@ export abstract class BaseLexer {
     let index = this._currentIndex;
 
     while (index < length) {
-      // Skip whitespace
+      // Whitespace including newlines — `\n` is just a separator in the
+      // top-level (non-directive) scan path.
       while (index < length && BaseLexer.isWhiteSpaceChar(source.charCodeAt(index), true)) {
         index++;
       }
-
-      // Skip comment (returns same index if not a comment)
-      const newIndex = skipComment(source, index);
-      if (newIndex === index) break;
-      index = newIndex;
+      const afterBlock = BaseLexer._skipBlockComment(source, index, length);
+      if (afterBlock !== index) {
+        index = afterBlock;
+        continue;
+      }
+      const afterLine = BaseLexer._skipLineComment(source, index, length);
+      if (afterLine !== index) {
+        index = afterLine;
+        continue;
+      }
+      break;
     }
 
     this.advance(index - this._currentIndex);
