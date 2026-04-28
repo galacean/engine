@@ -98,6 +98,12 @@ export class Lexer extends BaseLexer {
   // C preprocessor line continuation: `\` followed by `\r\n`, `\n`, or `\r`.
   // The pair is removed (the next physical line is part of the same logical line).
   private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
+  // Sentinel pushed onto the branch stack when `#if expr` opens a level we
+  // don't model. `name === ""` never matches a real flag in
+  // `isVisibleFrom`'s polarity check, so it's conservatively visible
+  // everywhere — but it occupies one stack slot so `#endif` pops the right
+  // depth. Shared by all `#if` opens to avoid per-token allocation.
+  private static readonly _IF_SENTINEL: BranchConstraint = { name: "", defined: true };
 
   /** Two branch signatures are equal iff they have the same constraints in the
    *  same order with the same polarity. Used by `#define` dedup and AST upgrade
@@ -117,9 +123,11 @@ export class Lexer extends BaseLexer {
    * else is compatible — the same flag with the same polarity, or flags that
    * simply don't intersect.
    *
-   * Conservative for `#if expr` (not modeled — its branch is empty, so
-   * compatible with everything) and exact for the common `#ifdef` / `#ifndef`
-   * / `#else` cases that drive real shader code.
+   * Conservative for `#if expr` (not modeled — `tokenize` pushes a sentinel
+   * with `name === ""` to keep the `#endif` stack depth correct; that
+   * sentinel never matches a real flag in the polarity check below, so it
+   * stays visible from everywhere). Exact for the common `#ifdef` /
+   * `#ifndef` / `#else` cases that drive real shader code.
    */
   static isVisibleFrom(defBranch: BranchSignature, callSiteBranch: BranchSignature): boolean {
     for (let i = 0, n = defBranch.length; i < n; i++) {
@@ -186,7 +194,12 @@ export class Lexer extends BaseLexer {
       if (this._branchStack.length > 0) tok.branch = this._branchStack.slice();
 
       // Update stack state based on the just-emitted token, so the *next*
-      // token sees the correct snapshot.
+      // token sees the correct snapshot. `#if expr` opens a level we can't
+      // address (we don't model expressions), but it must still consume one
+      // stack slot so the matching `#endif` pops the right depth — otherwise
+      // an outer `#ifdef A`'s constraint would be wrongly popped. `#elif`
+      // doesn't change depth (it's another arm at the same level), so no
+      // case is needed.
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
           this._pendingBranchPushDefined = true;
@@ -194,10 +207,14 @@ export class Lexer extends BaseLexer {
         case Keyword.MACRO_IFNDEF:
           this._pendingBranchPushDefined = false;
           break;
+        case Keyword.MACRO_IF:
+          this._branchStack.push(Lexer._IF_SENTINEL);
+          break;
         case Keyword.MACRO_ELSE: {
-          // Flip the polarity of the topmost constraint. `#else` after
-          // `#if expr` (which we don't model) leaves the empty placeholder
-          // alone — empty signature is conservatively visible from anywhere.
+          // Flip the polarity of the topmost constraint. For `#ifdef X` this
+          // turns `[X=true]` into `[X=false]`. For `#if expr` chains the top
+          // is the sentinel (`name=""`), and flipping its `defined` is
+          // harmless — `isVisibleFrom` ignores empty-name entries.
           const top = this._branchStack[this._branchStack.length - 1];
           if (top) this._branchStack[this._branchStack.length - 1] = { name: top.name, defined: !top.defined };
           break;
@@ -663,7 +680,7 @@ export class Lexer extends BaseLexer {
     return false;
   }
 
-/**
+  /**
    * If `i` points at a `\` immediately followed by a newline (`\n`, `\r`, or
    * `\r\n`), return the index just past the pair (a single atom in the C/GLSL
    * preprocessor view). Otherwise return `i` unchanged. This is the single
