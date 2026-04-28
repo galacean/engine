@@ -572,6 +572,10 @@ single_declaration:
     | fully_specified_type id array_specifier
     | fully_specified_type id '=' initializer
     | fully_specified_type id array_specifier '=' initializer
+    /* Variable name collides with a registered macro from a sibling `#if`
+       branch. See CFG.ts for explanation. */
+    | fully_specified_type MACRO_CALL
+    | fully_specified_type MACRO_CALL '=' initializer
     ;
 
 initializer:

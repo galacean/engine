@@ -926,7 +926,16 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.EQUAL,
         NoneTerminal.initializer
       ],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      // Variable name happens to collide with a registered macro from a sibling
+      // `#if` branch. The lexer tokenizes the name as `MACRO_CALL` because
+      // `#if expr` branches are conservatively tracked (any `#define` inside
+      // any `#if` is treated as visible everywhere). Accept it as a declarator
+      // identifier so the active branch's declaration parses. FXAA3_11.glsl
+      // hits this: `#define lumaS luma4A.x` in the `#if FXAA_GATHER4_ALPHA == 1`
+      // branch shadows the `FxaaFloat lumaS = …` declaration in the `#else`.
+      [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL],
+      [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
     ASTNode.SingleDeclaration.pool
   ),
