@@ -195,7 +195,7 @@ export class BasicResources {
     this.spriteMaskDefaultMaterial = this._createSpriteMaskMaterial(engine);
 
     this.meshMagentaMaterial = this._createMagentaMaterial(engine, "Unlit");
-    this.particleMagentaMaterial = this._createMagentaMaterial(engine, "Particle");
+    this.particleMagentaMaterial = this._createMagentaMaterial(engine, "Effect/Particle");
   }
 
   /**

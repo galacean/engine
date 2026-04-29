@@ -7,8 +7,12 @@ import UnlitSource from "./Unlit.shader";
 import SpriteSource from "./2D/Sprite.shader";
 import SpriteMaskSource from "./2D/SpriteMask.shader";
 import TextSource from "./2D/Text.shader";
-import TrailSource from "./2D/Trail.shader";
 import UIDefaultSource from "./2D/UIDefault.shader";
+
+// Effect shaders
+import ParticleSource from "./Effect/Particle.shader";
+import ParticleFeedbackSource from "./Effect/ParticleFeedback.shader";
+import TrailSource from "./Effect/Trail.shader";
 
 // Sky shaders
 import SkyboxSource from "./Sky/Skybox.shader";
@@ -20,10 +24,6 @@ import DepthOnlySource from "./Utility/DepthOnly.shader";
 import ShadowMapSource from "./Utility/ShadowMap.shader";
 import BlitSource from "./Utility/Blit.shader";
 import BlitScreenSource from "./Utility/BlitScreen.shader";
-
-// Particle shaders
-import ParticleSource from "./Particle.shader";
-import ParticleFeedbackSource from "./ParticleFeedback.shader";
 
 // PostProcess shaders
 import UberSource from "./PostProcess/Uber.shader";

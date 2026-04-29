@@ -83,7 +83,7 @@ export class ShaderPool {
     }
 
     // Cache the particle feedback pass and configure transform feedback varyings
-    const feedbackPass = Shader.find("Particle/Feedback").subShaders[0].passes[0];
+    const feedbackPass = Shader.find("Effect/ParticleFeedback").subShaders[0].passes[0];
     feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
     ShaderPool.particleFeedbackPass = feedbackPass;
   }

@@ -1,4 +1,4 @@
-Shader "Particle" {
+Shader "Effect/Particle" {
   Editor {
     Properties {
       Header("Base") {

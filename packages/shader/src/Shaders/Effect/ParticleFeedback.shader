@@ -1,4 +1,4 @@
-Shader "Particle/Feedback" {
+Shader "Effect/ParticleFeedback" {
   SubShader "Default" {
     Pass "TransformFeedback" {
       Tags { pipelineStage = "TransformFeedback" }

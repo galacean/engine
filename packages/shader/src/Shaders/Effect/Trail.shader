@@ -1,4 +1,4 @@
-Shader "2D/Trail" {
+Shader "Effect/Trail" {
   Editor {
     Properties {
       Header("Base") {
