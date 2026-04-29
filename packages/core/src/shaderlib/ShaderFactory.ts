@@ -1,8 +1,4 @@
-import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
-import { Engine } from "../Engine";
-import { ShaderMacro } from "../shader/ShaderMacro";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderLib } from "./ShaderLib";
 
 export class ShaderFactory {
@@ -17,65 +13,6 @@ export class ShaderFactory {
     .join("");
 
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
-
-  static parseCustomMacros(macros: ShaderMacro[]) {
-    return macros.map((m) => `#define ${m.value ? m.name + ` ` + m.value : m.name}\n`).join("");
-  }
-
-  /**
-   * @internal
-   * Compile vertex and fragment source with standard macros, includes, and version header.
-   * @param engine - Engine instance
-   * @param macroCollection - Current macro collection
-   * @param vertexSource - Raw vertex shader source (may contain #include)
-   * @param fragmentSource - Raw fragment shader source
-   * @returns Compiled { vertexSource, fragmentSource } ready for ShaderProgram
-   */
-  static compilePlatformSource(
-    engine: Engine,
-    macroCollection: ShaderMacroCollection,
-    vertexSource: string,
-    fragmentSource: string
-  ): { vertexSource: string; fragmentSource: string } {
-    const isWebGL2 = engine._hardwareRenderer.isWebGL2;
-    const shaderMacroList = new Array<ShaderMacro>();
-    ShaderMacro._getMacrosElements(macroCollection, shaderMacroList);
-    shaderMacroList.push(ShaderMacro.getByName(isWebGL2 ? "GRAPHICS_API_WEBGL2" : "GRAPHICS_API_WEBGL1"));
-    if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
-      shaderMacroList.push(ShaderMacro.getByName("HAS_TEX_LOD"));
-    }
-    if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
-      shaderMacroList.push(ShaderMacro.getByName("HAS_DERIVATIVES"));
-    }
-
-    let noIncludeVertex = ShaderFactory.parseIncludes(vertexSource);
-    let noIncludeFrag = ShaderFactory.parseIncludes(fragmentSource);
-
-    const macroStr = ShaderFactory.parseCustomMacros(shaderMacroList);
-    noIncludeVertex = macroStr + noIncludeVertex;
-    noIncludeFrag = macroStr + noIncludeFrag;
-
-    if (isWebGL2) {
-      noIncludeVertex = ShaderFactory.convertTo300(noIncludeVertex);
-      noIncludeFrag = ShaderFactory.convertTo300(noIncludeFrag, true);
-    }
-
-    const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
-    const precisionStr = `
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-  precision highp float;
-  precision highp int;
-#else
-  precision mediump float;
-  precision mediump int;
-#endif
-`;
-
-    return {
-      vertexSource: `${versionStr}\nprecision highp float;\n${noIncludeVertex}`,
-      fragmentSource: `${versionStr}\n${isWebGL2 ? "" : ShaderFactory._shaderExtension}${precisionStr}${noIncludeFrag}`
-    };
-  }
 
   static registerInclude(includeName: string, includeSource: string) {
     if (ShaderLib[includeName]) {

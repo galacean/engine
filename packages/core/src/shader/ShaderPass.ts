@@ -45,15 +45,13 @@ export class ShaderPass extends ShaderPart {
     [RenderStateElementKey.RenderQueueType]: ShaderProperty.getByName("renderQueueType")
   };
 
-  /**
-   * @internal
-   */
-  _platformTarget: ShaderLanguage | undefined;
+  /** @internal */
+  _platformTarget: ShaderLanguage;
 
   /** @internal - Flat instruction array for vertex shader. */
-  _vertexShaderInstructions?: ShaderInstruction[];
+  _vertexShaderInstructions: ShaderInstruction[];
   /** @internal */
-  _fragmentShaderInstructions?: ShaderInstruction[];
+  _fragmentShaderInstructions: ShaderInstruction[];
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -72,33 +70,8 @@ export class ShaderPass extends ShaderPart {
   /** @internal Transform feedback output varyings (WebGL2 only). */
   _feedbackVaryings?: string[];
 
-  private _vertexSource?: string;
-  private _fragmentSource?: string;
-
   private static _shaderMacroList: ShaderMacro[] = [];
   private static _macroMap: Map<string, string> = new Map();
-
-  /**
-   * Create a shader pass.
-   * @param name - Shader pass name
-   * @param vertexSource - Vertex shader source
-   * @param fragmentSource - Fragment shader source
-   * @param tags - Tags
-   */
-  constructor(
-    name: string,
-    vertexSource: string,
-    fragmentSource: string,
-    tags?: Record<string, number | string | boolean>
-  );
-
-  /**
-   * Create a shader pass.
-   * @param vertexSource - Vertex shader source
-   * @param fragmentSource - Fragment shader source
-   * @param tags - Tags
-   */
-  constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, number | string | boolean>);
 
   /**
    * Create a shader pass from precompiled instructions.
@@ -114,47 +87,18 @@ export class ShaderPass extends ShaderPart {
     fragmentShaderInstructions: ShaderInstruction[],
     platformTarget: ShaderLanguage,
     tags?: Record<string, number | string | boolean>
-  );
-
-  constructor(
-    nameOrVertexSource: string,
-    vertexSourceOrFragmentSourceOrInstructions: string | ShaderInstruction[],
-    fragmentSourceOrTags?: string | ShaderInstruction[] | Record<string, number | string | boolean>,
-    tagsOrPlatformTarget?: Record<string, number | string | boolean> | ShaderLanguage,
-    tags?: Record<string, number | string | boolean>
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
-    if (Array.isArray(vertexSourceOrFragmentSourceOrInstructions)) {
-      // Instructions overload: (name, vertexInst, fragInst, platformTarget, tags?)
-      this._name = nameOrVertexSource;
-      this._vertexShaderInstructions = vertexSourceOrFragmentSourceOrInstructions;
-      this._fragmentShaderInstructions = fragmentSourceOrTags as ShaderInstruction[];
-      this._platformTarget = tagsOrPlatformTarget as ShaderLanguage;
-      tags = { pipelineStage: PipelineStage.Forward, ...tags };
-    } else if (typeof fragmentSourceOrTags === "string") {
-      // Named overload: (name, vertexSource, fragmentSource, tags?)
-      this._name = nameOrVertexSource;
-      this._vertexSource = vertexSourceOrFragmentSourceOrInstructions;
-      this._fragmentSource = fragmentSourceOrTags;
-      tags = {
-        pipelineStage: PipelineStage.Forward,
-        ...(tagsOrPlatformTarget as Record<string, number | string | boolean>)
-      };
-    } else {
-      // Unnamed overload: (vertexSource, fragmentSource, tags?)
-      this._name = "Default";
-      this._vertexSource = nameOrVertexSource;
-      this._fragmentSource = vertexSourceOrFragmentSourceOrInstructions as string;
-      tags = {
-        pipelineStage: PipelineStage.Forward,
-        ...(fragmentSourceOrTags as Record<string, number | string | boolean>)
-      };
-    }
+    this._name = name;
+    this._vertexShaderInstructions = vertexShaderInstructions;
+    this._fragmentShaderInstructions = fragmentShaderInstructions;
+    this._platformTarget = platformTarget;
 
-    for (const key in tags) {
-      this.setTag(key, tags[key]);
+    const mergedTags = { pipelineStage: PipelineStage.Forward, ...tags };
+    for (const key in mergedTags) {
+      this.setTag(key, mergedTags[key]);
     }
   }
 
@@ -189,19 +133,8 @@ export class ShaderPass extends ShaderPart {
   }
 
   private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const { vertexSource, fragmentSource } =
-      this._platformTarget != undefined
-        ? this._compileShaderSource(engine, macroCollection)
-        : this._compilePlatformSource(engine, macroCollection);
-
+    const { vertexSource, fragmentSource } = this._compileShaderSource(engine, macroCollection);
     return new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
-  }
-
-  private _compilePlatformSource(
-    engine: Engine,
-    macroCollection: ShaderMacroCollection
-  ): { vertexSource: string; fragmentSource: string } {
-    return ShaderFactory.compilePlatformSource(engine, macroCollection, this._vertexSource, this._fragmentSource);
   }
 
   private _compileShaderSource(

@@ -19,18 +19,22 @@ import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { vi, describe, expect, it } from "vitest";
 
 const shaderCompiler = new ShaderCompiler();
+// @ts-ignore
+Shader._shaderCompiler = shaderCompiler;
+
+const makePass = (name = "Default") =>
+  new ShaderPass(name, [], [], ShaderLanguage.GLSLES100);
 
 describe("Shader", () => {
   describe("Custom Shader", () => {
     it("Shader", () => {
-      // Create shader
-      let customShader = Shader.create("customByStringCreate", customVS, customFS);
-      customShader = Shader.create("customByPassCreate", [new ShaderPass(customVS, customFS)]);
-      customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+      // Create shader via ShaderPass[] / SubShader[] overloads
+      Shader.create("customByPassCreate", [makePass()]);
+      const customShader = Shader.create("custom", [new SubShader("Default", [makePass()])]);
 
       // Create same name shader
       const errorSpy = vi.spyOn(console, "error");
-      Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+      Shader.create("custom", [new SubShader("Default", [makePass()])]);
       expect(errorSpy).toHaveBeenCalledWith('Shader named "custom" already exists.');
       vi.resetAllMocks();
 
@@ -341,23 +345,6 @@ describe("Shader", () => {
     });
   });
 });
-
-const customVS = `
-attribute vec3 POSITION;
-uniform mat4 renderer_MVPMat;
-
-void main() {
-    gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
-}
-`;
-
-const customFS = `
-uniform vec4 material_BaseColor;
-
-void main() {
-    gl_FragColor = material_BaseColor;
-}
-`;
 
 const testShaderCompilerCode = `
   Shader "Test-Default" {

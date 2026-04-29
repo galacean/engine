@@ -56,15 +56,6 @@ export class Shader implements IReferable {
   /**
    * Create a shader.
    * @param name - Name of the shader
-   * @param vertexSource - Vertex source code
-   * @param fragmentSource - Fragment source code
-   * @returns Shader
-   */
-  static create(name: string, vertexSource: string, fragmentSource: string): Shader;
-
-  /**
-   * Create a shader.
-   * @param name - Name of the shader
    * @param shaderPasses - Shader passes
    * @returns Shader
    */
@@ -80,17 +71,16 @@ export class Shader implements IReferable {
 
   static create(
     nameOrShaderSource: string,
-    vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[] | string,
-    fragmentSource?: string
+    shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[]
   ): Shader {
     let shader: Shader;
     const shaderMap = Shader._shaderMap;
 
-    if (vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget == undefined) {
-      vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget = ShaderLanguage.GLSLES100;
+    if (shaderPassesOrSubShadersOrPlatformTarget == undefined) {
+      shaderPassesOrSubShadersOrPlatformTarget = ShaderLanguage.GLSLES100;
     }
 
-    if (typeof vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === "number") {
+    if (typeof shaderPassesOrSubShadersOrPlatformTarget === "number") {
       const shaderCompiler = Shader._shaderCompiler;
       if (!shaderCompiler) {
         throw "ShaderCompiler has not been set up yet.";
@@ -112,7 +102,7 @@ export class Shader implements IReferable {
             passSource.contents,
             passSource.vertexEntry,
             passSource.fragmentEntry,
-            vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget
+            shaderPassesOrSubShadersOrPlatformTarget
           );
 
           if (!shaderPassSource) {
@@ -123,7 +113,7 @@ export class Shader implements IReferable {
             passSource.name,
             shaderPassSource.vertexShaderInstructions,
             shaderPassSource.fragmentShaderInstructions,
-            vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage,
+            shaderPassesOrSubShadersOrPlatformTarget as ShaderLanguage,
             passSource.tags
           );
 
@@ -148,24 +138,16 @@ export class Shader implements IReferable {
         console.error(`Shader named "${nameOrShaderSource}" already exists.`);
         return;
       }
-      if (typeof vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget === "string") {
-        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget, fragmentSource);
-        shader = new Shader(nameOrShaderSource, [new SubShader("Default", [shaderPass])]);
-      } else {
-        if (vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget.length > 0) {
-          if (vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget[0].constructor === ShaderPass) {
-            shader = new Shader(nameOrShaderSource, [
-              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget)
-            ]);
-          } else {
-            shader = new Shader(
-              nameOrShaderSource,
-              <SubShader[]>vertexSourceOrShaderPassesOrSubShadersOrPlatformTarget.slice()
-            );
-          }
+      if (shaderPassesOrSubShadersOrPlatformTarget.length > 0) {
+        if (shaderPassesOrSubShadersOrPlatformTarget[0].constructor === ShaderPass) {
+          shader = new Shader(nameOrShaderSource, [
+            new SubShader("Default", <ShaderPass[]>shaderPassesOrSubShadersOrPlatformTarget)
+          ]);
         } else {
-          throw "SubShader or ShaderPass count must large than 0.";
+          shader = new Shader(nameOrShaderSource, <SubShader[]>shaderPassesOrSubShadersOrPlatformTarget.slice());
         }
+      } else {
+        throw "SubShader or ShaderPass count must large than 0.";
       }
     }
 
