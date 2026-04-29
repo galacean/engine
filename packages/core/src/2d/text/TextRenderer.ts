@@ -673,6 +673,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     if (charLength > 0) {
       this._buildChunk(curTextChunk, charLength);
     }
+    this._setDirtyFlagTrue(DirtyFlag.WorldPosition);
     charRenderInfos.length = 0;
   }
 
