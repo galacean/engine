@@ -397,3 +397,123 @@ describe("TextRenderer", () => {
     engine.destroy();
   });
 });
+
+// TextRenderer 内部 dirty flag 数值（与 packages/core/src/2d/text/TextRenderer.ts 中 enum DirtyFlag 保持一致）
+const TR_DIRTY_LOCAL_POSITION_BOUNDS = 0x2;
+const TR_DIRTY_WORLD_POSITION = 0x4;
+
+/** 读取 TextRenderer 当前所有 chunk 的 vertex pos 字段（每 vertex 9 floats，pos 在 +0,+1,+2）。*/
+function readTextRendererPosFloats(text: any): number[] {
+  const result: number[] = [];
+  for (const chunk of text._textChunks) {
+    const subChunk = chunk.subChunk;
+    if (!subChunk) continue;
+    const vertices = subChunk.chunk.vertices;
+    let vo = subChunk.vertexArea.start;
+    const numVerts = subChunk.vertexArea.size / 9;
+    for (let i = 0; i < numVerts; i++, vo += 9) {
+      result.push(vertices[vo + 0], vertices[vo + 1], vertices[vo + 2]);
+    }
+  }
+  return result;
+}
+
+/**
+ * 回归测试：bounds getter 路径下 _updateLocalData 重新分配 vertex slot 的 dirty flag 契约。
+ * 与 UI Text 同名测试同一根因 —— TextRenderer 当前所有 setter 都用 DirtyFlag.Position（含 WorldPosition），
+ * 视觉上不会触发；本测试用于守住契约，防未来新增"只点 LocalPositionBounds"的路径埋雷。
+ */
+describe("TextRenderer - bounds-getter slot residue regression", () => {
+  let engine: WebGLEngine;
+  let rootEntity: Entity;
+
+  beforeAll(async function () {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    rootEntity = engine.sceneManager.activeScene.createRootEntity("regression-root");
+    const cameraEntity = rootEntity.createChild("Camera");
+    cameraEntity.addComponent(Camera);
+  });
+
+  it("_updateLocalData must leave WorldPosition dirty so downstream _updatePosition runs", () => {
+    const e = rootEntity.createChild("dirty-flag-invariant-tr");
+    const t = e.addComponent(TextRenderer);
+    t.text = "AB";
+    // 触发首次 _updateLocalData + _updatePosition，让 dirty flag 完全消化
+    void t.bounds;
+
+    // 清空所有 dirty flag
+    (t as any)._dirtyFlag = 0;
+
+    // 直接调用 _updateLocalData
+    (t as any)._updateLocalData();
+
+    // 修复契约：_updateLocalData 退出时 WorldPosition 必须 dirty
+    expect((t as any)._dirtyFlag & TR_DIRTY_WORLD_POSITION).to.eq(TR_DIRTY_WORLD_POSITION);
+  });
+
+  it("bounds getter must re-write vertex pos when only LocalPositionBounds is dirty (corrupted-slot)", () => {
+    const e = rootEntity.createChild("bounds-getter-rewrite-tr");
+    const t = e.addComponent(TextRenderer);
+    t.text = "CD";
+    e.transform.setPosition(1.23, -0.45, 0);
+    void t.bounds;
+
+    const before = readTextRendererPosFloats(t);
+    expect(before.length).to.be.greaterThan(0);
+
+    // 把 slot 内存里的 pos 字段人为改成"残留垃圾"
+    const chunks = (t as any)._textChunks;
+    const v = chunks[0].subChunk.chunk.vertices;
+    let vo = chunks[0].subChunk.vertexArea.start;
+    const numVerts = chunks[0].subChunk.vertexArea.size / 9;
+    for (let i = 0; i < numVerts; i++, vo += 9) {
+      v[vo + 0] = 99999;
+      v[vo + 1] = 99999;
+      v[vo + 2] = 99999;
+    }
+
+    // 仅点 LocalPositionBounds（模拟未来可能新增的"只点 LocalPositionBounds"路径）
+    (t as any)._dirtyFlag = TR_DIRTY_LOCAL_POSITION_BOUNDS;
+
+    void t.bounds;
+
+    const after = readTextRendererPosFloats(t);
+    expect(after.length).to.eq(before.length);
+    for (let i = 0; i < after.length; i++) {
+      expect(after[i]).to.be.closeTo(before[i], 0.001);
+    }
+  });
+
+  it("vertex pos remains correct after sibling chunk is destroyed (full slot-reuse repro)", () => {
+    const leadEntity = rootEntity.createChild("repro-lead-tr");
+    const lead = leadEntity.addComponent(TextRenderer);
+    leadEntity.transform.setPosition(-3, -1, 0);
+    lead.text = "ab";
+    void lead.bounds;
+
+    const stableEntity = rootEntity.createChild("repro-stable-tr");
+    const stable = stableEntity.addComponent(TextRenderer);
+    stableEntity.transform.setPosition(0.5, 1, 0);
+    stable.text = "cd";
+    void stable.bounds;
+
+    const before = readTextRendererPosFloats(stable);
+    expect(before.length).to.be.greaterThan(0);
+
+    leadEntity.destroy();
+
+    (stable as any)._dirtyFlag = TR_DIRTY_LOCAL_POSITION_BOUNDS;
+
+    void stable.bounds;
+
+    const after = readTextRendererPosFloats(stable);
+    expect(after.length).to.eq(before.length);
+    for (let i = 0; i < after.length; i++) {
+      expect(after[i]).to.be.closeTo(before[i], 0.001);
+    }
+  });
+
+  afterAll(() => {
+    engine.destroy();
+  });
+});
