@@ -65,10 +65,10 @@ export class RenderState {
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData
   ): RenderQueueType {
-    const prop = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (prop !== undefined) {
-      const v = shaderData.getFloat(prop);
-      if (v !== undefined) return v;
+    const renderQueueTypeProp = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (renderQueueTypeProp !== undefined) {
+      const renderQueueType = shaderData.getFloat(renderQueueTypeProp);
+      if (renderQueueType !== undefined) return renderQueueType;
     }
     return this.renderQueueType;
   }

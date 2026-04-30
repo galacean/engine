@@ -88,8 +88,8 @@ export class StencilState {
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     const enabledProp = renderStateDataMap[RenderStateElementKey.StencilStateEnabled];
     if (enabledProp !== undefined) {
-      const v = shaderData.getFloat(enabledProp);
-      this.enabled = v !== undefined ? !!v : false;
+      const enabled = shaderData.getFloat(enabledProp);
+      this.enabled = enabled !== undefined ? !!enabled : false;
     }
     const referenceValueProp = renderStateDataMap[RenderStateElementKey.StencilStateReferenceValue];
     if (referenceValueProp !== undefined) {

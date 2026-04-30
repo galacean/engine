@@ -89,8 +89,8 @@ export class BlendState {
 
     const enabledProp = renderStateDataMap[RenderStateElementKey.BlendStateEnabled0];
     if (enabledProp !== undefined) {
-      const v = shaderData.getFloat(enabledProp);
-      target.enabled = v !== undefined ? !!v : false;
+      const enabled = shaderData.getFloat(enabledProp);
+      target.enabled = enabled !== undefined ? !!enabled : false;
     }
     const colorBlendOperationProp = renderStateDataMap[RenderStateElementKey.BlendStateColorBlendOperation0];
     if (colorBlendOperationProp !== undefined) {
@@ -124,17 +124,17 @@ export class BlendState {
     }
     const blendColorProp = renderStateDataMap[RenderStateElementKey.BlendStateBlendColor];
     if (blendColorProp !== undefined) {
-      const c = shaderData.getColor(blendColorProp);
-      if (c) {
-        this.blendColor.copyFrom(c);
+      const blendColor = shaderData.getColor(blendColorProp);
+      if (blendColor) {
+        this.blendColor.copyFrom(blendColor);
       } else {
         this.blendColor.set(0, 0, 0, 0);
       }
     }
     const alphaToCoverageProp = renderStateDataMap[RenderStateElementKey.BlendStateAlphaToCoverage];
     if (alphaToCoverageProp !== undefined) {
-      const v = shaderData.getFloat(alphaToCoverageProp);
-      this.alphaToCoverage = v !== undefined ? !!v : false;
+      const alphaToCoverage = shaderData.getFloat(alphaToCoverageProp);
+      this.alphaToCoverage = alphaToCoverage !== undefined ? !!alphaToCoverage : false;
     }
   }
 

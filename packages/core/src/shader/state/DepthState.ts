@@ -46,13 +46,13 @@ export class DepthState {
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
     const enabledProp = renderStateDataMap[RenderStateElementKey.DepthStateEnabled];
     if (enabledProp !== undefined) {
-      const v = shaderData.getFloat(enabledProp);
-      this.enabled = v !== undefined ? !!v : true;
+      const enabled = shaderData.getFloat(enabledProp);
+      this.enabled = enabled !== undefined ? !!enabled : true;
     }
     const writeEnabledProp = renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled];
     if (writeEnabledProp !== undefined) {
-      const v = shaderData.getFloat(writeEnabledProp);
-      this.writeEnabled = v !== undefined ? !!v : true;
+      const writeEnabled = shaderData.getFloat(writeEnabledProp);
+      this.writeEnabled = writeEnabled !== undefined ? !!writeEnabled : true;
     }
     const compareFunctionProp = renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction];
     if (compareFunctionProp !== undefined) {
