@@ -10,22 +10,22 @@ import { RenderContext } from "./RenderContext";
 import { RenderQueue } from "./RenderQueue";
 import { RenderQueueMaskType } from "./enums/RenderQueueMaskType";
 
-const _stencilEnabledProp = ShaderProperty.getByName("stencilEnabled");
-const _stencilWriteMaskProp = ShaderProperty.getByName("stencilWriteMask");
-const _stencilMaskProp = ShaderProperty.getByName("stencilMask");
-const _stencilCompareFunctionFrontProp = ShaderProperty.getByName("stencilCompareFunctionFront");
-const _stencilCompareFunctionBackProp = ShaderProperty.getByName("stencilCompareFunctionBack");
-const _stencilPassOperationFrontProp = ShaderProperty.getByName("stencilPassOperationFront");
-const _stencilPassOperationBackProp = ShaderProperty.getByName("stencilPassOperationBack");
-const _stencilFailOperationFrontProp = ShaderProperty.getByName("stencilFailOperationFront");
-const _stencilFailOperationBackProp = ShaderProperty.getByName("stencilFailOperationBack");
-const _stencilZFailOperationFrontProp = ShaderProperty.getByName("stencilZFailOperationFront");
-const _stencilZFailOperationBackProp = ShaderProperty.getByName("stencilZFailOperationBack");
-
 /**
  * @internal
  */
 export class MaskManager {
+  private static _stencilEnabledProp = ShaderProperty.getByName("stencilEnabled");
+  private static _stencilWriteMaskProp = ShaderProperty.getByName("stencilWriteMask");
+  private static _stencilMaskProp = ShaderProperty.getByName("stencilMask");
+  private static _stencilCompareFunctionFrontProp = ShaderProperty.getByName("stencilCompareFunctionFront");
+  private static _stencilCompareFunctionBackProp = ShaderProperty.getByName("stencilCompareFunctionBack");
+  private static _stencilPassOperationFrontProp = ShaderProperty.getByName("stencilPassOperationFront");
+  private static _stencilPassOperationBackProp = ShaderProperty.getByName("stencilPassOperationBack");
+  private static _stencilFailOperationFrontProp = ShaderProperty.getByName("stencilFailOperationFront");
+  private static _stencilFailOperationBackProp = ShaderProperty.getByName("stencilFailOperationBack");
+  private static _stencilZFailOperationFrontProp = ShaderProperty.getByName("stencilZFailOperationFront");
+  private static _stencilZFailOperationBackProp = ShaderProperty.getByName("stencilZFailOperationBack");
+
   private static _maskIncrementRenderQueue: RenderQueue;
   private static _maskDecrementRenderQueue: RenderQueue;
 
@@ -97,44 +97,36 @@ export class MaskManager {
 
   isStencilWritten(material: Material): boolean {
     const data = material.shaderData;
-    const enabled = data.getFloat(_stencilEnabledProp);
-    const writeMask = data.getFloat(_stencilWriteMaskProp) ?? 0xff;
-    const stencilOperation = StencilOperation.Keep;
-    const passFront = data.getFloat(_stencilPassOperationFrontProp) ?? stencilOperation;
-    const passBack = data.getFloat(_stencilPassOperationBackProp) ?? stencilOperation;
-    const failFront = data.getFloat(_stencilFailOperationFrontProp) ?? stencilOperation;
-    const failBack = data.getFloat(_stencilFailOperationBackProp) ?? stencilOperation;
-    const zFailFront = data.getFloat(_stencilZFailOperationFrontProp) ?? stencilOperation;
-    const zFailBack = data.getFloat(_stencilZFailOperationBackProp) ?? stencilOperation;
-    if (
-      enabled &&
-      writeMask !== 0x00 &&
-      (passFront !== stencilOperation ||
-        passBack !== stencilOperation ||
-        failFront !== stencilOperation ||
-        failBack !== stencilOperation ||
-        zFailFront !== stencilOperation ||
-        zFailBack !== stencilOperation)
-    ) {
-      return true;
-    }
+    if (!data.getFloat(MaskManager._stencilEnabledProp)) return false;
+    if ((data.getFloat(MaskManager._stencilWriteMaskProp) ?? 0xff) === 0) return false;
+
+    const Keep = StencilOperation.Keep;
+    const passFront = data.getFloat(MaskManager._stencilPassOperationFrontProp);
+    if (passFront !== undefined && passFront !== Keep) return true;
+    const passBack = data.getFloat(MaskManager._stencilPassOperationBackProp);
+    if (passBack !== undefined && passBack !== Keep) return true;
+    const failFront = data.getFloat(MaskManager._stencilFailOperationFrontProp);
+    if (failFront !== undefined && failFront !== Keep) return true;
+    const failBack = data.getFloat(MaskManager._stencilFailOperationBackProp);
+    if (failBack !== undefined && failBack !== Keep) return true;
+    const zFailFront = data.getFloat(MaskManager._stencilZFailOperationFrontProp);
+    if (zFailFront !== undefined && zFailFront !== Keep) return true;
+    const zFailBack = data.getFloat(MaskManager._stencilZFailOperationBackProp);
+    if (zFailBack !== undefined && zFailBack !== Keep) return true;
     return false;
   }
 
   isReadStencil(material: Material): boolean {
     const data = material.shaderData;
-    const enabled = data.getFloat(_stencilEnabledProp);
-    const mask = data.getFloat(_stencilMaskProp) ?? 0xff;
-    const compareFunctionFront = data.getFloat(_stencilCompareFunctionFrontProp) ?? CompareFunction.Always;
-    const compareFunctionBack = data.getFloat(_stencilCompareFunctionBackProp) ?? CompareFunction.Always;
-    if (
-      enabled &&
-      mask !== 0x00 &&
-      ((compareFunctionFront !== CompareFunction.Always && compareFunctionFront !== CompareFunction.Never) ||
-        (compareFunctionBack !== CompareFunction.Always && compareFunctionBack !== CompareFunction.Never))
-    ) {
-      return true;
-    }
+    if (!data.getFloat(MaskManager._stencilEnabledProp)) return false;
+    if ((data.getFloat(MaskManager._stencilMaskProp) ?? 0xff) === 0) return false;
+
+    const Always = CompareFunction.Always;
+    const Never = CompareFunction.Never;
+    const cmpFront = data.getFloat(MaskManager._stencilCompareFunctionFrontProp) ?? Always;
+    if (cmpFront !== Always && cmpFront !== Never) return true;
+    const cmpBack = data.getFloat(MaskManager._stencilCompareFunctionBackProp) ?? Always;
+    if (cmpBack !== Always && cmpBack !== Never) return true;
     return false;
   }
 

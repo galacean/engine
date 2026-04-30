@@ -28,6 +28,17 @@ export class BaseMaterial extends Material {
   protected static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_IS_ALPHA_CUTOFF");
 
+  private static _blendEnabledProp: ShaderProperty = ShaderProperty.getByName("blendEnabled");
+  private static _depthWriteEnabledProp: ShaderProperty = ShaderProperty.getByName("depthWriteEnabled");
+  private static _renderQueueTypeProp: ShaderProperty = ShaderProperty.getByName("renderQueueType");
+  private static _sourceColorBlendFactorProp: ShaderProperty = ShaderProperty.getByName("sourceColorBlendFactor");
+  private static _destinationColorBlendFactorProp: ShaderProperty =
+    ShaderProperty.getByName("destinationColorBlendFactor");
+  private static _sourceAlphaBlendFactorProp: ShaderProperty = ShaderProperty.getByName("sourceAlphaBlendFactor");
+  private static _destinationAlphaBlendFactorProp: ShaderProperty =
+    ShaderProperty.getByName("destinationAlphaBlendFactor");
+  private static _rasterStateCullModeProp: ShaderProperty = ShaderProperty.getByName("rasterStateCullMode");
+
   private _renderFace: RenderFace = RenderFace.Front;
   protected _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
@@ -99,8 +110,6 @@ export class BaseMaterial extends Material {
     shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.Opaque);
     shaderData.setFloat(BaseMaterial._depthOnlyRenderQueueProp, RenderQueueType.Opaque);
 
-    // Initialize render state shader data values so shaders with variable-based render state
-    // (e.g. `Bool depthWriteEnabled;`) do not fall back to undefined and disable depth writes.
     this.setIsTransparent(false);
     this.setRenderFace(RenderFace.Front);
     this.setBlendMode(BlendMode.Normal);
@@ -114,15 +123,15 @@ export class BaseMaterial extends Material {
     const { shaderData } = this;
 
     if (isTransparent) {
-      shaderData.setInt("blendEnabled", 1);
-      shaderData.setInt("depthWriteEnabled", 0);
-      shaderData.setInt("renderQueueType", RenderQueueType.Transparent);
+      shaderData.setInt(BaseMaterial._blendEnabledProp, 1);
+      shaderData.setInt(BaseMaterial._depthWriteEnabledProp, 0);
+      shaderData.setInt(BaseMaterial._renderQueueTypeProp, RenderQueueType.Transparent);
       shaderData.enableMacro(BaseMaterial._transparentMacro);
     } else {
-      shaderData.setInt("blendEnabled", 0);
-      shaderData.setInt("depthWriteEnabled", 1);
+      shaderData.setInt(BaseMaterial._blendEnabledProp, 0);
+      shaderData.setInt(BaseMaterial._depthWriteEnabledProp, 1);
       shaderData.setInt(
-        "renderQueueType",
+        BaseMaterial._renderQueueTypeProp,
         shaderData.getFloat(BaseMaterial._alphaCutoffProp) ? RenderQueueType.AlphaTest : RenderQueueType.Opaque
       );
       shaderData.disableMacro(BaseMaterial._transparentMacro);
@@ -138,16 +147,16 @@ export class BaseMaterial extends Material {
 
     switch (blendMode) {
       case BlendMode.Normal:
-        shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
-        shaderData.setInt("destinationColorBlendFactor", BlendFactor.OneMinusSourceAlpha);
-        shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
-        shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.OneMinusSourceAlpha);
+        shaderData.setInt(BaseMaterial._sourceColorBlendFactorProp, BlendFactor.SourceAlpha);
+        shaderData.setInt(BaseMaterial._destinationColorBlendFactorProp, BlendFactor.OneMinusSourceAlpha);
+        shaderData.setInt(BaseMaterial._sourceAlphaBlendFactorProp, BlendFactor.One);
+        shaderData.setInt(BaseMaterial._destinationAlphaBlendFactorProp, BlendFactor.OneMinusSourceAlpha);
         break;
       case BlendMode.Additive:
-        shaderData.setInt("sourceColorBlendFactor", BlendFactor.SourceAlpha);
-        shaderData.setInt("destinationColorBlendFactor", BlendFactor.One);
-        shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.Zero);
-        shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.One);
+        shaderData.setInt(BaseMaterial._sourceColorBlendFactorProp, BlendFactor.SourceAlpha);
+        shaderData.setInt(BaseMaterial._destinationColorBlendFactorProp, BlendFactor.One);
+        shaderData.setInt(BaseMaterial._sourceAlphaBlendFactorProp, BlendFactor.Zero);
+        shaderData.setInt(BaseMaterial._destinationAlphaBlendFactorProp, BlendFactor.One);
         break;
     }
   }
@@ -161,13 +170,13 @@ export class BaseMaterial extends Material {
 
     switch (renderFace) {
       case RenderFace.Front:
-        shaderData.setInt("rasterStateCullMode", CullMode.Back);
+        shaderData.setInt(BaseMaterial._rasterStateCullModeProp, CullMode.Back);
         break;
       case RenderFace.Back:
-        shaderData.setInt("rasterStateCullMode", CullMode.Front);
+        shaderData.setInt(BaseMaterial._rasterStateCullModeProp, CullMode.Front);
         break;
       case RenderFace.Double:
-        shaderData.setInt("rasterStateCullMode", CullMode.Off);
+        shaderData.setInt(BaseMaterial._rasterStateCullModeProp, CullMode.Off);
         break;
     }
   }
@@ -226,7 +235,7 @@ export class BaseMaterial extends Material {
 
         // Forward render queue
         const forwardQueue = isTransparent ? RenderQueueType.Transparent : RenderQueueType.AlphaTest;
-        shaderData.setInt("renderQueueType", forwardQueue);
+        shaderData.setInt(BaseMaterial._renderQueueTypeProp, forwardQueue);
         // Shadow caster render queue
         shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, RenderQueueType.AlphaTest);
         // Depth only render queue
@@ -236,7 +245,7 @@ export class BaseMaterial extends Material {
 
         // Forward render queue
         const forwardQueue = isTransparent ? RenderQueueType.Transparent : RenderQueueType.Opaque;
-        shaderData.setInt("renderQueueType", forwardQueue);
+        shaderData.setInt(BaseMaterial._renderQueueTypeProp, forwardQueue);
         // Shadow caster render queue
         const shadowCasterQueue = isTransparent ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
         shaderData.setFloat(BaseMaterial._shadowCasterRenderQueueProp, shadowCasterQueue);
