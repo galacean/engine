@@ -27,7 +27,8 @@
     }
   },
   "scripts": {
-    "precompile": "node ../shader-compiler/dist/bundler/cli.js src/Shaders compiled --clean --emit-index",
+    "gen:library": "node scripts/generate-shader-library-index.js",
+    "precompile": "npm run gen:library && node ../shader-compiler/dist/bundler/cli.js src/Shaders compiled --clean --emit-index",
     "b:types": "tsc"
   },
   "umd": {
