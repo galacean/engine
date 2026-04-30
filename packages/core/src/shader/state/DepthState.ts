@@ -43,29 +43,20 @@ export class DepthState {
   /**
    * @internal
    */
-  _applyShaderDataValue(
-    renderStateDataMap: Record<number, ShaderProperty>,
-    shaderData: ShaderData,
-    constantPropertyMask: number
-  ): void {
-    const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
-
-    if (renderStateDataMap[RenderStateElementKey.DepthStateEnabled] !== undefined) {
-      this.enabled = RenderState._resolveValue(RenderStateElementKey.DepthStateEnabled, ...args, this.enabled);
+  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    const enabledProp = renderStateDataMap[RenderStateElementKey.DepthStateEnabled];
+    if (enabledProp !== undefined) {
+      const v = shaderData.getFloat(enabledProp);
+      this.enabled = v !== undefined ? !!v : true;
     }
-    if (renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled] !== undefined) {
-      this.writeEnabled = RenderState._resolveValue(
-        RenderStateElementKey.DepthStateWriteEnabled,
-        ...args,
-        this.writeEnabled
-      );
+    const writeEnabledProp = renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled];
+    if (writeEnabledProp !== undefined) {
+      const v = shaderData.getFloat(writeEnabledProp);
+      this.writeEnabled = v !== undefined ? !!v : true;
     }
-    if (renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction] !== undefined) {
-      this.compareFunction = RenderState._resolveValue(
-        RenderStateElementKey.DepthStateCompareFunction,
-        ...args,
-        this.compareFunction
-      );
+    const compareFunctionProp = renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction];
+    if (compareFunctionProp !== undefined) {
+      this.compareFunction = shaderData.getFloat(compareFunctionProp) ?? CompareFunction.Less;
     }
   }
 

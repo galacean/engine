@@ -16,15 +16,18 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, describe, expect, it } from "vitest";
 
 /**
- * Tests for the 2-tier render state priority system.
- *
- * Priority order (highest to lowest):
- *   1. Shader constant  -> bit set in `constantPropertyMask`, value already written to `this`
- *   2. shaderData value -> property is present in `renderStateDataMap` AND has value set
- *
- * If neither tier provides a value, the existing field value on `this` is kept
- * (which is the RenderState class field initializer default for shaders that
- * don't declare the property).
+ * Tests for the inline render-state resolution model:
+ *   - ShaderLab constants are stamped onto the pass's RenderState by
+ *     `_applyConstRenderStates` once, at shader-load time. They never go
+ *     through `_applyShaderDataValue`, so this suite does not cover them.
+ *   - For each variable bound in `_renderStateDataMap`, `_applyShaderDataValue`
+ *     reads the value from `shaderData`. If the property is unset, the
+ *     fallback is the corresponding RenderState class field-initializer
+ *     default (e.g. `writeEnabled = true`, `cullMode = Back`,
+ *     `sourceColorBlendFactor = One`).
+ *   - If a slot is not declared as a variable, `_applyShaderDataValue`
+ *     leaves the field untouched — preserves any prior ShaderLab constant
+ *     stamp or class field initializer.
  */
 describe("RenderState per-property priority", () => {
   let engine: WebGLEngine;
@@ -36,28 +39,8 @@ describe("RenderState per-property priority", () => {
   const createShaderData = () => new Material(engine, Shader.find("BlinnPhong")).shaderData;
 
   describe("BlendState", () => {
-    it("shader constant wins over shaderData", () => {
+    it("shaderData value is used when variable is bound and value is set", () => {
       const state = new BlendState();
-      state.targetBlendState.enabled = true;
-
-      const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("blendEnabled");
-      shaderData.setInt(prop, 0);
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.BlendStateEnabled0]: prop
-      };
-      const constantMask = 1 << RenderStateElementKey.BlendStateEnabled0;
-
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
-
-      expect(state.targetBlendState.enabled).to.eq(true);
-    });
-
-    it("shaderData wins when no shader constant", () => {
-      const state = new BlendState();
-      state.targetBlendState.sourceColorBlendFactor = BlendFactor.One;
-
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("sourceColorBlendFactor");
       shaderData.setInt(prop, BlendFactor.SourceAlpha);
@@ -65,18 +48,17 @@ describe("RenderState per-property priority", () => {
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: prop
       };
-      const constantMask = 0;
 
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
+      state._applyShaderDataValue(dataMap, shaderData);
 
       expect(state.targetBlendState.sourceColorBlendFactor).to.eq(BlendFactor.SourceAlpha);
     });
 
-    it("falls back to 0 when shaderData has no value for the mapped property", () => {
+    it("falls back to field initializer default when variable is bound but shaderData unset", () => {
       const state = new BlendState();
-      // Pre-populate with a non-zero value to ensure the result comes from the
-      // Unity-style 0 fallback rather than the field's pre-existing (potentially
-      // polluted) value.
+      // Pre-populate with a sentinel non-default value so we can detect that
+      // the result comes from the field initializer default (not the previous
+      // value left on the shared shaderPass._renderState).
       state.targetBlendState.sourceColorBlendFactor = BlendFactor.SourceAlpha;
 
       const shaderData = createShaderData();
@@ -85,54 +67,30 @@ describe("RenderState per-property priority", () => {
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: prop
       };
-      const constantMask = 0;
 
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
+      state._applyShaderDataValue(dataMap, shaderData);
 
-      // Unity-style: declared variable + unset shaderData → 0.
-      expect(state.targetBlendState.sourceColorBlendFactor).to.eq(BlendFactor.Zero);
+      // RenderTargetBlendState.sourceColorBlendFactor field initializer is BlendFactor.One.
+      expect(state.targetBlendState.sourceColorBlendFactor).to.eq(BlendFactor.One);
     });
 
-    it("leaves the field untouched when the property key is missing from dataMap", () => {
+    it("leaves the field untouched when the slot is not declared as a variable", () => {
       const state = new BlendState();
-      // Set a sentinel value to verify _applyShaderDataValue does not overwrite
-      // it when the shader didn't bind this slot — the existing field value
-      // (either ShaderLab constant or class field initializer) must be kept.
+      // Sentinel value: must survive the apply call.
       state.targetBlendState.enabled = true;
 
       const shaderData = createShaderData();
       const dataMap: Record<number, ShaderProperty> = {};
-      const constantMask = 0;
 
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
+      state._applyShaderDataValue(dataMap, shaderData);
 
       expect(state.targetBlendState.enabled).to.eq(true);
     });
   });
 
   describe("DepthState", () => {
-    it("shader constant wins over shaderData", () => {
+    it("shaderData value is used when variable is bound and value is set", () => {
       const state = new DepthState();
-      state.writeEnabled = false;
-
-      const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("depthWriteEnabled");
-      shaderData.setInt(prop, 1);
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.DepthStateWriteEnabled]: prop
-      };
-      const constantMask = 1 << RenderStateElementKey.DepthStateWriteEnabled;
-
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
-
-      expect(state.writeEnabled).to.eq(false);
-    });
-
-    it("shaderData wins when no shader constant", () => {
-      const state = new DepthState();
-      state.writeEnabled = true;
-
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("depthWriteEnabled");
       shaderData.setInt(prop, 0);
@@ -140,18 +98,16 @@ describe("RenderState per-property priority", () => {
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.DepthStateWriteEnabled]: prop
       };
-      const constantMask = 0;
 
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
+      state._applyShaderDataValue(dataMap, shaderData);
 
       expect(state.writeEnabled).to.eq(false);
     });
 
-    it("falls back to false when shaderData has no value", () => {
+    it("falls back to field initializer default when variable is bound but shaderData unset", () => {
       const state = new DepthState();
-      // Pre-populate with a non-default value to verify the result comes from the
-      // Unity-style 0 fallback rather than the field's pre-existing value.
-      state.writeEnabled = true;
+      // Sentinel: pre-populate with a non-default value to verify fallback.
+      state.writeEnabled = false;
 
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("depthWriteEnabled");
@@ -159,20 +115,17 @@ describe("RenderState per-property priority", () => {
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.DepthStateWriteEnabled]: prop
       };
-      const constantMask = 0;
 
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
+      state._applyShaderDataValue(dataMap, shaderData);
 
-      // Unity-style: declared variable + unset shaderData → false (boolean 0).
-      expect(state.writeEnabled).to.eq(false);
+      // DepthState.writeEnabled field initializer is true.
+      expect(state.writeEnabled).to.eq(true);
     });
   });
 
   describe("RasterState", () => {
-    it("shaderData provides cull mode when no shader constant", () => {
+    it("shaderData provides cull mode when variable is bound", () => {
       const state = new RasterState();
-      state.cullMode = CullMode.Back;
-
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("rasterStateCullMode");
       shaderData.setInt(prop, CullMode.Front);
@@ -180,9 +133,8 @@ describe("RenderState per-property priority", () => {
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.RasterStateCullMode]: prop
       };
-      const constantMask = 0;
 
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
+      state._applyShaderDataValue(dataMap, shaderData);
 
       expect(state.cullMode).to.eq(CullMode.Front);
     });
@@ -209,9 +161,8 @@ describe("RenderState per-property priority", () => {
         [RenderStateElementKey.StencilStateCompareFunctionFront]: cmpProp,
         [RenderStateElementKey.StencilStatePassOperationFront]: passOpProp
       };
-      const constantMask = 0;
 
-      state._applyShaderDataValue(dataMap, shaderData, constantMask);
+      state._applyShaderDataValue(dataMap, shaderData);
 
       expect(state.enabled).to.eq(true);
       expect(state.referenceValue).to.eq(5);

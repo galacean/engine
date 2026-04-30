@@ -124,13 +124,7 @@ export class Sky {
     program.uploadAll(program.materialUniformBlock, materialShaderData);
     program.uploadUnGroupTextures();
 
-    pass._renderState._applyStates(
-      engine,
-      false,
-      pass._renderStateDataMap,
-      materialShaderData,
-      pass._constantPropertyMask
-    );
+    pass._renderState._applyStates(engine, false, pass._renderStateDataMap, materialShaderData);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
     cameraShaderData.setMatrix(RenderContext.vpMatrixProperty, originViewProjMatrix);
   }

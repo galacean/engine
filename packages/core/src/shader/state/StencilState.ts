@@ -85,84 +85,55 @@ export class StencilState {
   /**
    * @internal
    */
-  _applyShaderDataValue(
-    renderStateDataMap: Record<number, ShaderProperty>,
-    shaderData: ShaderData,
-    constantPropertyMask: number
-  ): void {
-    const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
-
-    if (renderStateDataMap[RenderStateElementKey.StencilStateEnabled] !== undefined) {
-      this.enabled = RenderState._resolveValue(RenderStateElementKey.StencilStateEnabled, ...args, this.enabled);
+  _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
+    const enabledProp = renderStateDataMap[RenderStateElementKey.StencilStateEnabled];
+    if (enabledProp !== undefined) {
+      const v = shaderData.getFloat(enabledProp);
+      this.enabled = v !== undefined ? !!v : false;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateReferenceValue] !== undefined) {
-      this.referenceValue = RenderState._resolveValue(
-        RenderStateElementKey.StencilStateReferenceValue,
-        ...args,
-        this.referenceValue
-      );
+    const referenceValueProp = renderStateDataMap[RenderStateElementKey.StencilStateReferenceValue];
+    if (referenceValueProp !== undefined) {
+      this.referenceValue = shaderData.getFloat(referenceValueProp) ?? 0;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateMask] !== undefined) {
-      this.mask = RenderState._resolveValue(RenderStateElementKey.StencilStateMask, ...args, this.mask);
+    const maskProp = renderStateDataMap[RenderStateElementKey.StencilStateMask];
+    if (maskProp !== undefined) {
+      this.mask = shaderData.getFloat(maskProp) ?? 0xff;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateWriteMask] !== undefined) {
-      this.writeMask = RenderState._resolveValue(RenderStateElementKey.StencilStateWriteMask, ...args, this.writeMask);
+    const writeMaskProp = renderStateDataMap[RenderStateElementKey.StencilStateWriteMask];
+    if (writeMaskProp !== undefined) {
+      this.writeMask = shaderData.getFloat(writeMaskProp) ?? 0xff;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionFront] !== undefined) {
-      this.compareFunctionFront = RenderState._resolveValue(
-        RenderStateElementKey.StencilStateCompareFunctionFront,
-        ...args,
-        this.compareFunctionFront
-      );
+    const compareFunctionFrontProp = renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionFront];
+    if (compareFunctionFrontProp !== undefined) {
+      this.compareFunctionFront = shaderData.getFloat(compareFunctionFrontProp) ?? CompareFunction.Always;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionBack] !== undefined) {
-      this.compareFunctionBack = RenderState._resolveValue(
-        RenderStateElementKey.StencilStateCompareFunctionBack,
-        ...args,
-        this.compareFunctionBack
-      );
+    const compareFunctionBackProp = renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionBack];
+    if (compareFunctionBackProp !== undefined) {
+      this.compareFunctionBack = shaderData.getFloat(compareFunctionBackProp) ?? CompareFunction.Always;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStatePassOperationFront] !== undefined) {
-      this.passOperationFront = RenderState._resolveValue(
-        RenderStateElementKey.StencilStatePassOperationFront,
-        ...args,
-        this.passOperationFront
-      );
+    const passOperationFrontProp = renderStateDataMap[RenderStateElementKey.StencilStatePassOperationFront];
+    if (passOperationFrontProp !== undefined) {
+      this.passOperationFront = shaderData.getFloat(passOperationFrontProp) ?? StencilOperation.Keep;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStatePassOperationBack] !== undefined) {
-      this.passOperationBack = RenderState._resolveValue(
-        RenderStateElementKey.StencilStatePassOperationBack,
-        ...args,
-        this.passOperationBack
-      );
+    const passOperationBackProp = renderStateDataMap[RenderStateElementKey.StencilStatePassOperationBack];
+    if (passOperationBackProp !== undefined) {
+      this.passOperationBack = shaderData.getFloat(passOperationBackProp) ?? StencilOperation.Keep;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateFailOperationFront] !== undefined) {
-      this.failOperationFront = RenderState._resolveValue(
-        RenderStateElementKey.StencilStateFailOperationFront,
-        ...args,
-        this.failOperationFront
-      );
+    const failOperationFrontProp = renderStateDataMap[RenderStateElementKey.StencilStateFailOperationFront];
+    if (failOperationFrontProp !== undefined) {
+      this.failOperationFront = shaderData.getFloat(failOperationFrontProp) ?? StencilOperation.Keep;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateFailOperationBack] !== undefined) {
-      this.failOperationBack = RenderState._resolveValue(
-        RenderStateElementKey.StencilStateFailOperationBack,
-        ...args,
-        this.failOperationBack
-      );
+    const failOperationBackProp = renderStateDataMap[RenderStateElementKey.StencilStateFailOperationBack];
+    if (failOperationBackProp !== undefined) {
+      this.failOperationBack = shaderData.getFloat(failOperationBackProp) ?? StencilOperation.Keep;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationFront] !== undefined) {
-      this.zFailOperationFront = RenderState._resolveValue(
-        RenderStateElementKey.StencilStateZFailOperationFront,
-        ...args,
-        this.zFailOperationFront
-      );
+    const zFailOperationFrontProp = renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationFront];
+    if (zFailOperationFrontProp !== undefined) {
+      this.zFailOperationFront = shaderData.getFloat(zFailOperationFrontProp) ?? StencilOperation.Keep;
     }
-    if (renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationBack] !== undefined) {
-      this.zFailOperationBack = RenderState._resolveValue(
-        RenderStateElementKey.StencilStateZFailOperationBack,
-        ...args,
-        this.zFailOperationBack
-      );
+    const zFailOperationBackProp = renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationBack];
+    if (zFailOperationBackProp !== undefined) {
+      this.zFailOperationBack = shaderData.getFloat(zFailOperationBackProp) ?? StencilOperation.Keep;
     }
   }
 

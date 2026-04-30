@@ -109,11 +109,7 @@ export class RenderQueue {
 
         const renderState = shaderPass._renderState;
         if (!needMaskType) {
-          const passQueueType = renderState._getRenderQueueByShaderData(
-            shaderPass._renderStateDataMap,
-            materialData,
-            shaderPass._constantPropertyMask
-          );
+          const passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
           if (passQueueType !== renderQueueType) {
             continue;
           }
@@ -183,7 +179,6 @@ export class RenderQueue {
           renderer._isFrontFaceInvert(),
           shaderPass._renderStateDataMap,
           material.shaderData,
-          shaderPass._constantPropertyMask,
           customStates
         );
         rhi.drawPrimitive(primitive, subElement.subPrimitive, program);

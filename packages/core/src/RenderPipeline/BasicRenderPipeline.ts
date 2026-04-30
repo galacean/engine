@@ -416,8 +416,7 @@ export class BasicRenderPipeline {
       const renderState = shaderPass._renderState;
       const renderQueueType = renderState._getRenderQueueByShaderData(
         shaderPass._renderStateDataMap,
-        subRenderElement.material.shaderData,
-        shaderPass._constantPropertyMask
+        subRenderElement.material.shaderData
       );
 
       const flag = 1 << renderQueueType;
@@ -468,7 +467,7 @@ export class BasicRenderPipeline {
     program.uploadUnGroupTextures();
 
     const renderState = pass._renderState;
-    renderState._applyStates(engine, false, pass._renderStateDataMap, material.shaderData, pass._constantPropertyMask);
+    renderState._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 

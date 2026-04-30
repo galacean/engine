@@ -257,7 +257,6 @@ export class Shader implements IReferable {
     deserializeColor: boolean
   ): void {
     const renderState = new RenderState();
-    let constantPropertyMask = 0;
 
     for (const k in constantMap) {
       const key = +k;
@@ -267,7 +266,6 @@ export class Shader implements IReferable {
       } else {
         Shader._applyConstRenderStates(renderState, key, value);
       }
-      constantPropertyMask |= 1 << key;
     }
     shaderPass._renderState = renderState;
 
@@ -277,7 +275,6 @@ export class Shader implements IReferable {
       renderStateDataMap[key] = ShaderProperty.getByName(variableMap[k]);
     }
     shaderPass._renderStateDataMap = renderStateDataMap;
-    shaderPass._constantPropertyMask = constantPropertyMask;
   }
 
   private static _applyConstRenderStates(

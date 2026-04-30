@@ -45,8 +45,6 @@ export class ShaderPass extends ShaderPart {
   _renderState: RenderState = new RenderState();
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
-  /** @internal Bitmask where bit N is set if RenderStateElementKey N is a shader constant. */
-  _constantPropertyMask: number = 0;
   /** @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal Transform feedback output varyings (WebGL2 only). */
