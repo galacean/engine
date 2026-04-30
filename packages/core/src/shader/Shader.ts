@@ -252,20 +252,18 @@ export class Shader implements IReferable {
     const renderState = new RenderState();
 
     for (const k in constantMap) {
-      const key = +k;
       const value = constantMap[k];
       if (deserializeColor && Array.isArray(value)) {
-        Shader._applyConstRenderStates(renderState, key, new Color(value[0], value[1], value[2], value[3]));
+        Shader._applyConstRenderStates(renderState, +k, new Color(value[0], value[1], value[2], value[3]));
       } else {
-        Shader._applyConstRenderStates(renderState, key, value);
+        Shader._applyConstRenderStates(renderState, +k, value);
       }
     }
     shaderPass._renderState = renderState;
 
     const renderStateDataMap = <Record<number, ShaderProperty>>{};
     for (const k in variableMap) {
-      const key = +k;
-      renderStateDataMap[key] = ShaderProperty.getByName(variableMap[k]);
+      renderStateDataMap[k] = ShaderProperty.getByName(variableMap[k]);
     }
     shaderPass._renderStateDataMap = renderStateDataMap;
   }
