@@ -6,10 +6,8 @@
 import {
   AssetType,
   Camera,
-  Color,
   CompareFunction,
   Layer,
-  Material,
   Script,
   Shader,
   Sprite,
@@ -109,29 +107,6 @@ const customStencilShaderSource = `Shader "CustomStencilSprite" {
   }
 }`;
 
-/**
- * Seed all 12 stencil shaderData properties on a material to the StencilState
- * class field-initializer defaults. Galacean falls back to 0/false for any
- * variable-bound render-state slot whose shaderData is unset (Unity uniform
- * model), so tests that only override a few stencil knobs need to pre-fill
- * the rest to avoid them being silently zeroed.
- */
-function seedStencilDefaults(material: Material): void {
-  const data = material.shaderData;
-  data.setInt("stencilEnabled", 0);
-  data.setInt("stencilReferenceValue", 0);
-  data.setInt("stencilMask", 0xff);
-  data.setInt("stencilWriteMask", 0xff);
-  data.setInt("stencilCompareFunctionFront", CompareFunction.Always);
-  data.setInt("stencilCompareFunctionBack", CompareFunction.Always);
-  data.setInt("stencilPassOperationFront", StencilOperation.Keep);
-  data.setInt("stencilPassOperationBack", StencilOperation.Keep);
-  data.setInt("stencilFailOperationFront", StencilOperation.Keep);
-  data.setInt("stencilFailOperationBack", StencilOperation.Keep);
-  data.setInt("stencilZFailOperationFront", StencilOperation.Keep);
-  data.setInt("stencilZFailOperationBack", StencilOperation.Keep);
-}
-
 // Create engine
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
@@ -177,8 +152,8 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
       pos.set(0, 0, 0);
       scale.set(5, 5, 5);
       const writeStencilSR = addSpriteRenderer(pos, scale, sprite, SpriteMaskInteraction.None, Layer.Layer0, Layer.Layer0, 0);
-      const writeStencilMaterial = createCustomStencilMaterial();
-      writeStencilSR.setMaterial(writeStencilMaterial);
+      const writeStencilMaterial = writeStencilSR.getInstanceMaterial();
+      writeStencilMaterial.shader = customStencilShader;
       const writeStencilData = writeStencilMaterial.shaderData;
       writeStencilData.setInt("stencilEnabled", 1);
       writeStencilData.setInt("stencilWriteMask", 0xff);
@@ -188,8 +163,8 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
       pos.set(3, 3, 0);
       const readStencilSR = addSpriteRenderer(pos, scale, sprite, SpriteMaskInteraction.None, Layer.Layer0, Layer.Layer0, 1);
       readStencilSR.color.set(1, 0, 0, 1);
-      const readStencilMaterial = createCustomStencilMaterial();
-      readStencilSR.setMaterial(readStencilMaterial);
+      const readStencilMaterial = readStencilSR.getInstanceMaterial();
+      readStencilMaterial.shader = customStencilShader;
       const readStencilData = readStencilMaterial.shaderData;
       readStencilData.setInt("stencilEnabled", 1);
       readStencilData.setInt("stencilReferenceValue", 1);
@@ -210,8 +185,8 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
       scale.set(3, 3, 3);
       const readStencilSR2 = addSpriteRenderer(pos, scale, sprite, SpriteMaskInteraction.None, Layer.Layer0, Layer.Layer0, 4);
       readStencilSR2.color.set(1, 0.5, 0.8, 1);
-      const readStencilMaterial2 = createCustomStencilMaterial();
-      readStencilSR2.setMaterial(readStencilMaterial2);
+      const readStencilMaterial2 = readStencilSR2.getInstanceMaterial();
+      readStencilMaterial2.shader = customStencilShader;
       const readStencilData2 = readStencilMaterial2.shaderData;
       readStencilData2.setInt("stencilEnabled", 1);
       readStencilData2.setInt("stencilReferenceValue", 1);
@@ -223,12 +198,6 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
     });
 
   engine.run();
-
-  function createCustomStencilMaterial(): Material {
-    const material = new Material(engine, customStencilShader);
-    seedStencilDefaults(material);
-    return material;
-  }
 
   /**
    * Add sprite renderer and set mask interaction and layer.
