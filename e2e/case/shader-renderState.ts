@@ -96,9 +96,10 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   cameraEntity.transform.setPosition(0, 0, 5);
   const camera = cameraEntity.addComponent(Camera);
 
-  // sphere — opaque rendering. Render-state shaderData properties must be set
-  // explicitly: ShaderLab variable references not provided by shaderData fall
-  // back to 0 (Unity uniform-style), so we have to seed an opaque configuration.
+  // sphere — render state shaderData is intentionally left unset to exercise
+  // the variable-without-shaderData path. With ShaderLab variables bound but
+  // no shaderData values, every render-state slot resolves to 0 / false
+  // (Unity uniform-style fallback, equivalent to dev/2.0's hard-coded fallback).
   {
     const sphere = rootEntity.createChild("sphere");
     sphere.transform.position.x = -1;
@@ -106,17 +107,6 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
     renderer.mesh = PrimitiveMesh.createSphere(engine);
     const material = new Material(engine, shader);
     material.shaderData.setColor("u_color", new Color(1, 0, 0, 0.2));
-
-    const shaderData = material.shaderData;
-    shaderData.setInt("depthWriteEnabled", 1);
-    shaderData.setInt("blendEnabled", 0);
-    shaderData.setInt("renderQueueType", RenderQueueType.Opaque);
-    shaderData.setInt("sourceColorBlendFactor", BlendFactor.One);
-    shaderData.setInt("destinationColorBlendFactor", BlendFactor.Zero);
-    shaderData.setInt("sourceAlphaBlendFactor", BlendFactor.One);
-    shaderData.setInt("destinationAlphaBlendFactor", BlendFactor.Zero);
-    shaderData.setInt("rasterStateCullMode", CullMode.Back);
-
     renderer.setMaterial(material);
   }
 
