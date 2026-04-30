@@ -1,2 +1,2 @@
-export { fragmentList } from "./chunks";
+export { fragmentList } from "./ShaderLibrary";
 export * from "../compiled";
