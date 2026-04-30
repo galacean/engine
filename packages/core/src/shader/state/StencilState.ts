@@ -88,79 +88,82 @@ export class StencilState {
   _applyShaderDataValue(
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    constantPropertyMask: number,
-    materialStencilState: StencilState
+    constantPropertyMask: number
   ): void {
     const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
-    const m = materialStencilState;
 
-    this.enabled = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateEnabled,
-      ...args,
-      this.enabled,
-      m.enabled
-    );
-    this.referenceValue = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateReferenceValue,
-      ...args,
-      this.referenceValue,
-      m.referenceValue
-    );
-    this.mask = RenderState._resolveValue(RenderStateElementKey.StencilStateMask, ...args, this.mask, m.mask);
-    this.writeMask = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateWriteMask,
-      ...args,
-      this.writeMask,
-      m.writeMask
-    );
-    this.compareFunctionFront = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateCompareFunctionFront,
-      ...args,
-      this.compareFunctionFront,
-      m.compareFunctionFront
-    );
-    this.compareFunctionBack = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateCompareFunctionBack,
-      ...args,
-      this.compareFunctionBack,
-      m.compareFunctionBack
-    );
-    this.passOperationFront = RenderState._resolveValue(
-      RenderStateElementKey.StencilStatePassOperationFront,
-      ...args,
-      this.passOperationFront,
-      m.passOperationFront
-    );
-    this.passOperationBack = RenderState._resolveValue(
-      RenderStateElementKey.StencilStatePassOperationBack,
-      ...args,
-      this.passOperationBack,
-      m.passOperationBack
-    );
-    this.failOperationFront = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateFailOperationFront,
-      ...args,
-      this.failOperationFront,
-      m.failOperationFront
-    );
-    this.failOperationBack = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateFailOperationBack,
-      ...args,
-      this.failOperationBack,
-      m.failOperationBack
-    );
-    this.zFailOperationFront = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateZFailOperationFront,
-      ...args,
-      this.zFailOperationFront,
-      m.zFailOperationFront
-    );
-    this.zFailOperationBack = RenderState._resolveValue(
-      RenderStateElementKey.StencilStateZFailOperationBack,
-      ...args,
-      this.zFailOperationBack,
-      m.zFailOperationBack
-    );
+    if (renderStateDataMap[RenderStateElementKey.StencilStateEnabled] !== undefined) {
+      this.enabled = RenderState._resolveValue(RenderStateElementKey.StencilStateEnabled, ...args, this.enabled);
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateReferenceValue] !== undefined) {
+      this.referenceValue = RenderState._resolveValue(
+        RenderStateElementKey.StencilStateReferenceValue,
+        ...args,
+        this.referenceValue
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateMask] !== undefined) {
+      this.mask = RenderState._resolveValue(RenderStateElementKey.StencilStateMask, ...args, this.mask);
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateWriteMask] !== undefined) {
+      this.writeMask = RenderState._resolveValue(RenderStateElementKey.StencilStateWriteMask, ...args, this.writeMask);
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionFront] !== undefined) {
+      this.compareFunctionFront = RenderState._resolveValue(
+        RenderStateElementKey.StencilStateCompareFunctionFront,
+        ...args,
+        this.compareFunctionFront
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateCompareFunctionBack] !== undefined) {
+      this.compareFunctionBack = RenderState._resolveValue(
+        RenderStateElementKey.StencilStateCompareFunctionBack,
+        ...args,
+        this.compareFunctionBack
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStatePassOperationFront] !== undefined) {
+      this.passOperationFront = RenderState._resolveValue(
+        RenderStateElementKey.StencilStatePassOperationFront,
+        ...args,
+        this.passOperationFront
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStatePassOperationBack] !== undefined) {
+      this.passOperationBack = RenderState._resolveValue(
+        RenderStateElementKey.StencilStatePassOperationBack,
+        ...args,
+        this.passOperationBack
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateFailOperationFront] !== undefined) {
+      this.failOperationFront = RenderState._resolveValue(
+        RenderStateElementKey.StencilStateFailOperationFront,
+        ...args,
+        this.failOperationFront
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateFailOperationBack] !== undefined) {
+      this.failOperationBack = RenderState._resolveValue(
+        RenderStateElementKey.StencilStateFailOperationBack,
+        ...args,
+        this.failOperationBack
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationFront] !== undefined) {
+      this.zFailOperationFront = RenderState._resolveValue(
+        RenderStateElementKey.StencilStateZFailOperationFront,
+        ...args,
+        this.zFailOperationFront
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.StencilStateZFailOperationBack] !== undefined) {
+      this.zFailOperationBack = RenderState._resolveValue(
+        RenderStateElementKey.StencilStateZFailOperationBack,
+        ...args,
+        this.zFailOperationBack
+      );
+    }
   }
 
   /**

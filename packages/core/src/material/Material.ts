@@ -1,11 +1,9 @@
 import { IClone } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
-import { CloneManager } from "../clone/CloneManager";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
-import { RenderState } from "../shader/state/RenderState";
 
 /**
  * Material.
@@ -16,8 +14,6 @@ export class Material extends ReferResource implements IClone {
 
   /** @internal */
   _shader: Shader;
-  /** @internal */
-  _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
 
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
 
@@ -43,37 +39,6 @@ export class Material extends ReferResource implements IClone {
     }
 
     this._shader = value;
-
-    const renderStates = this._renderStates;
-    const lastStatesCount = renderStates.length;
-
-    let maxPassCount = 0;
-    const subShaders = value.subShaders;
-    for (let i = 0; i < subShaders.length; i++) {
-      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
-    }
-
-    if (lastStatesCount < maxPassCount) {
-      for (let i = lastStatesCount; i < maxPassCount; i++) {
-        renderStates.push(new RenderState());
-      }
-    } else {
-      renderStates.length = maxPassCount;
-    }
-  }
-
-  /**
-   * First Render state.
-   */
-  get renderState(): RenderState {
-    return this._renderStates[0];
-  }
-
-  /**
-   * Render states.
-   */
-  get renderStates(): Readonly<RenderState[]> {
-    return this._renderStates;
   }
 
   /**
@@ -103,7 +68,6 @@ export class Material extends ReferResource implements IClone {
   cloneTo(target: Material): void {
     target.shader = this.shader;
     this.shaderData.cloneTo(target.shaderData);
-    CloneManager.deepCloneObject(this.renderStates, target.renderStates, new Map<Object, Object>());
   }
 
   override _addReferCount(value: number): void {
@@ -125,7 +89,5 @@ export class Material extends ReferResource implements IClone {
     super._onDestroy();
     this._shader = null;
     this._shaderData = null;
-    this._renderStates.length = 0;
-    this._renderStates = null;
   }
 }

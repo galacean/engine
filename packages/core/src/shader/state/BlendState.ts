@@ -87,78 +87,87 @@ export class BlendState {
   _applyShaderDataValue(
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    constantPropertyMask: number,
-    materialBlendState: BlendState
+    constantPropertyMask: number
   ): void {
     const target = this.targetBlendState;
-    const materialTarget = materialBlendState.targetBlendState;
     const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
 
-    target.enabled = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateEnabled0,
-      ...args,
-      target.enabled,
-      materialTarget.enabled
-    );
-    target.colorBlendOperation = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateColorBlendOperation0,
-      ...args,
-      target.colorBlendOperation,
-      materialTarget.colorBlendOperation
-    );
-    target.alphaBlendOperation = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateAlphaBlendOperation0,
-      ...args,
-      target.alphaBlendOperation,
-      materialTarget.alphaBlendOperation
-    );
-    target.sourceColorBlendFactor = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateSourceColorBlendFactor0,
-      ...args,
-      target.sourceColorBlendFactor,
-      materialTarget.sourceColorBlendFactor
-    );
-    target.sourceAlphaBlendFactor = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateSourceAlphaBlendFactor0,
-      ...args,
-      target.sourceAlphaBlendFactor,
-      materialTarget.sourceAlphaBlendFactor
-    );
-    target.destinationColorBlendFactor = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateDestinationColorBlendFactor0,
-      ...args,
-      target.destinationColorBlendFactor,
-      materialTarget.destinationColorBlendFactor
-    );
-    target.destinationAlphaBlendFactor = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0,
-      ...args,
-      target.destinationAlphaBlendFactor,
-      materialTarget.destinationAlphaBlendFactor
-    );
-    target.colorWriteMask = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateColorWriteMask0,
-      ...args,
-      target.colorWriteMask,
-      materialTarget.colorWriteMask
-    );
+    if (renderStateDataMap[RenderStateElementKey.BlendStateEnabled0] !== undefined) {
+      target.enabled = RenderState._resolveValue(RenderStateElementKey.BlendStateEnabled0, ...args, target.enabled);
+    }
+    if (renderStateDataMap[RenderStateElementKey.BlendStateColorBlendOperation0] !== undefined) {
+      target.colorBlendOperation = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateColorBlendOperation0,
+        ...args,
+        target.colorBlendOperation
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.BlendStateAlphaBlendOperation0] !== undefined) {
+      target.alphaBlendOperation = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateAlphaBlendOperation0,
+        ...args,
+        target.alphaBlendOperation
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.BlendStateSourceColorBlendFactor0] !== undefined) {
+      target.sourceColorBlendFactor = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateSourceColorBlendFactor0,
+        ...args,
+        target.sourceColorBlendFactor
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.BlendStateSourceAlphaBlendFactor0] !== undefined) {
+      target.sourceAlphaBlendFactor = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateSourceAlphaBlendFactor0,
+        ...args,
+        target.sourceAlphaBlendFactor
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.BlendStateDestinationColorBlendFactor0] !== undefined) {
+      target.destinationColorBlendFactor = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateDestinationColorBlendFactor0,
+        ...args,
+        target.destinationColorBlendFactor
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0] !== undefined) {
+      target.destinationAlphaBlendFactor = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0,
+        ...args,
+        target.destinationAlphaBlendFactor
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.BlendStateColorWriteMask0] !== undefined) {
+      target.colorWriteMask = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateColorWriteMask0,
+        ...args,
+        target.colorWriteMask
+      );
+    }
 
     // BlendStateBlendColor (Color type — uses getColor, separate path)
     {
       const key = RenderStateElementKey.BlendStateBlendColor;
       if (!((constantPropertyMask >> key) & 1)) {
         const prop = renderStateDataMap[key];
-        const v = prop ? shaderData.getColor(prop) : undefined;
-        this.blendColor.copyFrom(v ?? materialBlendState.blendColor);
+        if (prop !== undefined) {
+          const v = shaderData.getColor(prop);
+          if (v) {
+            this.blendColor.copyFrom(v);
+          } else {
+            this.blendColor.set(0, 0, 0, 0);
+          }
+        }
       }
     }
 
-    this.alphaToCoverage = RenderState._resolveValue(
-      RenderStateElementKey.BlendStateAlphaToCoverage,
-      ...args,
-      this.alphaToCoverage,
-      materialBlendState.alphaToCoverage
-    );
+    if (renderStateDataMap[RenderStateElementKey.BlendStateAlphaToCoverage] !== undefined) {
+      this.alphaToCoverage = RenderState._resolveValue(
+        RenderStateElementKey.BlendStateAlphaToCoverage,
+        ...args,
+        this.alphaToCoverage
+      );
+    }
   }
 
   /**

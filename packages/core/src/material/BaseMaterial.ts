@@ -2,7 +2,6 @@ import { Engine } from "../Engine";
 import { BlendFactor, CullMode, Shader, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { RenderState } from "../shader/state/RenderState";
 import { BlendMode } from "./enums/BlendMode";
 import { RenderFace } from "./enums/RenderFace";
 import { Material } from "./Material";
@@ -32,39 +31,6 @@ export class BaseMaterial extends Material {
   private _renderFace: RenderFace = RenderFace.Front;
   protected _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
-
-  /**
-   * Shader used by the material.
-   */
-  override get shader(): Shader {
-    return this._shader;
-  }
-
-  override set shader(value: Shader) {
-    const refCount = this._getReferCount();
-    if (refCount > 0) {
-      this._shader?._addReferCount(-refCount);
-      value._addReferCount(refCount);
-    }
-
-    this._shader = value;
-    const renderStates = this._renderStates;
-    const lastStatesCount = renderStates.length;
-
-    let maxPassCount = 0;
-    const subShaders = value.subShaders;
-    for (let i = 0; i < subShaders.length; i++) {
-      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
-    }
-
-    if (lastStatesCount < maxPassCount) {
-      for (let i = lastStatesCount; i < maxPassCount; i++) {
-        renderStates.push(new RenderState());
-      }
-    } else {
-      renderStates.length = maxPassCount;
-    }
-  }
 
   /**
    * Whether transparent of first shader pass render state.

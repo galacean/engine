@@ -26,6 +26,11 @@ const shaderCompiler = new ShaderCompiler();
 const customShaderSource = `Shader "Custom Post Process" {
   SubShader "Default" {
     Pass "Forward" {
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
+
       struct Attributes {
         vec4 POSITION_UV;
       };
@@ -62,11 +67,6 @@ class CustomPass extends PostProcessPass {
     super(engine);
     this.event = PostProcessPassEvent.AfterUber;
     this._blitMaterial = new Material(this.engine, customShader);
-
-    const depthState = this._blitMaterial.renderState.depthState;
-
-    depthState.enabled = false;
-    depthState.writeEnabled = false;
   }
 
   onRender(_, srcTexture: Texture2D, dst: RenderTarget): void {

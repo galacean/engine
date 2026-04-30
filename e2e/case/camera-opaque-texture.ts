@@ -30,6 +30,30 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
         Pass "Forward" {
           Tags { pipelineStage = "Forward" }
 
+          Bool blendEnabled;
+          BlendFactor sourceColorBlendFactor;
+          BlendFactor destinationColorBlendFactor;
+          BlendFactor sourceAlphaBlendFactor;
+          BlendFactor destinationAlphaBlendFactor;
+          Bool depthWriteEnabled;
+          CullMode rasterStateCullMode;
+          RenderQueueType renderQueueType;
+
+          BlendState = {
+            Enabled = blendEnabled;
+            SourceColorBlendFactor = sourceColorBlendFactor;
+            DestinationColorBlendFactor = destinationColorBlendFactor;
+            SourceAlphaBlendFactor = sourceAlphaBlendFactor;
+            DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
+          }
+          DepthState = {
+            WriteEnabled = depthWriteEnabled;
+          }
+          RasterState = {
+            CullMode = rasterStateCullMode;
+          }
+          RenderQueueType = renderQueueType;
+
           #include "Common/Common.glsl"
           #include "Common/Transform.glsl"
           #include "Common/Fog.glsl"

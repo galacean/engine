@@ -28,29 +28,23 @@ export class RasterState {
   _applyShaderDataValue(
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    constantPropertyMask: number,
-    materialRasterState: RasterState
+    constantPropertyMask: number
   ): void {
     const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
 
-    this.cullMode = RenderState._resolveValue(
-      RenderStateElementKey.RasterStateCullMode,
-      ...args,
-      this.cullMode,
-      materialRasterState.cullMode
-    );
-    this.depthBias = RenderState._resolveValue(
-      RenderStateElementKey.RasterStateDepthBias,
-      ...args,
-      this.depthBias,
-      materialRasterState.depthBias
-    );
-    this.slopeScaledDepthBias = RenderState._resolveValue(
-      RenderStateElementKey.RasterStateSlopeScaledDepthBias,
-      ...args,
-      this.slopeScaledDepthBias,
-      materialRasterState.slopeScaledDepthBias
-    );
+    if (renderStateDataMap[RenderStateElementKey.RasterStateCullMode] !== undefined) {
+      this.cullMode = RenderState._resolveValue(RenderStateElementKey.RasterStateCullMode, ...args, this.cullMode);
+    }
+    if (renderStateDataMap[RenderStateElementKey.RasterStateDepthBias] !== undefined) {
+      this.depthBias = RenderState._resolveValue(RenderStateElementKey.RasterStateDepthBias, ...args, this.depthBias);
+    }
+    if (renderStateDataMap[RenderStateElementKey.RasterStateSlopeScaledDepthBias] !== undefined) {
+      this.slopeScaledDepthBias = RenderState._resolveValue(
+        RenderStateElementKey.RasterStateSlopeScaledDepthBias,
+        ...args,
+        this.slopeScaledDepthBias
+      );
+    }
   }
 
   /**

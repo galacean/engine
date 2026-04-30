@@ -256,30 +256,28 @@ export class Shader implements IReferable {
     variableMap: Record<string, string>,
     deserializeColor: boolean
   ): void {
-    if (Object.keys(constantMap).length > 0 || Object.keys(variableMap).length > 0) {
-      const renderState = new RenderState();
-      let constantPropertyMask = 0;
+    const renderState = new RenderState();
+    let constantPropertyMask = 0;
 
-      for (const k in constantMap) {
-        const key = +k;
-        const value = constantMap[k];
-        if (deserializeColor && Array.isArray(value)) {
-          Shader._applyConstRenderStates(renderState, key, new Color(value[0], value[1], value[2], value[3]));
-        } else {
-          Shader._applyConstRenderStates(renderState, key, value);
-        }
-        constantPropertyMask |= 1 << key;
+    for (const k in constantMap) {
+      const key = +k;
+      const value = constantMap[k];
+      if (deserializeColor && Array.isArray(value)) {
+        Shader._applyConstRenderStates(renderState, key, new Color(value[0], value[1], value[2], value[3]));
+      } else {
+        Shader._applyConstRenderStates(renderState, key, value);
       }
-      shaderPass._renderState = renderState;
-
-      const renderStateDataMap = <Record<number, ShaderProperty>>{};
-      for (const k in variableMap) {
-        const key = +k;
-        renderStateDataMap[key] = ShaderProperty.getByName(variableMap[k]);
-      }
-      shaderPass._renderStateDataMap = renderStateDataMap;
-      shaderPass._constantPropertyMask = constantPropertyMask;
+      constantPropertyMask |= 1 << key;
     }
+    shaderPass._renderState = renderState;
+
+    const renderStateDataMap = <Record<number, ShaderProperty>>{};
+    for (const k in variableMap) {
+      const key = +k;
+      renderStateDataMap[key] = ShaderProperty.getByName(variableMap[k]);
+    }
+    shaderPass._renderStateDataMap = renderStateDataMap;
+    shaderPass._constantPropertyMask = constantPropertyMask;
   }
 
   private static _applyConstRenderStates(

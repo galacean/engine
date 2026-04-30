@@ -16,35 +16,32 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, describe, expect, it } from "vitest";
 
 /**
- * Tests for the 3-tier render state priority system.
+ * Tests for the 2-tier render state priority system.
  *
  * Priority order (highest to lowest):
  *   1. Shader constant  -> bit set in `constantPropertyMask`, value already written to `this`
  *   2. shaderData value -> property is present in `renderStateDataMap` AND has value set
- *   3. material.renderState fallback -> materialState field is used
+ *
+ * If neither tier provides a value, the existing field value on `this` is kept
+ * (which is the RenderState class field initializer default for shaders that
+ * don't declare the property).
  */
 describe("RenderState per-property priority", () => {
-  // WebGLEngine is initialized here to ensure the engine-side shader / macro
-  // registries are ready even if not every test touches engine resources directly.
   let engine: WebGLEngine;
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   });
 
-  // `ShaderData`'s constructor is `@internal`, so obtain a fresh shaderData from a transient
-  // Material instead of calling `new ShaderData(...)` directly.
   const createShaderData = () => new Material(engine, Shader.find("BlinnPhong")).shaderData;
 
   describe("BlendState", () => {
-    it("shader constant wins over shaderData and materialState", () => {
+    it("shader constant wins over shaderData", () => {
       const state = new BlendState();
-      // Simulate a shader constant already baked into `this` (e.g. pass state has `BlendState.Target[0].Enabled = true`).
       state.targetBlendState.enabled = true;
 
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("blendEnabled");
-      // shaderData explicitly disables blending.
       shaderData.setInt(prop, 0);
 
       const dataMap: Record<number, ShaderProperty> = {
@@ -52,19 +49,14 @@ describe("RenderState per-property priority", () => {
       };
       const constantMask = 1 << RenderStateElementKey.BlendStateEnabled0;
 
-      const materialState = new BlendState();
-      materialState.targetBlendState.enabled = false;
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      // The constant bit is set for the key -> the current `this.targetBlendState.enabled` is preserved.
       expect(state.targetBlendState.enabled).to.eq(true);
     });
 
-    it("shaderData value is used when no constant bit is set", () => {
+    it("shaderData wins when no shader constant", () => {
       const state = new BlendState();
-      state.targetBlendState.sourceColorBlendFactor = BlendFactor.One; // old value
+      state.targetBlendState.sourceColorBlendFactor = BlendFactor.One;
 
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("sourceColorBlendFactor");
@@ -75,79 +67,71 @@ describe("RenderState per-property priority", () => {
       };
       const constantMask = 0;
 
-      const materialState = new BlendState();
-      materialState.targetBlendState.sourceColorBlendFactor = BlendFactor.DestinationColor;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
       expect(state.targetBlendState.sourceColorBlendFactor).to.eq(BlendFactor.SourceAlpha);
     });
 
-    it("falls back to materialState when shaderData has no value for the mapped property", () => {
+    it("falls back to 0 when shaderData has no value for the mapped property", () => {
       const state = new BlendState();
-      state.targetBlendState.sourceColorBlendFactor = BlendFactor.Zero;
+      // Pre-populate with a non-zero value to ensure the result comes from the
+      // Unity-style 0 fallback rather than the field's pre-existing (potentially
+      // polluted) value.
+      state.targetBlendState.sourceColorBlendFactor = BlendFactor.SourceAlpha;
 
       const shaderData = createShaderData();
-      // shaderData has NO value for this property.
-      const prop = ShaderProperty.getByName("sourceColorBlendFactor_unset");
+      const prop = ShaderProperty.getByName("sourceColorBlendFactor");
 
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: prop
       };
       const constantMask = 0;
 
-      const materialState = new BlendState();
-      materialState.targetBlendState.sourceColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.targetBlendState.sourceColorBlendFactor).to.eq(BlendFactor.OneMinusSourceAlpha);
+      // Unity-style: declared variable + unset shaderData → 0.
+      expect(state.targetBlendState.sourceColorBlendFactor).to.eq(BlendFactor.Zero);
     });
 
-    it("falls back to materialState when the property key is missing from dataMap", () => {
+    it("leaves the field untouched when the property key is missing from dataMap", () => {
       const state = new BlendState();
-      state.targetBlendState.enabled = false;
+      // Set a sentinel value to verify _applyShaderDataValue does not overwrite
+      // it when the shader didn't bind this slot — the existing field value
+      // (either ShaderLab constant or class field initializer) must be kept.
+      state.targetBlendState.enabled = true;
 
       const shaderData = createShaderData();
       const dataMap: Record<number, ShaderProperty> = {};
       const constantMask = 0;
 
-      const materialState = new BlendState();
-      materialState.targetBlendState.enabled = true;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
       expect(state.targetBlendState.enabled).to.eq(true);
     });
   });
 
   describe("DepthState", () => {
-    it("shader constant wins over shaderData and materialState", () => {
+    it("shader constant wins over shaderData", () => {
       const state = new DepthState();
-      state.writeEnabled = false; // baked shader constant
+      state.writeEnabled = false;
 
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("depthWriteEnabled");
-      shaderData.setInt(prop, 1); // shaderData says true, but constant should win
+      shaderData.setInt(prop, 1);
 
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.DepthStateWriteEnabled]: prop
       };
       const constantMask = 1 << RenderStateElementKey.DepthStateWriteEnabled;
 
-      const materialState = new DepthState(); // default writeEnabled = true
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
       expect(state.writeEnabled).to.eq(false);
     });
 
-    it("shaderData value is used when no constant bit is set", () => {
+    it("shaderData wins when no shader constant", () => {
       const state = new DepthState();
+      state.writeEnabled = true;
 
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("depthWriteEnabled");
@@ -158,99 +142,36 @@ describe("RenderState per-property priority", () => {
       };
       const constantMask = 0;
 
-      const materialState = new DepthState(); // default writeEnabled = true
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
       expect(state.writeEnabled).to.eq(false);
     });
 
-    it("falls back to materialState when shaderData has no value for the mapped property", () => {
+    it("falls back to false when shaderData has no value", () => {
       const state = new DepthState();
-      state.writeEnabled = false; // pre-existing, should be overwritten by fallback
+      // Pre-populate with a non-default value to verify the result comes from the
+      // Unity-style 0 fallback rather than the field's pre-existing value.
+      state.writeEnabled = true;
 
       const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("depthWriteEnabled_unset");
+      const prop = ShaderProperty.getByName("depthWriteEnabled");
 
       const dataMap: Record<number, ShaderProperty> = {
         [RenderStateElementKey.DepthStateWriteEnabled]: prop
       };
       const constantMask = 0;
 
-      const materialState = new DepthState();
-      materialState.writeEnabled = true;
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.writeEnabled).to.eq(true);
-    });
-
-    it("falls back to materialState (preserving class default true) when property is missing from dataMap", () => {
-      const state = new DepthState();
-      state.writeEnabled = false; // was modified earlier, will be reset to materialState
-
-      const shaderData = createShaderData();
-      const dataMap: Record<number, ShaderProperty> = {};
-      const constantMask = 0;
-
-      const materialState = new DepthState();
-      // Do not touch materialState.writeEnabled -> it keeps the class default of true.
-      expect(materialState.writeEnabled).to.eq(true);
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.writeEnabled).to.eq(true);
-    });
-
-    it("compareFunction: shaderData value overrides default", () => {
-      const state = new DepthState();
-
-      const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("depthCompareFunction");
-      shaderData.setInt(prop, CompareFunction.Greater);
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.DepthStateCompareFunction]: prop
-      };
-      const constantMask = 0;
-
-      const materialState = new DepthState();
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.compareFunction).to.eq(CompareFunction.Greater);
+      // Unity-style: declared variable + unset shaderData → false (boolean 0).
+      expect(state.writeEnabled).to.eq(false);
     });
   });
 
   describe("RasterState", () => {
-    it("shader constant wins over shaderData and materialState", () => {
+    it("shaderData provides cull mode when no shader constant", () => {
       const state = new RasterState();
-      state.cullMode = CullMode.Off; // baked shader constant
-
-      const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("rasterStateCullMode");
-      shaderData.setInt(prop, CullMode.Front);
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.RasterStateCullMode]: prop
-      };
-      const constantMask = 1 << RenderStateElementKey.RasterStateCullMode;
-
-      const materialState = new RasterState();
-      materialState.cullMode = CullMode.Back;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.cullMode).to.eq(CullMode.Off);
-    });
-
-    it("shaderData value is used when no constant bit is set", () => {
-      const state = new RasterState();
+      state.cullMode = CullMode.Back;
 
       const shaderData = createShaderData();
       const prop = ShaderProperty.getByName("rasterStateCullMode");
@@ -261,158 +182,41 @@ describe("RenderState per-property priority", () => {
       };
       const constantMask = 0;
 
-      const materialState = new RasterState(); // default CullMode.Back
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
       expect(state.cullMode).to.eq(CullMode.Front);
-    });
-
-    it("falls back to materialState when shaderData has no value for the mapped property", () => {
-      const state = new RasterState();
-      state.cullMode = CullMode.Front;
-
-      const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("rasterStateCullMode_unset");
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.RasterStateCullMode]: prop
-      };
-      const constantMask = 0;
-
-      const materialState = new RasterState();
-      materialState.cullMode = CullMode.Off;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.cullMode).to.eq(CullMode.Off);
-    });
-
-    it("falls back to materialState when property key is missing from dataMap", () => {
-      const state = new RasterState();
-      state.cullMode = CullMode.Front;
-
-      const shaderData = createShaderData();
-      const dataMap: Record<number, ShaderProperty> = {};
-      const constantMask = 0;
-
-      const materialState = new RasterState();
-      materialState.cullMode = CullMode.Off;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.cullMode).to.eq(CullMode.Off);
     });
   });
 
   describe("StencilState", () => {
-    it("shader constant wins over shaderData and materialState", () => {
-      const state = new StencilState();
-      state.enabled = true; // baked shader constant
-
-      const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("stencilStateEnabled");
-      shaderData.setInt(prop, 0);
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.StencilStateEnabled]: prop
-      };
-      const constantMask = 1 << RenderStateElementKey.StencilStateEnabled;
-
-      const materialState = new StencilState();
-      materialState.enabled = false;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.enabled).to.eq(true);
-    });
-
-    it("shaderData value is used when no constant bit is set", () => {
+    it("shaderData provides multiple stencil values", () => {
       const state = new StencilState();
 
       const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("stencilStateEnabled");
-      shaderData.setInt(prop, 1);
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.StencilStateEnabled]: prop
-      };
-      const constantMask = 0;
-
-      const materialState = new StencilState(); // default enabled = false
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.enabled).to.eq(true);
-    });
-
-    it("falls back to materialState when shaderData has no value for the mapped property", () => {
-      const state = new StencilState();
-      state.enabled = false;
-
-      const shaderData = createShaderData();
-      const prop = ShaderProperty.getByName("stencilStateEnabled_unset");
-
-      const dataMap: Record<number, ShaderProperty> = {
-        [RenderStateElementKey.StencilStateEnabled]: prop
-      };
-      const constantMask = 0;
-
-      const materialState = new StencilState();
-      materialState.enabled = true;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.enabled).to.eq(true);
-    });
-
-    it("falls back to materialState when property key is missing from dataMap", () => {
-      const state = new StencilState();
-      state.enabled = false;
-
-      const shaderData = createShaderData();
-      const dataMap: Record<number, ShaderProperty> = {};
-      const constantMask = 0;
-
-      const materialState = new StencilState();
-      materialState.enabled = true;
-
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
-      expect(state.enabled).to.eq(true);
-    });
-
-    it("referenceValue / operations: shaderData values override materialState", () => {
-      const state = new StencilState();
-
-      const shaderData = createShaderData();
+      const enabledProp = ShaderProperty.getByName("stencilEnabled");
       const refProp = ShaderProperty.getByName("stencilReferenceValue");
-      const passFrontProp = ShaderProperty.getByName("stencilPassOperationFront");
+      const cmpProp = ShaderProperty.getByName("stencilCompareFunctionFront");
+      const passOpProp = ShaderProperty.getByName("stencilPassOperationFront");
+
+      shaderData.setInt(enabledProp, 1);
       shaderData.setInt(refProp, 5);
-      shaderData.setInt(passFrontProp, StencilOperation.Replace);
+      shaderData.setInt(cmpProp, CompareFunction.LessEqual);
+      shaderData.setInt(passOpProp, StencilOperation.IncrementSaturate);
 
       const dataMap: Record<number, ShaderProperty> = {
+        [RenderStateElementKey.StencilStateEnabled]: enabledProp,
         [RenderStateElementKey.StencilStateReferenceValue]: refProp,
-        [RenderStateElementKey.StencilStatePassOperationFront]: passFrontProp
+        [RenderStateElementKey.StencilStateCompareFunctionFront]: cmpProp,
+        [RenderStateElementKey.StencilStatePassOperationFront]: passOpProp
       };
       const constantMask = 0;
 
-      const materialState = new StencilState();
-      materialState.referenceValue = 99;
-      materialState.passOperationFront = StencilOperation.Zero;
+      state._applyShaderDataValue(dataMap, shaderData, constantMask);
 
-      // @ts-ignore
-      state._applyShaderDataValue(dataMap, shaderData, constantMask, materialState);
-
+      expect(state.enabled).to.eq(true);
       expect(state.referenceValue).to.eq(5);
-      expect(state.passOperationFront).to.eq(StencilOperation.Replace);
+      expect(state.compareFunctionFront).to.eq(CompareFunction.LessEqual);
+      expect(state.passOperationFront).to.eq(StencilOperation.IncrementSaturate);
     });
   });
 });

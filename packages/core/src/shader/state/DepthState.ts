@@ -46,29 +46,27 @@ export class DepthState {
   _applyShaderDataValue(
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData,
-    constantPropertyMask: number,
-    materialDepthState: DepthState
+    constantPropertyMask: number
   ): void {
     const args = [constantPropertyMask, renderStateDataMap, shaderData] as const;
 
-    this.enabled = RenderState._resolveValue(
-      RenderStateElementKey.DepthStateEnabled,
-      ...args,
-      this.enabled,
-      materialDepthState.enabled
-    );
-    this.writeEnabled = RenderState._resolveValue(
-      RenderStateElementKey.DepthStateWriteEnabled,
-      ...args,
-      this.writeEnabled,
-      materialDepthState.writeEnabled
-    );
-    this.compareFunction = RenderState._resolveValue(
-      RenderStateElementKey.DepthStateCompareFunction,
-      ...args,
-      this.compareFunction,
-      materialDepthState.compareFunction
-    );
+    if (renderStateDataMap[RenderStateElementKey.DepthStateEnabled] !== undefined) {
+      this.enabled = RenderState._resolveValue(RenderStateElementKey.DepthStateEnabled, ...args, this.enabled);
+    }
+    if (renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled] !== undefined) {
+      this.writeEnabled = RenderState._resolveValue(
+        RenderStateElementKey.DepthStateWriteEnabled,
+        ...args,
+        this.writeEnabled
+      );
+    }
+    if (renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction] !== undefined) {
+      this.compareFunction = RenderState._resolveValue(
+        RenderStateElementKey.DepthStateCompareFunction,
+        ...args,
+        this.compareFunction
+      );
+    }
   }
 
   /**

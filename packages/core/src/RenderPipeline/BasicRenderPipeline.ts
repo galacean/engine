@@ -374,7 +374,6 @@ export class BasicRenderPipeline {
     for (let i = 0, n = subRenderElements.length; i < n; ++i) {
       const subRenderElement = subRenderElements[i];
       const { material } = subRenderElement;
-      const { renderStates } = material;
       const materialSubShader = material.shader.subShaders[0];
       const replacementShader = context.replacementShader;
       if (replacementShader) {
@@ -385,7 +384,7 @@ export class BasicRenderPipeline {
           for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
             const subShader = replacementSubShaders[j];
             if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-              this.pushRenderElementByType(renderElement, subRenderElement, subShader.passes, renderStates);
+              this.pushRenderElementByType(renderElement, subRenderElement, subShader.passes);
               replacementSuccess = true;
             }
           }
@@ -394,13 +393,13 @@ export class BasicRenderPipeline {
             !replacementSuccess &&
             context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
           ) {
-            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
+            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes);
           }
         } else {
-          this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes, renderStates);
+          this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes);
         }
       } else {
-        this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes, renderStates);
+        this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes);
       }
     }
   }
@@ -408,20 +407,17 @@ export class BasicRenderPipeline {
   private pushRenderElementByType(
     renderElement: RenderElement,
     subRenderElement: SubRenderElement,
-    shaderPasses: ReadonlyArray<ShaderPass>,
-    renderStates: ReadonlyArray<RenderState>
+    shaderPasses: ReadonlyArray<ShaderPass>
   ): void {
     const cullingResults = this._cullingResults;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       // Get render queue type
-      let renderQueueType: RenderQueueType;
       const shaderPass = shaderPasses[i];
-      const renderState = shaderPass._renderState || renderStates[i];
-      renderQueueType = renderState._getRenderQueueByShaderData(
+      const renderState = shaderPass._renderState;
+      const renderQueueType = renderState._getRenderQueueByShaderData(
         shaderPass._renderStateDataMap,
         subRenderElement.material.shaderData,
-        shaderPass._constantPropertyMask,
-        renderStates[i].renderQueueType
+        shaderPass._constantPropertyMask
       );
 
       const flag = 1 << renderQueueType;
@@ -471,15 +467,8 @@ export class BasicRenderPipeline {
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();
 
-    const renderState = pass._renderState || material.renderState;
-    renderState._applyStates(
-      engine,
-      false,
-      pass._renderStateDataMap,
-      material.shaderData,
-      pass._constantPropertyMask,
-      material.renderState
-    );
+    const renderState = pass._renderState;
+    renderState._applyStates(engine, false, pass._renderStateDataMap, material.shaderData, pass._constantPropertyMask);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 

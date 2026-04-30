@@ -95,7 +95,7 @@ export class RenderQueue {
       const compileMacros = Shader._compileMacros;
       const { primitive, shaderPasses, shaderData: renderElementShaderData } = subElement;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
-      const { shaderData: materialData, instanceId: materialId, renderStates } = material;
+      const { shaderData: materialData, instanceId: materialId } = material;
 
       // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
@@ -107,17 +107,12 @@ export class RenderQueue {
           continue;
         }
 
-        let renderState = shaderPass._renderState;
-        const materialRenderState = renderStates[j];
-        if (!renderState) {
-          renderState = materialRenderState;
-        }
+        const renderState = shaderPass._renderState;
         if (!needMaskType) {
           const passQueueType = renderState._getRenderQueueByShaderData(
             shaderPass._renderStateDataMap,
             materialData,
-            shaderPass._constantPropertyMask,
-            materialRenderState.renderQueueType
+            shaderPass._constantPropertyMask
           );
           if (passQueueType !== renderQueueType) {
             continue;
@@ -189,7 +184,6 @@ export class RenderQueue {
           shaderPass._renderStateDataMap,
           material.shaderData,
           shaderPass._constantPropertyMask,
-          materialRenderState,
           customStates
         );
         rhi.drawPrimitive(primitive, subElement.subPrimitive, program);

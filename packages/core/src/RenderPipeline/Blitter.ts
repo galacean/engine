@@ -84,14 +84,13 @@ export class Blitter {
     program.uploadAll(program.materialUniformBlock, blitMaterial.shaderData);
     program.uploadUnGroupTextures();
 
-    const renderState = pass._renderState || blitMaterial.renderState;
+    const renderState = pass._renderState;
     renderState._applyStates(
       engine,
       false,
       pass._renderStateDataMap,
       blitMaterial.shaderData,
-      pass._constantPropertyMask,
-      blitMaterial.renderState
+      pass._constantPropertyMask
     );
 
     rhi.drawPrimitive(blitMesh._primitive, blitMesh.subMesh, program);

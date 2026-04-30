@@ -9,7 +9,6 @@ import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
 import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
-import { RenderStateElementKey } from "./enums/RenderStateElementKey";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
 import { RenderState } from "./state/RenderState";
@@ -31,20 +30,6 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   static _shaderPassCounter: number = 0;
 
-  /** @internal Default render state variable mapping — used when shader declares no render state. */
-  static _defaultRenderStateDataMap: Record<number, ShaderProperty> = {
-    [RenderStateElementKey.BlendStateEnabled0]: ShaderProperty.getByName("blendEnabled"),
-    [RenderStateElementKey.BlendStateSourceColorBlendFactor0]: ShaderProperty.getByName("sourceColorBlendFactor"),
-    [RenderStateElementKey.BlendStateDestinationColorBlendFactor0]:
-      ShaderProperty.getByName("destinationColorBlendFactor"),
-    [RenderStateElementKey.BlendStateSourceAlphaBlendFactor0]: ShaderProperty.getByName("sourceAlphaBlendFactor"),
-    [RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0]:
-      ShaderProperty.getByName("destinationAlphaBlendFactor"),
-    [RenderStateElementKey.DepthStateWriteEnabled]: ShaderProperty.getByName("depthWriteEnabled"),
-    [RenderStateElementKey.RasterStateCullMode]: ShaderProperty.getByName("rasterStateCullMode"),
-    [RenderStateElementKey.RenderQueueType]: ShaderProperty.getByName("renderQueueType")
-  };
-
   /** @internal */
   _platformTarget: ShaderLanguage;
 
@@ -56,13 +41,10 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _shaderPassId: number = 0;
 
-  /**
-   * @internal
-   * @remarks If undefined, the blend state of the material will be used ( deprecate mode ).
-   */
-  _renderState: RenderState;
+  /** @internal Pass-level render state — always present, populated from ShaderLab declarations. */
+  _renderState: RenderState = new RenderState();
   /** @internal */
-  _renderStateDataMap: Record<number, ShaderProperty> = ShaderPass._defaultRenderStateDataMap;
+  _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal Bitmask where bit N is set if RenderStateElementKey N is a shader constant. */
   _constantPropertyMask: number = 0;
   /** @internal */
