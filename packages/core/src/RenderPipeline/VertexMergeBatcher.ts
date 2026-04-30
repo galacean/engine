@@ -54,6 +54,30 @@ export class VertexMergeBatcher {
     );
   }
 
+  /**
+   * Text-specific batch check: extends sprite check with outline parity.
+   * Different outlineWidth or outlineColor must split into separate draw calls,
+   * because outline uniforms are shared per draw call.
+   */
+  static canBatchText(preElement: RenderElement, curElement: RenderElement): boolean {
+    if (!VertexMergeBatcher.canBatchSprite(preElement, curElement)) {
+      return false;
+    }
+    const preRendererAny = preElement.component as any;
+    const curRendererAny = curElement.component as any;
+    if (preRendererAny._outlineWidth !== curRendererAny._outlineWidth) {
+      return false;
+    }
+    if (preRendererAny._outlineWidth > 0) {
+      const a = preRendererAny._outlineColor;
+      const b = curRendererAny._outlineColor;
+      if (a.r !== b.r || a.g !== b.g || a.b !== b.b || a.a !== b.a) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   static canBatchSpriteMask(preElement: RenderElement, curElement: RenderElement): boolean {
     if (preElement.subChunk.chunk !== curElement.subChunk.chunk) {
       return false;

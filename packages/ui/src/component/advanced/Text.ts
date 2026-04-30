@@ -1,6 +1,7 @@
 import {
   BoundingBox,
   CharRenderInfo,
+  Color,
   Engine,
   Entity,
   Font,
@@ -17,7 +18,9 @@ import {
   TextVerticalAlignment,
   Texture2D,
   Vector3,
+  VertexMergeBatcher,
   assignmentClone,
+  deepClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
@@ -30,6 +33,9 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
  */
 export class Text extends UIRenderer implements ITextRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
+  private static _textTextureSizeProperty = ShaderProperty.getByName("renderElement_TextTextureSize");
+  private static _outlineColorProperty = ShaderProperty.getByName("renderer_OutlineColor");
+  private static _outlineWidthProperty = ShaderProperty.getByName("renderer_OutlineWidth");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
@@ -59,6 +65,10 @@ export class Text extends UIRenderer implements ITextRenderer {
   private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
+  @deepClone
+  private _outlineColor: Color = new Color(0, 0, 0, 1);
+  @ignoreClone
+  private _outlineWidth: number = 0;
 
   /**
    * Rendering string for the Text.
@@ -205,6 +215,35 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
+   * The outline width in pixels. 0 means outline is disabled. Clamped to [0, 8].
+   */
+  get outlineWidth(): number {
+    return this._outlineWidth;
+  }
+
+  set outlineWidth(value: number) {
+    value = Math.max(0, Math.min(value, 3));
+    if (this._outlineWidth !== value) {
+      this._outlineWidth = value;
+      this.shaderData.setFloat(Text._outlineWidthProperty, value);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
+    }
+  }
+
+  /**
+   * The outline color. Only effective when outlineWidth > 0.
+   */
+  get outlineColor(): Color {
+    return this._outlineColor;
+  }
+
+  set outlineColor(value: Color) {
+    if (this._outlineColor !== value) {
+      this._outlineColor.copyFrom(value);
+    }
+  }
+
+  /**
    * The bounding volume of the TextRenderer.
    */
   override get bounds(): BoundingBox {
@@ -235,6 +274,8 @@ export class Text extends UIRenderer implements ITextRenderer {
     this.raycastEnabled = false;
     // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
+    // @ts-ignore
+    this._outlineColor._onValueChanged = this._onOutlineColorChanged.bind(this);
   }
 
   /**
@@ -260,6 +301,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     super._cloneTo(target);
     target.font = this._font;
     target._subFont = this._subFont;
+    target.outlineWidth = this._outlineWidth;
   }
 
   /**
@@ -300,6 +342,13 @@ export class Text extends UIRenderer implements ITextRenderer {
     if (flag === RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
       this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _canBatch(preElement, curElement): boolean {
+    return VertexMergeBatcher.canBatchText(preElement, curElement);
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -345,6 +394,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     const distanceForSort = canvas._sortDistance;
     const textChunks = this._textChunks;
     const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;
+    const textTextureSize = Text._tempVec20;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
@@ -352,6 +402,10 @@ export class Text extends UIRenderer implements ITextRenderer {
       // @ts-ignore
       renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
+      renderElement.shaderData.setVector2(
+        Text._textTextureSizeProperty,
+        textTextureSize.set(texture.width, texture.height)
+      );
       if (isOverlay) {
         renderElement.subShader = material.shader.subShaders[0];
       }
@@ -523,10 +577,11 @@ export class Text extends UIRenderer implements ITextRenderer {
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
-              const left = (startX + offsetWidth) * pixelsPerUnitReciprocal;
-              const right = (startX + w + offsetWidth) * pixelsPerUnitReciprocal;
-              const top = (startY + ascent + offsetHeight) * pixelsPerUnitReciprocal;
-              const bottom = (startY - descent + offsetHeight) * pixelsPerUnitReciprocal;
+              const ow = this._outlineWidth * pixelsPerUnitReciprocal;
+              const left = (startX + offsetWidth) * pixelsPerUnitReciprocal - ow;
+              const right = (startX + w + offsetWidth) * pixelsPerUnitReciprocal + ow;
+              const top = (startY + ascent + offsetHeight) * pixelsPerUnitReciprocal + ow;
+              const bottom = (startY - descent + offsetHeight) * pixelsPerUnitReciprocal - ow;
               localPositions.set(left, top, right, bottom);
               i === firstLine && (maxY = Math.max(maxY, top));
               minY = Math.min(minY, bottom);
@@ -624,6 +679,10 @@ export class Text extends UIRenderer implements ITextRenderer {
     const vertices = subChunk.chunk.vertices;
     const indices = (subChunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
+    const ow = this._outlineWidth;
+    const texture = textChunk.texture;
+    const owU = ow > 0 ? ow / texture.width : 0;
+    const owV = ow > 0 ? ow / texture.height : 0;
     for (let i = 0, ii = 0, io = 0, vo = subChunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
       charRenderInfo.indexInChunk = i;
@@ -633,10 +692,13 @@ export class Text extends UIRenderer implements ITextRenderer {
         indices[ii++] = tempIndices[j] + io;
       }
 
-      // Set uv and color for vertices
+      // Set uv and color for vertices, expand uv outward by outline width
       for (let j = 0; j < 4; ++j, vo += 9) {
         const uv = charRenderInfo.uvs[j];
-        uv.copyToArray(vertices, vo);
+        const su = j === 1 || j === 2 ? 1 : -1;
+        const sv = j >= 2 ? 1 : -1;
+        vertices[vo] = uv.x + owU * su;
+        vertices[vo + 1] = uv.y + owV * sv;
         vertices[vo + 2] = r;
         vertices[vo + 3] = g;
         vertices[vo + 4] = b;
@@ -664,6 +726,11 @@ export class Text extends UIRenderer implements ITextRenderer {
       textChunk.texture = null;
     }
     textChunks.length = 0;
+  }
+
+  @ignoreClone
+  private _onOutlineColorChanged(): void {
+    this.shaderData.setColor(Text._outlineColorProperty, this._outlineColor);
   }
 }
 

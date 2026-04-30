@@ -18,7 +18,8 @@ import {
   assignmentClone,
   deepClone,
   dependentComponents,
-  ignoreClone
+  ignoreClone,
+  Vector2
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
@@ -30,6 +31,8 @@ import { UITransform } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UIRenderer extends Renderer implements IGraphics {
+  /** @internal */
+  static _tempVec20: Vector2 = new Vector2();
   /** @internal */
   static _tempVec30: Vector3 = new Vector3();
   /** @internal */

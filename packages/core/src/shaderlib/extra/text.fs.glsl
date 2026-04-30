@@ -1,4 +1,8 @@
 uniform sampler2D renderElement_TextTexture;
+uniform vec2 renderElement_TextTextureSize;
+uniform vec4 renderer_OutlineColor;
+uniform float renderer_OutlineWidth;
+
 uniform vec4 renderer_UIRectClipRect;
 uniform float renderer_UIRectClipEnabled;
 uniform vec4 renderer_UIRectClipSoftness;
@@ -24,6 +28,16 @@ float getUIRectClipAlpha()
   return clipFactor.x * clipFactor.y * clipFactor.z * clipFactor.w;
 }
 
+float sampleCoverage(vec2 uv)
+{
+  vec4 c = texture2D(renderElement_TextTexture, uv);
+  #ifdef GRAPHICS_API_WEBGL2
+    return c.r;
+  #else
+    return c.a;
+  #endif
+}
+
 void main()
 {
   float rectClipAlpha = 1.0;
@@ -31,13 +45,29 @@ void main()
     rectClipAlpha = getUIRectClipAlpha();
   }
 
-  vec4 texColor = texture2D(renderElement_TextTexture, v_uv);
-  #ifdef GRAPHICS_API_WEBGL2
-    float coverage = texColor.r;
-  #else
-    float coverage = texColor.a;
-  #endif
-  vec4 finalColor = vec4(v_color.rgb, v_color.a * coverage);
+  float coverage = sampleCoverage(v_uv);
+  vec4 finalColor;
+
+  if (renderer_OutlineWidth > 0.0) {
+    vec2 texelSize = 1.0 / renderElement_TextTextureSize;
+    vec2 step = texelSize * renderer_OutlineWidth;
+    float outlineCoverage = coverage;
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2( step.x,  0.0)));
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2(-step.x,  0.0)));
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2( 0.0,  step.y)));
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2( 0.0, -step.y)));
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2( step.x * 0.7071,  step.y * 0.7071)));
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2(-step.x * 0.7071,  step.y * 0.7071)));
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2( step.x * 0.7071, -step.y * 0.7071)));
+    outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2(-step.x * 0.7071, -step.y * 0.7071)));
+
+    vec3 rgb = mix(renderer_OutlineColor.rgb, v_color.rgb, coverage);
+    float alpha = max(coverage * v_color.a, outlineCoverage * renderer_OutlineColor.a);
+    finalColor = vec4(rgb, alpha);
+  } else {
+    finalColor = vec4(v_color.rgb, v_color.a * coverage);
+  }
+
   finalColor.a *= rectClipAlpha;
   if (renderer_UIRectClipEnabled > 0.5 && renderer_UIRectClipHardClip > 0.5 && finalColor.a < 0.001) {
     discard;

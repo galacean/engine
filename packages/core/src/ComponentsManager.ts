@@ -36,7 +36,6 @@ export class ComponentsManager {
   // Render
   private _onUpdateRenderers = new DisorderedArray<Renderer>();
 
-
   addCamera(camera: Camera) {
     camera._cameraIndex = this._activeCameras.length;
     this._activeCameras.add(camera);
@@ -267,7 +266,6 @@ export class ComponentsManager {
       }
     );
   }
-
 
   /**
    * @internal

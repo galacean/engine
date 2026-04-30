@@ -1,14 +1,15 @@
-import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, Vector2, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
+import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderData, ShaderProperty } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
@@ -21,15 +22,18 @@ import { Font } from "./Font";
 import { ITextRenderer } from "./ITextRenderer";
 import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
-import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer implements ITextRenderer {
-  private static _textureProperty = ShaderProperty.getByName("renderElement_TextTexture");
+  private static _tempVec20 = new Vector2();
   private static _tempVec30 = new Vector3();
   private static _tempVec31 = new Vector3();
+  private static _textureProperty = ShaderProperty.getByName("renderElement_TextTexture");
+  private static _textTextureSizeProperty = ShaderProperty.getByName("renderElement_TextTextureSize");
+  private static _outlineColorProperty = ShaderProperty.getByName("renderer_OutlineColor");
+  private static _outlineWidthProperty = ShaderProperty.getByName("renderer_OutlineWidth");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
@@ -69,6 +73,10 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   private _enableWrapping = false;
   @assignmentClone
   private _overflowMode = OverflowMode.Overflow;
+  @deepClone
+  private _outlineColor = new Color(0, 0, 0, 1);
+  @ignoreClone
+  private _outlineWidth = 0;
 
   /**
    * Rendering color for the Text.
@@ -256,6 +264,35 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   }
 
   /**
+   * The outline width in pixels. 0 means outline is disabled. Clamped to [0, 8].
+   */
+  get outlineWidth(): number {
+    return this._outlineWidth;
+  }
+
+  set outlineWidth(value: number) {
+    value = Math.max(0, Math.min(value, 3));
+    if (this._outlineWidth !== value) {
+      this._outlineWidth = value;
+      this.shaderData.setFloat(TextRenderer._outlineWidthProperty, value);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
+    }
+  }
+
+  /**
+   * The outline color. Only effective when outlineWidth > 0.
+   */
+  get outlineColor(): Color {
+    return this._outlineColor;
+  }
+
+  set outlineColor(value: Color) {
+    if (this._outlineColor !== value) {
+      this._outlineColor.copyFrom(value);
+    }
+  }
+
+  /**
    * Interacts with the masks.
    */
   get maskInteraction(): SpriteMaskInteraction {
@@ -311,6 +348,8 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     this.setMaterial(engine._basicResources.textDefaultMaterial);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
+    // @ts-ignore
+    this._outlineColor._onValueChanged = this._onOutlineColorChanged.bind(this);
   }
 
   /**
@@ -337,6 +376,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     super._cloneTo(target);
     target.font = this._font;
     target._subFont = this._subFont;
+    target.outlineWidth = this._outlineWidth;
   }
 
   /**
@@ -382,7 +422,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
    * @internal
    */
   override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
+    return VertexMergeBatcher.canBatchText(preElement, curElement);
   }
 
   /**
@@ -436,12 +476,17 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const distanceForSort = this._distanceForSort;
     const renderPipeline = camera._renderPipeline;
     const textChunks = this._textChunks;
+    const textTextureSize = TextRenderer._tempVec20;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
       renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
       renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       renderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
+      renderElement.shaderData.setVector2(
+        TextRenderer._textTextureSizeProperty,
+        textTextureSize.set(texture.width, texture.height)
+      );
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;
       renderPipeline.pushRenderElement(context, renderElement);
@@ -606,10 +651,11 @@ export class TextRenderer extends Renderer implements ITextRenderer {
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
-              const left = startX * pixelsPerUnitReciprocal;
-              const right = (startX + w) * pixelsPerUnitReciprocal;
-              const top = (startY + ascent) * pixelsPerUnitReciprocal;
-              const bottom = (startY - descent) * pixelsPerUnitReciprocal;
+              const ow = this._outlineWidth * pixelsPerUnitReciprocal;
+              const left = startX * pixelsPerUnitReciprocal - ow;
+              const right = (startX + w) * pixelsPerUnitReciprocal + ow;
+              const top = (startY + ascent) * pixelsPerUnitReciprocal + ow;
+              const bottom = (startY - descent) * pixelsPerUnitReciprocal - ow;
               localPositions.set(left, top, right, bottom);
               i === firstLine && (maxY = Math.max(maxY, top));
               minY = Math.min(minY, bottom);
@@ -701,6 +747,10 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const vertices = subChunk.chunk.vertices;
     const indices = (subChunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
+    const ow = this._outlineWidth;
+    const texture = textChunk.texture;
+    const owU = ow > 0 ? ow / texture.width : 0;
+    const owV = ow > 0 ? ow / texture.height : 0;
     for (let i = 0, ii = 0, io = 0, vo = subChunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
       charRenderInfo.indexInChunk = i;
@@ -710,10 +760,13 @@ export class TextRenderer extends Renderer implements ITextRenderer {
         indices[ii++] = tempIndices[j] + io;
       }
 
-      // Set uv and color for vertices
+      // Set uv and color for vertices, expand uv outward by outline width
       for (let j = 0; j < 4; ++j, vo += 9) {
         const uv = charRenderInfo.uvs[j];
-        uv.copyToArray(vertices, vo);
+        const su = j === 1 || j === 2 ? 1 : -1;
+        const sv = j >= 2 ? 1 : -1;
+        vertices[vo] = uv.x + owU * su;
+        vertices[vo + 1] = uv.y + owV * sv;
         vertices[vo + 2] = r;
         vertices[vo + 3] = g;
         vertices[vo + 4] = b;
@@ -745,6 +798,11 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   @ignoreClone
   private _onColorChanged(): void {
     this._setDirtyFlagTrue(DirtyFlag.Color);
+  }
+
+  @ignoreClone
+  private _onOutlineColorChanged(): void {
+    this.shaderData.setColor(TextRenderer._outlineColorProperty, this._outlineColor);
   }
 }
 

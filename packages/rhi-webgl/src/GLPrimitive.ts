@@ -118,7 +118,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
       const element = attributes[name];
       if (element) {
-        if(!vertexBufferBindings[element.bindingIndex]) continue;
+        if (!vertexBufferBindings[element.bindingIndex]) continue;
         const { buffer, stride } = vertexBufferBindings[element.bindingIndex];
         vbo = buffer._platformBuffer._glBuffer;
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
