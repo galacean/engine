@@ -100,19 +100,19 @@ export class MaskManager {
     if (!data.getFloat(MaskManager._stencilEnabledProp)) return false;
     if ((data.getFloat(MaskManager._stencilWriteMaskProp) ?? 0xff) === 0) return false;
 
-    const Keep = StencilOperation.Keep;
+    const keep = StencilOperation.Keep;
     const passFront = data.getFloat(MaskManager._stencilPassOperationFrontProp);
-    if (passFront !== undefined && passFront !== Keep) return true;
+    if (passFront !== undefined && passFront !== keep) return true;
     const passBack = data.getFloat(MaskManager._stencilPassOperationBackProp);
-    if (passBack !== undefined && passBack !== Keep) return true;
+    if (passBack !== undefined && passBack !== keep) return true;
     const failFront = data.getFloat(MaskManager._stencilFailOperationFrontProp);
-    if (failFront !== undefined && failFront !== Keep) return true;
+    if (failFront !== undefined && failFront !== keep) return true;
     const failBack = data.getFloat(MaskManager._stencilFailOperationBackProp);
-    if (failBack !== undefined && failBack !== Keep) return true;
+    if (failBack !== undefined && failBack !== keep) return true;
     const zFailFront = data.getFloat(MaskManager._stencilZFailOperationFrontProp);
-    if (zFailFront !== undefined && zFailFront !== Keep) return true;
+    if (zFailFront !== undefined && zFailFront !== keep) return true;
     const zFailBack = data.getFloat(MaskManager._stencilZFailOperationBackProp);
-    if (zFailBack !== undefined && zFailBack !== Keep) return true;
+    if (zFailBack !== undefined && zFailBack !== keep) return true;
     return false;
   }
 
@@ -121,12 +121,12 @@ export class MaskManager {
     if (!data.getFloat(MaskManager._stencilEnabledProp)) return false;
     if ((data.getFloat(MaskManager._stencilMaskProp) ?? 0xff) === 0) return false;
 
-    const Always = CompareFunction.Always;
-    const Never = CompareFunction.Never;
-    const cmpFront = data.getFloat(MaskManager._stencilCompareFunctionFrontProp) ?? Always;
-    if (cmpFront !== Always && cmpFront !== Never) return true;
-    const cmpBack = data.getFloat(MaskManager._stencilCompareFunctionBackProp) ?? Always;
-    if (cmpBack !== Always && cmpBack !== Never) return true;
+    const always = CompareFunction.Always;
+    const never = CompareFunction.Never;
+    const cmpFront = data.getFloat(MaskManager._stencilCompareFunctionFrontProp);
+    if (cmpFront !== undefined && cmpFront !== always && cmpFront !== never) return true;
+    const cmpBack = data.getFloat(MaskManager._stencilCompareFunctionBackProp);
+    if (cmpBack !== undefined && cmpBack !== always && cmpBack !== never) return true;
     return false;
   }
 
