@@ -1,5 +1,4 @@
 import { Logger } from "../base/Logger";
-import { ShaderLib } from "./ShaderLib";
 
 export class ShaderFactory {
   /** @internal */
@@ -13,16 +12,21 @@ export class ShaderFactory {
     .join("");
 
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
+  private static readonly _includeMap: Record<string, string> = {};
 
   static registerInclude(includeName: string, includeSource: string) {
-    if (ShaderLib[includeName]) {
+    if (ShaderFactory._includeMap[includeName]) {
       throw `The "${includeName}" shader include already exist`;
     }
-    ShaderLib[includeName] = includeSource;
+    ShaderFactory._includeMap[includeName] = includeSource;
   }
 
   static unRegisterInclude(includeName: string) {
-    delete ShaderLib[includeName];
+    delete ShaderFactory._includeMap[includeName];
+  }
+
+  static getInclude(includeName: string): string | undefined {
+    return ShaderFactory._includeMap[includeName];
   }
 
   /**
@@ -30,7 +34,7 @@ export class ShaderFactory {
    */
   static parseIncludes(src: string, regex = /^[ \t]*#include +[<"]([\w\d./]+)[>"]/gm) {
     function replace(match, slice) {
-      var replace = ShaderLib[slice];
+      var replace = ShaderFactory._includeMap[slice];
 
       if (replace === undefined) {
         Logger.error(`Shader slice "${match.trim()}" not founded.`);
