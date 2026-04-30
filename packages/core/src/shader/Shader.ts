@@ -46,12 +46,13 @@ export class Shader implements IReferable {
    *
    * @param shaderSource - Shader code
    * @param platformTarget - Shader platform target, @defaultValue ShaderLanguage.GLSLES300
+   * @param path - Shader location path, used to resolve relative `#include` paths in ShaderLab source
    * @returns Shader
    *
    * @throws
    * Throw string exception if the shader compiler has not been enabled properly.
    */
-  static create(shaderSource: string, platformTarget?: ShaderLanguage): Shader;
+  static create(shaderSource: string, platformTarget?: ShaderLanguage, path?: string): Shader;
 
   /**
    * Create a shader.
@@ -71,7 +72,8 @@ export class Shader implements IReferable {
 
   static create(
     nameOrShaderSource: string,
-    shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[]
+    shaderPassesOrSubShadersOrPlatformTarget?: ShaderLanguage | SubShader[] | ShaderPass[],
+    path?: string
   ): Shader {
     let shader: Shader;
     const shaderMap = Shader._shaderMap;
@@ -92,6 +94,8 @@ export class Shader implements IReferable {
         return;
       }
 
+      const basePathForIncludeKey = new URL(path ?? "", ShaderPass._shaderRootPath).href;
+
       const subShaderList = shaderSource.subShaders.map((subShaderSource) => {
         const passList = subShaderSource.passes.map((passSource) => {
           if (passSource.isUsePass) {
@@ -102,7 +106,8 @@ export class Shader implements IReferable {
             passSource.contents,
             passSource.vertexEntry,
             passSource.fragmentEntry,
-            shaderPassesOrSubShadersOrPlatformTarget
+            shaderPassesOrSubShadersOrPlatformTarget,
+            basePathForIncludeKey
           );
 
           if (!shaderPassSource) {

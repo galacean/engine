@@ -15,16 +15,20 @@ export interface IShaderCompiler {
   /**
    * @internal
    * Parse shader pass source code.
+   * @param basePathForIncludeKey - The base path to resolve the relative path of `#include` directives.
+   *   Must follow the specifications of [URL.origin](https://developer.mozilla.org/en-US/docs/Web/API/URL/origin),
+   *   like: `shaders://root/`.
    */
   _parseShaderPass(
     shaderPassSource: string,
     vertexEntry: string,
     fragmentEntry: string,
-    backend: any
+    backend: any,
+    basePathForIncludeKey: string
   ): IShaderProgramSource | undefined;
 
   /**
    * @internal
    */
-  _precompile(sourceCode: string, platformTarget: any): IPrecompiledShader;
+  _precompile(sourceCode: string, platformTarget: any, basePathForIncludeKey: string): IPrecompiledShader;
 }

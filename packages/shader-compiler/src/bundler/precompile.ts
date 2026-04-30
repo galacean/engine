@@ -20,11 +20,12 @@ export interface PrecompileOptions {
 }
 
 interface ShaderCompilerInstance {
-  _precompile: (source: string, target: number) => unknown;
+  _precompile: (source: string, target: number, basePathForIncludeKey: string) => unknown;
 }
 
 interface EngineModule {
   ShaderFactory: { registerInclude: (key: string, source: string) => void };
+  ShaderPass: { _shaderRootPath: string };
 }
 
 /**
@@ -61,16 +62,17 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
   if (!shaderCompiler) return;
 
   await registerLocalIncludes(inputDir);
+  const shaderRootPath = await getShaderRootPath();
 
   if (options.only) {
     const target = path.resolve(options.only);
-    compileSingle(shaderCompiler, target, inputDir, outputDir, platformTarget);
+    compileSingle(shaderCompiler, target, inputDir, outputDir, platformTarget, shaderRootPath);
   } else {
     const shaderFiles = findFiles(inputDir, ".shader");
     console.log(`[shader-compiler-bundler] Precompiling ${shaderFiles.length} shader(s)...`);
     let failed = 0;
     for (const file of shaderFiles) {
-      if (!compileSingle(shaderCompiler, file, inputDir, outputDir, platformTarget)) failed++;
+      if (!compileSingle(shaderCompiler, file, inputDir, outputDir, platformTarget, shaderRootPath)) failed++;
     }
     if (options.clean) {
       const removed = cleanOrphanedGsp(shaderFiles, inputDir, outputDir);
@@ -93,6 +95,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
   const outputDir = path.resolve(options.output);
   const platformTarget = options.platformTarget ?? 0;
   const shaderCompiler = await loadShaderCompiler();
+  const shaderRootPath = await getShaderRootPath();
 
   // A `.glsl` change invalidates every `.shader` that may include it, since we
   // can't cheaply track include graphs across files. Recompile everything
@@ -113,7 +116,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
     if (!fs.existsSync(fullPath)) {
       removeGspFor(fullPath, inputDir, outputDir);
     } else {
-      compileSingle(shaderCompiler, fullPath, inputDir, outputDir, platformTarget);
+      compileSingle(shaderCompiler, fullPath, inputDir, outputDir, platformTarget, shaderRootPath);
     }
     if (options.emitIndex) emitIndex(outputDir);
   };
@@ -189,9 +192,14 @@ async function registerLocalIncludes(inputDir: string): Promise<void> {
 
   for (const file of findFiles(inputDir, ".glsl")) {
     const source = fs.readFileSync(file, "utf-8");
-    const basename = path.basename(file);
-    eng.ShaderFactory.registerInclude(`./${basename}`, source);
+    const relPath = normalizePath(path.relative(inputDir, file));
+    eng.ShaderFactory.registerInclude(relPath, source);
   }
+}
+
+async function getShaderRootPath(): Promise<string> {
+  const eng = (await import("@galacean/engine")) as unknown as EngineModule;
+  return eng?.ShaderPass?._shaderRootPath ?? "shaders://root/";
 }
 
 /**
@@ -203,17 +211,19 @@ function compileSingle(
   shaderPath: string,
   inputDir: string,
   outputDir: string,
-  platformTarget: number
+  platformTarget: number,
+  shaderRootPath: string
 ): boolean {
   const source = fs.readFileSync(shaderPath, "utf-8");
   const relativePath = normalizePath(path.relative(inputDir, shaderPath));
   const gspRelative = relativePath.replace(/\.shader$/, ".gsp");
   const gspPath = path.join(outputDir, gspRelative);
+  const basePathForIncludeKey = new URL(relativePath, shaderRootPath).href;
 
   fs.mkdirSync(path.dirname(gspPath), { recursive: true });
 
   try {
-    const precompiled = shaderCompiler._precompile(source, platformTarget);
+    const precompiled = shaderCompiler._precompile(source, platformTarget, basePathForIncludeKey);
     fs.writeFileSync(gspPath, JSON.stringify(precompiled));
     console.log(`  ${relativePath} -> ${gspRelative}`);
     return true;

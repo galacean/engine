@@ -1,6 +1,4 @@
-import { Logger } from "@galacean/engine";
-/** @ts-ignore */
-import { ShaderLib } from "@galacean/engine";
+import { Logger, ShaderFactory, ShaderPass } from "@galacean/engine";
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
 import { ShaderCompilerUtils } from "./ShaderCompilerUtils";
@@ -41,7 +39,7 @@ export class Preprocessor {
    */
   static _repeatIncludeSet = new Set<string>();
 
-  static parse(source: string): string {
+  static parse(source: string, basePathForIncludeKey: string): string {
     // Strip comments BEFORE the include regex runs — block comments commonly
     // wrap `#include` directives in third-party shader fragments (e.g.
     // FXAA3_11.glsl) and the regex would otherwise expand them as live
@@ -51,25 +49,33 @@ export class Preprocessor {
     // Preprocessor only handles `#include` expansion. `#define` registration
     // and `#ifdef` branch tracking are done by the Lexer in a single pass
     // over the same token stream it tokenizes.
-    return source.replace(this._includeReg, (_, includeName) => this._replace(includeName));
+    return source.replace(this._includeReg, (_, includeName) => this._replace(includeName, basePathForIncludeKey));
   }
 
-  private static _replace(includeName: string): string {
-    const chunk = (ShaderLib as any)[includeName];
+  private static _replace(includeName: string, basePathForIncludeKey: string): string {
+    let path: string;
+    if (includeName[0] === ".") {
+      // @ts-ignore _shaderRootPath is @internal, stripped from public d.ts.
+      path = new URL(includeName, basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
+    } else {
+      path = includeName;
+    }
+
+    const chunk = ShaderFactory.getInclude(path);
     if (!chunk) {
-      Logger.error(`Shader slice "${includeName}" not founded.`);
+      Logger.error(`Shader slice "${path}" not founded.`);
       return "";
     }
 
-    if (this._repeatIncludeSet.has(includeName)) {
-      Logger.warn(`Shader slice "${includeName}" is included multiple times.`);
+    if (this._repeatIncludeSet.has(path)) {
+      Logger.warn(`Shader slice "${path}" is included multiple times.`);
     }
-    this._repeatIncludeSet.add(includeName);
+    this._repeatIncludeSet.add(path);
 
-    let cached = this._chunkOutputCache.get(includeName);
+    let cached = this._chunkOutputCache.get(path);
     if (cached === undefined) {
-      cached = this.parse(chunk);
-      this._chunkOutputCache.set(includeName, cached);
+      cached = this.parse(chunk, basePathForIncludeKey);
+      this._chunkOutputCache.set(path, cached);
     }
     return cached;
   }

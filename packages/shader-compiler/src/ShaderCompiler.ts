@@ -52,13 +52,14 @@ export class ShaderCompiler implements IShaderCompiler {
     source: string,
     vertexEntry: string,
     fragmentEntry: string,
-    backend: ShaderLanguage
+    backend: ShaderLanguage,
+    basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
     const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();
-    const noIncludeContent = Preprocessor.parse(source);
+    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey);
     Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);
@@ -99,7 +100,7 @@ export class ShaderCompiler implements IShaderCompiler {
     return ret;
   }
 
-  _precompile(sourceCode: string, platformTarget: ShaderLanguage): IPrecompiledShader {
+  _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePathForIncludeKey: string): IPrecompiledShader {
     const shaderSource = this._parseShaderSource(sourceCode);
 
     const subShaders = shaderSource.subShaders.map((sub) => ({
@@ -119,7 +120,8 @@ export class ShaderCompiler implements IShaderCompiler {
           pass.contents,
           pass.vertexEntry,
           pass.fragmentEntry,
-          platformTarget
+          platformTarget,
+          basePathForIncludeKey
         );
 
         if (!programSource) {
