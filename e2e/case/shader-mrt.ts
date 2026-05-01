@@ -11,7 +11,7 @@ const shaderCompiler = new ShaderCompiler();
 
 const shaderSource = `Shader "/custom.shader" {
           SubShader "Default" {
-            UsePass "Utility/ShadowMap/Default/ShadowCaster"
+            UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
 
             Pass "Pass0" {
               struct Attributes {
