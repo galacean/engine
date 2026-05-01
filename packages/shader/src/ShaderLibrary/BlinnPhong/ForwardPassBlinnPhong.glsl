@@ -9,7 +9,6 @@
 #include "ShaderLibrary/Skin/BlendShape.glsl"
 #include "ShaderLibrary/Shadow/Shadow.glsl"
 #include "ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl"
-#include "ShaderLibrary/Common/ViewDirection.glsl"
 
 // Vertex stage carries mesh tangent through to fragment only when BlinnPhong
 // samples a normal map AND the mesh provides a tangent attribute. Otherwise

@@ -158,4 +158,12 @@ vec3 safeNormalize(vec3 inVec)
     return inVec * inversesqrt(dp3);
 }
 
+vec3 getViewDirection(vec3 cameraPosition, vec3 cameraForward, vec3 worldPosition) {
+    #ifdef CAMERA_ORTHOGRAPHIC
+        return -cameraForward;
+    #else
+        return normalize(cameraPosition - worldPosition);
+    #endif
+}
+
 #endif

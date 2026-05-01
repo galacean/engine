@@ -2,7 +2,7 @@
 #define MOBILE_BLINNPHONG_INCLUDED
 
 #include "ShaderLibrary/Common/Common.glsl"
-#include "ShaderLibrary/Common/Light.glsl"
+#include "ShaderLibrary/Lighting/Light.glsl"
 #include "ShaderLibrary/Common/Normal.glsl"
 
 // Material uniforms

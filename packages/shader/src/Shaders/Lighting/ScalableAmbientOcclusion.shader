@@ -10,7 +10,7 @@ Shader "Lighting/ScalableAmbientOcclusion" {
       FragmentShader = frag;
 
       #include "ShaderLibrary/Blit/BlitVertex.glsl"
-      #include "ShaderLibrary/Lighting/ScalableAmbientOcclusion.glsl"
+      #include "ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl"
     }
 
     Pass "BilateralBlur" {
@@ -23,7 +23,7 @@ Shader "Lighting/ScalableAmbientOcclusion" {
       FragmentShader = frag;
 
       #include "ShaderLibrary/Blit/BlitVertex.glsl"
-      #include "ShaderLibrary/Lighting/BilateralBlur.glsl"
+      #include "ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl"
     }
   }
 }

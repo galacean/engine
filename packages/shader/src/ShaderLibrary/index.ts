@@ -6,19 +6,13 @@ import BlinnPhong_ForwardPassBlinnPhong from "./BlinnPhong/ForwardPassBlinnPhong
 import BlinnPhong_MobileBlinnPhong from "./BlinnPhong/MobileBlinnPhong.glsl";
 import Blit_BlitVertex from "./Blit/BlitVertex.glsl";
 import Common_Attributes from "./Common/Attributes.glsl";
-import Common_Color from "./Common/Color.glsl";
 import Common_Common from "./Common/Common.glsl";
 import Common_Fog from "./Common/Fog.glsl";
-import Common_Light from "./Common/Light.glsl";
 import Common_Normal from "./Common/Normal.glsl";
-import Common_Position from "./Common/Position.glsl";
-import Common_PositionClipSpace from "./Common/PositionClipSpace.glsl";
 import Common_Transform from "./Common/Transform.glsl";
-import Common_UV from "./Common/UV.glsl";
-import Common_ViewDirection from "./Common/ViewDirection.glsl";
-import Common_WorldPosition from "./Common/WorldPosition.glsl";
-import Lighting_BilateralBlur from "./Lighting/BilateralBlur.glsl";
-import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.glsl";
+import Lighting_AmbientOcclusion_BilateralBlur from "./Lighting/AmbientOcclusion/BilateralBlur.glsl";
+import Lighting_AmbientOcclusion_ScalableAmbientOcclusion from "./Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl";
+import Lighting_Light from "./Lighting/Light.glsl";
 import Noise_NoiseCommon from "./Noise/NoiseCommon.glsl";
 import Noise_NoiseSimplexGrad from "./Noise/NoiseSimplexGrad.glsl";
 import PBR_BSDF from "./PBR/BSDF.glsl";
@@ -73,19 +67,13 @@ export const shaderLibrary: IShaderSource[] = [
   { source: BlinnPhong_MobileBlinnPhong, path: "ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl" },
   { source: Blit_BlitVertex, path: "ShaderLibrary/Blit/BlitVertex.glsl" },
   { source: Common_Attributes, path: "ShaderLibrary/Common/Attributes.glsl" },
-  { source: Common_Color, path: "ShaderLibrary/Common/Color.glsl" },
   { source: Common_Common, path: "ShaderLibrary/Common/Common.glsl" },
   { source: Common_Fog, path: "ShaderLibrary/Common/Fog.glsl" },
-  { source: Common_Light, path: "ShaderLibrary/Common/Light.glsl" },
   { source: Common_Normal, path: "ShaderLibrary/Common/Normal.glsl" },
-  { source: Common_Position, path: "ShaderLibrary/Common/Position.glsl" },
-  { source: Common_PositionClipSpace, path: "ShaderLibrary/Common/PositionClipSpace.glsl" },
   { source: Common_Transform, path: "ShaderLibrary/Common/Transform.glsl" },
-  { source: Common_UV, path: "ShaderLibrary/Common/UV.glsl" },
-  { source: Common_ViewDirection, path: "ShaderLibrary/Common/ViewDirection.glsl" },
-  { source: Common_WorldPosition, path: "ShaderLibrary/Common/WorldPosition.glsl" },
-  { source: Lighting_BilateralBlur, path: "ShaderLibrary/Lighting/BilateralBlur.glsl" },
-  { source: Lighting_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/ScalableAmbientOcclusion.glsl" },
+  { source: Lighting_AmbientOcclusion_BilateralBlur, path: "ShaderLibrary/Lighting/AmbientOcclusion/BilateralBlur.glsl" },
+  { source: Lighting_AmbientOcclusion_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/AmbientOcclusion/ScalableAmbientOcclusion.glsl" },
+  { source: Lighting_Light, path: "ShaderLibrary/Lighting/Light.glsl" },
   { source: Noise_NoiseCommon, path: "ShaderLibrary/Noise/NoiseCommon.glsl" },
   { source: Noise_NoiseSimplexGrad, path: "ShaderLibrary/Noise/NoiseSimplexGrad.glsl" },
   { source: PBR_BSDF, path: "ShaderLibrary/PBR/BSDF.glsl" },
