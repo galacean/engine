@@ -38,7 +38,7 @@ export class ShaderPool {
   static init(): void {
     // Register every entry of the built-in shader library so `#include` can resolve them.
     for (const item of shaderLibrary) {
-      ShaderFactory.registerInclude(item.includeKey, item.source);
+      ShaderFactory.registerInclude(item.path, item.source);
     }
   }
 

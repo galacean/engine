@@ -8,12 +8,20 @@ import type { ShaderInstruction } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderInstructionEncoder } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
+import { shaders as builtinShaders } from "@galacean/engine-shader/sources";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { server } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
 
 const { readFile } = server.commands;
+
+function builtinSource(path: string): string {
+  const entry = builtinShaders.find((s) => s.path === path);
+  if (!entry) throw new Error(`Built-in shader not found: ${path}`);
+  return entry.source;
+}
+
 Logger.enable();
 
 const shaderCompiler = new ShaderCompiler();
@@ -118,9 +126,9 @@ describe("Precompile Benchmark", async () => {
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 
-  const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
-  const ShadowMapSource = await readFile("../../../packages/shader/src/Shaders/Utility/ShadowMap.shader");
-  const DepthOnlySource = await readFile("../../../packages/shader/src/Shaders/Utility/DepthOnly.shader");
+  const PBRSource = builtinSource("Shaders/PBR.shader");
+  const ShadowMapSource = builtinSource("Shaders/Utility/ShadowMap.shader");
+  const DepthOnlySource = builtinSource("Shaders/Utility/DepthOnly.shader");
 
   // Create Utility shaders first — PBR uses UsePass from them
   if (!Shader.find("Utility/ShadowMap")) Shader.create(ShadowMapSource);
