@@ -6,10 +6,6 @@
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
 #define MIN_ROUGHNESS            0.002025
 
-#if defined(RENDERER_HAS_TANGENT) || defined(MATERIAL_ENABLE_ANISOTROPY) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) || defined(MATERIAL_HAS_NORMALTEXTURE)
-    #define NEED_TANGENT
-#endif
-
 #ifdef MATERIAL_ENABLE_SHEEN
     sampler2D scene_PrefilteredDFG;
 #endif
@@ -29,7 +25,7 @@ struct SurfaceData{
     vec4 positionCS;
     vec3 normal;
 
-    #ifdef NEED_TANGENT
+    #ifdef NEED_TANGENT_SPACE
         vec3  tangent;
         vec3  bitangent;
     #endif

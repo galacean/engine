@@ -19,7 +19,7 @@ struct Varyings{
 
 	#ifdef RENDERER_HAS_NORMAL
 	    vec3 normalWS;
-	    #ifdef RENDERER_HAS_TANGENT
+	    #ifdef NEED_VERTEX_TANGENT
 			vec3 tangentWS;
 			vec3 bitangentWS;
 	    #endif

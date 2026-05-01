@@ -11,6 +11,13 @@
 #include "ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl"
 #include "ShaderLibrary/Common/ViewDirection.glsl"
 
+// Vertex stage carries mesh tangent through to fragment only when BlinnPhong
+// samples a normal map AND the mesh provides a tangent attribute. Otherwise
+// fragment derives the tangent frame from dFdx/dFdy.
+#if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && defined(MATERIAL_HAS_NORMALTEXTURE)
+    #define NEED_VERTEX_TANGENT
+#endif
+
 vec4 material_TilingOffset;
 
 struct Varyings {
@@ -28,7 +35,7 @@ struct Varyings {
 
     #ifdef RENDERER_HAS_NORMAL
         vec3 v_normalWS;
-        #ifdef RENDERER_HAS_TANGENT
+        #ifdef NEED_VERTEX_TANGENT
             vec3 v_tangentWS;
             vec3 v_bitangentWS;
         #endif
@@ -71,7 +78,7 @@ Varyings BlinnPhongVertex(Attributes attr) {
         #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
-            #ifdef RENDERER_HAS_TANGENT
+            #ifdef NEED_VERTEX_TANGENT
                 tangent.xyz = tangent.xyz * skinNormalMatrix;
             #endif
         #endif
@@ -95,7 +102,7 @@ Varyings BlinnPhongVertex(Attributes attr) {
     // Normal
     #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
         v.v_normalWS = normalize( mat3(renderer_NormalMat) * normal );
-        #ifdef RENDERER_HAS_TANGENT
+        #ifdef NEED_VERTEX_TANGENT
             vec3 tangentWS = normalize( mat3(renderer_NormalMat) * tangent.xyz );
             v.v_tangentWS = tangentWS;
             v.v_bitangentWS = cross(v.v_normalWS, tangentWS) * tangent.w;
@@ -137,7 +144,7 @@ void BlinnPhongFragment(Varyings v) {
     #ifdef RENDERER_HAS_NORMAL
         N = normalize(v.v_normalWS);
         #ifdef MATERIAL_HAS_NORMALTEXTURE
-            #ifdef RENDERER_HAS_TANGENT
+            #ifdef NEED_VERTEX_TANGENT
                 mat3 tbn = mat3(v.v_tangentWS, v.v_bitangentWS, v.v_normalWS);
             #else
                 mat3 tbn = getTBNByDerivatives(v.v_uv, N, v.v_pos, gl_FrontFacing);

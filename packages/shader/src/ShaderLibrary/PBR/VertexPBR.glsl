@@ -11,7 +11,7 @@ struct VertexInputs{
 
     #ifdef RENDERER_HAS_NORMAL
         vec3 normalWS;
-        #ifdef RENDERER_HAS_TANGENT
+        #ifdef NEED_VERTEX_TANGENT
             vec3 tangentWS;
             vec3 bitangentWS;
         #endif
@@ -33,6 +33,10 @@ VertexInputs getVertexInputs(Attributes attributes){
     VertexInputs inputs;
     vec4 position = vec4(attributes.POSITION, 1.0);
 
+    // tangent must follow RENDERER_HAS_TANGENT here so the call site stays in
+    // sync with calculateBlendShape's signature (which is gated on the same
+    // mesh-attribute macro). Downstream worldspace projection + varying writes
+    // are separately gated on NEED_VERTEX_TANGENT below.
     #ifdef RENDERER_HAS_NORMAL
         vec3 normal = vec3( attributes.NORMAL );
         #ifdef RENDERER_HAS_TANGENT
@@ -40,7 +44,7 @@ VertexInputs getVertexInputs(Attributes attributes){
         #endif
     #endif
 
-   
+
     // BlendShape
     #ifdef RENDERER_HAS_BLENDSHAPE
         calculateBlendShape(attributes, position
@@ -61,7 +65,7 @@ VertexInputs getVertexInputs(Attributes attributes){
         #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
-            #ifdef RENDERER_HAS_TANGENT
+            #ifdef NEED_VERTEX_TANGENT
                 tangent.xyz = tangent.xyz * skinNormalMatrix;
             #endif
         #endif
@@ -71,7 +75,7 @@ VertexInputs getVertexInputs(Attributes attributes){
     #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
         inputs.normalWS = normalize( mat3(renderer_NormalMat) * normal );
 
-        #ifdef RENDERER_HAS_TANGENT
+        #ifdef NEED_VERTEX_TANGENT
             vec3 tangentWS = normalize( mat3(renderer_NormalMat) * tangent.xyz );
             vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * tangent.w;
 

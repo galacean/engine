@@ -198,8 +198,8 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
     surfaceData.normal = normal;
 
     // Tangent
-    #ifdef NEED_TANGENT
-        #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT)
+    #ifdef NEED_TANGENT_SPACE
+        #ifdef NEED_VERTEX_TANGENT
             surfaceData.tangent = v.tangentWS;
             surfaceData.bitangent = v.bitangentWS;
             mat3 tbn = mat3(v.tangentWS, v.bitangentWS, v.normalWS);
@@ -212,7 +212,7 @@ SurfaceData getSurfaceData(Varyings v, vec2 aoUV, bool isFrontFacing){
         #ifdef MATERIAL_HAS_NORMALTEXTURE
             surfaceData.normal = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, uv, isFrontFacing);
         #endif
-    #endif  
+    #endif
 
     surfaceData.dotNV = saturate( dot(surfaceData.normal, surfaceData.viewDir) );
 
