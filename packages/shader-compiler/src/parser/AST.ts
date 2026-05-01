@@ -223,58 +223,29 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       const childrenLen = children.length;
-      const firstChild = children[0];
-
-      let typeSpecifier: TypeSpecifier;
-      let dataType: GalaceanDataType;
-      let typeLexeme: string;
-      let idIndex: number;
-
-      if (firstChild instanceof TypeQualifier && children[1] instanceof MacroCallSymbol) {
-        // type_qualifier macro_call_symbol id/MACRO_CALL [= initializer]
-        dataType = TypeAny;
-        typeLexeme = (children[1] as MacroCallSymbol).macroName;
-        typeSpecifier = { lexeme: typeLexeme, type: TypeAny, arraySpecifier: undefined } as any;
-        idIndex = 2;
-      } else if (firstChild instanceof MacroCallSymbol) {
-        // macro_call_symbol id/MACRO_CALL [array_specifier] [= initializer]
-        dataType = TypeAny;
-        typeLexeme = firstChild.macroName;
-        typeSpecifier = { lexeme: typeLexeme, type: TypeAny, arraySpecifier: undefined } as any;
-        idIndex = 1;
-      } else {
-        // fully_specified_type id [array_specifier] [= initializer]
-        const fullyType = firstChild as FullySpecifiedType;
-        typeSpecifier = fullyType.typeSpecifier;
-        dataType = fullyType.type;
-        typeLexeme = typeSpecifier.lexeme;
-        idIndex = 1;
-      }
-
+      const fullyType = children[0] as FullySpecifiedType;
+      const typeSpecifier = fullyType.typeSpecifier;
       this.typeSpecifier = typeSpecifier;
       this.arraySpecifier = typeSpecifier.arraySpecifier;
 
-      const id = children[idIndex] as BaseToken;
-      const afterId = childrenLen - idIndex - 1;
+      const id = children[1] as BaseToken;
 
       let sm: VarSymbol;
-      if (afterId === 0 || afterId === 2) {
-        // No array specifier: just id, or id = initializer
-        const symbolType = new SymbolType(dataType, typeLexeme, this.arraySpecifier);
-        const initializer = afterId === 2 ? (children[idIndex + 2] as Initializer) : undefined;
+      if (childrenLen === 2 || childrenLen === 4) {
+        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        const initializer = children[3] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
-        // Has array specifier: id array_specifier [= initializer]
-        const arraySpecifier = children[idIndex + 1] as ArraySpecifier;
+        const arraySpecifier = children[2] as ArraySpecifier;
         // #if _VERBOSE
         if (arraySpecifier && this.arraySpecifier) {
           sa.reportError(arraySpecifier.location, "Array of array is not supported.");
         }
         // #endif
         this.arraySpecifier = arraySpecifier;
-        const symbolType = new SymbolType(dataType, typeLexeme, this.arraySpecifier);
-        const initializer = afterId === 3 ? (children[idIndex + 3] as Initializer) : undefined;
+        const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
+        const initializer = children[4] as Initializer;
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
@@ -577,17 +548,7 @@ export namespace ASTNode {
       sa.pushScope();
       const children = this.children;
       this.ident = children[1] as BaseToken;
-      const firstChild = children[0];
-      if (firstChild instanceof MacroCallSymbol) {
-        // macro_call_symbol as return type: create a compatible FullySpecifiedType-like object
-        this.returnType = {
-          type: TypeAny,
-          typeSpecifier: { lexeme: firstChild.macroName, type: TypeAny },
-          location: firstChild.location
-        } as any;
-      } else {
-        this.returnType = firstChild as FullySpecifiedType;
-      }
+      this.returnType = children[0] as FullySpecifiedType;
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -690,15 +651,9 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       this.ident = children[1] as BaseToken;
-      const firstChild = children[0];
+      const typeSpecifier = children[0] as TypeSpecifier;
       const arraySpecifier = children[2] as ArraySpecifier;
-
-      if (firstChild instanceof MacroCallSymbol) {
-        this.typeInfo = new SymbolType(TypeAny, firstChild.macroName, arraySpecifier);
-      } else {
-        const typeSpecifier = firstChild as TypeSpecifier;
-        this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
-      }
+      this.typeInfo = new SymbolType(typeSpecifier.type, typeSpecifier.lexeme, arraySpecifier);
     }
   }
 
@@ -1206,27 +1161,16 @@ export namespace ASTNode {
         return;
       }
 
-      let type: GalaceanDataType;
-      let lexeme: string;
-      const firstChild = children[0];
-
       if (children.length === 3) {
-        if (firstChild instanceof MacroCallSymbol) {
-          type = TypeAny;
-          lexeme = firstChild.macroName;
-          this._typeSpecifier = { type, lexeme } as any;
-        } else {
-          this._typeSpecifier = firstChild as TypeSpecifier;
-          type = this._typeSpecifier.type;
-          lexeme = this._typeSpecifier.lexeme;
-        }
+        this._typeSpecifier = children[0] as TypeSpecifier;
         this._declaratorList = children[1] as StructDeclaratorList;
       } else {
         this._typeSpecifier = children[1] as TypeSpecifier;
         this._declaratorList = children[2] as StructDeclaratorList;
-        type = this._typeSpecifier.type;
-        lexeme = this._typeSpecifier.lexeme;
       }
+
+      const firstChild = children[0];
+      const { type, lexeme } = this._typeSpecifier;
       const isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (firstChild instanceof LayoutQualifier) {
         const declarator = children[2] as StructDeclarator;
@@ -1367,40 +1311,16 @@ export namespace ASTNode {
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
-      const childrenLen = children.length;
-      const firstChild = children[0];
+      const type = children[0] as FullySpecifiedType;
+      const ident = children[1] as BaseToken;
+      this.type = type;
+      const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
-      let dataType: GalaceanDataType;
-      let typeLexeme: string;
-      let idIndex: number;
-
-      if (firstChild instanceof TypeQualifier && children[1] instanceof MacroCallSymbol) {
-        // type_qualifier macro_call_symbol id [array_specifier] [= initializer]
-        dataType = TypeAny;
-        typeLexeme = (children[1] as MacroCallSymbol).macroName;
-        this.type = { type: TypeAny, typeSpecifier: { lexeme: typeLexeme } } as any;
-        idIndex = 2;
-      } else if (firstChild instanceof MacroCallSymbol) {
-        // macro_call_symbol id [array_specifier] [= initializer]
-        dataType = TypeAny;
-        typeLexeme = firstChild.macroName;
-        this.type = { type: TypeAny, typeSpecifier: { lexeme: typeLexeme } } as any;
-        idIndex = 1;
-      } else {
-        // fully_specified_type id [array_specifier] [= initializer]
-        const type = firstChild as FullySpecifiedType;
-        this.type = type;
-        dataType = type.type;
-        typeLexeme = type.typeSpecifier.lexeme;
-        idIndex = 1;
-      }
-
-      const ident = children[idIndex] as BaseToken;
-      const sm = new VarSymbol(ident.lexeme, new SymbolType(dataType, typeLexeme), true, this);
       sa.symbolTableStack.insert(sm);
 
-      const afterId = childrenLen - idIndex - 1;
-      this.isStatic = afterId >= 2;
+      if (children.length === 4) {
+        this.isStatic = true;
+      }
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
