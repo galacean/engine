@@ -55,7 +55,6 @@ export class ShaderCompiler implements IShaderCompiler {
     backend: ShaderLanguage,
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
-    ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
     const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();

@@ -67,7 +67,6 @@ export class ShaderTargetParser {
     this.sematicAnalyzer.reset(macroDefineList);
     const start = performance.now();
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
-    traceBackStack.length = 0;
     traceBackStack.push(0);
 
     let nextToken = tokens.next();
