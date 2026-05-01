@@ -6,9 +6,9 @@ import { normalizePath } from "./utils";
 export interface ShaderPrecompileOptions {
   /** Directory containing `.shader` source files. */
   input: string;
-  /** Directory where `.gsp` outputs are written. */
+  /** Directory where `.shaderc` outputs are written. */
   output: string;
-  /** Remove `.gsp` whose source no longer exists. Default `true`. */
+  /** Remove `.shaderc` whose source no longer exists. Default `true`. */
   clean?: boolean;
   /** Emit an aggregated `<output>/index.ts`. Default `true`. */
   emitIndex?: boolean;
@@ -20,18 +20,18 @@ export interface ShaderPluginOptions {
   /**
    * Override the default include pattern.
    *
-   * The plugin always matches `.glsl`, `.shader`, and `.gsp` extensions; this
-   * option exists for advanced cases where the host bundler needs to gate by
-   * additional path constraints. Returning `false` skips a file.
+   * The plugin always matches `.glsl`, `.shader`, and `.shaderc` extensions;
+   * this option exists for advanced cases where the host bundler needs to
+   * gate by additional path constraints. Returning `false` skips a file.
    */
   filter?: (id: string) => boolean;
 
   /**
    * When set, the plugin runs an initial full precompile in `buildStart` and,
    * in watch mode, starts a background file watcher that incrementally
-   * regenerates `.gsp` outputs when `.shader` / `.glsl` files change. Without
-   * this option the plugin only does file-extension transforms — pre-compile
-   * must be triggered separately via the `shader-precompile` CLI.
+   * regenerates `.shaderc` outputs when `.shader` / `.glsl` files change.
+   * Without this option the plugin only does file-extension transforms —
+   * pre-compile must be triggered separately via the `shader-precompile` CLI.
    */
   precompile?: ShaderPrecompileOptions;
 }
@@ -39,10 +39,10 @@ export interface ShaderPluginOptions {
 /**
  * Rollup plugin that transforms shader assets into JS modules.
  *
- * - Always: transforms `.glsl` / `.shader` / `.gsp` files.
+ * - Always: transforms `.glsl` / `.shader` / `.shaderc` files.
  * - When `precompile` option is set: runs a full precompile in buildStart and,
  *   in watch mode, starts a background watcher that mirrors `.shader` source
- *   changes into `.gsp` outputs and refreshes the aggregated index.
+ *   changes into `.shaderc` outputs and refreshes the aggregated index.
  */
 export function shaderCompiler(options: ShaderPluginOptions = {}): Plugin {
   const { filter, precompile } = options;
@@ -72,7 +72,7 @@ export function shaderCompiler(options: ShaderPluginOptions = {}): Plugin {
 
     transform(code: string, id: string) {
       const normalized = normalizePath(id);
-      if (!normalized.match(/\.(glsl|shader|gsp)$/)) return null;
+      if (!normalized.match(/\.(glsl|shader|shaderc)$/)) return null;
       if (filter && !filter(normalized)) return null;
       // We omit `map` here (Rollup's `SourceDescription.map` is optional) — the
       // emitted source is a single literal so there's nothing meaningful to

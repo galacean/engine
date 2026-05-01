@@ -33,17 +33,17 @@ export function findFiles(dir: string, ext: string): string[] {
 }
 
 /**
- * Convert a relative .gsp path into a PascalCase variable name suffixed with `Source`.
+ * Convert a relative .shaderc path into a PascalCase variable name suffixed with `Source`.
  *
- * `PBR.gsp`              → `PBRSource`
- * `PostProcess/Uber.gsp` → `UberSource`
- * `2D/Sprite.gsp`        → `SpriteSource`
+ * `PBR.shaderc`              → `PBRSource`
+ * `PostProcess/Uber.shaderc` → `UberSource`
+ * `2D/Sprite.shaderc`        → `SpriteSource`
  *
  * Only the basename is used; nesting is ignored. The basename's first character
  * is upper-cased so kebab/snake basenames produce a valid identifier prefix.
  */
-export function gspPathToVarName(relPath: string): string {
-  const normalized = normalizePath(relPath).replace(/\.gsp$/, "");
+export function shadercPathToVarName(relPath: string): string {
+  const normalized = normalizePath(relPath).replace(/\.shaderc$/, "");
   const base = normalized.split("/").pop() ?? normalized;
   const cleaned = base.replace(/[^A-Za-z0-9]/g, "");
   if (cleaned.length === 0) return "Source";

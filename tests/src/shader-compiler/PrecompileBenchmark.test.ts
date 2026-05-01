@@ -253,7 +253,7 @@ describe("Precompile Benchmark", async () => {
       }
 
       console.log("\n=== JSON Serialize / Parse ===");
-      console.log("| Shader | .gsp Size | Stringify (ms) | Parse (ms) |");
+      console.log("| Shader | .shaderc Size | Stringify (ms) | Parse (ms) |");
       console.log("|--------|-----------|----------------|------------|");
       for (const r of results) {
         const sizeKB = (r.size / 1024).toFixed(1) + "KB";

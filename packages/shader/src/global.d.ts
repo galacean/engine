@@ -8,7 +8,7 @@ declare module "*.shader" {
   export default value;
 }
 
-declare module "*.gsp" {
+declare module "*.shaderc" {
   import { IPrecompiledShader } from "@galacean/engine-design";
   const value: IPrecompiledShader;
   export default value;

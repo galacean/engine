@@ -43,7 +43,7 @@ export class ShaderPool {
   }
 
   /**
-   * Register all built-in shaders from precompiled .gsp sources.
+   * Register all built-in shaders from precompiled .shaderc sources.
    */
   static registerShaders(): void {
     const sources = [

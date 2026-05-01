@@ -1,19 +1,19 @@
 import fs from "node:fs";
 import path from "node:path";
-import { findFiles, gspPathToVarName, normalizePath, pruneEmptyDirs } from "./utils";
+import { findFiles, shadercPathToVarName, normalizePath, pruneEmptyDirs } from "./utils";
 
 export interface PrecompileOptions {
   /** Absolute or relative path to the directory containing `.shader` sources. */
   input: string;
-  /** Absolute or relative path to the directory where `.gsp` outputs are written. */
+  /** Absolute or relative path to the directory where `.shaderc` outputs are written. */
   output: string;
-  /** Remove `.gsp` files whose `.shader` source no longer exists, and prune empty dirs. */
+  /** Remove `.shaderc` files whose `.shader` source no longer exists, and prune empty dirs. */
   clean?: boolean;
   /** Watch the input dir and re-run incrementally on `.shader` / `.glsl` changes. */
   watch?: boolean;
   /** Compile only this file (path may be relative to cwd). Skips full scan + cleanup. */
   only?: string;
-  /** Generate `<output>/index.ts` aggregating every `.gsp` file. */
+  /** Generate `<output>/index.ts` aggregating every `.shaderc` file. */
   emitIndex?: boolean;
   /** Optional shader platform target passed through to `_precompile`. Defaults to `0`. */
   platformTarget?: number;
@@ -66,8 +66,8 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
       if (!compileSingle(shaderCompiler, file, inputDir, outputDir, platformTarget)) failed++;
     }
     if (options.clean) {
-      const removed = cleanOrphanedGsp(shaderFiles, inputDir, outputDir);
-      if (removed > 0) console.log(`[shader-compiler-bundler] Cleaned ${removed} orphaned .gsp file(s).`);
+      const removed = cleanOrphanedBundles(shaderFiles, inputDir, outputDir);
+      if (removed > 0) console.log(`[shader-compiler-bundler] Cleaned ${removed} orphaned .shaderc file(s).`);
     }
     if (failed > 0) console.warn(`[shader-compiler-bundler] ${failed} shader(s) failed to precompile.`);
   }
@@ -102,7 +102,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
 
     if (!norm.endsWith(".shader")) return;
     if (!fs.existsSync(fullPath)) {
-      removeGspFor(fullPath, inputDir, outputDir);
+      removeBundleFor(fullPath, inputDir, outputDir);
     } else {
       compileSingle(shaderCompiler, fullPath, inputDir, outputDir, platformTarget);
     }
@@ -131,14 +131,14 @@ async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
 
 // Cold-start: returns `null` on a fresh CI checkout missing `dist/main.js`
 // so the rollup plugin can skip precompile and let the workspace build
-// produce the runtimes; a follow-up pass emits the .gsp outputs.
+// produce the runtimes; a follow-up pass emits the .shaderc outputs.
 async function tryLoadShaderCompiler(): Promise<ShaderCompilerInstance | null> {
   try {
     return await loadShaderCompiler();
   } catch (e) {
     const msg = (e as Error).message;
     console.warn(`[shader-compiler-bundler] Precompile skipped — runtime not yet built (${msg})`);
-    console.warn("[shader-compiler-bundler] Re-run after the workspace build to regenerate .gsp outputs.");
+    console.warn("[shader-compiler-bundler] Re-run after the workspace build to regenerate .shaderc outputs.");
     return null;
   }
 }
@@ -177,16 +177,16 @@ function compileSingle(
 ): boolean {
   const source = fs.readFileSync(shaderPath, "utf-8");
   const relativePath = normalizePath(path.relative(inputDir, shaderPath));
-  const gspRelative = relativePath.replace(/\.shader$/, ".gsp");
-  const gspPath = path.join(outputDir, gspRelative);
+  const bundleRelative = relativePath.replace(/\.shader$/, ".shaderc");
+  const bundlePath = path.join(outputDir, bundleRelative);
   const basePathForIncludeKey = new URL(relativePath, SHADER_ROOT_PATH).href;
 
-  fs.mkdirSync(path.dirname(gspPath), { recursive: true });
+  fs.mkdirSync(path.dirname(bundlePath), { recursive: true });
 
   try {
     const precompiled = shaderCompiler._precompile(source, platformTarget, basePathForIncludeKey);
-    fs.writeFileSync(gspPath, JSON.stringify(precompiled));
-    console.log(`  ${relativePath} -> ${gspRelative}`);
+    fs.writeFileSync(bundlePath, JSON.stringify(precompiled));
+    console.log(`  ${relativePath} -> ${bundleRelative}`);
     return true;
   } catch (e) {
     console.error(`  FAILED: ${relativePath}`);
@@ -195,29 +195,29 @@ function compileSingle(
   }
 }
 
-function cleanOrphanedGsp(shaderFiles: string[], inputDir: string, outputDir: string): number {
+function cleanOrphanedBundles(shaderFiles: string[], inputDir: string, outputDir: string): number {
   const aliveSet = new Set(shaderFiles.map((f) => normalizePath(path.relative(inputDir, f)).replace(/\.shader$/, "")));
-  const gspFiles = findFiles(outputDir, ".gsp");
+  const bundleFiles = findFiles(outputDir, ".shaderc");
   let removed = 0;
 
-  for (const gspFile of gspFiles) {
-    const rel = normalizePath(path.relative(outputDir, gspFile)).replace(/\.gsp$/, "");
+  for (const bundleFile of bundleFiles) {
+    const rel = normalizePath(path.relative(outputDir, bundleFile)).replace(/\.shaderc$/, "");
     if (!aliveSet.has(rel)) {
-      fs.unlinkSync(gspFile);
-      console.log(`  Removed orphaned: ${rel}.gsp`);
+      fs.unlinkSync(bundleFile);
+      console.log(`  Removed orphaned: ${rel}.shaderc`);
       removed++;
-      pruneEmptyDirs(path.dirname(gspFile), outputDir);
+      pruneEmptyDirs(path.dirname(bundleFile), outputDir);
     }
   }
   return removed;
 }
 
 function emitIndex(outputDir: string): void {
-  const gspFiles = findFiles(outputDir, ".gsp");
-  const entries = gspFiles
+  const bundleFiles = findFiles(outputDir, ".shaderc");
+  const entries = bundleFiles
     .map((file) => {
       const rel = normalizePath(path.relative(outputDir, file));
-      return { varName: gspPathToVarName(rel), importPath: `./${rel}` };
+      return { varName: shadercPathToVarName(rel), importPath: `./${rel}` };
     })
     .sort((a, b) => a.varName.localeCompare(b.varName));
 
@@ -234,12 +234,12 @@ function emitIndex(outputDir: string): void {
   }
 }
 
-function removeGspFor(shaderPath: string, inputDir: string, outputDir: string): void {
-  const rel = normalizePath(path.relative(inputDir, shaderPath)).replace(/\.shader$/, ".gsp");
-  const gspPath = path.join(outputDir, rel);
-  if (fs.existsSync(gspPath)) {
-    fs.unlinkSync(gspPath);
+function removeBundleFor(shaderPath: string, inputDir: string, outputDir: string): void {
+  const rel = normalizePath(path.relative(inputDir, shaderPath)).replace(/\.shader$/, ".shaderc");
+  const bundlePath = path.join(outputDir, rel);
+  if (fs.existsSync(bundlePath)) {
+    fs.unlinkSync(bundlePath);
     console.log(`  Removed: ${rel}`);
-    pruneEmptyDirs(path.dirname(gspPath), outputDir);
+    pruneEmptyDirs(path.dirname(bundlePath), outputDir);
   }
 }

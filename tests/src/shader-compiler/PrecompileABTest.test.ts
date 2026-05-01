@@ -1,5 +1,5 @@
 /**
- * A/B Test: Live ShaderCompiler compilation vs Precompiled (.gsp) path
+ * A/B Test: Live ShaderCompiler compilation vs Precompiled (.shaderc) path
  *
  * Tests verify:
  *   1. GLSL source identity: _parseShaderPass output === precompiled instructions evaluated with empty macros
@@ -7,7 +7,7 @@
  *   3. RenderState equivalence: constantMap/variableMap identical from both paths
  *   4. Tags & metadata: name, tags, platform, pass structure match
  *   5. Macro expansion: evaluateInstructions output matches live compilation and varies per macro combo
- *   6. Full .gsp round-trip: JSON stringify → parse → create ShaderPass → WebGL compile
+ *   6. Full .shaderc round-trip: JSON stringify → parse → create ShaderPass → WebGL compile
  */
 
 import { Shader, ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
@@ -294,9 +294,9 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   });
 
   // ═══════════════════════════════════════════════════════════
-  // A/B 3: Full .gsp round-trip → WebGL
+  // A/B 3: Full .shaderc round-trip → WebGL
   // ═══════════════════════════════════════════════════════════
-  describe("A/B: Full .gsp round-trip → WebGL", () => {
+  describe("A/B: Full .shaderc round-trip → WebGL", () => {
     function validateGspRoundTrip(
       source: string,
       platform: ShaderLanguage,
@@ -320,34 +320,34 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
           // @ts-ignore
           const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
-          expect(program.isValid, `.gsp round-trip pass "${pass.name}" should compile`).toBe(true);
+          expect(program.isValid, `.shaderc round-trip pass "${pass.name}" should compile`).toBe(true);
         }
       }
     }
 
-    it("PBR: .gsp → WebGL (base macros)", () => {
+    it("PBR: .shaderc → WebGL (base macros)", () => {
       validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, baseMacros);
     });
 
-    it("PBR: .gsp → WebGL (material variant macros)", () => {
+    it("PBR: .shaderc → WebGL (material variant macros)", () => {
       validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...materialVariantMacros]);
     });
 
-    it("PBR: .gsp → WebGL (clear coat)", () => {
+    it("PBR: .shaderc → WebGL (clear coat)", () => {
       validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [...baseMacros, ...clearCoatMacros]);
     });
 
-    it("PBR: .gsp → WebGL (shadow cascades 4)", () => {
+    it("PBR: .shaderc → WebGL (shadow cascades 4)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_SHADOW_CASCADED_COUNT" ? { ...m, value: "4" } : m));
       validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, macros);
     });
 
-    it("PBR: .gsp → WebGL (fog mode 2)", () => {
+    it("PBR: .shaderc → WebGL (fog mode 2)", () => {
       const macros = baseMacros.map((m) => (m.name === "SCENE_FOG_MODE" ? { ...m, value: "2" } : m));
       validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, macros);
     });
 
-    it("PBR: .gsp → WebGL (textures + tangent + alpha cutoff)", () => {
+    it("PBR: .shaderc → WebGL (textures + tangent + alpha cutoff)", () => {
       validateGspRoundTrip(PBRSource, ShaderLanguage.GLSLES100, [
         ...baseMacros,
         ...textureMacros,
@@ -358,7 +358,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
 
     const simpleShaders = ["noFragArgs.shader", "waterfull.shader", "mrt-struct.shader"];
     for (const file of simpleShaders) {
-      it(`${file}: .gsp → WebGL`, async () => {
+      it(`${file}: .shaderc → WebGL`, async () => {
         const source = await readFile(`./shaders/${file}`);
         validateGspRoundTrip(source, ShaderLanguage.GLSLES100, baseMacros);
       });
