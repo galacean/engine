@@ -1,4 +1,4 @@
-import { Engine, Shader, ShaderMacro, ShaderMacroCollection, ShaderPass, ShaderLanguage } from "@galacean/engine-core";
+import { Engine, Shader, ShaderFactory, ShaderMacro, ShaderMacroCollection, ShaderPass, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { expect } from "vitest";
 
@@ -23,6 +23,8 @@ export function glslValidate(
   extraMacroList: { name: string; value?: string }[] = []
 ) {
   const shaderCompiler: ShaderCompiler = _shaderCompiler ?? new ShaderCompiler();
+  // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
+  shaderCompiler._includeMap = ShaderFactory._includeMap;
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 

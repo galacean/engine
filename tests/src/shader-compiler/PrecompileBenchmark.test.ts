@@ -2,7 +2,7 @@
  * Precompile Benchmark — performance comparison between old and new paths
  */
 
-import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import { Shader, ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -123,6 +123,8 @@ function uid(base: string) {
 describe("Precompile Benchmark", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
+  // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
+  shaderCompiler._includeMap = ShaderFactory._includeMap;
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 

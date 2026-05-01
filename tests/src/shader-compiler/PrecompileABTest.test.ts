@@ -10,7 +10,7 @@
  *   6. Full .gsp round-trip: JSON stringify → parse → create ShaderPass → WebGL compile
  */
 
-import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import { Shader, ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
@@ -106,6 +106,8 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   const engine = await WebGLEngine.create({ canvas });
   const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
 
+  // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
+  shaderCompiler._includeMap = ShaderFactory._includeMap;
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 
