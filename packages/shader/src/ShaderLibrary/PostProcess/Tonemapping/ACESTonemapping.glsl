@@ -1,9 +1,9 @@
 #ifndef ACES_TONEMAPPING
 #define ACES_TONEMAPPING
 
-#include "PostProcess/Tonemapping/ACES/ColorTransform.glsl"
-#include "PostProcess/Tonemapping/ACES/RRT.glsl"
-#include "PostProcess/Tonemapping/ACES/ODT.glsl"
+#include "ShaderLibrary/PostProcess/Tonemapping/ACES/ColorTransform.glsl"
+#include "ShaderLibrary/PostProcess/Tonemapping/ACES/RRT.glsl"
+#include "ShaderLibrary/PostProcess/Tonemapping/ACES/ODT.glsl"
 
 vec3 ACESTonemap(vec3 color){
     vec3 aces = sRGB_2_AP0 * color;

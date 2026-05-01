@@ -10,7 +10,7 @@ Shader "Sky/BackgroundTexture" {
       VertexShader = BackgroundTextureVertex;
       FragmentShader = BackgroundTextureFragment;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       struct Attributes {
         vec3 POSITION;

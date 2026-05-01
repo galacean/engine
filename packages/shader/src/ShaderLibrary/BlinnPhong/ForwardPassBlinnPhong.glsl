@@ -1,15 +1,15 @@
 #ifndef FORWARD_PASS_BLINNPHONG_INCLUDED
 #define FORWARD_PASS_BLINNPHONG_INCLUDED
 
-#include "Common/Common.glsl"
-#include "Common/Fog.glsl"
-#include "Common/Transform.glsl"
-#include "Common/Attributes.glsl"
-#include "Skin/Skin.glsl"
-#include "Skin/BlendShape.glsl"
-#include "Shadow/Shadow.glsl"
-#include "Common/MobileBlinnPhong.glsl"
-#include "Common/ViewDirection.glsl"
+#include "ShaderLibrary/Common/Common.glsl"
+#include "ShaderLibrary/Common/Fog.glsl"
+#include "ShaderLibrary/Common/Transform.glsl"
+#include "ShaderLibrary/Common/Attributes.glsl"
+#include "ShaderLibrary/Skin/Skin.glsl"
+#include "ShaderLibrary/Skin/BlendShape.glsl"
+#include "ShaderLibrary/Shadow/Shadow.glsl"
+#include "ShaderLibrary/Common/MobileBlinnPhong.glsl"
+#include "ShaderLibrary/Common/ViewDirection.glsl"
 
 vec4 material_TilingOffset;
 

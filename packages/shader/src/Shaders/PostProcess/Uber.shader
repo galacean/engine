@@ -9,8 +9,8 @@ Shader "PostProcess/Uber" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/BlitVertex.glsl"
-      #include "PostProcess/UberPost.glsl"
+      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/PostProcess/UberPost.glsl"
     }
   }
 }

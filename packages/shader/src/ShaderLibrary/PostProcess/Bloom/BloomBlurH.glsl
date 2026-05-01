@@ -1,7 +1,7 @@
 #ifndef BLOOM_BLUR_H
 #define BLOOM_BLUR_H
 
-#include "PostProcess/PostCommon.glsl"
+#include "ShaderLibrary/PostProcess/PostCommon.glsl"
 
 mediump sampler2D renderer_BlitTexture;
 vec4 renderer_texelSize;

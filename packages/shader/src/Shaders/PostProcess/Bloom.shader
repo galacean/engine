@@ -9,8 +9,8 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/BlitVertex.glsl"
-      #include "PostProcess/Bloom/BloomPrefilter.glsl"
+      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl"
     }
 
     Pass "Bloom Blur Horizontal" {
@@ -22,8 +22,8 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/BlitVertex.glsl"
-      #include "PostProcess/Bloom/BloomBlurH.glsl"
+      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/PostProcess/Bloom/BloomBlurH.glsl"
     }
 
     Pass "Bloom Blur Vertical" {
@@ -35,8 +35,8 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/BlitVertex.glsl"
-      #include "PostProcess/Bloom/BloomBlurV.glsl"
+      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/PostProcess/Bloom/BloomBlurV.glsl"
     }
 
     Pass "Bloom Upsample" {
@@ -48,8 +48,8 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/BlitVertex.glsl"
-      #include "PostProcess/Bloom/BloomUpsample.glsl"
+      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl"
     }
   }
 }

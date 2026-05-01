@@ -1,9 +1,9 @@
 #ifndef MOBILE_BLINNPHONG_INCLUDED
 #define MOBILE_BLINNPHONG_INCLUDED
 
-#include "Common/Common.glsl"
-#include "Common/Light.glsl"
-#include "Common/Normal.glsl"
+#include "ShaderLibrary/Common/Common.glsl"
+#include "ShaderLibrary/Common/Light.glsl"
+#include "ShaderLibrary/Common/Normal.glsl"
 
 // Material uniforms
 vec4 material_EmissiveColor;

@@ -3,8 +3,8 @@
 
 #ifdef RENDERER_NOISE_MODULE_ENABLED
 
-#include "Noise/NoiseCommon.glsl"
-#include "Noise/NoiseSimplexGrad.glsl"
+#include "ShaderLibrary/Noise/NoiseCommon.glsl"
+#include "ShaderLibrary/Noise/NoiseSimplexGrad.glsl"
 
 vec4 renderer_NoiseParams; // xyz = strength (constant mode only), w = frequency
 vec4 renderer_NoiseOctaveParams; // x = scrollSpeed, y = octaveCount, z = octaveIntensityMultiplier, w = octaveFrequencyMultiplier

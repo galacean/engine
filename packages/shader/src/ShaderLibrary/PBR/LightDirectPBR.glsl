@@ -18,9 +18,9 @@
     #define FUNCTION_SHEEN_LOBE sheenLobe
 #endif
 
-#include "PBR/BSDF.glsl"
-#include "Common/Light.glsl"
-#include "PBR/ReflectionLobe.glsl"
+#include "ShaderLibrary/PBR/BSDF.glsl"
+#include "ShaderLibrary/Common/Light.glsl"
+#include "ShaderLibrary/PBR/ReflectionLobe.glsl"
 
 void surfaceShading(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, vec3 incidentDirection, vec3 lightColor, inout vec3 totalDiffuseColor, inout vec3 totalSpecularColor) {
 

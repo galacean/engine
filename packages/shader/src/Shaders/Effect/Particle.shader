@@ -49,7 +49,7 @@ Shader "Effect/Particle" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       // Uniforms
       float renderer_CurrentTime;
@@ -138,14 +138,14 @@ Shader "Effect/Particle" {
       };
 
       // Particle module includes (must be after Attributes/Varyings declarations)
-      #include "Particle/ParticleCommon.glsl"
-      #include "Particle/Module/VelocityOverLifetime.glsl"
-      #include "Particle/Module/ForceOverLifetime.glsl"
-      #include "Particle/Module/ColorOverLifetime.glsl"
-      #include "Particle/Module/SizeOverLifetime.glsl"
-      #include "Particle/Module/RotationOverLifetime.glsl"
-      #include "Particle/Module/TextureSheetAnimation.glsl"
-      #include "Particle/Module/LimitVelocityOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/ParticleCommon.glsl"
+      #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/ColorOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/SizeOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/RotationOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl"
+      #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
 
       vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
           vec3 startPosition = startVelocity * age;

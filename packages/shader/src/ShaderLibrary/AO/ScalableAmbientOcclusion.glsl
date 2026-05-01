@@ -6,7 +6,7 @@
 // "Scalable Ambient Obscurance" by Morgan McGuire, Michael Mara and David Luebke
 // https://research.nvidia.com/sites/default/files/pubs/2012-06_Scalable-Ambient-Obscurance/McGuire12SAO.pdf
 
-#include "Common/Common.glsl"
+#include "ShaderLibrary/Common/Common.glsl"
 
 vec4 renderer_texelSize;    // x: 1/width, y: 1/height, z: width, w: height
 highp sampler2D renderer_BlitTexture; // Camera_DepthTexture

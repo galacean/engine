@@ -1,7 +1,7 @@
 #ifndef BILATERAL_BLUR_INCLUDED
 #define BILATERAL_BLUR_INCLUDED
 
-#include "Common/Common.glsl"
+#include "ShaderLibrary/Common/Common.glsl"
 
 sampler2D renderer_BlitTexture;
 vec4 renderer_SourceScaleOffset;

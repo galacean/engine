@@ -30,7 +30,7 @@ Shader "Sky/SkyProcedural" {
       VertexShader = SkyProceduralVertex;
       FragmentShader = SkyProceduralFragment;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       #define OUTER_RADIUS 1.025
       #define RAYLEIGH (mix(0.0, 0.0025, pow(material_AtmosphereThickness, 2.5)))

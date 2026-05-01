@@ -70,7 +70,7 @@ Shader "BlinnPhong" {
       VertexShader = BlinnPhongVertex;
       FragmentShader = BlinnPhongFragment;
 
-      #include "BlinnPhong/ForwardPassBlinnPhong.glsl"
+      #include "ShaderLibrary/BlinnPhong/ForwardPassBlinnPhong.glsl"
     }
   }
 }

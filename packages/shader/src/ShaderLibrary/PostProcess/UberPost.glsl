@@ -1,10 +1,10 @@
 #ifndef UBER_POST
 #define UBER_POST
 
-#include "PostProcess/PostCommon.glsl"
-#include "PostProcess/Filtering.glsl"
-#include "PostProcess/Tonemapping/NeutralTonemapping.glsl"
-#include "PostProcess/Tonemapping/ACESTonemapping.glsl"
+#include "ShaderLibrary/PostProcess/PostCommon.glsl"
+#include "ShaderLibrary/PostProcess/Filtering.glsl"
+#include "ShaderLibrary/PostProcess/Tonemapping/NeutralTonemapping.glsl"
+#include "ShaderLibrary/PostProcess/Tonemapping/ACESTonemapping.glsl"
 
 mediump sampler2D renderer_BlitTexture;
 vec4 renderer_texelSize;

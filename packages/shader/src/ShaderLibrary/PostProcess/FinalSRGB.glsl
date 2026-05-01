@@ -1,7 +1,7 @@
 #ifndef FINAL_SRGB
 #define FINAL_SRGB
 
-#include "Common/Common.glsl"
+#include "ShaderLibrary/Common/Common.glsl"
 
 mediump sampler2D renderer_BlitTexture;
 

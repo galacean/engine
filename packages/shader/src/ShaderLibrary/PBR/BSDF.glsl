@@ -1,7 +1,7 @@
 #ifndef BSDF_INCLUDED
 #define BSDF_INCLUDED
 
-#include "PBR/Refraction.glsl"
+#include "ShaderLibrary/PBR/Refraction.glsl"
 
 #define MIN_PERCEPTUAL_ROUGHNESS 0.045
 #define MIN_ROUGHNESS            0.002025

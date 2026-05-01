@@ -1,7 +1,7 @@
 #ifndef MATERIAL_INPUT_PBR_INCLUDED
 #define MATERIAL_INPUT_PBR_INCLUDED
 
-#include "Common/Normal.glsl"
+#include "ShaderLibrary/Common/Normal.glsl"
 
 float material_AlphaCutoff;
 vec4 material_BaseColor;

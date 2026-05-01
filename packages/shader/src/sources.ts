@@ -1,24 +1,12 @@
 /**
- * Raw .shader source strings for editor use (contains Editor properties, preserves formatting).
+ * Raw shader sources for editor use — both `.shader` template strings (preserve
+ * formatting and Editor properties) and the chunk library (raw `.glsl` strings
+ * the editor exposes / clones as user-editable assets). Each entry carries the
+ * file path relative to `packages/shader/src/` so the editor can mirror the
+ * directory structure when displaying built-in assets.
+ *
  * Import from "@galacean/engine-shader/sources".
  */
-import PBRSource from "./Shaders/PBR.shader";
 
-import BlinnPhongSource from "./Shaders/BlinnPhong.shader";
-import UnlitSource from "./Shaders/Unlit.shader";
-import ParticleSource from "./Shaders/Effect/Particle.shader";
-import TrailSource from "./Shaders/Effect/Trail.shader";
-import SpriteSource from "./Shaders/2D/Sprite.shader";
-import SkyboxSource from "./Shaders/Sky/Skybox.shader";
-import SkyProceduralSource from "./Shaders/Sky/SkyProcedural.shader";
-
-export {
-  PBRSource,
-  BlinnPhongSource,
-  UnlitSource,
-  ParticleSource,
-  TrailSource,
-  SpriteSource,
-  SkyboxSource,
-  SkyProceduralSource
-};
+export { shaderLibrary } from "./ShaderLibrary";
+export * from "./Shaders";

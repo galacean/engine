@@ -124,7 +124,7 @@ Shader "PBR" {
         VertexShader = PBRVertex;
         FragmentShader = PBRFragment;
 
-        #include "PBR/ForwardPassPBR.glsl"
+        #include "ShaderLibrary/PBR/ForwardPassPBR.glsl"
       }
     }
   }

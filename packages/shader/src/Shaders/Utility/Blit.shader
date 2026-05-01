@@ -11,7 +11,7 @@ Shader "Utility/Blit" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       mediump sampler2D renderer_BlitTexture;
       #ifdef HAS_TEX_LOD

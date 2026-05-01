@@ -15,7 +15,7 @@
     #define FUNCTION_SHEEN_IBL evaluateSheenIBL
 #endif
 
-#include "PBR/LightIndirectFunctions.glsl"
+#include "ShaderLibrary/PBR/LightIndirectFunctions.glsl"
 
 // ------------------------Diffuse------------------------
 

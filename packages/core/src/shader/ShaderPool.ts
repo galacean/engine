@@ -1,5 +1,5 @@
 import {
-  fragmentList,
+  shaderLibrary,
   PBRSource,
   BlinnPhongSource,
   UnlitSource,
@@ -36,9 +36,9 @@ export class ShaderPool {
   static particleFeedbackPass: ShaderPass;
 
   static init(): void {
-    // Register all include fragments (does not require the shader compiler)
-    for (const fragment of fragmentList) {
-      ShaderFactory.registerInclude(fragment.includeKey, fragment.source);
+    // Register every entry of the built-in shader library so `#include` can resolve them.
+    for (const item of shaderLibrary) {
+      ShaderFactory.registerInclude(item.includeKey, item.source);
     }
   }
 

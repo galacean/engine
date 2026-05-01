@@ -1,8 +1,8 @@
 #ifndef BLOOM_UPSAMPLE
 #define BLOOM_UPSAMPLE
 
-#include "PostProcess/PostCommon.glsl"
-#include "PostProcess/Filtering.glsl"
+#include "ShaderLibrary/PostProcess/PostCommon.glsl"
+#include "ShaderLibrary/PostProcess/Filtering.glsl"
 
 mediump sampler2D renderer_BlitTexture;
 mediump sampler2D material_lowMipTexture;

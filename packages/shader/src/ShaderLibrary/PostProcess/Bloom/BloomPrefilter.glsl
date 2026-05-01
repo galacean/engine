@@ -1,7 +1,7 @@
 #ifndef BLOOM_PREFILTER
 #define BLOOM_PREFILTER
 
-#include "PostProcess/PostCommon.glsl"
+#include "ShaderLibrary/PostProcess/PostCommon.glsl"
 
 mediump sampler2D renderer_BlitTexture;
 vec4 material_BloomParams;

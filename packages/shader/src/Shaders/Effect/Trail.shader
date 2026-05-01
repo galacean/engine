@@ -49,8 +49,8 @@ Shader "Effect/Trail" {
       VertexShader = TrailVertex;
       FragmentShader = TrailFragment;
 
-      #include "Common/Common.glsl"
-      #include "Particle/ParticleCommon.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
+      #include "ShaderLibrary/Particle/ParticleCommon.glsl"
 
       struct a2v {
         vec4 a_PositionBirthTime;

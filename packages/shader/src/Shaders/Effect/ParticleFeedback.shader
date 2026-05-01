@@ -6,7 +6,7 @@ Shader "Effect/ParticleFeedback" {
       VertexShader = main;
       FragmentShader = frag;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       // Uniforms
       float renderer_CurrentTime;
@@ -44,11 +44,11 @@ Shader "Effect/ParticleFeedback" {
       };
 
       // Module includes (after Attributes/Varyings)
-      #include "Particle/ParticleCommon.glsl"
-      #include "Particle/Module/VelocityOverLifetime.glsl"
-      #include "Particle/Module/ForceOverLifetime.glsl"
-      #include "Particle/Module/LimitVelocityOverLifetime.glsl"
-      #include "Particle/Module/NoiseModule.glsl"
+      #include "ShaderLibrary/Particle/ParticleCommon.glsl"
+      #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
+      #include "ShaderLibrary/Particle/Module/NoiseModule.glsl"
 
       // Get VOL instantaneous velocity at normalizedAge
       vec3 getVOLVelocity(Attributes attributes, float normalizedAge) {

@@ -1,2 +1,2 @@
-export { fragmentList } from "./ShaderLibrary";
-export * from "../compiled";
+export { shaderLibrary } from "./ShaderLibrary";
+export * from "../compiledShaders";

@@ -9,8 +9,8 @@ Shader "PostProcess/FinalAntiAliasing" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/BlitVertex.glsl"
-      #include "PostProcess/FinalAntiAliasing.glsl"
+      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/PostProcess/FinalAntiAliasing.glsl"
     }
   }
 }

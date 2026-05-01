@@ -6,7 +6,7 @@
 // Curl noise: Robert Bridson et al., "Curl-noise for procedural fluid flow" (2007).
 // GLSL implementation: Ian McEwan, Ashima Arts (MIT License) — https://github.com/ashima/webgl-noise
 
-#include "Noise/NoiseCommon.glsl"
+#include "ShaderLibrary/Noise/NoiseCommon.glsl"
 
 vec3 simplexGrad( vec3 v ) {
 

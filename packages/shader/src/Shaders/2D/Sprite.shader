@@ -21,7 +21,7 @@ Shader "2D/Sprite" {
       VertexShader = SpriteVertex;
       FragmentShader = SpriteFragment;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       struct a2v {
         vec3 POSITION;

@@ -23,7 +23,7 @@ Shader "2D/UIDefault" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       mat4 renderer_MVPMat;
       sampler2D renderer_UITexture;
