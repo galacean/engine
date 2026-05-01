@@ -24,7 +24,7 @@ export function glslValidate(
 ) {
   const shaderCompiler: ShaderCompiler = _shaderCompiler ?? new ShaderCompiler();
   // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
-  shaderCompiler._includeMap = ShaderFactory._includeMap;
+  shaderCompiler._includeMap = ShaderFactory.includeMap;
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 

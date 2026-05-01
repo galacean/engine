@@ -23,7 +23,7 @@ import {
   BloomSource,
   ScalableAmbientOcclusionSource
 } from "@galacean/engine-shader";
-import { ShaderFactory } from "../shaderlib/ShaderFactory";
+import { ShaderFactory } from "./ShaderFactory";
 import { Shader } from "./Shader";
 import { ShaderPass } from "./ShaderPass";
 

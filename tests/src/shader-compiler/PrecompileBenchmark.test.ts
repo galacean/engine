@@ -124,7 +124,7 @@ describe("Precompile Benchmark", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
   // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
-  shaderCompiler._includeMap = ShaderFactory._includeMap;
+  shaderCompiler._includeMap = ShaderFactory.includeMap;
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 

@@ -107,7 +107,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
 
   // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
-  shaderCompiler._includeMap = ShaderFactory._includeMap;
+  shaderCompiler._includeMap = ShaderFactory.includeMap;
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 

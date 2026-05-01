@@ -21,7 +21,7 @@ export class ShaderCompiler implements IShaderCompiler {
 
   /**
    * `#include` lookup table. Defaults to an empty map; runtime callers (engine
-   * `Shader.create` flow) bind it to `ShaderFactory._includeMap` so the runtime
+   * `Shader.create` flow) bind it to `ShaderFactory.includeMap` so the runtime
    * include registry stays the source of truth. Build-time callers (the
    * bundler) bind it to a freshly-scanned src map so chunk path renames take
    * effect on the next precompile without rebuilding any package.

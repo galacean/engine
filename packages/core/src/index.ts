@@ -60,7 +60,6 @@ export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";
 export * from "./2d/index";
-export * from "./shaderlib/index";
 export * from "./animation/index";
 export * from "./mesh/index";
 export * from "./sky/index";

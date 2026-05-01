@@ -11,6 +11,7 @@ export { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";
 export { ShaderData } from "./ShaderData";
+export { ShaderFactory } from "./ShaderFactory";
 export { ShaderMacro } from "./ShaderMacro";
 export { ShaderPass } from "./ShaderPass";
 export { ShaderProperty } from "./ShaderProperty";

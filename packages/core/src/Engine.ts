@@ -34,7 +34,7 @@ import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
-import { ShaderFactory } from "./shaderlib/ShaderFactory";
+import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
 import { UIUtils } from "./ui/UIUtils";
@@ -641,7 +641,7 @@ export class Engine extends EventDispatcher {
       // binding has to be wired here at the runtime boundary.
       // @ts-ignore — `_includeMap` is shader-compiler @internal; `_includeMap`
       // is `ShaderFactory` @internal. Both intentionally cross-package wired.
-      shaderCompiler._includeMap = ShaderFactory._includeMap;
+      shaderCompiler._includeMap = ShaderFactory.includeMap;
       Shader._shaderCompiler = shaderCompiler;
     }
 

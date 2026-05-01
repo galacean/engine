@@ -20,7 +20,7 @@ import { vi, describe, expect, it } from "vitest";
 
 const shaderCompiler = new ShaderCompiler();
 // @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
-shaderCompiler._includeMap = ShaderFactory._includeMap;
+shaderCompiler._includeMap = ShaderFactory.includeMap;
 // @ts-ignore
 Shader._shaderCompiler = shaderCompiler;
 

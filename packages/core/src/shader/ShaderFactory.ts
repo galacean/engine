@@ -1,8 +1,13 @@
-import { Logger } from "../base/Logger";
-
+/**
+ * @internal
+ * Engine-internal shader registry and GLSL utilities. Holds the
+ * `#include` lookup table the runtime preprocessor reads, and the
+ * GLSL ES 100 → 300 syntax converter the WebGL2 path uses.
+ */
 export class ShaderFactory {
-  /** @internal */
-  static readonly _shaderExtension = [
+  static readonly includeMap: Record<string, string> = {};
+
+  static readonly shaderExtension = [
     "GL_EXT_shader_texture_lod",
     "GL_OES_standard_derivatives",
     "GL_EXT_draw_buffers",
@@ -11,49 +16,22 @@ export class ShaderFactory {
     .map((e) => `#extension ${e} : enable\n`)
     .join("");
 
-  private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
-  /** @internal Direct map access for engine-internal `_includeMap` binding into ShaderCompiler. */
-  static readonly _includeMap: Record<string, string> = {};
+  // [layout(location = 0)] out [highp] vec4 [color];
+  private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/;
 
-  static registerInclude(includeName: string, includeSource: string) {
-    if (ShaderFactory._includeMap[includeName]) {
+  static registerInclude(includeName: string, includeSource: string): void {
+    if (ShaderFactory.includeMap[includeName]) {
       throw `The "${includeName}" shader include already exist`;
     }
-    ShaderFactory._includeMap[includeName] = includeSource;
-  }
-
-  static unRegisterInclude(includeName: string) {
-    delete ShaderFactory._includeMap[includeName];
-  }
-
-  static getInclude(includeName: string): string | undefined {
-    return ShaderFactory._includeMap[includeName];
-  }
-
-  /**
-   * @param regex Supports both `#include <path>` and `#include "path"` syntax.
-   */
-  static parseIncludes(src: string, regex = /^[ \t]*#include +[<"]([\w\d./]+)[>"]/gm) {
-    function replace(match, slice) {
-      var replace = ShaderFactory._includeMap[slice];
-
-      if (replace === undefined) {
-        Logger.error(`Shader slice "${match.trim()}" not founded.`);
-        return "";
-      }
-
-      return ShaderFactory.parseIncludes(replace, regex);
-    }
-
-    return src.replace(regex, replace);
+    ShaderFactory.includeMap[includeName] = includeSource;
   }
 
   /**
    * Convert lower GLSL version to GLSL 300 es.
    * @param shader - code
    * @param isFrag - Whether it is a fragment shader.
-   * */
-  static convertTo300(shader: string, isFrag?: boolean) {
+   */
+  static convertTo300(shader: string, isFrag?: boolean): string {
     shader = shader.replace(/\bvarying\b/g, isFrag ? "in" : "out");
     shader = shader.replace(/\btexture(2D|Cube)\b/g, "texture");
     shader = shader.replace(/\btexture2DProj\b/g, "textureProj");
@@ -65,12 +43,12 @@ export class ShaderFactory {
     if (isFrag) {
       shader = shader.replace(/\bgl_FragDepthEXT\b/g, "gl_FragDepth");
 
-      if (!ShaderFactory._has300Output(shader)) {
+      if (!ShaderFactory._has300OutInFragReg.test(shader)) {
         const isMRT = /\bgl_FragData\[.+?\]/g.test(shader);
         if (isMRT) {
           shader = shader.replace(/\bgl_FragColor\b/g, "gl_FragData[0]");
           const result = shader.match(/\bgl_FragData\[.+?\]/g);
-          shader = this._replaceMRTShader(shader, result);
+          shader = ShaderFactory._replaceMRTShader(shader, result);
         } else {
           shader = "out vec4 glFragColor;\n" + shader;
           shader = shader.replace(/\bgl_FragColor\b/g, "glFragColor");
@@ -81,10 +59,6 @@ export class ShaderFactory {
     }
 
     return shader;
-  }
-
-  private static _has300Output(fragmentShader: string): boolean {
-    return ShaderFactory._has300OutInFragReg.test(fragmentShader);
   }
 
   private static _replaceMRTShader(shader: string, result: string[]): string {

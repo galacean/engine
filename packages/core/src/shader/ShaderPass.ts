@@ -2,7 +2,7 @@ import type { ShaderInstruction } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
-import { ShaderFactory } from "../shaderlib";
+import { ShaderFactory } from "./ShaderFactory";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
@@ -156,7 +156,7 @@ export class ShaderPass extends ShaderPart {
         ${vertexSource}
       `,
       fragmentSource: ` ${versionStr}
-        ${isWebGL2 ? "" : ShaderFactory._shaderExtension}
+        ${isWebGL2 ? "" : ShaderFactory.shaderExtension}
         ${precisionStr}
         ${fragmentSource}
       `
