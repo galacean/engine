@@ -75,7 +75,7 @@ const customStencilShaderSource = `Shader "CustomStencilSprite" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "Common/Common.glsl"
+      #include "ShaderLibrary/Common/Common.glsl"
 
       struct Attributes {
         vec3 POSITION;

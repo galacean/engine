@@ -109,11 +109,11 @@ function initShader() {
         Pass "Forward" {
           Tags { pipelineStage = "Forward", ReplacementTag = "transparent" }
 
-          #include "Common/Common.glsl"
-          #include "Common/Transform.glsl"
-          #include "Common/Attributes.glsl"
-          #include "Skin/Skin.glsl"
-          #include "Skin/BlendShape.glsl"
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          #include "ShaderLibrary/Skin/Skin.glsl"
+          #include "ShaderLibrary/Skin/BlendShape.glsl"
 
           struct Varyings {
             vec3 v_normal;
@@ -168,11 +168,11 @@ function initShader() {
         Pass "Forward" {
           Tags { pipelineStage = "Forward", ReplacementTag = "transparent" }
 
-          #include "Common/Common.glsl"
-          #include "Common/Transform.glsl"
-          #include "Common/Attributes.glsl"
-          #include "Skin/Skin.glsl"
-          #include "Skin/BlendShape.glsl"
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          #include "ShaderLibrary/Skin/Skin.glsl"
+          #include "ShaderLibrary/Skin/BlendShape.glsl"
 
           sampler2D u_UVCheckTexture;
 

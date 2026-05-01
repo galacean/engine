@@ -54,12 +54,12 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
           }
           RenderQueueType = renderQueueType;
 
-          #include "Common/Common.glsl"
-          #include "Common/Transform.glsl"
-          #include "Common/Fog.glsl"
-          #include "Common/Attributes.glsl"
-          #include "Skin/Skin.glsl"
-          #include "Skin/BlendShape.glsl"
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Fog.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          #include "ShaderLibrary/Skin/Skin.glsl"
+          #include "ShaderLibrary/Skin/BlendShape.glsl"
 
           sampler2D camera_OpaqueTexture;
 
