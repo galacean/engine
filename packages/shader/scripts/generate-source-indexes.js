@@ -55,8 +55,11 @@ function generateLibrary() {
   lines.push("  source: string;");
   lines.push("}");
   lines.push("");
+  lines.push("// prettier-ignore");
   lines.push("export const shaderLibrary: IShaderLibraryItem[] = [");
-  includeKeys.forEach((key, i) => lines.push(`  { source: ${ids[i]}, includeKey: ${JSON.stringify(key)} },`));
+  includeKeys.forEach((key, i) =>
+    lines.push(`  { source: ${ids[i]}, includeKey: ${JSON.stringify(key)} },`)
+  );
   lines.push("];");
   lines.push("");
 
@@ -88,6 +91,7 @@ function generateShaders() {
   lines.push("  source: string;");
   lines.push("}");
   lines.push("");
+  lines.push("// prettier-ignore");
   lines.push("export const shaders: IShaderSource[] = [");
   paths.forEach((p, i) => lines.push(`  { source: ${ids[i]}, path: ${JSON.stringify(p)} },`));
   lines.push("];");

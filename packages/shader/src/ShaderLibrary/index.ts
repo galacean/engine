@@ -71,6 +71,7 @@ interface IShaderLibraryItem {
   source: string;
 }
 
+// prettier-ignore
 export const shaderLibrary: IShaderLibraryItem[] = [
   { source: AO_BilateralBlur, includeKey: "ShaderLibrary/AO/BilateralBlur.glsl" },
   { source: AO_ScalableAmbientOcclusion, includeKey: "ShaderLibrary/AO/ScalableAmbientOcclusion.glsl" },

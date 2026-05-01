@@ -29,6 +29,7 @@ interface IShaderSource {
   source: string;
 }
 
+// prettier-ignore
 export const shaders: IShaderSource[] = [
   { source: _2D_Sprite, path: "Shaders/2D/Sprite.shader" },
   { source: _2D_SpriteMask, path: "Shaders/2D/SpriteMask.shader" },
