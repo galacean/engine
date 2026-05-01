@@ -27,14 +27,14 @@ highp sampler2D renderer_BlitTexture; // Camera_DepthTexture
     const vec2 angleIncCosSin = vec2(-0.966846, 0.255311);
 #endif
 
-float material_invRadiusSquared;
-float material_minHorizonAngleSineSquared;
-float material_intensity;
+float material_invRadiusSquared; // Inverse of the squared radius
+float material_minHorizonAngleSineSquared; // Minimum horizon angle sine squared
+float material_intensity; // Intensity of the ambient occlusion
 float material_projectionScaleRadius;
-float material_bias;
-float material_peak2;
-float material_power;
-vec2 material_invProjScaleXY;
+float material_bias; // Bias to avoid self-occlusion
+float material_peak2; // Peak value to avoid singularities
+float material_power; // Exponent to convert occlusion to visibility
+vec2 material_invProjScaleXY; //invProjection[0][0] * 2, invProjection[1][1] * 2
 
 
 vec3 computeViewSpacePosition(vec2 uv, float linearDepth, vec2 invProjScaleXY) {
@@ -49,6 +49,9 @@ float depthToViewZ(float depth) {
     return -remapDepthBufferEyeDepth(depth);
 }
 
+// reconstructing normal from depth buffer
+// https://atyuwen.github.io/posts/normal-reconstruction
+// https://wickedengine.net/2019/09/22/improved-normal-reconstruction-from-depth/
 vec3 computeViewSpaceNormal(vec2 uv, highp sampler2D depthTexture, float depth, vec3 viewPos, vec2 texel, vec2 invProjScaleXY) {
     vec3 normal = vec3(0.0);
 #if SSAO_QUALITY == 0 || SSAO_QUALITY == 1
@@ -71,23 +74,26 @@ vec3 computeViewSpaceNormal(vec2 uv, highp sampler2D depthTexture, float depth, 
         vec2 dy = vec2(0.0, texel.y);
 
         vec4 H;
-        H.x = texture2D(depthTexture, uv - dx).r;
-        H.y = texture2D(depthTexture, uv + dx).r;
-        H.z = texture2D(depthTexture, uv - dx * 2.0).r;
-        H.w = texture2D(depthTexture, uv + dx * 2.0).r;
+        H.x = texture2D(depthTexture, uv - dx).r;       // left
+        H.y = texture2D(depthTexture, uv + dx).r;       // right
+        H.z = texture2D(depthTexture, uv - dx * 2.0).r; // left2
+        H.w = texture2D(depthTexture, uv + dx * 2.0).r; // right2
 
+        // Calculate horizontal edge weights
         vec2 horizontalEdgeWeights = abs((2.0 * H.xy - H.zw) - depth);
 
         vec3 pos_l = computeViewSpacePosition(uv - dx, depthToViewZ(H.x), invProjScaleXY);
         vec3 pos_r = computeViewSpacePosition(uv + dx, depthToViewZ(H.y), invProjScaleXY);
         vec3 dpdx = (horizontalEdgeWeights.x < horizontalEdgeWeights.y) ? (viewPos - pos_l) : (pos_r - viewPos);
 
+        // Sample depths for vertical edge detection
         vec4 V;
-        V.x = texture2D(depthTexture, uv - dy).r;
-        V.y = texture2D(depthTexture, uv + dy).r;
-        V.z = texture2D(depthTexture, uv - dy * 2.0).r;
-        V.w = texture2D(depthTexture, uv + dy * 2.0).r;
+        V.x = texture2D(depthTexture, uv - dy).r;       // down
+        V.y = texture2D(depthTexture, uv + dy).r;       // up
+        V.z = texture2D(depthTexture, uv - dy * 2.0).r; // down2
+        V.w = texture2D(depthTexture, uv + dy * 2.0).r; // up2
 
+        // Calculate vertical edge weights
         vec2 verticalEdgeWeights = abs((2.0 * V.xy - V.zw) - depth);
         vec3 pos_d = computeViewSpacePosition(uv - dy, depthToViewZ(V.x), invProjScaleXY);
         vec3 pos_u = computeViewSpacePosition(uv + dy, depthToViewZ(V.y), invProjScaleXY);
@@ -123,20 +129,33 @@ void computeAmbientOcclusionSAO(inout float occlusion, float i, float ssDiskRadi
         vec2 tapPosition, float noise) {
 
     vec3 tap = tapLocationFast(i, tapPosition, noise);
-    float ssRadius = max(1.0, tap.z * ssDiskRadius);
+
+    float ssRadius = max(1.0, tap.z * ssDiskRadius); // at least 1 pixel screen-space radius
+
     vec2 uvSamplePos = uv + vec2(ssRadius * tap.xy) * renderer_texelSize.xy;
 
     float occlusionDepth = texture2D(renderer_BlitTexture, uvSamplePos).r;
     float linearOcclusionDepth = depthToViewZ(occlusionDepth);
+    // “p” is the position after spiral sampling
     vec3 p = computeViewSpacePosition(uvSamplePos, linearOcclusionDepth, material_invProjScaleXY);
 
-    vec3 v = p - originPosition;
-    float vv = dot(v, v);
-    float vn = dot(v, normal);
+    // now we have the sample, compute AO
+    vec3 v = p - originPosition;  // sample vector
+    float vv = dot(v, v);       // squared distance
+    float vn = dot(v, normal);  // distance * cos(v, normal)
 
+    // discard samples that are outside of the radius, preventing distant geometry to
+    // cast shadows -- there are many functions that work and choosing one is an artistic
+    // decision.
     float weight = pow(max(0.0, 1.0 - vv * material_invRadiusSquared), 2.0);
+
+    // discard samples that are too close to the horizon to reduce shadows cast by geometry
+    // not sufficently tessellated. The goal is to discard samples that form an angle 'beta'
+    // smaller than 'epsilon' with the horizon. We already have dot(v,n) which is equal to the
+    // sin(beta) * |v|. So the test simplifies to vn^2 < vv * sin(epsilon)^2.
     weight *= step(vv * material_minHorizonAngleSineSquared, vn * vn);
 
+    // Calculate the contribution of a single sampling point to Ambient Occlusion
     float sampleOcclusion = max(0.0, vn + (originPosition.z * material_bias)) / (vv + material_peak2);
     occlusion += weight * sampleOcclusion;
 }
@@ -146,8 +165,11 @@ void scalableAmbientObscurance(vec2 uv, vec3 origin, vec3 normal, out float obsc
     vec2 tapPosition = startPosition(noise);
     mat2 angleStep = tapAngleStep();
 
+    // Choose the screen-space sample radius
+    // proportional to the projected area of the sphere
     float ssDiskRadius = -(material_projectionScaleRadius / origin.z);
 
+    // Accumulate the occlusion amount of all sampling points
     obscurance = 0.0;
     for (float i = 0.0; i < SAMPLE_COUNT; i += 1.0) {
         computeAmbientOcclusionSAO(obscurance, i, ssDiskRadius, uv, origin, normal, tapPosition, noise);
@@ -169,12 +191,16 @@ void frag(Varyings v) {
     float depth = texture2D(renderer_BlitTexture, v.v_uv).r;
     float z = depthToViewZ(depth);
 
+    // Reconstruct view space position from depth
     vec3 positionVS = computeViewSpacePosition(v.v_uv, z, material_invProjScaleXY);
+
+    // Compute normal
     vec3 normal = computeViewSpaceNormal(v.v_uv, renderer_BlitTexture, depth, positionVS, renderer_texelSize.xy, material_invProjScaleXY);
 
     float occlusion = 0.0;
     scalableAmbientObscurance(v.v_uv, positionVS, normal, occlusion);
 
+    // Occlusion to visibility
     float aoVisibility = pow(clamp(1.0 - occlusion, 0.0, 1.0), material_power);
 
     gl_FragColor = vec4(aoVisibility, pack(-positionVS.z/camera_ProjectionParams.z), 1.0);
