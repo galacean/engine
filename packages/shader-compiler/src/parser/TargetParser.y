@@ -175,6 +175,13 @@ ext_builtin_type_specifier_nonarray:
 type_specifier_nonarray:
     ext_builtin_type_specifier_nonarray
     | id
+    // Macro-as-type-alias (e.g. `#define FxaaFloat float; FxaaFloat x;`).
+    // Routes through `macro_call_symbol` to keep the macro a first-class AST
+    // node. Adds an expected shift/reduce: at `macro_call_symbol .` looking at
+    // `(`, parser shifts to form `macro_call_function` rather than reducing to
+    // `type_specifier_nonarray` — matches expression-position macro call
+    // semantics; reduce path remains reachable via $default.
+    | macro_call_symbol
     ;
 
 struct_specifier:
@@ -571,6 +578,14 @@ single_declaration:
     | fully_specified_type id array_specifier
     | fully_specified_type id '=' initializer
     | fully_specified_type id array_specifier '=' initializer
+    // Declarator name collides with a `#define` from a sibling `#if expr` arm
+    // whose value the lexer can't evaluate (e.g. FXAA's `#define lumaNW …`
+    // shadowing `FxaaFloat lumaNW = …`). Lexer's branch-mutex covers
+    // `#if`/`#else` pairs; these two variants are the fallback for cross-`#if`
+    // collisions where the lexer conservatively tags the declarator as
+    // MACRO_CALL.
+    | fully_specified_type MACRO_CALL
+    | fully_specified_type MACRO_CALL '=' initializer
     ;
 
 initializer:
