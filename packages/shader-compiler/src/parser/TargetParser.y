@@ -144,6 +144,12 @@ variable_declaration:
     fully_specified_type id
     | fully_specified_type id array_specifier
     | fully_specified_type id '=' initializer
+    | macro_call_symbol id
+    | macro_call_symbol id array_specifier
+    | macro_call_symbol id '=' initializer
+    | type_qualifier macro_call_symbol id
+    | type_qualifier macro_call_symbol id array_specifier
+    | type_qualifier macro_call_symbol id '=' initializer
     ;
 
 variable_declaration_list:
@@ -175,7 +181,6 @@ ext_builtin_type_specifier_nonarray:
 type_specifier_nonarray:
     ext_builtin_type_specifier_nonarray
     | id
-    | macro_call_symbol
     ;
 
 struct_specifier:
@@ -192,6 +197,7 @@ struct_declaration:
     type_specifier struct_declarator_list ';'
     | type_qualifier type_specifier struct_declarator_list ';'
     | layout_qualifier type_specifier struct_declarator ';'
+    | macro_call_symbol struct_declarator_list ';'
     | macro_struct_declaration
     ;
 
@@ -466,6 +472,7 @@ function_declarator:
 
 function_header:
     fully_specified_type id '('
+    | macro_call_symbol id '('
     ;
 
 fully_specified_type:
@@ -513,6 +520,8 @@ parameter_declaration:
 parameter_declarator:
     type_specifier id
     | type_specifier id array_specifier
+    | macro_call_symbol id
+    | macro_call_symbol id array_specifier
     ;
 
 statement_list:
@@ -572,10 +581,16 @@ single_declaration:
     | fully_specified_type id array_specifier
     | fully_specified_type id '=' initializer
     | fully_specified_type id array_specifier '=' initializer
-    /* Variable name collides with a registered macro from a sibling `#if`
-       branch. See CFG.ts for explanation. */
-    | fully_specified_type MACRO_CALL
-    | fully_specified_type MACRO_CALL '=' initializer
+    | macro_call_symbol id
+    | macro_call_symbol id array_specifier
+    | macro_call_symbol id '=' initializer
+    | macro_call_symbol id array_specifier '=' initializer
+    | macro_call_symbol MACRO_CALL
+    | macro_call_symbol MACRO_CALL '=' initializer
+    | type_qualifier macro_call_symbol id
+    | type_qualifier macro_call_symbol id '=' initializer
+    | type_qualifier macro_call_symbol MACRO_CALL
+    | type_qualifier macro_call_symbol MACRO_CALL '=' initializer
     ;
 
 initializer:

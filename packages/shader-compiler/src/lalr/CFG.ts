@@ -148,7 +148,19 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     [
       [NoneTerminal.fully_specified_type, ETokenType.ID],
       [NoneTerminal.fully_specified_type, ETokenType.ID, NoneTerminal.array_specifier],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier],
+      [
+        NoneTerminal.type_qualifier,
+        NoneTerminal.macro_call_symbol,
+        ETokenType.ID,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ]
     ],
     ASTNode.VariableDeclaration.pool
   ),
@@ -217,13 +229,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.type_specifier_nonarray,
-    // `macro_call_symbol` here unifies "macro as type alias" (`#define FXAA_FLT float;
-    // FXAA_FLT x;`) with the rest of the type system: every declaration site that
-    // accepts `fully_specified_type` (variable_declaration, single_declaration,
-    // function_header, parameter_declarator, struct_declaration) gets macro-as-type
-    // for free, instead of needing a duplicated `[macro_call_symbol, ID, …]`
-    // production at each site.
-    [[ETokenType.ID], [NoneTerminal.ext_builtin_type_specifier_nonarray], [NoneTerminal.macro_call_symbol]],
+    [[ETokenType.ID], [NoneTerminal.ext_builtin_type_specifier_nonarray]],
     ASTNode.TypeSpecifierNonArray.pool
   ),
 
@@ -336,6 +342,7 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.struct_declarator,
         ETokenType.SEMICOLON
       ],
+      [NoneTerminal.macro_call_symbol, NoneTerminal.struct_declarator_list, ETokenType.SEMICOLON],
       [NoneTerminal.macro_struct_declaration]
     ],
     ASTNode.StructDeclaration.pool
@@ -749,7 +756,10 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.function_header,
-    [[NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN]],
+    [
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.LEFT_PAREN],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.LEFT_PAREN]
+    ],
     ASTNode.FunctionHeader.pool
   ),
 
@@ -812,7 +822,9 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
     NoneTerminal.parameter_declarator,
     [
       [NoneTerminal.type_specifier, ETokenType.ID],
-      [NoneTerminal.type_specifier, ETokenType.ID, NoneTerminal.array_specifier]
+      [NoneTerminal.type_specifier, ETokenType.ID, NoneTerminal.array_specifier],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier]
     ],
     ASTNode.ParameterDeclarator.pool
   ),
@@ -927,15 +939,34 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         NoneTerminal.initializer
       ],
       [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
-      // Variable name happens to collide with a registered macro from a sibling
-      // `#if` branch. The lexer tokenizes the name as `MACRO_CALL` because
-      // `#if expr` branches are conservatively tracked (any `#define` inside
-      // any `#if` is treated as visible everywhere). Accept it as a declarator
-      // identifier so the active branch's declaration parses. FXAA3_11.glsl
-      // hits this: `#define lumaS luma4A.x` in the `#if FXAA_GATHER4_ALPHA == 1`
-      // branch shadows the `FxaaFloat lumaS = …` declaration in the `#else`.
-      [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL],
-      [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL, ETokenType.EQUAL, NoneTerminal.initializer]
+      [NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, NoneTerminal.array_specifier],
+      [
+        NoneTerminal.macro_call_symbol,
+        ETokenType.ID,
+        NoneTerminal.array_specifier,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ],
+      [NoneTerminal.macro_call_symbol, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.macro_call_symbol, Keyword.MACRO_CALL],
+      [NoneTerminal.macro_call_symbol, Keyword.MACRO_CALL, ETokenType.EQUAL, NoneTerminal.initializer],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, ETokenType.ID],
+      [
+        NoneTerminal.type_qualifier,
+        NoneTerminal.macro_call_symbol,
+        ETokenType.ID,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ],
+      [NoneTerminal.type_qualifier, NoneTerminal.macro_call_symbol, Keyword.MACRO_CALL],
+      [
+        NoneTerminal.type_qualifier,
+        NoneTerminal.macro_call_symbol,
+        Keyword.MACRO_CALL,
+        ETokenType.EQUAL,
+        NoneTerminal.initializer
+      ]
     ],
     ASTNode.SingleDeclaration.pool
   ),
