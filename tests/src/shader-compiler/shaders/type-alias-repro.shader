@@ -4,10 +4,11 @@ Shader "type-alias-repro" {
       // FXAA-style portability macros: type aliases.
       // The `#define` lines themselves must not crash parsing — the routing
       // rule is "AST iff the value contains `.` member-access". Type
-      // keywords as macro values now correctly stay on the legacy path.
-      // (Use sites of these macros in *type position* are a separate
-      // long-standing grammar limitation: `MACRO_CALL` is only accepted in
-      // expression position. dev/2.0 baseline has the same limitation.)
+      // keywords as macro values stay on the legacy path.
+      // (Use sites of these macros in *type position* are covered by
+      // `macro-type-alias.shader` — `type_specifier_nonarray → macro_call_symbol`
+      // accepts MACRO_CALL in declaration positions since the macro AST
+      // refactor.)
       #define FxaaTex sampler2D
       #define FxaaFloat2 vec2
       #define FxaaFloat4 vec4

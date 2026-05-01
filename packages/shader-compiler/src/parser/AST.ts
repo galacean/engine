@@ -1395,16 +1395,31 @@ export namespace ASTNode {
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
       let needFindNames: string[];
 
+      // FXAA-style cross-arm shadowing: same name is a macro in one
+      // preprocessor arm and a variable in the mutually-exclusive arm.
+      // At a MACRO_CALL use site, also probe the macro name itself so
+      // the sibling-arm declaration is marked as referenced and codegen
+      // keeps it. Grammar half of the fix is in 87cb2b5f0.
+      let macroNameAsVarLookup: string | null = null;
+
       if (child instanceof BaseToken) {
         needFindNames = [child.lexeme];
       } else {
-        needFindNames = (child as MacroCallSymbol | MacroCallFunction).referenceSymbolNames;
+        const callSymbol = child as MacroCallSymbol | MacroCallFunction;
+        needFindNames = callSymbol.referenceSymbolNames;
+        const macroName = callSymbol.macroName;
+        if (macroName && needFindNames.indexOf(macroName) === -1) {
+          needFindNames = needFindNames.concat(macroName);
+          macroNameAsVarLookup = macroName;
+        }
       }
 
       for (let i = 0; i < needFindNames.length; i++) {
         const name = needFindNames[i];
 
-        if (sa.macroDefineList[name]) {
+        // `macroDefineList` short-circuit; bypass for the macro name itself
+        // so cross-arm shadowing can resolve the sibling-arm declaration.
+        if (sa.macroDefineList[name] && name !== macroNameAsVarLookup) {
           continue;
         }
 

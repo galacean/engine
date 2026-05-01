@@ -483,6 +483,43 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
 
+  it("cross-if-declarator-collision (declarator name shadowed by #define in sibling #if arm)", async () => {
+    // FXAA-style pattern: `#define lumaS …` in one `#if expr` arm and
+    // `float lumaS = …;` in the mutually-exclusive arm. Locks two
+    // distinct fixes:
+    //
+    //  (1) Grammar: `single_declaration → fully_specified_type MACRO_CALL
+    //      [= initializer]` (added in 87cb2b5f0). Without it, the #else
+    //      arm parse-errors because lexer tags `lumaS` as MACRO_CALL.
+    //
+    //  (2) Codegen: emitted GLSL must keep the #else-arm declaration. Use
+    //      sites of `lumaS` are also lexed as MACRO_CALL, so the emitter
+    //      can't rely solely on the "ID reference → global var" path; it
+    //      must also resolve MACRO_CALL references back to a same-name
+    //      sibling-arm declaration so the variant where `#if` is false
+    //      still has `lumaS` defined.
+    const shaderSource = await readFile("./shaders/cross-if-declarator-collision.shader");
+    const sourceMeta = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const passSource = sourceMeta.subShaders[0].passes[0];
+    const passProgram = shaderCompilerVerbose._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0 /* GLSLES100 */
+    );
+    expect(passProgram, "fixture must compile (locks fix 1)").not.to.be.undefined;
+    // Locks fix 2: the #else-arm declaration must survive into emitted GLSL.
+    // ShaderLab silently drops the declaration when both the use sites and
+    // the #else-arm declarator are tagged MACRO_CALL — driver then rejects
+    // the variant where the #if condition is false (no `lumaS` defined).
+    expect(passProgram!.vertex, "vertex must keep #else-arm `lumaS` declaration").to.match(
+      /float\s+lumaS\s*=/
+    );
+    // The full shader pass should still validate end-to-end.
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
+    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+  });
+
   it("texture-generic (GVec4 → vec4 resolve)", async () => {
     const shaderSource = await readFile("./shaders/texture-generic.shader");
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
