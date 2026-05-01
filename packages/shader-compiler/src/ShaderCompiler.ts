@@ -6,7 +6,7 @@ import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import { ShaderTargetParser } from "./parser";
-import { Preprocessor } from "./Preprocessor";
+import { Preprocessor, IncludeMap } from "./Preprocessor";
 import { ShaderCompilerUtils } from "./ShaderCompilerUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
@@ -18,6 +18,19 @@ export class ShaderCompiler implements IShaderCompiler {
   // #if _VERBOSE
   static _processingPassText?: string;
   // #endif
+
+  /**
+   * `#include` lookup table. Defaults to an empty map; runtime callers (engine
+   * `Shader.create` flow) bind it to `ShaderFactory._includeMap` so the runtime
+   * include registry stays the source of truth. Build-time callers (the
+   * bundler) bind it to a freshly-scanned src map so chunk path renames take
+   * effect on the next precompile without rebuilding any package.
+   *
+   * Keeping the binding here (instead of having `Preprocessor` read a global)
+   * means shader-compiler does not import `ShaderFactory` and stays free of
+   * any engine module-load side effects.
+   */
+  _includeMap: IncludeMap = {};
 
   static createPosition(index: number, line?: number, column?: number): ShaderPosition {
     const position = this._shaderPositionPool.get();
@@ -58,7 +71,7 @@ export class ShaderCompiler implements IShaderCompiler {
     const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();
-    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey);
+    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey, this._includeMap);
     Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);

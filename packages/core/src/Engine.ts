@@ -34,6 +34,7 @@ import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { ShaderFactory } from "./shaderlib/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
 import { UIUtils } from "./ui/UIUtils";
@@ -634,6 +635,13 @@ export class Engine extends EventDispatcher {
     const { shaderCompiler, physics } = configuration;
 
     if (shaderCompiler && !Shader._shaderCompiler) {
+      // Bind the runtime include map so the preprocessor sees every chunk
+      // `ShaderPool.init` registered. shader-compiler defaults to an empty
+      // map and stays free of any direct ShaderFactory dependency, so the
+      // binding has to be wired here at the runtime boundary.
+      // @ts-ignore — `_includeMap` is shader-compiler @internal; `_includeMap`
+      // is `ShaderFactory` @internal. Both intentionally cross-package wired.
+      shaderCompiler._includeMap = ShaderFactory._includeMap;
       Shader._shaderCompiler = shaderCompiler;
     }
 

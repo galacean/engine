@@ -1,6 +1,9 @@
-import { Logger, ShaderFactory, ShaderPass } from "@galacean/engine";
+import { Logger, ShaderPass } from "@galacean/engine";
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
+
+/** Read-only `#include "path" -> chunk source` lookup. */
+export type IncludeMap = { readonly [includeName: string]: string | undefined };
 
 /**
  * Record for a single `#define` directive. `valueAst` is set for expression
@@ -38,14 +41,16 @@ export class Preprocessor {
    */
   static _repeatIncludeSet = new Set<string>();
 
-  static parse(source: string, basePathForIncludeKey: string): string {
+  static parse(source: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
     // Preprocessor only handles `#include` expansion. `#define` registration
     // and `#ifdef` branch tracking are done by the Lexer in a single pass
     // over the same token stream it tokenizes.
-    return source.replace(this._includeReg, (_, includeName) => this._replace(includeName, basePathForIncludeKey));
+    return source.replace(this._includeReg, (_, includeName) =>
+      this._replace(includeName, basePathForIncludeKey, includeMap)
+    );
   }
 
-  private static _replace(includeName: string, basePathForIncludeKey: string): string {
+  private static _replace(includeName: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
     let path: string;
     if (includeName[0] === ".") {
       // @ts-ignore _shaderRootPath is @internal, stripped from public d.ts.
@@ -54,7 +59,7 @@ export class Preprocessor {
       path = includeName;
     }
 
-    const chunk = ShaderFactory.getInclude(path);
+    const chunk = includeMap[path];
     if (!chunk) {
       Logger.error(`Shader slice "${path}" not founded.`);
       return "";
@@ -67,7 +72,7 @@ export class Preprocessor {
 
     let cached = this._chunkOutputCache.get(path);
     if (cached === undefined) {
-      cached = this.parse(chunk, basePathForIncludeKey);
+      cached = this.parse(chunk, basePathForIncludeKey, includeMap);
       this._chunkOutputCache.set(path, cached);
     }
     return cached;

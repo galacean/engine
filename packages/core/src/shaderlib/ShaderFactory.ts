@@ -12,7 +12,8 @@ export class ShaderFactory {
     .join("");
 
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/; // [layout(location = 0)] out [highp] vec4 [color];
-  private static readonly _includeMap: Record<string, string> = {};
+  /** @internal Direct map access for engine-internal `_includeMap` binding into ShaderCompiler. */
+  static readonly _includeMap: Record<string, string> = {};
 
   static registerInclude(includeName: string, includeSource: string) {
     if (ShaderFactory._includeMap[includeName]) {
