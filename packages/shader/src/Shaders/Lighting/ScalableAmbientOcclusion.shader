@@ -1,4 +1,4 @@
-Shader "AO/ScalableAmbientOcclusion" {
+Shader "Lighting/ScalableAmbientOcclusion" {
   SubShader "Default" {
     Pass "ScalableAmbientOcclusion" {
       DepthState = {
@@ -9,8 +9,8 @@ Shader "AO/ScalableAmbientOcclusion" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/BlitVertex.glsl"
-      #include "ShaderLibrary/AO/ScalableAmbientOcclusion.glsl"
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+      #include "ShaderLibrary/Lighting/ScalableAmbientOcclusion.glsl"
     }
 
     Pass "BilateralBlur" {
@@ -22,8 +22,8 @@ Shader "AO/ScalableAmbientOcclusion" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/BlitVertex.glsl"
-      #include "ShaderLibrary/AO/BilateralBlur.glsl"
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
+      #include "ShaderLibrary/Lighting/BilateralBlur.glsl"
     }
   }
 }

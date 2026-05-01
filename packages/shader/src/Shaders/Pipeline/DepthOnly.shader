@@ -1,4 +1,4 @@
-Shader "Utility/DepthOnly" {
+Shader "Pipeline/DepthOnly" {
   SubShader "Default" {
     Pass "DepthOnly" {
       Tags { pipelineStage = "DepthOnly" }

@@ -351,7 +351,7 @@ const testShaderCompilerCode = `
     SubShader "Default" {
       Tags { ReplacementTag = "transparent" }
 
-      UsePass "Utility/ShadowMap/Default/ShadowCaster"
+      UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
 
       Pass "test" {
         RenderQueueType = Opaque;

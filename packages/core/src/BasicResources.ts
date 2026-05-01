@@ -140,10 +140,10 @@ export class BasicResources {
       -1, -1, 0, 0, // left-bottom
       -1, 3, 0, 2]); // left-top
 
-    const blitMaterial = new Material(engine, Shader.find("Utility/Blit"));
+    const blitMaterial = new Material(engine, Shader.find("Blit/Blit"));
     blitMaterial._addReferCount(1);
 
-    const blitScreenMaterial = new Material(engine, Shader.find("Utility/BlitScreen"));
+    const blitScreenMaterial = new Material(engine, Shader.find("Blit/BlitScreen"));
     blitScreenMaterial._addReferCount(1);
 
     this.blitMaterial = blitMaterial;

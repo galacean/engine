@@ -15,7 +15,7 @@ import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
-  static readonly SHADER_NAME = "AO/ScalableAmbientOcclusion";
+  static readonly SHADER_NAME = "Lighting/ScalableAmbientOcclusion";
 
   private static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
   private static _intensityProp = ShaderProperty.getByName("material_intensity");

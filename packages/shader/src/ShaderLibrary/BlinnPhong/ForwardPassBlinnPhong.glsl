@@ -8,7 +8,7 @@
 #include "ShaderLibrary/Skin/Skin.glsl"
 #include "ShaderLibrary/Skin/BlendShape.glsl"
 #include "ShaderLibrary/Shadow/Shadow.glsl"
-#include "ShaderLibrary/Common/MobileBlinnPhong.glsl"
+#include "ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl"
 #include "ShaderLibrary/Common/ViewDirection.glsl"
 
 vec4 material_TilingOffset;

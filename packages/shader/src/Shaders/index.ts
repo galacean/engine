@@ -5,12 +5,16 @@ import _2D_Sprite from "./2D/Sprite.shader";
 import _2D_SpriteMask from "./2D/SpriteMask.shader";
 import _2D_Text from "./2D/Text.shader";
 import _2D_UIDefault from "./2D/UIDefault.shader";
-import AO_ScalableAmbientOcclusion from "./AO/ScalableAmbientOcclusion.shader";
 import BlinnPhong from "./BlinnPhong.shader";
+import Blit_Blit from "./Blit/Blit.shader";
+import Blit_BlitScreen from "./Blit/BlitScreen.shader";
 import Effect_Particle from "./Effect/Particle.shader";
 import Effect_ParticleFeedback from "./Effect/ParticleFeedback.shader";
 import Effect_Trail from "./Effect/Trail.shader";
+import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.shader";
 import PBR from "./PBR.shader";
+import Pipeline_DepthOnly from "./Pipeline/DepthOnly.shader";
+import Pipeline_ShadowCaster from "./Pipeline/ShadowCaster.shader";
 import PostProcess_Bloom from "./PostProcess/Bloom.shader";
 import PostProcess_FinalAntiAliasing from "./PostProcess/FinalAntiAliasing.shader";
 import PostProcess_FinalSRGB from "./PostProcess/FinalSRGB.shader";
@@ -19,10 +23,6 @@ import Sky_BackgroundTexture from "./Sky/BackgroundTexture.shader";
 import Sky_SkyProcedural from "./Sky/SkyProcedural.shader";
 import Sky_Skybox from "./Sky/Skybox.shader";
 import Unlit from "./Unlit.shader";
-import Utility_Blit from "./Utility/Blit.shader";
-import Utility_BlitScreen from "./Utility/BlitScreen.shader";
-import Utility_DepthOnly from "./Utility/DepthOnly.shader";
-import Utility_ShadowMap from "./Utility/ShadowMap.shader";
 
 export interface IShaderSource {
   path: string;
@@ -35,12 +35,16 @@ export const shaders: IShaderSource[] = [
   { source: _2D_SpriteMask, path: "Shaders/2D/SpriteMask.shader" },
   { source: _2D_Text, path: "Shaders/2D/Text.shader" },
   { source: _2D_UIDefault, path: "Shaders/2D/UIDefault.shader" },
-  { source: AO_ScalableAmbientOcclusion, path: "Shaders/AO/ScalableAmbientOcclusion.shader" },
   { source: BlinnPhong, path: "Shaders/BlinnPhong.shader" },
+  { source: Blit_Blit, path: "Shaders/Blit/Blit.shader" },
+  { source: Blit_BlitScreen, path: "Shaders/Blit/BlitScreen.shader" },
   { source: Effect_Particle, path: "Shaders/Effect/Particle.shader" },
   { source: Effect_ParticleFeedback, path: "Shaders/Effect/ParticleFeedback.shader" },
   { source: Effect_Trail, path: "Shaders/Effect/Trail.shader" },
+  { source: Lighting_ScalableAmbientOcclusion, path: "Shaders/Lighting/ScalableAmbientOcclusion.shader" },
   { source: PBR, path: "Shaders/PBR.shader" },
+  { source: Pipeline_DepthOnly, path: "Shaders/Pipeline/DepthOnly.shader" },
+  { source: Pipeline_ShadowCaster, path: "Shaders/Pipeline/ShadowCaster.shader" },
   { source: PostProcess_Bloom, path: "Shaders/PostProcess/Bloom.shader" },
   { source: PostProcess_FinalAntiAliasing, path: "Shaders/PostProcess/FinalAntiAliasing.shader" },
   { source: PostProcess_FinalSRGB, path: "Shaders/PostProcess/FinalSRGB.shader" },
@@ -49,8 +53,4 @@ export const shaders: IShaderSource[] = [
   { source: Sky_SkyProcedural, path: "Shaders/Sky/SkyProcedural.shader" },
   { source: Sky_Skybox, path: "Shaders/Sky/Skybox.shader" },
   { source: Unlit, path: "Shaders/Unlit.shader" },
-  { source: Utility_Blit, path: "Shaders/Utility/Blit.shader" },
-  { source: Utility_BlitScreen, path: "Shaders/Utility/BlitScreen.shader" },
-  { source: Utility_DepthOnly, path: "Shaders/Utility/DepthOnly.shader" },
-  { source: Utility_ShadowMap, path: "Shaders/Utility/ShadowMap.shader" },
 ];

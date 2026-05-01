@@ -2,16 +2,14 @@
 // path is relative to packages/shader/src/ and matches the string used in `#include "..."`.
 
 import type { IShaderSource } from "../Shaders";
-import AO_BilateralBlur from "./AO/BilateralBlur.glsl";
-import AO_ScalableAmbientOcclusion from "./AO/ScalableAmbientOcclusion.glsl";
 import BlinnPhong_ForwardPassBlinnPhong from "./BlinnPhong/ForwardPassBlinnPhong.glsl";
+import BlinnPhong_MobileBlinnPhong from "./BlinnPhong/MobileBlinnPhong.glsl";
+import Blit_BlitVertex from "./Blit/BlitVertex.glsl";
 import Common_Attributes from "./Common/Attributes.glsl";
-import Common_BlitVertex from "./Common/BlitVertex.glsl";
 import Common_Color from "./Common/Color.glsl";
 import Common_Common from "./Common/Common.glsl";
 import Common_Fog from "./Common/Fog.glsl";
 import Common_Light from "./Common/Light.glsl";
-import Common_MobileBlinnPhong from "./Common/MobileBlinnPhong.glsl";
 import Common_Normal from "./Common/Normal.glsl";
 import Common_Position from "./Common/Position.glsl";
 import Common_PositionClipSpace from "./Common/PositionClipSpace.glsl";
@@ -19,6 +17,8 @@ import Common_Transform from "./Common/Transform.glsl";
 import Common_UV from "./Common/UV.glsl";
 import Common_ViewDirection from "./Common/ViewDirection.glsl";
 import Common_WorldPosition from "./Common/WorldPosition.glsl";
+import Lighting_BilateralBlur from "./Lighting/BilateralBlur.glsl";
+import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.glsl";
 import Noise_NoiseCommon from "./Noise/NoiseCommon.glsl";
 import Noise_NoiseSimplexGrad from "./Noise/NoiseSimplexGrad.glsl";
 import PBR_BSDF from "./PBR/BSDF.glsl";
@@ -69,16 +69,14 @@ import Skin_Skin from "./Skin/Skin.glsl";
 
 // prettier-ignore
 export const shaderLibrary: IShaderSource[] = [
-  { source: AO_BilateralBlur, path: "ShaderLibrary/AO/BilateralBlur.glsl" },
-  { source: AO_ScalableAmbientOcclusion, path: "ShaderLibrary/AO/ScalableAmbientOcclusion.glsl" },
   { source: BlinnPhong_ForwardPassBlinnPhong, path: "ShaderLibrary/BlinnPhong/ForwardPassBlinnPhong.glsl" },
+  { source: BlinnPhong_MobileBlinnPhong, path: "ShaderLibrary/BlinnPhong/MobileBlinnPhong.glsl" },
+  { source: Blit_BlitVertex, path: "ShaderLibrary/Blit/BlitVertex.glsl" },
   { source: Common_Attributes, path: "ShaderLibrary/Common/Attributes.glsl" },
-  { source: Common_BlitVertex, path: "ShaderLibrary/Common/BlitVertex.glsl" },
   { source: Common_Color, path: "ShaderLibrary/Common/Color.glsl" },
   { source: Common_Common, path: "ShaderLibrary/Common/Common.glsl" },
   { source: Common_Fog, path: "ShaderLibrary/Common/Fog.glsl" },
   { source: Common_Light, path: "ShaderLibrary/Common/Light.glsl" },
-  { source: Common_MobileBlinnPhong, path: "ShaderLibrary/Common/MobileBlinnPhong.glsl" },
   { source: Common_Normal, path: "ShaderLibrary/Common/Normal.glsl" },
   { source: Common_Position, path: "ShaderLibrary/Common/Position.glsl" },
   { source: Common_PositionClipSpace, path: "ShaderLibrary/Common/PositionClipSpace.glsl" },
@@ -86,6 +84,8 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Common_UV, path: "ShaderLibrary/Common/UV.glsl" },
   { source: Common_ViewDirection, path: "ShaderLibrary/Common/ViewDirection.glsl" },
   { source: Common_WorldPosition, path: "ShaderLibrary/Common/WorldPosition.glsl" },
+  { source: Lighting_BilateralBlur, path: "ShaderLibrary/Lighting/BilateralBlur.glsl" },
+  { source: Lighting_ScalableAmbientOcclusion, path: "ShaderLibrary/Lighting/ScalableAmbientOcclusion.glsl" },
   { source: Noise_NoiseCommon, path: "ShaderLibrary/Noise/NoiseCommon.glsl" },
   { source: Noise_NoiseSimplexGrad, path: "ShaderLibrary/Noise/NoiseSimplexGrad.glsl" },
   { source: PBR_BSDF, path: "ShaderLibrary/PBR/BSDF.glsl" },

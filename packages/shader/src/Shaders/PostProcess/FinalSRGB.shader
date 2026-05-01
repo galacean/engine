@@ -9,7 +9,7 @@ Shader "PostProcess/FinalSRGB" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
       #include "ShaderLibrary/PostProcess/FinalSRGB.glsl"
     }
   }

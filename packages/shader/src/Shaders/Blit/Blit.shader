@@ -1,4 +1,4 @@
-Shader "Utility/BlitScreen" {
+Shader "Blit/Blit" {
   SubShader "Default" {
     Pass "Forward" {
       Tags { pipelineStage = "Forward" }
@@ -17,6 +17,7 @@ Shader "Utility/BlitScreen" {
       #ifdef HAS_TEX_LOD
         float renderer_BlitMipLevel;
       #endif
+      vec4 renderer_SourceScaleOffset;
 
       struct Attributes {
         vec4 POSITION_UV;
@@ -45,17 +46,13 @@ Shader "Utility/BlitScreen" {
 
       void frag(Varyings v) {
         vec2 uv = v.v_uv;
-        // Screen uv is flipped
-        uv.y = 1.0 - uv.y;
+        uv = uv * renderer_SourceScaleOffset.xy + renderer_SourceScaleOffset.zw;
 
         #ifdef HAS_TEX_LOD
           gl_FragColor = texture2DLodSRGB(renderer_BlitTexture, uv, renderer_BlitMipLevel);
         #else
-          gl_FragColor = texture2D(renderer_BlitTexture, uv);
+          gl_FragColor = texture2DSRGB(renderer_BlitTexture, uv);
         #endif
-
-        // Color space in screen is in gamma space but without sRGB texture, so convert to linear space
-        gl_FragColor = sRGBToLinear(gl_FragColor);
       }
     }
   }

@@ -1,4 +1,4 @@
-Shader "Utility/ShadowMap" {
+Shader "Pipeline/ShadowCaster" {
   SubShader "Default" {
     Pass "ShadowCaster" {
       Tags { pipelineStage = "ShadowCaster" }

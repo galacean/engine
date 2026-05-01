@@ -18,8 +18,8 @@ Shader "Unlit" {
   }
 
   SubShader "Default" {
-    UsePass "Utility/ShadowMap/Default/ShadowCaster"
-    UsePass "Utility/DepthOnly/Default/DepthOnly"
+    UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
+    UsePass "Pipeline/DepthOnly/Default/DepthOnly"
 
     Pass "Forward Pass" {
       Tags { pipelineStage = "Forward" }

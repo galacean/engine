@@ -12,7 +12,7 @@ import {
   BackgroundTextureSource,
   SkyProceduralSource,
   DepthOnlySource,
-  ShadowMapSource,
+  ShadowCasterSource,
   BlitSource,
   BlitScreenSource,
   ParticleSource,
@@ -47,10 +47,10 @@ export class ShaderPool {
    */
   static registerShaders(): void {
     const sources = [
-      // Utility shaders must be created first — material shaders UsePass from them
+      // Pipeline / Blit shaders must be created first — material shaders UsePass from them
       BlitSource,
       BlitScreenSource,
-      ShadowMapSource,
+      ShadowCasterSource,
       DepthOnlySource,
       // Material shaders
       PBRSource,

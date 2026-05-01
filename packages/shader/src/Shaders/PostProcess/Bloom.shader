@@ -9,7 +9,7 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
       #include "ShaderLibrary/PostProcess/Bloom/BloomPrefilter.glsl"
     }
 
@@ -22,7 +22,7 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
       #include "ShaderLibrary/PostProcess/Bloom/BloomBlurH.glsl"
     }
 
@@ -35,7 +35,7 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
       #include "ShaderLibrary/PostProcess/Bloom/BloomBlurV.glsl"
     }
 
@@ -48,7 +48,7 @@ Shader "PostProcess/Bloom" {
       VertexShader = vert;
       FragmentShader = frag;
 
-      #include "ShaderLibrary/Common/BlitVertex.glsl"
+      #include "ShaderLibrary/Blit/BlitVertex.glsl"
       #include "ShaderLibrary/PostProcess/Bloom/BloomUpsample.glsl"
     }
   }
