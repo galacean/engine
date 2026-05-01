@@ -98,12 +98,9 @@ export class Lexer extends BaseLexer {
   // C preprocessor line continuation: `\` followed by `\r\n`, `\n`, or `\r`.
   // The pair is removed (the next physical line is part of the same logical line).
   private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
-  // Sentinel pushed onto the branch stack when `#if expr` opens a level we
-  // don't model. `name === ""` never matches a real flag in
-  // `isVisibleFrom`'s polarity check, so it's conservatively visible
-  // everywhere — but it occupies one stack slot so `#endif` pops the right
-  // depth. Shared by all `#if` opens to avoid per-token allocation.
-  private static readonly _IF_SENTINEL: BranchConstraint = { name: "", defined: true };
+  // Synthetic `__if_<n>` tag per `#if` occurrence so the matching `#else`'s
+  // polarity flip makes the two arms mutually exclusive in `isVisibleFrom`.
+  private static _ifCounter = 0;
 
   /** Two branch signatures are equal iff they have the same constraints in the
    *  same order with the same polarity. Used by `#define` dedup and AST upgrade
@@ -206,28 +203,19 @@ export class Lexer extends BaseLexer {
           this._pendingBranchPushDefined = false;
           break;
         case Keyword.MACRO_IF:
-          this._branchStack.push(Lexer._IF_SENTINEL);
+          this._branchStack.push({ name: `__if_${++Lexer._ifCounter}`, defined: true });
           break;
         case Keyword.MACRO_ELIF:
-          // `#elif` ends the previous arm and opens a new one at the same
-          // depth. The new arm's actual condition is `(none of the previous
-          // arms held) AND <elif expr>`. We don't model expressions, but
-          // we *also* must not inherit the previous arm's tag — e.g.
-          // `#ifdef A / def X1 / #elif B / def X2 / #endif` would tag X2
-          // with `[A=true]`, which is the opposite of where X2 is actually
-          // active. Flipping polarity (like `#else` does) only works for
-          // the first `#elif` of a chain; longer chains would ping-pong.
-          // Degrade to sentinel uniformly: drops precision but never wrong.
+          // Each `#elif` link gets a fresh tag so it's exclusive with earlier arms.
           if (this._branchStack.length > 0) {
-            this._branchStack[this._branchStack.length - 1] = Lexer._IF_SENTINEL;
+            this._branchStack[this._branchStack.length - 1] = {
+              name: `__if_${++Lexer._ifCounter}`,
+              defined: true
+            };
           }
           break;
         case Keyword.MACRO_ELSE: {
-          // Flip the polarity of the topmost constraint. For `#ifdef X` this
-          // turns `[X=true]` into `[X=false]`. For `#if expr` / `#elif`
-          // chains the top is the sentinel (`name=""`), and flipping its
-          // `defined` is harmless — `isVisibleFrom` ignores empty-name
-          // entries.
+          // Flip polarity: `#ifdef X` → `[X=true]` becomes `[X=false]`; `__if_n` likewise.
           const top = this._branchStack[this._branchStack.length - 1];
           if (top) this._branchStack[this._branchStack.length - 1] = { name: top.name, defined: !top.defined };
           break;
@@ -903,12 +891,23 @@ export class Lexer extends BaseLexer {
         this._macroDefineExpectsParamsToken = this.getCurChar() === "(";
       }
       token.set(ETokenType.ID, word, start);
-    } else if (this.macroDefineList[word]) {
+    } else if (this._isVisibleMacro(word)) {
       token.set(Keyword.MACRO_CALL, word, start);
     } else {
       token.set(kt ?? ETokenType.ID, word, start);
     }
     return token;
+  }
+
+  /** True iff at least one `#define <word>` is reachable from the current branch. */
+  private _isVisibleMacro(word: string): boolean {
+    const defs = this.macroDefineList[word];
+    if (!defs || defs.length === 0) return false;
+    const callSiteBranch = this._branchStack;
+    for (let i = 0, n = defs.length; i < n; i++) {
+      if (Lexer.isVisibleFrom(defs[i].branch, callSiteBranch)) return true;
+    }
+    return false;
   }
 
   private _scanNum(): BaseToken {

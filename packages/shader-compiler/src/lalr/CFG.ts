@@ -217,7 +217,17 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
 
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.type_specifier_nonarray,
-    [[ETokenType.ID], [NoneTerminal.ext_builtin_type_specifier_nonarray]],
+    [
+      // User-defined struct identifier
+      [ETokenType.ID],
+      // Built-in type keyword (float / vec3 / sampler2D / ...)
+      [NoneTerminal.ext_builtin_type_specifier_nonarray],
+      // Macro-as-type-alias (e.g. `#define FxaaFloat float; FxaaFloat x;`).
+      // Routing through `macro_call_symbol` keeps the macro a first-class AST
+      // node and lets the LALR table disambiguate from expression-position
+      // macro calls.
+      [NoneTerminal.macro_call_symbol]
+    ],
     ASTNode.TypeSpecifierNonArray.pool
   ),
 
@@ -920,7 +930,13 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
         ETokenType.EQUAL,
         NoneTerminal.initializer
       ],
-      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer]
+      [NoneTerminal.fully_specified_type, ETokenType.ID, ETokenType.EQUAL, NoneTerminal.initializer],
+      // Declarator name collides with a `#define` from a sibling `#if expr` arm
+      // whose value the lexer can't evaluate. Branch-mutex covers `#if`/`#else`
+      // pairs; this variant is the fallback for cross-`#if` collisions (e.g.
+      // FXAA's `#define lumaNW …` shadowing `FxaaFloat lumaNW = …`).
+      [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL],
+      [NoneTerminal.fully_specified_type, Keyword.MACRO_CALL, ETokenType.EQUAL, NoneTerminal.initializer]
     ],
     ASTNode.SingleDeclaration.pool
   ),

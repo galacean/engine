@@ -412,8 +412,13 @@ export namespace ASTNode {
     override init(): void {
       const tt = this.children[0];
       if (tt instanceof BaseToken) {
+        // ID — user-defined struct identifier; the lexeme is the type name.
         this.type = tt.lexeme;
         this.lexeme = tt.lexeme;
+      } else if (tt instanceof MacroCallSymbol) {
+        // Macro-as-type-alias — value resolved at variant codegen, type is `TypeAny` here.
+        this.type = TypeAny;
+        this.lexeme = tt.macroName;
       } else {
         this.type = (tt as ExtBuiltinTypeSpecifierNonArray).type as GalaceanDataType;
         this.lexeme = (tt as ExtBuiltinTypeSpecifierNonArray).lexeme;

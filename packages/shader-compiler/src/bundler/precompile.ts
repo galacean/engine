@@ -31,14 +31,22 @@ interface EngineModule {
 /**
  * Top-level entry: load the shader compiler, dispatch by mode (single / full / watch),
  * and optionally emit the aggregated index file.
+ *
+ * One-shot mode surfaces precompile failures as a non-zero exit so CI / build
+ * pipelines stop instead of silently shipping stale .gsp files. Watcher mode
+ * keeps logging errors but stays alive so the developer can fix and resave.
  */
 export async function precompile(options: PrecompileOptions): Promise<void> {
-  await runFull(options);
+  const { failed } = await runFull(options);
 
   if (options.watch) {
     await startWatcher(options);
-  } else {
-    console.log("[shader-compiler-bundler] Done.");
+    return;
+  }
+
+  console.log("[shader-compiler-bundler] Done.");
+  if (failed > 0) {
+    process.exit(1);
   }
 }
 
@@ -47,7 +55,7 @@ export async function precompile(options: PrecompileOptions): Promise<void> {
  * Returns after all `.shader` files have been compiled and (optionally)
  * orphans cleaned + index emitted.
  */
-export async function runFull(options: Omit<PrecompileOptions, "watch">): Promise<void> {
+export async function runFull(options: Omit<PrecompileOptions, "watch">): Promise<{ failed: number }> {
   const inputDir = path.resolve(options.input);
   const outputDir = path.resolve(options.output);
   const platformTarget = options.platformTarget ?? 0;
@@ -59,18 +67,18 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
   fs.mkdirSync(outputDir, { recursive: true });
 
   const shaderCompiler = await tryLoadShaderCompiler();
-  if (!shaderCompiler) return;
+  if (!shaderCompiler) return { failed: 0 };
 
   await registerLocalIncludes(inputDir);
   const shaderRootPath = await getShaderRootPath();
 
+  let failed = 0;
   if (options.only) {
     const target = path.resolve(options.only);
-    compileSingle(shaderCompiler, target, inputDir, outputDir, platformTarget, shaderRootPath);
+    if (!compileSingle(shaderCompiler, target, inputDir, outputDir, platformTarget, shaderRootPath)) failed++;
   } else {
     const shaderFiles = findFiles(inputDir, ".shader");
     console.log(`[shader-compiler-bundler] Precompiling ${shaderFiles.length} shader(s)...`);
-    let failed = 0;
     for (const file of shaderFiles) {
       if (!compileSingle(shaderCompiler, file, inputDir, outputDir, platformTarget, shaderRootPath)) failed++;
     }
@@ -84,6 +92,8 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
   if (options.emitIndex) {
     emitIndex(outputDir);
   }
+
+  return { failed };
 }
 
 /**
