@@ -1,11 +1,16 @@
 // Self-contained build for the shader compiler package.
 //
-// `@galacean/engine-shader-compiler` is a standalone offline compiler — see
-// `src/enums/README.md`. It depends on no engine runtime package, so this
-// build runs on a fresh checkout without any other workspace dist present.
-// The root rollup later rebuilds the runtime entry to add the `_VERBOSE`
-// split (`dist/main.verbose.js`) and UMD/browser formats; what we produce
-// here is just enough for the `shader-precompile` CLI to run.
+// Produces a self-contained runtime + bundler plumbing for the
+// `shader-precompile` CLI. shader-compiler is a standalone offline compiler
+// (see `src/enums/README.md`) — at runtime it only needs `Color` from
+// `@galacean/engine-math`, which we bundle in directly from math's `src/`
+// (via `mainFields: ["debug"]`) so this build has zero workspace dist
+// prerequisites and works on a cold checkout.
+//
+// The root rollup later rebuilds the runtime entry with `external: math`
+// (sharing the math package at runtime instead of inlining) and adds the
+// `_VERBOSE` split + UMD/browser formats. Both products are correct; this
+// one only has to live long enough for `pnpm precompile` to run.
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import swc from "rollup-plugin-swc3";
@@ -29,7 +34,8 @@ const bundlerExternal = [
 const swcPluginBundler = swc({ jsc: { target: "es2020" } });
 
 // Match the root rollup's runtime transpile target so reusing this dist as-is
-// (when the root rollup hasn't rebuilt yet, e.g. mid-`b:all`) behaves the same.
+// mid-`b:all` (between this build and the root rollup's rebuild) behaves
+// identically to the final shipped runtime.
 const swcPluginRuntime = swc({
   jsc: { loose: true, externalHelpers: true, target: "es5" },
   sourceMaps: true
@@ -39,13 +45,10 @@ const swcPluginRuntime = swc({
 // rebuilds with `_VERBOSE: true` as a sibling `*.verbose.js` output.
 const jsccPlugin = jscc({ values: { _VERBOSE: false } });
 
-// `@galacean/engine-design` is type-only (all imports use `import type`) and
-// erased by swc. `@galacean/engine-math`'s `Color` is the only runtime symbol
-// we touch — bundled into the dist so shader-compiler stays self-contained
-// (no `pnpm b:compiler` prerequisite on math's dist) and the precompile CLI
-// can run on a fresh checkout. The single source of truth for `Color` is
-// still `@galacean/engine-math`, so engine-core's deserialized `.shaderc`
-// shares the same nominal type with what shader-compiler produces.
+// Nothing externalized at the runtime entry: `@galacean/engine-math` is
+// resolved to its `src/index.ts` via `mainFields: ["debug"]` and bundled
+// inline (no math/dist prerequisite). `@galacean/engine-design` imports are
+// all `import type` and erased by swc before they reach rollup.
 const runtimeExternal = [];
 
 export default [
@@ -59,10 +62,11 @@ export default [
     ],
     external: runtimeExternal,
     plugins: [
-      // `mainFields` includes `debug` so workspace packages without a built
-      // dist (e.g. `@galacean/engine-math` on a fresh checkout) still resolve
-      // — `debug` points to `src/index.ts` and rollup transpiles it via swc.
-      resolve({ extensions: [".js", ".ts"], mainFields: ["debug", "module", "main"] }),
+      // `mainFields: ["debug"]` resolves workspace packages directly to their
+      // source (`debug` → `src/index.ts` by repo convention), so this build
+      // never depends on any other workspace dist being present and always
+      // uses the freshest source — no stale-dist risk on warm starts.
+      resolve({ extensions: [".js", ".ts"], mainFields: ["debug"] }),
       swcPluginRuntime,
       commonjs(),
       jsccPlugin
