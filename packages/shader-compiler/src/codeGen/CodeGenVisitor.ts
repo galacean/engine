@@ -11,7 +11,7 @@ import { StructRole, VisitorContext } from "./VisitorContext";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
-import { Logger, ReturnableObjectPool } from "@galacean/engine";
+import { ReturnableObjectPool } from "../common/ObjectPool";
 import { Keyword } from "../common/enums/Keyword";
 import { TempArray } from "../TempArray";
 import { ICodeSegment } from "./types";
@@ -407,7 +407,7 @@ export abstract class CodeGenVisitor {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText));
     // #else
-    Logger.error(message);
+    console.error(message);
     // #endif
   }
 }

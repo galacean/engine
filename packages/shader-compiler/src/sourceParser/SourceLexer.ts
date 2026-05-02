@@ -1,4 +1,4 @@
-import { Color } from "@galacean/engine";
+import { Color } from "@galacean/engine-math";
 import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";

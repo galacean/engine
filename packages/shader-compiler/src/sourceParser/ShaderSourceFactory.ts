@@ -1,4 +1,4 @@
-import { IRenderStates, IShaderPassSource, IShaderSource, ISubShaderSource } from "@galacean/engine-design";
+import type { IRenderStates, IShaderPassSource, IShaderSource, ISubShaderSource } from "@galacean/engine-design";
 
 export class ShaderSourceFactory {
   static createRenderStates(): IRenderStates {

@@ -1,6 +1,7 @@
-import { Color, Logger, ShaderLanguage } from "@galacean/engine";
-import { IPrecompiledShader, IRenderStates, IShaderCompiler, IShaderSource } from "@galacean/engine-design";
-import { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
+import { Color } from "@galacean/engine-math";
+import { ShaderLanguage } from "./enums/ShaderLanguage";
+import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
+import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
@@ -10,7 +11,16 @@ import { Preprocessor, IncludeMap } from "./Preprocessor";
 import { ShaderCompilerUtils } from "./ShaderCompilerUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
-export class ShaderCompiler implements IShaderCompiler {
+// `IShaderCompiler` (in engine-design) is the engine-runtime view of this
+// class — i.e. the interface engine-core uses when accepting a shader compiler
+// instance. We don't `implements` it here because that would force our
+// internal source-tree types (which use the local minimal Color) to be
+// nominally identical to the design-side ones (which use math Color); the two
+// are structurally compatible at runtime — Color → number[] serialization in
+// `_serializeRenderStates` ensures the wire format matches — but tsc's
+// nominal typing rejects the assignment. Engine-side `WebGLEngine.create({
+// shaderCompiler })` already takes the instance through the design interface.
+export class ShaderCompiler {
   private static _parser = ShaderTargetParser.create();
   private static _shaderPositionPool = ShaderCompilerUtils.createObjectPool(ShaderPosition);
   private static _shaderRangePool = ShaderCompilerUtils.createObjectPool(ShaderRange);
@@ -68,11 +78,9 @@ export class ShaderCompiler implements IShaderCompiler {
     backend: ShaderLanguage,
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
-    const totalStartTime = performance.now();
     const macroDefineList = {};
     Preprocessor._repeatIncludeSet.clear();
     const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey, this._includeMap);
-    Logger.info(`[Task - Pre processor] cost time ${performance.now() - totalStartTime}ms`);
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);
 
@@ -93,10 +101,7 @@ export class ShaderCompiler implements IShaderCompiler {
 
     const codeGen = backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
 
-    const codeGenStartTime = performance.now();
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
-    Logger.info(`[Task - CodeGen] cost time: ${performance.now() - codeGenStartTime}ms`);
-    Logger.info(`[Task - Total compilation] cost time: ${performance.now() - totalStartTime}ms`);
     ShaderCompiler._processingPassText = undefined;
 
     // #if _VERBOSE
@@ -184,10 +189,10 @@ export class ShaderCompiler implements IShaderCompiler {
    * @internal
    */
   _logErrors(errors: Error[]) {
-    if (errors.length === 0 || !Logger.isEnabled) return;
-    Logger.error(`${errors.length} errors occur!`);
+    if (errors.length === 0) return;
+    console.error(`${errors.length} errors occur!`);
     for (const err of errors) {
-      Logger.error(err.toString());
+      console.error(err.toString());
     }
   }
   // #endif

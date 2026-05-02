@@ -1,4 +1,3 @@
-import { Logger } from "@galacean/engine";
 import { ETokenType } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
@@ -65,14 +64,11 @@ export class ShaderTargetParser {
 
   parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
     this.sematicAnalyzer.reset(macroDefineList);
-    const start = performance.now();
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
 
     let nextToken = tokens.next();
-    let loopCount = 0;
     while (true) {
-      loopCount += 1;
       const token = nextToken.value;
 
       const actionInfo = this.stateActionTable.get(token.type);
@@ -80,11 +76,6 @@ export class ShaderTargetParser {
         traceBackStack.push(token, actionInfo.target!);
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
-        Logger.info(
-          `[Task - AST compilation] Accept! State automata run ${loopCount} times! cost time ${
-            performance.now() - start
-          }ms`
-        );
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);
         return sematicAnalyzer.semanticStack.pop() as ASTNode.GLShaderProgram;
       } else if (actionInfo?.action === EAction.Reduce) {
@@ -137,7 +128,7 @@ export class ShaderTargetParser {
       str += `State${state} - ${(<BaseToken>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
     }
     str += `State${this._traceBackStack[this._traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
-    Logger.info(str);
+    console.info(str);
   }
   // #endif
 }

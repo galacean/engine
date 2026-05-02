@@ -1,4 +1,3 @@
-import { Logger } from "@galacean/engine";
 import { ETokenType } from "../common";
 import { Keyword } from "../common/enums/Keyword";
 import { Grammar } from "../parser/Grammar";
@@ -163,7 +162,7 @@ export class LALR1 {
         return;
       } else {
         // #if _VERBOSE
-        Logger.warn(
+        console.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}> \n`,
           Utils.printAction(exist),
           "\n",

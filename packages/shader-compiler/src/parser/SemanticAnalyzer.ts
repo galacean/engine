@@ -8,7 +8,6 @@ import { ASTNode, TreeNode } from "./AST";
 import { ShaderData } from "./ShaderInfo";
 import { NodeChild } from "./types";
 
-import { Logger } from "@galacean/engine";
 import { MacroDefineList } from "../Preprocessor";
 
 export type TranslationRule<T = any> = (sa: SemanticAnalyzer, ...tokens: NodeChild[]) => T;
@@ -84,11 +83,11 @@ export default class SemanticAnalyzer {
     // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText));
     // #else
-    Logger.error(message);
+    console.error(message);
     // #endif
   }
 
   reportWarning(loc: ShaderRange, message: string): void {
-    Logger.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompiler._processingPassText).toString());
+    console.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompiler._processingPassText).toString());
   }
 }

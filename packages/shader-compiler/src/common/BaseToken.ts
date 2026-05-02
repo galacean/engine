@@ -1,7 +1,7 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
 import { ShaderCompiler } from "../ShaderCompiler";
-import { IPoolElement } from "@galacean/engine";
+import type { IPoolElement } from "./ObjectPool";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 
 /**

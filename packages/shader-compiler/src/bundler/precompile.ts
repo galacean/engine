@@ -50,9 +50,7 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  const shaderCompiler = await tryLoadShaderCompiler();
-  if (!shaderCompiler) return { failed: 0 };
-
+  const shaderCompiler = await loadShaderCompiler();
   shaderCompiler._includeMap = collectIncludeMap(inputDir);
 
   let failed = 0;
@@ -113,13 +111,12 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
   fs.watch(inputDir, { recursive: true }, (_event, filename) => handleInputChange(filename));
 }
 
-// Browser-globals shim: loaded runtime transitively imports engine utilities
-// whose module-load touches `window`/`document`.
+// Loads the compiled `dist/main.js` runtime. shader-compiler is standalone
+// (see `../enums/README.md`), so the only prerequisite is `pnpm b:compiler`
+// having produced the dist — there are no engine-runtime imports to worry
+// about. If `dist/main.js` is genuinely missing the import below throws and
+// that surfaces a real configuration error (don't paper over it).
 async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
-  const g = globalThis as unknown as { window?: unknown; document?: unknown };
-  if (typeof g.window === "undefined") g.window = { devicePixelRatio: 1 };
-  if (typeof g.document === "undefined") g.document = { createElement: () => ({}) };
-
   // @ts-ignore — `../main.js` is the compiled runtime entry; no .ts source.
   const mod = (await import("../main.js")) as { ShaderCompiler: new () => ShaderCompilerInstance };
   const instance = new mod.ShaderCompiler();
@@ -127,20 +124,6 @@ async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
     throw new Error("ShaderCompiler._precompile is not available; rebuild @galacean/engine-shader-compiler first.");
   }
   return instance;
-}
-
-// Cold-start: returns `null` on a fresh CI checkout missing `dist/main.js`
-// so the rollup plugin can skip precompile and let the workspace build
-// produce the runtimes; a follow-up pass emits the .shaderc outputs.
-async function tryLoadShaderCompiler(): Promise<ShaderCompilerInstance | null> {
-  try {
-    return await loadShaderCompiler();
-  } catch (e) {
-    const msg = (e as Error).message;
-    console.warn(`[shader-compiler-bundler] Precompile skipped — runtime not yet built (${msg})`);
-    console.warn("[shader-compiler-bundler] Re-run after the workspace build to regenerate .shaderc outputs.");
-    return null;
-  }
 }
 
 // Read includes from src by convention: <inputDir>/*.glsl + sibling

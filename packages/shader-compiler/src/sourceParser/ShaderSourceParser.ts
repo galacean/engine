@@ -1,16 +1,21 @@
+import { Color } from "@galacean/engine-math";
 import {
   BlendFactor,
   BlendOperation,
-  Color,
   ColorWriteMask,
   CompareFunction,
   CullMode,
-  Logger,
   RenderQueueType,
   RenderStateElementKey,
   StencilOperation
-} from "@galacean/engine";
-import { IRenderStates, IShaderPassSource, IShaderSource, IStatement, ISubShaderSource } from "@galacean/engine-design";
+} from "../enums";
+import type {
+  IRenderStates,
+  IShaderPassSource,
+  IShaderSource,
+  IStatement,
+  ISubShaderSource
+} from "@galacean/engine-design";
 import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { SymbolTableStack } from "../common/SymbolTableStack";
@@ -46,8 +51,6 @@ export class ShaderSourceParser {
   private static _lookupSymbol = new ShaderSourceSymbol("", null);
 
   static parse(sourceCode: string): IShaderSource {
-    const startTime = performance.now();
-
     // Clear previous data
     this.errors.length = 0;
     this._symbolTableStack.clear();
@@ -84,7 +87,6 @@ export class ShaderSourceParser {
       }
     }
 
-    Logger.info(`[Task - Source compilation] cost time ${performance.now() - startTime}ms`);
     return shaderSource;
   }
 
@@ -497,7 +499,7 @@ export class ShaderSourceParser {
               lexer.getShaderPosition(0)
             );
             // #if _VERBOSE
-            Logger.error(error.toString());
+            console.error(error.toString());
             throw error;
             // #endif
           }

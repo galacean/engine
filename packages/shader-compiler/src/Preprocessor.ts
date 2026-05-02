@@ -1,6 +1,9 @@
-import { Logger, ShaderPass } from "@galacean/engine";
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
+
+// Mirrors `ShaderPass._shaderRootPath` in `@galacean/engine-core`.
+// Inlined to keep shader-compiler standalone (see `enums/README.md`).
+const SHADER_ROOT_PATH = "shaders://root/";
 
 /** Read-only `#include "path" -> chunk source` lookup. */
 export type IncludeMap = { readonly [includeName: string]: string | undefined };
@@ -53,20 +56,19 @@ export class Preprocessor {
   private static _replace(includeName: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
     let path: string;
     if (includeName[0] === ".") {
-      // @ts-ignore _shaderRootPath is @internal, stripped from public d.ts.
-      path = new URL(includeName, basePathForIncludeKey).href.substring(ShaderPass._shaderRootPath.length);
+      path = new URL(includeName, basePathForIncludeKey).href.substring(SHADER_ROOT_PATH.length);
     } else {
       path = includeName;
     }
 
     const chunk = includeMap[path];
     if (!chunk) {
-      Logger.error(`Shader slice "${path}" not founded.`);
+      console.error(`Shader slice "${path}" not founded.`);
       return "";
     }
 
     if (this._repeatIncludeSet.has(path)) {
-      Logger.warn(`Shader slice "${path}" is included multiple times.`);
+      console.warn(`Shader slice "${path}" is included multiple times.`);
     }
     this._repeatIncludeSet.add(path);
 

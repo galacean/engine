@@ -1,4 +1,4 @@
-import { IShaderSource } from "@galacean/engine-design";
+import type { IShaderSource } from "@galacean/engine-design";
 
 export type IRenderState = [
   /** Constant RenderState. */

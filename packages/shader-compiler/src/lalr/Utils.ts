@@ -5,7 +5,7 @@ import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
 import { ShaderCompiler } from "../ShaderCompiler";
-import { ClearableObjectPool, IPoolElement } from "@galacean/engine";
+import { ClearableObjectPool, type IPoolElement } from "../common/ObjectPool";
 import { NodeChild } from "../parser/types";
 import { Keyword } from "../common/enums/Keyword";
 

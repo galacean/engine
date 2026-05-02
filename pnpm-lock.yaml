@@ -286,13 +286,13 @@ importers:
 
   packages/shader-compiler:
     dependencies:
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../math
       '@rollup/pluginutils':
         specifier: ^5.0.0
         version: 5.2.0(rollup@4.27.2)
     devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
       '@galacean/engine-design':
         specifier: workspace:*
         version: link:../design

@@ -6,9 +6,6 @@
   "debug": "../src/index.ts",
   "types": "../types/index.d.ts",
   "umd": {
-    "name": "Galacean.ShaderLab",
-    "globals": {
-      "@galacean/engine": "Galacean"
-    }
+    "name": "Galacean.ShaderCompiler"
   }
 }

@@ -43,7 +43,7 @@
   "umd": {
     "name": "Galacean.ShaderCompiler",
     "globals": {
-      "@galacean/engine": "Galacean"
+      "@galacean/engine-math": "Galacean"
     }
   },
   "files": [
@@ -52,13 +52,10 @@
     "verbose/package.json"
   ],
   "dependencies": {
-    "@rollup/pluginutils": "^5.0.0"
+    "@rollup/pluginutils": "^5.0.0",
+    "@galacean/engine-math": "workspace:*"
   },
   "devDependencies": {
-    "@galacean/engine-design": "workspace:*",
-    "@galacean/engine": "workspace:*"
-  },
-  "peerDependencies": {
-    "@galacean/engine": "workspace:*"
+    "@galacean/engine-design": "workspace:*"
   }
 }

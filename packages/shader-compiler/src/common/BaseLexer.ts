@@ -1,4 +1,3 @@
-import { Logger } from "@galacean/engine";
 import { ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
 import { ShaderCompiler } from "../ShaderCompiler";
@@ -219,7 +218,7 @@ export abstract class BaseLexer {
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
     const error = ShaderCompilerUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
     // #if _VERBOSE
-    Logger.error(error!.toString());
+    console.error(error!.toString());
     // #endif
     throw error;
   }
