@@ -346,6 +346,9 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     this._font = engine._textDefaultFont;
     this._addResourceReferCount(this._font, 1);
     this.setMaterial(engine._basicResources.textDefaultMaterial);
+    const shaderData = this.shaderData;
+    shaderData.setFloat(TextRenderer._outlineWidthProperty, this._outlineWidth);
+    shaderData.setColor(TextRenderer._outlineColorProperty, this._outlineColor);
     //@ts-ignore
     this._color._onValueChanged = this._onColorChanged.bind(this);
     // @ts-ignore

@@ -274,6 +274,9 @@ export class Text extends UIRenderer implements ITextRenderer {
     this.raycastEnabled = false;
     // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
+    const shaderData = this.shaderData;
+    shaderData.setFloat(Text._outlineWidthProperty, this._outlineWidth);
+    shaderData.setColor(Text._outlineColorProperty, this._outlineColor);
     // @ts-ignore
     this._outlineColor._onValueChanged = this._onOutlineColorChanged.bind(this);
   }
