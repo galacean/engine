@@ -43,7 +43,8 @@
   "umd": {
     "name": "Galacean.ShaderCompiler",
     "globals": {
-      "@galacean/engine-math": "Galacean"
+      "@galacean/engine-math": "Galacean",
+      "@galacean/engine-core": "Galacean"
     }
   },
   "files": [
@@ -53,7 +54,8 @@
   ],
   "dependencies": {
     "@rollup/pluginutils": "^5.0.0",
-    "@galacean/engine-math": "workspace:*"
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-core": "workspace:*"
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*"

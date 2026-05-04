@@ -8,7 +8,7 @@ import {
   RenderQueueType,
   RenderStateElementKey,
   StencilOperation
-} from "../enums";
+} from "@galacean/engine-core";
 import type {
   IRenderStates,
   IShaderPassSource,

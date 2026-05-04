@@ -1,4 +1,4 @@
-import { ClearableObjectPool, type IPoolElement } from "../common/ObjectPool";
+import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import { CodeGenVisitor } from "../codeGen";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken } from "../common/BaseToken";

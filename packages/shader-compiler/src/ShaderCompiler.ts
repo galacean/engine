@@ -1,5 +1,5 @@
 import { Color } from "@galacean/engine-math";
-import { ShaderLanguage } from "./enums/ShaderLanguage";
+import { ShaderLanguage } from "@galacean/engine-core";
 import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";

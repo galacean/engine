@@ -32,7 +32,6 @@ import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
@@ -41,8 +40,6 @@ import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-
-ShaderPool.init();
 
 /**
  * Engine.
@@ -278,8 +275,6 @@ export class Engine extends EventDispatcher {
     if (!hardwareRenderer.canIUse(GLCapabilityType.sRGB)) {
       this._macroCollection.enable(Engine._noSRGBSupportMacro);
     }
-
-    ShaderPool.registerShaders();
 
     this._basicResources = new BasicResources(this);
     this._particleBufferUtils = new ParticleBufferUtils(this);
@@ -636,9 +631,10 @@ export class Engine extends EventDispatcher {
 
     if (shaderCompiler && !Shader._shaderCompiler) {
       // Bind the runtime include map so the preprocessor sees every chunk
-      // `ShaderPool.init` registered. shader-compiler defaults to an empty
-      // map and stays free of any direct ShaderFactory dependency, so the
-      // binding has to be wired here at the runtime boundary.
+      // the umbrella package's ShaderPool registered into ShaderFactory.
+      // shader-compiler defaults to an empty map and stays free of any direct
+      // ShaderFactory dependency, so the binding has to be wired here at the
+      // runtime boundary.
       // @ts-ignore — `_includeMap` is shader-compiler @internal; `_includeMap`
       // is `ShaderFactory` @internal. Both intentionally cross-package wired.
       shaderCompiler._includeMap = ShaderFactory.includeMap;

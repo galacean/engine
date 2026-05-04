@@ -1,4 +1,4 @@
-import type { IPoolElement } from "./ObjectPool";
+import type { IPoolElement } from "@galacean/engine-core";
 import { ShaderPosition } from "./ShaderPosition";
 
 export class ShaderRange implements IPoolElement {

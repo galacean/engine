@@ -204,9 +204,6 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
-      '@galacean/engine-shader':
-        specifier: workspace:*
-        version: link:../shader
     devDependencies:
       '@galacean/engine-design':
         specifier: workspace:*
@@ -232,6 +229,9 @@ importers:
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../rhi-webgl
+      '@galacean/engine-shader':
+        specifier: workspace:*
+        version: link:../shader
 
   packages/loader:
     dependencies:
@@ -286,6 +286,9 @@ importers:
 
   packages/shader-compiler:
     dependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math

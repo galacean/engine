@@ -1,4 +1,4 @@
-import type { IPoolElement } from "./common/ObjectPool";
+import type { IPoolElement } from "@galacean/engine-core";
 
 export class TempArray<T> implements IPoolElement {
   array: Array<T> = new Array();

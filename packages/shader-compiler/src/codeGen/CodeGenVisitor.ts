@@ -11,7 +11,7 @@ import { StructRole, VisitorContext } from "./VisitorContext";
 // #if _VERBOSE
 import { GSError } from "../GSError";
 // #endif
-import { ReturnableObjectPool } from "../common/ObjectPool";
+import { ReturnableObjectPool } from "@galacean/engine-core";
 import { Keyword } from "../common/enums/Keyword";
 import { TempArray } from "../TempArray";
 import { ICodeSegment } from "./types";

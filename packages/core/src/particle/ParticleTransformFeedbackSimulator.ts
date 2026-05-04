@@ -4,10 +4,12 @@ import { Buffer } from "../graphic/Buffer";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { TransformFeedbackSimulator } from "../graphic/TransformFeedbackSimulator";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
-import { ShaderPool } from "../shader/ShaderPool";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { ParticleBufferUtils } from "./ParticleBufferUtils";
+
+const FEEDBACK_SHADER_NAME = "Effect/ParticleFeedback";
 
 /**
  * @internal
@@ -32,10 +34,22 @@ export class ParticleTransformFeedbackSimulator {
   }
 
   constructor(engine: Engine) {
+    // Look up the feedback pass dynamically rather than caching it on a
+    // built-in pool — `engine-core` no longer ships the built-in shader set
+    // itself; the umbrella `@galacean/engine` package registers
+    // `Effect/ParticleFeedback` (and configures its transform-feedback
+    // varyings) at module load time.
+    const feedbackShader = Shader.find(FEEDBACK_SHADER_NAME);
+    if (!feedbackShader) {
+      throw new Error(
+        `${FEEDBACK_SHADER_NAME} shader is not registered. Import "@galacean/engine" before constructing the engine, ` +
+          `or register the shader manually if you build a custom engine flavor.`
+      );
+    }
     this._simulator = new TransformFeedbackSimulator(
       engine,
       ParticleBufferUtils.feedbackVertexStride,
-      ShaderPool.particleFeedbackPass
+      feedbackShader.subShaders[0].passes[0]
     );
   }
 
