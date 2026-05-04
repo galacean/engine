@@ -14,7 +14,7 @@ import {
   ShaderTagKey,
   SubShader
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { vi, describe, expect, it } from "vitest";
 

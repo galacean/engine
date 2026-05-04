@@ -21,7 +21,7 @@ import {
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { glbResource } from "./model/fox";
 const canvasDOM = document.createElement("canvas");

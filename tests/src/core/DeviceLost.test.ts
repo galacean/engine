@@ -10,7 +10,7 @@ import {
   TextureCube
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
 const canvasDOM = document.createElement("canvas");

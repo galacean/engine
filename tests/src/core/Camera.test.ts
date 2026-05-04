@@ -10,7 +10,7 @@ import {
   SubShader
 } from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("camera test", function () {

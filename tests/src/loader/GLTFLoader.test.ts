@@ -26,7 +26,7 @@ import {
   registerGLTFParser
 } from "@galacean/engine-loader";
 import { Color } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;

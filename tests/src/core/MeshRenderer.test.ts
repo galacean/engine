@@ -9,7 +9,7 @@ import {
   ModelMesh
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("MeshRenderer", async function () {
