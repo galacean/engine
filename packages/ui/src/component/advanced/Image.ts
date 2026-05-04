@@ -24,16 +24,6 @@ import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
 
 /**
- * Determines how the Image element's size is controlled relative to the sprite.
- */
-export enum SpriteSizeMode {
-  /** The image size is controlled manually via UITransform (default, existing behavior). */
-  Custom = 0,
-  /** The image size is automatically set to the sprite's natural dimensions when the sprite changes. */
-  Automatic = 1
-}
-
-/**
  * UI element that renders an image.
  */
 export class Image extends UIRenderer implements ISpriteRenderer {
@@ -55,8 +45,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _filledOrigin: SpriteFilledOrigin = SpriteFilledOrigin.Bottom;
   @assignmentClone
   private _filledClockWise: boolean = true;
-  @assignmentClone
-  private _sizeMode: SpriteSizeMode = SpriteSizeMode.Custom;
 
   /**
    * The draw mode of the image.
@@ -86,23 +74,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       }
       this._assembler.resetData(this);
       this._dirtyUpdateFlag |= ImageUpdateFlags.WorldVolumeUVAndColor;
-    }
-  }
-
-  /**
-   * The size mode of the image. When set to `Automatic`, the UITransform size
-   * is automatically synchronized to the sprite's natural dimensions.
-   */
-  get sizeMode(): SpriteSizeMode {
-    return this._sizeMode;
-  }
-
-  set sizeMode(value: SpriteSizeMode) {
-    if (this._sizeMode !== value) {
-      this._sizeMode = value;
-      if (value === SpriteSizeMode.Automatic && this._sprite) {
-        this._applySpriteSize();
-      }
     }
   }
 
@@ -231,9 +202,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         this.shaderData.setTexture(UIRenderer._textureProperty, null);
       }
       this._sprite = value;
-      if (this._sizeMode === SpriteSizeMode.Automatic && value) {
-        this._applySpriteSize();
-      }
     }
   }
 
@@ -386,9 +354,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
         this.shaderData.setTexture(UIRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        if (this._sizeMode === SpriteSizeMode.Automatic) {
-          this._applySpriteSize();
-        }
         switch (this._drawMode) {
           case SpriteDrawMode.Sliced:
             this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -425,13 +390,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
       case SpriteModifyFlags.destroy:
         this.sprite = null;
         break;
-    }
-  }
-
-  private _applySpriteSize(): void {
-    const sprite = this._sprite;
-    if (sprite) {
-      (<UITransform>this._transformEntity.transform).size.set(sprite.width, sprite.height);
     }
   }
 }
