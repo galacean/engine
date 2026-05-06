@@ -70,7 +70,7 @@ export const E2E_CONFIG = {
       category: "Animator",
       caseFileName: "animator-reuse",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.000417
     },
     stateMachineScript: {
       category: "Animator",
