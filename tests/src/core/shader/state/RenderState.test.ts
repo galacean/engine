@@ -1,17 +1,19 @@
 import {
   BlendFactor,
-  BlendState,
   CompareFunction,
   CullMode,
-  DepthState,
   Material,
-  RasterState,
   RenderStateElementKey,
   Shader,
   ShaderProperty,
-  StencilOperation,
-  StencilState
+  StencilOperation
 } from "@galacean/engine-core";
+// State classes are intentionally not part of the public barrel — reach into
+// engine-core internals so the white-box state tests can still construct them.
+import { BlendState } from "@galacean/engine-core/src/shader/state/BlendState";
+import { DepthState } from "@galacean/engine-core/src/shader/state/DepthState";
+import { RasterState } from "@galacean/engine-core/src/shader/state/RasterState";
+import { StencilState } from "@galacean/engine-core/src/shader/state/StencilState";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
