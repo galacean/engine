@@ -7,7 +7,7 @@ import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import { ShaderTargetParser } from "./parser";
-import { Preprocessor, IncludeMap } from "./Preprocessor";
+import { Preprocessor, IncludeMap, ChunkOutputCache } from "./Preprocessor";
 import { ShaderCompilerUtils } from "./ShaderCompilerUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
@@ -29,22 +29,17 @@ export class ShaderCompiler {
   static _processingPassText?: string;
   // #endif
 
-  /**
-   * `#include` lookup table. Defaults to an empty map; runtime callers (engine
-   * `Shader.create` flow) bind it to `ShaderFactory.includeMap` so the runtime
-   * include registry stays the source of truth. Build-time callers (the
-   * bundler) bind it to a freshly-scanned src map so chunk path renames take
-   * effect on the next precompile without rebuilding any package.
-   *
-   * Keeping the binding here (instead of having `Preprocessor` read a global)
-   * means shader-compiler does not import `ShaderFactory` and stays free of
-   * any engine module-load side effects.
-   */
-  _includeMap: IncludeMap = {};
+  private _includeMap: IncludeMap = {};
+  private readonly _chunkOutputCache: ChunkOutputCache = new Map();
 
-  /** @internal Drop the Preprocessor chunk cache after watch-mode include edits. */
-  _clearChunkCache(): void {
-    Preprocessor._clearChunkCache();
+  /**
+   * Replace the `#include` lookup table. Runtime callers bind it to
+   * `ShaderFactory.includeMap`; the bundler binds it to a freshly-scanned src
+   * map. Drops the derived chunk cache so the two stay in lockstep.
+   */
+  _setIncludeMap(includeMap: IncludeMap): void {
+    this._includeMap = includeMap;
+    this._chunkOutputCache.clear();
   }
 
   static createPosition(index: number, line?: number, column?: number): ShaderPosition {
@@ -84,8 +79,12 @@ export class ShaderCompiler {
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
     const macroDefineList = {};
-    Preprocessor._repeatIncludeSet.clear();
-    const noIncludeContent = Preprocessor.parse(source, basePathForIncludeKey, this._includeMap);
+    const noIncludeContent = Preprocessor.parse(
+      source,
+      basePathForIncludeKey,
+      this._includeMap,
+      this._chunkOutputCache
+    );
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);
 

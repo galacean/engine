@@ -21,8 +21,7 @@ export interface PrecompileOptions {
 
 interface ShaderCompilerInstance {
   _precompile: (source: string, target: number, basePathForIncludeKey: string) => unknown;
-  _includeMap: Record<string, string>;
-  _clearChunkCache: () => void;
+  _setIncludeMap: (includeMap: Record<string, string>) => void;
 }
 
 // One-shot mode exits non-zero on failure so CI breaks; watch mode logs and keeps running.
@@ -52,7 +51,7 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
   fs.mkdirSync(outputDir, { recursive: true });
 
   const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler._includeMap = collectIncludeMap(inputDir);
+  shaderCompiler._setIncludeMap(collectIncludeMap(inputDir));
 
   let failed = 0;
   if (options.only) {
@@ -83,7 +82,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
   const outputDir = path.resolve(options.output);
   const platformTarget = options.platformTarget ?? 0;
   const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler._includeMap = collectIncludeMap(inputDir);
+  shaderCompiler._setIncludeMap(collectIncludeMap(inputDir));
 
   // .glsl change → full recompile (can't cheaply track include graphs).
   // .shader change → single-file recompile.
@@ -94,8 +93,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
 
     if (norm.endsWith(".glsl")) {
       console.log(`[shader-compiler-bundler] Include changed (${norm}), full recompile...`);
-      shaderCompiler._includeMap = collectIncludeMap(inputDir);
-      shaderCompiler._clearChunkCache();
+      shaderCompiler._setIncludeMap(collectIncludeMap(inputDir));
       runFull(options as Omit<PrecompileOptions, "watch" | "only">).catch((e) => console.error(e));
       return;
     }
@@ -129,7 +127,7 @@ async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
 }
 
 // Read includes from src by convention: <inputDir>/*.glsl + sibling
-// <ShaderLibrary>/*.glsl. Injected into `shaderCompiler._includeMap`, so the
+// <ShaderLibrary>/*.glsl. Injected into `shaderCompiler._setIncludeMap`, so the
 // preprocessor never reads from any dist snapshot.
 function collectIncludeMap(inputDir: string): Record<string, string> {
   const map: Record<string, string> = {};

@@ -1,12 +1,12 @@
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
 
-// Mirrors `ShaderPass._shaderRootPath` in `@galacean/engine-core`.
-// Inlined to keep shader-compiler standalone (see `enums/README.md`).
+// Mirrors `ShaderPass._shaderRootPath`; inlined to keep shader-compiler standalone.
 const SHADER_ROOT_PATH = "shaders://root/";
 
-/** Read-only `#include "path" -> chunk source` lookup. */
 export type IncludeMap = { readonly [includeName: string]: string | undefined };
+
+export type ChunkOutputCache = Map<string, string>;
 
 /**
  * Record for a single `#define` directive. `valueAst` is set for expression
@@ -34,30 +34,26 @@ export interface MacroDefineList {
 
 export class Preprocessor {
   // First branch swallows block comments so `#include` directives nested in
-  // documentation comments (e.g. FXAA3_11.glsl) aren't expanded.
+  // doc comments (e.g. FXAA3_11.glsl) aren't expanded.
   private static readonly _includeReg = /\/\*[\s\S]*?\*\/|^[ \t]*#include +"([\w\d./]+)"/gm;
-  private static readonly _chunkOutputCache = new Map<string, string>();
 
-  /** @internal */
-  static _repeatIncludeSet = new Set<string>();
-
-  /** @internal Watch-mode hook: drop cached expansions after a chunk file edit. */
-  static _clearChunkCache(): void {
-    this._chunkOutputCache.clear();
-  }
-
-  static parse(source: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
-    this._repeatIncludeSet.clear();
-    return this._parseInternal(source, basePathForIncludeKey, includeMap);
-  }
-
-  private static _parseInternal(source: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
+  static parse(
+    source: string,
+    basePathForIncludeKey: string,
+    includeMap: IncludeMap,
+    chunkOutputCache: ChunkOutputCache
+  ): string {
     return source.replace(this._includeReg, (match, includeName) =>
-      includeName ? this._replace(includeName, basePathForIncludeKey, includeMap) : match
+      includeName ? this._replace(includeName, basePathForIncludeKey, includeMap, chunkOutputCache) : match
     );
   }
 
-  private static _replace(includeName: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
+  private static _replace(
+    includeName: string,
+    basePathForIncludeKey: string,
+    includeMap: IncludeMap,
+    chunkOutputCache: ChunkOutputCache
+  ): string {
     let path: string;
     if (includeName[0] === ".") {
       path = new URL(includeName, basePathForIncludeKey).href.substring(SHADER_ROOT_PATH.length);
@@ -71,15 +67,10 @@ export class Preprocessor {
       return "";
     }
 
-    if (this._repeatIncludeSet.has(path)) {
-      console.warn(`Shader slice "${path}" is included multiple times.`);
-    }
-    this._repeatIncludeSet.add(path);
-
-    let cached = this._chunkOutputCache.get(path);
+    let cached = chunkOutputCache.get(path);
     if (cached === undefined) {
-      cached = this._parseInternal(chunk, basePathForIncludeKey, includeMap);
-      this._chunkOutputCache.set(path, cached);
+      cached = this.parse(chunk, basePathForIncludeKey, includeMap, chunkOutputCache);
+      chunkOutputCache.set(path, cached);
     }
     return cached;
   }
