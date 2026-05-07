@@ -1,6 +1,6 @@
 import { Camera, Font, WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Text, UICanvas, UITransform } from "@galacean/engine-ui";
-import { describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it } from "vitest";
 
 const DIRTY_LOCAL_POSITION_BOUNDS = 0x8;
 const DIRTY_WORLD_POSITION = 0x10;
@@ -240,5 +240,9 @@ describe("Text - bounds-getter slot residue regression", async () => {
     for (let i = 0; i < after.length; i++) {
       expect(after[i]).to.be.closeTo(before[i], 0.001);
     }
+  });
+
+  afterAll(() => {
+    engine.destroy();
   });
 });
