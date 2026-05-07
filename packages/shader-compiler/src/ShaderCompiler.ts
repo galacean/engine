@@ -42,6 +42,11 @@ export class ShaderCompiler {
    */
   _includeMap: IncludeMap = {};
 
+  /** @internal Drop the Preprocessor chunk cache after watch-mode include edits. */
+  _clearChunkCache(): void {
+    Preprocessor._clearChunkCache();
+  }
+
   static createPosition(index: number, line?: number, column?: number): ShaderPosition {
     const position = this._shaderPositionPool.get();
     position.set(

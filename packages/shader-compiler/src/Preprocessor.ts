@@ -33,21 +33,20 @@ export interface MacroDefineList {
 }
 
 export class Preprocessor {
-  // First branch swallows block comments so include directives written inside
-  // documentation comments (e.g. FXAA3_11.glsl) aren't expanded as live includes.
+  // First branch swallows block comments so `#include` directives nested in
+  // documentation comments (e.g. FXAA3_11.glsl) aren't expanded.
   private static readonly _includeReg = /\/\*[\s\S]*?\*\/|^[ \t]*#include +"([\w\d./]+)"/gm;
-  // Caches the post-include-expansion output keyed by include name. `#define`
-  // registration is no longer pre-scanned here — the Lexer fills
-  // `macroDefineList` while it tokenizes the cached output.
   private static readonly _chunkOutputCache = new Map<string, string>();
 
-  /**
-   * @internal
-   */
+  /** @internal */
   static _repeatIncludeSet = new Set<string>();
 
+  /** @internal Watch-mode hook: drop cached expansions after a chunk file edit. */
+  static _clearChunkCache(): void {
+    this._chunkOutputCache.clear();
+  }
+
   static parse(source: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
-    // Per-shader scope: warning fires on intra-shader repeats, not cross-shader.
     this._repeatIncludeSet.clear();
     return this._parseInternal(source, basePathForIncludeKey, includeMap);
   }

@@ -22,6 +22,7 @@ export interface PrecompileOptions {
 interface ShaderCompilerInstance {
   _precompile: (source: string, target: number, basePathForIncludeKey: string) => unknown;
   _includeMap: Record<string, string>;
+  _clearChunkCache: () => void;
 }
 
 // One-shot mode exits non-zero on failure so CI breaks; watch mode logs and keeps running.
@@ -94,6 +95,7 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
     if (norm.endsWith(".glsl")) {
       console.log(`[shader-compiler-bundler] Include changed (${norm}), full recompile...`);
       shaderCompiler._includeMap = collectIncludeMap(inputDir);
+      shaderCompiler._clearChunkCache();
       runFull(options as Omit<PrecompileOptions, "watch" | "only">).catch((e) => console.error(e));
       return;
     }
