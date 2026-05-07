@@ -671,10 +671,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     if (charLength > 0) {
       this._buildChunk(curTextChunk, charLength);
     }
-    // _buildChunk 经 _freeTextChunks + allocateSubChunk 拿到的可能是别人释放的 slot，
-    // 该 slot 内存里 pos 字段是上一任 owner 的残留；_buildChunk 只写 UV/color 不写 pos，
-    // 所以必须强制 WorldPosition dirty 让下游 _updatePosition 重写 pos。
-    // 否则 bounds getter 路径会因 _setDirtyFlagFalse(Font) 一并清掉脏位，pos 残留被渲染。
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition);
     charRenderInfos.length = 0;
   }

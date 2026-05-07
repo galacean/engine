@@ -398,11 +398,9 @@ describe("TextRenderer", () => {
   });
 });
 
-// TextRenderer 内部 dirty flag 数值（与 packages/core/src/2d/text/TextRenderer.ts 中 enum DirtyFlag 保持一致）
 const TR_DIRTY_LOCAL_POSITION_BOUNDS = 0x2;
 const TR_DIRTY_WORLD_POSITION = 0x4;
 
-/** 读取 TextRenderer 当前所有 chunk 的 vertex pos 字段（每 vertex 9 floats，pos 在 +0,+1,+2）。*/
 function readTextRendererPosFloats(text: any): number[] {
   const result: number[] = [];
   for (const chunk of text._textChunks) {
@@ -418,11 +416,6 @@ function readTextRendererPosFloats(text: any): number[] {
   return result;
 }
 
-/**
- * 回归测试：bounds getter 路径下 _updateLocalData 重新分配 vertex slot 的 dirty flag 契约。
- * 与 UI Text 同名测试同一根因 —— TextRenderer 当前所有 setter 都用 DirtyFlag.Position（含 WorldPosition），
- * 视觉上不会触发；本测试用于守住契约，防未来新增"只点 LocalPositionBounds"的路径埋雷。
- */
 describe("TextRenderer - bounds-getter slot residue regression", () => {
   let engine: WebGLEngine;
   let rootEntity: Entity;
@@ -438,16 +431,11 @@ describe("TextRenderer - bounds-getter slot residue regression", () => {
     const e = rootEntity.createChild("dirty-flag-invariant-tr");
     const t = e.addComponent(TextRenderer);
     t.text = "AB";
-    // 触发首次 _updateLocalData + _updatePosition，让 dirty flag 完全消化
     void t.bounds;
 
-    // 清空所有 dirty flag
     (t as any)._dirtyFlag = 0;
-
-    // 直接调用 _updateLocalData
     (t as any)._updateLocalData();
 
-    // 修复契约：_updateLocalData 退出时 WorldPosition 必须 dirty
     expect((t as any)._dirtyFlag & TR_DIRTY_WORLD_POSITION).to.eq(TR_DIRTY_WORLD_POSITION);
   });
 
@@ -461,7 +449,6 @@ describe("TextRenderer - bounds-getter slot residue regression", () => {
     const before = readTextRendererPosFloats(t);
     expect(before.length).to.be.greaterThan(0);
 
-    // 把 slot 内存里的 pos 字段人为改成"残留垃圾"
     const chunks = (t as any)._textChunks;
     const v = chunks[0].subChunk.chunk.vertices;
     let vo = chunks[0].subChunk.vertexArea.start;
@@ -472,7 +459,6 @@ describe("TextRenderer - bounds-getter slot residue regression", () => {
       v[vo + 2] = 99999;
     }
 
-    // 仅点 LocalPositionBounds（模拟未来可能新增的"只点 LocalPositionBounds"路径）
     (t as any)._dirtyFlag = TR_DIRTY_LOCAL_POSITION_BOUNDS;
 
     void t.bounds;
