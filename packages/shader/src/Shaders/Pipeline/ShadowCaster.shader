@@ -3,6 +3,8 @@ Shader "Pipeline/ShadowCaster" {
     Pass "ShadowCaster" {
       Tags { pipelineStage = "ShadowCaster" }
 
+      RenderQueueType material_ShadowCasterRenderQueue;
+
       RenderQueueType = material_ShadowCasterRenderQueue;
 
       VertexShader = vert;
