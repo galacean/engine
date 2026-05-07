@@ -310,7 +310,7 @@ export class Text extends UIRenderer implements ITextRenderer {
    */
   _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
     if (flag === RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition);
     }
   }
 
@@ -599,7 +599,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     if (charLength > 0) {
       this._buildChunk(curTextChunk, charLength);
     }
-    this._setDirtyFlagTrue(DirtyFlag.WorldPosition);
     charRenderInfos.length = 0;
   }
 

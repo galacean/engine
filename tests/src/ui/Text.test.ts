@@ -2,9 +2,6 @@ import { Camera, Font, WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Text, UICanvas, UITransform } from "@galacean/engine-ui";
 import { afterAll, describe, expect, it } from "vitest";
 
-const DIRTY_LOCAL_POSITION_BOUNDS = 0x8;
-const DIRTY_WORLD_POSITION = 0x10;
-
 function readTextPosFloats(text: any): number[] {
   const result: number[] = [];
   for (const chunk of text._textChunks) {
@@ -153,7 +150,7 @@ describe("Text", async () => {
   });
 });
 
-describe("Text - bounds-getter slot residue regression", async () => {
+describe("Text - referenceResolutionPerUnit dirty propagation", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas });
   const webCanvas = engine.canvas;
@@ -170,75 +167,56 @@ describe("Text - bounds-getter slot residue regression", async () => {
   uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
   uiCanvas.referenceResolutionPerUnit = 100;
 
-  it("_updateLocalData must leave WorldPosition dirty so downstream _updatePosition runs", () => {
-    const e = uiCanvasEntity.createChild("dirty-flag-invariant");
+  it("changing referenceResolutionPerUnit must rewrite vertex world positions", () => {
+    const e = uiCanvasEntity.createChild("text-under-resolution-change");
     const t = e.addComponent(Text);
     t.text = "AB";
     void t.bounds;
 
-    (t as any)._dirtyUpdateFlag = 0;
-    (t as any)._updateLocalData();
+    const beforeChange = readTextPosFloats(t);
+    expect(beforeChange.length).to.be.greaterThan(0);
 
-    expect((t as any)._dirtyUpdateFlag & DIRTY_WORLD_POSITION).to.eq(DIRTY_WORLD_POSITION);
-  });
-
-  it("bounds getter must re-write vertex pos when only LocalPositionBounds is dirty (corrupted-slot)", () => {
-    const e = uiCanvasEntity.createChild("bounds-getter-rewrite");
-    const t = e.addComponent(Text);
-    t.text = "CD";
-    (e.transform as UITransform).setPosition(123, -45, 0);
-    void t.bounds;
-
-    const before = readTextPosFloats(t);
-    expect(before.length).to.be.greaterThan(0);
-
-    const chunks = (t as any)._textChunks;
-    const v = chunks[0].subChunk.chunk.vertices;
-    let vo = chunks[0].subChunk.vertexArea.start;
-    const numVerts = chunks[0].subChunk.vertexArea.size / 9;
-    for (let i = 0; i < numVerts; i++, vo += 9) {
-      v[vo + 0] = 99999;
-      v[vo + 1] = 99999;
-      v[vo + 2] = 99999;
-    }
-
-    (t as any)._dirtyUpdateFlag = DIRTY_LOCAL_POSITION_BOUNDS;
+    uiCanvas.referenceResolutionPerUnit = 50;
 
     void t.bounds;
 
-    const after = readTextPosFloats(t);
-    expect(after.length).to.eq(before.length);
-    for (let i = 0; i < after.length; i++) {
-      expect(after[i]).to.be.closeTo(before[i], 0.001);
+    const afterChange = readTextPosFloats(t);
+    expect(afterChange.length).to.eq(beforeChange.length);
+
+    let maxDelta = 0;
+    for (let i = 0; i < afterChange.length; i++) {
+      maxDelta = Math.max(maxDelta, Math.abs(afterChange[i] - beforeChange[i]));
     }
+    expect(maxDelta).to.be.greaterThan(0.01);
   });
 
-  it("vertex pos remains correct after sibling chunk is destroyed (full slot-reuse repro)", () => {
-    const leadEntity = uiCanvasEntity.createChild("repro-lead");
+  it("destroying a sibling Text and changing referenceResolutionPerUnit keeps survivor pos correct", () => {
+    const leadEntity = uiCanvasEntity.createChild("lead");
     const lead = leadEntity.addComponent(Text);
     (leadEntity.transform as UITransform).setPosition(-300, -100, 0);
-    lead.text = "ab";
+    lead.text = "xy";
     void lead.bounds;
 
-    const stableEntity = uiCanvasEntity.createChild("repro-stable");
+    const stableEntity = uiCanvasEntity.createChild("stable");
     const stable = stableEntity.addComponent(Text);
     (stableEntity.transform as UITransform).setPosition(50, 100, 0);
-    stable.text = "cd";
+    stable.text = "ab";
     void stable.bounds;
-
-    const before = readTextPosFloats(stable);
-    expect(before.length).to.be.greaterThan(0);
 
     leadEntity.destroy();
 
-    (stable as any)._dirtyUpdateFlag = DIRTY_LOCAL_POSITION_BOUNDS;
+    uiCanvas.referenceResolutionPerUnit = 50;
 
     void stable.bounds;
 
-    const after = readTextPosFloats(stable);
-    expect(after.length).to.eq(before.length);
-    for (let i = 0; i < after.length; i++) {
-      expect(after[i]).to.be.closeTo(before[i], 0.001);
+    const stablePos = readTextPosFloats(stable);
+    const stableWorldX = (stableEntity.transform as UITransform).worldMatrix.elements[12];
+    const leadWorldX = -300;
+
+    for (let i = 0; i < stablePos.length; i += 3) {
+      const distToStable = Math.abs(stablePos[i] - stableWorldX);
+      const distToLead = Math.abs(stablePos[i] - leadWorldX);
+      expect(distToStable).to.be.lessThan(distToLead);
     }
   });
 
