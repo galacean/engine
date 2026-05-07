@@ -33,7 +33,9 @@ export interface MacroDefineList {
 }
 
 export class Preprocessor {
-  private static readonly _includeReg = /^[ \t]*#include +"([\w\d./]+)"/gm;
+  // First branch swallows block comments so include directives written inside
+  // documentation comments (e.g. FXAA3_11.glsl) aren't expanded as live includes.
+  private static readonly _includeReg = /\/\*[\s\S]*?\*\/|^[ \t]*#include +"([\w\d./]+)"/gm;
   // Caches the post-include-expansion output keyed by include name. `#define`
   // registration is no longer pre-scanned here — the Lexer fills
   // `macroDefineList` while it tokenizes the cached output.
@@ -51,8 +53,8 @@ export class Preprocessor {
   }
 
   private static _parseInternal(source: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
-    return source.replace(this._includeReg, (_, includeName) =>
-      this._replace(includeName, basePathForIncludeKey, includeMap)
+    return source.replace(this._includeReg, (match, includeName) =>
+      includeName ? this._replace(includeName, basePathForIncludeKey, includeMap) : match
     );
   }
 
