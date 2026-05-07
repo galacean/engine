@@ -1,6 +1,21 @@
-import { Font, WebGLEngine } from "@galacean/engine";
-import { Text, UITransform } from "@galacean/engine-ui";
-import { describe, expect, it } from "vitest";
+import { Camera, Font, WebGLEngine } from "@galacean/engine";
+import { CanvasRenderMode, Text, UICanvas, UITransform } from "@galacean/engine-ui";
+import { afterAll, describe, expect, it } from "vitest";
+
+function readTextPosFloats(text: any): number[] {
+  const result: number[] = [];
+  for (const chunk of text._textChunks) {
+    const subChunk = chunk.subChunk;
+    if (!subChunk) continue;
+    const vertices = subChunk.chunk.vertices;
+    let vo = subChunk.vertexArea.start;
+    const numVerts = subChunk.vertexArea.size / 9;
+    for (let i = 0; i < numVerts; i++, vo += 9) {
+      result.push(vertices[vo + 0], vertices[vo + 1], vertices[vo + 2]);
+    }
+  }
+  return result;
+}
 
 describe("Text", async () => {
   const canvas = document.createElement("canvas");
@@ -132,5 +147,80 @@ describe("Text", async () => {
     expect(cloneText.lineSpacing).to.eq(1);
     expect(cloneText.enableWrapping).to.eq(true);
     expect(cloneText.font).to.eq(text.font);
+  });
+});
+
+describe("Text - referenceResolutionPerUnit dirty propagation", async () => {
+  const canvas = document.createElement("canvas");
+  const engine = await WebGLEngine.create({ canvas });
+  const webCanvas = engine.canvas;
+  webCanvas.width = 750;
+  webCanvas.height = 1334;
+  const scene = engine.sceneManager.scenes[0];
+  const root = scene.createRootEntity("regression-root");
+
+  const cameraEntity = root.createChild("Camera");
+  cameraEntity.addComponent(Camera);
+
+  const uiCanvasEntity = root.createChild("UICanvas");
+  const uiCanvas = uiCanvasEntity.addComponent(UICanvas);
+  uiCanvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+  uiCanvas.referenceResolutionPerUnit = 100;
+
+  it("changing referenceResolutionPerUnit must rewrite vertex world positions", () => {
+    const e = uiCanvasEntity.createChild("text-under-resolution-change");
+    const t = e.addComponent(Text);
+    t.text = "AB";
+    void t.bounds;
+
+    const beforeChange = readTextPosFloats(t);
+    expect(beforeChange.length).to.be.greaterThan(0);
+
+    uiCanvas.referenceResolutionPerUnit = 50;
+
+    void t.bounds;
+
+    const afterChange = readTextPosFloats(t);
+    expect(afterChange.length).to.eq(beforeChange.length);
+
+    let maxDelta = 0;
+    for (let i = 0; i < afterChange.length; i++) {
+      maxDelta = Math.max(maxDelta, Math.abs(afterChange[i] - beforeChange[i]));
+    }
+    expect(maxDelta).to.be.greaterThan(0.01);
+  });
+
+  it("destroying a sibling Text and changing referenceResolutionPerUnit keeps survivor pos correct", () => {
+    const leadEntity = uiCanvasEntity.createChild("lead");
+    const lead = leadEntity.addComponent(Text);
+    (leadEntity.transform as UITransform).setPosition(-300, -100, 0);
+    lead.text = "xy";
+    void lead.bounds;
+
+    const stableEntity = uiCanvasEntity.createChild("stable");
+    const stable = stableEntity.addComponent(Text);
+    (stableEntity.transform as UITransform).setPosition(50, 100, 0);
+    stable.text = "ab";
+    void stable.bounds;
+
+    leadEntity.destroy();
+
+    uiCanvas.referenceResolutionPerUnit = 50;
+
+    void stable.bounds;
+
+    const stablePos = readTextPosFloats(stable);
+    const stableWorldX = (stableEntity.transform as UITransform).worldMatrix.elements[12];
+    const leadWorldX = -300;
+
+    for (let i = 0; i < stablePos.length; i += 3) {
+      const distToStable = Math.abs(stablePos[i] - stableWorldX);
+      const distToLead = Math.abs(stablePos[i] - leadWorldX);
+      expect(distToStable).to.be.lessThan(distToLead);
+    }
+  });
+
+  afterAll(() => {
+    engine.destroy();
   });
 });

@@ -310,7 +310,7 @@ export class Text extends UIRenderer implements ITextRenderer {
    */
   _onRootCanvasModify(flag: RootCanvasModifyFlags): void {
     if (flag === RootCanvasModifyFlags.ReferenceResolutionPerUnit) {
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
