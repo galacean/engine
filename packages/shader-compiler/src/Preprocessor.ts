@@ -45,9 +45,12 @@ export class Preprocessor {
   static _repeatIncludeSet = new Set<string>();
 
   static parse(source: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
-    // Preprocessor only handles `#include` expansion. `#define` registration
-    // and `#ifdef` branch tracking are done by the Lexer in a single pass
-    // over the same token stream it tokenizes.
+    // Per-shader scope: warning fires on intra-shader repeats, not cross-shader.
+    this._repeatIncludeSet.clear();
+    return this._parseInternal(source, basePathForIncludeKey, includeMap);
+  }
+
+  private static _parseInternal(source: string, basePathForIncludeKey: string, includeMap: IncludeMap): string {
     return source.replace(this._includeReg, (_, includeName) =>
       this._replace(includeName, basePathForIncludeKey, includeMap)
     );
@@ -74,7 +77,7 @@ export class Preprocessor {
 
     let cached = this._chunkOutputCache.get(path);
     if (cached === undefined) {
-      cached = this.parse(chunk, basePathForIncludeKey, includeMap);
+      cached = this._parseInternal(chunk, basePathForIncludeKey, includeMap);
       this._chunkOutputCache.set(path, cached);
     }
     return cached;
