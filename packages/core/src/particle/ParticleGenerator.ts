@@ -1096,11 +1096,7 @@ export class ParticleGenerator {
     // Skip when this very emit was triggered BY a sub-emitter (avoids self-recursion);
     // also skip when the module has no slots at all (cheap early-out).
     const subEmitters = this.subEmitters;
-    if (
-      !this._suppressSubEmitterDispatch &&
-      subEmitters.enabled &&
-      subEmitters.subEmitters.length > 0
-    ) {
+    if (!this._suppressSubEmitterDispatch && subEmitters.enabled && subEmitters.subEmitters.length > 0) {
       const birthWorldPos = this._eventWorldPos;
       Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthWorldPos);
       birthWorldPos.add(transform.worldPosition);
@@ -1112,19 +1108,11 @@ export class ParticleGenerator {
       parentColor.a = instanceVertices[offset + 11];
 
       const parentSize = this._eventSize;
-      parentSize.set(
-        instanceVertices[offset + 12],
-        instanceVertices[offset + 13],
-        instanceVertices[offset + 14]
-      );
+      parentSize.set(instanceVertices[offset + 12], instanceVertices[offset + 13], instanceVertices[offset + 14]);
 
       const parentRotation = this._eventRotation;
       if (main.startRotation3D) {
-        parentRotation.set(
-          instanceVertices[offset + 15],
-          instanceVertices[offset + 16],
-          instanceVertices[offset + 17]
-        );
+        parentRotation.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
       } else {
         parentRotation.set(0, 0, instanceVertices[offset + 15]);
       }
