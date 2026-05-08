@@ -1,7 +1,5 @@
 import type { Plugin } from "rollup";
-import { runFull, startWatcher } from "./precompile";
-import { transform } from "./transform";
-import { normalizePath } from "./utils";
+import { runFull, startWatcher, normalizePath } from "./precompile";
 
 export interface ShaderPrecompileOptions {
   /** Directory containing `.shader` source files. */
@@ -12,17 +10,18 @@ export interface ShaderPrecompileOptions {
   clean?: boolean;
   /** Emit an aggregated `<output>/index.ts`. Default `true`. */
   emitIndex?: boolean;
+  /** Emit raw-source indexes (`.shader` + `.glsl`) into the input tree. */
+  emitSources?: boolean;
   /** Shader platform target. Default `0`. */
   platformTarget?: number;
 }
 
 export interface ShaderPluginOptions {
   /**
-   * Override the default include pattern.
-   *
-   * The plugin always matches `.glsl`, `.shader`, and `.shaderc` extensions;
-   * this option exists for advanced cases where the host bundler needs to
-   * gate by additional path constraints. Returning `false` skips a file.
+   * Override the default include pattern. The plugin always matches `.glsl`,
+   * `.shader`, and `.shaderc` extensions; this option exists for advanced
+   * cases where the host bundler needs to gate by additional path constraints.
+   * Returning `false` skips a file.
    */
   filter?: (id: string) => boolean;
 
@@ -34,6 +33,19 @@ export interface ShaderPluginOptions {
    * pre-compile must be triggered separately via the `shader-precompile` CLI.
    */
   precompile?: ShaderPrecompileOptions;
+}
+
+/**
+ * Pure transformer: take a file's id + source and emit JS module source.
+ *
+ * - `.shaderc`        → exports the embedded JSON literal as the default export.
+ * - `.shader`/`.glsl` → exports the raw source as a string literal.
+ */
+function transformAsModule(code: string, id: string): { code: string; map: { mappings: string } } {
+  if (id.endsWith(".shaderc")) {
+    return { code: `export default ${code};`, map: { mappings: "" } };
+  }
+  return { code: `export default ${JSON.stringify(code)};`, map: { mappings: "" } };
 }
 
 /**
@@ -74,15 +86,7 @@ export function shaderCompiler(options: ShaderPluginOptions = {}): Plugin {
       const normalized = normalizePath(id);
       if (!normalized.match(/\.(glsl|shader|shaderc)$/)) return null;
       if (filter && !filter(normalized)) return null;
-      // We omit `map` here (Rollup's `SourceDescription.map` is optional) — the
-      // emitted source is a single literal so there's nothing meaningful to
-      // map. The standalone `transform()` export still returns the
-      // `{ mappings: "" }` shape for callers that want it.
-      return { code: transform(code, normalized).code };
+      return { code: transformAsModule(code, normalized).code };
     }
   };
 }
-
-export { transform } from "./transform";
-export { normalizePath } from "./utils";
-export type { TransformResult } from "./transform";

@@ -22,11 +22,13 @@ const bundlerExternal = [
   // from the parent dist/ directory rather than re-bundled here.
   "../main.js",
   "@galacean/engine-shader-compiler",
+  "@galacean/engine-shader/sources",
   "@galacean/engine-math",
   "@rollup/pluginutils",
   "rollup",
   "node:fs",
   "node:path",
+  "node:module",
   "node:url",
   "node:util"
 ];
@@ -73,10 +75,10 @@ export default [
     ]
   },
   {
-    input: "src/bundler/index.ts",
+    input: "src/bundler/rollup.ts",
     output: [
-      { file: "dist/bundler/index.cjs.js", format: "cjs" },
-      { file: "dist/bundler/index.js", format: "es" }
+      { file: "dist/bundler/rollup.cjs.js", format: "cjs" },
+      { file: "dist/bundler/rollup.js", format: "es" }
     ],
     external: bundlerExternal,
     plugins: [swcPluginBundler]

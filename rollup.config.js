@@ -3,7 +3,7 @@ const path = require("path");
 
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler";
+import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler/rollup";
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
@@ -167,10 +167,12 @@ function config({ location, pkgJson, verboseMode }) {
       const bundledPlugins = Array.from(curPlugins);
 
       if (compress) {
-        bundledPlugins.push(minify({
-          sourceMap: true,
-          module: true // Indicate this is an ES module
-        }));
+        bundledPlugins.push(
+          minify({
+            sourceMap: true,
+            module: true // Indicate this is an ES module
+          })
+        );
       }
 
       return {

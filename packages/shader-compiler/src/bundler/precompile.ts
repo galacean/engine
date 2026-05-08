@@ -1,6 +1,52 @@
 import fs from "node:fs";
 import path from "node:path";
-import { findFiles, shadercPathToVarName, normalizePath, pruneEmptyDirs } from "./utils";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
+
+/** Normalize to forward slashes (Windows uses `\`; downstream regex/keys assume `/`). */
+export function normalizePath(p: string): string {
+  return p.split(path.sep).join("/");
+}
+
+/** Recursively find all files with a given extension. */
+function findFiles(dir: string, ext: string): string[] {
+  const results: string[] = [];
+  if (!fs.existsSync(dir)) return results;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      results.push(...findFiles(fullPath, ext));
+    } else if (entry.name.endsWith(ext)) {
+      results.push(normalizePath(fullPath));
+    }
+  }
+  return results;
+}
+
+/** `PBR.shaderc` → `PBRSource`,  `2D/Sprite.shaderc` → `SpriteSource`. */
+function shadercPathToVarName(relPath: string): string {
+  const normalized = normalizePath(relPath).replace(/\.shaderc$/, "");
+  const base = normalized.split("/").pop() ?? normalized;
+  const cleaned = base.replace(/[^A-Za-z0-9]/g, "");
+  if (cleaned.length === 0) return "Source";
+  return `${cleaned[0].toUpperCase()}${cleaned.slice(1)}Source`;
+}
+
+/** `Common/Common.glsl` → `Common_Common` — TS identifier for source-index imports. */
+function pathToIdentifier(rel: string, ext: string): string {
+  let id = rel.replace(new RegExp(`\\${ext}$`), "").replace(/[^A-Za-z0-9_]/g, "_");
+  if (/^[0-9]/.test(id)) id = "_" + id;
+  return id;
+}
+
+/** Remove empty parent directories upward from `startDir` until `stopDir` is hit. */
+function pruneEmptyDirs(startDir: string, stopDir: string): void {
+  let dir = startDir;
+  while (dir !== stopDir && fs.existsSync(dir) && fs.readdirSync(dir).length === 0) {
+    fs.rmdirSync(dir);
+    dir = path.dirname(dir);
+  }
+}
 
 export interface PrecompileOptions {
   /** Absolute or relative path to the directory containing `.shader` sources. */
@@ -15,6 +61,8 @@ export interface PrecompileOptions {
   only?: string;
   /** Generate `<output>/index.ts` aggregating every `.shaderc` file. */
   emitIndex?: boolean;
+  /** Generate raw-source indexes: `<input>/index.ts` (.shader) + sibling `ShaderLibrary/index.ts` (.glsl). */
+  emitSources?: boolean;
   /** Optional shader platform target passed through to `_precompile`. Defaults to `0`. */
   platformTarget?: number;
 }
@@ -50,8 +98,15 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
 
   fs.mkdirSync(outputDir, { recursive: true });
 
+  // Emit raw-source indexes BEFORE compile so collectIncludeMap can import the
+  // freshly-built `@galacean/engine-shader/sources` if a downstream consumer
+  // depends on it, and so the source indexes always reflect the latest tree.
+  if (options.emitSources) {
+    emitSources(inputDir);
+  }
+
   const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler._setIncludeMap(collectIncludeMap(inputDir));
+  shaderCompiler._setIncludeMap(await collectIncludeMap(inputDir));
 
   let failed = 0;
   if (options.only) {
@@ -82,18 +137,18 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
   const outputDir = path.resolve(options.output);
   const platformTarget = options.platformTarget ?? 0;
   const shaderCompiler = await loadShaderCompiler();
-  shaderCompiler._setIncludeMap(collectIncludeMap(inputDir));
+  shaderCompiler._setIncludeMap(await collectIncludeMap(inputDir));
 
   // .glsl change → full recompile (can't cheaply track include graphs).
   // .shader change → single-file recompile.
-  const handleInputChange = (filename: string | null) => {
+  const handleInputChange = async (filename: string | null): Promise<void> => {
     if (!filename) return;
     const norm = normalizePath(filename);
     const fullPath = path.join(inputDir, filename);
 
     if (norm.endsWith(".glsl")) {
       console.log(`[shader-compiler-bundler] Include changed (${norm}), full recompile...`);
-      shaderCompiler._setIncludeMap(collectIncludeMap(inputDir));
+      shaderCompiler._setIncludeMap(await collectIncludeMap(inputDir));
       runFull(options as Omit<PrecompileOptions, "watch" | "only">).catch((e) => console.error(e));
       return;
     }
@@ -104,11 +159,14 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
     } else {
       compileSingle(shaderCompiler, fullPath, inputDir, outputDir, platformTarget);
     }
+    if (options.emitSources) emitSources(inputDir);
     if (options.emitIndex) emitIndex(outputDir);
   };
 
   console.log(`[shader-compiler-bundler] Watching ${inputDir} ...`);
-  fs.watch(inputDir, { recursive: true }, (_event, filename) => handleInputChange(filename));
+  fs.watch(inputDir, { recursive: true }, (_event, filename) => {
+    handleInputChange(filename).catch((e) => console.error(e));
+  });
 }
 
 // Loads the compiled `dist/main.js` runtime. shader-compiler is standalone
@@ -126,10 +184,12 @@ async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
   return instance;
 }
 
-// Read includes from src by convention: <inputDir>/*.glsl + sibling
-// <ShaderLibrary>/*.glsl. Injected into `shaderCompiler._setIncludeMap`, so the
-// preprocessor never reads from any dist snapshot.
-function collectIncludeMap(inputDir: string): Record<string, string> {
+// Collect the `#include` lookup. Local `.glsl` always come from `inputDir`.
+// The standard library is sourced from `@galacean/engine-shader/sources` (the
+// release entry that bundles every `ShaderLibrary/*.glsl` chunk into one ESM
+// export). On engine self-build the dist isn't built yet so we fall back to
+// the sibling `ShaderLibrary` source directory.
+async function collectIncludeMap(inputDir: string): Promise<Record<string, string>> {
   const map: Record<string, string> = {};
 
   for (const file of findFiles(inputDir, ".glsl")) {
@@ -137,11 +197,32 @@ function collectIncludeMap(inputDir: string): Record<string, string> {
     map[relPath] = fs.readFileSync(file, "utf-8");
   }
 
-  const libraryDir = path.join(path.dirname(inputDir), "ShaderLibrary");
-  if (fs.existsSync(libraryDir)) {
-    for (const file of findFiles(libraryDir, ".glsl")) {
-      const rel = normalizePath(path.relative(libraryDir, file));
-      map[`ShaderLibrary/${rel}`] = fs.readFileSync(file, "utf-8");
+  let usedRelease = false;
+  // Resolve `@galacean/engine-shader/sources` from `inputDir`'s node_modules,
+  // not from cli.js's location (shader-compiler isn't engine-shader's parent
+  // package, so a bare `import("@galacean/engine-shader/sources")` would only
+  // succeed when shader-compiler happens to link it transitively).
+  try {
+    const requireFromInput = createRequire(path.join(inputDir, "package.json"));
+    const sourcesPath = requireFromInput.resolve("@galacean/engine-shader/sources");
+    const { shaderLibrary } = (await import(pathToFileURL(sourcesPath).href)) as {
+      shaderLibrary: { source: string; path: string }[];
+    };
+    for (const { source, path: chunkPath } of shaderLibrary) {
+      map[chunkPath] = source;
+    }
+    usedRelease = true;
+  } catch {
+    // engine self-build cold-start: dist/sources.* not yet built; use sibling source.
+  }
+
+  if (!usedRelease) {
+    const siblingLibrary = path.join(path.dirname(inputDir), "ShaderLibrary");
+    if (fs.existsSync(siblingLibrary)) {
+      for (const file of findFiles(siblingLibrary, ".glsl")) {
+        const rel = normalizePath(path.relative(siblingLibrary, file));
+        map[`ShaderLibrary/${rel}`] = fs.readFileSync(file, "utf-8");
+      }
     }
   }
 
@@ -207,7 +288,7 @@ function emitIndex(outputDir: string): void {
   const imports = entries.map((e) => `import ${e.varName} from "${e.importPath}";`).join("\n");
   const exportBlock = `export {\n${entries.map((e) => `  ${e.varName}`).join(",\n")}\n};`;
   // prettier-ignore the export block: consumer's prettier config is unknown.
-  const content = `// Auto-generated by shader-precompile --emit-index — do not edit\n${imports}\n\n// prettier-ignore\n${exportBlock}\n`;
+  const content = `// Auto-generated by shader-compiler-precompile --emit-index — do not edit.\n${imports}\n\n// prettier-ignore\n${exportBlock}\n`;
 
   const indexPath = path.join(outputDir, "index.ts");
   const existing = fs.existsSync(indexPath) ? fs.readFileSync(indexPath, "utf-8") : "";
@@ -215,6 +296,69 @@ function emitIndex(outputDir: string): void {
     fs.writeFileSync(indexPath, content);
     console.log("  Updated index.ts");
   }
+}
+
+// Generate raw-source indexes:
+//   <inputDir>/index.ts           — `.shader` array (defines IShaderSource interface)
+//   <sibling>/ShaderLibrary/index.ts — `.glsl` array (only if the directory exists)
+function emitSources(inputDir: string): void {
+  emitShaderSourceIndex(inputDir);
+  const libraryDir = path.join(path.dirname(inputDir), "ShaderLibrary");
+  if (fs.existsSync(libraryDir)) {
+    emitLibrarySourceIndex(libraryDir);
+  }
+}
+
+function emitShaderSourceIndex(rootDir: string): void {
+  const srcDir = path.dirname(rootDir);
+  const files = findFiles(rootDir, ".shader").sort();
+  const importPaths = files.map((f) => normalizePath(path.relative(rootDir, f)));
+  const paths = files.map((f) => normalizePath(path.relative(srcDir, f)));
+  const ids = importPaths.map((p) => pathToIdentifier(p, ".shader"));
+
+  const lines: string[] = [];
+  lines.push("// Auto-generated by shader-compiler-precompile --emit-sources — do not edit.");
+  lines.push("");
+  importPaths.forEach((rel, i) => lines.push(`import ${ids[i]} from "./${rel}";`));
+  lines.push("");
+  lines.push("export interface IShaderSource {");
+  lines.push("  path: string;");
+  lines.push("  source: string;");
+  lines.push("}");
+  lines.push("");
+  lines.push("// prettier-ignore");
+  lines.push("export const shaders: IShaderSource[] = [");
+  paths.forEach((p, i) => lines.push(`  { source: ${ids[i]}, path: ${JSON.stringify(p)} },`));
+  lines.push("];");
+  lines.push("");
+
+  const out = path.join(rootDir, "index.ts");
+  fs.writeFileSync(out, lines.join("\n"), "utf-8");
+  console.log(`  Emitted shaders index ${path.relative(process.cwd(), out)} (${files.length})`);
+}
+
+function emitLibrarySourceIndex(rootDir: string): void {
+  const srcDir = path.dirname(rootDir);
+  const files = findFiles(rootDir, ".glsl").sort();
+  const importPaths = files.map((f) => normalizePath(path.relative(rootDir, f)));
+  const paths = files.map((f) => normalizePath(path.relative(srcDir, f)));
+  const ids = importPaths.map((p) => pathToIdentifier(p, ".glsl"));
+
+  const lines: string[] = [];
+  lines.push("// Auto-generated by shader-compiler-precompile --emit-sources — do not edit.");
+  lines.push("");
+  lines.push(`import type { IShaderSource } from "../Shaders";`);
+  importPaths.forEach((rel, i) => lines.push(`import ${ids[i]} from "./${rel}";`));
+  lines.push("");
+  lines.push("// prettier-ignore");
+  lines.push("export const shaderLibrary: IShaderSource[] = [");
+  paths.forEach((p, i) => lines.push(`  { source: ${ids[i]}, path: ${JSON.stringify(p)} },`));
+  lines.push("];");
+  lines.push("");
+
+  const out = path.join(rootDir, "index.ts");
+  fs.writeFileSync(out, lines.join("\n"), "utf-8");
+  console.log(`  Emitted library index ${path.relative(process.cwd(), out)} (${files.length})`);
 }
 
 function removeBundleFor(shaderPath: string, inputDir: string, outputDir: string): void {

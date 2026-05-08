@@ -20,10 +20,10 @@
       "require": "./dist/main.js",
       "types": "./types/index.d.ts"
     },
-    "./bundler": {
-      "import": "./dist/bundler/index.js",
-      "require": "./dist/bundler/index.cjs.js",
-      "types": "./types/bundler/index.d.ts"
+    "./bundler/rollup": {
+      "import": "./dist/bundler/rollup.js",
+      "require": "./dist/bundler/rollup.cjs.js",
+      "types": "./types/bundler/rollup.d.ts"
     },
     "./verbose": {
       "import": "./dist/module.verbose.js",
