@@ -23,6 +23,7 @@ import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { EmissionModule } from "./modules/EmissionModule";
@@ -35,6 +36,7 @@ import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { SubEmittersModule } from "./modules/SubEmittersModule";
 
 /**
  * Particle Generator.
@@ -48,6 +50,7 @@ export class ParticleGenerator {
   private static _tempVector32 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
+  private static _tempQuat0 = new Quaternion();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
 
   private static readonly _particleIncreaseCount = 128;
@@ -87,6 +90,9 @@ export class ParticleGenerator {
   /** Noise module. */
   @deepClone
   readonly noise: NoiseModule;
+  /** Sub emitters module — fires another particle renderer on Birth/Death events. */
+  @deepClone
+  readonly subEmitters: SubEmittersModule;
 
   /** @internal */
   _currentParticleCount = 0;
@@ -150,6 +156,31 @@ export class ParticleGenerator {
   @ignoreClone
   private _playStartDelay = 0;
 
+  // ─── Sub emitter override slots ──────────────────────────────────────
+  // Set by `_emitFromSubEmitter` before calling `_addNewParticle`; consumed
+  // and cleared by `_addNewParticle`. Non-null means override the next emit.
+  @ignoreClone
+  private _subEmitColorOverride: Color = null;
+  @ignoreClone
+  private _subEmitSizeOverride: Vector3 = null;
+  @ignoreClone
+  private _subEmitRotationOverride: Vector3 = null;
+  @ignoreClone
+  private _suppressSubEmitterDispatch = false;
+
+  // Per-generator scratch buffers for Birth/Death dispatch payloads.
+  // Allocated per instance so recursive sub-emit on a different generator
+  // doesn't clobber the parent's in-flight payload (class-level statics
+  // would be unsafe under nested dispatch).
+  @ignoreClone
+  private _eventWorldPos = new Vector3();
+  @ignoreClone
+  private _eventColor = new Color();
+  @ignoreClone
+  private _eventSize = new Vector3();
+  @ignoreClone
+  private _eventRotation = new Vector3();
+
   /**
    * Whether the particle generator is contain alive or is still creating particles.
    */
@@ -195,6 +226,7 @@ export class ParticleGenerator {
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
     this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
     this.noise = new NoiseModule(this);
+    this.subEmitters = new SubEmittersModule(this);
 
     this.emission.enabled = true;
   }
@@ -635,6 +667,7 @@ export class ParticleGenerator {
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
     this.noise._resetRandomSeed(seed);
+    this.subEmitters._resetRandomSeed(seed);
   }
 
   /**
@@ -1025,12 +1058,133 @@ export class ParticleGenerator {
       instanceVertices[offset + 41] = limitVelocityOverLifetime._speedRand.random();
     }
 
+    // ─── Sub-emitter inherit overrides (multiplicative for color/size, additive for rotation) ──
+    const colorOverride = this._subEmitColorOverride;
+    if (colorOverride) {
+      const co = offset + 8;
+      instanceVertices[co] *= colorOverride.r;
+      instanceVertices[co + 1] *= colorOverride.g;
+      instanceVertices[co + 2] *= colorOverride.b;
+      instanceVertices[co + 3] *= colorOverride.a;
+    }
+    const sizeOverride = this._subEmitSizeOverride;
+    if (sizeOverride) {
+      instanceVertices[offset + 12] *= sizeOverride.x;
+      instanceVertices[offset + 13] *= sizeOverride.y;
+      instanceVertices[offset + 14] *= sizeOverride.z;
+    }
+    const rotationOverride = this._subEmitRotationOverride;
+    if (rotationOverride) {
+      if (main.startRotation3D) {
+        instanceVertices[offset + 15] += rotationOverride.x;
+        instanceVertices[offset + 16] += rotationOverride.y;
+        instanceVertices[offset + 17] += rotationOverride.z;
+      } else {
+        // 2D mode stores Z rotation at offset 15
+        instanceVertices[offset + 15] += rotationOverride.z;
+      }
+    }
+
     // Initialize feedback buffer for this particle
     if (this._useTransformFeedback) {
       this._addFeedbackParticle(firstFreeElement, position, direction, startSpeed, transform);
     }
 
     this._firstFreeElement = nextFreeElement;
+
+    // ─── Sub-emitter Birth dispatch ──
+    // Skip when this very emit was triggered BY a sub-emitter (avoids self-recursion);
+    // also skip when the module has no slots at all (cheap early-out).
+    const subEmitters = this.subEmitters;
+    if (
+      !this._suppressSubEmitterDispatch &&
+      subEmitters.enabled &&
+      subEmitters.subEmitters.length > 0
+    ) {
+      const birthWorldPos = this._eventWorldPos;
+      Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthWorldPos);
+      birthWorldPos.add(transform.worldPosition);
+
+      const parentColor = this._eventColor;
+      parentColor.r = instanceVertices[offset + 8];
+      parentColor.g = instanceVertices[offset + 9];
+      parentColor.b = instanceVertices[offset + 10];
+      parentColor.a = instanceVertices[offset + 11];
+
+      const parentSize = this._eventSize;
+      parentSize.set(
+        instanceVertices[offset + 12],
+        instanceVertices[offset + 13],
+        instanceVertices[offset + 14]
+      );
+
+      const parentRotation = this._eventRotation;
+      if (main.startRotation3D) {
+        parentRotation.set(
+          instanceVertices[offset + 15],
+          instanceVertices[offset + 16],
+          instanceVertices[offset + 17]
+        );
+      } else {
+        parentRotation.set(0, 0, instanceVertices[offset + 15]);
+      }
+
+      subEmitters._onParticleBirth(birthWorldPos, parentColor, parentSize, parentRotation);
+    }
+  }
+
+  /**
+   * @internal
+   * Emit `count` particles into this generator at `worldPosition`, with optional
+   * inherit-overrides multiplied/added into per-particle start values.
+   *
+   * Called by `SubEmittersModule` when a parent particle's Birth or Death
+   * event fires. Bypasses the emission shape (position is event-driven, not
+   * shape-derived); direction defaults to `(0, 0, -1)`.
+   */
+  _emitFromSubEmitter(
+    count: number,
+    worldPosition: Vector3,
+    inheritColor: Color,
+    inheritSize: Vector3,
+    inheritRotation: Vector3
+  ): void {
+    if (count <= 0) return;
+
+    const main = this.main;
+    const notRetired = this._getNotRetiredParticleCount();
+    const available = main.maxParticles - notRetired;
+    if (available <= 0) return;
+    if (count > available) count = available;
+
+    const transform = this._renderer.entity.transform;
+    const worldPos = transform.worldPosition;
+    const worldRot = transform.worldRotationQuaternion;
+
+    // Convert event world position into local emission space for a_ShapePos
+    const localPos = ParticleGenerator._tempVector30;
+    Vector3.subtract(worldPosition, worldPos, localPos);
+    const invRot = ParticleGenerator._tempQuat0;
+    Quaternion.invert(worldRot, invRot);
+    Vector3.transformByQuat(localPos, invRot, localPos);
+
+    const direction = ParticleGenerator._tempVector31;
+    direction.set(0, 0, -1);
+
+    this._subEmitColorOverride = inheritColor;
+    this._subEmitSizeOverride = inheritSize;
+    this._subEmitRotationOverride = inheritRotation;
+    this._suppressSubEmitterDispatch = true;
+
+    const playTime = this._playTime;
+    for (let i = 0; i < count; i++) {
+      this._addNewParticle(localPos, direction, transform, playTime);
+    }
+
+    this._subEmitColorOverride = null;
+    this._subEmitSizeOverride = null;
+    this._subEmitRotationOverride = null;
+    this._suppressSubEmitterDispatch = false;
   }
 
   private _addFeedbackParticle(
@@ -1072,6 +1226,19 @@ export class ParticleGenerator {
     const frameCount = engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
+    // Pre-flight: are there any Death sub-emitter slots? (avoid per-particle scan)
+    let hasDeathSlot = false;
+    const subEmitters = this.subEmitters;
+    if (subEmitters.enabled && !this._suppressSubEmitterDispatch) {
+      const slots = subEmitters.subEmitters;
+      for (let i = 0, n = slots.length; i < n; i++) {
+        if (slots[i].type === ParticleSubEmitterType.Death) {
+          hasDeathSlot = true;
+          break;
+        }
+      }
+    }
+
     while (this._firstActiveElement !== this._firstNewElement) {
       const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
       const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
@@ -1080,6 +1247,10 @@ export class ParticleGenerator {
       // Use `Math.fround` to ensure the precision of comparison is same
       if (Math.fround(particleAge) < instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset]) {
         break;
+      }
+
+      if (hasDeathSlot) {
+        this._dispatchDeathEvent(activeParticleOffset);
       }
 
       // Store frame count in time offset to free retired particle
@@ -1091,6 +1262,88 @@ export class ParticleGenerator {
       // Record wait process retired element count
       this._waitProcessRetiredElementCount++;
     }
+  }
+
+  /**
+   * Compute approximate death-time world position via ballistic formula
+   * (a_ShapePos + dir·speed·lifetime + ½·gravity·r0·lifetime²) and dispatch
+   * Death event to sub-emitter slots. Does NOT account for VOL/FOL/Noise
+   * contributions — particle systems with those modules enabled will see
+   * sub-emitter spawn locations drift from the visual particle's last frame.
+   */
+  private _dispatchDeathEvent(particleOffset: number): void {
+    const instanceVertices = this._instanceVertices;
+    const main = this.main;
+    const transform = this._renderer.entity.transform;
+    const simSpaceLocal = main.simulationSpace === ParticleSimulationSpace.Local;
+
+    const lifetime = instanceVertices[particleOffset + 3];
+    const startSpeed = instanceVertices[particleOffset + 18];
+    const gravityMod = instanceVertices[particleOffset + 19];
+
+    // Local-space end position before world rotation: a_ShapePos + dir·speed·lifetime
+    const local = this._eventWorldPos;
+    local.set(
+      instanceVertices[particleOffset + 0] + instanceVertices[particleOffset + 4] * startSpeed * lifetime,
+      instanceVertices[particleOffset + 1] + instanceVertices[particleOffset + 5] * startSpeed * lifetime,
+      instanceVertices[particleOffset + 2] + instanceVertices[particleOffset + 6] * startSpeed * lifetime
+    );
+
+    let worldRotation: Quaternion;
+    if (simSpaceLocal) {
+      worldRotation = transform.worldRotationQuaternion;
+    } else {
+      const tempQ = ParticleGenerator._tempQuat0;
+      tempQ.set(
+        instanceVertices[particleOffset + 30],
+        instanceVertices[particleOffset + 31],
+        instanceVertices[particleOffset + 32],
+        instanceVertices[particleOffset + 33]
+      );
+      worldRotation = tempQ;
+    }
+    Vector3.transformByQuat(local, worldRotation, local);
+
+    if (simSpaceLocal) {
+      local.add(transform.worldPosition);
+    } else {
+      local.x += instanceVertices[particleOffset + 27];
+      local.y += instanceVertices[particleOffset + 28];
+      local.z += instanceVertices[particleOffset + 29];
+    }
+
+    // Gravity contribution: 0.5 · gravity · gravityMod · lifetime² (world-space)
+    const gravity = this._renderer.scene.physics.gravity;
+    const halfTSquaredR = 0.5 * lifetime * lifetime * gravityMod;
+    local.x += gravity.x * halfTSquaredR;
+    local.y += gravity.y * halfTSquaredR;
+    local.z += gravity.z * halfTSquaredR;
+
+    const parentColor = this._eventColor;
+    parentColor.r = instanceVertices[particleOffset + 8];
+    parentColor.g = instanceVertices[particleOffset + 9];
+    parentColor.b = instanceVertices[particleOffset + 10];
+    parentColor.a = instanceVertices[particleOffset + 11];
+
+    const parentSize = this._eventSize;
+    parentSize.set(
+      instanceVertices[particleOffset + 12],
+      instanceVertices[particleOffset + 13],
+      instanceVertices[particleOffset + 14]
+    );
+
+    const parentRotation = this._eventRotation;
+    if (main.startRotation3D) {
+      parentRotation.set(
+        instanceVertices[particleOffset + 15],
+        instanceVertices[particleOffset + 16],
+        instanceVertices[particleOffset + 17]
+      );
+    } else {
+      parentRotation.set(0, 0, instanceVertices[particleOffset + 15]);
+    }
+
+    this.subEmitters._onParticleDeath(local, parentColor, parentSize, parentRotation);
   }
 
   private _freeRetiredParticles(): void {
