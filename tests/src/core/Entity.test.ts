@@ -333,6 +333,19 @@ describe("Entity", async () => {
       expect(parent.findByPath("parent/child/grandson")).eq(grandson);
     });
 
+    it("findByPath prefers same-name child over self", () => {
+      const parent = new Entity(engine, "shared");
+      parent.parent = scene.getRootEntity();
+      const sameNameChild = new Entity(engine, "shared");
+      sameNameChild.parent = parent;
+      const grandson = new Entity(engine, "leaf");
+      grandson.parent = sameNameChild;
+
+      // Should walk into the child named "shared", not return self
+      expect(parent.findByPath("shared")).to.eq(sameNameChild);
+      expect(parent.findByPath("shared/leaf")).to.eq(grandson);
+    });
+
     it("clearChildren", () => {
       const parent = new Entity(engine, "parent");
 
