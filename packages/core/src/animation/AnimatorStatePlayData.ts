@@ -75,6 +75,7 @@ export class AnimatorStatePlayData {
     this.clipTime = this.state.clipStartTime * this.state.clip.length;
     this.currentEventIndex = 0;
     this.isForward = true;
+    this._changedOrientation = false;
     this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 

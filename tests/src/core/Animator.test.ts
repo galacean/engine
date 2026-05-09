@@ -1416,4 +1416,46 @@ describe("Animator test", function () {
 
     survey.state.speed = 1; // restore
   });
+
+  it("crossFade to current state is no-op (avoids src/dest PlayData alias)", () => {
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // @ts-ignore
+    const layerData = animator._animatorLayersData[0];
+    const srcBefore = layerData.srcPlayData;
+    const playedBefore = srcBefore.playedTime;
+
+    // crossFade to the same state — should be ignored
+    animator.crossFade("Walk", 0.3, 0, 0);
+
+    expect(layerData.srcPlayData).to.eq(srcBefore);
+    expect(layerData.srcPlayData.playedTime).to.eq(playedBefore);
+    expect(layerData.destPlayData).to.eq(null);
+  });
+
+  it("crossFade to currently-fading dest state is no-op", () => {
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    animator.crossFade("Run", 0.5, 0, 0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.05);
+
+    // @ts-ignore
+    const layerData = animator._animatorLayersData[0];
+    const destBefore = layerData.destPlayData;
+    const destPlayedBefore = destBefore.playedTime;
+
+    // crossFade to the in-flight dest state — should be ignored
+    animator.crossFade("Run", 0.3, 0, 0);
+
+    expect(layerData.destPlayData).to.eq(destBefore);
+    expect(layerData.destPlayData.playedTime).to.eq(destPlayedBefore);
+  });
 });
