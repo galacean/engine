@@ -1320,6 +1320,10 @@ export class Animator extends Component {
     const playData = animatorLayerData.getOrCreatePlayData(state);
     playData.resetForPlay(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
     animatorLayerData.srcPlayData = playData;
+    // Clear any stale cross-fade slot from a previously-interrupted crossFade so
+    // subsequent crossFade() calls aren't no-op'd by the self-target alias guard.
+    animatorLayerData.destPlayData = null;
+    animatorLayerData.crossFadeTransition = null;
     animatorLayerData.resetCurrentCheckIndex();
 
     return true;

@@ -1458,4 +1458,29 @@ describe("Animator test", function () {
     expect(layerData.destPlayData).to.eq(destBefore);
     expect(layerData.destPlayData.playedTime).to.eq(destPlayedBefore);
   });
+
+  it("play during crossFade clears stale destPlayData", () => {
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    animator.crossFade("Run", 0.5, 0, 0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.05);
+
+    // Interrupt the in-flight crossFade with a play()
+    animator.play("Survey");
+
+    // @ts-ignore
+    const layerData = animator._animatorLayersData[0];
+    expect(layerData.destPlayData).to.eq(null);
+    expect(layerData.crossFadeTransition).to.eq(null);
+
+    // A subsequent crossFade to the previously-fading state should now succeed —
+    // the stale dest slot must not block it via the alias guard.
+    animator.crossFade("Run", 0.3, 0, 0);
+    expect(layerData.destPlayData?.state.name).to.eq("Run");
+  });
 });
