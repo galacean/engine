@@ -1425,10 +1425,7 @@ export class Animator extends Component {
     // target is already on src or dest, getOrCreatePlayData would return the same
     // instance and resetForPlay would corrupt the active runtime track. Treat as
     // no-op until lifecycle splits persistent override from transient src/dest tracks.
-    if (
-      animatorLayerData.srcPlayData?.state === crossState ||
-      animatorLayerData.destPlayData?.state === crossState
-    ) {
+    if (animatorLayerData.srcPlayData?.state === crossState || animatorLayerData.destPlayData?.state === crossState) {
       return false;
     }
 
