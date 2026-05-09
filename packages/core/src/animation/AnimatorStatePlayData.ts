@@ -23,7 +23,7 @@ export class AnimatorStatePlayData {
   stateData: AnimatorStateData;
   /** @internal */
   playedTime: number = 0;
-  /** Current playback state. Engine-managed. */
+  /** @internal */
   playState: AnimatorStatePlayState = AnimatorStatePlayState.UnStarted;
   /** @internal */
   clipTime: number = 0;
