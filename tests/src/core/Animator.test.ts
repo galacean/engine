@@ -1483,4 +1483,19 @@ describe("Animator test", function () {
     animator.crossFade("Run", 0.3, 0, 0);
     expect(layerData.destPlayData?.state.name).to.eq("Run");
   });
+
+  it("crossFade to nonexistent state is a safe no-op", () => {
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    const before = animator.getCurrentAnimatorState(0);
+    animator.crossFade("MissingState", 0.3, 0, 0);
+    const after = animator.getCurrentAnimatorState(0);
+
+    expect(after).to.eq(before);
+    // @ts-ignore — verify no junk layerData was written at array index -1.
+    expect(animator._animatorLayersData[-1]).to.eq(undefined);
+  });
 });
