@@ -23,7 +23,7 @@ import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
-import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
+import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 
 /**
@@ -209,7 +209,7 @@ export class Animator extends Component {
    * Get the playing state from the target layerIndex.
    * @param layerIndex - The layer index
    */
-  getCurrentAnimatorState(layerIndex: number): AnimatorState {
+  getCurrentAnimatorState(layerIndex: number): AnimatorState | null {
     return this._animatorLayersData[layerIndex]?.srcPlayData?.state ?? null;
   }
 
@@ -222,7 +222,7 @@ export class Animator extends Component {
    * @param layerIndex - The layer index (default -1, searches all layers)
    * @returns Per-instance AnimatorStatePlayData, or null if no state matches
    */
-  findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStatePlayData {
+  findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStatePlayData | null {
     const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
     if (!state || foundLayer < 0) return null;
     return this._getAnimatorLayerData(foundLayer).getOrCreatePlayData(state);
@@ -763,8 +763,8 @@ export class Animator extends Component {
     const dstPlaySpeed = destPlayData.speed * speed;
     const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
 
-    srcPlayData && srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
-    destPlayData && destPlayData.updateOrientation(dstPlayDeltaTime);
+    srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
+    destPlayData.updateOrientation(dstPlayDeltaTime);
 
     const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;

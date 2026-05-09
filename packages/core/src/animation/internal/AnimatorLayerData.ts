@@ -4,7 +4,7 @@ import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimatorStateData } from "./AnimatorStateData";
-import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
+import { AnimatorStatePlayData } from "../AnimatorStatePlayData";
 
 /**
  * @internal
@@ -14,11 +14,11 @@ export class AnimatorLayerData {
   layer: AnimatorControllerLayer;
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
   animatorStateDataMap: Record<string, AnimatorStateData> = {};
-  /** state → 持久 per-state PlayData handle. Lazy populated. */
+  /** Per-state PlayData handles. Lazy populated. */
   statePlayDataMap = new Map<AnimatorState, AnimatorStatePlayData>();
-  /** Reference to the currently playing state's PlayData. Null when standby. */
+  /** Currently playing state's PlayData; null when standby. */
   srcPlayData: AnimatorStatePlayData | null = null;
-  /** Reference to the cross-fade target state's PlayData. Null when not cross-fading. */
+  /** Cross-fade target state's PlayData; null when not cross-fading. */
   destPlayData: AnimatorStatePlayData | null = null;
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;

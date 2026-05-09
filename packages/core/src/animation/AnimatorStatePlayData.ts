@@ -1,7 +1,7 @@
-import { AnimatorState } from "../AnimatorState";
-import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
-import { WrapMode } from "../enums/WrapMode";
-import { AnimatorStateData } from "./AnimatorStateData";
+import { AnimatorState } from "./AnimatorState";
+import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
+import { WrapMode } from "./enums/WrapMode";
+import { AnimatorStateData } from "./internal/AnimatorStateData";
 
 /**
  * Per-Animator per-state runtime handle.
@@ -26,7 +26,7 @@ export class AnimatorStatePlayData {
   /** Current playback state. Engine-managed. */
   playState: AnimatorStatePlayState = AnimatorStatePlayState.UnStarted;
   /** @internal */
-  clipTime: number;
+  clipTime: number = 0;
   /** @internal */
   currentEventIndex: number = 0;
   /** @internal */
@@ -61,7 +61,6 @@ export class AnimatorStatePlayData {
   /** @internal */
   constructor(state: AnimatorState) {
     this.state = state;
-    this.clipTime = state.clipStartTime * state.clip.length;
   }
 
   /**
