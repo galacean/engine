@@ -30,6 +30,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _physXManager: PhysXPhysicsManager;
   private _pxRaycastHit: any;
   private _pxFilterData: any;
+  private _pxRaycastFilterData: any;
 
   private _pxScene: any;
   private _physXSimulationCallbackInstance: any;
@@ -50,7 +51,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     this._pxRaycastHit = new physX.PxRaycastHit();
     this._pxFilterData = new physX.PxQueryFilterData();
-    this._pxFilterData.flags = new physX.PxQueryFlags(
+    this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
+    this._pxRaycastFilterData = new physX.PxQueryFilterData();
+    this._pxRaycastFilterData.flags = new physX.PxQueryFlags(
       QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER | QueryFlag.POST_FILTER
     );
 
@@ -231,7 +234,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       ray.direction,
       distance,
       pxHitResult,
-      this._pxFilterData,
+      this._pxRaycastFilterData,
       pxRaycastCallback
     );
 
@@ -400,6 +403,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxRaycastHit.delete();
     this._pxFilterData.flags.delete();
     this._pxFilterData.delete();
+    this._pxRaycastFilterData.flags.delete();
+    this._pxRaycastFilterData.delete();
     // Need to release the controller manager before release the scene.
     this._pxControllerManager?.release();
     this._pxScene.release();
@@ -477,7 +482,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       direction,
       distance,
       pxSweepHit,
-      this._pxFilterData,
+      this._pxRaycastFilterData,
       pxSweepCallback
     );
 
