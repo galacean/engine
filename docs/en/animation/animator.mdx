@@ -116,8 +116,16 @@ animator.speed = 1;
 If you only want to pause a specific `AnimatorState` , you can do so by setting its speed to 0.
 
 ```typescript
-const state = animator.findAnimatorState("xxx");
-state.speed = 0;
+const playData = animator.findAnimatorState("xxx");
+if (!playData) {
+  // State not found in any layer
+  return;
+}
+
+// Per-instance playback speed override (only affects this Animator instance).
+playData.speed = 0;
+// Restore live binding to the shared state.speed.
+playData.clearSpeedOverride();
 ```
 
 ### Transition to Specified Animation State
@@ -142,14 +150,23 @@ currentState.wrapMode = WrapMode.Loop;
 
 ### Get Animation State
 
-You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) method to get the specified `AnimatorState` . After obtaining it, you can set the properties of the  `AnimatorState` , such as changing the default loop playback to play once.
+You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) method to get the playback data for a specified `AnimatorState`. The return type is `AnimatorStatePlayData | null` (`null` when no layer contains a state with that name).
+
+The returned `AnimatorStatePlayData` exposes two distinct surfaces:
+
+- `playData.speed` — per-Animator playback speed override. Reading and writing it only affects this `Animator` instance and won't affect other `Animator` instances sharing the same `AnimatorController`. Call `clearSpeedOverride()` to resume live binding to `state.speed`.
+- `playData.state` — the underlying shared `AnimatorState` asset. Mutating fields like `wrapMode` mutates the shared `AnimatorController` asset and therefore affects every `Animator` using this controller.
 
 ```typescript
-const state = animator.findAnimatorState("xxx");
-// Play once
-state.wrapMode = WrapMode.Once;
-// Loop playback
-state.wrapMode = WrapMode.Loop;
+const playData = animator.findAnimatorState("xxx");
+if (!playData) {
+  // State not found in any layer
+  return;
+}
+
+// Mutating the shared AnimatorState asset (affects all Animators using this controller).
+playData.state.wrapMode = WrapMode.Once;
+playData.state.wrapMode = WrapMode.Loop;
 ```
 
 ### Animation Culling

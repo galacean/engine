@@ -120,8 +120,16 @@ animator.speed = 1;
 如果你只想针对某一个 `动画状态` 进行暂停，可以通过将它的速度设置为 0 来实现。
 
 ```typescript
-const state = animator.findAnimatorState("xxx");
-state.speed = 0;
+const playData = animator.findAnimatorState("xxx");
+if (!playData) {
+  // 任何一个动画层都没有该状态
+  return;
+}
+
+// 每个 Animator 实例独立的播放速度覆盖（只影响当前 Animator 实例）
+playData.speed = 0;
+// 取消覆盖，恢复对 state.speed 的实时绑定
+playData.clearSpeedOverride();
 ```
 
 ### 过渡指定动画状态
@@ -147,14 +155,23 @@ currentState.wrapMode = WrapMode.Loop;
 
 ### 获取动画状态
 
-你可以使用 [findAnimatorState](/apis/core/#Animator-findAnimatorState)  方法来获取指定名称的 `动画状态` 。获取之后可以设置动画状态的属性，比如将默认的循环播放改为一次。
+你可以使用 [findAnimatorState](/apis/core/#Animator-findAnimatorState) 方法来获取指定名称 `动画状态` 的播放数据。返回类型为 `AnimatorStatePlayData | null`（当任何一个动画层都没有该状态时返回 `null`）。
+
+返回的 `AnimatorStatePlayData` 提供两套语义不同的访问入口：
+
+- `playData.speed`：每个 `Animator` 实例独立的播放速度覆盖。读写只影响当前 `Animator` 实例，不会影响其他共享同一 `AnimatorController` 的 `Animator` 实例。调用 `clearSpeedOverride()` 可以恢复对 `state.speed` 的实时绑定。
+- `playData.state`：底层共享的 `AnimatorState` 资产。对 `wrapMode` 等字段的修改会改变共享的 `AnimatorController` 资产，因此会影响所有使用该控制器的 `Animator`。
 
 ```typescript
-const state = animator.findAnimatorState("xxx");
-// 播放一次
-state.wrapMode = WrapMode.Once;
-// 循环播放
-state.wrapMode = WrapMode.Loop;
+const playData = animator.findAnimatorState("xxx");
+if (!playData) {
+  // 任何一个动画层都没有该状态
+  return;
+}
+
+// 修改共享的 AnimatorState 资产（影响所有使用该控制器的 Animator）
+playData.state.wrapMode = WrapMode.Once;
+playData.state.wrapMode = WrapMode.Loop;
 ```
 
 ### 动画裁剪
