@@ -1,8 +1,7 @@
 /**
- * @internal
- * Engine-internal shader registry and GLSL utilities. Holds the
- * `#include` lookup table the runtime preprocessor reads, and the
- * GLSL ES 100 → 300 syntax converter the WebGL2 path uses.
+ * Shader registry and GLSL utilities. Holds the `#include` lookup table
+ * the runtime preprocessor reads, and the GLSL ES 100 → 300 syntax
+ * converter the WebGL2 path uses.
  */
 export class ShaderFactory {
   static readonly includeMap: Record<string, string> = {};
@@ -19,11 +18,24 @@ export class ShaderFactory {
   // [layout(location = 0)] out [highp] vec4 [color];
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?(?:vec4)\s+(?:\w+)\s*;/;
 
+  /**
+   * Register a chunk source so `#include` resolves it.
+   * @param includeName - The path key referenced in `#include "..."`.
+   * @param includeSource - GLSL chunk source text.
+   */
   static registerInclude(includeName: string, includeSource: string): void {
     if (ShaderFactory.includeMap[includeName]) {
       throw `The "${includeName}" shader include already exist`;
     }
     ShaderFactory.includeMap[includeName] = includeSource;
+  }
+
+  /**
+   * Remove a previously-registered chunk.
+   * @param includeName - The path key passed to `registerInclude`.
+   */
+  static unRegisterInclude(includeName: string): void {
+    delete ShaderFactory.includeMap[includeName];
   }
 
   /**
