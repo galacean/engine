@@ -210,39 +210,27 @@ export class Animator extends Component {
    * @param layerIndex - The layer index
    */
   getCurrentAnimatorState(layerIndex: number): AnimatorState {
-    return this._animatorLayersData[layerIndex]?.srcPlayData?.state;
+    return this._animatorLayersData[layerIndex]?.srcPlayData?.state ?? null;
   }
 
   /**
-   * Get the state by name.
-   * @param stateName - The state name
-   * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
-   */
-  /**
-   * Find the per-instance play data for a state by name.
-   * The returned object's `speed` is per-instance and safe to modify without affecting other Animator instances.
+   * Get the per-instance play data handle for a state by name.
+   * The returned handle persists for the layer's lifetime; modifications to
+   * `playData.speed` survive state transitions.
+   *
    * @param stateName - The state name
    * @param layerIndex - The layer index (default -1, searches all layers)
-   * @returns Per-instance AnimatorStatePlayData, or null if not found
+   * @returns Per-instance AnimatorStatePlayData, or null if no state matches
    */
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStatePlayData {
     const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
     if (!state || foundLayer < 0) return null;
-    const layerData = this._animatorLayersData[foundLayer];
-    if (!layerData) return null;
-    // Check srcPlayData and destPlayData for the matching state
-    if (layerData.srcPlayData.state === state) return layerData.srcPlayData;
-    if (layerData.destPlayData.state === state) return layerData.destPlayData;
-    // State exists in controller but not currently playing — return srcPlayData initialized with the state
-    return layerData.srcPlayData;
+    return this._getAnimatorLayerData(foundLayer).getOrCreatePlayData(state);
   }
 
   /**
    * Get the layer by name.
    * @param name - The layer's name.
-   * @todo Return per-instance layer data (like AnimatorStatePlayData for states) instead of shared asset.
-   *       Currently returns the shared AnimatorControllerLayer — modifying `weight` affects all instances.
-   *       Should follow Unity's pattern: Animator.SetLayerWeight/GetLayerWeight (per-instance).
    */
   findLayerByName(name: string): AnimatorControllerLayer {
     return this._animatorController?._layersMap[name];
@@ -539,8 +527,8 @@ export class Animator extends Component {
   }
 
   private _prepareStandbyCrossFading(animatorLayerData: AnimatorLayerData): void {
-    // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null
-    animatorLayerData.srcPlayData.state && this._prepareSrcCrossData(animatorLayerData, true);
+    // Standby have two sub state, one is never play (srcPlayData is null), one is finished (srcPlayData is non-null)
+    animatorLayerData.srcPlayData && this._prepareSrcCrossData(animatorLayerData, true);
     // Add dest cross curve data
     this._prepareDestCrossData(animatorLayerData, true);
   }
@@ -771,8 +759,8 @@ export class Animator extends Component {
       return;
     }
 
-    const srcPlaySpeed = srcState.speed * speed;
-    const dstPlaySpeed = destState.speed * speed;
+    const srcPlaySpeed = srcPlayData.speed * speed;
+    const dstPlaySpeed = destPlayData.speed * speed;
     const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
 
     srcPlayData && srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
@@ -1069,7 +1057,7 @@ export class Animator extends Component {
     } else {
       layerData.layerState = LayerState.Playing;
     }
-    layerData.switchPlayData();
+    layerData.promoteDest();
     layerData.crossFadeTransition = null;
   }
 
@@ -1329,7 +1317,9 @@ export class Animator extends Component {
     this._preparePlayOwner(animatorLayerData, state);
 
     animatorLayerData.layerState = LayerState.Playing;
-    animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
+    const playData = animatorLayerData.getOrCreatePlayData(state);
+    playData.resetForPlay(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
+    animatorLayerData.srcPlayData = playData;
     animatorLayerData.resetCurrentCheckIndex();
 
     return true;
@@ -1431,11 +1421,9 @@ export class Animator extends Component {
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
     const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
 
-    animatorLayerData.destPlayData.reset(
-      crossState,
-      animatorStateData,
-      transition.offset * crossState._getClipActualEndTime()
-    );
+    const destPlayData = animatorLayerData.getOrCreatePlayData(crossState);
+    destPlayData.resetForPlay(animatorStateData, transition.offset * crossState._getClipActualEndTime());
+    animatorLayerData.destPlayData = destPlayData;
     animatorLayerData.resetCurrentCheckIndex();
 
     switch (animatorLayerData.layerState) {

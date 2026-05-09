@@ -1,79 +1,85 @@
-import { AnimationClip } from "../AnimationClip";
 import { AnimatorState } from "../AnimatorState";
-import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
 import { WrapMode } from "../enums/WrapMode";
-import { StateMachineScript } from "../StateMachineScript";
 import { AnimatorStateData } from "./AnimatorStateData";
 
 /**
- * Per-instance runtime data for an AnimatorState.
- * Proxies read-only properties from the shared AnimatorState asset,
- * while providing per-instance mutable properties (e.g. speed).
+ * Per-Animator per-state runtime handle.
+ *
+ * Lifecycle: created lazily by AnimatorLayerData.getOrCreatePlayData on first access
+ * (either via Animator.findAnimatorState or when the state begins playing). Persists
+ * for the layer's lifetime, so per-instance overrides (e.g. speed) survive transitions
+ * out of and back into the state.
+ *
+ * Use `playData.state.xxx` to access shared AnimatorState configuration (clip, transitions, etc.).
+ * Use `playData.speed` for per-instance speed override (live-bound to state.speed when not overridden).
+ * Engine-managed runtime fields (playState, clipTime, ...) are read-only by user convention.
  */
 export class AnimatorStatePlayData {
-  /** @internal */
-  state: AnimatorState;
+  /** The shared AnimatorState asset. Read-only reference. */
+  readonly state: AnimatorState;
+
   /** @internal */
   stateData: AnimatorStateData;
   /** @internal */
-  playedTime: number;
-  playState: AnimatorStatePlayState;
+  playedTime: number = 0;
+  /** Current playback state. Engine-managed. */
+  playState: AnimatorStatePlayState = AnimatorStatePlayState.UnStarted;
   /** @internal */
   clipTime: number;
   /** @internal */
-  currentEventIndex: number;
+  currentEventIndex: number = 0;
   /** @internal */
   isForward = true;
   /** @internal */
-  offsetFrameTime: number;
-  /** Per-instance speed. Initialized from AnimatorState.speed, safe to modify without affecting other instances. */
-  speed: number = 1.0;
+  offsetFrameTime: number = 0;
 
-  // ── Proxy properties from AnimatorState (read-only) ──
+  private _speedOverride: number | undefined;
+  private _changedOrientation = false;
 
-  /** The name of the state. */
-  get name(): string {
-    return this.state.name;
+  /**
+   * Per-instance playback speed for this state.
+   *
+   * - Read: returns the override if set; otherwise live-reads `state.speed`.
+   * - Write: sets the override. Subsequent changes to `state.speed` no longer affect this instance until `clearSpeedOverride()`.
+   *
+   * Override persists across state transitions.
+   */
+  get speed(): number {
+    return this._speedOverride ?? this.state.speed;
   }
 
-  /** The clip played by this state. */
-  get clip(): AnimationClip {
-    return this.state.clip;
+  set speed(value: number) {
+    this._speedOverride = value;
   }
 
-  /** The wrap mode. */
-  get wrapMode(): WrapMode {
-    return this.state.wrapMode;
+  /** Clear the per-instance speed override; resume tracking shared `state.speed`. */
+  clearSpeedOverride(): void {
+    this._speedOverride = undefined;
   }
 
-  /** The transitions going out of this state. */
-  get transitions(): Readonly<AnimatorStateTransition[]> {
-    return this.state.transitions;
+  /** @internal */
+  constructor(state: AnimatorState) {
+    this.state = state;
+    this.clipTime = state.clipStartTime * state.clip.length;
   }
 
   /**
-   * Add a state machine script to the underlying AnimatorState.
+   * @internal
+   * Reset runtime fields when (re-)entering this state. Does NOT touch user overrides.
    */
-  addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
-    return this.state.addStateMachineScript(scriptType);
-  }
-
-  private _changedOrientation = false;
-
-  reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
-    this.state = state;
-    this.playedTime = 0;
-    this.offsetFrameTime = offsetFrameTime;
+  resetForPlay(stateData: AnimatorStateData, offsetFrameTime: number): void {
     this.stateData = stateData;
+    this.offsetFrameTime = offsetFrameTime;
+    this.playedTime = 0;
     this.playState = AnimatorStatePlayState.UnStarted;
-    this.clipTime = state.clipStartTime * state.clip.length;
+    this.clipTime = this.state.clipStartTime * this.state.clip.length;
     this.currentEventIndex = 0;
     this.isForward = true;
-    this.speed = state.speed;
     this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 
+  /** @internal */
   updateOrientation(deltaTime: number): void {
     if (deltaTime !== 0) {
       const lastIsForward = this.isForward;
@@ -85,6 +91,7 @@ export class AnimatorStatePlayData {
     }
   }
 
+  /** @internal */
   update(deltaTime: number): void {
     this.playedTime += deltaTime;
     const state = this.state;
