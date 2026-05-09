@@ -537,6 +537,40 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("raycast skips initial overlap when ray origin is inside a collider", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+
+      // Box at origin, encompassing the ray origin
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCollider = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCollider.addShape(insideShape);
+
+      // Box further along the ray direction
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCollider = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCollider.addShape(farShape);
+
+      // Cast ray from origin (inside `insideBox`) outward
+      const hit = new HitResult();
+      const ray = new Ray(new Vector3(0, 0, 0), new Vector3(1, 0, 0));
+      const ok = physicsScene.raycast(ray, 100, hit);
+
+      expect(ok).to.eq(true);
+      // Should hit the far box, NOT the box at origin (initial overlap is skipped)
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
     it("boxCast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
