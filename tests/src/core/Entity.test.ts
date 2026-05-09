@@ -346,6 +346,19 @@ describe("Entity", async () => {
       expect(parent.findByPath("shared/leaf")).to.eq(grandson);
     });
 
+    it("findByPath does not fallback to self-prefix when same-name child exists but deeper path misses", () => {
+      const parent = new Entity(engine, "shared");
+      parent.parent = scene.getRootEntity();
+      const sameNameChild = new Entity(engine, "shared");
+      sameNameChild.parent = parent;
+      const sibling = new Entity(engine, "other");
+      sibling.parent = parent;
+
+      // Same-name child exists but doesn't have an "other" descendant
+      // → must NOT fallback to self-prefix and return parent/other
+      expect(parent.findByPath("shared/other")).to.eq(null);
+    });
+
     it("clearChildren", () => {
       const parent = new Entity(engine, "parent");
 

@@ -383,11 +383,16 @@ export class Entity extends EngineObject {
       return childMatch;
     }
 
-    // Fallback: accept a self-name prefix. Some imported animation clips are normalized
-    // to include the single scene root name (e.g. "mixamorig:Hips/...") even when the
-    // Animator already sits on that root entity.
+    // Fallback to self-name prefix only when there's no child by splits[0].
+    // Some imported animation clips are normalized to include the single scene
+    // root name (e.g. "mixamorig:Hips/...") even when the Animator already sits
+    // on that root entity. But if the entity has a child with that name and the
+    // deeper path simply misses, that's a real not-found, not a self-prefix.
     if (splits[0] === this.name) {
-      return splits.length === 1 ? this : Entity._findChildByName(this, 0, splits, 1);
+      const hasFirstSegmentChild = this._children.some((child) => child.name === splits[0]);
+      if (!hasFirstSegmentChild) {
+        return splits.length === 1 ? this : Entity._findChildByName(this, 0, splits, 1);
+      }
     }
 
     return null;
