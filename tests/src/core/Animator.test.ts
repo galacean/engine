@@ -1313,23 +1313,31 @@ describe("Animator test", function () {
     expect(collection.get(1)).to.eq(t1);
   });
 
-  it("findAnimatorState returns handle even when state has never played", () => {
-    const survey = animator.findAnimatorState("Survey");
-    expect(survey).not.eq(null);
-    expect(survey.state.name).eq("Survey");
-    expect(survey.speed).eq(survey.state.speed); // live-bound default
+  it("findAnimatorState lazy-creates handle for unplayed state", () => {
+    // Clone yields a fresh animator with no PlayData populated
+    const cloneEntity = animator.entity.clone();
+    const cloneAnimator = cloneEntity.getComponent(Animator);
+
+    const survey = cloneAnimator.findAnimatorState("Survey");
+    expect(survey).to.not.eq(null);
+    expect(survey.state.name).to.eq("Survey");
+    expect(survey.speed).to.eq(survey.state.speed); // live-bound default
+
+    // Same handle returned on subsequent calls (verifies caching)
+    expect(cloneAnimator.findAnimatorState("Survey")).to.eq(survey);
   });
 
   it("speed override set before play applies on first play", () => {
-    animator.findAnimatorState("Survey").speed = 0.5;
+    const handle = animator.findAnimatorState("Survey");
+    handle.speed = 0.5;
     animator.play("Survey");
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.001);
-    // @ts-ignore — internal layer data
-    const layerData = animator._animatorLayersData[0];
-    expect(layerData.srcPlayData.speed).eq(0.5);
-    expect(layerData.srcPlayData.state.name).eq("Survey");
+
+    // Same handle observed via getCurrentAnimatorState
+    expect(animator.getCurrentAnimatorState(0)).to.eq(handle.state);
+    expect(handle.speed).to.eq(0.5);
   });
 
   it("speed override survives crossFade out and back", () => {
@@ -1352,23 +1360,23 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const srcPlayData = animator._animatorLayersData[0].srcPlayData;
-    expect(srcPlayData.state.name).eq("Survey"); // ensure crossfade actually completed back to Survey
-    expect(animator.findAnimatorState("Survey").speed).eq(0.5);
-    expect(srcPlayData.speed).eq(0.5);
+    expect(srcPlayData.state.name).to.eq("Survey"); // ensure crossfade actually completed back to Survey
+    expect(animator.findAnimatorState("Survey").speed).to.eq(0.5);
+    expect(srcPlayData.speed).to.eq(0.5);
   });
 
   it("speed override is per-Animator (clone isolation)", () => {
     const cloneEntity = animator.entity.clone();
     const cloneAnimator = cloneEntity.getComponent(Animator);
-    expect(cloneAnimator.animatorController).eq(animator.animatorController);
+    expect(cloneAnimator.animatorController).to.eq(animator.animatorController);
 
     animator.findAnimatorState("Survey").speed = 0.5;
 
-    expect(animator.findAnimatorState("Survey").speed).eq(0.5);
-    expect(cloneAnimator.findAnimatorState("Survey").speed).eq(1); // shared default
+    expect(animator.findAnimatorState("Survey").speed).to.eq(0.5);
+    expect(cloneAnimator.findAnimatorState("Survey").speed).to.eq(1); // shared default
     // shared asset not mutated
     const sharedSurvey = animator.animatorController.layers[0].stateMachine.findStateByName("Survey");
-    expect(sharedSurvey.speed).eq(1);
+    expect(sharedSurvey.speed).to.eq(1);
   });
 
   it("crossFade phase uses playData.speed for time progression", () => {
@@ -1392,19 +1400,19 @@ describe("Animator test", function () {
     const srcPlayedAfter = layerData.srcPlayData.playedTime;
     const advanced = srcPlayedAfter - srcPlayedBefore;
     // With playData.speed=4 and dt=0.05, expect ~0.2 (4 * 0.05). With state.speed=1 it'd be ~0.05.
-    expect(advanced).to.be.greaterThan(0.1);
+    expect(advanced).to.be.closeTo(0.2, 0.05);
   });
 
   it("clearSpeedOverride resumes shared state.speed", () => {
     const survey = animator.findAnimatorState("Survey");
     survey.speed = 0.5;
-    expect(survey.speed).eq(0.5);
+    expect(survey.speed).to.eq(0.5);
 
     survey.state.speed = 3;
-    expect(survey.speed).eq(0.5); // override still wins
+    expect(survey.speed).to.eq(0.5); // override still wins
 
     survey.clearSpeedOverride();
-    expect(survey.speed).eq(3); // now follows asset
+    expect(survey.speed).to.eq(3); // now follows asset
 
     survey.state.speed = 1; // restore
   });
