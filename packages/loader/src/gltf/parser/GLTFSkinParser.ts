@@ -75,6 +75,7 @@ export class GLTFSkinParser extends GLTFParser {
       }
 
       const sceneRootChildren = new Set<Entity>(sceneNodes.map((nodeIndex) => entities[nodeIndex]));
+      const topLevelJointRoots = new Set<Entity>();
       let allJointsUnderSceneRoot = true;
 
       for (let j = 0, m = joints.length; j < m; j++) {
@@ -87,9 +88,11 @@ export class GLTFSkinParser extends GLTFParser {
           allJointsUnderSceneRoot = false;
           break;
         }
+
+        topLevelJointRoots.add(entity);
       }
 
-      if (allJointsUnderSceneRoot) {
+      if (allJointsUnderSceneRoot && topLevelJointRoots.size > 1) {
         return sceneRoot;
       }
     }

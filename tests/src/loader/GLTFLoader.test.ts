@@ -40,7 +40,7 @@ beforeAll(async function () {
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
       if (context.glTFResource.url.endsWith("testSkinRoot.gltf")) {
-        context.buffers = [new ArrayBuffer(128)];
+        context.buffers = [new ArrayBuffer(192)];
         return Promise.resolve({
           asset: {
             version: "2.0"
@@ -66,7 +66,64 @@ beforeAll(async function () {
           skins: [
             {
               inverseBindMatrices: 0,
-              joints: [1, 2]
+              // Joints span both top-level scene roots: Character_Man (0) and Hips (1)/Spine (2).
+              joints: [0, 1, 2]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 3,
+              type: "MAT4"
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 192
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 192
+            }
+          ]
+        });
+      }
+
+      if (context.glTFResource.url.endsWith("testSingleSkeleton.gltf")) {
+        context.buffers = [new ArrayBuffer(128)];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              // Two top-level roots: a character skeleton and an unrelated sibling (e.g., a light).
+              nodes: [0, 2]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Root",
+              children: [1]
+            },
+            {
+              name: "mixamorig:Hips"
+            },
+            {
+              name: "Light"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              // All joints converge to a single top-level root (Character_Root).
+              joints: [0, 1]
             }
           ],
           accessors: [
@@ -606,6 +663,21 @@ describe("glTF scene root structure", function () {
     expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
     expect(defaultSceneRoot.children.length).to.equal(2);
     expect(skins[0].rootBone).to.equal(defaultSceneRoot);
+  });
+
+  it("Multi-root scenes whose joints converge to a single top-level root should not use the scene wrapper", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testSingleSkeleton.gltf"
+    });
+    const { defaultSceneRoot, skins } = glTFResource;
+
+    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
+    // Scene has two top-level roots, but all joints converge to "Character_Root".
+    expect(defaultSceneRoot.children.length).to.equal(2);
+    expect(skins[0].rootBone).to.not.equal(defaultSceneRoot);
+    // rootBone should be inside the Character_Root subtree (LCA = Character_Root).
+    expect(skins[0].rootBone.name).to.equal("Character_Root");
   });
 });
 
