@@ -39,7 +39,8 @@ export class GLTFSkinParser extends GLTFParser {
         const rootBone = entities[skeleton];
         skin.rootBone = rootBone;
       } else {
-        const rootBone = this._findSceneRootBone(context, joints, entities) ?? this._findSkeletonRootBone(joints, entities);
+        const rootBone =
+          this._findSceneRootBone(context, joints, entities) ?? this._findSkeletonRootBone(joints, entities);
         if (rootBone) {
           skin.rootBone = rootBone;
         } else {
@@ -78,7 +79,7 @@ export class GLTFSkinParser extends GLTFParser {
 
       for (let j = 0, m = joints.length; j < m; j++) {
         let entity = entities[joints[j]];
-        while (entity?.parent) {
+        while (entity?.parent && !sceneRootChildren.has(entity)) {
           entity = entity.parent;
         }
 
