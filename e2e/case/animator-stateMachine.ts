@@ -57,6 +57,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const idleState = animator.findAnimatorState("idle");
       const walkState = animator.findAnimatorState("walk");
       const runState = animator.findAnimatorState("run");
+      if (!idleState || !walkState || !runState) {
+        throw new Error("Required animator states not found: idle/walk/run");
+      }
       let idleToWalkTime = 0;
       let walkToRunTime = 0;
       let runToWalkTime = 0;

@@ -56,6 +56,9 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
       const animator = defaultSceneRoot.getComponent(Animator);
       const state = animator.findAnimatorState("walk");
+      if (!state) {
+        throw new Error("Animator state not found: walk");
+      }
 
       state.state.addStateMachineScript(
         class extends StateMachineScript {
