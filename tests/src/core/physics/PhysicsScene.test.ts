@@ -470,8 +470,11 @@ describe("Physics Test", () => {
       expect(outHitResult.entity).to.be.null;
 
       // Test that initial overlap is skipped when ray origin is inside collider.
+      // Use a strictly-inside origin (2.9,2.9,2.9) rather than the box corner
+      // (3,3,3), which is a boundary point whose hit/miss depends on PhysX edge
+      // tolerance and can flake regardless of the initial-overlap-skip behavior.
       boxShape.size = new Vector3(6, 6, 6);
-      ray = new Ray(new Vector3(3, 3, 3), new Vector3(0, -1, 0).normalize());
+      ray = new Ray(new Vector3(2.9, 2.9, 2.9), new Vector3(0, -1, 0).normalize());
       expect(physicsScene.raycast(ray, outHitResult)).to.eq(false);
       expect(outHitResult.distance).to.be.eq(0);
       expect(outHitResult.entity).to.be.null;
