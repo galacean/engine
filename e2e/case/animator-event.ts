@@ -53,7 +53,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const animator = defaultSceneRoot.getComponent(Animator);
 
       const state = animator.findAnimatorState("walk");
-      const clip = state.clip;
+      const clip = state.state.clip;
 
       const event0 = new AnimationEvent();
       event0.functionName = "event0";

@@ -57,7 +57,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const animator = defaultSceneRoot.getComponent(Animator);
       const state = animator.findAnimatorState("walk");
 
-      state.addStateMachineScript(
+      state.state.addStateMachineScript(
         class extends StateMachineScript {
           onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             textRenderer.text = "0";
