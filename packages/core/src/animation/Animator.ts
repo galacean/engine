@@ -223,6 +223,9 @@ export class Animator extends Component {
    * @returns Per-instance AnimatorStatePlayData, or null if no state matches
    */
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStatePlayData | null {
+    if (this._controllerUpdateFlag?.flag) {
+      this._reset();
+    }
     const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
     if (!state || foundLayer < 0) return null;
     return this._getAnimatorLayerData(foundLayer).getOrCreatePlayData(state);

@@ -1447,6 +1447,25 @@ describe("Animator test", function () {
     animator._reset();
   });
 
+  it("findAnimatorState resets stale layer data after controller mutation", () => {
+    // Ensure layerData[0] is populated
+    const handle1 = animator.findAnimatorState("Survey");
+    expect(handle1).not.to.eq(null);
+
+    // Mutate the controller — this dispatches the update flag
+    const controller = animator.animatorController;
+    const dummyLayer = new AnimatorControllerLayer("__dummy__");
+    controller.addLayer(dummyLayer);
+
+    // findAnimatorState should reset stale layerData and rebuild
+    const handle2 = animator.findAnimatorState("Survey");
+    expect(handle2).not.to.eq(null);
+    expect(handle2).not.to.eq(handle1); // fresh handle after reset
+
+    // Cleanup
+    controller.removeLayer(controller.layers.indexOf(dummyLayer));
+  });
+
   it("crossFade to current state is no-op (avoids src/dest PlayData alias)", () => {
     animator.play("Walk");
     // @ts-ignore
