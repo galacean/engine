@@ -1430,11 +1430,11 @@ export class Animator extends Component {
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
 
-    // Guard against crossFade-to-self/current-dest alias.
-    // statePlayDataMap holds one PlayData per AnimatorState; if the requested cross
-    // target is already on src or dest, getOrCreatePlayData would return the same
-    // instance and resetForPlay would corrupt the active runtime track. Treat as
-    // no-op until lifecycle splits persistent override from transient src/dest tracks.
+    // Self-cross-fade is intentionally a no-op: this layer holds one persistent
+    // PlayData handle per AnimatorState (so per-instance overrides like speed
+    // survive transitions). Supporting cross-fade-to-self would require a
+    // separate transient playback track per active fade, which is a larger
+    // runtime redesign deliberately deferred.
     if (animatorLayerData.srcPlayData?.state === crossState || animatorLayerData.destPlayData?.state === crossState) {
       return false;
     }
