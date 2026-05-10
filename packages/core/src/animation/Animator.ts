@@ -419,8 +419,18 @@ export class Animator extends Component {
   ): AnimatorStateData {
     const { animatorStateDataMap } = animatorLayerData;
     let animatorStateData = animatorStateDataMap[stateName];
+    if (animatorStateData && animatorStateData.state !== animatorState) {
+      // Same name but different state instance (e.g. removeState + addState same name):
+      // detach the old listener and rebuild stateData against the new state.
+      const { state: previousState, clipChangedListener } = animatorStateData;
+      if (previousState && clipChangedListener) {
+        previousState._updateFlagManager.removeListener(clipChangedListener);
+      }
+      animatorStateData = null;
+    }
     if (!animatorStateData) {
       animatorStateData = new AnimatorStateData();
+      animatorStateData.state = animatorState;
       animatorStateDataMap[stateName] = animatorStateData;
       this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
       this._saveAnimatorEventHandlers(animatorState, animatorStateData);
@@ -509,6 +519,7 @@ export class Animator extends Component {
     };
     clipChangedListener();
     state._updateFlagManager.addListener(clipChangedListener);
+    animatorStateData.clipChangedListener = clipChangedListener;
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {

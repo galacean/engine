@@ -20,7 +20,7 @@ import {
 } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
-import { Quaternion } from "@galacean/engine-math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { glbResource } from "./model/fox";
@@ -1445,6 +1445,89 @@ describe("Animator test", function () {
     // the restored state.
     // @ts-ignore
     animator._reset();
+  });
+
+  it("rebuilds curve owners and event handlers when state identity changes via remove/re-add", () => {
+    const localEntity = new Entity(engine);
+    const localAnimator = localEntity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    controller.addLayer(layer);
+
+    // Old state binds rotation.x: 0 → 90 over 1s
+    const oldState = layer.stateMachine.addState("X");
+    const oldClip = new AnimationClip("oldClip");
+    const rotationCurve = new AnimationFloatCurve();
+    const rk1 = new Keyframe<number>();
+    rk1.time = 0;
+    rk1.value = 0;
+    const rk2 = new Keyframe<number>();
+    rk2.time = 1;
+    rk2.value = 90;
+    rotationCurve.addKey(rk1);
+    rotationCurve.addKey(rk2);
+    oldClip.addCurveBinding("", Transform, "rotation.x", rotationCurve);
+    oldState.clip = oldClip;
+    oldState.wrapMode = WrapMode.Loop;
+
+    localAnimator.animatorController = controller;
+    localAnimator.play("X");
+    // @ts-ignore
+    localAnimator.engine.time._frameCount++;
+    localAnimator.update(0.5);
+
+    // First play populates stateData cache keyed by name "X" pointing at oldState's owners.
+    expect(localEntity.transform.rotation.x).to.be.closeTo(45, 1);
+
+    // Remove + re-add same-name state with a clip targeting a *different* property.
+    layer.stateMachine.removeState(oldState);
+    const newState = layer.stateMachine.addState("X");
+    const newClip = new AnimationClip("newClip");
+    const positionCurve = new AnimationFloatCurve();
+    const pk1 = new Keyframe<number>();
+    pk1.time = 0;
+    pk1.value = 0;
+    const pk2 = new Keyframe<number>();
+    pk2.time = 1;
+    pk2.value = 5;
+    positionCurve.addKey(pk1);
+    positionCurve.addKey(pk2);
+    newClip.addCurveBinding("", Transform, "position.x", positionCurve);
+    newState.clip = newClip;
+    newState.wrapMode = WrapMode.Loop;
+
+    // Reset transform so any stale binding shows up as a wrong-property mutation.
+    localEntity.transform.position = new Vector3(0, 0, 0);
+    localEntity.transform.rotation = new Vector3(0, 0, 0);
+
+    // @ts-ignore — internal layer data, verify cached state BEFORE second play to confirm stale.
+    const layerDataBeforeSecondPlay = localAnimator._animatorLayersData[0];
+    const stateDataBefore = layerDataBeforeSecondPlay.animatorStateDataMap["X"];
+    expect(stateDataBefore, "stateData should exist after first play").to.not.eq(undefined);
+    expect(stateDataBefore.state, "first-play stateData.state must be oldState").to.eq(oldState);
+
+    localAnimator.play("X");
+
+    // @ts-ignore — internal layer data
+    const layerData = localAnimator._animatorLayersData[0];
+    const stateData = layerData.animatorStateDataMap["X"];
+    // stateData must rebuild against newState identity, not stay aliased to oldState.
+    expect(stateData.state, "second-play stateData.state must be newState").to.eq(newState);
+    // The cached curveLayerOwner must point at position.x owner now, not the stale rotation.x owner.
+    const firstOwnerProp = (stateData.curveLayerOwner[0] as any)?.curveOwner?.property;
+    expect(firstOwnerProp).to.eq("position.x");
+
+    // @ts-ignore
+    localAnimator.engine.time._frameCount++;
+    localAnimator.update(0.5);
+
+    // After rebuild: position.x ≈ 2.5, rotation.x stays at 0.
+    // Without rebuild (stale stateData): curveLayerOwner[0] still points at rotation.x owner,
+    // so position curve value would be applied to rotation.x and position.x would never change.
+    expect(localEntity.transform.position.x).to.be.closeTo(2.5, 0.5);
+    expect(localEntity.transform.rotation.x).to.eq(0);
+
+    localEntity.destroy();
   });
 
   it("findAnimatorState resets stale layer data after controller mutation", () => {
