@@ -114,16 +114,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
       preFilter: (_filterData: any, index: number, _actor: any) =>
         onRaycastStack[onRaycastStack.length - 1](index) ? QueryHitType.BLOCK : QueryHitType.NONE,
       // distance <= 0 means initial overlap — drop the hit so subsequent hits can be considered.
-      postFilter: (_filterData: any, distance: number) =>
-        distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK
+      postFilter: (_filterData: any, distance: number) => (distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK)
     });
 
     const onSweepStack = this._onSweepStack;
     this._pxSweepCallback = physX.PxQueryFilterCallback.implement({
       preFilter: (_filterData: any, index: number, _actor: any) =>
         onSweepStack[onSweepStack.length - 1](index) ? QueryHitType.BLOCK : QueryHitType.NONE,
-      postFilter: (_filterData: any, distance: number) =>
-        distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK
+      postFilter: (_filterData: any, distance: number) => (distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK)
     });
 
     const onOverlapStack = this._onOverlapStack;
