@@ -1459,6 +1459,40 @@ describe("Animator test", function () {
     expect(layerData.destPlayData.playedTime).to.eq(destPlayedBefore);
   });
 
+  it("state-machine self-transition is also a no-op (alias-guard policy)", () => {
+    const walk = animator.findAnimatorState("Walk");
+    walk.state.clearTransitions();
+    animator.animatorController.addParameter("restart", false);
+
+    const selfTransition = walk.state.addTransition(walk.state);
+    selfTransition.hasExitTime = false;
+    selfTransition.duration = 0.1;
+    selfTransition.addCondition("restart", AnimatorConditionMode.If, true);
+
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.05);
+
+    // @ts-ignore
+    const layerData = animator._animatorLayersData[0];
+    const srcBefore = layerData.srcPlayData;
+    const playedBefore = srcBefore.playedTime;
+
+    // Trigger the self-transition
+    animator.setParameterValue("restart", true);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.05);
+
+    // Self-transition is intentionally a no-op (one persistent PlayData per state).
+    // src should keep advancing as if no transition happened, dest stays null.
+    expect(layerData.srcPlayData).to.eq(srcBefore);
+    expect(layerData.srcPlayData.state.name).to.eq("Walk");
+    expect(layerData.srcPlayData.playedTime).to.be.greaterThan(playedBefore);
+    expect(layerData.destPlayData).to.eq(null);
+  });
+
   it("play during crossFade clears stale destPlayData", () => {
     animator.play("Walk");
     // @ts-ignore
