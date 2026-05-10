@@ -45,6 +45,25 @@ export class Entity extends EngineObject {
 
   /**
    * @internal
+   * Subtree-only path search: never backtracks to parent/siblings, returns null on miss.
+   */
+  static _findChildByPathDown(entity: Entity, paths: string[], pathIndex: number): Entity {
+    const searchPath = paths[pathIndex];
+    const isEndPath = pathIndex === paths.length - 1;
+    const children = entity._children;
+
+    for (let i = 0, n = children.length; i < n; i++) {
+      const child = children[i];
+      if (child.name === searchPath) {
+        return isEndPath ? child : Entity._findChildByPathDown(child, paths, pathIndex + 1);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * @internal
    */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
     entity._scene = scene;
@@ -389,7 +408,7 @@ export class Entity extends EngineObject {
     if (splits[0] === this.name) {
       const hasFirstSegmentChild = this._children.some((child) => child.name === splits[0]);
       if (!hasFirstSegmentChild) {
-        return splits.length === 1 ? this : Entity._findChildByName(this, 0, splits.slice(1), 0);
+        return splits.length === 1 ? this : Entity._findChildByPathDown(this, splits, 1);
       }
     }
 
