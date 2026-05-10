@@ -47,7 +47,7 @@ export class Entity extends EngineObject {
    * @internal
    * Subtree-only path search: never backtracks to parent/siblings, returns null on miss.
    */
-  static _findChildByPathDown(entity: Entity, paths: string[], pathIndex: number): Entity {
+  static _findChildByPathDown(entity: Entity, paths: string[], pathIndex: number): Entity | null {
     const searchPath = paths[pathIndex];
     const isEndPath = pathIndex === paths.length - 1;
     const children = entity._children;
@@ -406,7 +406,14 @@ export class Entity extends EngineObject {
     // Supports paths authored relative to this entity's parent but evaluated
     // from this entity (e.g. "root/child/leaf" called on the entity named "root").
     if (splits[0] === this.name) {
-      const hasFirstSegmentChild = this._children.some((child) => child.name === splits[0]);
+      const children = this._children;
+      let hasFirstSegmentChild = false;
+      for (let i = 0, n = children.length; i < n; i++) {
+        if (children[i].name === splits[0]) {
+          hasFirstSegmentChild = true;
+          break;
+        }
+      }
       if (!hasFirstSegmentChild) {
         return splits.length === 1 ? this : Entity._findChildByPathDown(this, splits, 1);
       }
