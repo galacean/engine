@@ -570,6 +570,98 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("boxCast skips initial overlap and hits far collider beyond", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("boxcast_initial_overlap_root");
+
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCol = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCol.addShape(insideShape);
+
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCol = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCol.addShape(farShape);
+
+      const halfExtents = new Vector3(0.5, 0.5, 0.5);
+      const direction = new Vector3(1, 0, 0);
+      const hit = new HitResult();
+      // Sweep origin (0,0,0) is inside insideBox; should skip and hit farBox
+      const ok = physicsScene.boxCast(new Vector3(0, 0, 0), halfExtents, direction, 100, hit);
+
+      expect(ok).to.eq(true);
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("sphereCast skips initial overlap and hits far collider beyond", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("spherecast_initial_overlap_root");
+
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCol = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCol.addShape(insideShape);
+
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCol = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCol.addShape(farShape);
+
+      const direction = new Vector3(1, 0, 0);
+      const hit = new HitResult();
+      const ok = physicsScene.sphereCast(new Vector3(0, 0, 0), 0.4, direction, 100, hit);
+
+      expect(ok).to.eq(true);
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("capsuleCast skips initial overlap and hits far collider beyond", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("capsulecast_initial_overlap_root");
+
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCol = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCol.addShape(insideShape);
+
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCol = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCol.addShape(farShape);
+
+      const direction = new Vector3(1, 0, 0);
+      const hit = new HitResult();
+      const ok = physicsScene.capsuleCast(new Vector3(0, 0, 0), 0.3, 0.5, direction, 100, hit);
+
+      expect(ok).to.eq(true);
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
     it("raycast nested inside another raycast's onRaycast keeps stack ordering", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const root = scene.createRootEntity("nested_raycast_root");
