@@ -1417,6 +1417,36 @@ describe("Animator test", function () {
     survey.state.speed = 1; // restore
   });
 
+  it("findAnimatorState rebuilds handle when state identity changes (remove/re-add same name)", () => {
+    const sm = animator.animatorController.layers[0].stateMachine;
+    const oldSurvey = animator.findAnimatorState("Survey");
+    expect(oldSurvey).not.to.eq(null);
+    const oldStateRef = oldSurvey.state;
+    const originalIndex = sm.states.indexOf(oldStateRef);
+
+    // Simulate dynamic controller mutation: remove and re-add same-name state
+    sm.removeState(oldStateRef);
+    const newStateRef = sm.addState("Survey");
+    expect(newStateRef).not.to.eq(oldStateRef);
+
+    const newHandle = animator.findAnimatorState("Survey");
+    expect(newHandle).not.to.eq(null);
+    expect(newHandle.state).to.eq(newStateRef);
+    expect(newHandle).not.to.eq(oldSurvey);
+
+    // Restore original Survey state so subsequent tests still see the
+    // clip-bound state. Drop the barebones replacement and reinsert the
+    // original at its previous index in the states list/map.
+    sm.removeState(newStateRef);
+    sm.states.splice(originalIndex, 0, oldStateRef);
+    // @ts-ignore — _statesMap is private but rebuild requires direct access
+    sm._statesMap["Survey"] = oldStateRef;
+    // Reset cached layer data so the next findAnimatorState rebuilds against
+    // the restored state.
+    // @ts-ignore
+    animator._reset();
+  });
+
   it("crossFade to current state is no-op (avoids src/dest PlayData alias)", () => {
     animator.play("Walk");
     // @ts-ignore
