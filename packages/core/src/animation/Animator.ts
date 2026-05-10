@@ -1430,11 +1430,10 @@ export class Animator extends Component {
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
 
-    // Self-cross-fade is intentionally a no-op: this layer holds one persistent
-    // PlayData handle per AnimatorState (so per-instance overrides like speed
-    // survive transitions). Supporting cross-fade-to-self would require a
-    // separate transient playback track per active fade, which is a larger
-    // runtime redesign deliberately deferred.
+    // Self/active-dest cross-fade is intentionally a no-op because each state
+    // owns one persistent PlayData handle per layer (so per-instance overrides
+    // like speed survive transitions). Supporting self cross-fade would require
+    // a separate transient playback track per active fade.
     if (animatorLayerData.srcPlayData?.state === crossState || animatorLayerData.destPlayData?.state === crossState) {
       return false;
     }
