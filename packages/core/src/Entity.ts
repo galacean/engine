@@ -55,7 +55,14 @@ export class Entity extends EngineObject {
     for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
       if (child.name === searchPath) {
-        return isEndPath ? child : Entity._findChildByPathDown(child, paths, pathIndex + 1);
+        if (isEndPath) {
+          return child;
+        }
+        const found = Entity._findChildByPathDown(child, paths, pathIndex + 1);
+        if (found) {
+          return found;
+        }
+        // Otherwise continue the for loop to try the next same-name sibling
       }
     }
 

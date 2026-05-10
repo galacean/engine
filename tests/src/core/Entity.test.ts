@@ -380,6 +380,22 @@ describe("Entity", async () => {
       expect(target.findByPath("target/sibling")).to.eq(null);
     });
 
+    it("findByPath self-prefix fallback retries same-name siblings on deep miss", () => {
+      const parent = new Entity(engine, "root");
+      parent.parent = scene.getRootEntity();
+      // Two same-name children: only the second one has the deeper "leaf"
+      const firstA = new Entity(engine, "a");
+      firstA.parent = parent;
+      const secondA = new Entity(engine, "a");
+      secondA.parent = parent;
+      const leaf = new Entity(engine, "leaf");
+      leaf.parent = secondA;
+
+      // Path "root/a/leaf" via self-prefix fallback should walk into the
+      // second 'a' after the first 'a' subtree misses 'leaf'.
+      expect(parent.findByPath("root/a/leaf")).to.eq(leaf);
+    });
+
     it("clearChildren", () => {
       const parent = new Entity(engine, "parent");
 
