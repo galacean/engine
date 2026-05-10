@@ -554,7 +554,7 @@ export class Animator extends Component {
   }
 
   private _prepareSrcCrossData(animatorLayerData: AnimatorLayerData, saveFixed: boolean): void {
-    const { curveLayerOwner } = animatorLayerData.srcPlayData.stateData;
+    const { curveLayerOwner } = animatorLayerData.srcPlayData._stateData;
     for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
       const layerOwner = curveLayerOwner[i];
       if (!layerOwner) continue;
@@ -565,7 +565,7 @@ export class Animator extends Component {
   }
 
   private _prepareDestCrossData(animatorLayerData: AnimatorLayerData, saveFixed: boolean): void {
-    const { curveLayerOwner } = animatorLayerData.destPlayData.stateData;
+    const { curveLayerOwner } = animatorLayerData.destPlayData._stateData;
     for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
       const layerOwner = curveLayerOwner[i];
       if (!layerOwner) continue;
@@ -632,12 +632,12 @@ export class Animator extends Component {
 
     srcPlayData.updateOrientation(playDeltaTime);
 
-    const { clipTime: lastClipTime, playState: lastPlayState } = srcPlayData;
+    const { _clipTime: lastClipTime, _playState: lastPlayState } = srcPlayData;
 
     // Precalculate to get the transition
     srcPlayData.update(playDeltaTime);
 
-    const { clipTime, isForward } = srcPlayData;
+    const { _clipTime: clipTime, _isForward: isForward } = srcPlayData;
     const { _transitionCollection: transitions } = state;
     const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
 
@@ -694,7 +694,7 @@ export class Animator extends Component {
       srcPlayData.update(playCostTime - playDeltaTime);
     } else {
       playCostTime = playDeltaTime;
-      if (srcPlayData.playState === AnimatorStatePlayState.Finished) {
+      if (srcPlayData._playState === AnimatorStatePlayState.Finished) {
         layerData.layerState = LayerState.Finished;
       }
     }
@@ -724,10 +724,10 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): void {
     const curveBindings = playData.state.clip._curveBindings;
-    const finished = playData.playState === AnimatorStatePlayState.Finished;
+    const finished = playData._playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
-      const curveLayerOwner = playData.stateData.curveLayerOwner;
+      const curveLayerOwner = playData._stateData.curveLayerOwner;
       for (let i = curveBindings.length - 1; i >= 0; i--) {
         const layerOwner = curveLayerOwner[i];
         const owner = layerOwner?.curveOwner;
@@ -740,7 +740,7 @@ export class Animator extends Component {
         if (curve.keys.length) {
           this._checkRevertOwner(owner, additive);
 
-          const value = owner.evaluateValue(curve, playData.clipTime, additive);
+          const value = owner.evaluateValue(curve, playData._clipTime, additive);
           aniUpdate && owner.applyValue(value, weight, additive);
           finished && layerOwner.saveFinalValue();
         }
@@ -772,18 +772,18 @@ export class Animator extends Component {
     srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
     destPlayData.updateOrientation(dstPlayDeltaTime);
 
-    const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
-    const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
+    const { _clipTime: lastSrcClipTime, _playState: lastSrcPlayState } = srcPlayData;
+    const { _clipTime: lastDestClipTime, _playState: lastDstPlayState } = destPlayData;
 
     let dstPlayCostTime: number;
-    if (destPlayData.isForward) {
+    if (destPlayData._isForward) {
       // The time that has been played
-      const playedTime = destPlayData.playedTime;
+      const playedTime = destPlayData._playedTime;
       dstPlayCostTime =
         playedTime + dstPlayDeltaTime > transitionDuration ? transitionDuration - playedTime : dstPlayDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destPlayData.playedTime;
+      const playedTime = destPlayData._playedTime;
       dstPlayCostTime =
         // -dstPlayDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -800,13 +800,13 @@ export class Animator extends Component {
     srcPlayData.update(srcPlayCostTime);
     destPlayData.update(dstPlayCostTime);
 
-    let crossWeight = Math.abs(destPlayData.playedTime) / transitionDuration;
+    let crossWeight = Math.abs(destPlayData._playedTime) / transitionDuration;
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
 
     if (crossFadeFinished) {
-      srcPlayData.playState = AnimatorStatePlayState.Finished;
+      srcPlayData._playState = AnimatorStatePlayState.Finished;
       this._preparePlayOwner(layerData, destState);
       this._evaluatePlayingState(destPlayData, weight, additive, aniUpdate);
     } else {
@@ -852,7 +852,7 @@ export class Animator extends Component {
     const { state: destState } = destPlayData;
     const { _curveBindings: destCurves } = destState.clip;
 
-    const finished = destPlayData.playState === AnimatorStatePlayState.Finished;
+    const finished = destPlayData._playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
       for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
@@ -869,8 +869,8 @@ export class Animator extends Component {
         const value = owner.evaluateCrossFadeValue(
           srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
           destCurveIndex >= 0 ? destCurves[destCurveIndex].curve : null,
-          srcPlayData.clipTime,
-          destPlayData.clipTime,
+          srcPlayData._clipTime,
+          destPlayData._clipTime,
           crossWeight,
           additive
         );
@@ -900,17 +900,17 @@ export class Animator extends Component {
 
     destPlayData.updateOrientation(playDeltaTime);
 
-    const { clipTime: lastDestClipTime, playState: lastPlayState } = destPlayData;
+    const { _clipTime: lastDestClipTime, _playState: lastPlayState } = destPlayData;
 
     let dstPlayCostTime: number;
-    if (destPlayData.isForward) {
+    if (destPlayData._isForward) {
       // The time that has been played
-      const playedTime = destPlayData.playedTime;
+      const playedTime = destPlayData._playedTime;
       dstPlayCostTime =
         playedTime + playDeltaTime > transitionDuration ? transitionDuration - playedTime : playDeltaTime;
     } else {
       // The time that has been played
-      const playedTime = destPlayData.playedTime;
+      const playedTime = destPlayData._playedTime;
       dstPlayCostTime =
         // -playDeltaTime: The time that will be played, negative are meant to make it be a periods
         // > transition: The time that will be played is enough to finish the transition
@@ -925,7 +925,7 @@ export class Animator extends Component {
 
     destPlayData.update(dstPlayCostTime);
 
-    let crossWeight = Math.abs(destPlayData.playedTime) / transitionDuration;
+    let crossWeight = Math.abs(destPlayData._playedTime) / transitionDuration;
     (crossWeight >= 1.0 - MathUtil.zeroTolerance || transitionDuration === 0) && (crossWeight = 1.0);
 
     const crossFadeFinished = crossWeight === 1.0;
@@ -965,7 +965,7 @@ export class Animator extends Component {
     const { state } = destPlayData;
     const { _curveBindings: curveBindings } = state.clip;
 
-    const { clipTime: destClipTime, playState } = destPlayData;
+    const { _clipTime: destClipTime, _playState: playState } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
 
     // When the animator is culled (aniUpdate=false), if the play state has finished, the final value needs to be calculated and saved to be applied directly
@@ -1006,7 +1006,7 @@ export class Animator extends Component {
 
     playData.updateOrientation(actualDeltaTime);
 
-    const { clipTime, isForward } = playData;
+    const { _clipTime: clipTime, _isForward: isForward } = playData;
     const { _transitionCollection: transitions } = state;
     const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
 
@@ -1041,7 +1041,7 @@ export class Animator extends Component {
       return;
     }
 
-    const { curveLayerOwner } = playData.stateData;
+    const { curveLayerOwner } = playData._stateData;
     const { _curveBindings: curveBindings } = playData.state.clip;
 
     for (let i = curveBindings.length - 1; i >= 0; i--) {
@@ -1058,7 +1058,7 @@ export class Animator extends Component {
 
   private _updateCrossFadeData(layerData: AnimatorLayerData): void {
     const { destPlayData } = layerData;
-    if (destPlayData.playState === AnimatorStatePlayState.Finished) {
+    if (destPlayData._playState === AnimatorStatePlayState.Finished) {
       layerData.layerState = LayerState.Finished;
     } else {
       layerData.layerState = LayerState.Playing;
@@ -1071,7 +1071,7 @@ export class Animator extends Component {
     if (layerData.layerState === LayerState.Playing) {
       const srcPlayData = layerData.srcPlayData;
       if (srcPlayData.state !== playState) {
-        const { curveLayerOwner } = srcPlayData.stateData;
+        const { curveLayerOwner } = srcPlayData._stateData;
         for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
           curveLayerOwner[i]?.curveOwner.revertDefaultValue();
         }
@@ -1478,14 +1478,14 @@ export class Animator extends Component {
     lastClipTime: number,
     deltaTime: number
   ): void {
-    const { state, isForward, clipTime } = playData;
+    const { state, _isForward: isForward, _clipTime: clipTime } = playData;
     const startTime = state._getClipActualStartTime();
     const endTime = state._getClipActualEndTime();
 
     if (isForward) {
       if (lastClipTime + deltaTime >= endTime) {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, endTime);
-        playData.currentEventIndex = 0;
+        playData._currentEventIndex = 0;
         this._fireSubAnimationEvents(playData, eventHandlers, startTime, clipTime);
       } else {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
@@ -1493,7 +1493,7 @@ export class Animator extends Component {
     } else {
       if (lastClipTime + deltaTime <= startTime) {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, startTime);
-        playData.currentEventIndex = eventHandlers.length - 1;
+        playData._currentEventIndex = eventHandlers.length - 1;
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, endTime, clipTime);
       } else {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
@@ -1507,7 +1507,7 @@ export class Animator extends Component {
     lastClipTime: number,
     curClipTime: number
   ): void {
-    let eventIndex = playState.currentEventIndex;
+    let eventIndex = playState._currentEventIndex;
     for (let n = eventHandlers.length; eventIndex < n; eventIndex++) {
       const eventHandler = eventHandlers[eventIndex];
       const { time, parameter } = eventHandler.event;
@@ -1521,7 +1521,7 @@ export class Animator extends Component {
         for (let j = handlers.length - 1; j >= 0; j--) {
           handlers[j](parameter);
         }
-        playState.currentEventIndex = Math.min(eventIndex + 1, n - 1);
+        playState._currentEventIndex = Math.min(eventIndex + 1, n - 1);
       }
     }
   }
@@ -1532,7 +1532,7 @@ export class Animator extends Component {
     lastClipTime: number,
     curClipTime: number
   ): void {
-    let eventIndex = playState.currentEventIndex;
+    let eventIndex = playState._currentEventIndex;
     for (; eventIndex >= 0; eventIndex--) {
       const eventHandler = eventHandlers[eventIndex];
       const { time, parameter } = eventHandler.event;
@@ -1546,7 +1546,7 @@ export class Animator extends Component {
         for (let j = handlers.length - 1; j >= 0; j--) {
           handlers[j](parameter);
         }
-        playState.currentEventIndex = Math.max(eventIndex - 1, 0);
+        playState._currentEventIndex = Math.max(eventIndex - 1, 0);
       }
     }
   }
@@ -1590,13 +1590,13 @@ export class Animator extends Component {
     lastPlayState: AnimatorStatePlayState,
     deltaTime: number
   ) {
-    const { eventHandlers } = playData.stateData;
+    const { eventHandlers } = playData._stateData;
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       state._callOnEnter(this, layerIndex);
     }
-    if (lastPlayState !== AnimatorStatePlayState.Finished && playData.playState === AnimatorStatePlayState.Finished) {
+    if (lastPlayState !== AnimatorStatePlayState.Finished && playData._playState === AnimatorStatePlayState.Finished) {
       state._callOnExit(this, layerIndex);
     } else {
       state._callOnUpdate(this, layerIndex);
