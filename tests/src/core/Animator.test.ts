@@ -1520,4 +1520,26 @@ describe("Animator test", function () {
     expect(animator._animatorLayersData[-1]).to.eq(undefined);
     expect(animator._animatorLayersData[99]).to.eq(undefined);
   });
+
+  it("transition out of a state with speed override 0 does not produce NaN", () => {
+    const survey = animator.findAnimatorState("Survey");
+    survey.speed = 0; // pause this state per-instance
+    animator.play("Survey");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // crossFade out — destination state should still progress despite src speed=0
+    animator.crossFade("Walk", 0.3, 0, 0);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // @ts-ignore
+    const layerData = animator._animatorLayersData[0];
+    expect(Number.isNaN(layerData.srcPlayData.playedTime)).to.eq(false);
+    expect(Number.isNaN(layerData.destPlayData?.playedTime ?? 0)).to.eq(false);
+    // Walk dest should have progressed
+    expect(layerData.destPlayData?.playedTime).to.be.greaterThan(0);
+  });
 });

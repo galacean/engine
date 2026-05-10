@@ -710,8 +710,9 @@ export class Animator extends Component {
     );
 
     if (transition) {
-      // Remove speed factor, use actual cost time
-      const remainDeltaTime = deltaTime - playCostTime / playSpeed;
+      // Remove speed factor, use actual cost time. Per-instance speed=0 means the source
+      // state is paused, so it consumes no time — pass deltaTime through to the destination.
+      const remainDeltaTime = playSpeed === 0 ? deltaTime : deltaTime - playCostTime / playSpeed;
       remainDeltaTime > 0 && this._updateState(layerData, remainDeltaTime, aniUpdate);
     }
   }
