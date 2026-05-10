@@ -116,6 +116,8 @@ export class GLTFParserContext {
 
       return AssetPromise.all([
         this.get<void>(GLTFParserType.Validator),
+        // Scene must be requested before Skin: GLTFSceneParser populates
+        // glTFResource._sceneRoots synchronously, which GLTFSkinParser._findSceneRootBone reads.
         this.get<Entity>(GLTFParserType.Scene),
         this.get<Texture2D>(GLTFParserType.Texture),
         this.get<Material>(GLTFParserType.Material),
