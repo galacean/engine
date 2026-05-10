@@ -1577,4 +1577,38 @@ describe("Animator test", function () {
     // Walk dest should have progressed
     expect(layerData.destPlayData?.playedTime).to.be.greaterThan(0);
   });
+
+  it("no-exit transition out of speed=0 source preserves remaining deltaTime and avoids NaN", () => {
+    const survey = animator.findAnimatorState("Survey");
+    const walk = animator.findAnimatorState("Walk");
+    survey.state.clearTransitions();
+    walk.state.clearTransitions();
+    animator.animatorController.addParameter("goWalk", false);
+
+    survey.speed = 0; // pause source per-instance
+
+    const transition = survey.state.addTransition(walk.state);
+    transition.hasExitTime = false;
+    transition.duration = 0.3;
+    transition.addCondition("goWalk", AnimatorConditionMode.If, true);
+
+    animator.play("Survey");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.05);
+
+    animator.setParameterValue("goWalk", true);
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+
+    // @ts-ignore
+    const layerData = animator._animatorLayersData[0];
+    expect(Number.isNaN(layerData.srcPlayData.playedTime)).to.eq(false);
+    expect(Number.isNaN(layerData.destPlayData?.playedTime ?? 0)).to.eq(false);
+    expect(layerData.destPlayData?.state.name).to.eq("Walk");
+    // dest should have advanced from the remaining deltaTime that was
+    // preserved by the playSpeed===0 guard
+    expect(layerData.destPlayData?.playedTime).to.be.greaterThan(0);
+  });
 });
