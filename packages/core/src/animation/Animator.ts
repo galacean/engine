@@ -397,8 +397,10 @@ export class Animator extends Component {
             break;
           }
         }
-      } else {
+      } else if (layerIndex >= 0 && layerIndex < layers.length) {
         state = layers[layerIndex].stateMachine.findStateByName(stateName);
+      } else {
+        layerIndex = -1;
       }
     }
     stateInfo.layerIndex = layerIndex;

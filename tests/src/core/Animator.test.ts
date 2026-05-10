@@ -1498,4 +1498,26 @@ describe("Animator test", function () {
     // @ts-ignore — verify no junk layerData was written at array index -1.
     expect(animator._animatorLayersData[-1]).to.eq(undefined);
   });
+
+  it("findAnimatorState with out-of-range layerIndex returns null", () => {
+    expect(animator.findAnimatorState("Survey", 99)).to.eq(null);
+    expect(animator.findAnimatorState("Survey", -2)).to.eq(null);
+  });
+
+  it("play / crossFade with out-of-range layerIndex are safe no-ops", () => {
+    animator.play("Survey");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.001);
+
+    const stateBefore = animator.getCurrentAnimatorState(0);
+
+    expect(() => animator.play("Walk", 99)).not.to.throw();
+    expect(() => animator.crossFade("Run", 0.3, 99, 0)).not.to.throw();
+
+    expect(animator.getCurrentAnimatorState(0)).to.eq(stateBefore);
+    // @ts-ignore — verify no junk layerData created at index -1 / 99
+    expect(animator._animatorLayersData[-1]).to.eq(undefined);
+    expect(animator._animatorLayersData[99]).to.eq(undefined);
+  });
 });
