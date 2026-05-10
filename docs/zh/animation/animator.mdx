@@ -126,10 +126,11 @@ if (!playData) {
   return;
 }
 
-// 每个 Animator 实例独立的播放速度覆盖（只影响当前 Animator 实例）
+// 仅暂停当前 Animator 实例的该状态播放。
 playData.speed = 0;
-// 取消覆盖，恢复对 state.speed 的实时绑定
-playData.clearSpeedOverride();
+
+// ……稍后想恢复对共享 state.speed 的实时绑定时调用：
+// playData.clearSpeedOverride();
 ```
 
 ### 过渡指定动画状态

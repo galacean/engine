@@ -122,10 +122,11 @@ if (!playData) {
   return;
 }
 
-// Per-instance playback speed override (only affects this Animator instance).
+// Pause only this Animator instance's playback of the state.
 playData.speed = 0;
-// Restore live binding to the shared state.speed.
-playData.clearSpeedOverride();
+
+// ...later, when you want to resume tracking the shared state.speed:
+// playData.clearSpeedOverride();
 ```
 
 ### Transition to Specified Animation State
