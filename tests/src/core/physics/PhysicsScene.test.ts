@@ -570,6 +570,160 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("raycast nested inside another raycast's onRaycast keeps stack ordering", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("nested_raycast_root");
+      // Native PhysX scene exposes the (ray, distance, onRaycast, hit) signature
+      // that takes a per-call filter; the persistent-callback stack pattern is
+      // verified through this layer.
+      const nativeScene = (scene.physics as any)._nativePhysicsScene;
+
+      const boxA = root.createChild("box_a");
+      boxA.transform.position = new Vector3(2, 0, 0);
+      const colA = boxA.addComponent(StaticCollider);
+      const shapeA = new BoxColliderShape();
+      shapeA.size = new Vector3(1, 1, 1);
+      colA.addShape(shapeA);
+
+      const boxB = root.createChild("box_b");
+      boxB.transform.position = new Vector3(0, 2, 0);
+      const colB = boxB.addComponent(StaticCollider);
+      const shapeB = new BoxColliderShape();
+      shapeB.size = new Vector3(1, 1, 1);
+      colB.addShape(shapeB);
+
+      const seenInOuter: number[] = [];
+      const seenInInner: number[] = [];
+
+      const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
+      nativeScene.raycast(outerRay, 100, (uuid: number) => {
+        seenInOuter.push(uuid);
+        // Nested raycast inside the outer's filter callback. If the stack got
+        // mixed up, the inner ray's preFilter would dispatch to the outer
+        // recorder (or vice versa).
+        const innerRay = new Ray(new Vector3(0, -5, 0), new Vector3(0, 1, 0));
+        nativeScene.raycast(innerRay, 100, (innerUuid: number) => {
+          seenInInner.push(innerUuid);
+          return true;
+        });
+        return true;
+      });
+
+      // The outer ray (along +X from -5,0,0) cannot intersect boxB at (0,2,0),
+      // so its preFilter must never see shapeB. Conversely, the inner ray
+      // (along +Y from 0,-5,0) cannot intersect boxA at (2,0,0), so its
+      // preFilter must never see shapeA. Stack mixing would violate either.
+      expect(seenInOuter).to.not.include(shapeB.id);
+      expect(seenInInner).to.not.include(shapeA.id);
+      // Both filters must have run — otherwise the assertions above are vacuous.
+      expect(seenInOuter.length).to.be.greaterThan(0);
+      expect(seenInInner.length).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("sweep nested inside raycast's onRaycast uses independent filter stacks", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("nested_mixed_root");
+      const nativeScene = (scene.physics as any)._nativePhysicsScene;
+
+      const boxA = root.createChild("box_a");
+      boxA.transform.position = new Vector3(3, 0, 0);
+      const colA = boxA.addComponent(StaticCollider);
+      const shapeA = new BoxColliderShape();
+      shapeA.size = new Vector3(1, 1, 1);
+      colA.addShape(shapeA);
+
+      let outerCalls = 0;
+      let innerSweepCalls = 0;
+      const innerSweepUuids: number[] = [];
+
+      const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
+      const outerHitFn = (uuid: number, distance: number, _p: Vector3, _n: Vector3) => {
+        // The outer raycast must successfully report a hit on shapeA's UUID.
+        expect(uuid).to.eq(shapeA.id);
+        expect(distance).to.be.greaterThan(0);
+      };
+      const result = nativeScene.raycast(
+        outerRay,
+        100,
+        (uuid: number) => {
+          outerCalls++;
+          // Nested boxCast (sweep) inside the raycast filter — uses a different
+          // persistent callback / stack on the PhysX side. The two stacks must
+          // not interfere.
+          const sweepCenter = new Vector3(3, 0, 0);
+          const halfExtents = new Vector3(0.5, 0.5, 0.5);
+          const direction = new Vector3(0, 1, 0);
+          const orientation = new Quaternion(0, 0, 0, 1);
+          nativeScene.boxCast(
+            sweepCenter,
+            orientation,
+            halfExtents,
+            direction,
+            100,
+            (sweepUuid: number) => {
+              innerSweepCalls++;
+              innerSweepUuids.push(sweepUuid);
+              return false; // skip everything in inner sweep
+            }
+          );
+          return uuid === shapeA.id;
+        },
+        outerHitFn
+      );
+
+      // Outer raycast must succeed despite the nested sweep with its own filter.
+      expect(result).to.eq(true);
+      expect(outerCalls).to.be.greaterThan(0);
+      // Nested sweep had to actually run at least once for this test to be meaningful.
+      expect(innerSweepCalls).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("raycast callback throwing leaves the filter stack clean for subsequent calls", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("throw_recovery_root");
+      const nativeScene = (scene.physics as any)._nativePhysicsScene;
+
+      const box = root.createChild("box");
+      box.transform.position = new Vector3(2, 0, 0);
+      const col = box.addComponent(StaticCollider);
+      const shape = new BoxColliderShape();
+      shape.size = new Vector3(1, 1, 1);
+      col.addShape(shape);
+
+      const ray = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
+
+      expect(() => {
+        nativeScene.raycast(ray, 100, () => {
+          throw new Error("intentional in test");
+        });
+      }).to.throw("intentional in test");
+
+      // Stack must be clean — subsequent raycast must work and the shared
+      // persistent callback must dispatch to the new filter, not a stale one.
+      let secondCalled = false;
+      let observedUuid = -1;
+      const ok = nativeScene.raycast(
+        ray,
+        100,
+        (uuid: number) => {
+          secondCalled = true;
+          observedUuid = uuid;
+          return true;
+        },
+        (_uuid: number, _distance: number, _p: Vector3, _n: Vector3) => {}
+      );
+
+      expect(secondCalled).to.eq(true);
+      expect(ok).to.eq(true);
+      expect(observedUuid).to.eq(shape.id);
+
+      root.destroy();
+    });
+
     it("boxCast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
