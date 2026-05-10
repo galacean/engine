@@ -74,27 +74,34 @@ export class GLTFSkinParser extends GLTFParser {
         continue;
       }
 
-      const sceneRootChildren = new Set<Entity>(sceneNodes.map((nodeIndex) => entities[nodeIndex]));
-      const topLevelJointRoots = new Set<Entity>();
-      let allJointsUnderSceneRoot = true;
+      let firstTopLevelRoot: Entity = null;
+      let allUnderSceneRoot = true;
 
       for (let j = 0, m = joints.length; j < m; j++) {
         let entity = entities[joints[j]];
-        while (entity?.parent && !sceneRootChildren.has(entity)) {
+
+        // Walk up to the direct child of sceneRoot
+        while (entity?.parent && entity.parent !== sceneRoot) {
           entity = entity.parent;
         }
 
-        if (!sceneRootChildren.has(entity)) {
-          allJointsUnderSceneRoot = false;
+        if (entity?.parent !== sceneRoot) {
+          allUnderSceneRoot = false;
           break;
         }
 
-        topLevelJointRoots.add(entity);
+        if (firstTopLevelRoot === null) {
+          firstTopLevelRoot = entity;
+        } else if (entity !== firstTopLevelRoot) {
+          // joints span >1 top-level roots → wrapper is the right rootBone
+          return sceneRoot;
+        }
       }
 
-      if (allJointsUnderSceneRoot && topLevelJointRoots.size > 1) {
-        return sceneRoot;
+      if (!allUnderSceneRoot) {
+        continue;
       }
+      // joints converged to a single top-level root → fall through to skeleton LCA
     }
 
     return null;
