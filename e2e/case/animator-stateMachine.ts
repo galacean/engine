@@ -102,16 +102,16 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         toIdleTransition.duration * idleState.state._getDuration();
 
       // to run state
-      const RunToWalkTransition = new AnimatorStateTransition();
-      RunToWalkTransition.destinationState = walkState.state;
-      RunToWalkTransition.duration = 0.3;
-      RunToWalkTransition.addCondition("playerSpeed", AnimatorConditionMode.Less, 0.5);
-      runState.state.addTransition(RunToWalkTransition);
+      const runToWalkTransition = new AnimatorStateTransition();
+      runToWalkTransition.destinationState = walkState.state;
+      runToWalkTransition.duration = 0.3;
+      runToWalkTransition.addCondition("playerSpeed", AnimatorConditionMode.Less, 0.5);
+      runState.state.addTransition(runToWalkTransition);
       runToWalkTime =
         //@ts-ignore
-        (RunToWalkTransition.exitTime - toRunTransition.duration) * runState.state._getDuration() +
+        (runToWalkTransition.exitTime - toRunTransition.duration) * runState.state._getDuration() +
         //@ts-ignore
-        RunToWalkTransition.duration * walkState.state._getDuration();
+        runToWalkTransition.duration * walkState.state._getDuration();
 
       stateMachine.addEntryStateTransition(idleState.state);
 
