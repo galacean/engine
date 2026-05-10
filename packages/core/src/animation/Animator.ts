@@ -330,6 +330,22 @@ export class Animator extends Component {
       }
     }
 
+    // Detach clipChangedListeners before dropping stateData; otherwise each
+    // controller mutation would leave a dead listener attached to the
+    // surviving AnimatorState's UpdateFlagManager.
+    const layersData = this._animatorLayersData;
+    for (let i = 0, n = layersData.length; i < n; i++) {
+      const stateDataMap = layersData[i]?.animatorStateDataMap;
+      if (!stateDataMap) continue;
+      for (const stateName in stateDataMap) {
+        const stateData = stateDataMap[stateName];
+        const { state, clipChangedListener } = stateData;
+        if (state && clipChangedListener) {
+          state._updateFlagManager.removeListener(clipChangedListener);
+        }
+      }
+    }
+
     this._animatorLayersData.length = 0;
     this._curveOwnerPool = Object.create(null);
     this._parametersValueMap = Object.create(null);

@@ -1549,6 +1549,33 @@ describe("Animator test", function () {
     controller.removeLayer(controller.layers.indexOf(dummyLayer));
   });
 
+  it("_reset detaches stateData clipChangedListeners so they do not accumulate on the AnimatorState", () => {
+    const survey = animator.findAnimatorState("Survey");
+    expect(survey).not.to.eq(null);
+    const surveyState = survey.state;
+    // @ts-ignore — read internal listener list size
+    const listenersBefore = surveyState._updateFlagManager._listeners.length;
+
+    // First play: registers one clipChangedListener for Survey on this layer.
+    animator.play("Survey");
+    // @ts-ignore
+    const listenersAfterFirstPlay = surveyState._updateFlagManager._listeners.length;
+    expect(listenersAfterFirstPlay).to.eq(listenersBefore + 1);
+
+    // Three controller mutations → three _reset() calls → without cleanup
+    // each reset would leave its prior listener attached and the next play
+    // would register a fresh one on top of it.
+    for (let i = 0; i < 3; i++) {
+      const dummy = new AnimatorControllerLayer(`__dummy_${i}__`);
+      animator.animatorController.addLayer(dummy);
+      animator.play("Survey");
+      // @ts-ignore
+      const count = surveyState._updateFlagManager._listeners.length;
+      expect(count, `listener count after iteration ${i + 1}`).to.eq(listenersBefore + 1);
+      animator.animatorController.removeLayer(animator.animatorController.layers.indexOf(dummy));
+    }
+  });
+
   it("crossFade to current state is no-op (avoids src/dest PlayData alias)", () => {
     animator.play("Walk");
     // @ts-ignore
