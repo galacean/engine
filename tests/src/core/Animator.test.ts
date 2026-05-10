@@ -1518,6 +1518,7 @@ describe("Animator test", function () {
     expect(animator.getCurrentAnimatorState(0)).to.eq(stateBefore);
     // @ts-ignore — verify no junk layerData created at index -1 / 99
     expect(animator._animatorLayersData[-1]).to.eq(undefined);
+    // @ts-ignore
     expect(animator._animatorLayersData[99]).to.eq(undefined);
   });
 
