@@ -359,6 +359,27 @@ describe("Entity", async () => {
       expect(parent.findByPath("shared/other")).to.eq(null);
     });
 
+    it("findByPath returns null without crashing for missing child under self-prefix", () => {
+      // Detached root entity (no parent, no children) — exercises the
+      // backtrack path that previously crashed on null parent
+      const root = new Entity(engine, "root");
+      expect(() => root.findByPath("root/missing")).not.to.throw();
+      expect(root.findByPath("root/missing")).to.eq(null);
+    });
+
+    it("findByPath self-prefix fallback does not search beyond this entity's subtree", () => {
+      // root → [parent (no children), sibling]
+      const top = scene.getRootEntity();
+      const target = new Entity(engine, "target");
+      target.parent = top;
+      const sibling = new Entity(engine, "sibling");
+      sibling.parent = top;
+
+      // target.findByPath("target/sibling") with target name "target", no children:
+      // self-prefix fallback should NOT bubble up to top.children to find sibling
+      expect(target.findByPath("target/sibling")).to.eq(null);
+    });
+
     it("clearChildren", () => {
       const parent = new Entity(engine, "parent");
 

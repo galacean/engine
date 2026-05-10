@@ -369,7 +369,7 @@ export class Entity extends EngineObject {
   /**
    * Find the entity by path.
    * @param path - The path of the entity eg: /entity
-   * @returns The component which be found
+   * @returns The entity that was found
    */
   findByPath(path: string): Entity {
     const splits = path.split("/").filter(Boolean);
@@ -384,14 +384,12 @@ export class Entity extends EngineObject {
     }
 
     // Fallback to self-name prefix only when there's no child by splits[0].
-    // Some imported animation clips are normalized to include the single scene
-    // root name (e.g. "mixamorig:Hips/...") even when the Animator already sits
-    // on that root entity. But if the entity has a child with that name and the
-    // deeper path simply misses, that's a real not-found, not a self-prefix.
+    // Supports paths authored relative to this entity's parent but evaluated
+    // from this entity (e.g. "root/child/leaf" called on the entity named "root").
     if (splits[0] === this.name) {
       const hasFirstSegmentChild = this._children.some((child) => child.name === splits[0]);
       if (!hasFirstSegmentChild) {
-        return splits.length === 1 ? this : Entity._findChildByName(this, 0, splits, 1);
+        return splits.length === 1 ? this : Entity._findChildByName(this, 0, splits.slice(1), 0);
       }
     }
 
