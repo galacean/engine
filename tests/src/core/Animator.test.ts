@@ -1549,6 +1549,45 @@ describe("Animator test", function () {
     controller.removeLayer(controller.layers.indexOf(dummyLayer));
   });
 
+  it("destroy detaches stateData clipChangedListeners from surviving AnimatorState", () => {
+    // Build a controller whose AnimatorState we can keep alive after the animator is destroyed.
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    controller.addLayer(layer);
+    const sharedState = layer.stateMachine.addState("Y");
+    const clip = new AnimationClip("yClip");
+    const curve = new AnimationFloatCurve();
+    const k1 = new Keyframe<number>();
+    k1.time = 0;
+    k1.value = 0;
+    const k2 = new Keyframe<number>();
+    k2.time = 1;
+    k2.value = 90;
+    curve.addKey(k1);
+    curve.addKey(k2);
+    clip.addCurveBinding("", Transform, "rotation.x", curve);
+    sharedState.clip = clip;
+
+    // @ts-ignore — inspect listener attachment on the shared state directly.
+    const listenersBefore = sharedState._updateFlagManager._listeners.length;
+
+    const localEntity = new Entity(engine);
+    const localAnimator = localEntity.addComponent(Animator);
+    localAnimator.animatorController = controller;
+    localAnimator.play("Y");
+    // @ts-ignore
+    expect(sharedState._updateFlagManager._listeners.length).to.eq(listenersBefore + 1);
+
+    // Destroying only the Animator (controller + state still alive) must
+    // detach the clipChangedListener it installed; otherwise the closure
+    // keeps a destroyed entity reachable through state.clip.dispatch().
+    localAnimator.destroy();
+    localEntity.destroy();
+
+    // @ts-ignore
+    expect(sharedState._updateFlagManager._listeners.length).to.eq(listenersBefore);
+  });
+
   it("_reset detaches stateData clipChangedListeners so they do not accumulate on the AnimatorState", () => {
     const survey = animator.findAnimatorState("Survey");
     expect(survey).not.to.eq(null);

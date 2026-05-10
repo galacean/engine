@@ -368,6 +368,10 @@ export class Animator extends Component {
   }
 
   protected override _onDestroy(): void {
+    // Reuse _reset() to detach AnimatorStateData clipChangedListeners — without
+    // this the listener closures stay attached to surviving AnimatorState
+    // UpdateFlagManagers and keep referencing the destroyed entity / stateData.
+    this._reset();
     super._onDestroy();
     const controller = this._animatorController;
     if (controller) {
