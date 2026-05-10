@@ -13,9 +13,9 @@ export class AnimatorLayerData {
   layerIndex: number;
   layer: AnimatorControllerLayer;
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
-  animatorStateDataMap: Record<string, AnimatorStateData> = {};
+  animatorStateDataMap: Record<string, AnimatorStateData> = Object.create(null);
   /** Per-state PlayData handles. Lazy populated. */
-  statePlayDataMap = new Map<AnimatorState, AnimatorStatePlayData>();
+  statePlayDataMap: Record<string, AnimatorStatePlayData> = Object.create(null);
   /** Currently playing state's PlayData; null when standby. */
   srcPlayData: AnimatorStatePlayData | null = null;
   /** Cross-fade target state's PlayData; null when not cross-fading. */
@@ -28,10 +28,12 @@ export class AnimatorLayerData {
 
   /** Get or lazily create the persistent PlayData for a state. */
   getOrCreatePlayData(state: AnimatorState): AnimatorStatePlayData {
-    let playData = this.statePlayDataMap.get(state);
+    const statePlayDataMap = this.statePlayDataMap;
+    const stateName = state.name;
+    let playData = statePlayDataMap[stateName];
     if (!playData) {
       playData = new AnimatorStatePlayData(state);
-      this.statePlayDataMap.set(state, playData);
+      statePlayDataMap[stateName] = playData;
     }
     return playData;
   }
