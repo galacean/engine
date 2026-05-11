@@ -60,14 +60,15 @@ describe("SubEmitter", () => {
     engine.run();
   });
 
-  it("Birth emits 1 sub particle per parent event by default (no t=0 burst on sub)", () => {
-    const parent = createParticleRenderer(engine, "Parent_Birth_Default");
-    const child = createParticleRenderer(engine, "Child_Birth_Default");
+  it("Birth fires emitCount sub particles per parent event", () => {
+    const parent = createParticleRenderer(engine, "Parent_Birth");
+    const child = createParticleRenderer(engine, "Child_Birth");
 
     parent.generator.subEmitters.enabled = true;
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Birth;
+    sub.emitCount = 2;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(5), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -76,32 +77,39 @@ describe("SubEmitter", () => {
 
     updateEngine(engine, 5);
     expect(parent.generator._getAliveParticleCount()).to.equal(5);
-    expect(child.generator._getAliveParticleCount()).to.equal(5); // 5 events × 1
+    expect(child.generator._getAliveParticleCount()).to.equal(10); // 5 events × emitCount 2
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("Sub system t=0 burst count drives per-event emit count", () => {
-    const parent = createParticleRenderer(engine, "Parent_Birth_Burst");
-    const child = createParticleRenderer(engine, "Child_Birth_Burst");
+  it("Sub system's own EmissionModule does not double-fire when sub-emit drives it", () => {
+    // The target renderer has its own t=0 burst AND is auto-playing on enable.
+    // The slot must NOT read that burst and re-fire — sub system's own emission
+    // and the sub-emit path are independent.
+    const parent = createParticleRenderer(engine, "Parent_NoDouble");
+    const child = createParticleRenderer(engine, "Child_NoDouble");
 
-    // Sub system has its own t=0 burst of 4 — each parent Birth event triggers 4 sub particles
+    // Child has its OWN t=0 burst of 4. With playOnEnabled=true (default),
+    // child auto-plays and fires 4 from its own EmissionModule.
     child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(4), 1, 0.01));
 
     parent.generator.subEmitters.enabled = true;
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Birth;
+    sub.emitCount = 1;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(3), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play();
+    child.generator.play();
 
     updateEngine(engine, 5);
     expect(parent.generator._getAliveParticleCount()).to.equal(3);
-    expect(child.generator._getAliveParticleCount()).to.equal(12); // 3 events × 4
+    // Expected: 4 from child's own burst + 3 events × emitCount 1 = 7
+    // If the slot wrongly re-read child's t=0 burst we'd see 3 events × 4 = 12 + 4 = 16
+    expect(child.generator._getAliveParticleCount()).to.equal(7);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -112,13 +120,11 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "Child_Death");
     parent.generator.main.startLifetime.constant = 0.5;
 
-    // Sub burst: 3 per event
-    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(3), 1, 0.01));
-
     parent.generator.subEmitters.enabled = true;
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Death;
+    sub.emitCount = 3;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(4), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -127,7 +133,7 @@ describe("SubEmitter", () => {
 
     updateEngine(engine, 10);
     expect(parent.generator._getAliveParticleCount()).to.equal(0);
-    expect(child.generator._getAliveParticleCount()).to.equal(12); // 4 deaths × 3
+    expect(child.generator._getAliveParticleCount()).to.equal(12); // 4 deaths × emitCount 3
 
     parent.entity.destroy();
     child.entity.destroy();

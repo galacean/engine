@@ -113,19 +113,13 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       return;
     }
 
-    // Per-event emit count comes from the sub system's own EmissionModule:
-    // sum the counts of bursts at time === 0; default to 1 when none.
-    // (Mirrors Unity's "Sub-emitter triggers re-play sub system at t=0" semantics.)
-    const bursts = targetGen.emission.bursts;
-    let count = 0;
-    const rand = this._probabilityRand;
-    for (let i = 0, n = bursts.length; i < n; i++) {
-      const burst = bursts[i];
-      if (burst.time === 0) {
-        count += burst.count.evaluate(undefined, rand.random()) | 0;
-      }
-    }
-    if (count <= 0) count = 1;
+    // Per-event emit count is the slot's explicit `emitCount`. The target
+    // renderer's own EmissionModule (bursts / rate / playOnEnabled) is left
+    // alone so it can co-exist with sub-emit driving without double-firing
+    // bursts. (Reading bursts here would duplicate any burst that the
+    // target's own EmissionModule fires when it plays.)
+    const count = sub.emitCount | 0;
+    if (count <= 0) return;
 
     const inherit = sub.inheritProperties;
     const colorOverride = (inherit & ParticleSubEmitterProperty.Color) !== 0 ? parentStartColor : null;

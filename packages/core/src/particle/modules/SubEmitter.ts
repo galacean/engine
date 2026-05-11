@@ -24,4 +24,13 @@ export class SubEmitter {
 
   /** Probability (0..1) the sub-emitter fires for any given event. */
   emitProbability: number = 1;
+
+  /**
+   * Number of sub particles emitted per parent event when the probability roll passes.
+   *
+   * Decoupled from the target renderer's own `EmissionModule` so the sub renderer
+   * can safely have its own `playOnEnabled` / loops / bursts without those firing
+   * a second time when the parent event triggers this slot.
+   */
+  emitCount: number = 1;
 }
