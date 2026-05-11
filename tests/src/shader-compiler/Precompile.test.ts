@@ -1024,6 +1024,59 @@ describe("ShaderCompiler Precompile", async () => {
       expect(precompiled.platformTarget).toBe(ShaderLanguage.GLSLES300);
     });
 
+    // Numeric literal coverage. `shaders/numeric-literals.shader` exercises
+    // every form from GLSL ES 3.00 §4.1.3 (integer constants) and §4.1.4
+    // (floating-point constants) — decimal/hex ints with optional `u`/`U`,
+    // float decimal/exponent variants with optional `f`/`F`, plus the
+    // Hammersley `radicalInverse_VdC` bit twiddle (from
+    // `galacean-tools/baker/IBLBaker.shader`) so `<<`/`>>` are covered too.
+    it("preserves every GLSL ES 3.00 numeric literal form", async () => {
+      const source = await readFile("./shaders/numeric-literals.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES300);
+      const pass = precompiled.subShaders[0].passes[0];
+      const text = [
+        ...((pass.vertexShaderInstructions as ShaderInstruction[]) ?? []),
+        ...((pass.fragmentShaderInstructions as ShaderInstruction[]) ?? [])
+      ]
+        .filter((i) => i[0] === 0)
+        .map((i) => i[1])
+        .join("");
+
+      for (const literal of [
+        // §4.1.3 integers
+        "42",
+        "0",
+        "123u",
+        "5U",
+        "0xFF",
+        "0xFFu",
+        "0xDEADBEEFu",
+        "0XABCDu",
+        "0xdeadbeefu",
+        // §4.1.4 floats
+        "1.5",
+        "1.",
+        ".5",
+        "1e10",
+        "1.5E-3",
+        ".5e+2",
+        "2e+3",
+        "1.5f",
+        ".5F",
+        "1.f",
+        "1e10f",
+        "5f",
+        "100F",
+        // Bit operators on uint (frag body)
+        "0x55555555u",
+        "0xAAAAAAAAu",
+        "<<",
+        ">>"
+      ]) {
+        expect(text, `missing literal: ${literal}`).toContain(literal);
+      }
+    });
+
     it("subShader tags are preserved", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);

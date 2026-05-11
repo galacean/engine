@@ -14,6 +14,14 @@ export abstract class BaseLexer {
     return charCode >= 48 && charCode <= 57; // 0-9
   }
 
+  static isHexDigit(charCode: number): boolean {
+    return (
+      (charCode >= 48 && charCode <= 57) || // 0-9
+      (charCode >= 65 && charCode <= 70) || // A-F
+      (charCode >= 97 && charCode <= 102) // a-f
+    );
+  }
+
   // Check if character is alphabetic or underscore (valid word start)
   static isAlpha(charCode: number): boolean {
     return (

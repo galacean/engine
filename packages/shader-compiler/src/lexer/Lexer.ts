@@ -381,7 +381,7 @@ export class Lexer extends BaseLexer {
           break;
         } else if (curChar === "=") {
           this.advance(1);
-          token.set(ETokenType.ADD_ASSIGN, "&=", start);
+          token.set(ETokenType.AND_ASSIGN, "&=", start);
           break;
         }
         token.set(ETokenType.AMPERSAND, "&", start);
@@ -912,6 +912,32 @@ export class Lexer extends BaseLexer {
 
   private _scanNum(): BaseToken {
     const buffer: string[] = [];
+
+    // Hex integer literal: `0[xX][0-9a-fA-F]+[uU]?`. Detect before any
+    // decimal-digit read so the `x`/`X` after the leading `0` isn't
+    // misclassified as an identifier.
+    if (this.getCurChar() === "0") {
+      const nextCode = this._source.charCodeAt(this._currentIndex + 1);
+      if (nextCode === 120 /* 'x' */ || nextCode === 88 /* 'X' */) {
+        buffer.push(this.getCurChar());
+        this.advance(1);
+        buffer.push(this.getCurChar());
+        this.advance(1);
+        while (BaseLexer.isHexDigit(this.getCurCharCode())) {
+          buffer.push(this.getCurChar());
+          this.advance(1);
+        }
+        if (buffer.length === 2) {
+          this.throwError(this.getShaderPosition(0), "lexing error, hex literal needs at least one digit.");
+        }
+        this._scanIntegerSuffix(buffer);
+
+        const token = BaseToken.pool.get();
+        token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
+        return token;
+      }
+    }
+
     while (BaseLexer.isDigit(this.getCurCharCode())) {
       buffer.push(this.getCurChar());
       this.advance(1);
@@ -929,20 +955,26 @@ export class Lexer extends BaseLexer {
       const token = BaseToken.pool.get();
       token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
       return token;
+    } else if (curChar === "e" || curChar === "E") {
+      this._scanFloatSuffix(buffer);
+
+      const token = BaseToken.pool.get();
+      token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
+      return token;
+    } else if (curChar === "f" || curChar === "F") {
+      // Pure-integer + `f`/`F` suffix → float (`5f`, `100F`).
+      buffer.push(curChar);
+      this.advance(1);
+
+      const token = BaseToken.pool.get();
+      token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
+      return token;
     } else {
-      if (curChar === "e" || curChar === "E") {
-        this._scanFloatSuffix(buffer);
+      this._scanIntegerSuffix(buffer);
 
-        const token = BaseToken.pool.get();
-        token.set(ETokenType.FLOAT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
-        return token;
-      } else {
-        this._scanIntegerSuffix(buffer);
-
-        const token = BaseToken.pool.get();
-        token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
-        return token;
-      }
+      const token = BaseToken.pool.get();
+      token.set(ETokenType.INT_CONSTANT, buffer.join(""), this.getShaderPosition(buffer.length));
+      return token;
     }
   }
 
