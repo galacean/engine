@@ -115,9 +115,7 @@ export class Animator extends Component {
    * @param normalizedTimeOffset - The normalized time offset (between 0 and 1, default 0) to start the state's animation from
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
-    }
+    this._resetIfControllerUpdated();
 
     const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
     const { state } = stateInfo;
@@ -192,9 +190,7 @@ export class Animator extends Component {
       return;
     }
 
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
-    }
+    this._resetIfControllerUpdated();
 
     this._updateMark++;
 
@@ -224,9 +220,7 @@ export class Animator extends Component {
    * @returns Per-instance AnimatorStatePlayData, or null if no state matches
    */
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStatePlayData | null {
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
-    }
+    this._resetIfControllerUpdated();
     const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
     if (!state || foundLayer < 0) return null;
     return this._getAnimatorLayerData(foundLayer).getOrCreatePlayData(state);
@@ -353,6 +347,12 @@ export class Animator extends Component {
     }
   }
 
+  private _resetIfControllerUpdated(): void {
+    if (this._controllerUpdateFlag?.flag) {
+      this._reset();
+    }
+  }
+
   /**
    * @internal
    */
@@ -384,9 +384,7 @@ export class Animator extends Component {
     normalizedTimeOffset: number,
     isFixedDuration: boolean
   ): void {
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
-    }
+    this._resetIfControllerUpdated();
 
     const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
     if (!state || playLayerIndex < 0) {
