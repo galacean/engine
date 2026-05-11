@@ -49,16 +49,13 @@ export class ShaderFactory {
   // [layout(location = 0)] out [highp] vec4 [color];
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?vec4\s+\w+\s*;/;
 
-  // Camera matrices the derived defines reference; declared on demand because
-  // shader-compiler DCE may have stripped them.
-  private static readonly _cameraMatrixCandidates: ReadonlyArray<string> = ["camera_ViewMat", "camera_VPMat"];
-
   private static readonly _derivedDefines = `\
 #define renderer_MVMat (camera_ViewMat * renderer_ModelMat)
 #define renderer_MVPMat (camera_VPMat * renderer_ModelMat)
 #define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))`;
 
   // Built-in renderer uniforms. value=true means derived (remove but not added to UBO)
+  // NOTE: keep this in sync with _derivedDefines / _cameraMatrixCandidates above.
   private static readonly _builtinRendererUniforms: Record<string, boolean> = {
     renderer_ModelMat: false,
     renderer_Layer: false,
@@ -66,6 +63,11 @@ export class ShaderFactory {
     renderer_MVPMat: true,
     renderer_NormalMat: true
   };
+
+  // Camera matrices the derived defines reference; declared on demand because
+  // shader-compiler DCE may have stripped them from Transform.glsl.
+  // NOTE: keep this in sync with _derivedDefines above.
+  private static readonly _cameraMatrixCandidates: ReadonlyArray<string> = ["camera_ViewMat", "camera_VPMat"];
 
   private static readonly _uboUniformRegex =
     /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*(\[.+?\])?\s*;/gm;
@@ -249,6 +251,7 @@ export class ShaderFactory {
         Logger.error(`GPU Instancing does not support array uniform "${name}${arraySize}"`);
         return match;
       }
+      // ModelMat is affine, store as mat3x4 (3 columns) to save 16 bytes per instance
       fieldMap[ShaderProperty.getByName(name)._uniqueId] =
         type === "mat4" && name === "renderer_ModelMat" ? "mat3x4" : type;
       return "";
@@ -323,19 +326,20 @@ export class ShaderFactory {
       currentOffset += info.size;
     };
 
+    // renderer_ModelMat is always required: derived defines reference it, so
+    // even shaders that never declared the plain uniform need it in the UBO.
     const modelMatId = Renderer._worldMatrixProperty._uniqueId;
     const layerId = Renderer._rendererLayerProperty._uniqueId;
-    if (modelMatId in fieldMap) {
-      addField(modelMatId);
-      delete fieldMap[modelMatId];
-    }
-    if (layerId in fieldMap) {
-      addField(layerId);
-      delete fieldMap[layerId];
-    }
+    if (!(modelMatId in fieldMap)) fieldMap[modelMatId] = "mat3x4";
 
+    // Priority order: ModelMat first, Layer second, rest by property id.
+    addField(modelMatId);
+    if (layerId in fieldMap) addField(layerId);
     const keys: number[] = [];
-    for (const k in fieldMap) keys.push(+k);
+    for (const k in fieldMap) {
+      const id = +k;
+      if (id !== modelMatId && id !== layerId) keys.push(id);
+    }
     keys.sort((a, b) => a - b);
     for (let i = 0; i < keys.length; i++) addField(keys[i]);
 
