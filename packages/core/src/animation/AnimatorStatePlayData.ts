@@ -13,9 +13,7 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
  *
  * Public surface is intentionally narrow:
  * - `state`: the shared AnimatorState asset (read-only).
- * - `speed`: per-instance speed. Reads live-bind to `state.speed` until a value is
- *   assigned, after which the instance owns its own speed and asset changes no longer
- *   affect it. Write a fresh value (or `playData.state.speed`) to update it again.
+ * - `speed`: per-instance playback speed (see the `speed` getter for live-bind semantics).
  *
  * All other fields are engine-managed runtime state and are underscore-prefixed to
  * mark them as implementation detail; mutating them from user code will corrupt
@@ -119,6 +117,8 @@ export class AnimatorStatePlayData {
 
   private _correctTime() {
     const { state } = this;
+    // Reverse playback resumed at clipTime=0 would step into negatives; jump to
+    // clipEnd so the next sample continues seamlessly from the end of the clip.
     if (this._clipTime === 0) {
       this._clipTime = state.clipEndTime * state.clip.length;
     }
