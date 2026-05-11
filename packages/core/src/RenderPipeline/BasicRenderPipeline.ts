@@ -12,7 +12,6 @@ import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { SubShader } from "../shader/SubShader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
-import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import {
@@ -369,7 +368,6 @@ export class BasicRenderPipeline {
    */
   pushRenderElement(context: RenderContext, renderElement: RenderElement): void {
     const { material } = renderElement;
-    const { renderStates } = material;
     const materialSubShader = material.shader.subShaders[0];
     const replacementShader = context.replacementShader;
     if (replacementShader) {
@@ -380,7 +378,7 @@ export class BasicRenderPipeline {
         for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
           const subShader = replacementSubShaders[j];
           if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-            this._pushRenderElementByType(renderElement, subShader, renderStates);
+            this._pushRenderElementByType(renderElement, subShader);
             replacementSuccess = true;
           }
         }
@@ -389,36 +387,27 @@ export class BasicRenderPipeline {
           !replacementSuccess &&
           context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
         ) {
-          this._pushRenderElementByType(renderElement, materialSubShader, renderStates);
+          this._pushRenderElementByType(renderElement, materialSubShader);
         }
       } else {
-        this._pushRenderElementByType(renderElement, replacementSubShaders[0], renderStates);
+        this._pushRenderElementByType(renderElement, replacementSubShaders[0]);
       }
     } else {
-      this._pushRenderElementByType(renderElement, materialSubShader, renderStates);
+      this._pushRenderElementByType(renderElement, materialSubShader);
     }
   }
 
-  private _pushRenderElementByType(
-    renderElement: RenderElement,
-    subShader: SubShader,
-    renderStates: ReadonlyArray<RenderState>
-  ): void {
+  private _pushRenderElementByType(renderElement: RenderElement, subShader: SubShader): void {
     const shaderPasses = subShader.passes;
     const cullingResults = this._cullingResults;
     let pushedQueueFlags = RenderQueueFlags.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      let renderQueueType: RenderQueueType;
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
-      if (renderState) {
-        renderQueueType = renderState._getRenderQueueByShaderData(
-          shaderPass._renderStateDataMap,
-          renderElement.material.shaderData
-        );
-      } else {
-        renderQueueType = renderStates[i].renderQueueType;
-      }
+      const renderQueueType = renderState._getRenderQueueByShaderData(
+        shaderPass._renderStateDataMap,
+        renderElement.material.shaderData
+      );
 
       const flag = 1 << renderQueueType;
 
@@ -466,12 +455,8 @@ export class BasicRenderPipeline {
     program.uploadAll(program.cameraUniformBlock, camera.shaderData);
     program.uploadUnGroupTextures();
 
-    (pass._renderState || material.renderState)._applyStates(
-      engine,
-      false,
-      pass._renderStateDataMap,
-      material.shaderData
-    );
+    const renderState = pass._renderState;
+    renderState._applyStates(engine, false, pass._renderStateDataMap, material.shaderData);
     rhi.drawPrimitive(mesh._primitive, mesh.subMesh, program);
   }
 

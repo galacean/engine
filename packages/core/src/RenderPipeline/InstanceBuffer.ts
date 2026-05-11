@@ -5,7 +5,7 @@ import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { SetDataOptions } from "../graphic/enums/SetDataOptions";
 import { Renderer } from "../Renderer";
 import { ShaderMacro } from "../shader/ShaderMacro";
-import { InstanceBufferLayout } from "../shaderlib/ShaderFactory";
+import { InstanceBufferLayout } from "../shader/ShaderFactory";
 
 /**
  * @internal

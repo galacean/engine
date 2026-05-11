@@ -11,7 +11,7 @@ import {
   ModelMesh
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it, vi } from "vitest";
 
@@ -31,11 +31,7 @@ class CollisionScript extends Script {
  * @param indices - Optional triangle indices
  * @returns A ModelMesh with readable data
  */
-function createModelMesh(
-  engine: WebGLEngine,
-  positions: number[],
-  indices?: number[]
-): ModelMesh {
+function createModelMesh(engine: WebGLEngine, positions: number[], indices?: number[]): ModelMesh {
   const mesh = new ModelMesh(engine);
   const vec3Positions: Vector3[] = [];
   for (let i = 0; i < positions.length; i += 3) {
@@ -107,11 +103,7 @@ describe("MeshColliderShape PhysX", () => {
       const meshShape = new MeshColliderShape();
       const meshMaterial = meshShape.material;
       // Ground plane at y=0, CCW winding -> normal +Y
-      const mesh = createModelMesh(
-        engine,
-        [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10],
-        [0, 2, 1, 1, 2, 3]
-      );
+      const mesh = createModelMesh(engine, [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10], [0, 2, 1, 1, 2, 3]);
       meshShape.mesh = mesh;
       groundCollider.addShape(meshShape);
 
@@ -265,9 +257,10 @@ describe("MeshColliderShape PhysX", () => {
       const meshShape = new MeshColliderShape();
       const meshMaterial = meshShape.material;
       meshShape.isConvex = true;
-      const mesh = createModelMesh(engine, [
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
-      ]);
+      const mesh = createModelMesh(
+        engine,
+        [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1]
+      );
       meshShape.mesh = mesh;
       meshShape.isTrigger = true;
       triggerCollider.addShape(meshShape);
@@ -417,11 +410,7 @@ describe("MeshColliderShape PhysX", () => {
       staticCollider.addShape(meshShape);
 
       // Update mesh
-      const mesh2 = createModelMesh(
-        engine,
-        [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0],
-        [0, 1, 2, 3, 4, 5]
-      );
+      const mesh2 = createModelMesh(engine, [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0], [0, 1, 2, 3, 4, 5]);
       meshShape.mesh = mesh2;
 
       expect(staticCollider.shapes.length).toBe(1);
@@ -695,11 +684,7 @@ describe("MeshColliderShape PhysX", () => {
       expect(meshShape._nativeShape).toBeNull();
 
       // Re-enable with new mesh
-      const mesh2 = createModelMesh(
-        engine,
-        [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0],
-        [0, 1, 2, 3, 4, 5]
-      );
+      const mesh2 = createModelMesh(engine, [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0], [0, 1, 2, 3, 4, 5]);
       meshShape.mesh = mesh2;
       // @ts-ignore
       expect(meshShape._nativeShape).not.toBeNull();

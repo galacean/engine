@@ -1,6 +1,16 @@
-import { Camera, CameraClearFlags, Entity, Layer, ReplacementFailureStrategy, Shader } from "@galacean/engine-core";
+import {
+  Camera,
+  CameraClearFlags,
+  Entity,
+  Layer,
+  ReplacementFailureStrategy,
+  Shader,
+  ShaderLanguage,
+  ShaderPass,
+  SubShader
+} from "@galacean/engine-core";
 import { Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("camera test", function () {
@@ -77,18 +87,9 @@ describe("camera test", function () {
     camera.orthographicSize = expectedOrthographicSize;
     expect(camera.orthographicSize).to.eq(expectedOrthographicSize);
     camera.orthographicSize = orthographicSize;
-    const testVS = `    
-    void main() {
-      gl_Position = vec4(1.0, 1.0, 1.0, 1.0);
-    }`;
-
-    const testFS = `    
-    void main() {
-      gl_FragColor = vec4(1.0, 1.0, 1.0, 1.0);
-    }
-    `;
-
-    const shader = Shader.create("TestReplaceShader", testVS, testFS);
+    const shader = Shader.create("TestReplaceShader", [
+      new SubShader("Default", [new ShaderPass("Default", [], [], ShaderLanguage.GLSLES100)])
+    ]);
 
     // Test ReplacementShader
     camera.setReplacementShader(shader, "CanReplace");
@@ -117,7 +118,7 @@ describe("camera test", function () {
     // get enableHDR
     expect(camera.enableHDR).to.eq(false);
     // @ts-ignore
-    expect(camera._isIndependentCanvasEnabled()).to.eq(true);// Because sRGB pass
+    expect(camera._isIndependentCanvasEnabled()).to.eq(true); // Because sRGB pass
     // set enableHDR
     camera.enableHDR = true;
     expect(camera.enableHDR).to.eq(true);
@@ -419,14 +420,14 @@ describe("camera test", function () {
     camera.nearClipPlane = 1;
     camera.farClipPlane = 255;
     const cloneCamera = camera.entity.clone().getComponent(Camera);
-    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic)
+    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic);
     expect(cloneCamera.nearClipPlane).to.eq(camera.nearClipPlane);
     expect(cloneCamera.farClipPlane).to.eq(camera.farClipPlane);
     expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
     expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
     // @ts-ignore
     expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
-  })
+  });
 
   it("destroy test", () => {
     camera.destroy();

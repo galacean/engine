@@ -18,43 +18,55 @@ import {
   TonemappingEffect,
   TonemappingMode
 } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initPostProcessEnv } from "./.initPostProcessEnv";
 
-const customShader = Shader.create(
-  "Custom Post Process",
-  `
-  attribute vec4 POSITION_UV;
-varying vec2 v_uv;
+const shaderCompiler = new ShaderCompiler();
 
-void main() {	
-	gl_Position = vec4(POSITION_UV.xy, 0.0, 1.0);	
-	v_uv = POSITION_UV.zw;
-}
-  `,
-  `
-  varying vec2 v_uv;
-  uniform sampler2D renderer_BlitTexture;
+const customShaderSource = `Shader "Custom Post Process" {
+  SubShader "Default" {
+    Pass "Forward" {
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
 
-  void main(){
-  gl_FragColor = texture2D(renderer_BlitTexture, v_uv).rrra;
+      struct Attributes {
+        vec4 POSITION_UV;
+      };
+
+      struct Varyings {
+        vec2 uv;
+      };
+
+      sampler2D renderer_BlitTexture;
+
+      VertexShader = vert;
+      FragmentShader = frag;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0);
+        v.uv = attr.POSITION_UV.zw;
+        return v;
+      }
+
+      vec4 frag(Varyings v) {
+        return texture2D(renderer_BlitTexture, v.uv).rrra;
+      }
+    }
   }
-  `
-);
+}`;
 
 class CustomPass extends PostProcessPass {
   private _blitMaterial: Material;
 
   intensity = new PostProcessEffectFloatParameter(0.7, 0, 1);
 
-  constructor(engine: Engine) {
+  constructor(engine: Engine, customShader: Shader) {
     super(engine);
     this.event = PostProcessPassEvent.AfterUber;
     this._blitMaterial = new Material(this.engine, customShader);
-
-    const depthState = this._blitMaterial.renderState.depthState;
-
-    depthState.enabled = false;
-    depthState.writeEnabled = false;
   }
 
   onRender(_, srcTexture: Texture2D, dst: RenderTarget): void {
@@ -83,6 +95,7 @@ initPostProcessEnv((camera: Camera, resArray) => {
   bloomEffect.dirtIntensity.value = 5;
   tonemappingEffect.mode.value = TonemappingMode.Neutral;
 
-  const customPass = new CustomPass(engine);
+  const customShader = Shader.create(customShaderSource);
+  const customPass = new CustomPass(engine, customShader);
   engine.addPostProcessPass(customPass);
-});
+}, shaderCompiler);

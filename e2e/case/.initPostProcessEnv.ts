@@ -10,12 +10,14 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
+import type { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 export async function initPostProcessEnv(
-  callback: (camera: Camera, resArray: [GLTFResource, AmbientLight, Texture2D]) => void
+  callback: (camera: Camera, resArray: [GLTFResource, AmbientLight, Texture2D]) => void,
+  shaderCompiler?: ShaderCompiler
 ) {
-  WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+  WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
     engine.canvas.resizeByClientSize();
 
     const scene = engine.sceneManager.activeScene;

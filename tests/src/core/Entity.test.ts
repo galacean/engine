@@ -1,10 +1,10 @@
 import { Quaternion } from "@galacean/engine";
 import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class TestComponent extends Script { }
+class TestComponent extends Script {}
 
 describe("Entity", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
@@ -568,7 +568,9 @@ describe("Entity", async () => {
       const entityGrandsonClone = entityChildClone.children[0];
       // @ts-ignore
       expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
-      expect(Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)).eq(true);
+      expect(
+        Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)
+      ).eq(true);
     });
   });
 
@@ -655,8 +657,8 @@ describe("Entity", async () => {
 
     it("addChildAfterDestroy", () => {
       class DestroyScript extends Script {
-        onDisable(): void { }
-        onDestroy(): void { }
+        onDisable(): void {}
+        onDestroy(): void {}
       }
       DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
       DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);

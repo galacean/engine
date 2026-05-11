@@ -101,7 +101,7 @@ export class RenderQueue {
       const { shaderData: renderElementShaderData } = curElement;
       const shaderPasses = curElement.subShader.passes;
       const { shaderData: rendererData, instanceId: rendererId } = component;
-      const { shaderData: materialData, instanceId: materialId, renderStates } = material;
+      const { shaderData: materialData, instanceId: materialId } = material;
 
       // Build compile macros
       const compileMacros = Shader._compileMacros;
@@ -118,21 +118,9 @@ export class RenderQueue {
           continue;
         }
 
-        // Pick render state and filter by queue type
-        let renderState = shaderPass._renderState;
-        if (needMaskType) {
-          // Mask don't care render queue type
-          if (!renderState) {
-            renderState = renderStates[j];
-          }
-        } else {
-          let passQueueType: RenderQueueType;
-          if (renderState) {
-            passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
-          } else {
-            renderState = renderStates[j];
-            passQueueType = renderState.renderQueueType;
-          }
+        const renderState = shaderPass._renderState;
+        if (!needMaskType) {
+          const passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
           if (passQueueType !== renderQueueType) {
             continue;
           }

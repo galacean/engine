@@ -26,7 +26,7 @@ import {
   registerGLTFParser
 } from "@galacean/engine-loader";
 import { Color } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
@@ -393,7 +393,7 @@ beforeAll(async function () {
 
 afterAll(() => {
   @registerGLTFParser(GLTFParserType.Schema)
-  class test extends GLTFSchemaParser { }
+  class test extends GLTFSchemaParser {}
 });
 
 describe("glTF Loader test", function () {

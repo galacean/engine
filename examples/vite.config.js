@@ -68,7 +68,7 @@ module.exports = {
       "@galacean/engine-draco",
       "@galacean/engine-lottie",
       "@galacean/engine-spine",
-      "@galacean/engine-shaderlab",
+      "@galacean/engine-shader-compiler",
       "@galacean/engine-shader",
       "@galacean/engine-ui",
       "@galacean/engine-xr",

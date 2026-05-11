@@ -1,6 +1,6 @@
 import { AssetType, ResourceManager, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("ResourceManager", () => {
@@ -77,7 +77,6 @@ describe("ResourceManager", () => {
       expect(loaderSpy).toHaveBeenCalled();
     });
   });
-
 
   describe("load asset", () => {
     it("not found", async () => {

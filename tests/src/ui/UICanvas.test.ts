@@ -1,6 +1,6 @@
 import { Camera } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
@@ -294,7 +294,7 @@ describe("UICanvas", async () => {
     // @ts-ignore
     expect(cloneCanvas._isRootCanvas).to.eq(true);
 
-    const cameraNeedClone = canvasEntity.createChild('camera').addComponent(Camera);
+    const cameraNeedClone = canvasEntity.createChild("camera").addComponent(Camera);
     rootCanvas.renderCamera = cameraNeedClone;
     const anoCloneEntity = canvasEntity.clone();
     const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);

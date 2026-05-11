@@ -9,7 +9,7 @@ import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
 import { ShaderBlockProperty } from "./ShaderBlockProperty";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
-import { InstanceBufferLayout, ShaderFactory } from "../shaderlib/ShaderFactory";
+import { InstanceBufferLayout, ShaderFactory } from "./ShaderFactory";
 
 /**
  * Shader program, corresponding to the GPU shader program.

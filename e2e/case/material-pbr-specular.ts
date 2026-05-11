@@ -14,16 +14,13 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { PBRSource, registerIncludes } from "@galacean/engine-shader";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
-registerIncludes();
-
 // Create engine
-WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
@@ -48,7 +45,7 @@ WebGLEngine.create({ canvas: "canvas", shaderLab: new ShaderLab() }).then((engin
         const { defaultSceneRoot, materials } = gltf;
         const entity = rootEntity.createChild();
         entity.addChild(defaultSceneRoot);
-        const shader = Shader.create(PBRSource);
+        const shader = Shader.find("PBR");
         materials?.forEach((material) => {
           material.shader = shader;
         });

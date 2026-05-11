@@ -2,7 +2,6 @@
  * @title Animation BlendShape
  * @category Animation
  */
-import { OrbitControl } from "@galacean/engine-toolkit";
 import {
   Animator,
   Camera,
@@ -25,7 +24,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
+  cameraEntity.transform.lookAt(new Vector3(0, 1, 0));
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).intensity = 1.0;

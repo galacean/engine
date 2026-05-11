@@ -30,6 +30,7 @@
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-rhi-webgl": "workspace:*"
+    "@galacean/engine-rhi-webgl": "workspace:*",
+    "@galacean/engine-shader": "workspace:*"
   }
 }

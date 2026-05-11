@@ -26,19 +26,17 @@ export class RasterState {
    * @internal
    */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    const cullModeProperty = renderStateDataMap[RenderStateElementKey.RasterStateCullMode];
-    if (cullModeProperty !== undefined) {
-      this.cullMode = shaderData.getFloat(cullModeProperty) ?? CullMode.Back;
+    const cullModeProp = renderStateDataMap[RenderStateElementKey.RasterStateCullMode];
+    if (cullModeProp !== undefined) {
+      this.cullMode = shaderData.getFloat(cullModeProp) ?? CullMode.Back;
     }
-
-    const depthBiasProperty = renderStateDataMap[RenderStateElementKey.RasterStateDepthBias];
-    if (depthBiasProperty !== undefined) {
-      this.depthBias = shaderData.getFloat(depthBiasProperty) ?? 0;
+    const depthBiasProp = renderStateDataMap[RenderStateElementKey.RasterStateDepthBias];
+    if (depthBiasProp !== undefined) {
+      this.depthBias = shaderData.getFloat(depthBiasProp) ?? 0;
     }
-
-    const slopeScaledDepthBiasProperty = renderStateDataMap[RenderStateElementKey.RasterStateSlopeScaledDepthBias];
-    if (slopeScaledDepthBiasProperty !== undefined) {
-      this.slopeScaledDepthBias = shaderData.getFloat(slopeScaledDepthBiasProperty) ?? 0;
+    const slopeScaledDepthBiasProp = renderStateDataMap[RenderStateElementKey.RasterStateSlopeScaledDepthBias];
+    if (slopeScaledDepthBiasProp !== undefined) {
+      this.slopeScaledDepthBias = shaderData.getFloat(slopeScaledDepthBiasProp) ?? 0;
     }
   }
 

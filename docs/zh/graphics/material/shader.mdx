@@ -2,15 +2,15 @@
 title: Shader 介绍
 ---
 
-`ShaderLab` 是 Galacean 针对 Shader 自主研发的一套描述语言，它提供了一套完整的语法来定义着色器的结构、属性、渲染状态和着色器代码。通过 ShaderLab，开发者可以创建从简单到复杂的各种视觉效果。
+`Galacean Shader` 是 Galacean 针对 Shader 自主研发的一套描述语言，它提供了一套完整的语法来定义着色器的结构、属性、渲染状态和着色器代码。通过 Galacean Shader，开发者可以创建从简单到复杂的各种视觉效果。
 
-## 什么是 ShaderLab
+## 什么是 Galacean Shader
 
-`ShaderLab` 是一种声明式的着色器描述语言，它将着色器的各个组成部分组织成模块化的结构。与传统的 GLSL/HLSL 不同，ShaderLab 不仅包含着色器代码，还包含材质属性定义、UI界面配置、渲染状态设置等完整信息。
+`Galacean Shader` 是一种声明式的着色器描述语言，它将着色器的各个组成部分组织成模块化的结构。与传统的 GLSL/HLSL 不同，Galacean Shader 不仅包含着色器代码，还包含材质属性定义、UI界面配置、渲染状态设置等完整信息。
 
 ### 解决的问题
 
-`ShaderLab` 框架主要解决以下传统着色器开发中的痛点：
+`Galacean Shader` 框架主要解决以下传统着色器开发中的痛点：
 
 - **代码重复**：VS 和 FS 编写需要两个文件，varying 需要声明两遍，uniform 也需要声明两遍
 - **脚本拼装**：多 SubShader 和多 Pass 需要脚本拼装问题
@@ -27,7 +27,7 @@ title: Shader 介绍
 - **⚡ 高性能**：编译时优化和运行时高效执行
 - **🌐 跨平台**：自动适配不同图形 API
 
-## ShaderLab 结构
+## Galacean Shader 结构
 
 ```glsl showLineNumbers {3-4, 16, 21, 24, 39, 49, 51, 54, 56, 58, 66, 69, 73, 77-78, 80, 90 }
 Shader "Custom/MyShader" {
@@ -80,7 +80,7 @@ Shader "Custom/MyShader" {
     // -------------------- SubShader 定义区 --------------------
     SubShader "Default" {
         // 引入阴影投射 Pass
-        UsePass "pbr/Default/ShadowCaster"
+        UsePass "Utility/ShadowMap/Default/ShadowCaster"
 
         // 自定义 Pass
         Pass "Forward Pass" {
@@ -102,7 +102,7 @@ Shader "Custom/MyShader" {
           
 
             // 代码段引用
-            #include "Common.glsl"
+            #include "Common/Common.glsl"
                 
 
             // 指定 顶点、片元 入口
@@ -138,7 +138,7 @@ Shader "Custom/MyShader" {
 
 ### 1. Shader 模块
 
-Shader 模块是 ShaderLab 的根模块，定义着色器的基本信息和全局设置：
+Shader 模块是 Galacean Shader 的根模块，定义着色器的基本信息和全局设置：
 
 ```glsl showLineNumbers {1-8}
 Shader "Custom/MyShader" {
@@ -367,23 +367,16 @@ MRT frag(Varyings input) {
 通过 `#include` 指令引入代码片段：
 
 ```glsl showLineNumbers
-#include "Common.glsl"      // 通用函数
-#include "Light.glsl"       // 光照计算
-#include "Shadow.glsl"      // 阴影计算
-#include "Fog.glsl"         // 雾效计算
+#include "Common/Common.glsl"      // 通用函数
+#include "Common/Light.glsl"       // 光照计算
+#include "Shadow/Shadow.glsl"      // 阴影计算
+#include "Common/Fog.glsl"         // 雾效计算
 #include "./MyCustom.glsl" // 自定义片段
 ```
 
 ## 注册代码片段
 
-官方提供了很多内置代码段，开发者可以直接注册后使用:
-
-```ts showLineNumbers {4} filename="Typescript"
-import { registerIncludes } from "@galacean/engine-shader";
-
-// 对内置 ShaderLab 代码段注册。
-registerIncludes();
-```
+内置代码段会在引擎创建时自动注册，无需手动调用。
 
 如果是自定义的片段，可以通过接口进行手动注册:
 ```ts
@@ -396,7 +389,7 @@ ShaderFactory.registerInclude('YourKey', shaderSource);
 
 ## UIScript 脚本系统
 
-`UIScript` 是 `ShaderLab` 的核心特性之一，允许通过 TypeScript 脚本实现智能的属性面板交互，包括设置宏开关、渲染状态等：
+`UIScript` 是 `Galacean Shader` 的核心特性之一，允许通过 TypeScript 脚本实现智能的属性面板交互，包括设置宏开关、渲染状态等：
 
 ```ts showLineNumbers {}
 import { ShaderUIScript, Material } from "@galacean/engine";

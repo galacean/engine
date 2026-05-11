@@ -1,5 +1,5 @@
 import { RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, expect, it } from "vitest";
 
 describe("GLRenderTarget", () => {
@@ -41,5 +41,4 @@ describe("GLRenderTarget", () => {
       renderTarget.destroy();
     });
   });
-
 });

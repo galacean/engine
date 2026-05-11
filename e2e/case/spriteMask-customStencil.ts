@@ -9,6 +9,7 @@ import {
   CompareFunction,
   Layer,
   Script,
+  Shader,
   Sprite,
   SpriteMask,
   SpriteMaskInteraction,
@@ -18,11 +19,100 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
+// Custom sprite shader exposing all 12 stencil knobs as ShaderLab variables.
+// Lets the test override stencil per-material via shaderData.setInt.
+const customStencilShaderSource = `Shader "CustomStencilSprite" {
+  SubShader "Default" {
+    Pass "Default" {
+      Tags { pipelineStage = "Forward" }
+
+      BlendState = {
+        Enabled = true;
+        SourceColorBlendFactor = BlendFactor.SourceAlpha;
+        DestinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+        SourceAlphaBlendFactor = BlendFactor.One;
+        DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      }
+      DepthState = {
+        WriteEnabled = false;
+      }
+      RasterState = {
+        CullMode = CullMode.Off;
+      }
+
+      Bool stencilEnabled;
+      Number stencilReferenceValue;
+      Number stencilMask;
+      Number stencilWriteMask;
+      CompareFunction stencilCompareFunctionFront;
+      CompareFunction stencilCompareFunctionBack;
+      StencilOperation stencilPassOperationFront;
+      StencilOperation stencilPassOperationBack;
+      StencilOperation stencilFailOperationFront;
+      StencilOperation stencilFailOperationBack;
+      StencilOperation stencilZFailOperationFront;
+      StencilOperation stencilZFailOperationBack;
+
+      StencilState = {
+        Enabled = stencilEnabled;
+        ReferenceValue = stencilReferenceValue;
+        Mask = stencilMask;
+        WriteMask = stencilWriteMask;
+        CompareFunctionFront = stencilCompareFunctionFront;
+        CompareFunctionBack = stencilCompareFunctionBack;
+        PassOperationFront = stencilPassOperationFront;
+        PassOperationBack = stencilPassOperationBack;
+        FailOperationFront = stencilFailOperationFront;
+        FailOperationBack = stencilFailOperationBack;
+        ZFailOperationFront = stencilZFailOperationFront;
+        ZFailOperationBack = stencilZFailOperationBack;
+      }
+      RenderQueueType = Transparent;
+
+      VertexShader = vert;
+      FragmentShader = frag;
+
+      #include "ShaderLibrary/Common/Common.glsl"
+
+      struct Attributes {
+        vec3 POSITION;
+        vec2 TEXCOORD_0;
+        vec4 COLOR_0;
+      };
+
+      struct Varyings {
+        vec2 v_uv;
+        vec4 v_color;
+      };
+
+      mat4 renderer_MVPMat;
+      sampler2D renderer_SpriteTexture;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
+        v.v_uv = attr.TEXCOORD_0;
+        v.v_color = attr.COLOR_0;
+        return v;
+      }
+
+      vec4 frag(Varyings v) {
+        vec4 baseColor = texture2DSRGB(renderer_SpriteTexture, v.v_uv);
+        return baseColor * v.v_color;
+      }
+    }
+  }
+}`;
+
 // Create engine
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
+
+  // Register the custom stencil shader once.
+  const customStencilShader = Shader.create(customStencilShaderSource);
 
   // Create root entity
   const rootEntity = engine.sceneManager.activeScene.createRootEntity();
@@ -58,7 +148,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const sprite = new Sprite(engine, textures[0]);
       const maskSprite = new Sprite(engine, textures[1]);
 
-      // create a sprite renderer, and write stencil
+      // Create a sprite renderer that writes stencil.
       pos.set(0, 0, 0);
       scale.set(5, 5, 5);
       const writeStencilSR = addSpriteRenderer(
@@ -71,12 +161,13 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         0
       );
       const writeStencilMaterial = writeStencilSR.getInstanceMaterial();
-      const writeStencilState = writeStencilMaterial.renderState.stencilState;
-      writeStencilState.enabled = true;
-      writeStencilState.writeMask = 0xff;
-      writeStencilState.passOperationFront = StencilOperation.IncrementSaturate;
+      writeStencilMaterial.shader = customStencilShader;
+      const writeStencilData = writeStencilMaterial.shaderData;
+      writeStencilData.setInt("stencilEnabled", 1);
+      writeStencilData.setInt("stencilWriteMask", 0xff);
+      writeStencilData.setInt("stencilPassOperationFront", StencilOperation.IncrementSaturate);
 
-      // create a sprite renderer, mask interaction is none, and read stencil
+      // Create a sprite renderer that reads stencil.
       pos.set(3, 3, 0);
       const readStencilSR = addSpriteRenderer(
         pos,
@@ -89,13 +180,14 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       );
       readStencilSR.color.set(1, 0, 0, 1);
       const readStencilMaterial = readStencilSR.getInstanceMaterial();
-      const readStencilState = readStencilMaterial.renderState.stencilState;
-      readStencilState.enabled = true;
-      readStencilState.referenceValue = 1;
-      readStencilState.compareFunctionFront = CompareFunction.LessEqual;
-      readStencilState.compareFunctionBack = CompareFunction.LessEqual;
+      readStencilMaterial.shader = customStencilShader;
+      const readStencilData = readStencilMaterial.shaderData;
+      readStencilData.setInt("stencilEnabled", 1);
+      readStencilData.setInt("stencilReferenceValue", 1);
+      readStencilData.setInt("stencilCompareFunctionFront", CompareFunction.LessEqual);
+      readStencilData.setInt("stencilCompareFunctionBack", CompareFunction.LessEqual);
 
-      // create a sprite renderer, mask interaction is not none
+      // Create a sprite renderer with mask interaction (does not need custom stencil).
       pos.set(5, -3, 0);
       const maskSR = addSpriteRenderer(
         pos,
@@ -108,11 +200,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       );
       maskSR.color.set(0, 1, 0, 1);
 
-      // create a sprite mask
+      // Create a sprite mask.
       pos.set(20, 0, 0);
       addMask(pos, maskSprite, Layer.Layer0, Layer.Layer0);
 
-      // create a sprite renderer, and read stencil
+      // Create another sprite renderer that reads stencil with a different comparison.
       pos.set(20, 10, 0);
       scale.set(3, 3, 3);
       const readStencilSR2 = addSpriteRenderer(
@@ -126,11 +218,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       );
       readStencilSR2.color.set(1, 0.5, 0.8, 1);
       const readStencilMaterial2 = readStencilSR2.getInstanceMaterial();
-      const readStencilState2 = readStencilMaterial2.renderState.stencilState;
-      readStencilState2.enabled = true;
-      readStencilState2.referenceValue = 1;
-      readStencilState2.compareFunctionFront = CompareFunction.Greater;
-      readStencilState2.compareFunctionBack = CompareFunction.Greater;
+      readStencilMaterial2.shader = customStencilShader;
+      const readStencilData2 = readStencilMaterial2.shaderData;
+      readStencilData2.setInt("stencilEnabled", 1);
+      readStencilData2.setInt("stencilReferenceValue", 1);
+      readStencilData2.setInt("stencilCompareFunctionFront", CompareFunction.Greater);
+      readStencilData2.setInt("stencilCompareFunctionBack", CompareFunction.Greater);
 
       updateForE2E(engine, 100, 100);
       initScreenshot(engine, camera);
@@ -173,7 +266,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
     entity.layer = layer;
     const mask = entity.addComponent(SpriteMask);
 
-    // entity.addComponent(scriptType);
     entity.transform.position = pos;
     mask.sprite = sprite;
     mask.influenceLayers = influenceLayers;

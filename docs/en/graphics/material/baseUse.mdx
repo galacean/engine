@@ -36,7 +36,7 @@ You can select materials in the editor and switch shaders to observe real-time r
 
 <Image src="https://gw.alipayobjects.com/zos/OasisHub/cd87c11a-7a68-4cde-a19a-40cff943e878/2025-02-10%25252017.05.33.gif" />
 
-Each shader has different rendering effects and application scenarios. For more details, refer to [Built-in Shader Tutorial](/en/docs/graphics/material/builtinShaders/pbr/) and [Custom Shader Tutorial](/en/docs/graphics/material/examples/shaderlab-01-basic-shader).
+Each shader has different rendering effects and application scenarios. For more details, refer to [Built-in Shader Tutorial](/en/docs/graphics/material/builtinShaders/pbr/) and [Custom Shader Tutorial](/en/docs/graphics/material/examples/shader-01-basic-shader).
 
 ## Creating Custom Shaders
 If built-in shaders cannot meet your needs, we can create a custom shader. In the editor asset panel, create a new Shader and choose PBR template or Unlit template:
@@ -54,7 +54,7 @@ The editor will automatically help us create the Shader file and [UIScript](/en/
 />
 
 <Callout type="info">
-For specific shader content writing, you can quickly get started with [Custom Shader Tutorial](/en/docs/graphics/material/examples/shaderlab-01-basic-shader).
+For specific shader content writing, you can quickly get started with [Custom Shader Tutorial](/en/docs/graphics/material/examples/shader-01-basic-shader).
 </Callout>
 
 ## Shader Data Transfer
@@ -72,13 +72,13 @@ Pass "Forward" {
     mat4 renderer_MVPMat;
 
     // Through including code fragments
-    #include "Transform.glsl"
+    #include "Common/Transform.glsl"
 }
 ...
 ```
 
 ## Next Steps
-- [Custom Shader](/en/docs/graphics/material/examples/shaderlab-01-basic-shader) - Start your shader creation journey from scratch
+- [Custom Shader](/en/docs/graphics/material/examples/shader-01-basic-shader) - Start your shader creation journey from scratch
 - [Shader Syntax Deep Learning](/en/docs/graphics/material/shader) - Complete syntax reference
 - [Shader Built-in Variables Reference](/en/docs/graphics/material/variables) - All built-in variables provided by the engine
 - [Shader Built-in API Reference](/en/docs/graphics/material/shaderAPI) - All Shader APIs provided by the engine

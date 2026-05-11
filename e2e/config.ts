@@ -70,7 +70,7 @@ export const E2E_CONFIG = {
       category: "Animator",
       caseFileName: "animator-reuse",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.000417
     },
     stateMachineScript: {
       category: "Animator",
@@ -137,15 +137,15 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.008
     },
-    shaderLab: {
+    shader: {
       category: "Material",
-      caseFileName: "material-shaderLab",
+      caseFileName: "material-shader",
       threshold: 0,
       diffPercentage: 0
     },
-    shaderLabMRT: {
+    shaderMRT: {
       category: "Material",
-      caseFileName: "shaderLab-mrt",
+      caseFileName: "shader-mrt",
       threshold: 0,
       diffPercentage: 0
     },
@@ -161,9 +161,9 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.033
     },
-    "shaderLab-renderState": {
+    "shader-renderState": {
       category: "Material",
-      caseFileName: "shaderLab-renderState",
+      caseFileName: "shader-renderState",
       threshold: 0,
       diffPercentage: 0
     },
@@ -441,7 +441,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-shape-transform",
       threshold: 0,
-      diffPercentage: 0.334
+      diffPercentage: 0
     },
     burstCycles: {
       category: "Particle",

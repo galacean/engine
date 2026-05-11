@@ -8,7 +8,7 @@ import {
   ParticleStopMode
 } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {

@@ -9,7 +9,7 @@ describe("Polyfill", () => {
       (window as any).webkitAudioContext = class MockWebkitAudioContext {
         state = "suspended";
 
-        constructor() { }
+        constructor() {}
 
         decodeAudioData(arrayBuffer: ArrayBuffer, successCallback: Function, errorCallback?: Function) {
           setTimeout(() => {
@@ -21,7 +21,10 @@ describe("Polyfill", () => {
       expect(window.AudioContext).to.be.undefined;
       expect((window as any).webkitAudioContext).to.exist;
 
-      await import("@galacean/engine-core");
+      // Polyfill registration moved out of `engine-core` (which is now
+      // flavor-agnostic with no top-level browser side effects) into the
+      // umbrella `@galacean/engine` package. Importing the umbrella triggers it.
+      await import("@galacean/engine");
 
       expect(window.AudioContext).to.exist;
       expect(window.AudioContext).to.equal((window as any).webkitAudioContext);
