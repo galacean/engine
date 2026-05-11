@@ -6,10 +6,19 @@ import { AnimationEventHandler } from "./AnimationEventHandler";
  * @internal
  */
 export class AnimatorStateData {
-  /** Source state this cached data was built against; used to detect identity change after remove/re-add. */
-  state: AnimatorState | null = null;
-  /** Listener registered on `state._updateFlagManager`; kept so we can detach when stateData is rebuilt. */
+  /** Listener registered on `state._updateFlagManager`; kept so dispose() can detach it. */
   clipChangedListener: (() => void) | null = null;
   curveLayerOwner: AnimationCurveLayerOwner[] = [];
   eventHandlers: AnimationEventHandler[] = [];
+
+  constructor(readonly state: AnimatorState) {}
+
+  /** Detach the clipChangedListener from state's UpdateFlagManager. No-op if not attached. */
+  dispose(): void {
+    const { clipChangedListener } = this;
+    if (clipChangedListener) {
+      this.state._updateFlagManager.removeListener(clipChangedListener);
+      this.clipChangedListener = null;
+    }
+  }
 }

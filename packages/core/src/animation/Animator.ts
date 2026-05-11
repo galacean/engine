@@ -338,11 +338,7 @@ export class Animator extends Component {
       const stateDataMap = layersData[i]?.animatorStateDataMap;
       if (!stateDataMap) continue;
       for (const stateName in stateDataMap) {
-        const stateData = stateDataMap[stateName];
-        const { state, clipChangedListener } = stateData;
-        if (state && clipChangedListener) {
-          state._updateFlagManager.removeListener(clipChangedListener);
-        }
+        stateDataMap[stateName].dispose();
       }
     }
 
@@ -442,15 +438,11 @@ export class Animator extends Component {
     if (animatorStateData && animatorStateData.state !== animatorState) {
       // Same name but different state instance (e.g. removeState + addState same name):
       // detach the old listener and rebuild stateData against the new state.
-      const { state: previousState, clipChangedListener } = animatorStateData;
-      if (previousState && clipChangedListener) {
-        previousState._updateFlagManager.removeListener(clipChangedListener);
-      }
+      animatorStateData.dispose();
       animatorStateData = null;
     }
     if (!animatorStateData) {
-      animatorStateData = new AnimatorStateData();
-      animatorStateData.state = animatorState;
+      animatorStateData = new AnimatorStateData(animatorState);
       animatorStateDataMap[stateName] = animatorStateData;
       this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
       this._saveAnimatorEventHandlers(animatorState, animatorStateData);
