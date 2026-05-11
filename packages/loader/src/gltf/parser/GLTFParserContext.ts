@@ -114,10 +114,14 @@ export class GLTFParserContext {
       this.glTF = json;
       this.needAnimatorController = !!(json.skins || json.animations);
 
+      // Scene-before-Skin parse order
+      //
+      // Skin._findSceneRootBone reads glTFResource._sceneRoots, populated
+      // synchronously by Scene's parse head. Do not reverse — Scene's async
+      // tail awaits Skin via _createRenderer for skinned renderers, so a
+      // "Skin awaits Scene" rewrite would deadlock on the cached promise.
       return AssetPromise.all([
         this.get<void>(GLTFParserType.Validator),
-        // Scene must be requested before Skin: GLTFSceneParser populates
-        // glTFResource._sceneRoots synchronously, which GLTFSkinParser._findSceneRootBone reads.
         this.get<Entity>(GLTFParserType.Scene),
         this.get<Texture2D>(GLTFParserType.Texture),
         this.get<Material>(GLTFParserType.Material),
