@@ -8,7 +8,7 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
  *
  * Lifecycle: created lazily by AnimatorLayerData.getOrCreatePlayData on first access
  * (either via Animator.findAnimatorState or when the state begins playing). Persists
- * for the layer's lifetime, so per-instance overrides (e.g. speed) survive transitions
+ * for the layer's lifetime, so per-instance state (e.g. speed) survives transitions
  * out of and back into the state.
  *
  * Public surface is intentionally narrow:
@@ -40,7 +40,7 @@ export class AnimatorStatePlayData {
   /** @internal */
   _offsetFrameTime: number = 0;
 
-  private _speedOverride: number | undefined;
+  private _speed: number | undefined;
   private _changedOrientation = false;
 
   /**
@@ -52,11 +52,11 @@ export class AnimatorStatePlayData {
    * Per-instance value persists across state transitions.
    */
   get speed(): number {
-    return this._speedOverride ?? this.state.speed;
+    return this._speed ?? this.state.speed;
   }
 
   set speed(value: number) {
-    this._speedOverride = value;
+    this._speed = value;
   }
 
   /** @internal */
@@ -66,7 +66,7 @@ export class AnimatorStatePlayData {
 
   /**
    * @internal
-   * Reset runtime fields when (re-)entering this state. Does NOT touch user overrides.
+   * Reset runtime fields when (re-)entering this state. Does NOT touch user-written per-instance values (e.g. speed).
    */
   resetForPlay(stateData: AnimatorStateData, offsetFrameTime: number): void {
     this._stateData = stateData;

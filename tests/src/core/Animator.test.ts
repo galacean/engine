@@ -1327,7 +1327,7 @@ describe("Animator test", function () {
     expect(cloneAnimator.findAnimatorState("Survey")).to.eq(survey);
   });
 
-  it("speed override set before play applies on first play", () => {
+  it("per-instance speed set before play applies on first play", () => {
     const handle = animator.findAnimatorState("Survey");
     handle.speed = 0.5;
     animator.play("Survey");
@@ -1340,7 +1340,7 @@ describe("Animator test", function () {
     expect(handle.speed).to.eq(0.5);
   });
 
-  it("speed override survives crossFade out and back", () => {
+  it("per-instance speed survives crossFade out and back", () => {
     animator.findAnimatorState("Survey").speed = 0.5;
     animator.play("Survey");
     // @ts-ignore
@@ -1365,7 +1365,7 @@ describe("Animator test", function () {
     expect(srcPlayData.speed).to.eq(0.5);
   });
 
-  it("speed override is per-Animator (clone isolation)", () => {
+  it("per-instance speed is per-Animator (clone isolation)", () => {
     const cloneEntity = animator.entity.clone();
     const cloneAnimator = cloneEntity.getComponent(Animator);
     expect(cloneAnimator.animatorController).to.eq(animator.animatorController);
@@ -1380,7 +1380,7 @@ describe("Animator test", function () {
   });
 
   it("crossFade phase uses playData.speed for time progression", () => {
-    // Set high override speed on src state
+    // Set high per-instance speed on src state
     animator.findAnimatorState("Survey").speed = 4;
     animator.play("Survey");
     // @ts-ignore — Animator.update short-circuits to dt=0 if _playFrameCount===frameCount
@@ -1740,7 +1740,7 @@ describe("Animator test", function () {
     expect(animator._animatorLayersData[99]).to.eq(undefined);
   });
 
-  it("transition out of a state with speed override 0 does not produce NaN", () => {
+  it("transition out of a state with per-instance speed 0 does not produce NaN", () => {
     const survey = animator.findAnimatorState("Survey");
     survey.speed = 0; // pause this state per-instance
     animator.play("Survey");
