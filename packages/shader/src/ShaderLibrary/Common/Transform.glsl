@@ -7,7 +7,6 @@ mat4 camera_VPMat;
 
 vec3 camera_Position;
 vec3 camera_Forward;
-vec4 camera_ProjectionParams;
 
 mat4 renderer_ModelMat;
 mat4 renderer_MVMat;
