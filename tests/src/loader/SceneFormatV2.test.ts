@@ -3,10 +3,12 @@ import {
   BackgroundTextureFillMode,
   BackgroundMode,
   Camera,
+  BloomEffect,
   DiffuseMode,
   Entity,
   FogMode,
   Loader,
+  PostProcess,
   Scene,
   Script,
   ShadowCascadesMode,
@@ -26,6 +28,8 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 Loader.registerClass("Transform", Transform);
 Loader.registerClass("Camera", Camera);
+Loader.registerClass("PostProcess", PostProcess);
+Loader.registerClass("BloomEffect", BloomEffect);
 
 class TestValueType {
   x = 0;
@@ -233,6 +237,34 @@ describe("ReflectionParser v2 props resolution", () => {
 // ---------------------------------------------------------------------------
 
 describe("ReflectionParser calls resolution", () => {
+  it("should resolve $class call args as constructors for factory-style methods", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const entity = new Entity(engine, "post-process");
+    const postProcess = entity.addComponent(PostProcess);
+
+    await parser.parseCalls(postProcess, [
+      {
+        method: "addEffect",
+        args: [{ $class: "BloomEffect" }],
+        result: {
+          props: {
+            threshold: { value: 0.9 },
+            scatter: { value: 0.6 },
+            intensity: { value: 1.5 }
+          }
+        }
+      }
+    ]);
+
+    const effect = postProcess.getEffect(BloomEffect);
+    expect(effect).to.be.instanceOf(BloomEffect);
+    expect(effect.threshold.value).to.equal(0.9);
+    expect(effect.scatter.value).to.equal(0.6);
+    expect(effect.intensity.value).to.equal(1.5);
+  });
+
   it("should resolve special call args through v2 value rules", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);
@@ -529,6 +561,44 @@ describe("SceneParser v2 entity tree", () => {
     expect(component).to.not.be.null;
     expect(component.value).to.equal("base");
     expect(component.receivedArgs).to.deep.equal(["after"]);
+  });
+
+  it("should apply component calls with $class args through scene parsing", async () => {
+    const data = createSceneData(
+      [{ name: "PostProcessEntity", components: [0] }],
+      [
+        {
+          type: "PostProcess",
+          props: { isGlobal: true, priority: 2 },
+          calls: [
+            {
+              method: "addEffect",
+              args: [{ $class: "BloomEffect" }],
+              result: {
+                props: {
+                  threshold: { value: 0.85 },
+                  intensity: { value: 1.25 }
+                }
+              }
+            }
+          ]
+        } as any
+      ],
+      [0]
+    );
+
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new SceneParser(data, context, scene);
+    parser.start();
+    await parser.promise;
+
+    const postProcess = scene.rootEntities[0].getComponent(PostProcess);
+    const effect = postProcess.getEffect(BloomEffect);
+    expect(postProcess.priority).to.equal(2);
+    expect(effect).to.be.instanceOf(BloomEffect);
+    expect(effect.threshold.value).to.equal(0.85);
+    expect(effect.intensity.value).to.equal(1.25);
   });
 
   it("should throw a clear error when component type is not registered", async () => {

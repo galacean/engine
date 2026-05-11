@@ -14,7 +14,7 @@ export class ReflectionParser {
 
   /**
    * Apply v2 props to a component/object instance.
-   * Each prop value is resolved recursively (handling $ref, $type, $entity, $component, $signal).
+   * Each prop value is resolved recursively (handling $ref, $type, $class, $entity, $component, $signal).
    */
   parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
     const promises: Promise<any>[] = [];
@@ -78,10 +78,11 @@ export class ReflectionParser {
    * 2. Array → recurse each element
    * 3. { $ref }       → asset reference
    * 4. { $type }      → polymorphic type construct
-   * 5. { $entity }    → entity reference by path (flat index + optional children descent)
-   * 6. { $component } → component reference
-   * 7. { $signal }    → signal binding
-   * 8. plain object   → recurse values (modify originValue in place if exists)
+   * 5. { $class }     → registered class constructor
+   * 6. { $entity }    → entity reference by path (flat index + optional children descent)
+   * 7. { $component } → component reference
+   * 8. { $signal }    → signal binding
+   * 9. plain object   → recurse values (modify originValue in place if exists)
    */
   private _resolveValue(value: unknown, originValue?: any): Promise<any> {
     if (value == null || typeof value !== "object") return Promise.resolve(value);
@@ -111,14 +112,26 @@ export class ReflectionParser {
     // $type — polymorphic type: construct instance and apply remaining props
     if ("$type" in obj) {
       const { $type, ...rest } = obj;
-      const typeName = $type as string;
-      const Class = Loader.getClass(typeName);
-      if (!Class) return Promise.reject(new Error(`Loader.getClass: class "${typeName}" is not registered`));
+      let Class: any;
+      try {
+        Class = this._getRegisteredClass($type, "$type");
+      } catch (error) {
+        return Promise.reject(error);
+      }
       const instance = new Class();
       if (Object.keys(rest).length > 0) {
         return this.parseProps(instance, rest);
       }
       return Promise.resolve(instance);
+    }
+
+    // $class — registered class constructor for factory-style methods.
+    if ("$class" in obj) {
+      try {
+        return Promise.resolve(this._getRegisteredClass(obj.$class, "$class"));
+      } catch (error) {
+        return Promise.reject(error);
+      }
     }
 
     // $entity — entity reference by path (first element = flat index, subsequent = children indices)
@@ -146,6 +159,16 @@ export class ReflectionParser {
       promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
     }
     return Promise.all(promises).then(() => target);
+  }
+
+  private _getRegisteredClass(value: unknown, sentinel: "$type" | "$class"): any {
+    if (typeof value !== "string" || value.length === 0) {
+      throw new Error(`${sentinel} must be a non-empty registered class name string`);
+    }
+
+    const Class = Loader.getClass(value);
+    if (!Class) throw new Error(`Loader.getClass: class "${value}" is not registered`);
+    return Class;
   }
 
   private _resolveSignal(signal: any, listeners: SignalListener[]): Promise<any> {
