@@ -157,5 +157,3 @@ export class SystemInfo {
     return true;
   }
 }
-
-SystemInfo._initialize();

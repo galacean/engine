@@ -7,16 +7,15 @@ import {
   Shader,
   resourceLoader
 } from "@galacean/engine-core";
-import { ShaderChunkLoader } from "./ShaderChunkLoader";
 
-@resourceLoader(AssetType.Shader, ["shader"])
+@resourceLoader(AssetType.Shader, ["shader", "shaderc"])
 class ShaderLoader extends Loader<Shader> {
   private static _builtinRegex = /^\s*\/\/\s*@builtin\s+(\w+)/;
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
-    const { url } = item;
+    const url = item.url!;
 
-    if (url.endsWith(".gsp")) {
+    if (url.endsWith(".shaderc")) {
       // @ts-ignore
       return resourceManager._request(url, { ...item, type: "json" }).then((data) => {
         // @ts-ignore - _createFromPrecompiled is @internal
@@ -31,10 +30,7 @@ class ShaderLoader extends Loader<Shader> {
         return Shader.find(builtinShader);
       }
 
-      return ShaderChunkLoader._loadChunksInCode(code, url, resourceManager).then(() => {
-        const shader = Shader.create(code, undefined, url);
-        return shader;
-      });
+      return Shader.create(code, undefined, url);
     });
   }
 

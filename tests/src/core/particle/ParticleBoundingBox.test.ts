@@ -15,7 +15,7 @@ import {
   ParticleStopMode
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { LitePhysics } from "@galacean/engine-physics-lite";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 

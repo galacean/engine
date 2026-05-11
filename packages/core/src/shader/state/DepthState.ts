@@ -44,21 +44,19 @@ export class DepthState {
    * @internal
    */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    const enableProperty = renderStateDataMap[RenderStateElementKey.DepthStateEnabled];
-    if (enableProperty !== undefined) {
-      const enabled = shaderData.getFloat(enableProperty);
-      this.enabled = enabled !== undefined ? !!enabled : false;
+    const enabledProp = renderStateDataMap[RenderStateElementKey.DepthStateEnabled];
+    if (enabledProp !== undefined) {
+      const enabled = shaderData.getFloat(enabledProp);
+      this.enabled = enabled !== undefined ? !!enabled : true;
     }
-
-    const writeEnabledProperty = renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled];
-    if (writeEnabledProperty !== undefined) {
-      const writeEnabled = shaderData.getFloat(writeEnabledProperty);
-      this.writeEnabled = writeEnabled !== undefined ? !!writeEnabled : false;
+    const writeEnabledProp = renderStateDataMap[RenderStateElementKey.DepthStateWriteEnabled];
+    if (writeEnabledProp !== undefined) {
+      const writeEnabled = shaderData.getFloat(writeEnabledProp);
+      this.writeEnabled = writeEnabled !== undefined ? !!writeEnabled : true;
     }
-
-    const compareFunctionProperty = renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction];
-    if (compareFunctionProperty !== undefined) {
-      this.compareFunction = shaderData.getFloat(compareFunctionProperty) ?? CompareFunction.Less;
+    const compareFunctionProp = renderStateDataMap[RenderStateElementKey.DepthStateCompareFunction];
+    if (compareFunctionProp !== undefined) {
+      this.compareFunction = shaderData.getFloat(compareFunctionProp) ?? CompareFunction.Less;
     }
   }
 

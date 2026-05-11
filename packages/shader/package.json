@@ -13,24 +13,31 @@
   "module": "dist/module.js",
   "debug": "src/index.ts",
   "browser": "dist/browser.js",
-  "types": "types/index.d.ts",
+  "types": "types/src/index.d.ts",
+  "exports": {
+    ".": {
+      "module": "./dist/module.js",
+      "default": "./dist/main.js",
+      "types": "./types/src/index.d.ts"
+    },
+    "./sources": {
+      "module": "./dist/sources.module.js",
+      "default": "./dist/sources.main.js",
+      "types": "./types/src/sources.d.ts"
+    }
+  },
   "scripts": {
+    "precompile": "node ../shader-compiler/dist/bundler/cli.js src/Shaders compiledShaders --clean --emit-index --emit-sources",
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.ShaderFragment",
-    "globals": {
-      "@galacean/engine": "Galacean"
-    }
+    "name": "Galacean.ShaderFragment"
+  },
+  "devDependencies": {
+    "@galacean/engine-design": "workspace:*"
   },
   "files": [
     "dist/**/*",
     "types/**/*"
-  ],
-  "devDependencies": {
-    "@galacean/engine": "workspace:*"
-  },
-  "peerDependencies": {
-    "@galacean/engine": "workspace:*"
-  }
+  ]
 }

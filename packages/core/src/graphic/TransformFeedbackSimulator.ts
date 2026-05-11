@@ -1,10 +1,10 @@
 import { Engine } from "../Engine";
 import { MeshTopology } from "./enums/MeshTopology";
 import { TransformFeedbackPrimitive } from "./TransformFeedbackPrimitive";
-import { TransformFeedbackShader } from "./TransformFeedbackShader";
 import { VertexBufferBinding } from "./VertexBufferBinding";
 import { VertexElement } from "./VertexElement";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderPass } from "../shader/ShaderPass";
 
 /**
  * @internal
@@ -14,7 +14,7 @@ import { ShaderData } from "../shader/ShaderData";
 export class TransformFeedbackSimulator {
   private _engine: Engine;
   private _primitive: TransformFeedbackPrimitive;
-  private _shader: TransformFeedbackShader;
+  private _shaderPass: ShaderPass;
 
   /**
    * The current read buffer binding.
@@ -33,12 +33,12 @@ export class TransformFeedbackSimulator {
   /**
    * @param engine - Engine instance
    * @param byteStride - Bytes per vertex in the feedback buffer
-   * @param shader - Shared Transform Feedback shader definition
+   * @param shaderPass - ShaderPass with feedbackVaryings configured
    */
-  constructor(engine: Engine, byteStride: number, shader: TransformFeedbackShader) {
+  constructor(engine: Engine, byteStride: number, shaderPass: ShaderPass) {
     this._engine = engine;
     this._primitive = new TransformFeedbackPrimitive(engine, byteStride);
-    this._shader = shader;
+    this._shaderPass = shaderPass;
   }
 
   /**
@@ -62,8 +62,8 @@ export class TransformFeedbackSimulator {
     inputBinding: VertexBufferBinding,
     inputElements: VertexElement[]
   ): boolean {
-    const program = this._shader.getProgram(this._engine, shaderData._macroCollection);
-    if (!program) return false;
+    const program = this._shaderPass._getShaderProgram(this._engine, shaderData._macroCollection);
+    if (!program?.isValid) return false;
 
     program.bind();
     program.uploadUniforms(program.rendererUniformBlock, shaderData);

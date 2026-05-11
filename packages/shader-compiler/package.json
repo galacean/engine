@@ -1,0 +1,63 @@
+{
+  "name": "@galacean/engine-shader-compiler",
+  "version": "2.0.0-alpha.30",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.min.js",
+  "debug": "src/index.ts",
+  "types": "types/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/module.js",
+      "require": "./dist/main.js",
+      "types": "./types/index.d.ts"
+    },
+    "./bundler/rollup": {
+      "import": "./dist/bundler/rollup.js",
+      "require": "./dist/bundler/rollup.cjs.js",
+      "types": "./types/bundler/rollup.d.ts"
+    },
+    "./verbose": {
+      "import": "./dist/module.verbose.js",
+      "require": "./dist/main.verbose.js",
+      "types": "./types/index.d.ts"
+    },
+    "./src/*": "./src/*.ts",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "shader-compiler-precompile": "./dist/bundler/cli.js"
+  },
+  "scripts": {
+    "build": "rollup -c rollup.config.js && chmod +x dist/bundler/cli.js",
+    "b:types": "tsc"
+  },
+  "umd": {
+    "name": "Galacean.ShaderCompiler",
+    "globals": {
+      "@galacean/engine-math": "Galacean",
+      "@galacean/engine-core": "Galacean"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*",
+    "verbose/package.json"
+  ],
+  "dependencies": {
+    "@rollup/pluginutils": "^5.0.0",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@galacean/engine-design": "workspace:*"
+  }
+}

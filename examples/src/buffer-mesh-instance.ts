@@ -21,9 +21,10 @@ import {
   VertexElementFormat,
   WebGLEngine
 } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
 // Create engine
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
   engine.canvas.resizeByClientSize();
 
   // Get scene and root entity
@@ -140,35 +141,37 @@ function createCustomMesh(engine: Engine, size: number): Mesh {
  * Create custom instance shader.
  */
 function initCustomShader(): Shader {
-  const shader = Shader.create(
-    "CustomShader",
-    `uniform mat4 renderer_MVPMat;
-      attribute vec4 POSITION;
-      attribute vec3 INSTANCE_OFFSET;
-      attribute vec3 INSTANCE_COLOR;
-      
-      uniform mat4 renderer_MVMat;
-      
-      varying vec3 v_position;
-      varying vec3 v_color;
-      
-      void main() {
-        vec4 position = POSITION;
-        position.xyz += INSTANCE_OFFSET;
-        gl_Position = renderer_MVPMat * position;
+  return Shader.create(`Shader "CustomShader" {
+    SubShader "Default" {
+      Pass "Forward" {
+        struct Attributes {
+          vec4 POSITION;
+          vec3 INSTANCE_OFFSET;
+          vec3 INSTANCE_COLOR;
+        };
 
-        v_color = INSTANCE_COLOR;
-      }`,
+        struct Varyings {
+          vec3 color;
+        };
 
-    `
-      varying vec3 v_color;
-      uniform vec4 u_color;
-      
-      void main() {
-        vec4 color = vec4(v_color,1.0);
-        gl_FragColor = color;
+        mat4 renderer_MVPMat;
+
+        VertexShader = vert;
+        FragmentShader = frag;
+
+        Varyings vert(Attributes attr) {
+          Varyings v;
+          vec4 position = attr.POSITION;
+          position.xyz += attr.INSTANCE_OFFSET;
+          gl_Position = renderer_MVPMat * position;
+          v.color = attr.INSTANCE_COLOR;
+          return v;
+        }
+
+        vec4 frag(Varyings v) {
+          return vec4(v.color, 1.0);
+        }
       }
-      `
-  );
-  return shader;
+    }
+  }`);
 }

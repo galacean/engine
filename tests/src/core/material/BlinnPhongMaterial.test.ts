@@ -1,5 +1,5 @@
 import { Color, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { BlinnPhongMaterial, Texture2D } from "@galacean/engine-core";
 import { describe, beforeAll, expect, it } from "vitest";
 

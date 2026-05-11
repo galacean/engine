@@ -68,7 +68,11 @@ WebGLEngine.create({
 });
 
 function createParticle(rootEntity: Entity, engine: Engine, xPos: number, createShape: () => any): void {
-  const particleEntity = rootEntity.createChild("Particle");
+  // Entity stays detached during configuration. Adding it to the tree triggers
+  // _onEnable → play(), which only honors useAutoRandomSeed=false if we set it
+  // before the entity becomes active. Otherwise play() would seed the
+  // generator with Math.random(), producing a different screenshot every run.
+  const particleEntity = new Entity(engine, "Particle");
   particleEntity.transform.position.set(xPos, 0, 0);
 
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
@@ -86,4 +90,6 @@ function createParticle(rootEntity: Entity, engine: Engine, xPos: number, create
   main.simulationSpace = ParticleSimulationSpace.Local;
 
   emission.shape = createShape();
+
+  rootEntity.addChild(particleEntity);
 }

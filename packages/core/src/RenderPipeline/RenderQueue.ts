@@ -95,7 +95,7 @@ export class RenderQueue {
       const compileMacros = Shader._compileMacros;
       const { primitive, shaderPasses, shaderData: renderElementShaderData } = subElement;
       const { shaderData: rendererData, instanceId: rendererId } = renderer;
-      const { shaderData: materialData, instanceId: materialId, renderStates } = material;
+      const { shaderData: materialData, instanceId: materialId } = material;
 
       // Union render global macro and material self macro
       ShaderMacroCollection.unionCollection(renderer._globalShaderMacro, materialData._macroCollection, compileMacros);
@@ -107,20 +107,9 @@ export class RenderQueue {
           continue;
         }
 
-        let renderState = shaderPass._renderState;
-        if (needMaskType) {
-          // Mask don't care render queue type
-          if (!renderState) {
-            renderState = renderStates[j];
-          }
-        } else {
-          let passQueueType: RenderQueueType;
-          if (renderState) {
-            passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
-          } else {
-            renderState = renderStates[j];
-            passQueueType = renderState.renderQueueType;
-          }
+        const renderState = shaderPass._renderState;
+        if (!needMaskType) {
+          const passQueueType = renderState._getRenderQueueByShaderData(shaderPass._renderStateDataMap, materialData);
           if (passQueueType !== renderQueueType) {
             continue;
           }

@@ -3,7 +3,7 @@ import {
   IInputOptions,
   IPhysics,
   IPhysicsManager,
-  IShaderLab,
+  IShaderCompiler,
   IXRDevice
 } from "@galacean/engine-design";
 import { CharRenderInfo } from "./2d/text/CharRenderInfo";
@@ -32,16 +32,14 @@ import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
 import { UIUtils } from "./ui/UIUtils";
 import { ClearableObjectPool } from "./utils/ClearableObjectPool";
 import { ReturnableObjectPool } from "./utils/ReturnableObjectPool";
 import { XRManager } from "./xr/XRManager";
-
-ShaderPool.init();
 
 /**
  * Engine.
@@ -629,10 +627,18 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const { shaderLab, physics } = configuration;
+    const { shaderCompiler, physics } = configuration;
 
-    if (shaderLab && !Shader._shaderLab) {
-      Shader._shaderLab = shaderLab;
+    if (shaderCompiler && !Shader._shaderCompiler) {
+      // Bind the runtime include map so the preprocessor sees every chunk
+      // the umbrella package's ShaderPool registered into ShaderFactory.
+      // shader-compiler defaults to an empty map and stays free of any direct
+      // ShaderFactory dependency, so the binding has to be wired here at the
+      // runtime boundary.
+      // @ts-ignore — `_setIncludeMap` is shader-compiler @internal; `includeMap`
+      // is `ShaderFactory` @internal. Both intentionally cross-package wired.
+      shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
+      Shader._shaderCompiler = shaderCompiler;
     }
 
     const initializePromises = new Array<Promise<any>>();
@@ -724,8 +730,8 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** XR Device. */
   xrDevice?: IXRDevice;
-  /** Shader lab. */
-  shaderLab?: IShaderLab;
+  /** Shader compiler. */
+  shaderCompiler?: IShaderCompiler;
   /** Input options. */
   input?: IInputOptions;
 }

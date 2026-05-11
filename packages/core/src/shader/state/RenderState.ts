@@ -39,8 +39,11 @@ export class RenderState {
     shaderData: ShaderData,
     customRenderStates?: RenderStateElementMap
   ): void {
-    // @todo: Should merge when we can delete material render state
-    renderStateDataMap && this._applyStatesByShaderData(renderStateDataMap, shaderData);
+    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
+    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     const context = engine._renderContext;
@@ -57,24 +60,16 @@ export class RenderState {
 
   /**
    * @internal
-   * @todo Should merge when we can delete material render state
    */
   _getRenderQueueByShaderData(
     renderStateDataMap: Record<number, ShaderProperty>,
     shaderData: ShaderData
   ): RenderQueueType {
-    const renderQueueType = renderStateDataMap[RenderStateElementKey.RenderQueueType];
-    if (renderQueueType === undefined) {
-      return this.renderQueueType;
-    } else {
-      return shaderData.getFloat(renderQueueType) ?? RenderQueueType.Opaque;
+    const renderQueueTypeProp = renderStateDataMap[RenderStateElementKey.RenderQueueType];
+    if (renderQueueTypeProp !== undefined) {
+      const renderQueueType = shaderData.getFloat(renderQueueTypeProp);
+      if (renderQueueType !== undefined) return renderQueueType;
     }
-  }
-
-  private _applyStatesByShaderData(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    this.blendState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.depthState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.stencilState._applyShaderDataValue(renderStateDataMap, shaderData);
-    this.rasterState._applyShaderDataValue(renderStateDataMap, shaderData);
+    return this.renderQueueType;
   }
 }

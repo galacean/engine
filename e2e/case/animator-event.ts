@@ -15,7 +15,6 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { OrbitControl } from "@galacean/engine-toolkit";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
@@ -26,7 +25,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   const cameraEntity = rootEntity.createChild("camera_node");
   cameraEntity.transform.position = new Vector3(0, 1, 5);
   const camera = cameraEntity.addComponent(Camera);
-  cameraEntity.addComponent(OrbitControl).target = new Vector3(0, 1, 0);
+  cameraEntity.transform.lookAt(new Vector3(0, 1, 0));
 
   const lightNode = rootEntity.createChild("light_node");
   lightNode.addComponent(DirectLight).color = new Color(

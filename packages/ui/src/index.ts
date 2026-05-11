@@ -1,19 +1,5 @@
-import {
-  BlendFactor,
-  BlendOperation,
-  CullMode,
-  Engine,
-  Entity,
-  Loader,
-  Material,
-  PipelineStage,
-  RenderQueueType,
-  Shader,
-  ShaderPass
-} from "@galacean/engine";
+import { Engine, Entity, Loader, Material, Shader } from "@galacean/engine";
 import * as GUIComponent from "./component";
-import uiDefaultFs from "./shader/uiDefault.fs.glsl";
-import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 export * from "./component";
 export { CanvasRenderMode } from "./enums/CanvasRenderMode";
 export { HorizontalAlignmentMode } from "./enums/HorizontalAlignmentMode";
@@ -28,17 +14,6 @@ export class EngineExtension {
       const shader = _getOrCreateUIShader();
       // @ts-ignore
       const material = new Material(this, shader);
-      const renderState = material.renderState;
-      const target = renderState.blendState.targetBlendState;
-      target.enabled = true;
-      target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
-      target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.sourceAlphaBlendFactor = BlendFactor.One;
-      target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
-      target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
-      renderState.depthState.writeEnabled = false;
-      renderState.rasterState.cullMode = CullMode.Off;
-      renderState.renderQueueType = RenderQueueType.Transparent;
       material.isGCIgnored = true;
       this._uiDefaultMaterial = material;
     }
@@ -98,13 +73,5 @@ export function registerGUI() {
 }
 
 function _getOrCreateUIShader(): Shader {
-  let shader = Shader.find("ui");
-  if (!shader) {
-    shader = Shader.create("ui", [
-      new ShaderPass("Forward", uiDefaultVs, uiDefaultFs, {
-        pipelineStage: PipelineStage.Forward
-      })
-    ]);
-  }
-  return shader;
+  return Shader.find("2D/UIDefault");
 }

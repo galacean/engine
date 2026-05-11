@@ -11,7 +11,7 @@ import {
 } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { LitePhysics } from "@galacean/engine-physics-lite";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, expect, it } from "vitest";
 
 const body = document.getElementsByTagName("body")[0];
