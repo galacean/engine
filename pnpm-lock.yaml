@@ -7591,7 +7591,7 @@ snapshots:
   vite-node@2.1.5(@types/node@18.19.64)(sass@1.81.0)(terser@5.44.1):
     dependencies:
       cac: 6.7.14
-      debug: 4.3.7
+      debug: 4.4.3
       es-module-lexer: 1.5.4
       pathe: 1.1.2
       vite: 5.4.11(@types/node@18.19.64)(sass@1.81.0)(terser@5.44.1)
@@ -7684,7 +7684,7 @@ snapshots:
       '@vitest/spy': 2.1.5
       '@vitest/utils': 2.1.5
       chai: 5.1.2
-      debug: 4.3.7
+      debug: 4.4.3
       expect-type: 1.1.0
       magic-string: 0.30.12
       pathe: 1.1.2

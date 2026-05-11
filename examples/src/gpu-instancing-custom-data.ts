@@ -3,6 +3,7 @@
  * @category Mesh
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*jjZMTrp-vU8AAAAAAAAAAAAADiR2AQ/original
  */
+import { Stats } from "@galacean/engine-toolkit-stats";
 import {
   Camera,
   Color,
@@ -121,6 +122,7 @@ WebGLEngine.create({
   cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
   const camera = cameraEntity.addComponent(Camera);
   camera.farClipPlane = 500;
+  cameraEntity.addComponent(Stats);
 
   // Light
   const lightEntity = rootEntity.createChild("Light");
