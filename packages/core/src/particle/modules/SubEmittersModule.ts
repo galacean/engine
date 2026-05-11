@@ -100,12 +100,13 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     parentStartSize: Vector3,
     parentStartRotation: Vector3
   ): void {
+    // Run all non-RNG filters BEFORE the probability roll so an invalid slot
+    // (null / destroyed target, self-reference, emitCount <= 0) never consumes
+    // a random number. Otherwise the per-event `_probabilityRand` sequence
+    // becomes sensitive to dead slots — adding a no-op slot would shift every
+    // downstream probability check.
     const target = sub.emitter;
     if (target === null || target.destroyed) return;
-
-    if (sub.emitProbability < 1.0 && this._probabilityRand.random() > sub.emitProbability) {
-      return;
-    }
 
     const targetGen = target.generator;
     if (targetGen === this._generator) {
@@ -120,6 +121,10 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     // target's own EmissionModule fires when it plays.)
     const count = sub.emitCount | 0;
     if (count <= 0) return;
+
+    if (sub.emitProbability < 1.0 && this._probabilityRand.random() > sub.emitProbability) {
+      return;
+    }
 
     const inherit = sub.inheritProperties;
     const colorOverride = (inherit & ParticleSubEmitterProperty.Color) !== 0 ? parentStartColor : null;
