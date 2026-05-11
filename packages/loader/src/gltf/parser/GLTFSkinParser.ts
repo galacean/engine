@@ -36,16 +36,19 @@ export class GLTFSkinParser extends GLTFParser {
 
       // Get skeleton
       if (skeleton !== undefined) {
-        const rootBone = entities[skeleton];
-        skin.rootBone = rootBone;
+        skin.rootBone = entities[skeleton];
       } else {
-        const rootBone =
-          this._findSceneRootBone(context, joints, entities) ?? this._findSkeletonRootBone(joints, entities);
-        if (rootBone) {
-          skin.rootBone = rootBone;
-        } else {
+        // Resolve rootBone from the joints' lowest common ancestor.
+        //
+        // Multi-root scenes are not a special case: GLTFSceneParser unconditionally
+        // attaches every top-level node under a GLTF_ROOT wrapper, so when joints
+        // span multiple top-level scene nodes, their LCA is naturally the wrapper.
+        // When joints converge in one branch, the LCA is the actual skeleton root.
+        const rootBone = this._findSkeletonRootBoneByLCA(joints, entities);
+        if (!rootBone) {
           throw "Failed to find skeleton root bone.";
         }
+        skin.rootBone = rootBone;
       }
 
       return skin;
@@ -54,60 +57,7 @@ export class GLTFSkinParser extends GLTFParser {
     return AssetPromise.resolve(skinPromise);
   }
 
-  private _findSceneRootBone(context: GLTFParserContext, joints: number[], entities: Entity[]): Entity | null {
-    const { glTF, glTFResource } = context;
-    const scenes = glTF.scenes;
-    const sceneRoots = glTFResource._sceneRoots;
-
-    if (!scenes?.length || !sceneRoots?.length) {
-      return null;
-    }
-
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      const sceneNodes = scenes[i].nodes ?? [];
-      if (sceneNodes.length <= 1) {
-        continue;
-      }
-
-      const sceneRoot = sceneRoots[i];
-      if (!sceneRoot) {
-        continue;
-      }
-
-      let firstTopLevelRoot: Entity = null;
-      let allUnderSceneRoot = true;
-
-      for (let j = 0, m = joints.length; j < m; j++) {
-        let entity = entities[joints[j]];
-
-        // Walk up to the direct child of sceneRoot
-        while (entity?.parent && entity.parent !== sceneRoot) {
-          entity = entity.parent;
-        }
-
-        if (entity?.parent !== sceneRoot) {
-          allUnderSceneRoot = false;
-          break;
-        }
-
-        if (firstTopLevelRoot === null) {
-          firstTopLevelRoot = entity;
-        } else if (entity !== firstTopLevelRoot) {
-          // joints span >1 top-level roots → wrapper is the right rootBone
-          return sceneRoot;
-        }
-      }
-
-      if (!allUnderSceneRoot) {
-        continue;
-      }
-      // joints converged to a single top-level root → fall through to skeleton LCA
-    }
-
-    return null;
-  }
-
-  private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {
+  private _findSkeletonRootBoneByLCA(joints: number[], entities: Entity[]): Entity | null {
     const paths = <Record<number, Entity[]>>{};
     for (const index of joints) {
       const path = new Array<Entity>();
@@ -119,7 +69,7 @@ export class GLTFSkinParser extends GLTFParser {
       paths[index] = path;
     }
 
-    let rootNode = <Entity>null;
+    let rootNode: Entity | null = null;
     for (let i = 0; ; i++) {
       let path = paths[joints[0]];
       if (i >= path.length) {
