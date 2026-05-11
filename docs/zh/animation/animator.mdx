@@ -146,14 +146,16 @@ animator.crossFade("OtherStateName", 0.3);
 
 ### 获取当前在播放的动画状态
 
-你可以使用 [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState)  方法来获取当前正在播放的 `动画状态`。参数为 `动画状态` 所在 `动画层` 的序号`layerIndex`, 详见[API 文档](/apis/core/#Animator-getCurrentAnimatorState)。获取之后可以设置 `动画状态` 的属性，比如将默认的循环播放改为一次。
+你可以使用 [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState)  方法来获取当前正在播放的 `动画状态`。参数为 `动画状态` 所在 `动画层` 的序号`layerIndex`, 详见[API 文档](/apis/core/#Animator-getCurrentAnimatorState)。返回类型为 `AnimatorState | null`，当指定 `动画层` 不存在或该层当前没有播放任何状态时返回 `null`。获取到非空状态后可以设置其属性，比如将默认的循环播放改为一次。
 
 ```typescript
 const currentState = animator.getCurrentAnimatorState(0);
-// 播放一次
-currentState.wrapMode = WrapMode.Once;
-// 循环播放
-currentState.wrapMode = WrapMode.Loop;
+if (currentState) {
+  // 播放一次
+  currentState.wrapMode = WrapMode.Once;
+  // 循环播放
+  currentState.wrapMode = WrapMode.Loop;
+}
 ```
 
 ### 获取动画状态

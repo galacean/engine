@@ -206,8 +206,9 @@ export class Animator extends Component {
   }
 
   /**
-   * Get the playing state from the target layerIndex.
+   * Get the current playing state from the target layer.
    * @param layerIndex - The layer index
+   * @returns The currently playing AnimatorState, or null if the layer is missing or no state is playing
    */
   getCurrentAnimatorState(layerIndex: number): AnimatorState | null {
     return this._animatorLayersData[layerIndex]?.srcPlayData?.state ?? null;
