@@ -45,32 +45,6 @@ export class Entity extends EngineObject {
 
   /**
    * @internal
-   * Subtree-only path search: never backtracks to parent/siblings, returns null on miss.
-   */
-  static _findChildByPathDown(entity: Entity, paths: string[], pathIndex: number): Entity | null {
-    const searchPath = paths[pathIndex];
-    const isEndPath = pathIndex === paths.length - 1;
-    const children = entity._children;
-
-    for (let i = 0, n = children.length; i < n; i++) {
-      const child = children[i];
-      if (child.name === searchPath) {
-        if (isEndPath) {
-          return child;
-        }
-        const found = Entity._findChildByPathDown(child, paths, pathIndex + 1);
-        if (found) {
-          return found;
-        }
-        // Otherwise continue the for loop to try the next same-name sibling
-      }
-    }
-
-    return null;
-  }
-
-  /**
-   * @internal
    */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
     entity._scene = scene;
@@ -402,31 +376,7 @@ export class Entity extends EngineObject {
     if (!splits.length) {
       return this;
     }
-
-    // Prefer descending into a same-name child (normal path semantics).
-    const childMatch = Entity._findChildByName(this, 0, splits, 0);
-    if (childMatch) {
-      return childMatch;
-    }
-
-    // Fallback to self-name prefix only when there's no child by splits[0].
-    // Supports paths authored relative to this entity's parent but evaluated
-    // from this entity (e.g. "root/child/leaf" called on the entity named "root").
-    if (splits[0] === this.name) {
-      const children = this._children;
-      let hasFirstSegmentChild = false;
-      for (let i = 0, n = children.length; i < n; i++) {
-        if (children[i].name === splits[0]) {
-          hasFirstSegmentChild = true;
-          break;
-        }
-      }
-      if (!hasFirstSegmentChild) {
-        return splits.length === 1 ? this : Entity._findChildByPathDown(this, splits, 1);
-      }
-    }
-
-    return null;
+    return Entity._findChildByName(this, 0, splits, 0);
   }
 
   /**
