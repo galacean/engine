@@ -204,11 +204,11 @@ describe("SubEmitter", () => {
     updateEngine(engine, 3);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    //@ts-ignore
-    const buf: Float32Array = child.generator._instanceVertices;
-    expect(buf[8]).to.be.closeTo(0.5, 1e-4);
-    expect(buf[9]).to.be.closeTo(0.25, 1e-4);
-    expect(buf[10]).to.be.closeTo(1.0, 1e-4);
+    const startColor = new Color();
+    child.generator._readParticleStartColor(0, startColor);
+    expect(startColor.r).to.be.closeTo(0.5, 1e-4);
+    expect(startColor.g).to.be.closeTo(0.25, 1e-4);
+    expect(startColor.b).to.be.closeTo(1.0, 1e-4);
 
     parent.entity.destroy();
     child.entity.destroy();

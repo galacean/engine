@@ -711,6 +711,40 @@ export class ParticleGenerator {
 
   /**
    * @internal
+   * Read a spawned particle's start color (`a_StartColor`) at the given slot index.
+   * Test-only — the slot index is the raw instance-buffer position, NOT an "active
+   * particle index" (slot 0 is the first emitted slot in the ring buffer).
+   */
+  _readParticleStartColor(slotIndex: number, out: Color): void {
+    const offset = slotIndex * ParticleBufferUtils.instanceVertexFloatStride;
+    const v = this._instanceVertices;
+    out.set(v[offset + 8], v[offset + 9], v[offset + 10], v[offset + 11]);
+  }
+
+  /**
+   * @internal
+   * Read a spawned particle's start size (`a_StartSize`) at the given slot index.
+   */
+  _readParticleStartSize(slotIndex: number, out: Vector3): void {
+    const offset = slotIndex * ParticleBufferUtils.instanceVertexFloatStride;
+    const v = this._instanceVertices;
+    out.set(v[offset + 12], v[offset + 13], v[offset + 14]);
+  }
+
+  /**
+   * @internal
+   * Read a spawned particle's start rotation (`a_StartRotation0`) at the given slot index.
+   * In 2D rotation mode only the `z` component is meaningful (stored in `x`-slot of
+   * the attribute; the others are zero).
+   */
+  _readParticleStartRotation(slotIndex: number, out: Vector3): void {
+    const offset = slotIndex * ParticleBufferUtils.instanceVertexFloatStride;
+    const v = this._instanceVertices;
+    out.set(v[offset + 15], v[offset + 16], v[offset + 17]);
+  }
+
+  /**
+   * @internal
    */
   _getAliveParticleCount(): number {
     if (this._firstActiveElement <= this._firstFreeElement) {
