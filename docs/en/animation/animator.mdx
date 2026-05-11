@@ -125,8 +125,10 @@ if (!playData) {
 // Pause only this Animator instance's playback of the state.
 playData.speed = 0;
 
-// ...later, when you want to resume tracking the shared state.speed:
-// playData.clearSpeedOverride();
+// To resume later, just assign the desired speed again, e.g.:
+// playData.speed = 1;
+// or follow whatever the asset is currently configured to:
+// playData.speed = playData.state.speed;
 ```
 
 ### Transition to Specified Animation State
@@ -155,7 +157,7 @@ You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) meth
 
 The returned `AnimatorStatePlayData` exposes two distinct surfaces:
 
-- `playData.speed` — per-Animator playback speed override. Reading and writing it only affects this `Animator` instance and won't affect other `Animator` instances sharing the same `AnimatorController`. Call `clearSpeedOverride()` to resume live binding to `state.speed`.
+- `playData.speed` — per-Animator playback speed. **Until written**, it live-binds to `state.speed`; once you write a value the instance owns its own speed, and later changes to `state.speed` no longer flow through. To follow the asset again, simply assign `playData.state.speed` back. Reading and writing only affects this `Animator` instance and won't affect other `Animator` instances sharing the same `AnimatorController`.
 - `playData.state` — the underlying shared `AnimatorState` asset. Mutating fields like `wrapMode` mutates the shared `AnimatorController` asset and therefore affects every `Animator` using this controller.
 
 ```typescript

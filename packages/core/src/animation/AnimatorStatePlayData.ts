@@ -13,7 +13,9 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
  *
  * Public surface is intentionally narrow:
  * - `state`: the shared AnimatorState asset (read-only).
- * - `speed` / `clearSpeedOverride()`: per-instance speed override.
+ * - `speed`: per-instance speed. Reads live-bind to `state.speed` until a value is
+ *   assigned, after which the instance owns its own speed and asset changes no longer
+ *   affect it. Write a fresh value (or `playData.state.speed`) to update it again.
  *
  * All other fields are engine-managed runtime state and are underscore-prefixed to
  * mark them as implementation detail; mutating them from user code will corrupt
@@ -44,10 +46,10 @@ export class AnimatorStatePlayData {
   /**
    * Per-instance playback speed for this state.
    *
-   * - Read: returns the override if set; otherwise live-reads `state.speed`.
-   * - Write: sets the override. Subsequent changes to `state.speed` no longer affect this instance until `clearSpeedOverride()`.
+   * - Read: live-reads `state.speed` until written; afterwards returns the per-instance value.
+   * - Write: claims per-instance ownership. Later changes to `state.speed` no longer flow through.
    *
-   * Override persists across state transitions.
+   * Per-instance value persists across state transitions.
    */
   get speed(): number {
     return this._speedOverride ?? this.state.speed;
@@ -55,11 +57,6 @@ export class AnimatorStatePlayData {
 
   set speed(value: number) {
     this._speedOverride = value;
-  }
-
-  /** Clear the per-instance speed override; resume tracking shared `state.speed`. */
-  clearSpeedOverride(): void {
-    this._speedOverride = undefined;
   }
 
   /** @internal */

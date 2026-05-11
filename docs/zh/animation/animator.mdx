@@ -129,8 +129,10 @@ if (!playData) {
 // 仅暂停当前 Animator 实例的该状态播放。
 playData.speed = 0;
 
-// ……稍后想恢复对共享 state.speed 的实时绑定时调用：
-// playData.clearSpeedOverride();
+// 想要恢复时再写一次目标速度即可，例如：
+// playData.speed = 1;
+// 或者跟随当前 asset 配置：
+// playData.speed = playData.state.speed;
 ```
 
 ### 过渡指定动画状态
@@ -160,7 +162,7 @@ currentState.wrapMode = WrapMode.Loop;
 
 返回的 `AnimatorStatePlayData` 提供两套语义不同的访问入口：
 
-- `playData.speed`：每个 `Animator` 实例独立的播放速度覆盖。读写只影响当前 `Animator` 实例，不会影响其他共享同一 `AnimatorController` 的 `Animator` 实例。调用 `clearSpeedOverride()` 可以恢复对 `state.speed` 的实时绑定。
+- `playData.speed`：每个 `Animator` 实例独立的播放速度。**未写入前**实时绑定到 `state.speed`，一旦写入即由该实例自行持有，之后修改 `state.speed` 不会再传递到此实例；想再次跟随 asset 时直接写回 `playData.state.speed` 即可。读写只影响当前 `Animator` 实例，不会影响其他共享同一 `AnimatorController` 的 `Animator` 实例。
 - `playData.state`：底层共享的 `AnimatorState` 资产。对 `wrapMode` 等字段的修改会改变共享的 `AnimatorController` 资产，因此会影响所有使用该控制器的 `Animator`。
 
 ```typescript

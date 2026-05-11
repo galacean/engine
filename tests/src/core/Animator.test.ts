@@ -1403,20 +1403,6 @@ describe("Animator test", function () {
     expect(advanced).to.be.closeTo(0.2, 0.05);
   });
 
-  it("clearSpeedOverride resumes shared state.speed", () => {
-    const survey = animator.findAnimatorState("Survey");
-    survey.speed = 0.5;
-    expect(survey.speed).to.eq(0.5);
-
-    survey.state.speed = 3;
-    expect(survey.speed).to.eq(0.5); // override still wins
-
-    survey.clearSpeedOverride();
-    expect(survey.speed).to.eq(3); // now follows asset
-
-    survey.state.speed = 1; // restore
-  });
-
   it("findAnimatorState rebuilds handle when state identity changes (remove/re-add same name)", () => {
     const sm = animator.animatorController.layers[0].stateMachine;
     const oldSurvey = animator.findAnimatorState("Survey");
