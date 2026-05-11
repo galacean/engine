@@ -925,7 +925,7 @@ export class ModelMesh extends Mesh {
       return null;
     }
     if (!buffer.readable) {
-      throw "Not allowed to access data while vertex buffer readable is false.";
+      throw new Error("Not allowed to access data while vertex buffer readable is false.");
     }
 
     const vertexCount = this.vertexCount;
