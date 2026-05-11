@@ -3,7 +3,6 @@
  * @category Mesh
  * @thumbnail https://mdn.alipayobjects.com/merchant_appfe/afts/img/A*jjZMTrp-vU8AAAAAAAAAAAAADiR2AQ/original
  */
-import { OrbitControl, Stats } from "@galacean/engine-toolkit";
 import {
   AmbientLight,
   AssetType,
@@ -23,7 +22,9 @@ import {
   WebGLEngine,
   WebGLMode
 } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 
+const shaderCompiler = new ShaderCompiler();
 const _customColorProperty = ShaderProperty.getByName("renderer_CustomColor");
 
 class SpiralAnimate extends Script {
@@ -82,34 +83,47 @@ class SpiralAnimate extends Script {
 }
 
 // Custom shader for cubes
-Shader.create(
-  "CustomInstanceShader",
-  `
-  #include <transform_declare>
-  attribute vec3 POSITION;
-  attribute vec3 NORMAL;
+const customInstanceShaderSource = `Shader "CustomInstanceShader" {
+  SubShader "Default" {
+    Pass "Forward" {
+      struct Attributes {
+        vec3 POSITION;
+        vec3 NORMAL;
+      };
 
-  varying vec3 v_normal;
+      struct Varyings {
+        vec3 v_normal;
+      };
 
-  void main() {
-    gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
-    v_normal = normalize((renderer_NormalMat * vec4(NORMAL, 0.0)).xyz);
+      mat4 renderer_MVPMat;
+      mat4 renderer_NormalMat;
+      vec4 renderer_CustomColor;
+
+      VertexShader = vert;
+      FragmentShader = frag;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
+        v.v_normal = normalize((renderer_NormalMat * vec4(attr.NORMAL, 0.0)).xyz);
+        return v;
+      }
+
+      vec4 frag(Varyings v) {
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+        float NdotL = max(dot(v.v_normal, lightDir), 0.2);
+        return vec4(renderer_CustomColor.rgb * NdotL, 1.0);
+      }
+    }
   }
-  `,
-  `
-  uniform vec4 renderer_CustomColor;
+}`;
 
-  varying vec3 v_normal;
-
-  void main() {
-    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-    float NdotL = max(dot(v_normal, lightDir), 0.2);
-    gl_FragColor = vec4(renderer_CustomColor.rgb * NdotL, 1.0);
-  }
-  `
-);
-
-WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 } }).then(async (engine) => {
+WebGLEngine.create({
+  canvas: "canvas",
+  graphicDeviceOptions: { webGLMode: WebGLMode.WebGL2 },
+  shaderCompiler
+}).then(async (engine) => {
+  Shader.create(customInstanceShaderSource);
   engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
@@ -121,10 +135,6 @@ WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { webGLMode: WebGLM
   cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
   const camera = cameraEntity.addComponent(Camera);
   camera.farClipPlane = 500;
-  cameraEntity.addComponent(OrbitControl);
-
-  // Stats
-  cameraEntity.addComponent(Stats);
 
   // Light
   const lightEntity = rootEntity.createChild("Light");

@@ -16,39 +16,51 @@ import {
   Vector4,
   WebGLEngine
 } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 
+const shaderCompiler = new ShaderCompiler();
+
 // Custom shader: uses renderer_CustomColor (per-instance) for fragment output
-Shader.create(
-  "CustomInstanceShader",
-  `
-  #include <transform_declare>
-  attribute vec3 POSITION;
-  attribute vec3 NORMAL;
+const customInstanceShaderSource = `Shader "CustomInstanceShader" {
+  SubShader "Default" {
+    Pass "Forward" {
+      struct Attributes {
+        vec3 POSITION;
+        vec3 NORMAL;
+      };
 
-  varying vec3 v_normal;
+      struct Varyings {
+        vec3 v_normal;
+      };
 
-  void main() {
-    gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
-    v_normal = normalize((renderer_NormalMat * vec4(NORMAL, 0.0)).xyz);
+      mat4 renderer_MVPMat;
+      mat4 renderer_NormalMat;
+      vec4 renderer_CustomColor;
+
+      VertexShader = vert;
+      FragmentShader = frag;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
+        v.v_normal = normalize((renderer_NormalMat * vec4(attr.NORMAL, 0.0)).xyz);
+        return v;
+      }
+
+      vec4 frag(Varyings v) {
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
+        float NdotL = max(dot(v.v_normal, lightDir), 0.2);
+        return vec4(renderer_CustomColor.rgb * NdotL, 1.0);
+      }
+    }
   }
-  `,
-  `
-  uniform vec4 renderer_CustomColor;
+}`;
 
-  varying vec3 v_normal;
-
-  void main() {
-    vec3 lightDir = normalize(vec3(1.0, 1.0, 1.0));
-    float NdotL = max(dot(v_normal, lightDir), 0.2);
-    gl_FragColor = vec4(renderer_CustomColor.rgb * NdotL, 1.0);
-  }
-  `
-);
-
-WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
+WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
+  Shader.create(customInstanceShaderSource);
   engine.canvas.resizeByClientSize(2);
 
   const scene = engine.sceneManager.activeScene;
