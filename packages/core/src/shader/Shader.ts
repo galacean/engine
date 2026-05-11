@@ -234,7 +234,7 @@ export class Shader implements IReferable {
     }
   }
 
-  private static _resolveUsePass(passName: string): ShaderPass | undefined {
+  private static _resolveUsePass(passName: string): ShaderPass {
     const lastSlash = passName.lastIndexOf("/");
     const secondLastSlash = passName.lastIndexOf("/", lastSlash - 1);
     if (secondLastSlash <= 0) {
@@ -243,9 +243,20 @@ export class Shader implements IReferable {
     const shaderName = passName.substring(0, secondLastSlash);
     const subShaderName = passName.substring(secondLastSlash + 1, lastSlash);
     const passNamePart = passName.substring(lastSlash + 1);
-    return Shader.find(shaderName)
-      ?.subShaders.find((s) => s.name === subShaderName)
-      ?.passes.find((p) => p.name === passNamePart);
+
+    const shader = Shader.find(shaderName);
+    if (!shader) {
+      throw new Error(`UsePass "${passName}": shader "${shaderName}" not found.`);
+    }
+    const subShader = shader.subShaders.find((s) => s.name === subShaderName);
+    if (!subShader) {
+      throw new Error(`UsePass "${passName}": subShader "${subShaderName}" not found in shader "${shaderName}".`);
+    }
+    const pass = subShader.passes.find((p) => p.name === passNamePart);
+    if (!pass) {
+      throw new Error(`UsePass "${passName}": pass "${passNamePart}" not found in subShader "${subShaderName}".`);
+    }
+    return pass;
   }
 
   private static _applyRenderStates(
