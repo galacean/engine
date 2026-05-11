@@ -49,6 +49,10 @@ export class ShaderFactory {
   // [layout(location = 0)] out [highp] vec4 [color];
   private static readonly _has300OutInFragReg = /\bout\s+(?:\w+\s+)?vec4\s+\w+\s*;/;
 
+  // Camera matrices the derived defines reference; declared on demand because
+  // shader-compiler DCE may have stripped them.
+  private static readonly _cameraMatrixCandidates: ReadonlyArray<string> = ["camera_ViewMat", "camera_VPMat"];
+
   private static readonly _derivedDefines = `\
 #define renderer_MVMat (camera_ViewMat * renderer_ModelMat)
 #define renderer_MVPMat (camera_VPMat * renderer_ModelMat)
@@ -217,9 +221,11 @@ export class ShaderFactory {
     const fieldDefinesVS = ShaderFactory._buildFieldDefines(instanceFields, "gl_InstanceID");
     const fieldDefinesFS = ShaderFactory._buildFieldDefines(instanceFields, "v_instanceID");
     const derivedDefines = ShaderFactory._derivedDefines;
+    const vsCameraDecls = ShaderFactory._buildMissingCameraDecls(vertexSource);
+    const fsCameraDecls = ShaderFactory._buildMissingCameraDecls(fragmentSource);
 
-    const vsBlock = `${uboDecl}flat out int v_instanceID;\n${fieldDefinesVS}\n${derivedDefines}\n`;
-    const fsBlock = `${uboDecl}flat in int v_instanceID;\n${fieldDefinesFS}\n${derivedDefines}\n`;
+    const vsBlock = `${uboDecl}flat out int v_instanceID;\n${vsCameraDecls}${fieldDefinesVS}\n${derivedDefines}\n`;
+    const fsBlock = `${uboDecl}flat in int v_instanceID;\n${fsCameraDecls}${fieldDefinesFS}\n${derivedDefines}\n`;
 
     vertexSource = vsBlock + vertexSource;
     vertexSource = vertexSource.replace(
@@ -337,6 +343,19 @@ export class ShaderFactory {
     const instanceMaxCount = Math.floor(maxUBOSize / structSize);
 
     return { instanceFields, instanceMaxCount, structSize };
+  }
+
+  private static _buildMissingCameraDecls(source: string): string {
+    let out = "";
+    const candidates = ShaderFactory._cameraMatrixCandidates;
+    for (let i = 0; i < candidates.length; i++) {
+      const name = candidates[i];
+      const decl = new RegExp(`^\\s*uniform\\s+(?:(?:lowp|mediump|highp)\\s+)?mat4\\s+${name}\\s*;`, "m");
+      if (!decl.test(source)) {
+        out += `uniform mat4 ${name};\n`;
+      }
+    }
+    return out;
   }
 
   private static _buildUBODeclaration(layout: InstanceBufferLayout): string {
