@@ -30,7 +30,7 @@ class ShaderLoader extends Loader<Shader> {
         return Shader.find(builtinShader);
       }
 
-      return Shader.create(code);
+      return Shader.create(code, undefined, url);
     });
   }
 
