@@ -31,7 +31,7 @@ export class ShaderFactory {
   }
 
   /**
-   * Remove a previously-registered chunk.
+   * Remove a registered shader chunk.
    * @param includeName - The path key passed to `registerInclude`.
    */
   static unRegisterInclude(includeName: string): void {

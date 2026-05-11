@@ -85,21 +85,13 @@ export class Lexer extends BaseLexer {
     "#undef": Keyword.MACRO_UNDEF
   };
 
-  // Parses a `#define <name>[(params)] [value]` directive lexeme, sliced from
-  // `_source` between the `#` and the directive-terminating newline. Used by
-  // `_registerMacroDefine` to feed `macroDefineList` from both the AST and
-  // legacy `#define` paths — single source of truth, no drift between two
-  // analyzers.
+  // Single source of truth for `#define` parsing — fed from both AST and legacy paths.
   private static readonly _defineDirectiveReg = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?(?:[ \t]+([^\n\r]*?))?\s*$/;
-  // Anchors a `#define` value to a bare identifier or function-call form
-  // (`foo` or `foo(a, b)`); mixed-operator values like `a + b` reject. The
-  // captured identifier becomes `MacroDefineInfo.referenceName`.
+  // Bare identifier or call form only — mixed-operator values reject.
   private static readonly _referenceReg = /^([a-zA-Z_]\w*)(?:\s*\(.*\))?$/;
-  // C preprocessor line continuation: `\` followed by `\r\n`, `\n`, or `\r`.
-  // The pair is removed (the next physical line is part of the same logical line).
+  // C preprocessor line continuation.
   private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
-  // Synthetic `__if_<n>` tag per `#if` occurrence so the matching `#else`'s
-  // polarity flip makes the two arms mutually exclusive in `isVisibleFrom`.
+  // Synthetic `__if_<n>` per `#if` — polarity flip makes `#else` mutually exclusive in `isVisibleFrom`.
   private static _ifCounter = 0;
 
   /** Two branch signatures are equal iff they have the same constraints in the

@@ -33,8 +33,7 @@ export interface MacroDefineList {
 }
 
 export class Preprocessor {
-  // First branch swallows block comments so `#include` directives nested in
-  // doc comments (e.g. FXAA3_11.glsl) aren't expanded.
+  // Block-comment alternation prevents expanding `#include` inside doc comments.
   private static readonly _includeReg = /\/\*[\s\S]*?\*\/|^[ \t]*#include +"([\w\d./]+)"/gm;
 
   static parse(

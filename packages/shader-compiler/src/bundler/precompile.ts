@@ -98,9 +98,7 @@ export async function runFull(options: Omit<PrecompileOptions, "watch">): Promis
 
   fs.mkdirSync(outputDir, { recursive: true });
 
-  // Emit raw-source indexes BEFORE compile so collectIncludeMap can import the
-  // freshly-built `@galacean/engine-shader/sources` if a downstream consumer
-  // depends on it, and so the source indexes always reflect the latest tree.
+  // Emit source indexes before compile so collectIncludeMap can resolve the freshly-built sources.
   if (options.emitSources) {
     emitSources(inputDir);
   }
@@ -169,11 +167,6 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
   });
 }
 
-// Loads the compiled `dist/main.js` runtime. shader-compiler is standalone
-// (see `../enums/README.md`), so the only prerequisite is `pnpm b:compiler`
-// having produced the dist — there are no engine-runtime imports to worry
-// about. If `dist/main.js` is genuinely missing the import below throws and
-// that surfaces a real configuration error (don't paper over it).
 async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
   // @ts-ignore — `../main.js` is the compiled runtime entry; no .ts source.
   const mod = (await import("../main.js")) as { ShaderCompiler: new () => ShaderCompilerInstance };
@@ -184,11 +177,8 @@ async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
   return instance;
 }
 
-// Collect the `#include` lookup. Local `.glsl` always come from `inputDir`.
-// The standard library is sourced from `@galacean/engine-shader/sources` (the
-// release entry that bundles every `ShaderLibrary/*.glsl` chunk into one ESM
-// export). On engine self-build the dist isn't built yet so we fall back to
-// the sibling `ShaderLibrary` source directory.
+// Local .glsl come from inputDir; standard library comes from
+// `@galacean/engine-shader/sources` with a sibling-dir fallback for engine self-build cold-start.
 async function collectIncludeMap(inputDir: string): Promise<Record<string, string>> {
   const map: Record<string, string> = {};
 
@@ -198,10 +188,7 @@ async function collectIncludeMap(inputDir: string): Promise<Record<string, strin
   }
 
   let usedRelease = false;
-  // Resolve `@galacean/engine-shader/sources` from `inputDir`'s node_modules,
-  // not from cli.js's location (shader-compiler isn't engine-shader's parent
-  // package, so a bare `import("@galacean/engine-shader/sources")` would only
-  // succeed when shader-compiler happens to link it transitively).
+  // Resolve from inputDir's node_modules so consumers without transitive linkage to shader-compiler can still find it.
   try {
     const requireFromInput = createRequire(path.join(inputDir, "package.json"));
     const sourcesPath = requireFromInput.resolve("@galacean/engine-shader/sources");

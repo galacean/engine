@@ -37,10 +37,7 @@ export abstract class CodeGenVisitor {
     ret.dispose();
     for (const child of children) {
       if (child instanceof BaseToken) {
-        // Legacy opaque `#define` lexemes already contain the directive verbatim
-        // (including leading/trailing newlines); emit them as-is. Expression-style
-        // defines take the `MacroDefine` AST path and never reach this branch as a
-        // `MACRO_DEFINE_EXPRESSION` token.
+        // Legacy opaque `#define` lexemes carry the directive verbatim — expression-style defines go through the AST path.
         ret.array.push(child.lexeme);
       } else {
         ret.array.push(child.codeGen(this));
@@ -60,16 +57,8 @@ export abstract class CodeGenVisitor {
       const prop = children[2];
 
       if (prop instanceof BaseToken) {
-        // Resolve the struct role of the left-hand side. Two sources, in priority
-        // order:
-        //   1. `_structVarMap` keyed by the bare root identifier — covers
-        //      variables whose declared type hadn't been resolved when the macro
-        //      body was semantic-analyzed (e.g. forward-declared `Varyings o;`).
-        //      Only consulted for a single bare identifier so swizzles like
-        //      `foo.xyz` don't accidentally match a registered variable.
-        //   2. The AST's static type on the left sub-expression — the normal path
-        //      for inline code where `semanticAnalyze` resolved `postExpr.type`
-        //      to the struct type already.
+        // Struct role priority: `_structVarMap` by bare root ident (covers forward-declared types like `Varyings o;`),
+        // then AST static type (normal path when `semanticAnalyze` resolved `postExpr.type`).
         let role: StructRole | undefined;
         const directRoot = ParserUtils.extractDirectIdentLexeme(postExpr);
         if (directRoot) role = context._structVarMap[directRoot];

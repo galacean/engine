@@ -43,11 +43,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
 
-    // Resolve struct roles for both stages' IO structs, then register every variable
-    // whose type is a role-carrying struct — vertex params/locals, fragment
-    // params/locals, and module-level globals. The resulting `_structVarMap` lives
-    // across both stages so a global `#define` referencing, say, the fragment's `v`
-    // parameter is rewritten consistently in both the vertex and fragment outputs.
+    // `_structVarMap` must span both stages so global `#define` references rewrite consistently across vertex/fragment outputs.
     this._collectAllStructVars(vertexEntry, fragmentEntry);
 
     return {
@@ -56,20 +52,13 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     };
   }
 
-  /**
-   * Populate `_structVarMap` with every variable whose declared type resolves to a
-   * varying/attribute/mrt struct. Walks both entry functions (plus any overloads)
-   * and the module-level symbol table. Runs before either stage's codegen so the
-   * map is complete from the start and doesn't depend on stage ordering.
-   */
+  /** Populate `_structVarMap` for varying/attribute/mrt-typed variables across both stages before codegen. */
   private _collectAllStructVars(vertexEntry: string, fragmentEntry: string): void {
     const context = VisitorContext.context;
     const lookupSymbol = GLESVisitor._lookupSymbol;
     const symbolTable = context._passSymbolTable;
 
-    // Derive role-per-struct-type from entry function signatures. Vertex param[0] is
-    // attribute, vertex return is varying; fragment param[0] is varying, fragment
-    // return is mrt.
+    // Roles from entry signatures: vertex param[0]=attribute, return=varying; fragment param[0]=varying, return=mrt.
     const structRoles: Record<string, StructRole> = Object.create(null);
 
     const addEntryRoles = (entry: string, paramRole: StructRole, returnRole: StructRole): FnSymbol[] => {
@@ -92,8 +81,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       addEntryRoles(fragmentEntry, "varying", "mrt")
     );
 
-    // Walk each entry function's params and locals, registering any struct-typed
-    // variable whose type is a role-carrying struct.
     const registerByType = (typeLexeme: string | undefined, varName: string): void => {
       if (!typeLexeme) return;
       const role = structRoles[typeLexeme];
@@ -193,10 +180,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     });
 
-    // Pre-walk global `#define` values to register any struct-property references
-    // before struct codegen, so the relevant `attribute`/`varying` declarations land
-    // in the output. `_structVarMap` is already populated by `_collectAllStructVars`
-    // in `visitShaderProgram`.
+    // Pre-walk global `#define` values so referenced struct properties emit `attribute`/`varying` declarations.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
 
     const globalCodeArray = this._globalCodeArray;
@@ -234,11 +218,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
     if (!fnSymbols?.length) throw `no entry function found: ${entry}`;
 
-    // Fragment's varying info comes from the vertex stage. The vertex stage has
-    // already populated varyingStructs/varyingList via `_vertexMain`, and those are
-    // preserved across the `context.reset(false)` call, so `isVaryingStruct` works
-    // correctly here.
-
+    // Fragment varying info inherits from vertex stage (preserved across `context.reset(false)`).
     fnSymbols.forEach((fnSymbol) => {
       const fnNode = fnSymbol.astNode;
       const { returnStatement } = fnNode;

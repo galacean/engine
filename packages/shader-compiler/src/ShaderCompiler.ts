@@ -11,15 +11,6 @@ import { Preprocessor, IncludeMap, ChunkOutputCache } from "./Preprocessor";
 import { ShaderCompilerUtils } from "./ShaderCompilerUtils";
 import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
-// `IShaderCompiler` (in engine-design) is the engine-runtime view of this
-// class — i.e. the interface engine-core uses when accepting a shader compiler
-// instance. We don't `implements` it here because that would force our
-// internal source-tree types (which use the local minimal Color) to be
-// nominally identical to the design-side ones (which use math Color); the two
-// are structurally compatible at runtime — Color → number[] serialization in
-// `_serializeRenderStates` ensures the wire format matches — but tsc's
-// nominal typing rejects the assignment. Engine-side `WebGLEngine.create({
-// shaderCompiler })` already takes the instance through the design interface.
 export class ShaderCompiler {
   private static _parser = ShaderTargetParser.create();
   private static _shaderPositionPool = ShaderCompilerUtils.createObjectPool(ShaderPosition);
@@ -32,11 +23,7 @@ export class ShaderCompiler {
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
 
-  /**
-   * Replace the `#include` lookup table. Runtime callers bind it to
-   * `ShaderFactory.includeMap`; the bundler binds it to a freshly-scanned src
-   * map. Drops the derived chunk cache so the two stay in lockstep.
-   */
+  /** Replace the `#include` lookup table and clear the derived chunk cache. */
   _setIncludeMap(includeMap: IncludeMap): void {
     this._includeMap = includeMap;
     this._chunkOutputCache.clear();
@@ -113,7 +100,6 @@ export class ShaderCompiler {
     // #endif
 
     if (ret) {
-      // Always parse instructions for the compiled GLSL
       ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
       ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);
     }
