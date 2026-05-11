@@ -116,10 +116,15 @@ export class GLTFParserContext {
 
       // Scene-before-Skin parse order
       //
-      // Skin._findSceneRootBone reads glTFResource._sceneRoots, populated
-      // synchronously by Scene's parse head. Do not reverse — Scene's async
-      // tail awaits Skin via _createRenderer for skinned renderers, so a
-      // "Skin awaits Scene" rewrite would deadlock on the cached promise.
+      // Skin rootBone resolution walks joint parent chains and computes the
+      // joints' lowest common ancestor. Scene's parse head must run first
+      // because it synchronously attaches top-level scene nodes under the
+      // GLTF_ROOT wrapper; when joints span multiple top-level scene nodes
+      // that wrapper naturally becomes the LCA.
+      //
+      // Do not rewrite Skin to await full Scene: Scene's async tail can
+      // request Skin via _createRenderer for skinned renderers, which would
+      // deadlock on the cached promise.
       return AssetPromise.all([
         this.get<void>(GLTFParserType.Validator),
         this.get<Entity>(GLTFParserType.Scene),
