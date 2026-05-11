@@ -72,6 +72,13 @@ Loader.registerClass("CallOrderComponent", CallOrderComponent);
 
 let engine: WebGLEngine;
 
+describe("SceneFile v2 schema enums", () => {
+  it("uses numeric enum values for ambient specularMode", () => {
+    expect(SpecularMode.Sky).to.equal(0);
+    expect(SpecularMode.Custom).to.equal(1);
+  });
+});
+
 beforeAll(async function () {
   const canvasDOM = document.createElement("canvas");
   canvasDOM.width = 100;
