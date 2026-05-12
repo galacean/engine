@@ -810,6 +810,67 @@ describe("ReflectionParser $type resolution", () => {
       })
     ).rejects.toThrow("NonExistentClass123");
   });
+
+  it("should throw a clear error when $type is not a non-empty string", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await expect(
+      parser.parseProps(target, {
+        value: { $type: 123 } as any
+      })
+    ).rejects.toThrow("$type must be a non-empty registered class name string");
+  });
+});
+
+describe("ReflectionParser $class resolution", () => {
+  it("should resolve $class as the registered constructor through parseProps", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await parser.parseProps(target, {
+      value: { $class: "TestValueType" }
+    });
+    expect(target.value).to.equal(TestValueType);
+  });
+
+  it("should throw a clear error when $class is an empty string", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await expect(
+      parser.parseProps(target, {
+        value: { $class: "" }
+      })
+    ).rejects.toThrow("$class must be a non-empty registered class name string");
+  });
+
+  it("should throw a clear error when $class is not a string", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await expect(
+      parser.parseProps(target, {
+        value: { $class: 123 } as any
+      })
+    ).rejects.toThrow("$class must be a non-empty registered class name string");
+  });
+
+  it("should throw a clear error when $class references an unregistered class", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await expect(
+      parser.parseProps(target, {
+        value: { $class: "NonExistentClass123" }
+      })
+    ).rejects.toThrow("NonExistentClass123");
+  });
 });
 
 // ---------------------------------------------------------------------------
