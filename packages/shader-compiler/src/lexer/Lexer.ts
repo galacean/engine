@@ -621,67 +621,161 @@ export class Lexer extends BaseLexer {
   }
 
   /**
-   * Peek forward from `#define` and decide whether this directive should use the
-   * expression-AST path or the legacy opaque path.
+   * Peek forward from `#define` and decide whether this directive's value
+   * should be parsed by the expression grammar (AST path) or kept as an opaque
+   * textual token sequence (legacy path).
    *
-   * The AST path's only purpose is to enable the shader compiler's structural rewrites
-   * (varying flatten, struct-property reference tracking) on macro values that
-   * mention struct members. Every other shape — bare identifiers, numeric
-   * literals, type-alias keywords (`#define FxaaFloat2 vec2`), constructor
-   * calls, qualifier fragments, `#define COMMA ,` etc. — is correctly handled
-   * by the GLSL driver via textual substitution and needs no AST.
+   * **Routing rule**: route to AST iff the value can be parsed as an
+   * `assignment_expression`. The grammar accepts: bare identifiers, numeric /
+   * boolean literals, member access (`v.v_uv`), unary / binary operators,
+   * parenthesized sub-expressions, function calls.
    *
-   * So the routing rule is positive and information-driven: **AST iff the
-   * replacement list contains a `.` member-access operator**. This is robust
-   * against new GLSL keywords / extensions and incidentally moves all simple
-   * constants and type aliases off the 18-layer expression precedence chain.
+   * **Stays on legacy path** when the value is *not* a valid expression:
+   *   - empty value:                 `#define COMMON_INCLUDED`
+   *   - single type/qualifier kw:    `#define FxaaFloat float`
+   *   - qualifier list:              `#define HP highp`
+   *   - bare punctuation:            `#define COMMA ,`   `#define PAREN (`
+   *   - trailing punctuation:        `#define NEG_ONE -1.0,`
+   *
+   * Why route as much as possible to AST: identifier references in expression
+   * values are then a *natural byproduct* of AST analysis (each
+   * `VariableIdentifier` semantic-analyzes against the symbol table). This
+   * removes the string-based identifier scanner and the entire class of bugs
+   * that come with regex-based semantic extraction (comment leaks, missed
+   * operators, mis-tokenized parens). Legacy path stays for the GLSL ES 3.00
+   * §3.4 "arbitrary token sequence" case — which by construction holds no
+   * user identifiers to track.
+   *
+   * Comment / line-continuation handling is delegated to `_skipNonSemantic`
+   * so the peek sees the same lexical view the token-stream path will see.
    */
   private _defineHasValue(): boolean {
     const src = this._source;
     const len = src.length;
-    // All position advancement goes through `_skipNonSemantic`, which honors
-    // line-continuation (`\` + newline) and skips comments. This is critical:
-    // `#define UV foo \\\n  .field` is one logical directive whose value
-    // contains `.field`, and `#define HP /* a.b */ highp` must not let the
-    // `.` inside the comment trigger AST routing.
+    // Skip whitespace / line-continuation / comments before the macro name.
     let i = Lexer._skipNonSemantic(src, this._currentIndex, len);
-    // Skip macro name
+    // Macro name (required); if absent, malformed → stay legacy.
     if (!(i < len && BaseLexer.isAlpha(src.charCodeAt(i)))) return false;
     while (i < len && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
-    i = Lexer._skipNonSemantic(src, i, len);
-    // Optional `(params)`: scan past a balanced pair on the same logical line
-    if (src.charCodeAt(i) === 40 /* '(' */) {
+    // Optional `(params)` directly after the name (no whitespace between name
+    // and `(` per C99 §6.10.3/10). If present, skip past the balanced pair.
+    // Whitespace between name and `(` makes it object-like → fall through.
+    if (i < len && src.charCodeAt(i) === 40 /* '(' */) {
       let depth = 1;
       i++;
       while (i < len && depth > 0) {
         i = Lexer._skipNonSemantic(src, i, len);
+        if (i >= len) break;
         const c = src.charCodeAt(i);
-        if (c === 10 || c === 13) return false; // malformed: stay legacy
+        if (c === 10 || c === 13) return false; // unbalanced → stay legacy
         if (c === 40) depth++;
         else if (c === 41 /* ')' */) depth--;
         i++;
       }
     }
-    // Scan to end-of-directive looking for a `.` member-access operator.
-    // A `.` is member-access unless it's a decimal point inside a numeric
-    // literal — the latter has digits on both physical sides (`3.14`).
-    // Edge cases like `.5` go AST too (false positive, but AST path
-    // handles bare floats correctly).
+    // Scan the value. Snapshot the first "real" (non-comment / non-space)
+    // character — that anchors empty / starts-with-punctuation detection.
+    // Collect a small lookahead window of significant tokens to decide
+    // "single type/qualifier keyword" without misclassifying constructor
+    // calls (`vec2(...)`) as type aliases.
+    i = Lexer._skipNonSemantic(src, i, len);
+    if (i >= len || src.charCodeAt(i) === 10 || src.charCodeAt(i) === 13) {
+      // Empty value (`#define FOO`) — opaque flag macro, no expression.
+      return false;
+    }
+    const firstChar = src.charCodeAt(i);
+    // Leading bare punctuation that can't start an expression (`,`, `;`, `:`,
+    // `?`, closing `)`, closing `]`). A leading `(` is fine — it starts a
+    // parenthesized expression. A leading `-`/`+`/`!`/`~`/`*`/`&` is fine —
+    // they're unary operators (the grammar accepts `-u_unary` etc.).
+    if (
+      firstChar === 44 /* , */ ||
+      firstChar === 59 /* ; */ ||
+      firstChar === 58 /* : */ ||
+      firstChar === 63 /* ? */ ||
+      firstChar === 41 /* ) */ ||
+      firstChar === 93 /* ] */
+    ) {
+      return false;
+    }
+    // Tokenize the value enough to identify the "single type keyword" shape.
+    // Collect the first significant lexeme and check whether anything
+    // significant follows on the same logical line.
+    let firstLexemeStart = i;
+    let firstLexemeEnd = i;
+    if (BaseLexer.isAlpha(firstChar)) {
+      while (firstLexemeEnd < len && BaseLexer.isAlnum(src.charCodeAt(firstLexemeEnd))) firstLexemeEnd++;
+    } else {
+      // Non-identifier first lexeme (digit, `(`, unary operator, etc.) —
+      // always an expression start. No need to look ahead further.
+      return Lexer._scanForUnbalancedTrailing(src, i, len);
+    }
+    const firstLexeme = src.slice(firstLexemeStart, firstLexemeEnd);
+    // Look at what follows the first identifier-shaped lexeme.
+    let j = Lexer._skipNonSemantic(src, firstLexemeEnd, len);
+    const endsHere = j >= len || src.charCodeAt(j) === 10 || src.charCodeAt(j) === 13;
+    if (endsHere) {
+      // Single lexeme. If it's a GLSL type/qualifier keyword, the value is a
+      // type alias → legacy. Otherwise (bare identifier, like `LIGHT_INPUT
+      // u_globalLightDir`), it's a valid `primary_expression` → AST.
+      return !Lexer._isNonExpressionLeadingKeyword(firstLexeme);
+    }
+    const nextChar = src.charCodeAt(j);
+    // Constructor call: `vec3(...)` — type keyword followed by `(` is an
+    // expression, route to AST. Same for `INVERSE_MAT(mat) inverse(mat)` —
+    // identifier followed by `(` is a function call.
+    if (nextChar === 40 /* '(' */) {
+      return Lexer._scanForUnbalancedTrailing(src, i, len);
+    }
+    // Multi-token starting with a non-expression keyword (qualifier list like
+    // `mediump sampler2D shadowMap`) → legacy.
+    if (Lexer._isNonExpressionLeadingKeyword(firstLexeme)) return false;
+    // Identifier followed by something other than `(` (operator, dot, etc.) —
+    // routes through the trailing-punctuation guard then to AST.
+    return Lexer._scanForUnbalancedTrailing(src, i, len);
+  }
+
+  /** True for GLSL type / qualifier / non-expression keywords that, when
+   *  appearing as the only token of a `#define` value, make the macro a
+   *  type-alias-style opaque macro that the expression grammar can't accept. */
+  private static _isNonExpressionLeadingKeyword(lexeme: string): boolean {
+    const kw = Lexer._lexemeTable[lexeme];
+    if (kw === undefined) return false;
+    // `true` / `false` are `primary_expression` literals — keep on AST path.
+    if (kw === Keyword.True || kw === Keyword.False) return false;
+    // Macro directive keywords (`#if`, …) shouldn't appear here anyway, but
+    // exclude them defensively.
+    if (lexeme.charCodeAt(0) === 35 /* # */) return false;
+    return true;
+  }
+
+  /** Walks the rest of the directive looking for trailing bare punctuation
+   *  (`,`, `;`) at the value's tail — those make the replacement list a
+   *  non-expression token sequence and force legacy. Otherwise returns
+   *  `true` (route to AST). */
+  private static _scanForUnbalancedTrailing(src: string, from: number, len: number): boolean {
+    let i = from;
+    let lastSignificant = -1;
+    let parenDepth = 0;
     while (i < len) {
-      i = Lexer._skipNonSemantic(src, i, len);
-      if (i >= len) break;
       const c = src.charCodeAt(i);
-      if (c === 10 || c === 13) break; // real newline ends directive
-      if (c === 46 /* '.' */) {
-        const prev = i > 0 ? src.charCodeAt(i - 1) : 0;
-        const next = i + 1 < len ? src.charCodeAt(i + 1) : 0;
-        const prevIsDigit = prev >= 48 && prev <= 57;
-        const nextIsDigit = next >= 48 && next <= 57;
-        if (!(prevIsDigit && nextIsDigit)) return true;
+      if (c === 10 || c === 13) break;
+      const afterSkip = Lexer._skipNonSemantic(src, i, len);
+      if (afterSkip !== i) {
+        i = afterSkip;
+        continue;
       }
+      lastSignificant = i;
+      if (c === 40 /* ( */) parenDepth++;
+      else if (c === 41 /* ) */) parenDepth--;
       i++;
     }
-    return false;
+    if (parenDepth !== 0) return false;
+    if (lastSignificant === -1) return false;
+    const tail = src.charCodeAt(lastSignificant);
+    // Trailing `,` or `;` makes the value a non-expression token sequence.
+    if (tail === 44 || tail === 59) return false;
+    return true;
   }
 
   /**

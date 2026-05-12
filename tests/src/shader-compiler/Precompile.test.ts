@@ -1108,6 +1108,11 @@ describe("ShaderCompiler Precompile", async () => {
       for (const inst of fragInstr) {
         if ((inst[0] === 8 || inst[0] === 9) && typeof inst[1] === "string") defines.set(inst[1], inst);
       }
+      // Macros with expression values now route to AST and codegen re-emits
+      // the value through the visitor — token-separated by spaces. The exact
+      // textual rendering is the visitor's responsibility; we assert
+      // *structural* identity (DefineVal opcode + same tokens in order) via a
+      // whitespace-normalized comparison.
       const expectedDefines: Array<[string, string]> = [
         ["V_PAREN", "(u_paren)"],
         ["V_OP", "u_op_a + u_op_b"],
@@ -1115,11 +1120,12 @@ describe("ShaderCompiler Precompile", async () => {
         ["V_UNARY", "-u_unary"],
         ["V_SKY", "(mix(0.0, 0.0025, pow(material_AtmosphereThickness, 2.5)))"]
       ];
+      const norm = (s: string) => s.replace(/\s+/g, "");
       for (const [name, value] of expectedDefines) {
         const inst = defines.get(name);
         expect(inst, `missing #define ${name}`).toBeDefined();
         expect(inst![0], `${name} must be DefineVal (8), got ${inst![0]}`).toBe(8);
-        expect(inst![2]).toBe(value);
+        expect(norm(inst![2] as string), `${name} value mismatch`).toBe(norm(value));
       }
 
       const fragText = fragInstr
