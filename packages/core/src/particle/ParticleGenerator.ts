@@ -1100,27 +1100,29 @@ export class ParticleGenerator {
     // ─── Sub-emitter inherit overrides (multiplicative for color/size, additive for rotation) ──
     const colorOverride = this._subEmitColorOverride;
     if (colorOverride) {
-      const co = offset + 8;
-      instanceVertices[co] *= colorOverride.r;
-      instanceVertices[co + 1] *= colorOverride.g;
-      instanceVertices[co + 2] *= colorOverride.b;
-      instanceVertices[co + 3] *= colorOverride.a;
+      const colorOffset = offset + 8;
+      instanceVertices[colorOffset] *= colorOverride.r;
+      instanceVertices[colorOffset + 1] *= colorOverride.g;
+      instanceVertices[colorOffset + 2] *= colorOverride.b;
+      instanceVertices[colorOffset + 3] *= colorOverride.a;
     }
     const sizeOverride = this._subEmitSizeOverride;
     if (sizeOverride) {
-      instanceVertices[offset + 12] *= sizeOverride.x;
-      instanceVertices[offset + 13] *= sizeOverride.y;
-      instanceVertices[offset + 14] *= sizeOverride.z;
+      const sizeOffset = offset + 12;
+      instanceVertices[sizeOffset] *= sizeOverride.x;
+      instanceVertices[sizeOffset + 1] *= sizeOverride.y;
+      instanceVertices[sizeOffset + 2] *= sizeOverride.z;
     }
     const rotationOverride = this._subEmitRotationOverride;
     if (rotationOverride) {
+      const rotationOffset = offset + 15;
       if (main.startRotation3D) {
-        instanceVertices[offset + 15] += rotationOverride.x;
-        instanceVertices[offset + 16] += rotationOverride.y;
-        instanceVertices[offset + 17] += rotationOverride.z;
+        instanceVertices[rotationOffset] += rotationOverride.x;
+        instanceVertices[rotationOffset + 1] += rotationOverride.y;
+        instanceVertices[rotationOffset + 2] += rotationOverride.z;
       } else {
         // 2D mode stores Z rotation at offset 15
-        instanceVertices[offset + 15] += rotationOverride.z;
+        instanceVertices[rotationOffset] += rotationOverride.z;
       }
     }
 
