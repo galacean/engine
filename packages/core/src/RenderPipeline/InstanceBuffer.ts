@@ -62,9 +62,9 @@ export class InstanceBuffer {
         const propertyId = field.property._uniqueId;
 
         if (propertyId === modelMatId) {
-          // Instancing skips _updateTransformShaderData, so worldMatrix is not in propertyValueMap
-          // Must read from transform getter to trigger lazy update
-          field.pack(floatView, fieldOffset, renderer.entity.transform.worldMatrix);
+          // Instancing skips _updateTransformShaderData; mirror its transform source
+          // @ts-ignore — _transformEntity is protected
+          field.pack(floatView, fieldOffset, renderer._transformEntity.transform.worldMatrix);
         } else {
           const value = propertyValueMap[propertyId];
           if (value != null) {
