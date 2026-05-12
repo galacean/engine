@@ -11,6 +11,7 @@ import {
   MathUtil,
   Matrix,
   Ray,
+  RenderElement,
   Vector2,
   Vector3,
   assignmentClone,
@@ -62,10 +63,10 @@ export class UICanvas extends Component implements IElement {
   _isRootCanvas: boolean = false;
   /** @internal */
   @ignoreClone
-  _renderElements: any[] = [];
+  _renderElements: RenderElement[] = [];
   /** @internal */
   @ignoreClone
-  _batchedRenderElements: any[] = [];
+  _batchedRenderElements: RenderElement[] = [];
   /** @internal */
   @ignoreClone
   _sortDistance: number = 0;
@@ -393,6 +394,12 @@ export class UICanvas extends Component implements IElement {
   override _onDisableInScene(): void {
     this._setIsRootCanvas(false);
     Utils.cleanRootCanvas(this);
+  }
+
+  // @ts-ignore
+  override _onDisable(): void {
+    this._renderElements.length = 0;
+    this._batchedRenderElements.length = 0;
   }
 
   /**
