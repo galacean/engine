@@ -372,7 +372,7 @@ describe("SceneParser v2 entity tree", () => {
       entities,
       components,
       scene: {
-        entities: rootEntities,
+        rootEntities,
         background: {
           mode: 0,
           color: [0.25, 0.25, 0.25, 1]
@@ -392,7 +392,7 @@ describe("SceneParser v2 entity tree", () => {
       entities: [{ name: "Entity" }],
       components: [],
       scene: {
-        entities: [0],
+        rootEntities: [0],
         background: {
           mode: BackgroundMode.SolidColor,
           color: [0.25, 0.25, 0.25, 1]
@@ -630,7 +630,7 @@ describe("SceneParser v2 entity tree", () => {
       entities: [{ name: "Root", components: [0] }],
       components: [{ type: "CallOrderComponent" }],
       scene: {
-        entities: [0],
+        rootEntities: [0],
         background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
         ambient: {
           diffuseMode: DiffuseMode.SolidColor,
@@ -907,7 +907,7 @@ describe("applySceneData scene property parsing", () => {
       await applySceneData(
         scene,
         {
-          entities: [0],
+          rootEntities: [0],
           background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
           ambient: {
             diffuseMode: DiffuseMode.SphericalHarmonics,
@@ -952,7 +952,7 @@ describe("applySceneData scene property parsing", () => {
       await applySceneData(
         scene,
         {
-          entities: [0],
+          rootEntities: [0],
           background: {
             mode: BackgroundMode.Sky,
             color: [0, 0, 0, 1],
@@ -988,7 +988,7 @@ describe("applySceneData scene property parsing", () => {
       await applySceneData(
         scene,
         {
-          entities: [0],
+          rootEntities: [0],
           background: {
             mode: BackgroundMode.Texture,
             color: [0, 0, 0, 1],
@@ -1014,7 +1014,7 @@ describe("applySceneData scene property parsing", () => {
       applySceneData(
         scene,
         {
-          entities: [0],
+          rootEntities: [0],
           background: {
             mode: BackgroundMode.Texture,
             color: [0, 0, 0, 1],
@@ -1032,7 +1032,7 @@ describe("applySceneData scene property parsing", () => {
     await applySceneData(
       scene,
       {
-        entities: [0],
+        rootEntities: [0],
         background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
         shadow: {
           castShadows: false,
@@ -1066,7 +1066,7 @@ describe("applySceneData scene property parsing", () => {
     await applySceneData(
       scene,
       {
-        entities: [0],
+        rootEntities: [0],
         background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
         fog: {
           fogMode: FogMode.ExponentialSquared,
@@ -1095,7 +1095,7 @@ describe("applySceneData scene property parsing", () => {
     await applySceneData(
       scene,
       {
-        entities: [0],
+        rootEntities: [0],
         background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] },
         ambientOcclusion: {
           enabledAmbientOcclusion: true,
@@ -1128,7 +1128,7 @@ describe("applySceneData scene property parsing", () => {
     await applySceneData(
       scene,
       {
-        entities: [0],
+        rootEntities: [0],
         background: {
           mode: BackgroundMode.SolidColor,
           color: [0.5, 0.6, 0.7, 1]
@@ -1150,7 +1150,7 @@ describe("applySceneData scene property parsing", () => {
     await applySceneData(
       scene,
       {
-        entities: [0],
+        rootEntities: [0],
         background: { mode: BackgroundMode.SolidColor, color: [0, 0, 0, 1] }
       },
       engine.resourceManager,

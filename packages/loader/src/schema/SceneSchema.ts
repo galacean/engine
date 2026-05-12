@@ -17,7 +17,7 @@ export enum SpecularMode {
 export interface SceneFile extends HierarchyFile {
   scene: {
     name?: string;
-    entities: number[];
+    rootEntities: number[];
     background: {
       mode: BackgroundMode;
       color: Vec4Tuple;
