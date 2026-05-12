@@ -112,26 +112,15 @@ export class ReflectionParser {
     // $type — polymorphic type: construct instance and apply remaining props
     if ("$type" in obj) {
       const { $type, ...rest } = obj;
-      let Class: any;
-      try {
-        Class = this._getRegisteredClass($type, "$type");
-      } catch (error) {
-        return Promise.reject(error);
-      }
-      const instance = new Class();
-      if (Object.keys(rest).length > 0) {
-        return this.parseProps(instance, rest);
-      }
-      return Promise.resolve(instance);
+      return this._resolveRegisteredClass($type, "$type").then((Class) => {
+        const instance = new Class();
+        return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
+      });
     }
 
     // $class — registered class constructor for factory-style methods.
     if ("$class" in obj) {
-      try {
-        return Promise.resolve(this._getRegisteredClass(obj.$class, "$class"));
-      } catch (error) {
-        return Promise.reject(error);
-      }
+      return this._resolveRegisteredClass(obj.$class, "$class");
     }
 
     // $entity — entity reference by path (first element = flat index, subsequent = children indices)
@@ -169,6 +158,15 @@ export class ReflectionParser {
     const Class = Loader.getClass(value);
     if (!Class) throw new Error(`Loader.getClass: class "${value}" is not registered`);
     return Class;
+  }
+
+  /** Promise-adapt {@link _getRegisteredClass} so $type/$class branches can fold into the resolver chain. */
+  private _resolveRegisteredClass(value: unknown, sentinel: "$type" | "$class"): Promise<any> {
+    try {
+      return Promise.resolve(this._getRegisteredClass(value, sentinel));
+    } catch (error) {
+      return Promise.reject(error);
+    }
   }
 
   private _resolveSignal(signal: any, listeners: SignalListener[]): Promise<any> {
