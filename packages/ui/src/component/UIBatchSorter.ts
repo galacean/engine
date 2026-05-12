@@ -1,6 +1,4 @@
-import { BoundingBox, Matrix } from "@galacean/engine-math";
-import { Utils } from "../Utils";
-import { RenderElement } from "./RenderElement";
+import { BoundingBox, Matrix, RenderElement, Utils } from "@galacean/engine";
 
 /**
  * @internal
@@ -118,6 +116,7 @@ export class UIBatchSorter {
       }
     }
 
+    // @ts-ignore — Utils._quickSort is @internal
     Utils._quickSort(entries, 0, count, UIBatchSorter._compareEntries);
     for (let i = 0; i < count; i++) elements[i] = entries[i].element;
   }

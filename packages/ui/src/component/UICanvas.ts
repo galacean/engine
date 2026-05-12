@@ -16,11 +16,10 @@ import {
   assignmentClone,
   deepClone,
   dependentComponents,
-  ignoreClone,
-  // @ts-ignore — internal API
-  UIBatchSorter
+  ignoreClone
 } from "@galacean/engine";
 import { Utils } from "../Utils";
+import { UIBatchSorter } from "./UIBatchSorter";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
 import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
 import { UIHitResult } from "../input/UIHitResult";

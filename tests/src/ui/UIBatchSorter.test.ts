@@ -1,4 +1,4 @@
-import { UIBatchSorter } from "@galacean/engine-core";
+import { UIBatchSorter } from "@galacean/engine-ui/src/component/UIBatchSorter";
 import { BoundingBox, Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { describe, expect, it } from "vitest";
 
