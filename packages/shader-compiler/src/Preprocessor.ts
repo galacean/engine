@@ -8,23 +8,16 @@ export type IncludeMap = { readonly [includeName: string]: string | undefined };
 
 export type ChunkOutputCache = Map<string, string>;
 
-/**
- * Record for a single `#define` directive. `valueAst` is set for expression
- * macros (joined into the AST pipeline); opaque macros leave it undefined and
- * are emitted verbatim to the GLSL driver.
- */
 export interface MacroDefineInfo {
   isFunction: boolean;
   name: string;
   params: string[];
+  /** Set only for AST-routed macros (value contains `.` member access). */
   valueAst?: ASTNode.AssignmentExpression;
-  /** Leading identifier of the value (`#define F foo` → `foo`, `#define F foo(a)`
-   *  → `foo`), or empty for literals / operator expressions. Drives symbol-table
-   *  lookup at macro call sites. */
-  referenceName: string;
-  /** Branch signature at the point of registration. The same `#define` repeated
-   *  in different `#ifdef` branches produces multiple entries with different
-   *  signatures; call sites filter to those visible from their own position. */
+  /** Identifiers in the value with params filtered. Undefined when the value
+   *  has none (numeric literal only — the common case for `#define PI 3.14`). */
+  referencedIdentifiers?: string[];
+  /** `#ifdef` branch at registration time; call sites filter to visible entries. */
   branch: BranchSignature;
 }
 

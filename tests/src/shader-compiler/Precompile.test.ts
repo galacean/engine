@@ -1077,6 +1077,40 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
+    // Repro for the SkyMat `material_AtmosphereThickness undeclared` failure.
+    // Pre-fix `_referenceReg` was anchored to `^id(\(.*\))?$`, capturing only
+    // a leading identifier — paren / operator / unary / nested-fn values all
+    // lost their inner refs. The fixture defines 4 macro shapes; the test
+    // asserts each emits the full object-like value (DefineVal) and every
+    // user identifier becomes a real `uniform` declaration.
+    it("emits object-like Define instructions and uniforms for complex macro values", async () => {
+      const source = await readFile("./shaders/macro-value-refs.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
+
+      const defines = new Map<string, ShaderInstruction>();
+      for (const inst of fragInstr) {
+        if ((inst[0] === 8 || inst[0] === 9) && typeof inst[1] === "string") defines.set(inst[1], inst);
+      }
+      const expectedDefines: Array<[string, string]> = [
+        ["V_OP", "u_op_a + u_op_b"],
+        ["V_FN", "mix(u_fn_a, u_fn_b, 0.5)"],
+        ["V_UNARY", "-u_unary"],
+        ["V_SKY", "(mix(0.0, 0.0025, pow(material_AtmosphereThickness, 2.5)))"]
+      ];
+      for (const [name, value] of expectedDefines) {
+        const inst = defines.get(name);
+        expect(inst, `missing #define ${name}`).toBeDefined();
+        expect(inst![0], `${name} must be DefineVal (8), got ${inst![0]}`).toBe(8);
+        expect(inst![2]).toBe(value);
+      }
+
+      const fragText = fragInstr.filter((i) => i[0] === 0).map((i) => i[1] as string).join("");
+      for (const name of ["u_op_a", "u_op_b", "u_fn_a", "u_fn_b", "u_unary", "material_AtmosphereThickness"]) {
+        expect(fragText, `missing uniform decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
+      }
+    });
+
     it("subShader tags are preserved", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);

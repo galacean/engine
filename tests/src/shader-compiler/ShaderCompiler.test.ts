@@ -378,6 +378,12 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
 
+  it("macro-value-refs (uniforms referenced inside paren / operator / fn-call / unary / nested macro values)", async () => {
+    const shaderSource = await readFile("./shaders/macro-value-refs.shader");
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
+    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+  });
+
   it("macro-call-struct-arg (struct-member access as function-like macro arg)", async () => {
     const shaderSource = await readFile("./shaders/macro-call-struct-arg-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);

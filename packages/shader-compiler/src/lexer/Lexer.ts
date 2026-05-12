@@ -87,8 +87,8 @@ export class Lexer extends BaseLexer {
 
   // Single source of truth for `#define` parsing — fed from both AST and legacy paths.
   private static readonly _defineDirectiveReg = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?(?:[ \t]+([^\n\r]*?))?\s*$/;
-  // Bare identifier or call form only — mixed-operator values reject.
-  private static readonly _referenceReg = /^([a-zA-Z_]\w*)(?:\s*\(.*\))?$/;
+  // `\b` skips numeric-literal letters (`123u`, `1e10`, `1.5f`, `0xFFu`).
+  private static readonly _refIdsReg = /\b[a-zA-Z_]\w*/g;
   // C preprocessor line continuation.
   private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
   // Synthetic `__if_<n>` per `#if` — polarity flip makes `#else` mutually exclusive in `isVisibleFrom`.
@@ -818,12 +818,24 @@ export class Lexer extends BaseLexer {
           .map((p) => p.trim())
           .filter(Boolean)
       : [];
-    const refMatch = valueRaw ? Lexer._referenceReg.exec(valueRaw.trim()) : null;
+    // Lazy: stay undefined for the common literal-only case (`#define PI 3.14`,
+    // `#define MAX_LIGHTS 8`). Allocated on first match only.
+    let referencedIdentifiers: string[] | undefined;
+    if (valueRaw) {
+      Lexer._refIdsReg.lastIndex = 0;
+      let match: RegExpExecArray | null;
+      while ((match = Lexer._refIdsReg.exec(valueRaw))) {
+        const id = match[0];
+        if (params.indexOf(id) !== -1) continue;
+        if (!referencedIdentifiers) referencedIdentifiers = [id];
+        else if (referencedIdentifiers.indexOf(id) === -1) referencedIdentifiers.push(id);
+      }
+    }
     const info: MacroDefineInfo = {
       isFunction: m[2] !== undefined,
       name,
       params,
-      referenceName: refMatch ? refMatch[1] : "",
+      referencedIdentifiers,
       branch: this._branchStack.length === 0 ? EMPTY_BRANCH : this._branchStack.slice()
     };
     const arr = this.macroDefineList[name];
@@ -832,18 +844,22 @@ export class Lexer extends BaseLexer {
       return;
     }
     // Skip duplicates from re-includes / re-definitions in the same `#ifdef`
-    // branch. Different branches → different entries (the call-site filter
-    // picks the visible one); same branch + same shape → drop.
-    for (let i = 0, n = arr.length; i < n; i++) {
+    // branch. Different branches → different entries; same branch + same shape → drop.
+    const refsLen = referencedIdentifiers ? referencedIdentifiers.length : 0;
+    outer: for (let i = 0, n = arr.length; i < n; i++) {
       const e = arr[i];
-      if (
-        e.isFunction === info.isFunction &&
-        e.referenceName === info.referenceName &&
-        e.params.length === info.params.length &&
-        e.params.every((p, idx) => p === info.params[idx]) &&
-        Lexer.sameBranch(e.branch, info.branch)
-      )
-        return;
+      if (e.isFunction !== info.isFunction) continue;
+      const ep = e.params;
+      if (ep.length !== params.length) continue;
+      for (let k = 0, kn = ep.length; k < kn; k++) if (ep[k] !== params[k]) continue outer;
+      const er = e.referencedIdentifiers;
+      const erLen = er ? er.length : 0;
+      if (erLen !== refsLen) continue;
+      if (referencedIdentifiers) {
+        for (let k = 0; k < refsLen; k++) if (er![k] !== referencedIdentifiers[k]) continue outer;
+      }
+      if (!Lexer.sameBranch(e.branch, info.branch)) continue;
+      return;
     }
     arr.push(info);
   }

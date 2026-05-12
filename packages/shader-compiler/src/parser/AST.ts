@@ -1696,8 +1696,14 @@ export namespace ASTNode {
           visibleCount++;
           if (info.valueAst == null) allAst = false;
           if (info.isFunction) isFn = true;
-          const ref = info.referenceName;
-          if (ref && info.params.indexOf(ref) === -1 && refs.indexOf(ref) === -1) refs.push(ref);
+          const ids = info.referencedIdentifiers;
+          if (ids) {
+            // Params already filtered at lex time, only dedup against caller refs.
+            for (let j = 0, m = ids.length; j < m; j++) {
+              const r = ids[j];
+              if (refs.indexOf(r) === -1) refs.push(r);
+            }
+          }
         }
       }
       // Require *every* visible entry to be AST-form before taking the AST
@@ -1806,7 +1812,6 @@ export namespace ASTNode {
           name: this.macroName,
           params,
           valueAst: this.valueExpression,
-          referenceName: "",
           branch: definingBranch
         };
         if (entries) entries.push(info);
