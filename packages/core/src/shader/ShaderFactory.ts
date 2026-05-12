@@ -36,12 +36,16 @@ export class ShaderFactory {
     float: { size: 4, align: 4 },
     int: { size: 4, align: 4 },
     uint: { size: 4, align: 4 },
+    bool: { size: 4, align: 4 },
     vec2: { size: 8, align: 8 },
     ivec2: { size: 8, align: 8 },
+    bvec2: { size: 8, align: 8 },
     vec3: { size: 12, align: 16 },
     ivec3: { size: 12, align: 16 },
+    bvec3: { size: 12, align: 16 },
     vec4: { size: 16, align: 16 },
     ivec4: { size: 16, align: 16 },
+    bvec4: { size: 16, align: 16 },
     mat4: { size: 64, align: 16 },
     mat3x4: { size: 48, align: 16 }
   };
@@ -102,12 +106,16 @@ export class ShaderFactory {
       float: packScalar,
       int: packScalar,
       uint: packScalar,
+      bool: packScalar,
       vec2: packVec2,
       ivec2: packVec2,
+      bvec2: packVec2,
       vec3: packVec3,
       ivec3: packVec3,
+      bvec3: packVec3,
       vec4: packVec4,
       ivec4: packVec4,
+      bvec4: packVec4,
       mat4: (v: Float32Array | Int32Array, o: number, val: Matrix) => {
         const e = val.elements;
         for (let k = 0; k < 16; k++) v[o + k] = e[k];
@@ -320,7 +328,7 @@ export class ShaderFactory {
         type,
         offset: currentOffset,
         offsetInElements: currentOffset / 4,
-        useIntView: type[0] === "i" || type[0] === "u",
+        useIntView: type[0] === "i" || type[0] === "u" || type[0] === "b",
         pack: packFuncMap[type]
       });
       currentOffset += info.size;
