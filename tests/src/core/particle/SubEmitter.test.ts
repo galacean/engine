@@ -2,13 +2,21 @@ import {
   Burst,
   Camera,
   Color,
+  CurveKey,
   Engine,
+  GradientAlphaKey,
+  GradientColorKey,
   ParticleCompositeCurve,
+  ParticleCurve,
+  ParticleCurveMode,
+  ParticleGradient,
+  ParticleGradientMode,
   ParticleMaterial,
   ParticleRenderer,
   ParticleStopMode,
   ParticleSubEmitterProperty,
   ParticleSubEmitterType,
+  Vector3,
   WebGLEngine
 } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -230,5 +238,131 @@ describe("SubEmitter", () => {
     expect(parent.generator._getAliveParticleCount()).to.equal(2);
 
     parent.entity.destroy();
+  });
+
+  it("Color inherit uses parent's raw startColor, NOT parent's COL-modulated value", () => {
+    // Parent: startColor white, COL fades to (0.5, 0.5, 0.5, 1) at t=1.
+    // Child: startColor white.
+    // Death inherit Color → child.a_StartColor should equal parent's RAW startColor × child.startColor
+    //   = (1,1,1,1) × (1,1,1,1) = (1, 1, 1, 1).
+    // The parent's COL(1) = 0.5-grey is intentionally NOT applied: inheritance reads
+    // start values from the instance buffer (pre-modulation).
+    const parent = createParticleRenderer(engine, "Parent_ColorCOL");
+    const child = createParticleRenderer(engine, "Child_ColorCOL");
+
+    parent.generator.main.startLifetime.constant = 0.5;
+    parent.generator.main.startColor.constant = new Color(1, 1, 1, 1);
+    child.generator.main.startColor.constant = new Color(1, 1, 1, 1);
+
+    // Parent COL: white at t=0 → half-grey at t=1. We only set this to prove it is
+    // NOT factored into the inherit value (would result in 0.5 if it were).
+    const colorKeys = [
+      new GradientColorKey(0, new Color(1, 1, 1, 1)),
+      new GradientColorKey(1, new Color(0.5, 0.5, 0.5, 1))
+    ];
+    const alphaKeys = [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)];
+    const parentCOL = parent.generator.colorOverLifetime;
+    parentCOL.enabled = true;
+    parentCOL.color.mode = ParticleGradientMode.Gradient;
+    (parentCOL.color as any).gradient = new ParticleGradient(colorKeys, alphaKeys);
+
+    parent.generator.subEmitters.enabled = true;
+    const sub = parent.generator.subEmitters.addSubEmitter();
+    sub.emitter = child;
+    sub.type = ParticleSubEmitterType.Death;
+    sub.inheritProperties = ParticleSubEmitterProperty.Color;
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 10);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    const startColor = new Color();
+    child.generator._readParticleStartColor(0, startColor);
+    expect(startColor.r).to.be.closeTo(1.0, 1e-3);
+    expect(startColor.g).to.be.closeTo(1.0, 1e-3);
+    expect(startColor.b).to.be.closeTo(1.0, 1e-3);
+    expect(startColor.a).to.be.closeTo(1.0, 1e-3);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Size inherit uses parent's raw startSize, NOT parent's SOL-modulated value", () => {
+    // Parent: startSize 1, SOL ramps to 0.5 at t=1.
+    // Child: startSize 2.
+    // Death inherit Size → child.a_StartSize = parent.RAW startSize × child.startSize
+    //                                        = 1 × 2 = 2 (NOT 1 × 0.5 × 2).
+    const parent = createParticleRenderer(engine, "Parent_SizeSOL");
+    const child = createParticleRenderer(engine, "Child_SizeSOL");
+
+    parent.generator.main.startLifetime.constant = 0.5;
+    parent.generator.main.startSize.constant = 1;
+    child.generator.main.startSize.constant = 2;
+
+    const sizeCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 0.5));
+    const parentSOL = parent.generator.sizeOverLifetime;
+    parentSOL.enabled = true;
+    parentSOL.size.mode = ParticleCurveMode.Curve;
+    (parentSOL.size as any).curve = sizeCurve;
+
+    parent.generator.subEmitters.enabled = true;
+    const sub = parent.generator.subEmitters.addSubEmitter();
+    sub.emitter = child;
+    sub.type = ParticleSubEmitterType.Death;
+    sub.inheritProperties = ParticleSubEmitterProperty.Size;
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 10);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    const startSize = new Vector3();
+    child.generator._readParticleStartSize(0, startSize);
+    expect(startSize.x).to.be.closeTo(2, 1e-3);
+    expect(startSize.y).to.be.closeTo(2, 1e-3);
+    expect(startSize.z).to.be.closeTo(2, 1e-3);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Rotation inherit adds parent start rotation onto child start rotation", () => {
+    // Parent: startRotationZ 0.5 rad. Child: startRotationZ 0.25 rad.
+    // Birth inherit Rotation → child.a_StartRotation = child.startRotation + parent.startRotation
+    //                                                = 0.25 + 0.5 = 0.75 rad.
+    const parent = createParticleRenderer(engine, "Parent_Rotation");
+    const child = createParticleRenderer(engine, "Child_Rotation");
+
+    parent.generator.main.startRotationZ.constant = 0.5;
+    child.generator.main.startRotationZ.constant = 0.25;
+
+    parent.generator.subEmitters.enabled = true;
+    const sub = parent.generator.subEmitters.addSubEmitter();
+    sub.emitter = child;
+    sub.type = ParticleSubEmitterType.Birth;
+    sub.inheritProperties = ParticleSubEmitterProperty.Rotation;
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 3);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    const startRotation = new Vector3();
+    child.generator._readParticleStartRotation(0, startRotation);
+    // 2D rotation mode (default) stores Z rotation in the X slot of the attribute.
+    expect(startRotation.x).to.be.closeTo(0.75, 1e-3);
+
+    parent.entity.destroy();
+    child.entity.destroy();
   });
 });

@@ -1115,15 +1115,9 @@ export class ParticleGenerator {
     }
     const rotationOverride = this._subEmitRotationOverride;
     if (rotationOverride) {
-      const rotationOffset = offset + 15;
-      if (main.startRotation3D) {
-        instanceVertices[rotationOffset] += rotationOverride.x;
-        instanceVertices[rotationOffset + 1] += rotationOverride.y;
-        instanceVertices[rotationOffset + 2] += rotationOverride.z;
-      } else {
-        // 2D mode stores Z rotation at offset 15
-        instanceVertices[rotationOffset] += rotationOverride.z;
-      }
+      instanceVertices[offset + 15] += rotationOverride.x;
+      instanceVertices[offset + 16] += rotationOverride.y;
+      instanceVertices[offset + 17] += rotationOverride.z;
     }
 
     // Initialize feedback buffer for this particle
@@ -1152,11 +1146,11 @@ export class ParticleGenerator {
       parentSize.set(instanceVertices[offset + 12], instanceVertices[offset + 13], instanceVertices[offset + 14]);
 
       const parentRotation = this._eventRotation;
-      if (main.startRotation3D) {
-        parentRotation.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
-      } else {
-        parentRotation.set(0, 0, instanceVertices[offset + 15]);
-      }
+      parentRotation.set(
+        instanceVertices[offset + 15],
+        instanceVertices[offset + 16],
+        instanceVertices[offset + 17]
+      );
 
       subEmitters._onParticleBirth(birthWorldPos, parentColor, parentSize, parentRotation);
     }
@@ -1362,15 +1356,11 @@ export class ParticleGenerator {
     );
 
     const parentRotation = this._eventRotation;
-    if (main.startRotation3D) {
-      parentRotation.set(
-        instanceVertices[particleOffset + 15],
-        instanceVertices[particleOffset + 16],
-        instanceVertices[particleOffset + 17]
-      );
-    } else {
-      parentRotation.set(0, 0, instanceVertices[particleOffset + 15]);
-    }
+    parentRotation.set(
+      instanceVertices[particleOffset + 15],
+      instanceVertices[particleOffset + 16],
+      instanceVertices[particleOffset + 17]
+    );
 
     this.subEmitters._onParticleDeath(local, parentColor, parentSize, parentRotation);
   }

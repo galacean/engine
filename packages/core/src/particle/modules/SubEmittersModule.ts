@@ -46,23 +46,18 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    * Dispatch a Birth event for one parent particle.
    *
    * @param worldPosition - parent particle's emission position in world space
-   * @param parentStartColor - parent particle's start color (already multiplied by main.startColor)
-   * @param parentStartSize - parent particle's start size
-   * @param parentStartRotation - parent particle's start rotation (degrees)
+   * @param parentColor - parent particle's raw start color
+   * @param parentSize - parent particle's raw start size
+   * @param parentRotation - parent particle's raw start rotation (radians, vec3)
    */
-  _onParticleBirth(
-    worldPosition: Vector3,
-    parentStartColor: Color,
-    parentStartSize: Vector3,
-    parentStartRotation: Vector3
-  ): void {
+  _onParticleBirth(worldPosition: Vector3, parentColor: Color, parentSize: Vector3, parentRotation: Vector3): void {
     if (!this._enabled) return;
 
     const slots = this.subEmitters;
     for (let i = 0, n = slots.length; i < n; i++) {
       const sub = slots[i];
       if (sub.type !== ParticleSubEmitterType.Birth) continue;
-      this._fireSlot(sub, worldPosition, parentStartColor, parentStartSize, parentStartRotation);
+      this._fireSlot(sub, worldPosition, parentColor, parentSize, parentRotation);
     }
   }
 
@@ -70,19 +65,14 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    * @internal
    * Dispatch a Death event for one parent particle.
    */
-  _onParticleDeath(
-    worldPosition: Vector3,
-    parentStartColor: Color,
-    parentStartSize: Vector3,
-    parentStartRotation: Vector3
-  ): void {
+  _onParticleDeath(worldPosition: Vector3, parentColor: Color, parentSize: Vector3, parentRotation: Vector3): void {
     if (!this._enabled) return;
 
     const slots = this.subEmitters;
     for (let i = 0, n = slots.length; i < n; i++) {
       const sub = slots[i];
       if (sub.type !== ParticleSubEmitterType.Death) continue;
-      this._fireSlot(sub, worldPosition, parentStartColor, parentStartSize, parentStartRotation);
+      this._fireSlot(sub, worldPosition, parentColor, parentSize, parentRotation);
     }
   }
 
@@ -96,9 +86,9 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   private _fireSlot(
     sub: SubEmitter,
     worldPosition: Vector3,
-    parentStartColor: Color,
-    parentStartSize: Vector3,
-    parentStartRotation: Vector3
+    parentColor: Color,
+    parentSize: Vector3,
+    parentRotation: Vector3
   ): void {
     // Run all non-RNG filters BEFORE the probability roll so an invalid slot
     // (null / destroyed target, self-reference, emitCount <= 0) never consumes
@@ -127,9 +117,9 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     }
 
     const inherit = sub.inheritProperties;
-    const colorOverride = (inherit & ParticleSubEmitterProperty.Color) !== 0 ? parentStartColor : null;
-    const sizeOverride = (inherit & ParticleSubEmitterProperty.Size) !== 0 ? parentStartSize : null;
-    const rotationOverride = (inherit & ParticleSubEmitterProperty.Rotation) !== 0 ? parentStartRotation : null;
+    const colorOverride = (inherit & ParticleSubEmitterProperty.Color) !== 0 ? parentColor : null;
+    const sizeOverride = (inherit & ParticleSubEmitterProperty.Size) !== 0 ? parentSize : null;
+    const rotationOverride = (inherit & ParticleSubEmitterProperty.Rotation) !== 0 ? parentRotation : null;
 
     targetGen._emitFromSubEmitter(count, worldPosition, colorOverride, sizeOverride, rotationOverride);
   }
