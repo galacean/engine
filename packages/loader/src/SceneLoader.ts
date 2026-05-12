@@ -167,7 +167,7 @@ export function applySceneData(
   return Promise.all(promises).then(() => {});
 }
 
-@resourceLoader(AssetType.Scene, ["scene"], true)
+@resourceLoader(AssetType.Scene, ["scene"], false)
 class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
