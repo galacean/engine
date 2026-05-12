@@ -10,7 +10,6 @@ export type ChunkOutputCache = Map<string, string>;
 
 export interface MacroDefineInfo {
   isFunction: boolean;
-  name: string;
   params: string[];
   /** Value AST. Set when the replacement list parses as `assignment_expression`;
    *  absent for the GLSL ES 3.00 §3.4 opaque cases (empty, type-alias keyword,

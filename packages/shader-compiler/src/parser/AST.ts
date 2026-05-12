@@ -1828,7 +1828,6 @@ export namespace ASTNode {
         // — this path's only dedup unit is this AST-direct registration.
         const info: MacroDefineInfo = {
           isFunction: this.isFunction,
-          name: this.macroName,
           params,
           valueAst: this.valueExpression,
           dedupKey: `${this.macroName}#ast/${this.isFunction ? params.join(",") : ""}`,

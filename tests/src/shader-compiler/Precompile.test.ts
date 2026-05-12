@@ -1093,12 +1093,10 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    // Repro for the SkyMat `material_AtmosphereThickness undeclared` failure.
-    // Pre-fix `_referenceReg` was anchored to `^id(\(.*\))?$`, capturing only
-    // a leading identifier — paren / operator / unary / nested-fn values all
-    // lost their inner refs. The fixture defines 4 macro shapes; the test
-    // asserts each emits the full object-like value (DefineVal) and every
-    // user identifier becomes a real `uniform` declaration.
+    // Regression for SkyMat `material_AtmosphereThickness undeclared`. The
+    // fixture exercises paren / operator / fn-call / unary / nested-fn macro
+    // values; each must emit a DefineVal and every user identifier in the
+    // value must become a real `uniform` declaration.
     it("emits object-like Define instructions and uniforms for complex macro values", async () => {
       const source = await readFile("./shaders/macro-value-refs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
@@ -1108,11 +1106,8 @@ describe("ShaderCompiler Precompile", async () => {
       for (const inst of fragInstr) {
         if ((inst[0] === 8 || inst[0] === 9) && typeof inst[1] === "string") defines.set(inst[1], inst);
       }
-      // Macros with expression values now route to AST and codegen re-emits
-      // the value through the visitor — token-separated by spaces. The exact
-      // textual rendering is the visitor's responsibility; we assert
-      // *structural* identity (DefineVal opcode + same tokens in order) via a
-      // whitespace-normalized comparison.
+      // AST-emitted values are re-rendered by the visitor with token-separating
+      // whitespace; assert structural (whitespace-normalized) identity.
       const expectedDefines: Array<[string, string]> = [
         ["V_PAREN", "(u_paren)"],
         ["V_OP", "u_op_a + u_op_b"],
@@ -1145,15 +1140,9 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
-    // Regression for the "comments-leak-into-refs" bug: `_registerMacroDefine`
-    // historically received a raw `_source.slice(...)` slice with comments
-    // intact, so the identifier scanner harvested words from inside `/* */`
-    // and `//`. If a same-named global existed in the pass, dead-code
-    // elimination would wrongly mark it live. The fix strips comments before
-    // the regex/scan stage. This test asserts:
-    //   1. real refs (`u_used_*`) ARE emitted as uniforms (positive baseline)
-    //   2. comment-only refs (`u_in_comment_*`) are NOT emitted, proving the
-    //      scanner didn't pick them up from comment text
+    // Regression: comment text inside `#define` values must not leak into the
+    // identifier scanner. Real `u_used_*` refs are kept; `u_in_comment_*`
+    // mentions are not promoted to uniforms.
     it("does not collect identifiers from comments inside #define values", async () => {
       const source = await readFile("./shaders/macro-value-refs-with-comments.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
