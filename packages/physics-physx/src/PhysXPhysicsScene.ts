@@ -29,6 +29,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _physXPhysics: PhysXPhysics;
   private _physXManager: PhysXPhysicsManager;
   private _pxRaycastHit: any;
+  private _pxSweepHit: any;
   private _pxFilterData: any;
   private _pxRaycastSweepFilterData: any;
 
@@ -62,6 +63,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const physX = physXPhysics._physX;
 
     this._pxRaycastHit = new physX.PxRaycastHit();
+    this._pxSweepHit = new physX.PxSweepHit();
     this._pxFilterData = new physX.PxQueryFilterData();
     this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
     this._pxRaycastSweepFilterData = new physX.PxQueryFilterData();
@@ -422,6 +424,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
 
     this._physXSimulationCallbackInstance.delete();
     this._pxRaycastHit.delete();
+    this._pxSweepHit.delete();
     this._pxFilterData.flags.delete();
     this._pxFilterData.delete();
     this._pxRaycastSweepFilterData.flags.delete();
@@ -480,39 +483,34 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     onSweep: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
+    const { _pxSweepHit: pxSweepHit } = this;
     distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
 
     const onSweepStack = this._onSweepStack;
     onSweepStack.push(onSweep);
-    const pxSweepHit = new this._physXPhysics._physX.PxSweepHit();
+    let result: boolean;
     try {
-      let result: boolean;
-      try {
-        result = this._pxScene.sweepSingle(
-          geometry,
-          pose,
-          direction,
-          distance,
-          pxSweepHit,
-          this._pxRaycastSweepFilterData,
-          this._pxSweepCallback
-        );
-      } finally {
-        onSweepStack.pop();
-      }
-
-      if (result && outHitResult != undefined) {
-        const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
-        const { position: pxPosition, normal: pxNormal } = pxSweepHit;
-        position.set(pxPosition.x, pxPosition.y, pxPosition.z);
-        normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
-        outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
-      }
-
-      return result;
+      result = this._pxScene.sweepSingle(
+        geometry,
+        pose,
+        direction,
+        distance,
+        pxSweepHit,
+        this._pxRaycastSweepFilterData,
+        this._pxSweepCallback
+      );
     } finally {
-      pxSweepHit.delete();
+      onSweepStack.pop();
     }
+
+    if (result && outHitResult != undefined) {
+      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsScene;
+      const { position: pxPosition, normal: pxNormal } = pxSweepHit;
+      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
+      outHitResult(pxSweepHit.getShape().getUUID(), pxSweepHit.distance, position, normal);
+    }
+    return result;
   }
 
   private _overlapMultiple(
