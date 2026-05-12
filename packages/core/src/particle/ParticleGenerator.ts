@@ -1146,11 +1146,7 @@ export class ParticleGenerator {
       parentSize.set(instanceVertices[offset + 12], instanceVertices[offset + 13], instanceVertices[offset + 14]);
 
       const parentRotation = this._eventRotation;
-      parentRotation.set(
-        instanceVertices[offset + 15],
-        instanceVertices[offset + 16],
-        instanceVertices[offset + 17]
-      );
+      parentRotation.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
 
       subEmitters._onParticleBirth(birthWorldPos, parentColor, parentSize, parentRotation);
     }
