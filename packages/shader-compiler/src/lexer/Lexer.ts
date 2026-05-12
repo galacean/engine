@@ -89,19 +89,19 @@ export class Lexer extends BaseLexer {
   // Function-like iff `(` is glued to name (C99 §6.10.3/10, GLSL ES 3.00 §3.4).
   private static readonly _defineDirectiveReg =
     /^\s*#define\s+(\w+)(?:\(([^)]*)\)(?:[ \t]+([^\n\r]*?))?|[ \t]+([^\n\r]*?))?\s*$/;
-  // `\b` skips numeric-literal letters (`123u`, `1e10`, `1.5f`, `0xFFu`).
-  private static readonly _refIdsReg = /\b[a-zA-Z_]\w*/g;
   // C preprocessor line continuation.
   private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
   // Block / line comments inside a directive slice. The token-stream path
   // strips them via `_skipNonSemantic`, but the regex-based registrar receives
-  // a raw `_source.slice(...)` that still contains comment text — without this
-  // strip, `#define HP /* a.b */ highp` would let `a`, `b` leak into
-  // `referencedIdentifiers` and `_defineDirectiveReg` could even mis-tokenize
-  // the directive shape. Block comment becomes a single space so adjacent
-  // tokens stay separated (`a/**/+/**/b` → `a + b`); line comment is dropped.
+  // a raw `_source.slice(...)` that still contains comment text. Block becomes
+  // a single space so adjacent tokens stay separated (`a/**/+/**/b` → `a + b`);
+  // line comment is dropped. Required so the dedup key sees the same lexical
+  // view the token-stream path emits.
   private static readonly _blockCommentReg = /\/\*[\s\S]*?\*\//g;
   private static readonly _lineCommentReg = /\/\/[^\n\r]*/g;
+  // Whitespace collapser for dedup keys: any whitespace run, including the
+  // line-continuation we just folded out, becomes a single space.
+  private static readonly _whitespaceReg = /\s+/g;
   // Synthetic `__if_<n>` per `#if` — polarity flip makes `#else` mutually exclusive in `isVisibleFrom`.
   private static _ifCounter = 0;
 
@@ -933,24 +933,16 @@ export class Lexer extends BaseLexer {
           .map((p) => p.trim())
           .filter(Boolean)
       : [];
-    // Lazy: stay undefined for the common literal-only case (`#define PI 3.14`,
-    // `#define MAX_LIGHTS 8`). Allocated on first match only.
-    let referencedIdentifiers: string[] | undefined;
-    if (valueRaw) {
-      Lexer._refIdsReg.lastIndex = 0;
-      let match: RegExpExecArray | null;
-      while ((match = Lexer._refIdsReg.exec(valueRaw))) {
-        const id = match[0];
-        if (params.indexOf(id) !== -1) continue;
-        if (!referencedIdentifiers) referencedIdentifiers = [id];
-        else if (referencedIdentifiers.indexOf(id) === -1) referencedIdentifiers.push(id);
-      }
-    }
+    // Dedup key: whitespace-normalized directive text. Two `#define`s with the
+    // same name + identical normalized text in the same branch are duplicates
+    // (re-includes, multi-chunk repeats). Storing the key once avoids
+    // recomputing it on every dedup-list scan.
+    const dedupKey = folded.replace(Lexer._whitespaceReg, " ").trim();
     const info: MacroDefineInfo = {
       isFunction: paramsStr !== undefined,
       name,
       params,
-      referencedIdentifiers,
+      dedupKey,
       branch: this._branchStack.length === 0 ? EMPTY_BRANCH : this._branchStack.slice()
     };
     const arr = this.macroDefineList[name];
@@ -958,23 +950,15 @@ export class Lexer extends BaseLexer {
       this.macroDefineList[name] = [info];
       return;
     }
-    // Skip duplicates from re-includes / re-definitions in the same `#ifdef`
-    // branch. Different branches → different entries; same branch + same shape → drop.
-    const refsLen = referencedIdentifiers ? referencedIdentifiers.length : 0;
-    outer: for (let i = 0, n = arr.length; i < n; i++) {
+    // Skip exact duplicates: same dedup key + same branch. Different branches
+    // remain separate entries so `MacroCallSymbol.semanticAnalyze`'s
+    // branch-visibility filter can pick the entry that applies at each call
+    // site. The legacy "structural equality" check (isFunction + params +
+    // referenced identifiers) is subsumed by text equality of the normalized
+    // directive — any structural difference produces a different key.
+    for (let i = 0, n = arr.length; i < n; i++) {
       const e = arr[i];
-      if (e.isFunction !== info.isFunction) continue;
-      const ep = e.params;
-      if (ep.length !== params.length) continue;
-      for (let k = 0, kn = ep.length; k < kn; k++) if (ep[k] !== params[k]) continue outer;
-      const er = e.referencedIdentifiers;
-      const erLen = er ? er.length : 0;
-      if (erLen !== refsLen) continue;
-      if (referencedIdentifiers) {
-        for (let k = 0; k < refsLen; k++) if (er![k] !== referencedIdentifiers[k]) continue outer;
-      }
-      if (!Lexer.sameBranch(e.branch, info.branch)) continue;
-      return;
+      if (e.dedupKey === dedupKey && Lexer.sameBranch(e.branch, info.branch)) return;
     }
     arr.push(info);
   }
