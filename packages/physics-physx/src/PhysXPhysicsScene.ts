@@ -36,17 +36,16 @@ export class PhysXPhysicsScene implements IPhysicsScene {
   private _pxScene: any;
   private _physXSimulationCallbackInstance: any;
 
-  // Persistent PhysX query filter callbacks. Reused across calls to avoid the
-  // wasm-boundary cost of `PxQueryFilterCallback.implement(...)` / `.delete()`
-  // on every raycast/sweep/overlap. The user-supplied filter function is
-  // pushed onto a per-type stack so reentrant calls (e.g. raycast inside a
-  // raycast filter) keep their own filter context.
-  private _pxRaycastCallback: any;
-  private _pxSweepCallback: any;
-  private _pxOverlapCallback: any;
-  private _onRaycastStack: Array<(obj: number) => boolean> = [];
-  private _onSweepStack: Array<(obj: number) => boolean> = [];
-  private _onOverlapStack: Array<(obj: number) => boolean> = [];
+  // A single persistent PhysX query filter callback is shared by raycast,
+  // sweep and overlap. PhysX SDK guarantees that `postFilter` is only invoked
+  // when `PxQueryFlag::ePOSTFILTER` is set on the query's filter data, so
+  // overlap (whose filter data omits POST_FILTER) safely uses the same
+  // callback that also handles the raycast/sweep initial-overlap skip.
+  // The user-supplied predicate is stored in `_currentOnQuery`; reentrant
+  // calls save the previous value on the call stack via a local in each
+  // query method, recreating C++-style RAII without an explicit stack array.
+  private _pxQueryCallback: any;
+  private _currentOnQuery: (obj: number) => boolean = null;
 
   private _activeTriggers: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _contactEvents: ContactEvent[] = [];
@@ -111,25 +110,13 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxScene = pxPhysics.createScene(sceneDesc);
     sceneDesc.delete();
 
-    const onRaycastStack = this._onRaycastStack;
-    this._pxRaycastCallback = physX.PxQueryFilterCallback.implement({
+    const scene = this;
+    this._pxQueryCallback = physX.PxQueryFilterCallback.implement({
       preFilter: (_filterData: any, index: number, _actor: any) =>
-        onRaycastStack[onRaycastStack.length - 1](index) ? QueryHitType.BLOCK : QueryHitType.NONE,
+        scene._currentOnQuery(index) ? QueryHitType.BLOCK : QueryHitType.NONE,
       // distance <= 0 means initial overlap — drop the hit so subsequent hits can be considered.
+      // Only invoked when the query's filter data includes POST_FILTER (raycast/sweep, not overlap).
       postFilter: (_filterData: any, distance: number) => (distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK)
-    });
-
-    const onSweepStack = this._onSweepStack;
-    this._pxSweepCallback = physX.PxQueryFilterCallback.implement({
-      preFilter: (_filterData: any, index: number, _actor: any) =>
-        onSweepStack[onSweepStack.length - 1](index) ? QueryHitType.BLOCK : QueryHitType.NONE,
-      postFilter: (_filterData: any, distance: number) => (distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK)
-    });
-
-    const onOverlapStack = this._onOverlapStack;
-    this._pxOverlapCallback = physX.PxQueryFilterCallback.implement({
-      preFilter: (_filterData: any, index: number, _actor: any) =>
-        onOverlapStack[onOverlapStack.length - 1](index) ? QueryHitType.BLOCK : QueryHitType.NONE
     });
   }
 
@@ -247,8 +234,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const { _pxRaycastHit: pxHitResult } = this;
     distance = Math.min(distance, 3.4e38); // float32 max value limit in physX raycast.
 
-    const onRaycastStack = this._onRaycastStack;
-    onRaycastStack.push(onRaycast);
+    const prevOnQuery = this._currentOnQuery;
+    this._currentOnQuery = onRaycast;
     let result: boolean;
     try {
       result = this._pxScene.raycastSingle(
@@ -257,10 +244,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         distance,
         pxHitResult,
         this._pxRaycastSweepFilterData,
-        this._pxRaycastCallback
+        this._pxQueryCallback
       );
     } finally {
-      onRaycastStack.pop();
+      this._currentOnQuery = prevOnQuery;
     }
 
     if (result && hit != undefined) {
@@ -429,9 +416,7 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxFilterData.delete();
     this._pxRaycastSweepFilterData.flags.delete();
     this._pxRaycastSweepFilterData.delete();
-    this._pxRaycastCallback.delete();
-    this._pxSweepCallback.delete();
-    this._pxOverlapCallback.delete();
+    this._pxQueryCallback.delete();
     // Need to release the controller manager before release the scene.
     this._pxControllerManager?.release();
     this._pxScene.release();
@@ -486,8 +471,8 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     const { _pxSweepHit: pxSweepHit } = this;
     distance = Math.min(distance, 3.4e38); // float32 max value limit in physx sweep
 
-    const onSweepStack = this._onSweepStack;
-    onSweepStack.push(onSweep);
+    const prevOnQuery = this._currentOnQuery;
+    this._currentOnQuery = onSweep;
     let result: boolean;
     try {
       result = this._pxScene.sweepSingle(
@@ -497,10 +482,10 @@ export class PhysXPhysicsScene implements IPhysicsScene {
         distance,
         pxSweepHit,
         this._pxRaycastSweepFilterData,
-        this._pxSweepCallback
+        this._pxQueryCallback
       );
     } finally {
-      onSweepStack.pop();
+      this._currentOnQuery = prevOnQuery;
     }
 
     if (result && outHitResult != undefined) {
@@ -518,20 +503,14 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     pose: { translation: Vector3; rotation: Quaternion },
     onOverlap: (obj: number) => boolean
   ): number[] {
-    const onOverlapStack = this._onOverlapStack;
-    onOverlapStack.push(onOverlap);
+    const prevOnQuery = this._currentOnQuery;
+    this._currentOnQuery = onOverlap;
     const maxHits = 256;
     let hits: any;
     try {
-      hits = (this._pxScene as any).overlapMultiple(
-        geometry,
-        pose,
-        maxHits,
-        this._pxFilterData,
-        this._pxOverlapCallback
-      );
+      hits = (this._pxScene as any).overlapMultiple(geometry, pose, maxHits, this._pxFilterData, this._pxQueryCallback);
     } finally {
-      onOverlapStack.pop();
+      this._currentOnQuery = prevOnQuery;
     }
 
     const result = PhysXPhysicsScene._tempShapeIDs;
