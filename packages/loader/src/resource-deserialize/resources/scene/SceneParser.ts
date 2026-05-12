@@ -27,7 +27,7 @@ export class SceneParser extends HierarchyParser<Scene, ParserContext> {
   }
 
   protected override _getRootIndices(): number[] {
-    return (this.data as SceneFile).scene.entities;
+    return (this.data as SceneFile).scene.roots;
   }
 
   protected override _handleRootEntity(index: number): void {
