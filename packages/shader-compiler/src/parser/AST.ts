@@ -1696,15 +1696,9 @@ export namespace ASTNode {
           visibleCount++;
           if (info.valueAst == null) allAst = false;
           if (info.isFunction) isFn = true;
-          // Collect identifier references the call site needs to look up.
-          // AST-form macros: walk the value subtree and harvest the lexeme of
-          // every `VariableIdentifier` whose child is a plain `BaseToken` (a
-          // real identifier, not a nested macro call). This replaces the old
-          // string-regex scanner — every identifier the value mentions is
-          // already a structured node, no textual extraction needed.
-          // Legacy-form macros (no `valueAst`): replacement list is by
-          // construction a non-expression token sequence (empty / type-alias
-          // keyword / bare punctuation) with no user identifiers to lift.
+          // Harvest references from the value AST. Legacy-form macros (no
+          // `valueAst`) hold non-expression token sequences with no user
+          // identifiers, so nothing to collect.
           if (info.valueAst) {
             MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs);
           }
@@ -1718,12 +1712,9 @@ export namespace ASTNode {
       this.isFunctionLikeMacro = isFn;
     }
 
-    /** Walk a macro value AST subtree, harvesting the lexeme of every leaf
-     *  `VariableIdentifier` whose child is a `BaseToken` (i.e. a bare
-     *  identifier, not a nested macro call). Names matching the macro's own
-     *  function-like parameter list are skipped — they reference the macro's
-     *  local scope, not call-site globals. Results push into `out`,
-     *  deduplicated against existing entries. */
+    /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
+     *  function-like parameter names (local to the macro, not call-site refs)
+     *  and duplicates. */
     private static _collectIdentifierRefs(node: TreeNode, params: string[], out: string[]): void {
       if (node instanceof VariableIdentifier) {
         const child = node.children[0];
@@ -1832,14 +1823,9 @@ export namespace ASTNode {
       if (upgradable) {
         upgradable.valueAst = this.valueExpression;
       } else {
-        // No matching preprocessor entry (e.g. the lexer was fed the directive
-        // directly without a `Preprocessor.parse` pass). Push a fresh entry.
-        // Synthesize a `dedupKey` from the parsed shape — the value has
-        // already been tokenized so we can't re-derive the original text, but
-        // a synthetic key based on macroName + arity is enough: this branch
-        // only fires when there was no preceding `_registerMacroDefine` call,
-        // so duplicate detection within this AST-direct path is the only
-        // dedup we need to support.
+        // No matching preprocessor entry (lexer fed directly, no
+        // `Preprocessor.parse` pass). Synthetic key based on shape is enough
+        // — this path's only dedup unit is this AST-direct registration.
         const info: MacroDefineInfo = {
           isFunction: this.isFunction,
           name: this.macroName,

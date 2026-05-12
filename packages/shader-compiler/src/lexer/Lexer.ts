@@ -89,18 +89,11 @@ export class Lexer extends BaseLexer {
   // Function-like iff `(` is glued to name (C99 §6.10.3/10, GLSL ES 3.00 §3.4).
   private static readonly _defineDirectiveReg =
     /^\s*#define\s+(\w+)(?:\(([^)]*)\)(?:[ \t]+([^\n\r]*?))?|[ \t]+([^\n\r]*?))?\s*$/;
-  // C preprocessor line continuation.
   private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
-  // Block / line comments inside a directive slice. The token-stream path
-  // strips them via `_skipNonSemantic`, but the regex-based registrar receives
-  // a raw `_source.slice(...)` that still contains comment text. Block becomes
-  // a single space so adjacent tokens stay separated (`a/**/+/**/b` → `a + b`);
-  // line comment is dropped. Required so the dedup key sees the same lexical
-  // view the token-stream path emits.
+  // Block comment → space (preserves `a/**/+/**/b` token separation); line → dropped.
+  // Matches what `_skipNonSemantic` does on the token-stream path so the dedup key agrees.
   private static readonly _blockCommentReg = /\/\*[\s\S]*?\*\//g;
   private static readonly _lineCommentReg = /\/\/[^\n\r]*/g;
-  // Whitespace collapser for dedup keys: any whitespace run, including the
-  // line-continuation we just folded out, becomes a single space.
   private static readonly _whitespaceReg = /\s+/g;
   // Synthetic `__if_<n>` per `#if` — polarity flip makes `#else` mutually exclusive in `isVisibleFrom`.
   private static _ifCounter = 0;
@@ -621,45 +614,22 @@ export class Lexer extends BaseLexer {
   }
 
   /**
-   * Peek forward from `#define` and decide whether this directive's value
-   * should be parsed by the expression grammar (AST path) or kept as an opaque
-   * textual token sequence (legacy path).
-   *
-   * **Routing rule**: route to AST iff the value can be parsed as an
-   * `assignment_expression`. The grammar accepts: bare identifiers, numeric /
-   * boolean literals, member access (`v.v_uv`), unary / binary operators,
-   * parenthesized sub-expressions, function calls.
-   *
-   * **Stays on legacy path** when the value is *not* a valid expression:
-   *   - empty value:                 `#define COMMON_INCLUDED`
-   *   - single type/qualifier kw:    `#define FxaaFloat float`
-   *   - qualifier list:              `#define HP highp`
-   *   - bare punctuation:            `#define COMMA ,`   `#define PAREN (`
-   *   - trailing punctuation:        `#define NEG_ONE -1.0,`
-   *
-   * Why route as much as possible to AST: identifier references in expression
-   * values are then a *natural byproduct* of AST analysis (each
-   * `VariableIdentifier` semantic-analyzes against the symbol table). This
-   * removes the string-based identifier scanner and the entire class of bugs
-   * that come with regex-based semantic extraction (comment leaks, missed
-   * operators, mis-tokenized parens). Legacy path stays for the GLSL ES 3.00
-   * §3.4 "arbitrary token sequence" case — which by construction holds no
-   * user identifiers to track.
-   *
-   * Comment / line-continuation handling is delegated to `_skipNonSemantic`
-   * so the peek sees the same lexical view the token-stream path will see.
+   * Route to AST iff the value parses as an `assignment_expression` —
+   * identifiers, literals, member access, operators, calls, parenthesized
+   * expressions. Legacy stays for the GLSL ES 3.00 §3.4 "arbitrary token
+   * sequence" cases: empty, single type/qualifier keyword (`#define FxaaFloat
+   * float`, `#define HP highp`), bare or trailing punctuation (`#define COMMA
+   * ,`, `#define NEG_ONE -1.0,`). Those carry no user identifiers, so the
+   * legacy path is a pure textual carrier.
    */
   private _defineHasValue(): boolean {
     const src = this._source;
     const len = src.length;
-    // Skip whitespace / line-continuation / comments before the macro name.
     let i = Lexer._skipNonSemantic(src, this._currentIndex, len);
-    // Macro name (required); if absent, malformed → stay legacy.
     if (!(i < len && BaseLexer.isAlpha(src.charCodeAt(i)))) return false;
     while (i < len && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
-    // Optional `(params)` directly after the name (no whitespace between name
-    // and `(` per C99 §6.10.3/10). If present, skip past the balanced pair.
-    // Whitespace between name and `(` makes it object-like → fall through.
+    // Optional `(params)` glued to the name (function-like per C99 §6.10.3/10);
+    // any whitespace between name and `(` makes it object-like — fall through.
     if (i < len && src.charCodeAt(i) === 40 /* '(' */) {
       let depth = 1;
       i++;
@@ -673,21 +643,13 @@ export class Lexer extends BaseLexer {
         i++;
       }
     }
-    // Scan the value. Snapshot the first "real" (non-comment / non-space)
-    // character — that anchors empty / starts-with-punctuation detection.
-    // Collect a small lookahead window of significant tokens to decide
-    // "single type/qualifier keyword" without misclassifying constructor
-    // calls (`vec2(...)`) as type aliases.
     i = Lexer._skipNonSemantic(src, i, len);
     if (i >= len || src.charCodeAt(i) === 10 || src.charCodeAt(i) === 13) {
-      // Empty value (`#define FOO`) — opaque flag macro, no expression.
-      return false;
+      return false; // empty value
     }
     const firstChar = src.charCodeAt(i);
-    // Leading bare punctuation that can't start an expression (`,`, `;`, `:`,
-    // `?`, closing `)`, closing `]`). A leading `(` is fine — it starts a
-    // parenthesized expression. A leading `-`/`+`/`!`/`~`/`*`/`&` is fine —
-    // they're unary operators (the grammar accepts `-u_unary` etc.).
+    // Leading bare punctuation that can't start an expression. Unary
+    // operators (`-`, `+`, `!`, `~`) and a leading `(` are valid starts.
     if (
       firstChar === 44 /* , */ ||
       firstChar === 59 /* ; */ ||
@@ -698,61 +660,34 @@ export class Lexer extends BaseLexer {
     ) {
       return false;
     }
-    // Tokenize the value enough to identify the "single type keyword" shape.
-    // Collect the first significant lexeme and check whether anything
-    // significant follows on the same logical line.
-    let firstLexemeStart = i;
+    // Non-identifier starter (digit, `(`, unary op) — always expression.
+    if (!BaseLexer.isAlpha(firstChar)) return Lexer._scanForUnbalancedTrailing(src, i, len);
     let firstLexemeEnd = i;
-    if (BaseLexer.isAlpha(firstChar)) {
-      while (firstLexemeEnd < len && BaseLexer.isAlnum(src.charCodeAt(firstLexemeEnd))) firstLexemeEnd++;
-    } else {
-      // Non-identifier first lexeme (digit, `(`, unary operator, etc.) —
-      // always an expression start. No need to look ahead further.
-      return Lexer._scanForUnbalancedTrailing(src, i, len);
-    }
-    const firstLexeme = src.slice(firstLexemeStart, firstLexemeEnd);
-    // Look at what follows the first identifier-shaped lexeme.
-    let j = Lexer._skipNonSemantic(src, firstLexemeEnd, len);
+    while (firstLexemeEnd < len && BaseLexer.isAlnum(src.charCodeAt(firstLexemeEnd))) firstLexemeEnd++;
+    const firstLexeme = src.slice(i, firstLexemeEnd);
+    const j = Lexer._skipNonSemantic(src, firstLexemeEnd, len);
     const endsHere = j >= len || src.charCodeAt(j) === 10 || src.charCodeAt(j) === 13;
-    if (endsHere) {
-      // Single lexeme. If it's a GLSL type/qualifier keyword, the value is a
-      // type alias → legacy. Otherwise (bare identifier, like `LIGHT_INPUT
-      // u_globalLightDir`), it's a valid `primary_expression` → AST.
-      return !Lexer._isNonExpressionLeadingKeyword(firstLexeme);
-    }
-    const nextChar = src.charCodeAt(j);
-    // Constructor call: `vec3(...)` — type keyword followed by `(` is an
-    // expression, route to AST. Same for `INVERSE_MAT(mat) inverse(mat)` —
-    // identifier followed by `(` is a function call.
-    if (nextChar === 40 /* '(' */) {
-      return Lexer._scanForUnbalancedTrailing(src, i, len);
-    }
-    // Multi-token starting with a non-expression keyword (qualifier list like
-    // `mediump sampler2D shadowMap`) → legacy.
+    // Single bare lexeme: type/qualifier keyword → legacy; identifier → AST.
+    if (endsHere) return !Lexer._isNonExpressionLeadingKeyword(firstLexeme);
+    // Followed by `(` → constructor / function call, always expression.
+    if (src.charCodeAt(j) === 40 /* '(' */) return Lexer._scanForUnbalancedTrailing(src, i, len);
+    // Multi-token starting with a type/qualifier (qualifier list) → legacy.
     if (Lexer._isNonExpressionLeadingKeyword(firstLexeme)) return false;
-    // Identifier followed by something other than `(` (operator, dot, etc.) —
-    // routes through the trailing-punctuation guard then to AST.
     return Lexer._scanForUnbalancedTrailing(src, i, len);
   }
 
-  /** True for GLSL type / qualifier / non-expression keywords that, when
-   *  appearing as the only token of a `#define` value, make the macro a
-   *  type-alias-style opaque macro that the expression grammar can't accept. */
+  /** GLSL type / qualifier keywords that aren't expression starters when standing alone.
+   *  `true`/`false` are excluded — they're `primary_expression` literals. */
   private static _isNonExpressionLeadingKeyword(lexeme: string): boolean {
     const kw = Lexer._lexemeTable[lexeme];
     if (kw === undefined) return false;
-    // `true` / `false` are `primary_expression` literals — keep on AST path.
     if (kw === Keyword.True || kw === Keyword.False) return false;
-    // Macro directive keywords (`#if`, …) shouldn't appear here anyway, but
-    // exclude them defensively.
     if (lexeme.charCodeAt(0) === 35 /* # */) return false;
     return true;
   }
 
-  /** Walks the rest of the directive looking for trailing bare punctuation
-   *  (`,`, `;`) at the value's tail — those make the replacement list a
-   *  non-expression token sequence and force legacy. Otherwise returns
-   *  `true` (route to AST). */
+  /** Stay legacy if the value has unbalanced parens or trailing `,`/`;` —
+   *  those make the replacement list a non-expression token sequence. */
   private static _scanForUnbalancedTrailing(src: string, from: number, len: number): boolean {
     let i = from;
     let lastSignificant = -1;
@@ -773,8 +708,7 @@ export class Lexer extends BaseLexer {
     if (parenDepth !== 0) return false;
     if (lastSignificant === -1) return false;
     const tail = src.charCodeAt(lastSignificant);
-    // Trailing `,` or `;` makes the value a non-expression token sequence.
-    if (tail === 44 || tail === 59) return false;
+    if (tail === 44 /* , */ || tail === 59 /* ; */) return false;
     return true;
   }
 
@@ -902,22 +836,12 @@ export class Lexer extends BaseLexer {
     return token;
   }
 
-  // Parse a `#define <name>[(params)] [value]` directive (already lexed to
-  // its newline) and register it. Both AST and legacy paths funnel through
-  // here — single source of truth, no drift between two analyzers.
+  // Parse and register a `#define` directive. Single source of truth for
+  // both AST and legacy paths.
   private _registerMacroDefine(directive: string): void {
-    // Normalize the raw directive slice into the same lexical view the
-    // token-stream path uses. Two transforms in fixed order:
-    //   1. fold `\`+newline line-continuations (C/GLSL preprocessor: the pair
-    //      is removed, stitching the next physical line on). The regex's value
-    //      group rejects newlines, so without folding any multi-line directive
-    //      (`#define X a \\\n + b`) would NO MATCH and registration would
-    //      silently fail.
-    //   2. strip block / line comments so they don't bleed into `valueRaw` or
-    //      mis-tokenize the directive shape. Block becomes a space (preserves
-    //      token separation in `a/**/+/**/b`); line comment is dropped.
-    // Both transforms produce the directive's "semantically meaningful" text —
-    // the same content the token stream sees via `_skipNonSemantic`.
+    // Normalize to the same lexical view the token-stream path sees: fold
+    // `\`+newline line continuations (else multi-line `#define`s NO MATCH),
+    // then strip comments so they can't bleed into `valueRaw` or the dedup key.
     const folded = directive
       .replace(Lexer._lineContinuationReg, "")
       .replace(Lexer._blockCommentReg, " ")
@@ -933,10 +857,8 @@ export class Lexer extends BaseLexer {
           .map((p) => p.trim())
           .filter(Boolean)
       : [];
-    // Dedup key: whitespace-normalized directive text. Two `#define`s with the
-    // same name + identical normalized text in the same branch are duplicates
-    // (re-includes, multi-chunk repeats). Storing the key once avoids
-    // recomputing it on every dedup-list scan.
+    // Dedup key: whitespace-normalized directive text. Any structural
+    // difference (params, value, function-vs-object) produces a different key.
     const dedupKey = folded.replace(Lexer._whitespaceReg, " ").trim();
     const info: MacroDefineInfo = {
       isFunction: paramsStr !== undefined,
@@ -950,12 +872,8 @@ export class Lexer extends BaseLexer {
       this.macroDefineList[name] = [info];
       return;
     }
-    // Skip exact duplicates: same dedup key + same branch. Different branches
-    // remain separate entries so `MacroCallSymbol.semanticAnalyze`'s
-    // branch-visibility filter can pick the entry that applies at each call
-    // site. The legacy "structural equality" check (isFunction + params +
-    // referenced identifiers) is subsumed by text equality of the normalized
-    // directive — any structural difference produces a different key.
+    // Same key + same branch → duplicate (re-include). Different branches stay
+    // separate so the visibility filter picks the right entry at each call site.
     for (let i = 0, n = arr.length; i < n; i++) {
       const e = arr[i];
       if (e.dedupKey === dedupKey && Lexer.sameBranch(e.branch, info.branch)) return;

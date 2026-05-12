@@ -12,19 +12,13 @@ export interface MacroDefineInfo {
   isFunction: boolean;
   name: string;
   params: string[];
-  /** Expression-parsed value AST. Set for any `#define` whose replacement list
-   *  is a valid GLSL `assignment_expression` (`_defineHasValue() === true`).
-   *  Identifier references inside the value are tracked as a natural byproduct
-   *  of AST semantic analysis — `VariableIdentifier` nodes look themselves up
-   *  in the symbol table during codegen and emit `referenceGlobal` calls.
-   *  Absent for opaque token-sequence macros (empty value, type-alias keyword,
-   *  bare/trailing punctuation) which the GLSL ES 3.00 §3.4 spec allows. */
+  /** Value AST. Set when the replacement list parses as `assignment_expression`;
+   *  absent for the GLSL ES 3.00 §3.4 opaque cases (empty, type-alias keyword,
+   *  bare/trailing punctuation). Identifier references inside are collected by
+   *  `MacroCallSymbol._collectIdentifierRefs` walking this subtree. */
   valueAst?: ASTNode.AssignmentExpression;
-  /** Whitespace-normalized directive text used to detect duplicate
-   *  registrations (re-includes, multi-chunk repeats) within the same branch.
-   *  Differs from `name` alone: `#define X 1` and `#define X 2` in the same
-   *  branch have different keys → both stay so the AST upgrade picks the
-   *  matching shape. */
+  /** Whitespace-normalized directive text. Dedup key against re-includes in
+   *  the same branch; differing values produce different keys. */
   dedupKey: string;
   /** `#ifdef` branch at registration time; call sites filter to visible entries. */
   branch: BranchSignature;
