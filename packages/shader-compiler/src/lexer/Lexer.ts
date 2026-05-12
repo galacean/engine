@@ -85,8 +85,10 @@ export class Lexer extends BaseLexer {
     "#undef": Keyword.MACRO_UNDEF
   };
 
-  // Single source of truth for `#define` parsing — fed from both AST and legacy paths.
-  private static readonly _defineDirectiveReg = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?(?:[ \t]+([^\n\r]*?))?\s*$/;
+  // Groups: 1=name, 2=fn-like params, 3=fn-like value, 4=object-like value.
+  // Function-like iff `(` is glued to name (C99 §6.10.3/10, GLSL ES 3.00 §3.4).
+  private static readonly _defineDirectiveReg =
+    /^\s*#define\s+(\w+)(?:\(([^)]*)\)(?:[ \t]+([^\n\r]*?))?|[ \t]+([^\n\r]*?))?\s*$/;
   // `\b` skips numeric-literal letters (`123u`, `1e10`, `1.5f`, `0xFFu`).
   private static readonly _refIdsReg = /\b[a-zA-Z_]\w*/g;
   // C preprocessor line continuation.
@@ -810,8 +812,8 @@ export class Lexer extends BaseLexer {
     const m = Lexer._defineDirectiveReg.exec(folded);
     if (!m) return;
     const name = m[1];
-    const paramsStr = m[3];
-    const valueRaw = m[4];
+    const paramsStr = m[2];
+    const valueRaw = m[3] ?? m[4];
     const params = paramsStr
       ? paramsStr
           .split(",")
@@ -832,7 +834,7 @@ export class Lexer extends BaseLexer {
       }
     }
     const info: MacroDefineInfo = {
-      isFunction: m[2] !== undefined,
+      isFunction: paramsStr !== undefined,
       name,
       params,
       referencedIdentifiers,

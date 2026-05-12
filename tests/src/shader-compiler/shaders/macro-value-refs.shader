@@ -3,16 +3,20 @@ Shader "macro-value-refs" {
     Pass "test" {
       mat4 renderer_MVPMat;
 
-      // 1) Binary operator — old regex anchored `^id(...)?$`, no trailing operand.
+      // 1) Parenthesized — pre-fix `_defineDirectiveReg` mis-classified this
+      //    as function-like `V_PAREN(u_paren)` with empty value.
+      #define V_PAREN (u_paren)
+      // 2) Binary operator — old regex anchored `^id(...)?$`, no trailing operand.
       #define V_OP u_op_a + u_op_b
-      // 2) Fn call — old regex captured `mix` only, missed user args.
+      // 3) Fn call — old regex captured `mix` only, missed user args.
       #define V_FN mix(u_fn_a, u_fn_b, 0.5)
-      // 3) Unary — old regex failed on leading `-`.
+      // 4) Unary — old regex failed on leading `-`.
       #define V_UNARY -u_unary
-      // 4) `SkyProcedural`'s `#define RAYLEIGH …` shape — real-world repro.
+      // 5) `SkyProcedural`'s `#define RAYLEIGH …` shape — real-world repro.
       #define V_SKY (mix(0.0, 0.0025, pow(material_AtmosphereThickness, 2.5)))
 
       // Declarations after the #defines — exercises lazy lookup at call site.
+      float u_paren;
       float u_op_a;
       float u_op_b;
       float u_fn_a;
@@ -27,7 +31,7 @@ Shader "macro-value-refs" {
       }
 
       void frag() {
-        float v = V_OP + V_FN + V_UNARY + V_SKY;
+        float v = V_PAREN + V_OP + V_FN + V_UNARY + V_SKY;
         gl_FragColor = vec4(v, 0.0, 0.0, 1.0);
       }
 

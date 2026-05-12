@@ -1093,6 +1093,7 @@ describe("ShaderCompiler Precompile", async () => {
         if ((inst[0] === 8 || inst[0] === 9) && typeof inst[1] === "string") defines.set(inst[1], inst);
       }
       const expectedDefines: Array<[string, string]> = [
+        ["V_PAREN", "(u_paren)"],
         ["V_OP", "u_op_a + u_op_b"],
         ["V_FN", "mix(u_fn_a, u_fn_b, 0.5)"],
         ["V_UNARY", "-u_unary"],
@@ -1106,7 +1107,7 @@ describe("ShaderCompiler Precompile", async () => {
       }
 
       const fragText = fragInstr.filter((i) => i[0] === 0).map((i) => i[1] as string).join("");
-      for (const name of ["u_op_a", "u_op_b", "u_fn_a", "u_fn_b", "u_unary", "material_AtmosphereThickness"]) {
+      for (const name of ["u_paren", "u_op_a", "u_op_b", "u_fn_a", "u_fn_b", "u_unary", "material_AtmosphereThickness"]) {
         expect(fragText, `missing uniform decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
       }
     });
