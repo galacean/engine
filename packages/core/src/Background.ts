@@ -1,5 +1,5 @@
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { CompareFunction, ContentRestorer, Material, ModelMesh, Shader } from ".";
+import { ContentRestorer, Material, ModelMesh, Shader } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
@@ -163,8 +163,7 @@ export class Background {
   }
 
   private _initMaterial(engine: Engine): void {
-    const material = (this._material = new Material(engine, Shader.find("background-texture")));
-    material.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    const material = (this._material = new Material(engine, Shader.find("Sky/BackgroundTexture")));
     material._addReferCount(1);
   }
 

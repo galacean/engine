@@ -3,16 +3,50 @@
  * @category Material
  */
 import { Camera, Material, MeshRenderer, PrimitiveMesh, Shader, Vector3, WebGLEngine } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
+const shaderCompiler = new ShaderCompiler();
+
+const shaderSource = `Shader "LUT-test" {
+  SubShader "Default" {
+    Pass "Forward" {
+      struct Attributes {
+        vec3 POSITION;
+        vec2 TEXCOORD_0;
+      };
+
+      struct Varyings {
+        vec2 uv;
+      };
+
+      mat4 renderer_MVPMat;
+      sampler2D scene_PrefilteredDFG;
+
+      VertexShader = vert;
+      FragmentShader = frag;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0);
+        v.uv = attr.TEXCOORD_0;
+        return v;
+      }
+
+      vec4 frag(Varyings v) {
+        return texture2D(scene_PrefilteredDFG, v.uv);
+      }
+    }
+  }
+}`;
+
 // Create engine
-WebGLEngine.create({ canvas: "canvas" })
+WebGLEngine.create({ canvas: "canvas", shaderCompiler })
   .then((engine) => {
     engine.canvas.resizeByClientSize(2);
 
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
-    // engine.run();
 
     // Create camera
     const cameraEntity = rootEntity.createChild("Camera");
@@ -24,27 +58,7 @@ WebGLEngine.create({ canvas: "canvas" })
     const renderer = entity.addComponent(MeshRenderer);
     renderer.mesh = PrimitiveMesh.createPlane(engine, 1, 1);
 
-    const shader = Shader.create(
-      "LUT-test",
-      `
-    attribute vec3 POSITION;
-    attribute vec2 TEXCOORD_0;
-    uniform mat4 renderer_MVPMat;
-    varying vec2 v_uv;
-    
-    void main(){
-      gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
-      v_uv = TEXCOORD_0;
-    }`,
-      `
-    varying vec2 v_uv;
-    uniform sampler2D scene_PrefilteredDFG;
-
-    void main(){
-      gl_FragColor = texture2D(scene_PrefilteredDFG, v_uv);
-    }
-    `
-    );
+    const shader = Shader.create(shaderSource);
     const material = new Material(engine, shader);
     renderer.setMaterial(material);
     updateForE2E(engine);

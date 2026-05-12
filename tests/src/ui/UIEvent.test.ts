@@ -1,5 +1,5 @@
 import { PointerEventData, Script } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Image, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 

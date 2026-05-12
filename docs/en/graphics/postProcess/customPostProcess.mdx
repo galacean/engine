@@ -52,42 +52,63 @@ We refer to [Adding post-processing methods](/en/docs/graphics/postProcess/postP
 
 The algorithm is not special, but you need to pay attention to `renderer_BlitTexture` This built-in variable is the post-processing rendering result of the previous Pass. Here it is the result after Bloom and Tonemapping. We display this result in grayscale.
 
-```ts showLineNumbers {14} filename="CustomPostProcessPass.ts"
-const customShader = Shader.create(
-  "Gray Scale Shader",
-  `
-  attribute vec4 POSITION_UV;
-  varying vec2 v_uv;
+```glsl showLineNumbers filename="GrayScale.shader"
+Shader "Custom/GrayScale" {
+  SubShader "Default" {
+    Pass "0" {
+      DepthState = {
+        Enabled = false;
+        WriteEnabled = false;
+      }
 
-  void main() {	
-	  gl_Position = vec4(POSITION_UV.xy, 0.0, 1.0);	
-	  v_uv = POSITION_UV.zw;
-  }
-  `,
-  `
-  varying vec2 v_uv;
-  uniform sampler2D renderer_BlitTexture;
+      VertexShader = vert;
+      FragmentShader = frag;
 
-  void main(){
-    vec4 color = texture2D(renderer_BlitTexture, v_uv);
-    float grayScale = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
-    gl_FragColor = vec4(vec3(grayScale), 1.0);
+      struct Attributes {
+        vec4 POSITION_UV;
+      };
+
+      struct Varyings {
+        vec2 v_uv;
+      };
+
+      sampler2D renderer_BlitTexture;
+
+      Varyings vert(Attributes attr) {
+        Varyings v;
+        gl_Position = vec4(attr.POSITION_UV.xy, 0.0, 1.0);
+        v.v_uv = attr.POSITION_UV.zw;
+        return v;
+      }
+
+      void frag(Varyings v) {
+        vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
+        float grayScale = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+        gl_FragColor = vec4(vec3(grayScale), 1.0);
+      }
+    }
   }
-  `
-);
+}
+```
+
+After creating the Galacean Shader source above (e.g. in the editor's `.shader` file), register it in code:
+
+```ts filename="CustomPostProcessPass.ts"
+Shader.create(grayScaleShaderSource); // Pass the Galacean Shader string shown above
+const customShader = Shader.find("Custom/GrayScale");
 ```
 
 ### 3. Create a new Pass
 
 We create a new Pass, directly [Blitter](/apis/core/#Blitter) to the screen in the [onRender hook](/apis/core/#PostProcessUberPass-onRender), and then add this Pass to the engine.
 
-```ts showLineNumbers {10,15} filename="CustomPostProcessPass.ts"
+```ts showLineNumbers {6,10} filename="CustomPostProcessPass.ts"
 class CustomPass extends PostProcessPass {
   private _blitMaterial: Material;
 
   constructor(engine: Engine) {
     super(engine);
-    this._blitMaterial = new Material(this.engine, customShader);
+    this._blitMaterial = new Material(this.engine, Shader.find("Custom/GrayScale"));
   }
 
   onRender(_, srcTexture: Texture2D, dst: RenderTarget): void {
@@ -152,24 +173,18 @@ class CustomPass extends PostProcessPass {
 }
 ```
 
-As you can see, we continuously set the fused intensity in the `onRender` hook of the custom pipeline, and then consume this data in the shader:
+As you can see, we continuously set the fused intensity in the `onRender` hook of the custom pipeline, and then consume this data in the shader. We only need to add `u_intensity` uniform and update the fragment shader:
 
-```ts showLineNumbers {8,12} filename="CustomPostProcessPass.ts"
-const customShader = Shader.create(
-  "Gray Scale Shader",
-  `
-   ......
-  `,
-  `
-  ......
-  uniform float u_intensity;
+```glsl showLineNumbers {7,12} filename="GrayScale.shader"
+      // ...same as above, with these changes in the Pass:
 
-  void main(){
-    ......
-    gl_FragColor = vec4(mix(color.rgb, vec3(grayScale), u_intensity), 1.0);
-  }
-  `
-);
+      float u_intensity;
+
+      void frag(Varyings v) {
+        vec4 color = texture2D(renderer_BlitTexture, v.v_uv);
+        float grayScale = 0.299 * color.r + 0.587 * color.g + 0.114 * color.b;
+        gl_FragColor = vec4(mix(color.rgb, vec3(grayScale), u_intensity), 1.0);
+      }
 ```
 
 If your post-processing component is in local mode, we can also use [Blend Distance](/apis/core/#PostProcess-blendDistance) to set the distance at which the camera is close to the collision body to start blending:

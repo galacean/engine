@@ -21,7 +21,7 @@ import {
 } from "../../../packages/loader/src/resource-deserialize/resources/parser/ParserContext";
 import { ReflectionParser } from "../../../packages/loader/src/resource-deserialize/resources/parser/ReflectionParser";
 import { SceneParser } from "../../../packages/loader/src/resource-deserialize/resources/scene/SceneParser";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 Loader.registerClass("Transform", Transform);

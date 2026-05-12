@@ -1,6 +1,6 @@
 import { Camera, PointerEventData, Script, SpriteDrawMode } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { Button, ColorTransition, Image, ScaleTransition, Text, UICanvas, UIGroup, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it, vi } from "vitest";
 

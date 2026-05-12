@@ -2,13 +2,13 @@
 title: Shader Introduction
 ---
 
-ShaderLab is a proprietary shader description language developed by Galacean. It provides a complete syntax for defining the structure, properties, rendering states, and shader code of a shader. With ShaderLab, developers can create a wide range of visual effects, from simple to complex.
+Galacean Shader is a proprietary shader description language developed by Galacean. It provides a complete syntax for defining the structure, properties, rendering states, and shader code of a shader. With Galacean Shader, developers can create a wide range of visual effects, from simple to complex.
 
-## What is ShaderLab?
+## What is Galacean Shader?
 
-ShaderLab is a declarative shader description language that organizes the various components of a shader into a modular structure. Unlike traditional GLSL/HLSL, ShaderLab not only includes shader code but also encompasses complete information such as material property definitions, UI configuration, and rendering state settings. ### Problems Solved
+Galacean Shader is a declarative shader description language that organizes the various components of a shader into a modular structure. Unlike traditional GLSL/HLSL, Galacean Shader not only includes shader code but also encompasses complete information such as material property definitions, UI configuration, and rendering state settings. ### Problems Solved
 
-The `ShaderLab` framework primarily addresses the following pain points in traditional shader development:
+The `Galacean Shader` framework primarily addresses the following pain points in traditional shader development:
 
 - **Code Duplication**: Writing vertex and fragment shaders requires two separate files, and varying and uniform variables need to be declared twice.
 - **Script Assembly**: Multiple SubShaders and Passes require script assembly.
@@ -25,7 +25,7 @@ The `ShaderLab` framework primarily addresses the following pain points in tradi
 - **⚡ High Performance**: Compile-time optimization and efficient runtime execution.
 - **🌐 Cross-Platform**: Automatically adapts to different graphics APIs.
 
-## ShaderLab Structure
+## Galacean Shader Structure
 
 ```glsl showLineNumbers {3-4, 16, 21, 24, 39, 49, 51, 54, 56, 58, 66, 69, 73, 77-78, 80, 90 }
 Shader "Custom/MyShader" {
@@ -78,7 +78,7 @@ DestinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
 // -------------------- SubShader Definition --------------------
 SubShader "Default" {
 // Include Shadow Caster Pass
-UsePass "pbr/Default/ShadowCaster"
+UsePass "Utility/ShadowMap/Default/ShadowCaster"
 
 // Custom Pass
 Pass "Forward Pass" {
@@ -100,7 +100,7 @@ DepthState = customDepthState;
 
 
 // Include code snippets
-#include "Common.glsl"
+#include "Common/Common.glsl"
 
 
 // Specify vertex and fragment shader entry points
@@ -135,7 +135,7 @@ gl_FragColor = baseColor;
 
 ### 1. Shader Module
 
-The Shader module is the root module of ShaderLab, defining the basic information and global settings of the shader:
+The Shader module is the root module of Galacean Shader, defining the basic information and global settings of the shader:
 
 ```glsl showLineNumbers {1-8}
 Shader "Custom/MyShader" {
@@ -363,23 +363,16 @@ return output;
 Include code snippets using the `#include` directive:
 
 ```glsl showLineNumbers
-#include "Common.glsl"      // Common functions
-#include "Light.glsl"       // Lighting calculation
-#include "Shadow.glsl"      // Shadow calculation
-#include "Fog.glsl"         // Fog effect calculation
+#include "Common/Common.glsl"      // Common functions
+#include "Common/Light.glsl"       // Lighting calculation
+#include "Shadow/Shadow.glsl"      // Shadow calculation
+#include "Common/Fog.glsl"         // Fog effect calculation
 #include "./MyCustom.glsl" // Custom snippet
 ```
 
 ## Registering Code Snippets
 
-The framework provides many built-in code snippets; developers can register them directly for use:
-
-```ts showLineNumbers {4} filename="Typescript"
-import { registerIncludes } from "@galacean/engine-shader";
-
-// Register the built-in ShaderLab code snippets.
-registerIncludes();
-```
+Built-in code snippets are automatically registered when the engine is created — no manual registration is needed.
 
 For custom snippets, you can register them manually through an interface...
 
@@ -394,7 +387,7 @@ ShaderFactory.registerInclude('YourKey', shaderSource);
 
 ## UIScript Scripting System
 
-`UIScript` is one of the core features of `ShaderLab`, allowing you to implement intelligent property panel interactions via TypeScript scripts, including setting macro switches and rendering states:
+`UIScript` is one of the core features of `Galacean Shader`, allowing you to implement intelligent property panel interactions via TypeScript scripts, including setting macro switches and rendering states:
 
 ```ts showLineNumbers {}
 import { ShaderUIScript, Material } from "@galacean/engine";

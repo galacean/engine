@@ -19,7 +19,7 @@ import {
 } from "@galacean/engine-core";
 import { MathUtil } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 class CustomPass extends PostProcessPass {

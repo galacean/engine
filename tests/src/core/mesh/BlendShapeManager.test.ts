@@ -7,7 +7,7 @@ import {
   BlendShapeFrame,
   UnlitMaterial
 } from "@galacean/engine-core";
-import { WebGLEngine, WebGLMode } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine, WebGLMode } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, expect, it } from "vitest";
 

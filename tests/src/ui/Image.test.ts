@@ -1,5 +1,5 @@
 import { Sprite, SpriteDrawMode, SpriteTileMode, Texture2D } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { Image } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 

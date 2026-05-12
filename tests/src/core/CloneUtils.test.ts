@@ -7,7 +7,7 @@ import {
   deepClone,
   ignoreClone
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
 class TestScript extends Script {

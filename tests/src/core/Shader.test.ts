@@ -14,23 +14,29 @@ import {
   ShaderTagKey,
   SubShader
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { ShaderLab } from "@galacean/engine-shaderlab";
+import { WebGLEngine } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { vi, describe, expect, it } from "vitest";
 
-const shaderLab = new ShaderLab();
+const shaderCompiler = new ShaderCompiler();
+// @ts-ignore — bind runtime include map so the compiler can resolve `#include`.
+shaderCompiler._includeMap = ShaderFactory.includeMap;
+// @ts-ignore
+Shader._shaderCompiler = shaderCompiler;
+
+const makePass = (name = "Default") =>
+  new ShaderPass(name, [], [], ShaderLanguage.GLSLES100);
 
 describe("Shader", () => {
   describe("Custom Shader", () => {
     it("Shader", () => {
-      // Create shader
-      let customShader = Shader.create("customByStringCreate", customVS, customFS);
-      customShader = Shader.create("customByPassCreate", [new ShaderPass(customVS, customFS)]);
-      customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+      // Create shader via ShaderPass[] / SubShader[] overloads
+      Shader.create("customByPassCreate", [makePass()]);
+      const customShader = Shader.create("custom", [new SubShader("Default", [makePass()])]);
 
       // Create same name shader
       const errorSpy = vi.spyOn(console, "error");
-      Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+      Shader.create("custom", [new SubShader("Default", [makePass()])]);
       expect(errorSpy).toHaveBeenCalledWith('Shader named "custom" already exists.');
       vi.resetAllMocks();
 
@@ -142,16 +148,21 @@ describe("Shader", () => {
 
       // Call update will compile shader internally
       engine.update();
+
+      // Compile custom shader to verify it works end-to-end
+      const customMaterial = new Material(engine, Shader.find("custom"));
+      meshRenderer.setMaterial(customMaterial);
+      engine.update();
     });
 
-    it("ShaderLab", async function () {
+    it("ShaderCompiler", async function () {
       const engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
-        shaderLab
+        shaderCompiler
       });
 
-      // Test that shader created successfully, if use shaderLab.
-      let shader = Shader.create(testShaderLabCode, ShaderLanguage.GLSLES300);
+      // Test that shader created successfully, if use shaderCompiler.
+      let shader = Shader.create(testShaderCompilerCode, ShaderLanguage.GLSLES300);
       expect(shader).to.be.an.instanceOf(Shader);
       expect(shader.subShaders.length).to.equal(1);
       expect(shader.subShaders[0].passes.length).to.equal(3);
@@ -159,9 +170,9 @@ describe("Shader", () => {
       expect(shader.subShaders[0].passes[1]._platformTarget).to.equal(ShaderLanguage.GLSLES300);
       expect(shader.subShaders[0].getTagValue("ReplacementTag")).to.equal("transparent");
 
-      // Test that throw error, if shader was created with same name in shaderLab.
+      // Test that throw error, if shader was created with same name in shaderCompiler.
       // expect(() => {
-      //   Shader.create(testShaderLabCode);
+      //   Shader.create(testShaderCompilerCode);
       // }).throw();
 
       const scene = engine.sceneManager.activeScene;
@@ -178,7 +189,7 @@ describe("Shader", () => {
       mr.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
       mr.setMaterial(new Material(engine, shader));
 
-      // Test that shader compile variant successfully, if use shaderLab.
+      // Test that shader compile variant successfully, if use shaderCompiler.
       expect(shader.compileVariant(engine, ["SET_TEXTURE_GRAY"])).to.be.equal(true);
       const macro = ShaderMacro.getByName("SET_TEXTURE_GRAY");
 
@@ -337,70 +348,12 @@ describe("Shader", () => {
   });
 });
 
-const customVS = `
-#include <common>
-#include <common_vert>
-#include <blendShape_input>
-#include <uv_share>
-#include <FogVertexDeclaration>
-
-void main() {
-
-    #include <begin_position_vert>
-    #include <blendShape_vert>
-    #include <skinning_vert>
-    #include <uv_vert>
-    #include <position_vert>
-
-    #include <FogVertex>
-}
-`;
-
-const customFS = `
-#include <common>
-#include <uv_share>
-#include <FogFragmentDeclaration>
-
-uniform vec4 material_BaseColor;
-uniform float material_AlphaCutoff;
-
-#ifdef MATERIAL_HAS_BASETEXTURE
-    uniform sampler2D material_BaseTexture;
-#endif
-
-void main() {
-     vec4 baseColor = material_BaseColor;
-
-    #ifdef MATERIAL_HAS_BASETEXTURE
-        vec4 textureColor = texture2D(material_BaseTexture, v_uv);
-        textureColor = gammaToLinear(textureColor);
-        baseColor *= textureColor;
-    #endif
-
-    #ifdef MATERIAL_IS_ALPHA_CUTOFF
-        if( baseColor.a < material_AlphaCutoff ) {
-            discard;
-        }
-    #endif
-
-    gl_FragColor = baseColor;
-
-    #ifndef MATERIAL_IS_TRANSPARENT
-        gl_FragColor.a = 1.0;
-    #endif
-
-    #include <FogFragment>
-
-    gl_FragColor = linearToGamma(gl_FragColor);
-}
-`;
-
-const testShaderLabCode = `
+const testShaderCompilerCode = `
   Shader "Test-Default" {
     SubShader "Default" {
       Tags { ReplacementTag = "transparent" }
 
-      UsePass "pbr-specular/Default/Forward"
+      UsePass "Pipeline/ShadowCaster/Default/ShadowCaster"
 
       Pass "test" {
         RenderQueueType = Opaque;

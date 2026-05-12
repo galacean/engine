@@ -7,7 +7,7 @@ import {
   TextureCube,
   TextureFormat
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("RenderingStatistics", () => {

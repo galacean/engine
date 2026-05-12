@@ -13,6 +13,7 @@ import {
   Texture2D,
   WebGLEngine
 } from "@galacean/engine";
+import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 /**
@@ -21,11 +22,11 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 async function main() {
   Logger.enable();
 
-  initShader();
-
   // Create engine
-  const engine = await WebGLEngine.create({ canvas: "canvas" });
+  const engine = await WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() });
   engine.canvas.resizeByClientSize();
+
+  initShader();
 
   // Get scene and create root entity
   const scene = engine.sceneManager.activeScene;
@@ -102,60 +103,113 @@ main();
  * Init replacement shader.
  */
 function initShader() {
-  const normalVS = `
-  #include <common>
-  #include <common_vert>
-  #include <blendShape_input>
-  #include <normal_share>
-  
-  void main() {
-  
-      #include <begin_position_vert>
-      #include <begin_normal_vert>
-      #include <blendShape_vert>
-      #include <skinning_vert>
-      #include <normal_vert>
-      #include <position_vert>
-  }`;
+  Shader.create(`
+    Shader "NormalShader" {
+      SubShader "Default" {
+        Pass "Forward" {
+          Tags { pipelineStage = "Forward", ReplacementTag = "transparent" }
 
-  const normalFS = `
-  #include <common>
-  #include <normal_share>
-  
-  void main() {
-   gl_FragColor = vec4(v_normal,1.0);
-  }
-  `;
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          #include "ShaderLibrary/Skin/Skin.glsl"
+          #include "ShaderLibrary/Skin/BlendShape.glsl"
 
-  const uvCheckVS = `
-  #include <common>
-  #include <common_vert>
-  #include <blendShape_input>
-  #include <uv_share>
-  
-  void main() {
-  
-    #include <begin_position_vert>
-    #include <blendShape_vert>
-    #include <skinning_vert>
-    #include <uv_vert>
-    #include <position_vert>
-  }`;
+          struct Varyings {
+            vec3 v_normal;
+          };
 
-  const uvCheckFS = `
-  #include <common>
-  #include <uv_share>
-  
-  uniform sampler2D u_UVCheckTexture;
-  
-  void main() {
-    vec4 textureColor = texture2D(u_UVCheckTexture, v_uv);
-    gl_FragColor = textureColor;
-  }
-  `;
+          Varyings vert(Attributes attr) {
+            Varyings v;
 
-  // Create normal shader
-  Shader.create("NormalShader", normalVS, normalFS);
-  // Create uv check shader
-  Shader.create("UVCheckShader", uvCheckVS, uvCheckFS);
+            vec4 position = vec4(attr.POSITION, 1.0);
+
+            #ifdef RENDERER_HAS_NORMAL
+              vec3 normal = vec3(attr.NORMAL);
+            #endif
+
+            #ifdef RENDERER_HAS_BLENDSHAPE
+              calculateBlendShape(attr, position
+                #ifdef RENDERER_HAS_NORMAL
+                  , normal
+                #endif
+              );
+            #endif
+
+            #ifdef RENDERER_HAS_SKIN
+              mat4 skinMatrix = getSkinMatrix(attr);
+              position = skinMatrix * position;
+              #ifdef RENDERER_HAS_NORMAL
+                normal = normal * INVERSE_MAT(mat3(skinMatrix));
+              #endif
+            #endif
+
+            gl_Position = renderer_MVPMat * position;
+            #ifdef RENDERER_HAS_NORMAL
+              v.v_normal = normalize(mat3(renderer_NormalMat) * normal);
+            #endif
+            return v;
+          }
+
+          void frag(Varyings v) {
+            gl_FragColor = vec4(v.v_normal, 1.0);
+          }
+
+          VertexShader = vert;
+          FragmentShader = frag;
+        }
+      }
+    }
+  `);
+
+  Shader.create(`
+    Shader "UVCheckShader" {
+      SubShader "Default" {
+        Pass "Forward" {
+          Tags { pipelineStage = "Forward", ReplacementTag = "transparent" }
+
+          #include "ShaderLibrary/Common/Common.glsl"
+          #include "ShaderLibrary/Common/Transform.glsl"
+          #include "ShaderLibrary/Common/Attributes.glsl"
+          #include "ShaderLibrary/Skin/Skin.glsl"
+          #include "ShaderLibrary/Skin/BlendShape.glsl"
+
+          sampler2D u_UVCheckTexture;
+
+          struct Varyings {
+            vec2 v_uv;
+          };
+
+          Varyings vert(Attributes attr) {
+            Varyings v;
+
+            vec4 position = vec4(attr.POSITION, 1.0);
+
+            #ifdef RENDERER_HAS_BLENDSHAPE
+              calculateBlendShape(attr, position);
+            #endif
+
+            #ifdef RENDERER_HAS_SKIN
+              mat4 skinMatrix = getSkinMatrix(attr);
+              position = skinMatrix * position;
+            #endif
+
+            gl_Position = renderer_MVPMat * position;
+            #ifdef RENDERER_HAS_UV
+              v.v_uv = attr.TEXCOORD_0;
+            #endif
+            return v;
+          }
+
+          void frag(Varyings v) {
+            vec4 textureColor = texture2D(u_UVCheckTexture, v.v_uv);
+            gl_FragColor = textureColor;
+          }
+
+          VertexShader = vert;
+          FragmentShader = frag;
+        }
+      }
+    }
+  `);
 }

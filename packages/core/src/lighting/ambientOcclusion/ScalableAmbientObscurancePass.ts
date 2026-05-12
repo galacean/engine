@@ -6,19 +6,16 @@ import { Blitter } from "../../RenderPipeline/Blitter";
 import { PipelinePass } from "../../RenderPipeline/PipelinePass";
 import { PipelineUtils } from "../../RenderPipeline/PipelineUtils";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { Shader, ShaderData, ShaderPass, ShaderProperty } from "../../shader";
-import blitVs from "../../shaderlib/extra/Blit.vs.glsl";
+import { Shader, ShaderData, ShaderProperty } from "../../shader";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 import { AmbientOcclusionQuality } from "../enums/AmbientOcclusionQuality";
-import bilateralBlurFS from "./shaders/Blur/BilateralBlur.glsl";
-import scalableAmbientOcclusionFS from "./shaders/ScalableAmbientOcclusion.glsl";
 
 /**
  * @internal
  * Scalable Ambient Obscurance render pass.
  */
 export class ScalableAmbientObscurancePass extends PipelinePass {
-  static readonly SHADER_NAME = "ScalableAmbientOcclusion";
+  static readonly SHADER_NAME = "Lighting/ScalableAmbientOcclusion";
 
   private static _invRadiusSquaredProp = ShaderProperty.getByName("material_invRadiusSquared");
   private static _intensityProp = ShaderProperty.getByName("material_intensity");
@@ -222,8 +219,3 @@ export class ScalableAmbientObscurancePass extends PipelinePass {
     this._quality = quality;
   }
 }
-
-Shader.create(ScalableAmbientObscurancePass.SHADER_NAME, [
-  new ShaderPass("ScalableAmbientOcclusion", blitVs, scalableAmbientOcclusionFS),
-  new ShaderPass("BilateralBlur", blitVs, bilateralBlurFS)
-]);

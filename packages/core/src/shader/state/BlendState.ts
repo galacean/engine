@@ -85,62 +85,55 @@ export class BlendState {
    * @internal
    */
   _applyShaderDataValue(renderStateDataMap: Record<number, ShaderProperty>, shaderData: ShaderData): void {
-    const blendState = this.targetBlendState;
+    const target = this.targetBlendState;
 
-    const enable0Property = renderStateDataMap[RenderStateElementKey.BlendStateEnabled0];
-    if (enable0Property !== undefined) {
-      const enabled = shaderData.getFloat(enable0Property);
-      blendState.enabled = enabled !== undefined ? !!enabled : false;
+    const enabledProp = renderStateDataMap[RenderStateElementKey.BlendStateEnabled0];
+    if (enabledProp !== undefined) {
+      const enabled = shaderData.getFloat(enabledProp);
+      target.enabled = enabled !== undefined ? !!enabled : false;
     }
-
-    const colorBlendOperation0Property = renderStateDataMap[RenderStateElementKey.BlendStateColorBlendOperation0];
-    if (colorBlendOperation0Property !== undefined) {
-      blendState.colorBlendOperation = shaderData.getFloat(colorBlendOperation0Property) ?? BlendOperation.Add;
+    const colorBlendOperationProp = renderStateDataMap[RenderStateElementKey.BlendStateColorBlendOperation0];
+    if (colorBlendOperationProp !== undefined) {
+      target.colorBlendOperation = shaderData.getFloat(colorBlendOperationProp) ?? BlendOperation.Add;
     }
-
-    const alphaBlendOperation0Property = renderStateDataMap[RenderStateElementKey.BlendStateAlphaBlendOperation0];
-    if (alphaBlendOperation0Property !== undefined) {
-      blendState.alphaBlendOperation = shaderData.getFloat(alphaBlendOperation0Property) ?? BlendOperation.Add;
+    const alphaBlendOperationProp = renderStateDataMap[RenderStateElementKey.BlendStateAlphaBlendOperation0];
+    if (alphaBlendOperationProp !== undefined) {
+      target.alphaBlendOperation = shaderData.getFloat(alphaBlendOperationProp) ?? BlendOperation.Add;
     }
-
-    const sourceColorBlendFactor0Property = renderStateDataMap[RenderStateElementKey.BlendStateSourceColorBlendFactor0];
-    if (sourceColorBlendFactor0Property !== undefined) {
-      blendState.sourceColorBlendFactor = shaderData.getFloat(sourceColorBlendFactor0Property) ?? BlendFactor.One;
+    const sourceColorBlendFactorProp = renderStateDataMap[RenderStateElementKey.BlendStateSourceColorBlendFactor0];
+    if (sourceColorBlendFactorProp !== undefined) {
+      target.sourceColorBlendFactor = shaderData.getFloat(sourceColorBlendFactorProp) ?? BlendFactor.One;
     }
-
-    const sourceAlphaBlendFactor0Property = renderStateDataMap[RenderStateElementKey.BlendStateSourceAlphaBlendFactor0];
-    if (sourceAlphaBlendFactor0Property !== undefined) {
-      blendState.sourceAlphaBlendFactor = shaderData.getFloat(sourceAlphaBlendFactor0Property) ?? BlendFactor.One;
+    const sourceAlphaBlendFactorProp = renderStateDataMap[RenderStateElementKey.BlendStateSourceAlphaBlendFactor0];
+    if (sourceAlphaBlendFactorProp !== undefined) {
+      target.sourceAlphaBlendFactor = shaderData.getFloat(sourceAlphaBlendFactorProp) ?? BlendFactor.One;
     }
-
-    const destinationColorBlendFactor0Property =
+    const destinationColorBlendFactorProp =
       renderStateDataMap[RenderStateElementKey.BlendStateDestinationColorBlendFactor0];
-    if (destinationColorBlendFactor0Property !== undefined) {
-      blendState.destinationColorBlendFactor =
-        shaderData.getFloat(destinationColorBlendFactor0Property) ?? BlendFactor.Zero;
+    if (destinationColorBlendFactorProp !== undefined) {
+      target.destinationColorBlendFactor = shaderData.getFloat(destinationColorBlendFactorProp) ?? BlendFactor.Zero;
     }
-
-    const destinationAlphaBlendFactor0Property =
+    const destinationAlphaBlendFactorProp =
       renderStateDataMap[RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0];
-    if (destinationAlphaBlendFactor0Property !== undefined) {
-      blendState.destinationAlphaBlendFactor =
-        shaderData.getFloat(destinationAlphaBlendFactor0Property) ?? BlendFactor.Zero;
+    if (destinationAlphaBlendFactorProp !== undefined) {
+      target.destinationAlphaBlendFactor = shaderData.getFloat(destinationAlphaBlendFactorProp) ?? BlendFactor.Zero;
     }
-
-    const colorWriteMask0Property = renderStateDataMap[RenderStateElementKey.BlendStateColorWriteMask0];
-    if (colorWriteMask0Property !== undefined) {
-      blendState.colorWriteMask = shaderData.getFloat(colorWriteMask0Property) ?? ColorWriteMask.All;
+    const colorWriteMaskProp = renderStateDataMap[RenderStateElementKey.BlendStateColorWriteMask0];
+    if (colorWriteMaskProp !== undefined) {
+      target.colorWriteMask = shaderData.getFloat(colorWriteMaskProp) ?? ColorWriteMask.All;
     }
-
-    const blendColorProperty = renderStateDataMap[RenderStateElementKey.BlendStateBlendColor];
-    if (blendColorProperty !== undefined) {
-      const blendColor = shaderData.getColor(blendColorProperty);
-      blendColor !== undefined && this.blendColor.copyFrom(blendColor);
+    const blendColorProp = renderStateDataMap[RenderStateElementKey.BlendStateBlendColor];
+    if (blendColorProp !== undefined) {
+      const blendColor = shaderData.getColor(blendColorProp);
+      if (blendColor) {
+        this.blendColor.copyFrom(blendColor);
+      } else {
+        this.blendColor.set(0, 0, 0, 0);
+      }
     }
-
-    const alphaToCoverageProperty = renderStateDataMap[RenderStateElementKey.BlendStateAlphaToCoverage];
-    if (alphaToCoverageProperty !== undefined) {
-      const alphaToCoverage = shaderData.getFloat(alphaToCoverageProperty);
+    const alphaToCoverageProp = renderStateDataMap[RenderStateElementKey.BlendStateAlphaToCoverage];
+    if (alphaToCoverageProp !== undefined) {
+      const alphaToCoverage = shaderData.getFloat(alphaToCoverageProp);
       this.alphaToCoverage = alphaToCoverage !== undefined ? !!alphaToCoverage : false;
     }
   }
