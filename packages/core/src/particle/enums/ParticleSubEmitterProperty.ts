@@ -7,11 +7,11 @@
  * (Color/Size/Rotation) instead.
  */
 export enum ParticleSubEmitterProperty {
-  None = 0,
+  None = 0x0,
   /** Multiply parent particle's start color into the sub particle's start color. */
-  Color = 1 << 0,
+  Color = 0x1,
   /** Multiply parent particle's start size into the sub particle's start size. */
-  Size = 1 << 1,
+  Size = 0x2,
   /** Add parent particle's start rotation to the sub particle's start rotation. */
-  Rotation = 1 << 2
+  Rotation = 0x4
 }
