@@ -717,8 +717,13 @@ export class ParticleGenerator {
    */
   _readParticleStartColor(slotIndex: number, out: Color): void {
     const offset = slotIndex * ParticleBufferUtils.instanceVertexFloatStride;
-    const v = this._instanceVertices;
-    out.set(v[offset + 8], v[offset + 9], v[offset + 10], v[offset + 11]);
+    const instanceVertices = this._instanceVertices;
+    out.set(
+      instanceVertices[offset + 8],
+      instanceVertices[offset + 9],
+      instanceVertices[offset + 10],
+      instanceVertices[offset + 11]
+    );
   }
 
   /**
@@ -727,8 +732,8 @@ export class ParticleGenerator {
    */
   _readParticleStartSize(slotIndex: number, out: Vector3): void {
     const offset = slotIndex * ParticleBufferUtils.instanceVertexFloatStride;
-    const v = this._instanceVertices;
-    out.set(v[offset + 12], v[offset + 13], v[offset + 14]);
+    const instanceVertices = this._instanceVertices;
+    out.set(instanceVertices[offset + 12], instanceVertices[offset + 13], instanceVertices[offset + 14]);
   }
 
   /**
@@ -739,8 +744,8 @@ export class ParticleGenerator {
    */
   _readParticleStartRotation(slotIndex: number, out: Vector3): void {
     const offset = slotIndex * ParticleBufferUtils.instanceVertexFloatStride;
-    const v = this._instanceVertices;
-    out.set(v[offset + 15], v[offset + 16], v[offset + 17]);
+    const instanceVertices = this._instanceVertices;
+    out.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
   }
 
   /**
