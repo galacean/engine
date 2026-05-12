@@ -93,6 +93,15 @@ export class Lexer extends BaseLexer {
   private static readonly _refIdsReg = /\b[a-zA-Z_]\w*/g;
   // C preprocessor line continuation.
   private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
+  // Block / line comments inside a directive slice. The token-stream path
+  // strips them via `_skipNonSemantic`, but the regex-based registrar receives
+  // a raw `_source.slice(...)` that still contains comment text — without this
+  // strip, `#define HP /* a.b */ highp` would let `a`, `b` leak into
+  // `referencedIdentifiers` and `_defineDirectiveReg` could even mis-tokenize
+  // the directive shape. Block comment becomes a single space so adjacent
+  // tokens stay separated (`a/**/+/**/b` → `a + b`); line comment is dropped.
+  private static readonly _blockCommentReg = /\/\*[\s\S]*?\*\//g;
+  private static readonly _lineCommentReg = /\/\/[^\n\r]*/g;
   // Synthetic `__if_<n>` per `#if` — polarity flip makes `#else` mutually exclusive in `isVisibleFrom`.
   private static _ifCounter = 0;
 
@@ -803,12 +812,22 @@ export class Lexer extends BaseLexer {
   // its newline) and register it. Both AST and legacy paths funnel through
   // here — single source of truth, no drift between two analyzers.
   private _registerMacroDefine(directive: string): void {
-    // Fold line-continuations before matching: per C/GLSL preprocessor rules
-    // `\` immediately before a newline removes both characters and stitches
-    // the next physical line onto this one. The regex's value group rejects
-    // newlines, so without folding any multi-line directive (`#define X a \\\n + b`)
-    // would NO MATCH and registration would silently fail.
-    const folded = directive.replace(Lexer._lineContinuationReg, "");
+    // Normalize the raw directive slice into the same lexical view the
+    // token-stream path uses. Two transforms in fixed order:
+    //   1. fold `\`+newline line-continuations (C/GLSL preprocessor: the pair
+    //      is removed, stitching the next physical line on). The regex's value
+    //      group rejects newlines, so without folding any multi-line directive
+    //      (`#define X a \\\n + b`) would NO MATCH and registration would
+    //      silently fail.
+    //   2. strip block / line comments so they don't bleed into `valueRaw` or
+    //      mis-tokenize the directive shape. Block becomes a space (preserves
+    //      token separation in `a/**/+/**/b`); line comment is dropped.
+    // Both transforms produce the directive's "semantically meaningful" text —
+    // the same content the token stream sees via `_skipNonSemantic`.
+    const folded = directive
+      .replace(Lexer._lineContinuationReg, "")
+      .replace(Lexer._blockCommentReg, " ")
+      .replace(Lexer._lineCommentReg, "");
     const m = Lexer._defineDirectiveReg.exec(folded);
     if (!m) return;
     const name = m[1];

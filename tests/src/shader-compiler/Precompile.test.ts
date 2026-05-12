@@ -1,7 +1,10 @@
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection } from "@galacean/engine-core";
 import { IPrecompiledShader } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderInstructionEncoder, ShaderInstruction } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
+import {
+  ShaderInstructionEncoder,
+  ShaderInstruction
+} from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
@@ -22,7 +25,6 @@ describe("ShaderCompiler Precompile", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas, shaderCompiler });
   const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
-
 
   // ─────────────────────────────────────────────────────────
   // 1. JSON Serialization round-trip
@@ -512,16 +514,28 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("#if comparison operators", () => {
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "5"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "5"]])
+        )
       ).toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "2"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "2"]])
+        )
       ).not.toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "1"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "1"]])
+        )
       ).toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "0"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "0"]])
+        )
       ).not.toContain("YES");
     });
 
@@ -595,7 +609,9 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("#define with comment stripped — comment not in output", () => {
-      const inst = ShaderInstructionEncoder.parse("#define HALF_EPS 4.8828125e-4 // machine epsilon\nfloat x = HALF_EPS;\n");
+      const inst = ShaderInstructionEncoder.parse(
+        "#define HALF_EPS 4.8828125e-4 // machine epsilon\nfloat x = HALF_EPS;\n"
+      );
       const result = eval_(inst, []);
       expect(result).toContain("4.8828125e-4");
       expect(result).not.toContain("machine epsilon");
@@ -1106,9 +1122,52 @@ describe("ShaderCompiler Precompile", async () => {
         expect(inst![2]).toBe(value);
       }
 
-      const fragText = fragInstr.filter((i) => i[0] === 0).map((i) => i[1] as string).join("");
-      for (const name of ["u_paren", "u_op_a", "u_op_b", "u_fn_a", "u_fn_b", "u_unary", "material_AtmosphereThickness"]) {
+      const fragText = fragInstr
+        .filter((i) => i[0] === 0)
+        .map((i) => i[1] as string)
+        .join("");
+      for (const name of [
+        "u_paren",
+        "u_op_a",
+        "u_op_b",
+        "u_fn_a",
+        "u_fn_b",
+        "u_unary",
+        "material_AtmosphereThickness"
+      ]) {
         expect(fragText, `missing uniform decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
+      }
+    });
+
+    // Regression for the "comments-leak-into-refs" bug: `_registerMacroDefine`
+    // historically received a raw `_source.slice(...)` slice with comments
+    // intact, so the identifier scanner harvested words from inside `/* */`
+    // and `//`. If a same-named global existed in the pass, dead-code
+    // elimination would wrongly mark it live. The fix strips comments before
+    // the regex/scan stage. This test asserts:
+    //   1. real refs (`u_used_*`) ARE emitted as uniforms (positive baseline)
+    //   2. comment-only refs (`u_in_comment_*`) are NOT emitted, proving the
+    //      scanner didn't pick them up from comment text
+    it("does not collect identifiers from comments inside #define values", async () => {
+      const source = await readFile("./shaders/macro-value-refs-with-comments.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
+      const fragText = fragInstr
+        .filter((i) => i[0] === 0)
+        .map((i) => i[1] as string)
+        .join("");
+
+      // Real references (in macro value proper) must be kept.
+      for (const name of ["u_used_block", "u_used_line", "u_used_mid"]) {
+        expect(fragText, `missing real ref decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
+      }
+
+      // Comment-only mentions must NOT be promoted to references — if they
+      // are, dead-code elimination keeps these unused globals alive.
+      for (const name of ["u_in_comment_block", "u_in_comment_line", "u_in_comment_mid", "u_in_comment_tail"]) {
+        expect(fragText, `fake ref leaked from comment: ${name}`).not.toMatch(
+          new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`)
+        );
       }
     });
 
@@ -1305,7 +1364,9 @@ describe("ShaderCompiler Precompile", async () => {
             livePass.fragmentEntry,
             ShaderLanguage.GLSLES300
           );
-          expect(precompiled.subShaders[i].passes[j].vertexShaderInstructions).toEqual(liveProgram.vertexShaderInstructions);
+          expect(precompiled.subShaders[i].passes[j].vertexShaderInstructions).toEqual(
+            liveProgram.vertexShaderInstructions
+          );
         }
       }
     });
