@@ -15,6 +15,11 @@ export interface ComponentRef {
   index: number;
 }
 
+/** Reference to a registered runtime class constructor. */
+export interface ClassRef {
+  $class: string;
+}
+
 export interface SignalListener {
   target: { $component: ComponentRef };
   methodName: string;
