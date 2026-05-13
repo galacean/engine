@@ -110,10 +110,9 @@ export class PhysXPhysicsScene implements IPhysicsScene {
     this._pxScene = pxPhysics.createScene(sceneDesc);
     sceneDesc.delete();
 
-    const scene = this;
     this._pxQueryCallback = physX.PxQueryFilterCallback.implement({
       preFilter: (_filterData: any, index: number, _actor: any) =>
-        scene._currentOnQuery(index) ? QueryHitType.BLOCK : QueryHitType.NONE,
+        this._currentOnQuery(index) ? QueryHitType.BLOCK : QueryHitType.NONE,
       // distance <= 0 means initial overlap — drop the hit so subsequent hits can be considered.
       // Only invoked when the query's filter data includes POST_FILTER (raycast/sweep, not overlap).
       postFilter: (_filterData: any, distance: number) => (distance <= 0 ? QueryHitType.NONE : QueryHitType.BLOCK)
