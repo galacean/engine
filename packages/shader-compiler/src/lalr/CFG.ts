@@ -45,12 +45,12 @@ const productionAndRules: [GrammarSymbol[], TranslationRule | undefined][] = [
   ...GrammarUtils.createProductionWithOptions(
     NoneTerminal.macro_define,
     [
-      [Keyword.MACRO_DEFINE, ETokenType.ID, NoneTerminal.assignment_expression, Keyword.MACRO_DEFINE_END],
+      [Keyword.MACRO_DEFINE, ETokenType.ID, NoneTerminal.expression, Keyword.MACRO_DEFINE_END],
       [
         Keyword.MACRO_DEFINE,
         ETokenType.ID,
         Keyword.MACRO_DEFINE_PARAMS,
-        NoneTerminal.assignment_expression,
+        NoneTerminal.expression,
         Keyword.MACRO_DEFINE_END
       ]
     ],

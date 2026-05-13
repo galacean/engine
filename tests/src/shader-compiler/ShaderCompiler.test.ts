@@ -5,6 +5,7 @@ import {
   CompareFunction,
   CullMode,
   RenderStateElementKey,
+  ShaderLanguage,
   StencilOperation
 } from "@galacean/engine-core";
 import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader-compiler";
@@ -316,7 +317,7 @@ describe("ShaderCompiler", async () => {
         passSource.vertexEntry,
         passSource.fragmentEntry,
         0
-    )!;
+      )!;
 
       expect(vertex).to.be.a("string").and.not.empty;
       expect(fragment).to.be.a("string").and.not.empty;
@@ -378,16 +379,67 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
 
+  it("macro-value-refs (uniforms referenced inside paren / operator / fn-call / unary / nested macro values)", async () => {
+    const shaderSource = await readFile("./shaders/macro-value-refs.shader");
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
+    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+  });
+
   it("macro-call-struct-arg (struct-member access as function-like macro arg)", async () => {
     const shaderSource = await readFile("./shaders/macro-call-struct-arg-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
 
-  it("non-expression-define (replacement list is not an expression)", async () => {
-    const shaderSource = await readFile("./shaders/non-expression-define-repro.shader");
+  it("macro-top-level-comma (replacement list with top-level `,` — GLSL ES 3.00 §3.4)", async () => {
+    const shaderSource = await readFile("./shaders/macro-top-level-comma-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
+  });
+
+  it("macro-leading-dot-float (`.5` is a legal GLSL ES §4.1.4 float literal)", async () => {
+    const shaderSource = await readFile("./shaders/macro-leading-dot-float.shader");
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
+    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+  });
+
+  // Authoring-error `#define` shapes (trailing comma, unbalanced bracket,
+  // leading punctuation, trailing operator, …) get one uniform diagnostic:
+  // "#define <name>: invalid replacement list — not a valid GLSL expression
+  // (\"<value>\")". The user reads the rule + value and fixes their GLSL —
+  // the engine doesn't categorize further.
+  const assertMacroAuthorError = async (fixturePath: string, expectedValueFragment: string) => {
+    const source = await readFile(fixturePath);
+    const parsed = shaderCompilerRelease._parseShaderSource(source);
+    const pass = parsed.subShaders[0].passes.find((p) => !p.isUsePass);
+    if (!pass) throw new Error("test fixture missing a non-usepass");
+    let captured: unknown = null;
+    try {
+      shaderCompilerRelease._parseShaderPass(
+        pass.contents,
+        pass.vertexEntry,
+        pass.fragmentEntry,
+        ShaderLanguage.GLSLES100
+      );
+    } catch (e) {
+      captured = e;
+    }
+    expect(captured, "expected a lexer error").to.be.instanceOf(Error);
+    const msg = (captured as Error).message;
+    expect(msg).to.match(/#define BAD: invalid replacement list/);
+    expect(msg).to.include(expectedValueFragment);
+  };
+
+  it("macro-author-error: trailing comma surfaces a uniform diagnostic", async () => {
+    await assertMacroAuthorError("./shaders/macro-author-error-trailing-comma.shader", "u_a, u_b,");
+  });
+
+  it("macro-author-error: unbalanced bracket surfaces a uniform diagnostic", async () => {
+    await assertMacroAuthorError("./shaders/macro-author-error-unbalanced-bracket.shader", "u_a[u_b");
+  });
+
+  it("macro-author-error: unbalanced paren surfaces a uniform diagnostic", async () => {
+    await assertMacroAuthorError("./shaders/macro-author-error-unbalanced-paren.shader", "u_a(");
   });
 
   it("type-alias-repro (FXAA-style portability macros aliasing GLSL types)", async () => {
@@ -468,9 +520,6 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
 
-
-
-
   it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
     const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
@@ -512,9 +561,7 @@ describe("ShaderCompiler", async () => {
     // ShaderLab silently drops the declaration when both the use sites and
     // the #else-arm declarator are tagged MACRO_CALL — driver then rejects
     // the variant where the #if condition is false (no `lumaS` defined).
-    expect(passProgram!.vertex, "vertex must keep #else-arm `lumaS` declaration").to.match(
-      /float\s+lumaS\s*=/
-    );
+    expect(passProgram!.vertex, "vertex must keep #else-arm `lumaS` declaration").to.match(/float\s+lumaS\s*=/);
     // The full shader pass should still validate end-to-end.
     glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerVerbose);

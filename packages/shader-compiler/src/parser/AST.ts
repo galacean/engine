@@ -1698,10 +1698,22 @@ export namespace ASTNode {
           visibleCount++;
           if (info.valueAst == null) allAst = false;
           if (info.isFunction) isFn = true;
-          const ref = info.referenceName;
-          if (ref && info.params.indexOf(ref) === -1 && refs.indexOf(ref) === -1) refs.push(ref);
-          if (!ref || Lexer.isLanguageKeyword(ref) || BuiltinFunction.isExist(ref)) {
+          // Harvest references from the value AST. Legacy-form macros (no
+          // `valueAst`) hold non-expression token sequences with no user
+          // identifiers, so nothing to collect.
+          if (info.valueAst) {
+            MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs);
+          }
+          // aliasesUserFn: macro replacement is a single non-builtin identifier.
+          // Keyword replacements (`vec3`, `mat4`) reach here with `valueAst === undefined`
+          // (opaque path), so they automatically fail without an explicit keyword guard.
+          if (info.isFunction || !info.valueAst) {
             allAliasUserFn = false;
+          } else {
+            const leadingId = MacroCallSymbol._unwrapBareIdentifierLexeme(info.valueAst);
+            if (!leadingId || BuiltinFunction.isExist(leadingId)) {
+              allAliasUserFn = false;
+            }
           }
         }
       }
@@ -1712,6 +1724,41 @@ export namespace ASTNode {
       this.hasAstValue = visibleCount > 0 && allAst;
       this.isFunctionLikeMacro = isFn;
       this.aliasesUserFn = visibleCount > 0 && allAliasUserFn;
+    }
+
+    /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
+     *  function-like parameter names (local to the macro, not call-site refs)
+     *  and duplicates. */
+    private static _collectIdentifierRefs(node: TreeNode, params: string[], out: string[]): void {
+      if (node instanceof VariableIdentifier) {
+        const child = node.children[0];
+        if (child instanceof BaseToken) {
+          const name = child.lexeme;
+          if (params.indexOf(name) === -1 && out.indexOf(name) === -1) out.push(name);
+        }
+        return;
+      }
+      const children = node.children;
+      if (!children) return;
+      for (let i = 0, n = children.length; i < n; i++) {
+        const c = children[i];
+        if (c instanceof TreeNode) MacroCallSymbol._collectIdentifierRefs(c, params, out);
+      }
+    }
+
+    // Walk single-child wrappers down to VariableIdentifier; return its lexeme.
+    private static _unwrapBareIdentifierLexeme(node: TreeNode): string | undefined {
+      let cur: TreeNode = node;
+      while (true) {
+        if (cur instanceof VariableIdentifier) {
+          const child = cur.children[0];
+          return child instanceof BaseToken ? child.lexeme : undefined;
+        }
+        if (cur.children.length !== 1) return undefined;
+        const child = cur.children[0];
+        if (!(child instanceof TreeNode)) return undefined;
+        cur = child;
+      }
     }
   }
 
@@ -1762,7 +1809,7 @@ export namespace ASTNode {
   export class MacroDefine extends TreeNode {
     macroName: string;
     isFunction: boolean;
-    valueExpression?: AssignmentExpression;
+    valueExpression?: Expression;
 
     override init(): void {
       this.macroName = "";
@@ -1785,8 +1832,11 @@ export namespace ASTNode {
         valueIdx = 3;
       }
 
-      if (children[valueIdx] instanceof AssignmentExpression) {
-        this.valueExpression = children[valueIdx] as AssignmentExpression;
+      // Grammar's macro_define value is `expression` (not `assignment_expression`),
+      // so the value child is always an `Expression` wrapper — even for a single
+      // assignment-expression value, which appears as `Expression > AssignmentExpression`.
+      if (children[valueIdx] instanceof Expression) {
+        this.valueExpression = children[valueIdx] as Expression;
       }
 
       // The Lexer already registered a regex-derived entry for this directive.
@@ -1808,14 +1858,14 @@ export namespace ASTNode {
       if (upgradable) {
         upgradable.valueAst = this.valueExpression;
       } else {
-        // No matching preprocessor entry (e.g. the lexer was fed the directive
-        // directly without a `Preprocessor.parse` pass). Push a fresh entry.
+        // No matching preprocessor entry (lexer fed directly, no
+        // `Preprocessor.parse` pass). Synthetic key based on shape is enough
+        // — this path's only dedup unit is this AST-direct registration.
         const info: MacroDefineInfo = {
           isFunction: this.isFunction,
-          name: this.macroName,
           params,
           valueAst: this.valueExpression,
-          referenceName: "",
+          dedupKey: `${this.macroName}#ast/${this.isFunction ? params.join(",") : ""}`,
           branch: definingBranch
         };
         if (entries) entries.push(info);
