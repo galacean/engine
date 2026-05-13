@@ -397,6 +397,12 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
 
+  it("macro-leading-dot-float (`.5` is a legal GLSL ES §4.1.4 float literal)", async () => {
+    const shaderSource = await readFile("./shaders/macro-leading-dot-float.shader");
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
+    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+  });
+
   // Authoring-error `#define` shapes (trailing comma, unbalanced bracket,
   // leading punctuation, trailing operator, …) get one uniform diagnostic:
   // "#define <name>: invalid replacement list — not a valid GLSL expression

@@ -736,14 +736,16 @@ export class Lexer extends BaseLexer {
     // simply "value must be a valid GLSL expression".
     //
     // Legal expression starts: alnum (identifier / literal), `(` (group),
-    // `-`/`+`/`!`/`~` (unary). Legal expression ends: alnum (identifier /
-    // literal), `)` (group close), `]` (array-index close). Everything else
-    // at the head or top-level tail is an authoring error.
+    // `.` (GLSL ES §4.1.4 leading-dot float literal like `.5`), `-`/`+`/`!`/`~`
+    // (unary). Legal expression ends: alnum (identifier / literal), `)` (group
+    // close), `]` (array-index close). Everything else at the head or
+    // top-level tail is an authoring error.
     const head = src.charCodeAt(firstStart);
     const tail = topLevelLast >= 0 ? src.charCodeAt(topLevelLast) : 0;
     const headIllegal =
       !BaseLexer.isAlnum(head) &&
       head !== 40 /* ( */ &&
+      head !== 46 /* . */ &&
       head !== 45 /* - */ &&
       head !== 43 /* + */ &&
       head !== 33 /* ! */ &&
