@@ -6,9 +6,10 @@ Shader "macro-author-error-trailing-comma" {
       // Authoring error: the value isn't a valid GLSL expression. Rule:
       // `#define` values must be either (a) a legal GLSL expression
       // (including comma-separated expression lists), or (b) one of the
-      // engine-supported legacy shapes (empty, single type/qualifier
-      // keyword, unbalanced parens for X-macros). Everything else throws a
-      // single uniform diagnostic with the macro name + value text.
+      // three engine-supported legacy shapes — empty value, single
+      // type/qualifier keyword (e.g. `#define FxaaFloat float`), or
+      // type-qualifier list (e.g. `mediump sampler2D s`). Everything else
+      // throws a single uniform diagnostic with the macro name + value text.
       #define BAD u_a, u_b,
 
       float u_a;
