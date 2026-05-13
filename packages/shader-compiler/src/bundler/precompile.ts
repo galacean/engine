@@ -168,8 +168,10 @@ export async function startWatcher(options: Omit<PrecompileOptions, "watch" | "o
 }
 
 async function loadShaderCompiler(): Promise<ShaderCompilerInstance> {
-  // @ts-ignore — `../main.js` is the compiled runtime entry; no .ts source.
-  const mod = (await import("../main.js")) as { ShaderCompiler: new () => ShaderCompilerInstance };
+  // @ts-ignore — `../dist/main.js` is the compiled runtime entry; no .ts source.
+  // Bundler ships at `<pkg>/bundler/` and the runtime at `<pkg>/dist/`, so this
+  // resolves to the sibling `dist/` from `bundler/cli.js` at runtime.
+  const mod = (await import("../dist/main.js")) as { ShaderCompiler: new () => ShaderCompilerInstance };
   const instance = new mod.ShaderCompiler();
   if (typeof instance._precompile !== "function") {
     throw new Error("ShaderCompiler._precompile is not available; rebuild @galacean/engine-shader-compiler first.");

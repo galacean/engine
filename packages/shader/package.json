@@ -27,7 +27,7 @@
     }
   },
   "scripts": {
-    "precompile": "node ../shader-compiler/dist/bundler/cli.js src/Shaders compiledShaders --clean --emit-index --emit-sources",
+    "precompile": "node ../shader-compiler/bundler/cli.js src/Shaders compiledShaders --clean --emit-index --emit-sources",
     "b:types": "tsc"
   },
   "umd": {

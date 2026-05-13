@@ -21,9 +21,14 @@
       "types": "./types/index.d.ts"
     },
     "./bundler/rollup": {
-      "import": "./dist/bundler/rollup.js",
-      "require": "./dist/bundler/rollup.cjs.js",
+      "import": "./bundler/rollup.js",
+      "require": "./bundler/rollup.cjs.js",
       "types": "./types/bundler/rollup.d.ts"
+    },
+    "./bundler/precompile": {
+      "import": "./bundler/precompile.js",
+      "require": "./bundler/precompile.cjs.js",
+      "types": "./types/bundler/precompile.d.ts"
     },
     "./verbose": {
       "import": "./dist/module.verbose.js",
@@ -34,10 +39,10 @@
     "./package.json": "./package.json"
   },
   "bin": {
-    "shader-compiler-precompile": "./dist/bundler/cli.js"
+    "shader-compiler-precompile": "./bundler/cli.js"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js && chmod +x dist/bundler/cli.js",
+    "build": "rollup -c rollup.config.js && chmod +x bundler/cli.js",
     "b:types": "tsc"
   },
   "umd": {
@@ -49,6 +54,7 @@
   },
   "files": [
     "dist/**/*",
+    "bundler/**/*",
     "types/**/*",
     "verbose/package.json"
   ],
