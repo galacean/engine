@@ -2,6 +2,7 @@ import { ETokenType } from "../common";
 import { Keyword } from "../common/enums/Keyword";
 import { Grammar } from "../parser/Grammar";
 import { GrammarSymbol, NoneTerminal, Terminal } from "../parser/GrammarSymbol";
+import Production from "./Production";
 import State from "./State";
 import StateItem from "./StateItem";
 import { default as GrammarUtils, default as Utils } from "./Utils";
@@ -157,9 +158,10 @@ export class LALR1 {
   private _addAction(table: ActionTable, terminal: Terminal, action: ActionInfo) {
     const exist = table.get(terminal);
     if (exist && !Utils.isActionEqual(exist, action)) {
-      // Resolve dangling else ambiguity
-      if (terminal === Keyword.ELSE && exist.action === EAction.Shift && action.action === EAction.Reduce) {
-        return;
+      // Known shift-preferred conflicts (see TargetParser.y). Enforce shift
+      // regardless of add order; reverse direction falls through to `table.set`.
+      if (LALR1._isKnownShiftPreferred(terminal, exist, action)) {
+        if (exist.action === EAction.Shift && action.action === EAction.Reduce) return;
       } else {
         // #if _VERBOSE
         console.warn(
@@ -172,6 +174,23 @@ export class LALR1 {
       }
     }
     table.set(terminal, action);
+  }
+
+  // Catalog of expected shift/reduce conflicts. See TargetParser.y for the rationale.
+  //   - ELSE: dangling-else
+  //   - '(' + `type_specifier_nonarray → macro_call_symbol`: macro-as-type-alias
+  private static _isKnownShiftPreferred(terminal: Terminal, exist: ActionInfo, action: ActionInfo): boolean {
+    if (terminal === Keyword.ELSE) return true;
+    if (terminal !== ETokenType.LEFT_PAREN) return false;
+    const reduce = exist.action === EAction.Reduce ? exist : action.action === EAction.Reduce ? action : null;
+    if (!reduce) return false;
+    const prod = Production.pool.get(reduce.target!);
+    return (
+      !!prod &&
+      prod.goal === NoneTerminal.type_specifier_nonarray &&
+      prod.derivation.length === 1 &&
+      prod.derivation[0] === NoneTerminal.macro_call_symbol
+    );
   }
 
   // https://people.cs.pitt.edu/~jmisurda/teaching/cs1622/handouts/cs1622-first_and_follow.pdf
