@@ -86,8 +86,8 @@ macro_undef:
     ;
 
 macro_define:
-    MACRO_DEFINE id assignment_expression MACRO_DEFINE_END
-    | MACRO_DEFINE id MACRO_DEFINE_PARAMS assignment_expression MACRO_DEFINE_END
+    MACRO_DEFINE id expression MACRO_DEFINE_END
+    | MACRO_DEFINE id MACRO_DEFINE_PARAMS expression MACRO_DEFINE_END
     ;
 
 macro_push_context:

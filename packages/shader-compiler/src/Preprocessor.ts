@@ -8,23 +8,20 @@ export type IncludeMap = { readonly [includeName: string]: string | undefined };
 
 export type ChunkOutputCache = Map<string, string>;
 
-/**
- * Record for a single `#define` directive. `valueAst` is set for expression
- * macros (joined into the AST pipeline); opaque macros leave it undefined and
- * are emitted verbatim to the GLSL driver.
- */
 export interface MacroDefineInfo {
   isFunction: boolean;
-  name: string;
   params: string[];
-  valueAst?: ASTNode.AssignmentExpression;
-  /** Leading identifier of the value (`#define F foo` → `foo`, `#define F foo(a)`
-   *  → `foo`), or empty for literals / operator expressions. Drives symbol-table
-   *  lookup at macro call sites. */
-  referenceName: string;
-  /** Branch signature at the point of registration. The same `#define` repeated
-   *  in different `#ifdef` branches produces multiple entries with different
-   *  signatures; call sites filter to those visible from their own position. */
+  /** Value AST. Set when the replacement list parses as `expression` (which
+   *  includes comma-separated lists per C99 §6.10.3); absent for the GLSL ES
+   *  3.00 §3.4 opaque cases the grammar can't reduce (empty, type-alias keyword,
+   *  trailing punctuation, unbalanced bracket, trailing operator). Identifier
+   *  references inside are collected by `MacroCallSymbol._collectIdentifierRefs`
+   *  walking this subtree. */
+  valueAst?: ASTNode.Expression;
+  /** Whitespace-normalized directive text. Dedup key against re-includes in
+   *  the same branch; differing values produce different keys. */
+  dedupKey: string;
+  /** `#ifdef` branch at registration time; call sites filter to visible entries. */
   branch: BranchSignature;
 }
 

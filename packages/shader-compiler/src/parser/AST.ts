@@ -1696,8 +1696,12 @@ export namespace ASTNode {
           visibleCount++;
           if (info.valueAst == null) allAst = false;
           if (info.isFunction) isFn = true;
-          const ref = info.referenceName;
-          if (ref && info.params.indexOf(ref) === -1 && refs.indexOf(ref) === -1) refs.push(ref);
+          // Harvest references from the value AST. Legacy-form macros (no
+          // `valueAst`) hold non-expression token sequences with no user
+          // identifiers, so nothing to collect.
+          if (info.valueAst) {
+            MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs);
+          }
         }
       }
       // Require *every* visible entry to be AST-form before taking the AST
@@ -1706,6 +1710,26 @@ export namespace ASTNode {
       // instead of polluting the call site with TypeAny.
       this.hasAstValue = visibleCount > 0 && allAst;
       this.isFunctionLikeMacro = isFn;
+    }
+
+    /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
+     *  function-like parameter names (local to the macro, not call-site refs)
+     *  and duplicates. */
+    private static _collectIdentifierRefs(node: TreeNode, params: string[], out: string[]): void {
+      if (node instanceof VariableIdentifier) {
+        const child = node.children[0];
+        if (child instanceof BaseToken) {
+          const name = child.lexeme;
+          if (params.indexOf(name) === -1 && out.indexOf(name) === -1) out.push(name);
+        }
+        return;
+      }
+      const children = node.children;
+      if (!children) return;
+      for (let i = 0, n = children.length; i < n; i++) {
+        const c = children[i];
+        if (c instanceof TreeNode) MacroCallSymbol._collectIdentifierRefs(c, params, out);
+      }
     }
   }
 
@@ -1753,7 +1777,7 @@ export namespace ASTNode {
   export class MacroDefine extends TreeNode {
     macroName: string;
     isFunction: boolean;
-    valueExpression?: AssignmentExpression;
+    valueExpression?: Expression;
 
     override init(): void {
       this.macroName = "";
@@ -1776,8 +1800,11 @@ export namespace ASTNode {
         valueIdx = 3;
       }
 
-      if (children[valueIdx] instanceof AssignmentExpression) {
-        this.valueExpression = children[valueIdx] as AssignmentExpression;
+      // Grammar's macro_define value is `expression` (not `assignment_expression`),
+      // so the value child is always an `Expression` wrapper — even for a single
+      // assignment-expression value, which appears as `Expression > AssignmentExpression`.
+      if (children[valueIdx] instanceof Expression) {
+        this.valueExpression = children[valueIdx] as Expression;
       }
 
       // The Lexer already registered a regex-derived entry for this directive.
@@ -1799,14 +1826,14 @@ export namespace ASTNode {
       if (upgradable) {
         upgradable.valueAst = this.valueExpression;
       } else {
-        // No matching preprocessor entry (e.g. the lexer was fed the directive
-        // directly without a `Preprocessor.parse` pass). Push a fresh entry.
+        // No matching preprocessor entry (lexer fed directly, no
+        // `Preprocessor.parse` pass). Synthetic key based on shape is enough
+        // — this path's only dedup unit is this AST-direct registration.
         const info: MacroDefineInfo = {
           isFunction: this.isFunction,
-          name: this.macroName,
           params,
           valueAst: this.valueExpression,
-          referenceName: "",
+          dedupKey: `${this.macroName}#ast/${this.isFunction ? params.join(",") : ""}`,
           branch: definingBranch
         };
         if (entries) entries.push(info);
