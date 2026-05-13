@@ -316,7 +316,7 @@ describe("ShaderCompiler", async () => {
         passSource.vertexEntry,
         passSource.fragmentEntry,
         0
-    )!;
+      )!;
 
       expect(vertex).to.be.a("string").and.not.empty;
       expect(fragment).to.be.a("string").and.not.empty;
@@ -392,6 +392,12 @@ describe("ShaderCompiler", async () => {
 
   it("non-expression-define (replacement list is not an expression)", async () => {
     const shaderSource = await readFile("./shaders/non-expression-define-repro.shader");
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
+    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+  });
+
+  it("macro-top-level-comma (replacement list with top-level `,` — GLSL ES 3.00 §3.4)", async () => {
+    const shaderSource = await readFile("./shaders/macro-top-level-comma-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
@@ -474,9 +480,6 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
   });
 
-
-
-
   it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
     const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
@@ -518,9 +521,7 @@ describe("ShaderCompiler", async () => {
     // ShaderLab silently drops the declaration when both the use sites and
     // the #else-arm declarator are tagged MACRO_CALL — driver then rejects
     // the variant where the #if condition is false (no `lumaS` defined).
-    expect(passProgram!.vertex, "vertex must keep #else-arm `lumaS` declaration").to.match(
-      /float\s+lumaS\s*=/
-    );
+    expect(passProgram!.vertex, "vertex must keep #else-arm `lumaS` declaration").to.match(/float\s+lumaS\s*=/);
     // The full shader pass should still validate end-to-end.
     glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerVerbose);

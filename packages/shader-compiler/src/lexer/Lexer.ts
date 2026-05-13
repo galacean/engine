@@ -662,7 +662,10 @@ export class Lexer extends BaseLexer {
     let firstStart = -1;
     let firstEnd = -1;
     let firstFollowedByParen = false;
-    let last = -1;
+    // A `,` or `;` at paren-depth 0 makes the replacement list a comma /
+    // semicolon-separated sequence — grammar's `macro_define` value is
+    // `assignment_expression`, not `expression`, so top-level `,` is rejected.
+    let topLevelSeparator = false;
     while (i < len) {
       const skipped = Lexer._skipNonSemantic(src, i, len);
       if (skipped !== i) {
@@ -678,17 +681,16 @@ export class Lexer extends BaseLexer {
           firstEnd = i;
           const after = Lexer._skipNonSemantic(src, i, len);
           firstFollowedByParen = after < len && src.charCodeAt(after) === 40;
-          last = firstEnd - 1;
           continue;
         }
       }
-      last = i;
       if (c === 40) parenDepth++;
       else if (c === 41) parenDepth--;
+      else if (parenDepth === 0 && (c === 44 /* , */ || c === 59) /* ; */) topLevelSeparator = true;
       i++;
     }
     const result = { name, paramsLexeme, valueStart, valueEnd: i, cursor: i, isExpression: false };
-    if (firstStart === -1 || parenDepth !== 0) return result;
+    if (firstStart === -1 || parenDepth !== 0 || topLevelSeparator) return result;
     const head = src.charCodeAt(firstStart);
     // Leading bare punctuation that can't start an expression. Unary
     // operators (`-`, `+`, `!`, `~`) and `(` are valid starts.
@@ -711,8 +713,7 @@ export class Lexer extends BaseLexer {
     ) {
       return result;
     }
-    const tail = src.charCodeAt(last);
-    result.isExpression = tail !== 44 /* , */ && tail !== 59 /* ; */;
+    result.isExpression = true;
     return result;
   }
 
