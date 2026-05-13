@@ -19,5 +19,7 @@ export enum ParticleRandomSubSeeds {
   GravityModifier = 0xa47b8c4d,
   ForceOverLifetime = 0xe6fb937c,
   LimitVelocityOverLifetime = 0xb5a21f7e,
-  Noise = 0xf4b2c8a1
+  Noise = 0xf4b2c8a1,
+  CustomData0 = 0x7a3c91e8,
+  CustomData1 = 0x4d61b2c5
 }

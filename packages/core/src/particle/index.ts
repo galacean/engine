@@ -9,6 +9,7 @@ export { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 export { ParticleStopMode } from "./enums/ParticleStopMode";
 export { Burst } from "./modules/Burst";
 export { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
+export { CustomDataModule, CustomDataStream } from "./modules/CustomDataModule";
 export { EmissionModule } from "./modules/EmissionModule";
 export { MainModule } from "./modules/MainModule";
 export { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";

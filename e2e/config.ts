@@ -448,6 +448,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-burst-cycles",
       threshold: 0,
       diffPercentage: 0.2
+    },
+    customShader: {
+      category: "Particle",
+      caseFileName: "particleRenderer-customShader",
+      threshold: 0,
+      diffPercentage: 0.05
     }
   },
   PostProcess: {
