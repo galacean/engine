@@ -17,7 +17,7 @@ export class RenderElement implements IPoolElement {
   shaderData?: ShaderData;
   instancedRenderers: Renderer[] = [];
   subDistancePriority: number = 0;
-  /** @internal Set when canvas-internal batching wrote to the chunk this frame; protects leader from main-pipeline _batch(null, leader) re-init within the same frame */
+  /** @internal Marks a batch leader — a self-contained draw range that must not be merged again downstream */
   _isBatched: boolean = false;
 
   // @todo: maybe should remove later

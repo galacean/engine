@@ -46,9 +46,6 @@ export class VertexMergeBatcher {
     const length = localIndices.length;
     if (preElement) {
       preElement.subChunk.subMesh.count += length;
-    } else if (curElement._isBatched) {
-      // Already wrote to chunk this frame (canvas-internal batching) — main pipeline must not re-init
-      return;
     } else {
       // First write this frame — init subMesh range
       subChunk.subMesh.start = chunk.updateIndexLength;
