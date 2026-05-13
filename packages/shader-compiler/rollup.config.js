@@ -17,10 +17,12 @@ import swc from "rollup-plugin-swc3";
 import jscc from "rollup-plugin-jscc";
 
 const bundlerExternal = [
-  // Pulled in dynamically by precompile.ts (`await import("../main.js")`); kept
-  // out of the bundler output so the runtime compiler is loaded at runtime
-  // from the parent dist/ directory rather than re-bundled here.
-  "../main.js",
+  // Pulled in dynamically by precompile.ts (`await import("../dist/main.js")`);
+  // kept out of the bundler output so the runtime compiler is loaded at
+  // runtime from the sibling `dist/` directory rather than re-bundled here.
+  // Bundler files live at the package root (`<pkg>/bundler/`) so the CDN sync
+  // (which recursively walks `dist/`) doesn't try to upload Node-only code.
+  "../dist/main.js",
   "@galacean/engine-shader-compiler",
   "@galacean/engine-shader/sources",
   "@galacean/engine-math",
@@ -77,15 +79,27 @@ export default [
   {
     input: "src/bundler/rollup.ts",
     output: [
-      { file: "dist/bundler/rollup.cjs.js", format: "cjs" },
-      { file: "dist/bundler/rollup.js", format: "es" }
+      { file: "bundler/rollup.cjs.js", format: "cjs" },
+      { file: "bundler/rollup.js", format: "es" }
+    ],
+    external: bundlerExternal,
+    plugins: [swcPluginBundler]
+  },
+  // Standalone `precompile(options)` API for consumers that need to drive
+  // shader precompilation programmatically (e.g. editor dev server) without
+  // spawning the CLI. Same code path as `cli.ts`; just skips arg parsing.
+  {
+    input: "src/bundler/precompile.ts",
+    output: [
+      { file: "bundler/precompile.cjs.js", format: "cjs" },
+      { file: "bundler/precompile.js", format: "es" }
     ],
     external: bundlerExternal,
     plugins: [swcPluginBundler]
   },
   {
     input: "src/bundler/cli.ts",
-    output: { file: "dist/bundler/cli.js", format: "es", banner: "#!/usr/bin/env node" },
+    output: { file: "bundler/cli.js", format: "es", banner: "#!/usr/bin/env node" },
     external: bundlerExternal,
     plugins: [swcPluginBundler]
   }

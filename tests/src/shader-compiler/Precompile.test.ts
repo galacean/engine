@@ -1093,6 +1093,79 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
+    // Regression for SkyMat `material_AtmosphereThickness undeclared`. The
+    // fixture exercises paren / operator / fn-call / unary / nested-fn macro
+    // values; each must emit a DefineVal and every user identifier in the
+    // value must become a real `uniform` declaration.
+    it("emits object-like Define instructions and uniforms for complex macro values", async () => {
+      const source = await readFile("./shaders/macro-value-refs.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
+
+      const defines = new Map<string, ShaderInstruction>();
+      for (const inst of fragInstr) {
+        if ((inst[0] === 8 || inst[0] === 9) && typeof inst[1] === "string") defines.set(inst[1], inst);
+      }
+      // AST-emitted values are re-rendered by the visitor with token-separating
+      // whitespace; assert structural (whitespace-normalized) identity.
+      const expectedDefines: Array<[string, string]> = [
+        ["V_PAREN", "(u_paren)"],
+        ["V_OP", "u_op_a + u_op_b"],
+        ["V_FN", "mix(u_fn_a, u_fn_b, 0.5)"],
+        ["V_UNARY", "-u_unary"],
+        ["V_SKY", "(mix(0.0, 0.0025, pow(material_AtmosphereThickness, 2.5)))"]
+      ];
+      const norm = (s: string) => s.replace(/\s+/g, "");
+      for (const [name, value] of expectedDefines) {
+        const inst = defines.get(name);
+        expect(inst, `missing #define ${name}`).toBeDefined();
+        expect(inst![0], `${name} must be DefineVal (8), got ${inst![0]}`).toBe(8);
+        expect(norm(inst![2] as string), `${name} value mismatch`).toBe(norm(value));
+      }
+
+      const fragText = fragInstr
+        .filter((i) => i[0] === 0)
+        .map((i) => i[1] as string)
+        .join("");
+      for (const name of [
+        "u_paren",
+        "u_op_a",
+        "u_op_b",
+        "u_fn_a",
+        "u_fn_b",
+        "u_unary",
+        "material_AtmosphereThickness"
+      ]) {
+        expect(fragText, `missing uniform decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
+      }
+    });
+
+    // Regression: comment text inside `#define` values must not leak into the
+    // identifier scanner. Real `u_used_*` refs are kept; `u_in_comment_*`
+    // mentions are not promoted to uniforms.
+    it("does not collect identifiers from comments inside #define values", async () => {
+      const source = await readFile("./shaders/macro-value-refs-with-comments.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
+      const fragText = fragInstr
+        .filter((i) => i[0] === 0)
+        .map((i) => i[1] as string)
+        .join("");
+
+      // Real references (in macro value proper) must be kept.
+      for (const name of ["u_used_block", "u_used_line", "u_used_mid"]) {
+        expect(fragText, `missing real ref decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
+      }
+
+      // Comment-only mentions must NOT be promoted to references — if they
+      // are, dead-code elimination keeps these unused globals alive.
+      for (const name of ["u_in_comment_block", "u_in_comment_line", "u_in_comment_mid", "u_in_comment_tail"]) {
+        expect(fragText, `fake ref leaked from comment: ${name}`).not.toMatch(
+          new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`)
+        );
+      }
+    });
+
     it("subShader tags are preserved", async () => {
       const source = await readFile("./shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);

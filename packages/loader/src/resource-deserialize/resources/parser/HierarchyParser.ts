@@ -54,7 +54,7 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
       .catch(this._reject);
   }
 
-  /** Root entity indices for this hierarchy (scene.entities or [prefab.root]). */
+  /** Root entity indices for this hierarchy (scene.rootEntities or [prefab.root]). */
   protected abstract _getRootIndices(): number[];
   protected abstract _handleRootEntity(index: number): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;

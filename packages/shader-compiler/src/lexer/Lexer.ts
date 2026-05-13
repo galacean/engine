@@ -85,12 +85,6 @@ export class Lexer extends BaseLexer {
     "#undef": Keyword.MACRO_UNDEF
   };
 
-  // Single source of truth for `#define` parsing — fed from both AST and legacy paths.
-  private static readonly _defineDirectiveReg = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?(?:[ \t]+([^\n\r]*?))?\s*$/;
-  // Bare identifier or call form only — mixed-operator values reject.
-  private static readonly _referenceReg = /^([a-zA-Z_]\w*)(?:\s*\(.*\))?$/;
-  // C preprocessor line continuation.
-  private static readonly _lineContinuationReg = /\\(?:\r\n|\n|\r)/g;
   // Synthetic `__if_<n>` per `#if` — polarity flip makes `#else` mutually exclusive in `isVisibleFrom`.
   private static _ifCounter = 0;
 
@@ -149,12 +143,11 @@ export class Lexer extends BaseLexer {
   private _macroDefineExpectsNameToken = false;
   private _macroDefineExpectsParamsToken = false;
 
-  // Source offset of the current `#define` directive's start (the `#`).
-  // Set when `_scanDirectives` consumes `#define`, used by
-  // `_registerMacroDefine` at MACRO_DEFINE_END to slice out the directive
-  // text and parse it with the same regex the legacy path uses — single
-  // source of truth.
-  private _macroDefineDirectiveStart: number = -1;
+  // Fields populated as the state machine walks a `#define` directive; consumed
+  // by `_emitMacroDefineEnd` to register the directive without re-parsing.
+  private _currentMacroName = "";
+  private _currentMacroParamsLexeme: string | undefined = undefined;
+  private _currentMacroValueStart = -1;
 
   // Active `#ifdef`/`#ifndef`/`#else` stack. Updated by `tokenize` between
   // emitting tokens; read by `_registerMacroDefine` (when it registers a
@@ -574,11 +567,12 @@ export class Lexer extends BaseLexer {
     const word = buffer.join("");
 
     if (word === "#define") {
-      // Mark the directive's start offset (the `#`) so the regex-based
-      // registrar can later slice out the full directive text from `_source`.
-      // Two paths share the same registrar — single source of truth.
-      this._macroDefineDirectiveStart = start.index;
-      if (this._defineHasValue()) {
+      const peek = this._peekMacroDefine();
+      if (peek && peek.isExpression) {
+        // AST path: the value will be tokenized by the lexer's `_inMacroDefineValue`
+        // state machine and re-parsed by the expression grammar. State machine
+        // fills `_currentMacroName` / `_currentMacroParamsLexeme` / `_currentMacroValueStart`
+        // as it walks the value; `_emitMacroDefineEnd` consumes them.
         this._inMacroDefineValue = true;
         // The next word is the macro name: force ID type even if a prior `#define`
         // has already registered the name into `macroDefineList` (redefinition or
@@ -586,10 +580,13 @@ export class Lexer extends BaseLexer {
         this._macroDefineExpectsNameToken = true;
         token.set(Keyword.MACRO_DEFINE, "#define", start);
       } else {
+        // Legacy path: opaque token sequence. Register directly from the peek
+        // result without re-walking the directive.
         this._scanUtilBreakLine(buffer);
         const lexeme = "\n" + buffer.join("") + "\n";
-        // Legacy path: register immediately by parsing the buffered directive.
-        this._registerMacroDefine(this._source.slice(this._macroDefineDirectiveStart, this._currentIndex));
+        if (peek) {
+          this._registerMacroDefine(peek.name, peek.paramsLexeme, peek.valueStart, peek.valueEnd);
+        }
         token.set(Keyword.MACRO_DEFINE_EXPRESSION, lexeme, start);
       }
     } else {
@@ -610,67 +607,167 @@ export class Lexer extends BaseLexer {
   }
 
   /**
-   * Peek forward from `#define` and decide whether this directive should use the
-   * expression-AST path or the legacy opaque path.
+   * Walk a `#define` directive head once and produce everything both routing
+   * and registration need: name range, optional params range, value range,
+   * and whether the value parses as an `expression`.
    *
-   * The AST path's only purpose is to enable the shader compiler's structural rewrites
-   * (varying flatten, struct-property reference tracking) on macro values that
-   * mention struct members. Every other shape — bare identifiers, numeric
-   * literals, type-alias keywords (`#define FxaaFloat2 vec2`), constructor
-   * calls, qualifier fragments, `#define COMMA ,` etc. — is correctly handled
-   * by the GLSL driver via textual substitution and needs no AST.
+   * The replacement list is split three ways:
    *
-   * So the routing rule is positive and information-driven: **AST iff the
-   * replacement list contains a `.` member-access operator**. This is robust
-   * against new GLSL keywords / extensions and incidentally moves all simple
-   * constants and type aliases off the 18-layer expression precedence chain.
+   *  - **AST path** (`isExpression = true`): value parses as `expression`.
+   *    Covers identifiers, literals, parenthesized sub-expressions, operator
+   *    expressions, function calls, top-level comma lists (per C99 §6.10.3).
+   *
+   *  - **Legacy opaque path** (`isExpression = false`, no throw): the three
+   *    GLSL-ES-§3.4-legal-but-not-an-expression shapes with real-world use —
+   *      1. empty value                       e.g. `#define COMMON_INCLUDED`
+   *      2. single type/qualifier keyword     e.g. `#define FxaaFloat float`
+   *      3. type-qualifier list               e.g. `#define TEX_PARAM(s) mediump sampler2D s`
+   *
+   *    Note on X-macro support: the classical C X-macro pattern (a list
+   *    macro re-expanded with redefined `X(...)`) works fine — it uses
+   *    function-like macros + `\` line-continuation + `#undef`, all of
+   *    which Galacean supports. It does NOT require unbalanced parens.
+   *
+   *  - **Authoring error** (throws): every other shape that's not a valid
+   *    `expression`. Legal token sequences in theory but not used in real
+   *    GLSL — almost always author mistakes. We surface one uniform
+   *    diagnostic with the macro name and value text and let the user fix
+   *    their code instead of routing politely.
+   *
+   *    Unsupported shapes that throw (non-exhaustive — the predicate is
+   *    "the value doesn't reduce as `expression` and isn't one of the three
+   *    legacy shapes above"):
+   *      - leading bare punctuation       `,` `;` `:` `?` `)` `]`
+   *      - trailing `,` or `;`            e.g. `#define X a, b,`
+   *      - trailing binary / unary op     `+` `-` `*` `/` `%` `&` `|` `^`
+   *                                       `<` `>` `=` `!` `~`
+   *      - trailing ternary fragment      `?` or `:`
+   *      - unbalanced `[` / `]`           e.g. `#define X a[b`
+   *      - unbalanced `(` / `)`           e.g. `#define PAREN (`
+   *
+   * Returns `null` if the directive is malformed before the name. `cursor` is
+   * the position past the last non-newline char (caller advances from there).
    */
-  private _defineHasValue(): boolean {
+  private _peekMacroDefine(): {
+    name: string;
+    paramsLexeme: string | undefined;
+    valueStart: number;
+    valueEnd: number;
+    cursor: number;
+    isExpression: boolean;
+  } | null {
     const src = this._source;
     const len = src.length;
-    // All position advancement goes through `_skipNonSemantic`, which honors
-    // line-continuation (`\` + newline) and skips comments. This is critical:
-    // `#define UV foo \\\n  .field` is one logical directive whose value
-    // contains `.field`, and `#define HP /* a.b */ highp` must not let the
-    // `.` inside the comment trigger AST routing.
     let i = Lexer._skipNonSemantic(src, this._currentIndex, len);
-    // Skip macro name
-    if (!(i < len && BaseLexer.isAlpha(src.charCodeAt(i)))) return false;
+    if (!(i < len && BaseLexer.isAlpha(src.charCodeAt(i)))) return null;
+    const nameStart = i;
     while (i < len && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
-    i = Lexer._skipNonSemantic(src, i, len);
-    // Optional `(params)`: scan past a balanced pair on the same logical line
-    if (src.charCodeAt(i) === 40 /* '(' */) {
+    const name = src.slice(nameStart, i);
+    // Optional `(params)` glued to the name (function-like per C99 §6.10.3/10;
+    // whitespace before `(` makes it object-like — `(` becomes part of value).
+    let paramsLexeme: string | undefined;
+    if (i < len && src.charCodeAt(i) === 40 /* '(' */) {
+      const paramsStart = i;
       let depth = 1;
       i++;
       while (i < len && depth > 0) {
         i = Lexer._skipNonSemantic(src, i, len);
+        if (i >= len) break;
         const c = src.charCodeAt(i);
-        if (c === 10 || c === 13) return false; // malformed: stay legacy
+        if (c === 10 || c === 13) {
+          // Unbalanced before newline — treat as malformed function-like.
+          return { name, paramsLexeme: undefined, valueStart: i, valueEnd: i, cursor: i, isExpression: false };
+        }
         if (c === 40) depth++;
         else if (c === 41 /* ')' */) depth--;
         i++;
       }
+      paramsLexeme = src.slice(paramsStart, i);
     }
-    // Scan to end-of-directive looking for a `.` member-access operator.
-    // A `.` is member-access unless it's a decimal point inside a numeric
-    // literal — the latter has digits on both physical sides (`3.14`).
-    // Edge cases like `.5` go AST too (false positive, but AST path
-    // handles bare floats correctly).
+    // Walk the value once tracking what routing needs.
+    const valueStart = i;
+    let parenDepth = 0;
+    let bracketDepth = 0;
+    let firstStart = -1;
+    let firstEnd = -1;
+    let firstFollowedByParen = false;
+    let topLevelLast = -1;
     while (i < len) {
-      i = Lexer._skipNonSemantic(src, i, len);
-      if (i >= len) break;
-      const c = src.charCodeAt(i);
-      if (c === 10 || c === 13) break; // real newline ends directive
-      if (c === 46 /* '.' */) {
-        const prev = i > 0 ? src.charCodeAt(i - 1) : 0;
-        const next = i + 1 < len ? src.charCodeAt(i + 1) : 0;
-        const prevIsDigit = prev >= 48 && prev <= 57;
-        const nextIsDigit = next >= 48 && next <= 57;
-        if (!(prevIsDigit && nextIsDigit)) return true;
+      const skipped = Lexer._skipNonSemantic(src, i, len);
+      if (skipped !== i) {
+        i = skipped;
+        continue;
       }
+      const c = src.charCodeAt(i);
+      if (c === 10 || c === 13) break;
+      if (firstStart === -1) {
+        firstStart = i;
+        if (BaseLexer.isAlpha(c)) {
+          while (i < len && BaseLexer.isAlnum(src.charCodeAt(i))) i++;
+          firstEnd = i;
+          const after = Lexer._skipNonSemantic(src, i, len);
+          firstFollowedByParen = after < len && src.charCodeAt(after) === 40;
+          topLevelLast = firstEnd - 1;
+          continue;
+        }
+      }
+      if (c === 40) parenDepth++;
+      else if (c === 41) parenDepth--;
+      else if (c === 91 /* [ */) bracketDepth++;
+      else if (c === 93 /* ] */) bracketDepth--;
+      if (parenDepth === 0 && bracketDepth === 0) topLevelLast = i;
       i++;
     }
-    return false;
+    const result = { name, paramsLexeme, valueStart, valueEnd: i, cursor: i, isExpression: false };
+    // Real-world legacy shapes:
+    //   1. empty value, 2. single type/qualifier kw, 3. type-qualifier list.
+    if (firstStart === -1) return result;
+    if (
+      firstEnd !== -1 &&
+      !firstFollowedByParen &&
+      Lexer._isNonExpressionLeadingKeyword(src.slice(firstStart, firstEnd))
+    ) {
+      return result;
+    }
+    // Authoring errors. Anything that's neither a legal `expression` nor one
+    // of the three legacy shapes above gets a single uniform diagnostic —
+    // the user sees the macro name and the value text, that's enough to
+    // locate and fix. We don't categorize further; the rule for users is
+    // simply "value must be a valid GLSL expression".
+    //
+    // Legal expression starts: alnum (identifier / literal), `(` (group),
+    // `.` (GLSL ES §4.1.4 leading-dot float literal like `.5`), `-`/`+`/`!`/`~`
+    // (unary). Legal expression ends: alnum (identifier / literal), `)` (group
+    // close), `]` (array-index close). Everything else at the head or
+    // top-level tail is an authoring error.
+    const head = src.charCodeAt(firstStart);
+    const tail = topLevelLast >= 0 ? src.charCodeAt(topLevelLast) : 0;
+    const headIllegal =
+      !BaseLexer.isAlnum(head) &&
+      head !== 40 /* ( */ &&
+      head !== 46 /* . */ &&
+      head !== 45 /* - */ &&
+      head !== 43 /* + */ &&
+      head !== 33 /* ! */ &&
+      head !== 126; /* ~ */
+    const tailIllegal = !BaseLexer.isAlnum(tail) && tail !== 41 /* ) */ && tail !== 93; /* ] */
+    if (parenDepth !== 0 || bracketDepth !== 0 || headIllegal || tailIllegal) {
+      const valueText = src.slice(firstStart, i).replace(/\s+/g, " ").trim();
+      this.throwError(
+        this.getShaderPosition(0),
+        `#define ${name}: invalid replacement list — not a valid GLSL expression ("${valueText}")`
+      );
+    }
+    result.isExpression = true;
+    return result;
+  }
+
+  /** GLSL type / qualifier keywords that aren't expression starters when standing alone.
+   *  `true` / `false` are excluded — they're `primary_expression` literals.
+   *  `#`-prefixed entries are excluded — they're preprocessor directive names. */
+  private static _isNonExpressionLeadingKeyword(lexeme: string): boolean {
+    const kw = Lexer._lexemeTable[lexeme];
+    return kw !== undefined && kw !== Keyword.True && kw !== Keyword.False && !lexeme.startsWith("#");
   }
 
   /**
@@ -680,8 +777,7 @@ export class Lexer extends BaseLexer {
    * source of truth for line-continuation detection — callers along the
    * directive-scanning path (`_skipNonSemantic`, `_scanUtilBreakLine`,
    * `_scanMacroDefineParams`) all delegate here so the rule stays in one
-   * place. The string-level `_lineContinuationReg` covers the regex path
-   * used by `_registerMacroDefine` for one-shot folding.
+   * place.
    */
   private static _skipLineContinuation(src: string, i: number, len: number): number {
     if (src.charCodeAt(i) !== 92 /* '\\' */ || i + 1 >= len) return i;
@@ -773,13 +869,18 @@ export class Lexer extends BaseLexer {
       this.advance(1);
     }
     const token = BaseToken.pool.get();
-    token.set(Keyword.MACRO_DEFINE_PARAMS, buffer.join(""), start);
+    const lexeme = buffer.join("");
+    this._currentMacroParamsLexeme = lexeme;
+    // Value starts after the `)` we just consumed.
+    this._currentMacroValueStart = this._currentIndex;
+    token.set(Keyword.MACRO_DEFINE_PARAMS, lexeme, start);
     return token;
   }
 
   /** Emit `MACRO_DEFINE_END` at the end of a `#define` value, consuming the newline. */
   private _emitMacroDefineEnd(): BaseToken {
     const start = this.getShaderPosition();
+    const valueEnd = this._currentIndex;
     const source = this._source;
     if (this._currentIndex < source.length) {
       const c = source.charCodeAt(this._currentIndex);
@@ -789,41 +890,43 @@ export class Lexer extends BaseLexer {
         this.advance(1);
       }
     }
-    // Register the directive into macroDefineList — single source of truth.
-    this._registerMacroDefine(this._source.slice(this._macroDefineDirectiveStart, this._currentIndex));
+    this._registerMacroDefine(
+      this._currentMacroName,
+      this._currentMacroParamsLexeme,
+      this._currentMacroValueStart,
+      valueEnd
+    );
     this._inMacroDefineValue = false;
     const token = BaseToken.pool.get();
     token.set(Keyword.MACRO_DEFINE_END, "\n", start);
     return token;
   }
 
-  // Parse a `#define <name>[(params)] [value]` directive (already lexed to
-  // its newline) and register it. Both AST and legacy paths funnel through
-  // here — single source of truth, no drift between two analyzers.
-  private _registerMacroDefine(directive: string): void {
-    // Fold line-continuations before matching: per C/GLSL preprocessor rules
-    // `\` immediately before a newline removes both characters and stitches
-    // the next physical line onto this one. The regex's value group rejects
-    // newlines, so without folding any multi-line directive (`#define X a \\\n + b`)
-    // would NO MATCH and registration would silently fail.
-    const folded = directive.replace(Lexer._lineContinuationReg, "");
-    const m = Lexer._defineDirectiveReg.exec(folded);
-    if (!m) return;
-    const name = m[1];
-    const paramsStr = m[3];
-    const valueRaw = m[4];
-    const params = paramsStr
-      ? paramsStr
+  // Register a `#define` directive. Both AST and legacy paths funnel through
+  // here using ranges already extracted by `_peekMacroDefine` / the value
+  // state machine — no re-parsing the directive text.
+  private _registerMacroDefine(
+    name: string,
+    paramsLexeme: string | undefined,
+    valueStart: number,
+    valueEnd: number
+  ): void {
+    const params = paramsLexeme
+      ? paramsLexeme
+          .slice(1, -1) // strip enclosing `(` `)`
           .split(",")
           .map((p) => p.trim())
           .filter(Boolean)
       : [];
-    const refMatch = valueRaw ? Lexer._referenceReg.exec(valueRaw.trim()) : null;
+    // Dedup key: normalized value text (same lexical view the token-stream
+    // path sees — comments stripped, whitespace collapsed). Two `#define`s
+    // with the same name but different value text produce different keys,
+    // so disjoint-branch entries stay separate.
+    const dedupKey = `${paramsLexeme ?? ""}=${Lexer._normalizeValueText(this._source, valueStart, valueEnd)}`;
     const info: MacroDefineInfo = {
-      isFunction: m[2] !== undefined,
-      name,
+      isFunction: paramsLexeme !== undefined,
       params,
-      referenceName: refMatch ? refMatch[1] : "",
+      dedupKey,
       branch: this._branchStack.length === 0 ? EMPTY_BRANCH : this._branchStack.slice()
     };
     const arr = this.macroDefineList[name];
@@ -831,21 +934,43 @@ export class Lexer extends BaseLexer {
       this.macroDefineList[name] = [info];
       return;
     }
-    // Skip duplicates from re-includes / re-definitions in the same `#ifdef`
-    // branch. Different branches → different entries (the call-site filter
-    // picks the visible one); same branch + same shape → drop.
+    // Same key + same branch → duplicate (re-include). Different branches stay
+    // separate so the visibility filter picks the right entry at each call site.
     for (let i = 0, n = arr.length; i < n; i++) {
       const e = arr[i];
-      if (
-        e.isFunction === info.isFunction &&
-        e.referenceName === info.referenceName &&
-        e.params.length === info.params.length &&
-        e.params.every((p, idx) => p === info.params[idx]) &&
-        Lexer.sameBranch(e.branch, info.branch)
-      )
-        return;
+      if (e.dedupKey === dedupKey && Lexer.sameBranch(e.branch, info.branch)) return;
     }
     arr.push(info);
+  }
+
+  /** Render a `[start, end)` value range as space-separated significant chars,
+   *  using the same comment / line-continuation rules `_skipNonSemantic`
+   *  applies on the token-stream path. Used as the dedup key body. */
+  private static _normalizeValueText(src: string, start: number, end: number): string {
+    let out = "";
+    let i = start;
+    let pendingSpace = false;
+    while (i < end) {
+      const skipped = Lexer._skipNonSemantic(src, i, end);
+      if (skipped !== i) {
+        pendingSpace = out.length > 0;
+        i = skipped;
+        continue;
+      }
+      const c = src.charCodeAt(i);
+      if (c === 32 || c === 9) {
+        pendingSpace = out.length > 0;
+        i++;
+        continue;
+      }
+      if (pendingSpace) {
+        out += " ";
+        pendingSpace = false;
+      }
+      out += src[i];
+      i++;
+    }
+    return out;
   }
 
   private _scanMacroConditionExpression(): BaseToken {
@@ -874,6 +999,8 @@ export class Lexer extends BaseLexer {
       // Bypass MACRO_CALL classification for this one word. Used for the name of
       // a `#define` directive so redefining a known macro still yields a declarer ID.
       this._macroDefineExpectsNameToken = false;
+      this._currentMacroName = word;
+      this._currentMacroParamsLexeme = undefined;
       // C99 §6.10.3/3: the macro is function-like only when `(` appears *immediately*
       // after the name (no intervening whitespace). `#define FOO (1+2)` is
       // object-like with value `(1+2)`, not a function-like macro `FOO()` with
@@ -881,6 +1008,10 @@ export class Lexer extends BaseLexer {
       // on the next `scanToken`, so a space-separated `(` stays part of the value.
       if (this._inMacroDefineValue) {
         this._macroDefineExpectsParamsToken = this.getCurChar() === "(";
+        // For object-like macros, the value begins where the cursor is now
+        // (after the name, before whitespace skipping). Function-like macros
+        // overwrite this in `_scanMacroDefineParams` after capturing `(...)`.
+        this._currentMacroValueStart = this._currentIndex;
       }
       token.set(ETokenType.ID, word, start);
     } else if (this._isVisibleMacro(word)) {
