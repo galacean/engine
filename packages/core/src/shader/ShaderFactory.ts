@@ -76,13 +76,6 @@ export class ShaderFactory {
   private static readonly _uboUniformRegex =
     /^[ \t]*uniform\s+(?:(?:lowp|mediump|highp)\s+)?(\w+)\s+(\w+)\s*(\[.+?\])?\s*;/gm;
 
-  // Preprocessor directives — only `#ifdef / #ifndef / #else / #endif` are
-  // supported; `#if` with expressions is treated as always-active.
-  private static readonly _ifdefRegex = /^[ \t]*#ifdef\s+(\w+)/;
-  private static readonly _ifndefRegex = /^[ \t]*#ifndef\s+(\w+)/;
-  private static readonly _elseRegex = /^[ \t]*#else\b/;
-  private static readonly _endifRegex = /^[ \t]*#endif\b/;
-
   private static _packFuncMap: Record<string, InstancePackFunc> = (() => {
     const packScalar = (v: Float32Array | Int32Array, o: number, val: number) => {
       v[o] = val;
@@ -199,23 +192,16 @@ export class ShaderFactory {
    * std140 UBO (instanced array), and emit `#define` remapping so original uniform
    * names resolve to `rendererData[instanceID].field`.
    *
-   * @param activeMacros - When supplied, scanning honors `#ifdef`/`#ifndef` blocks so
-   *                       uniforms in inactive branches are not collected.
+   * Inputs are expected to be already preprocessor-evaluated (no `#ifdef` left).
    */
   static injectInstanceUBO(
     engine: Engine,
     vertexSource: string,
-    fragmentSource: string,
-    activeMacros?: Set<string>
+    fragmentSource: string
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const fieldMap: Record<number, string> = Object.create(null);
-    if (activeMacros) {
-      vertexSource = ShaderFactory._scanInstanceUniformsWithMacros(vertexSource, fieldMap, activeMacros);
-      fragmentSource = ShaderFactory._scanInstanceUniformsWithMacros(fragmentSource, fieldMap, activeMacros);
-    } else {
-      vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
-      fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
-    }
+    vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
+    fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
 
     // Even when fieldMap is empty, derived built-ins (e.g. `renderer_MVPMat`) may have
     // had their declarations stripped by scan and still need a `#define` to compile
@@ -259,51 +245,6 @@ export class ShaderFactory {
         type === "mat4" && name === "renderer_ModelMat" ? "mat3x4" : type;
       return "";
     });
-  }
-
-  /**
-   * Scan with preprocessor awareness, for raw GLSL paths where `#ifdef` blocks are not yet
-   * expanded. Uniforms inside inactive branches are skipped.
-   */
-  private static _scanInstanceUniformsWithMacros(
-    source: string,
-    fieldMap: Record<number, string>,
-    activeMacros: Set<string>
-  ): string {
-    const branchStack: boolean[] = [true];
-    const lines = source.split("\n");
-
-    for (let i = 0, n = lines.length; i < n; i++) {
-      const line = lines[i];
-
-      let m = line.match(ShaderFactory._ifdefRegex);
-      if (m) {
-        const parentActive = branchStack[branchStack.length - 1];
-        branchStack.push(parentActive && activeMacros.has(m[1]));
-        continue;
-      }
-      m = line.match(ShaderFactory._ifndefRegex);
-      if (m) {
-        const parentActive = branchStack[branchStack.length - 1];
-        branchStack.push(parentActive && !activeMacros.has(m[1]));
-        continue;
-      }
-      if (ShaderFactory._elseRegex.test(line)) {
-        const parentActive = branchStack.length >= 2 ? branchStack[branchStack.length - 2] : true;
-        const currentActive = branchStack[branchStack.length - 1];
-        branchStack[branchStack.length - 1] = parentActive && !currentActive;
-        continue;
-      }
-      if (ShaderFactory._endifRegex.test(line)) {
-        if (branchStack.length > 1) branchStack.pop();
-        continue;
-      }
-      if (!branchStack[branchStack.length - 1]) continue;
-
-      lines[i] = ShaderFactory._scanInstanceUniforms(line, fieldMap);
-    }
-
-    return lines.join("\n");
   }
 
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceBufferLayout {
