@@ -1,5 +1,6 @@
 import { ETokenType } from "../common";
 import { BaseToken } from "../common/BaseToken";
+import { Keyword } from "../common/enums/Keyword";
 import { GSError, GSErrorName } from "../GSError";
 import { LALR1 } from "../lalr";
 import { addTranslationRule, createGrammar } from "../lalr/CFG";
@@ -12,6 +13,7 @@ import { ASTNode, TreeNode } from "./AST";
 import { Grammar } from "./Grammar";
 import { GrammarSymbol, NoneTerminal } from "./GrammarSymbol";
 import SematicAnalyzer from "./SemanticAnalyzer";
+import { ESymbolType, SymbolInfo } from "./symbolTable";
 import { TraceStackItem } from "./types";
 
 /**
@@ -67,6 +69,7 @@ export class ShaderTargetParser {
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
 
+    let macroParamScopeOpen = false;
     let nextToken = tokens.next();
     while (true) {
       const token = nextToken.value;
@@ -74,6 +77,21 @@ export class ShaderTargetParser {
       const actionInfo = this.stateActionTable.get(token.type);
       if (actionInfo?.action === EAction.Shift) {
         traceBackStack.push(token, actionInfo.target!);
+        // Function-like `#define` form params live in a scope wrapping the
+        // value AST, mirroring how `function_header` opens a scope for GLSL
+        // function parameters. Push on shift of `MACRO_DEFINE_PARAMS`, pop on
+        // `MACRO_DEFINE_END`. Object-like `#define` has neither token, so
+        // there's nothing to do.
+        if (token.type === Keyword.MACRO_DEFINE_PARAMS) {
+          sematicAnalyzer.pushScope();
+          macroParamScopeOpen = true;
+          for (const p of ParserUtils.parseMacroParamList(token.lexeme)) {
+            sematicAnalyzer.symbolTableStack.insert(new SymbolInfo(p, ESymbolType.VAR));
+          }
+        } else if (token.type === Keyword.MACRO_DEFINE_END && macroParamScopeOpen) {
+          sematicAnalyzer.popScope();
+          macroParamScopeOpen = false;
+        }
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {
         sematicAnalyzer.acceptRule?.(sematicAnalyzer);

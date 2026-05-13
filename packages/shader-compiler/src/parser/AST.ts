@@ -1438,6 +1438,11 @@ export namespace ASTNode {
         sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
 
         if (!symbols.length) {
+          // Skip macro-name-as-var lookup miss — the lookup is a cross-arm
+          // shadowing probe, a missing sibling var is the common single-arm case.
+          if (name === macroNameAsVarLookup) {
+            continue;
+          }
           // #if _VERBOSE
           sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
           // #endif

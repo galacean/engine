@@ -248,6 +248,22 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
+  // Regression: function-like macro form params and macro-name-as-var cross-arm
+  // probes used to emit spurious "declared before used" warnings.
+  it("function-like macro form params and macro names don't warn as undeclared", async () => {
+    const src = await readFile("./shaders/macro-form-params-no-warn.shader");
+    const warns: string[] = [];
+    const origWarn = console.warn;
+    console.warn = (...args: any[]) => warns.push(args.join(" "));
+    try {
+      glslValidate(engine, src, shaderCompilerVerbose);
+    } finally {
+      console.warn = origWarn;
+    }
+    const undeclared = warns.filter((w) => /will be declared before used/.test(w));
+    expect(undeclared, `unexpected undeclared warnings:\n${undeclared.join("\n")}`).to.deep.equal([]);
+  });
+
   it("macro-negate-number (!0, !1 in #if expressions)", async () => {
     const shaderSource = await readFile("./shaders/macro-negate-number.shader");
     glslValidate(engine, shaderSource, shaderCompilerVerbose);
