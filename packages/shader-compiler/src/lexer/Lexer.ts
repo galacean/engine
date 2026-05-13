@@ -85,6 +85,10 @@ export class Lexer extends BaseLexer {
     "#undef": Keyword.MACRO_UNDEF
   };
 
+  static isLanguageKeyword(lexeme: string): boolean {
+    return Lexer._lexemeTable[lexeme] !== undefined;
+  }
+
   // Single source of truth for `#define` parsing — fed from both AST and legacy paths.
   private static readonly _defineDirectiveReg = /^\s*#define\s+(\w+)[ ]*(\(([^)]*)\))?(?:[ \t]+([^\n\r]*?))?\s*$/;
   // Bare identifier or call form only — mixed-operator values reject.

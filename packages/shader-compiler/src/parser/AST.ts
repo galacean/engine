@@ -1661,15 +1661,16 @@ export namespace ASTNode {
      *  a root of `referenceSymbolNames`. Mixed forms across branches → false,
      *  fall back to legacy inference. */
     hasAstValue: boolean = false;
-    /** True when the macro is defined as function-like (`#define NAME(params) …`).
-     *  Used by `MacroCallFunction` codegen to pick between the two call shapes
-     *  — object-like-macro-as-function-name vs true function-like macro. */
+    /** `#define NAME(params) …` form — drives function-like vs object-like codegen. */
     isFunctionLikeMacro: boolean = false;
+    /** Every visible replacement is a non-builtin identifier — assume user fn alias. */
+    aliasesUserFn: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames.length = 0;
       this.hasAstValue = false;
       this.isFunctionLikeMacro = false;
+      this.aliasesUserFn = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1689,6 +1690,7 @@ export namespace ASTNode {
       let visibleCount = 0;
       let allAst = true;
       let isFn = false;
+      let allAliasUserFn = true;
       if (defList) {
         for (let i = 0, n = defList.length; i < n; i++) {
           const info = defList[i];
@@ -1698,6 +1700,9 @@ export namespace ASTNode {
           if (info.isFunction) isFn = true;
           const ref = info.referenceName;
           if (ref && info.params.indexOf(ref) === -1 && refs.indexOf(ref) === -1) refs.push(ref);
+          if (!ref || Lexer.isLanguageKeyword(ref) || BuiltinFunction.isExist(ref)) {
+            allAliasUserFn = false;
+          }
         }
       }
       // Require *every* visible entry to be AST-form before taking the AST
@@ -1706,6 +1711,7 @@ export namespace ASTNode {
       // instead of polluting the call site with TypeAny.
       this.hasAstValue = visibleCount > 0 && allAst;
       this.isFunctionLikeMacro = isFn;
+      this.aliasesUserFn = visibleCount > 0 && allAliasUserFn;
     }
   }
 
@@ -1715,12 +1721,14 @@ export namespace ASTNode {
     macroName: string = "";
     hasAstValue: boolean = false;
     isFunctionLikeMacro: boolean = false;
+    aliasesUserFn: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames = [];
       this.macroName = "";
       this.hasAstValue = false;
       this.isFunctionLikeMacro = false;
+      this.aliasesUserFn = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1730,6 +1738,7 @@ export namespace ASTNode {
       this.macroName = child.macroName;
       this.hasAstValue = child.hasAstValue;
       this.isFunctionLikeMacro = child.isFunctionLikeMacro;
+      this.aliasesUserFn = child.aliasesUserFn;
     }
 
     override codeGen(visitor: CodeGenVisitor) {

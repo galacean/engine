@@ -154,7 +154,6 @@ export class LALR1 {
     return newStates;
   }
 
-  /** Resolve shift-reduce/reduce-reduce conflict detect */
   private _addAction(table: ActionTable, terminal: Terminal, action: ActionInfo) {
     const exist = table.get(terminal);
     if (exist && !Utils.isActionEqual(exist, action)) {
@@ -176,9 +175,8 @@ export class LALR1 {
     table.set(terminal, action);
   }
 
-  // Catalog of expected shift/reduce conflicts. See TargetParser.y for the rationale.
-  //   - ELSE: dangling-else
-  //   - '(' + `type_specifier_nonarray → macro_call_symbol`: macro-as-type-alias
+  // Known shift-preferred conflicts: ELSE (dangling-else) and `(` with
+  // `type_specifier_nonarray → macro_call_symbol` (macro-as-type-alias).
   private static _isKnownShiftPreferred(terminal: Terminal, exist: ActionInfo, action: ActionInfo): boolean {
     if (terminal === Keyword.ELSE) return true;
     if (terminal !== ETokenType.LEFT_PAREN) return false;

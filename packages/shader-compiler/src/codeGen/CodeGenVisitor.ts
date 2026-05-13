@@ -140,6 +140,18 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
+  // Walk single-child wrappers down to VariableIdentifier; abort on any siblings.
+  private static _unwrapBareIdentifier(node: TreeNode): ASTNode.VariableIdentifier | undefined {
+    let cur: TreeNode = node;
+    while (true) {
+      if (cur instanceof ASTNode.VariableIdentifier) return cur;
+      if (cur.children.length !== 1) return undefined;
+      const child = cur.children[0];
+      if (!(child instanceof TreeNode)) return undefined;
+      cur = child;
+    }
+  }
+
   visitMacroCallFunction(node: ASTNode.MacroCallFunction): string {
     const children = node.children;
     const paramList = children[2];
@@ -147,39 +159,26 @@ export abstract class CodeGenVisitor {
       const astNodes = paramList.paramNodes;
       const context = VisitorContext.context;
 
-      // `MacroCallFunction` covers two call shapes sharing the same AST:
-      //   (a) object-like macro whose value is a function name, used as a call —
-      //       `#define FN foo` + `FN(varyings, …)`. The driver expands `FN` to
-      //       `foo`, and `foo` is a shader function whose IO-struct params
-      //       have been flattened. The call site must drop IO-struct args to
-      //       match the flattened signature — same rule as `visitFunctionCall`.
-      //   (b) true function-like macro — `#define MAX3(a,b,c) …` + `MAX3(v.x, …)`.
-      //       The shader compiler doesn't expand the macro; the driver does, and the
-      //       `#define` fixes the parameter count. Args must be preserved
-      //       verbatim — a member-access arg like `v.v_uv` unwraps to a root
-      //       identifier whose type is an IO struct, but dropping the arg
-      //       would change the macro's arity.
-      //
-      // `isFunctionLikeMacro` is set by `MacroCallSymbol.semanticAnalyze` from
-      // `macroDefineList[name][*].isFunction` and carries the definition shape.
-      const params = node.isFunctionLikeMacro
-        ? astNodes
-        : astNodes.filter((arg) => {
-            if (arg instanceof ASTNode.AssignmentExpression) {
-              const variableParam = ParserUtils.unwrapNodeByType<ASTNode.VariableIdentifier>(
-                arg,
-                NoneTerminal.variable_identifier
-              );
-              if (
-                variableParam &&
-                typeof variableParam.typeInfo === "string" &&
-                context.getStructRole(variableParam.typeInfo)
-              ) {
-                return false;
-              }
+      // Drop bare IO-struct args only when the macro aliases a user fn (whose
+      // formal was flattened). All other shapes preserve args verbatim.
+      let params: typeof astNodes;
+      if (node.isFunctionLikeMacro || !node.aliasesUserFn) {
+        params = astNodes;
+      } else {
+        params = astNodes.filter((arg) => {
+          if (arg instanceof ASTNode.AssignmentExpression) {
+            const variableParam = CodeGenVisitor._unwrapBareIdentifier(arg);
+            if (
+              variableParam &&
+              typeof variableParam.typeInfo === "string" &&
+              context.getStructRole(variableParam.typeInfo)
+            ) {
+              return false;
             }
-            return true;
-          });
+          }
+          return true;
+        });
+      }
 
       let paramsCode = "";
       for (let i = 0, length = params.length; i < length; i++) {
