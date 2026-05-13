@@ -4,14 +4,12 @@ Shader "macro-top-level-comma-repro" {
       mat4 renderer_MVPMat;
 
       // GLSL ES 3.00 §3.4 + C99 §6.10.3: a `#define` replacement list is an
-      // arbitrary token sequence. A top-level `,` is legal — the macro can be
-      // expanded into a comma-separated argument list. The grammar's
-      // `macro_define` value position only accepts `assignment_expression`
-      // (not `expression`), so this shape must route to the legacy opaque
-      // path, not the AST path.
+      // arbitrary token sequence. A top-level `,` separating valid
+      // `assignment_expression`s is legal — the macro can be expanded into a
+      // comma-separated argument list. The grammar's `macro_define` value
+      // position is `expression` so this routes through the AST path and the
+      // visitor regenerates the value verbatim.
       #define ARGS u_arg_a, u_arg_b, u_arg_c
-      // Trailing top-level comma — already covered, asserted here for breadth
-      #define ARGS_TRAIL u_arg_a, u_arg_b,
 
       float u_arg_a;
       float u_arg_b;

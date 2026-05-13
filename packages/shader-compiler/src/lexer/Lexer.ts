@@ -611,11 +611,39 @@ export class Lexer extends BaseLexer {
    * and registration need: name range, optional params range, value range,
    * and whether the value parses as an `expression`.
    *
-   * Grammar's `macro_define` value position is `expression` (accepts top-level
-   * `,` per C99 §6.10.3). Forms it doesn't reduce — and so must route to the
-   * legacy opaque path — are: empty, lone type/qualifier keyword, bare leading
-   * punctuation, unbalanced `(`/`)` or `[`/`]`, trailing `,`/`;`, trailing
-   * binary operator, trailing `?`/`:` (ternary fragment).
+   * The replacement list is split three ways:
+   *
+   *  - **AST path** (`isExpression = true`): value parses as `expression`.
+   *    Covers identifiers, literals, parenthesized sub-expressions, operator
+   *    expressions, function calls, top-level comma lists (per C99 §6.10.3).
+   *
+   *  - **Legacy opaque path** (`isExpression = false`, no throw): the three
+   *    GLSL-ES-§3.4-legal-but-not-an-expression shapes with real-world use —
+   *      1. empty value                       e.g. `#define COMMON_INCLUDED`
+   *      2. single type/qualifier keyword     e.g. `#define FxaaFloat float`
+   *      3. type-qualifier list               e.g. `#define TEX_PARAM(s) mediump sampler2D s`
+   *
+   *    Note on X-macro support: the classical C X-macro pattern (a list
+   *    macro re-expanded with redefined `X(...)`) works fine — it uses
+   *    function-like macros + `\` line-continuation + `#undef`, all of
+   *    which Galacean supports. It does NOT require unbalanced parens.
+   *
+   *  - **Authoring error** (throws): every other shape that's not a valid
+   *    `expression`. Legal token sequences in theory but not used in real
+   *    GLSL — almost always author mistakes. We surface one uniform
+   *    diagnostic with the macro name and value text and let the user fix
+   *    their code instead of routing politely.
+   *
+   *    Unsupported shapes that throw (non-exhaustive — the predicate is
+   *    "the value doesn't reduce as `expression` and isn't one of the three
+   *    legacy shapes above"):
+   *      - leading bare punctuation       `,` `;` `:` `?` `)` `]`
+   *      - trailing `,` or `;`            e.g. `#define X a, b,`
+   *      - trailing binary / unary op     `+` `-` `*` `/` `%` `&` `|` `^`
+   *                                       `<` `>` `=` `!` `~`
+   *      - trailing ternary fragment      `?` or `:`
+   *      - unbalanced `[` / `]`           e.g. `#define X a[b`
+   *      - unbalanced `(` / `)`           e.g. `#define PAREN (`
    *
    * Returns `null` if the directive is malformed before the name. `cursor` is
    * the position past the last non-newline char (caller advances from there).
@@ -663,9 +691,6 @@ export class Lexer extends BaseLexer {
     let firstStart = -1;
     let firstEnd = -1;
     let firstFollowedByParen = false;
-    // Last significant char at top level: trailing `,`/`;` / binary-op / `?` /
-    // `:` make the value a non-expression (grammar's `expression` rule has
-    // no production ending in any of these).
     let topLevelLast = -1;
     while (i < len) {
       const skipped = Lexer._skipNonSemantic(src, i, len);
@@ -694,53 +719,39 @@ export class Lexer extends BaseLexer {
       i++;
     }
     const result = { name, paramsLexeme, valueStart, valueEnd: i, cursor: i, isExpression: false };
-    if (firstStart === -1 || parenDepth !== 0 || bracketDepth !== 0) return result;
-    if (topLevelLast >= 0) {
-      const tail = src.charCodeAt(topLevelLast);
-      // Trailing punctuation / binary operator / ternary fragment.
-      if (
-        tail === 44 /* , */ ||
-        tail === 59 /* ; */ ||
-        tail === 63 /* ? */ ||
-        tail === 58 /* : */ ||
-        tail === 43 /* + */ ||
-        tail === 45 /* - */ ||
-        tail === 42 /* * */ ||
-        tail === 47 /* / */ ||
-        tail === 37 /* % */ ||
-        tail === 38 /* & */ ||
-        tail === 124 /* | */ ||
-        tail === 94 /* ^ */ ||
-        tail === 60 /* < */ ||
-        tail === 62 /* > */ ||
-        tail === 61 /* = */ ||
-        tail === 33 /* ! */ ||
-        tail === 126 /* ~ */
-      ) {
-        return result;
-      }
-    }
-    const head = src.charCodeAt(firstStart);
-    // Leading bare punctuation that can't start an expression. Unary
-    // operators (`-`, `+`, `!`, `~`) and `(` are valid starts.
-    if (
-      head === 44 /* , */ ||
-      head === 59 /* ; */ ||
-      head === 58 /* : */ ||
-      head === 63 /* ? */ ||
-      head === 41 /* ) */ ||
-      head === 93 /* ] */
-    ) {
-      return result;
-    }
-    // Single bare or multi-token led by type/qualifier keyword → legacy,
-    // unless followed by `(` (constructor / function call).
+    // Real-world legacy shapes:
+    //   1. empty value, 2. single type/qualifier kw, 3. type-qualifier list.
+    if (firstStart === -1) return result;
     if (
       firstEnd !== -1 &&
       !firstFollowedByParen &&
       Lexer._isNonExpressionLeadingKeyword(src.slice(firstStart, firstEnd))
     ) {
       return result;
+    }
+    // Authoring errors. Anything that's neither a legal `expression` nor one
+    // of the three legacy shapes above gets a single uniform diagnostic —
+    // the user sees the macro name and the value text, that's enough to
+    // locate and fix. We don't categorize further; the rule for users is
+    // simply "value must be a valid GLSL expression".
+    //
+    // Legal expression starts: alnum (identifier / literal), `(` (group),
+    // `-`/`+`/`!`/`~` (unary). Legal expression ends: alnum (identifier /
+    // literal), `)` (group close), `]` (array-index close). Everything else
+    // at the head or top-level tail is an authoring error.
+    const head = src.charCodeAt(firstStart);
+    const tail = topLevelLast >= 0 ? src.charCodeAt(topLevelLast) : 0;
+    const headIllegal =
+      !BaseLexer.isAlnum(head) &&
+      head !== 40 /* ( */ &&
+      head !== 45 /* - */ &&
+      head !== 43 /* + */ &&
+      head !== 33 /* ! */ &&
+      head !== 126; /* ~ */
+    const tailIllegal = !BaseLexer.isAlnum(tail) && tail !== 41 /* ) */ && tail !== 93; /* ] */
+    if (parenDepth !== 0 || bracketDepth !== 0 || headIllegal || tailIllegal) {
+      const valueText = src.slice(firstStart, i).replace(/\s+/g, " ").trim();
+      throw new Error(`#define ${name}: invalid replacement list — not a valid GLSL expression ("${valueText}")`);
     }
     result.isExpression = true;
     return result;
