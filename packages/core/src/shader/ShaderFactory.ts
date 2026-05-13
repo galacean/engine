@@ -230,6 +230,7 @@ export class ShaderFactory {
 
   private static _scanInstanceUniforms(source: string, fieldMap: Record<number, string>): string {
     const builtinUniforms = ShaderFactory._builtinRendererUniforms;
+    const std140Map = ShaderFactory._std140TypeInfoMap;
     return source.replace(ShaderFactory._uboUniformRegex, (match, type, name, arraySize) => {
       if (type.includes("sampler")) return match;
       const isDerived = builtinUniforms[name];
@@ -240,9 +241,13 @@ export class ShaderFactory {
         Logger.error(`GPU Instancing does not support array uniform "${name}${arraySize}"`);
         return match;
       }
-      // ModelMat is affine, store as mat3x4 (3 columns) to save 16 bytes per instance
-      fieldMap[ShaderProperty.getByName(name)._uniqueId] =
-        type === "mat4" && name === "renderer_ModelMat" ? "mat3x4" : type;
+      // ModelMat is affine, stored as mat3x4 (3 columns) to save 16 bytes per instance
+      const storageType = type === "mat4" && name === "renderer_ModelMat" ? "mat3x4" : type;
+      if (!std140Map[storageType]) {
+        Logger.error(`GPU Instancing does not support uniform "${name}" of type "${type}"`);
+        return match;
+      }
+      fieldMap[ShaderProperty.getByName(name)._uniqueId] = storageType;
       return "";
     });
   }
@@ -256,6 +261,8 @@ export class ShaderFactory {
     const packFuncMap = ShaderFactory._packFuncMap;
     const addField = (id: number): void => {
       const type = fieldMap[id];
+      // Unsupported types are filtered out in `_scanInstanceUniforms` with a clear error;
+      // this only triggers if the scan/build contract is violated
       const info = std140Map[type];
       if (!info) return;
       currentOffset = Math.ceil(currentOffset / info.align) * info.align;
