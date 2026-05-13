@@ -56,30 +56,34 @@ export class BatcherManager {
     let preConstructor: Function;
     for (let i = 0, n = input.length; i < n; ++i) {
       const curElement = input[i];
+
+      // Already-batched leaders (e.g. produced by UICanvas pre-batching) are terminal —
+      // each carries an opaque, self-contained draw range that must not be merged again.
+      // Flush any pending pre and pass the leader straight through
+      if (curElement._isBatched) {
+        preElement && (BatcherManager._flush(output, preElement), (preElement = null));
+        output.push(curElement);
+        continue;
+      }
+
       const renderer = curElement.component;
       const constructor = renderer.constructor;
-      if (preElement) {
-        if (preConstructor === constructor && preRenderer._canBatch(preElement, curElement)) {
-          preRenderer._batch(preElement, curElement);
-        } else {
-          preElement._isBatched = true;
-          output.push(preElement);
-          preElement = curElement;
-          preRenderer = renderer;
-          preConstructor = constructor;
-          renderer._batch(null, curElement);
-        }
+      if (preElement && preConstructor === constructor && preRenderer._canBatch(preElement, curElement)) {
+        preRenderer._batch(preElement, curElement);
       } else {
+        preElement && BatcherManager._flush(output, preElement);
         preElement = curElement;
         preRenderer = renderer;
         preConstructor = constructor;
         renderer._batch(null, curElement);
       }
     }
-    if (preElement) {
-      preElement._isBatched = true;
-      output.push(preElement);
-    }
+    preElement && BatcherManager._flush(output, preElement);
+  }
+
+  private static _flush(output: RenderElement[], element: RenderElement): void {
+    element._isBatched = true;
+    output.push(element);
   }
 
   uploadBuffer() {
