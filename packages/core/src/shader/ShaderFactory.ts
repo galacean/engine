@@ -217,13 +217,8 @@ export class ShaderFactory {
       fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
     }
 
-    let hasField = false;
-    for (const _ in fieldMap) {
-      hasField = true;
-      break;
-    }
-    if (!hasField) return { vertexSource, fragmentSource, instanceLayout: null };
-
+    // Even when fieldMap is empty, derived built-ins (e.g. `renderer_MVPMat`) may have
+    // had their declarations stripped by scan and still need a `#define` to compile
     const instanceLayout = ShaderFactory._buildLayout(engine, fieldMap);
 
     const { instanceFields } = instanceLayout;
