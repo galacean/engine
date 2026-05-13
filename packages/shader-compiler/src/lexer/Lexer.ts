@@ -753,17 +753,21 @@ export class Lexer extends BaseLexer {
     const tailIllegal = !BaseLexer.isAlnum(tail) && tail !== 41 /* ) */ && tail !== 93; /* ] */
     if (parenDepth !== 0 || bracketDepth !== 0 || headIllegal || tailIllegal) {
       const valueText = src.slice(firstStart, i).replace(/\s+/g, " ").trim();
-      throw new Error(`#define ${name}: invalid replacement list — not a valid GLSL expression ("${valueText}")`);
+      this.throwError(
+        this.getShaderPosition(0),
+        `#define ${name}: invalid replacement list — not a valid GLSL expression ("${valueText}")`
+      );
     }
     result.isExpression = true;
     return result;
   }
 
   /** GLSL type / qualifier keywords that aren't expression starters when standing alone.
-   *  `true` / `false` are excluded — they're `primary_expression` literals. */
+   *  `true` / `false` are excluded — they're `primary_expression` literals.
+   *  `#`-prefixed entries are excluded — they're preprocessor directive names. */
   private static _isNonExpressionLeadingKeyword(lexeme: string): boolean {
     const kw = Lexer._lexemeTable[lexeme];
-    return kw !== undefined && kw !== Keyword.True && kw !== Keyword.False && lexeme.charCodeAt(0) !== 35;
+    return kw !== undefined && kw !== Keyword.True && kw !== Keyword.False && !lexeme.startsWith("#");
   }
 
   /**
@@ -773,8 +777,7 @@ export class Lexer extends BaseLexer {
    * source of truth for line-continuation detection — callers along the
    * directive-scanning path (`_skipNonSemantic`, `_scanUtilBreakLine`,
    * `_scanMacroDefineParams`) all delegate here so the rule stays in one
-   * place. The string-level `_lineContinuationReg` covers the regex path
-   * used by `_registerMacroDefine` for one-shot folding.
+   * place.
    */
   private static _skipLineContinuation(src: string, i: number, len: number): number {
     if (src.charCodeAt(i) !== 92 /* '\\' */ || i + 1 >= len) return i;
