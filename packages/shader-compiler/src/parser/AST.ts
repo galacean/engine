@@ -1777,7 +1777,7 @@ export namespace ASTNode {
   export class MacroDefine extends TreeNode {
     macroName: string;
     isFunction: boolean;
-    valueExpression?: AssignmentExpression;
+    valueExpression?: Expression;
 
     override init(): void {
       this.macroName = "";
@@ -1800,8 +1800,11 @@ export namespace ASTNode {
         valueIdx = 3;
       }
 
-      if (children[valueIdx] instanceof AssignmentExpression) {
-        this.valueExpression = children[valueIdx] as AssignmentExpression;
+      // Grammar's macro_define value is `expression` (not `assignment_expression`),
+      // so the value child is always an `Expression` wrapper — even for a single
+      // assignment-expression value, which appears as `Expression > AssignmentExpression`.
+      if (children[valueIdx] instanceof Expression) {
+        this.valueExpression = children[valueIdx] as Expression;
       }
 
       // The Lexer already registered a regex-derived entry for this directive.

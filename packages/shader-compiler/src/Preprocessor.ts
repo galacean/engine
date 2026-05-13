@@ -11,11 +11,13 @@ export type ChunkOutputCache = Map<string, string>;
 export interface MacroDefineInfo {
   isFunction: boolean;
   params: string[];
-  /** Value AST. Set when the replacement list parses as `assignment_expression`;
-   *  absent for the GLSL ES 3.00 §3.4 opaque cases (empty, type-alias keyword,
-   *  bare/trailing punctuation). Identifier references inside are collected by
-   *  `MacroCallSymbol._collectIdentifierRefs` walking this subtree. */
-  valueAst?: ASTNode.AssignmentExpression;
+  /** Value AST. Set when the replacement list parses as `expression` (which
+   *  includes comma-separated lists per C99 §6.10.3); absent for the GLSL ES
+   *  3.00 §3.4 opaque cases the grammar can't reduce (empty, type-alias keyword,
+   *  trailing punctuation, unbalanced bracket, trailing operator). Identifier
+   *  references inside are collected by `MacroCallSymbol._collectIdentifierRefs`
+   *  walking this subtree. */
+  valueAst?: ASTNode.Expression;
   /** Whitespace-normalized directive text. Dedup key against re-includes in
    *  the same branch; differing values produce different keys. */
   dedupKey: string;

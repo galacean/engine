@@ -609,13 +609,13 @@ export class Lexer extends BaseLexer {
   /**
    * Walk a `#define` directive head once and produce everything both routing
    * and registration need: name range, optional params range, value range,
-   * and whether the value parses as an `assignment_expression`.
+   * and whether the value parses as an `expression`.
    *
-   * Routing rule: AST iff value is non-empty, balanced, doesn't start with
-   * bare non-expression punctuation, doesn't end with `,`/`;`, and isn't a
-   * lone type/qualifier keyword. Legacy stays for the GLSL ES 3.00 §3.4
-   * "arbitrary token sequence" cases (empty, type alias, bare/trailing
-   * punctuation) which by construction reference no user identifiers.
+   * Grammar's `macro_define` value position is `expression` (accepts top-level
+   * `,` per C99 §6.10.3). Forms it doesn't reduce — and so must route to the
+   * legacy opaque path — are: empty, lone type/qualifier keyword, bare leading
+   * punctuation, unbalanced `(`/`)` or `[`/`]`, trailing `,`/`;`, trailing
+   * binary operator, trailing `?`/`:` (ternary fragment).
    *
    * Returns `null` if the directive is malformed before the name. `cursor` is
    * the position past the last non-newline char (caller advances from there).
@@ -659,13 +659,14 @@ export class Lexer extends BaseLexer {
     // Walk the value once tracking what routing needs.
     const valueStart = i;
     let parenDepth = 0;
+    let bracketDepth = 0;
     let firstStart = -1;
     let firstEnd = -1;
     let firstFollowedByParen = false;
-    // A `,` or `;` at paren-depth 0 makes the replacement list a comma /
-    // semicolon-separated sequence — grammar's `macro_define` value is
-    // `assignment_expression`, not `expression`, so top-level `,` is rejected.
-    let topLevelSeparator = false;
+    // Last significant char at top level: trailing `,`/`;` / binary-op / `?` /
+    // `:` make the value a non-expression (grammar's `expression` rule has
+    // no production ending in any of these).
+    let topLevelLast = -1;
     while (i < len) {
       const skipped = Lexer._skipNonSemantic(src, i, len);
       if (skipped !== i) {
@@ -681,16 +682,44 @@ export class Lexer extends BaseLexer {
           firstEnd = i;
           const after = Lexer._skipNonSemantic(src, i, len);
           firstFollowedByParen = after < len && src.charCodeAt(after) === 40;
+          topLevelLast = firstEnd - 1;
           continue;
         }
       }
       if (c === 40) parenDepth++;
       else if (c === 41) parenDepth--;
-      else if (parenDepth === 0 && (c === 44 /* , */ || c === 59) /* ; */) topLevelSeparator = true;
+      else if (c === 91 /* [ */) bracketDepth++;
+      else if (c === 93 /* ] */) bracketDepth--;
+      if (parenDepth === 0 && bracketDepth === 0) topLevelLast = i;
       i++;
     }
     const result = { name, paramsLexeme, valueStart, valueEnd: i, cursor: i, isExpression: false };
-    if (firstStart === -1 || parenDepth !== 0 || topLevelSeparator) return result;
+    if (firstStart === -1 || parenDepth !== 0 || bracketDepth !== 0) return result;
+    if (topLevelLast >= 0) {
+      const tail = src.charCodeAt(topLevelLast);
+      // Trailing punctuation / binary operator / ternary fragment.
+      if (
+        tail === 44 /* , */ ||
+        tail === 59 /* ; */ ||
+        tail === 63 /* ? */ ||
+        tail === 58 /* : */ ||
+        tail === 43 /* + */ ||
+        tail === 45 /* - */ ||
+        tail === 42 /* * */ ||
+        tail === 47 /* / */ ||
+        tail === 37 /* % */ ||
+        tail === 38 /* & */ ||
+        tail === 124 /* | */ ||
+        tail === 94 /* ^ */ ||
+        tail === 60 /* < */ ||
+        tail === 62 /* > */ ||
+        tail === 61 /* = */ ||
+        tail === 33 /* ! */ ||
+        tail === 126 /* ~ */
+      ) {
+        return result;
+      }
+    }
     const head = src.charCodeAt(firstStart);
     // Leading bare punctuation that can't start an expression. Unary
     // operators (`-`, `+`, `!`, `~`) and `(` are valid starts.
