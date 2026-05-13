@@ -2,7 +2,6 @@ import { ETokenType } from "../common";
 import { Keyword } from "../common/enums/Keyword";
 import { Grammar } from "../parser/Grammar";
 import { GrammarSymbol, NoneTerminal, Terminal } from "../parser/GrammarSymbol";
-import Production from "./Production";
 import State from "./State";
 import StateItem from "./StateItem";
 import { default as GrammarUtils, default as Utils } from "./Utils";
@@ -154,17 +153,13 @@ export class LALR1 {
     return newStates;
   }
 
+  /** Resolve shift-reduce/reduce-reduce conflict detect */
   private _addAction(table: ActionTable, terminal: Terminal, action: ActionInfo) {
     const exist = table.get(terminal);
     if (exist && !Utils.isActionEqual(exist, action)) {
-      // Known shift-preferred conflicts (see TargetParser.y `%expect 2`).
-      // Enforce shift regardless of the order `_inferNextState` registers
-      // actions: when `exist` is already Shift and `action` is Reduce, keep
-      // `exist` (early-return); the reverse order (`exist` Reduce, `action`
-      // Shift) falls through to `table.set` below and Shift overwrites
-      // Reduce. Order-independent by construction.
-      if (LALR1._isKnownShiftPreferred(terminal, exist, action)) {
-        if (exist.action === EAction.Shift && action.action === EAction.Reduce) return;
+      // Resolve dangling else ambiguity
+      if (terminal === Keyword.ELSE && exist.action === EAction.Shift && action.action === EAction.Reduce) {
+        return;
       } else {
         // #if _VERBOSE
         console.warn(
@@ -177,28 +172,6 @@ export class LALR1 {
       }
     }
     table.set(terminal, action);
-  }
-
-  // Catalog of expected shift/reduce conflicts. Each entry must correspond to
-  // one of TargetParser.y's `%expect`-ed conflicts; any new conflict not in
-  // this list falls through to the verbose `conflict detect` warning so the
-  // grammar/runtime drift is loud rather than silent.
-  //   - ELSE: dangling-else, bind to nearest `if`
-  //   - '(' + `type_specifier_nonarray → macro_call_symbol`: macro-as-type-alias
-  //     (#2974), prefer the expression-position `macro_call_function` over the
-  //     type-position reduce
-  private static _isKnownShiftPreferred(terminal: Terminal, exist: ActionInfo, action: ActionInfo): boolean {
-    if (terminal === Keyword.ELSE) return true;
-    if (terminal !== ETokenType.LEFT_PAREN) return false;
-    const reduce = exist.action === EAction.Reduce ? exist : action.action === EAction.Reduce ? action : null;
-    if (!reduce) return false;
-    const prod = Production.pool.get(reduce.target!);
-    return (
-      !!prod &&
-      prod.goal === NoneTerminal.type_specifier_nonarray &&
-      prod.derivation.length === 1 &&
-      prod.derivation[0] === NoneTerminal.macro_call_symbol
-    );
   }
 
   // https://people.cs.pitt.edu/~jmisurda/teaching/cs1622/handouts/cs1622-first_and_follow.pdf

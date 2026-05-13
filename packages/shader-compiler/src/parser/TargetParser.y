@@ -1,28 +1,4 @@
-// Bison-format mirror of the runtime grammar in `lalr/CFG.ts`.
-//
-// This file is consumed *only* by `bison -r all TargetParser.y` to produce a
-// human-readable LALR(1) state report — it does NOT generate runtime parser
-// code. The runtime grammar lives in `lalr/CFG.ts` and is the source of truth.
-//
-// Keep this file in sync with `CFG.ts` so the bison conflict report reflects
-// the actual state machine the runtime LALR1 builder produces. Naming
-// differences are tolerated (e.g. `eq` here ↔ `EQ_OP` in CFG.ts), but the
-// *set* of productions per non-terminal and the symbol *structure* of each
-// alternative must match.
-
-// Two expected shift/reduce conflicts — bison errors if the count diverges,
-// catching new unintended ambiguity at grammar-change time:
-//   1. `ELSE` in `selection_statement` — classic dangling-else, shift binds
-//      the `else` to the nearest `if`. Standard C/GLSL resolution.
-//   2. `(` in `type_specifier_nonarray → macro_call_symbol` (since #2974) —
-//      at a `macro_call_symbol .` item with `(` lookahead, shift forms a
-//      `macro_call_function` (expression-position macro call) rather than
-//      reducing to `type_specifier_nonarray`. Matches the AST node identity
-//      design intent of #2974.
-// Both are handled deterministically by `LALR1._isKnownShiftPreferred`
-// (lalr/LALR1.ts) — runtime resolution is order-independent, not reliant on
-// bison's implicit shift-wins default.
-%expect 2
+// For cfg conflict test, used by bison
 
 %token id
 %token INT_CONSTANT
@@ -32,48 +8,11 @@
 
 %token void
 %token float
-%token bool
 %token int
-%token uint
-%token vec2
-%token vec3
-%token vec4
-%token bvec2
-%token bvec3
-%token bvec4
-%token ivec2
-%token ivec3
-%token ivec4
-%token uvec2
-%token uvec3
-%token uvec4
-%token mat2
-%token mat3
 %token mat4
-%token mat2x3
-%token mat2x4
-%token mat3x2
-%token mat3x4
-%token mat4x2
-%token mat4x3
-%token sampler2D
-%token sampler3D
-%token samplerCube
-%token sampler2DShadow
-%token samplerCubeShadow
-%token sampler2DArray
-%token sampler2DArrayShadow
-%token isampler2D
-%token isampler3D
-%token isamplerCube
-%token isampler2DArray
-%token usampler2D
-%token usampler3D
-%token usamplerCube
-%token usampler2DArray
 %token struct
 %token highp
-%token mediump
+%token mediemp
 %token lowp
 
 %token const
@@ -229,45 +168,8 @@ precision_specifier:
 ext_builtin_type_specifier_nonarray:
     void
     | float
-    | bool
-    | int
-    | uint
-    | vec2
-    | vec3
-    | vec4
-    | bvec2
-    | bvec3
-    | bvec4
-    | ivec2
-    | ivec3
-    | ivec4
-    | uvec2
-    | uvec3
-    | uvec4
-    | mat2
-    | mat3
+    | int 
     | mat4
-    | mat2x3
-    | mat2x4
-    | mat3x2
-    | mat3x4
-    | mat4x2
-    | mat4x3
-    | sampler2D
-    | sampler3D
-    | samplerCube
-    | sampler2DShadow
-    | samplerCubeShadow
-    | sampler2DArray
-    | sampler2DArrayShadow
-    | isampler2D
-    | isampler3D
-    | isamplerCube
-    | isampler2DArray
-    | usampler2D
-    | usampler3D
-    | usamplerCube
-    | usampler2DArray
     ;
 
 type_specifier_nonarray:
@@ -283,8 +185,8 @@ type_specifier_nonarray:
     ;
 
 struct_specifier:
-    struct id '{' struct_declaration_list '}' ';'
-    | struct '{' struct_declaration_list '}' ';'
+    struct id '{' struct_declaration_list '}' ;
+    | struct '{' struct_declaration_list '}' ;
     ;
 
 struct_declaration_list:
@@ -314,7 +216,7 @@ macro_struct_branch:
 
 layout_qualifier:
     layout '(' location '=' INT_CONSTANT ')'
-    ;
+    | layout '(' location '=' id ')'
 
 
 struct_declarator_list:
@@ -339,7 +241,7 @@ type_specifier:
 
 precision_qualifier:
     highp
-    | mediump
+    | mediemp
     | lowp
     ;
 
@@ -519,11 +421,7 @@ function_call:
 function_call_generic:
     function_identifier '(' function_call_parameter_list ')'
     | function_identifier '(' ')'
-    // Mirrors CFG.ts:681 verbatim. This alt is unreachable from any legal
-    // GLSL token stream (lexer never produces `f VOID )` without `(` between)
-    // — present since the LALR refactor (#2113, 2024-07). Tracked as latent
-    // bug; fix belongs in a separate PR with a `f(void)` regression test.
-    | function_identifier void ')'
+    | function_identifier '(' void ')'
     ;
 
 function_call_parameter_list:
@@ -657,9 +555,9 @@ simple_statement:
 declaration:
     function_prototype ';'
     | init_declarator_list ';'
-    | PRECISION precision_qualifier ext_builtin_type_specifier_nonarray ';'
     | type_qualifier id ';'
     | type_qualifier id identifier_list ';'
+    | precision_specifier
     ;
 
 identifier_list:
