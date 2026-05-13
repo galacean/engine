@@ -10,6 +10,20 @@
 // *set* of productions per non-terminal and the symbol *structure* of each
 // alternative must match.
 
+// Two expected shift/reduce conflicts — bison errors if the count diverges,
+// catching new unintended ambiguity at grammar-change time:
+//   1. `ELSE` in `selection_statement` — classic dangling-else, shift binds
+//      the `else` to the nearest `if`. Standard C/GLSL resolution.
+//   2. `(` in `type_specifier_nonarray → macro_call_symbol` (since #2974) —
+//      at a `macro_call_symbol .` item with `(` lookahead, shift forms a
+//      `macro_call_function` (expression-position macro call) rather than
+//      reducing to `type_specifier_nonarray`. Matches the AST node identity
+//      design intent of #2974.
+// Both are handled deterministically by `LALR1._isKnownShiftPreferred`
+// (lalr/LALR1.ts) — runtime resolution is order-independent, not reliant on
+// bison's implicit shift-wins default.
+%expect 2
+
 %token id
 %token INT_CONSTANT
 %token FLOAT_CONSTANT
