@@ -140,18 +140,6 @@ export abstract class CodeGenVisitor {
     return this.defaultCodeGen(node.children);
   }
 
-  // Walk single-child wrappers down to VariableIdentifier; abort on any siblings.
-  private static _unwrapBareIdentifier(node: TreeNode): ASTNode.VariableIdentifier | undefined {
-    let cur: TreeNode = node;
-    while (true) {
-      if (cur instanceof ASTNode.VariableIdentifier) return cur;
-      if (cur.children.length !== 1) return undefined;
-      const child = cur.children[0];
-      if (!(child instanceof TreeNode)) return undefined;
-      cur = child;
-    }
-  }
-
   visitMacroCallFunction(node: ASTNode.MacroCallFunction): string {
     const children = node.children;
     const paramList = children[2];
@@ -162,12 +150,12 @@ export abstract class CodeGenVisitor {
       // Drop bare IO-struct args only when the macro aliases a user fn (whose
       // formal was flattened). All other shapes preserve args verbatim.
       let params: typeof astNodes;
-      if (node.isFunctionLikeMacro || !node.aliasesUserFn) {
+      if (node.isFunctionLikeMacro || !node.aliasesNonBuiltinIdent) {
         params = astNodes;
       } else {
         params = astNodes.filter((arg) => {
           if (arg instanceof ASTNode.AssignmentExpression) {
-            const variableParam = CodeGenVisitor._unwrapBareIdentifier(arg);
+            const variableParam = ParserUtils.unwrapBareIdentifier(arg, { allowParens: false });
             if (
               variableParam &&
               typeof variableParam.typeInfo === "string" &&
