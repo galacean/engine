@@ -10,10 +10,16 @@ import {
   Color,
   ConeEmitType,
   ConeShape,
+  CurveKey,
   Engine,
   Entity,
+  GradientAlphaKey,
+  GradientColorKey,
   ParticleCompositeCurve,
+  ParticleCurve,
   ParticleCurveMode,
+  ParticleGradient,
+  ParticleGradientMode,
   ParticleMaterial,
   ParticleRenderer,
   ParticleSimulationSpace,
@@ -128,8 +134,28 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   parentShape.radius = 0.2;
   parentGenerator.emission.shape = parentShape;
 
+  // Parent COL: orange-tinted multiplier fades from white (no tint at t=0) to a
+  // dim warm color at t=1. At Death, the parent's visible color is
+  // startColor × COL(1) — children inherit that, not the raw startColor.
+  const parentCOL = parentGenerator.colorOverLifetime;
+  parentCOL.enabled = true;
+  parentCOL.color.mode = ParticleGradientMode.Gradient;
+  (parentCOL.color as any).gradient = new ParticleGradient(
+    [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(0.5, 0.3, 0.2, 1))],
+    [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
+  );
+
+  // Parent SOL: shrink to 60% of start over lifetime. Sub spawns at Death pick
+  // up parent's visible (shrunk) size, not the raw startSize.
+  const parentSOL = parentGenerator.sizeOverLifetime;
+  parentSOL.enabled = true;
+  parentSOL.size.mode = ParticleCurveMode.Curve;
+  (parentSOL.size as any).curve = new ParticleCurve(new CurveKey(0, 1.0), new CurveKey(1, 0.6));
+
   // Sub-emitter slot: parent's Death → 4 sub particles at each parent's last
-  // position, with parent's color & size multiplied into the sub start values.
+  // position. Inherit chain (matches what's visible at Death):
+  //   sub.color = sub.startColor × (parent.startColor × COL(1))
+  //   sub.size  = sub.startSize  × (parent.startSize  × SOL(1))
   parentGenerator.subEmitters.enabled = true;
   const slot = parentGenerator.subEmitters.addSubEmitter();
   slot.emitter = subRenderer;
