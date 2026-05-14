@@ -108,6 +108,7 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   _onUpdate(): void {
+    const shapes = this._shapes;
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
       (<IStaticCollider>this._nativeCollider).setWorldTransform(
@@ -116,11 +117,17 @@ export class Collider extends Component implements ICustomClone {
       );
 
       const worldScale = transform.lossyWorldScale;
-      const shapes = this._shapes;
       for (let i = 0, n = shapes.length; i < n; i++) {
         shapes[i]._nativeShape?.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
+    }
+
+    // Drive per-shape physics update (e.g. MeshColliderShape retries pending
+    // native shape creation when mesh data becomes accessible asynchronously).
+    // No-op for shape types that don't override `_onPhysicsUpdate`.
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      shapes[i]._onPhysicsUpdate();
     }
   }
 

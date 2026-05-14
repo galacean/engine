@@ -24,6 +24,20 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   private static _tempTranslation = new Vector3();
   private static _tempRotation = new Quaternion();
 
+  /**
+   * Whether actor is currently kinematic.
+   * PhysX 拒绝在 kinematic actor 上启用 CCD（会打印警告并忽略），
+   * 所以 setCollisionDetectionMode 在 kinematic 状态下只缓存目标值，
+   * 等切回 dynamic 时再真正写到 PhysX。
+   */
+  private _isKinematic: boolean = false;
+
+  /**
+   * Cached collision detection mode. Always reflects user's intent.
+   * 实际 PhysX CCD flag 可能跟这个不一致（kinematic 时强制 Discrete）。
+   */
+  private _collisionDetectionMode: number = CollisionDetectionMode.Discrete;
+
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
     super(physXPhysics);
     const transform = this._transform(position, rotation);
@@ -158,10 +172,52 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
 
   /**
    * {@inheritDoc IDynamicCollider.setCollisionDetectionMode }
+   *
+   * PhysX 在 kinematic actor 上调用 setRigidBodyFlag(eENABLE_CCD, true) 会触发警告:
+   *   "kinematic bodies with CCD enabled are not supported! CCD will be ignored"
+   * 虽然 PhysX 会忽略这次调用而非真的拒绝（切回 dynamic 时 flag 不会自动恢复），
+   * 但每次 setIsKinematic 切换都会让这个 warning 重复打印，污染日志，
+   * 同时让 actor 在 dynamic 状态下 CCD flag 状态不确定。
+   *
+   * 解决: 只在 dynamic 状态时立即 apply CCD flags。kinematic 时仅缓存到
+   * `_collisionDetectionMode`，等切回 dynamic 时由 setIsKinematic 重新 apply。
    */
   setCollisionDetectionMode(value: number): void {
-    const physX = this._physXPhysics._physX;
+    this._collisionDetectionMode = value;
+    if (!this._isKinematic) {
+      this._applyCollisionDetectionFlags(value);
+    }
+  }
 
+  /**
+   * {@inheritDoc IDynamicCollider.setUseGravity }
+   */
+  setUseGravity(value: boolean): void {
+    this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setIsKinematic }
+   *
+   * 切换 kinematic 状态时同步处理 CCD flag：
+   *   - 切到 kinematic 前先关 CCD（避免 PhysX 警告 + 让状态显式）
+   *   - 切回 dynamic 后恢复用户期望的 CCD mode（来自 `_collisionDetectionMode` 缓存）
+   */
+  setIsKinematic(value: boolean): void {
+    if (this._isKinematic === value) return;
+    const physX = this._physXPhysics._physX;
+    if (value) {
+      this._applyCollisionDetectionFlags(CollisionDetectionMode.Discrete);
+      this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eKINEMATIC, true);
+    } else {
+      this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eKINEMATIC, false);
+      this._applyCollisionDetectionFlags(this._collisionDetectionMode);
+    }
+    this._isKinematic = value;
+  }
+
+  private _applyCollisionDetectionFlags(value: number): void {
+    const physX = this._physXPhysics._physX;
     switch (value) {
       case CollisionDetectionMode.Continuous:
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, true);
@@ -187,24 +243,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setUseGravity }
-   */
-  setUseGravity(value: boolean): void {
-    this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.setIsKinematic }
-   */
-  setIsKinematic(value: boolean): void {
-    if (value) {
-      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, true);
-    } else {
-      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, false);
-    }
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setConstraints }
    */
   setConstraints(flags: number): void {
@@ -213,8 +251,16 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
 
   /**
    * {@inheritDoc IDynamicCollider.addForce }
+   *
+   * PhysX wasm wrapper 的 addForce 没传 autowake 参数，sleeping actor 上调用
+   * 会被静默忽略（force 永远不生效）。这里显式 wakeUp 保证 force 真正生效。
+   *
+   * kinematic actor 不响应 force 且 wakeUp 在 kinematic 上调用会触发 PhysX 警告，
+   * 提前 return 双重避免。
    */
   addForce(force: Vector3) {
+    if (this._isKinematic) return;
+    this._pxActor.wakeUp();
     this._pxActor.addForce({ x: force.x, y: force.y, z: force.z });
   }
 
@@ -222,6 +268,8 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.addTorque }
    */
   addTorque(torque: Vector3) {
+    if (this._isKinematic) return;
+    this._pxActor.wakeUp();
     this._pxActor.addTorque({ x: torque.x, y: torque.y, z: torque.z });
   }
 

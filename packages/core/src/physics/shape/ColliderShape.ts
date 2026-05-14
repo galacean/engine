@@ -170,6 +170,18 @@ export abstract class ColliderShape implements ICustomClone {
 
   /**
    * @internal
+   *
+   * Called once per physics update tick by `Collider._onUpdate`. Base no-op.
+   *
+   * Subclasses can override for frame-driven maintenance. Currently used by
+   * `MeshColliderShape` to retry native shape creation when mesh data becomes
+   * accessible later or PhysX cooking previously failed due to transient state
+   * (async resource loading, cook pipeline warmup, etc.).
+   */
+  _onPhysicsUpdate(): void {}
+
+  /**
+   * @internal
    */
   _destroy() {
     if (this._nativeShape) {

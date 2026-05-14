@@ -16,6 +16,12 @@ export class MeshColliderShape extends ColliderShape {
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
   private _isShapeAttached = false;
+  /**
+   * `true` if a native shape creation was attempted but failed (mesh data not yet
+   * accessible, PhysX cooking transient failure, etc.). The `_onPhysicsUpdate` hook
+   * will keep retrying every frame until creation succeeds.
+   */
+  private _pendingNativeShapeCreation = false;
 
   /**
    * Cooking flags for this mesh collider shape.
@@ -74,15 +80,25 @@ export class MeshColliderShape extends ColliderShape {
       this._mesh?._addReferCount(-1);
       value?._addReferCount(1);
       this._mesh = value;
-      if (value && this._extractMeshData(value)) {
-        if (this._nativeShape) {
-          this._updateNativeShapeData();
+      if (value) {
+        if (this._extractMeshData(value)) {
+          if (this._nativeShape) {
+            this._updateNativeShapeData();
+          } else {
+            this._createNativeShape();
+          }
+          // _createNativeShape can fail silently (cookMesh transient failure); mark pending if so
+          this._pendingNativeShapeCreation = !this._nativeShape;
         } else {
-          this._createNativeShape();
+          // Mesh not yet accessible — keep pending so `_onPhysicsUpdate` retries later
+          this._destroyNativeShape();
+          this._clearMeshData();
+          this._pendingNativeShapeCreation = true;
         }
       } else {
         this._destroyNativeShape();
         this._clearMeshData();
+        this._pendingNativeShapeCreation = false;
       }
     }
   }
@@ -197,10 +213,13 @@ export class MeshColliderShape extends ColliderShape {
     );
 
     if (!nativeShape) {
+      // Cook failed — `_onPhysicsUpdate` will retry next frame
+      this._pendingNativeShapeCreation = true;
       return;
     }
 
     this._nativeShape = nativeShape;
+    this._pendingNativeShapeCreation = false;
 
     // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
     super._syncNative();
@@ -209,6 +228,40 @@ export class MeshColliderShape extends ColliderShape {
     if (this._collider) {
       nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
       this._attachToCollider();
+    }
+  }
+
+  /**
+   * @internal
+   * Retry hook: keep attempting `_createNativeShape` until it succeeds.
+   *
+   * Triggered every physics update tick by `Collider._onUpdate`. Handles the case
+   * where `_cookMesh` fails on first attempt due to PhysX cooking pipeline timing
+   * (the mesh data was extracted successfully at `set mesh` time, but the native
+   * cook call returned null). No-op once a valid native shape exists.
+   *
+   * We DO NOT re-call `_extractMeshData` here — once `set mesh` finished, either:
+   *   - extraction succeeded → `_positions` is populated and we reuse it
+   *   - extraction failed → `_clearMeshData` cleared `_positions`, and `mesh.accessible`
+   *     won't recover (GPU upload is one-way), so re-extracting would fail again
+   */
+  override _onPhysicsUpdate(): void {
+    if (!this._pendingNativeShapeCreation || !this._mesh || !this._positions) return;
+    this._createNativeShape();
+  }
+
+  /**
+   * @internal
+   * After CloneManager deep-copies `_positions` / `_indices` / `_mesh` and remaps `_collider`,
+   * the cloned shape still has no native PhysX shape because `_nativeShape` is `@ignoreClone`.
+   * Cook a fresh native shape now using the already-cloned vertex/index buffers; on transient
+   * cook failure `_createNativeShape` sets `_pendingNativeShapeCreation = true` and
+   * `_onPhysicsUpdate` will retry next tick.
+   */
+  override _cloneTo(target: MeshColliderShape): void {
+    super._cloneTo(target);
+    if (target._positions) {
+      target._createNativeShape();
     }
   }
 }
