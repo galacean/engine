@@ -278,6 +278,163 @@ describe("DynamicCollider", function () {
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
   });
 
+  it("applyForceAtPosition - at center of mass produces only linear acceleration", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.centerOfMass = new Vector3(0, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    boxCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(0, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).eq(0);
+  });
+
+  it("applyForceAtPosition - offset produces torque = (position - CoM) × force", function () {
+    // Reference: same physical setup but using applyForce + applyTorque(τ) directly.
+    // applyForceAtPosition(F, P) must produce the same result.
+    const setupBox = () => {
+      const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+      const collider = box.getComponent(DynamicCollider);
+      collider.mass = 1;
+      collider.useGravity = false;
+      collider.centerOfMass = new Vector3(0, 0, 0);
+      collider.inertiaTensor = new Vector3(1, 1, 1);
+      return collider;
+    };
+
+    const force = new Vector3(1, 0, 0);
+    const worldPos = new Vector3(0, 1, 0); // r = (0,1,0) - (0,0,0) = (0,1,0); r × F = (0,0,-1)
+
+    const reference = setupBox();
+    reference.applyForce(force);
+    reference.applyTorque(new Vector3(0, 0, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    const refLinear = reference.linearVelocity.clone();
+    const refAngular = reference.angularVelocity.clone();
+
+    rootEntity.clearChildren();
+
+    const target = setupBox();
+    target.applyForceAtPosition(force, worldPos);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(target.linearVelocity.x)).eq(formatValue(refLinear.x));
+    expect(formatValue(target.linearVelocity.y)).eq(formatValue(refLinear.y));
+    expect(formatValue(target.linearVelocity.z)).eq(formatValue(refLinear.z));
+    expect(formatValue(target.angularVelocity.x)).eq(formatValue(refAngular.x));
+    expect(formatValue(target.angularVelocity.y)).eq(formatValue(refAngular.y));
+    expect(formatValue(target.angularVelocity.z)).eq(formatValue(refAngular.z));
+    expect(formatValue(target.angularVelocity.z)).lessThan(0);
+  });
+
+  it("applyForceAtPosition - respects centerOfMass offset (no torque when applied at CoM)", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    // Shift CoM to local (1, 0, 0). With entity at origin and identity rotation, world CoM = (1, 0, 0).
+    boxCollider.centerOfMass = new Vector3(1, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    // Applying force at world (1,0,0) means r = 0 → no torque.
+    boxCollider.applyForceAtPosition(new Vector3(0, 0, 1), new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.z)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).eq(0);
+  });
+
+  it("applyForceAtPosition - respects entity world rotation when transforming local CoM", function () {
+    // entity rotated 90° around Y, CoM local (1, 0, 0) → world CoM offset (0, 0, -1)
+    // Apply force at world (0,0,-1), r=0, expect no torque.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    box.transform.rotate(new Vector3(0, 90, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.centerOfMass = new Vector3(1, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    boxCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(0, 0, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).eq(0);
+  });
+
+  it("applyForceAtPosition - position + rotation + CoM offset + r != 0 (full worldCoM coverage)", function () {
+    // Stress-test all three terms of worldCoM = entity.worldPos + worldRot * localCoM:
+    //   entity position (5, 0, 0)         — exercises the translation term
+    //   entity rotation 90° around Y       — exercises the rotation term (localCoM (1,0,0) → world (0,0,-1))
+    //   CoM local (1, 0, 0)               — exercises the local CoM lookup
+    //   worldCoM = (5,0,0) + (0,0,-1) = (5, 0, -1)
+    //   force F = (1, 0, 0) at P = (5, 1, -1)
+    //   r = P - worldCoM = (0, 1, 0)
+    //   τ = r × F = (0, 0, -1)
+    // If any single term in worldCoM is wrong (missing translate / wrong quat / wrong localCoM),
+    // r becomes non-(0,1,0) and τ has spurious x/y components → catches the bug.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(5, 0, 0));
+    box.transform.rotate(new Vector3(0, 90, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.centerOfMass = new Vector3(1, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    boxCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(5, 1, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).lessThan(0);
+  });
+
+  it("applyForceAtPosition - works after entity.clone() (defends prefab clone path)", function () {
+    // R6/R8 both surfaced because clone() bypasses setters and leaves native state inconsistent.
+    // applyForceAtPosition reads native getCenterOfMass + entity.transform.worldRotationQuaternion.
+    // If a future change adds @ignoreClone fields or relies on setter side-effects, this test
+    // will catch the regression by exercising the API on a cloned collider.
+    const source = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const sourceCollider = source.getComponent(DynamicCollider);
+    sourceCollider.mass = 1;
+    sourceCollider.useGravity = false;
+    sourceCollider.centerOfMass = new Vector3(0, 0, 0);
+    sourceCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    const cloneEntity = source.clone();
+    source.destroy();
+    rootEntity.addChild(cloneEntity);
+    cloneEntity.transform.setPosition(0, 0, 0);
+
+    const cloneCollider = cloneEntity.getComponent(DynamicCollider);
+    // r = (0,1,0), F = (1,0,0), τ = (0,0,-1) → expect negative angular z
+    cloneCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(0, 1, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(cloneCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(cloneCollider.angularVelocity.z)).lessThan(0);
+    expect(formatValue(cloneCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(cloneCollider.angularVelocity.y)).eq(0);
+  });
+
   it("maxAngularVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);

@@ -13,6 +13,8 @@ import { MeshColliderShape } from "./shape/MeshColliderShape";
  */
 export class DynamicCollider extends Collider {
   private static _tempVector3 = new Vector3();
+  private static _tempVector3_1 = new Vector3();
+  private static _tempVector3_2 = new Vector3();
   private static _tempQuat = new Quaternion();
 
   private _linearDamping = 0;
@@ -365,6 +367,33 @@ export class DynamicCollider extends Collider {
    */
   applyTorque(torque: Vector3): void {
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).addTorque(torque);
+  }
+
+  /**
+   * Apply a force to the DynamicCollider at a given position in world space.
+   * The force generates both linear acceleration through the center of mass and angular
+   * acceleration about it (torque = (position - centerOfMass) × force).
+   * @param force - The force to apply, in world space
+   * @param position - The position where the force is applied, in world space
+   */
+  applyForceAtPosition(force: Vector3, position: Vector3): void {
+    if (!this._phasedActiveInScene) return;
+    const nativeCollider = <IDynamicCollider>this._nativeCollider;
+
+    const localCoM = DynamicCollider._tempVector3;
+    nativeCollider.getCenterOfMass(localCoM);
+
+    const transform = this.entity.transform;
+    const worldCoM = DynamicCollider._tempVector3_1;
+    Vector3.transformByQuat(localCoM, transform.worldRotationQuaternion, worldCoM);
+    worldCoM.add(transform.worldPosition);
+
+    const torque = DynamicCollider._tempVector3_2;
+    Vector3.subtract(position, worldCoM, torque);
+    Vector3.cross(torque, force, torque);
+
+    nativeCollider.addForce(force);
+    nativeCollider.addTorque(torque);
   }
 
   /**
