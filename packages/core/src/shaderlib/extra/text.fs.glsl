@@ -62,7 +62,7 @@ void main()
     outlineCoverage = max(outlineCoverage, sampleCoverage(v_uv + vec2(-step.x * 0.7071, -step.y * 0.7071)));
 
     vec3 rgb = mix(renderer_OutlineColor.rgb, v_color.rgb, coverage);
-    float alpha = max(coverage * v_color.a, outlineCoverage * renderer_OutlineColor.a);
+    float alpha = max(coverage, outlineCoverage * renderer_OutlineColor.a) * v_color.a;
     finalColor = vec4(rgb, alpha);
   } else {
     finalColor = vec4(v_color.rgb, v_color.a * coverage);
