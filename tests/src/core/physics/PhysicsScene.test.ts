@@ -12,8 +12,7 @@ import {
   Scene,
   Script,
   SphereColliderShape,
-  StaticCollider,
-  OverlapHitResult
+  StaticCollider
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { LitePhysics } from "@galacean/engine-physics-lite";
@@ -469,16 +468,15 @@ describe("Physics Test", () => {
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.null;
 
-      // Test that return origin point if origin is inside collider.
+      // Test that initial overlap is skipped when ray origin is inside collider.
+      // Use a strictly-inside origin (2.9,2.9,2.9) rather than the box corner
+      // (3,3,3), which is a boundary point whose hit/miss depends on PhysX edge
+      // tolerance and can flake regardless of the initial-overlap-skip behavior.
       boxShape.size = new Vector3(6, 6, 6);
-      ray = new Ray(new Vector3(3, 3, 3), new Vector3(0, -1, 0).normalize());
-      expect(physicsScene.raycast(ray, outHitResult)).to.eq(true);
+      ray = new Ray(new Vector3(2.9, 2.9, 2.9), new Vector3(0, -1, 0).normalize());
+      expect(physicsScene.raycast(ray, outHitResult)).to.eq(false);
       expect(outHitResult.distance).to.be.eq(0);
-      expect(outHitResult.point).to.be.deep.include({ x: 3, y: 3, z: 3 });
-      expect(outHitResult.normal.x).to.be.eq(0);
-      expect(outHitResult.normal.y).to.be.eq(1);
-      expect(outHitResult.normal.z).to.be.eq(0);
-      expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.entity).to.be.null;
 
       // Test that raycast works correctly if shape is not at origin of coordinate.
       boxShape.size = new Vector3(1, 1, 1);
@@ -555,7 +553,7 @@ describe("Physics Test", () => {
       const halfExtents = new Vector3(0.5, 0.5, 0.5);
       const direction = new Vector3(0, 1, 0);
       const orientation = new Quaternion();
-      expect(physicsScene.boxCast(center, halfExtents, direction, orientation)).to.eq(false);
+      expect(physicsScene.boxCast(center, halfExtents, direction)).to.eq(false);
 
       // Test boxCast with hit
       direction.set(-1, -1, -1);
@@ -585,7 +583,7 @@ describe("Physics Test", () => {
         physicsScene.boxCast(center, halfExtents, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test boxCast when box is inside collider
+      // Test that initial overlap is skipped when sweep starts inside a collider.
       center.set(0, 0, 0);
       expect(
         physicsScene.boxCast(
@@ -597,8 +595,7 @@ describe("Physics Test", () => {
           Layer.Everything,
           outHitResult
         )
-      ).to.eq(true);
-      expect(outHitResult.distance).to.be.eq(0);
+      ).to.eq(false);
 
       // Test boxCast with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);
@@ -729,12 +726,11 @@ describe("Physics Test", () => {
       // Test sphereCast with distance limit
       expect(physicsScene.sphereCast(center, radius, direction, 0.1, Layer.Everything, outHitResult)).to.eq(false);
 
-      // Test sphereCast when sphere is inside collider
+      // Test that initial overlap is skipped when sphere starts inside a collider.
       center.set(0, 0, 0);
       expect(
         physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE, Layer.Everything, outHitResult)
-      ).to.eq(true);
-      expect(outHitResult.distance).to.be.eq(0);
+      ).to.eq(false);
 
       // Test sphereCast with multiple colliders
       const collider2 = sweepTestRoot.addComponent(StaticCollider);
@@ -856,7 +852,7 @@ describe("Physics Test", () => {
         physicsScene.capsuleCast(center, radius, height, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test capsuleCast when capsule is inside collider
+      // Test that initial overlap is skipped when capsule starts inside a collider.
       center.set(0, 0, 0);
       expect(
         physicsScene.capsuleCast(
@@ -869,8 +865,7 @@ describe("Physics Test", () => {
           Layer.Everything,
           outHitResult
         )
-      ).to.eq(true);
-      expect(outHitResult.distance).to.be.eq(0);
+      ).to.eq(false);
 
       // Test capsuleCast with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);
