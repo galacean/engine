@@ -1393,35 +1393,14 @@ export namespace ASTNode {
       const referenceGlobalSymbolNames = this.referenceGlobalSymbolNames;
       const symbols = this._symbols;
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
-      let needFindNames: string[];
 
-      // FXAA-style cross-arm shadowing: same name is a macro in one
-      // preprocessor arm and a variable in the mutually-exclusive arm.
-      // At a MACRO_CALL use site, also probe the macro name itself so
-      // the sibling-arm declaration is marked as referenced and codegen
-      // keeps it. Grammar half of the fix is in 87cb2b5f0.
-      let macroNameAsVarLookup: string | null = null;
-
-      if (child instanceof BaseToken) {
-        needFindNames = [child.lexeme];
-      } else {
-        const callSymbol = child as MacroCallSymbol | MacroCallFunction;
-        needFindNames = callSymbol.referenceSymbolNames;
-        const macroName = callSymbol.macroName;
-        if (macroName && needFindNames.indexOf(macroName) === -1) {
-          needFindNames = needFindNames.concat(macroName);
-          macroNameAsVarLookup = macroName;
-        }
-      }
+      // Real references — every name must resolve; miss is an authoring error.
+      const needFindNames = child instanceof BaseToken ? [child.lexeme] : child.referenceSymbolNames;
 
       for (let i = 0; i < needFindNames.length; i++) {
         const name = needFindNames[i];
 
-        // `macroDefineList` short-circuit; bypass for the macro name itself
-        // so cross-arm shadowing can resolve the sibling-arm declaration.
-        if (sa.macroDefineList[name] && name !== macroNameAsVarLookup) {
-          continue;
-        }
+        if (sa.macroDefineList[name]) continue;
 
         // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
         if (!(child instanceof BaseToken) && BuiltinFunction.isExist(name)) {
@@ -1438,11 +1417,6 @@ export namespace ASTNode {
         sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
 
         if (!symbols.length) {
-          // Skip macro-name-as-var lookup miss — the lookup is a cross-arm
-          // shadowing probe, a missing sibling var is the common single-arm case.
-          if (name === macroNameAsVarLookup) {
-            continue;
-          }
           // #if _VERBOSE
           sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
           // #endif
@@ -1469,6 +1443,50 @@ export namespace ASTNode {
             referenceGlobalSymbolNames.push(name);
           }
         }
+      }
+
+      // FXAA-style cross-arm shadowing: at a MACRO_CALL use site, silently
+      // probe the macro name itself so any sibling-arm `var` declaration is
+      // marked as referenced and codegen keeps it. Miss is the common
+      // single-arm case — no warning, no type inference. Grammar half of the
+      // cross-arm fix is in 87cb2b5f0.
+      if (!(child instanceof BaseToken)) {
+        const macroName = child.macroName;
+        if (macroName && needFindNames.indexOf(macroName) === -1) {
+          VariableIdentifier._probeAndMarkSiblingArm(sa, macroName, symbols, referenceGlobalSymbolNames);
+        }
+      }
+    }
+
+    /** Cross-arm shadowing probe: lookup `name` and, if a sibling-arm var/fn
+     *  exists, push it into `referenceGlobalSymbolNames` so codegen retains
+     *  the declaration. Miss is silent — this is a probe, not a reference. */
+    private static _probeAndMarkSiblingArm(
+      sa: SemanticAnalyzer,
+      name: string,
+      symbols: (VarSymbol | FnSymbol)[],
+      referenceGlobalSymbolNames: string[]
+    ): void {
+      // Builtin names can't be shadowed by a sibling-arm declaration in any
+      // meaningful way — skip the lookup entirely.
+      if (BuiltinFunction.isExist(name) || BuiltinVariable.getVar(name)) return;
+      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      lookupSymbol.set(name, ESymbolType.Any);
+      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+      if (!symbols.length) return;
+      const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
+      if (currentScopeSymbol) {
+        if (
+          (currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable) &&
+          referenceGlobalSymbolNames.indexOf(name) === -1
+        ) {
+          referenceGlobalSymbolNames.push(name);
+        }
+      } else if (
+        symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable) &&
+        referenceGlobalSymbolNames.indexOf(name) === -1
+      ) {
+        referenceGlobalSymbolNames.push(name);
       }
     }
 
