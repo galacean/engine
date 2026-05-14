@@ -27,11 +27,14 @@ export class ShaderCompilerUtils {
     source: string,
     location: ShaderRange | ShaderPosition,
     file?: string
-  ): Error | undefined {
+  ): Error {
     // #if _VERBOSE
     return new GSError(errorName, message, location, source, file);
     // #else
     console.error(message);
+    const err = new Error(message);
+    err.name = errorName;
+    return err;
     // #endif
   }
 }
