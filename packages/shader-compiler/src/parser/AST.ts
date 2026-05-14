@@ -1434,23 +1434,37 @@ export namespace ASTNode {
       // single-arm case — no warning, no type inference. Grammar half of the
       // cross-arm fix is in 87cb2b5f0.
       if (!(child instanceof BaseToken)) {
-        const macroName = child.macroName;
-        if (
-          macroName &&
-          needFindNames.indexOf(macroName) === -1 &&
-          !BuiltinFunction.isExist(macroName) &&
-          !BuiltinVariable.getVar(macroName)
-        ) {
-          VariableIdentifier._lookupAndMarkGlobalReference(sa, macroName, symbols, referenceGlobalSymbolNames, null);
-        }
+        VariableIdentifier._probeCrossArmShadowing(sa, child, needFindNames, symbols, referenceGlobalSymbolNames);
       }
+    }
+
+    /** Run the cross-arm shadowing probe for a MACRO_CALL site. No-op when the
+     *  probe isn't meaningful: no macro name, name already resolved as a real
+     *  reference, or name is a builtin (builtins can't be shadowed by a
+     *  sibling-arm decl). */
+    private static _probeCrossArmShadowing(
+      sa: SemanticAnalyzer,
+      child: MacroCallSymbol | MacroCallFunction,
+      needFindNames: string[],
+      symbols: (VarSymbol | FnSymbol)[],
+      referenceGlobalSymbolNames: string[]
+    ): void {
+      const macroName = child.macroName;
+      if (!macroName) return;
+      if (needFindNames.indexOf(macroName) !== -1) return; // already looked up as a real reference
+      if (BuiltinFunction.isExist(macroName) || BuiltinVariable.getVar(macroName)) return; // builtins can't be shadowed
+      VariableIdentifier._lookupAndMarkGlobalReference(sa, macroName, symbols, referenceGlobalSymbolNames, null);
     }
 
     /** Look up `name` in the symbol stack and, if a global var/fn declaration
      *  exists, push it into `referenceGlobalSymbolNames`. Returns `true` iff
      *  the lookup hit (caller can then derive type info). When `missWarnLoc`
      *  is non-null, a miss reports a "declared before used" warning; pass
-     *  `null` for silent probes (e.g. FXAA-style cross-arm shadowing). */
+     *  `null` for silent probes (e.g. FXAA-style cross-arm shadowing).
+     *
+     *  Mutation contract: `symbols` is used as scratch storage — `lookupAll`
+     *  clears and refills it. On hit, the caller may read `symbols[0]` for
+     *  type info before the next call overwrites the contents. */
     private static _lookupAndMarkGlobalReference(
       sa: SemanticAnalyzer,
       name: string,
