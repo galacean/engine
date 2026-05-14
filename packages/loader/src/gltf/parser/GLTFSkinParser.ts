@@ -39,7 +39,7 @@ export class GLTFSkinParser extends GLTFParser {
       if (skeleton !== undefined) {
         skin.rootBone = entities[skeleton];
       } else {
-        const rootBone = this._findSkeletonRootBoneByLCA(joints, entities);
+        const rootBone = this._findSkeletonRootBone(joints, entities);
         if (!rootBone) {
           throw "Failed to find skeleton root bone.";
         }
@@ -56,7 +56,7 @@ export class GLTFSkinParser extends GLTFParser {
    * Resolve the skeleton rootBone as the lowest common ancestor of the joints' parent chains.
    * Returns null when joints share no common ancestor.
    */
-  private _findSkeletonRootBoneByLCA(joints: number[], entities: Entity[]): Entity | null {
+  private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity | null {
     const paths = <Record<number, Entity[]>>{};
     for (const index of joints) {
       const path = new Array<Entity>();
