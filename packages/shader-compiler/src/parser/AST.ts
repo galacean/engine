@@ -1392,36 +1392,14 @@ export namespace ASTNode {
       const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
       const referenceGlobalSymbolNames = this.referenceGlobalSymbolNames;
       const symbols = this._symbols;
-      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
-      let needFindNames: string[];
 
-      // FXAA-style cross-arm shadowing: same name is a macro in one
-      // preprocessor arm and a variable in the mutually-exclusive arm.
-      // At a MACRO_CALL use site, also probe the macro name itself so
-      // the sibling-arm declaration is marked as referenced and codegen
-      // keeps it. Grammar half of the fix is in 87cb2b5f0.
-      let macroNameAsVarLookup: string | null = null;
-
-      if (child instanceof BaseToken) {
-        needFindNames = [child.lexeme];
-      } else {
-        const callSymbol = child as MacroCallSymbol | MacroCallFunction;
-        needFindNames = callSymbol.referenceSymbolNames;
-        const macroName = callSymbol.macroName;
-        if (macroName && needFindNames.indexOf(macroName) === -1) {
-          needFindNames = needFindNames.concat(macroName);
-          macroNameAsVarLookup = macroName;
-        }
-      }
+      // Real references — every name must resolve; miss is an authoring error.
+      const needFindNames = child instanceof BaseToken ? [child.lexeme] : child.referenceSymbolNames;
 
       for (let i = 0; i < needFindNames.length; i++) {
         const name = needFindNames[i];
 
-        // `macroDefineList` short-circuit; bypass for the macro name itself
-        // so cross-arm shadowing can resolve the sibling-arm declaration.
-        if (sa.macroDefineList[name] && name !== macroNameAsVarLookup) {
-          continue;
-        }
+        if (sa.macroDefineList[name]) continue;
 
         // only `macro_call` CFG can reference fnSymbols, others fnSymbols are referenced in `function_call_generic` CFG
         if (!(child instanceof BaseToken) && BuiltinFunction.isExist(name)) {
@@ -1434,37 +1412,86 @@ export namespace ASTNode {
           continue;
         }
 
-        lookupSymbol.set(name, ESymbolType.Any);
-        sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
-
-        if (!symbols.length) {
-          // #if _VERBOSE
-          sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
-          // #endif
-        } else {
-          // Expression-style macros have their own value AST; its real type isn't
-          // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
-          // is a `Varyings` struct but the macro call site's type should be the
-          // member type). Skip type inference for those and keep TypeAny.
-          if (child instanceof BaseToken || !child.hasAstValue) {
-            this.typeInfo = symbols[0].dataType?.type;
-          }
-          const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
-          if (currentScopeSymbol) {
-            if (
-              (currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable) &&
-              referenceGlobalSymbolNames.indexOf(name) === -1
-            ) {
-              referenceGlobalSymbolNames.push(name);
-            }
-          } else if (
-            symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable) &&
-            referenceGlobalSymbolNames.indexOf(name) === -1
-          ) {
-            referenceGlobalSymbolNames.push(name);
-          }
+        const hit = VariableIdentifier._lookupAndMarkGlobalReference(
+          sa,
+          name,
+          symbols,
+          referenceGlobalSymbolNames,
+          this.location
+        );
+        // Expression-style macros have their own value AST; its real type isn't
+        // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
+        // is a `Varyings` struct but the macro call site's type should be the
+        // member type). Skip type inference for those and keep TypeAny.
+        if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
+          this.typeInfo = symbols[0].dataType?.type;
         }
       }
+
+      // FXAA-style cross-arm shadowing: at a MACRO_CALL use site, silently
+      // probe the macro name itself so any sibling-arm `var` declaration is
+      // marked as referenced and codegen keeps it. Miss is the common
+      // single-arm case — no warning, no type inference. Grammar half of the
+      // cross-arm fix is in 87cb2b5f0.
+      if (!(child instanceof BaseToken)) {
+        VariableIdentifier._probeCrossArmShadowing(sa, child, needFindNames, symbols, referenceGlobalSymbolNames);
+      }
+    }
+
+    /** Run the cross-arm shadowing probe for a MACRO_CALL site. No-op when the
+     *  probe isn't meaningful: no macro name, name already resolved as a real
+     *  reference, or name is a builtin (builtins can't be shadowed by a
+     *  sibling-arm decl). */
+    private static _probeCrossArmShadowing(
+      sa: SemanticAnalyzer,
+      child: MacroCallSymbol | MacroCallFunction,
+      needFindNames: string[],
+      symbols: (VarSymbol | FnSymbol)[],
+      referenceGlobalSymbolNames: string[]
+    ): void {
+      const macroName = child.macroName;
+      if (!macroName) return;
+      if (needFindNames.indexOf(macroName) !== -1) return; // already looked up as a real reference
+      if (BuiltinFunction.isExist(macroName) || BuiltinVariable.getVar(macroName)) return; // builtins can't be shadowed
+      VariableIdentifier._lookupAndMarkGlobalReference(sa, macroName, symbols, referenceGlobalSymbolNames, null);
+    }
+
+    /** Look up `name` in the symbol stack and, if a global var/fn declaration
+     *  exists, push it into `referenceGlobalSymbolNames`. Returns `true` iff
+     *  the lookup hit (caller can then derive type info). When `missWarnLoc`
+     *  is non-null, a miss reports a "declared before used" warning; pass
+     *  `null` for silent probes (e.g. FXAA-style cross-arm shadowing).
+     *
+     *  Mutation contract: `symbols` is used as scratch storage — `lookupAll`
+     *  clears and refills it. On hit, the caller may read `symbols[0]` for
+     *  type info before the next call overwrites the contents. */
+    private static _lookupAndMarkGlobalReference(
+      sa: SemanticAnalyzer,
+      name: string,
+      symbols: (VarSymbol | FnSymbol)[],
+      referenceGlobalSymbolNames: string[],
+      missWarnLoc: ShaderRange | null
+    ): boolean {
+      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
+      lookupSymbol.set(name, ESymbolType.Any);
+      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+
+      if (!symbols.length) {
+        // #if _VERBOSE
+        if (missWarnLoc) {
+          sa.reportWarning(missWarnLoc, `Please sure the identifier "${name}" will be declared before used.`);
+        }
+        // #endif
+        return false;
+      }
+      const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
+      const isGlobal = currentScopeSymbol
+        ? currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable
+        : symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable);
+      if (isGlobal && referenceGlobalSymbolNames.indexOf(name) === -1) {
+        referenceGlobalSymbolNames.push(name);
+      }
+      return true;
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
@@ -1860,6 +1887,14 @@ export namespace ASTNode {
         };
         if (entries) entries.push(info);
         else list[this.macroName] = [info];
+      }
+
+      // Close the form-param scope pushed at `MACRO_DEFINE_PARAMS` shift. By
+      // the time this reduce fires, every `VariableIdentifier` inside the
+      // value expression has already resolved against the params. Object-like
+      // macros never pushed a scope, so nothing to pop.
+      if (this.isFunction) {
+        sa.popScope();
       }
     }
 
