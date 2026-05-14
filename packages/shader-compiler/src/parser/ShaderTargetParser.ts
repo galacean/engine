@@ -69,7 +69,6 @@ export class ShaderTargetParser {
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
     traceBackStack.push(0);
 
-    let macroParamScopeOpen = false;
     let nextToken = tokens.next();
     while (true) {
       const token = nextToken.value;
@@ -79,18 +78,15 @@ export class ShaderTargetParser {
         traceBackStack.push(token, actionInfo.target!);
         // Function-like `#define` form params live in a scope wrapping the
         // value AST, mirroring how `function_header` opens a scope for GLSL
-        // function parameters. Push on shift of `MACRO_DEFINE_PARAMS`, pop on
-        // `MACRO_DEFINE_END`. Object-like `#define` has neither token, so
-        // there's nothing to do.
+        // function parameters. Push on shift of `MACRO_DEFINE_PARAMS`; the
+        // matching `popScope` runs when `MacroDefine.semanticAnalyze` reduces
+        // the production (only the function-like alternative needs it, and
+        // it knows that from its own children).
         if (token.type === Keyword.MACRO_DEFINE_PARAMS) {
           sematicAnalyzer.pushScope();
-          macroParamScopeOpen = true;
           for (const p of ParserUtils.parseMacroParamList(token.lexeme)) {
             sematicAnalyzer.symbolTableStack.insert(new SymbolInfo(p, ESymbolType.VAR));
           }
-        } else if (token.type === Keyword.MACRO_DEFINE_END && macroParamScopeOpen) {
-          sematicAnalyzer.popScope();
-          macroParamScopeOpen = false;
         }
         nextToken = tokens.next();
       } else if (actionInfo?.action === EAction.Accept) {

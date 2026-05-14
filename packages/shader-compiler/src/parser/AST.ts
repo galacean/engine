@@ -1874,6 +1874,14 @@ export namespace ASTNode {
         if (entries) entries.push(info);
         else list[this.macroName] = [info];
       }
+
+      // Close the form-param scope pushed at `MACRO_DEFINE_PARAMS` shift. By
+      // the time this reduce fires, every `VariableIdentifier` inside the
+      // value expression has already resolved against the params. Object-like
+      // macros never pushed a scope, so nothing to pop.
+      if (this.isFunction) {
+        sa.popScope();
+      }
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
