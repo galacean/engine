@@ -640,6 +640,52 @@ describe("DynamicCollider", function () {
     ).toBeTruthy();
   });
 
+  it("R0: CCD mode survives kinematic toggle (PhysX rejects CCD on kinematic)", function () {
+    // RED verification for R0 fix:
+    //   PhysX 4.1.1 forbids CCD on kinematic actors. The fix caches the user-intended mode
+    //   and re-applies on kinematic→dynamic. Without the fix, switching to kinematic loses
+    //   the CCD flag and a subsequent dynamic switch does not restore it.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    const physX = boxCollider._nativeCollider._physXPhysics._physX;
+    const ccdFlag = () =>
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD);
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(ccdFlag()).toBeTruthy();
+
+    boxCollider.isKinematic = true;
+    expect(ccdFlag()).toBeFalsy();
+
+    boxCollider.isKinematic = false;
+    expect(ccdFlag()).toBeTruthy();
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.Continuous);
+  });
+
+  it("R0: setCollisionDetectionMode in kinematic state defers application", function () {
+    // RED verification: while kinematic, the CCD flag should not be touched (PhysX warns).
+    // User's intent is cached and applied on next dynamic switch.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    const physX = boxCollider._nativeCollider._physXPhysics._physX;
+    const ccdFlag = () =>
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD);
+
+    boxCollider.isKinematic = true;
+    expect(ccdFlag()).toBeFalsy();
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(ccdFlag()).toBeFalsy();
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.Continuous);
+
+    boxCollider.isKinematic = false;
+    expect(ccdFlag()).toBeTruthy();
+  });
+
   it("sleep", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);

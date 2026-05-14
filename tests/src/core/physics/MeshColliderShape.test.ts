@@ -31,11 +31,7 @@ class CollisionScript extends Script {
  * @param indices - Optional triangle indices
  * @returns A ModelMesh with readable data
  */
-function createModelMesh(
-  engine: WebGLEngine,
-  positions: number[],
-  indices?: number[]
-): ModelMesh {
+function createModelMesh(engine: WebGLEngine, positions: number[], indices?: number[]): ModelMesh {
   const mesh = new ModelMesh(engine);
   const vec3Positions: Vector3[] = [];
   for (let i = 0; i < positions.length; i += 3) {
@@ -107,11 +103,7 @@ describe("MeshColliderShape PhysX", () => {
       const meshShape = new MeshColliderShape();
       const meshMaterial = meshShape.material;
       // Ground plane at y=0, CCW winding -> normal +Y
-      const mesh = createModelMesh(
-        engine,
-        [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10],
-        [0, 2, 1, 1, 2, 3]
-      );
+      const mesh = createModelMesh(engine, [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10], [0, 2, 1, 1, 2, 3]);
       meshShape.mesh = mesh;
       groundCollider.addShape(meshShape);
 
@@ -190,6 +182,57 @@ describe("MeshColliderShape PhysX", () => {
       defaultMaterial?.destroy();
       material?.destroy();
     });
+
+    it("R6: cloned MeshColliderShape rebuilds its native PhysX shape", async () => {
+      // RED verification for R6 fix:
+      //   MeshColliderShape's `_nativeShape` is `@ignoreClone` — without an
+      //   override of `_cloneTo` cooking a fresh shape from cloned vertex/index
+      //   buffers, the cloned entity has no physical surface (sphere falls
+      //   straight through).
+      const groundEntity = root.createChild("meshGroundForClone");
+      groundEntity.transform.setPosition(0, 0, 0);
+      const groundCollider = groundEntity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      const mesh = createModelMesh(engine, [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10], [0, 2, 1, 1, 2, 3]);
+      meshShape.mesh = mesh;
+      groundCollider.addShape(meshShape);
+
+      const clonedGround = groundEntity.clone();
+      // Move the original aside so the cloned ground is the only surface below the sphere.
+      groundEntity.transform.setPosition(1000, 0, 0);
+      root.addChild(clonedGround);
+      clonedGround.transform.setPosition(0, 0, 0);
+
+      const clonedShape = clonedGround.getComponent(StaticCollider).shapes[0] as MeshColliderShape;
+      // @ts-ignore — inspect that the cloned shape actually has a usable native PhysX handle
+      expect(clonedShape._nativeShape).not.toBeNull();
+      // @ts-ignore
+      expect(clonedShape._nativeShape._pxShape).toBeDefined();
+
+      const sphereEntity = root.createChild("sphereForClone");
+      sphereEntity.transform.setPosition(0, 2, 0);
+      const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
+      const sphereShape = new SphereColliderShape();
+      const sphereMaterial = sphereShape.material;
+      sphereShape.radius = 0.5;
+      dynamicCollider.addShape(sphereShape);
+
+      for (let i = 0; i < 60; i++) {
+        physicsScene._update(1 / 60);
+      }
+
+      // Sphere lands on cloned ground (y > -1), not falls forever (y < -10).
+      const sphereY = sphereEntity.transform.position.y;
+      expect(sphereY).toBeGreaterThan(-1);
+      expect(sphereY).toBeLessThan(2);
+
+      groundEntity.destroy();
+      clonedGround.destroy();
+      sphereEntity.destroy();
+      meshMaterial?.destroy();
+      sphereMaterial?.destroy();
+    });
   });
 
   describe("Convex Mesh (Dynamic)", () => {
@@ -265,9 +308,10 @@ describe("MeshColliderShape PhysX", () => {
       const meshShape = new MeshColliderShape();
       const meshMaterial = meshShape.material;
       meshShape.isConvex = true;
-      const mesh = createModelMesh(engine, [
-        -1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1
-      ]);
+      const mesh = createModelMesh(
+        engine,
+        [-1, -1, -1, 1, -1, -1, 1, 1, -1, -1, 1, -1, -1, -1, 1, 1, -1, 1, 1, 1, 1, -1, 1, 1]
+      );
       meshShape.mesh = mesh;
       meshShape.isTrigger = true;
       triggerCollider.addShape(meshShape);
@@ -417,11 +461,7 @@ describe("MeshColliderShape PhysX", () => {
       staticCollider.addShape(meshShape);
 
       // Update mesh
-      const mesh2 = createModelMesh(
-        engine,
-        [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0],
-        [0, 1, 2, 3, 4, 5]
-      );
+      const mesh2 = createModelMesh(engine, [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0], [0, 1, 2, 3, 4, 5]);
       meshShape.mesh = mesh2;
 
       expect(staticCollider.shapes.length).toBe(1);
@@ -695,11 +735,7 @@ describe("MeshColliderShape PhysX", () => {
       expect(meshShape._nativeShape).toBeNull();
 
       // Re-enable with new mesh
-      const mesh2 = createModelMesh(
-        engine,
-        [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0],
-        [0, 1, 2, 3, 4, 5]
-      );
+      const mesh2 = createModelMesh(engine, [0, 0, 0, 2, 0, 0, 0, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0], [0, 1, 2, 3, 4, 5]);
       meshShape.mesh = mesh2;
       // @ts-ignore
       expect(meshShape._nativeShape).not.toBeNull();
