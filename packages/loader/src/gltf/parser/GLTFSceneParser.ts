@@ -38,12 +38,6 @@ export class GLTFSceneParser extends GLTFParser {
       sceneRoot.addChild(context.get<Entity>(GLTFParserType.Entity, sceneNodes[i]));
     }
 
-    // Mirror _defaultSceneRoot's synchronous write so _sceneRoots[i] is visible
-    // in the same tick. _handleSubAsset would otherwise fill it asynchronously
-    // via the glTFResourceMap path after Scene's promise resolves — looks like
-    // a duplicate write, but it aligns the two wrapper-index fields so callers
-    // never observe one as set and the other still undefined.
-    (glTFResource._sceneRoots ||= [])[index] = sceneRoot;
     if (isDefaultScene) {
       glTFResource._defaultSceneRoot = sceneRoot;
     }
