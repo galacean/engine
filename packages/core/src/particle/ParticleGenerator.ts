@@ -50,6 +50,7 @@ export class ParticleGenerator {
   private static _tempVector32 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
+  private static _tempColor1 = new Color();
   private static _tempQuat0 = new Quaternion();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
 
@@ -1148,6 +1149,11 @@ export class ParticleGenerator {
       const parentRotation = this._eventRotation;
       parentRotation.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
 
+      // Apply COL/SOL/ROL modulation at normalizedAge = 0 so children inherit
+      // the parent's visible appearance at the moment of birth, not the raw
+      // pre-modulation start values.
+      this._modulateInheritByLifetime(offset, 0, parentColor, parentSize, parentRotation);
+
       subEmitters._onParticleBirth(birthWorldPos, parentColor, parentSize, parentRotation);
     }
   }
@@ -1358,7 +1364,77 @@ export class ParticleGenerator {
       instanceVertices[particleOffset + 17]
     );
 
+    // Apply COL/SOL/ROL modulation at the parent's normalizedAge so children
+    // inherit the parent's visible appearance at death rather than the raw
+    // pre-modulation start values.
+    const bornTime = instanceVertices[particleOffset + 7];
+    const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
+    this._modulateInheritByLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
+
     this.subEmitters._onParticleDeath(local, parentColor, parentSize, parentRotation);
+  }
+
+  /**
+   * Multiply COL / SOL into parentColor/parentSize and add ROL into
+   * parentRotation, mirroring the per-vertex modulation the shader performs at
+   * `normalizedAge`. Random factors used by Two* modes are read from the same
+   * instance-buffer slots the shader samples (`a_Random0.y/z/w` → byte offsets
+   * 20/21/22).
+   *
+   * SOL only contributes in Curve / TwoCurves modes (shader gates on
+   * `RENDERER_SOL_CURVE_MODE`); Constant / TwoConstants are silently dropped
+   * shader-side so we match that.
+   */
+  private _modulateInheritByLifetime(
+    particleOffset: number,
+    normalizedAge: number,
+    parentColor: Color,
+    parentSize: Vector3,
+    parentRotation: Vector3
+  ): void {
+    const instanceVertices = this._instanceVertices;
+
+    const col = this.colorOverLifetime;
+    if (col.enabled) {
+      const colRand = instanceVertices[particleOffset + 20];
+      const tmp = ParticleGenerator._tempColor1;
+      col.color.evaluate(normalizedAge, colRand, tmp);
+      parentColor.r *= tmp.r;
+      parentColor.g *= tmp.g;
+      parentColor.b *= tmp.b;
+      parentColor.a *= tmp.a;
+    }
+
+    const sol = this.sizeOverLifetime;
+    if (sol.enabled) {
+      const sizeRand = instanceVertices[particleOffset + 21];
+      const solMode = sol.sizeX.mode;
+      if (solMode === ParticleCurveMode.Curve || solMode === ParticleCurveMode.TwoCurves) {
+        if (sol.separateAxes) {
+          parentSize.x *= sol.sizeX.evaluate(normalizedAge, sizeRand);
+          parentSize.y *= sol.sizeY.evaluate(normalizedAge, sizeRand);
+          parentSize.z *= sol.sizeZ.evaluate(normalizedAge, sizeRand);
+        } else {
+          const factor = sol.sizeX.evaluate(normalizedAge, sizeRand);
+          parentSize.x *= factor;
+          parentSize.y *= factor;
+          parentSize.z *= factor;
+        }
+      }
+    }
+
+    const rol = this.rotationOverLifetime;
+    if (rol.enabled) {
+      const rotRand = instanceVertices[particleOffset + 22];
+      const lifetime = instanceVertices[particleOffset + 3];
+      if (rol.separateAxes) {
+        parentRotation.x += rol.rotationX._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+        parentRotation.y += rol.rotationY._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+        parentRotation.z += rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+      } else {
+        parentRotation.z += rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+      }
+    }
   }
 
   private _freeRetiredParticles(): void {

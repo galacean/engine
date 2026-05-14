@@ -191,6 +191,78 @@ export class ParticleGradient {
     return typeArray;
   }
 
+  /**
+   * @internal
+   * CPU mirror of shader `evaluateParticleGradient`. Linearly interpolates the
+   * color and alpha key arrays at `time`. Each channel is independently clamped
+   * to its own last-key time (matches the shader's `min(t, maxTime)`).
+   */
+  _evaluate(time: number, out: Color): void {
+    const colorKeys = this._colorKeys;
+    const alphaKeys = this._alphaKeys;
+    const colorCount = colorKeys.length;
+    const alphaCount = alphaKeys.length;
+
+    if (colorCount === 0) {
+      out.r = 1;
+      out.g = 1;
+      out.b = 1;
+    } else {
+      const colorMaxTime = colorKeys[colorCount - 1].time;
+      const colorT = time > colorMaxTime ? colorMaxTime : time;
+      let resolved = false;
+      for (let i = 0; i < colorCount; i++) {
+        const key = colorKeys[i];
+        if (colorT <= key.time) {
+          if (i === 0) {
+            out.r = key.color.r;
+            out.g = key.color.g;
+            out.b = key.color.b;
+          } else {
+            const lastKey = colorKeys[i - 1];
+            const age = (colorT - lastKey.time) / (key.time - lastKey.time);
+            out.r = lastKey.color.r + (key.color.r - lastKey.color.r) * age;
+            out.g = lastKey.color.g + (key.color.g - lastKey.color.g) * age;
+            out.b = lastKey.color.b + (key.color.b - lastKey.color.b) * age;
+          }
+          resolved = true;
+          break;
+        }
+      }
+      if (!resolved) {
+        const last = colorKeys[colorCount - 1].color;
+        out.r = last.r;
+        out.g = last.g;
+        out.b = last.b;
+      }
+    }
+
+    if (alphaCount === 0) {
+      out.a = 1;
+    } else {
+      const alphaMaxTime = alphaKeys[alphaCount - 1].time;
+      const alphaT = time > alphaMaxTime ? alphaMaxTime : time;
+      let resolved = false;
+      for (let i = 0; i < alphaCount; i++) {
+        const key = alphaKeys[i];
+        if (alphaT <= key.time) {
+          if (i === 0) {
+            out.a = key.alpha;
+          } else {
+            const lastKey = alphaKeys[i - 1];
+            const age = (alphaT - lastKey.time) / (key.time - lastKey.time);
+            out.a = lastKey.alpha + (key.alpha - lastKey.alpha) * age;
+          }
+          resolved = true;
+          break;
+        }
+      }
+      if (!resolved) {
+        out.a = alphaKeys[alphaCount - 1].alpha;
+      }
+    }
+  }
+
   private _addKey<T extends { time: number }>(keys: T[], key: T): void {
     const time = key.time;
     const count = keys.length;

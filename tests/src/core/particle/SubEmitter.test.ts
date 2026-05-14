@@ -240,13 +240,13 @@ describe("SubEmitter", () => {
     parent.entity.destroy();
   });
 
-  it("Color inherit uses parent's raw startColor, NOT parent's COL-modulated value", () => {
+  it("Color inherit at Death uses parent's COL-modulated value (matches visible color)", () => {
     // Parent: startColor white, COL fades to (0.5, 0.5, 0.5, 1) at t=1.
-    // Child: startColor white.
-    // Death inherit Color → child.a_StartColor should equal parent's RAW startColor × child.startColor
-    //   = (1,1,1,1) × (1,1,1,1) = (1, 1, 1, 1).
-    // The parent's COL(1) = 0.5-grey is intentionally NOT applied: inheritance reads
-    // start values from the instance buffer (pre-modulation).
+    // Child:  startColor white.
+    // Death inherit Color → child.a_StartColor = parent.startColor × COL(1) × child.startColor
+    //   = (1,1,1,1) × (0.5,0.5,0.5,1) × (1,1,1,1) = (0.5, 0.5, 0.5, 1).
+    // Inheriting the visible color (not the raw start color) keeps children
+    // consistent with what the parent looked like the moment it died.
     const parent = createParticleRenderer(engine, "Parent_ColorCOL");
     const child = createParticleRenderer(engine, "Child_ColorCOL");
 
@@ -254,8 +254,7 @@ describe("SubEmitter", () => {
     parent.generator.main.startColor.constant = new Color(1, 1, 1, 1);
     child.generator.main.startColor.constant = new Color(1, 1, 1, 1);
 
-    // Parent COL: white at t=0 → half-grey at t=1. We only set this to prove it is
-    // NOT factored into the inherit value (would result in 0.5 if it were).
+    // Parent COL: white at t=0 → half-grey at t=1.
     const colorKeys = [
       new GradientColorKey(0, new Color(1, 1, 1, 1)),
       new GradientColorKey(1, new Color(0.5, 0.5, 0.5, 1))
@@ -282,20 +281,20 @@ describe("SubEmitter", () => {
 
     const startColor = new Color();
     child.generator._readParticleStartColor(0, startColor);
-    expect(startColor.r).to.be.closeTo(1.0, 1e-3);
-    expect(startColor.g).to.be.closeTo(1.0, 1e-3);
-    expect(startColor.b).to.be.closeTo(1.0, 1e-3);
+    expect(startColor.r).to.be.closeTo(0.5, 1e-3);
+    expect(startColor.g).to.be.closeTo(0.5, 1e-3);
+    expect(startColor.b).to.be.closeTo(0.5, 1e-3);
     expect(startColor.a).to.be.closeTo(1.0, 1e-3);
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("Size inherit uses parent's raw startSize, NOT parent's SOL-modulated value", () => {
-    // Parent: startSize 1, SOL ramps to 0.5 at t=1.
-    // Child: startSize 2.
-    // Death inherit Size → child.a_StartSize = parent.RAW startSize × child.startSize
-    //                                        = 1 × 2 = 2 (NOT 1 × 0.5 × 2).
+  it("Size inherit at Death uses parent's SOL-modulated value (matches visible size)", () => {
+    // Parent: startSize 1, SOL Curve ramps 1 → 0.5 across lifetime.
+    // Child:  startSize 2.
+    // Death inherit Size → child.a_StartSize = parent.startSize × SOL(1) × child.startSize
+    //                                        = 1 × 0.5 × 2 = 1.0.
     const parent = createParticleRenderer(engine, "Parent_SizeSOL");
     const child = createParticleRenderer(engine, "Child_SizeSOL");
 
@@ -325,9 +324,9 @@ describe("SubEmitter", () => {
 
     const startSize = new Vector3();
     child.generator._readParticleStartSize(0, startSize);
-    expect(startSize.x).to.be.closeTo(2, 1e-3);
-    expect(startSize.y).to.be.closeTo(2, 1e-3);
-    expect(startSize.z).to.be.closeTo(2, 1e-3);
+    expect(startSize.x).to.be.closeTo(1.0, 1e-3);
+    expect(startSize.y).to.be.closeTo(1.0, 1e-3);
+    expect(startSize.z).to.be.closeTo(1.0, 1e-3);
 
     parent.entity.destroy();
     child.entity.destroy();

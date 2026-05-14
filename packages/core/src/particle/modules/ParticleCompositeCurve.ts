@@ -187,6 +187,34 @@ export class ParticleCompositeCurve {
 
   /**
    * @internal
+   * Cumulative value from time=0 to time=`normalizedAge` in normalizedAge
+   * units. For Constant modes the curve is treated as a constant rate ⇒ the
+   * integral is `rate * normalizedAge`. For Curve modes it's the trapezoidal
+   * integral of the key segments. Callers multiply by lifetime to convert to
+   * age units (matches shader `computeParticleRotationFloat`).
+   */
+  _evaluateCumulative(normalizedAge: number, lerpFactor: number): number {
+    switch (this.mode) {
+      case ParticleCurveMode.Constant:
+        return this.constantMax * normalizedAge;
+      case ParticleCurveMode.TwoConstants: {
+        const value = this.constantMin + (this.constantMax - this.constantMin) * lerpFactor;
+        return value * normalizedAge;
+      }
+      case ParticleCurveMode.Curve:
+        return this.curve?._evaluateCumulative(normalizedAge) ?? 0;
+      case ParticleCurveMode.TwoCurves: {
+        const min = this.curveMin?._evaluateCumulative(normalizedAge) ?? 0;
+        const max = this.curveMax?._evaluateCumulative(normalizedAge) ?? 0;
+        return min + (max - min) * lerpFactor;
+      }
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * @internal
    */
   _getMax(): number {
     switch (this.mode) {

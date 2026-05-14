@@ -107,8 +107,20 @@ export class ParticleCompositeGradient {
       case ParticleGradientMode.TwoConstants:
         Color.lerp(this.constantMin, this.constantMax, lerpFactor, out);
         break;
+      case ParticleGradientMode.Gradient:
+        this.gradientMax._evaluate(time, out);
+        break;
+      case ParticleGradientMode.TwoGradients: {
+        const tmp = ParticleCompositeGradient._tempColor;
+        this.gradientMin._evaluate(time, tmp);
+        this.gradientMax._evaluate(time, out);
+        Color.lerp(tmp, out, lerpFactor, out);
+        break;
+      }
       default:
         break;
     }
   }
+
+  private static _tempColor = new Color();
 }
