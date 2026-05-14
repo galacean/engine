@@ -341,7 +341,7 @@ export class Entity extends EngineObject {
    * @deprecated Please use `children` property instead.
    * Find child entity by index.
    * @param index - The index of the child entity
-   * @returns	The component which be found
+   * @returns The entity that was found
    */
   getChild(index: number): Entity {
     return this._children[index];
@@ -349,8 +349,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find entity by name.
-   * @param name - The name of the entity which want to be found
-   * @returns The component which be found
+   * @param name - The name of the entity to find
+   * @returns The entity that was found
    */
   findByName(name: string): Entity {
     if (name === this.name) {
