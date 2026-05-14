@@ -30,37 +30,50 @@ export class ParserUtils {
   }
 
   /**
-   * Return the lexeme of `expr` when it is (transitively) a single bare identifier
-   * wrapped in primary/postfix expression nodes, e.g. `o` → "o". Returns null for
-   * compound expressions (`o.x`, `foo(..)`, `arr[0]`, …). Useful for callers that
-   * want to apply a substitution rule only at the root of an expression, never on
-   * swizzles or nested member access.
+   * Walk single-child precedence-chain wrappers down to a `VariableIdentifier`,
+   * returning the leaf node (or `undefined` for any compound expression).
+   *
+   * `allowParens` chooses between two callers' needs:
+   *   - `true` — descend through `( expression )` form, so `(v)` resolves to
+   *     `v`. Use when the caller substitutes at the expression root
+   *     (aliasing, renaming); user-written parens carry no extra meaning.
+   *   - `false` — any 3-child `PrimaryExpression` aborts; `(v)` stays
+   *     compound. Use when the caller treats the unwrapped node as a single
+   *     token (IO-struct arg drop, alias detection); user-written parens
+   *     must not collapse.
+   */
+  static unwrapBareIdentifier(
+    node: TreeNode,
+    options: { allowParens: boolean }
+  ): ASTNode.VariableIdentifier | undefined {
+    let cur: TreeNode = node;
+    while (true) {
+      if (cur instanceof ASTNode.VariableIdentifier) return cur;
+      if (options.allowParens && cur instanceof ASTNode.PrimaryExpression && cur.children.length === 3) {
+        const inner = cur.children[1];
+        if (!(inner instanceof TreeNode)) return undefined;
+        cur = inner;
+        continue;
+      }
+      if (cur instanceof ASTNode.ExpressionAstNode && cur.children.length === 1) {
+        const child = cur.children[0];
+        if (!(child instanceof TreeNode)) return undefined;
+        cur = child;
+        continue;
+      }
+      return undefined;
+    }
+  }
+
+  /**
+   * Lexeme variant of `unwrapBareIdentifier({ allowParens: true })` for callers
+   * that already work with strings. Returns `null` for compound expressions.
    */
   static extractDirectIdentLexeme(expr: TreeNode): string | null {
-    let cur: TreeNode | Token = expr;
-    while (cur) {
-      if (cur instanceof ASTNode.VariableIdentifier) {
-        const child = cur.children[0];
-        return child instanceof Token ? child.lexeme : null;
-      }
-      // `( expression )` form on PrimaryExpression — descend through the
-      // wrapped Expression so `(v)` resolves to `v`. All other compound
-      // forms (member access, function call, comma, …) bail out.
-      if (cur instanceof ASTNode.PrimaryExpression && cur.children.length === 3) {
-        cur = cur.children[1];
-        continue;
-      }
-      // Any precedence-chain wrapper with a single child forwards through.
-      // Covers PostfixExpression / PrimaryExpression(len=1) / Assignment /
-      // Conditional / LogicalOr / … all the way down — including the verbose
-      // build's full chain and the release build's elision-flattened chain.
-      if (cur instanceof ASTNode.ExpressionAstNode && cur.children.length === 1) {
-        cur = cur.children[0];
-        continue;
-      }
-      return null;
-    }
-    return null;
+    const ident = ParserUtils.unwrapBareIdentifier(expr, { allowParens: true });
+    if (!ident) return null;
+    const child = ident.children[0];
+    return child instanceof Token ? child.lexeme : null;
   }
 
   // #if _VERBOSE

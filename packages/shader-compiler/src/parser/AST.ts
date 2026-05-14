@@ -1661,15 +1661,16 @@ export namespace ASTNode {
      *  a root of `referenceSymbolNames`. Mixed forms across branches → false,
      *  fall back to legacy inference. */
     hasAstValue: boolean = false;
-    /** True when the macro is defined as function-like (`#define NAME(params) …`).
-     *  Used by `MacroCallFunction` codegen to pick between the two call shapes
-     *  — object-like-macro-as-function-name vs true function-like macro. */
+    /** `#define NAME(params) …` form — drives function-like vs object-like codegen. */
     isFunctionLikeMacro: boolean = false;
+    /** Every visible replacement is a non-builtin identifier — assume user fn alias. */
+    aliasesNonBuiltinIdent: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames.length = 0;
       this.hasAstValue = false;
       this.isFunctionLikeMacro = false;
+      this.aliasesNonBuiltinIdent = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1689,6 +1690,7 @@ export namespace ASTNode {
       let visibleCount = 0;
       let allAst = true;
       let isFn = false;
+      let allAliasNonBuiltinIdent = true;
       if (defList) {
         for (let i = 0, n = defList.length; i < n; i++) {
           const info = defList[i];
@@ -1702,6 +1704,22 @@ export namespace ASTNode {
           if (info.valueAst) {
             MacroCallSymbol._collectIdentifierRefs(info.valueAst, info.params, refs);
           }
+          // aliasesNonBuiltinIdent: macro replacement is a single non-builtin
+          // identifier — best-effort proxy for "this macro call site aliases a
+          // user fn", since uniform/const aliases would surface as a GLSL
+          // compile error later anyway. Keyword replacements (`vec3`, `mat4`)
+          // reach here with `valueAst === undefined` (opaque path), so they
+          // automatically fail without an explicit keyword guard.
+          if (info.isFunction || !info.valueAst) {
+            allAliasNonBuiltinIdent = false;
+          } else {
+            const leadingIdent = ParserUtils.unwrapBareIdentifier(info.valueAst, { allowParens: false });
+            const leadingChild = leadingIdent?.children[0];
+            const leadingId = leadingChild instanceof BaseToken ? leadingChild.lexeme : undefined;
+            if (!leadingId || BuiltinFunction.isExist(leadingId)) {
+              allAliasNonBuiltinIdent = false;
+            }
+          }
         }
       }
       // Require *every* visible entry to be AST-form before taking the AST
@@ -1710,6 +1728,7 @@ export namespace ASTNode {
       // instead of polluting the call site with TypeAny.
       this.hasAstValue = visibleCount > 0 && allAst;
       this.isFunctionLikeMacro = isFn;
+      this.aliasesNonBuiltinIdent = visibleCount > 0 && allAliasNonBuiltinIdent;
     }
 
     /** Push every leaf `VariableIdentifier`'s lexeme into `out`, skipping
@@ -1739,12 +1758,14 @@ export namespace ASTNode {
     macroName: string = "";
     hasAstValue: boolean = false;
     isFunctionLikeMacro: boolean = false;
+    aliasesNonBuiltinIdent: boolean = false;
 
     override init(): void {
       this.referenceSymbolNames = [];
       this.macroName = "";
       this.hasAstValue = false;
       this.isFunctionLikeMacro = false;
+      this.aliasesNonBuiltinIdent = false;
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -1754,6 +1775,7 @@ export namespace ASTNode {
       this.macroName = child.macroName;
       this.hasAstValue = child.hasAstValue;
       this.isFunctionLikeMacro = child.isFunctionLikeMacro;
+      this.aliasesNonBuiltinIdent = child.aliasesNonBuiltinIdent;
     }
 
     override codeGen(visitor: CodeGenVisitor) {
