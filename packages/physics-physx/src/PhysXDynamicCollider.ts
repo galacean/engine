@@ -252,24 +252,24 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   /**
    * {@inheritDoc IDynamicCollider.addForce }
    *
-   * PhysX wasm wrapper 的 addForce 没传 autowake 参数，sleeping actor 上调用
-   * 会被静默忽略（force 永远不生效）。这里显式 wakeUp 保证 force 真正生效。
+   * PhysX 在 kinematic actor 上调 addForce 是 no-op（doc: "kinematic bodies don't
+   * respond to forces"）。提前 return 避免无意义的 wasm boundary cross。
    *
-   * kinematic actor 不响应 force 且 wakeUp 在 kinematic 上调用会触发 PhysX 警告，
-   * 提前 return 双重避免。
+   * Sleeping actor 不需要显式 wakeUp — wasm binding 调用 `addForce(force, eFORCE,
+   * autowake=true)`，PhysX 自动唤醒（已通过 `applyForce on sleeping actor` 测试验证）。
    */
   addForce(force: Vector3) {
     if (this._isKinematic) return;
-    this._pxActor.wakeUp();
     this._pxActor.addForce({ x: force.x, y: force.y, z: force.z });
   }
 
   /**
    * {@inheritDoc IDynamicCollider.addTorque }
+   *
+   * 同 addForce — kinematic 提前 return，sleeping 由 PhysX autowake 自动处理。
    */
   addTorque(torque: Vector3) {
     if (this._isKinematic) return;
-    this._pxActor.wakeUp();
     this._pxActor.addTorque({ x: torque.x, y: torque.y, z: torque.z });
   }
 

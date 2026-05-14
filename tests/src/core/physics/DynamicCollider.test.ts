@@ -435,6 +435,47 @@ describe("DynamicCollider", function () {
     expect(formatValue(cloneCollider.angularVelocity.y)).eq(0);
   });
 
+  it("applyForce on sleeping actor must wake up and apply force", function () {
+    // Validates whether PhysX wasm `addForce(force, eFORCE, autowake=true)` actually wakes a
+    // sleeping actor on its own — or whether the engine's explicit wakeUp() call is required.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.linearDamping = 0;
+
+    boxCollider.sleep();
+    expect(boxCollider.isSleeping()).toBe(true);
+
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(boxCollider.isSleeping()).toBe(false);
+  });
+
+  it("applyForce after kinematic→dynamic switch (mimic billiards game break flow)", function () {
+    // Game pattern: all balls set kinematic at init, switched back to dynamic on break,
+    // then applyForce. Verifies the original 'force lost' bug was actually from this path.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.linearDamping = 0;
+
+    boxCollider.isKinematic = true;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    boxCollider.isKinematic = false;
+
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+  });
+
   it("maxAngularVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
