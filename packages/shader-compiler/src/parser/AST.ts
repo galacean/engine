@@ -1392,7 +1392,6 @@ export namespace ASTNode {
       const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
       const referenceGlobalSymbolNames = this.referenceGlobalSymbolNames;
       const symbols = this._symbols;
-      const lookupSymbol = SemanticAnalyzer._lookupSymbol;
 
       // Real references — every name must resolve; miss is an authoring error.
       const needFindNames = child instanceof BaseToken ? [child.lexeme] : child.referenceSymbolNames;
@@ -1413,35 +1412,19 @@ export namespace ASTNode {
           continue;
         }
 
-        lookupSymbol.set(name, ESymbolType.Any);
-        sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
-
-        if (!symbols.length) {
-          // #if _VERBOSE
-          sa.reportWarning(this.location, `Please sure the identifier "${name}" will be declared before used.`);
-          // #endif
-        } else {
-          // Expression-style macros have their own value AST; its real type isn't
-          // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
-          // is a `Varyings` struct but the macro call site's type should be the
-          // member type). Skip type inference for those and keep TypeAny.
-          if (child instanceof BaseToken || !child.hasAstValue) {
-            this.typeInfo = symbols[0].dataType?.type;
-          }
-          const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
-          if (currentScopeSymbol) {
-            if (
-              (currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable) &&
-              referenceGlobalSymbolNames.indexOf(name) === -1
-            ) {
-              referenceGlobalSymbolNames.push(name);
-            }
-          } else if (
-            symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable) &&
-            referenceGlobalSymbolNames.indexOf(name) === -1
-          ) {
-            referenceGlobalSymbolNames.push(name);
-          }
+        const hit = VariableIdentifier._lookupAndMarkGlobalReference(
+          sa,
+          name,
+          symbols,
+          referenceGlobalSymbolNames,
+          this.location
+        );
+        // Expression-style macros have their own value AST; its real type isn't
+        // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
+        // is a `Varyings` struct but the macro call site's type should be the
+        // member type). Skip type inference for those and keep TypeAny.
+        if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
+          this.typeInfo = symbols[0].dataType?.type;
         }
       }
 
@@ -1452,42 +1435,49 @@ export namespace ASTNode {
       // cross-arm fix is in 87cb2b5f0.
       if (!(child instanceof BaseToken)) {
         const macroName = child.macroName;
-        if (macroName && needFindNames.indexOf(macroName) === -1) {
-          VariableIdentifier._probeAndMarkSiblingArm(sa, macroName, symbols, referenceGlobalSymbolNames);
+        if (
+          macroName &&
+          needFindNames.indexOf(macroName) === -1 &&
+          !BuiltinFunction.isExist(macroName) &&
+          !BuiltinVariable.getVar(macroName)
+        ) {
+          VariableIdentifier._lookupAndMarkGlobalReference(sa, macroName, symbols, referenceGlobalSymbolNames, null);
         }
       }
     }
 
-    /** Cross-arm shadowing probe: lookup `name` and, if a sibling-arm var/fn
-     *  exists, push it into `referenceGlobalSymbolNames` so codegen retains
-     *  the declaration. Miss is silent — this is a probe, not a reference. */
-    private static _probeAndMarkSiblingArm(
+    /** Look up `name` in the symbol stack and, if a global var/fn declaration
+     *  exists, push it into `referenceGlobalSymbolNames`. Returns `true` iff
+     *  the lookup hit (caller can then derive type info). When `missWarnLoc`
+     *  is non-null, a miss reports a "declared before used" warning; pass
+     *  `null` for silent probes (e.g. FXAA-style cross-arm shadowing). */
+    private static _lookupAndMarkGlobalReference(
       sa: SemanticAnalyzer,
       name: string,
       symbols: (VarSymbol | FnSymbol)[],
-      referenceGlobalSymbolNames: string[]
-    ): void {
-      // Builtin names can't be shadowed by a sibling-arm declaration in any
-      // meaningful way — skip the lookup entirely.
-      if (BuiltinFunction.isExist(name) || BuiltinVariable.getVar(name)) return;
+      referenceGlobalSymbolNames: string[],
+      missWarnLoc: ShaderRange | null
+    ): boolean {
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
       sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
-      if (!symbols.length) return;
-      const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
-      if (currentScopeSymbol) {
-        if (
-          (currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable) &&
-          referenceGlobalSymbolNames.indexOf(name) === -1
-        ) {
-          referenceGlobalSymbolNames.push(name);
+
+      if (!symbols.length) {
+        // #if _VERBOSE
+        if (missWarnLoc) {
+          sa.reportWarning(missWarnLoc, `Please sure the identifier "${name}" will be declared before used.`);
         }
-      } else if (
-        symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable) &&
-        referenceGlobalSymbolNames.indexOf(name) === -1
-      ) {
+        // #endif
+        return false;
+      }
+      const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
+      const isGlobal = currentScopeSymbol
+        ? currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable
+        : symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable);
+      if (isGlobal && referenceGlobalSymbolNames.indexOf(name) === -1) {
         referenceGlobalSymbolNames.push(name);
       }
+      return true;
     }
 
     override codeGen(visitor: CodeGenVisitor): string {
