@@ -1427,12 +1427,20 @@ export class ParticleGenerator {
     if (rol.enabled) {
       const rotRand = instanceVertices[particleOffset + 22];
       const lifetime = instanceVertices[particleOffset + 3];
+      const rolZ = rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
       if (rol.separateAxes) {
+        // Per-axis ROL: shader treats X/Y/Z independently (3D rotation mode
+        // implicitly enabled by separateAxes).
         parentRotation.x += rol.rotationX._evaluateCumulative(normalizedAge, rotRand) * lifetime;
         parentRotation.y += rol.rotationY._evaluateCumulative(normalizedAge, rotRand) * lifetime;
-        parentRotation.z += rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+        parentRotation.z += rolZ;
+      } else if (this.main.startRotation3D) {
+        // 3D start rotation: Z accumulates into the Z Euler component.
+        parentRotation.z += rolZ;
       } else {
-        parentRotation.z += rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+        // 2D start rotation (default): the shader stores the Z angle in
+        // a_StartRotation0.x, so ROL cumulative goes into the .x slot.
+        parentRotation.x += rolZ;
       }
     }
   }

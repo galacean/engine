@@ -364,4 +364,45 @@ describe("SubEmitter", () => {
     parent.entity.destroy();
     child.entity.destroy();
   });
+
+  it("Rotation inherit at Death adds parent's ROL-accumulated rotation", () => {
+    // Parent: startRotationZ 0, ROL.rotationZ rate 2 per second, lifetime 0.5s.
+    //   Accumulated rotation at Death (normalizedAge=1) = 2 × 0.5 = 1.0.
+    // Child:  startRotationZ 0.25.
+    // Death inherit Rotation → child.a_StartRotation
+    //   = child.startRotation + (parent.startRotation + cumulative ROL)
+    //   = 0.25 + (0 + 1.0) = 1.25.
+    const parent = createParticleRenderer(engine, "Parent_RotationROL");
+    const child = createParticleRenderer(engine, "Child_RotationROL");
+
+    parent.generator.main.startLifetime.constant = 0.5;
+    parent.generator.main.startRotationZ.constant = 0;
+    child.generator.main.startRotationZ.constant = 0.25;
+
+    const parentROL = parent.generator.rotationOverLifetime;
+    parentROL.enabled = true;
+    parentROL.rotationZ.mode = ParticleCurveMode.Constant;
+    parentROL.rotationZ.constant = 2;
+
+    parent.generator.subEmitters.enabled = true;
+    const sub = parent.generator.subEmitters.addSubEmitter();
+    sub.emitter = child;
+    sub.type = ParticleSubEmitterType.Death;
+    sub.inheritProperties = ParticleSubEmitterProperty.Rotation;
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 10);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    const startRotation = new Vector3();
+    child.generator._readParticleStartRotation(0, startRotation);
+    expect(startRotation.x).to.be.closeTo(1.25, 1e-3);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
 });
