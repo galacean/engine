@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-physics-physx",
-  "version": "2.0.0-alpha.30",
+  "version": "2.0.0-alpha.33",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
