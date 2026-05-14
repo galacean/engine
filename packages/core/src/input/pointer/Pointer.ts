@@ -23,6 +23,8 @@ export class Pointer {
   pressedButtons: PointerButton;
   /** The position of the pointer in screen space pixel coordinates. */
   position: Vector2 = new Vector2();
+  /** The position of the pointer when it was last pressed down (in screen space pixel coordinates). */
+  pressedPosition: Vector2 = new Vector2();
   /** The change of the pointer. */
   deltaPosition: Vector2 = new Vector2();
   /** @internal */
