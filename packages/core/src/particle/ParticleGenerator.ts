@@ -31,6 +31,7 @@ import { ForceOverLifetimeModule } from "./modules/ForceOverLifetimeModule";
 import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
 import { MainModule } from "./modules/MainModule";
 import { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
+import { ParticleCurve } from "./modules/ParticleCurve";
 import { RotationOverLifetimeModule } from "./modules/RotationOverLifetimeModule";
 import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
@@ -1427,12 +1428,12 @@ export class ParticleGenerator {
     if (rol.enabled) {
       const rotRand = instanceVertices[particleOffset + 22];
       const lifetime = instanceVertices[particleOffset + 3];
-      const rolZ = rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+      const rolZ = ParticleGenerator._curveCumulative(rol.rotationZ, normalizedAge, rotRand) * lifetime;
       if (rol.separateAxes) {
         // Per-axis ROL: shader treats X/Y/Z independently (3D rotation mode
         // implicitly enabled by separateAxes).
-        parentRotation.x += rol.rotationX._evaluateCumulative(normalizedAge, rotRand) * lifetime;
-        parentRotation.y += rol.rotationY._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+        parentRotation.x += ParticleGenerator._curveCumulative(rol.rotationX, normalizedAge, rotRand) * lifetime;
+        parentRotation.y += ParticleGenerator._curveCumulative(rol.rotationY, normalizedAge, rotRand) * lifetime;
         parentRotation.z += rolZ;
       } else if (this.main.startRotation3D) {
         // 3D start rotation: Z accumulates into the Z Euler component.
@@ -1443,6 +1444,57 @@ export class ParticleGenerator {
         parentRotation.x += rolZ;
       }
     }
+  }
+
+  /**
+   * Trapezoidal-integrate a `ParticleCompositeCurve` from 0 to `normalizedAge`.
+   * Mirrors shader `evaluateParticleCurveCumulative`. Only used by sub-emitter
+   * Rotation-Over-Lifetime accumulation; caller multiplies the returned value
+   * by lifetime to convert from normalizedAge units to age units.
+   */
+  private static _curveCumulative(curve: ParticleCompositeCurve, normalizedAge: number, lerpFactor: number): number {
+    switch (curve.mode) {
+      case ParticleCurveMode.Constant:
+        return curve.constantMax * normalizedAge;
+      case ParticleCurveMode.TwoConstants: {
+        const value = curve.constantMin + (curve.constantMax - curve.constantMin) * lerpFactor;
+        return value * normalizedAge;
+      }
+      case ParticleCurveMode.Curve:
+        return ParticleGenerator._curveKeysIntegral(curve.curve, normalizedAge);
+      case ParticleCurveMode.TwoCurves: {
+        const min = ParticleGenerator._curveKeysIntegral(curve.curveMin, normalizedAge);
+        const max = ParticleGenerator._curveKeysIntegral(curve.curveMax, normalizedAge);
+        return min + (max - min) * lerpFactor;
+      }
+      default:
+        return 0;
+    }
+  }
+
+  private static _curveKeysIntegral(curve: ParticleCurve, normalizedAge: number): number {
+    if (!curve) return 0;
+    const keys = curve.keys;
+    const length = keys.length;
+    if (length < 2) return 0;
+
+    let cumulative = 0;
+    for (let i = 1; i < length; i++) {
+      const key = keys[i];
+      const lastKey = keys[i - 1];
+      const segmentTime = key.time - lastKey.time;
+      if (segmentTime <= 0) continue;
+
+      if (key.time >= normalizedAge) {
+        const offsetTime = normalizedAge - lastKey.time;
+        const t = offsetTime / segmentTime;
+        const currentValue = lastKey.value + (key.value - lastKey.value) * t;
+        cumulative += (lastKey.value + currentValue) * 0.5 * offsetTime;
+        return cumulative;
+      }
+      cumulative += (lastKey.value + key.value) * 0.5 * segmentTime;
+    }
+    return cumulative;
   }
 
   private _freeRetiredParticles(): void {

@@ -89,38 +89,6 @@ export class ParticleCurve {
 
   /**
    * @internal
-   * CPU mirror of shader `evaluateParticleCurveCumulative`. Integrates the
-   * curve from 0 to `normalizedAge` using trapezoidal rule on the segments
-   * between successive keys. Used by Rotation-Over-Lifetime to get the
-   * accumulated rotation amount in normalizedAge units (caller multiplies by
-   * lifetime to get angle in age units).
-   */
-  _evaluateCumulative(normalizedAge: number): number {
-    const { keys } = this;
-    const { length } = keys;
-    if (length < 2) return 0;
-
-    let cumulative = 0;
-    for (let i = 1; i < length; i++) {
-      const key = keys[i];
-      const lastKey = keys[i - 1];
-      const segmentTime = key.time - lastKey.time;
-      if (segmentTime <= 0) continue;
-
-      if (key.time >= normalizedAge) {
-        const offsetTime = normalizedAge - lastKey.time;
-        const t = offsetTime / segmentTime;
-        const currentValue = lastKey.value + (key.value - lastKey.value) * t;
-        cumulative += (lastKey.value + currentValue) * 0.5 * offsetTime;
-        return cumulative;
-      }
-      cumulative += (lastKey.value + key.value) * 0.5 * segmentTime;
-    }
-    return cumulative;
-  }
-
-  /**
-   * @internal
    */
   _evaluate(normalizedAge: number): number {
     const { keys } = this;
