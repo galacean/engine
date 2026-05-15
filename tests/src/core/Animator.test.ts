@@ -1362,7 +1362,7 @@ describe("Animator test", function () {
     const srcPlayData = animator._animatorLayersData[0].srcPlayData;
     expect(srcPlayData.instance.name).to.eq("Survey"); // ensure crossfade actually completed back to Survey
     expect(animator.findAnimatorState("Survey").speed).to.eq(0.5);
-    expect(srcPlayData.speed).to.eq(0.5);
+    expect(srcPlayData.instance.speed).to.eq(0.5);
   });
 
   it("per-instance speed is per-Animator (clone isolation)", () => {
@@ -1658,7 +1658,7 @@ describe("Animator test", function () {
     // A subsequent crossFade to the previously-fading state should now succeed —
     // the stale dest slot must not block it via the alias guard.
     animator.crossFade("Run", 0.3, 0, 0);
-    expect(layerData.destPlayData?.state.name).to.eq("Run");
+    expect(layerData.destPlayData?.instance.name).to.eq("Run");
   });
 
   it("crossFade to nonexistent state is a safe no-op", () => {
@@ -1749,7 +1749,7 @@ describe("Animator test", function () {
     const layerData = animator._animatorLayersData[0];
     expect(Number.isNaN(layerData.srcPlayData.playedTime)).to.eq(false);
     expect(Number.isNaN(layerData.destPlayData?.playedTime ?? 0)).to.eq(false);
-    expect(layerData.destPlayData?.state.name).to.eq("Walk");
+    expect(layerData.destPlayData?.instance.name).to.eq("Walk");
     // dest should have advanced from the remaining deltaTime that was
     // preserved by the playSpeed===0 guard
     expect(layerData.destPlayData?.playedTime).to.be.greaterThan(0);

@@ -1588,6 +1588,10 @@ export class Animator extends Component {
     lastPlayState: AnimatorStatePlayState,
     deltaTime: number
   ) {
+    // Re-check whether the clip events/scripts changed since the last build —
+    // play()/crossFade() entry points already ensure on enter, but addEvent()
+    // or addComponent(Script) after play() must also flow through.
+    this._ensureEventHandlers(state, playData.stateData);
     const { eventHandlers } = playData.stateData;
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
 
