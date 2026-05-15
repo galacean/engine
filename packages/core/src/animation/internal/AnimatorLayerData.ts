@@ -5,7 +5,7 @@ import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimatorStateData } from "./AnimatorStateData";
-import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
+import type { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 
 /**
  * @internal
@@ -24,17 +24,16 @@ export class AnimatorLayerData {
   crossFadeTransition: AnimatorStateTransition;
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
-  /** Lazy-create the (instance, runtime) pair; rebuild if the asset was swapped. */
-  getOrCreatePlayData(state: AnimatorState): AnimatorStatePlayData {
+  /** Lazy-create the per-Animator instance for a state; rebuild if the asset was swapped. */
+  getOrCreateInstance(state: AnimatorState): AnimatorStateInstance {
     const map = this.instanceMap;
     const name = state.name;
     let instance = map[name];
     if (instance?._state !== state) {
       instance = new AnimatorStateInstance(state);
-      new AnimatorStatePlayData(instance);
       map[name] = instance;
     }
-    return instance._playData;
+    return instance;
   }
 
   promoteDest(): void {

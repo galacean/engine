@@ -222,7 +222,7 @@ export class Animator extends Component {
     this._resetIfControllerUpdated();
     const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
     if (!state || foundLayer < 0) return null;
-    return this._getAnimatorLayerData(foundLayer).getOrCreatePlayData(state).instance;
+    return this._getAnimatorLayerData(foundLayer).getOrCreateInstance(state);
   }
 
   /**
@@ -1347,7 +1347,7 @@ export class Animator extends Component {
     this._preparePlayOwner(animatorLayerData, state);
 
     animatorLayerData.layerState = LayerState.Playing;
-    const playData = animatorLayerData.getOrCreatePlayData(state);
+    const playData = animatorLayerData.getOrCreateInstance(state)._playData;
     playData.resetForPlay(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
     animatorLayerData.srcPlayData = playData;
     // Clear any stale cross-fade slot from a previously-interrupted crossFade so
@@ -1465,7 +1465,7 @@ export class Animator extends Component {
 
     const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
 
-    const destPlayData = animatorLayerData.getOrCreatePlayData(crossState);
+    const destPlayData = animatorLayerData.getOrCreateInstance(crossState)._playData;
     destPlayData.resetForPlay(animatorStateData, transition.offset * crossState._getClipActualEndTime());
     animatorLayerData.destPlayData = destPlayData;
     animatorLayerData.resetCurrentCheckIndex();

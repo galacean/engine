@@ -7,7 +7,6 @@ import { AnimatorStateData } from "./AnimatorStateData";
  * @internal
  */
 export class AnimatorStatePlayData {
-  readonly instance: AnimatorStateInstance;
   stateData: AnimatorStateData;
 
   playedTime: number = 0;
@@ -19,10 +18,7 @@ export class AnimatorStatePlayData {
 
   private _changedOrientation: boolean = false;
 
-  constructor(instance: AnimatorStateInstance) {
-    this.instance = instance;
-    instance._playData = this;
-  }
+  constructor(public readonly instance: AnimatorStateInstance) {}
 
   /** Reset playback fields on (re-)enter. Per-instance overrides are preserved. */
   resetForPlay(stateData: AnimatorStateData, offsetFrameTime: number): void {

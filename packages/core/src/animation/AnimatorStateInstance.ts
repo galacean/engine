@@ -9,9 +9,9 @@ import { WrapMode } from "./enums/WrapMode";
  */
 export class AnimatorStateInstance {
   /** @internal */
-  _state: AnimatorState;
+  readonly _state: AnimatorState;
   /** @internal */
-  _playData: AnimatorStatePlayData;
+  readonly _playData: AnimatorStatePlayData;
 
   private _speed: number | undefined;
   private _wrapMode: WrapMode | undefined;
@@ -53,5 +53,6 @@ export class AnimatorStateInstance {
   /** @internal */
   constructor(state: AnimatorState) {
     this._state = state;
+    this._playData = new AnimatorStatePlayData(this);
   }
 }
