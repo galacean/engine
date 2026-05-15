@@ -1,9 +1,9 @@
 import { Engine } from "../Engine";
-import { AnimatorStateDef } from "./AnimatorStateDef";
+import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 export interface AnimatorStateMap {
-  [key: string]: AnimatorStateDef;
+  [key: string]: AnimatorState;
 }
 
 /**
@@ -11,7 +11,7 @@ export interface AnimatorStateMap {
  */
 export class AnimatorStateMachine {
   /** The list of states. */
-  readonly states: AnimatorStateDef[] = [];
+  readonly states: AnimatorState[] = [];
 
   private _engine: Engine;
 
@@ -19,7 +19,7 @@ export class AnimatorStateMachine {
    * The state will be played automatically.
    * @remarks When the Animator's AnimatorController changed or the Animator's onEnable be triggered.
    */
-  defaultState: AnimatorStateDef;
+  defaultState: AnimatorState;
 
   /** @internal */
   _entryTransitionCollection = new AnimatorStateTransitionCollection();
@@ -46,10 +46,10 @@ export class AnimatorStateMachine {
    * Add a state to the state machine.
    * @param name - The name of the new state
    */
-  addState(name: string): AnimatorStateDef {
+  addState(name: string): AnimatorState {
     let state = this.findStateByName(name);
     if (!state) {
-      state = new AnimatorStateDef(name);
+      state = new AnimatorState(name);
       state._setEngine(this._engine);
       this.states.push(state);
       this._statesMap[name] = state;
@@ -63,7 +63,7 @@ export class AnimatorStateMachine {
    * Remove a state from the state machine.
    * @param state - The state
    */
-  removeState(state: AnimatorStateDef): void {
+  removeState(state: AnimatorState): void {
     const { name } = state;
     const index = this.states.indexOf(state);
     if (index > -1) {
@@ -76,7 +76,7 @@ export class AnimatorStateMachine {
    * Get the state by name.
    * @param name - The layer's name
    */
-  findStateByName(name: string): AnimatorStateDef {
+  findStateByName(name: string): AnimatorState {
     return this._statesMap[name];
   }
 
@@ -106,11 +106,9 @@ export class AnimatorStateMachine {
    * @param animatorState - The destination state
    */
 
-  addEntryStateTransition(animatorState: AnimatorStateDef): AnimatorStateTransition;
+  addEntryStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
-  addEntryStateTransition(
-    transitionOrAnimatorState: AnimatorStateTransition | AnimatorStateDef
-  ): AnimatorStateTransition {
+  addEntryStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
     return this._entryTransitionCollection.add(transitionOrAnimatorState);
   }
 
@@ -131,11 +129,9 @@ export class AnimatorStateMachine {
    * Add an any transition to the destination state, the default value of any transition's hasExitTime is false.
    * @param animatorState - The destination state
    */
-  addAnyStateTransition(animatorState: AnimatorStateDef): AnimatorStateTransition;
+  addAnyStateTransition(animatorState: AnimatorState): AnimatorStateTransition;
 
-  addAnyStateTransition(
-    transitionOrAnimatorState: AnimatorStateTransition | AnimatorStateDef
-  ): AnimatorStateTransition {
+  addAnyStateTransition(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
     return this._anyStateTransitionCollection.add(transitionOrAnimatorState);
   }
 

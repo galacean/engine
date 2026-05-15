@@ -11,7 +11,7 @@ export { Animator } from "./Animator";
 export { AnimatorController } from "./AnimatorController";
 export { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 export { AnimatorState } from "./AnimatorState";
-export { AnimatorStateDef } from "./AnimatorStateDef";
+export { AnimatorStateInstance } from "./AnimatorStateInstance";
 export { AnimatorStateMachine } from "./AnimatorStateMachine";
 export { AnimatorStateTransition } from "./AnimatorStateTransition";
 export { AnimatorConditionMode } from "./enums/AnimatorConditionMode";

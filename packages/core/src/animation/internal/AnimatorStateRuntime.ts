@@ -1,4 +1,5 @@
 import { AnimatorState } from "../AnimatorState";
+import { AnimatorStateInstance } from "../AnimatorStateInstance";
 import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
 import { WrapMode } from "../enums/WrapMode";
 import { AnimatorStateData } from "./AnimatorStateData";
@@ -6,16 +7,16 @@ import { AnimatorStateData } from "./AnimatorStateData";
 /**
  * @internal
  *
- * Engine-owned runtime playback state for a single (Animator, AnimatorStateDef) pair.
+ * Engine-owned runtime playback state for a single (Animator, AnimatorState) pair.
  *
- * Lives alongside an `AnimatorState` (user-facing per-instance view) and tracks
- * evaluation-time fields: how much has played, current clip time, play state,
- * event index, orientation, etc. Mutated by the Animator's update loop; not
- * exposed to user code.
+ * Lives alongside an `AnimatorStateInstance` (user-facing per-instance view)
+ * and tracks evaluation-time fields: how much has played, current clip time,
+ * play state, event index, orientation, etc. Mutated by the Animator's update
+ * loop; not exposed to user code.
  */
 export class AnimatorStateRuntime {
   /** The user-facing per-instance view this runtime is bound to. */
-  readonly state: AnimatorState;
+  readonly instance: AnimatorStateInstance;
 
   /** Curve owners + event handlers (shared per-Animator per-state). */
   stateData: AnimatorStateData;
@@ -29,26 +30,26 @@ export class AnimatorStateRuntime {
 
   private _changedOrientation: boolean = false;
 
-  constructor(state: AnimatorState) {
-    this.state = state;
-    state._runtime = this;
+  constructor(instance: AnimatorStateInstance) {
+    this.instance = instance;
+    instance._runtime = this;
   }
 
   /**
    * Reset runtime fields when (re-)entering this state.
-   * Does NOT touch user-written per-instance overrides on `state`.
+   * Does NOT touch user-written per-instance overrides on `instance`.
    */
   resetForPlay(stateData: AnimatorStateData, offsetFrameTime: number): void {
-    const def = this.state._def;
+    const state = this.instance._state;
     this.stateData = stateData;
     this.offsetFrameTime = offsetFrameTime;
     this.playedTime = 0;
     this.playState = AnimatorStatePlayState.UnStarted;
-    this.clipTime = def.clipStartTime * def.clip.length;
+    this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
     this.isForward = true;
     this._changedOrientation = false;
-    def._transitionCollection.needResetCurrentCheckIndex = true;
+    state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 
   updateOrientation(deltaTime: number): void {
@@ -64,11 +65,11 @@ export class AnimatorStateRuntime {
 
   update(deltaTime: number): void {
     this.playedTime += deltaTime;
-    const def = this.state._def;
+    const state = this.instance._state;
     let time = this.playedTime + this.offsetFrameTime;
-    const duration = def._getDuration();
+    const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
-    if (def.wrapMode === WrapMode.Loop) {
+    if (state.wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;
     } else {
       if (Math.abs(time) >= duration) {
@@ -78,7 +79,7 @@ export class AnimatorStateRuntime {
     }
 
     time < 0 && (time += duration);
-    this.clipTime = time + def.clipStartTime * def.clip.length;
+    this.clipTime = time + state.clipStartTime * state.clip.length;
 
     if (this._changedOrientation) {
       !this.isForward && this._correctTime();
@@ -87,11 +88,11 @@ export class AnimatorStateRuntime {
   }
 
   private _correctTime(): void {
-    const def = this.state._def;
+    const state = this.instance._state;
     // Reverse playback resumed at clipTime=0 would step into negatives; jump to
     // clipEnd so the next sample continues seamlessly from the end of the clip.
     if (this.clipTime === 0) {
-      this.clipTime = def.clipEndTime * def.clip.length;
+      this.clipTime = state.clipEndTime * state.clip.length;
     }
   }
 }

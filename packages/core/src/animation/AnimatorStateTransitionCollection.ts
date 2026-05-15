@@ -1,4 +1,4 @@
-import { AnimatorStateDef } from "./AnimatorStateDef";
+import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 
 /**
@@ -24,9 +24,9 @@ export class AnimatorStateTransitionCollection {
     return this.transitions[index];
   }
 
-  add(transitionOrAnimatorState: AnimatorStateTransition | AnimatorStateDef): AnimatorStateTransition {
+  add(transitionOrAnimatorState: AnimatorStateTransition | AnimatorState): AnimatorStateTransition {
     let transition: AnimatorStateTransition;
-    if (transitionOrAnimatorState instanceof AnimatorStateDef) {
+    if (transitionOrAnimatorState instanceof AnimatorState) {
       transition = new AnimatorStateTransition();
       transition.hasExitTime = false;
       transition.destinationState = transitionOrAnimatorState;

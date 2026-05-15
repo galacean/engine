@@ -1,6 +1,6 @@
 import { AnimatorControllerLayer } from "../AnimatorControllerLayer";
 import { AnimatorState } from "../AnimatorState";
-import { AnimatorStateDef } from "../AnimatorStateDef";
+import { AnimatorStateInstance } from "../AnimatorStateInstance";
 import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
@@ -15,8 +15,8 @@ export class AnimatorLayerData {
   layer: AnimatorControllerLayer;
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
   animatorStateDataMap: Record<string, AnimatorStateData> = Object.create(null);
-  /** Per-state user-facing view containers. Lazy populated. */
-  stateMap: Record<string, AnimatorState> = Object.create(null);
+  /** Per-state user-facing instance containers. Lazy populated. */
+  instanceMap: Record<string, AnimatorStateInstance> = Object.create(null);
   /** Currently playing state's runtime; null when standby. */
   srcRuntime: AnimatorStateRuntime | null = null;
   /** Cross-fade target state's runtime; null when not cross-fading. */
@@ -28,20 +28,20 @@ export class AnimatorLayerData {
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
   /**
-   * Get or lazily create the persistent (state-view, runtime) pair for a def.
-   * Rebuilds when the cached view is bound to a different def object
-   * (same-name remove + re-add).
+   * Get or lazily create the persistent (instance, runtime) pair for a shared
+   * `AnimatorState` asset. Rebuilds when the cached instance is bound to a
+   * different asset object (same-name remove + re-add).
    */
-  getOrCreateRuntime(def: AnimatorStateDef): AnimatorStateRuntime {
-    const map = this.stateMap;
-    const name = def.name;
-    let state = map[name];
-    if (state?._def !== def) {
-      state = new AnimatorState(def);
-      new AnimatorStateRuntime(state);
-      map[name] = state;
+  getOrCreateRuntime(state: AnimatorState): AnimatorStateRuntime {
+    const map = this.instanceMap;
+    const name = state.name;
+    let instance = map[name];
+    if (instance?._state !== state) {
+      instance = new AnimatorStateInstance(state);
+      new AnimatorStateRuntime(instance);
+      map[name] = instance;
     }
-    return state._runtime;
+    return instance._runtime;
   }
 
   /** After cross-fade completes, promote destRuntime to srcRuntime. */

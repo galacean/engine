@@ -1,4 +1,4 @@
-import { AnimatorStateDef } from "../AnimatorStateDef";
+import { AnimatorState } from "../AnimatorState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./AnimationEventHandler";
 
@@ -11,7 +11,7 @@ export class AnimatorStateData {
   curveLayerOwner: AnimationCurveLayerOwner[] = [];
   eventHandlers: AnimationEventHandler[] = [];
 
-  constructor(readonly state: AnimatorStateDef) {}
+  constructor(readonly state: AnimatorState) {}
 
   /** Detach the clipChangedListener from state's UpdateFlagManager. No-op if not attached. */
   dispose(): void {

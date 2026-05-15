@@ -8,7 +8,7 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateTransition,
-  AnimatorStateDef,
+  AnimatorState,
   AnimatorConditionMode,
   AnimatorControllerParameterValue,
   WrapMode
@@ -36,7 +36,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
             if (stateMachineData) {
               const { states, transitions, entryTransitions, anyTransitions } = stateMachineData;
               const stateMachine = layer.stateMachine;
-              const statesMap: Record<string, AnimatorStateDef> = {};
+              const statesMap: Record<string, AnimatorState> = {};
               const transitionsMap: Record<string, AnimatorStateTransition> = {};
               states.forEach((stateData: IStateData, stateIndex: number) => {
                 const {
@@ -119,10 +119,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
     });
   }
 
-  private _createTransition(
-    transitionData: ITransitionData,
-    destinationState: AnimatorStateDef
-  ): AnimatorStateTransition {
+  private _createTransition(transitionData: ITransitionData, destinationState: AnimatorState): AnimatorStateTransition {
     const transition = new AnimatorStateTransition();
     transition.hasExitTime = transitionData.hasExitTime;
     transition.isFixedDuration = transitionData.isFixedDuration;

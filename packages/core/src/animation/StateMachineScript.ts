@@ -1,5 +1,5 @@
 import { Animator } from "../animation/Animator";
-import { AnimatorStateDef } from "../animation/AnimatorStateDef";
+import { AnimatorState } from "../animation/AnimatorState";
 import { EngineObject } from "../base/EngineObject";
 
 /**
@@ -7,7 +7,7 @@ import { EngineObject } from "../base/EngineObject";
  */
 export class StateMachineScript extends EngineObject {
   /** @internal */
-  _state: AnimatorStateDef;
+  _state: AnimatorState;
 
   constructor() {
     super(null);
@@ -19,7 +19,7 @@ export class StateMachineScript extends EngineObject {
    * @param animatorState - The state be evaluated
    * @param layerIndex - The index of the layer where the state is located
    */
-  onStateEnter(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {}
+  onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {}
 
   /**
    * onStateUpdate is called on each Update frame between onStateEnter and onStateExit callbacks.
@@ -27,7 +27,7 @@ export class StateMachineScript extends EngineObject {
    * @param animatorState - The state be evaluated
    * @param layerIndex - The index of the layer where the state is located
    */
-  onStateUpdate(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {}
+  onStateUpdate(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {}
 
   /**
    * onStateExit is called when a transition ends and the state machine finishes evaluating this state.
@@ -35,7 +35,7 @@ export class StateMachineScript extends EngineObject {
    * @param animatorState - The state be evaluated
    * @param layerIndex - The index of the layer where the state is located
    */
-  onStateExit(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {}
+  onStateExit(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {}
 
   protected override _onDestroy(): void {
     super._onDestroy();

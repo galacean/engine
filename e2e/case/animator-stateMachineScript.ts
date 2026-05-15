@@ -4,7 +4,7 @@
  */
 import {
   Animator,
-  AnimatorStateDef,
+  AnimatorState,
   Camera,
   Color,
   DirectLight,
@@ -55,7 +55,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
 
       const animator = defaultSceneRoot.getComponent(Animator);
-      // Attaching a StateMachineScript mutates the shared AnimatorStateDef on the controller,
+      // Attaching a StateMachineScript mutates the shared AnimatorState on the controller,
       // so reach it through the controller path rather than via a per-Animator state view.
       const walkDef = animator.animatorController.layers[0].stateMachine.findStateByName("walk");
       if (!walkDef) {
@@ -64,16 +64,16 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
       walkDef.addStateMachineScript(
         class extends StateMachineScript {
-          onStateEnter(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {
+          onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             textRenderer.text = "0";
             console.log("onStateEnter: ", animatorState);
           }
 
-          onStateUpdate(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {
+          onStateUpdate(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             console.log("onStateUpdate: ", animatorState);
           }
 
-          onStateExit(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {
+          onStateExit(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             textRenderer.text = "1";
             console.log("onStateExit: ", animatorState);
           }
