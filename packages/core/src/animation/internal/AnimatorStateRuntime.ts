@@ -7,18 +7,11 @@ import { AnimatorStateData } from "./AnimatorStateData";
 /**
  * @internal
  *
- * Engine-owned runtime playback state for a single (Animator, AnimatorState) pair.
- *
- * Lives alongside an `AnimatorStateInstance` (user-facing per-instance view)
- * and tracks evaluation-time fields: how much has played, current clip time,
- * play state, event index, orientation, etc. Mutated by the Animator's update
- * loop; not exposed to user code.
+ * Per-(Animator, AnimatorState) playback runtime. Paired 1:1 with an
+ * `AnimatorStateInstance` and mutated by the Animator update loop.
  */
 export class AnimatorStateRuntime {
-  /** The user-facing per-instance view this runtime is bound to. */
   readonly instance: AnimatorStateInstance;
-
-  /** Curve owners + event handlers (shared per-Animator per-state). */
   stateData: AnimatorStateData;
 
   playedTime: number = 0;
@@ -35,10 +28,7 @@ export class AnimatorStateRuntime {
     instance._runtime = this;
   }
 
-  /**
-   * Reset runtime fields when (re-)entering this state.
-   * Does NOT touch user-written per-instance overrides on `instance`.
-   */
+  /** Reset playback fields on (re-)enter. Per-instance overrides are preserved. */
   resetForPlay(stateData: AnimatorStateData, offsetFrameTime: number): void {
     const state = this.instance._state;
     this.stateData = stateData;
@@ -89,8 +79,7 @@ export class AnimatorStateRuntime {
 
   private _correctTime(): void {
     const state = this.instance._state;
-    // Reverse playback resumed at clipTime=0 would step into negatives; jump to
-    // clipEnd so the next sample continues seamlessly from the end of the clip.
+    // Reverse playback at clipTime=0 would step into negatives; jump to clipEnd.
     if (this.clipTime === 0) {
       this.clipTime = state.clipEndTime * state.clip.length;
     }

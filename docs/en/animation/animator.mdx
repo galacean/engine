@@ -139,39 +139,32 @@ animator.crossFade("OtherStateName", 0.3);
 
 ### Get Current Playing Animation State
 
-Use [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState) to get the currently playing per-Animator state container. The parameter is the index `layerIndex` of the `AnimatorControllerLayer`. The return type is `AnimatorStateInstance | null` — `null` when the specified layer doesn't exist or no state is currently playing on it.
+[getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState) returns the playing `AnimatorStateInstance` on a given layer, or `null` when the layer is missing or nothing is playing.
 
 ```typescript
 const current = animator.getCurrentAnimatorState(0);
 if (current) {
-  // Per-instance speed (this Animator only)
   current.speed = 0.5;
 }
 ```
 
 ### Get Animation State
 
-[findAnimatorState](/apis/core/#Animator-findAnimatorState) returns the per-Animator state container for the named state (`AnimatorStateInstance | null`). Writes on the instance (e.g. `state.speed`) only affect this Animator — the shared `AnimatorState` asset on the controller is untouched. Mirrors the `Renderer.getInstanceMaterial` pattern.
+[findAnimatorState](/apis/core/#Animator-findAnimatorState) returns the per-Animator `AnimatorStateInstance` (`AnimatorStateInstance | null`). Writes only affect this Animator; the shared `AnimatorState` on the controller is untouched. Same pattern as `Renderer.getInstanceMaterial`.
 
-- `state.speed` — per-Animator playback speed. Until written, reads through to the shared default; once written, the instance owns its own speed.
-- `state.name`, `state.clip`, `state.wrapMode`, `state.clipStartTime`, `state.clipEndTime` — read-only forwards from the shared `AnimatorState`.
+- `speed` is per-instance overrideable; unwritten reads return the shared default.
+- `name`, `clip`, `wrapMode`, `clipStartTime`, `clipEndTime` read through to the shared asset.
 
-To mutate the shared asset (broadcast to every Animator using this controller — typical for editor / asset-construction code), reach it through the controller path. The longer path is a deliberate visual reminder that the change is global.
+To mutate the shared asset (broadcasts to every Animator), go through the controller path:
 
 ```typescript
 const state = animator.findAnimatorState("xxx");
-if (!state) {
-  // State not found in any layer
-  return;
-}
+if (!state) return;
 
-// Per-instance override (this Animator only)
+// Per-instance override.
 state.speed = 0.5;
 
-// Read-only access to shared asset fields
-console.log(state.clip.length, state.wrapMode);
-
-// Mutating the shared asset (broadcast to every Animator using this controller)
+// Broadcast to every Animator using this controller.
 animator.animatorController.layers[0].stateMachine.findStateByName("xxx").wrapMode = WrapMode.Once;
 ```
 

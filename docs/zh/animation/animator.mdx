@@ -144,41 +144,32 @@ animator.crossFade("OtherStateName", 0.3);
 
 ### 获取当前在播放的动画状态
 
-你可以使用 [getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState)  方法来获取当前正在播放的 `动画状态`。参数为 `动画状态` 所在 `动画层` 的序号`layerIndex`, 详见[API 文档](/apis/core/#Animator-getCurrentAnimatorState)。返回类型为 `AnimatorStateInstance | null`，当指定 `动画层` 不存在或该层当前没有播放任何状态时返回 `null`。获取到非空状态后可以设置其属性，比如将默认的循环播放改为一次。
+[getCurrentAnimatorState](/apis/core/#Animator-getCurrentAnimatorState) 返回指定层当前播放的 `AnimatorStateInstance`，层不存在或未在播放时返回 `null`。
 
 ```typescript
-const currentState = animator.getCurrentAnimatorState(0);
-if (currentState) {
-  // 播放一次
-  currentState.wrapMode = WrapMode.Once;
-  // 循环播放
-  currentState.wrapMode = WrapMode.Loop;
+const current = animator.getCurrentAnimatorState(0);
+if (current) {
+  current.speed = 0.5;
 }
 ```
 
 ### 获取动画状态
 
-[findAnimatorState](/apis/core/#Animator-findAnimatorState) 返回当前 `Animator` 独有的 `AnimatorState` 视图（`AnimatorStateInstance | null`）。对该视图的写入（如 `state.speed`）只影响当前 Animator，控制器上的共享 `AnimatorState` 资产不受影响。模式与 `Renderer.getInstanceMaterial` 一致。
+[findAnimatorState](/apis/core/#Animator-findAnimatorState) 返回当前 `Animator` 独有的 `AnimatorStateInstance`（`AnimatorStateInstance | null`）。对它的写入只影响当前 Animator，共享 `AnimatorState` 资产不受影响。模式与 `Renderer.getInstanceMaterial` 一致。
 
-- `state.speed`：每个 `Animator` 独立的播放速度。未写入前透传到共享默认值，写入后由当前实例独占。
-- `state.name` / `state.clip` / `state.wrapMode` / `state.clipStartTime` / `state.clipEndTime`：从共享 `AnimatorState` 转发的只读字段。
+- `speed` 可逐实例覆盖；未写入前透传到共享默认值。
+- `name` / `clip` / `wrapMode` / `clipStartTime` / `clipEndTime` 从共享资产转发。
 
-要修改共享 asset（影响所有使用该控制器的 `Animator`——编辑器/资产搭建场景常见），通过控制器路径访问。这条更长的路径本身就是一个视觉提醒：你做的是全局变更。
+要修改共享资产（广播到所有使用该控制器的 Animator），通过控制器路径访问：
 
 ```typescript
 const state = animator.findAnimatorState("xxx");
-if (!state) {
-  // 任何一个动画层都没有该状态
-  return;
-}
+if (!state) return;
 
-// per-instance 覆盖（只影响当前 Animator）
+// 只影响当前 Animator
 state.speed = 0.5;
 
-// 只读访问共享 asset 字段
-console.log(state.clip.length, state.wrapMode);
-
-// 修改共享 asset（广播到所有使用该控制器的 Animator）
+// 广播到所有使用该控制器的 Animator
 animator.animatorController.layers[0].stateMachine.findStateByName("xxx").wrapMode = WrapMode.Once;
 ```
 

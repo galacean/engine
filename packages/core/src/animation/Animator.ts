@@ -203,30 +203,21 @@ export class Animator extends Component {
   }
 
   /**
-   * Get the per-Animator state instance currently playing on the target layer.
-   *
-   * Writes on the returned `AnimatorStateInstance` (e.g. `instance.speed`)
-   * only affect this Animator; the shared `AnimatorState` asset is untouched.
-   *
+   * Get the playing state instance on the target layer.
    * @param layerIndex - The layer index
-   * @returns Per-instance state container, or null if the layer is missing or no state is playing
+   * @returns The instance, or null if the layer is missing or nothing is playing
    */
   getCurrentAnimatorState(layerIndex: number): AnimatorStateInstance | null {
     return this._animatorLayersData[layerIndex]?.srcRuntime?.instance ?? null;
   }
 
   /**
-   * Get or lazily create the per-Animator state instance for a named state.
-   *
-   * Mirrors the `Renderer.getInstanceMaterial` pattern: the shared
-   * `AnimatorState` on the controller stays shared, while overrides on the
-   * returned instance (e.g. `instance.speed`) only affect this Animator. The
-   * returned instance persists for the layer's lifetime, so overrides survive
-   * transitions out of and back into the state.
-   *
+   * Get or lazy-create the per-Animator instance for a named state.
+   * Mirrors `Renderer.getInstanceMaterial`: writes on the instance only affect
+   * this Animator; the shared `AnimatorState` asset is untouched.
    * @param stateName - The state name
    * @param layerIndex - The layer index (default -1, searches all layers)
-   * @returns Per-instance state container, or null if no state matches
+   * @returns The instance, or null if no state matches
    */
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStateInstance | null {
     this._resetIfControllerUpdated();
@@ -1464,10 +1455,8 @@ export class Animator extends Component {
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
 
-    // Self/active-dest cross-fade is intentionally a no-op because each def
-    // owns one persistent state view per layer (so per-instance overrides
-    // like speed survive transitions). Supporting self cross-fade would require
-    // a separate transient playback track per active fade.
+    // Self/active-dest cross-fade is a no-op: each state has one persistent
+    // instance per layer, so a second concurrent fade has nowhere to live.
     if (
       animatorLayerData.srcRuntime?.instance._state === crossState ||
       animatorLayerData.destRuntime?.instance._state === crossState

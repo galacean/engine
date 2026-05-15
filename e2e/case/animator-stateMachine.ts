@@ -54,7 +54,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const animator = defaultSceneRoot.getComponent(Animator)!;
       animator.animatorController.addParameter("playerSpeed", 1);
       const stateMachine = animator.animatorController.layers[0].stateMachine;
-      // State-machine assembly works on the shared AnimatorState assets via the controller path.
       const idleDef = stateMachine.findStateByName("idle");
       const walkDef = stateMachine.findStateByName("walk");
       const runDef = stateMachine.findStateByName("run");

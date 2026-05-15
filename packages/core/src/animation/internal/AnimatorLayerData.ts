@@ -15,11 +15,8 @@ export class AnimatorLayerData {
   layer: AnimatorControllerLayer;
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
   animatorStateDataMap: Record<string, AnimatorStateData> = Object.create(null);
-  /** Per-state user-facing instance containers. Lazy populated. */
   instanceMap: Record<string, AnimatorStateInstance> = Object.create(null);
-  /** Currently playing state's runtime; null when standby. */
   srcRuntime: AnimatorStateRuntime | null = null;
-  /** Cross-fade target state's runtime; null when not cross-fading. */
   destRuntime: AnimatorStateRuntime | null = null;
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;
@@ -27,11 +24,7 @@ export class AnimatorLayerData {
   crossFadeTransition: AnimatorStateTransition;
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
-  /**
-   * Get or lazily create the persistent (instance, runtime) pair for a shared
-   * `AnimatorState` asset. Rebuilds when the cached instance is bound to a
-   * different asset object (same-name remove + re-add).
-   */
+  /** Lazy-create the (instance, runtime) pair; rebuild if the asset was swapped. */
   getOrCreateRuntime(state: AnimatorState): AnimatorStateRuntime {
     const map = this.instanceMap;
     const name = state.name;
@@ -44,7 +37,6 @@ export class AnimatorLayerData {
     return instance._runtime;
   }
 
-  /** After cross-fade completes, promote destRuntime to srcRuntime. */
   promoteDest(): void {
     this.srcRuntime = this.destRuntime;
     this.destRuntime = null;

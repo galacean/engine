@@ -55,8 +55,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
 
       const animator = defaultSceneRoot.getComponent(Animator);
-      // Attaching a StateMachineScript mutates the shared AnimatorState on the controller,
-      // so reach it through the controller path rather than via a per-Animator state view.
       const walkDef = animator.animatorController.layers[0].stateMachine.findStateByName("walk");
       if (!walkDef) {
         throw new Error("Animator state not found: walk");
