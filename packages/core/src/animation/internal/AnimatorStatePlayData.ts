@@ -1,4 +1,3 @@
-import { AnimatorState } from "../AnimatorState";
 import { AnimatorStateInstance } from "../AnimatorStateInstance";
 import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
 import { WrapMode } from "../enums/WrapMode";
@@ -6,11 +5,8 @@ import { AnimatorStateData } from "./AnimatorStateData";
 
 /**
  * @internal
- *
- * Per-(Animator, AnimatorState) playback runtime. Paired 1:1 with an
- * `AnimatorStateInstance` and mutated by the Animator update loop.
  */
-export class AnimatorStateRuntime {
+export class AnimatorStatePlayData {
   readonly instance: AnimatorStateInstance;
   stateData: AnimatorStateData;
 
@@ -25,7 +21,7 @@ export class AnimatorStateRuntime {
 
   constructor(instance: AnimatorStateInstance) {
     this.instance = instance;
-    instance._runtime = this;
+    instance._playData = this;
   }
 
   /** Reset playback fields on (re-)enter. Per-instance overrides are preserved. */

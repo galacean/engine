@@ -102,29 +102,29 @@ describe("Animator test", function () {
     animator.play("Run");
 
     let animatorLayerData = animator["_animatorLayersData"];
-    const srcRuntime = animatorLayerData[0]?.srcRuntime;
+    const srcPlayData = animatorLayerData[0]?.srcPlayData;
 
     const speed = 1;
     let expectedSpeed = speed * 0.5;
     animator.speed = expectedSpeed;
-    let playedTime = srcRuntime.playedTime;
+    let playedTime = srcPlayData.playedTime;
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(5);
     expect(animator.speed).to.eq(expectedSpeed);
-    expect(srcRuntime.playedTime).to.eq(playedTime + 5 * expectedSpeed);
+    expect(srcPlayData.playedTime).to.eq(playedTime + 5 * expectedSpeed);
     expectedSpeed = speed * 2;
     animator.speed = expectedSpeed;
-    playedTime = srcRuntime.playedTime;
+    playedTime = srcPlayData.playedTime;
     animator.update(10);
     expect(animator.speed).to.eq(expectedSpeed);
-    expect(srcRuntime.playedTime).to.eq(playedTime + 10 * expectedSpeed);
+    expect(srcPlayData.playedTime).to.eq(playedTime + 10 * expectedSpeed);
     expectedSpeed = speed * 0;
     animator.speed = expectedSpeed;
-    playedTime = srcRuntime.playedTime;
+    playedTime = srcPlayData.playedTime;
     animator.update(15);
     expect(animator.speed).to.eq(expectedSpeed);
-    expect(srcRuntime.playedTime).to.eq(playedTime + 15 * expectedSpeed);
+    expect(srcPlayData.playedTime).to.eq(playedTime + 15 * expectedSpeed);
   });
 
   it("play animation", () => {
@@ -159,9 +159,9 @@ describe("Animator test", function () {
     animator.play("Run");
 
     let animatorLayerData = animator["_animatorLayersData"];
-    const srcRuntime = animatorLayerData[0]?.srcRuntime;
+    const srcPlayData = animatorLayerData[0]?.srcPlayData;
     animator.update(5);
-    const curveOwner = srcRuntime.stateData.curveLayerOwner[0].curveOwner;
+    const curveOwner = srcPlayData.stateData.curveLayerOwner[0].curveOwner;
     const initValue = curveOwner.defaultValue;
     const currentValue = curveOwner.referenceTargetValue;
     expect(Quaternion.equals(initValue, currentValue)).to.eq(true);
@@ -250,11 +250,11 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._getAnimatorLayerData(0);
-    const srcRuntime = layerData.srcRuntime;
-    expect(srcRuntime.instance.name).to.eq("Run");
-    expect(srcRuntime.playedTime).to.eq(0.3);
+    const srcPlayData = layerData.srcPlayData;
+    expect(srcPlayData.instance.name).to.eq("Run");
+    expect(srcPlayData.playedTime).to.eq(0.3);
     // @ts-ignore
-    expect(srcRuntime.clipTime).to.eq(0.3 + 0.1 * (runState as any)._state._getDuration());
+    expect(srcPlayData.clipTime).to.eq(0.3 + 0.1 * (runState as any)._state._getDuration());
   });
 
   it("animation cross fade by transition", () => {
@@ -627,10 +627,10 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(0.01);
 
-    const destRuntime = animator["_animatorLayersData"][0].destRuntime;
-    const destState = (destRuntime.instance as any)._state;
+    const destPlayData = animator["_animatorLayersData"][0].destPlayData;
+    const destState = (destPlayData.instance as any)._state;
     const transitionDuration = toRunTransition.duration * destState._getDuration();
-    const crossWeight = animator["_animatorLayersData"][0].destRuntime.playedTime / transitionDuration;
+    const crossWeight = animator["_animatorLayersData"][0].destPlayData.playedTime / transitionDuration;
     expect(crossWeight).to.lessThan(0.01);
   });
 
@@ -650,8 +650,8 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(0.1);
 
-    const destRuntime = animator["_animatorLayersData"][0].destRuntime;
-    expect(destRuntime.instance?.name).to.eq("Run");
+    const destPlayData = animator["_animatorLayersData"][0].destPlayData;
+    expect(destPlayData.instance?.name).to.eq("Run");
   });
 
   it("transition to exit but no entry", () => {
@@ -846,9 +846,9 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(0.5);
 
-    expect(layerData.srcRuntime.instance.name).to.eq("Run");
-    expect(layerData.srcRuntime.playedTime).to.eq(0.5);
-    expect(layerData.srcRuntime.clipTime).to.eq((walkState as any)._state.clip.length * 0.5 + 0.5);
+    expect(layerData.srcPlayData.instance.name).to.eq("Run");
+    expect(layerData.srcPlayData.playedTime).to.eq(0.5);
+    expect(layerData.srcPlayData.clipTime).to.eq((walkState as any)._state.clip.length * 0.5 + 0.5);
   });
 
   it("hasExitTime", () => {
@@ -876,8 +876,8 @@ describe("Animator test", function () {
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update((walkState as any)._state.clip.length * 0.5);
-    expect(layerData.destRuntime.instance.name).to.eq("Run");
-    expect(layerData.destRuntime.playedTime).to.eq(0);
+    expect(layerData.destPlayData.instance.name).to.eq("Run");
+    expect(layerData.destPlayData.playedTime).to.eq(0);
     const anyToIdleTransition = stateMachine.addAnyStateTransition((idleState as any)._state);
     anyToIdleTransition.hasExitTime = false;
     anyToIdleTransition.duration = 0.2;
@@ -886,13 +886,13 @@ describe("Animator test", function () {
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.1);
-    expect(layerData.srcRuntime.instance.name).to.eq("Run");
-    expect(layerData.srcRuntime.playedTime).to.eq(0.1);
+    expect(layerData.srcPlayData.instance.name).to.eq("Run");
+    expect(layerData.srcPlayData.playedTime).to.eq(0.1);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update((idleState as any)._state.clip.length * 0.2 - 0.1);
-    expect(layerData.srcRuntime.instance.name).to.eq("Survey");
-    expect(layerData.srcRuntime.clipTime).to.eq((idleState as any)._state.clip.length * 0.2);
+    expect(layerData.srcPlayData.instance.name).to.eq("Survey");
+    expect(layerData.srcPlayData.clipTime).to.eq((idleState as any)._state.clip.length * 0.2);
   });
 
   it("setTriggerParameter", () => {
@@ -926,28 +926,28 @@ describe("Animator test", function () {
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.1);
-    expect(layerData.srcRuntime.instance.name).to.eq("Walk");
-    expect(layerData.srcRuntime.playedTime).to.eq(0.1);
-    expect(layerData.destRuntime.instance.name).to.eq("Run");
-    expect(layerData.destRuntime.playedTime).to.eq(0.1);
+    expect(layerData.srcPlayData.instance.name).to.eq("Walk");
+    expect(layerData.srcPlayData.playedTime).to.eq(0.1);
+    expect(layerData.destPlayData.instance.name).to.eq("Run");
+    expect(layerData.destPlayData.playedTime).to.eq(0.1);
     expect(animator.getParameterValue("triggerRun")).to.eq(false);
     expect(animator.getParameterValue("triggerWalk")).to.eq(true);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update((runState as any)._state.clip.length * 0.1 - 0.1);
-    expect(layerData.srcRuntime.instance.name).to.eq("Run");
-    expect(layerData.srcRuntime.playedTime).to.eq((runState as any)._state.clip.length * 0.1);
+    expect(layerData.srcPlayData.instance.name).to.eq("Run");
+    expect(layerData.srcPlayData.playedTime).to.eq((runState as any)._state.clip.length * 0.1);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update((runState as any)._state.clip.length * 0.6);
-    expect(layerData.destRuntime.instance.name).to.eq("Walk");
-    expect(layerData.destRuntime.playedTime).to.eq(0);
+    expect(layerData.destPlayData.instance.name).to.eq("Walk");
+    expect(layerData.destPlayData.playedTime).to.eq(0);
     expect(animator.getParameterValue("triggerWalk")).to.eq(false);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update((walkState as any)._state.clip.length * 0.3);
-    expect(layerData.srcRuntime.instance.name).to.eq("Walk");
-    expect(layerData.srcRuntime.playedTime).to.eq((walkState as any)._state.clip.length * 0.3);
+    expect(layerData.srcPlayData.instance.name).to.eq("Walk");
+    expect(layerData.srcPlayData.playedTime).to.eq((walkState as any)._state.clip.length * 0.3);
   });
 
   it("fixedDuration", () => {
@@ -971,9 +971,9 @@ describe("Animator test", function () {
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.1);
-    expect(layerData.srcRuntime.instance.name).to.eq("Run");
-    expect(layerData.srcRuntime.playedTime).to.eq(0.1);
-    expect(layerData.srcRuntime.clipTime).to.eq(0);
+    expect(layerData.srcPlayData.instance.name).to.eq("Run");
+    expect(layerData.srcPlayData.playedTime).to.eq(0.1);
+    expect(layerData.srcPlayData.clipTime).to.eq(0);
   });
 
   it("transitionIndex", () => {
@@ -1034,13 +1034,13 @@ describe("Animator test", function () {
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.6);
-    expect(animatorLayerData[0]?.srcRuntime.instance.name).to.eq("state1");
+    expect(animatorLayerData[0]?.srcPlayData.instance.name).to.eq("state1");
 
     transition2.mute = false;
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.3);
-    expect(animatorLayerData[0]?.srcRuntime.instance.name).to.eq("state2");
+    expect(animatorLayerData[0]?.srcPlayData.instance.name).to.eq("state2");
   });
 
   it("Clone", () => {
@@ -1113,7 +1113,7 @@ describe("Animator test", function () {
     const layerData = animator._getAnimatorLayerData(0);
 
     expect(layerData.layerState).to.eq(LayerState.CrossFading);
-    expect(layerData.destRuntime.instance.name).to.eq("Run");
+    expect(layerData.destPlayData.instance.name).to.eq("Run");
 
     // Trigger interrupt during crossFade
     animator.setParameterValue("interrupt", true);
@@ -1122,7 +1122,7 @@ describe("Animator test", function () {
     animator.update(0.1);
 
     // Should have interrupted to Idle
-    expect(layerData.destRuntime.instance.name).to.eq("Survey");
+    expect(layerData.destPlayData.instance.name).to.eq("Survey");
   });
 
   it("noExitTime transition scan should ignore exitTime transitions", () => {
@@ -1161,8 +1161,8 @@ describe("Animator test", function () {
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(preExitDeltaTime);
-    expect(layerData.srcRuntime.instance.name).to.eq("Walk");
-    expect(layerData.destRuntime).to.be.null;
+    expect(layerData.srcPlayData.instance.name).to.eq("Walk");
+    expect(layerData.destPlayData).to.be.null;
 
     // Update past exitTime, should transition to Run.
     // @ts-ignore
@@ -1203,7 +1203,7 @@ describe("Animator test", function () {
     animator.update(0.1);
 
     expect(layerData.layerState).to.eq(LayerState.FixedCrossFading);
-    expect(layerData.destRuntime.instance.name).to.eq("Run");
+    expect(layerData.destPlayData.instance.name).to.eq("Run");
 
     // Trigger interrupt during FixedCrossFading
     animator.setParameterValue("interrupt", true);
@@ -1212,7 +1212,7 @@ describe("Animator test", function () {
     animator.update(0.1);
 
     // Should have interrupted to Idle
-    expect(layerData.destRuntime.instance.name).to.eq("Survey");
+    expect(layerData.destPlayData.instance.name).to.eq("Survey");
   });
 
   it("anyState interrupt should skip transition to same destination state", () => {
@@ -1239,7 +1239,7 @@ describe("Animator test", function () {
 
     // Should be in CrossFading state, dest = Run
     expect(layerData.layerState).to.eq(LayerState.CrossFading);
-    expect(layerData.destRuntime.instance.name).to.eq("Run");
+    expect(layerData.destPlayData.instance.name).to.eq("Run");
 
     // Update again - anyState -> Run should be skipped because dest is already Run
     // @ts-ignore
@@ -1248,7 +1248,7 @@ describe("Animator test", function () {
 
     // Should still be CrossFading to Run (not interrupted/reset)
     expect(layerData.layerState).to.eq(LayerState.CrossFading);
-    expect(layerData.destRuntime.instance.name).to.eq("Run");
+    expect(layerData.destPlayData.instance.name).to.eq("Run");
   });
 
   it("zero-duration crossFade should not be interrupted by anyState transition", () => {
@@ -1274,7 +1274,7 @@ describe("Animator test", function () {
     const layerData = animator._getAnimatorLayerData(0);
 
     // Zero-duration crossFade completes instantly, should be Playing Run (not interrupted to Survey)
-    expect(layerData.srcRuntime.instance.name).to.eq("Run");
+    expect(layerData.srcPlayData.instance.name).to.eq("Run");
   });
 
   it("toggle hasExitTime should maintain correct noExitTimeCount", () => {
@@ -1359,10 +1359,10 @@ describe("Animator test", function () {
     animator.update(0.1);
 
     // @ts-ignore
-    const srcRuntime = animator._animatorLayersData[0].srcRuntime;
-    expect(srcRuntime.instance.name).to.eq("Survey"); // ensure crossfade actually completed back to Survey
+    const srcPlayData = animator._animatorLayersData[0].srcPlayData;
+    expect(srcPlayData.instance.name).to.eq("Survey"); // ensure crossfade actually completed back to Survey
     expect(animator.findAnimatorState("Survey").speed).to.eq(0.5);
-    expect(srcRuntime.speed).to.eq(0.5);
+    expect(srcPlayData.speed).to.eq(0.5);
   });
 
   it("per-instance speed is per-Animator (clone isolation)", () => {
@@ -1379,7 +1379,7 @@ describe("Animator test", function () {
     expect(sharedSurvey.speed).to.eq(1);
   });
 
-  it("crossFade phase uses runtime.speed for time progression", () => {
+  it("crossFade phase honors per-instance speed for time progression", () => {
     // Set high per-instance speed on src state
     animator.findAnimatorState("Survey").speed = 4;
     animator.play("Survey");
@@ -1389,17 +1389,17 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._animatorLayersData[0];
-    const srcPlayedBefore = layerData.srcRuntime.playedTime;
+    const srcPlayedBefore = layerData.srcPlayData.playedTime;
 
-    // Start crossFade — during crossFade, src should still advance per runtime.speed=4
+    // Start crossFade — during crossFade, src should still advance per per-instance speed=4
     animator.crossFade("Walk", 0.5, 0, 0);
     // @ts-ignore
     animator.engine.time._frameCount++;
     animator.update(0.05); // 50ms of crossfade
 
-    const srcPlayedAfter = layerData.srcRuntime.playedTime;
+    const srcPlayedAfter = layerData.srcPlayData.playedTime;
     const advanced = srcPlayedAfter - srcPlayedBefore;
-    // With runtime.speed=4 and dt=0.05, expect ~0.2 (4 * 0.05). With state.speed=1 it'd be ~0.05.
+    // With per-instance speed=4 and dt=0.05, expect ~0.2 (4 * 0.05). With shared state.speed=1 it'd be ~0.05.
     expect(advanced).to.be.closeTo(0.2, 0.05);
   });
 
@@ -1609,15 +1609,15 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._animatorLayersData[0];
-    const srcBefore = layerData.srcRuntime;
+    const srcBefore = layerData.srcPlayData;
     const playedBefore = srcBefore.playedTime;
 
     // crossFade to the same state — should be ignored
     animator.crossFade("Walk", 0.3, 0, 0);
 
-    expect(layerData.srcRuntime).to.eq(srcBefore);
-    expect(layerData.srcRuntime.playedTime).to.eq(playedBefore);
-    expect(layerData.destRuntime).to.eq(null);
+    expect(layerData.srcPlayData).to.eq(srcBefore);
+    expect(layerData.srcPlayData.playedTime).to.eq(playedBefore);
+    expect(layerData.destPlayData).to.eq(null);
   });
 
   it("crossFade to currently-fading dest state is no-op", () => {
@@ -1633,14 +1633,14 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._animatorLayersData[0];
-    const destBefore = layerData.destRuntime;
+    const destBefore = layerData.destPlayData;
     const destPlayedBefore = destBefore.playedTime;
 
     // crossFade to the in-flight dest state — should be ignored
     animator.crossFade("Run", 0.3, 0, 0);
 
-    expect(layerData.destRuntime).to.eq(destBefore);
-    expect(layerData.destRuntime.playedTime).to.eq(destPlayedBefore);
+    expect(layerData.destPlayData).to.eq(destBefore);
+    expect(layerData.destPlayData.playedTime).to.eq(destPlayedBefore);
   });
 
   it("state-machine self-transition is also a no-op (alias-guard policy)", () => {
@@ -1660,7 +1660,7 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._animatorLayersData[0];
-    const srcBefore = layerData.srcRuntime;
+    const srcBefore = layerData.srcPlayData;
     const playedBefore = srcBefore.playedTime;
 
     // Trigger the self-transition
@@ -1671,13 +1671,13 @@ describe("Animator test", function () {
 
     // Self-transition is intentionally a no-op (one persistent PlayData per state).
     // src should keep advancing as if no transition happened, dest stays null.
-    expect(layerData.srcRuntime).to.eq(srcBefore);
-    expect(layerData.srcRuntime.instance.name).to.eq("Walk");
-    expect(layerData.srcRuntime.playedTime).to.be.greaterThan(playedBefore);
-    expect(layerData.destRuntime).to.eq(null);
+    expect(layerData.srcPlayData).to.eq(srcBefore);
+    expect(layerData.srcPlayData.instance.name).to.eq("Walk");
+    expect(layerData.srcPlayData.playedTime).to.be.greaterThan(playedBefore);
+    expect(layerData.destPlayData).to.eq(null);
   });
 
-  it("play during crossFade clears stale destRuntime", () => {
+  it("play during crossFade clears stale destPlayData", () => {
     animator.play("Walk");
     // @ts-ignore
     animator.engine.time._frameCount++;
@@ -1693,13 +1693,13 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._animatorLayersData[0];
-    expect(layerData.destRuntime).to.eq(null);
+    expect(layerData.destPlayData).to.eq(null);
     expect(layerData.crossFadeTransition).to.eq(null);
 
     // A subsequent crossFade to the previously-fading state should now succeed —
     // the stale dest slot must not block it via the alias guard.
     animator.crossFade("Run", 0.3, 0, 0);
-    expect(layerData.destRuntime?.state.name).to.eq("Run");
+    expect(layerData.destPlayData?.state.name).to.eq("Run");
   });
 
   it("crossFade to nonexistent state is a safe no-op", () => {
@@ -1756,10 +1756,10 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._animatorLayersData[0];
-    expect(Number.isNaN(layerData.srcRuntime.playedTime)).to.eq(false);
-    expect(Number.isNaN(layerData.destRuntime?.playedTime ?? 0)).to.eq(false);
+    expect(Number.isNaN(layerData.srcPlayData.playedTime)).to.eq(false);
+    expect(Number.isNaN(layerData.destPlayData?.playedTime ?? 0)).to.eq(false);
     // Walk dest should have progressed
-    expect(layerData.destRuntime?.playedTime).to.be.greaterThan(0);
+    expect(layerData.destPlayData?.playedTime).to.be.greaterThan(0);
   });
 
   it("no-exit transition out of speed=0 source preserves remaining deltaTime and avoids NaN", () => {
@@ -1788,11 +1788,11 @@ describe("Animator test", function () {
 
     // @ts-ignore
     const layerData = animator._animatorLayersData[0];
-    expect(Number.isNaN(layerData.srcRuntime.playedTime)).to.eq(false);
-    expect(Number.isNaN(layerData.destRuntime?.playedTime ?? 0)).to.eq(false);
-    expect(layerData.destRuntime?.state.name).to.eq("Walk");
+    expect(Number.isNaN(layerData.srcPlayData.playedTime)).to.eq(false);
+    expect(Number.isNaN(layerData.destPlayData?.playedTime ?? 0)).to.eq(false);
+    expect(layerData.destPlayData?.state.name).to.eq("Walk");
     // dest should have advanced from the remaining deltaTime that was
     // preserved by the playSpeed===0 guard
-    expect(layerData.destRuntime?.playedTime).to.be.greaterThan(0);
+    expect(layerData.destPlayData?.playedTime).to.be.greaterThan(0);
   });
 });

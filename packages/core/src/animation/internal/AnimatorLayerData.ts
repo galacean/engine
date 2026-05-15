@@ -5,7 +5,7 @@ import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimatorStateData } from "./AnimatorStateData";
-import { AnimatorStateRuntime } from "./AnimatorStateRuntime";
+import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 
 /**
  * @internal
@@ -16,8 +16,8 @@ export class AnimatorLayerData {
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
   animatorStateDataMap: Record<string, AnimatorStateData> = Object.create(null);
   instanceMap: Record<string, AnimatorStateInstance> = Object.create(null);
-  srcRuntime: AnimatorStateRuntime | null = null;
-  destRuntime: AnimatorStateRuntime | null = null;
+  srcPlayData: AnimatorStatePlayData | null = null;
+  destPlayData: AnimatorStatePlayData | null = null;
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
@@ -25,21 +25,21 @@ export class AnimatorLayerData {
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
   /** Lazy-create the (instance, runtime) pair; rebuild if the asset was swapped. */
-  getOrCreateRuntime(state: AnimatorState): AnimatorStateRuntime {
+  getOrCreatePlayData(state: AnimatorState): AnimatorStatePlayData {
     const map = this.instanceMap;
     const name = state.name;
     let instance = map[name];
     if (instance?._state !== state) {
       instance = new AnimatorStateInstance(state);
-      new AnimatorStateRuntime(instance);
+      new AnimatorStatePlayData(instance);
       map[name] = instance;
     }
-    return instance._runtime;
+    return instance._playData;
   }
 
   promoteDest(): void {
-    this.srcRuntime = this.destRuntime;
-    this.destRuntime = null;
+    this.srcPlayData = this.destPlayData;
+    this.destPlayData = null;
   }
 
   resetCurrentCheckIndex(): void {

@@ -1,6 +1,6 @@
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateRuntime } from "./internal/AnimatorStateRuntime";
+import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { WrapMode } from "./enums/WrapMode";
 
 /**
@@ -11,7 +11,7 @@ export class AnimatorStateInstance {
   /** @internal */
   _state: AnimatorState;
   /** @internal */
-  _runtime: AnimatorStateRuntime;
+  _playData: AnimatorStatePlayData;
 
   private _speed: number | undefined;
   private _wrapMode: WrapMode | undefined;
