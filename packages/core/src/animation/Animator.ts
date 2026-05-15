@@ -433,12 +433,6 @@ export class Animator extends Component {
   ): AnimatorStateData {
     const { animatorStateDataMap } = animatorLayerData;
     let animatorStateData = animatorStateDataMap[stateName];
-    if (animatorStateData && animatorStateData.state !== animatorState) {
-      // Same name but different state instance (e.g. removeState + addState same name):
-      // detach the old listener and rebuild stateData against the new state.
-      animatorStateData.dispose();
-      animatorStateData = null;
-    }
     if (!animatorStateData) {
       animatorStateData = new AnimatorStateData(animatorState);
       animatorStateDataMap[stateName] = animatorStateData;

@@ -24,12 +24,12 @@ export class AnimatorLayerData {
   crossFadeTransition: AnimatorStateTransition;
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
-  /** Lazy-create the per-Animator instance for a state; rebuild if the asset was swapped. */
+  /** Lazy-create the per-Animator instance for a state. */
   getOrCreateInstance(state: AnimatorState): AnimatorStateInstance {
     const map = this.instanceMap;
     const name = state.name;
     let instance = map[name];
-    if (instance?._state !== state) {
+    if (!instance) {
       instance = new AnimatorStateInstance(state);
       map[name] = instance;
     }

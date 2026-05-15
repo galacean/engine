@@ -1,4 +1,5 @@
 import { Engine } from "../Engine";
+import type { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
@@ -14,6 +15,7 @@ export class AnimatorStateMachine {
   readonly states: AnimatorState[] = [];
 
   private _engine: Engine;
+  private _controller: AnimatorController;
 
   /**
    * The state will be played automatically.
@@ -53,6 +55,7 @@ export class AnimatorStateMachine {
       state._setEngine(this._engine);
       this.states.push(state);
       this._statesMap[name] = state;
+      this._controller?._dispatchUpdate();
     } else {
       console.warn(`The state named ${name} has existed.`);
     }
@@ -68,8 +71,9 @@ export class AnimatorStateMachine {
     const index = this.states.indexOf(state);
     if (index > -1) {
       this.states.splice(index, 1);
+      delete this._statesMap[name];
+      this._controller?._dispatchUpdate();
     }
-    delete this._statesMap[name];
   }
 
   /**
@@ -166,5 +170,10 @@ export class AnimatorStateMachine {
     for (let i = 0, n = states.length; i < n; i++) {
       states[i]._setEngine(engine);
     }
+  }
+
+  /** @internal */
+  _setController(controller: AnimatorController): void {
+    this._controller = controller;
   }
 }
