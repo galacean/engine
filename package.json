@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-root",
-  "version": "2.0.0-alpha.32",
+  "version": "2.0.0-alpha.33",
   "packageManager": "pnpm@9.3.0",
   "private": true,
   "scripts": {
@@ -21,7 +21,7 @@
     "b:umd": "npm run precompile && cross-env BUILD_TYPE=UMD NODE_ENV=release rollup -c",
     "b:bundled": "npm run precompile && cross-env BUILD_TYPE=BUNDLED NODE_ENV=release rollup -c",
     "b:all": "npm run precompile && cross-env BUILD_TYPE=ALL NODE_ENV=release rollup -c && cross-env NODE_ENV=release npm run b:types",
-    "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types",
+    "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf bundler && pnpm -r exec rm -rf types",
     "e2e:case": "pnpm -C ./e2e run case",
     "pree2e": "playwright install --with-deps chromium",
     "e2e": "playwright test",
