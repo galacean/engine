@@ -35,9 +35,17 @@ export class AnimatorLayerData {
     return instance;
   }
 
-  promoteDest(): void {
+  /** Cross-fade finished: dest becomes the new src, slot fields cleared. */
+  completeCrossFade(): void {
     this.srcPlayData = this.destPlayData;
     this.destPlayData = null;
+    this.crossFadeTransition = null;
+  }
+
+  /** Discard the cross-fade slot fields without promoting dest (e.g. play() interrupts a fade). */
+  clearCrossFadeSlot(): void {
+    this.destPlayData = null;
+    this.crossFadeTransition = null;
   }
 
   resetCurrentCheckIndex(): void {

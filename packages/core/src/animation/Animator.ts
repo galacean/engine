@@ -1059,8 +1059,7 @@ export class Animator extends Component {
     } else {
       layerData.layerState = LayerState.Playing;
     }
-    layerData.promoteDest();
-    layerData.crossFadeTransition = null;
+    layerData.completeCrossFade();
   }
 
   private _preparePlayOwner(layerData: AnimatorLayerData, playState: AnimatorState): void {
@@ -1322,10 +1321,9 @@ export class Animator extends Component {
     const playData = animatorLayerData.getOrCreateInstance(state)._playData;
     playData.resetForPlay(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
     animatorLayerData.srcPlayData = playData;
-    // Clear any stale cross-fade slot from a previously-interrupted crossFade so
-    // subsequent crossFade() calls aren't no-op'd by the self-target alias guard.
-    animatorLayerData.destPlayData = null;
-    animatorLayerData.crossFadeTransition = null;
+    // Drop any dangling cross-fade slot from a previously-interrupted crossFade
+    // so a later crossFade(B) isn't wrongly no-op'd by the active-dest guard.
+    animatorLayerData.clearCrossFadeSlot();
     animatorLayerData.resetCurrentCheckIndex();
 
     return true;
