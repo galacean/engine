@@ -14,8 +14,8 @@ export class AnimatorLayerData {
   layerIndex: number;
   layer: AnimatorControllerLayer;
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
-  animatorStateDataMap: Record<string, AnimatorStateData> = Object.create(null);
-  instanceMap: Record<string, AnimatorStateInstance> = Object.create(null);
+  animatorStateDataMap: WeakMap<AnimatorState, AnimatorStateData> = new WeakMap();
+  instanceMap: WeakMap<AnimatorState, AnimatorStateInstance> = new WeakMap();
   srcPlayData: AnimatorStatePlayData | null = null;
   destPlayData: AnimatorStatePlayData | null = null;
   layerState: LayerState = LayerState.Standby;
@@ -27,11 +27,10 @@ export class AnimatorLayerData {
   /** Lazy-create the per-Animator instance for a state. */
   getOrCreateInstance(state: AnimatorState): AnimatorStateInstance {
     const map = this.instanceMap;
-    const name = state.name;
-    let instance = map[name];
+    let instance = map.get(state);
     if (!instance) {
       instance = new AnimatorStateInstance(state);
-      map[name] = instance;
+      map.set(state, instance);
     }
     return instance;
   }

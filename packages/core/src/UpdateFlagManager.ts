@@ -7,6 +7,9 @@ import { Utils } from "./Utils";
 export class UpdateFlagManager {
   /** @internal */
   _updateFlags: UpdateFlag[] = [];
+  /** Monotonic counter; bumped on every `dispatch`. Lets consumers do lazy pull-style invalidation without registering a listener. */
+  /** @internal */
+  _version: number = 0;
 
   private _listeners: ((type?: number, param?: Object) => void)[] = [];
 
@@ -62,6 +65,8 @@ export class UpdateFlagManager {
    * @param param - Event param
    */
   dispatch(type?: number, param?: Object): void {
+    this._version++;
+
     const updateFlags = this._updateFlags;
     for (let i = updateFlags.length - 1; i >= 0; i--) {
       updateFlags[i].dispatch(type, param);

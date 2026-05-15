@@ -324,18 +324,6 @@ export class Animator extends Component {
       }
     }
 
-    // Detach clipChangedListeners before dropping stateData; otherwise each
-    // controller mutation would leave a dead listener attached to the
-    // surviving AnimatorState's UpdateFlagManager.
-    const layersData = this._animatorLayersData;
-    for (let i = 0, n = layersData.length; i < n; i++) {
-      const stateDataMap = layersData[i]?.animatorStateDataMap;
-      if (!stateDataMap) continue;
-      for (const stateName in stateDataMap) {
-        stateDataMap[stateName].dispose();
-      }
-    }
-
     this._animatorLayersData.length = 0;
     this._curveOwnerPool = Object.create(null);
     this._parametersValueMap = Object.create(null);
@@ -364,10 +352,6 @@ export class Animator extends Component {
   }
 
   protected override _onDestroy(): void {
-    // Reuse _reset() to detach AnimatorStateData clipChangedListeners — without
-    // this the listener closures stay attached to surviving AnimatorState
-    // UpdateFlagManagers and keep referencing the destroyed entity / stateData.
-    this._reset();
     super._onDestroy();
     const controller = this._animatorController;
     if (controller) {
@@ -432,13 +416,13 @@ export class Animator extends Component {
     layerIndex: number
   ): AnimatorStateData {
     const { animatorStateDataMap } = animatorLayerData;
-    let animatorStateData = animatorStateDataMap[stateName];
+    let animatorStateData = animatorStateDataMap.get(animatorState);
     if (!animatorStateData) {
       animatorStateData = new AnimatorStateData(animatorState);
-      animatorStateDataMap[stateName] = animatorStateData;
+      animatorStateDataMap.set(animatorState, animatorStateData);
       this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
-      this._saveAnimatorEventHandlers(animatorState, animatorStateData);
     }
+    this._ensureEventHandlersUpToDate(animatorState, animatorStateData);
     return animatorStateData;
   }
 
@@ -495,35 +479,35 @@ export class Animator extends Component {
     }
   }
 
-  private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
+  private _ensureEventHandlersUpToDate(state: AnimatorState, animatorStateData: AnimatorStateData): void {
+    const clipFlag = state.clip._updateFlagManager;
+    if (animatorStateData.eventsBuiltVersion === clipFlag._version) {
+      return;
+    }
+
     const eventHandlerPool = this._animationEventHandlerPool;
     const scripts = [];
+    this._entity.getComponents(Script, scripts);
+    const scriptCount = scripts.length;
+    const { events } = state.clip;
     const { eventHandlers } = animatorStateData;
+    eventHandlers.length = 0;
+    for (let i = 0, n = events.length; i < n; i++) {
+      const event = events[i];
+      const eventHandler = eventHandlerPool.get();
+      const funcName = event.functionName;
+      const { handlers } = eventHandler;
 
-    const clipChangedListener = () => {
-      this._entity.getComponents(Script, scripts);
-      const scriptCount = scripts.length;
-      const { events } = state.clip;
-      eventHandlers.length = 0;
-      for (let i = 0, n = events.length; i < n; i++) {
-        const event = events[i];
-        const eventHandler = eventHandlerPool.get();
-        const funcName = event.functionName;
-        const { handlers } = eventHandler;
-
-        eventHandler.event = event;
-        handlers.length = 0;
-        for (let j = scriptCount - 1; j >= 0; j--) {
-          const script = scripts[j];
-          const handler = <Function>script[funcName]?.bind(script);
-          handler && handlers.push(handler);
-        }
-        eventHandlers.push(eventHandler);
+      eventHandler.event = event;
+      handlers.length = 0;
+      for (let j = scriptCount - 1; j >= 0; j--) {
+        const script = scripts[j];
+        const handler = <Function>script[funcName]?.bind(script);
+        handler && handlers.push(handler);
       }
-    };
-    clipChangedListener();
-    state._updateFlagManager.addListener(clipChangedListener);
-    animatorStateData.clipChangedListener = clipChangedListener;
+      eventHandlers.push(eventHandler);
+    }
+    animatorStateData.eventsBuiltVersion = clipFlag._version;
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
