@@ -157,7 +157,8 @@ if (currentState) {
 
 - `state.speed` — per-Animator playback speed. Until written, reads through to the shared default; once written, the instance owns its own speed.
 - `state.name`, `state.clip`, `state.wrapMode`, `state.clipStartTime`, `state.clipEndTime` — read-only forwards from the shared `AnimatorStateDef`.
-- `state.def` — the underlying shared `AnimatorStateDef` asset. Mutating fields like `def.wrapMode` mutates the shared `AnimatorController` asset and therefore affects every `Animator` using this controller.
+
+To mutate the shared asset (broadcast to every Animator using this controller — typical for editor / asset-construction code), reach it through the controller path. The longer path is a deliberate visual reminder that the change is global.
 
 ```typescript
 const state = animator.findAnimatorState("xxx");
@@ -169,8 +170,11 @@ if (!state) {
 // Per-instance override (this Animator only)
 state.speed = 0.5;
 
-// Shared asset configuration (broadcast to every Animator using this controller)
-state.def.wrapMode = WrapMode.Once;
+// Read-only access to shared asset fields
+console.log(state.clip.length, state.wrapMode);
+
+// Mutating the shared asset (broadcast to every Animator using this controller)
+animator.animatorController.layers[0].stateMachine.findStateByName("xxx").wrapMode = WrapMode.Once;
 ```
 
 ### Animation Culling

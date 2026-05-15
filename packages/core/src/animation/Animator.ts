@@ -659,7 +659,7 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): void {
     const { srcRuntime } = layerData;
-    const state = srcRuntime.state.def;
+    const state = srcRuntime.state._def;
 
     const playSpeed = srcRuntime.state.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
@@ -791,8 +791,8 @@ export class Animator extends Component {
   ) {
     const { srcRuntime, destRuntime, layerIndex } = layerData;
     const { speed } = this;
-    const srcState = srcRuntime.state.def;
-    const destState = destRuntime.state.def;
+    const srcState = srcRuntime.state._def;
+    const destState = destRuntime.state._def;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
     if (this._tryCrossFadeInterrupt(layerData, transitionDuration, destState, deltaTime, aniUpdate)) {
@@ -922,7 +922,7 @@ export class Animator extends Component {
     aniUpdate: boolean
   ) {
     const { destRuntime } = layerData;
-    const state = destRuntime.state.def;
+    const state = destRuntime.state._def;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
     if (this._tryCrossFadeInterrupt(layerData, transitionDuration, state, deltaTime, aniUpdate)) {
@@ -1034,7 +1034,7 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): void {
     const runtime = layerData.srcRuntime;
-    const state = runtime.state.def;
+    const state = runtime.state._def;
     const actualSpeed = runtime.state.speed * this.speed;
     const actualDeltaTime = actualSpeed * deltaTime;
 
@@ -1104,7 +1104,7 @@ export class Animator extends Component {
   private _preparePlayOwner(layerData: AnimatorLayerData, playState: AnimatorStateDef): void {
     if (layerData.layerState === LayerState.Playing) {
       const srcRuntime = layerData.srcRuntime;
-      if (srcRuntime.state.def !== playState) {
+      if (srcRuntime.state._def !== playState) {
         const { curveLayerOwner } = srcRuntime.stateData;
         for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
           curveLayerOwner[i]?.curveOwner.revertDefaultValue();
@@ -1128,7 +1128,7 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const state = runtime.state.def;
+    const state = runtime.state._def;
     const clipDuration = state.clip.length;
     let targetTransition: AnimatorStateTransition = null;
     const startTime = state.clipStartTime * clipDuration;
@@ -1469,8 +1469,8 @@ export class Animator extends Component {
     // like speed survive transitions). Supporting self cross-fade would require
     // a separate transient playback track per active fade.
     if (
-      animatorLayerData.srcRuntime?.state.def === crossState ||
-      animatorLayerData.destRuntime?.state.def === crossState
+      animatorLayerData.srcRuntime?.state._def === crossState ||
+      animatorLayerData.destRuntime?.state._def === crossState
     ) {
       return false;
     }
@@ -1515,7 +1515,7 @@ export class Animator extends Component {
     deltaTime: number
   ): void {
     const { isForward, clipTime } = runtime;
-    const state = runtime.state.def;
+    const state = runtime.state._def;
     const startTime = state._getClipActualStartTime();
     const endTime = state._getClipActualEndTime();
 

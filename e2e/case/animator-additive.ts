@@ -56,11 +56,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const additivePoseNames = animations.filter((clip) => clip.name.includes("pose")).map((clip) => clip.name);
 
       additivePoseNames.forEach((name) => {
-        const playData = animator.findAnimatorState(name);
-        if (!playData) {
+        const state = animator.findAnimatorState(name);
+        if (!state) {
           throw new Error(`Animator state not found: ${name}`);
         }
-        const clip = playData.clip;
+        const clip = state.clip;
         const newState = animatorStateMachine.addState(name);
         newState.clipStartTime = 1;
         newState.clip = clip;

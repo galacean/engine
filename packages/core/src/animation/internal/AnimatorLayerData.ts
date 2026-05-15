@@ -36,7 +36,7 @@ export class AnimatorLayerData {
     const map = this.stateMap;
     const name = def.name;
     let state = map[name];
-    if (state?.def !== def) {
+    if (state?._def !== def) {
       state = new AnimatorState(def);
       new AnimatorStateRuntime(state);
       map[name] = state;

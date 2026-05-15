@@ -162,7 +162,8 @@ if (currentState) {
 
 - `state.speed`：每个 `Animator` 独立的播放速度。未写入前透传到共享默认值，写入后由当前实例独占。
 - `state.name` / `state.clip` / `state.wrapMode` / `state.clipStartTime` / `state.clipEndTime`：从共享 `AnimatorStateDef` 转发的只读字段。
-- `state.def`：底层共享的 `AnimatorStateDef` 资产。对 `def.wrapMode` 等字段的修改会改变共享 `AnimatorController` 资产，因此会影响所有使用该控制器的 `Animator`。
+
+要修改共享 asset（影响所有使用该控制器的 `Animator`——编辑器/资产搭建场景常见），通过控制器路径访问。这条更长的路径本身就是一个视觉提醒：你做的是全局变更。
 
 ```typescript
 const state = animator.findAnimatorState("xxx");
@@ -174,8 +175,11 @@ if (!state) {
 // per-instance 覆盖（只影响当前 Animator）
 state.speed = 0.5;
 
-// 修改共享 asset（影响所有使用该控制器的 Animator）
-state.def.wrapMode = WrapMode.Once;
+// 只读访问共享 asset 字段
+console.log(state.clip.length, state.wrapMode);
+
+// 修改共享 asset（广播到所有使用该控制器的 Animator）
+animator.animatorController.layers[0].stateMachine.findStateByName("xxx").wrapMode = WrapMode.Once;
 ```
 
 ### 动画裁剪

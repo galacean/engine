@@ -39,7 +39,7 @@ export class AnimatorStateRuntime {
    * Does NOT touch user-written per-instance overrides on `state`.
    */
   resetForPlay(stateData: AnimatorStateData, offsetFrameTime: number): void {
-    const def = this.state.def;
+    const def = this.state._def;
     this.stateData = stateData;
     this.offsetFrameTime = offsetFrameTime;
     this.playedTime = 0;
@@ -64,7 +64,7 @@ export class AnimatorStateRuntime {
 
   update(deltaTime: number): void {
     this.playedTime += deltaTime;
-    const def = this.state.def;
+    const def = this.state._def;
     let time = this.playedTime + this.offsetFrameTime;
     const duration = def._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
@@ -87,7 +87,7 @@ export class AnimatorStateRuntime {
   }
 
   private _correctTime(): void {
-    const def = this.state.def;
+    const def = this.state._def;
     // Reverse playback resumed at clipTime=0 would step into negatives; jump to
     // clipEnd so the next sample continues seamlessly from the end of the clip.
     if (this.clipTime === 0) {
