@@ -14,6 +14,7 @@ export class AnimatorStateInstance {
   _runtime: AnimatorStateRuntime;
 
   private _speed: number | undefined;
+  private _wrapMode: WrapMode | undefined;
 
   get name(): string {
     return this._state.name;
@@ -21,10 +22,6 @@ export class AnimatorStateInstance {
 
   get clip(): AnimationClip {
     return this._state.clip;
-  }
-
-  get wrapMode(): WrapMode {
-    return this._state.wrapMode;
   }
 
   get clipStartTime(): number {
@@ -42,6 +39,15 @@ export class AnimatorStateInstance {
 
   set speed(value: number) {
     this._speed = value;
+  }
+
+  /** Wrap mode for this Animator. */
+  get wrapMode(): WrapMode {
+    return this._wrapMode ?? this._state.wrapMode;
+  }
+
+  set wrapMode(value: WrapMode) {
+    this._wrapMode = value;
   }
 
   /** @internal */

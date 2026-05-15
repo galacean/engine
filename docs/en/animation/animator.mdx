@@ -152,8 +152,8 @@ if (current) {
 
 [findAnimatorState](/apis/core/#Animator-findAnimatorState) returns the per-Animator `AnimatorStateInstance` (`AnimatorStateInstance | null`). Writes only affect this Animator; the shared `AnimatorState` on the controller is untouched. Same pattern as `Renderer.getInstanceMaterial`.
 
-- `speed` is per-instance overrideable; unwritten reads return the shared default.
-- `name`, `clip`, `wrapMode`, `clipStartTime`, `clipEndTime` read through to the shared asset.
+- `speed`, `wrapMode` are per-instance overrideable; unwritten reads return the shared default.
+- `name`, `clip`, `clipStartTime`, `clipEndTime` read through to the shared asset.
 
 To mutate the shared asset (broadcasts to every Animator), go through the controller path:
 
@@ -161,11 +161,12 @@ To mutate the shared asset (broadcasts to every Animator), go through the contro
 const state = animator.findAnimatorState("xxx");
 if (!state) return;
 
-// Per-instance override.
+// Per-instance overrides.
 state.speed = 0.5;
+state.wrapMode = WrapMode.Once;
 
 // Broadcast to every Animator using this controller.
-animator.animatorController.layers[0].stateMachine.findStateByName("xxx").wrapMode = WrapMode.Once;
+animator.animatorController.layers[0].stateMachine.findStateByName("xxx").clip = otherClip;
 ```
 
 ### Animation Culling

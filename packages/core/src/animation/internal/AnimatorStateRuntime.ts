@@ -55,11 +55,12 @@ export class AnimatorStateRuntime {
 
   update(deltaTime: number): void {
     this.playedTime += deltaTime;
-    const state = this.instance._state;
+    const instance = this.instance;
+    const state = instance._state;
     let time = this.playedTime + this.offsetFrameTime;
     const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
-    if (state.wrapMode === WrapMode.Loop) {
+    if (instance.wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;
     } else {
       if (Math.abs(time) >= duration) {
