@@ -275,20 +275,28 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
 
   /**
    * {@inheritDoc IDynamicCollider.move }
+   *
+   * PhysX 要求 setKinematicTarget 的 rotation 是 normalized quaternion，否则会触发
+   * 内部 assertion / 警告，并把 actor 转到错误的姿态。所以在写入 wasm 边界前统一 normalize。
    */
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    const tempTranslation = PhysXDynamicCollider._tempTranslation;
+    const tempRotation = PhysXDynamicCollider._tempRotation;
+
     if (rotation) {
-      this._pxActor.setKinematicTarget(positionOrRotation, rotation);
+      tempRotation.copyFrom(rotation).normalize();
+      this._pxActor.setKinematicTarget(positionOrRotation, tempRotation);
       return;
     }
 
-    const tempTranslation = PhysXDynamicCollider._tempTranslation;
-    const tempRotation = PhysXDynamicCollider._tempRotation;
-    this.getWorldTransform(tempTranslation, tempRotation);
     if (positionOrRotation instanceof Vector3) {
+      this.getWorldTransform(tempTranslation, tempRotation);
+      // current rotation read from PhysX is already normalized; no extra work needed
       this._pxActor.setKinematicTarget(positionOrRotation, tempRotation);
     } else {
-      this._pxActor.setKinematicTarget(tempTranslation, positionOrRotation);
+      this.getWorldTransform(tempTranslation, tempRotation);
+      tempRotation.copyFrom(positionOrRotation).normalize();
+      this._pxActor.setKinematicTarget(tempTranslation, tempRotation);
     }
   }
 

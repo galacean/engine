@@ -130,7 +130,9 @@ describe("Transform test", function () {
     // @ts-ignore
     expect(child.transform._dirtyFlag & TransformModifyFlags.WorldMatrix).to.equal(0);
     // @ts-ignore
-    expect(parent.transform._dirtyFlag & TransformModifyFlags.WmWpWeWqWsWus).to.equal(TransformModifyFlags.WmWpWeWqWsWus);
+    expect(parent.transform._dirtyFlag & TransformModifyFlags.WmWpWeWqWsWus).to.equal(
+      TransformModifyFlags.WmWpWeWqWsWus
+    );
 
     // 3) Reparent `parent` under a positioned root (triggers _parentChange on parent).
     const root = scene.createRootEntity("reparent-root");
@@ -174,6 +176,70 @@ describe("Transform test", function () {
     expect(after.elements[12]).to.equal(510); // 500 + 10
     expect(after.elements[13]).to.equal(620); // 600 + 20
     expect(after.elements[14]).to.equal(730); // 700 + 30
+  });
+
+  it("_cloneTo invalidates world cache cleared by other components' ctor reads", () => {
+    // Reproduces the Transform._cloneTo dirty-flag bug surfaced by the
+    // billiard-aim-line fix (see notes/3D台球游戏联机版/2026-05-15-billiard-aim-line-kinematic-pair.md).
+    //
+    // The cloneComponent sequence calls Component._cloneTo for each component
+    // in order. Components added BEFORE Transform on a cloned entity may read
+    // `entity.transform.worldPosition` in their ctor (DynamicCollider does this
+    // to seed the native PxRigidDynamic pose) — that getter clears WorldPosition
+    // & WorldMatrix dirty flags as a side effect of caching the computed value.
+    //
+    // When Transform._cloneTo later writes new local values, those world-derived
+    // caches are stale (they still hold the pre-clone defaults). The fix re-dirties
+    // & dispatches the world flag set so subsequent reads recompute correctly.
+    const source = new Entity(engine, "source");
+    source.transform.setPosition(1, 2, 3);
+
+    // Target entity in pre-_cloneTo state: default transform, but a "Component ctor"
+    // already queried worldPosition (simulates DynamicCollider native ctor side effect).
+    const target = new Entity(engine, "target");
+    const beforeClone = target.transform.worldPosition;
+    expect(beforeClone.x).to.equal(0);
+    // White-box: WorldPosition dirty flag was cleared by the getter call above.
+    // @ts-ignore
+    expect(target.transform._dirtyFlag & TransformModifyFlags.WorldPosition).to.equal(0);
+
+    // Exercise _cloneTo (the same call the cloneComponent path makes).
+    // @ts-ignore - internal API
+    source.transform._cloneTo(target.transform);
+
+    // After _cloneTo, target.worldPosition must reflect cloned (1,2,3), not stale (0,0,0).
+    const afterClone = target.transform.worldPosition;
+    expect(afterClone.x).to.equal(1);
+    expect(afterClone.y).to.equal(2);
+    expect(afterClone.z).to.equal(3);
+  });
+
+  it("_cloneTo dispatches world-flag change to registered listeners (Collider._updateFlag fires)", () => {
+    // Reproduces the listener-side of the same bug. Collider._updateFlag is a
+    // BoolUpdateFlag registered via entity.registerWorldChangeFlag(); Collider._onUpdate
+    // checks it to decide whether to push transform to the native physics actor.
+    //
+    // If Transform._cloneTo only re-dirties local flags but doesn't dispatch the
+    // world flag set, the listener stays `false` after clone → Collider never
+    // re-syncs the native actor pose → physics state mismatch (Bug A / Joint clone
+    // box2 flies at 299 m/s).
+    const source = new Entity(engine, "source");
+    source.transform.setPosition(7, 8, 9);
+
+    const target = new Entity(engine, "target");
+    // Simulate Component ctor: register a world-change listener BEFORE _cloneTo.
+    const updateFlag = target.registerWorldChangeFlag();
+    // Then read worldPosition (mirrors DynamicCollider native ctor) — this clears
+    // both the dirty flag AND the listener's `flag` if it was true.
+    target.transform.worldPosition;
+    updateFlag.flag = false;
+
+    // @ts-ignore - internal API
+    source.transform._cloneTo(target.transform);
+
+    // The listener MUST observe the change; otherwise downstream consumers
+    // (Collider._onUpdate, animation rigs, etc.) silently miss the clone update.
+    expect(updateFlag.flag).to.equal(true);
   });
 
   it("Subclasses of Transform", () => {

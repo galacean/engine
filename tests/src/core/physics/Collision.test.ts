@@ -1,4 +1,12 @@
-import { BoxColliderShape, DynamicCollider, Entity, Engine, Script, StaticCollider } from "@galacean/engine-core";
+import {
+  BoxColliderShape,
+  DynamicCollider,
+  DynamicColliderConstraints,
+  Entity,
+  Engine,
+  Script,
+  StaticCollider
+} from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
@@ -162,6 +170,167 @@ describe("Collision", function () {
       box1.getComponent(DynamicCollider).applyForce(new Vector3(1000, 0, 0));
       // @ts-ignore
       engine.sceneManager.activeScene.physics._update(1);
+    });
+  });
+
+  // ──────────────────────────────────────────────────────────────────────────────
+  // Kinematic-pair collision callback (3D billiard aim-line use case).
+  // PhysX 4.x defaults suppress kineKine + staticKine pairs. SceneBinding already
+  // sets kineKineFilteringMode = eKEEP and staticKineFilteringMode = eKEEP, and
+  // filter shader returns eNOTIFY_TOUCH_FOUND/PERSISTS/LOST for all pairs.
+  // Question: does the kinematic pair actually fire onCollisionEnter when a
+  // kinematic actor is moved into another actor's volume via setWorldTransform
+  // (i.e. setGlobalPose teleport, NOT setKinematicTarget)?
+  //
+  // Cocos parity expectation: yes — Cocos PhysX backend fires onCollisionEnter
+  // for kinematic↔dynamic and kinematic↔kinematic pairs on overlap.
+  // ──────────────────────────────────────────────────────────────────────────────
+
+  function probeKinematicCallback(opts: {
+    aKine: boolean;
+    bKine: boolean;
+    timeoutMs?: number;
+  }): Promise<{ fired: boolean }> {
+    return new Promise((resolve) => {
+      engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
+      const boxA = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-3, 0, 0));
+      const boxB = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(3, 0, 0));
+      const colA = boxA.getComponent(DynamicCollider);
+      const colB = boxB.getComponent(DynamicCollider);
+      colA.useGravity = false;
+      colB.useGravity = false;
+      colA.isKinematic = opts.aKine;
+      colB.isKinematic = opts.bKine;
+
+      let fired = false;
+      boxA.addComponent(
+        class extends Script {
+          onCollisionEnter(_other: Collision): void {
+            fired = true;
+            resolve({ fired: true });
+          }
+        }
+      );
+
+      // Step a few frames to let PhysX settle initial state.
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // Teleport B onto A → expect onCollisionEnter.
+      boxB.transform.setPosition(-3, 0, 0);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      if (!fired) resolve({ fired: false });
+    });
+  }
+
+  // Probes that the standard transform→PhysX sync path routes correctly for
+  // kinematic actors. With the fix in PhysXDynamicCollider.setWorldTransform,
+  // moving a kinematic actor via transform.setPosition() goes through
+  // setKinematicTarget(), which lets PhysX detect contact and fire the callback.
+  it("kinematic-kinematic overlap via transform.setPosition fires onCollisionEnter", async function () {
+    const r = await probeKinematicCallback({ aKine: true, bKine: true });
+    expect(r.fired).toBe(true);
+  });
+
+  it("kinematic-dynamic overlap via transform.setPosition fires onCollisionEnter", async function () {
+    const r = await probeKinematicCallback({ aKine: true, bKine: false });
+    expect(r.fired).toBe(true);
+  });
+
+  it("dynamic-dynamic overlap via transform.setPosition fires onCollisionEnter", async function () {
+    const r = await probeKinematicCallback({ aKine: false, bKine: false });
+    expect(r.fired).toBe(true);
+  });
+
+  // Probe whether "dynamic actor + freeze 6 constraints + teleport via setGlobalPose"
+  // can substitute for a kinematic actor and still trigger contact callbacks.
+  // This is the proposed fix path for the 3D billiard hitBall: ditch kinematic,
+  // use a fully-frozen dynamic actor that is moved via setWorldPosition.
+  it("HYPOTHESIS: kine-kine fires onCollisionEnter when moved via setKinematicTarget (not setGlobalPose)", function () {
+    return new Promise<void>((resolve, reject) => {
+      engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
+      const boxA = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-3, 0, 0));
+      const boxB = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(3, 0, 0));
+      const colA = boxA.getComponent(DynamicCollider);
+      const colB = boxB.getComponent(DynamicCollider);
+      colA.useGravity = false;
+      colB.useGravity = false;
+      colA.isKinematic = true;
+      colB.isKinematic = true;
+
+      let fired = false;
+      boxA.addComponent(
+        class extends Script {
+          onCollisionEnter(_other: Collision): void {
+            fired = true;
+            resolve();
+          }
+        }
+      );
+
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // Move B onto A via DynamicCollider.move() — this internally calls setKinematicTarget.
+      colB.move(new Vector3(-3, 0, 0));
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      if (!fired) reject(new Error("kine-kine setKinematicTarget did NOT fire onCollisionEnter"));
+    });
+  });
+
+  it("dynamic + frozen-6 + teleport: overlap fires onCollisionEnter (fix candidate)", function () {
+    return new Promise<void>((resolve) => {
+      engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
+      const boxA = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-3, 0, 0));
+      const boxB = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(3, 0, 0));
+      const colA = boxA.getComponent(DynamicCollider);
+      const colB = boxB.getComponent(DynamicCollider);
+      // Both fully frozen — emulates the cocos kinematic semantics (no gravity, no movement).
+      const FREEZE_ALL =
+        DynamicColliderConstraints.FreezePositionX |
+        DynamicColliderConstraints.FreezePositionY |
+        DynamicColliderConstraints.FreezePositionZ |
+        DynamicColliderConstraints.FreezeRotationX |
+        DynamicColliderConstraints.FreezeRotationY |
+        DynamicColliderConstraints.FreezeRotationZ;
+      colA.constraints = FREEZE_ALL;
+      colB.constraints = FREEZE_ALL;
+      colA.useGravity = false;
+      colB.useGravity = false;
+      colA.isKinematic = false;
+      colB.isKinematic = false;
+
+      let fired = false;
+      boxA.addComponent(
+        class extends Script {
+          onCollisionEnter(_other: Collision): void {
+            fired = true;
+            resolve();
+          }
+        }
+      );
+
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      boxB.transform.setPosition(-3, 0, 0);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      if (!fired) {
+        expect.fail("expected onCollisionEnter to fire for dynamic-frozen pair after teleport");
+      }
     });
   });
 });

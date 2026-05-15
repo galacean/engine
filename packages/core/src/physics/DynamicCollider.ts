@@ -463,6 +463,33 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * Route per-frame entity → native transform sync to the correct physics API based
+   * on kinematic state.
+   *
+   * PhysX 4.x docs (PxRigidDynamic):
+   *   "If you intend to move a kinematic actor with [setGlobalPose] and want
+   *    collision detection, use setKinematicTarget() instead."
+   *
+   * setGlobalPose is a teleport: PhysX skips contact detection between the old
+   * and new pose, so two kinematic actors moved onto each other via entity.transform
+   * mutation would NOT produce onCollisionEnter / onCollisionStay events even when
+   * scene.kineKineFilteringMode = eKEEP. Routing the per-frame sync through
+   * IDynamicCollider.move() (which the PhysX backend implements as
+   * setKinematicTarget) tells PhysX the actor is animating to the target during the
+   * next simulate(), enabling sweep contact detection for kine-kine and kine-dynamic
+   * pairs alike.
+   *
+   * @internal
+   */
+  protected override _syncEntityTransformToNative(worldPosition: Vector3, worldRotation: Quaternion): void {
+    if (this._isKinematic) {
+      (<IDynamicCollider>this._nativeCollider).move(worldPosition, worldRotation);
+    } else {
+      super._syncEntityTransformToNative(worldPosition, worldRotation);
+    }
+  }
+
+  /**
    * @internal
    */
   override _onLateUpdate(): void {

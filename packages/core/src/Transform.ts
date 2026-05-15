@@ -616,8 +616,13 @@ export class Transform extends Component {
     // @ts-ignore
     scale._onValueChanged = target._onScaleChanged;
 
-    // When cloning, other components may obtain properties such as `rotationQuaternion` in the constructor, local related dirty flags need to be corrected
+    // When cloning, other components may obtain properties such as `rotationQuaternion` in the constructor, local related dirty flags need to be corrected.
+    // Earlier in this Entity's construction other components (e.g. DynamicCollider) may have queried
+    // `worldPosition`, which clears the WorldPosition / WorldMatrix dirty flags as a side effect of caching
+    // the computed value. After this _cloneTo writes new local values, those world-derived caches are stale,
+    // so re-dirty them and notify listeners (Collider._updateFlag etc.) so subsequent reads recompute correctly.
     target._setDirtyFlagTrue(TransformModifyFlags.LocalQuat | TransformModifyFlags.LocalMatrix);
+    target._worldAssociatedChange(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
   protected _onLocalMatrixChanging(): void {

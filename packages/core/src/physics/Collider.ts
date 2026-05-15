@@ -1,4 +1,5 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
@@ -111,10 +112,7 @@ export class Collider extends Component implements ICustomClone {
     const shapes = this._shapes;
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      (<IStaticCollider>this._nativeCollider).setWorldTransform(
-        transform.worldPosition,
-        transform.worldRotationQuaternion
-      );
+      this._syncEntityTransformToNative(transform.worldPosition, transform.worldRotationQuaternion);
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = shapes.length; i < n; i++) {
@@ -171,6 +169,32 @@ export class Collider extends Component implements ICustomClone {
       this._addNativeShape(this.shapes[i]);
     }
     this._setCollisionLayer();
+    // Teleport native actor to entity's current world pose.
+    // The native actor was created in constructor() with the entity's then-current
+    // worldPosition/Rotation. On clone, the entity's transform fields are deep-cloned
+    // AFTER the Component (and its native actor) are constructed, so the native actor's
+    // pose lags behind the cloned entity transform until this sync.
+    const { transform } = this.entity;
+    this._teleportToEntityTransform(transform.worldPosition, transform.worldRotationQuaternion);
+  }
+
+  /**
+   * Teleport native actor to a world pose (instant, no implied velocity).
+   * Used during initialization paths (clone) where the native actor must be re-aligned
+   * with the entity transform after construction-time pose was based on stale defaults.
+   */
+  protected _teleportToEntityTransform(worldPosition: Vector3, worldRotation: Quaternion): void {
+    (<IStaticCollider>this._nativeCollider).setWorldTransform(worldPosition, worldRotation);
+  }
+
+  /**
+   * Sync entity world transform to native actor for per-frame updates.
+   * Default semantics: teleport (setGlobalPose). Subclasses override to express
+   * physics-aware movement (e.g. DynamicCollider routes kinematic actors through
+   * setKinematicTarget to generate contact events on swept motion).
+   */
+  protected _syncEntityTransformToNative(worldPosition: Vector3, worldRotation: Quaternion): void {
+    (<IStaticCollider>this._nativeCollider).setWorldTransform(worldPosition, worldRotation);
   }
 
   /**
