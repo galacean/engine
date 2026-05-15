@@ -6,7 +6,6 @@ import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
-import { ClearableObjectPool } from "../utils/ClearableObjectPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
@@ -55,8 +54,6 @@ export class Animator extends Component {
   private _animatorLayersData = new Array<AnimatorLayerData>();
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
-  @ignoreClone
-  private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
   @ignoreClone
   private _parametersValueMap = <Record<string, AnimatorControllerParameterValue>>Object.create(null);
 
@@ -327,7 +324,6 @@ export class Animator extends Component {
     this._animatorLayersData.length = 0;
     this._curveOwnerPool = Object.create(null);
     this._parametersValueMap = Object.create(null);
-    this._animationEventHandlerPool.clear();
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
@@ -422,7 +418,7 @@ export class Animator extends Component {
       animatorStateDataMap.set(animatorState, animatorStateData);
       this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
     }
-    this._ensureEventHandlersUpToDate(animatorState, animatorStateData);
+    this._ensureEventHandlers(animatorState, animatorStateData);
     return animatorStateData;
   }
 
@@ -479,13 +475,12 @@ export class Animator extends Component {
     }
   }
 
-  private _ensureEventHandlersUpToDate(state: AnimatorState, animatorStateData: AnimatorStateData): void {
+  private _ensureEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const clipFlag = state.clip._updateFlagManager;
     if (animatorStateData.eventsBuiltVersion === clipFlag._version) {
       return;
     }
 
-    const eventHandlerPool = this._animationEventHandlerPool;
     const scripts = [];
     this._entity.getComponents(Script, scripts);
     const scriptCount = scripts.length;
@@ -494,12 +489,11 @@ export class Animator extends Component {
     eventHandlers.length = 0;
     for (let i = 0, n = events.length; i < n; i++) {
       const event = events[i];
-      const eventHandler = eventHandlerPool.get();
+      const eventHandler = new AnimationEventHandler();
       const funcName = event.functionName;
       const { handlers } = eventHandler;
 
       eventHandler.event = event;
-      handlers.length = 0;
       for (let j = scriptCount - 1; j >= 0; j--) {
         const script = scripts[j];
         const handler = <Function>script[funcName]?.bind(script);
