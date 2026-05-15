@@ -20,22 +20,30 @@ export class AnimatorStateInstance {
   private _speed: number | undefined;
   private _wrapMode: WrapMode | undefined;
 
-  /** Name of the underlying state. */
+  /**
+   * Name of the underlying state.
+   */
   get name(): string {
     return this._state.name;
   }
 
-  /** Animation clip of the underlying state. */
+  /**
+   * Animation clip of the underlying state.
+   */
   get clip(): AnimationClip {
     return this._state.clip;
   }
 
-  /** Normalized clip start time of the underlying state. */
+  /**
+   * Normalized clip start time of the underlying state.
+   */
   get clipStartTime(): number {
     return this._state.clipStartTime;
   }
 
-  /** Normalized clip end time of the underlying state. */
+  /**
+   * Normalized clip end time of the underlying state.
+   */
   get clipEndTime(): number {
     return this._state.clipEndTime;
   }
