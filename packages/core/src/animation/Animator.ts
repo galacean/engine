@@ -221,7 +221,7 @@ export class Animator extends Component {
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStateInstance | null {
     this._resetIfControllerUpdated();
     const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
-    if (!state || foundLayer < 0) return null;
+    if (!state) return null;
     return this._getAnimatorLayerData(foundLayer).getOrCreateInstance(state);
   }
 
@@ -386,7 +386,7 @@ export class Animator extends Component {
     this._resetIfControllerUpdated();
 
     const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
-    if (!state || playLayerIndex < 0) {
+    if (!state) {
       return;
     }
     const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
