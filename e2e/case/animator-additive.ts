@@ -60,7 +60,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         if (!playData) {
           throw new Error(`Animator state not found: ${name}`);
         }
-        const clip = playData.state.clip;
+        const clip = playData.clip;
         const newState = animatorStateMachine.addState(name);
         newState.clipStartTime = 1;
         newState.clip = clip;

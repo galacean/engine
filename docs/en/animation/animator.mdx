@@ -113,22 +113,20 @@ animator.speed = 0;
 animator.speed = 1;
 ```
 
-If you only want to pause a specific `AnimatorState` , you can do so by setting its speed to 0.
+If you only want to pause a specific `AnimatorState` on this Animator instance, set the per-instance speed to 0.
 
 ```typescript
-const playData = animator.findAnimatorState("xxx");
-if (!playData) {
+const state = animator.findAnimatorState("xxx");
+if (!state) {
   // State not found in any layer
   return;
 }
 
 // Pause only this Animator instance's playback of the state.
-playData.speed = 0;
+state.speed = 0;
 
-// To resume later, just assign the desired speed again, e.g.:
-// playData.speed = 1;
-// or follow whatever the asset is currently configured to:
-// playData.speed = playData.state.speed;
+// To resume later, write any non-zero value:
+// state.speed = 1;
 ```
 
 ### Transition to Specified Animation State
@@ -155,23 +153,24 @@ if (currentState) {
 
 ### Get Animation State
 
-You can use the [findAnimatorState](/apis/core/#Animator-findAnimatorState) method to get the playback data for a specified `AnimatorState`. The return type is `AnimatorStatePlayData | null` (`null` when no layer contains a state with that name).
+[findAnimatorState](/apis/core/#Animator-findAnimatorState) returns the per-Animator `AnimatorState` view for the named state (`AnimatorState | null`). Writes on the view (e.g. `state.speed`) only affect this Animator — the shared `AnimatorStateDef` asset on the controller is untouched. Mirrors the `Renderer.getInstanceMaterial` pattern.
 
-The returned `AnimatorStatePlayData` exposes two distinct surfaces:
-
-- `playData.speed` — per-Animator playback speed. **Until written**, it live-binds to `state.speed`; once you write a value the instance owns its own speed, and later changes to `state.speed` no longer flow through. To follow the asset again, simply assign `playData.state.speed` back. Reading and writing only affects this `Animator` instance and won't affect other `Animator` instances sharing the same `AnimatorController`.
-- `playData.state` — the underlying shared `AnimatorState` asset. Mutating fields like `wrapMode` mutates the shared `AnimatorController` asset and therefore affects every `Animator` using this controller.
+- `state.speed` — per-Animator playback speed. Until written, reads through to the shared default; once written, the instance owns its own speed.
+- `state.name`, `state.clip`, `state.wrapMode`, `state.clipStartTime`, `state.clipEndTime` — read-only forwards from the shared `AnimatorStateDef`.
+- `state.def` — the underlying shared `AnimatorStateDef` asset. Mutating fields like `def.wrapMode` mutates the shared `AnimatorController` asset and therefore affects every `Animator` using this controller.
 
 ```typescript
-const playData = animator.findAnimatorState("xxx");
-if (!playData) {
+const state = animator.findAnimatorState("xxx");
+if (!state) {
   // State not found in any layer
   return;
 }
 
-// Mutating the shared AnimatorState asset (affects all Animators using this controller).
-playData.state.wrapMode = WrapMode.Once;
-playData.state.wrapMode = WrapMode.Loop;
+// Per-instance override (this Animator only)
+state.speed = 0.5;
+
+// Shared asset configuration (broadcast to every Animator using this controller)
+state.def.wrapMode = WrapMode.Once;
 ```
 
 ### Animation Culling

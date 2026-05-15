@@ -56,7 +56,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       if (!state) {
         throw new Error("Animator state not found: walk");
       }
-      const clip = state.state.clip;
+      const clip = state.clip;
 
       const event0 = new AnimationEvent();
       event0.functionName = "event0";

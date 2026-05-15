@@ -67,62 +67,62 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
 
       // handle idle state
       const toWalkTransition = new AnimatorStateTransition();
-      toWalkTransition.destinationState = walkState.state;
+      toWalkTransition.destinationState = walkState.def.def;
       toWalkTransition.duration = 0.2;
       toWalkTransition.addCondition("playerSpeed", AnimatorConditionMode.Greater, 0);
-      idleState.state.addTransition(toWalkTransition);
+      idleState.def.addTransition(toWalkTransition);
       idleToWalkTime =
         //@ts-ignore
-        toWalkTransition.exitTime * idleState.state._getDuration() +
+        toWalkTransition.exitTime * idleState.def._getDuration() +
         //@ts-ignore
-        toWalkTransition.duration * walkState.state._getDuration();
+        toWalkTransition.duration * walkState.def._getDuration();
 
-      const exitTransition = idleState.state.addExitTransition();
+      const exitTransition = idleState.def.addExitTransition();
       exitTransition.addCondition("playerSpeed", AnimatorConditionMode.Equals, 0);
       // to walk state
       const toRunTransition = new AnimatorStateTransition();
-      toRunTransition.destinationState = runState.state;
+      toRunTransition.destinationState = runState.def.def;
       toRunTransition.duration = 0.3;
       toRunTransition.addCondition("playerSpeed", AnimatorConditionMode.Greater, 0.5);
-      walkState.state.addTransition(toRunTransition);
+      walkState.def.addTransition(toRunTransition);
       walkToRunTime =
         //@ts-ignore
-        (toRunTransition.exitTime - toWalkTransition.duration) * walkState.state._getDuration() +
+        (toRunTransition.exitTime - toWalkTransition.duration) * walkState.def._getDuration() +
         //@ts-ignore
-        toRunTransition.duration * runState.state._getDuration();
+        toRunTransition.duration * runState.def._getDuration();
       const toIdleTransition = new AnimatorStateTransition();
-      toIdleTransition.destinationState = idleState.state;
+      toIdleTransition.destinationState = idleState.def.def;
       toIdleTransition.duration = 0.3;
       toIdleTransition.addCondition("playerSpeed", AnimatorConditionMode.Equals, 0);
-      walkState.state.addTransition(toIdleTransition);
+      walkState.def.addTransition(toIdleTransition);
       walkToIdleTime =
         //@ts-ignore
-        (toIdleTransition.exitTime - toRunTransition.duration) * walkState.state._getDuration() +
+        (toIdleTransition.exitTime - toRunTransition.duration) * walkState.def._getDuration() +
         //@ts-ignore
-        toIdleTransition.duration * idleState.state._getDuration();
+        toIdleTransition.duration * idleState.def._getDuration();
 
       // to run state
       const runToWalkTransition = new AnimatorStateTransition();
-      runToWalkTransition.destinationState = walkState.state;
+      runToWalkTransition.destinationState = walkState.def.def;
       runToWalkTransition.duration = 0.3;
       runToWalkTransition.addCondition("playerSpeed", AnimatorConditionMode.Less, 0.5);
-      runState.state.addTransition(runToWalkTransition);
+      runState.def.addTransition(runToWalkTransition);
       runToWalkTime =
         //@ts-ignore
-        (runToWalkTransition.exitTime - toRunTransition.duration) * runState.state._getDuration() +
+        (runToWalkTransition.exitTime - toRunTransition.duration) * runState.def._getDuration() +
         //@ts-ignore
-        runToWalkTransition.duration * walkState.state._getDuration();
+        runToWalkTransition.duration * walkState.def._getDuration();
 
-      stateMachine.addEntryStateTransition(idleState.state);
+      stateMachine.addEntryStateTransition(idleState.def);
 
-      const anyTransition = stateMachine.addAnyStateTransition(idleState.state);
+      const anyTransition = stateMachine.addAnyStateTransition(idleState.def);
       anyTransition.addCondition("playerSpeed", AnimatorConditionMode.Equals, 0);
       anyTransition.duration = 0.3;
       let anyToIdleTime =
         // @ts-ignore
-        (anyTransition.exitTime - toIdleTransition.duration) * walkState.state._getDuration() +
+        (anyTransition.exitTime - toIdleTransition.duration) * walkState.def._getDuration() +
         // @ts-ignore
-        anyTransition.duration * idleState.state._getDuration();
+        anyTransition.duration * idleState.def._getDuration();
 
       engine.time.maximumDeltaTime = 10000;
       updateForE2E(engine, (idleToWalkTime + walkToRunTime) * 1000, 1);

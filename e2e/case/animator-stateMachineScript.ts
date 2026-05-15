@@ -4,7 +4,7 @@
  */
 import {
   Animator,
-  AnimatorState,
+  AnimatorStateDef,
   Camera,
   Color,
   DirectLight,
@@ -60,18 +60,18 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
         throw new Error("Animator state not found: walk");
       }
 
-      state.state.addStateMachineScript(
+      state.def.addStateMachineScript(
         class extends StateMachineScript {
-          onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
+          onStateEnter(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {
             textRenderer.text = "0";
             console.log("onStateEnter: ", animatorState);
           }
 
-          onStateUpdate(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
+          onStateUpdate(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {
             console.log("onStateUpdate: ", animatorState);
           }
 
-          onStateExit(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
+          onStateExit(animator: Animator, animatorState: AnimatorStateDef, layerIndex: number): void {
             textRenderer.text = "1";
             console.log("onStateExit: ", animatorState);
           }

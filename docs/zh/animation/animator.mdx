@@ -117,22 +117,20 @@ animator.speed = 1;
 ```
 
 
-如果你只想针对某一个 `动画状态` 进行暂停，可以通过将它的速度设置为 0 来实现。
+如果你只想针对当前 `Animator` 上的某个 `动画状态` 进行暂停，将它的 per-instance 速度设为 0 即可。
 
 ```typescript
-const playData = animator.findAnimatorState("xxx");
-if (!playData) {
+const state = animator.findAnimatorState("xxx");
+if (!state) {
   // 任何一个动画层都没有该状态
   return;
 }
 
 // 仅暂停当前 Animator 实例的该状态播放。
-playData.speed = 0;
+state.speed = 0;
 
-// 想要恢复时再写一次目标速度即可，例如：
-// playData.speed = 1;
-// 或者跟随当前 asset 配置：
-// playData.speed = playData.state.speed;
+// 想要恢复时写回任意非零速度即可:
+// state.speed = 1;
 ```
 
 ### 过渡指定动画状态
@@ -160,23 +158,24 @@ if (currentState) {
 
 ### 获取动画状态
 
-你可以使用 [findAnimatorState](/apis/core/#Animator-findAnimatorState) 方法来获取指定名称 `动画状态` 的播放数据。返回类型为 `AnimatorStatePlayData | null`（当任何一个动画层都没有该状态时返回 `null`）。
+[findAnimatorState](/apis/core/#Animator-findAnimatorState) 返回当前 `Animator` 独有的 `AnimatorState` 视图（`AnimatorState | null`）。对该视图的写入（如 `state.speed`）只影响当前 Animator，控制器上的共享 `AnimatorStateDef` 资产不受影响。模式与 `Renderer.getInstanceMaterial` 一致。
 
-返回的 `AnimatorStatePlayData` 提供两套语义不同的访问入口：
-
-- `playData.speed`：每个 `Animator` 实例独立的播放速度。**未写入前**实时绑定到 `state.speed`，一旦写入即由该实例自行持有，之后修改 `state.speed` 不会再传递到此实例；想再次跟随 asset 时直接写回 `playData.state.speed` 即可。读写只影响当前 `Animator` 实例，不会影响其他共享同一 `AnimatorController` 的 `Animator` 实例。
-- `playData.state`：底层共享的 `AnimatorState` 资产。对 `wrapMode` 等字段的修改会改变共享的 `AnimatorController` 资产，因此会影响所有使用该控制器的 `Animator`。
+- `state.speed`：每个 `Animator` 独立的播放速度。未写入前透传到共享默认值，写入后由当前实例独占。
+- `state.name` / `state.clip` / `state.wrapMode` / `state.clipStartTime` / `state.clipEndTime`：从共享 `AnimatorStateDef` 转发的只读字段。
+- `state.def`：底层共享的 `AnimatorStateDef` 资产。对 `def.wrapMode` 等字段的修改会改变共享 `AnimatorController` 资产，因此会影响所有使用该控制器的 `Animator`。
 
 ```typescript
-const playData = animator.findAnimatorState("xxx");
-if (!playData) {
+const state = animator.findAnimatorState("xxx");
+if (!state) {
   // 任何一个动画层都没有该状态
   return;
 }
 
-// 修改共享的 AnimatorState 资产（影响所有使用该控制器的 Animator）
-playData.state.wrapMode = WrapMode.Once;
-playData.state.wrapMode = WrapMode.Loop;
+// per-instance 覆盖（只影响当前 Animator）
+state.speed = 0.5;
+
+// 修改共享 asset（影响所有使用该控制器的 Animator）
+state.def.wrapMode = WrapMode.Once;
 ```
 
 ### 动画裁剪
