@@ -55,12 +55,12 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
 
       const animator = defaultSceneRoot.getComponent(Animator);
-      const walkDef = animator.animatorController.layers[0].stateMachine.findStateByName("walk");
-      if (!walkDef) {
+      const walkState = animator.animatorController.layers[0].stateMachine.findStateByName("walk");
+      if (!walkState) {
         throw new Error("Animator state not found: walk");
       }
 
-      walkDef.addStateMachineScript(
+      walkState.addStateMachineScript(
         class extends StateMachineScript {
           onStateEnter(animator: Animator, animatorState: AnimatorState, layerIndex: number): void {
             textRenderer.text = "0";
