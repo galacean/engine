@@ -7,7 +7,6 @@ import { Utils } from "./Utils";
 export class UpdateFlagManager {
   /** @internal */
   _updateFlags: UpdateFlag[] = [];
-  /** Monotonic counter; bumped on every `dispatch`. Lets consumers do lazy pull-style invalidation without registering a listener. */
   /** @internal */
   _version: number = 0;
 
