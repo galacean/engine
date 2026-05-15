@@ -633,7 +633,7 @@ export class Animator extends Component {
     // Precalculate to get the transition
     srcPlayData.update(playDeltaTime);
 
-    const { clipTime: clipTime, isForward: isForward } = srcPlayData;
+    const { clipTime, isForward } = srcPlayData;
     const { _transitionCollection: transitions } = state;
     const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
 
@@ -961,7 +961,7 @@ export class Animator extends Component {
     const state = destPlayData.instance._state;
     const { _curveBindings: curveBindings } = state.clip;
 
-    const { clipTime: destClipTime, playState: playState } = destPlayData;
+    const { clipTime: destClipTime, playState } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
 
     // When the animator is culled (aniUpdate=false), if the play state has finished, the final value needs to be calculated and saved to be applied directly
@@ -1002,7 +1002,7 @@ export class Animator extends Component {
 
     playData.updateOrientation(actualDeltaTime);
 
-    const { clipTime: clipTime, isForward: isForward } = playData;
+    const { clipTime, isForward } = playData;
     const { _transitionCollection: transitions } = state;
     const { _anyStateTransitionCollection: anyStateTransitions } = layerData.layer.stateMachine;
 
