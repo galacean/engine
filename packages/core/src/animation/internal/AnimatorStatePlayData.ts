@@ -20,8 +20,7 @@ export class AnimatorStatePlayData {
 
   constructor(public readonly instance: AnimatorStateInstance) {}
 
-  /** Reset playback fields on (re-)enter. Per-instance overrides are preserved. */
-  resetForPlay(stateData: AnimatorStateData, offsetFrameTime: number): void {
+  reset(stateData: AnimatorStateData, offsetFrameTime: number): void {
     const state = this.instance._state;
     this.stateData = stateData;
     this.offsetFrameTime = offsetFrameTime;

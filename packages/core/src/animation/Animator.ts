@@ -1319,7 +1319,7 @@ export class Animator extends Component {
 
     animatorLayerData.layerState = LayerState.Playing;
     const playData = animatorLayerData.getOrCreateInstance(state)._playData;
-    playData.resetForPlay(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
+    playData.reset(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
     animatorLayerData.srcPlayData = playData;
     // Drop any dangling cross-fade slot from a previously-interrupted crossFade
     // so a later crossFade(B) isn't wrongly no-op'd by the active-dest guard.
@@ -1436,7 +1436,7 @@ export class Animator extends Component {
     const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
 
     const destPlayData = animatorLayerData.getOrCreateInstance(crossState)._playData;
-    destPlayData.resetForPlay(animatorStateData, transition.offset * crossState._getClipActualEndTime());
+    destPlayData.reset(animatorStateData, transition.offset * crossState._getClipActualEndTime());
     animatorLayerData.destPlayData = destPlayData;
     animatorLayerData.resetCurrentCheckIndex();
 
