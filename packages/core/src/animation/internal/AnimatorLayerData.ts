@@ -1,10 +1,11 @@
 import { AnimatorControllerLayer } from "../AnimatorControllerLayer";
 import { AnimatorState } from "../AnimatorState";
+import { AnimatorStateDef } from "../AnimatorStateDef";
 import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimatorStateData } from "./AnimatorStateData";
-import { AnimatorStatePlayData } from "../AnimatorStatePlayData";
+import { AnimatorStateRuntime } from "./AnimatorStateRuntime";
 
 /**
  * @internal
@@ -14,34 +15,39 @@ export class AnimatorLayerData {
   layer: AnimatorControllerLayer;
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
   animatorStateDataMap: Record<string, AnimatorStateData> = Object.create(null);
-  /** Per-state PlayData handles. Lazy populated. */
-  statePlayDataMap: Record<string, AnimatorStatePlayData> = Object.create(null);
-  /** Currently playing state's PlayData; null when standby. */
-  srcPlayData: AnimatorStatePlayData | null = null;
-  /** Cross-fade target state's PlayData; null when not cross-fading. */
-  destPlayData: AnimatorStatePlayData | null = null;
+  /** Per-state user-facing view containers. Lazy populated. */
+  stateMap: Record<string, AnimatorState> = Object.create(null);
+  /** Currently playing state's runtime; null when standby. */
+  srcRuntime: AnimatorStateRuntime | null = null;
+  /** Cross-fade target state's runtime; null when not cross-fading. */
+  destRuntime: AnimatorStateRuntime | null = null;
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
   crossFadeTransition: AnimatorStateTransition;
   crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
-  /** Get or lazily create the persistent PlayData for a state. */
-  getOrCreatePlayData(state: AnimatorState): AnimatorStatePlayData {
-    const statePlayDataMap = this.statePlayDataMap;
-    const stateName = state.name;
-    let playData = statePlayDataMap[stateName];
-    if (playData?.state !== state) {
-      playData = new AnimatorStatePlayData(state);
-      statePlayDataMap[stateName] = playData;
+  /**
+   * Get or lazily create the persistent (state-view, runtime) pair for a def.
+   * Rebuilds when the cached view is bound to a different def object
+   * (same-name remove + re-add).
+   */
+  getOrCreateRuntime(def: AnimatorStateDef): AnimatorStateRuntime {
+    const map = this.stateMap;
+    const name = def.name;
+    let state = map[name];
+    if (state?.def !== def) {
+      state = new AnimatorState(def);
+      new AnimatorStateRuntime(state);
+      map[name] = state;
     }
-    return playData;
+    return state._runtime;
   }
 
-  /** After cross-fade completes, promote destPlayData to srcPlayData. */
+  /** After cross-fade completes, promote destRuntime to srcRuntime. */
   promoteDest(): void {
-    this.srcPlayData = this.destPlayData;
-    this.destPlayData = null;
+    this.srcRuntime = this.destRuntime;
+    this.destRuntime = null;
   }
 
   resetCurrentCheckIndex(): void {

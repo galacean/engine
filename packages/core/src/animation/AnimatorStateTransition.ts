@@ -1,6 +1,6 @@
 import { AnimatorCondition } from "./AnimatorCondition";
 import { AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
-import { AnimatorState } from "./AnimatorState";
+import { AnimatorStateDef } from "./AnimatorStateDef";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 
@@ -15,7 +15,7 @@ export class AnimatorStateTransition {
   /** ExitTime represents the exact time at which the transition can take effect. This is represented in normalized time. */
   exitTime = 1.0;
   /** The destination state of the transition. */
-  destinationState: AnimatorState;
+  destinationState: AnimatorStateDef;
   /** Mutes the transition. The transition will never occur. */
   mute = false;
   /** Determines whether the duration of the transition is reported in a fixed duration in seconds or as a normalized time. */
