@@ -203,8 +203,10 @@ export class Animator extends Component {
    * Get the state instance currently playing on the target layer.
    * @param layerIndex - The layer index
    * @returns The state instance, or null if nothing is playing
+   * @remarks The returned instance is tied to the current controller's layer data. After a controller structure change (layers added or removed), the instance is invalidated; re-call this method to get a fresh one.
    */
   getCurrentAnimatorState(layerIndex: number): AnimatorStateInstance | null {
+    this._resetIfControllerUpdated();
     return this._animatorLayersData[layerIndex]?.srcPlayData?.instance ?? null;
   }
 
@@ -214,6 +216,7 @@ export class Animator extends Component {
    * @param stateName - The state name
    * @param layerIndex - The layer index (default -1, searches all layers)
    * @returns The state instance, or null if no state matches
+   * @remarks The returned instance is tied to the current controller's layer data. After a controller structure change (layers added or removed), the instance is invalidated; re-call this method to get a fresh one.
    */
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStateInstance | null {
     this._resetIfControllerUpdated();

@@ -37,7 +37,11 @@ export class GLTFSkinParser extends GLTFParser {
       // Get skeleton — when `skin.skeleton` is absent, resolve via joints' LCA
       // LCA falls back to the GLTF_ROOT wrapper only when joints span multiple top-level scene nodes
       if (skeleton !== undefined) {
-        skin.rootBone = entities[skeleton];
+        const rootBone = entities[skeleton];
+        if (!rootBone) {
+          throw `Skin skeleton index ${skeleton} is out of range.`;
+        }
+        skin.rootBone = rootBone;
       } else {
         const rootBone = this._findSkeletonRootBone(joints, entities);
         if (!rootBone) {

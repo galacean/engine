@@ -197,17 +197,17 @@ describe("Animator test", function () {
   it("find animator state", () => {
     const stateName = "Survey";
     const expectedStateName = "Run";
-    const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
 
     animator.play(stateName);
+    const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
     let animatorState = animator.findAnimatorState(stateName, layerIndex);
-    expect((animatorState as any)._state).to.eq(currentAnimatorState);
+    expect(animatorState).to.eq(currentAnimatorState);
 
     animator.play(expectedStateName);
     animatorState = animator.findAnimatorState(expectedStateName, layerIndex);
-    expect((animatorState as any)._state).not.to.eq(currentAnimatorState);
-    expect((animatorState as any)._state.name).to.eq(expectedStateName);
+    expect(animatorState).not.to.eq(currentAnimatorState);
+    expect(animatorState?.name).to.eq(expectedStateName);
   });
 
   it("animation getCurrentAnimatorState", () => {
