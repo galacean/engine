@@ -4,11 +4,8 @@ import { AnimatorStateRuntime } from "./internal/AnimatorStateRuntime";
 import { WrapMode } from "./enums/WrapMode";
 
 /**
- * Per-Animator view of a shared `AnimatorState` asset.
- *
- * Writes on `speed` only affect this Animator. Other fields read through to
- * the shared asset. Lazy-created by `Animator.findAnimatorState` and persists
- * for the layer's lifetime, so overrides survive state transitions.
+ * Per-Animator view of an `AnimatorState`. Overrides on this view only affect
+ * the owning Animator; other Animators using the same controller are unaffected.
  */
 export class AnimatorStateInstance {
   /** @internal */
@@ -38,10 +35,7 @@ export class AnimatorStateInstance {
     return this._state.clipEndTime;
   }
 
-  /**
-   * Per-instance playback speed. Unwritten reads return the shared default;
-   * once written, this Animator owns its own speed.
-   */
+  /** Playback speed for this Animator. */
   get speed(): number {
     return this._speed ?? this._state.speed;
   }

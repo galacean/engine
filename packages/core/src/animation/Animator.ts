@@ -203,21 +203,20 @@ export class Animator extends Component {
   }
 
   /**
-   * Get the playing state instance on the target layer.
+   * Get the state instance currently playing on the target layer.
    * @param layerIndex - The layer index
-   * @returns The instance, or null if the layer is missing or nothing is playing
+   * @returns The state instance, or null if nothing is playing
    */
   getCurrentAnimatorState(layerIndex: number): AnimatorStateInstance | null {
     return this._animatorLayersData[layerIndex]?.srcRuntime?.instance ?? null;
   }
 
   /**
-   * Get or lazy-create the per-Animator instance for a named state.
-   * Mirrors `Renderer.getInstanceMaterial`: writes on the instance only affect
-   * this Animator; the shared `AnimatorState` asset is untouched.
+   * Get the state instance for a named state on this Animator.
+   * Overrides on the returned instance only affect this Animator.
    * @param stateName - The state name
    * @param layerIndex - The layer index (default -1, searches all layers)
-   * @returns The instance, or null if no state matches
+   * @returns The state instance, or null if no state matches
    */
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStateInstance | null {
     this._resetIfControllerUpdated();
