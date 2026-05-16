@@ -771,8 +771,8 @@ export class Animator extends Component {
       return;
     }
 
-    const srcPlaySpeed = srcState.speed * speed;
-    const dstPlaySpeed = destState.speed * speed;
+    const srcPlaySpeed = srcPlayData.speed * speed;
+    const dstPlaySpeed = destPlayData.speed * speed;
     const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
 
     srcPlayData && srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);

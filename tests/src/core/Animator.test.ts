@@ -238,6 +238,37 @@ describe("Animator test", function () {
     expect(layerState).to.eq(2);
   });
 
+  it("crossFade advances with per-instance playData speed instead of shared AnimatorState speed", () => {
+    const sharedStates = animator.animatorController.layers[0].stateMachine.states;
+    const sharedWalkState = sharedStates.find((state) => state.name === "Walk");
+    const sharedRunState = sharedStates.find((state) => state.name === "Run");
+    const oldWalkSpeed = sharedWalkState.speed;
+    const oldRunSpeed = sharedRunState.speed;
+
+    try {
+      animator.play("Walk");
+      animator.crossFade("Run", 1.0, 0);
+
+      const layerData = animator["_animatorLayersData"][0];
+      layerData.srcPlayData.speed = 0.25;
+      layerData.destPlayData.speed = 0.25;
+      sharedWalkState.speed = 10;
+      sharedRunState.speed = 10;
+
+      const srcPlayedTime = layerData.srcPlayData.playedTime;
+      const destPlayedTime = layerData.destPlayData.playedTime;
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(0.2);
+
+      expect(layerData.srcPlayData.playedTime - srcPlayedTime).toBeCloseTo(0.05, 5);
+      expect(layerData.destPlayData.playedTime - destPlayedTime).toBeCloseTo(0.05, 5);
+    } finally {
+      sharedWalkState.speed = oldWalkSpeed;
+      sharedRunState.speed = oldRunSpeed;
+    }
+  });
+
   it("cross fade in fixed time", () => {
     const runState = animator.findAnimatorState("Run");
     animator.play("Walk");
@@ -350,7 +381,7 @@ describe("Animator test", function () {
     animator.play("Walk");
 
     class TestScript extends Script {
-      event0(): void { }
+      event0(): void {}
     }
 
     const testScript = animator.entity.addComponent(TestScript);
@@ -792,8 +823,8 @@ describe("Animator test", function () {
     animator.animatorController = animatorController;
 
     class TestScript extends StateMachineScript {
-      onStateEnter(animator) { }
-      onStateExit(animator) { }
+      onStateEnter(animator) {}
+      onStateExit(animator) {}
     }
 
     const testScript = state1.addStateMachineScript(TestScript);
