@@ -53,7 +53,8 @@ beforeAll(async function () {
           ],
           nodes: [
             {
-              name: "Character_Man"
+              name: "Character_Man",
+              skin: 0
             },
             {
               name: "mixamorig:Hips",
@@ -447,7 +448,7 @@ beforeAll(async function () {
 
 afterAll(() => {
   @registerGLTFParser(GLTFParserType.Schema)
-  class test extends GLTFSchemaParser { }
+  class test extends GLTFSchemaParser {}
 });
 
 describe("glTF Loader test", function () {

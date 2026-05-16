@@ -39,8 +39,7 @@ export class GLTFSkinParser extends GLTFParser {
         const rootBone = entities[skeleton];
         skin.rootBone = rootBone;
       } else {
-        const rootBone =
-          this._findSceneRootBone(context, joints, entities) ?? this._findSkeletonRootBone(joints, entities);
+        const rootBone = this._findSkinRootBoneByLCA(index, joints, entities, glTF.nodes);
         if (rootBone) {
           skin.rootBone = rootBone;
         } else {
@@ -54,71 +53,50 @@ export class GLTFSkinParser extends GLTFParser {
     return AssetPromise.resolve(skinPromise);
   }
 
-  private _findSceneRootBone(context: GLTFParserContext, joints: number[], entities: Entity[]): Entity | null {
-    const { glTF, glTFResource } = context;
-    const scenes = glTF.scenes;
-    const sceneRoots = glTFResource._sceneRoots;
-
-    if (!scenes?.length || !sceneRoots?.length) {
-      return null;
-    }
-
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      const sceneNodes = scenes[i].nodes ?? [];
-      if (sceneNodes.length <= 1) {
-        continue;
-      }
-
-      const sceneRoot = sceneRoots[i];
-      if (!sceneRoot) {
-        continue;
-      }
-
-      const sceneRootChildren = new Set<Entity>(sceneNodes.map((nodeIndex) => entities[nodeIndex]));
-      let allJointsUnderSceneRoot = true;
-
-      for (let j = 0, m = joints.length; j < m; j++) {
-        let entity = entities[joints[j]];
-        while (entity?.parent) {
-          entity = entity.parent;
-        }
-
-        if (!sceneRootChildren.has(entity)) {
-          allJointsUnderSceneRoot = false;
-          break;
-        }
-      }
-
-      if (allJointsUnderSceneRoot) {
-        return sceneRoot;
+  private _findSkinRootBoneByLCA(
+    skinIndex: number,
+    joints: number[],
+    entities: Entity[],
+    nodes: Array<{ skin?: number }> = []
+  ): Entity | null {
+    const nodeIndices = joints.slice();
+    for (let i = 0, n = nodes.length; i < n; i++) {
+      if (nodes[i]?.skin === skinIndex) {
+        nodeIndices.push(i);
       }
     }
 
-    return null;
+    return this._findRootBoneByLCA(nodeIndices, entities);
   }
 
-  private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {
-    const paths = <Record<number, Entity[]>>{};
-    for (const index of joints) {
+  private _findRootBoneByLCA(nodeIndices: number[], entities: Entity[]): Entity | null {
+    const paths: Entity[][] = [];
+    for (const index of nodeIndices) {
       const path = new Array<Entity>();
       let entity = entities[index];
       while (entity) {
         path.unshift(entity);
         entity = entity.parent;
       }
-      paths[index] = path;
+      if (path.length) {
+        paths.push(path);
+      }
     }
 
-    let rootNode = <Entity>null;
+    if (!paths.length) {
+      return null;
+    }
+
+    let rootNode: Entity | null = null;
     for (let i = 0; ; i++) {
-      let path = paths[joints[0]];
+      let path = paths[0];
       if (i >= path.length) {
         return rootNode;
       }
 
       const entity = path[i];
-      for (let j = 1, m = joints.length; j < m; j++) {
-        path = paths[joints[j]];
+      for (let j = 1, m = paths.length; j < m; j++) {
+        path = paths[j];
         if (i >= path.length || entity !== path[i]) {
           return rootNode;
         }
