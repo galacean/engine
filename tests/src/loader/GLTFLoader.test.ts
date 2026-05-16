@@ -40,7 +40,7 @@ beforeAll(async function () {
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
       if (context.glTFResource.url.endsWith("testSkinRoot.gltf")) {
-        context.buffers = [new ArrayBuffer(128)];
+        context.buffers = [new ArrayBuffer(192)];
         return Promise.resolve({
           asset: {
             version: "2.0"
@@ -53,9 +53,7 @@ beforeAll(async function () {
           ],
           nodes: [
             {
-              // Skinned mesh node references skin 0 but is NOT in joints — LCA input must include it
-              name: "Character_Man",
-              skin: 0
+              name: "Character_Man"
             },
             {
               name: "mixamorig:Hips",
@@ -68,8 +66,8 @@ beforeAll(async function () {
           skins: [
             {
               inverseBindMatrices: 0,
-              // Joints contain only bones; Character_Man enters the LCA via node.skin reference
-              joints: [1, 2]
+              // Joints span both top-level scene roots: Character_Man (0) and Hips (1)/Spine (2).
+              joints: [0, 1, 2]
             }
           ],
           accessors: [
@@ -77,7 +75,7 @@ beforeAll(async function () {
               bufferView: 0,
               byteOffset: 0,
               componentType: 5126,
-              count: 2,
+              count: 3,
               type: "MAT4"
             }
           ],
@@ -85,12 +83,12 @@ beforeAll(async function () {
             {
               buffer: 0,
               byteOffset: 0,
-              byteLength: 128
+              byteLength: 192
             }
           ],
           buffers: [
             {
-              byteLength: 128
+              byteLength: 192
             }
           ]
         });

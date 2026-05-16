@@ -34,10 +34,8 @@ export class GLTFSkinParser extends GLTFParser {
       }
       skin.bones = bones;
 
-      // Get skeleton — when `skin.skeleton` is absent, resolve via LCA of joints + skinned mesh
-      // nodes that reference this skin. A skinned mesh node is typically not in `skin.joints`, but
-      // the rootBone must dominate both the bones and the mesh's local frame; otherwise multi-root
-      // glTFs whose mesh sits as a top-level sibling of the bones get an LCA below the wrapper.
+      // Get skeleton — when `skin.skeleton` is absent, resolve via joints' LCA
+      // LCA falls back to the GLTF_ROOT wrapper only when joints span multiple top-level scene nodes
       if (skeleton !== undefined) {
         const rootBone = entities[skeleton];
         if (!rootBone) {
@@ -45,7 +43,7 @@ export class GLTFSkinParser extends GLTFParser {
         }
         skin.rootBone = rootBone;
       } else {
-        const rootBone = this._findSkinRootBoneByLCA(index, joints, entities, glTF.nodes);
+        const rootBone = this._findSkeletonRootBone(joints, entities);
         if (!rootBone) {
           throw "Failed to find skeleton root bone.";
         }
@@ -58,49 +56,32 @@ export class GLTFSkinParser extends GLTFParser {
     return AssetPromise.resolve(skinPromise);
   }
 
-  private _findSkinRootBoneByLCA(
-    skinIndex: number,
-    joints: number[],
-    entities: Entity[],
-    nodes: Array<{ skin?: number }> = []
-  ): Entity | null {
-    const nodeIndices = joints.slice();
-    for (let i = 0, n = nodes.length; i < n; i++) {
-      if (nodes[i]?.skin === skinIndex) {
-        nodeIndices.push(i);
-      }
-    }
-    return this._findRootBoneByLCA(nodeIndices, entities);
-  }
-
-  private _findRootBoneByLCA(nodeIndices: number[], entities: Entity[]): Entity | null {
-    const paths: Entity[][] = [];
-    for (let i = 0, n = nodeIndices.length; i < n; i++) {
+  /**
+   * Resolve the skeleton rootBone as the lowest common ancestor of the joints' parent chains.
+   * Returns null when joints share no common ancestor.
+   */
+  private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity | null {
+    const paths = <Record<number, Entity[]>>{};
+    for (const index of joints) {
       const path = new Array<Entity>();
-      let entity = entities[nodeIndices[i]];
+      let entity = entities[index];
       while (entity) {
         path.unshift(entity);
         entity = entity.parent;
       }
-      if (path.length) {
-        paths.push(path);
-      }
-    }
-
-    if (!paths.length) {
-      return null;
+      paths[index] = path;
     }
 
     let rootNode: Entity | null = null;
     for (let i = 0; ; i++) {
-      let path = paths[0];
+      let path = paths[joints[0]];
       if (i >= path.length) {
         return rootNode;
       }
 
       const entity = path[i];
-      for (let j = 1, m = paths.length; j < m; j++) {
-        path = paths[j];
+      for (let j = 1, m = joints.length; j < m; j++) {
+        path = paths[joints[j]];
         if (i >= path.length || entity !== path[i]) {
           return rootNode;
         }
