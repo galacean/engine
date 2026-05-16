@@ -10,6 +10,7 @@ import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
+import { AnimatorStateInstance } from "./AnimatorStateInstance";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { KeyframeValueType } from "./Keyframe";
@@ -22,7 +23,6 @@ import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
-import { AnimatorStateInstance } from "./AnimatorStateInstance";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 
@@ -409,7 +409,6 @@ export class Animator extends Component {
   }
 
   private _getAnimatorStateData(
-    stateName: string,
     animatorState: AnimatorState,
     animatorLayerData: AnimatorLayerData,
     layerIndex: number
@@ -1316,14 +1315,13 @@ export class Animator extends Component {
   }
 
   private _preparePlay(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
-    const name = state.name;
     if (!state.clip) {
-      Logger.warn(`The state named ${name} has no AnimationClip data.`);
+      Logger.warn(`The state named ${state.name} has no AnimationClip data.`);
       return false;
     }
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
-    const animatorStateData = this._getAnimatorStateData(name, state, animatorLayerData, layerIndex);
+    const animatorStateData = this._getAnimatorStateData(state, animatorLayerData, layerIndex);
 
     this._preparePlayOwner(animatorLayerData, state);
 
@@ -1443,7 +1441,7 @@ export class Animator extends Component {
       return false;
     }
 
-    const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
+    const animatorStateData = this._getAnimatorStateData(crossState, animatorLayerData, layerIndex);
 
     const destPlayData = animatorLayerData.getOrCreateInstance(crossState)._playData;
     destPlayData.reset(animatorStateData, transition.offset * crossState._getClipActualEndTime());
