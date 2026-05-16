@@ -94,6 +94,101 @@ beforeAll(async function () {
         });
       }
 
+      if (context.glTFResource.url.endsWith("testSkinRootBounds.gltf")) {
+        const buffer = new ArrayBuffer(152);
+        const floats = new Float32Array(buffer);
+        // Inverse bind matrices for Hips and Spine. Their bind pose world x is
+        // Character_Group(3) + Hips(10), so inverse bind translates by -13.
+        floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 0);
+        floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 16);
+        floats.set([9, -1, -1, 11, 1, 1], 32);
+        context.buffers = [buffer];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              nodes: [0]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Group",
+              translation: [3, 0, 0],
+              children: [1, 2]
+            },
+            {
+              name: "Character_Man",
+              mesh: 0,
+              skin: 0
+            },
+            {
+              name: "mixamorig:Hips",
+              translation: [10, 0, 0],
+              children: [3]
+            },
+            {
+              name: "mixamorig:Spine"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              joints: [2, 3]
+            }
+          ],
+          meshes: [
+            {
+              primitives: [
+                {
+                  attributes: {
+                    POSITION: 1
+                  },
+                  mode: 4
+                }
+              ]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "MAT4"
+            },
+            {
+              bufferView: 1,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "VEC3",
+              min: [9, -1, -1],
+              max: [11, 1, 1]
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 128
+            },
+            {
+              buffer: 0,
+              byteOffset: 128,
+              byteLength: 24
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 152
+            }
+          ]
+        });
+      }
+
       const glTF = <any>{
         buffers: [
           {
@@ -607,6 +702,23 @@ describe("glTF scene root structure", function () {
     expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
     expect(defaultSceneRoot.children.length).to.equal(2);
     expect(skins[0].rootBone).to.equal(defaultSceneRoot);
+  });
+
+  it("Skinned mesh bounds should stay in rootBone space when inferred rootBone is outside joints", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testSkinRootBounds.gltf"
+    });
+    const { defaultSceneRoot, skins } = glTFResource;
+    const characterGroup = defaultSceneRoot.children[0];
+    const characterMesh = characterGroup.children[0];
+    const renderer = characterMesh.getComponent(SkinnedMeshRenderer);
+
+    expect(skins[0].rootBone).to.equal(characterGroup);
+    expect(renderer.localBounds.min.x).to.be.closeTo(6, 1e-5);
+    expect(renderer.localBounds.max.x).to.be.closeTo(8, 1e-5);
+    expect(renderer.bounds.min.x).to.be.closeTo(9, 1e-5);
+    expect(renderer.bounds.max.x).to.be.closeTo(11, 1e-5);
   });
 });
 
