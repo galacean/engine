@@ -105,6 +105,8 @@ export class Entity extends EngineObject {
   /** @internal */
   _scripts: DisorderedArray<Script> = new DisorderedArray<Script>();
   /** @internal */
+  _scriptsVersion = 0;
+  /** @internal */
   _children: Entity[] = [];
   /** @internal */
   _scene: Scene;
@@ -537,6 +539,7 @@ export class Entity extends EngineObject {
   _addScript(script: Script) {
     script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
+    this._scriptsVersion++;
   }
 
   /**
@@ -546,6 +549,7 @@ export class Entity extends EngineObject {
     const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
     replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
     script._entityScriptsIndex = -1;
+    this._scriptsVersion++;
   }
 
   /**

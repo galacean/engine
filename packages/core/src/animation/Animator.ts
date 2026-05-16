@@ -479,8 +479,14 @@ export class Animator extends Component {
   }
 
   private _ensureEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
-    const clipFlag = state.clip._updateFlagManager;
-    if (animatorStateData.eventsBuiltVersion === clipFlag._version) {
+    // state._updateFlagManager dispatches on both clip-swap and clip-events-mutation,
+    // so its version covers every input that affects eventHandlers binding
+    const stateVersion = state._updateFlagManager.version;
+    const scriptsVersion = this._entity._scriptsVersion;
+    if (
+      animatorStateData.eventsBuiltVersion === stateVersion &&
+      animatorStateData.eventsBuiltScriptsVersion === scriptsVersion
+    ) {
       return;
     }
 
@@ -504,7 +510,8 @@ export class Animator extends Component {
       }
       eventHandlers.push(eventHandler);
     }
-    animatorStateData.eventsBuiltVersion = clipFlag._version;
+    animatorStateData.eventsBuiltVersion = stateVersion;
+    animatorStateData.eventsBuiltScriptsVersion = scriptsVersion;
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {

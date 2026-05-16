@@ -81,6 +81,7 @@ describe("Animator test", function () {
         def.clipStartTime = 0;
         def.clipEndTime = 1;
         def.wrapMode = WrapMode.Loop;
+        def.clip?.clearEvents();
       }
     }
   });
@@ -365,6 +366,66 @@ describe("Animator test", function () {
     state.clip.addEvent(event0);
     animator.update(10);
     expect(testScriptSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("eventHandlers rebuild when Script is added after play (no clip event mutation)", () => {
+    const event = new AnimationEvent();
+    event.functionName = "event0";
+    event.time = 0;
+    const state = animator.findAnimatorState("Walk")!;
+    state.clip.addEvent(event); // event exists before play
+
+    animator.play("Walk"); // script not yet attached; first build sees zero scripts
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+    const script = animator.entity.addComponent(TestScript); // does NOT bump clip _version
+    const spy = vi.spyOn(script, "event0");
+
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it("eventHandlers rebuild when state.clip is swapped (state version covers clip swap)", () => {
+    const walkState = animator.animatorController.layers[0].stateMachine.findStateByName("Walk");
+    const runState = animator.animatorController.layers[0].stateMachine.findStateByName("Run");
+    const originalClip = walkState.clip;
+
+    // Old clip: add an event matching event0
+    const oldEvent = new AnimationEvent();
+    oldEvent.functionName = "event0";
+    oldEvent.time = 0;
+    originalClip.addEvent(oldEvent);
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+    const script = animator.entity.addComponent(TestScript);
+    const spy0 = vi.spyOn(script, "event0");
+
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(spy0).toHaveBeenCalledTimes(1);
+
+    // Swap to a different real clip (Run's) that has no event0; even if the new clip's
+    // _version happens to match the prior snapshot, the swap itself must invalidate the
+    // cached eventHandlers via state._updateFlagManager dispatch
+    walkState.clip = runState.clip;
+
+    spy0.mockClear();
+    animator.play("Walk");
+    // @ts-ignore
+    animator.engine.time._frameCount++;
+    animator.update(0.1);
+    expect(spy0).toHaveBeenCalledTimes(0); // swapped clip has no event0
+
+    // restore for other tests
+    walkState.clip = originalClip;
   });
 
   it("stateMachine", () => {
