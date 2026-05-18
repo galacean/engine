@@ -1,3 +1,4 @@
+import { Logger } from "@galacean/engine-core";
 import { ETokenType } from "../common";
 import { Keyword } from "../common/enums/Keyword";
 import { Grammar } from "../parser/Grammar";
@@ -168,7 +169,7 @@ export class LALR1 {
         if (exist.action === EAction.Shift && action.action === EAction.Reduce) return;
       } else {
         // #if _VERBOSE
-        console.warn(
+        Logger.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}> \n`,
           Utils.printAction(exist),
           "\n",
