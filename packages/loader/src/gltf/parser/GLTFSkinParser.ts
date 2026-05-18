@@ -34,17 +34,20 @@ export class GLTFSkinParser extends GLTFParser {
       }
       skin.bones = bones;
 
-      // Get skeleton
+      // Get skeleton — when `skin.skeleton` is absent, resolve via joints' LCA
+      // LCA falls back to the GLTF_ROOT wrapper only when joints span multiple top-level scene nodes
       if (skeleton !== undefined) {
         const rootBone = entities[skeleton];
+        if (!rootBone) {
+          throw `Skin skeleton index ${skeleton} is out of range.`;
+        }
         skin.rootBone = rootBone;
       } else {
         const rootBone = this._findSkeletonRootBone(joints, entities);
-        if (rootBone) {
-          skin.rootBone = rootBone;
-        } else {
+        if (!rootBone) {
           throw "Failed to find skeleton root bone.";
         }
+        skin.rootBone = rootBone;
       }
 
       return skin;
@@ -53,7 +56,11 @@ export class GLTFSkinParser extends GLTFParser {
     return AssetPromise.resolve(skinPromise);
   }
 
-  private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {
+  /**
+   * Resolve the skeleton rootBone as the lowest common ancestor of the joints' parent chains.
+   * Returns null when joints share no common ancestor.
+   */
+  private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity | null {
     const paths = <Record<number, Entity[]>>{};
     for (const index of joints) {
       const path = new Array<Entity>();
@@ -65,7 +72,7 @@ export class GLTFSkinParser extends GLTFParser {
       paths[index] = path;
     }
 
-    let rootNode = <Entity>null;
+    let rootNode: Entity | null = null;
     for (let i = 0; ; i++) {
       let path = paths[joints[0]];
       if (i >= path.length) {

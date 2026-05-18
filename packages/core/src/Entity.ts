@@ -105,6 +105,8 @@ export class Entity extends EngineObject {
   /** @internal */
   _scripts: DisorderedArray<Script> = new DisorderedArray<Script>();
   /** @internal */
+  _scriptsVersion = 0;
+  /** @internal */
   _children: Entity[] = [];
   /** @internal */
   _scene: Scene;
@@ -341,7 +343,7 @@ export class Entity extends EngineObject {
    * @deprecated Please use `children` property instead.
    * Find child entity by index.
    * @param index - The index of the child entity
-   * @returns	The component which be found
+   * @returns The entity that was found
    */
   getChild(index: number): Entity {
     return this._children[index];
@@ -349,8 +351,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find entity by name.
-   * @param name - The name of the entity which want to be found
-   * @returns The component which be found
+   * @param name - The name of the entity to find
+   * @returns The entity that was found
    */
   findByName(name: string): Entity {
     if (name === this.name) {
@@ -369,14 +371,13 @@ export class Entity extends EngineObject {
   /**
    * Find the entity by path.
    * @param path - The path of the entity eg: /entity
-   * @returns The component which be found
+   * @returns The entity that was found
    */
   findByPath(path: string): Entity {
     const splits = path.split("/").filter(Boolean);
     if (!splits.length) {
       return this;
     }
-
     return Entity._findChildByName(this, 0, splits, 0);
   }
 
@@ -538,6 +539,7 @@ export class Entity extends EngineObject {
   _addScript(script: Script) {
     script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
+    this._scriptsVersion++;
   }
 
   /**
@@ -547,6 +549,7 @@ export class Entity extends EngineObject {
     const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
     replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
     script._entityScriptsIndex = -1;
+    this._scriptsVersion++;
   }
 
   /**
