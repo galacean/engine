@@ -31,6 +31,7 @@ import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCur
  */
 export class Animator extends Component {
   private static _passedTriggerParameterNames = new Array<string>();
+  private static _tempScripts: Script[] = [];
 
   /** Culling mode of this Animator. */
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
@@ -489,7 +490,7 @@ export class Animator extends Component {
       return;
     }
 
-    const scripts = [];
+    const scripts = Animator._tempScripts;
     this._entity.getComponents(Script, scripts);
     const scriptCount = scripts.length;
     const { events } = state.clip;
@@ -504,11 +505,12 @@ export class Animator extends Component {
       eventHandler.event = event;
       for (let j = scriptCount - 1; j >= 0; j--) {
         const script = scripts[j];
-        const handler = <Function>script[funcName]?.bind(script);
-        handler && handlers.push(handler);
+        const fn = <Function>script[funcName];
+        fn && handlers.push({ script, fn });
       }
       eventHandlers.push(eventHandler);
     }
+    scripts.length = 0;
     animatorStateData.eventsBuiltVersion = stateVersion;
     animatorStateData.eventsBuiltScriptsVersion = scriptsVersion;
   }
@@ -1522,7 +1524,8 @@ export class Animator extends Component {
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
         for (let j = handlers.length - 1; j >= 0; j--) {
-          handlers[j](parameter);
+          const { script, fn } = handlers[j];
+          script.enabled && fn.call(script, parameter);
         }
         playState.currentEventIndex = Math.min(eventIndex + 1, n - 1);
       }
@@ -1547,7 +1550,8 @@ export class Animator extends Component {
       if (time <= lastClipTime) {
         const { handlers } = eventHandler;
         for (let j = handlers.length - 1; j >= 0; j--) {
-          handlers[j](parameter);
+          const { script, fn } = handlers[j];
+          script.enabled && fn.call(script, parameter);
         }
         playState.currentEventIndex = Math.max(eventIndex - 1, 0);
       }
