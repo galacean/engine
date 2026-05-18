@@ -1,4 +1,3 @@
-import { Script } from "../../Script";
 import { AnimationEvent } from "../AnimationEvent";
 
 /**
@@ -6,5 +5,5 @@ import { AnimationEvent } from "../AnimationEvent";
  */
 export class AnimationEventHandler {
   event: AnimationEvent;
-  handlers: { script: Script; fn: Function }[] = [];
+  handlers: Function[] = [];
 }

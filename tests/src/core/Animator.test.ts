@@ -368,46 +368,6 @@ describe("Animator test", function () {
     expect(testScriptSpy).toHaveBeenCalledTimes(1);
   });
 
-  it("disabled Script does not receive animation events", () => {
-    const event = new AnimationEvent();
-    event.functionName = "event0";
-    event.time = 0;
-    const state = animator.findAnimatorState("Walk")!;
-    state.clip.addEvent(event);
-
-    class TestScript extends Script {
-      event0(): void {}
-    }
-    const script = animator.entity.addComponent(TestScript);
-    const spy = vi.spyOn(script, "event0");
-
-    animator.play("Walk");
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.update(0.1);
-    expect(spy).toHaveBeenCalledTimes(1);
-
-    spy.mockClear();
-    script.enabled = false;
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.play("Walk"); // re-trigger event at time=0
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.update(0.1);
-    expect(spy).toHaveBeenCalledTimes(0);
-
-    spy.mockClear();
-    script.enabled = true;
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.play("Walk");
-    // @ts-ignore
-    animator.engine.time._frameCount++;
-    animator.update(0.1);
-    expect(spy).toHaveBeenCalledTimes(1);
-  });
-
   it("eventHandlers rebuild when Script is added after play (no clip event mutation)", () => {
     const event = new AnimationEvent();
     event.functionName = "event0";

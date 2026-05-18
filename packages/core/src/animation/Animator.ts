@@ -505,8 +505,8 @@ export class Animator extends Component {
       eventHandler.event = event;
       for (let j = scriptCount - 1; j >= 0; j--) {
         const script = scripts[j];
-        const fn = <Function>script[funcName];
-        fn && handlers.push({ script, fn });
+        const handler = <Function>script[funcName]?.bind(script);
+        handler && handlers.push(handler);
       }
       eventHandlers.push(eventHandler);
     }
@@ -1524,8 +1524,7 @@ export class Animator extends Component {
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
         for (let j = handlers.length - 1; j >= 0; j--) {
-          const { script, fn } = handlers[j];
-          script.enabled && fn.call(script, parameter);
+          handlers[j](parameter);
         }
         playState.currentEventIndex = Math.min(eventIndex + 1, n - 1);
       }
@@ -1550,8 +1549,7 @@ export class Animator extends Component {
       if (time <= lastClipTime) {
         const { handlers } = eventHandler;
         for (let j = handlers.length - 1; j >= 0; j--) {
-          const { script, fn } = handlers[j];
-          script.enabled && fn.call(script, parameter);
+          handlers[j](parameter);
         }
         playState.currentEventIndex = Math.max(eventIndex - 1, 0);
       }
