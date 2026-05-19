@@ -57,10 +57,23 @@ export class ShaderFactory {
 #endif
 `;
 
+  // Derived built-ins re-exposed on top of `renderer_ModelMat`.
+  // `renderer_NormalMat` uses the cofactor (cross-product) form, which algebraically equals
+  // `det(M) · transpose(inverse(M))`. After `normalize()` it's directionally identical to the
+  // classic `transpose(inverse(M))`, but stays NaN-free when `M` is singular (e.g. any scale
+  // axis is 0 — common in animations that pop / hide via scale). `sign(det)` (`s` below)
+  // keeps mirrored matrices facing the right way
   private static readonly _derivedDefines = `\
+mat3 _normalMatFromModel(mat3 m) {
+    vec3 c0 = cross(m[1], m[2]);
+    vec3 c1 = cross(m[2], m[0]);
+    vec3 c2 = cross(m[0], m[1]);
+    float s = (dot(m[0], c0) < 0.0) ? -1.0 : 1.0;
+    return mat3(c0 * s, c1 * s, c2 * s);
+}
 #define renderer_MVMat (camera_ViewMat * renderer_ModelMat)
 #define renderer_MVPMat (camera_VPMat * renderer_ModelMat)
-#define renderer_NormalMat mat4(transpose(inverse(mat3(renderer_ModelMat))))`;
+#define renderer_NormalMat mat4(_normalMatFromModel(mat3(renderer_ModelMat)))`;
 
   // Built-in renderer uniforms. value=true means derived (remove but not added to UBO)
   private static readonly _builtinRendererUniforms: Record<string, boolean> = {
