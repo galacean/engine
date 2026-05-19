@@ -6,6 +6,7 @@ import {
   BoxShape,
   Camera,
   Color,
+  Entity,
   Logger,
   ParticleCurveMode,
   ParticleMaterial,
@@ -90,7 +91,12 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
 
   const customShader = Shader.create(customParticleShaderSource);
 
-  const particleEntity = rootEntity.createChild("CustomParticle");
+  // Create the particle entity detached from the scene so the `ParticleRenderer`
+  // `_onEnable` lifecycle hook does not fire until after the generator is fully
+  // configured. Attaching first would invoke `play()` with `useAutoRandomSeed`
+  // still at its default `true`, picking a `Math.random()` seed that defeats
+  // deterministic e2e capture.
+  const particleEntity = new Entity(engine, "CustomParticle");
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
   const material = new ParticleMaterial(engine, customShader);
@@ -123,6 +129,8 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   customData.data1.y.constantMax = 0.0;
   customData.data1.z.constantMax = 0.0;
   customData.data1.w.constantMax = 0.0;
+
+  rootEntity.addChild(particleEntity);
 
   updateForE2E(engine, 500);
   initScreenshot(engine, camera);
