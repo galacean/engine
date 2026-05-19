@@ -453,7 +453,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-customShader",
       threshold: 0,
-      diffPercentage: 1.3191
+      diffPercentage: 0
     }
   },
   PostProcess: {
