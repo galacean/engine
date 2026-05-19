@@ -9,7 +9,7 @@ import {
   ResourceManager,
   resourceLoader
 } from "@galacean/engine-core";
-@resourceLoader(AssetType.Audio, ["mp3", "ogg", "wav", "audio"])
+@resourceLoader(AssetType.Audio, ["mp3", "ogg", "wav", "audio", "m4a"])
 class AudioLoader extends Loader<AudioClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AudioClip> {
     return new AssetPromise((resolve, reject) => {
