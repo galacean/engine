@@ -38,7 +38,7 @@ playwright-report/
 # Claude Code files
 .claude/
 CLAUDE.md
-
+docs/superpowers
 .husky/post-checkout
 .husky/post-commit
 .husky/pre-push

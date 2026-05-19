@@ -5,6 +5,7 @@ import {
   Entity,
   Engine,
   Script,
+  SphereColliderShape,
   StaticCollider
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
@@ -28,6 +29,20 @@ describe("Collision", function () {
     const boxCollider = boxEntity.addComponent(type);
     boxCollider.addShape(physicsBox);
     return boxEntity;
+  }
+
+  function addSphere(radius: number, pos: Vector3) {
+    const sphereEntity = rootEntity.createChild("SphereEntity");
+    sphereEntity.transform.setPosition(pos.x, pos.y, pos.z);
+
+    const sphereShape = new SphereColliderShape();
+    sphereShape.material.dynamicFriction = 0;
+    sphereShape.material.staticFriction = 0;
+    sphereShape.radius = radius;
+    const sphereCollider = sphereEntity.addComponent(DynamicCollider);
+    sphereCollider.addShape(sphereShape);
+    sphereCollider.useGravity = false;
+    return sphereEntity;
   }
 
   function formatValue(value: number) {
@@ -170,6 +185,80 @@ describe("Collision", function () {
       box1.getComponent(DynamicCollider).applyForce(new Vector3(1000, 0, 0));
       // @ts-ignore
       engine.sceneManager.activeScene.physics._update(1);
+    });
+  });
+
+  it("reports contact normal from static other shape to dynamic self shape", function () {
+    engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
+    const dynamicBox = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-3, 0, 0));
+    const staticBox = addBox(new Vector3(1, 1, 1), StaticCollider, new Vector3(0, 0, 0));
+
+    return new Promise<void>((done) => {
+      dynamicBox.addComponent(
+        class extends Script {
+          onCollisionEnter(other: Collision): void {
+            expect(other.shape).toBe(staticBox.getComponent(StaticCollider).shapes[0]);
+            const contacts = [];
+            other.getContacts(contacts);
+            expect(contacts.length).toBeGreaterThan(0);
+            expect(formatValue(contacts[0].normal.x)).toBe(-1);
+
+            done();
+          }
+        }
+      );
+
+      dynamicBox.getComponent(DynamicCollider).applyForce(new Vector3(1000, 0, 0));
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1);
+    });
+  });
+
+  it("reports billiard hitBall sphere normal from kinematic other to dynamic target self", function () {
+    engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
+    const targetBall = addSphere(0.5, new Vector3(0, 0, 0));
+    const hitBall = addSphere(0.5, new Vector3(-3, 0, 0));
+    const hitCollider = hitBall.getComponent(DynamicCollider);
+    hitCollider.isKinematic = true;
+
+    return new Promise<void>((done) => {
+      targetBall.addComponent(
+        class extends Script {
+          onCollisionEnter(other: Collision): void {
+            expect(other.shape).toBe(hitCollider.shapes[0]);
+            const contacts = [];
+            other.getContacts(contacts);
+            expect(contacts.length).toBeGreaterThan(0);
+
+            const contactNormal = contacts[0].normal;
+            expect(formatValue(contactNormal.x)).toBe(1);
+            expect(formatValue(contactNormal.y)).toBe(0);
+            expect(formatValue(contactNormal.z)).toBe(0);
+
+            const hitToTarget = new Vector3();
+            Vector3.subtract(targetBall.transform.worldPosition, hitBall.transform.worldPosition, hitToTarget);
+            hitToTarget.normalize();
+            expect(formatValue(Vector3.dot(contactNormal, hitToTarget))).toBe(1);
+
+            const scaledNormal = new Vector3();
+            Vector3.scale(contactNormal, 2 * Vector3.dot(hitToTarget, contactNormal), scaledNormal);
+            const reflected = new Vector3();
+            Vector3.subtract(hitToTarget, scaledNormal, reflected);
+            reflected.normalize();
+            expect(formatValue(reflected.x)).toBe(-1);
+
+            done();
+          }
+        }
+      );
+
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      hitCollider.move(new Vector3(-0.9, 0, 0));
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
     });
   });
 
