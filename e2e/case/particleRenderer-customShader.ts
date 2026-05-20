@@ -12,6 +12,7 @@ import {
   ParticleCompositeGradient,
   ParticleMaterial,
   ParticleRenderer,
+  Shader,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -20,10 +21,9 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 const shaderCompiler = new ShaderCompiler();
 
-// Custom particle shader: includes ParticleVert.glsl (which pulls in the
-// factory-generated CustomData helpers) and reads two named custom streams:
-//   - `Tint`     (gradient, vec4) — drives the per-particle color
-//   - `OffsetX`  (curve, float)   — drives the per-particle X position offset
+// Custom particle shader: declares the customData uniforms the TS side uploads
+// (suffix tables live on addCurve / addGradient TSDoc) and consumes them
+// directly to drive per-particle color tint and x-offset.
 const customParticleShaderSource = `Shader "Test/ParticleCustom" {
   SubShader "Default" {
     Pass "Forward Pass" {
@@ -53,7 +53,12 @@ const customParticleShaderSource = `Shader "Test/ParticleCustom" {
       FragmentShader = frag;
 
       #include "ShaderLibrary/Particle/ParticleVert.glsl"
-      #include "ShaderLibrary/Particle/Module/CustomData.glsl"
+
+      // Uniforms uploaded by CustomDataModule:
+      //   addCurve("OffsetX", Constant)    → renderer_OffsetXMaxConst
+      //   addGradient("Tint", Constant)    → renderer_TintMaxConst
+      float renderer_OffsetXMaxConst;
+      vec4 renderer_TintMaxConst;
 
       Varyings vert(Attributes attr) {
           Varyings v;
@@ -61,11 +66,10 @@ const customParticleShaderSource = `Shader "Test/ParticleCustom" {
           float normalizedAge = age / attr.a_ShapePositionStartLifeTime.w;
           if (normalizedAge >= 0.0 && normalizedAge < 1.0) {
               vec3 center = computeParticleCenter(attr, age, normalizedAge, v);
-              center.x += sampleParticleCustom_OffsetX(attr, normalizedAge);
+              center.x += renderer_OffsetXMaxConst;
               gl_Position = camera_ProjMat * camera_ViewMat * vec4(center, 1.0);
-              vec4 tint = sampleParticleCustom_Tint(attr, normalizedAge);
               v.v_Color = computeParticleColor(attr, attr.a_StartColor, normalizedAge);
-              v.v_Color.rgb *= tint.rgb;
+              v.v_Color.rgb *= renderer_TintMaxConst.rgb;
           } else {
               gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
           }
@@ -98,6 +102,11 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   const particleEntity = new Entity(engine, "CustomParticle");
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
 
+  const customShader = Shader.create(customParticleShaderSource);
+  const material = new ParticleMaterial(engine, customShader);
+  material.baseColor = new Color(1, 1, 1, 1);
+  particleRenderer.setMaterial(material);
+
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;
 
@@ -113,17 +122,12 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   box.size = new Vector3(2, 1, 0);
   emission.shape = box;
 
-  // Register named custom streams BEFORE creating the shader — the factory
-  // bakes the per-stream `sampleParticleCustom_<Name>(...)` helpers into the
-  // compiled shader. Streams added later won't be visible to this shader.
+  // Register named custom streams. The uniform names the shader reads above
+  // (`renderer_TintMaxConst`, `renderer_OffsetXMaxConst`) follow the
+  // `renderer_<name><suffix>` convention documented on addCurve/addGradient.
   customData.enabled = true;
   customData.addGradient("Tint", new ParticleCompositeGradient(new Color(1, 0.3, 0.1, 1)));
   customData.addCurve("OffsetX", new ParticleCompositeCurve(0.5));
-
-  const customShader = particleRenderer.createCustomShader(customParticleShaderSource);
-  const material = new ParticleMaterial(engine, customShader);
-  material.baseColor = new Color(1, 1, 1, 1);
-  particleRenderer.setMaterial(material);
 
   rootEntity.addChild(particleEntity);
 

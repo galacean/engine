@@ -10,12 +10,12 @@ import {
   ParticleCompositeCurve,
   ParticleCompositeGradient,
   ParticleCurve,
-  CurveKey
+  CurveKey,
+  Logger
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { LitePhysics } from "@galacean/engine-physics-lite";
-import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { describe, beforeAll, beforeEach, afterAll, expect, it } from "vitest";
 
 describe("CustomDataModule", function () {
@@ -26,8 +26,7 @@ describe("CustomDataModule", function () {
   beforeAll(async function () {
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas"),
-      physics: new LitePhysics(),
-      shaderCompiler: new ShaderCompiler()
+      physics: new LitePhysics()
     });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
@@ -73,48 +72,52 @@ describe("CustomDataModule", function () {
   it("addCurve registers and stores by reference", function () {
     const customData = particleRenderer.generator.customData;
     const curve = new ParticleCompositeCurve(1.0);
-    expect(customData.addCurve("intensity", curve)).to.eq(true);
-    expect(customData.curves["intensity"]).to.eq(curve);
+    customData.addCurve("Intensity", curve);
+    expect(customData.curves["Intensity"]).to.eq(curve);
   });
 
-  it("addCurve rejects invalid identifiers", function () {
+  it("addCurve rejects invalid identifiers (Logger.error, no insert)", function () {
     const customData = particleRenderer.generator.customData;
-    expect(customData.addCurve("", new ParticleCompositeCurve(0))).to.eq(false);
-    expect(customData.addCurve("0bad", new ParticleCompositeCurve(0))).to.eq(false);
-    expect(customData.addCurve("has space", new ParticleCompositeCurve(0))).to.eq(false);
-    expect(customData.addCurve("dash-name", new ParticleCompositeCurve(0))).to.eq(false);
+    Logger.enable();
+    customData.addCurve("", new ParticleCompositeCurve(0));
+    customData.addCurve("0bad", new ParticleCompositeCurve(0));
+    customData.addCurve("has space", new ParticleCompositeCurve(0));
+    customData.addCurve("dash-name", new ParticleCompositeCurve(0));
     expect(Object.keys(customData.curves).length).to.eq(0);
   });
 
-  it("addCurve rejects duplicate name (own + cross with gradients)", function () {
+  it("addCurve rejects duplicate name (cross with gradients)", function () {
     const customData = particleRenderer.generator.customData;
-    expect(customData.addCurve("foo", new ParticleCompositeCurve(1))).to.eq(true);
-    expect(customData.addCurve("foo", new ParticleCompositeCurve(2))).to.eq(false);
-    expect(customData.addGradient("foo", new ParticleCompositeGradient(new Color(1, 1, 1, 1)))).to.eq(false);
+    customData.addCurve("Foo", new ParticleCompositeCurve(1));
+    customData.addCurve("Foo", new ParticleCompositeCurve(2));
+    customData.addGradient("Foo", new ParticleCompositeGradient(new Color(1, 1, 1, 1)));
+    expect(Object.keys(customData.curves).length).to.eq(1);
+    expect(Object.keys(customData.gradients).length).to.eq(0);
+    expect(customData.curves["Foo"].constantMax).to.eq(1);
   });
 
   it("addGradient registers and stores by reference", function () {
     const customData = particleRenderer.generator.customData;
     const gradient = new ParticleCompositeGradient(new Color(1, 0.5, 0.2, 1));
-    expect(customData.addGradient("tint", gradient)).to.eq(true);
-    expect(customData.gradients["tint"]).to.eq(gradient);
+    customData.addGradient("Tint", gradient);
+    expect(customData.gradients["Tint"]).to.eq(gradient);
   });
 
   it("removeCurve / removeGradient clear entries", function () {
     const customData = particleRenderer.generator.customData;
-    customData.addCurve("a", new ParticleCompositeCurve(1));
-    customData.addGradient("b", new ParticleCompositeGradient(new Color()));
-    expect(customData.removeCurve("a")).to.eq(true);
-    expect(customData.removeGradient("b")).to.eq(true);
-    expect(customData.removeCurve("a")).to.eq(false);
-    expect(customData.removeGradient("b")).to.eq(false);
+    customData.addCurve("A", new ParticleCompositeCurve(1));
+    customData.addGradient("B", new ParticleCompositeGradient(new Color()));
+    customData.removeCurve("A");
+    customData.removeGradient("B");
+    customData.removeCurve("A"); // no-op
+    customData.removeGradient("B"); // no-op
     expect(Object.keys(customData.curves).length).to.eq(0);
     expect(Object.keys(customData.gradients).length).to.eq(0);
   });
 
   it("_updateShaderData no-op when disabled", function () {
     const customData = particleRenderer.generator.customData;
-    customData.addCurve("intensity", new ParticleCompositeCurve(1));
+    customData.addCurve("Intensity", new ParticleCompositeCurve(1));
     customData.enabled = false;
     expect(() => {
       //@ts-ignore
@@ -125,118 +128,47 @@ describe("CustomDataModule", function () {
   it("_updateShaderData handles all curve modes", function () {
     const customData = particleRenderer.generator.customData;
     customData.enabled = true;
-    customData.addCurve("c1", new ParticleCompositeCurve(1));
-    customData.addCurve("c2", new ParticleCompositeCurve(1, 5));
-    customData.addCurve("c3", new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))));
+    customData.addCurve("C1", new ParticleCompositeCurve(1));
+    customData.addCurve("C2", new ParticleCompositeCurve(1, 5));
     customData.addCurve(
-      "c4",
+      "C3",
+      new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)))
+    );
+    customData.addCurve(
+      "C4",
       new ParticleCompositeCurve(
         new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 0.5)),
         new ParticleCurve(new CurveKey(0, 0.5), new CurveKey(1, 1))
       )
     );
-    expect(customData.curves["c2"].mode).to.eq(ParticleCurveMode.TwoConstants);
-    expect(customData.curves["c4"].mode).to.eq(ParticleCurveMode.TwoCurves);
+    expect(customData.curves["C2"].mode).to.eq(ParticleCurveMode.TwoConstants);
+    expect(customData.curves["C4"].mode).to.eq(ParticleCurveMode.TwoCurves);
     expect(() => {
       //@ts-ignore
       customData._updateShaderData(particleRenderer.shaderData);
     }).to.not.throw();
   });
 
-  it("_updateShaderData handles gradient constant + twoConstants", function () {
+  it("_updateShaderData handles gradient constant + twoConstants modes", function () {
     const customData = particleRenderer.generator.customData;
     customData.enabled = true;
-    customData.addGradient("g1", new ParticleCompositeGradient(new Color(1, 0.5, 0.25, 1)));
-    customData.addGradient("g2", new ParticleCompositeGradient(new Color(0, 0, 0, 1), new Color(1, 1, 1, 1)));
-    expect(customData.gradients["g2"].mode).to.eq(ParticleGradientMode.TwoConstants);
+    customData.addGradient("G1", new ParticleCompositeGradient(new Color(1, 0.5, 0.25, 1)));
+    customData.addGradient(
+      "G2",
+      new ParticleCompositeGradient(new Color(0, 0, 0, 1), new Color(1, 1, 1, 1))
+    );
+    expect(customData.gradients["G2"].mode).to.eq(ParticleGradientMode.TwoConstants);
     expect(() => {
       //@ts-ignore
       customData._updateShaderData(particleRenderer.shaderData);
     }).to.not.throw();
-  });
-
-  it("createCustomShader produces a compilable shader with per-stream helpers", function () {
-    const customData = particleRenderer.generator.customData;
-    customData.enabled = true;
-    customData.addCurve("intensity", new ParticleCompositeCurve(0.8));
-    customData.addGradient("tint", new ParticleCompositeGradient(new Color(1, 0.5, 0.2, 1)));
-
-    const shaderSource = `Shader "Test/CustomDataHelpers" {
-      SubShader "Default" {
-        Pass "Forward Pass" {
-          Tags { pipelineStage = "Forward" }
-          RenderQueueType renderQueueType;
-          BlendFactor sourceColorBlendFactor;
-          BlendFactor destinationColorBlendFactor;
-          BlendFactor sourceAlphaBlendFactor;
-          BlendFactor destinationAlphaBlendFactor;
-          CullMode rasterStateCullMode;
-          Bool blendEnabled;
-          Bool depthWriteEnabled;
-          BlendState = {
-            Enabled = blendEnabled;
-            SourceColorBlendFactor = sourceColorBlendFactor;
-            DestinationColorBlendFactor = destinationColorBlendFactor;
-            SourceAlphaBlendFactor = sourceAlphaBlendFactor;
-            DestinationAlphaBlendFactor = destinationAlphaBlendFactor;
-          }
-          DepthState = { WriteEnabled = depthWriteEnabled; }
-          RasterState = { CullMode = rasterStateCullMode; }
-          RenderQueueType = renderQueueType;
-          VertexShader = vert;
-          FragmentShader = frag;
-          #include "ShaderLibrary/Particle/ParticleVert.glsl"
-          #include "ShaderLibrary/Particle/Module/CustomData.glsl"
-          Varyings vert(Attributes attr) {
-              Varyings v;
-              float age = renderer_CurrentTime - attr.a_DirectionTime.w;
-              float normalizedAge = age / attr.a_ShapePositionStartLifeTime.w;
-              vec3 center = computeParticleCenter(attr, age, normalizedAge, v);
-              float intensity = sampleParticleCustom_Intensity(attr, normalizedAge);
-              vec4 tint = sampleParticleCustom_Tint(attr, normalizedAge);
-              v.v_Color = vec4(tint.rgb * intensity, tint.a);
-              gl_Position = camera_ProjMat * camera_ViewMat * vec4(center, 1.0);
-              return v;
-          }
-          void frag(Varyings v) { gl_FragColor = v.v_Color; }
-        }
-      }
-    }`;
-
-    expect(() => particleRenderer.createCustomShader(shaderSource)).to.not.throw();
-  });
-
-  it("createCustomShader restores include map after each call", function () {
-    const customData = particleRenderer.generator.customData;
-    customData.addCurve("a", new ParticleCompositeCurve(1));
-    particleRenderer.createCustomShader(`Shader "Test/IsolateA" {
-      SubShader "Default" { Pass "Forward Pass" {
-        VertexShader = vert; FragmentShader = frag;
-        #include "ShaderLibrary/Particle/ParticleVert.glsl"
-        Varyings vert(Attributes attr) { Varyings v; gl_Position = vec4(0); return v; }
-        void frag(Varyings v) { gl_FragColor = vec4(1); }
-      } }
-    }`);
-    customData.removeCurve("a");
-    customData.addCurve("b", new ParticleCompositeCurve(2));
-    expect(() =>
-      particleRenderer.createCustomShader(`Shader "Test/IsolateB" {
-        SubShader "Default" { Pass "Forward Pass" {
-          VertexShader = vert; FragmentShader = frag;
-          #include "ShaderLibrary/Particle/ParticleVert.glsl"
-          #include "ShaderLibrary/Particle/Module/CustomData.glsl"
-          Varyings vert(Attributes attr) { Varyings v; gl_Position = vec4(0); return v; }
-          void frag(Varyings v) { gl_FragColor = vec4(1); }
-        } }
-      }`)
-    ).to.not.throw();
   });
 
   it("enabling module triggers engine update without error", function () {
     const customData = particleRenderer.generator.customData;
     customData.enabled = true;
-    customData.addCurve("intensity", new ParticleCompositeCurve(1, 5));
-    customData.addGradient("tint", new ParticleCompositeGradient(new Color(1, 0.5, 0.2, 1)));
+    customData.addCurve("Intensity", new ParticleCompositeCurve(1, 5));
+    customData.addGradient("Tint", new ParticleCompositeGradient(new Color(1, 0.5, 0.2, 1)));
 
     particleRenderer.generator.play();
     //@ts-ignore
