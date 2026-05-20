@@ -641,7 +641,6 @@ export class ParticleGenerator {
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
     this.noise._resetRandomSeed(seed);
-    this.customData._resetRandomSeed(seed);
   }
 
   /**

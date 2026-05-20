@@ -7,8 +7,10 @@ import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
+import { Shader } from "../shader/Shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
+import { ShaderLanguage } from "../shader/enums/ShaderLanguage";
 import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
@@ -142,6 +144,19 @@ export class ParticleRenderer extends Renderer {
     this._supportInstancedArrays = this.engine._hardwareRenderer.canIUse(GLCapabilityType.instancedArrays);
 
     this._onGeneratorParamsChanged();
+  }
+
+  /**
+   * Build a particle shader with `sampleParticleCustom_<Name>(...)` helpers
+   * generated from the streams currently registered on this renderer's
+   * {@link ParticleGenerator.customData}. Equivalent to `Shader.create(...)`
+   * except the per-stream helper bodies are inlined into the compiled shader.
+   *
+   * Streams added or removed after this call do not affect the returned
+   * shader — rebuild via this method to pick up changes.
+   */
+  createCustomShader(shaderSource: string, platformTarget?: ShaderLanguage, path?: string): Shader {
+    return this.generator.customData._createShader(shaderSource, platformTarget, path);
   }
 
   /**

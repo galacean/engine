@@ -107,7 +107,6 @@ struct Varyings {
 #include "ShaderLibrary/Particle/Module/RotationOverLifetime.glsl"
 #include "ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl"
 #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
-#include "ShaderLibrary/Particle/Module/CustomData.glsl"
 
 vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in float age, in float normalizedAge, vec3 gravityVelocity, vec4 worldRotation, inout vec3 localVelocity, inout vec3 worldVelocity) {
     vec3 startPosition = startVelocity * age;

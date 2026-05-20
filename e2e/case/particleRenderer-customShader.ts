@@ -8,10 +8,10 @@ import {
   Color,
   Entity,
   Logger,
-  ParticleCurveMode,
+  ParticleCompositeCurve,
+  ParticleCompositeGradient,
   ParticleMaterial,
   ParticleRenderer,
-  Shader,
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
@@ -20,9 +20,10 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 const shaderCompiler = new ShaderCompiler();
 
-// Custom particle shader: inline vert/frag that call engine helpers
-// (computeParticleCenter / computeParticleColor) and read customData
-// streams to drive position offset and color tint.
+// Custom particle shader: includes ParticleVert.glsl (which pulls in the
+// factory-generated CustomData helpers) and reads two named custom streams:
+//   - `Tint`     (gradient, vec4) — drives the per-particle color
+//   - `OffsetX`  (curve, float)   — drives the per-particle X position offset
 const customParticleShaderSource = `Shader "Test/ParticleCustom" {
   SubShader "Default" {
     Pass "Forward Pass" {
@@ -52,6 +53,7 @@ const customParticleShaderSource = `Shader "Test/ParticleCustom" {
       FragmentShader = frag;
 
       #include "ShaderLibrary/Particle/ParticleVert.glsl"
+      #include "ShaderLibrary/Particle/Module/CustomData.glsl"
 
       Varyings vert(Attributes attr) {
           Varyings v;
@@ -59,10 +61,11 @@ const customParticleShaderSource = `Shader "Test/ParticleCustom" {
           float normalizedAge = age / attr.a_ShapePositionStartLifeTime.w;
           if (normalizedAge >= 0.0 && normalizedAge < 1.0) {
               vec3 center = computeParticleCenter(attr, age, normalizedAge, v);
-              center += renderer_CustomData1MaxConst.xyz;
+              center.x += sampleParticleCustom_OffsetX(attr, normalizedAge);
               gl_Position = camera_ProjMat * camera_ViewMat * vec4(center, 1.0);
+              vec4 tint = sampleParticleCustom_Tint(attr, normalizedAge);
               v.v_Color = computeParticleColor(attr, attr.a_StartColor, normalizedAge);
-              v.v_Color.rgb *= renderer_CustomData0MaxConst.rgb;
+              v.v_Color.rgb *= tint.rgb;
           } else {
               gl_Position = vec4(2.0, 2.0, 2.0, 1.0);
           }
@@ -89,19 +92,11 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   const camera = cameraEntity.addComponent(Camera);
   camera.fieldOfView = 60;
 
-  const customShader = Shader.create(customParticleShaderSource);
-
-  // Create the particle entity detached from the scene so the `ParticleRenderer`
-  // `_onEnable` lifecycle hook does not fire until after the generator is fully
-  // configured. Attaching first would invoke `play()` with `useAutoRandomSeed`
-  // still at its default `true`, picking a `Math.random()` seed that defeats
-  // deterministic e2e capture.
+  // Build the particle detached from the scene so the `ParticleRenderer`
+  // `_onEnable` lifecycle hook does not fire until the generator + custom
+  // shader are fully configured.
   const particleEntity = new Entity(engine, "CustomParticle");
   const particleRenderer = particleEntity.addComponent(ParticleRenderer);
-
-  const material = new ParticleMaterial(engine, customShader);
-  material.baseColor = new Color(1, 1, 1, 1);
-  particleRenderer.setMaterial(material);
 
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;
@@ -118,17 +113,17 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   box.size = new Vector3(2, 1, 0);
   emission.shape = box;
 
-  // Drive color tint + position offset entirely from custom data
+  // Register named custom streams BEFORE creating the shader — the factory
+  // bakes the per-stream `sampleParticleCustom_<Name>(...)` helpers into the
+  // compiled shader. Streams added later won't be visible to this shader.
   customData.enabled = true;
-  customData.data0.x.constantMax = 1.0; // R
-  customData.data0.y.constantMax = 0.3; // G
-  customData.data0.z.constantMax = 0.1; // B
-  customData.data0.w.constantMax = 1.0;
+  customData.addGradient("Tint", new ParticleCompositeGradient(new Color(1, 0.3, 0.1, 1)));
+  customData.addCurve("OffsetX", new ParticleCompositeCurve(0.5));
 
-  customData.data1.x.constantMax = 0.5; // +X offset
-  customData.data1.y.constantMax = 0.0;
-  customData.data1.z.constantMax = 0.0;
-  customData.data1.w.constantMax = 0.0;
+  const customShader = particleRenderer.createCustomShader(customParticleShaderSource);
+  const material = new ParticleMaterial(engine, customShader);
+  material.baseColor = new Color(1, 1, 1, 1);
+  particleRenderer.setMaterial(material);
 
   rootEntity.addChild(particleEntity);
 

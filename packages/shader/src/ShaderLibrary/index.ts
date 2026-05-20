@@ -29,7 +29,6 @@ import Particle_Billboard_SphereBillboard from "./Particle/Billboard/SphereBillb
 import Particle_Billboard_StretchedBillboard from "./Particle/Billboard/StretchedBillboard.glsl";
 import Particle_Billboard_VerticalBillboard from "./Particle/Billboard/VerticalBillboard.glsl";
 import Particle_Module_ColorOverLifetime from "./Particle/Module/ColorOverLifetime.glsl";
-import Particle_Module_CustomData from "./Particle/Module/CustomData.glsl";
 import Particle_Module_ForceOverLifetime from "./Particle/Module/ForceOverLifetime.glsl";
 import Particle_Module_LimitVelocityOverLifetime from "./Particle/Module/LimitVelocityOverLifetime.glsl";
 import Particle_Module_NoiseModule from "./Particle/Module/NoiseModule.glsl";
@@ -92,7 +91,6 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Particle_Billboard_StretchedBillboard, path: "ShaderLibrary/Particle/Billboard/StretchedBillboard.glsl" },
   { source: Particle_Billboard_VerticalBillboard, path: "ShaderLibrary/Particle/Billboard/VerticalBillboard.glsl" },
   { source: Particle_Module_ColorOverLifetime, path: "ShaderLibrary/Particle/Module/ColorOverLifetime.glsl" },
-  { source: Particle_Module_CustomData, path: "ShaderLibrary/Particle/Module/CustomData.glsl" },
   { source: Particle_Module_ForceOverLifetime, path: "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl" },
   { source: Particle_Module_LimitVelocityOverLifetime, path: "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl" },
   { source: Particle_Module_NoiseModule, path: "ShaderLibrary/Particle/Module/NoiseModule.glsl" },
