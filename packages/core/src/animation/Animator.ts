@@ -19,6 +19,7 @@ import { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
+import { WrapMode } from "./enums/WrapMode";
 import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
@@ -220,7 +221,7 @@ export class Animator extends Component {
    */
   /**
    * Find the per-instance play data for a state by name.
-   * The returned object's `speed` is per-instance and safe to modify without affecting other Animator instances.
+   * The returned object's `speed` and `wrapMode` are per-instance and safe to modify without affecting other Animator instances.
    * @param stateName - The state name
    * @param layerIndex - The layer index (default -1, searches all layers)
    * @returns Per-instance AnimatorStatePlayData, or null if not found
@@ -1470,23 +1471,28 @@ export class Animator extends Component {
     lastClipTime: number,
     deltaTime: number
   ): void {
-    const { state, isForward, clipTime } = playData;
+    const { state, isForward, clipTime, wrapMode } = playData;
     const startTime = state._getClipActualStartTime();
     const endTime = state._getClipActualEndTime();
+    const canWrap = wrapMode === WrapMode.Loop;
 
     if (isForward) {
       if (lastClipTime + deltaTime >= endTime) {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, endTime);
-        playData.currentEventIndex = 0;
-        this._fireSubAnimationEvents(playData, eventHandlers, startTime, clipTime);
+        if (canWrap) {
+          playData.currentEventIndex = 0;
+          this._fireSubAnimationEvents(playData, eventHandlers, startTime, clipTime);
+        }
       } else {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }
     } else {
       if (lastClipTime + deltaTime <= startTime) {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, startTime);
-        playData.currentEventIndex = eventHandlers.length - 1;
-        this._fireBackwardSubAnimationEvents(playData, eventHandlers, endTime, clipTime);
+        if (canWrap) {
+          playData.currentEventIndex = eventHandlers.length - 1;
+          this._fireBackwardSubAnimationEvents(playData, eventHandlers, endTime, clipTime);
+        }
       } else {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }

@@ -269,6 +269,58 @@ describe("Animator test", function () {
     }
   });
 
+  it("playData wrapMode overrides shared AnimatorState wrapMode per instance", () => {
+    const sharedWalkState = animator.animatorController.layers[0].stateMachine.states.find(
+      (state) => state.name === "Walk"
+    );
+    const oldWrapMode = sharedWalkState.wrapMode;
+
+    try {
+      sharedWalkState.wrapMode = WrapMode.Loop;
+      animator.play("Walk");
+
+      const layerData = animator["_animatorLayersData"][0];
+      const playData = layerData.srcPlayData;
+      playData.wrapMode = WrapMode.Once;
+
+      expect(sharedWalkState.wrapMode).to.eq(WrapMode.Loop);
+
+      // @ts-ignore
+      animator.engine.time._frameCount++;
+      animator.update(playData.state.clip.length + 0.1);
+
+      expect(layerData.layerState).to.eq(LayerState.Finished);
+    } finally {
+      sharedWalkState.wrapMode = oldWrapMode;
+    }
+  });
+
+  it("playData wrapMode does not leak between animators sharing one controller", () => {
+    const sharedWalkState = animator.animatorController.layers[0].stateMachine.states.find(
+      (state) => state.name === "Walk"
+    );
+    const oldWrapMode = sharedWalkState.wrapMode;
+    const otherEntity = new Entity(engine);
+    const otherAnimator = otherEntity.addComponent(Animator);
+    otherAnimator.animatorController = animator.animatorController;
+
+    try {
+      sharedWalkState.wrapMode = WrapMode.Loop;
+      animator.play("Walk");
+      otherAnimator.play("Walk");
+
+      const playData = animator["_animatorLayersData"][0].srcPlayData;
+      const otherPlayData = otherAnimator["_animatorLayersData"][0].srcPlayData;
+      playData.wrapMode = WrapMode.Once;
+
+      expect(otherPlayData.wrapMode).to.eq(WrapMode.Loop);
+      expect(sharedWalkState.wrapMode).to.eq(WrapMode.Loop);
+    } finally {
+      sharedWalkState.wrapMode = oldWrapMode;
+      otherEntity.destroy();
+    }
+  });
+
   it("cross fade in fixed time", () => {
     const runState = animator.findAnimatorState("Run");
     animator.play("Walk");
@@ -395,6 +447,58 @@ describe("Animator test", function () {
     state.clip.addEvent(event0);
     animator.update(10);
     expect(testScriptSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not refire animation events when a once clip reaches the end", () => {
+    const entity = new Entity(engine);
+    const onceAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("Base Layer");
+    controller.addLayer(layer);
+
+    const state = layer.stateMachine.addState("once");
+    state.wrapMode = WrapMode.Once;
+
+    const clip = new AnimationClip("once-clip");
+    const curve = new AnimationFloatCurve();
+    const start = new Keyframe<number>();
+    const end = new Keyframe<number>();
+    start.time = 0;
+    start.value = 0;
+    end.time = 1;
+    end.value = 1;
+    curve.addKey(start);
+    curve.addKey(end);
+    clip.addCurveBinding("", Transform, "position.x", curve);
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.5;
+    clip.addEvent(event0);
+    state.clip = clip;
+    onceAnimator.animatorController = controller;
+
+    const testScript = entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
+
+    try {
+      onceAnimator.play("once");
+      // @ts-ignore
+      onceAnimator.engine.time._frameCount++;
+      onceAnimator.update(0.75);
+      expect(testScriptSpy).toHaveBeenCalledTimes(1);
+
+      // @ts-ignore
+      onceAnimator.engine.time._frameCount++;
+      onceAnimator.update(0.5);
+      expect(testScriptSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
   });
 
   it("stateMachine", () => {

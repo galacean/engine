@@ -9,7 +9,7 @@ import { AnimatorStateData } from "./AnimatorStateData";
 /**
  * Per-instance runtime data for an AnimatorState.
  * Proxies read-only properties from the shared AnimatorState asset,
- * while providing per-instance mutable properties (e.g. speed).
+ * while providing per-instance mutable properties (e.g. speed, wrapMode).
  */
 export class AnimatorStatePlayData {
   /** @internal */
@@ -29,6 +29,8 @@ export class AnimatorStatePlayData {
   offsetFrameTime: number;
   /** Per-instance speed. Initialized from AnimatorState.speed, safe to modify without affecting other instances. */
   speed: number = 1.0;
+  /** Per-instance wrap mode. Initialized from AnimatorState.wrapMode, safe to modify without affecting other instances. */
+  wrapMode: WrapMode = WrapMode.Loop;
 
   // ── Proxy properties from AnimatorState (read-only) ──
 
@@ -40,11 +42,6 @@ export class AnimatorStatePlayData {
   /** The clip played by this state. */
   get clip(): AnimationClip {
     return this.state.clip;
-  }
-
-  /** The wrap mode. */
-  get wrapMode(): WrapMode {
-    return this.state.wrapMode;
   }
 
   /** The transitions going out of this state. */
@@ -71,6 +68,7 @@ export class AnimatorStatePlayData {
     this.currentEventIndex = 0;
     this.isForward = true;
     this.speed = state.speed;
+    this.wrapMode = state.wrapMode;
     this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 
@@ -91,7 +89,7 @@ export class AnimatorStatePlayData {
     let time = this.playedTime + this.offsetFrameTime;
     const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
-    if (state.wrapMode === WrapMode.Loop) {
+    if (this.wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;
     } else {
       if (Math.abs(time) >= duration) {
