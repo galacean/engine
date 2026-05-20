@@ -448,6 +448,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-burst-cycles",
       threshold: 0,
       diffPercentage: 0.2
+    },
+    rateOverDistance: {
+      category: "Particle",
+      caseFileName: "particleRenderer-rateOverDistance",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   PostProcess: {

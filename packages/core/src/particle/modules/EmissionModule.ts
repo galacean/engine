@@ -1,4 +1,4 @@
-import { MathUtil, Rand } from "@galacean/engine-math";
+import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -28,6 +28,16 @@ export class EmissionModule extends ParticleGeneratorModule {
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
   /** @internal */
   _frameRateTime: number = 0;
+
+  /** Carries the sub-interval distance fragment between frames so `rateOverDistance` interpolates correctly across long pulls. */
+  @ignoreClone
+  private _distanceAccumulator: number = 0;
+  /** Last sampled world position of the emitter; subsequent frames diff against it for `rateOverDistance`. */
+  @ignoreClone
+  private _lastEmitPosition: Vector3 = new Vector3();
+  /** False until the first emit after `_reset` (or first ever play), so we don't diff against an uninitialized origin. */
+  @ignoreClone
+  private _hasLastEmitPosition: boolean = false;
 
   @deepClone
   private _bursts: Burst[] = [];
@@ -130,6 +140,7 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _emit(lastPlayTime: number, playTime: number): void {
     this._emitByRateOverTime(playTime);
+    this._emitByRateOverDistance();
     this._emitByBurst(lastPlayTime, playTime);
   }
 
@@ -147,6 +158,8 @@ export class EmissionModule extends ParticleGeneratorModule {
   _reset(): void {
     this._frameRateTime = 0;
     this._currentBurstIndex = 0;
+    this._distanceAccumulator = 0;
+    this._hasLastEmitPosition = false;
   }
 
   /**
@@ -167,6 +180,41 @@ export class EmissionModule extends ParticleGeneratorModule {
         cumulativeTime -= emitInterval;
         this._frameRateTime += emitInterval;
         generator._emit(this._frameRateTime, 1);
+      }
+    }
+  }
+
+  private _emitByRateOverDistance(): void {
+    const generator = this._generator;
+    const currentPos = generator._renderer.entity.transform.worldPosition;
+    const ratePerUnit = this.rateOverDistance.evaluate(undefined, undefined);
+
+    // No active rate or no baseline yet — sync the position and bail. We
+    // still drop the accumulator so a later rate flip from 0 → N doesn't
+    // dump every pre-flip frame of movement into a one-shot burst.
+    if (ratePerUnit <= 0 || !this._hasLastEmitPosition) {
+      this._lastEmitPosition.copyFrom(currentPos);
+      this._hasLastEmitPosition = true;
+      this._distanceAccumulator = 0;
+      return;
+    }
+
+    const dx = currentPos.x - this._lastEmitPosition.x;
+    const dy = currentPos.y - this._lastEmitPosition.y;
+    const dz = currentPos.z - this._lastEmitPosition.z;
+    this._lastEmitPosition.copyFrom(currentPos);
+
+    this._distanceAccumulator += Math.sqrt(dx * dx + dy * dy + dz * dz);
+    const emitInterval = 1.0 / ratePerUnit;
+    // Single divide + Math.floor instead of a while-subtract loop so the
+    // accumulator doesn't drift after long runs (`2.0 - 19 * 0.1` is not 0.1
+    // in float). zeroTolerance handles the symmetric exact-boundary case.
+    const count = Math.floor(this._distanceAccumulator / emitInterval + MathUtil.zeroTolerance);
+    if (count > 0) {
+      this._distanceAccumulator -= count * emitInterval;
+      const playTime = generator._playTime;
+      for (let i = 0; i < count; i++) {
+        generator._emit(playTime, 1);
       }
     }
   }
