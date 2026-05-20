@@ -2,6 +2,7 @@ import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
+import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { Burst } from "./Burst";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
@@ -13,6 +14,8 @@ import { BaseShape } from "./shape/BaseShape";
 export class EmissionModule extends ParticleGeneratorModule {
   /** @internal */
   static readonly _emissionShapeMacro = ShaderMacro.getByName("RENDERER_EMISSION_SHAPE");
+
+  private static _tempEmitPosition = new Vector3();
 
   /**  The rate of particle emission. */
   @deepClone
@@ -29,15 +32,12 @@ export class EmissionModule extends ParticleGeneratorModule {
   /** @internal */
   _frameRateTime: number = 0;
 
-  /** Carries the sub-interval distance fragment between frames so `rateOverDistance` interpolates correctly across long pulls. */
   @ignoreClone
-  private _distanceAccumulator: number = 0;
-  /** Last sampled world position of the emitter; subsequent frames diff against it for `rateOverDistance`. */
+  private _distanceAccumulator = 0;
   @ignoreClone
-  private _lastEmitPosition: Vector3 = new Vector3();
-  /** False until the first emit after `_reset` (or first ever play), so we don't diff against an uninitialized origin. */
+  private _lastEmitPosition = new Vector3();
   @ignoreClone
-  private _hasLastEmitPosition: boolean = false;
+  private _hasLastEmitPosition = false;
 
   @deepClone
   private _bursts: Burst[] = [];
@@ -158,8 +158,15 @@ export class EmissionModule extends ParticleGeneratorModule {
   _reset(): void {
     this._frameRateTime = 0;
     this._currentBurstIndex = 0;
-    this._distanceAccumulator = 0;
+    this._invalidateDistanceBaseline();
+  }
+
+  /**
+   * @internal
+   */
+  _invalidateDistanceBaseline(): void {
     this._hasLastEmitPosition = false;
+    this._distanceAccumulator = 0;
   }
 
   /**
@@ -185,38 +192,52 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitByRateOverDistance(): void {
-    const generator = this._generator;
-    const currentPos = generator._renderer.entity.transform.worldPosition;
     const ratePerUnit = this.rateOverDistance.evaluate(undefined, undefined);
+    const generator = this._generator;
 
-    // No active rate or no baseline yet — sync the position and bail. We
-    // still drop the accumulator so a later rate flip from 0 → N doesn't
-    // dump every pre-flip frame of movement into a one-shot burst.
-    if (ratePerUnit <= 0 || !this._hasLastEmitPosition) {
-      this._lastEmitPosition.copyFrom(currentPos);
+    if (ratePerUnit <= 0) {
+      this._invalidateDistanceBaseline();
+      return;
+    }
+    if (!this._hasLastEmitPosition) {
+      this._lastEmitPosition.copyFrom(generator._renderer.entity.transform.worldPosition);
       this._hasLastEmitPosition = true;
-      this._distanceAccumulator = 0;
       return;
     }
 
-    const dx = currentPos.x - this._lastEmitPosition.x;
-    const dy = currentPos.y - this._lastEmitPosition.y;
-    const dz = currentPos.z - this._lastEmitPosition.z;
-    this._lastEmitPosition.copyFrom(currentPos);
+    const lastPos = this._lastEmitPosition;
+    const currentPos = generator._renderer.entity.transform.worldPosition;
+    const dx = currentPos.x - lastPos.x;
+    const dy = currentPos.y - lastPos.y;
+    const dz = currentPos.z - lastPos.z;
+    const moveLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    this._distanceAccumulator += moveLength;
 
-    this._distanceAccumulator += Math.sqrt(dx * dx + dy * dy + dz * dz);
     const emitInterval = 1.0 / ratePerUnit;
-    // Single divide + Math.floor instead of a while-subtract loop so the
-    // accumulator doesn't drift after long runs (`2.0 - 19 * 0.1` is not 0.1
-    // in float). zeroTolerance handles the symmetric exact-boundary case.
+    // `+ zeroTolerance` absorbs float divide error so an exact `N*interval` accumulator doesn't drop 1
     const count = Math.floor(this._distanceAccumulator / emitInterval + MathUtil.zeroTolerance);
+
     if (count > 0) {
       this._distanceAccumulator -= count * emitInterval;
       const playTime = generator._playTime;
-      for (let i = 0; i < count; i++) {
-        generator._emit(playTime, 1);
+      if (generator.main.simulationSpace === ParticleSimulationSpace.World && moveLength > MathUtil.zeroTolerance) {
+        // Distribute N emissions along [lastPos → currentPos]: most-recent particle at
+        // t = 1 - remaining/moveLength, earlier ones step back by tStep each.
+        const invMoveLength = 1.0 / moveLength;
+        const tStep = emitInterval * invMoveLength;
+        let t = 1.0 - this._distanceAccumulator * invMoveLength;
+        const emitPos = EmissionModule._tempEmitPosition;
+        for (let i = count - 1; i >= 0; i--) {
+          emitPos.set(lastPos.x + dx * t, lastPos.y + dy * t, lastPos.z + dz * t);
+          generator._emit(playTime, 1, emitPos);
+          t -= tStep;
+        }
+      } else {
+        generator._emit(playTime, count);
       }
     }
+
+    lastPos.copyFrom(currentPos);
   }
 
   private _emitByBurst(lastPlayTime: number, playTime: number): void {

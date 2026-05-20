@@ -240,6 +240,8 @@ export class ParticleGenerator {
       }
     } else {
       this._isPlaying = false;
+      // Invalidate the rateOverDistance baseline so emitter movement during the stop
+      // interval doesn't burst on resume.
       if (stopMode === ParticleStopMode.StopEmittingAndClear) {
         this._clearActiveParticles();
         this._playTime = 0;
@@ -247,6 +249,8 @@ export class ParticleGenerator {
         this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
 
         this.emission._reset();
+      } else {
+        this.emission._invalidateDistanceBaseline();
       }
     }
   }
@@ -262,7 +266,7 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _emit(playTime: number, count: number): void {
+  _emit(playTime: number, count: number, emitWorldPositionOverride?: Vector3): void {
     const { emission } = this;
     if (emission.enabled) {
       const { main } = this;
@@ -290,7 +294,7 @@ export class ParticleGenerator {
             direction.multiply(positionScale);
           }
         }
-        this._addNewParticle(position, direction, transform, playTime);
+        this._addNewParticle(position, direction, transform, playTime, emitWorldPositionOverride);
       }
     }
   }
@@ -838,7 +842,13 @@ export class ParticleGenerator {
     }
   }
 
-  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, playTime: number): void {
+  private _addNewParticle(
+    position: Vector3,
+    direction: Vector3,
+    transform: Transform,
+    playTime: number,
+    emitWorldPositionOverride?: Vector3
+  ): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
     if (nextFreeElement >= this._currentParticleCount) {
@@ -870,7 +880,7 @@ export class ParticleGenerator {
 
     let pos: Vector3, rot: Quaternion;
     if (main.simulationSpace === ParticleSimulationSpace.World) {
-      pos = transform.worldPosition;
+      pos = emitWorldPositionOverride ?? transform.worldPosition;
       rot = transform.worldRotationQuaternion;
     }
 
@@ -1027,7 +1037,7 @@ export class ParticleGenerator {
 
     // Initialize feedback buffer for this particle
     if (this._useTransformFeedback) {
-      this._addFeedbackParticle(firstFreeElement, position, direction, startSpeed, transform);
+      this._addFeedbackParticle(firstFreeElement, position, direction, startSpeed, transform, pos);
     }
 
     this._firstFreeElement = nextFreeElement;
@@ -1038,7 +1048,8 @@ export class ParticleGenerator {
     shapePosition: Vector3,
     direction: Vector3,
     startSpeed: number,
-    transform: Transform
+    transform: Transform,
+    emitWorldPosition?: Vector3
   ): void {
     let position: Vector3;
     if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
@@ -1046,7 +1057,7 @@ export class ParticleGenerator {
     } else {
       position = ParticleGenerator._tempVector32;
       Vector3.transformByQuat(shapePosition, transform.worldRotationQuaternion, position);
-      position.add(transform.worldPosition);
+      position.add(emitWorldPosition ?? transform.worldPosition);
     }
 
     this._feedbackSimulator.writeParticleData(

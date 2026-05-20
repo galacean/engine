@@ -4,6 +4,7 @@ import {
   Entity,
   ParticleMaterial,
   ParticleRenderer,
+  ParticleSimulationSpace,
   ParticleStopMode
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
@@ -163,6 +164,71 @@ describe("EmissionModule rateOverDistance", () => {
     tick(engine, elapsed);
     tick(engine, elapsed);
     expect(generator._getAliveParticleCount()).to.eq(0);
+
+    entity.destroy();
+  });
+
+  it("distributes particles along the movement path in World space", () => {
+    const { entity, renderer } = buildEmitter(engine, "world-space-distribution");
+    const generator = renderer.generator;
+    generator.main.simulationSpace = ParticleSimulationSpace.World;
+    // 1 particle per unit; move 4 units → 4 particles spaced at world x = 1, 2, 3, 4
+    generator.emission.rateOverDistance.constant = 1;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+
+    tick(engine, elapsed); // baseline sync at (0,0,0)
+
+    entity.transform.setPosition(4, 0, 0);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(4);
+
+    // Verify each particle's stored world position is along [0,4] on x axis, not all at x=4.
+    // Particles are written sequentially starting at firstActiveElement=0.
+    //@ts-ignore - test reaches into instance buffer to verify spatial distribution
+    const verts = (generator as any)._instanceVertices as Float32Array;
+    // Per-instance stride = 168 bytes / 4 = 42 floats; world position lives at offset 27.
+    const stride = 42;
+    const xs: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      xs.push(verts[i * stride + 27]);
+    }
+    xs.sort((a, b) => a - b);
+    // Expect roughly [1, 2, 3, 4] — accept loose tolerance for float ops.
+    expect(xs[0]).to.be.closeTo(1, 1e-4);
+    expect(xs[1]).to.be.closeTo(2, 1e-4);
+    expect(xs[2]).to.be.closeTo(3, 1e-4);
+    expect(xs[3]).to.be.closeTo(4, 1e-4);
+
+    entity.destroy();
+  });
+
+  it("does not burst on play() after emitter moves while stopped", () => {
+    const { entity, renderer } = buildEmitter(engine, "no-burst-on-replay");
+    const generator = renderer.generator;
+    generator.emission.rateOverDistance.constant = 10;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, elapsed); // baseline sync at (0,0,0)
+
+    // Stop *without* clear — accumulator/baseline retained by the old impl.
+    generator.stop(true, ParticleStopMode.StopEmitting);
+    // Emitter teleports a few units while stopped (kept inside the camera frustum
+    // so renderer culling doesn't mask the test).
+    entity.transform.setPosition(3, 0, 0);
+    generator.play();
+
+    // First tick after play() must resync the baseline at the new position,
+    // not diff (3 - 0) and dump 30 particles in one shot.
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(0);
+
+    // Subsequent movement still emits normally — diffed against the resynced baseline.
+    entity.transform.setPosition(4, 0, 0);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(10);
 
     entity.destroy();
   });
