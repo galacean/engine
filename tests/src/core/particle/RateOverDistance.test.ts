@@ -244,6 +244,34 @@ describe("EmissionModule rateOverDistance", () => {
     entity.destroy();
   });
 
+  it("clamps count and discards accumulator on teleport-sized moves", () => {
+    const { entity, renderer } = buildEmitter(engine, "teleport-clamp");
+    const generator = renderer.generator;
+    generator.main.maxParticles = 50;
+    // Rate 10/unit × 10000 unit jump would otherwise demand 100,000 emissions
+    // in one frame — millions of `_addNewParticle` calls hitting the buffer-full
+    // early return.
+    generator.emission.rateOverDistance.constant = 10;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, elapsed); // baseline sync at (0,0,0)
+
+    entity.transform.setPosition(10000, 0, 0); // teleport
+    tick(engine, elapsed);
+
+    // Alive count must not exceed the configured cap.
+    expect(generator._getAliveParticleCount()).to.be.lessThanOrEqual(50);
+
+    // Next frame without movement: accumulator should have been reset to 0
+    // (residue dropped), so no further emission.
+    const aliveAfterTeleport = generator._getAliveParticleCount();
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(aliveAfterTeleport);
+
+    entity.destroy();
+  });
+
   it("does not burst on play() after emitter moves while stopped", () => {
     const { entity, renderer } = buildEmitter(engine, "no-burst-on-replay");
     const generator = renderer.generator;
