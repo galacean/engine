@@ -140,7 +140,7 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _emit(lastPlayTime: number, playTime: number): void {
     this._emitByRateOverTime(playTime);
-    this._emitByRateOverDistance();
+    this._emitByRateOverDistance(lastPlayTime, playTime);
     this._emitByBurst(lastPlayTime, playTime);
   }
 
@@ -191,7 +191,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
   }
 
-  private _emitByRateOverDistance(): void {
+  private _emitByRateOverDistance(lastPlayTime: number, playTime: number): void {
     const ratePerUnit = this.rateOverDistance.evaluate(undefined, undefined);
     const generator = this._generator;
 
@@ -219,18 +219,24 @@ export class EmissionModule extends ParticleGeneratorModule {
 
     if (count > 0) {
       this._distanceAccumulator -= count * emitInterval;
-      const playTime = generator._playTime;
       if (generator.main.simulationSpace === ParticleSimulationSpace.World && moveLength > MathUtil.zeroTolerance) {
-        // Distribute N emissions along [lastPos → currentPos]: most-recent particle at
-        // t = 1 - remaining/moveLength, earlier ones step back by tStep each.
+        // Distribute N emissions along [lastPos → currentPos]. The same normalized
+        // back-distance `s ∈ [0, 1]` controls both spatial offset and emit-time offset:
+        //   s = 0 → spawn at currentPos with emitTime = playTime (just born),
+        //   s = 1 → spawn at lastPos    with emitTime = lastPlayTime (born a frame ago).
+        // Without the time interpolation, all N particles would share `playTime`, so any
+        // age-driven module (COL / SOL / FOL) would render them as a uniform stamp
+        // instead of a smooth fade — the very high-speed case spatial distribution is
+        // meant to fix.
         const invMoveLength = 1.0 / moveLength;
-        const tStep = emitInterval * invMoveLength;
-        let t = 1.0 - this._distanceAccumulator * invMoveLength;
+        const sStep = emitInterval * invMoveLength;
+        const dt = playTime - lastPlayTime;
+        let s = this._distanceAccumulator * invMoveLength;
         const emitPos = EmissionModule._tempEmitPosition;
-        for (let i = count - 1; i >= 0; i--) {
-          emitPos.set(lastPos.x + dx * t, lastPos.y + dy * t, lastPos.z + dz * t);
-          generator._emit(playTime, 1, emitPos);
-          t -= tStep;
+        for (let i = 0; i < count; i++) {
+          emitPos.set(currentPos.x - dx * s, currentPos.y - dy * s, currentPos.z - dz * s);
+          generator._emit(playTime - dt * s, 1, emitPos);
+          s += sStep;
         }
       } else {
         generator._emit(playTime, count);

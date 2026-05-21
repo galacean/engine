@@ -204,6 +204,46 @@ describe("EmissionModule rateOverDistance", () => {
     entity.destroy();
   });
 
+  it("distributes emit time along the movement path in World space", () => {
+    const { entity, renderer } = buildEmitter(engine, "world-space-time-distribution");
+    const generator = renderer.generator;
+    generator.main.simulationSpace = ParticleSimulationSpace.World;
+    // 1 particle per unit; move 4 units across one 100ms tick → 4 particles,
+    // each born at a sub-frame offset.
+    generator.emission.rateOverDistance.constant = 1;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+
+    tick(engine, elapsed); // baseline sync at (0,0,0)
+    entity.transform.setPosition(4, 0, 0);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(4);
+
+    //@ts-ignore - reach into instance buffer to read per-particle emit time
+    const verts = (generator as any)._instanceVertices as Float32Array;
+    const stride = 42;
+    // a_DirectionTime is at byte 16 → float 4; the .w slot (emit time) is float 4+3=7.
+    const timeFloatOffset = 7;
+    const times: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      times.push(verts[i * stride + timeFloatOffset]);
+    }
+    times.sort((a, b) => a - b);
+
+    // The 4 emit times must form an arithmetic sequence (constant step = sStep * dt),
+    // and they must not all be equal — that's exactly the bug we're guarding against,
+    // where COL / SOL / FOL would otherwise render them as a uniform stamp.
+    const diff0 = times[1] - times[0];
+    const diff1 = times[2] - times[1];
+    const diff2 = times[3] - times[2];
+    expect(diff0).to.be.greaterThan(1e-4);
+    expect(diff1).to.be.closeTo(diff0, 1e-4);
+    expect(diff2).to.be.closeTo(diff0, 1e-4);
+
+    entity.destroy();
+  });
+
   it("does not burst on play() after emitter moves while stopped", () => {
     const { entity, renderer } = buildEmitter(engine, "no-burst-on-replay");
     const generator = renderer.generator;
