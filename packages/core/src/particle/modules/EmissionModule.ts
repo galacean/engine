@@ -219,27 +219,31 @@ export class EmissionModule extends ParticleGeneratorModule {
 
     if (count > 0) {
       this._distanceAccumulator -= count * emitInterval;
-      if (generator.main.simulationSpace === ParticleSimulationSpace.World && moveLength > MathUtil.zeroTolerance) {
-        // Distribute N emissions along [lastPos → currentPos]. The same normalized
-        // back-distance `s ∈ [0, 1]` controls both spatial offset and emit-time offset:
-        //   s = 0 → spawn at currentPos with emitTime = playTime (just born),
-        //   s = 1 → spawn at lastPos    with emitTime = lastPlayTime (born a frame ago).
-        // Without the time interpolation, all N particles would share `playTime`, so any
-        // age-driven module (COL / SOL / FOL) would render them as a uniform stamp
-        // instead of a smooth fade — the very high-speed case spatial distribution is
-        // meant to fix.
-        const invMoveLength = 1.0 / moveLength;
-        const sStep = emitInterval * invMoveLength;
-        const dt = playTime - lastPlayTime;
-        let s = this._distanceAccumulator * invMoveLength;
-        const emitPos = EmissionModule._tempEmitPosition;
-        for (let i = 0; i < count; i++) {
-          emitPos.set(currentPos.x - dx * s, currentPos.y - dy * s, currentPos.z - dz * s);
-          generator._emit(playTime - dt * s, 1, emitPos);
-          s += sStep;
+      // `subFrameAge ∈ [0, 1]`: how far back into the frame a particle was born
+      // (0 = newest at currentPos/playTime, 1 = oldest at lastPos/lastPlayTime).
+      // The initial clamp protects two edges — moveLength ≈ 0 (collapse to frame-end
+      // emit) and a tiny moveLength near the emitInterval edge (would put age > 1).
+      // Local simulation space ignores the position override but still uses emitTime.
+      const isWorld = generator.main.simulationSpace === ParticleSimulationSpace.World;
+      const invMoveLength = moveLength > MathUtil.zeroTolerance ? 1.0 / moveLength : 0;
+      const ageStep = emitInterval * invMoveLength;
+      const dt = playTime - lastPlayTime;
+      let subFrameAge = Math.min(this._distanceAccumulator * invMoveLength, 1.0);
+      const emitPos = EmissionModule._tempEmitPosition;
+      for (let i = 0; i < count; i++) {
+        if (isWorld) {
+          emitPos.set(
+            currentPos.x - dx * subFrameAge,
+            currentPos.y - dy * subFrameAge,
+            currentPos.z - dz * subFrameAge
+          );
         }
-      } else {
-        generator._emit(playTime, count);
+        if (generator._emit(playTime - dt * subFrameAge, 1, isWorld ? emitPos : undefined) === 0) {
+          // Buffer full: settle the frame's distance budget instead of carrying it over
+          this._distanceAccumulator = 0;
+          break;
+        }
+        subFrameAge += ageStep;
       }
     }
 

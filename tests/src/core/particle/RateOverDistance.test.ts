@@ -272,4 +272,27 @@ describe("EmissionModule rateOverDistance", () => {
 
     entity.destroy();
   });
+
+  it("returns actual emitted count when buffer is full", () => {
+    // Documents the `_emit` return-value contract that lets distance emission detect
+    // mid-loop buffer exhaustion (and drop residual accumulator to avoid spinning
+    // through millions of no-op iterations on a teleport).
+    const { entity, renderer } = buildEmitter(engine, "emit-returns-actual");
+    const generator = renderer.generator;
+    generator.main.maxParticles = 10;
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, elapsed);
+
+    // Request 100, buffer only has 10 slots.
+    //@ts-ignore — reach into the internal _emit contract
+    const emitted = generator._emit(generator._playTime, 100);
+    expect(emitted).to.eq(10);
+
+    // Subsequent request returns 0 — buffer is saturated.
+    //@ts-ignore
+    expect(generator._emit(generator._playTime, 5)).to.eq(0);
+
+    entity.destroy();
+  });
 });
