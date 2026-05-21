@@ -30,6 +30,16 @@ export class Collider extends Component implements ICustomClone {
   protected _collisionLayerIndex: number = 0;
 
   /**
+   * Disabling a collider only detaches its native actor from the simulation
+   * scene; the actor is not destroyed, so on re-enable it still holds its
+   * pre-disable pose. The first transform sync after (re-)enable must teleport,
+   * never sweep — otherwise a kinematic actor drags across the scene from that
+   * stale pose and fires spurious contacts along the path.
+   */
+  @ignoreClone
+  private _pendingReenterSync: boolean = false;
+
+  /**
    * The shapes of this collider.
    */
   get shapes(): Readonly<ColliderShape[]> {
@@ -110,9 +120,14 @@ export class Collider extends Component implements ICustomClone {
    */
   _onUpdate(): void {
     const shapes = this._shapes;
-    if (this._updateFlag.flag) {
+    if (this._pendingReenterSync || this._updateFlag.flag) {
       const { transform } = this.entity;
-      this._syncEntityTransformToNative(transform.worldPosition, transform.worldRotationQuaternion);
+      if (this._pendingReenterSync) {
+        this._teleportToEntityTransform(transform.worldPosition, transform.worldRotationQuaternion);
+        this._pendingReenterSync = false;
+      } else {
+        this._syncEntityTransformToNative(transform.worldPosition, transform.worldRotationQuaternion);
+      }
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = shapes.length; i < n; i++) {
@@ -139,6 +154,7 @@ export class Collider extends Component implements ICustomClone {
    */
   override _onEnableInScene(): void {
     this.scene.physics._addCollider(this);
+    this._pendingReenterSync = true;
   }
 
   /**
