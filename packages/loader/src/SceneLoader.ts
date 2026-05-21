@@ -128,6 +128,15 @@ class SceneLoader extends Loader<Scene> {
               if (fog.fogColor != undefined) scene.fogColor.copyFrom(fog.fogColor);
             }
 
+            // parse physics
+            const physics = data.scene.physics;
+            // PhysicsScene has a native backing only when the engine was created with a physics backend.
+            // Keep scene files loadable for render-only engines by ignoring serialized physics settings there.
+            if (physics && (engine as any)._physicsInitialized) {
+              if (physics.gravity != undefined) scene.physics.gravity.copyFrom(physics.gravity);
+              if (physics.fixedTimeStep != undefined) scene.physics.fixedTimeStep = physics.fixedTimeStep;
+            }
+
             // Post Process
             const postProcessData = data.scene.postProcess;
             if (postProcessData) {

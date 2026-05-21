@@ -54,6 +54,10 @@ export interface IScene extends IHierarchyFile {
       fogDensity: number;
       fogColor: IColor;
     };
+    physics?: {
+      gravity?: IVector3;
+      fixedTimeStep?: number;
+    };
     postProcess?: {
       isActive: boolean;
       bloom: {
