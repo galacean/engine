@@ -27,7 +27,7 @@ export abstract class ColliderShape implements ICustomClone {
   private _rotation: Vector3 = new Vector3();
   @deepClone
   private _position: Vector3 = new Vector3();
-  private _contactOffset: number = 0.02;
+  private _contactOffset: number | undefined;
 
   /**
    * @internal
@@ -55,7 +55,7 @@ export abstract class ColliderShape implements ICustomClone {
    * @defaultValue 0.02
    */
   get contactOffset(): number {
-    return this._contactOffset;
+    return this._contactOffset ?? Engine._nativePhysics?.getDefaultContactOffset?.() ?? 0.02;
   }
 
   set contactOffset(value: number) {
@@ -195,7 +195,9 @@ export abstract class ColliderShape implements ICustomClone {
     if (!this._nativeShape) return;
     this._nativeShape.setPosition(this._position);
     this._nativeShape.setRotation(this._rotation);
-    this._nativeShape.setContactOffset(this._contactOffset);
+    if (this._contactOffset !== undefined) {
+      this._nativeShape.setContactOffset(this._contactOffset);
+    }
     this._nativeShape.setIsTrigger(this._isTrigger);
     this._nativeShape.setMaterial(this._material._nativeMaterial);
 

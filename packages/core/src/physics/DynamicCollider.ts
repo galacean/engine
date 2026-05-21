@@ -37,7 +37,7 @@ export class DynamicCollider extends Collider {
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
   private _kinematicTransformSyncMode: DynamicColliderKinematicTransformSyncMode =
     DynamicColliderKinematicTransformSyncMode.Target;
-  private _sleepThreshold = 5e-3;
+  private _sleepThreshold: number | undefined;
   private _automaticCenterOfMass = true;
   private _automaticInertiaTensor = true;
 
@@ -227,7 +227,7 @@ export class DynamicCollider extends Collider {
    * The mass-normalized energy threshold, below which objects start going to sleep.
    */
   get sleepThreshold(): number {
-    return this._sleepThreshold;
+    return this._sleepThreshold ?? Engine._nativePhysics?.getDefaultSleepThreshold?.() ?? 5e-3;
   }
 
   set sleepThreshold(value: number) {
@@ -561,7 +561,9 @@ export class DynamicCollider extends Collider {
     }
     (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(this._maxAngularVelocity);
     (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
-    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    if (this._sleepThreshold !== undefined) {
+      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    }
     (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
     (<IDynamicCollider>this._nativeCollider).setUseGravity(this._useGravity);
     (<IDynamicCollider>this._nativeCollider).setIsKinematic(this._isKinematic);
