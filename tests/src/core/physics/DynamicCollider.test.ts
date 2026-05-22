@@ -6,6 +6,7 @@ import {
   DynamicCollider,
   DynamicColliderConstraints,
   CollisionDetectionMode,
+  DynamicColliderKinematicTransformSyncMode,
   StaticCollider,
   PlaneColliderShape
 } from "@galacean/engine-core";
@@ -646,6 +647,48 @@ describe("DynamicCollider", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(box.transform.position.y).below(1);
+  });
+
+  it("teleports kinematic target collider on re-enable instead of sweeping from stale native pose", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(-10, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.useGravity = false;
+    boxCollider.isKinematic = true;
+    boxCollider.kinematicTransformSyncMode = DynamicColliderKinematicTransformSyncMode.Target;
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    // @ts-ignore - intentionally observe the native boundary used by Collider sync.
+    const nativeCollider = boxCollider._nativeCollider;
+    const originalMove = nativeCollider.move.bind(nativeCollider);
+    const originalSetWorldTransform = nativeCollider.setWorldTransform.bind(nativeCollider);
+    let moveCalls = 0;
+    let setWorldTransformCalls = 0;
+    nativeCollider.move = (...args: Parameters<typeof nativeCollider.move>) => {
+      moveCalls++;
+      return originalMove(...args);
+    };
+    nativeCollider.setWorldTransform = (...args: Parameters<typeof nativeCollider.setWorldTransform>) => {
+      setWorldTransformCalls++;
+      return originalSetWorldTransform(...args);
+    };
+
+    try {
+      box.isActive = false;
+      box.transform.setPosition(10, 0, 0);
+      box.isActive = true;
+
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      expect(moveCalls).eq(0);
+      expect(setWorldTransformCalls).eq(1);
+      expect(formatValue(box.transform.position.x)).eq(10);
+    } finally {
+      nativeCollider.move = originalMove;
+      nativeCollider.setWorldTransform = originalSetWorldTransform;
+    }
   });
 
   it("constraints", function () {
