@@ -38,6 +38,9 @@ export class Animator extends Component {
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
   @assignmentClone
   speed = 1.0;
+  /** Whether the Animator sends AnimationEvent callbacks. */
+  @assignmentClone
+  fireEvents = true;
 
   /** @internal */
   _playFrameCount = -1;
@@ -1589,7 +1592,9 @@ export class Animator extends Component {
     deltaTime: number
   ) {
     const { eventHandlers } = playData.stateData;
-    eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
+    this.fireEvents &&
+      eventHandlers.length &&
+      this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       state._callOnEnter(this, layerIndex);

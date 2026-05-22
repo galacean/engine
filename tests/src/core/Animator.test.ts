@@ -449,6 +449,32 @@ describe("Animator test", function () {
     expect(testScriptSpy).toHaveBeenCalledTimes(1);
   });
 
+  it("fireEvents gates AnimationEvent dispatch without consuming the event", () => {
+    animator.play("Walk");
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const testScript = animator.entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0;
+
+    const state = animator.findAnimatorState("Walk");
+    state.clip.addEvent(event0);
+
+    animator.fireEvents = false;
+    animator.update(0);
+    expect(testScriptSpy).not.toHaveBeenCalled();
+
+    animator.fireEvents = true;
+    animator.update(0.1);
+    expect(testScriptSpy).toHaveBeenCalledTimes(1);
+  });
+
   it("does not refire animation events when a once clip reaches the end", () => {
     const entity = new Entity(engine);
     const onceAnimator = entity.addComponent(Animator);
@@ -1221,6 +1247,40 @@ describe("Animator test", function () {
     expect(wrappedRoot.transform.position.x).to.eq(0);
     expect(hips.transform.position.x).to.eq(1);
     expect(spine.transform.position.y).to.eq(1);
+  });
+
+  it("sampleAnimation samples clip curves without firing AnimationEvents", () => {
+    const entity = new Entity(engine, "sample-root");
+    const clip = new AnimationClip("sample");
+    const curve = new AnimationFloatCurve();
+    const start = new Keyframe<number>();
+    const end = new Keyframe<number>();
+    start.time = 0;
+    start.value = 0;
+    end.time = 1;
+    end.value = 3;
+    curve.addKey(start);
+    curve.addKey(end);
+    clip.addCurveBinding("", Transform, "position.x", curve);
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const script = entity.addComponent(TestScript);
+    const eventSpy = vi.spyOn(script, "event0");
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0;
+    clip.addEvent(event0);
+
+    try {
+      clip.sampleAnimation(entity, 1);
+      expect(entity.transform.position.x).to.eq(3);
+      expect(eventSpy).not.toHaveBeenCalled();
+    } finally {
+      entity.destroy();
+    }
   });
 
   it("anyState transition interrupts crossFade", () => {
