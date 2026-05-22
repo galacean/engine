@@ -323,4 +323,48 @@ describe("EmissionModule rateOverDistance", () => {
 
     entity.destroy();
   });
+
+  it("does not extrapolate past lastPos when a rate hike pays out previous carry", () => {
+    // Trigger: rate climbs between frames while the accumulator already carries
+    // sub-interval distance from the lower-rate era. The new emitInterval is
+    // small enough that `residual / moveLength > 1` after the count subtraction —
+    // initial subFrameAge clamps to 1.0, but a naive `+= ageStep` would let later
+    // iterations exceed 1 and extrapolate emitPos past lastPos in opposite
+    // direction of motion (and emitTime to before lastPlayTime).
+    const { entity, renderer } = buildEmitter(engine, "rate-hike-clamp");
+    const generator = renderer.generator;
+    generator.main.simulationSpace = ParticleSimulationSpace.World;
+    generator.emission.rateOverDistance.constant = 0.5; // interval = 2
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, elapsed); // baseline at (0,0,0)
+
+    // Move 1.5 units under low rate → accumulator carries 1.5, no emit.
+    entity.transform.setPosition(1.5, 0, 0);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(0);
+
+    // Bump rate: interval drops to 0.2. Tiny additional move (0.05) pushes
+    // accumulator to 1.55 → count = 7, residual ≈ 0.15, moveLength = 0.05,
+    // ratio = 3.0 (well above 1).
+    generator.emission.rateOverDistance.constant = 5;
+    entity.transform.setPosition(1.55, 0, 0);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(7);
+
+    //@ts-ignore - reach into instance buffer to verify positions stay in [lastPos, currentPos]
+    const verts = (generator as any)._instanceVertices as Float32Array;
+    const stride = 42;
+    for (let i = 0; i < 7; i++) {
+      const x = verts[i * stride + 27];
+      // Without the in-loop clamp this would be e.g. -1.0, -1.2, ... (extrapolated
+      // far behind lastPos.x = 1.5). With the clamp every particle lives within
+      // the legitimate frame window [lastPos.x, currentPos.x] = [1.5, 1.55].
+      expect(x).to.be.greaterThanOrEqual(1.5 - 1e-4);
+      expect(x).to.be.lessThanOrEqual(1.55 + 1e-4);
+    }
+
+    entity.destroy();
+  });
 });

@@ -243,7 +243,12 @@ export class EmissionModule extends ParticleGeneratorModule {
           this._distanceAccumulator = 0;
           break;
         }
-        subFrameAge += ageStep;
+        // Mirror the initial Math.min clamp inside the loop: a mid-PR rate hike
+        // can make previousCarry exceed the new emitInterval, so the accumulator
+        // pays out multiple particles' worth of distance in a single frame whose
+        // moveLength is only one interval wide. Without this clamp the second
+        // particle onward would extrapolate past lastPos in both space and time.
+        subFrameAge = Math.min(subFrameAge + ageStep, 1.0);
       }
     }
 
