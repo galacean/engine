@@ -39,6 +39,7 @@ playwright-report/
 .claude/
 CLAUDE.md
 docs/superpowers
+notes/
 .husky/post-checkout
 .husky/post-commit
 .husky/pre-push
