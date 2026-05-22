@@ -1,7 +1,8 @@
-import { Rand } from "@galacean/engine-math";
+import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
+import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { Burst } from "./Burst";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
@@ -13,6 +14,8 @@ import { BaseShape } from "./shape/BaseShape";
 export class EmissionModule extends ParticleGeneratorModule {
   /** @internal */
   static readonly _emissionShapeMacro = ShaderMacro.getByName("RENDERER_EMISSION_SHAPE");
+
+  private static _tempEmitPosition = new Vector3();
 
   /**  The rate of particle emission. */
   @deepClone
@@ -28,6 +31,13 @@ export class EmissionModule extends ParticleGeneratorModule {
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
   /** @internal */
   _frameRateTime: number = 0;
+
+  @ignoreClone
+  private _distanceAccumulator = 0;
+  @ignoreClone
+  private _lastEmitPosition = new Vector3();
+  @ignoreClone
+  private _hasLastEmitPosition = false;
 
   @deepClone
   private _bursts: Burst[] = [];
@@ -130,6 +140,7 @@ export class EmissionModule extends ParticleGeneratorModule {
    */
   _emit(lastPlayTime: number, playTime: number): void {
     this._emitByRateOverTime(playTime);
+    this._emitByRateOverDistance(lastPlayTime, playTime);
     this._emitByBurst(lastPlayTime, playTime);
   }
 
@@ -147,6 +158,15 @@ export class EmissionModule extends ParticleGeneratorModule {
   _reset(): void {
     this._frameRateTime = 0;
     this._currentBurstIndex = 0;
+    this._invalidateDistanceBaseline();
+  }
+
+  /**
+   * @internal
+   */
+  _invalidateDistanceBaseline(): void {
+    this._hasLastEmitPosition = false;
+    this._distanceAccumulator = 0;
   }
 
   /**
@@ -169,6 +189,65 @@ export class EmissionModule extends ParticleGeneratorModule {
         generator._emit(this._frameRateTime, 1);
       }
     }
+  }
+
+  private _emitByRateOverDistance(lastPlayTime: number, playTime: number): void {
+    const ratePerUnit = this.rateOverDistance.evaluate(undefined, undefined);
+    const generator = this._generator;
+
+    if (ratePerUnit <= 0) {
+      this._invalidateDistanceBaseline();
+      return;
+    }
+    if (!this._hasLastEmitPosition) {
+      this._lastEmitPosition.copyFrom(generator._renderer.entity.transform.worldPosition);
+      this._hasLastEmitPosition = true;
+      return;
+    }
+
+    const lastPos = this._lastEmitPosition;
+    const currentPos = generator._renderer.entity.transform.worldPosition;
+    const dx = currentPos.x - lastPos.x;
+    const dy = currentPos.y - lastPos.y;
+    const dz = currentPos.z - lastPos.z;
+    const moveLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
+    this._distanceAccumulator += moveLength;
+
+    const emitInterval = 1.0 / ratePerUnit;
+    // `+ zeroTolerance` absorbs float divide error so an exact `N*interval` accumulator doesn't drop 1
+    const count = Math.floor(this._distanceAccumulator / emitInterval + MathUtil.zeroTolerance);
+
+    if (count > 0) {
+      this._distanceAccumulator -= count * emitInterval;
+      // `subFrameAge ∈ [0, 1]`: how far back into the frame a particle was born
+      // (0 = newest at currentPos/playTime, 1 = oldest at lastPos/lastPlayTime).
+      // The initial clamp protects two edges — moveLength ≈ 0 (collapse to frame-end
+      // emit) and a tiny moveLength near the emitInterval edge (would put age > 1).
+      // Local simulation space ignores the position override but still uses emitTime.
+      const isWorld = generator.main.simulationSpace === ParticleSimulationSpace.World;
+      const invMoveLength = moveLength > MathUtil.zeroTolerance ? 1.0 / moveLength : 0;
+      const ageStep = emitInterval * invMoveLength;
+      const dt = playTime - lastPlayTime;
+      let subFrameAge = Math.min(this._distanceAccumulator * invMoveLength, 1.0);
+      const emitPos = EmissionModule._tempEmitPosition;
+      for (let i = 0; i < count; i++) {
+        if (isWorld) {
+          emitPos.set(
+            currentPos.x - dx * subFrameAge,
+            currentPos.y - dy * subFrameAge,
+            currentPos.z - dz * subFrameAge
+          );
+        }
+        if (generator._emit(playTime - dt * subFrameAge, 1, isWorld ? emitPos : undefined) === 0) {
+          // Buffer full: settle the frame's distance budget instead of carrying it over
+          this._distanceAccumulator = 0;
+          break;
+        }
+        subFrameAge += ageStep;
+      }
+    }
+
+    lastPos.copyFrom(currentPos);
   }
 
   private _emitByBurst(lastPlayTime: number, playTime: number): void {
