@@ -19,6 +19,13 @@ as a swept move from the stale pose and can emit spurious contacts.
   with `expected 1 to equal +0` for `moveCalls`, proving the test catches the old
   sweep path.
 
+## Naming cleanup
+
+The transient collider state is named `_pendingReenterTeleport` rather than
+`_pendingReenterSync` because the important behavior is not generic transform
+sync. It specifically forces the first sync after re-entering the physics scene
+to use teleport semantics instead of swept kinematic target movement.
+
 ## Verification
 
 - `pnpm vitest run tests/src/core/physics/DynamicCollider.test.ts -t "teleports kinematic target collider"`

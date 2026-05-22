@@ -37,7 +37,7 @@ export class Collider extends Component implements ICustomClone {
    * stale pose and fires spurious contacts along the path.
    */
   @ignoreClone
-  private _pendingReenterSync: boolean = false;
+  private _pendingReenterTeleport: boolean = false;
 
   /**
    * The shapes of this collider.
@@ -120,11 +120,11 @@ export class Collider extends Component implements ICustomClone {
    */
   _onUpdate(): void {
     const shapes = this._shapes;
-    if (this._pendingReenterSync || this._updateFlag.flag) {
+    if (this._pendingReenterTeleport || this._updateFlag.flag) {
       const { transform } = this.entity;
-      if (this._pendingReenterSync) {
+      if (this._pendingReenterTeleport) {
         this._teleportToEntityTransform(transform.worldPosition, transform.worldRotationQuaternion);
-        this._pendingReenterSync = false;
+        this._pendingReenterTeleport = false;
       } else {
         this._syncEntityTransformToNative(transform.worldPosition, transform.worldRotationQuaternion);
       }
@@ -154,7 +154,7 @@ export class Collider extends Component implements ICustomClone {
    */
   override _onEnableInScene(): void {
     this.scene.physics._addCollider(this);
-    this._pendingReenterSync = true;
+    this._pendingReenterTeleport = true;
   }
 
   /**
