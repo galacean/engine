@@ -301,6 +301,62 @@ describe("EmissionModule rateOverDistance", () => {
     entity.destroy();
   });
 
+  it("does not burst on play() after non-loop auto-stop with movement", () => {
+    // Auto-stop path: _update sets _isPlaying=false directly without going
+    // through stop(), so the old fix that invalidated baseline in stop() only
+    // missed this. play() resync must cover it.
+    const { entity, renderer } = buildEmitter(engine, "no-burst-on-autostop-replay");
+    const generator = renderer.generator;
+    generator.main.duration = 0.05; // 50ms — one 100ms tick pushes past it
+    generator.main.isLoop = false;
+    generator.emission.rateOverDistance.constant = 10;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, elapsed); // _playTime=0.1 > duration → auto-stops
+    expect(generator._getAliveParticleCount()).to.eq(0);
+    //@ts-ignore
+    expect((generator as any)._isPlaying).to.eq(false);
+
+    // Emitter moves while auto-stopped, then replay via play() (no stop call).
+    entity.transform.setPosition(3, 0, 0);
+    generator.play();
+
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount(), "auto-stop replay must resync, not burst 30").to.eq(0);
+
+    entity.destroy();
+  });
+
+  it("does not burst when emission.enabled is toggled off, moved, then on", () => {
+    // emission.enabled=false skips _emit entirely; toggling back to true must
+    // resync the baseline at the new position so the disabled interval doesn't
+    // count as emission distance.
+    const { entity, renderer } = buildEmitter(engine, "no-burst-on-enabled-toggle");
+    const generator = renderer.generator;
+    generator.main.duration = 100; // long-running, isolate from auto-stop
+    generator.main.isLoop = true;
+    generator.emission.rateOverDistance.constant = 10;
+
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    tick(engine, elapsed); // baseline sync at (0,0,0)
+
+    generator.emission.enabled = false;
+    entity.transform.setPosition(3, 0, 0);
+    generator.emission.enabled = true;
+
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount(), "enabled toggle must resync, not burst 30").to.eq(0);
+
+    // Subsequent movement still emits normally.
+    entity.transform.setPosition(4, 0, 0);
+    tick(engine, elapsed);
+    expect(generator._getAliveParticleCount()).to.eq(10);
+
+    entity.destroy();
+  });
+
   it("returns actual emitted count when buffer is full", () => {
     // Documents the `_emit` return-value contract that lets distance emission detect
     // mid-loop buffer exhaustion (and drop residual accumulator to avoid spinning

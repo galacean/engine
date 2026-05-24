@@ -56,6 +56,9 @@ export class EmissionModule extends ParticleGeneratorModule {
 
   override set enabled(value: boolean) {
     if (value !== this._enabled) {
+      if (value) {
+        this._resyncCursors(this._generator._playTime);
+      }
       this._enabled = value;
       if (value && this._shape) {
         this._generator._renderer.shaderData.enableMacro(EmissionModule._emissionShapeMacro);
@@ -152,19 +155,10 @@ export class EmissionModule extends ParticleGeneratorModule {
     this._shapeRand.reset(seed, ParticleRandomSubSeeds.Shape);
   }
 
-  /**
-   * @internal
-   */
-  _reset(): void {
-    this._frameRateTime = 0;
+  /** @internal */
+  _resyncCursors(playTime: number): void {
+    this._frameRateTime = playTime;
     this._currentBurstIndex = 0;
-    this._invalidateDistanceBaseline();
-  }
-
-  /**
-   * @internal
-   */
-  _invalidateDistanceBaseline(): void {
     this._hasLastEmitPosition = false;
     this._distanceAccumulator = 0;
   }
@@ -178,16 +172,18 @@ export class EmissionModule extends ParticleGeneratorModule {
 
   private _emitByRateOverTime(playTime: number): void {
     const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
-    if (ratePerSeconds > 0) {
-      const generator = this._generator;
-      const emitInterval = 1.0 / ratePerSeconds;
+    if (ratePerSeconds <= 0) {
+      this._frameRateTime = playTime;
+      return;
+    }
+    const generator = this._generator;
+    const emitInterval = 1.0 / ratePerSeconds;
 
-      let cumulativeTime = playTime - this._frameRateTime;
-      while (cumulativeTime >= emitInterval) {
-        cumulativeTime -= emitInterval;
-        this._frameRateTime += emitInterval;
-        generator._emit(this._frameRateTime, 1);
-      }
+    let cumulativeTime = playTime - this._frameRateTime;
+    while (cumulativeTime >= emitInterval) {
+      cumulativeTime -= emitInterval;
+      this._frameRateTime += emitInterval;
+      generator._emit(this._frameRateTime, 1);
     }
   }
 
@@ -196,7 +192,8 @@ export class EmissionModule extends ParticleGeneratorModule {
     const generator = this._generator;
 
     if (ratePerUnit <= 0) {
-      this._invalidateDistanceBaseline();
+      this._hasLastEmitPosition = false;
+      this._distanceAccumulator = 0;
       return;
     }
     if (!this._hasLastEmitPosition) {
@@ -207,9 +204,10 @@ export class EmissionModule extends ParticleGeneratorModule {
 
     const lastPos = this._lastEmitPosition;
     const currentPos = generator._renderer.entity.transform.worldPosition;
-    const dx = currentPos.x - lastPos.x;
-    const dy = currentPos.y - lastPos.y;
-    const dz = currentPos.z - lastPos.z;
+    const { x: cx, y: cy, z: cz } = currentPos;
+    const dx = cx - lastPos.x;
+    const dy = cy - lastPos.y;
+    const dz = cz - lastPos.z;
     const moveLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
     this._distanceAccumulator += moveLength;
 
@@ -219,11 +217,10 @@ export class EmissionModule extends ParticleGeneratorModule {
 
     if (count > 0) {
       this._distanceAccumulator -= count * emitInterval;
-      // `subFrameAge ∈ [0, 1]`: how far back into the frame a particle was born
-      // (0 = newest at currentPos/playTime, 1 = oldest at lastPos/lastPlayTime).
-      // The initial clamp protects two edges — moveLength ≈ 0 (collapse to frame-end
-      // emit) and a tiny moveLength near the emitInterval edge (would put age > 1).
-      // Local simulation space ignores the position override but still uses emitTime.
+      // `subFrameAge ∈ [0, 1]`: 0 = newest at currentPos/playTime, 1 = oldest
+      // at lastPos/lastPlayTime. Monotonically clamped so a rate hike that
+      // pays out more particles than this frame's segment can host stacks the
+      // overflow at lastPos instead of extrapolating past it.
       const isWorld = generator.main.simulationSpace === ParticleSimulationSpace.World;
       const invMoveLength = moveLength > MathUtil.zeroTolerance ? 1.0 / moveLength : 0;
       const ageStep = emitInterval * invMoveLength;
@@ -232,22 +229,13 @@ export class EmissionModule extends ParticleGeneratorModule {
       const emitPos = EmissionModule._tempEmitPosition;
       for (let i = 0; i < count; i++) {
         if (isWorld) {
-          emitPos.set(
-            currentPos.x - dx * subFrameAge,
-            currentPos.y - dy * subFrameAge,
-            currentPos.z - dz * subFrameAge
-          );
+          emitPos.set(cx - dx * subFrameAge, cy - dy * subFrameAge, cz - dz * subFrameAge);
         }
         if (generator._emit(playTime - dt * subFrameAge, 1, isWorld ? emitPos : undefined) === 0) {
           // Buffer full: settle the frame's distance budget instead of carrying it over
           this._distanceAccumulator = 0;
           break;
         }
-        // Mirror the initial Math.min clamp inside the loop: a mid-PR rate hike
-        // can make previousCarry exceed the new emitInterval, so the accumulator
-        // pays out multiple particles' worth of distance in a single frame whose
-        // moveLength is only one interval wide. Without this clamp the second
-        // particle onward would extrapolate past lastPos in both space and time.
         subFrameAge = Math.min(subFrameAge + ageStep, 1.0);
       }
     }

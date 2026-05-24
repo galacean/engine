@@ -220,6 +220,7 @@ export class ParticleGenerator {
       }
 
       this._playStartDelay = this.main.startDelay.evaluate(undefined, this.main._startDelayRand.random());
+      this.emission._resyncCursors(this._playTime);
     }
   }
 
@@ -240,17 +241,11 @@ export class ParticleGenerator {
       }
     } else {
       this._isPlaying = false;
-      // Invalidate the rateOverDistance baseline so emitter movement during the stop
-      // interval doesn't burst on resume.
       if (stopMode === ParticleStopMode.StopEmittingAndClear) {
         this._clearActiveParticles();
         this._playTime = 0;
 
         this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
-
-        this.emission._reset();
-      } else {
-        this.emission._invalidateDistanceBaseline();
       }
     }
   }
