@@ -408,6 +408,7 @@ export class BasicRenderPipeline {
   ): void {
     const shaderPasses = subShader.passes;
     const cullingResults = this._cullingResults;
+    renderElement.subShader = subShader;
     let pushedQueueFlags = RenderQueueFlags.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       let renderQueueType: RenderQueueType;
@@ -423,22 +424,30 @@ export class BasicRenderPipeline {
       }
 
       const flag = 1 << renderQueueType;
-
-      renderElement.subShader = subShader;
-
       if (pushedQueueFlags & flag) {
         continue;
       }
 
+      // First queue keeps the original element; subsequent queues each get an isolated
+      // clone so per-queue batch state (`_isBatched`, `instancedRenderers`) doesn't
+      // leak across queues for multi-pass materials (e.g. Opaque + Transparent)
+      let elementForQueue: RenderElement;
+      if (pushedQueueFlags === RenderQueueFlags.None) {
+        elementForQueue = renderElement;
+      } else {
+        elementForQueue = renderElement.component.engine._renderElementPool.get();
+        elementForQueue._cloneFrom(renderElement);
+      }
+
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
-          cullingResults.opaqueQueue.pushRenderElement(renderElement);
+          cullingResults.opaqueQueue.pushRenderElement(elementForQueue);
           break;
         case RenderQueueType.AlphaTest:
-          cullingResults.alphaTestQueue.pushRenderElement(renderElement);
+          cullingResults.alphaTestQueue.pushRenderElement(elementForQueue);
           break;
         case RenderQueueType.Transparent:
-          cullingResults.transparentQueue.pushRenderElement(renderElement);
+          cullingResults.transparentQueue.pushRenderElement(elementForQueue);
           break;
       }
       pushedQueueFlags |= flag;
