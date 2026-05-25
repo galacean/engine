@@ -43,6 +43,21 @@ export class RenderElement implements IPoolElement {
     this._isBatched = false;
   }
 
+  /**
+   * @internal
+   * Copy identity fields from `source` and reset per-queue batch state, so the same
+   * logical element can live in multiple queues (e.g. an Opaque + Transparent multi-pass
+   * material) without one queue's batching corrupting another's `instancedRenderers`.
+   */
+  _cloneFrom(source: RenderElement): void {
+    this.set(source.component, source.material, source.primitive, source.subPrimitive, source.texture, source.subChunk);
+    this.priority = source.priority;
+    this.distanceForSort = source.distanceForSort;
+    this.subShader = source.subShader;
+    this.shaderData = source.shaderData;
+    this.subDistancePriority = source.subDistancePriority;
+  }
+
   dispose(): void {
     this.component = null;
     this.material = null;
