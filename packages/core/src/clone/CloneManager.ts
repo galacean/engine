@@ -105,46 +105,21 @@ export class CloneManager {
   ): void {
     const sourceProperty = source[k];
 
-    // 1. Remappable references (Entity/Component) are always remapped, highest priority
+    // Remappable references (Entity/Component) are always remapped, regardless of clone decorator
     if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
       target[k] = (<ICustomClone>sourceProperty)._remap(srcRoot, targetRoot);
       return;
     }
 
-    // 2. Explicit ignore
     if (cloneMode === CloneMode.Ignore) return;
 
-    // 3. Primitives / null / undefined - direct assign
-    if (!(sourceProperty instanceof Object)) {
+    // Primitives, undecorated, or @assignmentClone: direct assign
+    if (!(sourceProperty instanceof Object) || cloneMode === undefined || cloneMode === CloneMode.Assignment) {
       target[k] = sourceProperty;
       return;
     }
 
-    // 4. Determine effective clone mode
-    let effectiveCloneMode: CloneMode = cloneMode;
-    if (effectiveCloneMode === undefined) {
-      // Undecorated: infer from runtime type
-      effectiveCloneMode = CloneManager._inferCloneMode(sourceProperty, target[k]);
-    } else if (effectiveCloneMode !== CloneMode.Assignment) {
-      // Decorated Shallow/Deep: upgrade to Deep if target already has independent same-type instance.
-      // Assignment is never upgraded — it means the user explicitly wants a reference copy.
-      const targetProperty = target[k];
-      if (
-        targetProperty &&
-        targetProperty !== sourceProperty &&
-        targetProperty.constructor === sourceProperty.constructor
-      ) {
-        effectiveCloneMode = CloneMode.Deep;
-      }
-    }
-
-    // 5. Assignment - direct reference copy
-    if (effectiveCloneMode === CloneMode.Assignment) {
-      target[k] = sourceProperty;
-      return;
-    }
-
-    // 6. Shallow/Deep clone for complex types
+    // @shallowClone / @deepClone: deep copy complex objects
     const type = sourceProperty.constructor;
     switch (type) {
       case Uint8Array:
@@ -162,37 +137,6 @@ export class CloneManager {
           targetPropertyT.set(<TypedArray>sourceProperty);
         }
         break;
-      case Map:
-        let targetPropertyM = <Map<any, any>>target[k];
-        if (targetPropertyM == null) {
-          target[k] = targetPropertyM = new Map<any, any>();
-        } else {
-          targetPropertyM.clear();
-        }
-        (<Map<any, any>>sourceProperty).forEach((value, key) => {
-          if (key instanceof Object && (<ICustomClone>key)._remap) {
-            key = (<ICustomClone>key)._remap(srcRoot, targetRoot);
-          }
-          if (value instanceof Object && (<ICustomClone>value)._remap) {
-            value = (<ICustomClone>value)._remap(srcRoot, targetRoot);
-          }
-          targetPropertyM.set(key, value);
-        });
-        break;
-      case Set:
-        let targetPropertyS = <Set<any>>target[k];
-        if (targetPropertyS == null) {
-          target[k] = targetPropertyS = new Set<any>();
-        } else {
-          targetPropertyS.clear();
-        }
-        (<Set<any>>sourceProperty).forEach((value) => {
-          if (value instanceof Object && (<ICustomClone>value)._remap) {
-            value = (<ICustomClone>value)._remap(srcRoot, targetRoot);
-          }
-          targetPropertyS.add(value);
-        });
-        break;
       case Array:
         let targetPropertyA = <Array<any>>target[k];
         const length = (<Array<any>>sourceProperty).length;
@@ -206,7 +150,7 @@ export class CloneManager {
             <Array<any>>sourceProperty,
             targetPropertyA,
             i,
-            cloneMode, // Pass original mode: decorated → children inherit, undecorated → children infer independently
+            cloneMode,
             srcRoot,
             targetRoot,
             deepInstanceMap
@@ -214,27 +158,25 @@ export class CloneManager {
         }
         break;
       default:
-        // Check if we've already visited this source object (cycle detection)
-        if (deepInstanceMap.has(sourceProperty)) {
-          target[k] = deepInstanceMap.get(sourceProperty);
-          return;
+        let targetProperty = <Object>target[k];
+        // If the target property is undefined, create new instance and keep reference sharing like the source
+        if (!targetProperty) {
+          targetProperty = deepInstanceMap.get(sourceProperty);
+          if (!targetProperty) {
+            targetProperty = new sourceProperty.constructor();
+            deepInstanceMap.set(sourceProperty, targetProperty);
+          }
+          target[k] = targetProperty;
         }
-
-        let targetPropertyD = <Object>target[k];
-        if (!targetPropertyD) {
-          targetPropertyD = new sourceProperty.constructor();
-          target[k] = targetPropertyD;
-        }
-        deepInstanceMap.set(sourceProperty, targetPropertyD);
 
         if ((<ICustomClone>sourceProperty).copyFrom) {
-          (<ICustomClone>targetPropertyD).copyFrom(<ICustomClone>sourceProperty);
+          (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
         } else {
           const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
           for (let k in sourceProperty) {
             CloneManager.cloneProperty(
               <Object>sourceProperty,
-              targetPropertyD,
+              targetProperty,
               k,
               cloneModes[k],
               srcRoot,
@@ -242,44 +184,10 @@ export class CloneManager {
               deepInstanceMap
             );
           }
-          (<ICustomClone>sourceProperty)._cloneTo?.(<ICustomClone>targetPropertyD, srcRoot, targetRoot);
+          (<ICustomClone>sourceProperty)._cloneTo?.(<ICustomClone>targetProperty, srcRoot, targetRoot);
         }
         break;
     }
-  }
-
-  /**
-   * Infer the appropriate clone mode for an undecorated property based on its runtime type.
-   * This enables user custom scripts to get correct clone behavior without decorators.
-   */
-  private static _inferCloneMode(sourceProperty: Object, targetProperty: any): CloneMode {
-    // If target already has an independent instance of the same type,
-    // deep clone to preserve isolation (e.g., constructor-created objects)
-    if (
-      targetProperty &&
-      targetProperty !== sourceProperty &&
-      targetProperty.constructor === sourceProperty.constructor
-    ) {
-      return CloneMode.Deep;
-    }
-
-    // Arrays need recursive processing (may contain Entity/Component refs)
-    if (Array.isArray(sourceProperty)) return CloneMode.Deep;
-
-    // TypedArrays - copy data
-    if (ArrayBuffer.isView(sourceProperty)) return CloneMode.Deep;
-
-    // Maps and Sets - create independent copies
-    if (sourceProperty instanceof Map || sourceProperty instanceof Set) return CloneMode.Deep;
-
-    // Value types with copyFrom (math types like Vector3, Color, etc.)
-    if ((<ICustomClone>sourceProperty).copyFrom) return CloneMode.Deep;
-
-    // Plain objects - deep clone (may contain Entity/Component refs)
-    if (sourceProperty.constructor === Object) return CloneMode.Deep;
-
-    // Other class instances (engine resources like Material, Texture) - shared reference
-    return CloneMode.Assignment;
   }
 
   static deepCloneObject(source: Object, target: Object, deepInstanceMap: Map<Object, Object>): void {
