@@ -71,11 +71,14 @@ export class UIBatchSorter {
       const materialId = element.material.instanceId;
       const textureId = element.texture ? element.texture.instanceId : 0;
 
-      // Clamp to grid range; out-of-bounds elements collapse to edge cells
-      const minCellX = Math.max(0, Math.floor(localBounds.min.x / gridSize));
-      const maxCellX = Math.min(gridDim - 1, Math.floor(localBounds.max.x / gridSize));
-      const minCellY = Math.max(0, Math.floor(localBounds.min.y / gridSize));
-      const maxCellY = Math.min(gridDim - 1, Math.floor(localBounds.max.y / gridSize));
+      // Clamp to grid range; out-of-bounds elements collapse to edge cells.
+      // Default canvas pivot is (0.5, 0.5) so canvas-local spans `[-W/2, +W/2]`,
+      // floor() can produce negative cell indices — clamp on both sides
+      const maxCell = gridDim - 1;
+      const minCellX = Math.min(maxCell, Math.max(0, Math.floor(localBounds.min.x / gridSize)));
+      const maxCellX = Math.min(maxCell, Math.max(0, Math.floor(localBounds.max.x / gridSize)));
+      const minCellY = Math.min(maxCell, Math.max(0, Math.floor(localBounds.min.y / gridSize)));
+      const maxCellY = Math.min(maxCell, Math.max(0, Math.floor(localBounds.max.y / gridSize)));
 
       // Find the deepest overlapping prior, and whether that shelf has any incompatible occupant
       let maxDepth = -1;
