@@ -7,23 +7,31 @@ import {
   Shader,
   resourceLoader
 } from "@galacean/engine-core";
+import { ShaderChunkLoader } from "./ShaderChunkLoader";
 
-@resourceLoader(AssetType.Shader, ["shader", "shaderc"])
+@resourceLoader(AssetType.Shader, ["shader"])
 class ShaderLoader extends Loader<Shader> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
-    const url = item.url!;
+  private static _builtinRegex = /^\s*\/\/\s*@builtin\s+(\w+)/;
 
-    if (url.endsWith(".shaderc")) {
-      // @ts-ignore
-      return resourceManager._request(url, { ...item, type: "json" }).then((data) => {
-        // @ts-ignore - _createFromPrecompiled is @internal
-        return Shader._createFromPrecompiled(data);
-      });
-    }
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Shader> {
+    const { url } = item;
 
     // @ts-ignore
     return resourceManager._request<string>(url, { ...item, type: "text" }).then((code: string) => {
-      return Shader.create(code, undefined, url);
+      const builtinShader = this._getBuiltinShader(code);
+      if (builtinShader) {
+        return Shader.find(builtinShader);
+      }
+
+      return ShaderChunkLoader._loadChunksInCode(code, url, resourceManager).then(() => {
+        const shader = Shader.create(code, undefined, url);
+        return shader;
+      });
     });
+  }
+
+  private _getBuiltinShader(code: string) {
+    const match = code.match(ShaderLoader._builtinRegex);
+    if (match && match[1]) return match[1];
   }
 }

@@ -1,6 +1,6 @@
 import { AssetType, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;
@@ -67,14 +67,16 @@ describe("RenderTargetLoader", () => {
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: false,
-      colorTextures: [{
-        mipmap: false,
-        isSRGBColorSpace: true,
-        filterMode: 1,
-        wrapModeU: 1,
-        wrapModeV: 1,
-        anisoLevel: 4
-      }]
+      colorTextures: [
+        {
+          mipmap: false,
+          isSRGBColorSpace: true,
+          filterMode: 1,
+          wrapModeU: 1,
+          wrapModeV: 1,
+          anisoLevel: 4
+        }
+      ]
     });
 
     const rt = await engine.resourceManager.load<RenderTarget>({ url, type: AssetType.RenderTarget });

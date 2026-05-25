@@ -1,5 +1,5 @@
 import { FixedJoint, Entity, DynamicCollider, StaticCollider, BoxColliderShape, Engine } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";

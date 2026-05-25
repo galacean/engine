@@ -12,7 +12,7 @@ import {
   CurveKey
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { LitePhysics } from "@galacean/engine-physics-lite";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 

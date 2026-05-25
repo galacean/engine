@@ -56,6 +56,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   constructor(physXPhysics: PhysXPhysics) {
     this._physXPhysics = physXPhysics;
+    this._contractOffset = physXPhysics.getDefaultContactOffset();
   }
 
   /**

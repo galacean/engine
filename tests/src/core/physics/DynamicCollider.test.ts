@@ -6,10 +6,11 @@ import {
   DynamicCollider,
   DynamicColliderConstraints,
   CollisionDetectionMode,
+  DynamicColliderKinematicTransformSyncMode,
   StaticCollider,
   PlaneColliderShape
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
@@ -278,6 +279,256 @@ describe("DynamicCollider", function () {
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
   });
 
+  it("applyForceAtPosition - at center of mass produces only linear acceleration", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.centerOfMass = new Vector3(0, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    boxCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(0, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).eq(0);
+  });
+
+  it("applyForceAtPosition - offset produces torque = (position - CoM) × force", function () {
+    // Reference: same physical setup but using applyForce + applyTorque(τ) directly.
+    // applyForceAtPosition(F, P) must produce the same result.
+    const setupBox = () => {
+      const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+      const collider = box.getComponent(DynamicCollider);
+      collider.mass = 1;
+      collider.useGravity = false;
+      collider.centerOfMass = new Vector3(0, 0, 0);
+      collider.inertiaTensor = new Vector3(1, 1, 1);
+      return collider;
+    };
+
+    const force = new Vector3(1, 0, 0);
+    const worldPos = new Vector3(0, 1, 0); // r = (0,1,0) - (0,0,0) = (0,1,0); r × F = (0,0,-1)
+
+    const reference = setupBox();
+    reference.applyForce(force);
+    reference.applyTorque(new Vector3(0, 0, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    const refLinear = reference.linearVelocity.clone();
+    const refAngular = reference.angularVelocity.clone();
+
+    rootEntity.clearChildren();
+
+    const target = setupBox();
+    target.applyForceAtPosition(force, worldPos);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(target.linearVelocity.x)).eq(formatValue(refLinear.x));
+    expect(formatValue(target.linearVelocity.y)).eq(formatValue(refLinear.y));
+    expect(formatValue(target.linearVelocity.z)).eq(formatValue(refLinear.z));
+    expect(formatValue(target.angularVelocity.x)).eq(formatValue(refAngular.x));
+    expect(formatValue(target.angularVelocity.y)).eq(formatValue(refAngular.y));
+    expect(formatValue(target.angularVelocity.z)).eq(formatValue(refAngular.z));
+    expect(formatValue(target.angularVelocity.z)).lessThan(0);
+  });
+
+  it("applyForceAtPosition - respects centerOfMass offset (no torque when applied at CoM)", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    // Shift CoM to local (1, 0, 0). With entity at origin and identity rotation, world CoM = (1, 0, 0).
+    boxCollider.centerOfMass = new Vector3(1, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    // Applying force at world (1,0,0) means r = 0 → no torque.
+    boxCollider.applyForceAtPosition(new Vector3(0, 0, 1), new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.z)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).eq(0);
+  });
+
+  it("applyForceAtPosition - respects entity world rotation when transforming local CoM", function () {
+    // entity rotated 90° around Y, CoM local (1, 0, 0) → world CoM offset (0, 0, -1)
+    // Apply force at world (0,0,-1), r=0, expect no torque.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    box.transform.rotate(new Vector3(0, 90, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.centerOfMass = new Vector3(1, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    boxCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(0, 0, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).eq(0);
+  });
+
+  it("applyForceAtPosition - position + rotation + CoM offset + r != 0 (full worldCoM coverage)", function () {
+    // Stress-test all three terms of worldCoM = entity.worldPos + worldRot * localCoM:
+    //   entity position (5, 0, 0)         — exercises the translation term
+    //   entity rotation 90° around Y       — exercises the rotation term (localCoM (1,0,0) → world (0,0,-1))
+    //   CoM local (1, 0, 0)               — exercises the local CoM lookup
+    //   worldCoM = (5,0,0) + (0,0,-1) = (5, 0, -1)
+    //   force F = (1, 0, 0) at P = (5, 1, -1)
+    //   r = P - worldCoM = (0, 1, 0)
+    //   τ = r × F = (0, 0, -1)
+    // If any single term in worldCoM is wrong (missing translate / wrong quat / wrong localCoM),
+    // r becomes non-(0,1,0) and τ has spurious x/y components → catches the bug.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(5, 0, 0));
+    box.transform.rotate(new Vector3(0, 90, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.centerOfMass = new Vector3(1, 0, 0);
+    boxCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    boxCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(5, 1, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(boxCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.y)).eq(0);
+    expect(formatValue(boxCollider.angularVelocity.z)).lessThan(0);
+  });
+
+  it("applyForceAtPosition - works after entity.clone() (defends prefab clone path)", function () {
+    // R6/R8 both surfaced because clone() bypasses setters and leaves native state inconsistent.
+    // applyForceAtPosition reads native getCenterOfMass + entity.transform.worldRotationQuaternion.
+    // If a future change adds @ignoreClone fields or relies on setter side-effects, this test
+    // will catch the regression by exercising the API on a cloned collider.
+    const source = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const sourceCollider = source.getComponent(DynamicCollider);
+    sourceCollider.mass = 1;
+    sourceCollider.useGravity = false;
+    sourceCollider.centerOfMass = new Vector3(0, 0, 0);
+    sourceCollider.inertiaTensor = new Vector3(1, 1, 1);
+
+    const cloneEntity = source.clone();
+    source.destroy();
+    rootEntity.addChild(cloneEntity);
+    cloneEntity.transform.setPosition(0, 0, 0);
+
+    const cloneCollider = cloneEntity.getComponent(DynamicCollider);
+    // r = (0,1,0), F = (1,0,0), τ = (0,0,-1) → expect negative angular z
+    cloneCollider.applyForceAtPosition(new Vector3(1, 0, 0), new Vector3(0, 1, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(cloneCollider.linearVelocity.x)).eq(0.01667);
+    expect(formatValue(cloneCollider.angularVelocity.z)).lessThan(0);
+    expect(formatValue(cloneCollider.angularVelocity.x)).eq(0);
+    expect(formatValue(cloneCollider.angularVelocity.y)).eq(0);
+  });
+
+  it("applyForce on sleeping actor must wake up and apply force", function () {
+    // Validates whether PhysX wasm `addForce(force, eFORCE, autowake=true)` actually wakes a
+    // sleeping actor on its own — or whether the engine's explicit wakeUp() call is required.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.linearDamping = 0;
+
+    boxCollider.sleep();
+    expect(boxCollider.isSleeping()).toBe(true);
+
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(boxCollider.isSleeping()).toBe(false);
+  });
+
+  it("applyForce after kinematic→dynamic switch (mimic billiards game break flow)", function () {
+    // Game pattern: all balls set kinematic at init, switched back to dynamic on break,
+    // then applyForce. Verifies the original 'force lost' bug was actually from this path.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.linearDamping = 0;
+
+    boxCollider.isKinematic = true;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    boxCollider.isKinematic = false;
+
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+  });
+
+  it("fixedTimeStep 1/60 vs 1/480: PhysX applyForce delivers 8x smaller dv at finer step", function () {
+    // ultrathink probe: does cocos-style `fixedTimeStep(true)→1/480` actually give
+    // *more force* than `fixedTimeStep(false)→1/60` in PhysX?
+    //
+    // Theory:
+    //   Bullet (Cocos): clearForces runs ONCE after all substeps → dv = F·frame_dt/m
+    //     → substep count doesn't affect dv.
+    //   PhysX (Galacean): force cleared per simulate() call → only the first substep
+    //     in a frame applies the force → dv = F·fixedTimeStep/m
+    //     → 1/480 gives dv 8x smaller than 1/60.
+    //
+    // This test confirms the PhysX behavior empirically and quantifies the gap.
+    const scene = engine.sceneManager.activeScene;
+    const originalFTS = scene.physics.fixedTimeStep;
+
+    const probe = (fts: number) => {
+      rootEntity.clearChildren();
+      scene.physics.fixedTimeStep = fts;
+      const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+      const c = box.getComponent(DynamicCollider);
+      c.mass = 1;
+      c.useGravity = false;
+      c.linearDamping = 0;
+      c.angularDamping = 0;
+      c.applyForce(new Vector3(100, 0, 0));
+      // Advance exactly one *frame* of wall time. Galacean's _update loops simulate
+      // until frame_dt accumulates: 1/60 → 1 substep; 1/480 → 8 substeps.
+      // @ts-ignore
+      scene.physics._update(1 / 60);
+      return c.linearVelocity.x;
+    };
+
+    const dv_1_60 = probe(1 / 60);
+    const dv_1_480 = probe(1 / 480);
+
+    console.info(
+      `[fixedTimeStep probe] applyForce(F=100) over 1 frame (1/60s):\n` +
+        `  1/60  step → dv = ${dv_1_60.toFixed(4)} m/s\n` +
+        `  1/480 step → dv = ${dv_1_480.toFixed(4)} m/s\n` +
+        `  ratio (1/60 / 1/480) = ${(dv_1_60 / dv_1_480).toFixed(3)}  (theory: 8)`
+    );
+
+    scene.physics.fixedTimeStep = originalFTS;
+
+    // Theory: dv_1_60 = F·(1/60)/m = 100/60 ≈ 1.667
+    expect(dv_1_60).toBeCloseTo(100 / 60, 2);
+    // Theory: dv_1_480 = F·(1/480)/m = 100/480 ≈ 0.208
+    expect(dv_1_480).toBeCloseTo(100 / 480, 2);
+    // Ratio must be 8 (PhysX clears force per simulate)
+    expect(dv_1_60 / dv_1_480).toBeCloseTo(8, 1);
+  });
+
   it("maxAngularVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
@@ -398,6 +649,48 @@ describe("DynamicCollider", function () {
     expect(box.transform.position.y).below(1);
   });
 
+  it("teleports kinematic target collider on re-enable instead of sweeping from stale native pose", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(-10, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.useGravity = false;
+    boxCollider.isKinematic = true;
+    boxCollider.kinematicTransformSyncMode = DynamicColliderKinematicTransformSyncMode.Target;
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    // @ts-ignore - intentionally observe the native boundary used by Collider sync.
+    const nativeCollider = boxCollider._nativeCollider;
+    const originalMove = nativeCollider.move.bind(nativeCollider);
+    const originalSetWorldTransform = nativeCollider.setWorldTransform.bind(nativeCollider);
+    let moveCalls = 0;
+    let setWorldTransformCalls = 0;
+    nativeCollider.move = (...args: Parameters<typeof nativeCollider.move>) => {
+      moveCalls++;
+      return originalMove(...args);
+    };
+    nativeCollider.setWorldTransform = (...args: Parameters<typeof nativeCollider.setWorldTransform>) => {
+      setWorldTransformCalls++;
+      return originalSetWorldTransform(...args);
+    };
+
+    try {
+      box.isActive = false;
+      box.transform.setPosition(10, 0, 0);
+      box.isActive = true;
+
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      expect(moveCalls).eq(0);
+      expect(setWorldTransformCalls).eq(1);
+      expect(formatValue(box.transform.position.x)).eq(10);
+    } finally {
+      nativeCollider.move = originalMove;
+      nativeCollider.setWorldTransform = originalSetWorldTransform;
+    }
+  });
+
   it("constraints", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
@@ -440,6 +733,52 @@ describe("DynamicCollider", function () {
       // @ts-ignore
       boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD)
     ).toBeTruthy();
+  });
+
+  it("R0: CCD mode survives kinematic toggle (PhysX rejects CCD on kinematic)", function () {
+    // RED verification for R0 fix:
+    //   PhysX 4.1.1 forbids CCD on kinematic actors. The fix caches the user-intended mode
+    //   and re-applies on kinematic→dynamic. Without the fix, switching to kinematic loses
+    //   the CCD flag and a subsequent dynamic switch does not restore it.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    const physX = boxCollider._nativeCollider._physXPhysics._physX;
+    const ccdFlag = () =>
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD);
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(ccdFlag()).toBeTruthy();
+
+    boxCollider.isKinematic = true;
+    expect(ccdFlag()).toBeFalsy();
+
+    boxCollider.isKinematic = false;
+    expect(ccdFlag()).toBeTruthy();
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.Continuous);
+  });
+
+  it("R0: setCollisionDetectionMode in kinematic state defers application", function () {
+    // RED verification: while kinematic, the CCD flag should not be touched (PhysX warns).
+    // User's intent is cached and applied on next dynamic switch.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    const physX = boxCollider._nativeCollider._physXPhysics._physX;
+    const ccdFlag = () =>
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD);
+
+    boxCollider.isKinematic = true;
+    expect(ccdFlag()).toBeFalsy();
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(ccdFlag()).toBeFalsy();
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.Continuous);
+
+    boxCollider.isKinematic = false;
+    expect(ccdFlag()).toBeTruthy();
   });
 
   it("sleep", function () {

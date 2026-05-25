@@ -8,7 +8,7 @@ import {
   StaticCollider,
   PlaneColliderShape
 } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
@@ -77,6 +77,56 @@ describe("PhysicsMaterial", () => {
     engine.sceneManager.activeScene.physics._update(2);
     expect(boxEntity.transform.position.y).greaterThan(0);
     expect(formatValue(boxEntity2.transform.position.y)).eq(0);
+  });
+
+  it("cloned collider shape material keeps native values", () => {
+    const scene = engine.sceneManager.activeScene;
+    const originalGravity = scene.physics.gravity.clone();
+    const originalFixedTimeStep = scene.physics.fixedTimeStep;
+    scene.physics.gravity = new Vector3(0, 0, 0);
+    scene.physics.fixedTimeStep = 1 / 60;
+
+    try {
+      const wallEntity = addBox(new Vector3(1, 8, 8), StaticCollider, new Vector3(0, 0, 0));
+      const wallMaterial = wallEntity.getComponent(StaticCollider).shapes[0].material;
+      wallMaterial.bounciness = 1;
+      wallMaterial.dynamicFriction = 0;
+      wallMaterial.staticFriction = 0;
+      wallMaterial.bounceCombine = PhysicsMaterialCombineMode.Multiply;
+      wallMaterial.frictionCombine = PhysicsMaterialCombineMode.Multiply;
+
+      const sourceEntity = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-3, 0, 0));
+      const sourceCollider = sourceEntity.getComponent(DynamicCollider);
+      sourceCollider.linearDamping = 0;
+      sourceCollider.angularDamping = 0;
+      sourceCollider.automaticCenterOfMass = false;
+      sourceCollider.automaticInertiaTensor = false;
+
+      const sourceMaterial = sourceCollider.shapes[0].material;
+      sourceMaterial.bounciness = 1;
+      sourceMaterial.dynamicFriction = 0;
+      sourceMaterial.staticFriction = 0;
+      sourceMaterial.bounceCombine = PhysicsMaterialCombineMode.Multiply;
+      sourceMaterial.frictionCombine = PhysicsMaterialCombineMode.Multiply;
+
+      const cloneEntity = sourceEntity.clone();
+      sourceEntity.destroy();
+      rootEntity.addChild(cloneEntity);
+      cloneEntity.transform.setPosition(-3, 0, 0);
+
+      const cloneCollider = cloneEntity.getComponent(DynamicCollider);
+      cloneCollider.linearVelocity = new Vector3(10, 0, 0);
+
+      for (let i = 0; i < 40; i++) {
+        // @ts-ignore
+        scene.physics._update(scene.physics.fixedTimeStep);
+      }
+
+      expect(cloneCollider.linearVelocity.x).lessThan(-1);
+    } finally {
+      scene.physics.gravity = originalGravity;
+      scene.physics.fixedTimeStep = originalFixedTimeStep;
+    }
   });
 
   it("bounceCombine Average", () => {

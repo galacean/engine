@@ -1,5 +1,5 @@
 import { Camera, ModelMesh, ParticleRenderer, ParticleRenderMode, Scene } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("ParticleRenderer", () => {

@@ -1,6 +1,11 @@
 export { CharacterController } from "./CharacterController";
 export { Collider } from "./Collider";
-export { CollisionDetectionMode, DynamicCollider, DynamicColliderConstraints } from "./DynamicCollider";
+export {
+  CollisionDetectionMode,
+  DynamicCollider,
+  DynamicColliderConstraints,
+  DynamicColliderKinematicTransformSyncMode
+} from "./DynamicCollider";
 export { HitResult } from "./HitResult";
 export { PhysicsMaterial } from "./PhysicsMaterial";
 export { PhysicsScene } from "./PhysicsScene";

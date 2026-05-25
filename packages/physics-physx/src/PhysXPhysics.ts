@@ -57,13 +57,26 @@ export class PhysXPhysics implements IPhysics {
   private _tolerancesScale: any;
   private _wasmSIMDModeUrl: string;
   private _wasmModeUrl: string;
+  private _tolerancesScaleOptions: PhysXTolerancesScale | undefined;
+  private _defaultContactOffset = 0.02;
+  private _defaultSleepThreshold = 5e-3;
 
   /**
    * Create a PhysXPhysics instance.
    * @param runtimeMode - Runtime mode, `Auto` prefers WebAssembly SIMD if supported @see {@link PhysXRuntimeMode}
    * @param runtimeUrls - Manually specify the runtime URLs
+   * @param options - PhysX options.
    */
-  constructor(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto, runtimeUrls?: PhysXRuntimeUrls) {
+  constructor(runtimeMode?: PhysXRuntimeMode, runtimeUrls?: PhysXRuntimeUrls, options?: PhysXPhysicsOptions);
+  constructor(options?: PhysXPhysicsOptions);
+  constructor(
+    runtimeModeOrOptions: PhysXRuntimeMode | PhysXPhysicsOptions = PhysXRuntimeMode.Auto,
+    runtimeUrls?: PhysXRuntimeUrls,
+    options?: PhysXPhysicsOptions
+  ) {
+    const isOptionsObject = typeof runtimeModeOrOptions === "object";
+    const runtimeMode = isOptionsObject ? PhysXRuntimeMode.Auto : (runtimeModeOrOptions ?? PhysXRuntimeMode.Auto);
+    const resolvedOptions = isOptionsObject ? runtimeModeOrOptions : options;
     this._runTimeMode = runtimeMode;
     this._wasmSIMDModeUrl =
       runtimeUrls?.wasmSIMDModeUrl ??
@@ -71,6 +84,8 @@ export class PhysXPhysics implements IPhysics {
     this._wasmModeUrl =
       runtimeUrls?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/afts/file/A*DFuvR6Mv5C0AAAAAQ4AAAAgAehQnAQ/physx.release.js";
+    this._tolerancesScaleOptions = resolvedOptions?.tolerancesScale;
+    this._updateScaledDefaults(this._tolerancesScaleOptions?.length ?? 1, this._tolerancesScaleOptions?.speed ?? 10);
   }
 
   /**
@@ -154,6 +169,20 @@ export class PhysXPhysics implements IPhysics {
   createPhysicsScene(physicsManager: PhysXPhysicsManager): IPhysicsScene {
     const scene = new PhysXPhysicsScene(this, physicsManager);
     return scene;
+  }
+
+  /**
+   * {@inheritDoc IPhysics.getDefaultContactOffset }
+   */
+  getDefaultContactOffset(): number {
+    return this._defaultContactOffset;
+  }
+
+  /**
+   * {@inheritDoc IPhysics.getDefaultSleepThreshold }
+   */
+  getDefaultSleepThreshold(): number {
+    return this._defaultSleepThreshold;
   }
 
   /**
@@ -279,6 +308,7 @@ export class PhysXPhysics implements IPhysics {
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
     const tolerancesScale = new physX.PxTolerancesScale();
+    this._applyTolerancesScale(tolerancesScale);
     const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
@@ -302,6 +332,29 @@ export class PhysXPhysics implements IPhysics {
     this._allocator = allocator;
     this._tolerancesScale = tolerancesScale;
   }
+
+  private _applyTolerancesScale(tolerancesScale: any): void {
+    const length = this._tolerancesScaleOptions?.length ?? tolerancesScale.length;
+    const speed = this._tolerancesScaleOptions?.speed ?? tolerancesScale.speed;
+
+    this._assertPositiveFinite(length, "tolerancesScale.length");
+    this._assertPositiveFinite(speed, "tolerancesScale.speed");
+
+    tolerancesScale.length = length;
+    tolerancesScale.speed = speed;
+    this._updateScaledDefaults(length, speed);
+  }
+
+  private _assertPositiveFinite(value: number, name: string): void {
+    if (!Number.isFinite(value) || value <= 0) {
+      throw new Error(`PhysXPhysics ${name} must be a positive finite number.`);
+    }
+  }
+
+  private _updateScaledDefaults(length: number, speed: number): void {
+    this._defaultContactOffset = 0.02 * length;
+    this._defaultSleepThreshold = 5e-5 * speed * speed;
+  }
 }
 
 enum InitializeState {
@@ -315,4 +368,16 @@ interface PhysXRuntimeUrls {
   wasmModeUrl?: string;
   /*** The URL of `PhysXRuntimeMode.WebAssemblySIMD` mode. */
   wasmSIMDModeUrl?: string;
+}
+
+export interface PhysXTolerancesScale {
+  /** Approximate object length in the simulation unit. PhysX default is 1. */
+  length?: number;
+  /** Typical object speed in the simulation unit. PhysX default is 10. */
+  speed?: number;
+}
+
+export interface PhysXPhysicsOptions {
+  /** PhysX world unit scale used before PxPhysics, PxSceneDesc and PxCookingParams are created. */
+  tolerancesScale?: PhysXTolerancesScale;
 }

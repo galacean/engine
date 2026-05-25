@@ -1,6 +1,6 @@
 import { AssetType, BufferAsset, JSONAsset, TextAsset } from "@galacean/engine";
 import "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;

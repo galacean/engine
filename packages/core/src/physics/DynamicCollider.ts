@@ -13,6 +13,8 @@ import { MeshColliderShape } from "./shape/MeshColliderShape";
  */
 export class DynamicCollider extends Collider {
   private static _tempVector3 = new Vector3();
+  private static _tempVector3_1 = new Vector3();
+  private static _tempVector3_2 = new Vector3();
   private static _tempQuat = new Quaternion();
 
   private _linearDamping = 0;
@@ -33,7 +35,9 @@ export class DynamicCollider extends Collider {
   private _isKinematic = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
-  private _sleepThreshold = 5e-3;
+  private _kinematicTransformSyncMode: DynamicColliderKinematicTransformSyncMode =
+    DynamicColliderKinematicTransformSyncMode.Target;
+  private _sleepThreshold: number | undefined;
   private _automaticCenterOfMass = true;
   private _automaticInertiaTensor = true;
 
@@ -223,7 +227,7 @@ export class DynamicCollider extends Collider {
    * The mass-normalized energy threshold, below which objects start going to sleep.
    */
   get sleepThreshold(): number {
-    return this._sleepThreshold;
+    return this._sleepThreshold ?? Engine._nativePhysics?.getDefaultSleepThreshold?.() ?? 5e-3;
   }
 
   set sleepThreshold(value: number) {
@@ -326,6 +330,22 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * Controls how entity transform changes are synchronized to a kinematic native actor.
+   *
+   * @remarks
+   * `Target` routes transform changes through {@link move}, so PhysX treats the
+   * actor as moving between frames and can generate swept contacts. `Teleport`
+   * writes the native pose directly and does not imply velocity.
+   */
+  get kinematicTransformSyncMode(): DynamicColliderKinematicTransformSyncMode {
+    return this._kinematicTransformSyncMode;
+  }
+
+  set kinematicTransformSyncMode(value: DynamicColliderKinematicTransformSyncMode) {
+    this._kinematicTransformSyncMode = value;
+  }
+
+  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -365,6 +385,33 @@ export class DynamicCollider extends Collider {
    */
   applyTorque(torque: Vector3): void {
     this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).addTorque(torque);
+  }
+
+  /**
+   * Apply a force to the DynamicCollider at a given position in world space.
+   * The force generates both linear acceleration through the center of mass and angular
+   * acceleration about it (torque = (position - centerOfMass) × force).
+   * @param force - The force to apply, in world space
+   * @param position - The position where the force is applied, in world space
+   */
+  applyForceAtPosition(force: Vector3, position: Vector3): void {
+    if (!this._phasedActiveInScene) return;
+    const nativeCollider = <IDynamicCollider>this._nativeCollider;
+
+    const localCoM = DynamicCollider._tempVector3;
+    nativeCollider.getCenterOfMass(localCoM);
+
+    const transform = this.entity.transform;
+    const worldCoM = DynamicCollider._tempVector3_1;
+    Vector3.transformByQuat(localCoM, transform.worldRotationQuaternion, worldCoM);
+    worldCoM.add(transform.worldPosition);
+
+    const torque = DynamicCollider._tempVector3_2;
+    Vector3.subtract(position, worldCoM, torque);
+    Vector3.cross(torque, force, torque);
+
+    nativeCollider.addForce(force);
+    nativeCollider.addTorque(torque);
   }
 
   /**
@@ -434,6 +481,30 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * Route per-frame entity → native transform sync to the correct physics API based
+   * on kinematic state.
+   *
+   * PhysX 4.x docs (PxRigidDynamic):
+   *   "If you intend to move a kinematic actor with [setGlobalPose] and want
+   *    collision detection, use setKinematicTarget() instead."
+   *
+   * setGlobalPose is a teleport: PhysX skips contact detection between the old
+   * and new pose. setKinematicTarget tells PhysX the actor is animating to the
+   * target during the next simulate(), enabling swept contacts. Some compatibility
+   * layers need transform writes to stay teleport-like, so the sync mode is
+   * explicit while {@link move} always keeps target semantics.
+   *
+   * @internal
+   */
+  protected override _syncEntityTransformToNative(worldPosition: Vector3, worldRotation: Quaternion): void {
+    if (this._isKinematic && this._kinematicTransformSyncMode === DynamicColliderKinematicTransformSyncMode.Target) {
+      (<IDynamicCollider>this._nativeCollider).move(worldPosition, worldRotation);
+    } else {
+      super._syncEntityTransformToNative(worldPosition, worldRotation);
+    }
+  }
+
+  /**
    * @internal
    */
   override _onLateUpdate(): void {
@@ -460,6 +531,7 @@ export class DynamicCollider extends Collider {
     target._angularVelocity.copyFrom(this.angularVelocity);
     target._centerOfMass.copyFrom(this.centerOfMass);
     target._inertiaTensor.copyFrom(this.inertiaTensor);
+    target._kinematicTransformSyncMode = this._kinematicTransformSyncMode;
     super._cloneTo(target);
   }
 
@@ -489,7 +561,9 @@ export class DynamicCollider extends Collider {
     }
     (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(this._maxAngularVelocity);
     (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(this._maxDepenetrationVelocity);
-    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    if (this._sleepThreshold !== undefined) {
+      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(this._sleepThreshold);
+    }
     (<IDynamicCollider>this._nativeCollider).setSolverIterations(this._solverIterations);
     (<IDynamicCollider>this._nativeCollider).setUseGravity(this._useGravity);
     (<IDynamicCollider>this._nativeCollider).setIsKinematic(this._isKinematic);
@@ -553,6 +627,16 @@ export enum CollisionDetectionMode {
   ContinuousDynamic,
   /** Speculative continuous collision detection is on for static and dynamic geometries */
   ContinuousSpeculative
+}
+
+/**
+ * Kinematic transform synchronization mode.
+ */
+export enum DynamicColliderKinematicTransformSyncMode {
+  /** Synchronize transform changes through PhysX setKinematicTarget. */
+  Target,
+  /** Synchronize transform changes by directly teleporting the native actor. */
+  Teleport
 }
 
 /**

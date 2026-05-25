@@ -1,24 +1,15 @@
-import { Component, Engine, Entity, Loader, Scene } from "@galacean/engine-core";
+import { Component, Engine, Entity, Loader, Scene, Transform } from "@galacean/engine-core";
 import { GLTFResource } from "../../../gltf";
 import { PrefabResource } from "../../../prefab/PrefabResource";
-import { resolveRefItem } from "../../../schema/refs";
-import {
-  type ComponentSchema,
-  type ComponentSelector,
-  type ComponentOverride,
-  type EntityPropOverride,
-  type EntityOverrideProps,
-  type EntitySchema,
-  type InstanceOverrides,
-  type PrefabInstanceEntitySchema
-} from "../../../schema/HierarchySchema";
-import type { RefItem } from "../../../schema/CommonSchema";
-import type { HierarchyFile } from "../../../schema/HierarchySchema";
+import type { IEntity, IHierarchyFile, IRefEntity, IStrippedEntity } from "../schema";
 import { ParserContext, ParserType } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
 
 /** @Internal */
-export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
+export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext<IHierarchyFile, T>> {
+  /**
+   * The promise of parsed object.
+   */
   readonly promise: Promise<T>;
 
   protected _resolve: (item: T) => void;
@@ -26,317 +17,350 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   protected _engine: Engine;
   protected _reflectionParser: ReflectionParser;
 
+  private _prefabContextMap = new WeakMap<Entity, ParserContext<IHierarchyFile, Entity>>();
+
+  private _prefabPromiseMap = new Map<
+    string,
+    {
+      resolve: (context: ParserContext<IHierarchyFile, Entity>) => void;
+      reject: (reason: any) => void;
+    }[]
+  >();
+
   constructor(
-    public readonly data: HierarchyFile,
+    public readonly data: IHierarchyFile,
     public readonly context: V
   ) {
-    if (data.version !== "2.0") {
-      const resourceType = context.type === ParserType.Scene ? "scene" : "prefab";
-      throw new Error(`Unsupported ${resourceType} format version "${data.version}". Expected "2.0".`);
-    }
-
     this._engine = this.context.engine;
+    this._organizeEntities = this._organizeEntities.bind(this);
+    this._parseComponents = this._parseComponents.bind(this);
+    this._parsePrefabModification = this._parsePrefabModification.bind(this);
+    this._parseAddedComponents = this._parseAddedComponents.bind(this);
+    this._parseComponentsPropsAndMethods = this._parseComponentsPropsAndMethods.bind(this);
+    this._parsePrefabRemovedEntities = this._parsePrefabRemovedEntities.bind(this);
+    this._parsePrefabRemovedComponents = this._parsePrefabRemovedComponents.bind(this);
+    this._clearAndResolve = this._clearAndResolve.bind(this);
     this.promise = new Promise<T>((resolve, reject) => {
       this._reject = reject;
       this._resolve = resolve;
     });
-    this._reflectionParser = new ReflectionParser(context, data.refs);
+    this._reflectionParser = new ReflectionParser(context);
   }
 
+  /** start parse the scene or prefab or others */
   public start() {
     this._parseEntities()
-      .then(() => this._organizeEntities())
-      .then(() => this._parseComponents())
-      .then(() => this._parseComponentsPropsAndCalls())
-      .then(() => this._parsePrefabOverrides())
-      .then(() => this._clearAndResolve())
+      .then(this._organizeEntities)
+      .then(this._parseComponents)
+      .then(this._parseAddedComponents)
+      .then(this._parseComponentsPropsAndMethods)
+      .then(this._parsePrefabModification)
+      .then(this._parsePrefabRemovedEntities)
+      .then(this._parsePrefabRemovedComponents)
+      .then(this._clearAndResolve)
       .then(this._resolve)
       .catch(this._reject);
   }
 
-  /** Root entity indices for this hierarchy (scene.rootEntities or [prefab.root]). */
-  protected abstract _getRootIndices(): number[];
-  protected abstract _handleRootEntity(index: number): void;
+  protected _applyEntityData(entity: Entity, entityConfig: IEntity = {}): Entity {
+    entity.isActive = entityConfig.isActive ?? entity.isActive;
+    entity.name = entityConfig.name ?? entity.name;
+    const transform = entity.transform;
+    const transformConfig = entityConfig.transform;
+    if (transformConfig) {
+      this._reflectionParser.parsePropsAndMethods(transform, transformConfig);
+    } else {
+      const { position, rotation, scale } = entityConfig;
+      if (position) transform.position.copyFrom(position);
+      if (rotation) transform.rotation.copyFrom(rotation);
+      if (scale) transform.scale.copyFrom(scale);
+    }
+    if (entityConfig.layer) entity.layer = entityConfig.layer;
+    return entity;
+  }
+
+  protected abstract _handleRootEntity(id: string): void;
   protected abstract _clearAndResolve(): Scene | PrefabResource;
 
-  protected _onEntityCreated(_entity: Entity): void {}
-
-  // ---------------------------------------------------------------------------
-  // Stage 1: Create entity instances
-  // ---------------------------------------------------------------------------
-
-  private _parseEntities(): Promise<unknown> {
-    const entities = this.data.entities;
-    const entityInstances = this.context.entityInstances;
+  private _parseEntities(): Promise<Entity[]> {
+    const entitiesConfig = this.data.entities;
+    const entityConfigMap = this.context.entityConfigMap;
+    const entityMap = this.context.entityMap;
     const engine = this._engine;
-    const promises: Promise<void>[] = [];
-
-    for (let i = 0, n = entities.length; i < n; i++) {
-      const entityConfig = entities[i];
-
-      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) {
-        promises.push(
-          this._loadPrefabInstance(entityConfig, engine).then((entity) => {
-            entityInstances[i] = entity;
-          })
-        );
-      } else {
-        const entity = new Entity(engine, entityConfig.name);
-        HierarchyParser._applyEntityProps(entity, entityConfig);
-        this._onEntityCreated(entity);
-        entityInstances[i] = entity;
+    const promises = entitiesConfig.map((entityConfig) => {
+      const id = (entityConfig as IStrippedEntity).strippedId ?? entityConfig.id;
+      entityConfig.id = id;
+      entityConfigMap.set(id, entityConfig);
+      return this._getEntityByConfig(entityConfig, engine);
+    });
+    return Promise.all(promises).then((entities) => {
+      for (let i = 0, l = entities.length; i < l; i++) {
+        entityMap.set(entitiesConfig[i].id, entities[i]);
       }
-    }
-
-    return Promise.all(promises);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Stage 2: Build parent-child hierarchy
-  // ---------------------------------------------------------------------------
-
-  private _organizeEntities(): void {
-    const entities = this.data.entities;
-    const entityInstances = this.context.entityInstances;
-
-    for (let i = 0, n = entities.length; i < n; i++) {
-      const entityConfig = entities[i];
-      // Prefab instance entities manage their own children.
-      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
-
-      const children = entityConfig.children;
-      if (!children) continue;
-
-      const parent = entityInstances[i];
-      for (let j = 0, m = children.length; j < m; j++) {
-        parent.addChild(entityInstances[children[j]]);
-      }
-    }
-
-    const rootIndices = this._getRootIndices();
-    for (let i = 0, n = rootIndices.length; i < n; i++) {
-      this._handleRootEntity(rootIndices[i]);
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Stage 3: Add components to entities
-  // ---------------------------------------------------------------------------
-
-  private _parseComponents(): void {
-    const entities = this.data.entities;
-    const allComponents = this.data.components;
-    const entityInstances = this.context.entityInstances;
-    const pendingComponents = this.context.pendingComponents;
-    const refs = this.data.refs;
-
-    for (let i = 0, n = entities.length; i < n; i++) {
-      const entityConfig = entities[i];
-      if (HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
-
-      const entity = entityInstances[i];
-      const componentIndices = entityConfig.components;
-      if (!componentIndices) continue;
-
-      for (let j = 0, m = componentIndices.length; j < m; j++) {
-        const config = allComponents[componentIndices[j]];
-        const instance = HierarchyParser._addComponentFromConfig(entity, config, refs);
-        pendingComponents.push({ instance, config });
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Stage 4: Apply props and execute calls on components
-  // ---------------------------------------------------------------------------
-
-  private _parseComponentsPropsAndCalls(): Promise<unknown> {
-    const { pendingComponents } = this.context;
-    const reflectionParser = this._reflectionParser;
-    const promises: Promise<unknown>[] = [];
-
-    for (let i = 0, n = pendingComponents.length; i < n; i++) {
-      const { instance, config } = pendingComponents[i];
-      promises.push(reflectionParser.parseMutationBlock(instance, config));
-    }
-
-    return Promise.all(promises);
-  }
-
-  // ---------------------------------------------------------------------------
-  // Stage 5: Apply prefab instance overrides
-  // ---------------------------------------------------------------------------
-
-  private _parsePrefabOverrides(): Promise<unknown> {
-    const entities = this.data.entities;
-    const entityInstances = this.context.entityInstances;
-    const promises: Promise<unknown>[] = [];
-
-    for (let i = 0, n = entities.length; i < n; i++) {
-      const entityConfig = entities[i];
-      if (!HierarchyParser._isPrefabInstanceEntity(entityConfig)) continue;
-
-      const overrides = entityConfig.instance.overrides;
-      if (!overrides) continue;
-
-      this._applyOverrides(entityInstances[i], overrides, promises);
-    }
-
-    return Promise.all(promises);
-  }
-
-  private _applyOverrides(rootEntity: Entity, overrides: InstanceOverrides, promises: Promise<unknown>[]): void {
-    const refs = this.data.refs;
-    const reflectionParser = this._reflectionParser;
-
-    // entityProps — entity-level property overrides
-    if (overrides.entityProps) {
-      for (let j = 0, m = overrides.entityProps.length; j < m; j++) {
-        const override = overrides.entityProps[j] as EntityPropOverride;
-        HierarchyParser._applyEntityProps(HierarchyParser._resolveEntity(rootEntity, override.path), override);
-      }
-    }
-
-    // componentProps — component-level property overrides
-    if (overrides.componentProps) {
-      for (let j = 0, m = overrides.componentProps.length; j < m; j++) {
-        const override = overrides.componentProps[j] as ComponentOverride;
-        const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
-        const target = HierarchyParser._resolveComponent(entity, override.selector);
-        promises.push(reflectionParser.parseMutationBlock(target, override));
-      }
-    }
-
-    // addedComponents — attach top-level components[index] to a prefab entity and parse props
-    if (overrides.addedComponents) {
-      const allComponents = this.data.components;
-      for (let j = 0, m = overrides.addedComponents.length; j < m; j++) {
-        const added = overrides.addedComponents[j];
-        const entity = HierarchyParser._resolveEntity(rootEntity, added.target);
-        const config = allComponents[added.component];
-        const component = HierarchyParser._addComponentFromConfig(entity, config, refs);
-        promises.push(reflectionParser.parseMutationBlock(component, config));
-      }
-    }
-
-    // addedEntities — attach already-created top-level entityInstances[index] as a child
-    if (overrides.addedEntities) {
-      const entityInstances = this.context.entityInstances;
-      for (let j = 0, m = overrides.addedEntities.length; j < m; j++) {
-        const added = overrides.addedEntities[j];
-        const parent = HierarchyParser._resolveEntity(rootEntity, added.parent);
-        parent.addChild(entityInstances[added.entity]);
-      }
-    }
-
-    // removedEntities — pre-resolve all targets then destroy (destroy shifts sibling indices)
-    if (overrides.removedEntities) {
-      const removed = overrides.removedEntities;
-      const targets = new Array<Entity>(removed.length);
-      for (let j = 0, m = removed.length; j < m; j++) {
-        targets[j] = HierarchyParser._resolveEntity(rootEntity, removed[j]);
-      }
-      for (let j = 0, m = targets.length; j < m; j++) {
-        targets[j].destroy();
-      }
-    }
-
-    // removedComponents — pre-resolve all targets then destroy (destroy shifts component indices)
-    if (overrides.removedComponents) {
-      const targets: Component[] = [];
-      for (let j = 0, m = overrides.removedComponents.length; j < m; j++) {
-        const override = overrides.removedComponents[j];
-        const entity = HierarchyParser._resolveEntity(rootEntity, override.path);
-        const selectors = override.selectors;
-        for (let k = 0, p = selectors.length; k < p; k++) {
-          targets.push(HierarchyParser._resolveComponent(entity, selectors[k]));
+      // Build rootIds in serialization order (not async completion order)
+      const rootIds = this.context.rootIds;
+      for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+        if (!entitiesConfig[i].parent && !(entitiesConfig[i] as IStrippedEntity).strippedId) {
+          rootIds.push(entitiesConfig[i].id);
         }
       }
-      for (let j = 0, m = targets.length; j < m; j++) {
-        targets[j].destroy();
+      return entities;
+    });
+  }
+
+  private _parseComponents(): void {
+    const entitiesConfig = this.data.entities;
+    const entityMap = this.context.entityMap;
+
+    for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+      const entityConfig = entitiesConfig[i];
+      if ((entityConfig as IStrippedEntity).strippedId) {
+        continue;
+      }
+      const entity = entityMap.get(entityConfig.id);
+      this._addComponents(entity, entityConfig.components);
+    }
+  }
+
+  private _parsePrefabModification() {
+    const entitiesConfig = this.data.entities;
+    const entityMap = this.context.entityMap;
+
+    const promises = [];
+    for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+      const entityConfig = entitiesConfig[i];
+      const { id, modifications } = entityConfig as IRefEntity;
+
+      if (modifications?.length) {
+        const rootEntity = entityMap.get(id);
+        promises.push(
+          ...modifications.map((modification) => {
+            const { target, props, methods } = modification;
+            const { entityId, componentId } = target;
+            const context = this._prefabContextMap.get(rootEntity);
+            const targetEntity = context.entityMap.get(entityId);
+            const targetComponent = context.components.get(componentId);
+            if (targetComponent) {
+              return this._reflectionParser.parsePropsAndMethods(targetComponent, {
+                props,
+                methods
+              });
+            } else if (targetEntity) {
+              return Promise.resolve(this._applyEntityData(targetEntity, props));
+            }
+          })
+        );
+      }
+    }
+
+    return Promise.all(promises);
+  }
+
+  private _parseAddedComponents(): void {
+    const entityMap = this.context.entityMap;
+    const entityConfigMap = this.context.entityConfigMap;
+    const strippedIds = this.context.strippedIds;
+
+    for (let i = 0, n = strippedIds.length; i < n; i++) {
+      const entityConfig = entityConfigMap.get(strippedIds[i]) as IStrippedEntity;
+      const prefabContext = this._prefabContextMap.get(entityMap.get(entityConfig.prefabInstanceId));
+      const entity = prefabContext.entityMap.get(entityConfig.prefabSource.entityId);
+      this._addComponents(entity, entityConfig.components);
+    }
+  }
+
+  private _parsePrefabRemovedEntities() {
+    const entitiesConfig = this.data.entities;
+    const entityMap = this.context.entityMap;
+
+    for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+      const entityConfig = entitiesConfig[i];
+      const { id, removedEntities } = entityConfig as IRefEntity;
+
+      if (removedEntities?.length) {
+        const rootEntity = entityMap.get(id);
+        for (let j = 0, m = removedEntities.length; j < m; j++) {
+          const target = removedEntities[j];
+          const { entityId } = target;
+          const context = this._prefabContextMap.get(rootEntity);
+          const targetEntity = context.entityMap.get(entityId);
+          if (targetEntity) {
+            targetEntity.destroy();
+          }
+        }
       }
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Prefab instance loading
-  // ---------------------------------------------------------------------------
+  private _parsePrefabRemovedComponents() {
+    const entitiesConfig = this.data.entities;
+    const entityMap = this.context.entityMap;
+    const prefabContextMap = this._prefabContextMap;
 
-  private _loadPrefabInstance(entityConfig: PrefabInstanceEntitySchema, engine: Engine): Promise<Entity> {
-    const instance = entityConfig.instance;
-    let refItem: RefItem;
-    try {
-      refItem = resolveRefItem(this.data.refs, instance.asset, "HierarchyParser", "instance.asset");
-    } catch (error) {
-      return Promise.reject(error);
+    for (let i = 0, l = entitiesConfig.length; i < l; i++) {
+      const entityConfig = entitiesConfig[i];
+      const { id, removedComponents } = entityConfig as IRefEntity;
+
+      if (removedComponents?.length) {
+        const rootEntity = entityMap.get(id);
+        for (let j = 0, m = removedComponents.length; j < m; j++) {
+          const target = removedComponents[j];
+          const { componentId } = target;
+          const context = prefabContextMap.get(rootEntity);
+          const targetComponent = context.components.get(componentId);
+          if (targetComponent) {
+            targetComponent.destroy();
+          }
+        }
+      }
     }
+  }
+
+  private _organizeEntities(): void {
+    const { rootIds, strippedIds } = this.context;
+    const parentIds = rootIds.concat(strippedIds);
+    for (let i = 0, l = parentIds.length; i < l; i++) {
+      this._parseChildren(parentIds[i]);
+    }
+    for (let i = 0; i < rootIds.length; i++) {
+      this._handleRootEntity(rootIds[i]);
+    }
+  }
+
+  private _getEntityByConfig(entityConfig: IEntity, engine: Engine): Promise<Entity> {
+    let entityPromise: Promise<Entity>;
+    if ((<IRefEntity>entityConfig).assetUrl) {
+      entityPromise = this._parsePrefab(<IRefEntity>entityConfig, engine);
+    } else if ((<IStrippedEntity>entityConfig).strippedId) {
+      entityPromise = this._parseStrippedEntity(<IStrippedEntity>entityConfig);
+    } else {
+      entityPromise = this._parseEntity(entityConfig, engine);
+    }
+    return entityPromise.then((entity) => {
+      return this._applyEntityData(entity, entityConfig);
+    });
+  }
+
+  private _parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
+    const transform = entityConfig.transform;
+    const entity = new Entity(engine, entityConfig.name, transform ? Loader.getClass(transform.class) : Transform);
+    this._addEntityPlugin(entityConfig.id, entity);
+    return Promise.resolve(entity);
+  }
+
+  private _parsePrefab(entityConfig: IRefEntity, engine: Engine): Promise<Entity> {
+    const assetUrl: string = entityConfig.assetUrl;
 
     return (
       engine.resourceManager
         // @ts-ignore
-        .getResourceByRef<Entity>(refItem)
+        .getResourceByRef<Entity>({
+          url: assetUrl
+        })
         .then((prefabResource: PrefabResource | GLTFResource) => {
           const entity =
             prefabResource instanceof PrefabResource
               ? prefabResource.instantiate()
               : prefabResource.instantiateSceneRoot();
-          this._onEntityCreated(entity);
+          const instanceContext = new ParserContext<IHierarchyFile, Entity>(engine, ParserType.Prefab, null);
+          this._generateInstanceContext(entity, instanceContext, "");
+
+          this._prefabContextMap.set(entity, instanceContext);
+          const cbArray = this._prefabPromiseMap.get(entityConfig.id);
+          if (cbArray) {
+            for (let i = 0, n = cbArray.length; i < n; i++) {
+              cbArray[i].resolve(instanceContext);
+            }
+          }
           return entity;
         })
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Utilities
-  // ---------------------------------------------------------------------------
+  private _parseStrippedEntity(entityConfig: IStrippedEntity): Promise<Entity> {
+    this.context.strippedIds.push(entityConfig.id);
 
-  /** Resolve an entity inside a prefab instance by walking the child-index path from root */
-  private static _resolveEntity(root: Entity, path: number[]): Entity {
-    let entity = root;
-    for (let i = 0, n = path.length; i < n; i++) {
-      entity = entity.children[path[i]];
-      if (!entity)
-        throw new Error(`HierarchyParser: override target entity not found at path [${path}], failed at depth ${i}`);
+    return new Promise<ParserContext<IHierarchyFile, Entity>>((resolve, reject) => {
+      const cbArray = this._prefabPromiseMap.get((<IStrippedEntity>entityConfig).prefabInstanceId) ?? [];
+      cbArray.push({ resolve, reject });
+      this._prefabPromiseMap.set((<IStrippedEntity>entityConfig).prefabInstanceId, cbArray);
+    }).then((context) => {
+      const { entityId } = entityConfig.prefabSource;
+
+      return context.entityMap.get(entityId);
+    });
+  }
+
+  private _parseChildren(parentId: string) {
+    const { entityConfigMap, entityMap } = this.context;
+    const children = entityConfigMap.get(parentId).children;
+    if (children && children.length > 0) {
+      const parent = entityMap.get(parentId);
+      for (let i = 0; i < children.length; i++) {
+        const childId = children[i];
+        const entity = entityMap.get(childId);
+        parent.addChild(entity);
+        this._parseChildren(childId);
+      }
     }
-    return entity;
   }
 
-  /** Resolve a component on an entity by type name + per-type index */
-  private static _resolveComponent(entity: Entity, selector: ComponentSelector): Component {
-    const type = Loader.getClass(selector.type);
-    if (!type) throw new Error(`HierarchyParser: override target component type "${selector.type}" is not registered`);
-    const buffer = ReflectionParser._componentBuffer;
-    buffer.length = 0;
-    entity.getComponents(type, buffer);
-    const result = buffer[selector.index];
-    buffer.length = 0;
-    if (!result)
-      throw new Error(`HierarchyParser: override target component not found: ${selector.type}/${selector.index}`);
-    return result;
+  private _addComponents(entity: Entity, components: IEntity["components"]): void {
+    const context = this.context;
+    const componentMap = context.components;
+    const componentConfigMap = context.componentConfigMap;
+
+    for (let i = 0, n = components.length; i < n; i++) {
+      const componentConfig = components[i];
+      const key = !componentConfig.url ? componentConfig.class : componentConfig.url;
+      const componentId = componentConfig.id;
+      const component = entity.addComponent(Loader.getClass(key));
+      componentMap.set(componentId, component);
+      componentConfigMap.set(componentId, componentConfig);
+      this._addComponentPlugin(componentId, component);
+    }
   }
 
-  /** Resolve component class from config and add to entity. Throws if class is not registered. */
-  private static _addComponentFromConfig(entity: Entity, config: ComponentSchema, refs: RefItem[]): Component {
-    const key =
-      config.script != null
-        ? resolveRefItem(refs, config.script, "HierarchyParser", "component.script").url
-        : config.type;
-    const Class = Loader.getClass(key);
-    if (!Class) throw new Error(`Loader.getClass: class "${key}" is not registered`);
-    return entity.addComponent(Class);
+  private _generateInstanceContext(entity: Entity, context: ParserContext<IHierarchyFile, Entity>, path: string) {
+    const { entityMap, components } = context;
+    const componentsMap = {};
+    const componentIndexMap = {};
+
+    entityMap.set(path, entity);
+    // @ts-ignore
+    entity._components.forEach((component) => {
+      // @ts-ignore
+      const name = Loader.getClassName(component.constructor);
+      if (!componentsMap[name]) {
+        componentsMap[name] = entity.getComponents(component.constructor, []);
+        componentIndexMap[name] = 0;
+      }
+      components.set(`${path}:${name}/${componentIndexMap[name]++}`, component);
+    });
+    for (let i = 0, n = entity.children.length; i < n; i++) {
+      const child = entity.children[i];
+      const childPath = path ? `${path}/${i}` : `${i}`;
+      this._generateInstanceContext(child, context, childPath);
+    }
   }
 
-  private static _isPrefabInstanceEntity(entityConfig: EntitySchema): entityConfig is PrefabInstanceEntitySchema {
-    return "instance" in entityConfig;
+  private _parseComponentsPropsAndMethods(): Promise<any[]> {
+    const context = this.context;
+    const componentConfigMap = context.componentConfigMap;
+    const reflectionParser = this._reflectionParser;
+    const promises = [];
+
+    for (const [componentId, component] of context.components) {
+      const componentConfig = componentConfigMap.get(componentId);
+      if (componentConfig) {
+        promises.push(reflectionParser.parsePropsAndMethods(component, componentConfig));
+      }
+    }
+
+    return Promise.all(promises);
   }
 
-  /** Apply entity-level props (name, isActive, layer, transform) to an entity. */
-  private static _applyEntityProps(entity: Entity, props: EntityOverrideProps): void {
-    if (props.name != null) entity.name = props.name;
-    if (props.isActive != null) entity.isActive = props.isActive;
-    if (props.layer != null) entity.layer = props.layer;
-    if (props.position) entity.transform.position.set(props.position[0], props.position[1], props.position[2]);
-    if (props.rotation) entity.transform.rotation.set(props.rotation[0], props.rotation[1], props.rotation[2]);
-    if (props.scale) entity.transform.scale.set(props.scale[0], props.scale[1], props.scale[2]);
-  }
+  private _addComponentPlugin(componentId: string, component: Component): void {}
+
+  private _addEntityPlugin(entityId: string, entity: Entity): void {}
 }

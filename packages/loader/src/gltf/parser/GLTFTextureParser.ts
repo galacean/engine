@@ -44,7 +44,7 @@ export class GLTFTextureParser extends GLTFParser {
     if (uri) {
       const extIndex = uri.lastIndexOf(".");
       const ext = uri.substring(extIndex + 1);
-      const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture;
+      const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
       texture = engine.resourceManager
         .load<Texture2D>({
           url: Utils.resolveAbsoluteUrl(url, uri),

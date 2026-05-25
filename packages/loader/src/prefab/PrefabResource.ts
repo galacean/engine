@@ -44,7 +44,7 @@ export class PrefabResource extends ReferResource {
 
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._root?.destroy();
+    this._root.destroy();
     this._dependenceAssets.forEach((asset) => {
       if (asset instanceof ReferResource) {
         // @ts-ignore

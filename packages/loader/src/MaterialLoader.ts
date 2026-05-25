@@ -11,15 +11,25 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import type { RefItem } from "./schema/CommonSchema";
 import {
   MaterialLoaderType,
+  type IAssetRef,
   type IColor,
   type IMaterialSchema,
   type IVector2,
   type IVector3,
   type IVector4
-} from "./schema";
+} from "./resource-deserialize";
+
+function parseProperty(object: Object, key: string, value: any) {
+  if (typeof value === "object") {
+    for (let subKey in value) {
+      parseProperty(object[key], subKey, value[subKey]);
+    }
+  } else {
+    object[key] = value;
+  }
+}
 
 @resourceLoader(AssetType.Material, ["mat"])
 class MaterialLoader extends Loader<Material> {
@@ -41,7 +51,7 @@ class MaterialLoader extends Loader<Material> {
             resolve(
               resourceManager
                 // @ts-ignore
-                .getResourceByRef<Shader>(<RefItem>shaderRef)
+                .getResourceByRef<Shader>(<IAssetRef>shaderRef)
                 .then((shader) => this._getMaterialByShader(materialSchema, shader, engine))
             );
           }
@@ -51,7 +61,7 @@ class MaterialLoader extends Loader<Material> {
   }
 
   private _getMaterialByShader(materialSchema: IMaterialSchema, shader: Shader, engine: Engine): Promise<Material> {
-    const { name, shaderData, macros } = materialSchema;
+    const { name, shaderData, macros, renderState } = materialSchema;
 
     const material = new Material(engine, shader);
     material.name = name;
@@ -89,7 +99,7 @@ class MaterialLoader extends Loader<Material> {
         case MaterialLoaderType.Texture:
           texturePromises.push(
             // @ts-ignore
-            engine.resourceManager.getResourceByRef<Texture2D>(<RefItem>value).then((texture) => {
+            engine.resourceManager.getResourceByRef<Texture2D>(<IAssetRef>value).then((texture) => {
               materialShaderData.setTexture(key, texture);
             })
           );
@@ -111,6 +121,8 @@ class MaterialLoader extends Loader<Material> {
         materialShaderData.enableMacro(name, value);
       }
     }
+
+    parseProperty(material, "renderState", renderState);
 
     return Promise.all(texturePromises).then(() => {
       return material;

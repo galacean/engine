@@ -9,7 +9,7 @@ import {
   PhysicsMaterial
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 import { LitePhysics } from "@galacean/engine-physics-lite";

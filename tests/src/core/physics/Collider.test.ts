@@ -12,7 +12,7 @@ import {
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { LitePhysics } from "@galacean/engine-physics-lite";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
 
 class CollisionScript extends Script {

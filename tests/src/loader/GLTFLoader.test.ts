@@ -26,7 +26,7 @@ import {
   registerGLTFParser
 } from "@galacean/engine-loader";
 import { Color } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { describe, beforeAll, afterAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
@@ -40,7 +40,7 @@ beforeAll(async function () {
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
       if (context.glTFResource.url.endsWith("testSkinRoot.gltf")) {
-        context.buffers = [new ArrayBuffer(192)];
+        context.buffers = [new ArrayBuffer(128)];
         return Promise.resolve({
           asset: {
             version: "2.0"
@@ -53,7 +53,8 @@ beforeAll(async function () {
           ],
           nodes: [
             {
-              name: "Character_Man"
+              name: "Character_Man",
+              skin: 0
             },
             {
               name: "mixamorig:Hips",
@@ -66,64 +67,7 @@ beforeAll(async function () {
           skins: [
             {
               inverseBindMatrices: 0,
-              // Joints span both top-level scene roots: Character_Man (0) and Hips (1)/Spine (2).
-              joints: [0, 1, 2]
-            }
-          ],
-          accessors: [
-            {
-              bufferView: 0,
-              byteOffset: 0,
-              componentType: 5126,
-              count: 3,
-              type: "MAT4"
-            }
-          ],
-          bufferViews: [
-            {
-              buffer: 0,
-              byteOffset: 0,
-              byteLength: 192
-            }
-          ],
-          buffers: [
-            {
-              byteLength: 192
-            }
-          ]
-        });
-      }
-
-      if (context.glTFResource.url.endsWith("testSingleSkeleton.gltf")) {
-        context.buffers = [new ArrayBuffer(128)];
-        return Promise.resolve({
-          asset: {
-            version: "2.0"
-          },
-          scene: 0,
-          scenes: [
-            {
-              // Two top-level roots: a character skeleton and an unrelated sibling (e.g., a light).
-              nodes: [0, 2]
-            }
-          ],
-          nodes: [
-            {
-              name: "Character_Root",
-              children: [1]
-            },
-            {
-              name: "mixamorig:Hips"
-            },
-            {
-              name: "Light"
-            }
-          ],
-          skins: [
-            {
-              inverseBindMatrices: 0,
-              // All joints converge to a single top-level root (Character_Root).
-              joints: [0, 1]
+              joints: [1, 2]
             }
           ],
           accessors: [
@@ -145,6 +89,101 @@ beforeAll(async function () {
           buffers: [
             {
               byteLength: 128
+            }
+          ]
+        });
+      }
+
+      if (context.glTFResource.url.endsWith("testSkinRootBounds.gltf")) {
+        const buffer = new ArrayBuffer(152);
+        const floats = new Float32Array(buffer);
+        // Inverse bind matrices for Hips and Spine. Their bind pose world x is
+        // Character_Group(3) + Hips(10), so inverse bind translates by -13.
+        floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 0);
+        floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 16);
+        floats.set([9, -1, -1, 11, 1, 1], 32);
+        context.buffers = [buffer];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              nodes: [0]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Group",
+              translation: [3, 0, 0],
+              children: [1, 2]
+            },
+            {
+              name: "Character_Man",
+              mesh: 0,
+              skin: 0
+            },
+            {
+              name: "mixamorig:Hips",
+              translation: [10, 0, 0],
+              children: [3]
+            },
+            {
+              name: "mixamorig:Spine"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              joints: [2, 3]
+            }
+          ],
+          meshes: [
+            {
+              primitives: [
+                {
+                  attributes: {
+                    POSITION: 1
+                  },
+                  mode: 4
+                }
+              ]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "MAT4"
+            },
+            {
+              bufferView: 1,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "VEC3",
+              min: [9, -1, -1],
+              max: [11, 1, 1]
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 128
+            },
+            {
+              buffer: 0,
+              byteOffset: 128,
+              byteLength: 24
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 152
             }
           ]
         });
@@ -504,7 +543,7 @@ beforeAll(async function () {
 
 afterAll(() => {
   @registerGLTFParser(GLTFParserType.Schema)
-  class test extends GLTFSchemaParser { }
+  class test extends GLTFSchemaParser {}
 });
 
 describe("glTF Loader test", function () {
@@ -665,19 +704,21 @@ describe("glTF scene root structure", function () {
     expect(skins[0].rootBone).to.equal(defaultSceneRoot);
   });
 
-  it("Multi-root scenes whose joints converge to a single top-level root should not use the scene wrapper", async () => {
+  it("Skinned mesh bounds should stay in rootBone space when inferred rootBone is outside joints", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
-      url: "mock/path/testSingleSkeleton.gltf"
+      url: "mock/path/testSkinRootBounds.gltf"
     });
     const { defaultSceneRoot, skins } = glTFResource;
+    const characterGroup = defaultSceneRoot.children[0];
+    const characterMesh = characterGroup.children[0];
+    const renderer = characterMesh.getComponent(SkinnedMeshRenderer);
 
-    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
-    // Scene has two top-level roots, but all joints converge to "Character_Root".
-    expect(defaultSceneRoot.children.length).to.equal(2);
-    expect(skins[0].rootBone).to.not.equal(defaultSceneRoot);
-    // rootBone should be inside the Character_Root subtree (LCA = Character_Root).
-    expect(skins[0].rootBone.name).to.equal("Character_Root");
+    expect(skins[0].rootBone).to.equal(characterGroup);
+    expect(renderer.localBounds.min.x).to.be.closeTo(6, 1e-5);
+    expect(renderer.localBounds.max.x).to.be.closeTo(8, 1e-5);
+    expect(renderer.bounds.min.x).to.be.closeTo(9, 1e-5);
+    expect(renderer.bounds.max.x).to.be.closeTo(11, 1e-5);
   });
 });
 

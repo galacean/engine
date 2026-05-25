@@ -1,4 +1,5 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
@@ -27,6 +28,16 @@ export class Collider extends Component implements ICustomClone {
   @deepClone
   protected _shapes: ColliderShape[] = [];
   protected _collisionLayerIndex: number = 0;
+
+  /**
+   * Disabling a collider only detaches its native actor from the simulation
+   * scene; the actor is not destroyed, so on re-enable it still holds its
+   * pre-disable pose. The first transform sync after (re-)enable must teleport,
+   * never sweep — otherwise a kinematic actor drags across the scene from that
+   * stale pose and fires spurious contacts along the path.
+   */
+  @ignoreClone
+  private _pendingReenterTeleport: boolean = false;
 
   /**
    * The shapes of this collider.
@@ -108,19 +119,28 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   _onUpdate(): void {
-    if (this._updateFlag.flag) {
+    const shapes = this._shapes;
+    if (this._pendingReenterTeleport || this._updateFlag.flag) {
       const { transform } = this.entity;
-      (<IStaticCollider>this._nativeCollider).setWorldTransform(
-        transform.worldPosition,
-        transform.worldRotationQuaternion
-      );
+      if (this._pendingReenterTeleport) {
+        this._teleportToEntityTransform(transform.worldPosition, transform.worldRotationQuaternion);
+        this._pendingReenterTeleport = false;
+      } else {
+        this._syncEntityTransformToNative(transform.worldPosition, transform.worldRotationQuaternion);
+      }
 
       const worldScale = transform.lossyWorldScale;
-      const shapes = this._shapes;
       for (let i = 0, n = shapes.length; i < n; i++) {
         shapes[i]._nativeShape?.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
+    }
+
+    // Drive per-shape physics update (e.g. MeshColliderShape retries pending
+    // native shape creation when mesh data becomes accessible asynchronously).
+    // No-op for shape types that don't override `_onPhysicsUpdate`.
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      shapes[i]._onPhysicsUpdate();
     }
   }
 
@@ -134,6 +154,7 @@ export class Collider extends Component implements ICustomClone {
    */
   override _onEnableInScene(): void {
     this.scene.physics._addCollider(this);
+    this._pendingReenterTeleport = true;
   }
 
   /**
@@ -164,6 +185,32 @@ export class Collider extends Component implements ICustomClone {
       this._addNativeShape(this.shapes[i]);
     }
     this._setCollisionLayer();
+    // Teleport native actor to entity's current world pose.
+    // The native actor was created in constructor() with the entity's then-current
+    // worldPosition/Rotation. On clone, the entity's transform fields are deep-cloned
+    // AFTER the Component (and its native actor) are constructed, so the native actor's
+    // pose lags behind the cloned entity transform until this sync.
+    const { transform } = this.entity;
+    this._teleportToEntityTransform(transform.worldPosition, transform.worldRotationQuaternion);
+  }
+
+  /**
+   * Teleport native actor to a world pose (instant, no implied velocity).
+   * Used during initialization paths (clone) where the native actor must be re-aligned
+   * with the entity transform after construction-time pose was based on stale defaults.
+   */
+  protected _teleportToEntityTransform(worldPosition: Vector3, worldRotation: Quaternion): void {
+    (<IStaticCollider>this._nativeCollider).setWorldTransform(worldPosition, worldRotation);
+  }
+
+  /**
+   * Sync entity world transform to native actor for per-frame updates.
+   * Default semantics: teleport (setGlobalPose). Subclasses override to express
+   * physics-aware movement (e.g. DynamicCollider routes kinematic actors through
+   * setKinematicTarget to generate contact events on swept motion).
+   */
+  protected _syncEntityTransformToNative(worldPosition: Vector3, worldRotation: Quaternion): void {
+    (<IStaticCollider>this._nativeCollider).setWorldTransform(worldPosition, worldRotation);
   }
 
   /**
