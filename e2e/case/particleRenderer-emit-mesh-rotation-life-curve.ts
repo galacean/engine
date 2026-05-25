@@ -9,11 +9,13 @@ import {
   Camera,
   Color,
   ConeShape,
+  CurveKey,
   Engine,
   Entity,
   GLTFResource,
   Logger,
   ParticleCompositeCurve,
+  ParticleCurve,
   ParticleMaterial,
   ParticleRenderer,
   ParticleRenderMode,
@@ -23,6 +25,8 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
+
+type Mode = "constant" | "curve";
 
 Logger.enable();
 
@@ -55,12 +59,15 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   ]).then(([glTFModel, texture]) => {
     const mesh = (<GLTFResource>glTFModel).meshes[0][0];
 
-    // Both spinners force is3DRotation=true so computeParticleRotationVec3 runs.
-    // LEFT = non-separate (hits the buggy branch); RIGHT = separate (correct branch).
-    // After fix both apply Z-only Euler rotation via rotationByEuler → identical flat spin.
-    // Before fix LEFT broadcast the Z delta to rotation.xyz → tumbled diagonally.
-    createSpinner(engine, rootEntity, new Vector3(-3.5, 0, 0), false, mesh, <Texture2D>texture);
-    createSpinner(engine, rootEntity, new Vector3(0.5, 0, 0), true, mesh, <Texture2D>texture);
+    // All three spinners run computeParticleRotationVec3 (startRotation3D=true).
+    // LEFT  — non-separate CONSTANT mode  → exercises the constant-branch fix (rotation.z += ageRot)
+    // MID   — non-separate CURVE    mode  → exercises the curve-branch    fix (rotation.z += lifeRotation * lifetime)
+    // RIGHT — separate (control)          → always-correct vec3 path, unaffected by fix
+    // Post-fix: all three spin flat around Z, identical orientation at capture.
+    // Pre-fix:  LEFT and MID tumble around the (1,1,1) diagonal; RIGHT still flat.
+    createSpinner(engine, rootEntity, new Vector3(-5, 0, 0), false, "constant", mesh, <Texture2D>texture);
+    createSpinner(engine, rootEntity, new Vector3(-1.5, 0, 0), false, "curve", mesh, <Texture2D>texture);
+    createSpinner(engine, rootEntity, new Vector3(2, 0, 0), true, "constant", mesh, <Texture2D>texture);
 
     updateForE2E(engine, 500);
     initScreenshot(engine, camera);
@@ -72,10 +79,11 @@ function createSpinner(
   parent: Entity,
   position: Vector3,
   separateAxes: boolean,
+  mode: Mode,
   mesh: any,
   texture: Texture2D
 ): Entity {
-  const entity = parent.createChild(separateAxes ? "separate" : "non-separate");
+  const entity = parent.createChild(`${separateAxes ? "separate" : "non-separate"}-${mode}`);
   entity.transform.position = position;
 
   const renderer = entity.addComponent(ParticleRenderer);
@@ -97,7 +105,7 @@ function createSpinner(
   main.startLifetime.constant = 10;
   main.startSpeed.constant = 0;
   main.startSize.constant = 1.5;
-  // startRotation3D=true forces is3DRotation, so both sides go through
+  // startRotation3D=true forces is3DRotation, so all sides go through
   // computeParticleRotationVec3 (the function the fix touches).
   main.startRotation3D = true;
   main.startRotationX.constant = 0;
@@ -115,11 +123,24 @@ function createSpinner(
 
   rotationOverLifetime.enabled = true;
   rotationOverLifetime.separateAxes = separateAxes;
-  if (separateAxes) {
-    rotationOverLifetime.rotationX.constant = 0;
-    rotationOverLifetime.rotationY.constant = 0;
+
+  if (mode === "curve") {
+    // Constant-valued curve produces the same total Z rotation as constant 90:
+    // evaluateParticleCurveCumulative(y=90, t) * lifetime = 90 * normalizedAge * lifetime = 90 * age.
+    const flat90 = () => new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 90), new CurveKey(1, 90)));
+    rotationOverLifetime.rotationZ = flat90();
+    if (separateAxes) {
+      const flat0 = () => new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 0)));
+      rotationOverLifetime.rotationX = flat0();
+      rotationOverLifetime.rotationY = flat0();
+    }
+  } else {
+    rotationOverLifetime.rotationZ.constant = 90;
+    if (separateAxes) {
+      rotationOverLifetime.rotationX.constant = 0;
+      rotationOverLifetime.rotationY.constant = 0;
+    }
   }
-  rotationOverLifetime.rotationZ.constant = 90;
 
   return entity;
 }
