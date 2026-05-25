@@ -1,5 +1,5 @@
-import { Vector4 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
+import { Color, Vector4 } from "@galacean/engine-math";
+import { CloneManager, ignoreClone } from "../../clone/CloneManager";
 import { Logger } from "../../base/Logger";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -142,6 +142,32 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
     delete this._gradientStreams[name];
     delete this.gradients[name];
+  }
+
+  /** @internal */
+  _cloneTo(target: CustomDataModule): void {
+    const sourceCurves = this.curves;
+    const sourceGradients = this.gradients;
+    const curveNames = Object.keys(sourceCurves);
+    const gradientNames = Object.keys(sourceGradients);
+
+    (target as { curves: Record<string, ParticleCompositeCurve> }).curves = {};
+    (target as { gradients: Record<string, ParticleCompositeGradient> }).gradients = {};
+    target._curveStreams = {};
+    target._gradientStreams = {};
+
+    for (let i = 0; i < curveNames.length; i++) {
+      const name = curveNames[i];
+      const clonedCurve = new ParticleCompositeCurve(0);
+      CloneManager.deepCloneObject(sourceCurves[name], clonedCurve, new Map());
+      target.addCurve(name, clonedCurve);
+    }
+    for (let i = 0; i < gradientNames.length; i++) {
+      const name = gradientNames[i];
+      const clonedGradient = new ParticleCompositeGradient(new Color());
+      CloneManager.deepCloneObject(sourceGradients[name], clonedGradient, new Map());
+      target.addGradient(name, clonedGradient);
+    }
   }
 
   /**

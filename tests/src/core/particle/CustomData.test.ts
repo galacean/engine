@@ -164,6 +164,51 @@ describe("CustomDataModule", function () {
     }).to.not.throw();
   });
 
+  it("clones deep — entries detached, internal caches rebuilt", function () {
+    // Bug guard: CloneManager can't recurse into Record entries, so the
+    // default field-by-field clone leaves `cloned.curves === source.curves`
+    // (mutation aliasing) and an empty `_curveStreams` (silent no-op
+    // _updateShaderData). The module's `_cloneTo` hook deep-clones each
+    // entry and rebuilds the internal caches via addCurve / addGradient.
+    const scene = engine.sceneManager.activeScene;
+    const sourceEntity = scene.createRootEntity("source-particle");
+    const sourceRenderer = sourceEntity.addComponent(ParticleRenderer);
+    sourceRenderer.setMaterial(new ParticleMaterial(engine));
+    const sourceCustomData = sourceRenderer.generator.customData;
+    sourceCustomData.enabled = true;
+    sourceCustomData.addCurve("Intensity", new ParticleCompositeCurve(0.8));
+    sourceCustomData.addGradient("Tint", new ParticleCompositeGradient(new Color(1, 0.5, 0.2, 1)));
+
+    const clonedEntity = sourceEntity.clone();
+    const clonedRenderer = clonedEntity.getComponent(ParticleRenderer);
+    const clonedCustomData = clonedRenderer.generator.customData;
+
+    // Record containers are fresh, not aliased.
+    expect(clonedCustomData.curves).to.not.eq(sourceCustomData.curves);
+    expect(clonedCustomData.gradients).to.not.eq(sourceCustomData.gradients);
+
+    // Entries themselves are fresh (deep clone), not shared.
+    expect(clonedCustomData.curves["Intensity"]).to.not.eq(sourceCustomData.curves["Intensity"]);
+    expect(clonedCustomData.curves["Intensity"].constantMax).to.eq(0.8);
+    expect(clonedCustomData.gradients["Tint"]).to.not.eq(sourceCustomData.gradients["Tint"]);
+    expect(clonedCustomData.gradients["Tint"].constantMax.r).to.be.closeTo(1, 1e-6);
+
+    // Internal caches are rebuilt — _updateShaderData would now upload uniforms.
+    //@ts-ignore - inspecting private internal cache
+    const clonedCurveStreams = (clonedCustomData as any)._curveStreams;
+    //@ts-ignore
+    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams;
+    expect(Object.keys(clonedCurveStreams)).to.deep.eq(["Intensity"]);
+    expect(Object.keys(clonedGradientStreams)).to.deep.eq(["Tint"]);
+
+    // Mutation isolation: bumping the clone does not bleed back into the source.
+    clonedCustomData.curves["Intensity"].constantMax = 0.1;
+    expect(sourceCustomData.curves["Intensity"].constantMax).to.eq(0.8);
+
+    sourceEntity.destroy();
+    clonedEntity.destroy();
+  });
+
   it("enabling module triggers engine update without error", function () {
     const customData = particleRenderer.generator.customData;
     customData.enabled = true;
