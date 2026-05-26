@@ -355,12 +355,7 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const transform = <UITransform>this._transformEntity.transform;
-    const { x: width, y: height } = transform.size;
-    const { x: pivotX, y: pivotY } = transform.pivot;
-    worldBounds.min.set(-width * pivotX, -height * pivotY, 0);
-    worldBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
-    BoundingBox.transform(worldBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+    BoundingBox.transform(this._localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
   }
 
   protected override _render(context): void {
