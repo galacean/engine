@@ -3,7 +3,7 @@ import { TextureFilterMode, TextureFormat, TextureWrapMode } from "@galacean/eng
 // Import directly from the source file for test access.
 import { RenderTargetPool } from "../../../../packages/core/src/RenderPipeline/RenderTargetPool";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
 /**
  * Helper: allocate an RT through the pool with sane defaults; varies only the bits that affect matching.
@@ -35,6 +35,10 @@ describe("RenderTargetPool", () => {
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas });
+  });
+
+  afterAll(() => {
+    engine.destroy();
   });
 
   beforeEach(() => {
@@ -93,6 +97,20 @@ describe("RenderTargetPool", () => {
       const b = alloc(pool, 256, 256);
       expect(b).to.not.equal(a);
       expect(a.destroyed).to.equal(true);
+    });
+
+    it("tick re-enforces maxFreeBytes after a mid-run cap reduction", () => {
+      pool.maxFreeAgeFrames = Infinity; // isolate from age-based eviction
+      pool.maxFreeBytes = Infinity;
+      const a = alloc(pool, 256, 256);
+      pool.freeRenderTarget(a);
+      expect(a.destroyed).to.equal(false);
+
+      // User lowers the cap below the entry's size; tick should evict.
+      pool.maxFreeBytes = 1;
+      pool.tick(engine.time.frameCount);
+      expect(a.destroyed).to.equal(true);
+      expect(pool.freeListByteSize).to.equal(0);
     });
   });
 
