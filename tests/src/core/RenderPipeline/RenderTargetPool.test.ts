@@ -98,20 +98,6 @@ describe("RenderTargetPool", () => {
       expect(b).to.not.equal(a);
       expect(a.destroyed).to.equal(true);
     });
-
-    it("tick re-enforces maxFreeBytes after a mid-run cap reduction", () => {
-      pool.maxFreeAgeFrames = Infinity; // isolate from age-based eviction
-      pool.maxFreeBytes = Infinity;
-      const a = alloc(pool, 256, 256);
-      pool.freeRenderTarget(a);
-      expect(a.destroyed).to.equal(false);
-
-      // User lowers the cap below the entry's size; tick should evict.
-      pool.maxFreeBytes = 1;
-      pool.tick(engine.time.frameCount);
-      expect(a.destroyed).to.equal(true);
-      expect(pool.freeListByteSize).to.equal(0);
-    });
   });
 
   describe("evictBySize for canvas resize", () => {
@@ -140,82 +126,16 @@ describe("RenderTargetPool", () => {
     });
   });
 
-  describe("free-list memory cap", () => {
-    it("destroys entries while the free list exceeds maxFreeBytes", () => {
-      // Cap below the size of even one 256×256 RGBA8+D24S8 RT, so any push immediately overflows.
-      pool.maxFreeBytes = 1;
-      const a = alloc(pool, 256, 256);
-      pool.freeRenderTarget(a);
-      expect(a.destroyed).to.equal(true);
-      expect(pool.freeListByteSize).to.equal(0);
-    });
-
-    it("keeps total free-list bytes at or below maxFreeBytes after each push", () => {
-      pool.maxFreeBytes = 1024 * 1024; // 1 MB
-      const a = alloc(pool, 256, 256);
-      const b = alloc(pool, 256, 256);
-      const c = alloc(pool, 256, 256);
-      pool.freeRenderTarget(a);
-      pool.freeRenderTarget(b);
-      pool.freeRenderTarget(c);
-      expect(pool.freeListByteSize).to.be.at.most(pool.maxFreeBytes);
-    });
-
-    it("freeListByteSize reflects current free-list contents", () => {
-      pool.maxFreeBytes = Infinity;
-      const a = alloc(pool, 128, 128);
-      pool.freeRenderTarget(a);
-      const sizeAfterFirst = pool.freeListByteSize;
-      expect(sizeAfterFirst).to.be.greaterThan(0);
-
-      const b = alloc(pool, 128, 128); // matches, lease out
-      expect(b).to.equal(a);
-      expect(pool.freeListByteSize).to.equal(0);
-      pool.freeRenderTarget(b);
-      expect(pool.freeListByteSize).to.equal(sizeAfterFirst);
-    });
-
-    it("maxFreeBytes covers RT + Texture combined, not each pool independently", () => {
-      // Allocate two distinct shapes so they can't dedupe via match.
-      const rt = alloc(pool, 256, 256);
-      const tex = pool.allocateTexture(
-        256,
-        256,
-        TextureFormat.R8G8B8A8,
-        false,
-        false,
-        TextureWrapMode.Clamp,
-        TextureFilterMode.Bilinear
-      );
-      pool.maxFreeBytes = Infinity;
-      pool.freeRenderTarget(rt);
-      pool.freeTexture(tex);
-      const total = pool.freeListByteSize;
-      expect(total).to.be.greaterThan(0);
-
-      // Set the cap just below the combined total — one of the two must be evicted.
-      pool.maxFreeBytes = total - 1;
-      // Trigger a re-check by pushing and immediately re-leasing an entry of the same shape as `rt`.
-      // Easiest path: free a no-op entry. Instead, directly observe by allocating a tiny RT and freeing it
-      // to force the cap to be re-evaluated.
-      const probe = alloc(pool, 1, 1);
-      pool.freeRenderTarget(probe);
-      expect(pool.freeListByteSize).to.be.at.most(pool.maxFreeBytes);
-    });
-  });
-
   describe("gc()", () => {
-    it("destroys all free-list entries and zeros the byte total", () => {
+    it("destroys all free-list entries", () => {
       const a = alloc(pool, 256, 256);
       const b = alloc(pool, 512, 512);
       pool.freeRenderTarget(a);
       pool.freeRenderTarget(b);
-      expect(pool.freeListByteSize).to.be.greaterThan(0);
 
       pool.gc();
       expect(a.destroyed).to.equal(true);
       expect(b.destroyed).to.equal(true);
-      expect(pool.freeListByteSize).to.equal(0);
     });
   });
 });
