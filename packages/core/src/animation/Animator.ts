@@ -344,14 +344,13 @@ export class Animator extends Component {
     }
 
     for (let i = 0, n = layersData.length; i < n; i++) {
-      const { animatorStateDataMap } = layersData[i];
-      for (let name in animatorStateDataMap) {
-        const stateData = animatorStateDataMap[name];
-        const { clipChangedListener, animatorState } = stateData;
-        if (clipChangedListener) {
-          animatorState._updateFlagManager.removeListener(clipChangedListener);
+      const stateDataMap = layersData[i].animatorStateDataMap;
+      for (const stateName in stateDataMap) {
+        const stateData = stateDataMap[stateName];
+        if (stateData.clipChangedListener && stateData.state) {
+          stateData.state._updateFlagManager.removeListener(stateData.clipChangedListener);
           stateData.clipChangedListener = null;
-          stateData.animatorState = null;
+          stateData.state = null;
         }
       }
     }
@@ -379,6 +378,7 @@ export class Animator extends Component {
 
   protected override _onDestroy(): void {
     super._onDestroy();
+    this._reset();
     const controller = this._animatorController;
     if (controller) {
       this._addResourceReferCount(controller, -1);
@@ -530,9 +530,9 @@ export class Animator extends Component {
       }
     };
     clipChangedListener();
-    animatorStateData.animatorState = state;
-    animatorStateData.clipChangedListener = clipChangedListener;
     state._updateFlagManager.addListener(clipChangedListener);
+    animatorStateData.state = state;
+    animatorStateData.clipChangedListener = clipChangedListener;
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
