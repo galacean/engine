@@ -1,9 +1,7 @@
-import {
-  RenderTargetPool,
-  TextureFilterMode,
-  TextureFormat,
-  TextureWrapMode
-} from "@galacean/engine-core";
+import { TextureFilterMode, TextureFormat, TextureWrapMode } from "@galacean/engine-core";
+// `RenderTargetPool` is `@internal` and intentionally not re-exported from the core barrel.
+// Import directly from the source file for test access.
+import { RenderTargetPool } from "../../../../packages/core/src/RenderPipeline/RenderTargetPool";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 
@@ -157,6 +155,34 @@ describe("RenderTargetPool", () => {
       expect(pool.freeListByteSize).to.equal(0);
       pool.freeRenderTarget(b);
       expect(pool.freeListByteSize).to.equal(sizeAfterFirst);
+    });
+
+    it("maxFreeBytes covers RT + Texture combined, not each pool independently", () => {
+      // Allocate two distinct shapes so they can't dedupe via match.
+      const rt = alloc(pool, 256, 256);
+      const tex = pool.allocateTexture(
+        256,
+        256,
+        TextureFormat.R8G8B8A8,
+        false,
+        false,
+        TextureWrapMode.Clamp,
+        TextureFilterMode.Bilinear
+      );
+      pool.maxFreeBytes = Infinity;
+      pool.freeRenderTarget(rt);
+      pool.freeTexture(tex);
+      const total = pool.freeListByteSize;
+      expect(total).to.be.greaterThan(0);
+
+      // Set the cap just below the combined total — one of the two must be evicted.
+      pool.maxFreeBytes = total - 1;
+      // Trigger a re-check by pushing and immediately re-leasing an entry of the same shape as `rt`.
+      // Easiest path: free a no-op entry. Instead, directly observe by allocating a tiny RT and freeing it
+      // to force the cap to be re-evaluated.
+      const probe = alloc(pool, 1, 1);
+      pool.freeRenderTarget(probe);
+      expect(pool.freeListByteSize).to.be.at.most(pool.maxFreeBytes);
     });
   });
 

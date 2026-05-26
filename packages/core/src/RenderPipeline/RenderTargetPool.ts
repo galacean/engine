@@ -156,7 +156,7 @@ export class RenderTargetPool {
     this._freeRenderTargetFrames.push(this._engine.time.frameCount);
     this._freeRenderTargetBytes.push(bytes);
     this._freeRenderTargetByteTotal += bytes;
-    this._enforceRenderTargetMemoryCap();
+    this._enforceMemoryCap();
   }
 
   freeTexture(texture: Texture2D): void {
@@ -166,7 +166,7 @@ export class RenderTargetPool {
     this._freeTextureFrames.push(this._engine.time.frameCount);
     this._freeTextureBytes.push(bytes);
     this._freeTextureByteTotal += bytes;
-    this._enforceTextureMemoryCap();
+    this._enforceMemoryCap();
   }
 
   /**
@@ -292,19 +292,36 @@ export class RenderTargetPool {
   }
 
   /**
-   * Evict oldest RT entries (by `lastUsedFrame`) until the free list is at or below the cap.
+   * Evict the oldest entry across BOTH free lists (by `lastUsedFrame`) until the combined byte
+   * total is at or below `maxFreeBytes`. The cap applies to the sum reported by `freeListByteSize`,
+   * not to each list independently.
    */
-  private _enforceRenderTargetMemoryCap(): void {
-    while (this._freeRenderTargetByteTotal > this.maxFreeBytes && this._freeRenderTargets.length > 0) {
-      const oldest = this._findOldestIndex(this._freeRenderTargetFrames);
-      this._destroyFreeRenderTargetAt(oldest);
-    }
-  }
+  private _enforceMemoryCap(): void {
+    const cap = this.maxFreeBytes;
+    while (
+      this._freeRenderTargetByteTotal + this._freeTextureByteTotal > cap &&
+      (this._freeRenderTargets.length > 0 || this._freeTextures.length > 0)
+    ) {
+      const rtFrames = this._freeRenderTargetFrames;
+      const texFrames = this._freeTextureFrames;
+      const rtOldest = rtFrames.length > 0 ? this._findOldestIndex(rtFrames) : -1;
+      const texOldest = texFrames.length > 0 ? this._findOldestIndex(texFrames) : -1;
 
-  private _enforceTextureMemoryCap(): void {
-    while (this._freeTextureByteTotal > this.maxFreeBytes && this._freeTextures.length > 0) {
-      const oldest = this._findOldestIndex(this._freeTextureFrames);
-      this._destroyFreeTextureAt(oldest);
+      let evictRt: boolean;
+      if (rtOldest < 0) {
+        evictRt = false;
+      } else if (texOldest < 0) {
+        evictRt = true;
+      } else {
+        // Tie-break toward RT: pool entries dominate the byte budget, so this converges faster.
+        evictRt = rtFrames[rtOldest] <= texFrames[texOldest];
+      }
+
+      if (evictRt) {
+        this._destroyFreeRenderTargetAt(rtOldest);
+      } else {
+        this._destroyFreeTextureAt(texOldest);
+      }
     }
   }
 
@@ -321,9 +338,18 @@ export class RenderTargetPool {
   }
 
   /**
-   * Sum the bytes "owned" by an RT entry: the RT's own MSAA/depth-RBO accounting plus any
-   * color/depth textures it references. Mirrors what `_renderingStatistics._textureMemory`
-   * would drop if this entry were destroyed.
+   * Sum the bytes "owned" by an RT entry. Mirrors what `_renderingStatistics._textureMemory`
+   * would drop if this entry were fully destroyed.
+   *
+   * Contract relied on here (see `RenderTarget.ts` ctor):
+   *   `RenderTarget._memorySize` accounts ONLY for the RT's own renderbuffers —
+   *     - MSAA: `(colorRBO + depthRBO) * antiAliasing` (the multisampled side; resolves into the
+   *       attached `colorTexture`, which is tracked separately on the Texture itself)
+   *     - Non-MSAA: just the depth RBO when depth is given as a format, else 0
+   *   It does NOT include the bytes of the attached `colorTexture` / `depthTexture`, which each
+   *   carry their own `_memorySize` from the `Texture` ctor.
+   * So summing `rt._memorySize + colorTexture._memorySize + depthTexture._memorySize` does not
+   * double-count.
    */
   private static _computeRtBytes(rt: RenderTarget): number {
     let bytes = rt._memorySize;
