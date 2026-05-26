@@ -1,5 +1,6 @@
 import { Entity } from "../Entity";
 import { TypedArray } from "../base/Constant";
+import { ReferResource } from "../asset/ReferResource";
 import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
@@ -275,11 +276,15 @@ export class CloneManager {
     // Value types with copyFrom (math types like Vector3, Color, etc.)
     if ((<ICustomClone>sourceProperty).copyFrom) return CloneMode.Deep;
 
-    // Plain objects - deep clone (may contain Entity/Component refs)
-    if (sourceProperty.constructor === Object) return CloneMode.Deep;
+    // Engine resources (Material, Texture, Mesh, Shader, ...) — refCount-managed,
+    // shared by reference. Anything outside this contract is treated as a value-like
+    // user class and gets a deep clone (so nested Entity/Component refs are remapped).
+    if (sourceProperty instanceof ReferResource) return CloneMode.Assignment;
 
-    // Other class instances (engine resources like Material, Texture) - shared reference
-    return CloneMode.Assignment;
+    // Default: deep clone. Covers plain objects {...} and user-defined value classes
+    // (EventHandler, business data containers). Internal Entity/Component refs reach
+    // line 109's _remap branch and are correctly rebound to the target tree.
+    return CloneMode.Deep;
   }
 
   static deepCloneObject(source: Object, target: Object, deepInstanceMap: Map<Object, Object>): void {
