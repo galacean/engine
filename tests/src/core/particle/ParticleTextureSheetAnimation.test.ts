@@ -1,6 +1,6 @@
 import { Camera, ParticleRenderer, Scene } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
 describe("TextureSheetAnimation Test", () => {

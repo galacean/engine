@@ -9,7 +9,7 @@ import { Script } from "./Script";
 import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
-import { EngineObject, Logger } from "./base";
+import { EngineObject } from "./base";
 import { CloneUtils } from "./clone/CloneUtils";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
@@ -105,6 +105,8 @@ export class Entity extends EngineObject {
   /** @internal */
   _scripts: DisorderedArray<Script> = new DisorderedArray<Script>();
   /** @internal */
+  _scriptsVersion = 0;
+  /** @internal */
   _children: Entity[] = [];
   /** @internal */
   _scene: Scene;
@@ -122,7 +124,7 @@ export class Entity extends EngineObject {
   private _transform: Transform;
   private _templateResource: ReferResource;
   private _parent: Entity = null;
-  private _isActiveChanging: boolean = false;
+  private _activeChangedComponents: Component[];
   private _modifyFlagManager: UpdateFlagManager;
 
   /**
@@ -212,14 +214,16 @@ export class Entity extends EngineObject {
   }
 
   set siblingIndex(value: number) {
+    if (this._siblingIndex === -1) {
+      throw `The entity ${this.name} is not in the hierarchy`;
+    }
+
     if (this._isRoot) {
       this._setSiblingIndex(this._scene._rootEntities, value);
-    } else if (this._parent) {
+    } else {
       const parent = this._parent;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
-    } else {
-      Logger.warn(`The entity ${this.name} is not in the hierarchy`);
     }
   }
 
@@ -339,7 +343,7 @@ export class Entity extends EngineObject {
    * @deprecated Please use `children` property instead.
    * Find child entity by index.
    * @param index - The index of the child entity
-   * @returns	The component which be found
+   * @returns The entity that was found
    */
   getChild(index: number): Entity {
     return this._children[index];
@@ -347,8 +351,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find entity by name.
-   * @param name - The name of the entity which want to be found
-   * @returns The component which be found
+   * @param name - The name of the entity to find
+   * @returns The entity that was found
    */
   findByName(name: string): Entity {
     if (name === this.name) {
@@ -367,14 +371,13 @@ export class Entity extends EngineObject {
   /**
    * Find the entity by path.
    * @param path - The path of the entity eg: /entity
-   * @returns The component which be found
+   * @returns The entity that was found
    */
   findByPath(path: string): Entity {
     const splits = path.split("/").filter(Boolean);
     if (!splits.length) {
       return this;
     }
-
     return Entity._findChildByName(this, 0, splits, 0);
   }
 
@@ -401,11 +404,6 @@ export class Entity extends EngineObject {
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       child._parent = null;
-      child._siblingIndex = -1;
-      // Dispatch `Child` to the old parent before `_processInActive` (which unregisters
-      // UI listeners via `cleanRootCanvas`), so subscribers such as UICanvas can react
-      // to the hierarchy change while still attached.
-      this._dispatchModify(EntityModifyFlags.Child, this);
 
       let activeChangeFlag = ActiveChangeFlag.None;
       child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -413,8 +411,6 @@ export class Entity extends EngineObject {
       activeChangeFlag && child._processInActive(activeChangeFlag);
 
       Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
-
-      child._setParentChange();
     }
     children.length = 0;
   }
@@ -543,6 +539,7 @@ export class Entity extends EngineObject {
   _addScript(script: Script) {
     script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
+    this._scriptsVersion++;
   }
 
   /**
@@ -552,6 +549,7 @@ export class Entity extends EngineObject {
     const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
     replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
     script._entityScriptsIndex = -1;
+    this._scriptsVersion++;
   }
 
   /**
@@ -570,24 +568,24 @@ export class Entity extends EngineObject {
    * @internal
    */
   _processActive(activeChangeFlag: ActiveChangeFlag): void {
-    if (this._isActiveChanging) {
+    if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
-    this._isActiveChanging = true;
-    this._setActiveInHierarchy(activeChangeFlag);
-    this._isActiveChanging = false;
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    this._setActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
+    this._setActiveComponents(true, activeChangeFlag);
   }
 
   /**
    * @internal
    */
   _processInActive(activeChangeFlag: ActiveChangeFlag): void {
-    if (this._isActiveChanging) {
+    if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
-    this._isActiveChanging = true;
-    this._setInActiveInHierarchy(activeChangeFlag);
-    this._isActiveChanging = false;
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
+    this._setInActiveInHierarchy(this._activeChangedComponents, activeChangeFlag);
+    this._setActiveComponents(false, activeChangeFlag);
   }
 
   /**
@@ -684,46 +682,57 @@ export class Entity extends EngineObject {
   }
 
   private _getComponentsInChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): void {
-    const components = this._components;
-    for (let i = 0, n = components.length; i < n; i++) {
-      const component = components[i];
+    for (let i = this._components.length - 1; i >= 0; i--) {
+      const component = this._components[i];
       if (component instanceof type) {
         results.push(component);
       }
     }
-    const children = this._children;
-    for (let i = 0, n = children.length; i < n; i++) {
-      children[i]._getComponentsInChildren<T>(type, results);
+    for (let i = this._children.length - 1; i >= 0; i--) {
+      this._children[i]._getComponentsInChildren<T>(type, results);
     }
   }
 
-  private _setActiveInHierarchy(activeChangeFlag: ActiveChangeFlag): void {
+  private _setActiveComponents(isActive: boolean, activeChangeFlag: ActiveChangeFlag): void {
+    const activeChangedComponents = this._activeChangedComponents;
+    for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
+      const component = activeChangedComponents[i];
+      // Skip components whose scene was already cleared by an earlier callback's removeChild
+      if (!isActive && !component._entity._scene) continue;
+      component._setActive(isActive, activeChangeFlag);
+    }
+    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._activeChangedComponents = null;
+  }
+
+  private _setActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = true);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = true);
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      (component.enabled || !component._awoken) && component._setActive(true, activeChangeFlag);
+      (component.enabled || !component._awoken) && activeChangedComponents.push(component);
     }
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
+    for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
-      child.isActive && child._setActiveInHierarchy(activeChangeFlag);
+      child.isActive && child._setActiveInHierarchy(activeChangedComponents, activeChangeFlag);
     }
   }
 
-  private _setInActiveInHierarchy(activeChangeFlag: ActiveChangeFlag): void {
+  private _setInActiveInHierarchy(activeChangedComponents: Component[], activeChangeFlag: ActiveChangeFlag): void {
+    // Children-first, reverse traversal for safe removeChild during callbacks
+    const children = this._children;
+    for (let i = children.length - 1; i >= 0; i--) {
+      const child = children[i];
+      child.isActive && child._setInActiveInHierarchy(activeChangedComponents, activeChangeFlag);
+    }
     activeChangeFlag & ActiveChangeFlag.Hierarchy && (this._isActiveInHierarchy = false);
     activeChangeFlag & ActiveChangeFlag.Scene && (this._isActiveInScene = false);
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
-      component.enabled && component._setActive(false, activeChangeFlag);
-    }
-    const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      child.isActive && child._setInActiveInHierarchy(activeChangeFlag);
+      component.enabled && activeChangedComponents.push(component);
     }
   }
 

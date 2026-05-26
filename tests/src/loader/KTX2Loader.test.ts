@@ -1,6 +1,6 @@
 import { GLCapabilityType, Texture2D, TextureFormat } from "@galacean/engine-core";
 import { KTX2Loader } from "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;

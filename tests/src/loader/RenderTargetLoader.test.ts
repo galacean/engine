@@ -1,6 +1,6 @@
 import { AssetType, RenderTarget, Texture2D, TextureFormat } from "@galacean/engine-core";
 import "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 let engine: WebGLEngine;

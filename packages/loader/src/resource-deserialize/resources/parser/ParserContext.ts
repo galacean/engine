@@ -1,33 +1,22 @@
-import {
-  AssetPromise,
-  Component,
-  Engine,
-  EngineObject,
-  Entity,
-  ReferResource,
-  ResourceManager,
-  Scene
-} from "@galacean/engine-core";
-import type { IEntity, IHierarchyFile } from "../schema";
+import { AssetPromise, Component, Engine, Entity, ReferResource, ResourceManager, Scene } from "@galacean/engine-core";
+import type { ComponentSchema } from "../../../schema/HierarchySchema";
 
 export enum ParserType {
   Prefab,
   Scene
 }
+
 /**
  * @internal
  */
-export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
-  entityMap: Map<string, Entity> = new Map();
-  entityConfigMap: Map<string, IEntity> = new Map();
-  components: Map<string, Component> = new Map();
-  componentConfigMap: Map<string, any> = new Map();
-  rootIds: string[] = [];
-  strippedIds: string[] = [];
+export class ParserContext {
+  /** Runtime Entity instances, indexed by the flat entities[] position. */
+  entityInstances: Entity[] = [];
+  /** Components waiting for props/calls application (Stage 4). */
+  pendingComponents: Array<{ instance: Component; config: ComponentSchema }> = [];
 
   readonly resourceManager: ResourceManager;
 
-  private _tasks: Set<string> = new Set();
   private _loaded: number = 0;
   private _total: number = 0;
 
@@ -40,23 +29,16 @@ export class ParserContext<T extends IHierarchyFile, I extends EngineObject> {
   }
 
   clear() {
-    this.entityMap.clear();
-    this.components.clear();
-    this.componentConfigMap.clear();
-    this.entityConfigMap.clear();
-    this.rootIds.length = 0;
-    this.strippedIds.length = 0;
+    this.entityInstances.length = 0;
+    this.pendingComponents.length = 0;
   }
 
   /** @internal */
   _setTaskCompleteProgress: (loaded: number, total: number) => void;
 
   /** @internal */
-  _addDependentAsset(url: string, promise: AssetPromise<any>): void {
-    const tasks = this._tasks;
-    if (tasks.has(url)) return;
+  _addDependentAsset(promise: AssetPromise<any>): void {
     ++this._total;
-    tasks.add(url);
     promise.finally(() => {
       ++this._loaded;
       this._setTaskCompleteProgress(this._loaded, this._total);

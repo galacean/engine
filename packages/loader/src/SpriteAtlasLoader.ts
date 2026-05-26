@@ -51,7 +51,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 resourceManager
                   .load<Texture2D>({
                     url: Utils.resolveAbsoluteUrl(item.url, atlasItem.img),
-                    type: atlasItem.type ?? AssetType.Texture2D,
+                    type: atlasItem.type ?? AssetType.Texture,
                     params: { format, mipmap }
                   })
                   .then((texture: Texture2D) => {
@@ -102,7 +102,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
         const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
         sprite.atlasRegionOffset.set(offsetLeft * invW, offsetTop * invH, offsetRight * invW, offsetBottom * invH);
       }
-      sprite.atlasRotated = config.atlasRotated ?? false;
+      config.atlasRotated && (sprite.atlasRotated = true);
     }
     width === undefined || (sprite.width = width);
     height === undefined || (sprite.height = height);

@@ -7,7 +7,8 @@ export * from "./resources/animationClip/AnimationClipDecoder";
 export type { IModelMesh } from "./resources/mesh/IModelMesh";
 export { MeshDecoder } from "./resources/mesh/MeshDecoder";
 export { ReflectionParser } from "./resources/parser/ReflectionParser";
-export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
+import "./resources/texture2D/Texture2DDecoder";
+import "./resources/textureCube/TextureCubeDecoder";
 
 /**
  * Decode engine binary resource.
@@ -27,7 +28,7 @@ export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine, ...args: any
 export * from "./resources/parser/HierarchyParser";
 export * from "./resources/parser/ParserContext";
 export * from "./resources/scene/SceneParser";
-export * from "./resources/schema";
+export * from "../schema";
 
 export * from "./utils/BufferReader";
 export * from "./utils/Decorator";

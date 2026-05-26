@@ -15,7 +15,7 @@ import {
   ParticleStopMode
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { LitePhysics } from "@galacean/engine-physics-lite";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
@@ -400,6 +400,73 @@ describe("ParticleBoundingBox", function () {
       particleRenderer,
       { x: -1.414, y: -1.414, z: -6.414 },
       { x: 6.414, y: 6.414, z: 3.914 },
+      delta
+    );
+  });
+
+  it("ShapeTransform-Position", function () {
+    const shape = new BoxShape();
+    shape.position.set(5, 0, 0);
+    particleRenderer.generator.emission.shape = shape;
+
+    // Same as default BoxShape bounds shifted by (5,0,0)
+    testParticleRendererBounds(
+      engine,
+      particleRenderer,
+      { x: 3.086, y: -1.914, z: -26.914 },
+      { x: 6.914, y: 1.914, z: 1.914 },
+      delta
+    );
+  });
+
+  it("ShapeTransform-Rotation", function () {
+    const shape = new BoxShape();
+    shape.size.set(1, 2, 1);
+    shape.rotation.set(0, 0, 90);
+    particleRenderer.generator.emission.shape = shape;
+
+    // size(1,2,1): local pos range (-0.5,-1,-0.5)~(0.5,1,0.5)
+    // rotated 90 Z: x<->y swapped -> (-1,-0.5,-0.5)~(1,0.5,0.5)
+    testParticleRendererBounds(
+      engine,
+      particleRenderer,
+      { x: -2.414, y: -1.914, z: -26.914 },
+      { x: 2.414, y: 1.914, z: 1.914 },
+      delta
+    );
+  });
+
+  it("ShapeTransform-Scale", function () {
+    const shape = new BoxShape();
+    shape.scale.set(3, 1, 1);
+    particleRenderer.generator.emission.shape = shape;
+
+    // Default box pos range (-0.5,-0.5,-0.5)~(0.5,0.5,0.5), X scaled 3x -> (-1.5,...)~(1.5,...)
+    testParticleRendererBounds(
+      engine,
+      particleRenderer,
+      { x: -2.914, y: -1.914, z: -26.914 },
+      { x: 2.914, y: 1.914, z: 1.914 },
+      delta
+    );
+  });
+
+  it("ShapeTransform-Combined", function () {
+    const shape = new BoxShape();
+    shape.position.set(0, 0, 5);
+    shape.rotation.set(0, 0, 90);
+    shape.scale.set(2, 1, 1);
+    particleRenderer.generator.emission.shape = shape;
+
+    // Default size(1,1,1): local (-0.5,-0.5,-0.5)~(0.5,0.5,0.5)
+    // scale(2,1,1) -> (-1,-0.5,-0.5)~(1,0.5,0.5)
+    // rotate 90 Z: x<->y -> (-0.5,-1,-0.5)~(0.5,1,0.5)
+    // + position(0,0,5) -> (-0.5,-1,4.5)~(0.5,1,5.5)
+    testParticleRendererBounds(
+      engine,
+      particleRenderer,
+      { x: -1.914, y: -2.414, z: -21.914 },
+      { x: 1.914, y: 2.414, z: 6.914 },
       delta
     );
   });
