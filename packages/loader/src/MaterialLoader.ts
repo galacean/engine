@@ -21,16 +21,6 @@ import {
   type IVector4
 } from "./resource-deserialize";
 
-function parseProperty(object: Object, key: string, value: any) {
-  if (typeof value === "object") {
-    for (let subKey in value) {
-      parseProperty(object[key], subKey, value[subKey]);
-    }
-  } else {
-    object[key] = value;
-  }
-}
-
 @resourceLoader(AssetType.Material, ["mat"])
 class MaterialLoader extends Loader<Material> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
@@ -61,7 +51,7 @@ class MaterialLoader extends Loader<Material> {
   }
 
   private _getMaterialByShader(materialSchema: IMaterialSchema, shader: Shader, engine: Engine): Promise<Material> {
-    const { name, shaderData, macros, renderState } = materialSchema;
+    const { name, shaderData, macros } = materialSchema;
 
     const material = new Material(engine, shader);
     material.name = name;
@@ -121,8 +111,6 @@ class MaterialLoader extends Loader<Material> {
         materialShaderData.enableMacro(name, value);
       }
     }
-
-    parseProperty(material, "renderState", renderState);
 
     return Promise.all(texturePromises).then(() => {
       return material;

@@ -364,11 +364,13 @@ export class GLTFUtils {
       const blob = new window.Blob([imageBuffer], { type });
       const img = new Image();
       img.onerror = function () {
+        URL.revokeObjectURL(img.src);
         reject(new Error("Failed to load image buffer"));
       };
       img.onload = function () {
         // Call requestAnimationFrame to avoid iOS's bug.
         requestAnimationFrame(() => {
+          URL.revokeObjectURL(img.src);
           resolve(img);
           img.onload = null;
           img.onerror = null;

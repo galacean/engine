@@ -334,7 +334,7 @@ export class Animator extends Component {
    * @internal
    */
   _reset(): void {
-    const { _curveOwnerPool: animationCurveOwners } = this;
+    const { _curveOwnerPool: animationCurveOwners, _animatorLayersData: layersData } = this;
     for (let instanceId in animationCurveOwners) {
       const propertyOwners = animationCurveOwners[instanceId];
       for (let property in propertyOwners) {
@@ -343,7 +343,20 @@ export class Animator extends Component {
       }
     }
 
-    this._animatorLayersData.length = 0;
+    for (let i = 0, n = layersData.length; i < n; i++) {
+      const { animatorStateDataMap } = layersData[i];
+      for (let name in animatorStateDataMap) {
+        const stateData = animatorStateDataMap[name];
+        const { clipChangedListener, animatorState } = stateData;
+        if (clipChangedListener) {
+          animatorState._updateFlagManager.removeListener(clipChangedListener);
+          stateData.clipChangedListener = null;
+          stateData.animatorState = null;
+        }
+      }
+    }
+
+    layersData.length = 0;
     this._curveOwnerPool = Object.create(null);
     this._parametersValueMap = Object.create(null);
     this._animationEventHandlerPool.clear();
@@ -385,6 +398,7 @@ export class Animator extends Component {
     }
 
     const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
+    if (!state) return;
     const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
     manuallyTransition.duration = duration;
 
@@ -516,6 +530,8 @@ export class Animator extends Component {
       }
     };
     clipChangedListener();
+    animatorStateData.animatorState = state;
+    animatorStateData.clipChangedListener = clipChangedListener;
     state._updateFlagManager.addListener(clipChangedListener);
   }
 
@@ -722,7 +738,7 @@ export class Animator extends Component {
 
     if (transition) {
       // Remove speed factor, use actual cost time
-      const remainDeltaTime = deltaTime - playCostTime / playSpeed;
+      const remainDeltaTime = playSpeed === 0 ? deltaTime : deltaTime - playCostTime / playSpeed;
       remainDeltaTime > 0 && this._updateState(layerData, remainDeltaTime, aniUpdate);
     }
   }
