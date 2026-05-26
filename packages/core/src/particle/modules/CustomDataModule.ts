@@ -29,60 +29,49 @@ interface GradientStreamMeta {
 }
 
 /**
- * Custom data module — exposes any number of named per-particle data channels
- * (scalars or colors) readable from a custom particle shader via plain
- * uniforms following the `renderer_<Name><Suffix>` naming convention.
- *
- * Users declare the matching uniforms in their custom shader source and sample
- * them with the engine's existing GLSL helpers (`mix`, `evaluateParticleCurve`,
- * `evaluateParticleGradient`, `_particleRand`). See the docs on
- * {@link addCurve} and {@link addGradient} for the suffix tables.
+ * Custom data module.
  */
 export class CustomDataModule extends ParticleGeneratorModule {
-  /**
-   * Registered scalar streams keyed by user-provided name. Mutate values in
-   * place (e.g. `customData.curves["Intensity"].constantMax = 0.8`); add or
-   * remove entries via {@link addCurve} / {@link removeCurve}.
-   */
-  readonly curves: Record<string, ParticleCompositeCurve> = {};
-
-  /**
-   * Registered color streams keyed by user-provided name. Mutate values in
-   * place; add or remove entries via {@link addGradient} / {@link removeGradient}.
-   */
-  readonly gradients: Record<string, ParticleCompositeGradient> = {};
+  private _curves: Record<string, ParticleCompositeCurve> = {};
+  private _gradients: Record<string, ParticleCompositeGradient> = {};
 
   @ignoreClone
   private _curveStreams: Record<string, CurveStreamMeta> = {};
   @ignoreClone
   private _gradientStreams: Record<string, GradientStreamMeta> = {};
 
+  /** Registered scalar streams keyed by name. */
+  get curves(): Readonly<Record<string, ParticleCompositeCurve>> {
+    return this._curves;
+  }
+
+  /** Registered color streams keyed by name. */
+  get gradients(): Readonly<Record<string, ParticleCompositeGradient>> {
+    return this._gradients;
+  }
+
   constructor(generator: ParticleGenerator) {
     super(generator);
   }
 
   /**
-   * Register a scalar stream. The shader-side uniforms the user must declare
-   * depend on `curve.mode`:
+   * Register a scalar stream. Shader-side uniforms by `curve.mode`:
    *
-   * | Mode         | Uniforms                                                                       |
-   * |--------------|--------------------------------------------------------------------------------|
-   * | Constant     | `float renderer_<name>MaxConst`                                                |
-   * | TwoConstants | `float renderer_<name>MaxConst`, `float renderer_<name>MinConst`               |
-   * | Curve        | `vec2 renderer_<name>MaxGradient[4]`                                           |
-   * | TwoCurves    | `vec2 renderer_<name>MaxGradient[4]`, `vec2 renderer_<name>MinGradient[4]`     |
+   * | Mode         | Uniforms                                                                   |
+   * |--------------|----------------------------------------------------------------------------|
+   * | Constant     | `float renderer_<name>MaxConst`                                            |
+   * | TwoConstants | `float renderer_<name>MaxConst`, `float renderer_<name>MinConst`           |
+   * | Curve        | `vec2 renderer_<name>MaxGradient[4]`                                       |
+   * | TwoCurves    | `vec2 renderer_<name>MaxGradient[4]`, `vec2 renderer_<name>MinGradient[4]` |
    *
-   * @param name  - Used verbatim in uniform names. Must be a valid GLSL
-   *                identifier; must not already be used by `curves` or
-   *                `gradients`. Invalid names log a `Logger.error` and the
-   *                call is a no-op.
-   * @param curve - Stored by reference; mutate via `customData.curves[name]`.
+   * @param name  - Must be a valid GLSL identifier and not already registered.
+   * @param curve - Stored by reference.
    */
   addCurve(name: string, curve: ParticleCompositeCurve): void {
     if (!this._validateName(name, "addCurve")) {
       return;
     }
-    this.curves[name] = curve;
+    this._curves[name] = curve;
     this._curveStreams[name] = {
       curve,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
@@ -93,24 +82,22 @@ export class CustomDataModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Register a color stream. The shader-side uniforms the user must declare
-   * depend on `gradient.mode`. Only `Constant` and `TwoConstants` modes are
-   * supported in this version; gradient-keyed color animation
-   * (`Gradient` / `TwoGradients`) lands in a follow-up PR.
+   * Register a color stream. Shader-side uniforms by `gradient.mode`
+   * (only `Constant` / `TwoConstants` supported here):
    *
    * | Mode         | Uniforms                                                       |
    * |--------------|----------------------------------------------------------------|
    * | Constant     | `vec4 renderer_<name>MaxConst`                                 |
    * | TwoConstants | `vec4 renderer_<name>MaxConst`, `vec4 renderer_<name>MinConst` |
    *
-   * @param name     - Used verbatim in uniform names. Same validation as {@link addCurve}.
-   * @param gradient - Stored by reference; mutate via `customData.gradients[name]`.
+   * @param name     - Same validation as {@link addCurve}.
+   * @param gradient - Stored by reference.
    */
   addGradient(name: string, gradient: ParticleCompositeGradient): void {
     if (!this._validateName(name, "addGradient")) {
       return;
     }
-    this.gradients[name] = gradient;
+    this._gradients[name] = gradient;
     this._gradientStreams[name] = {
       gradient,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
@@ -120,39 +107,33 @@ export class CustomDataModule extends ParticleGeneratorModule {
     };
   }
 
-  /**
-   * Unregister a scalar stream. Custom shaders still referencing the matching
-   * `renderer_<name>...` uniforms will read 0 (the GLSL default for unset
-   * uniforms) — the user is responsible for keeping shader source in sync.
-   */
+  /** Unregister a scalar stream. Shader uniforms read 0 once unregistered. */
   removeCurve(name: string): void {
     if (!(name in this._curveStreams)) {
       return;
     }
     delete this._curveStreams[name];
-    delete this.curves[name];
+    delete this._curves[name];
   }
 
-  /**
-   * Unregister a color stream. See {@link removeCurve} for the shader caveat.
-   */
+  /** Unregister a color stream. Shader uniforms read 0 once unregistered. */
   removeGradient(name: string): void {
     if (!(name in this._gradientStreams)) {
       return;
     }
     delete this._gradientStreams[name];
-    delete this.gradients[name];
+    delete this._gradients[name];
   }
 
   /** @internal */
   _cloneTo(target: CustomDataModule): void {
-    const sourceCurves = this.curves;
-    const sourceGradients = this.gradients;
+    const sourceCurves = this._curves;
+    const sourceGradients = this._gradients;
     const curveNames = Object.keys(sourceCurves);
     const gradientNames = Object.keys(sourceGradients);
 
-    (target as { curves: Record<string, ParticleCompositeCurve> }).curves = {};
-    (target as { gradients: Record<string, ParticleCompositeGradient> }).gradients = {};
+    target._curves = {};
+    target._gradients = {};
     target._curveStreams = {};
     target._gradientStreams = {};
 
@@ -226,7 +207,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
       );
       return false;
     }
-    if (name in this.curves || name in this.gradients) {
+    if (name in this._curves || name in this._gradients) {
       Logger.error(`CustomDataModule.${method}: stream "${name}" is already registered; call ignored.`);
       return false;
     }
