@@ -3,3 +3,4 @@ export { BatchUtils } from "./BatchUtils";
 export { Blitter } from "./Blitter";
 export { RenderQueue } from "./RenderQueue";
 export { PipelineStage } from "./enums/PipelineStage";
+export { RenderTargetPool } from "./RenderTargetPool";

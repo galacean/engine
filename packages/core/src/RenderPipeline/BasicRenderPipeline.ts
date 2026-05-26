@@ -198,19 +198,9 @@ export class BasicRenderPipeline {
       }
 
       this._internalColorTarget = internalColorTarget;
-    } else {
-      const internalColorTarget = this._internalColorTarget;
-      const copyBackgroundTexture = this._copyBackgroundTexture;
-      const pool = engine._renderTargetPool;
-      if (internalColorTarget) {
-        pool.freeRenderTarget(internalColorTarget);
-        this._internalColorTarget = null;
-      }
-      if (copyBackgroundTexture) {
-        pool.freeTexture(copyBackgroundTexture);
-        this._copyBackgroundTexture = null;
-      }
     }
+    // No `else` branch needed: `_drawRenderPass` releases both the internal RT and the copy-background
+    // texture back to the pool at end of frame, so this method always starts with both fields null.
 
     // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
@@ -361,6 +351,18 @@ export class BasicRenderPipeline {
 
     cameraRenderTarget?._blitRenderTarget();
     cameraRenderTarget?.generateMipmaps();
+
+    // Release per-frame leased resources back to the pool so concurrent cameras with matching shape
+    // share a single underlying RT through the pool instead of each holding its own across frames.
+    const pool = engine._renderTargetPool;
+    if (this._internalColorTarget) {
+      pool.freeRenderTarget(this._internalColorTarget);
+      this._internalColorTarget = null;
+    }
+    if (this._copyBackgroundTexture) {
+      pool.freeTexture(this._copyBackgroundTexture);
+      this._copyBackgroundTexture = null;
+    }
   }
 
   /**
