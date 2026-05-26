@@ -138,6 +138,25 @@ export class Engine extends EventDispatcher {
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
+  private _lastCanvasWidth: number = -1;
+  private _lastCanvasHeight: number = -1;
+
+  /**
+   * Evict pool entries dimensioned to the previous canvas size when the canvas resizes,
+   * so full-canvas internal RTs cached at the old resolution don't linger until `tick()`.
+   */
+  private _onCanvasResize = (): void => {
+    const canvas = this._canvas;
+    const newWidth = canvas.width;
+    const newHeight = canvas.height;
+    if (this._lastCanvasWidth !== newWidth || this._lastCanvasHeight !== newHeight) {
+      if (this._lastCanvasWidth >= 0) {
+        this._renderTargetPool.evictBySize(this._lastCanvasWidth, this._lastCanvasHeight);
+      }
+      this._lastCanvasWidth = newWidth;
+      this._lastCanvasHeight = newHeight;
+    }
+  };
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -256,6 +275,9 @@ export class Engine extends EventDispatcher {
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
+    this._lastCanvasWidth = canvas.width;
+    this._lastCanvasHeight = canvas.height;
+    canvas._sizeUpdateFlagManager.addListener(this._onCanvasResize);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -323,6 +345,9 @@ export class Engine extends EventDispatcher {
   update(): void {
     const time = this._time;
     time._update();
+
+    // Evict pool entries idle past `maxFreeAgeFrames`; cheap linear scan over the (small) free list.
+    this._renderTargetPool.tick(time.frameCount);
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
@@ -500,6 +525,8 @@ export class Engine extends EventDispatcher {
   private _destroy(): void {
     this._destroyed = true;
     this._waitingDestroy = false;
+
+    this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
 
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
