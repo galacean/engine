@@ -32,13 +32,13 @@ function countBatches(elements: any[]): number {
 describe("UIBatchSorter", () => {
   it("empty input is a no-op", () => {
     const elements: any[] = [];
-    expect(() => UIBatchSorter.sort(elements, identity, 200)).to.not.throw();
+    expect(() => UIBatchSorter.sort(elements, identity)).to.not.throw();
     expect(elements.length).to.equal(0);
   });
 
   it("single element is unchanged", () => {
     const elements = [fakeElement(1, 1, rect(0, 0, 10, 10))];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(elements.length).to.equal(1);
     expect(elements[0].material.instanceId).to.equal(1);
   });
@@ -55,7 +55,7 @@ describe("UIBatchSorter", () => {
       fakeElement(1, 1, rect(200, 200, 300, 300)),
       fakeElement(2, 2, rect(210, 210, 290, 250))
     ];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(countBatches(elements)).to.equal(2);
   });
 
@@ -65,7 +65,7 @@ describe("UIBatchSorter", () => {
       fakeElement(1, 1, rect(50, 50, 150, 150)),
       fakeElement(1, 1, rect(80, 80, 180, 180))
     ];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(countBatches(elements)).to.equal(1);
   });
 
@@ -74,7 +74,7 @@ describe("UIBatchSorter", () => {
     const e1 = fakeElement(1, 1, rect(0, 0, 100, 100));
     const e2 = fakeElement(1, 1, rect(0, 0, 100, 100));
     const elements = [e0, e1, e2];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(elements).to.deep.equal([e0, e1, e2]);
   });
 
@@ -83,7 +83,7 @@ describe("UIBatchSorter", () => {
     const e1 = fakeElement(2, 2, rect(0, 0, 100, 100));
     const e2 = fakeElement(3, 3, rect(0, 0, 100, 100));
     const elements = [e0, e1, e2];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(elements).to.deep.equal([e0, e1, e2]);
   });
 
@@ -92,7 +92,7 @@ describe("UIBatchSorter", () => {
     const e1 = fakeElement(2, 2, rect(50, 0, 150, 100));
     const e2 = fakeElement(3, 3, rect(120, 0, 220, 100));
     const elements = [e0, e1, e2];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(elements).to.deep.equal([e0, e1, e2]);
     expect(countBatches(elements)).to.equal(3);
   });
@@ -105,14 +105,14 @@ describe("UIBatchSorter", () => {
       fakeElement(1, 1, rect(200, 0, 300, 100)),
       fakeElement(2, 2, rect(200, 0, 300, 100))
     ];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(countBatches(elements)).to.equal(2);
   });
 
   it("rect spanning multiple grid cells still detects overlap", () => {
     // canvasLongestEdge=200 → gridSize=20; A (400×400) spans 20×20 cells
     const elements = [fakeElement(1, 1, rect(0, 0, 400, 400)), fakeElement(2, 2, rect(200, 200, 300, 300))];
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(elements[0].material.instanceId).to.equal(1);
     expect(elements[1].material.instanceId).to.equal(2);
   });
@@ -127,7 +127,7 @@ describe("UIBatchSorter", () => {
         elements.push(fakeElement(2, 2, rect(x + 10, y + 10, x + 90, y + 50)));
       }
     }
-    UIBatchSorter.sort(elements, identity, 200);
+    UIBatchSorter.sort(elements, identity);
     expect(countBatches(elements)).to.equal(2);
   });
 
@@ -168,13 +168,13 @@ describe("UIBatchSorter", () => {
     Quaternion.rotationAxisAngle(new Vector3(0, 0, 1), Math.PI / 6, q);
     Matrix.affineTransformation(new Vector3(1, 1, 1), q, new Vector3(0, 0, 0), canvasWorldMatrix);
 
-    UIBatchSorter.sort(elements, canvasWorldMatrix, 200);
+    UIBatchSorter.sort(elements, canvasWorldMatrix);
     expect(countBatches(elements)).to.equal(2);
   });
 
   it("missing texture treated as id 0", () => {
     const elements = [fakeElement(1, null, rect(0, 0, 50, 50)), fakeElement(1, null, rect(100, 0, 150, 50))];
-    expect(() => UIBatchSorter.sort(elements, identity, 200)).to.not.throw();
+    expect(() => UIBatchSorter.sort(elements, identity)).to.not.throw();
     expect(countBatches(elements)).to.equal(1);
   });
 });

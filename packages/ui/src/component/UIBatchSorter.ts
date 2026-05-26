@@ -14,8 +14,11 @@ import { BoundingBox, Matrix, RenderElement, Utils } from "@galacean/engine";
  * (depth, material, texture, hierarchyIndex) — visual order is locked, batching is the
  * by-product of materials clustering within each depth band.
  *
- * Overlap detection is accelerated by a 10×10 spatial grid (bucket size = canvas longest
- * edge / 10), pruning O(N²) checks to ~O(N).
+ * Overlap detection is accelerated by a 10×10 spatial grid. Grid origin and cell size
+ * are derived from the union AABB of input elements (the bounds transform itself is the
+ * work the loop must do anyway, so the union accumulation just piggybacks). This stays
+ * correct across SS/WS canvases, any pivot, and any element distribution — no dependency
+ * on canvas configuration.
  */
 export class UIBatchSorter {
   // Spatial-hash is fastest when cell size ≈ typical element size (one element per cell).
@@ -33,14 +36,12 @@ export class UIBatchSorter {
    * Reorders `elements` in place for optimal batching.
    * @param elements - in hierarchy order (depth-first traversal); mutated in place
    * @param canvasWorldMatrix - reduces world bounds to canvas-local for precise overlap
-   * @param canvasLongestEdge - canvas-local longest edge in pixels
    */
-  static sort(elements: RenderElement[], canvasWorldMatrix: Matrix, canvasLongestEdge: number): void {
+  static sort(elements: RenderElement[], canvasWorldMatrix: Matrix): void {
     const count = elements.length;
     if (count <= 1) return;
 
     const gridDim = this._gridDim;
-    const gridSize = canvasLongestEdge / gridDim;
     const entries = this._entries;
     const grid = this._grid;
     const dirtyCells = this._dirtyCells;
@@ -64,21 +65,41 @@ export class UIBatchSorter {
     }
     dirtyCells.length = 0;
 
+    // Pass 1: transform world bounds to canvas-local + accumulate the union AABB.
+    // Transform is already required to do precise overlap, so the union accumulation
+    // is essentially free — just a few minmax compares riding on the existing pass
+    let unionMinX = Infinity;
+    let unionMinY = Infinity;
+    let unionMaxX = -Infinity;
+    let unionMaxY = -Infinity;
+    for (let i = 0; i < count; i++) {
+      const localBounds = (localBoundsPool[i] ||= new BoundingBox());
+      BoundingBox.transform(elements[i].component.bounds, worldToLocal, localBounds);
+      const { min, max } = localBounds;
+      if (min.x < unionMinX) unionMinX = min.x;
+      if (min.y < unionMinY) unionMinY = min.y;
+      if (max.x > unionMaxX) unionMaxX = max.x;
+      if (max.y > unionMaxY) unionMaxY = max.y;
+    }
+    // Guard against a degenerate union (all elements collapsed onto a single point /
+    // axis); the grid then collapses to cell 0 which is semantically correct
+    const cellSizeX = Math.max(1e-6, unionMaxX - unionMinX) / gridDim;
+    const cellSizeY = Math.max(1e-6, unionMaxY - unionMinY) / gridDim;
+    const maxCell = gridDim - 1;
+
+    // Pass 2: register each element into grid cells and compute its depth
     for (let i = 0; i < count; i++) {
       const element = elements[i];
-      const localBounds = (localBoundsPool[i] ||= new BoundingBox());
-      BoundingBox.transform(element.component.bounds, worldToLocal, localBounds);
+      const localBounds = localBoundsPool[i];
       const materialId = element.material.instanceId;
       const textureId = element.texture ? element.texture.instanceId : 0;
 
-      // Clamp to grid range; out-of-bounds elements collapse to edge cells.
-      // Default canvas pivot is (0.5, 0.5) so canvas-local spans `[-W/2, +W/2]`,
-      // floor() can produce negative cell indices — clamp on both sides
-      const maxCell = gridDim - 1;
-      const minCellX = Math.min(maxCell, Math.max(0, Math.floor(localBounds.min.x / gridSize)));
-      const maxCellX = Math.min(maxCell, Math.max(0, Math.floor(localBounds.max.x / gridSize)));
-      const minCellY = Math.min(maxCell, Math.max(0, Math.floor(localBounds.min.y / gridSize)));
-      const maxCellY = Math.min(maxCell, Math.max(0, Math.floor(localBounds.max.y / gridSize)));
+      // Floor + clamp guards floating-point edge cases (a `max` exactly on the union
+      // boundary would otherwise produce `gridDim`)
+      const minCellX = Math.min(maxCell, Math.max(0, Math.floor((localBounds.min.x - unionMinX) / cellSizeX)));
+      const maxCellX = Math.min(maxCell, Math.max(0, Math.floor((localBounds.max.x - unionMinX) / cellSizeX)));
+      const minCellY = Math.min(maxCell, Math.max(0, Math.floor((localBounds.min.y - unionMinY) / cellSizeY)));
+      const maxCellY = Math.min(maxCell, Math.max(0, Math.floor((localBounds.max.y - unionMinY) / cellSizeY)));
 
       // Find the deepest overlapping prior, and whether that shelf has any incompatible occupant
       let maxDepth = -1;

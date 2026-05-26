@@ -348,8 +348,7 @@ export class UICanvas extends Component implements IElement {
 
     const batchedRenderElements = this._batchedRenderElements;
     batchedRenderElements.length = 0;
-    const { x: refX, y: refY } = this._referenceResolution;
-    UIBatchSorter.sort(renderElements, this.entity.transform.worldMatrix, Math.max(refX, refY));
+    UIBatchSorter.sort(renderElements, this.entity.transform.worldMatrix);
     (engine as any)._batcherManager.batch(renderElements, batchedRenderElements);
     for (let i = 0, n = batchedRenderElements.length; i < n; i++) {
       batchedRenderElements[i].subDistancePriority = i;
