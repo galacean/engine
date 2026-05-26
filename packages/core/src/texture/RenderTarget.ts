@@ -21,14 +21,13 @@ export class RenderTarget extends GraphicsResource {
   _antiAliasing: number;
   /** @internal */
   _depthFormat: TextureFormat | null = null;
-  /** @internal */
-  _memorySize: number = 0;
 
   private _autoGenerateMipmaps: boolean = true;
   private _width: number;
   private _height: number;
   private _colorTextures: Texture[];
   private _depthTexture: Texture | null = null;
+  private _memorySize: number = 0;
 
   /**
    * Whether to automatically generate multi-level textures.
