@@ -3,21 +3,11 @@ import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapM
 
 /**
  * Pool of `RenderTarget`s and `Texture2D`s used internally by the render pipeline.
- *
- * Entries returned via `freeRenderTarget`/`freeTexture` stay in the free list and are matched
- * (by shape) for the next `allocate*` request. Two eviction strategies keep the free list bounded:
- *
- * 1. **Frame-age** — entries unused for more than `maxFreeAgeFrames` engine ticks are destroyed by `tick()`.
- * 2. **Size-matched** — `evictBySize(w, h)` removes entries whose dimensions match the given size, called
- *    by the engine on canvas resize to clear out old full-canvas RTs.
- *
+ * Entries are matched by shape on `allocate*`; bounded by frame-age (`tick`) and size-match (`evictBySize`).
  * @internal
  */
 export class RenderTargetPool {
-  /**
-   * Maximum number of engine frames an entry may sit unused in the free list before `tick()` destroys it.
-   * Defaults to ~1 second at 60fps so reflection probes / periodic off-frame passes survive a short gap.
-   */
+  /** Frames an entry may sit idle before `tick()` destroys it. */
   maxFreeAgeFrames: number = 60;
 
   private _engine: Engine;
@@ -148,10 +138,7 @@ export class RenderTargetPool {
     this._freeTextureFrames.push(this._engine.time.frameCount);
   }
 
-  /**
-   * Destroy entries that have been idle in the free list for longer than `maxFreeAgeFrames`.
-   * Called once per engine frame.
-   */
+  /** Destroy entries idle longer than `maxFreeAgeFrames`. Called once per engine frame. */
   tick(currentFrame: number): void {
     const maxAge = this.maxFreeAgeFrames;
     const rtFrames = this._freeRenderTargetFrames;
@@ -168,10 +155,7 @@ export class RenderTargetPool {
     }
   }
 
-  /**
-   * Destroy free-list entries whose dimensions exactly match the given size. Called when the canvas
-   * resizes so full-canvas RTs cached at the previous resolution don't linger waiting for `tick()`.
-   */
+  /** Destroy entries whose dimensions match `(width, height)`. Used on canvas resize. */
   evictBySize(width: number, height: number): void {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = freeRenderTargets.length - 1; i >= 0; i--) {
@@ -205,9 +189,6 @@ export class RenderTargetPool {
     this._freeTextureFrames.length = 0;
   }
 
-  /**
-   * Swap-pop helper: remove free RT entry at `index` without destroying the RT (used when handing it out).
-   */
   private _removeFreeRenderTargetAt(index: number): void {
     const rts = this._freeRenderTargets;
     const frames = this._freeRenderTargetFrames;
@@ -220,9 +201,6 @@ export class RenderTargetPool {
     frames.length = last;
   }
 
-  /**
-   * Swap-pop helper for the texture free list.
-   */
   private _removeFreeTextureAt(index: number): void {
     const texs = this._freeTextures;
     const frames = this._freeTextureFrames;
@@ -235,9 +213,6 @@ export class RenderTargetPool {
     frames.length = last;
   }
 
-  /**
-   * Destroy free RT entry at `index` (called when evicting, not when leasing out).
-   */
   private _destroyFreeRenderTargetAt(index: number): void {
     const rt = this._freeRenderTargets[index];
     this._removeFreeRenderTargetAt(index);
