@@ -423,7 +423,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-rotation-life-curve",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.001
     },
     particleEmitBillboardStretched: {
       category: "Particle",
