@@ -343,6 +343,19 @@ export class Animator extends Component {
       }
     }
 
+    const layersData = this._animatorLayersData;
+    for (let i = 0, n = layersData.length; i < n; i++) {
+      const stateDataMap = layersData[i].animatorStateDataMap;
+      for (const stateName in stateDataMap) {
+        const stateData = stateDataMap[stateName];
+        if (stateData.clipChangedListener && stateData.state) {
+          stateData.state._updateFlagManager.removeListener(stateData.clipChangedListener);
+          stateData.clipChangedListener = null;
+          stateData.state = null;
+        }
+      }
+    }
+
     this._animatorLayersData.length = 0;
     this._curveOwnerPool = Object.create(null);
     this._parametersValueMap = Object.create(null);
@@ -366,6 +379,7 @@ export class Animator extends Component {
 
   protected override _onDestroy(): void {
     super._onDestroy();
+    this._reset();
     const controller = this._animatorController;
     if (controller) {
       this._addResourceReferCount(controller, -1);
@@ -517,6 +531,8 @@ export class Animator extends Component {
     };
     clipChangedListener();
     state._updateFlagManager.addListener(clipChangedListener);
+    animatorStateData.state = state;
+    animatorStateData.clipChangedListener = clipChangedListener;
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
