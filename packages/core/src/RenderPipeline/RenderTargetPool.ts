@@ -2,11 +2,66 @@ import { Engine } from "../Engine";
 import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 
 /**
- * Pool of `RenderTarget`s and `Texture2D`s used internally by the render pipeline.
- * Entries are matched by shape on `allocate*`; bounded by frame-age (`tick`) and size-match (`evictBySize`).
  * @internal
  */
 export class RenderTargetPool {
+  private static _destroyRenderTargetResource(rt: RenderTarget): void {
+    const colorTexture = rt.getColorTexture(0);
+    const depthTexture = rt.depthTexture;
+    rt.destroy(true);
+    colorTexture?.destroy(true);
+    if (depthTexture && depthTexture !== colorTexture) {
+      depthTexture.destroy(true);
+    }
+  }
+
+  private static _matchRenderTarget(
+    renderTarget: RenderTarget,
+    width: number,
+    height: number,
+    colorFormat: TextureFormat | null,
+    depthFormat: TextureFormat | null,
+    needDepthTexture: boolean,
+    mipmap: boolean,
+    isSRGBColorSpace: boolean,
+    antiAliasing: number
+  ): boolean {
+    if (renderTarget.width !== width || renderTarget.height !== height || renderTarget.antiAliasing !== antiAliasing) {
+      return false;
+    }
+
+    const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
+    if (colorFormat != null) {
+      if (
+        !colorTexture ||
+        colorTexture.format !== colorFormat ||
+        colorTexture.mipmapCount > 1 !== mipmap ||
+        colorTexture.isSRGBColorSpace !== isSRGBColorSpace
+      ) {
+        return false;
+      }
+    } else if (colorTexture) {
+      return false;
+    }
+
+    const depthTexture = renderTarget.depthTexture;
+    if (needDepthTexture) {
+      if (depthFormat) {
+        if (!depthTexture || (depthTexture as Texture2D).format !== depthFormat) {
+          return false;
+        }
+      } else if (depthTexture) {
+        return false;
+      }
+    } else {
+      if (renderTarget._depthFormat !== depthFormat) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
   /** Frames an entry may sit idle before `tick()` destroys it. */
   maxFreeAgeFrames: number = 60;
 
@@ -138,7 +193,6 @@ export class RenderTargetPool {
     this._freeTextureFrames.push(this._engine.time.frameCount);
   }
 
-  /** Destroy entries idle longer than `maxFreeAgeFrames`. Called once per engine frame. */
   tick(currentFrame: number): void {
     const maxAge = this.maxFreeAgeFrames;
     const rtFrames = this._freeRenderTargetFrames;
@@ -155,7 +209,6 @@ export class RenderTargetPool {
     }
   }
 
-  /** Destroy entries whose dimensions match `(width, height)`. Used on canvas resize. */
   evictBySize(width: number, height: number): void {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = freeRenderTargets.length - 1; i >= 0; i--) {
@@ -223,62 +276,5 @@ export class RenderTargetPool {
     const tex = this._freeTextures[index];
     this._removeFreeTextureAt(index);
     tex.destroy(true);
-  }
-
-  private static _destroyRenderTargetResource(rt: RenderTarget): void {
-    const colorTexture = rt.getColorTexture(0);
-    const depthTexture = rt.depthTexture;
-    rt.destroy(true);
-    colorTexture?.destroy(true);
-    if (depthTexture && depthTexture !== colorTexture) {
-      depthTexture.destroy(true);
-    }
-  }
-
-  private static _matchRenderTarget(
-    renderTarget: RenderTarget,
-    width: number,
-    height: number,
-    colorFormat: TextureFormat | null,
-    depthFormat: TextureFormat | null,
-    needDepthTexture: boolean,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean,
-    antiAliasing: number
-  ): boolean {
-    if (renderTarget.width !== width || renderTarget.height !== height || renderTarget.antiAliasing !== antiAliasing) {
-      return false;
-    }
-
-    const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
-    if (colorFormat != null) {
-      if (
-        !colorTexture ||
-        colorTexture.format !== colorFormat ||
-        colorTexture.mipmapCount > 1 !== mipmap ||
-        colorTexture.isSRGBColorSpace !== isSRGBColorSpace
-      ) {
-        return false;
-      }
-    } else if (colorTexture) {
-      return false;
-    }
-
-    const depthTexture = renderTarget.depthTexture;
-    if (needDepthTexture) {
-      if (depthFormat) {
-        if (!depthTexture || (depthTexture as Texture2D).format !== depthFormat) {
-          return false;
-        }
-      } else if (depthTexture) {
-        return false;
-      }
-    } else {
-      if (renderTarget._depthFormat !== depthFormat) {
-        return false;
-      }
-    }
-
-    return true;
   }
 }
