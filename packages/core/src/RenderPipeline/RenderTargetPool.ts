@@ -170,8 +170,9 @@ export class RenderTargetPool {
   }
 
   /**
-   * Destroy entries that have been idle in the free list for longer than `maxFreeAgeFrames`.
-   * Called once per engine frame.
+   * Destroy entries that have been idle in the free list for longer than `maxFreeAgeFrames`,
+   * then re-evaluate the memory cap so a mid-run change to `maxFreeBytes` takes effect within
+   * one frame (rather than waiting for the next `free*` call). Called once per engine frame.
    */
   tick(currentFrame: number): void {
     const maxAge = this.maxFreeAgeFrames;
@@ -187,6 +188,7 @@ export class RenderTargetPool {
         this._destroyFreeTextureAt(i);
       }
     }
+    this._enforceMemoryCap();
   }
 
   /**
