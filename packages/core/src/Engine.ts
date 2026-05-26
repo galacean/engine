@@ -141,10 +141,7 @@ export class Engine extends EventDispatcher {
   private _lastCanvasWidth: number = -1;
   private _lastCanvasHeight: number = -1;
 
-  /**
-   * Evict pool entries dimensioned to the previous canvas size when the canvas resizes,
-   * so full-canvas internal RTs cached at the old resolution don't linger until `tick()`.
-   */
+  /** Evict pool entries sized to the previous canvas dimensions. */
   private _onCanvasResize = (): void => {
     const canvas = this._canvas;
     const newWidth = canvas.width;
@@ -346,7 +343,6 @@ export class Engine extends EventDispatcher {
     const time = this._time;
     time._update();
 
-    // Evict pool entries idle past `maxFreeAgeFrames`; cheap linear scan over the (small) free list.
     this._renderTargetPool.tick(time.frameCount);
 
     const deltaTime = time.deltaTime;
