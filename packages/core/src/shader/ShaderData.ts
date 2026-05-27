@@ -674,39 +674,45 @@ export class ShaderData implements IReferable, IClone {
     }
 
     const id = property._uniqueId;
-    // Track renderer-group samplers/arrays so `_canBatch` can refuse instanced batches
-    // whose leader and follower would disagree on what to bind
+    this._updateRendererInstanceBatchFields(id, type, value);
+    this._propertyValueMap[id] = value;
+  }
+
+  private _updateRendererInstanceBatchFields(
+    id: number,
+    type: ShaderPropertyType,
+    value: ShaderPropertyValueType
+  ): void {
     if (
-      this._group === ShaderDataGroup.Renderer &&
-      (type === ShaderPropertyType.Texture ||
-        type === ShaderPropertyType.TextureArray ||
-        type === ShaderPropertyType.FloatArray ||
-        type === ShaderPropertyType.IntArray)
+      this._group !== ShaderDataGroup.Renderer ||
+      (type !== ShaderPropertyType.Texture &&
+        type !== ShaderPropertyType.TextureArray &&
+        type !== ShaderPropertyType.FloatArray &&
+        type !== ShaderPropertyType.IntArray)
     ) {
-      const oldHas = this._propertyValueMap[id] != null;
-      const newHas = value != null;
-      if (oldHas !== newHas) {
-        const fields = this._instanceBatchFields;
-        if (newHas) {
-          // Insert keeping ascending order so exact compare is index-by-index
-          let lo = 0;
-          let hi = fields.length;
-          while (lo < hi) {
-            const mid = (lo + hi) >>> 1;
-            if (fields[mid] < id) {
-              lo = mid + 1;
-            } else {
-              hi = mid;
-            }
-          }
-          fields.splice(lo, 0, id);
+      return;
+    }
+    const oldHas = this._propertyValueMap[id] != null;
+    const newHas = value != null;
+    if (oldHas === newHas) {
+      return;
+    }
+    const fields = this._instanceBatchFields;
+    if (newHas) {
+      let lo = 0;
+      let hi = fields.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (fields[mid] < id) {
+          lo = mid + 1;
         } else {
-          fields.splice(fields.indexOf(id), 1);
+          hi = mid;
         }
       }
+      fields.splice(lo, 0, id);
+    } else {
+      fields.splice(fields.indexOf(id), 1);
     }
-
-    this._propertyValueMap[id] = value;
   }
 
   /**
