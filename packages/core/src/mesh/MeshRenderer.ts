@@ -186,7 +186,7 @@ export class MeshRenderer extends Renderer {
       this._isFrontFaceInvert() === (<MeshRenderer>curElement.component)._isFrontFaceInvert() &&
       this.shaderData._macroCollection.isEqual(curShaderData._macroCollection) &&
       // Renderer-group samplers/arrays are shared across the whole instanced draw call
-      this.shaderData._matchesRendererInstanceBatch(curShaderData)
+      this.shaderData._matchesRendererBatchShared(curShaderData)
     );
   }
 
