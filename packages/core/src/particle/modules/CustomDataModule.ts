@@ -162,7 +162,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
       this._uploadCurveStream(shaderData, this._curveStreams[name]);
     }
     for (const name in this._gradientStreams) {
-      this._uploadGradientStream(shaderData, this._gradientStreams[name]);
+      this._uploadGradientStream(shaderData, this._gradientStreams[name], name);
     }
   }
 
@@ -182,21 +182,24 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
   }
 
-  private _uploadGradientStream(shaderData: ShaderData, meta: GradientStreamMeta): void {
+  private _uploadGradientStream(shaderData: ShaderData, meta: GradientStreamMeta, name: string): void {
     const { gradient } = meta;
     const mode = gradient.mode;
 
-    if (mode === ParticleGradientMode.Constant || mode === ParticleGradientMode.TwoConstants) {
-      const max = gradient.constantMax;
-      meta.maxColorCache.set(max.r, max.g, max.b, max.a);
-      shaderData.setVector4(meta.propMaxConst, meta.maxColorCache);
-      if (mode === ParticleGradientMode.TwoConstants) {
-        const min = gradient.constantMin;
-        meta.minColorCache.set(min.r, min.g, min.b, min.a);
-        shaderData.setVector4(meta.propMinConst, meta.minColorCache);
-      }
+    if (mode !== ParticleGradientMode.Constant && mode !== ParticleGradientMode.TwoConstants) {
+      throw new Error(
+        `Invalid gradient mode for CustomDataModule stream "${name}", only constant and twoConstants are supported.`
+      );
     }
-    // Gradient / TwoGradients: no GPU upload in this version; follow-up PR.
+
+    const max = gradient.constantMax;
+    meta.maxColorCache.set(max.r, max.g, max.b, max.a);
+    shaderData.setVector4(meta.propMaxConst, meta.maxColorCache);
+    if (mode === ParticleGradientMode.TwoConstants) {
+      const min = gradient.constantMin;
+      meta.minColorCache.set(min.r, min.g, min.b, min.a);
+      shaderData.setVector4(meta.propMinConst, meta.minColorCache);
+    }
   }
 
   private _validateName(name: string, method: string): boolean {

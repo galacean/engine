@@ -10,6 +10,9 @@ import {
   ParticleCompositeCurve,
   ParticleCompositeGradient,
   ParticleCurve,
+  ParticleGradient,
+  GradientColorKey,
+  GradientAlphaKey,
   CurveKey,
   Logger
 } from "@galacean/engine-core";
@@ -162,6 +165,21 @@ describe("CustomDataModule", function () {
       //@ts-ignore
       customData._updateShaderData(particleRenderer.shaderData);
     }).to.not.throw();
+  });
+
+  it("_updateShaderData throws when gradient stream uses an unsupported mode", function () {
+    const customData = particleRenderer.generator.customData;
+    customData.enabled = true;
+    const keyedGradient = new ParticleGradient(
+      [new GradientColorKey(0, new Color(1, 0, 0)), new GradientColorKey(1, new Color(0, 0, 1))],
+      [new GradientAlphaKey(0, 0), new GradientAlphaKey(1, 1)]
+    );
+    customData.addGradient("Bad", new ParticleCompositeGradient(keyedGradient));
+    expect(customData.gradients["Bad"].mode).to.eq(ParticleGradientMode.Gradient);
+    expect(() => {
+      //@ts-ignore
+      customData._updateShaderData(particleRenderer.shaderData);
+    }).to.throw(/only constant and twoConstants are supported/);
   });
 
   it("clones deep — entries detached, internal caches rebuilt", function () {
