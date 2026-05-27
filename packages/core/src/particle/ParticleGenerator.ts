@@ -88,7 +88,7 @@ export class ParticleGenerator {
   /** Noise module. */
   @deepClone
   readonly noise: NoiseModule;
-  /** Custom data module — two per-particle vec4 streams readable from a custom shader. */
+  /** Custom data module. */
   @deepClone
   readonly customData: CustomDataModule;
 
