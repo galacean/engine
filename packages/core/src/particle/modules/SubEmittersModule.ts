@@ -112,7 +112,10 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     const count = sub.emitCount | 0;
     if (count <= 0) return;
 
-    if (sub.emitProbability < 1.0 && this._probabilityRand.random() > sub.emitProbability) {
+    // Rand.random() returns the closed interval [0, 1]; using `>=` here makes
+    // emitProbability = 0 mean "never fire" instead of leaking through when
+    // the RNG happens to produce exactly 0.0 (probability 1 / 2^32).
+    if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
       return;
     }
 
