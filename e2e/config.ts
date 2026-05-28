@@ -419,6 +419,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.00782
     },
+    particleEmitMeshRotationLifeCurve: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-rotation-life-curve",
+      threshold: 0,
+      diffPercentage: 0.02553
+    },
     particleEmitBillboardStretched: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-billboard-stretched",
@@ -448,6 +454,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-burst-cycles",
       threshold: 0,
       diffPercentage: 0.2
+    },
+    rateOverDistance: {
+      category: "Particle",
+      caseFileName: "particleRenderer-rateOverDistance",
+      threshold: 0,
+      diffPercentage: 0
     },
     customShader: {
       category: "Particle",

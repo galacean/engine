@@ -1,3 +1,4 @@
+import { Logger } from "@galacean/engine-core";
 import { ShaderRange } from "../common";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
@@ -88,6 +89,6 @@ export default class SemanticAnalyzer {
   }
 
   reportWarning(loc: ShaderRange, message: string): void {
-    console.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompiler._processingPassText).toString());
+    Logger.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompiler._processingPassText).toString());
   }
 }

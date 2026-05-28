@@ -225,6 +225,7 @@ export class ParticleGenerator {
       }
 
       this._playStartDelay = this.main.startDelay.evaluate(undefined, this.main._startDelayRand.random());
+      this.emission._resyncCursors(this._playTime);
     }
   }
 
@@ -250,8 +251,6 @@ export class ParticleGenerator {
         this._playTime = 0;
 
         this._firstActiveTransformedBoundingBox = this._firstFreeTransformedBoundingBox;
-
-        this.emission._reset();
       }
     }
   }
@@ -267,37 +266,41 @@ export class ParticleGenerator {
   /**
    * @internal
    */
-  _emit(playTime: number, count: number): void {
-    const { emission } = this;
-    if (emission.enabled) {
-      const { main } = this;
-      // Wait the existing particles to be retired
-      const notRetireParticleCount = this._getNotRetiredParticleCount();
-      if (notRetireParticleCount >= main.maxParticles) {
-        return;
-      }
-      const position = ParticleGenerator._tempVector30;
-      const direction = ParticleGenerator._tempVector31;
-      const transform = this._renderer.entity.transform;
-      const shape = emission.shape;
-      const positionScale = main._getPositionScale();
-      for (let i = 0; i < count; i++) {
-        if (shape?.enabled) {
-          shape._generatePositionAndDirection(emission._shapeRand, playTime, position, direction);
-          position.multiply(positionScale);
-          direction.normalize().multiply(positionScale);
-        } else {
-          position.set(0, 0, 0);
-          direction.set(0, 0, -1);
-          // Speed is scaled by shape scale in world simulation space
-          // So if no shape and in world simulation space, we shouldn't scale the speed
-          if (main.simulationSpace === ParticleSimulationSpace.Local) {
-            direction.multiply(positionScale);
-          }
-        }
-        this._addNewParticle(position, direction, transform, playTime);
-      }
+  _emit(playTime: number, count: number, emitWorldPositionOverride?: Vector3): number {
+    const { emission, main } = this;
+    if (!emission.enabled) {
+      return 0;
     }
+    const budget = main.maxParticles - this._getNotRetiredParticleCount();
+    if (count > budget) {
+      count = budget;
+    }
+    if (count <= 0) {
+      return 0;
+    }
+
+    const position = ParticleGenerator._tempVector30;
+    const direction = ParticleGenerator._tempVector31;
+    const transform = this._renderer.entity.transform;
+    const shape = emission.shape;
+    const positionScale = main._getPositionScale();
+    for (let i = 0; i < count; i++) {
+      if (shape?.enabled) {
+        shape._generatePositionAndDirection(emission._shapeRand, playTime, position, direction);
+        position.multiply(positionScale);
+        direction.normalize().multiply(positionScale);
+      } else {
+        position.set(0, 0, 0);
+        direction.set(0, 0, -1);
+        // Speed is scaled by shape scale in world simulation space
+        // So if no shape and in world simulation space, we shouldn't scale the speed
+        if (main.simulationSpace === ParticleSimulationSpace.Local) {
+          direction.multiply(positionScale);
+        }
+      }
+      this._addNewParticle(position, direction, transform, playTime, emitWorldPositionOverride);
+    }
+    return count;
   }
 
   /**
@@ -844,7 +847,13 @@ export class ParticleGenerator {
     }
   }
 
-  private _addNewParticle(position: Vector3, direction: Vector3, transform: Transform, playTime: number): void {
+  private _addNewParticle(
+    position: Vector3,
+    direction: Vector3,
+    transform: Transform,
+    playTime: number,
+    emitWorldPositionOverride?: Vector3
+  ): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
     if (nextFreeElement >= this._currentParticleCount) {
@@ -876,7 +885,7 @@ export class ParticleGenerator {
 
     let pos: Vector3, rot: Quaternion;
     if (main.simulationSpace === ParticleSimulationSpace.World) {
-      pos = transform.worldPosition;
+      pos = emitWorldPositionOverride ?? transform.worldPosition;
       rot = transform.worldRotationQuaternion;
     }
 
@@ -1033,7 +1042,7 @@ export class ParticleGenerator {
 
     // Initialize feedback buffer for this particle
     if (this._useTransformFeedback) {
-      this._addFeedbackParticle(firstFreeElement, position, direction, startSpeed, transform);
+      this._addFeedbackParticle(firstFreeElement, position, direction, startSpeed, transform, pos);
     }
 
     this._firstFreeElement = nextFreeElement;
@@ -1044,7 +1053,8 @@ export class ParticleGenerator {
     shapePosition: Vector3,
     direction: Vector3,
     startSpeed: number,
-    transform: Transform
+    transform: Transform,
+    emitWorldPosition?: Vector3
   ): void {
     let position: Vector3;
     if (this.main.simulationSpace === ParticleSimulationSpace.Local) {
@@ -1052,7 +1062,7 @@ export class ParticleGenerator {
     } else {
       position = ParticleGenerator._tempVector32;
       Vector3.transformByQuat(shapePosition, transform.worldRotationQuaternion, position);
-      position.add(transform.worldPosition);
+      position.add(emitWorldPosition ?? transform.worldPosition);
     }
 
     this._feedbackSimulator.writeParticleData(
