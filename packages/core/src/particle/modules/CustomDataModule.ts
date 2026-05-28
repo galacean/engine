@@ -110,7 +110,10 @@ export class CustomDataModule extends ParticleGeneratorModule {
     };
   }
 
-  /** Unregister a scalar stream. Shader uniforms read 0 once unregistered. */
+  /**
+   * Unregister a scalar stream. Shader uniforms read 0 once unregistered.
+   * @param name - The name passed to {@link addCurve}
+   */
   removeCurve(name: string): void {
     const meta = this._curveStreams[name];
     if (!meta) {
@@ -125,7 +128,10 @@ export class CustomDataModule extends ParticleGeneratorModule {
     delete this._curves[name];
   }
 
-  /** Unregister a color stream. Shader uniforms read 0 once unregistered. */
+  /**
+   * Unregister a color stream. Shader uniforms read 0 once unregistered.
+   * @param name - The name passed to {@link addGradient}
+   */
   removeGradient(name: string): void {
     const meta = this._gradientStreams[name];
     if (!meta) {
