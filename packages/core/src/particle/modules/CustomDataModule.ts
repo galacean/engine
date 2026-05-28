@@ -5,7 +5,6 @@ import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
-import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
@@ -54,15 +53,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
    */
   get gradients(): Readonly<Record<string, ParticleCompositeGradient>> {
     return this._gradients;
-  }
-
-  /**
-   * Create a custom data module bound to a particle generator.
-   *
-   * @param generator - The particle generator this module belongs to
-   */
-  constructor(generator: ParticleGenerator) {
-    super(generator);
   }
 
   /**
