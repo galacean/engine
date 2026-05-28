@@ -1,11 +1,11 @@
 import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
@@ -373,23 +373,23 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
   /**
    * @internal
    */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
+  override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
+    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
   /**
    * @internal
    */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
   /**
@@ -430,20 +430,22 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
     const camera = context.camera;
     const engine = camera.engine;
-    const textSubRenderElementPool = engine._textSubRenderElementPool;
+    const textRenderElementPool = engine._textRenderElementPool;
     const material = this.getMaterial();
-    const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
+    const priority = this.priority;
+    const distanceForSort = this._distanceForSort;
+    const renderPipeline = camera._renderPipeline;
     const textChunks = this._textChunks;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
-      const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
-      subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      subRenderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
-      renderElement.addSubRenderElement(subRenderElement);
+      const renderElement = textRenderElementPool.get();
+      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
+      renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
+      renderElement.shaderData.setTexture(TextRenderer._textureProperty, texture);
+      renderElement.priority = priority;
+      renderElement.distanceForSort = distanceForSort;
+      renderPipeline.pushRenderElement(context, renderElement);
     }
-    camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
   private _resetSubFont(): void {

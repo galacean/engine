@@ -73,10 +73,11 @@ VertexInputs getVertexInputs(Attributes attributes){
 
     // TBN world space
     #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
-        inputs.normalWS = normalize( mat3(renderer_NormalMat) * normal );
+        mat3 normalMat = mat3(renderer_NormalMat);
+        inputs.normalWS = normalize( normalMat * normal );
 
         #ifdef NEED_VERTEX_TANGENT
-            vec3 tangentWS = normalize( mat3(renderer_NormalMat) * tangent.xyz );
+            vec3 tangentWS = normalize( normalMat * tangent.xyz );
             vec3 bitangentWS = cross( inputs.normalWS, tangentWS ) * tangent.w;
 
             inputs.tangentWS = tangentWS;

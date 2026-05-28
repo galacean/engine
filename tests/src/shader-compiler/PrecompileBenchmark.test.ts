@@ -2,7 +2,14 @@
  * Precompile Benchmark — performance comparison between old and new paths
  */
 
-import { Shader, ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import {
+  Shader,
+  ShaderFactory,
+  ShaderLanguage,
+  ShaderMacro,
+  ShaderMacroCollection,
+  ShaderPass
+} from "@galacean/engine-core";
 import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -366,5 +373,4 @@ describe("Precompile Benchmark", async () => {
       console.log(`\nRuntime evaluator: ${rtResult.avg.toFixed(3)}ms avg`);
     });
   });
-
 });

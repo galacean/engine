@@ -24,6 +24,8 @@ export class ShaderData implements IReferable, IClone {
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   @ignoreClone
+  private _batchSharedFields: number[] = [];
+  @ignoreClone
   private _macroMap: Record<number, ShaderMacro> = Object.create(null);
   @ignoreClone
   private _refCount: number = 0;
@@ -665,7 +667,30 @@ export class ShaderData implements IReferable, IClone {
       }
     }
 
-    this._propertyValueMap[property._uniqueId] = value;
+    const id = property._uniqueId;
+    this._updateRendererBatchSharedFields(id, type, value);
+    this._propertyValueMap[id] = value;
+  }
+
+  /**
+   * @internal
+   */
+  _matchesRendererBatchShared(other: ShaderData): boolean {
+    const selfFields = this._batchSharedFields;
+    const otherFields = other._batchSharedFields;
+    const fieldCount = selfFields.length;
+    if (fieldCount !== otherFields.length) {
+      return false;
+    }
+    const selfMap = this._propertyValueMap;
+    const otherMap = other._propertyValueMap;
+    for (let i = 0; i < fieldCount; i++) {
+      const id = selfFields[i];
+      if (id !== otherFields[i] || selfMap[id] !== otherMap[id]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**
@@ -687,6 +712,39 @@ export class ShaderData implements IReferable, IClone {
       if (property && property instanceof Texture) {
         property._addReferCount(value);
       }
+    }
+  }
+
+  private _updateRendererBatchSharedFields(id: number, type: ShaderPropertyType, value: ShaderPropertyValueType): void {
+    if (
+      this._group !== ShaderDataGroup.Renderer ||
+      (type !== ShaderPropertyType.Texture &&
+        type !== ShaderPropertyType.TextureArray &&
+        type !== ShaderPropertyType.FloatArray &&
+        type !== ShaderPropertyType.IntArray)
+    ) {
+      return;
+    }
+    const oldHas = this._propertyValueMap[id] != null;
+    const newHas = value != null;
+    if (oldHas === newHas) {
+      return;
+    }
+    const fields = this._batchSharedFields;
+    if (newHas) {
+      let lo = 0;
+      let hi = fields.length;
+      while (lo < hi) {
+        const mid = (lo + hi) >>> 1;
+        if (fields[mid] < id) {
+          lo = mid + 1;
+        } else {
+          hi = mid;
+        }
+      }
+      fields.splice(lo, 0, id);
+    } else {
+      fields.splice(fields.indexOf(id), 1);
     }
   }
 }

@@ -135,7 +135,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.0080
+      diffPercentage: 0.008
     },
     shader: {
       category: "Material",
@@ -488,6 +488,20 @@ export const E2E_CONFIG = {
       diffPercentage: 0.03
     }
   },
+  GPUInstancing: {
+    autoBatch: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-auto-batch",
+      threshold: 0,
+      diffPercentage: 0.00126
+    },
+    customData: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-custom-data",
+      threshold: 0,
+      diffPercentage: 0
+    }
+  },
   SpriteMask: {
     CustomStencil: {
       category: "SpriteMask",
@@ -543,6 +557,14 @@ export const E2E_CONFIG = {
       caseFileName: "canvas-transparency",
       threshold: 0,
       diffPercentage: 0.044
+    }
+  },
+  UI: {
+    batchOrder: {
+      category: "UI",
+      caseFileName: "ui-batch-order",
+      threshold: 0,
+      diffPercentage: 0
     }
   }
 };

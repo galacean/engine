@@ -32,7 +32,6 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
   cameraEntity.transform.position = new Vector3(0, 0, 5);
   const camera = cameraEntity.addComponent(Camera);
 
-
   const meshEntity = rootEntity.createChild("meshEntity");
   const skinnedMeshRenderer = meshEntity.addComponent(SkinnedMeshRenderer);
   const modelMesh = new ModelMesh(engine);

@@ -294,7 +294,7 @@ describe("UICanvas", async () => {
     // @ts-ignore
     expect(cloneCanvas._isRootCanvas).to.eq(true);
 
-    const cameraNeedClone = canvasEntity.createChild('camera').addComponent(Camera);
+    const cameraNeedClone = canvasEntity.createChild("camera").addComponent(Camera);
     rootCanvas.renderCamera = cameraNeedClone;
     const anoCloneEntity = canvasEntity.clone();
     const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);

@@ -151,7 +151,15 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
       // Create a sprite renderer that writes stencil.
       pos.set(0, 0, 0);
       scale.set(5, 5, 5);
-      const writeStencilSR = addSpriteRenderer(pos, scale, sprite, SpriteMaskInteraction.None, Layer.Layer0, Layer.Layer0, 0);
+      const writeStencilSR = addSpriteRenderer(
+        pos,
+        scale,
+        sprite,
+        SpriteMaskInteraction.None,
+        Layer.Layer0,
+        Layer.Layer0,
+        0
+      );
       const writeStencilMaterial = writeStencilSR.getInstanceMaterial();
       writeStencilMaterial.shader = customStencilShader;
       const writeStencilData = writeStencilMaterial.shaderData;
@@ -161,7 +169,15 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
 
       // Create a sprite renderer that reads stencil.
       pos.set(3, 3, 0);
-      const readStencilSR = addSpriteRenderer(pos, scale, sprite, SpriteMaskInteraction.None, Layer.Layer0, Layer.Layer0, 1);
+      const readStencilSR = addSpriteRenderer(
+        pos,
+        scale,
+        sprite,
+        SpriteMaskInteraction.None,
+        Layer.Layer0,
+        Layer.Layer0,
+        1
+      );
       readStencilSR.color.set(1, 0, 0, 1);
       const readStencilMaterial = readStencilSR.getInstanceMaterial();
       readStencilMaterial.shader = customStencilShader;
@@ -173,7 +189,15 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
 
       // Create a sprite renderer with mask interaction (does not need custom stencil).
       pos.set(5, -3, 0);
-      const maskSR = addSpriteRenderer(pos, scale, sprite, SpriteMaskInteraction.VisibleOutsideMask, Layer.Layer0, Layer.Layer0, 2);
+      const maskSR = addSpriteRenderer(
+        pos,
+        scale,
+        sprite,
+        SpriteMaskInteraction.VisibleOutsideMask,
+        Layer.Layer0,
+        Layer.Layer0,
+        2
+      );
       maskSR.color.set(0, 1, 0, 1);
 
       // Create a sprite mask.
@@ -183,7 +207,15 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
       // Create another sprite renderer that reads stencil with a different comparison.
       pos.set(20, 10, 0);
       scale.set(3, 3, 3);
-      const readStencilSR2 = addSpriteRenderer(pos, scale, sprite, SpriteMaskInteraction.None, Layer.Layer0, Layer.Layer0, 4);
+      const readStencilSR2 = addSpriteRenderer(
+        pos,
+        scale,
+        sprite,
+        SpriteMaskInteraction.None,
+        Layer.Layer0,
+        Layer.Layer0,
+        4
+      );
       readStencilSR2.color.set(1, 0.5, 0.8, 1);
       const readStencilMaterial2 = readStencilSR2.getInstanceMaterial();
       readStencilMaterial2.shader = customStencilShader;

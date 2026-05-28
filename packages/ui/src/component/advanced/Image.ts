@@ -4,7 +4,6 @@ import {
   ISpriteAssembler,
   ISpriteRenderer,
   MathUtil,
-  RenderQueueFlags,
   RendererUpdateFlags,
   SimpleSpriteAssembler,
   SlicedSpriteAssembler,
@@ -236,16 +235,14 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     }
 
     this._dirtyUpdateFlag = dirtyUpdateFlag;
-    // Init sub render element.
     const { engine } = context.camera;
-    const subRenderElement = engine._subRenderElementPool.get();
+    const renderElement = engine._renderElementPool.get();
     const subChunk = this._subChunk;
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    if (canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay) {
-      subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-      subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-    }
-    canvas._renderElement.addSubRenderElement(subRenderElement);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.subShader = material.shader.subShaders[0];
+    renderElement.priority = canvas.sortOrder;
+    renderElement.distanceForSort = canvas._sortDistance;
+    canvas._renderElements.push(renderElement);
   }
 
   @ignoreClone

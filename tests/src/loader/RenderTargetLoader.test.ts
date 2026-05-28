@@ -67,14 +67,16 @@ describe("RenderTargetLoader", () => {
       depthFormat: TextureFormat.Depth,
       antiAliasing: 1,
       autoGenerateMipmaps: false,
-      colorTextures: [{
-        mipmap: false,
-        isSRGBColorSpace: true,
-        filterMode: 1,
-        wrapModeU: 1,
-        wrapModeV: 1,
-        anisoLevel: 4
-      }]
+      colorTextures: [
+        {
+          mipmap: false,
+          isSRGBColorSpace: true,
+          filterMode: 1,
+          wrapModeU: 1,
+          wrapModeV: 1,
+          anisoLevel: 4
+        }
+      ]
     });
 
     const rt = await engine.resourceManager.load<RenderTarget>({ url, type: AssetType.RenderTarget });

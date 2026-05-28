@@ -44,7 +44,10 @@ export class UIUtils {
         renderContext.applyVirtualCamera(virtualCamera, false);
         uiRenderQueue.rendererUpdateFlag |= ContextRendererUpdateFlag.ProjectionMatrix;
         uiCanvas._prepareRender(renderContext);
-        uiRenderQueue.pushRenderElement(uiCanvas._renderElement);
+        const curElements = uiCanvas._batchedRenderElements;
+        for (let j = 0, m = curElements.length; j < m; j++) {
+          uiRenderQueue.pushRenderElement(curElements[j]);
+        }
         uiRenderQueue.batch(batcherManager);
         batcherManager.uploadBuffer();
         uiRenderQueue.render(renderContext, "Forward");
