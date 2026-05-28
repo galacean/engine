@@ -118,6 +118,32 @@ describe("CustomDataModule", function () {
     expect(Object.keys(customData.gradients).length).to.eq(0);
   });
 
+  it("removeCurve / removeGradient zero out shaderData uniforms", function () {
+    const customData = particleRenderer.generator.customData;
+    const shaderData = particleRenderer.shaderData;
+    customData.enabled = true;
+
+    customData.addCurve("Intensity", new ParticleCompositeCurve(0.8));
+    customData.addGradient("Tint", new ParticleCompositeGradient(new Color(1, 0.5, 0.2, 1)));
+    //@ts-ignore - drive the upload directly
+    customData._updateShaderData(shaderData);
+
+    expect(shaderData.getFloat("renderer_IntensityMaxConst")).to.eq(0.8);
+    expect(shaderData.getVector4("renderer_TintMaxConst").x).to.be.closeTo(1, 1e-6);
+
+    customData.removeCurve("Intensity");
+    customData.removeGradient("Tint");
+
+    // Without the explicit clear in remove*, these would still read the
+    // stale values (0.8 / red), breaking the JSDoc contract.
+    expect(shaderData.getFloat("renderer_IntensityMaxConst")).to.eq(0);
+    const tintAfter = shaderData.getVector4("renderer_TintMaxConst");
+    expect(tintAfter.x).to.eq(0);
+    expect(tintAfter.y).to.eq(0);
+    expect(tintAfter.z).to.eq(0);
+    expect(tintAfter.w).to.eq(0);
+  });
+
   it("_updateShaderData no-op when disabled", function () {
     const customData = particleRenderer.generator.customData;
     customData.addCurve("Intensity", new ParticleCompositeCurve(1));

@@ -32,6 +32,9 @@ interface GradientStreamMeta {
  * Custom data module.
  */
 export class CustomDataModule extends ParticleGeneratorModule {
+  private static readonly _zeroCurveArray = new Float32Array(8);
+  private static readonly _zeroColor = new Vector4();
+
   private _curves: Record<string, ParticleCompositeCurve> = {};
   private _gradients: Record<string, ParticleCompositeGradient> = {};
 
@@ -109,18 +112,28 @@ export class CustomDataModule extends ParticleGeneratorModule {
 
   /** Unregister a scalar stream. Shader uniforms read 0 once unregistered. */
   removeCurve(name: string): void {
-    if (!(name in this._curveStreams)) {
+    const meta = this._curveStreams[name];
+    if (!meta) {
       return;
     }
+    const shaderData = this._generator._renderer.shaderData;
+    shaderData.setFloat(meta.propMaxConst, 0);
+    shaderData.setFloat(meta.propMinConst, 0);
+    shaderData.setFloatArray(meta.propMaxGradient, CustomDataModule._zeroCurveArray);
+    shaderData.setFloatArray(meta.propMinGradient, CustomDataModule._zeroCurveArray);
     delete this._curveStreams[name];
     delete this._curves[name];
   }
 
   /** Unregister a color stream. Shader uniforms read 0 once unregistered. */
   removeGradient(name: string): void {
-    if (!(name in this._gradientStreams)) {
+    const meta = this._gradientStreams[name];
+    if (!meta) {
       return;
     }
+    const shaderData = this._generator._renderer.shaderData;
+    shaderData.setVector4(meta.propMaxConst, CustomDataModule._zeroColor);
+    shaderData.setVector4(meta.propMinConst, CustomDataModule._zeroColor);
     delete this._gradientStreams[name];
     delete this._gradients[name];
   }
