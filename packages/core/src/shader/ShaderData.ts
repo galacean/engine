@@ -22,6 +22,14 @@ export class ShaderData implements IReferable, IClone {
   /** @internal */
   @ignoreClone
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /**
+   * @internal
+   * Sorted (ascending) property ids of renderer-group samplers and arrays. These values
+   * can't differ across instances inside an instanced draw call — `_canBatch` uses this
+   * list to refuse batching renderers that would disagree on what to bind
+   */
+  @ignoreClone
+  _instanceBatchFields: number[] = [];
 
   @ignoreClone
   private _macroMap: Record<number, ShaderMacro> = Object.create(null);
@@ -669,7 +677,61 @@ export class ShaderData implements IReferable, IClone {
       }
     }
 
-    this._propertyValueMap[property._uniqueId] = value;
+    const id = property._uniqueId;
+    // Track renderer-group samplers/arrays so `_canBatch` can refuse instanced batches
+    // whose leader and follower would disagree on what to bind
+    if (
+      this._group === ShaderDataGroup.Renderer &&
+      (type === ShaderPropertyType.Texture ||
+        type === ShaderPropertyType.TextureArray ||
+        type === ShaderPropertyType.FloatArray ||
+        type === ShaderPropertyType.IntArray)
+    ) {
+      const oldHas = this._propertyValueMap[id] != null;
+      const newHas = value != null;
+      if (oldHas !== newHas) {
+        const fields = this._instanceBatchFields;
+        if (newHas) {
+          // Insert keeping ascending order so exact compare is index-by-index
+          let lo = 0;
+          let hi = fields.length;
+          while (lo < hi) {
+            const mid = (lo + hi) >>> 1;
+            if (fields[mid] < id) {
+              lo = mid + 1;
+            } else {
+              hi = mid;
+            }
+          }
+          fields.splice(lo, 0, id);
+        } else {
+          fields.splice(fields.indexOf(id), 1);
+        }
+      }
+    }
+
+    this._propertyValueMap[id] = value;
+  }
+
+  /**
+   * @internal
+   */
+  _matchesRendererInstanceBatch(other: ShaderData): boolean {
+    const selfFields = this._instanceBatchFields;
+    const otherFields = other._instanceBatchFields;
+    const fieldCount = selfFields.length;
+    if (fieldCount !== otherFields.length) {
+      return false;
+    }
+    const selfMap = this._propertyValueMap;
+    const otherMap = other._propertyValueMap;
+    for (let i = 0; i < fieldCount; i++) {
+      const id = selfFields[i];
+      if (id !== otherFields[i] || selfMap[id] !== otherMap[id]) {
+        return false;
+      }
+    }
+    return true;
   }
 
   /**

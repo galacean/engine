@@ -148,17 +148,15 @@ export class RenderQueue {
         const switchProgram = program.bind();
         const switchRenderCount = renderCount !== program._uploadRenderCount;
 
-        // Upload uniforms (cache-aware per block)
+        // Upload uniforms (cache-aware per block). Renderer block carries plain samplers/arrays
+        // even on the instanced path (GLSL forbids them in UBOs); `_canBatch` ensures the whole
+        // batch agrees on those, so the leader's values are correct for the draw call
         if (switchRenderCount) {
           program.groupingOtherUniformBlock();
           program.uploadAll(program.sceneUniformBlock, sceneData);
           program.uploadAll(program.cameraUniformBlock, cameraData);
-          if (isInstanced) {
-            program._uploadRendererId = -1;
-          } else {
-            program.uploadAll(program.rendererUniformBlock, rendererData);
-            program._uploadRendererId = rendererId;
-          }
+          program.uploadAll(program.rendererUniformBlock, rendererData);
+          program._uploadRendererId = isInstanced ? -1 : rendererId;
           program.uploadAll(program.materialUniformBlock, materialData);
           renderElementShaderData && program.uploadAll(program.renderElementUniformBlock, renderElementShaderData);
           // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind
@@ -182,13 +180,15 @@ export class RenderQueue {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
 
-          if (!isInstanced) {
-            if (program._uploadRendererId !== rendererId) {
-              program.uploadAll(program.rendererUniformBlock, rendererData);
-              program._uploadRendererId = rendererId;
-            } else if (switchProgram) {
-              program.uploadTextures(program.rendererUniformBlock, rendererData);
-            }
+          if (isInstanced) {
+            // Different batches may have different leaders, re-upload every time
+            program.uploadAll(program.rendererUniformBlock, rendererData);
+            program._uploadRendererId = -1;
+          } else if (program._uploadRendererId !== rendererId) {
+            program.uploadAll(program.rendererUniformBlock, rendererData);
+            program._uploadRendererId = rendererId;
+          } else if (switchProgram) {
+            program.uploadTextures(program.rendererUniformBlock, rendererData);
           }
 
           if (program._uploadMaterialId !== materialId) {

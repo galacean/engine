@@ -178,12 +178,15 @@ export class MeshRenderer extends Renderer {
    */
   override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
     if (!this._engine._hardwareRenderer.isWebGL2) return false;
+    const curShaderData = curElement.component.shaderData;
     return (
       preElement.primitive === curElement.primitive &&
       preElement.subPrimitive === curElement.subPrimitive &&
       preElement.material === curElement.material &&
       this._isFrontFaceInvert() === (<MeshRenderer>curElement.component)._isFrontFaceInvert() &&
-      this.shaderData._macroCollection.isEqual(curElement.component.shaderData._macroCollection)
+      this.shaderData._macroCollection.isEqual(curShaderData._macroCollection) &&
+      // Renderer-group samplers/arrays are shared across the whole instanced draw call
+      this.shaderData._matchesRendererInstanceBatch(curShaderData)
     );
   }
 

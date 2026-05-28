@@ -50,7 +50,6 @@ export class RenderElement implements IPoolElement {
     this.distanceForSort = source.distanceForSort;
     this.subShader = source.subShader;
     this.shaderData = source.shaderData;
-    this.subDistancePriority = source.subDistancePriority;
   }
 
   dispose(): void {
