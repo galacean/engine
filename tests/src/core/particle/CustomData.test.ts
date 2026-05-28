@@ -83,10 +83,17 @@ describe("CustomDataModule", function () {
     const customData = particleRenderer.generator.customData;
     Logger.enable();
     customData.addCurve("", new ParticleCompositeCurve(0));
-    customData.addCurve("0bad", new ParticleCompositeCurve(0));
     customData.addCurve("has space", new ParticleCompositeCurve(0));
     customData.addCurve("dash-name", new ParticleCompositeCurve(0));
+    customData.addCurve("中文", new ParticleCompositeCurve(0));
     expect(Object.keys(customData.curves).length).to.eq(0);
+  });
+
+  it("addCurve accepts digit-leading names — the renderer_ prefix keeps the final GLSL identifier valid", function () {
+    const customData = particleRenderer.generator.customData;
+    customData.addCurve("0intensity", new ParticleCompositeCurve(0.5));
+    customData.addCurve("42", new ParticleCompositeCurve(1));
+    expect(Object.keys(customData.curves).length).to.eq(2);
   });
 
   it("addCurve rejects duplicate name (cross with gradients)", function () {

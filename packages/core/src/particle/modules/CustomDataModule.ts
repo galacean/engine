@@ -10,8 +10,6 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
-const STREAM_NAME_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/;
-
 interface CurveStreamMeta {
   curve: ParticleCompositeCurve;
   propMaxConst: ShaderProperty;
@@ -34,6 +32,7 @@ interface GradientStreamMeta {
  * `renderer_<name>...` uniforms.
  */
 export class CustomDataModule extends ParticleGeneratorModule {
+  private static readonly _streamNamePattern = /^[A-Za-z0-9_]+$/;
   private static readonly _zeroCurveArray = new Float32Array(8);
   private static readonly _zeroColor = new Vector4();
 
@@ -47,8 +46,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
 
   /**
    * Registered scalar streams keyed by name.
-   *
-   * @returns A readonly map from stream name to its `ParticleCompositeCurve`
    */
   get curves(): Readonly<Record<string, ParticleCompositeCurve>> {
     return this._curves;
@@ -56,8 +53,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
 
   /**
    * Registered color streams keyed by name.
-   *
-   * @returns A readonly map from stream name to its `ParticleCompositeGradient`
    */
   get gradients(): Readonly<Record<string, ParticleCompositeGradient>> {
     return this._gradients;
@@ -237,7 +232,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
   }
 
   private _validateName(name: string, method: string): boolean {
-    if (!STREAM_NAME_PATTERN.test(name)) {
+    if (!CustomDataModule._streamNamePattern.test(name)) {
       Logger.error(
         `CustomDataModule.${method}: "${name}" is not a valid GLSL identifier ` +
           `([A-Za-z_][A-Za-z0-9_]*); call ignored.`
