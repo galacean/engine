@@ -11,7 +11,6 @@ import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 interface CurveStreamMeta {
-  curve: ParticleCompositeCurve;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
   propMaxGradient: ShaderProperty;
@@ -19,7 +18,6 @@ interface CurveStreamMeta {
 }
 
 interface GradientStreamMeta {
-  gradient: ParticleCompositeGradient;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
   maxColorCache: Vector4;
@@ -86,7 +84,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
     this._curves[name] = curve;
     this._curveStreams[name] = {
-      curve,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
       propMaxGradient: ShaderProperty.getByName(`renderer_${name}MaxGradient`),
@@ -112,7 +109,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
     this._gradients[name] = gradient;
     this._gradientStreams[name] = {
-      gradient,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
       maxColorCache: new Vector4(),
@@ -188,15 +184,14 @@ export class CustomDataModule extends ParticleGeneratorModule {
       return;
     }
     for (const name in this._curveStreams) {
-      this._uploadCurveStream(shaderData, this._curveStreams[name]);
+      this._uploadCurveStream(shaderData, this._curves[name], this._curveStreams[name]);
     }
     for (const name in this._gradientStreams) {
-      this._uploadGradientStream(shaderData, this._gradientStreams[name], name);
+      this._uploadGradientStream(shaderData, this._gradients[name], this._gradientStreams[name], name);
     }
   }
 
-  private _uploadCurveStream(shaderData: ShaderData, meta: CurveStreamMeta): void {
-    const { curve } = meta;
+  private _uploadCurveStream(shaderData: ShaderData, curve: ParticleCompositeCurve, meta: CurveStreamMeta): void {
     const mode = curve.mode;
     if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
       shaderData.setFloatArray(meta.propMaxGradient, curve.curveMax._getTypeArray());
@@ -211,8 +206,12 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
   }
 
-  private _uploadGradientStream(shaderData: ShaderData, meta: GradientStreamMeta, name: string): void {
-    const { gradient } = meta;
+  private _uploadGradientStream(
+    shaderData: ShaderData,
+    gradient: ParticleCompositeGradient,
+    meta: GradientStreamMeta,
+    name: string
+  ): void {
     const mode = gradient.mode;
 
     if (mode !== ParticleGradientMode.Constant && mode !== ParticleGradientMode.TwoConstants) {
