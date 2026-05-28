@@ -29,7 +29,9 @@ interface GradientStreamMeta {
 }
 
 /**
- * Custom data module.
+ * Custom data module — exposes any number of named per-particle data channels
+ * (scalars or colors) readable from a custom particle shader by their generated
+ * `renderer_<name>...` uniforms.
  */
 export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _zeroCurveArray = new Float32Array(8);
@@ -43,16 +45,29 @@ export class CustomDataModule extends ParticleGeneratorModule {
   @ignoreClone
   private _gradientStreams: Record<string, GradientStreamMeta> = {};
 
-  /** Registered scalar streams keyed by name. */
+  /**
+   * Registered scalar streams keyed by name.
+   *
+   * @returns A readonly map from stream name to its `ParticleCompositeCurve`
+   */
   get curves(): Readonly<Record<string, ParticleCompositeCurve>> {
     return this._curves;
   }
 
-  /** Registered color streams keyed by name. */
+  /**
+   * Registered color streams keyed by name.
+   *
+   * @returns A readonly map from stream name to its `ParticleCompositeGradient`
+   */
   get gradients(): Readonly<Record<string, ParticleCompositeGradient>> {
     return this._gradients;
   }
 
+  /**
+   * Create a custom data module bound to a particle generator.
+   *
+   * @param generator - The particle generator this module belongs to
+   */
   constructor(generator: ParticleGenerator) {
     super(generator);
   }
