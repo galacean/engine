@@ -57,7 +57,7 @@ export class Animator extends Component {
   @ignoreClone
   private _animatorLayersData = new Array<AnimatorLayerData>();
   @ignoreClone
-  private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
+  private _curveOwnerPool: WeakMap<Component, Record<string, AnimationCurveOwner<KeyframeValueType>>> = new WeakMap();
   @ignoreClone
   private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
   @ignoreClone
@@ -334,19 +334,22 @@ export class Animator extends Component {
    * @internal
    */
   _reset(): void {
-    const { _curveOwnerPool: animationCurveOwners, _animatorLayersData: layersData } = this;
-    for (let instanceId in animationCurveOwners) {
-      const propertyOwners = animationCurveOwners[instanceId];
-      for (let property in propertyOwners) {
-        const owner = propertyOwners[property];
-        owner.revertDefaultValue();
-      }
-    }
-
+    // revertDefaultValue 可能在死 target 上抛；listener 清理必须始终发生，否则
+    // polyfill 的 clipChangedListener 会留在共享的 AnimatorState 上，捕获 this(Animator)→Entity 整树。
+    // 用 try/catch 隔离 revert，listener 块紧跟其后无条件执行。
+    const layersData = this._animatorLayersData;
     for (let i = 0, n = layersData.length; i < n; i++) {
       const stateDataMap = layersData[i].animatorStateDataMap;
       for (const stateName in stateDataMap) {
         const stateData = stateDataMap[stateName];
+        const layerOwners = stateData.curveLayerOwner;
+        for (let j = 0, m = layerOwners.length; j < m; j++) {
+          try {
+            layerOwners[j]?.curveOwner?.revertDefaultValue();
+          } catch (e) {
+            Logger.warn("Animator._reset: revertDefaultValue threw", e);
+          }
+        }
         if (stateData.clipChangedListener && stateData.state) {
           stateData.state._updateFlagManager.removeListener(stateData.clipChangedListener);
           stateData.clipChangedListener = null;
@@ -355,8 +358,8 @@ export class Animator extends Component {
       }
     }
 
-    layersData.length = 0;
-    this._curveOwnerPool = Object.create(null);
+    this._animatorLayersData.length = 0;
+    this._curveOwnerPool = new WeakMap();
     this._parametersValueMap = Object.create(null);
     this._animationEventHandlerPool.clear();
 
@@ -478,17 +481,20 @@ export class Animator extends Component {
         }
 
         const { property } = curve;
-        const { instanceId } = component;
-        // Get owner
-        const propertyOwners = (curveOwnerPool[instanceId] ||= <Record<string, AnimationCurveOwner<KeyframeValueType>>>(
-          Object.create(null)
-        ));
+        // Get owner — WeakMap keyed by Component so dead components let entries GC.
+        let propertyOwners = curveOwnerPool.get(component);
+        if (!propertyOwners) {
+          propertyOwners = <Record<string, AnimationCurveOwner<KeyframeValueType>>>Object.create(null);
+          curveOwnerPool.set(component, propertyOwners);
+        }
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity, component));
 
-        // Get layer owner
-        const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= <Record<string, AnimationCurveLayerOwner>>(
-          Object.create(null)
-        ));
+        // Get layer owner — same WeakMap-by-Component pattern (was Record<instanceId,...> which kept dead components pinned for the Animator's lifetime).
+        let layerPropertyOwners = layerCurveOwnerPool.get(component);
+        if (!layerPropertyOwners) {
+          layerPropertyOwners = <Record<string, AnimationCurveLayerOwner>>Object.create(null);
+          layerCurveOwnerPool.set(component, layerPropertyOwners);
+        }
         const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
 
         if (mask && mask.pathMasks.length) {

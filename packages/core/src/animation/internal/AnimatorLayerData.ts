@@ -1,3 +1,4 @@
+import { Component } from "../../Component";
 import { AnimatorControllerLayer } from "../AnimatorControllerLayer";
 import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { LayerState } from "../enums/LayerState";
@@ -11,7 +12,7 @@ import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 export class AnimatorLayerData {
   layerIndex: number;
   layer: AnimatorControllerLayer;
-  curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
+  curveOwnerPool: WeakMap<Component, Record<string, AnimationCurveLayerOwner>> = new WeakMap();
   animatorStateDataMap: Record<string, AnimatorStateData> = {};
   srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
