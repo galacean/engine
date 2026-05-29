@@ -209,23 +209,6 @@ export class RenderTargetPool {
     }
   }
 
-  evictBySize(width: number, height: number): void {
-    const freeRenderTargets = this._freeRenderTargets;
-    for (let i = freeRenderTargets.length - 1; i >= 0; i--) {
-      const rt = freeRenderTargets[i];
-      if (rt.width === width && rt.height === height) {
-        this._destroyFreeRenderTargetAt(i);
-      }
-    }
-    const freeTextures = this._freeTextures;
-    for (let i = freeTextures.length - 1; i >= 0; i--) {
-      const tex = freeTextures[i];
-      if (tex.width === width && tex.height === height) {
-        this._destroyFreeTextureAt(i);
-      }
-    }
-  }
-
   gc(): void {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = 0, n = freeRenderTargets.length; i < n; i++) {

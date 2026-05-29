@@ -135,32 +135,6 @@ describe("RenderTargetPool", () => {
     });
   });
 
-  describe("evictBySize for canvas resize", () => {
-    it("destroys free-list entries matching the given size", () => {
-      const a = alloc(pool, 800, 600);
-      const b = alloc(pool, 1024, 768);
-      pool.freeRenderTarget(a);
-      pool.freeRenderTarget(b);
-
-      pool.evictBySize(800, 600);
-      expect(a.destroyed).to.equal(true);
-      expect(b.destroyed).to.equal(false);
-
-      // Re-allocating at the other size still returns the survivor
-      const reused = alloc(pool, 1024, 768);
-      expect(reused).to.equal(b);
-    });
-
-    it("ignores entries whose dimensions do not match", () => {
-      const a = alloc(pool, 800, 600);
-      pool.freeRenderTarget(a);
-      pool.evictBySize(1024, 768);
-      expect(a.destroyed).to.equal(false);
-      const b = alloc(pool, 800, 600);
-      expect(b).to.equal(a);
-    });
-  });
-
   describe("texture free-list", () => {
     it("reuses a freed texture within maxFreeAgeFrames, evicts past it", () => {
       pool.maxFreeAgeFrames = 5;
@@ -177,20 +151,6 @@ describe("RenderTargetPool", () => {
       expect(a.destroyed).to.equal(true);
       const c = allocTex(pool, 128, 128);
       expect(c).to.not.equal(a);
-    });
-
-    it("evictBySize destroys only matching free textures", () => {
-      const a = allocTex(pool, 800, 600);
-      const b = allocTex(pool, 1024, 768);
-      pool.freeTexture(a);
-      pool.freeTexture(b);
-
-      pool.evictBySize(800, 600);
-      expect(a.destroyed).to.equal(true);
-      expect(b.destroyed).to.equal(false);
-
-      const reused = allocTex(pool, 1024, 768);
-      expect(reused).to.equal(b);
     });
   });
 

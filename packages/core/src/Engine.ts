@@ -138,21 +138,10 @@ export class Engine extends EventDispatcher {
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
-  private _lastCanvasWidth: number = -1;
-  private _lastCanvasHeight: number = -1;
 
-  /** Evict pool entries sized to the previous canvas dimensions. */
+  /** Flush the render target pool's free list when the canvas resizes; canvas-sized entries are now stale. */
   private _onCanvasResize = (): void => {
-    const canvas = this._canvas;
-    const newWidth = canvas.width;
-    const newHeight = canvas.height;
-    if (this._lastCanvasWidth !== newWidth || this._lastCanvasHeight !== newHeight) {
-      if (this._lastCanvasWidth >= 0) {
-        this._renderTargetPool.evictBySize(this._lastCanvasWidth, this._lastCanvasHeight);
-      }
-      this._lastCanvasWidth = newWidth;
-      this._lastCanvasHeight = newHeight;
-    }
+    this._renderTargetPool.gc();
   };
 
   private _animate = () => {
@@ -272,8 +261,6 @@ export class Engine extends EventDispatcher {
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
-    this._lastCanvasWidth = canvas.width;
-    this._lastCanvasHeight = canvas.height;
     canvas._sizeUpdateFlagManager.addListener(this._onCanvasResize);
     this.inputManager = new InputManager(this, configuration.input);
 
