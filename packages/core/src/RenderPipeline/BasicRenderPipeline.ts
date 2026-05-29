@@ -167,8 +167,6 @@ export class BasicRenderPipeline {
       }
       const viewport = camera.pixelViewport;
       const pool = engine._renderTargetPool;
-      // Allocate fresh from the pool each frame; shape matching/reuse is handled by the pool, and the
-      // lease is returned at the end of `_drawRenderPass`.
       this._internalColorTarget = pool.allocateRenderTarget(
         viewport.width,
         viewport.height,
@@ -195,7 +193,6 @@ export class BasicRenderPipeline {
         );
       }
     }
-    // Both fields are released at the end of `_drawRenderPass`, so they're null on every entry here.
 
     // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
