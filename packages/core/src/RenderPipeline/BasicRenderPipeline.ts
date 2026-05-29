@@ -166,9 +166,10 @@ export class BasicRenderPipeline {
         depthFormat = null;
       }
       const viewport = camera.pixelViewport;
-      const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._internalColorTarget,
+      const pool = engine._renderTargetPool;
+      // Allocate fresh from the pool each frame; shape matching/reuse is handled by the pool, and the
+      // lease is returned at the end of `_drawRenderPass`.
+      this._internalColorTarget = pool.allocateRenderTarget(
         viewport.width,
         viewport.height,
         camera._getInternalColorTextureFormat(),
@@ -183,9 +184,7 @@ export class BasicRenderPipeline {
 
       if (this._shouldCopyBackgroundColor) {
         const colorTexture = camera.renderTarget?.getColorTexture(0);
-        const copyBackgroundTexture = PipelineUtils.recreateTextureIfNeeded(
-          engine,
-          this._copyBackgroundTexture,
+        this._copyBackgroundTexture = pool.allocateTexture(
           viewport.width,
           viewport.height,
           colorTexture?.format ?? TextureFormat.R8G8B8A8,
@@ -194,10 +193,7 @@ export class BasicRenderPipeline {
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear
         );
-        this._copyBackgroundTexture = copyBackgroundTexture;
       }
-
-      this._internalColorTarget = internalColorTarget;
     }
     // Both fields are released at the end of `_drawRenderPass`, so they're null on every entry here.
 
