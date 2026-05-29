@@ -1,9 +1,14 @@
 import { TextureFilterMode, TextureFormat, TextureWrapMode } from "@galacean/engine-core";
-// `RenderTargetPool` is `@internal` and intentionally not re-exported from the core barrel.
-// Import directly from the source file for test access.
-import { RenderTargetPool } from "../../../../packages/core/src/RenderPipeline/RenderTargetPool";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+// Import `WebGLEngine` from the `@galacean/engine` umbrella (not `@galacean/engine-rhi-webgl`): the
+// coverage build resolves packages to their built bundles, and mixing the rhi sub-package with
+// `@galacean/engine-core` pulls two separate copies of core, breaking engine bootstrap.
+import { WebGLEngine } from "@galacean/engine";
+// `RenderTargetPool` is `@internal` and not re-exported from the core barrel; take the type via a
+// type-only import (erased at runtime) and the runtime constructor from the engine's pool instance.
+import type { RenderTargetPool } from "../../../../packages/core/src/RenderPipeline/RenderTargetPool";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+let RenderTargetPoolClass: { new (engine: WebGLEngine): RenderTargetPool };
 
 /**
  * Helper: allocate an RT through the pool with sane defaults; varies only the bits that affect matching.
@@ -50,6 +55,8 @@ describe("RenderTargetPool", () => {
 
   beforeAll(async () => {
     engine = await WebGLEngine.create({ canvas });
+    // @ts-ignore - `_renderTargetPool` is `@internal`; its constructor is the class under test.
+    RenderTargetPoolClass = engine._renderTargetPool.constructor;
   });
 
   afterAll(() => {
@@ -58,7 +65,7 @@ describe("RenderTargetPool", () => {
 
   beforeEach(() => {
     // Each test gets a fresh pool so leaked entries from earlier tests don't bleed across.
-    pool = new RenderTargetPool(engine);
+    pool = new RenderTargetPoolClass(engine);
   });
 
   describe("matching reuse", () => {
