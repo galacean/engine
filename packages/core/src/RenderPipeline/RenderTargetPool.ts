@@ -243,27 +243,19 @@ export class RenderTargetPool {
   }
 
   private _removeFreeRenderTargetAt(index: number): void {
-    const rts = this._freeRenderTargets;
-    const frames = this._freeRenderTargetFrames;
-    const last = rts.length - 1;
-    if (index !== last) {
-      rts[index] = rts[last];
-      frames[index] = frames[last];
-    }
-    rts.length = last;
-    frames.length = last;
+    const last = this._freeRenderTargets.length - 1;
+    this._freeRenderTargets[index] = this._freeRenderTargets[last];
+    this._freeRenderTargetFrames[index] = this._freeRenderTargetFrames[last];
+    this._freeRenderTargets.length = last;
+    this._freeRenderTargetFrames.length = last;
   }
 
   private _removeFreeTextureAt(index: number): void {
-    const texs = this._freeTextures;
-    const frames = this._freeTextureFrames;
-    const last = texs.length - 1;
-    if (index !== last) {
-      texs[index] = texs[last];
-      frames[index] = frames[last];
-    }
-    texs.length = last;
-    frames.length = last;
+    const last = this._freeTextures.length - 1;
+    this._freeTextures[index] = this._freeTextures[last];
+    this._freeTextureFrames[index] = this._freeTextureFrames[last];
+    this._freeTextures.length = last;
+    this._freeTextureFrames.length = last;
   }
 
   private _destroyFreeRenderTargetAt(index: number): void {
