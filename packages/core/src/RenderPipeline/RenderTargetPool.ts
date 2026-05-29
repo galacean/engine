@@ -62,7 +62,7 @@ export class RenderTargetPool {
     return true;
   }
 
-  /** Frames an entry may sit idle before `tick()` destroys it. */
+  /** An entry idle for at least this many frames is destroyed by `tick()`. */
   maxFreeAgeFrames: number = 60;
 
   private _engine: Engine;
@@ -197,13 +197,13 @@ export class RenderTargetPool {
     const maxAge = this.maxFreeAgeFrames;
     const rtFrames = this._freeRenderTargetFrames;
     for (let i = rtFrames.length - 1; i >= 0; i--) {
-      if (currentFrame - rtFrames[i] > maxAge) {
+      if (currentFrame - rtFrames[i] >= maxAge) {
         this._destroyFreeRenderTargetAt(i);
       }
     }
     const texFrames = this._freeTextureFrames;
     for (let i = texFrames.length - 1; i >= 0; i--) {
-      if (currentFrame - texFrames[i] > maxAge) {
+      if (currentFrame - texFrames[i] >= maxAge) {
         this._destroyFreeTextureAt(i);
       }
     }

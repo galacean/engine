@@ -28,6 +28,21 @@ function alloc(
   );
 }
 
+/**
+ * Helper: allocate a standalone Texture2D through the pool with sane defaults.
+ */
+function allocTex(pool: RenderTargetPool, width: number, height: number) {
+  return pool.allocateTexture(
+    width,
+    height,
+    TextureFormat.R8G8B8A8,
+    false,
+    false,
+    TextureWrapMode.Clamp,
+    TextureFilterMode.Bilinear
+  );
+}
+
 describe("RenderTargetPool", () => {
   const canvas = document.createElement("canvas");
   let engine: WebGLEngine;
@@ -98,6 +113,19 @@ describe("RenderTargetPool", () => {
       expect(b).to.not.equal(a);
       expect(a.destroyed).to.equal(true);
     });
+
+    it("evicts exactly at the maxFreeAgeFrames boundary (inclusive)", () => {
+      pool.maxFreeAgeFrames = 5;
+      const a = alloc(pool, 256, 256);
+      const baseFrame = engine.time.frameCount;
+      pool.freeRenderTarget(a);
+      // One frame short of the cap: survives.
+      pool.tick(baseFrame + 4);
+      expect(a.destroyed).to.equal(false);
+      // Exactly at the cap: destroyed.
+      pool.tick(baseFrame + 5);
+      expect(a.destroyed).to.equal(true);
+    });
   });
 
   describe("evictBySize for canvas resize", () => {
@@ -126,16 +154,52 @@ describe("RenderTargetPool", () => {
     });
   });
 
+  describe("texture free-list", () => {
+    it("reuses a freed texture within maxFreeAgeFrames, evicts past it", () => {
+      pool.maxFreeAgeFrames = 5;
+      const a = allocTex(pool, 128, 128);
+      const baseFrame = engine.time.frameCount;
+      pool.freeTexture(a);
+
+      pool.tick(baseFrame + 3);
+      const b = allocTex(pool, 128, 128);
+      expect(b).to.equal(a);
+
+      pool.freeTexture(b);
+      pool.tick(baseFrame + 100);
+      expect(a.destroyed).to.equal(true);
+      const c = allocTex(pool, 128, 128);
+      expect(c).to.not.equal(a);
+    });
+
+    it("evictBySize destroys only matching free textures", () => {
+      const a = allocTex(pool, 800, 600);
+      const b = allocTex(pool, 1024, 768);
+      pool.freeTexture(a);
+      pool.freeTexture(b);
+
+      pool.evictBySize(800, 600);
+      expect(a.destroyed).to.equal(true);
+      expect(b.destroyed).to.equal(false);
+
+      const reused = allocTex(pool, 1024, 768);
+      expect(reused).to.equal(b);
+    });
+  });
+
   describe("gc()", () => {
-    it("destroys all free-list entries", () => {
+    it("destroys all free-list entries (render targets and textures)", () => {
       const a = alloc(pool, 256, 256);
       const b = alloc(pool, 512, 512);
+      const t = allocTex(pool, 128, 128);
       pool.freeRenderTarget(a);
       pool.freeRenderTarget(b);
+      pool.freeTexture(t);
 
       pool.gc();
       expect(a.destroyed).to.equal(true);
       expect(b.destroyed).to.equal(true);
+      expect(t.destroyed).to.equal(true);
     });
   });
 });
