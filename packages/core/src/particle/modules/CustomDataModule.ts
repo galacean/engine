@@ -40,8 +40,9 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _streamNamePattern = /^[A-Za-z0-9_]+$/;
   private static readonly _zeroCurveArray = new Float32Array(8);
   private static readonly _zeroGradientColorArray = new Float32Array(16);
+  private static readonly _zeroGradientAlphaArray = new Float32Array(8);
   private static readonly _zeroColor = new Color(0, 0, 0, 0);
-  private static readonly _zeroVector4 = new Vector4();
+  private static readonly _zeroVector4 = new Vector4(0, 0, 0, 0);
 
   @ignoreClone
   private _curves: Record<string, ParticleCompositeCurve> = {};
@@ -172,15 +173,12 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
     const stream = streams[idx];
     const shaderData = this._generator._renderer.shaderData;
-    const zeroColor = CustomDataModule._zeroColor;
-    const zeroAlphaArray = CustomDataModule._zeroCurveArray;
-    const zeroColorArray = CustomDataModule._zeroGradientColorArray;
-    shaderData.setColor(stream.propMaxConst, zeroColor);
-    shaderData.setColor(stream.propMinConst, zeroColor);
-    shaderData.setFloatArray(stream.propMaxGradientColor, zeroColorArray);
-    shaderData.setFloatArray(stream.propMaxGradientAlpha, zeroAlphaArray);
-    shaderData.setFloatArray(stream.propMinGradientColor, zeroColorArray);
-    shaderData.setFloatArray(stream.propMinGradientAlpha, zeroAlphaArray);
+    shaderData.setColor(stream.propMaxConst, CustomDataModule._zeroColor);
+    shaderData.setColor(stream.propMinConst, CustomDataModule._zeroColor);
+    shaderData.setFloatArray(stream.propMaxGradientColor, CustomDataModule._zeroGradientColorArray);
+    shaderData.setFloatArray(stream.propMaxGradientAlpha, CustomDataModule._zeroGradientAlphaArray);
+    shaderData.setFloatArray(stream.propMinGradientColor, CustomDataModule._zeroGradientColorArray);
+    shaderData.setFloatArray(stream.propMinGradientAlpha, CustomDataModule._zeroGradientAlphaArray);
     shaderData.setVector4(stream.propKeysCount, CustomDataModule._zeroVector4);
     streams[idx] = streams[streams.length - 1];
     streams.pop();
