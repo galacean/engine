@@ -9,18 +9,24 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
-interface CurveStreamMeta {
+interface CurveStream {
+  name: string;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
   propMaxGradient: ShaderProperty;
   propMinGradient: ShaderProperty;
 }
 
-interface GradientStreamMeta {
+interface GradientStream {
+  name: string;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
-  maxColorCache: Vector4;
-  minColorCache: Vector4;
+  propMaxGradientColor: ShaderProperty;
+  propMaxGradientAlpha: ShaderProperty;
+  propMinGradientColor: ShaderProperty;
+  propMinGradientAlpha: ShaderProperty;
+  propKeysCount: ShaderProperty;
+  keysCountCache: Vector4;
 }
 
 /**
@@ -31,41 +37,45 @@ interface GradientStreamMeta {
 export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _streamNamePattern = /^[A-Za-z0-9_]+$/;
   private static readonly _zeroCurveArray = new Float32Array(8);
-  private static readonly _zeroColor = new Vector4();
+  private static readonly _zeroGradientColorArray = new Float32Array(16);
+  private static readonly _zeroColor = new Color(0, 0, 0, 0);
+  private static readonly _zeroVector4 = new Vector4();
 
+  @ignoreClone
   private _curves: Record<string, ParticleCompositeCurve> = {};
+  @ignoreClone
   private _gradients: Record<string, ParticleCompositeGradient> = {};
 
   @ignoreClone
-  private _curveStreams: Record<string, CurveStreamMeta> = {};
+  private _curveStreams: CurveStream[] = [];
   @ignoreClone
-  private _gradientStreams: Record<string, GradientStreamMeta> = {};
+  private _gradientStreams: GradientStream[] = [];
 
   /**
-   * Registered scalar streams keyed by name.
+   * Curves keyed by name.
    */
   get curves(): Readonly<Record<string, ParticleCompositeCurve>> {
     return this._curves;
   }
 
   /**
-   * Registered color streams keyed by name.
+   * Gradients keyed by name.
    */
   get gradients(): Readonly<Record<string, ParticleCompositeGradient>> {
     return this._gradients;
   }
 
   /**
-   * Register a scalar stream. Shader-side uniforms by `curve.mode`:
+   * Add a scalar curve. Shader-side uniforms by `curve.mode`:
    *
-   * | Mode         | Uniforms                                                                   |
-   * |--------------|----------------------------------------------------------------------------|
-   * | Constant     | `float renderer_<name>MaxConst`                                            |
-   * | TwoConstants | `float renderer_<name>MaxConst`, `float renderer_<name>MinConst`           |
-   * | Curve        | `vec2 renderer_<name>MaxGradient[4]`                                       |
-   * | TwoCurves    | `vec2 renderer_<name>MaxGradient[4]`, `vec2 renderer_<name>MinGradient[4]` |
+   * | Mode         | Uniforms                                |
+   * |--------------|-----------------------------------------|
+   * | Constant     | `float renderer_<name>MaxConst`         |
+   * | TwoConstants | + `float renderer_<name>MinConst`       |
+   * | Curve        | `vec2 renderer_<name>MaxGradient[4]`    |
+   * | TwoCurves    | + `vec2 renderer_<name>MinGradient[4]`  |
    *
-   * @param name  - Must be a valid GLSL identifier and not already registered.
+   * @param name  - Must contain only letters, digits, or underscores, and not already be in use.
    * @param curve - Stored by reference.
    */
   addCurve(name: string, curve: ParticleCompositeCurve): void {
@@ -73,22 +83,24 @@ export class CustomDataModule extends ParticleGeneratorModule {
       return;
     }
     this._curves[name] = curve;
-    this._curveStreams[name] = {
+    this._curveStreams.push({
+      name,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
       propMaxGradient: ShaderProperty.getByName(`renderer_${name}MaxGradient`),
       propMinGradient: ShaderProperty.getByName(`renderer_${name}MinGradient`)
-    };
+    });
   }
 
   /**
-   * Register a color stream. Shader-side uniforms by `gradient.mode`
-   * (only `Constant` / `TwoConstants` supported here):
+   * Add a color gradient. Shader-side uniforms by `gradient.mode`:
    *
-   * | Mode         | Uniforms                                                       |
-   * |--------------|----------------------------------------------------------------|
-   * | Constant     | `vec4 renderer_<name>MaxConst`                                 |
-   * | TwoConstants | `vec4 renderer_<name>MaxConst`, `vec4 renderer_<name>MinConst` |
+   * | Mode         | Uniforms                                                                                                              |
+   * |--------------|-----------------------------------------------------------------------------------------------------------------------|
+   * | Constant     | `vec4 renderer_<name>MaxConst`                                                                                        |
+   * | TwoConstants | + `vec4 renderer_<name>MinConst`                                                                                      |
+   * | Gradient     | `vec4 renderer_<name>MaxGradientColor[4]`, `vec2 renderer_<name>MaxGradientAlpha[4]`, `vec4 renderer_<name>KeysCount` |
+   * | TwoGradients | + `vec4 renderer_<name>MinGradientColor[4]`, `vec2 renderer_<name>MinGradientAlpha[4]`                                |
    *
    * @param name     - Same validation as {@link addCurve}.
    * @param gradient - Stored by reference.
@@ -98,68 +110,89 @@ export class CustomDataModule extends ParticleGeneratorModule {
       return;
     }
     this._gradients[name] = gradient;
-    this._gradientStreams[name] = {
+    this._gradientStreams.push({
+      name,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
-      maxColorCache: new Vector4(),
-      minColorCache: new Vector4()
-    };
+      propMaxGradientColor: ShaderProperty.getByName(`renderer_${name}MaxGradientColor`),
+      propMaxGradientAlpha: ShaderProperty.getByName(`renderer_${name}MaxGradientAlpha`),
+      propMinGradientColor: ShaderProperty.getByName(`renderer_${name}MinGradientColor`),
+      propMinGradientAlpha: ShaderProperty.getByName(`renderer_${name}MinGradientAlpha`),
+      propKeysCount: ShaderProperty.getByName(`renderer_${name}KeysCount`),
+      keysCountCache: new Vector4()
+    });
   }
 
   /**
-   * Unregister a scalar stream. Shader uniforms read 0 once unregistered.
+   * Remove a curve. Shader uniforms read 0 after removal.
    * @param name - The name passed to {@link addCurve}
    */
   removeCurve(name: string): void {
-    const meta = this._curveStreams[name];
-    if (!meta) {
+    const streams = this._curveStreams;
+    let idx = -1;
+    for (let i = 0, n = streams.length; i < n; i++) {
+      if (streams[i].name === name) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
       return;
     }
+    const stream = streams[idx];
     const shaderData = this._generator._renderer.shaderData;
-    shaderData.setFloat(meta.propMaxConst, 0);
-    shaderData.setFloat(meta.propMinConst, 0);
-    shaderData.setFloatArray(meta.propMaxGradient, CustomDataModule._zeroCurveArray);
-    shaderData.setFloatArray(meta.propMinGradient, CustomDataModule._zeroCurveArray);
-    delete this._curveStreams[name];
+    shaderData.setFloat(stream.propMaxConst, 0);
+    shaderData.setFloat(stream.propMinConst, 0);
+    shaderData.setFloatArray(stream.propMaxGradient, CustomDataModule._zeroCurveArray);
+    shaderData.setFloatArray(stream.propMinGradient, CustomDataModule._zeroCurveArray);
+    streams[idx] = streams[streams.length - 1];
+    streams.pop();
     delete this._curves[name];
   }
 
   /**
-   * Unregister a color stream. Shader uniforms read 0 once unregistered.
+   * Remove a gradient. Shader uniforms read 0 after removal.
    * @param name - The name passed to {@link addGradient}
    */
   removeGradient(name: string): void {
-    const meta = this._gradientStreams[name];
-    if (!meta) {
+    const streams = this._gradientStreams;
+    let idx = -1;
+    for (let i = 0, n = streams.length; i < n; i++) {
+      if (streams[i].name === name) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
       return;
     }
+    const stream = streams[idx];
     const shaderData = this._generator._renderer.shaderData;
-    shaderData.setVector4(meta.propMaxConst, CustomDataModule._zeroColor);
-    shaderData.setVector4(meta.propMinConst, CustomDataModule._zeroColor);
-    delete this._gradientStreams[name];
+    const zeroColor = CustomDataModule._zeroColor;
+    const zeroAlphaArray = CustomDataModule._zeroCurveArray;
+    const zeroColorArray = CustomDataModule._zeroGradientColorArray;
+    shaderData.setColor(stream.propMaxConst, zeroColor);
+    shaderData.setColor(stream.propMinConst, zeroColor);
+    shaderData.setFloatArray(stream.propMaxGradientColor, zeroColorArray);
+    shaderData.setFloatArray(stream.propMaxGradientAlpha, zeroAlphaArray);
+    shaderData.setFloatArray(stream.propMinGradientColor, zeroColorArray);
+    shaderData.setFloatArray(stream.propMinGradientAlpha, zeroAlphaArray);
+    shaderData.setVector4(stream.propKeysCount, CustomDataModule._zeroVector4);
+    streams[idx] = streams[streams.length - 1];
+    streams.pop();
     delete this._gradients[name];
   }
 
   /** @internal */
   _cloneTo(target: CustomDataModule): void {
     const sourceCurves = this._curves;
-    const sourceGradients = this._gradients;
-    const curveNames = Object.keys(sourceCurves);
-    const gradientNames = Object.keys(sourceGradients);
-
-    target._curves = {};
-    target._gradients = {};
-    target._curveStreams = {};
-    target._gradientStreams = {};
-
-    for (let i = 0; i < curveNames.length; i++) {
-      const name = curveNames[i];
+    for (const name in sourceCurves) {
       const clonedCurve = new ParticleCompositeCurve(0);
       CloneManager.deepCloneObject(sourceCurves[name], clonedCurve, new Map());
       target.addCurve(name, clonedCurve);
     }
-    for (let i = 0; i < gradientNames.length; i++) {
-      const name = gradientNames[i];
+    const sourceGradients = this._gradients;
+    for (const name in sourceGradients) {
       const clonedGradient = new ParticleCompositeGradient(new Color());
       CloneManager.deepCloneObject(sourceGradients[name], clonedGradient, new Map());
       target.addGradient(name, clonedGradient);
@@ -173,25 +206,29 @@ export class CustomDataModule extends ParticleGeneratorModule {
     if (!this.enabled) {
       return;
     }
-    for (const name in this._curveStreams) {
-      this._uploadCurveStream(shaderData, this._curves[name], this._curveStreams[name]);
+    const curveStreams = this._curveStreams;
+    for (let i = 0, n = curveStreams.length; i < n; i++) {
+      const stream = curveStreams[i];
+      this._uploadCurveStream(shaderData, this._curves[stream.name], stream);
     }
-    for (const name in this._gradientStreams) {
-      this._uploadGradientStream(shaderData, this._gradients[name], this._gradientStreams[name], name);
+    const gradientStreams = this._gradientStreams;
+    for (let i = 0, n = gradientStreams.length; i < n; i++) {
+      const stream = gradientStreams[i];
+      this._uploadGradientStream(shaderData, this._gradients[stream.name], stream);
     }
   }
 
-  private _uploadCurveStream(shaderData: ShaderData, curve: ParticleCompositeCurve, meta: CurveStreamMeta): void {
+  private _uploadCurveStream(shaderData: ShaderData, curve: ParticleCompositeCurve, stream: CurveStream): void {
     const mode = curve.mode;
     if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
-      shaderData.setFloatArray(meta.propMaxGradient, curve.curveMax._getTypeArray());
+      shaderData.setFloatArray(stream.propMaxGradient, curve.curveMax._getTypeArray());
       if (mode === ParticleCurveMode.TwoCurves) {
-        shaderData.setFloatArray(meta.propMinGradient, curve.curveMin._getTypeArray());
+        shaderData.setFloatArray(stream.propMinGradient, curve.curveMin._getTypeArray());
       }
     } else {
-      shaderData.setFloat(meta.propMaxConst, curve.constantMax);
+      shaderData.setFloat(stream.propMaxConst, curve.constantMax);
       if (mode === ParticleCurveMode.TwoConstants) {
-        shaderData.setFloat(meta.propMinConst, curve.constantMin);
+        shaderData.setFloat(stream.propMinConst, curve.constantMin);
       }
     }
   }
@@ -199,37 +236,49 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private _uploadGradientStream(
     shaderData: ShaderData,
     gradient: ParticleCompositeGradient,
-    meta: GradientStreamMeta,
-    name: string
+    stream: GradientStream
   ): void {
     const mode = gradient.mode;
 
-    if (mode !== ParticleGradientMode.Constant && mode !== ParticleGradientMode.TwoConstants) {
-      throw new Error(
-        `Invalid gradient mode for CustomDataModule stream "${name}", only constant and twoConstants are supported.`
-      );
-    }
+    if (mode === ParticleGradientMode.Gradient || mode === ParticleGradientMode.TwoGradients) {
+      const gradientMax = gradient.gradientMax;
+      shaderData.setFloatArray(stream.propMaxGradientColor, gradientMax._getColorTypeArray());
+      shaderData.setFloatArray(stream.propMaxGradientAlpha, gradientMax._getAlphaTypeArray());
 
-    const max = gradient.constantMax;
-    meta.maxColorCache.set(max.r, max.g, max.b, max.a);
-    shaderData.setVector4(meta.propMaxConst, meta.maxColorCache);
-    if (mode === ParticleGradientMode.TwoConstants) {
-      const min = gradient.constantMin;
-      meta.minColorCache.set(min.r, min.g, min.b, min.a);
-      shaderData.setVector4(meta.propMinConst, meta.minColorCache);
+      const gradientMin = mode === ParticleGradientMode.TwoGradients ? gradient.gradientMin : gradientMax;
+      if (mode === ParticleGradientMode.TwoGradients) {
+        shaderData.setFloatArray(stream.propMinGradientColor, gradientMin._getColorTypeArray());
+        shaderData.setFloatArray(stream.propMinGradientAlpha, gradientMin._getAlphaTypeArray());
+      }
+
+      const colorMinKeys = gradientMin.colorKeys;
+      const alphaMinKeys = gradientMin.alphaKeys;
+      const colorMaxKeys = gradientMax.colorKeys;
+      const alphaMaxKeys = gradientMax.alphaKeys;
+      stream.keysCountCache.set(
+        colorMinKeys.length ? colorMinKeys[colorMinKeys.length - 1].time : 0,
+        alphaMinKeys.length ? alphaMinKeys[alphaMinKeys.length - 1].time : 0,
+        colorMaxKeys.length ? colorMaxKeys[colorMaxKeys.length - 1].time : 0,
+        alphaMaxKeys.length ? alphaMaxKeys[alphaMaxKeys.length - 1].time : 0
+      );
+      shaderData.setVector4(stream.propKeysCount, stream.keysCountCache);
+    } else {
+      shaderData.setColor(stream.propMaxConst, gradient.constantMax);
+      if (mode === ParticleGradientMode.TwoConstants) {
+        shaderData.setColor(stream.propMinConst, gradient.constantMin);
+      }
     }
   }
 
   private _validateName(name: string, method: string): boolean {
     if (!CustomDataModule._streamNamePattern.test(name)) {
       Logger.error(
-        `CustomDataModule.${method}: "${name}" is not a valid GLSL identifier ` +
-          `([A-Za-z_][A-Za-z0-9_]*); call ignored.`
+        `CustomDataModule.${method}: "${name}" must contain only letters, digits, or underscores; call ignored.`
       );
       return false;
     }
     if (name in this._curves || name in this._gradients) {
-      Logger.error(`CustomDataModule.${method}: stream "${name}" is already registered; call ignored.`);
+      Logger.error(`CustomDataModule.${method}: "${name}" is already in use; call ignored.`);
       return false;
     }
     return true;

@@ -136,7 +136,7 @@ describe("CustomDataModule", function () {
     customData._updateShaderData(shaderData);
 
     expect(shaderData.getFloat("renderer_IntensityMaxConst")).to.eq(0.8);
-    expect(shaderData.getVector4("renderer_TintMaxConst").x).to.be.closeTo(1, 1e-6);
+    expect(shaderData.getColor("renderer_TintMaxConst").r).to.be.closeTo(1, 1e-6);
 
     customData.removeCurve("Intensity");
     customData.removeGradient("Tint");
@@ -144,11 +144,11 @@ describe("CustomDataModule", function () {
     // Without the explicit clear in remove*, these would still read the
     // stale values (0.8 / red), breaking the JSDoc contract.
     expect(shaderData.getFloat("renderer_IntensityMaxConst")).to.eq(0);
-    const tintAfter = shaderData.getVector4("renderer_TintMaxConst");
-    expect(tintAfter.x).to.eq(0);
-    expect(tintAfter.y).to.eq(0);
-    expect(tintAfter.z).to.eq(0);
-    expect(tintAfter.w).to.eq(0);
+    const tintAfter = shaderData.getColor("renderer_TintMaxConst");
+    expect(tintAfter.r).to.eq(0);
+    expect(tintAfter.g).to.eq(0);
+    expect(tintAfter.b).to.eq(0);
+    expect(tintAfter.a).to.eq(0);
   });
 
   it("_updateShaderData no-op when disabled", function () {
@@ -200,19 +200,43 @@ describe("CustomDataModule", function () {
     }).to.not.throw();
   });
 
-  it("_updateShaderData throws when gradient stream uses an unsupported mode", function () {
+  it("_updateShaderData handles gradient + twoGradients modes", function () {
     const customData = particleRenderer.generator.customData;
+    const shaderData = particleRenderer.shaderData;
     customData.enabled = true;
-    const keyedGradient = new ParticleGradient(
+    const single = new ParticleGradient(
       [new GradientColorKey(0, new Color(1, 0, 0)), new GradientColorKey(1, new Color(0, 0, 1))],
       [new GradientAlphaKey(0, 0), new GradientAlphaKey(1, 1)]
     );
-    customData.addGradient("Bad", new ParticleCompositeGradient(keyedGradient));
-    expect(customData.gradients["Bad"].mode).to.eq(ParticleGradientMode.Gradient);
+    customData.addGradient("G3", new ParticleCompositeGradient(single));
+    const twoMin = new ParticleGradient(
+      [new GradientColorKey(0, new Color(0, 1, 0))],
+      [new GradientAlphaKey(0, 0), new GradientAlphaKey(0.5, 1)]
+    );
+    const twoMax = new ParticleGradient(
+      [new GradientColorKey(0, new Color(1, 1, 0)), new GradientColorKey(0.7, new Color(1, 0, 1))],
+      [new GradientAlphaKey(0, 0), new GradientAlphaKey(1, 1)]
+    );
+    customData.addGradient("G4", new ParticleCompositeGradient(twoMin, twoMax));
+    expect(customData.gradients["G3"].mode).to.eq(ParticleGradientMode.Gradient);
+    expect(customData.gradients["G4"].mode).to.eq(ParticleGradientMode.TwoGradients);
     expect(() => {
       //@ts-ignore
-      customData._updateShaderData(particleRenderer.shaderData);
-    }).to.throw(/only constant and twoConstants are supported/);
+      customData._updateShaderData(shaderData);
+    }).to.not.throw();
+
+    // Gradient mode: only Max* uploaded; KeysCount xy/zw both reflect max keys
+    // (gradientMin === gradientMax fallback inside _uploadGradientStream).
+    const g3Keys = shaderData.getVector4("renderer_G3KeysCount");
+    expect(g3Keys.x).to.be.closeTo(1, 1e-6);
+    expect(g3Keys.z).to.be.closeTo(1, 1e-6);
+
+    // TwoGradients: KeysCount xy = min last times, zw = max last times.
+    const g4Keys = shaderData.getVector4("renderer_G4KeysCount");
+    expect(g4Keys.x).to.be.closeTo(0, 1e-6);
+    expect(g4Keys.y).to.be.closeTo(0.5, 1e-6);
+    expect(g4Keys.z).to.be.closeTo(0.7, 1e-6);
+    expect(g4Keys.w).to.be.closeTo(1, 1e-6);
   });
 
   it("clones deep — entries detached, internal caches rebuilt", function () {
@@ -246,11 +270,11 @@ describe("CustomDataModule", function () {
 
     // Internal caches are rebuilt — _updateShaderData would now upload uniforms.
     //@ts-ignore - inspecting private internal cache
-    const clonedCurveStreams = (clonedCustomData as any)._curveStreams;
+    const clonedCurveStreams = (clonedCustomData as any)._curveStreams as { name: string }[];
     //@ts-ignore
-    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams;
-    expect(Object.keys(clonedCurveStreams)).to.deep.eq(["Intensity"]);
-    expect(Object.keys(clonedGradientStreams)).to.deep.eq(["Tint"]);
+    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams as { name: string }[];
+    expect(clonedCurveStreams.map((s) => s.name)).to.deep.eq(["Intensity"]);
+    expect(clonedGradientStreams.map((s) => s.name)).to.deep.eq(["Tint"]);
 
     // Mutation isolation: bumping the clone does not bleed back into the source.
     clonedCustomData.curves["Intensity"].constantMax = 0.1;
