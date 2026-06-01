@@ -1,12 +1,4 @@
-import {
-  CloneUtils,
-  Entity,
-  EntityModifyFlags,
-  Script,
-  assignmentClone,
-  deepClone,
-  ignoreClone
-} from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, assignmentClone, deepClone, ignoreClone } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";

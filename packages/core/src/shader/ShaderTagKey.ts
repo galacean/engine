@@ -1,6 +1,9 @@
+import { CloneMode, defaultCloneMode } from "../clone/enums/CloneMode";
+
 /**
  * Shader tag key.
  */
+@defaultCloneMode(CloneMode.Assignment)
 export class ShaderTagKey {
   private static _nameCounter: number = 0;
   private static _nameMap: Record<string, ShaderTagKey> = Object.create(null);

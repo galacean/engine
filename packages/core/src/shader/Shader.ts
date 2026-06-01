@@ -2,6 +2,7 @@ import { IShaderCompiler, IPrecompiledShader } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { IReferable } from "../asset/IReferable";
+import { CloneMode, defaultCloneMode } from "../clone/enums/CloneMode";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
@@ -21,6 +22,7 @@ import { RenderState } from "./state/RenderState";
 /**
  * Shader for rendering.
  */
+@defaultCloneMode(CloneMode.Assignment)
 export class Shader implements IReferable {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();

@@ -1,8 +1,10 @@
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
+import { CloneMode, defaultCloneMode } from "../clone/enums/CloneMode";
 
 /**
  * Shader macro。
  */
+@defaultCloneMode(CloneMode.Assignment)
 export class ShaderMacro {
   /** @internal */
   static _macroMaskMap: ShaderMacro[][] = [];

@@ -1,7 +1,7 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
-import { CloneUtils } from "./clone/CloneUtils";
+import { CloneMode, defaultCloneMode } from "./clone/enums/CloneMode";
 import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
@@ -9,6 +9,7 @@ import { Scene } from "./Scene";
 /**
  * The base class of the components.
  */
+@defaultCloneMode(CloneMode.Remap)
 export class Component extends EngineObject {
   /** @internal */
   _entity: Entity;
@@ -152,13 +153,6 @@ export class Component extends EngineObject {
         }
       }
     }
-  }
-
-  /**
-   * @internal
-   */
-  _remap<T extends Component>(srcRoot: Entity, targetRoot: Entity): T {
-    return CloneUtils.remapComponent(srcRoot, targetRoot, this) as unknown as T;
   }
 
   protected _addResourceReferCount(resource: IReferable, count: number): void {

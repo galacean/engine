@@ -1,4 +1,3 @@
-import { Entity } from "../Entity";
 import { TypedArray } from "../base/Constant";
 import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
@@ -11,11 +10,7 @@ export function ignoreClone(target: Object, propertyKey: string): void {
 }
 
 /**
- * Property decorator, assign value to the property when cloning.
- *
- * @remarks
- * If it's a primitive type, the value will be copied.
- * If it's a class type, the reference will be copied.
+ * Property decorator, copy reference when cloning (no deep copy).
  */
 export function assignmentClone(target: Object, propertyKey: string): void {
   CloneManager.registerCloneMode(target, propertyKey, CloneMode.Assignment);
@@ -23,11 +18,7 @@ export function assignmentClone(target: Object, propertyKey: string): void {
 
 /**
  * Property decorator, shallow clone the property when cloning.
- * After cloning, it will keep its own reference independent, and use the method of assignment to clone all its internal properties.
- * if the internal property is a primitive type, the value will be copied, if the internal property is a reference type, its reference address will be copied.。
- *
- * @remarks
- * Applicable to Object, Array, TypedArray and Class types.
+ * Recreates the container, but inner properties are assigned by reference.
  */
 export function shallowClone(target: Object, propertyKey: string): void {
   CloneManager.registerCloneMode(target, propertyKey, CloneMode.Shallow);
@@ -35,12 +26,7 @@ export function shallowClone(target: Object, propertyKey: string): void {
 
 /**
  * Property decorator, deep clone the property when cloning.
- * After cloning, it will maintain its own reference independence, and all its internal deep properties will remain completely independent.
- *
- * @remarks
- * Applicable to Object, Array, TypedArray and Class types.
- * If Class is encountered during the deep cloning process, the custom cloning function of the object will be called first.
- * Custom cloning requires the object to implement the IClone interface.
+ * Recursively clones the entire subtree.
  */
 export function deepClone(target: Object, propertyKey: string): void {
   CloneManager.registerCloneMode(target, propertyKey, CloneMode.Deep);
@@ -49,6 +35,35 @@ export function deepClone(target: Object, propertyKey: string): void {
 /**
  * @internal
  * Clone manager.
+ *
+ * Per-field decision = a classify gate + (only for deep clone) a 3-stage lifecycle.
+ *
+ * Classify gate:
+ *   - primitive / null / undefined → assign by value.
+ *   - Explicit decorator wins: @ignoreClone → skip; @assignmentClone → share the reference
+ *     as-is; @deepClone → deep clone.
+ *   - Undecorated → the type's default clone mode (registered via @defaultCloneMode):
+ *       CloneMode.Remap (Entity / Component) → resolve to the clone via the identity map
+ *         (`cloneMap.get(x) ?? x`); refs outside the cloned subtree are absent and kept as-is.
+ *       CloneMode.Assignment (ReferResource assets + interned flyweights: Shader, ShaderMacro,
+ *         ShaderTagKey, SubFont) → share the reference.
+ *       no registered default → deep clone.
+ *   So e.g. @assignmentClone on an Entity field shares the source reference; the Remap default
+ *   only applies when the field is undecorated.
+ *
+ * Deep clone:
+ *   - Containers: TypedArray → buffer copy; Map / Set → new container + per-element remap;
+ *     Array → recurse each element (re-dispatched through the gate as undecorated).
+ *   - Object — 3-stage lifecycle:
+ *       1. Construct — reuse `target[k]` if it already holds an independent same-type instance
+ *          (preserves a clone target's pre-allocated field), else allocate a new instance.
+ *       2. Populate  — `copyFrom` (value-type fast path) OR recurse fields per inner decorators.
+ *       3. Finalize  — `_cloneTo` post-clone hook, ALWAYS runs after populate (independent of
+ *          copyFrom): native sync (Collider), refcount (AudioSource), update-flag (Animator),
+ *          derived state (SpriteRenderer), cache rebuild (SkinnedMeshRenderer _applySkin).
+ *          Equivalent to Unreal's PostDuplicate.
+ *
+ * Cycles / shared sub-graphs dedup through the same identity map.
  */
 export class CloneManager {
   /** @internal */
@@ -60,9 +75,6 @@ export class CloneManager {
 
   /**
    * Register clone mode.
-   * @param target - Clone target
-   * @param propertyKey - Clone property name
-   * @param mode - Clone mode
    */
   static registerCloneMode(target: Object, propertyKey: string, mode: CloneMode): void {
     let targetMap = CloneManager._subCloneModeMap.get(target.constructor);
@@ -99,100 +111,121 @@ export class CloneManager {
     target: Object,
     k: string | number,
     cloneMode: CloneMode,
-    srcRoot: Entity,
-    targetRoot: Entity,
-    deepInstanceMap: Map<Object, Object>
+    cloneMap: Map<Object, Object>
   ): void {
     const sourceProperty = source[k];
-
-    // Remappable references (Entity/Component) are always remapped, regardless of clone decorator
-    if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
-      target[k] = (<ICustomClone>sourceProperty)._remap(srcRoot, targetRoot);
-      return;
-    }
-
-    if (cloneMode === CloneMode.Ignore) return;
-
-    // Primitives, undecorated, or @assignmentClone: direct assign
-    if (!(sourceProperty instanceof Object) || cloneMode === undefined || cloneMode === CloneMode.Assignment) {
+    if (!(sourceProperty instanceof Object)) {
       target[k] = sourceProperty;
       return;
     }
+    if (cloneMode === undefined) {
+      // Undecorated: fall back to the type's registered default clone mode, else deep clone.
+      cloneMode = (<ICustomClone>sourceProperty)._defaultCloneMode ?? CloneMode.Deep;
+    }
 
-    // @shallowClone / @deepClone: deep copy complex objects
-    const type = sourceProperty.constructor;
-    switch (type) {
-      case Uint8Array:
-      case Uint16Array:
-      case Uint32Array:
-      case Int8Array:
-      case Int16Array:
-      case Int32Array:
-      case Float32Array:
-      case Float64Array:
-        let targetPropertyT = <TypedArray>target[k];
-        if (targetPropertyT == null || targetPropertyT.length !== (<TypedArray>sourceProperty).length) {
-          target[k] = (<TypedArray>sourceProperty).slice();
-        } else {
-          targetPropertyT.set(<TypedArray>sourceProperty);
-        }
-        break;
-      case Array:
-        let targetPropertyA = <Array<any>>target[k];
-        const length = (<Array<any>>sourceProperty).length;
-        if (targetPropertyA == null) {
-          target[k] = targetPropertyA = new Array<any>(length);
-        } else {
-          targetPropertyA.length = length;
-        }
-        for (let i = 0; i < length; i++) {
-          CloneManager.cloneProperty(
-            <Array<any>>sourceProperty,
-            targetPropertyA,
-            i,
-            cloneMode,
-            srcRoot,
-            targetRoot,
-            deepInstanceMap
-          );
-        }
-        break;
-      default:
-        let targetProperty = <Object>target[k];
-        // If the target property is undefined, create new instance and keep reference sharing like the source
-        if (!targetProperty) {
-          targetProperty = deepInstanceMap.get(sourceProperty);
-          if (!targetProperty) {
-            targetProperty = new sourceProperty.constructor();
-            deepInstanceMap.set(sourceProperty, targetProperty);
-          }
-          target[k] = targetProperty;
-        }
+    if (cloneMode === CloneMode.Ignore) return;
+    if (cloneMode === CloneMode.Assignment) {
+      target[k] = sourceProperty;
+      return;
+    }
+    if (cloneMode === CloneMode.Remap) {
+      // Entity / Component reference → resolve to its clone; refs outside the cloned subtree are
+      // absent from the map and kept unchanged.
+      target[k] = cloneMap.get(sourceProperty) ?? sourceProperty;
+      return;
+    }
+    CloneManager._deepClone(sourceProperty, target, k, cloneMap);
+  }
 
-        if ((<ICustomClone>sourceProperty).copyFrom) {
-          (<ICustomClone>targetProperty).copyFrom(<ICustomClone>sourceProperty);
-        } else {
-          const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
-          for (let k in sourceProperty) {
-            CloneManager.cloneProperty(
-              <Object>sourceProperty,
-              targetProperty,
-              k,
-              cloneModes[k],
-              srcRoot,
-              targetRoot,
-              deepInstanceMap
-            );
-          }
-          (<ICustomClone>sourceProperty)._cloneTo?.(<ICustomClone>targetProperty, srcRoot, targetRoot);
+  /**
+   * Type dispatch: how to clone is decided purely by the runtime type of
+   * `sourceProperty`. `cloneMode` is forwarded to recursive calls so children
+   * can re-dispatch by their own type.
+   */
+  private static _deepClone(
+    sourceProperty: Object,
+    target: Object,
+    k: string | number,
+    cloneMap: Map<Object, Object>
+  ): void {
+    if (ArrayBuffer.isView(sourceProperty) && !(sourceProperty instanceof DataView)) {
+      const src = <TypedArray>sourceProperty;
+      const dst = <TypedArray>target[k];
+      if (dst == null || dst.length !== src.length) {
+        target[k] = src.slice();
+      } else {
+        dst.set(src);
+      }
+    } else if (sourceProperty instanceof Map) {
+      let dst = <Map<any, any>>target[k];
+      if (dst == null) {
+        target[k] = dst = new Map<any, any>();
+      } else {
+        dst.clear();
+      }
+      sourceProperty.forEach((value, key) => {
+        dst.set(CloneManager._remapIfPossible(key, cloneMap), CloneManager._remapIfPossible(value, cloneMap));
+      });
+    } else if (sourceProperty instanceof Set) {
+      let dst = <Set<any>>target[k];
+      if (dst == null) {
+        target[k] = dst = new Set<any>();
+      } else {
+        dst.clear();
+      }
+      sourceProperty.forEach((value) => {
+        dst.add(CloneManager._remapIfPossible(value, cloneMap));
+      });
+    } else if (Array.isArray(sourceProperty)) {
+      const length = sourceProperty.length;
+      let dst = <Array<any>>target[k];
+      if (dst == null) {
+        target[k] = dst = new Array<any>(length);
+      } else {
+        dst.length = length;
+      }
+      for (let i = 0; i < length; i++) {
+        CloneManager.cloneProperty(sourceProperty, dst, i, undefined, cloneMap);
+      }
+    } else {
+      if (cloneMap.has(sourceProperty)) {
+        target[k] = cloneMap.get(sourceProperty);
+        return;
+      }
+      let dst = <Object>target[k];
+      // Reuse same-type instance pre-allocated on target (e.g. constructor-created Vector3),
+      // otherwise create a new instance from source's constructor.
+      const reuseTarget = dst && dst !== sourceProperty && dst.constructor === sourceProperty.constructor;
+      if (!reuseTarget) {
+        dst = new (<any>sourceProperty.constructor)();
+        target[k] = dst;
+      }
+      cloneMap.set(sourceProperty, dst);
+      // Populate: copyFrom fast path for value types (Vector3, Color, Matrix, ...),
+      // otherwise recurse fields respecting any decorators on the inner type.
+      if ((<ICustomClone>sourceProperty).copyFrom) {
+        (<ICustomClone>dst).copyFrom(<ICustomClone>sourceProperty);
+      } else {
+        const cloneModes = CloneManager.getCloneMode(sourceProperty.constructor);
+        for (let key in sourceProperty) {
+          CloneManager.cloneProperty(sourceProperty, dst, key, cloneModes[key], cloneMap);
         }
-        break;
+      }
+      // Finalize: post-clone side-effect hook — always runs after populate (see header doc)
+      (<ICustomClone>sourceProperty)._cloneTo?.(<ICustomClone>dst, cloneMap);
     }
   }
 
-  static deepCloneObject(source: Object, target: Object, deepInstanceMap: Map<Object, Object>): void {
+  private static _remapIfPossible(value: any, cloneMap: Map<Object, Object>): any {
+    if (value instanceof Object && (<ICustomClone>value)._defaultCloneMode === CloneMode.Remap) {
+      return cloneMap.get(value) ?? value;
+    }
+    return value;
+  }
+
+  static deepCloneObject(source: Object, target: Object, cloneMap: Map<Object, Object>): void {
     for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, CloneMode.Deep, null, null, deepInstanceMap);
+      CloneManager.cloneProperty(source, target, k, CloneMode.Deep, cloneMap);
     }
   }
 }

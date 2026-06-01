@@ -1,10 +1,12 @@
 import { EngineObject } from "../base/EngineObject";
 import { Engine } from "../Engine";
 import { IReferable } from "./IReferable";
+import { CloneMode, defaultCloneMode } from "../clone/enums/CloneMode";
 
 /**
  * The base class of assets, with reference counting capability.
  */
+@defaultCloneMode(CloneMode.Assignment)
 export abstract class ReferResource extends EngineObject implements IReferable {
   /** Whether to ignore the garbage collection check, if it is true, it will not be affected by ResourceManager.gc(). */
   isGCIgnored: boolean = false;

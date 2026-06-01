@@ -1,6 +1,6 @@
 import { Component } from "../Component";
-import { Entity } from "../Entity";
 import { CloneManager } from "./CloneManager";
+import { CloneMode } from "./enums/CloneMode";
 
 /**
  * Custom clone interface.
@@ -8,12 +8,14 @@ import { CloneManager } from "./CloneManager";
 export interface ICustomClone {
   /**
    * @internal
+   * Default clone mode for instances of this type, applied when a field holding the instance is
+   * undecorated (set via `@defaultCloneMode`). Absence falls back to deep clone.
    */
-  _remap?(srcRoot: Entity, targetRoot: Entity): Object;
+  readonly _defaultCloneMode?: CloneMode;
   /**
    * @internal
    */
-  _cloneTo?(target: ICustomClone, srcRoot?: Entity, targetRoot?: Entity): void;
+  _cloneTo?(target: ICustomClone, cloneMap?: Map<Object, Object>): void;
   /**
    * @internal
    */
@@ -26,17 +28,11 @@ export class ComponentCloner {
    * @param source - Clone source
    * @param target - Clone target
    */
-  static cloneComponent(
-    source: Component,
-    target: Component,
-    srcRoot: Entity,
-    targetRoot: Entity,
-    deepInstanceMap: Map<Object, Object>
-  ): void {
+  static cloneComponent(source: Component, target: Component, cloneMap: Map<Object, Object>): void {
     const cloneModes = CloneManager.getCloneMode(source.constructor);
     for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, cloneModes[k], srcRoot, targetRoot, deepInstanceMap);
+      CloneManager.cloneProperty(source, target, k, cloneModes[k], cloneMap);
     }
-    (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, srcRoot, targetRoot);
+    (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }
 }

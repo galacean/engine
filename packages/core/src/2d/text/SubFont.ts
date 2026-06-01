@@ -5,10 +5,12 @@ import { Texture2D } from "../../texture";
 import { FontAtlas } from "../atlas/FontAtlas";
 import { CharInfo } from "./CharInfo";
 import { TextUtils } from "./TextUtils";
+import { CloneMode, defaultCloneMode } from "../../clone/enums/CloneMode";
 
 /**
  * @internal
  */
+@defaultCloneMode(CloneMode.Assignment)
 export class SubFont {
   nativeFontString: string;
 
