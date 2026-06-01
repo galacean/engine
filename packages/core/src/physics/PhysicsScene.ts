@@ -646,6 +646,7 @@ export class PhysicsScene {
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
       this._callColliderOnUpdate();
+      nativePhysicsManager.setContactEventEnabled(this._hasCollisionEventConsumers());
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
       this._dispatchEvents(nativePhysicsManager.updateEvents());
@@ -823,6 +824,28 @@ export class PhysicsScene {
           break;
       }
     }
+  }
+
+  private _hasCollisionEventConsumers(): boolean {
+    const { _elements: colliders } = this._colliders;
+    const { onCollisionEnter, onCollisionExit, onCollisionStay } = Script.prototype;
+
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
+      const scripts = colliders[i].entity._scripts;
+      const scriptElements = scripts._elements;
+      for (let j = scripts.length - 1; j >= 0; --j) {
+        const script = scriptElements[j];
+        if (
+          script.onCollisionEnter !== onCollisionEnter ||
+          script.onCollisionExit !== onCollisionExit ||
+          script.onCollisionStay !== onCollisionStay
+        ) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   private _setGravity(): void {
