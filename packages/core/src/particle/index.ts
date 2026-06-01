@@ -8,7 +8,7 @@ export { ParticleScaleMode } from "./enums/ParticleScaleMode";
 export { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 export { ParticleStopMode } from "./enums/ParticleStopMode";
 export { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
-export { ParticleSubEmitterProperty } from "./enums/ParticleSubEmitterProperty";
+export { ParticleSubEmitterInheritProperty } from "./enums/ParticleSubEmitterInheritProperty";
 export { Burst } from "./modules/Burst";
 export { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 export { EmissionModule } from "./modules/EmissionModule";

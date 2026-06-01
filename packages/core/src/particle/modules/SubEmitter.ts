@@ -1,6 +1,6 @@
 import { ignoreClone } from "../../clone/CloneManager";
 import { ParticleRenderer } from "../ParticleRenderer";
-import { ParticleSubEmitterProperty } from "../enums/ParticleSubEmitterProperty";
+import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 
 /**
@@ -20,7 +20,7 @@ export class SubEmitter {
   type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
 
   /** Bitmask of properties inherited from the parent particle. */
-  inheritProperties: ParticleSubEmitterProperty = ParticleSubEmitterProperty.None;
+  inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None;
 
   /** Probability (0..1) the sub-emitter fires for any given event. */
   emitProbability: number = 1;

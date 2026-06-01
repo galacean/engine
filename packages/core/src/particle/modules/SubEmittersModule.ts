@@ -1,7 +1,7 @@
 import { Color, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
-import { ParticleSubEmitterProperty } from "../enums/ParticleSubEmitterProperty";
+import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
@@ -120,9 +120,9 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     }
 
     const inherit = sub.inheritProperties;
-    const colorOverride = (inherit & ParticleSubEmitterProperty.Color) !== 0 ? parentColor : null;
-    const sizeOverride = (inherit & ParticleSubEmitterProperty.Size) !== 0 ? parentSize : null;
-    const rotationOverride = (inherit & ParticleSubEmitterProperty.Rotation) !== 0 ? parentRotation : null;
+    const colorOverride = (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? parentColor : null;
+    const sizeOverride = (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? parentSize : null;
+    const rotationOverride = (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? parentRotation : null;
 
     targetGen._emitFromSubEmitter(count, worldPosition, colorOverride, sizeOverride, rotationOverride);
   }

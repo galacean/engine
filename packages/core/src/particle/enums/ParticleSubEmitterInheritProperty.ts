@@ -10,7 +10,7 @@
  * start size, start rotation), NOT the per-frame value produced by
  * ColorOverLifetime / SizeOverLifetime / RotationOverLifetime.
  */
-export enum ParticleSubEmitterProperty {
+export enum ParticleSubEmitterInheritProperty {
   None = 0x0,
   /** Multiply parent particle's start color into the sub particle's start color. */
   Color = 0x1,

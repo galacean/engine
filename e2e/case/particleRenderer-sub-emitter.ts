@@ -23,7 +23,7 @@ import {
   ParticleMaterial,
   ParticleRenderer,
   ParticleSimulationSpace,
-  ParticleSubEmitterProperty,
+  ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
   SphereShape,
   Texture2D,
@@ -169,7 +169,7 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   slot.emitter = subRenderer;
   slot.type = ParticleSubEmitterType.Death;
   slot.emitCount = 4;
-  slot.inheritProperties = ParticleSubEmitterProperty.Color | ParticleSubEmitterProperty.Size;
+  slot.inheritProperties = ParticleSubEmitterInheritProperty.Color | ParticleSubEmitterInheritProperty.Size;
 
   // Attach the fully-configured tree as a unit: onEnable now sees
   // playOnEnabled = false, so the sub stays idle until the parent's Death drives it.

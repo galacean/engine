@@ -14,7 +14,7 @@ import {
   ParticleMaterial,
   ParticleRenderer,
   ParticleStopMode,
-  ParticleSubEmitterProperty,
+  ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
   Vector3,
   WebGLEngine
@@ -202,7 +202,7 @@ describe("SubEmitter", () => {
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Birth;
-    sub.inheritProperties = ParticleSubEmitterProperty.Color;
+    sub.inheritProperties = ParticleSubEmitterInheritProperty.Color;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -269,7 +269,7 @@ describe("SubEmitter", () => {
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Death;
-    sub.inheritProperties = ParticleSubEmitterProperty.Color;
+    sub.inheritProperties = ParticleSubEmitterInheritProperty.Color;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -312,7 +312,7 @@ describe("SubEmitter", () => {
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Death;
-    sub.inheritProperties = ParticleSubEmitterProperty.Size;
+    sub.inheritProperties = ParticleSubEmitterInheritProperty.Size;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -346,7 +346,7 @@ describe("SubEmitter", () => {
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Birth;
-    sub.inheritProperties = ParticleSubEmitterProperty.Rotation;
+    sub.inheritProperties = ParticleSubEmitterInheritProperty.Rotation;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -388,7 +388,7 @@ describe("SubEmitter", () => {
     const sub = parent.generator.subEmitters.addSubEmitter();
     sub.emitter = child;
     sub.type = ParticleSubEmitterType.Death;
-    sub.inheritProperties = ParticleSubEmitterProperty.Rotation;
+    sub.inheritProperties = ParticleSubEmitterInheritProperty.Rotation;
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
