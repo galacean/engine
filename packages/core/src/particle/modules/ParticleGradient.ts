@@ -129,6 +129,13 @@ export class ParticleGradient {
    * @param alphaKeys - The alpha keys
    */
   setKeys(colorKeys: GradientColorKey[], alphaKeys: GradientAlphaKey[]): void {
+    if (colorKeys.length > 4) {
+      throw new Error("Gradient can only have 4 color keys");
+    }
+    if (alphaKeys.length > 4) {
+      throw new Error("Gradient can only have 4 alpha keys");
+    }
+
     const currentColorKeys = this._colorKeys;
     const currentAlphaKeys = this._alphaKeys;
     for (let i = 0, n = currentColorKeys.length; i < n; i++) {
