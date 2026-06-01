@@ -63,9 +63,17 @@ WebGLEngine.create({
 });
 
 function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Texture2D): void {
+  // Build the whole tree off-scene first, then attach it as a unit at the end.
+  // Creating children directly under a live rootEntity would run
+  // ParticleRenderer.onEnable synchronously at addComponent — before
+  // `playOnEnabled = false` / `useAutoRandomSeed = false` are set — so the sub
+  // would auto-play once and reseed itself with Math.random(), making the
+  // snapshot non-deterministic. Configuring while detached avoids that.
+  const sceneRoot = new Entity(engine, "SubEmitterScene");
+
   // ── Sub particle target: each parent Death spawns a small splash here, inheriting
   //    parent's Color and Size. Sub particles fan out via cone shape.
-  const subEntity = rootEntity.createChild("Sub");
+  const subEntity = sceneRoot.createChild("Sub");
   const subRenderer = subEntity.addComponent(ParticleRenderer);
   const subGenerator = subRenderer.generator;
   subGenerator.useAutoRandomSeed = false;
@@ -101,7 +109,7 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
 
   // ── Parent: bursts a fan of bright particles from a sphere shape, dies after a
   //    short lifetime, triggering sub-emitter Death event.
-  const parentEntity = rootEntity.createChild("Parent");
+  const parentEntity = sceneRoot.createChild("Parent");
   parentEntity.transform.setPosition(0, 1.2, 0);
   const parentRenderer = parentEntity.addComponent(ParticleRenderer);
   const parentGenerator = parentRenderer.generator;
@@ -163,5 +171,8 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   slot.emitCount = 4;
   slot.inheritProperties = ParticleSubEmitterProperty.Color | ParticleSubEmitterProperty.Size;
 
+  // Attach the fully-configured tree as a unit: onEnable now sees
+  // playOnEnabled = false, so the sub stays idle until the parent's Death drives it.
+  rootEntity.addChild(sceneRoot);
   parentGenerator.play();
 }
