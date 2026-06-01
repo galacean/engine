@@ -187,7 +187,9 @@ export class CustomDataModule extends ParticleGeneratorModule {
     delete this._gradients[name];
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _cloneTo(target: CustomDataModule): void {
     const sourceCurves = this._curves;
     for (const name in sourceCurves) {
