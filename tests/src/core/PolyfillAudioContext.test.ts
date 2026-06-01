@@ -9,7 +9,7 @@ describe("Polyfill", () => {
       (window as any).webkitAudioContext = class MockWebkitAudioContext {
         state = "suspended";
 
-        constructor() { }
+        constructor() {}
 
         decodeAudioData(arrayBuffer: ArrayBuffer, successCallback: Function, errorCallback?: Function) {
           setTimeout(() => {

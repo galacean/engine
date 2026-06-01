@@ -1,10 +1,10 @@
 import { BoundingBox, Color, MathUtil } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
-import { BatchUtils } from "../../RenderPipeline/BatchUtils";
+import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManager";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
-import { SubRenderElement } from "../../RenderPipeline/SubRenderElement";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -278,9 +278,9 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Always update world positions to buffer, should opt
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
   /**
@@ -295,15 +295,15 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   /**
    * @internal
    */
-  override _canBatch(elementA: SubRenderElement, elementB: SubRenderElement): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
+  override _canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
+    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
   /**
    * @internal
    */
-  override _batch(elementA: SubRenderElement, elementB?: SubRenderElement): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  override _batch(preElement: RenderElement | null, curElement: RenderElement): void {
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
   /**
@@ -377,11 +377,10 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     const camera = context.camera;
     const engine = camera.engine;
     const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElement = engine._subRenderElementPool.get();
     const subChunk = this._subChunk;
-    subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
-    renderElement.addSubRenderElement(subRenderElement);
+    renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, this.sprite.texture, subChunk);
+    renderElement.priority = this.priority;
+    renderElement.distanceForSort = this._distanceForSort;
     camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 

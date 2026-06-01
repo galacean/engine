@@ -359,7 +359,7 @@ describe("TextUtils", () => {
     );
     expect(result.width).to.be.equal(23);
     expect(result.height).to.be.equal(135);
-    expect(result.lines).to.be.deep.equal(['   ', '   ', 'W', 'or', 'ld']);
+    expect(result.lines).to.be.deep.equal(["   ", "   ", "W", "or", "ld"]);
     expect(result.lineHeight).to.be.equal(27);
 
     wrap1TextRenderer.enableWrapping = true;

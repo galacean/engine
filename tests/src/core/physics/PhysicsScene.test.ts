@@ -748,18 +748,11 @@ describe("Physics Test", () => {
           const halfExtents = new Vector3(0.5, 0.5, 0.5);
           const direction = new Vector3(0, 1, 0);
           const orientation = new Quaternion(0, 0, 0, 1);
-          nativeScene.boxCast(
-            sweepCenter,
-            orientation,
-            halfExtents,
-            direction,
-            100,
-            (sweepUuid: number) => {
-              innerSweepCalls++;
-              innerSweepUuids.push(sweepUuid);
-              return false; // skip everything in inner sweep
-            }
-          );
+          nativeScene.boxCast(sweepCenter, orientation, halfExtents, direction, 100, (sweepUuid: number) => {
+            innerSweepCalls++;
+            innerSweepUuids.push(sweepUuid);
+            return false; // skip everything in inner sweep
+          });
           return uuid === shapeA.id;
         },
         outerHitFn

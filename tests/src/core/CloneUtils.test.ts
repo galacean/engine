@@ -1,12 +1,4 @@
-import {
-  Entity,
-  MeshRenderer,
-  Script,
-  Signal,
-  assignmentClone,
-  deepClone,
-  ignoreClone
-} from "@galacean/engine-core";
+import { Entity, MeshRenderer, Script, Signal, assignmentClone, deepClone, ignoreClone } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
@@ -553,7 +545,9 @@ describe("Clone remap", async () => {
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(SignalScript);
       let called = false;
-      script.onFire.on(() => { called = true; });
+      script.onFire.on(() => {
+        called = true;
+      });
 
       const cloned = parent.clone();
       const cs = cloned.getComponent(SignalScript);

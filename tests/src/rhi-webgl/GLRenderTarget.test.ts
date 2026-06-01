@@ -41,5 +41,4 @@ describe("GLRenderTarget", () => {
       renderTarget.destroy();
     });
   });
-
 });

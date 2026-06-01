@@ -78,7 +78,6 @@ describe("ResourceManager", () => {
     });
   });
 
-
   describe("load asset", () => {
     it("not found", async () => {
       try {

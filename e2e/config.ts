@@ -135,7 +135,7 @@ export const E2E_CONFIG = {
       category: "Material",
       caseFileName: "material-pbr",
       threshold: 0,
-      diffPercentage: 0.0080
+      diffPercentage: 0.008
     },
     shader: {
       category: "Material",
@@ -419,6 +419,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.00782
     },
+    particleEmitMeshRotationLifeCurve: {
+      category: "Particle",
+      caseFileName: "particleRenderer-emit-mesh-rotation-life-curve",
+      threshold: 0,
+      diffPercentage: 0.02553
+    },
     particleEmitBillboardStretched: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-billboard-stretched",
@@ -454,6 +460,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-sub-emitter",
       threshold: 0,
       diffPercentage: 0.06
+    },
+    rateOverDistance: {
+      category: "Particle",
+      caseFileName: "particleRenderer-rateOverDistance",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   PostProcess: {
@@ -480,6 +492,20 @@ export const E2E_CONFIG = {
       caseFileName: "postProcess-customPass",
       threshold: 0,
       diffPercentage: 0.03
+    }
+  },
+  GPUInstancing: {
+    autoBatch: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-auto-batch",
+      threshold: 0,
+      diffPercentage: 0.00126
+    },
+    customData: {
+      category: "GPUInstancing",
+      caseFileName: "gpu-instancing-custom-data",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   SpriteMask: {
@@ -537,6 +563,14 @@ export const E2E_CONFIG = {
       caseFileName: "canvas-transparency",
       threshold: 0,
       diffPercentage: 0.044
+    }
+  },
+  UI: {
+    batchOrder: {
+      category: "UI",
+      caseFileName: "ui-batch-order",
+      threshold: 0,
+      diffPercentage: 0
     }
   }
 };

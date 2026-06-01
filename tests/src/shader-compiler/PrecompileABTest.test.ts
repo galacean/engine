@@ -10,7 +10,14 @@
  *   6. Full .shaderc round-trip: JSON stringify → parse → create ShaderPass → WebGL compile
  */
 
-import { Shader, ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import {
+  Shader,
+  ShaderFactory,
+  ShaderLanguage,
+  ShaderMacro,
+  ShaderMacroCollection,
+  ShaderPass
+} from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
@@ -111,7 +118,6 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
   // @ts-ignore
   Shader._shaderCompiler = shaderCompiler;
 
-
   // ═══════════════════════════════════════════════════════════
   // A/B 1: GLSL Source Identity
   // ═══════════════════════════════════════════════════════════
@@ -201,7 +207,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
           );
 
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid, `Pass "${pass.name}" should compile to valid WebGL`).toBe(true);
         }
       }
@@ -319,7 +325,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
           );
 
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid, `.shaderc round-trip pass "${pass.name}" should compile`).toBe(true);
         }
       }
@@ -537,7 +543,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             pass.tags
           );
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);
         }
       }
@@ -567,7 +573,7 @@ describe("Precompile A/B Test: Live vs Precompiled", async () => {
             pass.tags
           );
           // @ts-ignore
-          const program = shaderPass._getCanonicalShaderProgram(engine, macroCollection);
+          const program = shaderPass._compileShaderProgram(engine, macroCollection);
           expect(program.isValid).toBe(true);
         }
       }

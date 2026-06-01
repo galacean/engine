@@ -174,9 +174,9 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context: RenderContext, onlyMVP: boolean): void {
     //@todo: Don't need to update transform shader data, temp solution
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const { generator } = this;
@@ -251,10 +251,9 @@ export class ParticleRenderer extends Renderer {
 
     const engine = this._engine;
     const renderElement = engine._renderElementPool.get();
-    renderElement.set(this.priority, this._distanceForSort);
-    const subRenderElement = engine._subRenderElementPool.get();
-    subRenderElement.set(this, material, generator._primitive, generator._subPrimitive);
-    renderElement.addSubRenderElement(subRenderElement);
+    renderElement.set(this, material, generator._primitive, generator._subPrimitive);
+    renderElement.priority = this.priority;
+    renderElement.distanceForSort = this._distanceForSort;
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 

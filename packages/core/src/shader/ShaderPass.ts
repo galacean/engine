@@ -1,13 +1,14 @@
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { Engine } from "../Engine";
+import { InstanceBuffer } from "../RenderPipeline/InstanceBuffer";
 import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { GLCapabilityType } from "../base/Constant";
-import { ShaderFactory } from "./ShaderFactory";
+import { InstanceBufferLayout, ShaderFactory } from "./ShaderFactory";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
+import { ShaderProgramMap } from "./ShaderProgramMap";
 import { ShaderProgram } from "./ShaderProgram";
-import { ShaderProgramPool } from "./ShaderProgramPool";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderLanguage } from "./enums/ShaderLanguage";
 import { ShaderMacroProcessor } from "./ShaderMacroProcessor";
@@ -48,7 +49,7 @@ export class ShaderPass extends ShaderPart {
   /** @internal */
   _renderStateDataMap: Record<number, ShaderProperty> = {};
   /** @internal */
-  _shaderProgramPools: ShaderProgramPool[] = [];
+  _shaderProgramMaps: ShaderProgramMap[] = [];
   /** @internal Transform feedback output varyings (WebGL2 only). */
   _feedbackVaryings?: string[];
 
@@ -88,15 +89,15 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const shaderProgramPool = engine._getShaderProgramPool(this._shaderPassId, this._shaderProgramPools);
-    let shaderProgram = shaderProgramPool.get(macroCollection);
+    const shaderProgramMap = engine._getShaderProgramMap(this._shaderPassId, this._shaderProgramMaps);
+    let shaderProgram = shaderProgramMap.get(macroCollection);
     if (shaderProgram) {
       return shaderProgram;
     }
 
-    shaderProgram = this._getCanonicalShaderProgram(engine, macroCollection);
+    shaderProgram = this._compileShaderProgram(engine, macroCollection);
 
-    shaderProgramPool.cache(shaderProgram);
+    shaderProgramMap.cache(shaderProgram);
     return shaderProgram;
   }
 
@@ -104,25 +105,35 @@ export class ShaderPass extends ShaderPart {
    * @internal
    */
   _destroy(): void {
-    const shaderProgramPools = this._shaderProgramPools;
-    for (let i = 0, n = shaderProgramPools.length; i < n; i++) {
-      const shaderProgramPool = shaderProgramPools[i];
-      shaderProgramPool._destroy();
-      delete shaderProgramPool.engine._shaderProgramPools[this._shaderPassId];
+    const shaderProgramMaps = this._shaderProgramMaps;
+    for (let i = 0, n = shaderProgramMaps.length; i < n; i++) {
+      const map = shaderProgramMaps[i];
+      map.destroy();
+      delete map.engine._shaderProgramMaps[this._shaderPassId];
     }
-    // Clear array storing multiple engine shader program pools
-    shaderProgramPools.length = 0;
+    shaderProgramMaps.length = 0;
   }
 
-  private _getCanonicalShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const { vertexSource, fragmentSource } = this._compileShaderSource(engine, macroCollection);
-    return new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
+  /**
+   * @internal
+   */
+  _compileShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
+    const isGPUInstance = macroCollection.isEnable(InstanceBuffer.gpuInstanceMacro);
+    const { vertexSource, fragmentSource, instanceLayout } = this._compileShaderSource(
+      engine,
+      macroCollection,
+      isGPUInstance
+    );
+    const program = new ShaderProgram(engine, vertexSource, fragmentSource, this._feedbackVaryings);
+    program._instanceLayout = instanceLayout;
+    return program;
   }
 
   private _compileShaderSource(
     engine: Engine,
-    macroCollection: ShaderMacroCollection
-  ): { vertexSource: string; fragmentSource: string } {
+    macroCollection: ShaderMacroCollection,
+    isGPUInstance: boolean
+  ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const shaderMacroList = ShaderPass._shaderMacroList;
     shaderMacroList.length = 0;
@@ -144,6 +155,14 @@ export class ShaderPass extends ShaderPart {
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
+    let instanceLayout: InstanceBufferLayout | null = null;
+    if (isGPUInstance) {
+      const injected = ShaderFactory.injectInstanceUBO(engine, vertexSource, fragmentSource);
+      vertexSource = injected.vertexSource;
+      fragmentSource = injected.fragmentSource;
+      instanceLayout = injected.instanceLayout;
+    }
+
     if (isWebGL2 && this._platformTarget === ShaderLanguage.GLSLES100) {
       vertexSource = ShaderFactory.convertTo300(vertexSource);
       fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
@@ -159,7 +178,8 @@ export class ShaderPass extends ShaderPart {
         ${isWebGL2 ? "" : ShaderFactory.shaderExtension}
         ${precisionStr}
         ${fragmentSource}
-      `
+      `,
+      instanceLayout
     };
   }
 }
