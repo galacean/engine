@@ -11,6 +11,7 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 interface CurveStream {
   name: string;
+  curve: ParticleCompositeCurve;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
   propMaxGradient: ShaderProperty;
@@ -19,6 +20,7 @@ interface CurveStream {
 
 interface GradientStream {
   name: string;
+  gradient: ParticleCompositeGradient;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
   propMaxGradientColor: ShaderProperty;
@@ -85,6 +87,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
     this._curves[name] = curve;
     this._curveStreams.push({
       name,
+      curve,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
       propMaxGradient: ShaderProperty.getByName(`renderer_${name}MaxGradient`),
@@ -112,6 +115,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
     this._gradients[name] = gradient;
     this._gradientStreams.push({
       name,
+      gradient,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
       propMaxGradientColor: ShaderProperty.getByName(`renderer_${name}MaxGradientColor`),
@@ -129,8 +133,16 @@ export class CustomDataModule extends ParticleGeneratorModule {
    */
   removeCurve(name: string): void {
     const streams = this._curveStreams;
-    const idx = streams.findIndex((s) => s.name === name);
-    if (idx < 0) return;
+    let idx = -1;
+    for (let i = 0, n = streams.length; i < n; i++) {
+      if (streams[i].name === name) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
+      return;
+    }
     const stream = streams[idx];
     const shaderData = this._generator._renderer.shaderData;
     shaderData.setFloat(stream.propMaxConst, 0);
@@ -148,8 +160,16 @@ export class CustomDataModule extends ParticleGeneratorModule {
    */
   removeGradient(name: string): void {
     const streams = this._gradientStreams;
-    const idx = streams.findIndex((s) => s.name === name);
-    if (idx < 0) return;
+    let idx = -1;
+    for (let i = 0, n = streams.length; i < n; i++) {
+      if (streams[i].name === name) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
+      return;
+    }
     const stream = streams[idx];
     const shaderData = this._generator._renderer.shaderData;
     const zeroColor = CustomDataModule._zeroColor;
@@ -192,17 +212,16 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
     const curveStreams = this._curveStreams;
     for (let i = 0, n = curveStreams.length; i < n; i++) {
-      const stream = curveStreams[i];
-      this._uploadCurveStream(shaderData, this._curves[stream.name], stream);
+      this._uploadCurveStream(shaderData, curveStreams[i]);
     }
     const gradientStreams = this._gradientStreams;
     for (let i = 0, n = gradientStreams.length; i < n; i++) {
-      const stream = gradientStreams[i];
-      this._uploadGradientStream(shaderData, this._gradients[stream.name], stream);
+      this._uploadGradientStream(shaderData, gradientStreams[i]);
     }
   }
 
-  private _uploadCurveStream(shaderData: ShaderData, curve: ParticleCompositeCurve, stream: CurveStream): void {
+  private _uploadCurveStream(shaderData: ShaderData, stream: CurveStream): void {
+    const { curve } = stream;
     const mode = curve.mode;
     if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
       shaderData.setFloatArray(stream.propMaxGradient, curve.curveMax._getTypeArray());
@@ -217,11 +236,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
   }
 
-  private _uploadGradientStream(
-    shaderData: ShaderData,
-    gradient: ParticleCompositeGradient,
-    stream: GradientStream
-  ): void {
+  private _uploadGradientStream(shaderData: ShaderData, stream: GradientStream): void {
+    const { gradient } = stream;
     const mode = gradient.mode;
 
     if (mode === ParticleGradientMode.Gradient || mode === ParticleGradientMode.TwoGradients) {
