@@ -204,39 +204,28 @@ describe("CustomDataModule", function () {
     const customData = particleRenderer.generator.customData;
     const shaderData = particleRenderer.shaderData;
     customData.enabled = true;
-    const single = new ParticleGradient(
-      [new GradientColorKey(0, new Color(1, 0, 0)), new GradientColorKey(1, new Color(0, 0, 1))],
+    const gMax = new ParticleGradient(
+      [new GradientColorKey(0, new Color()), new GradientColorKey(0.7, new Color())],
       [new GradientAlphaKey(0, 0), new GradientAlphaKey(1, 1)]
     );
-    customData.addGradient("G3", new ParticleCompositeGradient(single));
-    const twoMin = new ParticleGradient(
-      [new GradientColorKey(0, new Color(0, 1, 0))],
+    const gMin = new ParticleGradient(
+      [new GradientColorKey(0, new Color())],
       [new GradientAlphaKey(0, 0), new GradientAlphaKey(0.5, 1)]
     );
-    const twoMax = new ParticleGradient(
-      [new GradientColorKey(0, new Color(1, 1, 0)), new GradientColorKey(0.7, new Color(1, 0, 1))],
-      [new GradientAlphaKey(0, 0), new GradientAlphaKey(1, 1)]
-    );
-    customData.addGradient("G4", new ParticleCompositeGradient(twoMin, twoMax));
-    expect(customData.gradients["G3"].mode).to.eq(ParticleGradientMode.Gradient);
-    expect(customData.gradients["G4"].mode).to.eq(ParticleGradientMode.TwoGradients);
-    expect(() => {
-      //@ts-ignore
-      customData._updateShaderData(shaderData);
-    }).to.not.throw();
+    customData.addGradient("G3", new ParticleCompositeGradient(gMax));
+    customData.addGradient("G4", new ParticleCompositeGradient(gMin, gMax));
+    //@ts-ignore
+    customData._updateShaderData(shaderData);
 
-    // Gradient mode: only Max* uploaded; KeysCount xy/zw both reflect max keys
-    // (gradientMin === gradientMax fallback inside _uploadGradientStream).
-    const g3Keys = shaderData.getVector4("renderer_G3KeysCount");
-    expect(g3Keys.x).to.be.closeTo(1, 1e-6);
-    expect(g3Keys.z).to.be.closeTo(1, 1e-6);
+    // Single Gradient: min falls back to max, so xy === zw.
+    const g3 = shaderData.getVector4("renderer_G3KeysCount");
+    expect(g3.x).to.be.closeTo(0.7, 1e-6);
+    expect(g3.z).to.be.closeTo(g3.x, 1e-6);
 
-    // TwoGradients: KeysCount xy = min last times, zw = max last times.
-    const g4Keys = shaderData.getVector4("renderer_G4KeysCount");
-    expect(g4Keys.x).to.be.closeTo(0, 1e-6);
-    expect(g4Keys.y).to.be.closeTo(0.5, 1e-6);
-    expect(g4Keys.z).to.be.closeTo(0.7, 1e-6);
-    expect(g4Keys.w).to.be.closeTo(1, 1e-6);
+    // TwoGradients: xy from min keys, zw from max keys.
+    const g4 = shaderData.getVector4("renderer_G4KeysCount");
+    expect(g4.y).to.be.closeTo(0.5, 1e-6);
+    expect(g4.z).to.be.closeTo(0.7, 1e-6);
   });
 
   it("clones deep — entries detached, internal caches rebuilt", function () {

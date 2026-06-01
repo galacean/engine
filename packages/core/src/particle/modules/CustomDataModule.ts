@@ -129,16 +129,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
    */
   removeCurve(name: string): void {
     const streams = this._curveStreams;
-    let idx = -1;
-    for (let i = 0, n = streams.length; i < n; i++) {
-      if (streams[i].name === name) {
-        idx = i;
-        break;
-      }
-    }
-    if (idx < 0) {
-      return;
-    }
+    const idx = streams.findIndex((s) => s.name === name);
+    if (idx < 0) return;
     const stream = streams[idx];
     const shaderData = this._generator._renderer.shaderData;
     shaderData.setFloat(stream.propMaxConst, 0);
@@ -156,16 +148,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
    */
   removeGradient(name: string): void {
     const streams = this._gradientStreams;
-    let idx = -1;
-    for (let i = 0, n = streams.length; i < n; i++) {
-      if (streams[i].name === name) {
-        idx = i;
-        break;
-      }
-    }
-    if (idx < 0) {
-      return;
-    }
+    const idx = streams.findIndex((s) => s.name === name);
+    if (idx < 0) return;
     const stream = streams[idx];
     const shaderData = this._generator._renderer.shaderData;
     const zeroColor = CustomDataModule._zeroColor;
