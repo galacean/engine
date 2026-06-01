@@ -116,6 +116,13 @@ export class LitePhysicsScene implements IPhysicsScene {
   }
 
   /**
+   * {@inheritDoc IPhysicsScene.setContactEventEnabled }
+   */
+  setContactEventEnabled(_enabled: boolean): void {
+    // Physics-lite only produces trigger events, so there is no contact buffer to toggle.
+  }
+
+  /**
    * {@inheritDoc IPhysicsScene.updateEvents }
    */
   updateEvents(): IPhysicsEvents {
