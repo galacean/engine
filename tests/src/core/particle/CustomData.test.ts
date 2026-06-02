@@ -96,6 +96,22 @@ describe("CustomDataModule", function () {
     expect(Object.keys(customData.curves).length).to.eq(2);
   });
 
+  it("addCurve / addGradient reject names that collide with engine particle module namespaces", function () {
+    const customData = particleRenderer.generator.customData;
+    Logger.enable();
+    // Bare prefixes (exact collision with module's MaxConst/MaxGradient*…)
+    customData.addCurve("VOL", new ParticleCompositeCurve(0));
+    customData.addGradient("COL", new ParticleCompositeGradient(new Color()));
+    // Suffix-extended also rejected (`FOLSpeedMaxConst` collides with FOL's existing uniform space)
+    customData.addCurve("FOLSpeed", new ParticleCompositeCurve(0));
+    customData.addGradient("TSAFrame", new ParticleCompositeGradient(new Color()));
+    expect(Object.keys(customData.curves).length).to.eq(0);
+    expect(Object.keys(customData.gradients).length).to.eq(0);
+    // Names that merely happen to contain the substring are NOT rejected — only the leading prefix matters.
+    customData.addCurve("MyVOL", new ParticleCompositeCurve(0));
+    expect(Object.keys(customData.curves).length).to.eq(1);
+  });
+
   it("addCurve rejects duplicate name (cross with gradients)", function () {
     const customData = particleRenderer.generator.customData;
     customData.addCurve("Foo", new ParticleCompositeCurve(1));
@@ -226,6 +242,51 @@ describe("CustomDataModule", function () {
     const g4 = shaderData.getVector4("renderer_G4KeysCount");
     expect(g4.y).to.be.closeTo(0.5, 1e-6);
     expect(g4.z).to.be.closeTo(0.7, 1e-6);
+  });
+
+  it("_uploadCurveStream clears stale uniforms when curve.mode flips at runtime", function () {
+    const customData = particleRenderer.generator.customData;
+    const shaderData = particleRenderer.shaderData;
+    customData.enabled = true;
+
+    // Start in Constant mode: writes MaxConst, leaves MaxGradient[] untouched.
+    const curve = new ParticleCompositeCurve(0.8);
+    customData.addCurve("FlipScalar", curve);
+    //@ts-ignore
+    customData._updateShaderData(shaderData);
+    expect(shaderData.getFloat("renderer_FlipScalarMaxConst")).to.eq(0.8);
+
+    // Flip to Curve mode. The stale 0.8 in MaxConst must be cleared by the
+    // transition so the GPU doesn't keep reading it through a user-declared
+    // `uniform float renderer_FlipScalarMaxConst`.
+    curve.curveMax = new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1));
+    curve.mode = ParticleCurveMode.Curve;
+    //@ts-ignore
+    customData._updateShaderData(shaderData);
+    expect(shaderData.getFloat("renderer_FlipScalarMaxConst")).to.eq(0);
+  });
+
+  it("_uploadGradientStream clears stale uniforms when gradient.mode flips at runtime", function () {
+    const customData = particleRenderer.generator.customData;
+    const shaderData = particleRenderer.shaderData;
+    customData.enabled = true;
+
+    // Start in Constant mode: writes MaxConst color, leaves gradient arrays untouched.
+    const gradient = new ParticleCompositeGradient(new Color(0.4, 0.4, 0.4, 1));
+    customData.addGradient("FlipColor", gradient);
+    //@ts-ignore
+    customData._updateShaderData(shaderData);
+    expect(shaderData.getColor("renderer_FlipColorMaxConst").r).to.be.closeTo(0.4, 1e-6);
+
+    // Flip to Gradient mode. Stale MaxConst must be zeroed on transition.
+    gradient.gradientMax = new ParticleGradient(
+      [new GradientColorKey(0, new Color(1, 0, 0)), new GradientColorKey(1, new Color(0, 0, 1))],
+      [new GradientAlphaKey(0, 0), new GradientAlphaKey(1, 1)]
+    );
+    gradient.mode = ParticleGradientMode.Gradient;
+    //@ts-ignore
+    customData._updateShaderData(shaderData);
+    expect(shaderData.getColor("renderer_FlipColorMaxConst").r).to.eq(0);
   });
 
   it("clones deep — entries detached, internal caches rebuilt", function () {

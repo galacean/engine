@@ -12,6 +12,7 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 interface CurveStream {
   name: string;
   curve: ParticleCompositeCurve;
+  lastMode: ParticleCurveMode;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
   propMaxGradient: ShaderProperty;
@@ -21,6 +22,7 @@ interface CurveStream {
 interface GradientStream {
   name: string;
   gradient: ParticleCompositeGradient;
+  lastMode: ParticleGradientMode;
   propMaxConst: ShaderProperty;
   propMinConst: ShaderProperty;
   propMaxGradientColor: ShaderProperty;
@@ -38,6 +40,10 @@ interface GradientStream {
  */
 export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _streamNamePattern = /^[A-Za-z0-9_]+$/;
+  // Engine-internal particle module uniform prefixes: VOL/FOL/SOL/COL/ROL/TSA/LVL.
+  // A user `name` starting with any of these would generate a `renderer_<name>...`
+  // uniform that collides with an existing engine uniform in the same ShaderData slot.
+  private static readonly _reservedPrefixPattern = /^(?:VOL|FOL|SOL|COL|ROL|TSA|LVL)/;
   private static readonly _zeroCurveArray = new Float32Array(8);
   private static readonly _zeroGradientColorArray = new Float32Array(16);
   private static readonly _zeroGradientAlphaArray = new Float32Array(8);
@@ -89,6 +95,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
     this._curveStreams.push({
       name,
       curve,
+      lastMode: curve.mode,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
       propMaxGradient: ShaderProperty.getByName(`renderer_${name}MaxGradient`),
@@ -117,6 +124,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
     this._gradientStreams.push({
       name,
       gradient,
+      lastMode: gradient.mode,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
       propMinConst: ShaderProperty.getByName(`renderer_${name}MinConst`),
       propMaxGradientColor: ShaderProperty.getByName(`renderer_${name}MaxGradientColor`),
@@ -145,11 +153,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
       return;
     }
     const stream = streams[idx];
-    const shaderData = this._generator._renderer.shaderData;
-    shaderData.setFloat(stream.propMaxConst, 0);
-    shaderData.setFloat(stream.propMinConst, 0);
-    shaderData.setFloatArray(stream.propMaxGradient, CustomDataModule._zeroCurveArray);
-    shaderData.setFloatArray(stream.propMinGradient, CustomDataModule._zeroCurveArray);
+    this._zeroCurveUniforms(this._generator._renderer.shaderData, stream);
     streams[idx] = streams[streams.length - 1];
     streams.pop();
     delete this._curves[name];
@@ -172,14 +176,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
       return;
     }
     const stream = streams[idx];
-    const shaderData = this._generator._renderer.shaderData;
-    shaderData.setColor(stream.propMaxConst, CustomDataModule._zeroColor);
-    shaderData.setColor(stream.propMinConst, CustomDataModule._zeroColor);
-    shaderData.setFloatArray(stream.propMaxGradientColor, CustomDataModule._zeroGradientColorArray);
-    shaderData.setFloatArray(stream.propMaxGradientAlpha, CustomDataModule._zeroGradientAlphaArray);
-    shaderData.setFloatArray(stream.propMinGradientColor, CustomDataModule._zeroGradientColorArray);
-    shaderData.setFloatArray(stream.propMinGradientAlpha, CustomDataModule._zeroGradientAlphaArray);
-    shaderData.setVector4(stream.propKeysCount, CustomDataModule._zeroVector4);
+    this._zeroGradientUniforms(this._generator._renderer.shaderData, stream);
     streams[idx] = streams[streams.length - 1];
     streams.pop();
     delete this._gradients[name];
@@ -223,6 +220,12 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private _uploadCurveStream(shaderData: ShaderData, stream: CurveStream): void {
     const { curve } = stream;
     const mode = curve.mode;
+    // On mode change, zero the uniforms the old mode wrote so the GPU doesn't
+    // keep reading stale values from the unused mode path.
+    if (mode !== stream.lastMode) {
+      this._zeroCurveUniforms(shaderData, stream);
+      stream.lastMode = mode;
+    }
     if (mode === ParticleCurveMode.Curve || mode === ParticleCurveMode.TwoCurves) {
       shaderData.setFloatArray(stream.propMaxGradient, curve.curveMax._getTypeArray());
       if (mode === ParticleCurveMode.TwoCurves) {
@@ -239,6 +242,10 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private _uploadGradientStream(shaderData: ShaderData, stream: GradientStream): void {
     const { gradient } = stream;
     const mode = gradient.mode;
+    if (mode !== stream.lastMode) {
+      this._zeroGradientUniforms(shaderData, stream);
+      stream.lastMode = mode;
+    }
 
     if (mode === ParticleGradientMode.Gradient || mode === ParticleGradientMode.TwoGradients) {
       const gradientMax = gradient.gradientMax;
@@ -270,10 +277,34 @@ export class CustomDataModule extends ParticleGeneratorModule {
     }
   }
 
+  private _zeroCurveUniforms(shaderData: ShaderData, stream: CurveStream): void {
+    shaderData.setFloat(stream.propMaxConst, 0);
+    shaderData.setFloat(stream.propMinConst, 0);
+    shaderData.setFloatArray(stream.propMaxGradient, CustomDataModule._zeroCurveArray);
+    shaderData.setFloatArray(stream.propMinGradient, CustomDataModule._zeroCurveArray);
+  }
+
+  private _zeroGradientUniforms(shaderData: ShaderData, stream: GradientStream): void {
+    shaderData.setColor(stream.propMaxConst, CustomDataModule._zeroColor);
+    shaderData.setColor(stream.propMinConst, CustomDataModule._zeroColor);
+    shaderData.setFloatArray(stream.propMaxGradientColor, CustomDataModule._zeroGradientColorArray);
+    shaderData.setFloatArray(stream.propMaxGradientAlpha, CustomDataModule._zeroGradientAlphaArray);
+    shaderData.setFloatArray(stream.propMinGradientColor, CustomDataModule._zeroGradientColorArray);
+    shaderData.setFloatArray(stream.propMinGradientAlpha, CustomDataModule._zeroGradientAlphaArray);
+    shaderData.setVector4(stream.propKeysCount, CustomDataModule._zeroVector4);
+  }
+
   private _validateName(name: string, method: string): boolean {
     if (!CustomDataModule._streamNamePattern.test(name)) {
       Logger.error(
         `CustomDataModule.${method}: "${name}" must contain only letters, digits, or underscores; call ignored.`
+      );
+      return false;
+    }
+    if (CustomDataModule._reservedPrefixPattern.test(name)) {
+      Logger.error(
+        `CustomDataModule.${method}: "${name}" starts with a reserved engine particle module prefix ` +
+          `(VOL/FOL/SOL/COL/ROL/TSA/LVL) and would collide with built-in uniforms; call ignored.`
       );
       return false;
     }
