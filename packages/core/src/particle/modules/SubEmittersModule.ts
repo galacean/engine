@@ -3,7 +3,6 @@ import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
-import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { SubEmitter } from "./SubEmitter";
@@ -22,10 +21,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   /** @internal */
   @ignoreClone
   _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
-
-  constructor(generator: ParticleGenerator) {
-    super(generator);
-  }
 
   /**
    * Add a sub-emitter slot. `emitter` is required — a slot with no target fires
