@@ -1,0 +1,85 @@
+import {
+  ChunkOutputCache,
+  IncludeMap,
+  Lexer,
+  Preprocessor,
+  ShaderCompilerUtils,
+  ShaderSourceParser,
+  ShaderTargetParser
+} from "@galacean/engine-shader-parser";
+
+export interface AnalyzerOptions {
+  /** `#include` lookup table; keys are include paths, values are chunk sources. */
+  includeMap?: IncludeMap;
+}
+
+export interface AnalysisResult {
+  /**
+   * Diagnostics collected from ShaderLab structure parsing and per-pass GLSL parsing.
+   * Phase 1 returns the existing `GSError` objects verbatim; structured codes/ranges come later.
+   */
+  diagnostics: Error[];
+}
+
+/**
+ * Static analyzer for ShaderLab / GLSL. Drives the same parse pipeline as the runtime compiler
+ * but stops before code generation, surfacing the diagnostics the compiler discards.
+ */
+export class ShaderAnalyzer {
+  private static _parser = ShaderTargetParser.create();
+
+  private _includeMap: IncludeMap = {};
+  private readonly _chunkOutputCache: ChunkOutputCache = new Map();
+
+  analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
+    if (options?.includeMap) {
+      this._includeMap = options.includeMap;
+      this._chunkOutputCache.clear();
+    }
+
+    const diagnostics: Error[] = [];
+
+    ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
+
+    let shaderSource: ReturnType<typeof ShaderSourceParser.parse>;
+    try {
+      shaderSource = ShaderSourceParser.parse(source);
+    } catch (e) {
+      diagnostics.push(ShaderAnalyzer._toError(e));
+      return { diagnostics };
+    }
+    diagnostics.push(...ShaderSourceParser.errors);
+
+    for (const subShader of shaderSource.subShaders) {
+      for (const pass of subShader.passes) {
+        if (pass.isUsePass) continue;
+        this._analyzePass(pass.contents, diagnostics);
+      }
+    }
+
+    return { diagnostics };
+  }
+
+  private _analyzePass(source: string, diagnostics: Error[]): void {
+    const { _parser: parser } = ShaderAnalyzer;
+    try {
+      const macroDefineList = {};
+      const noIncludeContent = Preprocessor.parse(source, "", this._includeMap, this._chunkOutputCache);
+      const lexer = new Lexer(noIncludeContent, macroDefineList);
+      const tokens = lexer.tokenize();
+      ShaderCompilerUtils.processingPassText = noIncludeContent;
+      parser.parse(tokens, macroDefineList);
+      diagnostics.push(...parser.errors);
+    } catch (e) {
+      // Some authoring errors (e.g. malformed `#define`) throw during lex/preprocess rather than
+      // landing in `parser.errors`; capture them so a single analyze() surfaces every diagnostic.
+      diagnostics.push(ShaderAnalyzer._toError(e));
+    } finally {
+      ShaderCompilerUtils.processingPassText = undefined;
+    }
+  }
+
+  private static _toError(e: unknown): Error {
+    return e instanceof Error ? e : new Error(String(e));
+  }
+}
