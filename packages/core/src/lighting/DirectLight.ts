@@ -1,5 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -25,9 +25,9 @@ export class DirectLight extends Light {
    * The offset distance in the opposite direction of light direction when generating shadows.
    * @remarks Increasing this value can avoid the holes in the shadow caused by low polygon models.
    */
+  @property
   shadowNearPlaneOffset = 0.1;
 
-  @ignoreClone
   private _reverseDirection: Vector3 = new Vector3();
 
   /**

@@ -1,6 +1,6 @@
 import { IDynamicCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
@@ -15,26 +15,35 @@ export class DynamicCollider extends Collider {
   private static _tempVector3 = new Vector3();
   private static _tempQuat = new Quaternion();
 
+  @property
   private _linearDamping = 0;
+  @property
   private _angularDamping = 0.05;
-  @ignoreClone
   private _linearVelocity = new Vector3();
-  @ignoreClone
   private _angularVelocity = new Vector3();
+  @property
   private _mass = 1.0;
-  @ignoreClone
   private _centerOfMass = new Vector3();
-  @ignoreClone
   private _inertiaTensor = new Vector3(1, 1, 1);
+  @property
   private _maxAngularVelocity = 18000 / Math.PI;
+  @property
   private _maxDepenetrationVelocity = 1.0000000331813535e32;
+  @property
   private _solverIterations = 4;
+  @property
   private _useGravity = true;
+  @property
   private _isKinematic = false;
+  @property
   private _constraints: DynamicColliderConstraints = 0;
+  @property
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
+  @property
   private _sleepThreshold = 5e-3;
+  @property
   private _automaticCenterOfMass = true;
+  @property
   private _automaticInertiaTensor = true;
 
   /**
@@ -508,17 +517,14 @@ export class DynamicCollider extends Collider {
     this._automaticInertiaTensor || (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
-  @ignoreClone
   private _setLinearVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
-  @ignoreClone
   private _setAngularVelocity(): void {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
-  @ignoreClone
   private _handleCenterOfMassChanged(): void {
     if (this._automaticCenterOfMass) {
       console.warn(
@@ -529,7 +535,6 @@ export class DynamicCollider extends Collider {
     }
   }
 
-  @ignoreClone
   private _handleInertiaTensorChanged(): void {
     if (this._automaticInertiaTensor) {
       console.warn(

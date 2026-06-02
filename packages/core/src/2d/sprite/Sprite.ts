@@ -2,7 +2,6 @@ import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-
 import { Engine } from "../../Engine";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
-import { ignoreClone } from "../../clone/CloneManager";
 import { Texture2D } from "../../texture/Texture2D";
 import { SpriteAtlas } from "../atlas/SpriteAtlas";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
@@ -382,7 +381,6 @@ export class Sprite extends ReferResource {
     this._updateFlagManager.dispatch(type);
   }
 
-  @ignoreClone
   private _onRegionChange(): void {
     const { _region: region } = this;
     // @ts-ignore
@@ -398,12 +396,10 @@ export class Sprite extends ReferResource {
     region._onValueChanged = this._onRegionChange;
   }
 
-  @ignoreClone
   private _onPivotChange(): void {
     this._dispatchSpriteChange(SpriteModifyFlags.pivot);
   }
 
-  @ignoreClone
   private _onBorderChange(): void {
     const { _border: border } = this;
     // @ts-ignore

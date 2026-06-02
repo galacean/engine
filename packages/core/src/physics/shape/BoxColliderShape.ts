@@ -2,13 +2,13 @@ import { ColliderShape } from "./ColliderShape";
 import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for box.
  */
 export class BoxColliderShape extends ColliderShape {
-  @deepClone
+  @property
   private _size: Vector3 = new Vector3(1, 1, 1);
 
   /**
@@ -41,7 +41,6 @@ export class BoxColliderShape extends ColliderShape {
     this._setSize();
   }
 
-  @ignoreClone
   private _setSize(): void {
     (<IBoxColliderShape>this._nativeShape).setSize(this._size);
   }

@@ -2,7 +2,7 @@ import { IHardwareRenderer } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math";
 import { RenderStateElementMap } from "../../BasicResources";
 import { GLCapabilityType } from "../../base/Constant";
-import { deepClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { BlendFactor } from "../enums/BlendFactor";
@@ -73,12 +73,13 @@ export class BlendState {
   }
 
   /** The blend state of the render target. */
-  @deepClone
+  @property
   readonly targetBlendState: RenderTargetBlendState = new RenderTargetBlendState();
   /** Constant blend color. */
-  @deepClone
+  @property
   readonly blendColor: Color = new Color(0, 0, 0, 0);
   /** Whether to use (Alpha-to-Coverage) technology. */
+  @property
   alphaToCoverage: boolean = false;
 
   /**

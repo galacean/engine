@@ -1,6 +1,6 @@
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -25,79 +25,79 @@ export class MainModule implements ICustomClone {
   private static readonly _scaleMode = ShaderProperty.getByName("renderer_ScalingMode");
 
   /** The duration of the Particle Generator in seconds. */
+  @property
   duration = 5.0;
   /** Specifies whether the Particle Generator loops. */
+  @property
   isLoop = true;
 
   /** Start delay in seconds. */
-  @deepClone
+  @property
   startDelay = new ParticleCompositeCurve(0);
 
   /** A flag to enable 3D particle rotation, when disabled, only `startRotationZ` is used. */
+  @property
   startRotation3D = false;
   /** The initial rotation of particles around the x-axis when emitted, in degrees. */
-  @deepClone
+  @property
   startRotationX = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the y-axis when emitted, in degrees. */
-  @deepClone
+  @property
   startRotationY = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the z-axis when emitted, in degrees. */
-  @deepClone
+  @property
   startRotationZ = new ParticleCompositeCurve(0);
   /** Makes some particles spin in the opposite direction. */
+  @property
   flipRotation = 0;
 
   /** The mode of start color */
-  @deepClone
+  @property
   startColor = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
   /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
   /** Override the default playback speed of the Particle Generator. */
+  @property
   simulationSpeed = 1.0;
   /** Control how the Particle Generator applies its Transform component to the particles it emits. */
+  @property
   scalingMode = ParticleScaleMode.Local;
   /** If set to true, the Particle Generator automatically begins to play on startup. */
+  @property
   playOnEnabled = true;
 
   /** @internal */
-  @ignoreClone
   _maxParticleBuffer = 1000;
   /** @internal */
-  @ignoreClone
   readonly _startDelayRand = new Rand(0, ParticleRandomSubSeeds.StartDelay);
   /** @internal */
-  @ignoreClone
   readonly _startSpeedRand = new Rand(0, ParticleRandomSubSeeds.StartSpeed);
   /** @internal */
-  @ignoreClone
   readonly _startLifeTimeRand = new Rand(0, ParticleRandomSubSeeds.StartLifetime);
   /** @internal */
-  @ignoreClone
   readonly _startColorRand = new Rand(0, ParticleRandomSubSeeds.StartColor);
   /** @internal */
-  @ignoreClone
   readonly _startSizeRand = new Rand(0, ParticleRandomSubSeeds.StartSize);
   /** @internal */
-  @ignoreClone
   readonly _startRotationRand = new Rand(0, ParticleRandomSubSeeds.StartRotation);
 
-  @ignoreClone
   readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
 
-  @deepClone
+  @property
   private _startLifetime: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _startSpeed: ParticleCompositeCurve;
+  @property
   private _startSize3D = false;
-  @deepClone
+  @property
   private _startSizeX: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _startSizeY: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _startSizeZ: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _gravityModifier: ParticleCompositeCurve;
+  @property
   private _simulationSpace = ParticleSimulationSpace.Local;
-  @ignoreClone
   private _generator: ParticleGenerator;
 
   /**

@@ -1,4 +1,4 @@
-import { Entity, EntityModifyFlags, Script, assignmentClone, deepClone, ignoreClone } from "@galacean/engine";
+import { Entity, EntityModifyFlags, Script, property } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
 import { IGroupAble } from "../../interface/IGroupAble";
@@ -13,44 +13,33 @@ export class UIInteractive extends Script implements IGroupAble {
   /** @internal */
   _rootCanvas: UICanvas;
   /** @internal */
-  @ignoreClone
   _indexInRootCanvas: number = -1;
   /** @internal */
-  @ignoreClone
   _isRootCanvasDirty: boolean = false;
   /** @internal */
-  @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
   _group: UIGroup;
   /** @internal */
-  @ignoreClone
   _indexInGroup: number = -1;
   /** @internal */
-  @ignoreClone
   _isGroupDirty: boolean = false;
   /** @internal */
-  @ignoreClone
   _groupListeningEntities: Entity[] = [];
 
   /** @internal */
-  @ignoreClone
   _globalInteractive: boolean = false;
   /** @internal */
-  @ignoreClone
   _globalInteractiveDirty: boolean = false;
 
-  @deepClone
+  @property
   protected _transitions: Transition[] = [];
-  @assignmentClone
+  @property
   protected _interactive: boolean = true;
-  @ignoreClone
   protected _state: InteractiveState = InteractiveState.Normal;
 
   /** @todo Multi-touch points are not considered yet. */
-  @ignoreClone
   private _isPointerInside: boolean = false;
-  @ignoreClone
   private _isPointerDragging: boolean = false;
 
   /**
@@ -199,7 +188,6 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _groupListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils.setGroupDirty(this);
@@ -209,7 +197,6 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _rootCanvasListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils.setRootCanvasDirty(this);
@@ -220,7 +207,6 @@ export class UIInteractive extends Script implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _onGroupModify(flags: GroupModifyFlags): void {
     if (flags & GroupModifyFlags.GlobalInteractive) {
       this._globalInteractiveDirty = true;

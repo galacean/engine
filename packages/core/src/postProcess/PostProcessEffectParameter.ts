@@ -1,4 +1,5 @@
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { property } from "../clone/CloneManager";
 import { Texture } from "../texture";
 
 /**
@@ -10,9 +11,11 @@ export abstract class PostProcessEffectParameter<T> {
   /**
    * Whether the parameter is enabled.
    */
+  @property
   enabled = true;
 
   protected _needLerp = false;
+  @property
   protected _value: T;
 
   /**

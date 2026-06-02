@@ -1,4 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
+import { property } from "../clone/CloneManager";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -23,6 +24,7 @@ export class PointLight extends Light {
   }
 
   /** Defines a distance cutoff at which the light's intensity must be considered zero. */
+  @property
   distance: number = 100;
 
   /**

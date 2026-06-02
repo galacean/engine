@@ -9,7 +9,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { VirtualCamera } from "./VirtualCamera";
 import { GLCapabilityType, Logger } from "./base";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { property } from "./clone/CloneManager";
 import { AntiAliasing } from "./enums/AntiAliasing";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { CameraModifyFlags } from "./enums/CameraModifyFlags";
@@ -54,6 +54,7 @@ export class Camera extends Component {
   private static _cameraDepthBufferParamsProperty = ShaderProperty.getByName("camera_DepthBufferParams");
 
   /** Whether to enable frustum culling, it is enabled by default. */
+  @property
   enableFrustumCulling: boolean = true;
 
   /**
@@ -61,17 +62,20 @@ export class Camera extends Component {
    *
    * @defaultValue `CameraClearFlags.All`
    */
+  @property
   clearFlags: CameraClearFlags = CameraClearFlags.All;
 
   /**
    * Culling mask - which layers the camera renders.
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
+  @property
   cullingMask: Layer = Layer.Everything;
 
   /**
    * Determines which PostProcess to use.
    */
+  @property
   postProcessMask: Layer = Layer.Everything;
 
   /**
@@ -80,6 +84,7 @@ export class Camera extends Component {
    *
    * @defaultValue `DepthTextureMode.None`
    */
+  @property
   depthTextureMode: DepthTextureMode = DepthTextureMode.None;
 
   /**
@@ -87,6 +92,7 @@ export class Camera extends Component {
    *
    * @defaultValue `Downsampling.TwoX`
    */
+  @property
   opaqueTextureDownsampling: Downsampling = Downsampling.TwoX;
 
   /**
@@ -95,6 +101,7 @@ export class Camera extends Component {
    *
    * @defaultValue `AntiAliasing.None`
    */
+  @property
   antiAliasing: AntiAliasing = AntiAliasing.None;
 
   /**
@@ -107,22 +114,20 @@ export class Camera extends Component {
    *
    * @defaultValue `false`
    */
+  @property
   isAlphaOutputRequired = false;
 
   /** @internal */
-  @ignoreClone
   _cameraType: CameraType = CameraType.Normal;
   /** @internal */
-  @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @deepClone
+  @property
   _frustum: BoundingFrustum = new BoundingFrustum();
   /** @internal */
-  @ignoreClone
   _renderPipeline: BasicRenderPipeline;
   /** @internal */
-  @deepClone
+  @property
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
   _replacementShader: Shader = null;
@@ -131,42 +136,47 @@ export class Camera extends Component {
   /** @internal */
   _replacementFailureStrategy: ReplacementFailureStrategy = null;
   /** @internal */
-  @ignoreClone
   _cameraIndex: number = -1;
 
+  @property
   private _priority: number = 0;
+  @property
   private _isCustomViewMatrix = false;
+  @property
   private _isCustomProjectionMatrix = false;
+  @property
   private _fieldOfView: number = 45;
+  @property
   private _orthographicSize: number = 10;
   private _isProjectionDirty = true;
   private _isInvProjMatDirty: boolean = true;
+  @property
   private _customAspectRatio: number | undefined = undefined;
+  @property
   private _opaqueTextureEnabled: boolean = false;
+  @property
   private _enableHDR = false;
+  @property
   private _enablePostProcess = false;
+  @property
   private _msaaSamples: MSAASamples;
 
+  @property
   private _renderTarget: RenderTarget = null;
-  @ignoreClone
   private _updateFlagManager: UpdateFlagManager;
-  @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
-  @ignoreClone
   private _isViewMatrixDirty: BoolUpdateFlag;
-  @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
-  @deepClone
+  @property
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
-  @ignoreClone
   private _depthBufferParams: Vector4 = new Vector4();
-  @deepClone
+  @property
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
-  @deepClone
+  @property
   private _pixelViewport: Rect = new Rect(0, 0, 0, 0);
-  @deepClone
+  @property
   private _inverseProjectionMatrix: Matrix = new Matrix();
-  @deepClone
+  @property
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
@@ -958,7 +968,6 @@ export class Camera extends Component {
     return this._inverseProjectionMatrix;
   }
 
-  @ignoreClone
   private _onPixelViewportChanged(): void {
     this._updatePixelViewport();
     this._customAspectRatio ?? this._projectionMatrixChange();

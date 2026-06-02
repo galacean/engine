@@ -1,5 +1,5 @@
 import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
@@ -42,45 +42,38 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_LVLSpace");
 
   /** @internal */
-  @ignoreClone
   _speedRand = new Rand(0, ParticleRandomSubSeeds.LimitVelocityOverLifetime);
 
-  @ignoreClone
   private _speedMinConstantVec = new Vector3();
-  @ignoreClone
   private _speedMaxConstantVec = new Vector3();
-  @ignoreClone
   private _dragConstantVec = new Vector2();
 
-  @ignoreClone
   private _enabledModuleMacro: ShaderMacro;
-  @ignoreClone
   private _separateAxesCachedMacro: ShaderMacro;
-  @ignoreClone
   private _speedModeMacro: ShaderMacro;
-  @ignoreClone
   private _speedRandomMacro: ShaderMacro;
-  @ignoreClone
   private _dragCurveCachedMacro: ShaderMacro;
-  @ignoreClone
   private _dragRandomCachedMacro: ShaderMacro;
-  @ignoreClone
   private _dragSizeMacro: ShaderMacro;
-  @ignoreClone
   private _dragVelocityMacro: ShaderMacro;
 
+  @property
   private _separateAxes = false;
-  @deepClone
+  @property
   private _speedX: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _speedY: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _speedZ: ParticleCompositeCurve;
+  @property
   private _dampen: number = 0;
-  @deepClone
+  @property
   private _drag: ParticleCompositeCurve;
+  @property
   private _multiplyDragByParticleSize = false;
+  @property
   private _multiplyDragByParticleVelocity = false;
+  @property
   private _space = ParticleSimulationSpace.Local;
 
   /**

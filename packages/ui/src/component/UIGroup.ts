@@ -1,51 +1,41 @@
-import { Component, DisorderedArray, Entity, EntityModifyFlags, assignmentClone, ignoreClone } from "@galacean/engine";
+import { Component, DisorderedArray, Entity, EntityModifyFlags, property } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { IGroupAble } from "../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 
 export class UIGroup extends Component implements IGroupAble {
   /** @internal */
-  @ignoreClone
   _indexInGroup: number = -1;
   /** @internal */
-  @ignoreClone
   _indexInRootCanvas: number = -1;
   /** @internal */
   _group: UIGroup;
   /** @internal */
   _rootCanvas: UICanvas;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IGroupAble> = new DisorderedArray<IGroupAble>();
 
   /** @internal */
-  @ignoreClone
   _globalAlpha = 1;
   /** @internal */
-  @ignoreClone
   _globalInteractive = true;
 
-  @assignmentClone
+  @property
   private _alpha = 1;
-  @assignmentClone
+  @property
   private _interactive = true;
-  @assignmentClone
+  @property
   private _ignoreParentGroup = false;
 
   /** @internal */
-  @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
-  @ignoreClone
   _groupListeningEntities: Entity[] = [];
   /** @internal */
-  @ignoreClone
   _isRootCanvasDirty: boolean = false;
   /** @internal */
-  @ignoreClone
   _isGroupDirty: boolean = false;
   /** @internal */
-  @ignoreClone
   _groupDirtyFlags: number = GroupModifyFlags.None;
 
   /**
@@ -171,7 +161,6 @@ export class UIGroup extends Component implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _groupListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils.setGroupDirty(this);
@@ -181,7 +170,6 @@ export class UIGroup extends Component implements IGroupAble {
   /**
    * @internal
    */
-  @ignoreClone
   _rootCanvasListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.CanvasEnableInScene) {
       Utils.setRootCanvasDirty(this);

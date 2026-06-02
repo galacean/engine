@@ -1,6 +1,6 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
-import { ignoreClone } from "../../../clone/CloneManager";
+
 import { Entity } from "../../../Entity";
 import { VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";
@@ -14,15 +14,10 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class MeshShape extends BaseShape {
   readonly shapeType = ParticleShapeType.Mesh;
 
-  @ignoreClone
   private _mesh: ModelMesh;
-  @ignoreClone
   private _positionBuffer: TypedArray;
-  @ignoreClone
   private _normalBuffer: TypedArray;
-  @ignoreClone
   private _positionElementInfo = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
-  @ignoreClone
   private _normalElementInfo = new Vector4(); // x:offset, y:stride, z:isNormalized, w:normalizedScaleFactor
 
   /**
@@ -133,7 +128,6 @@ export class MeshShape extends BaseShape {
     return typedBuffer;
   }
 
-  @ignoreClone
   private _onMeshChanged(type: MeshModifyFlags): void {
     if (type & MeshModifyFlags.VertexElements) {
       const mesh = this._mesh;

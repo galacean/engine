@@ -1,4 +1,3 @@
-import { ignoreClone } from "../clone/CloneManager";
 import { Engine } from "../Engine";
 
 /**
@@ -7,10 +6,8 @@ import { Engine } from "../Engine";
 export class EngineObject {
   private static _instanceIdCounter = 0;
 
-  @ignoreClone
   readonly instanceId = ++EngineObject._instanceIdCounter;
   /** @internal */
-  @ignoreClone
   _engine: Engine;
   /** @internal */
   _pendingDestroy = false;

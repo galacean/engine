@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { Utils } from "../Utils";
 import { EngineObject } from "../base/EngineObject";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 
 /**
@@ -11,20 +11,19 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
  */
 export class Skin extends EngineObject {
   /** Inverse bind matrices. */
-  @deepClone
+  @property
   inverseBindMatrices = new Array<Matrix>();
 
   /** @internal */
-  @deepClone
+  @property
   _skinMatrices: Float32Array;
   /** @internal */
-  @ignoreClone
   _updatedManager = new UpdateFlagManager();
 
+  @property
   private _rootBone: Entity;
-  @deepClone
+  @property
   private _bones = new Array<Entity>();
-  @ignoreClone
   private _updateMark = -1;
 
   /**
@@ -64,8 +63,12 @@ export class Skin extends EngineObject {
     }
   }
 
-  constructor(public name: string) {
+  @property
+  name: string;
+
+  constructor(name: string = "") {
     super(null);
+    this.name = name;
   }
 
   /**
@@ -93,6 +96,7 @@ export class Skin extends EngineObject {
   }
 
   /** @deprecated Please use `bones` instead. */
+  @property
   public joints: string[] = [];
 
   /** @deprecated Please use `rootBone` instead. */

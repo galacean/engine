@@ -1,9 +1,11 @@
+import { property } from "../clone/CloneManager";
 import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
 
 /**
  * The base class for post process effect.
  */
 export class PostProcessEffect {
+  @property
   private _enabled = true;
   private _parameters: PostProcessEffectParameter<any>[] = [];
   private _parameterInitialized = false;

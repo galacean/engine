@@ -1,4 +1,4 @@
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
@@ -9,32 +9,27 @@ import { AudioManager } from "./AudioManager";
  */
 export class AudioSource extends Component {
   /** If set to true, the audio component automatically begins to play on startup. */
+  @property
   playOnEnabled = true;
 
-  @ignoreClone
   private _isPlaying = false;
-  @ignoreClone
   private _pendingPlay = false;
 
-  @assignmentClone
+  @property
   private _clip: AudioClip;
-  @ignoreClone
   private _gainNode: GainNode;
-  @ignoreClone
   private _sourceNode: AudioBufferSourceNode | null = null;
 
-  @ignoreClone
   private _pausedTime = -1;
-  @ignoreClone
   private _playTime = -1;
 
-  @assignmentClone
+  @property
   private _volume = 1;
-  @assignmentClone
+  @property
   private _lastVolume = 1;
-  @assignmentClone
+  @property
   private _playbackRate = 1;
-  @assignmentClone
+  @property
   private _loop = false;
 
   /**
@@ -245,7 +240,6 @@ export class AudioSource extends Component {
     this.clip = null;
   }
 
-  @ignoreClone
   private _onPlayEnd(): void {
     this.stop();
   }

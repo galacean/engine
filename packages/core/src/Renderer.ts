@@ -7,7 +7,7 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { property } from "./clone/CloneManager";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
@@ -34,50 +34,36 @@ export class Renderer extends Component {
   private static _normalMatrixProperty = ShaderProperty.getByName("renderer_NormalMat");
 
   /** @internal */
-  @ignoreClone
   _distanceForSort: number;
   /** @internal */
-  @ignoreClone
   _onUpdateIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _rendererIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-  @ignoreClone
   _renderFrameCount: number;
   /** @internal */
-  @assignmentClone
+  @property
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  @assignmentClone
+  @property
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
-  @ignoreClone
   protected _overrideUpdate: boolean = false;
-  @ignoreClone
   protected _materials: Material[] = [];
-  @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
-  @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
-  @ignoreClone
   protected _bounds: BoundingBox = new BoundingBox();
   protected _transformEntity: Entity;
 
-  @deepClone
+  @property
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
-  @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
-  @ignoreClone
   private _mvpMatrix: Matrix = new Matrix();
-  @ignoreClone
   private _normalMatrix: Matrix = new Matrix();
-  @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @assignmentClone
+  @property
   private _priority: number = 0;
-  @assignmentClone
+  @property
   private _receiveShadows: boolean = true;
 
   /**
@@ -113,6 +99,7 @@ export class Renderer extends Component {
   }
 
   /** Whether cast shadow. */
+  @property
   castShadows: boolean = true;
 
   /**
@@ -496,7 +483,6 @@ export class Renderer extends Component {
     }
   }
 
-  @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }

@@ -13,10 +13,8 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  assignmentClone,
-  deepClone,
   dependentComponents,
-  ignoreClone
+  property
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
@@ -42,37 +40,30 @@ export class UIRenderer extends Renderer implements IGraphics {
    * Custom boundary for raycast detection.
    * @remarks this is based on `this.entity.transform`.
    */
-  @deepClone
+  @property
   raycastPadding: Vector4 = new Vector4(0, 0, 0, 0);
   /** @internal */
   _rootCanvas: UICanvas;
   /** @internal */
-  @ignoreClone
   _indexInRootCanvas: number = -1;
   /** @internal */
-  @ignoreClone
   _isRootCanvasDirty: boolean = false;
   /** @internal */
-  @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
   /** @internal */
   _group: UIGroup;
   /** @internal */
-  @ignoreClone
   _indexInGroup: number = -1;
   /** @internal */
-  @ignoreClone
   _isGroupDirty: boolean = false;
   /** @internal */
-  @ignoreClone
   _groupListeningEntities: Entity[] = [];
   /** @internal */
-  @ignoreClone
   _subChunk;
 
-  @assignmentClone
+  @property
   private _raycastEnabled: boolean = true;
-  @deepClone
+  @property
   protected _color: Color = new Color(1, 1, 1, 1);
 
   /**
@@ -191,7 +182,6 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  @ignoreClone
   _groupListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
       Utils.setGroupDirty(this);
@@ -201,7 +191,6 @@ export class UIRenderer extends Renderer implements IGraphics {
   /**
    * @internal
    */
-  @ignoreClone
   _rootCanvasListener(flag: number, entity: Entity): void {
     switch (flag) {
       case EntityModifyFlags.Parent:
@@ -224,7 +213,6 @@ export class UIRenderer extends Renderer implements IGraphics {
     }
   }
 
-  @ignoreClone
   private _onColorChanged(): void {
     this._dirtyUpdateFlag |= UIRendererUpdateFlags.Color;
   }

@@ -1,15 +1,18 @@
-import { deepClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 
 /**
  * A burst is a particle emission event, where a number of particles are all emitted at the same time
  */
 export class Burst {
+  @property
   public time: number;
-  @deepClone
+  @property
   public count: ParticleCompositeCurve;
 
+  @property
   private _cycles: number;
+  @property
   private _repeatInterval: number;
 
   /**

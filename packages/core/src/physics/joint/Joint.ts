@@ -4,7 +4,7 @@ import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { Collider } from "../Collider";
 import { DynamicCollider } from "../DynamicCollider";
 
@@ -18,14 +18,16 @@ export abstract class Joint extends Component {
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
 
-  @deepClone
+  @property
   protected _colliderInfo = new JointColliderInfo();
-  @deepClone
+  @property
   protected _connectedColliderInfo = new JointColliderInfo();
-  @ignoreClone
   protected _nativeJoint: IJoint;
+  @property
   private _force = Infinity;
+  @property
   private _torque = Infinity;
+  @property
   private _automaticConnectedAnchor = true;
 
   /**
@@ -254,7 +256,6 @@ export abstract class Joint extends Component {
     this._updateActualAnchor(AnchorOwner.Connected);
   }
 
-  @ignoreClone
   private _handleConnectedAnchorChanged(): void {
     if (this._automaticConnectedAnchor) {
       console.warn("Cannot set connectedAnchor when automaticConnectedAnchor is true.");
@@ -263,14 +264,12 @@ export abstract class Joint extends Component {
     }
   }
 
-  @ignoreClone
   private _onSelfTransformChanged(type: TransformModifyFlags): void {
     if (type & TransformModifyFlags.WorldScale) {
       this._updateActualAnchor(AnchorOwner.Self);
     }
   }
 
-  @ignoreClone
   private _onConnectedTransformChanged(type: TransformModifyFlags): void {
     if (type & TransformModifyFlags.WorldScale) {
       this._updateActualAnchor(AnchorOwner.Connected);
@@ -322,11 +321,14 @@ enum AnchorOwner {
  * @internal
  */
 class JointColliderInfo {
+  @property
   collider: Collider = null;
-  @deepClone
+  @property
   anchor = new Vector3();
-  @deepClone
+  @property
   actualAnchor = new Vector3();
+  @property
   massScale: number = 1;
+  @property
   inertiaScale: number = 1;
 }

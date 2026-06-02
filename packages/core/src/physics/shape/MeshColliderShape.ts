@@ -5,15 +5,19 @@ import { Vector3 } from "@galacean/engine-math";
 import { DynamicCollider } from "../DynamicCollider";
 import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
 import { ColliderShape } from "./ColliderShape";
+import { property } from "../../clone/CloneManager";
 
 /**
  * Collider shape based on mesh geometry, supporting both convex hull and triangle mesh modes.
  */
 export class MeshColliderShape extends ColliderShape {
+  @property
   private _mesh: ModelMesh = null;
+  @property
   private _isConvex = false;
   private _positions: Vector3[] = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
+  @property
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
   private _isShapeAttached = false;
 

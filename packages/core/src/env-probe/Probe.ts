@@ -1,4 +1,5 @@
 import { Camera } from "../Camera";
+import { property } from "../clone/CloneManager";
 import { Layer } from "../Layer";
 import { Script } from "../Script";
 import { RenderBufferDepthFormat, Texture, Texture2D, TextureCube } from "../texture";
@@ -19,21 +20,25 @@ export abstract class Probe extends Script {
   /**
    * Probe's layer, render everything by default.
    */
+  @property
   probeLayer: Layer = Layer.Everything;
 
   /**
    * The width of the probe rendering target.
    */
+  @property
   width: number = 1024;
 
   /**
    * The height of the probe rendering target.
    */
+  @property
   height: number = 1024;
 
   /**
    * When using WebGL2, you can turn on MSAA at the hardware layer.
    */
+  @property
   antiAliasing: number = 1;
 
   /**

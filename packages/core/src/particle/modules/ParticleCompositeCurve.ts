@@ -1,5 +1,5 @@
 import { Vector2 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
@@ -8,16 +8,17 @@ import { CurveKey, ParticleCurve } from "./ParticleCurve";
  * Particle composite curve.
  */
 export class ParticleCompositeCurve {
-  @ignoreClone
   private _updateManager = new UpdateFlagManager();
+  @property
   private _mode = ParticleCurveMode.Constant;
+  @property
   private _constantMin = 0;
+  @property
   private _constantMax = 0;
-  @deepClone
+  @property
   private _curveMin: ParticleCurve;
-  @deepClone
+  @property
   private _curveMax: ParticleCurve;
-  @ignoreClone
   private _updateDispatch: () => void;
 
   /**

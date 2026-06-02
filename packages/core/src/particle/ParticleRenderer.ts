@@ -5,7 +5,7 @@ import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { TransformModifyFlags } from "../Transform";
 import { GLCapabilityType } from "../base/Constant";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone, shallowClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { ModelMesh } from "../mesh/ModelMesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -30,25 +30,27 @@ export class ParticleRenderer extends Renderer {
   private static readonly _currentTime = ShaderProperty.getByName("renderer_CurrentTime");
 
   /** Particle generator. */
-  @deepClone
+  @property
   readonly generator: ParticleGenerator;
   /** Specifies how much particles stretch depending on their velocity. */
+  @property
   velocityScale = 0;
   /** How much are the particles stretched in their direction of motion, defined as the length of the particle compared to its width. */
+  @property
   lengthScale = 2;
   /** The pivot of particle. */
-  @shallowClone
+  @property
   pivot = new Vector3();
 
   /** @internal */
-  @ignoreClone
   _generatorBounds = new BoundingBox();
   /** @internal */
-  @ignoreClone
   _transformedBounds = new BoundingBox();
 
+  @property
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   private _currentRenderModeMacro: ShaderMacro;
+  @property
   private _mesh: ModelMesh;
   private _supportInstancedArrays: boolean;
 
@@ -290,7 +292,6 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  @ignoreClone
   _onGeneratorParamsChanged(): void {
     this._dirtyUpdateFlag |=
       ParticleUpdateFlags.GeneratorVolume | ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
@@ -299,7 +300,6 @@ export class ParticleRenderer extends Renderer {
   /**
    * @internal
    */
-  @ignoreClone
   override _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= ParticleUpdateFlags.TransformVolume | RendererUpdateFlags.WorldVolume;
   }

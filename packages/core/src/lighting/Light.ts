@@ -1,7 +1,7 @@
 import { Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { ShadowType } from "../shadow";
 
 /**
@@ -12,31 +12,34 @@ export abstract class Light extends Component {
    * Culling mask - which layers the light affect.
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
+  @property
   cullingMask = Layer.Everything;
 
   /** How this light casts shadows. */
+  @property
   shadowType = ShadowType.None;
   /** Shadow bias.*/
+  @property
   shadowBias = 1;
   /** Shadow mapping normal-based bias. */
+  @property
   shadowNormalBias = 1;
 
   /**
    * @deprecated
    * Please use `shadowNearPlaneOffset` instead.
    */
+  @property
   shadowNearPlane = 0.1;
 
   /** @internal */
-  @ignoreClone
   _lightIndex = -1;
 
+  @property
   private _shadowStrength = 1.0;
-  @deepClone
+  @property
   private _color = new Color(1, 1, 1, 1);
-  @ignoreClone
   private _viewMat: Matrix;
-  @ignoreClone
   private _inverseViewMat: Matrix;
 
   /** Shadow intensity, the larger the value, the clearer and darker the shadow, range [0,1]. */

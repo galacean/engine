@@ -1,7 +1,8 @@
 import { EngineObject } from "../base/EngineObject";
 import { Engine } from "../Engine";
 import { IReferable } from "./IReferable";
-import { CloneMode, defaultCloneMode } from "../clone/enums/CloneMode";
+import { CloneMode } from "../clone/enums/CloneMode";
+import { defaultCloneMode } from "../clone/CloneManager";
 
 /**
  * The base class of assets, with reference counting capability.

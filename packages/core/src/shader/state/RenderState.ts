@@ -1,7 +1,7 @@
 import { ShaderData, ShaderProperty } from "..";
 import { RenderStateElementMap } from "../../BasicResources";
 import { Engine } from "../../Engine";
-import { deepClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { BlendState } from "./BlendState";
@@ -14,19 +14,20 @@ import { StencilState } from "./StencilState";
  */
 export class RenderState {
   /** Blend state. */
-  @deepClone
+  @property
   readonly blendState: BlendState = new BlendState();
   /** Depth state. */
-  @deepClone
+  @property
   readonly depthState: DepthState = new DepthState();
   /** Stencil state. */
-  @deepClone
+  @property
   readonly stencilState: StencilState = new StencilState();
   /** Raster state. */
-  @deepClone
+  @property
   readonly rasterState: RasterState = new RasterState();
 
   /** Render queue type. */
+  @property
   renderQueueType: RenderQueueType = RenderQueueType.Opaque;
 
   /**

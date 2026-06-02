@@ -1,7 +1,7 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
-import { assignmentClone, ignoreClone } from "./clone/CloneManager";
-import { CloneMode, defaultCloneMode } from "./clone/enums/CloneMode";
+import { defaultCloneMode, property } from "./clone/CloneManager";
+import { CloneMode } from "./clone/enums/CloneMode";
 import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
@@ -15,16 +15,13 @@ export class Component extends EngineObject {
   _entity: Entity;
 
   /** @internal */
-  @ignoreClone
   _awoken: boolean = false;
 
-  @ignoreClone
   protected _phasedActiveInScene: boolean = false;
 
-  @ignoreClone
   private _phasedActive: boolean = false;
 
-  @assignmentClone
+  @property
   private _enabled: boolean = true;
 
   /**

@@ -1,4 +1,4 @@
-import { ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
@@ -7,9 +7,9 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
  * Particle generator module.
  */
 export abstract class ParticleGeneratorModule {
-  @ignoreClone
   protected _generator: ParticleGenerator;
 
+  @property
   protected _enabled: boolean = false;
 
   /**

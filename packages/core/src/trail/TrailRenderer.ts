@@ -2,7 +2,7 @@ import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@galacean/engine-
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
 import { Primitive } from "../graphic/Primitive";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -41,72 +41,57 @@ export class TrailRenderer extends Renderer {
   private static _tempVector3 = new Vector3();
 
   /** Whether the trail is being created as the object moves. */
+  @property
   emitting = true;
 
   /** The minimum distance the object must move before a new trail segment is added, in world units. */
+  @property
   minVertexDistance = 0.1;
 
   /** The curve describing the trail width from start to end. */
-  @deepClone
+  @property
   widthCurve = new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 1));
 
   /** The gradient describing the trail color from start to end. */
-  @deepClone
+  @property
   colorGradient = new ParticleGradient(
     [new GradientColorKey(0, new Color(1, 1, 1, 1)), new GradientColorKey(1, new Color(1, 1, 1, 1))],
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
   );
 
   // Shader parameters
-  @deepClone
+  @property
   private _trailParams = new Vector4(TrailTextureMode.Stretch, 1.0, 1.0, 0); // x: textureMode, y: textureScaleX, z: textureScaleY
-  @deepClone
+  @property
   private _textureScale = new Vector2(1.0, 1.0);
-  @ignoreClone
   private _distanceParams = new Vector2(); // x: headDistance, y: tailDistance
-  @ignoreClone
   private _curveMaxTime = new Vector4(); // x: colorMaxTime, y: alphaMaxTime, z: widthMaxTime
 
+  @property
   private _time = 5.0;
 
   // Geometry and rendering
-  @ignoreClone
   private _primitive: Primitive;
-  @ignoreClone
   private _mainSubPrimitive: SubPrimitive;
-  @ignoreClone
   private _wrapSubPrimitive: SubPrimitive;
-  @ignoreClone
   private _vertexBuffer: Buffer;
-  @ignoreClone
   private _vertices: Float32Array;
 
   // Point management (circular buffer state)
-  @ignoreClone
   private _firstActiveElement = 0;
-  @ignoreClone
   private _firstNewElement = 0;
-  @ignoreClone
   private _firstFreeElement = 0;
-  @ignoreClone
   private _firstRetiredElement = 0;
-  @ignoreClone
   private _currentPointCapacity = 0;
-  @ignoreClone
   private _bufferResized = false;
 
   // Position tracking
-  @ignoreClone
   private _lastPosition = new Vector3();
-  @ignoreClone
   private _hasLastPosition = false;
-  @ignoreClone
   private _cumulativeDistance = 0; // Total distance traveled since trail start
 
   // Time tracking
-  @ignoreClone
   private _playTime = 0;
-  @ignoreClone
   private _lastPlayTimeUpdateFrameCount = -1;
 
   /**
@@ -612,7 +597,6 @@ export class TrailRenderer extends Renderer {
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
   }
 
-  @ignoreClone
   private _onTextureScaleChanged(): void {
     this._trailParams.y = this._textureScale.x;
     this._trailParams.z = this._textureScale.y;

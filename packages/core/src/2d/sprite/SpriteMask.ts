@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -24,36 +24,30 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
   static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
   /** The mask layers the sprite mask influence to. */
-  @assignmentClone
+  @property
   influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
   /** @internal */
-  @ignoreClone
   _renderElement: RenderElement;
 
   /** @internal */
-  @ignoreClone
   _subChunk: SubPrimitiveChunk;
   /** @internal */
-  @ignoreClone
   _maskIndex: number = -1;
 
-  @ignoreClone
   private _sprite: Sprite = null;
 
-  @ignoreClone
   private _automaticWidth: number = 0;
-  @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
+  @property
   private _customWidth: number = undefined;
-  @assignmentClone
+  @property
   private _customHeight: number = undefined;
-  @assignmentClone
+  @property
   private _flipX: boolean = false;
-  @assignmentClone
+  @property
   private _flipY: boolean = false;
 
-  @assignmentClone
+  @property
   private _alphaCutoff: number = 0.5;
 
   /**
@@ -333,7 +327,6 @@ export class SpriteMask extends Renderer implements ISpriteRenderer {
     this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AutomaticSize;
   }
 
-  @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:

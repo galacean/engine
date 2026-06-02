@@ -1,7 +1,7 @@
 import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../../clone/CloneManager";
+import { property } from "../../../clone/CloneManager";
 
 /**
  * Base class for all particle shapes.
@@ -19,23 +19,21 @@ export abstract class BaseShape {
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
 
-  @ignoreClone
   protected _updateManager = new UpdateFlagManager();
 
+  @property
   private _enabled = true;
+  @property
   private _randomDirectionAmount = 0;
 
-  @deepClone
+  @property
   private _position = new Vector3(0, 0, 0);
-  @deepClone
+  @property
   private _rotation = new Vector3(0, 0, 0);
-  @deepClone
+  @property
   private _scale = new Vector3(1, 1, 1);
-  @ignoreClone
   private _matrix = new Matrix();
-  @ignoreClone
   private _transformDirty = false;
-  @ignoreClone
   private _hasShapeTransform = false;
 
   /**
@@ -172,7 +170,6 @@ export abstract class BaseShape {
 
   protected abstract _getLocalDirectionRange(outMin: Vector3, outMax: Vector3): void;
 
-  @ignoreClone
   protected _onTransformChanged = (): void => {
     this._transformDirty = true;
     const { _position: p, _rotation: r, _scale: s } = this;

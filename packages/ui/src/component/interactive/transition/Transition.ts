@@ -1,4 +1,4 @@
-import { Color, ReferResource, Sprite } from "@galacean/engine";
+import { Color, ReferResource, Sprite, property } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 
@@ -10,13 +10,20 @@ export abstract class Transition<
   K extends UIRenderer = UIRenderer
 > {
   /** @internal */
+  @property
   _interactive: UIInteractive;
 
+  @property
   protected _target: K;
+  @property
   protected _normal: T;
+  @property
   protected _pressed: T;
+  @property
   protected _hover: T;
+  @property
   protected _disabled: T;
+  @property
   protected _duration: number = 0;
   protected _countDown: number = 0;
   protected _initialValue: T;

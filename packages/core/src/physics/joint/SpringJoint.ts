@@ -1,5 +1,6 @@
 import { ISpringJoint } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
+import { property } from "../../clone/CloneManager";
 import { Collider } from "../Collider";
 import { Joint } from "./Joint";
 
@@ -7,10 +8,15 @@ import { Joint } from "./Joint";
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
  */
 export class SpringJoint extends Joint {
+  @property
   private _minDistance: number = 0;
+  @property
   private _maxDistance: number = 0;
+  @property
   private _tolerance: number = 0.25;
+  @property
   private _stiffness: number = 0;
+  @property
   private _damping: number = 0;
 
   /**

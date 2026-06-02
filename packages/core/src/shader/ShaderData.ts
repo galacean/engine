@@ -1,7 +1,7 @@
 import { IClone } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
-import { CloneManager, ignoreClone } from "../clone/CloneManager";
+import { CloneManager } from "../clone/CloneManager";
 import { Texture } from "../texture/Texture";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
@@ -14,20 +14,14 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
  */
 export class ShaderData implements IReferable, IClone {
   /** @internal */
-  @ignoreClone
   _group: ShaderDataGroup;
   /** @internal */
-  @ignoreClone
   _propertyValueMap: Record<number, ShaderPropertyValueType> = Object.create(null);
   /** @internal */
-  @ignoreClone
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
-  @ignoreClone
   private _batchSharedFields: number[] = [];
-  @ignoreClone
   private _macroMap: Record<number, ShaderMacro> = Object.create(null);
-  @ignoreClone
   private _refCount: number = 0;
 
   /**

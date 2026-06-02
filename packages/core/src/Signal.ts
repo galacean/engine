@@ -1,5 +1,5 @@
 import { Component } from "./Component";
-import { ignoreClone } from "./clone/CloneManager";
+
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
@@ -7,7 +7,6 @@ import { SafeLoopArray } from "./utils/SafeLoopArray";
  * @typeParam T - Tuple type of the signal arguments
  */
 export class Signal<T extends any[] = []> {
-  @ignoreClone
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();
 
   /**

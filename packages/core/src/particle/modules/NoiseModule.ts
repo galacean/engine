@@ -1,5 +1,5 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
@@ -27,37 +27,35 @@ export class NoiseModule extends ParticleGeneratorModule {
   static readonly _strengthMinCurveYProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveY");
   static readonly _strengthMinCurveZProperty = ShaderProperty.getByName("renderer_NoiseStrengthMinCurveZ");
 
-  @ignoreClone
   private _enabledModuleMacro: ShaderMacro;
-  @ignoreClone
   private _strengthCurveModeMacro: ShaderMacro;
-  @ignoreClone
   private _strengthIsRandomTwoModeMacro: ShaderMacro;
-  @ignoreClone
   private _separateAxesModeMacro: ShaderMacro;
 
   /** @internal */
-  @ignoreClone
   _noiseRand = new Rand(0, ParticleRandomSubSeeds.Noise);
 
-  @ignoreClone
   private _noiseParams = new Vector4();
-  @ignoreClone
   private _noiseOctaveParams = new Vector4();
-  @ignoreClone
   private _strengthMinConst = new Vector3();
 
-  @deepClone
+  @property
   private _strengthX: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _strengthY: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _strengthZ: ParticleCompositeCurve;
+  @property
   private _scrollSpeed = 0;
+  @property
   private _separateAxes = false;
+  @property
   private _frequency = 0.5;
+  @property
   private _octaveCount = 1;
+  @property
   private _octaveIntensityMultiplier = 0.5;
+  @property
   private _octaveFrequencyMultiplier = 2.0;
 
   /**

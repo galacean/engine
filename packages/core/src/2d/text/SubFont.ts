@@ -5,7 +5,8 @@ import { Texture2D } from "../../texture";
 import { FontAtlas } from "../atlas/FontAtlas";
 import { CharInfo } from "./CharInfo";
 import { TextUtils } from "./TextUtils";
-import { CloneMode, defaultCloneMode } from "../../clone/enums/CloneMode";
+import { CloneMode } from "../../clone/enums/CloneMode";
+import { defaultCloneMode } from "../../clone/CloneManager";
 
 /**
  * @internal

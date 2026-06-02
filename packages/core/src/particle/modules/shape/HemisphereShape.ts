@@ -1,4 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
+import { property } from "../../../clone/CloneManager";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
@@ -9,6 +10,7 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class HemisphereShape extends BaseShape {
   readonly shapeType = ParticleShapeType.Hemisphere;
 
+  @property
   private _radius = 1.0;
 
   /**

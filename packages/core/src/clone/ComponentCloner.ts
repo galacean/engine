@@ -29,10 +29,9 @@ export class ComponentCloner {
    * @param target - Clone target
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<Object, Object>): void {
-    const cloneModes = CloneManager.getCloneMode(source.constructor);
-    for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, cloneModes[k], cloneMap);
-    }
+    CloneManager.getProperties(source.constructor).forEach((k) => {
+      CloneManager.cloneProperty(source, target, k, cloneMap);
+    });
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }
 }

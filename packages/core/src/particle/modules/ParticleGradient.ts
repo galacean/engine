@@ -1,17 +1,15 @@
 import { Color } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 
 /**
  * Particle gradient.
  */
 export class ParticleGradient {
-  @deepClone
+  @property
   private _colorKeys: GradientColorKey[] = [];
-  @deepClone
+  @property
   private _alphaKeys: GradientAlphaKey[] = [];
-  @ignoreClone
   private _colorTypeArray: Float32Array;
-  @ignoreClone
   private _alphaTypeArray: Float32Array;
 
   private _colorTypeArrayDirty: boolean = false;
@@ -208,12 +206,10 @@ export class ParticleGradient {
     keys.splice(index, 1);
   }
 
-  @ignoreClone
   private _setColorTypeArrayDirty(): void {
     this._colorTypeArrayDirty = true;
   }
 
-  @ignoreClone
   private _setAlphaTypeArrayDirty(): void {
     this._alphaTypeArrayDirty = true;
   }
@@ -226,7 +222,9 @@ export class GradientColorKey {
   /** @internal */
   _onValueChanged: () => void = null;
 
+  @property
   private _time: number;
+  @property
   private _color: Color = new Color();
 
   /**
@@ -274,7 +272,9 @@ export class GradientAlphaKey {
   /** @internal */
   _onValueChanged: () => void = null;
 
+  @property
   private _time: number;
+  @property
   private _alpha: number;
 
   /**

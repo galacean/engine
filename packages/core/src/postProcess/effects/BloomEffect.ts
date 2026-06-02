@@ -1,4 +1,5 @@
 import { Color } from "@galacean/engine-math";
+import { property } from "../../clone/CloneManager";
 import { ShaderMacro, ShaderProperty } from "../../shader";
 
 import { PostProcessEffect } from "../PostProcessEffect";
@@ -55,42 +56,50 @@ export class BloomEffect extends PostProcessEffect {
    * Controls whether to use bicubic sampling instead of bilinear sampling for the upSampling passes.
    * @remarks This is slightly more expensive but helps getting smoother visuals.
    */
+  @property
   highQualityFiltering = new PostProcessEffectBoolParameter(false);
 
   /**
    * Controls the starting resolution that this effect begins processing.
    */
+  @property
   downScale = new PostProcessEffectEnumParameter(BloomDownScaleMode, BloomDownScaleMode.Half);
 
   /**
    * Specifies a Texture to add smudges or dust to the bloom effect.
    */
+  @property
   dirtTexture = new PostProcessEffectTextureParameter(null);
 
   /**
    * Set the level of brightness to filter out pixels under this level.
    * @remarks This value is expressed in linear.
    */
+  @property
   threshold = new PostProcessEffectFloatParameter(0.8, 0);
 
   /**
    * Controls the radius of the bloom effect.
    */
+  @property
   scatter = new PostProcessEffectFloatParameter(0.7, 0, 1);
 
   /**
    * Controls the strength of the bloom effect.
    */
+  @property
   intensity = new PostProcessEffectFloatParameter(0, 0);
 
   /**
    * Controls the strength of the lens dirt.
    */
+  @property
   dirtIntensity = new PostProcessEffectFloatParameter(0, 0);
 
   /**
    * Specifies the tint of the bloom effect.
    */
+  @property
   tint = new PostProcessEffectColorParameter(new Color(1, 1, 1, 1));
 
   /** @inheritdoc */

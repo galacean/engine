@@ -8,7 +8,7 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData, ShaderProperty } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
@@ -33,41 +33,38 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
-  @ignoreClone
   private _textChunks = Array<TextChunk>();
   /** @internal */
-  @assignmentClone
+  @property
   _subFont: SubFont = null;
   /** @internal */
-  @ignoreClone
   _dirtyFlag = DirtyFlag.Font;
-  @deepClone
+  @property
   private _color = new Color(1, 1, 1, 1);
-  @assignmentClone
+  @property
   private _text = "";
-  @assignmentClone
+  @property
   private _width = 0;
-  @assignmentClone
+  @property
   private _height = 0;
-  @ignoreClone
   private _localBounds = new BoundingBox();
-  @assignmentClone
+  @property
   private _font: Font = null;
-  @assignmentClone
+  @property
   private _fontSize = 24;
-  @assignmentClone
+  @property
   private _fontStyle = FontStyle.None;
-  @assignmentClone
+  @property
   private _lineSpacing = 0;
-  @assignmentClone
+  @property
   private _characterSpacing = 0;
-  @assignmentClone
+  @property
   private _horizontalAlignment = TextHorizontalAlignment.Center;
-  @assignmentClone
+  @property
   private _verticalAlignment = TextVerticalAlignment.Center;
-  @assignmentClone
+  @property
   private _enableWrapping = false;
-  @assignmentClone
+  @property
   private _overflowMode = OverflowMode.Overflow;
 
   /**
@@ -676,7 +673,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     charRenderInfos.length = 0;
   }
 
-  @ignoreClone
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
@@ -741,7 +737,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     textChunks.length = 0;
   }
 
-  @ignoreClone
   private _onColorChanged(): void {
     this._setDirtyFlagTrue(DirtyFlag.Color);
   }

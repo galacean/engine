@@ -1,13 +1,4 @@
-import {
-  Entity,
-  MathUtil,
-  Rect,
-  Transform,
-  TransformModifyFlags,
-  Vector2,
-  deepClone,
-  ignoreClone
-} from "@galacean/engine";
+import { Entity, MathUtil, Rect, Transform, TransformModifyFlags, Vector2, property } from "@galacean/engine";
 import { HorizontalAlignmentMode } from "../enums/HorizontalAlignmentMode";
 import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
 
@@ -15,20 +6,26 @@ import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
  * The Transform component exclusive to the UI element.
  */
 export class UITransform extends Transform {
-  @ignoreClone
   private _size = new Vector2(100, 100);
-  @ignoreClone
   private _pivot = new Vector2(0.5, 0.5);
-  @deepClone
+  @property
   private _rect = new Rect(-50, -50, 100, 100);
 
+  @property
   private _alignLeft = 0;
+  @property
   private _alignRight = 0;
+  @property
   private _alignCenter = 0;
+  @property
   private _alignTop = 0;
+  @property
   private _alignBottom = 0;
+  @property
   private _alignMiddle = 0;
+  @property
   private _horizontalAlignment = HorizontalAlignmentMode.None;
+  @property
   private _verticalAlignment = VerticalAlignmentMode.None;
 
   /**
@@ -286,13 +283,11 @@ export class UITransform extends Transform {
     !this._horizontalAlignment && !this._verticalAlignment && super._onWorldMatrixChanging();
   }
 
-  @ignoreClone
   protected override _onPositionChanged(): void {
     (this._horizontalAlignment || this._verticalAlignment) && this._updatePositionByAlignment();
     super._onPositionChanged();
   }
 
-  @ignoreClone
   protected override _onWorldPositionChanged(): void {
     super._onWorldPositionChanged();
     if (this._horizontalAlignment || this._verticalAlignment) {
@@ -365,7 +360,6 @@ export class UITransform extends Transform {
     this._rect.set(x, y, size.x, size.y);
   }
 
-  @ignoreClone
   private _onSizeChanged(): void {
     if (
       this._horizontalAlignment === HorizontalAlignmentMode.LeftAndRight ||
@@ -379,7 +373,6 @@ export class UITransform extends Transform {
     this._entity._updateFlagManager.dispatch(UITransformModifyFlags.Size);
   }
 
-  @ignoreClone
   private _onPivotChanged(): void {
     this._updateRectBySizeAndPivot();
     this._updateWorldFlagWithSelfRectChange();

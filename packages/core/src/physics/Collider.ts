@@ -1,6 +1,6 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
@@ -17,15 +17,13 @@ import { ColliderShapeChangeFlag } from "./enums/ColliderShapeChangeFlag";
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Collider extends Component implements ICustomClone {
   /** @internal */
-  @ignoreClone
   _index: number = -1;
   /** @internal */
-  @ignoreClone
   _nativeCollider: ICollider;
-  @ignoreClone
   protected _updateFlag: BoolUpdateFlag;
-  @deepClone
+  @property
   protected _shapes: ColliderShape[] = [];
+  @property
   protected _collisionLayerIndex: number = 0;
 
   /**

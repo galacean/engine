@@ -5,7 +5,7 @@ import { Entity } from "../Entity";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
@@ -34,9 +34,10 @@ export class Animator extends Component {
   private static _tempScripts: Script[] = [];
 
   /** Culling mode of this Animator. */
+  @property
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
-  @assignmentClone
+  @property
   speed = 1.0;
 
   /** @internal */
@@ -44,24 +45,17 @@ export class Animator extends Component {
   /** @internal */
   _onUpdateIndex = -1;
 
-  @assignmentClone
+  @property
   protected _animatorController: AnimatorController;
-  @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
-  @ignoreClone
   protected _updateMark = 0;
 
-  @ignoreClone
   private _animatorLayersData = new Array<AnimatorLayerData>();
-  @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
-  @ignoreClone
   private _parametersValueMap = <Record<string, AnimatorControllerParameterValue>>Object.create(null);
 
-  @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
 
-  @ignoreClone
   private _controlledRenderers = new Array<Renderer>();
 
   /**

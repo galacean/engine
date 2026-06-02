@@ -2,7 +2,7 @@ import { Matrix, Vector3 } from "@galacean/engine-math";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
-import { ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 
 /**
  * Spot light.
@@ -30,13 +30,15 @@ export class SpotLight extends Light {
   }
 
   /** Defines a distance cutoff at which the light's intensity must be considered zero. */
+  @property
   distance: number = 100;
   /** Angle, in radians, from centre of spotlight where falloff begins. */
+  @property
   angle: number = Math.PI / 6;
   /** Angle, in radians, from falloff begins to ends. */
+  @property
   penumbra: number = Math.PI / 12;
 
-  @ignoreClone
   private _inverseDirection: Vector3 = new Vector3();
 
   /**

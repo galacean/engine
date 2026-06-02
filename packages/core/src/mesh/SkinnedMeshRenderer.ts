@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -26,23 +26,18 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
 
   /** @internal */
-  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
-  @deepClone
+  @property
   private _localBounds: BoundingBox = new BoundingBox();
 
-  @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
-  @ignoreClone
   private _blendShapeWeights: Float32Array;
-  @ignoreClone
   private _maxVertexUniformVectors: number;
 
-  @ignoreClone
   private _jointTexture: Texture2D;
 
-  @deepClone
+  @property
   private _skin: Skin;
 
   /**
@@ -250,12 +245,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  @ignoreClone
   private _onLocalBoundsChanged(): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
-  @ignoreClone
   private _onSkinUpdated(type: SkinUpdateFlag, value: Object): void {
     switch (type) {
       case SkinUpdateFlag.BoneCountChanged:

@@ -6,7 +6,7 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ISpriteAssembler } from "../assembler/ISpriteAssembler";
 import { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -28,34 +28,28 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
   /** @internal */
-  @ignoreClone
   _subChunk: SubPrimitiveChunk;
 
-  @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
+  @property
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
+  @property
   private _tiledAdaptiveThreshold: number = 0.5;
 
-  @deepClone
+  @property
   private _color: Color = new Color(1, 1, 1, 1);
-  @ignoreClone
   private _sprite: Sprite = null;
 
-  @ignoreClone
   private _automaticWidth: number = 0;
-  @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
+  @property
   private _customWidth: number = undefined;
-  @assignmentClone
+  @property
   private _customHeight: number = undefined;
-  @assignmentClone
+  @property
   private _flipX: boolean = false;
-  @assignmentClone
+  @property
   private _flipY: boolean = false;
 
   /**
@@ -412,7 +406,6 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
   }
 
-  @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
@@ -467,7 +460,6 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
     }
   }
 
-  @ignoreClone
   private _onColorChanged(): void {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
   }

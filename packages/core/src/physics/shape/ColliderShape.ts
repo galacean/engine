@@ -2,7 +2,7 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
@@ -16,17 +16,18 @@ export abstract class ColliderShape implements ICustomClone {
   /** @internal */
   _collider: Collider;
   /** @internal */
-  @ignoreClone
   _nativeShape: IColliderShape;
 
-  @ignoreClone
   protected _id: number;
+  @property
   protected _material: PhysicsMaterial;
+  @property
   private _isTrigger: boolean = false;
-  @deepClone
+  @property
   private _rotation: Vector3 = new Vector3();
-  @deepClone
+  @property
   private _position: Vector3 = new Vector3();
+  @property
   private _contactOffset: number = 0.02;
 
   /**
@@ -34,6 +35,7 @@ export abstract class ColliderShape implements ICustomClone {
    * @beta
    * Whether raycast can select it.
    */
+  @property
   isSceneQuery: boolean = true;
 
   /**
@@ -190,13 +192,11 @@ export abstract class ColliderShape implements ICustomClone {
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 
-  @ignoreClone
   private _setPosition(): void {
     this._nativeShape?.setPosition(this._position);
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);
   }
 
-  @ignoreClone
   private _setRotation(): void {
     this._nativeShape?.setRotation(this._rotation);
     this._collider?._handleShapesChanged(ColliderShapeChangeFlag.Property);

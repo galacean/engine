@@ -1,113 +1,138 @@
-import { Entity, MeshRenderer, Script, Signal, assignmentClone, deepClone, ignoreClone } from "@galacean/engine-core";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Entity, MeshRenderer, Script, Signal, property } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
 class TestScript extends Script {
+  @property
   targetEntity: Entity;
+  @property
   targetRenderer: MeshRenderer;
+  @property
   externalEntity: Entity;
+  @property
   externalRenderer: MeshRenderer;
+  @property
   deepChild: Entity;
+  @property
   selfRef: Entity;
+  @property
   speed: number;
+  @property
   name2: string;
+  @property
   flag: boolean;
+  @property
   data: object;
 }
 
 /** Script with multiple entity/component refs pointing to different nodes */
 class MultiRefScript extends Script {
+  @property
   entityA: Entity;
+  @property
   entityB: Entity;
+  @property
   rendererA: MeshRenderer;
+  @property
   rendererB: MeshRenderer;
 }
 
 /** Script where the same entity is referenced by multiple properties */
 class DuplicateRefScript extends Script {
+  @property
   ref1: Entity;
+  @property
   ref2: Entity;
 }
 
 /** Script with null/undefined entity/component refs */
 class NullRefScript extends Script {
+  @property
   nullEntity: Entity = null;
+  @property
   undefinedEntity: Entity;
+  @property
   nullRenderer: MeshRenderer = null;
+  @property
   someNumber: number = 0;
 }
 
 /** Script referencing a sibling entity (not parent/child, but sibling under clone root) */
 class SiblingRefScript extends Script {
+  @property
   sibling: Entity;
+  @property
   siblingRenderer: MeshRenderer;
 }
 
-/** Script with a mix of decorated and undecorated entity refs */
-class DecoratedRefScript extends Script {
-  // Undecorated — auto-remaps via the @remapClone (Entity) default
-  autoRemapEntity: Entity;
-
-  // @assignmentClone — explicit decorator wins: shares the source reference (no remap)
-  @assignmentClone
-  assignedEntity: Entity;
-
-  // @ignoreClone — explicit decorator wins: skipped on clone (left at default)
-  @ignoreClone
-  ignoredEntity: Entity;
+/** Script mixing a @property (cloned) entity ref and an unmarked (not cloned) one */
+class MarkedRefScript extends Script {
+  // @property — cloned; being an Entity, it is remapped to the clone
+  @property
+  markedEntity: Entity;
+  // unmarked — not part of the property state, so it is not cloned (left at the clone's default)
+  unmarkedEntity: Entity;
 }
 
-/** Script with a @deepClone array of entities */
+/** Script mixing @property and unmarked primitive + entity fields */
+class PartialCloneScript extends Script {
+  @property
+  markedValue = 1;
+  unmarkedValue = 1;
+  @property
+  markedRef: Entity;
+  unmarkedRef: Entity;
+}
+
+/** Script with a @property array of entities */
 class ArrayRefScript extends Script {
-  @deepClone
+  @property
   entities: Entity[] = [];
 }
 
 /** Script with Component self-reference */
 class SelfComponentRefScript extends Script {
+  @property
   selfScript: SelfComponentRefScript;
 }
 
 /** Script referencing another Script on a different entity */
 class CrossScriptRefScript extends Script {
+  @property
   otherScript: TestScript;
 }
 
 /** Script with a nested plain object containing entity refs */
 class NestedObjectScript extends Script {
-  @deepClone
+  @property
   config: { target: Entity; label: string } = { target: null, label: "" };
 }
 
-/** Script with UNDECORATED array of entities (no @deepClone) */
-class UndecoratedArrayScript extends Script {
-  entities: Entity[] = [];
-}
-
-/** Script with UNDECORATED nested object containing entity refs */
-class UndecoratedObjectScript extends Script {
-  config: { target: Entity; label: string } = { target: null, label: "" };
-}
-
-/** Script with UNDECORATED nested array of arrays containing entities */
+/** Script with a @property nested array of arrays containing entities */
 class NestedArrayScript extends Script {
+  @property
   groups: Entity[][] = [];
 }
 
-/** Script with UNDECORATED Map containing entity values */
+/** Script with a @property Map containing entity values */
 class MapRefScript extends Script {
+  @property
   entityMap: Map<string, Entity> = new Map();
 }
 
 /** Script for testing multiple same-type components on one entity */
 class CounterScript extends Script {
+  @property
   value: number = 0;
+  @property
   partner: CounterScript;
+  @property
   targetEntity: Entity;
 }
 
 /** Script that references a CounterScript */
 class CounterRefScript extends Script {
+  @property
   counter: CounterScript;
 }
 
@@ -128,12 +153,14 @@ class ClickHandler extends Script {
 
 /** Script with a Signal property */
 class SignalScript extends Script {
-  @deepClone
+  @property
   readonly onFire = new Signal<[number]>();
 }
 
 describe("Clone remap", async () => {
-  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = 1024;
+  const engine = await WebGLEngine.create({ canvas });
   const scene = engine.sceneManager.activeScene;
   engine.run();
 
@@ -256,7 +283,7 @@ describe("Clone remap", async () => {
       expect(clonedScript.speed).eq(42);
       expect(clonedScript.name2).eq("test");
       expect(clonedScript.flag).eq(true);
-      // Plain objects are now deep cloned (independent copy) for undecorated properties
+      // Plain objects are deep cloned (independent copy)
       expect(clonedScript.data).not.eq(obj);
       expect((<any>clonedScript.data).x).eq(1);
 
@@ -354,74 +381,78 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Clone decorator interaction with _remap", () => {
-    it("@assignmentClone entity ref shares the source reference (decorator wins over remap)", () => {
+  describe("Opt-in: marked vs unmarked fields", () => {
+    it("@property entity ref remaps to the cloned entity", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
-      const script = parent.addComponent(DecoratedRefScript);
-      script.assignedEntity = child;
+      const script = parent.addComponent(MarkedRefScript);
+      script.markedEntity = child;
 
       const cloned = parent.clone();
-      const cs = cloned.getComponent(DecoratedRefScript);
+      const cs = cloned.getComponent(MarkedRefScript);
 
-      // Explicit @assignmentClone wins: reference is shared as-is, not remapped to the clone.
-      expect(cs.assignedEntity).eq(child);
-      expect(cs.assignedEntity).not.eq(cloned.children[0]);
+      expect(cs.markedEntity).not.eq(child);
+      expect(cs.markedEntity).eq(cloned.children[0]);
 
       rootEntity.destroy();
     });
 
-    it("@ignoreClone entity ref is skipped, not remapped (decorator wins)", () => {
+    it("unmarked entity ref is not cloned (left at the clone's default)", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
-      const script = parent.addComponent(DecoratedRefScript);
-      script.ignoredEntity = child;
+      const script = parent.addComponent(MarkedRefScript);
+      script.unmarkedEntity = child;
 
       const cloned = parent.clone();
-      const cs = cloned.getComponent(DecoratedRefScript);
+      const cs = cloned.getComponent(MarkedRefScript);
 
-      // Explicit @ignoreClone wins: field is skipped → left at the clone's default.
-      expect(cs.ignoredEntity).eq(undefined);
+      // Opt-in: a field without @property is not part of the cloned state.
+      expect(cs.unmarkedEntity).eq(undefined);
 
       rootEntity.destroy();
     });
 
-    it("undecorated entity ref remaps correctly", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const child = parent.createChild("child");
-      const script = parent.addComponent(DecoratedRefScript);
-      script.autoRemapEntity = child;
-
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(DecoratedRefScript);
-
-      expect(cs.autoRemapEntity).not.eq(child);
-      expect(cs.autoRemapEntity).eq(cloned.children[0]);
-
-      rootEntity.destroy();
-    });
-
-    it("@ignoreClone entity ref outside hierarchy is also skipped (left at default)", () => {
+    it("unmarked entity ref outside hierarchy is also not cloned", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const external = rootEntity.createChild("external");
-      const script = parent.addComponent(DecoratedRefScript);
-      script.ignoredEntity = external;
+      const script = parent.addComponent(MarkedRefScript);
+      script.unmarkedEntity = external;
 
       const cloned = parent.clone();
-      const cs = cloned.getComponent(DecoratedRefScript);
+      const cs = cloned.getComponent(MarkedRefScript);
 
-      // @ignoreClone skips regardless of internal/external — left at the clone's default.
-      expect(cs.ignoredEntity).eq(undefined);
+      expect(cs.unmarkedEntity).eq(undefined);
+
+      rootEntity.destroy();
+    });
+
+    it("unmarked primitive is not cloned (stays at the constructor default)", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const script = parent.addComponent(PartialCloneScript);
+      script.markedValue = 42;
+      script.unmarkedValue = 42;
+      script.markedRef = child;
+      script.unmarkedRef = child;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(PartialCloneScript);
+
+      // marked → copied / remapped; unmarked → left at the constructor default.
+      expect(cs.markedValue).eq(42);
+      expect(cs.unmarkedValue).eq(1);
+      expect(cs.markedRef).eq(cloned.children[0]);
+      expect(cs.unmarkedRef).eq(undefined);
 
       rootEntity.destroy();
     });
   });
 
-  describe("@deepClone array of entities", () => {
+  describe("@property array of entities", () => {
     it("deep cloned entity array should remap internal refs", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
@@ -527,7 +558,7 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Nested @deepClone object with entity refs", () => {
+  describe("Nested @property object with entity refs", () => {
     it("entity ref inside deep cloned plain object should remap", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
@@ -564,7 +595,7 @@ describe("Clone remap", async () => {
   });
 
   describe("Signal clone with structured bindings", () => {
-    it("@deepClone Signal should not copy closure listeners", () => {
+    it("@property Signal should not copy closure listeners", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(SignalScript);
@@ -583,7 +614,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("@deepClone Signal should remap structured binding target to cloned hierarchy", () => {
+    it("@property Signal should remap structured binding target to cloned hierarchy", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const handlerEntity = parent.createChild("handler");
@@ -602,7 +633,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("@deepClone Signal should keep external structured binding target", () => {
+    it("@property Signal should keep external structured binding target", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const external = rootEntity.createChild("external");
@@ -619,7 +650,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("@deepClone Signal should remap structured binding with pre-resolved args", () => {
+    it("@property Signal should remap structured binding with pre-resolved args", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const handlerEntity = parent.createChild("handler");
@@ -639,7 +670,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("@deepClone Signal should preserve once flag on structured binding", () => {
+    it("@property Signal should preserve once flag on structured binding", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const handlerEntity = parent.createChild("handler");
@@ -860,7 +891,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("@deepClone array referencing specific component among same-type siblings", () => {
+    it("@property array referencing specific component among same-type siblings", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
@@ -892,99 +923,8 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Undecorated array auto clone + remap (type inference)", () => {
-    it("undecorated entity array should create new array and remap elements", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const childA = parent.createChild("childA");
-      const childB = parent.createChild("childB");
-      const script = parent.addComponent(UndecoratedArrayScript);
-      script.entities = [childA, childB];
-
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(UndecoratedArrayScript);
-
-      expect(cs.entities).not.eq(script.entities);
-      expect(cs.entities.length).eq(2);
-      expect(cs.entities[0]).not.eq(childA);
-      expect(cs.entities[1]).not.eq(childB);
-      expect(cs.entities[0]).eq(cloned.children[0]);
-      expect(cs.entities[1]).eq(cloned.children[1]);
-
-      rootEntity.destroy();
-    });
-
-    it("undecorated entity array with external ref keeps original", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const child = parent.createChild("child");
-      const external = rootEntity.createChild("external");
-      const script = parent.addComponent(UndecoratedArrayScript);
-      script.entities = [child, external];
-
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(UndecoratedArrayScript);
-
-      expect(cs.entities[0]).eq(cloned.children[0]);
-      expect(cs.entities[1]).eq(external);
-
-      rootEntity.destroy();
-    });
-
-    it("undecorated empty array stays empty with independent reference", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const script = parent.addComponent(UndecoratedArrayScript);
-      script.entities = [];
-
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(UndecoratedArrayScript);
-
-      expect(cs.entities).not.eq(script.entities);
-      expect(cs.entities.length).eq(0);
-
-      rootEntity.destroy();
-    });
-  });
-
-  describe("Undecorated nested object auto clone + remap (type inference)", () => {
-    it("undecorated object with entity ref should deep clone and remap", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const child = parent.createChild("child");
-      const script = parent.addComponent(UndecoratedObjectScript);
-      script.config = { target: child, label: "hello" };
-
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(UndecoratedObjectScript);
-
-      expect(cs.config).not.eq(script.config);
-      expect(cs.config.label).eq("hello");
-      expect(cs.config.target).not.eq(child);
-      expect(cs.config.target).eq(cloned.children[0]);
-
-      rootEntity.destroy();
-    });
-
-    it("undecorated object with external entity ref keeps original", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const external = rootEntity.createChild("external");
-      const script = parent.addComponent(UndecoratedObjectScript);
-      script.config = { target: external, label: "ext" };
-
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(UndecoratedObjectScript);
-
-      expect(cs.config.target).eq(external);
-      expect(cs.config.label).eq("ext");
-
-      rootEntity.destroy();
-    });
-  });
-
-  describe("Nested array of arrays with entity refs (type inference)", () => {
-    it("undecorated nested entity arrays should recursively clone and remap", () => {
+  describe("@property nested array of arrays with entity refs", () => {
+    it("@property nested entity arrays recursively clone and remap", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const childA = parent.createChild("childA");
@@ -1008,8 +948,8 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Map with entity values (type inference)", () => {
-    it("undecorated Map should create new Map and remap entity values", () => {
+  describe("@property Map with entity values", () => {
+    it("@property Map creates new Map and remaps entity values", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");

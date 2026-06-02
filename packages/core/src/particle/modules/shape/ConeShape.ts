@@ -1,4 +1,5 @@
 import { MathUtil, Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { property } from "../../../clone/CloneManager";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
@@ -9,9 +10,13 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class ConeShape extends BaseShape {
   readonly shapeType = ParticleShapeType.Cone;
 
+  @property
   private _angle = 25.0;
+  @property
   private _radius = 1.0;
+  @property
   private _length = 5.0;
+  @property
   private _emitType = ConeEmitType.Base;
 
   /**

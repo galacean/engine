@@ -1,5 +1,6 @@
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
-import { CloneMode, defaultCloneMode } from "../clone/enums/CloneMode";
+import { CloneMode } from "../clone/enums/CloneMode";
+import { defaultCloneMode } from "../clone/CloneManager";
 
 /**
  * Shader macro。

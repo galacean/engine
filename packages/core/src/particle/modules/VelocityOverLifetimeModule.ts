@@ -1,5 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -29,24 +29,20 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
   /** @internal */
-  @ignoreClone
   _velocityRand = new Rand(0, ParticleRandomSubSeeds.VelocityOverLifetime);
 
-  @ignoreClone
   private _velocityMinConstant = new Vector3();
-  @ignoreClone
   private _velocityMaxConstant = new Vector3();
-  @ignoreClone
   private _velocityMacro: ShaderMacro;
-  @ignoreClone
   private _randomModeMacro: ShaderMacro;
 
-  @deepClone
+  @property
   private _velocityX: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _velocityY: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _velocityZ: ParticleCompositeCurve;
+  @property
   private _space = ParticleSimulationSpace.Local;
 
   /**

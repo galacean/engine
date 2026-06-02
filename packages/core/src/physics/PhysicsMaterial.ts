@@ -1,15 +1,21 @@
 import { IPhysicsMaterial } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
+import { property } from "../clone/CloneManager";
 
 /**
  * Material class to represent a set of surface properties.
  */
 export class PhysicsMaterial {
+  @property
   private _bounciness = 0;
+  @property
   private _dynamicFriction = 0.6;
+  @property
   private _staticFriction = 0.6;
+  @property
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
+  @property
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _destroyed: boolean;
 

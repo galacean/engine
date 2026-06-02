@@ -1,17 +1,21 @@
-import { deepClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * The JointMotor is used to motorize a joint.
  */
 export class JointMotor {
-  @deepClone
+  @property
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 
+  @property
   private _targetVelocity = 0;
+  @property
   private _forceLimit = Number.MAX_VALUE;
+  @property
   private _gearRatio = 1.0;
+  @property
   private _freeSpin = false;
 
   /**

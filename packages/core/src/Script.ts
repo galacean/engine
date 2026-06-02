@@ -1,6 +1,5 @@
 import { Camera } from "./Camera";
 import { Component } from "./Component";
-import { ignoreClone } from "./clone/CloneManager";
 import { PointerEventData } from "./input/pointer/PointerEventData";
 import { ColliderShape } from "./physics";
 import { Collision } from "./physics/Collision";
@@ -10,28 +9,20 @@ import { Collision } from "./physics/Collision";
  */
 export class Script extends Component {
   /** @internal */
-  @ignoreClone
   _started: boolean = false;
   /** @internal */
-  @ignoreClone
   _onStartIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _onUpdateIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _onLateUpdateIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _onPhysicsUpdateIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _onPreRenderIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _onPostRenderIndex: number = -1;
   /** @internal */
-  @ignoreClone
   _entityScriptsIndex: number = -1;
 
   /**

@@ -1,18 +1,22 @@
 import { expect, beforeAll, afterAll, describe, it } from "vitest";
 import { WebGLEngine } from "@galacean/engine";
-import { Loader, MeshRenderer, Script } from "@galacean/engine-core";
+import { Loader, MeshRenderer, Script, property } from "@galacean/engine-core";
 import { PrefabParser } from "../../../packages/loader/src/prefab/PrefabParser";
 import type { PrefabFile } from "../../../packages/loader/src/schema/PrefabSchema";
 
 let engine: WebGLEngine;
 
 class DiceScript extends Script {
+  @property
   skinMesh: MeshRenderer = null;
+  @property
   numMesh: MeshRenderer = null;
 }
 
 class OverrideCallScript extends Script {
+  @property
   value = "";
+  @property
   receivedArgs: string[] = [];
 
   appendSuffix(suffix: string): void {
@@ -761,6 +765,7 @@ describe("Cross-prefab $component ref", () => {
     // We need a script holding an Entity ref — reuse OverrideCallScript? It doesn't have an Entity field.
     // Use DiceScript but expose a targetEntity through a separate Script below.
     class EntityRefScript extends Script {
+      @property
       target: Entity = null;
     }
     Loader.registerClass("EntityRefScript", EntityRefScript);

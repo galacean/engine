@@ -2,13 +2,17 @@ import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
+import { property } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for capsule.
  */
 export class CapsuleColliderShape extends ColliderShape {
+  @property
   private _radius: number = 1;
+  @property
   private _height: number = 2;
+  @property
   private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   /**

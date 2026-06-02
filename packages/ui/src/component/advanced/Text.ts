@@ -17,8 +17,7 @@ import {
   TextVerticalAlignment,
   Texture2D,
   Vector3,
-  assignmentClone,
-  ignoreClone
+  property
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { RootCanvasModifyFlags } from "../UICanvas";
@@ -33,31 +32,28 @@ export class Text extends UIRenderer implements ITextRenderer {
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
-  @ignoreClone
   private _textChunks = Array<TextChunk>();
-  @ignoreClone
   private _subFont: SubFont = null;
-  @assignmentClone
+  @property
   private _text: string = "";
-  @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
-  @assignmentClone
+  @property
   private _font: Font = null;
-  @assignmentClone
+  @property
   private _fontSize: number = 24;
-  @assignmentClone
+  @property
   private _fontStyle: FontStyle = FontStyle.None;
-  @assignmentClone
+  @property
   private _lineSpacing: number = 0;
-  @assignmentClone
+  @property
   private _characterSpacing: number = 0;
-  @assignmentClone
+  @property
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
-  @assignmentClone
+  @property
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
-  @assignmentClone
+  @property
   private _enableWrapping: boolean = false;
-  @assignmentClone
+  @property
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
 
   /**
@@ -602,7 +598,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     charRenderInfos.length = 0;
   }
 
-  @ignoreClone
   protected override _onTransformChanged(type: number): void {
     if (type & UITransformModifyFlags.Size || type & UITransformModifyFlags.Pivot) {
       this._dirtyUpdateFlag |= DirtyFlag.LocalPositionBounds;

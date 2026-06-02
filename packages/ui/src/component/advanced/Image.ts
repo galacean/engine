@@ -12,8 +12,7 @@ import {
   SpriteModifyFlags,
   SpriteTileMode,
   TiledSpriteAssembler,
-  assignmentClone,
-  ignoreClone
+  property
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { RootCanvasModifyFlags } from "../UICanvas";
@@ -24,15 +23,12 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
  * UI element that renders an image.
  */
 export class Image extends UIRenderer implements ISpriteRenderer {
-  @ignoreClone
   private _sprite: Sprite = null;
-  @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
+  @property
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
+  @property
   private _tiledAdaptiveThreshold: number = 0.5;
 
   /**
@@ -245,7 +241,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     canvas._renderElements.push(renderElement);
   }
 
-  @ignoreClone
   protected override _onTransformChanged(type: number): void {
     if (type & UITransformModifyFlags.Size && this._drawMode === SpriteDrawMode.Tiled) {
       this._dirtyUpdateFlag |= ImageUpdateFlags.All;
@@ -264,7 +259,6 @@ export class Image extends UIRenderer implements ISpriteRenderer {
     super._onDestroy();
   }
 
-  @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:

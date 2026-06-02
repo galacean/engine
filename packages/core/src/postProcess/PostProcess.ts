@@ -1,5 +1,5 @@
 import { Logger } from "../base";
-import { deepClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
 import { PostProcessEffect } from "./PostProcessEffect";
@@ -11,18 +11,22 @@ export class PostProcess extends Component {
   /**
    * The layer to which the PostProcess belongs.
    */
+  @property
   layer = Layer.Layer0;
 
   /**
    * The outer distance to start blending from, only takes effect when the `isGlobal` is false.
    */
+  @property
   blendDistance = 0;
 
   /** @internal */
-  @deepClone
+  @property
   _effects: PostProcessEffect[] = [];
 
+  @property
   private _priority = 0;
+  @property
   private _isGlobal = true;
 
   /**

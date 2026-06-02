@@ -1,5 +1,5 @@
 import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone, shallowClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -24,23 +24,23 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
   private static readonly _tillingParamsProperty = ShaderProperty.getByName("renderer_TSATillingParams");
 
   /** Frame over time curve of the texture sheet. */
-  @deepClone
+  @property
   readonly frameOverTime = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)));
   /** Texture sheet animation type. */
+  @property
   type = TextureSheetAnimationType.WholeSheet;
   /** Cycle count. */
+  @property
   cycleCount = 1;
 
   /** @internal */
-  @shallowClone
+  @property
   _tillingInfo = new Vector3(1, 1, 1); // x:subU, y:subV, z:tileCount
   /** @internal */
-  @ignoreClone
   _frameOverTimeRand = new Rand(0, ParticleRandomSubSeeds.TextureSheetAnimation);
 
-  @deepClone
+  @property
   private _tiling = new Vector2(1, 1);
-  @ignoreClone
   private _frameCurveMacro: ShaderMacro;
 
   /**
@@ -92,7 +92,6 @@ export class TextureSheetAnimationModule extends ParticleGeneratorModule {
     this._frameOverTimeRand.reset(randomSeed, ParticleRandomSubSeeds.TextureSheetAnimation);
   }
 
-  @ignoreClone
   private _onTilingChanged(): void {
     const tiling = this.tiling;
     this._tillingInfo.set(1.0 / tiling.x, 1.0 / tiling.y, tiling.x * tiling.y);

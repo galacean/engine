@@ -1,5 +1,5 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
@@ -18,33 +18,28 @@ export class EmissionModule extends ParticleGeneratorModule {
   private static _tempEmitPosition = new Vector3();
 
   /**  The rate of particle emission. */
-  @deepClone
+  @property
   rateOverTime: ParticleCompositeCurve = new ParticleCompositeCurve(10);
   /**  The rate at which the emitter spawns new particles over distance. */
-  @deepClone
+  @property
   rateOverDistance: ParticleCompositeCurve = new ParticleCompositeCurve(0);
 
-  @deepClone
+  @property
   _shape: BaseShape;
   /** @internal */
-  @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
   /** @internal */
   _frameRateTime: number = 0;
 
-  @ignoreClone
   private _distanceAccumulator = 0;
-  @ignoreClone
   private _lastEmitPosition = new Vector3();
-  @ignoreClone
   private _hasLastEmitPosition = false;
 
-  @deepClone
+  @property
   private _bursts: Burst[] = [];
 
   private _currentBurstIndex = 0;
 
-  @ignoreClone
   private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
 
   /**

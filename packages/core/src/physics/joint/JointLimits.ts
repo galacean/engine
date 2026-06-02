@@ -1,18 +1,23 @@
-import { deepClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * JointLimits is used to limit the joints angle.
  */
 export class JointLimits {
-  @deepClone
+  @property
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 
+  @property
   private _max = 0;
+  @property
   private _min = 0;
+  @property
   private _contactDistance = -1;
+  @property
   private _stiffness = 0;
+  @property
   private _damping = 0;
 
   /**

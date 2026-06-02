@@ -283,9 +283,8 @@ describe("Signal", async () => {
     signal.on(fn);
 
     const srcRoot = root.createChild("clSrc1");
-    const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._cloneTo(targetSignal, new Map());
 
     // Closure listeners should NOT be copied to clone
     targetSignal.invoke(42);
@@ -305,10 +304,10 @@ describe("Signal", async () => {
     signal.on(handler, "handleClick");
 
     const targetRoot = srcRoot.clone();
-    // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
-
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
+    // @ts-ignore
+    signal._cloneTo(targetSignal, new Map([[handler, clonedHandler]]));
+
     targetSignal.invoke();
 
     expect(clonedHandler.callCount).toBe(1);
@@ -327,9 +326,9 @@ describe("Signal", async () => {
     const srcRoot = root.createChild("clSrc3");
     signal.on(externalHandler, "handleClick");
 
-    const targetRoot = srcRoot.clone();
+    srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._cloneTo(targetSignal, new Map());
 
     targetSignal.invoke();
     expect(externalHandler.callCount).toBe(1);
@@ -351,10 +350,17 @@ describe("Signal", async () => {
     signal.on(handler, "handleClickWithPrefix", refHandler);
 
     const targetRoot = srcRoot.clone();
-    // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
-
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
+    const clonedRef = targetRoot.findByName("ref").getComponent(TestHandler);
+    // @ts-ignore
+    signal._cloneTo(
+      targetSignal,
+      new Map([
+        [handler, clonedHandler],
+        [refHandler, clonedRef]
+      ])
+    );
+
     targetSignal.invoke();
 
     expect(clonedHandler.callCount).toBe(1);
@@ -374,10 +380,10 @@ describe("Signal", async () => {
     signal.once(handler, "handleClick");
 
     const targetRoot = srcRoot.clone();
-    // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
-
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
+    // @ts-ignore
+    signal._cloneTo(targetSignal, new Map([[handler, clonedHandler]]));
+
     targetSignal.invoke();
     targetSignal.invoke();
 

@@ -6,20 +6,22 @@ import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
 import { JointMotor } from "./JointMotor";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class HingeJoint extends Joint {
-  @deepClone
+  @property
   private _axis = new Vector3(1, 0, 0);
+  @property
   private _hingeFlags = HingeJointFlag.None;
+  @property
   private _useSpring = false;
-  @deepClone
+  @property
   private _jointMotor: JointMotor;
-  @deepClone
+  @property
   private _limits: JointLimits;
   private _angle = 0;
   private _velocity = 0;
@@ -177,7 +179,6 @@ export class HingeJoint extends Joint {
     }
   }
 
-  @ignoreClone
   private _onMotorChanged() {
     const motor = this._jointMotor;
     if (this._nativeJoint) {
@@ -188,7 +189,6 @@ export class HingeJoint extends Joint {
     }
   }
 
-  @ignoreClone
   private _onLimitsChanged() {
     const limits = this._limits;
     if (limits && this._nativeJoint) {
@@ -200,7 +200,6 @@ export class HingeJoint extends Joint {
     }
   }
 
-  @ignoreClone
   private _onAxisChanged(): void {
     //@ts-ignore
     this._axis._onValueChanged = null;

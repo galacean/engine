@@ -1,5 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro, ShaderProperty } from "../../shader";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
@@ -27,24 +27,20 @@ export class ForceOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_FOLSpace");
 
   /** @internal */
-  @ignoreClone
   _forceRand = new Rand(0, ParticleRandomSubSeeds.ForceOverLifetime);
 
-  @ignoreClone
   private _forceMinConstant = new Vector3();
-  @ignoreClone
   private _forceMaxConstant = new Vector3();
-  @ignoreClone
   private _forceMacro: ShaderMacro;
-  @ignoreClone
   private _randomModeMacro: ShaderMacro;
 
-  @deepClone
+  @property
   private _forceX: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _forceY: ParticleCompositeCurve;
-  @deepClone
+  @property
   private _forceZ: ParticleCompositeCurve;
+  @property
   private _space = ParticleSimulationSpace.Local;
 
   /**

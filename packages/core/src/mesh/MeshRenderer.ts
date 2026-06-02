@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { ShaderMacro } from "../shader/ShaderMacro";
 
@@ -20,10 +20,10 @@ export class MeshRenderer extends Renderer {
   private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
   private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
 
+  @property
   private _enableVertexColor: boolean = false;
 
   /** @internal */
-  @ignoreClone
   _mesh: Mesh;
 
   /**
@@ -216,7 +216,6 @@ export class MeshRenderer extends Renderer {
     this._mesh = mesh;
   }
 
-  @ignoreClone
   private _onMeshChanged(type: MeshModifyFlags): void {
     type & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
     type & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro);

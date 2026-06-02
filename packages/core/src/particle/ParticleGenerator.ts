@@ -1,6 +1,6 @@
 import { BoundingBox, Color, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { property } from "../clone/CloneManager";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -55,99 +55,80 @@ export class ParticleGenerator {
   private static readonly _transformFeedbackMacro = ShaderMacro.getByName("RENDERER_TRANSFORM_FEEDBACK");
 
   /** Use auto random seed. */
+  @property
   useAutoRandomSeed = true;
 
   /** Main module. */
-  @deepClone
+  @property
   readonly main: MainModule;
   /** Emission module. */
-  @deepClone
+  @property
   readonly emission = new EmissionModule(this);
   /** Velocity over lifetime module. */
-  @deepClone
+  @property
   readonly velocityOverLifetime: VelocityOverLifetimeModule;
   /** Force over lifetime module. */
-  @deepClone
+  @property
   readonly forceOverLifetime: ForceOverLifetimeModule;
   /** Limit velocity over lifetime module. */
-  @deepClone
+  @property
   readonly limitVelocityOverLifetime: LimitVelocityOverLifetimeModule;
   /** Size over lifetime module. */
-  @deepClone
+  @property
   readonly sizeOverLifetime: SizeOverLifetimeModule;
   /** Rotation over lifetime module. */
-  @deepClone
+  @property
   readonly rotationOverLifetime = new RotationOverLifetimeModule(this);
   /** Color over lifetime module. */
-  @deepClone
+  @property
   readonly colorOverLifetime = new ColorOverLifetimeModule(this);
   /** Texture sheet animation module. */
-  @deepClone
+  @property
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
   /** Noise module. */
-  @deepClone
+  @property
   readonly noise: NoiseModule;
 
   /** @internal */
   _currentParticleCount = 0;
   /** @internal */
-  @ignoreClone
   _playTime = 0;
 
   /** @internal */
-  @ignoreClone
   _firstNewElement = 0;
   /** @internal */
-  @ignoreClone
   _firstActiveElement = 0;
   /** @internal */
-  @ignoreClone
   _firstFreeElement = 0;
   /** @internal */
-  @ignoreClone
   _firstRetiredElement = 0;
   /** @internal */
-  @ignoreClone
   _primitive: Primitive;
   /** @internal */
-  @ignoreClone
   _vertexBufferBindings = new Array<VertexBufferBinding>();
   /** @internal */
-  @ignoreClone
   _subPrimitive = new SubMesh(0, 0, MeshTopology.Triangles);
   /** @internal */
   readonly _renderer: ParticleRenderer;
 
   /** @internal */
-  @ignoreClone
   _feedbackSimulator: ParticleTransformFeedbackSimulator;
   /** @internal */
-  @ignoreClone
   _useTransformFeedback = false;
   /** @internal */
-  @ignoreClone
   private _feedbackBindingIndex = -1;
 
-  @ignoreClone
   private _isPlaying = false;
-  @ignoreClone
   private _instanceBufferResized = false;
-  @ignoreClone
   private _waitProcessRetiredElementCount = 0;
-  @ignoreClone
   private _instanceVertexBufferBinding: VertexBufferBinding;
-  @ignoreClone
   private _instanceVertices: Float32Array;
+  @property
   private _randomSeed = 0;
-  @ignoreClone
   private _transformedBoundsArray: Float32Array;
-  @ignoreClone
   private _transformedBoundsCount = 0;
-  @ignoreClone
   private _firstActiveTransformedBoundingBox = 0;
-  @ignoreClone
   private _firstFreeTransformedBoundingBox = 0;
-  @ignoreClone
   private _playStartDelay = 0;
 
   /**

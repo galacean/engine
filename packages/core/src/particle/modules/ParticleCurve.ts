@@ -1,18 +1,15 @@
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 
 /**
  * Particle curve.
  */
 export class ParticleCurve {
-  @ignoreClone
   private _updateManager = new UpdateFlagManager();
-  @deepClone
+  @property
   private _keys = new Array<CurveKey>();
-  @ignoreClone
   private _typeArray: Float32Array;
   private _typeArrayDirty = false;
-  @ignoreClone
   private _updateDispatch: () => void;
 
   /**
@@ -163,9 +160,10 @@ export class ParticleCurve {
  * The key of the curve.
  */
 export class CurveKey {
-  @ignoreClone
   private _updateManager = new UpdateFlagManager();
+  @property
   private _time: number;
+  @property
   private _value: number;
 
   /**

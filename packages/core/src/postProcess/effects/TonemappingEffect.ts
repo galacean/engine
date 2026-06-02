@@ -1,3 +1,4 @@
+import { property } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader";
 import { PostProcessEffect } from "../PostProcessEffect";
 import { PostProcessEffectEnumParameter } from "../PostProcessEffectParameter";
@@ -28,5 +29,6 @@ export class TonemappingEffect extends PostProcessEffect {
   /**
    * Use this to select a tonemapping algorithm to use.
    */
+  @property
   mode = new PostProcessEffectEnumParameter(TonemappingMode, TonemappingMode.Neutral);
 }

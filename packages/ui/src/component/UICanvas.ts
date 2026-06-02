@@ -14,10 +14,8 @@ import {
   RenderElement,
   Vector2,
   Vector3,
-  assignmentClone,
-  deepClone,
   dependentComponents,
-  ignoreClone
+  property
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIBatchSorter } from "./UIBatchSorter";
@@ -44,61 +42,47 @@ export class UICanvas extends Component implements IElement {
   private static _tempMat: Matrix = new Matrix();
 
   /** @internal */
-  @ignoreClone
   _canvasIndex: number = -1;
   /** @internal */
   _rootCanvas: UICanvas;
   /** @internal */
-  @ignoreClone
   _indexInRootCanvas: number = -1;
   /** @internal */
-  @ignoreClone
   _isRootCanvasDirty: boolean = false;
   /** @internal */
-  @ignoreClone
   _rootCanvasListeningEntities: Entity[] = [];
 
   /** @internal */
-  @ignoreClone
   _isRootCanvas: boolean = false;
   /** @internal */
-  @ignoreClone
   _renderElements: RenderElement[] = [];
   /** @internal */
-  @ignoreClone
   _batchedRenderElements: RenderElement[] = [];
   /** @internal */
-  @ignoreClone
   _sortDistance: number = 0;
   /** @internal */
-  @ignoreClone
   _orderedRenderers: UIRenderer[] = [];
   /** @internal */
-  @ignoreClone
   _realRenderMode: number = CanvasRealRenderMode.None;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IElement> = new DisorderedArray<IElement>();
 
-  @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
+  @property
   private _camera: Camera;
   private _cameraObserver: Camera;
-  @assignmentClone
+  @property
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
-  @assignmentClone
+  @property
   private _sortOrder: number = 0;
-  @assignmentClone
+  @property
   private _distance: number = 10;
-  @deepClone
+  @property
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  @assignmentClone
+  @property
   private _referenceResolutionPerUnit: number = 100;
-  @ignoreClone
   private _hierarchyVersion: number = -1;
-  @ignoreClone
   private _center: Vector3 = new Vector3();
-  @ignoreClone
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**
@@ -404,7 +388,6 @@ export class UICanvas extends Component implements IElement {
   /**
    * @internal
    */
-  @ignoreClone
   _rootCanvasListener(flag: number, param: any): void {
     if (this._isRootCanvas) {
       if (flag === EntityModifyFlags.Parent) {
@@ -574,7 +557,6 @@ export class UICanvas extends Component implements IElement {
     }
   }
 
-  @ignoreClone
   private _onCameraModifyListener(flag: CameraModifyFlags): void {
     if (this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera) {
       switch (flag) {
@@ -599,7 +581,6 @@ export class UICanvas extends Component implements IElement {
     }
   }
 
-  @ignoreClone
   private _onCameraTransformListener(): void {
     this._realRenderMode === CanvasRenderMode.ScreenSpaceCamera && this._adapterPoseInScreenSpace();
   }
@@ -614,14 +595,12 @@ export class UICanvas extends Component implements IElement {
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onCanvasSizeListener);
   }
 
-  @ignoreClone
   private _onCanvasSizeListener(): void {
     const { canvas } = this.engine;
     this.entity.transform.setWorldPosition(canvas.width * 0.5, canvas.height * 0.5, 0);
     this._adapterSizeInScreenSpace();
   }
 
-  @ignoreClone
   private _onReferenceResolutionChanged(): void {
     const realRenderMode = this._realRenderMode;
     if (

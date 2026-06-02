@@ -1,4 +1,5 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
+import { property } from "../../../clone/CloneManager";
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
 import { ParticleShapeArcMode } from "./enums/ParticleShapeArcMode";
@@ -10,9 +11,13 @@ import { ParticleShapeType } from "./enums/ParticleShapeType";
 export class CircleShape extends BaseShape {
   readonly shapeType = ParticleShapeType.Circle;
 
+  @property
   private _radius = 1.0;
+  @property
   private _arc = 360.0;
+  @property
   private _arcMode = ParticleShapeArcMode.Random;
+  @property
   private _arcSpeed = 1.0;
 
   /**

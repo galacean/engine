@@ -1,5 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { property } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -27,30 +27,25 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_ROLMaxCurveZ");
 
   /** Specifies whether the rotation is separate on each axis, when disabled, only `rotationZ` is used. */
+  @property
   separateAxes: boolean = false;
   /** Rotation over lifetime for x axis, in degrees. */
-  @deepClone
+  @property
   rotationX = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for y axis, in degrees. */
-  @deepClone
+  @property
   rotationY = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis, in degrees. */
-  @deepClone
+  @property
   rotationZ = new ParticleCompositeCurve(45);
 
   /** @internal */
-  @ignoreClone
   _rotationRand = new Rand(0, ParticleRandomSubSeeds.RotationOverLifetime);
 
-  @ignoreClone
   private _rotationMinConstant = new Vector3();
-  @ignoreClone
   private _rotationMaxConstant = new Vector3();
-  @ignoreClone
   private _enableSeparateMacro: ShaderMacro;
-  @ignoreClone
   private _modeMacro: ShaderMacro;
-  @ignoreClone
   private _isRandomTwoMacro: ShaderMacro;
 
   /**

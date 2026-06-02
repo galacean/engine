@@ -1,11 +1,13 @@
 import { ColliderShape } from "./ColliderShape";
 import { ISphereColliderShape } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
+import { property } from "../../clone/CloneManager";
 
 /**
  * Physical collider shape for sphere.
  */
 export class SphereColliderShape extends ColliderShape {
+  @property
   private _radius: number = 1;
 
   /**
