@@ -777,7 +777,15 @@ export namespace ASTNode {
 
         if (!fnSymbol) {
           // #if _VERBOSE
-          sa.reportError(this.location, `No overload function type found: ${functionIdentifier.ident}`);
+          // The lookup above is keyed by argument signature, so a miss conflates an unknown
+          // name with a known function called with the wrong arguments; re-probe by name
+          // alone (and the builtin registry) to report whichever it actually is.
+          lookupSymbol.set(fnIdent, ESymbolType.FN);
+          const nameDeclared = !!sa.symbolTableStack.lookup(lookupSymbol, true) || BuiltinFunction.isExist(fnIdent);
+          sa.reportError(
+            this.location,
+            nameDeclared ? `No overload function type found: ${fnIdent}` : `Undefined function: ${fnIdent}`
+          );
           // #endif
           return;
         }

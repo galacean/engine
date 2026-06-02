@@ -78,4 +78,24 @@ describe("ShaderAnalyzer", () => {
     expect(warn!.message).to.include("undeclared_color");
     expect(warn!.range.start.line).to.be.greaterThan(0);
   });
+
+  it("reports an undefined function call distinctly from an overload mismatch", () => {
+    const source = `Shader "c0-09" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = doesNotExist(1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const undef = diagnostics.find((d: Diagnostic) => d.code === "C0-09");
+    expect(undef, "expected a C0-09 undefined-function diagnostic").to.be.ok;
+    expect(undef!.severity).to.equal("error");
+    expect(undef!.message).to.include("doesNotExist");
+  });
 });

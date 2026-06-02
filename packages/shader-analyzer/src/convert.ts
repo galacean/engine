@@ -61,6 +61,7 @@ function gSErrorNameToCode(name: GSErrorName, message: string): string {
   if (message.includes("Invalid integer")) return "C0-03";
   if (message.includes("Return in void")) return "C0-04";
   if (message.includes("No return statement")) return "C0-05";
+  if (message.includes("Undefined function")) return "C0-09";
   if (message.includes("No overload function")) return "C0-06";
   if (message.includes("gl_FragColor cannot be used with MRT")) return "C0-11";
   if (message.includes("gl_FragData")) return "C0-12";

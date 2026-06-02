@@ -40,6 +40,7 @@ export const DiagnosticCode = {
   C0_06: "C0-06", // No overload function type found
   C0_07: "C0-07", // Identifier used before declaration (warning)
   C0_08: "C0-08", // Unexpected token (parser generic)
+  C0_09: "C0-09", // Undefined function call
 
   // ── C0-codegen: migrated from CodeGenVisitor._reportError ──
   C0_11: "C0-11", // gl_FragColor with MRT
