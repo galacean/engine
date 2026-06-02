@@ -1,5 +1,5 @@
 import { Color, Vector4 } from "@galacean/engine-math";
-import { CloneManager, ignoreClone } from "../../clone/CloneManager";
+import { CloneManager } from "../../clone/CloneManager";
 import { Logger } from "../../base/Logger";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -54,14 +54,10 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _zeroColor = new Color(0, 0, 0, 0);
   private static readonly _zeroVector4 = new Vector4(0, 0, 0, 0);
 
-  @ignoreClone
   private _curves: Map<string, ParticleCompositeCurve> = new Map();
-  @ignoreClone
   private _gradients: Map<string, ParticleCompositeGradient> = new Map();
 
-  @ignoreClone
   private _curveStreams: CurveStream[] = [];
-  @ignoreClone
   private _gradientStreams: GradientStream[] = [];
 
   /**

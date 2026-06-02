@@ -90,7 +90,7 @@ export class ParticleGenerator {
   @property
   readonly noise: NoiseModule;
   /** Custom data module. */
-  @deepClone
+  @property
   readonly customData: CustomDataModule;
 
   /** @internal */
