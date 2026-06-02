@@ -57,4 +57,25 @@ describe("ShaderAnalyzer", () => {
     expect(fragDataDiag).to.be.ok;
     expect(fragDataDiag!.code).to.equal("C0-12");
   });
+
+  it("surfaces an undeclared identifier as a warning diagnostic", () => {
+    const source = `Shader "c2" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(undeclared_color, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const warn = diagnostics.find((d: Diagnostic) => d.code === "C0-07");
+    expect(warn, "expected a C0-07 warning for the undeclared identifier").to.be.ok;
+    expect(warn!.severity).to.equal("warning");
+    expect(warn!.message).to.include("undeclared_color");
+    expect(warn!.range.start.line).to.be.greaterThan(0);
+  });
 });

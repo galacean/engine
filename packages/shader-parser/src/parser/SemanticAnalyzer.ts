@@ -1,4 +1,3 @@
-import { Logger } from "../common/Logger";
 import { ShaderRange } from "../common";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
@@ -89,8 +88,8 @@ export default class SemanticAnalyzer {
   }
 
   reportWarning(loc: ShaderRange, message: string): void {
-    Logger.warn(
-      new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompilerUtils.processingPassText).toString()
-    );
+    // #if _VERBOSE
+    this.errors.push(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompilerUtils.processingPassText));
+    // #endif
   }
 }
