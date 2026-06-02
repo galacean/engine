@@ -212,4 +212,43 @@ describe("ShaderAnalyzer", () => {
     const mismatch = diagnostics.find((d: Diagnostic) => d.code === "C1-02");
     expect(mismatch, "int -> float is a valid implicit conversion, must not flag").to.be.undefined;
   });
+
+  it("reports a return type that does not match the function (C1-03)", () => {
+    const source = `Shader "c1-03" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      vec3 getColor() { return 1.0; }
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(getColor(), 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const ret = diagnostics.find((d: Diagnostic) => d.code === "C1-03");
+    expect(ret, "expected a C1-03 return-type diagnostic").to.be.ok;
+    expect(ret!.message).to.include("vec3");
+  });
+
+  it("does not flag a return value that implicitly converts (int -> float)", () => {
+    const source = `Shader "ret-implicit" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      float getF() { return 1; }
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(getF(), 0.0, 0.0, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const ret = diagnostics.find((d: Diagnostic) => d.code === "C1-03");
+    expect(ret, "int -> float return is a valid implicit conversion").to.be.undefined;
+  });
 });
