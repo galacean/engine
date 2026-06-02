@@ -10,6 +10,7 @@ import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 interface CurveStream {
+  name: string;
   curve: ParticleCompositeCurve;
   lastMode: ParticleCurveMode;
   propMaxConst: ShaderProperty;
@@ -19,6 +20,7 @@ interface CurveStream {
 }
 
 interface GradientStream {
+  name: string;
   gradient: ParticleCompositeGradient;
   lastMode: ParticleGradientMode;
   propMaxConst: ShaderProperty;
@@ -58,9 +60,9 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private _gradients: Map<string, ParticleCompositeGradient> = new Map();
 
   @ignoreClone
-  private _curveStreams: Map<string, CurveStream> = new Map();
+  private _curveStreams: CurveStream[] = [];
   @ignoreClone
-  private _gradientStreams: Map<string, GradientStream> = new Map();
+  private _gradientStreams: GradientStream[] = [];
 
   /**
    * Curves keyed by name.
@@ -94,7 +96,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
       return;
     }
     this._curves.set(name, curve);
-    this._curveStreams.set(name, {
+    this._curveStreams.push({
+      name,
       curve,
       lastMode: curve.mode,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
@@ -125,7 +128,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
       return;
     }
     this._gradients.set(name, gradient);
-    this._gradientStreams.set(name, {
+    this._gradientStreams.push({
+      name,
       gradient,
       lastMode: gradient.mode,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
@@ -144,12 +148,20 @@ export class CustomDataModule extends ParticleGeneratorModule {
    * @param name - The name passed to {@link addCurve}
    */
   removeCurve(name: string): void {
-    const stream = this._curveStreams.get(name);
-    if (!stream) {
+    const streams = this._curveStreams;
+    let idx = -1;
+    for (let i = 0, n = streams.length; i < n; i++) {
+      if (streams[i].name === name) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
       return;
     }
-    this._zeroCurveUniforms(this._generator._renderer.shaderData, stream);
-    this._curveStreams.delete(name);
+    this._zeroCurveUniforms(this._generator._renderer.shaderData, streams[idx]);
+    streams[idx] = streams[streams.length - 1];
+    streams.pop();
     this._curves.delete(name);
   }
 
@@ -158,12 +170,20 @@ export class CustomDataModule extends ParticleGeneratorModule {
    * @param name - The name passed to {@link addGradient}
    */
   removeGradient(name: string): void {
-    const stream = this._gradientStreams.get(name);
-    if (!stream) {
+    const streams = this._gradientStreams;
+    let idx = -1;
+    for (let i = 0, n = streams.length; i < n; i++) {
+      if (streams[i].name === name) {
+        idx = i;
+        break;
+      }
+    }
+    if (idx < 0) {
       return;
     }
-    this._zeroGradientUniforms(this._generator._renderer.shaderData, stream);
-    this._gradientStreams.delete(name);
+    this._zeroGradientUniforms(this._generator._renderer.shaderData, streams[idx]);
+    streams[idx] = streams[streams.length - 1];
+    streams.pop();
     this._gradients.delete(name);
   }
 
@@ -192,11 +212,13 @@ export class CustomDataModule extends ParticleGeneratorModule {
     if (!this.enabled) {
       return;
     }
-    for (const stream of this._curveStreams.values()) {
-      this._uploadCurveStream(shaderData, stream);
+    const curveStreams = this._curveStreams;
+    for (let i = 0, n = curveStreams.length; i < n; i++) {
+      this._uploadCurveStream(shaderData, curveStreams[i]);
     }
-    for (const stream of this._gradientStreams.values()) {
-      this._uploadGradientStream(shaderData, stream);
+    const gradientStreams = this._gradientStreams;
+    for (let i = 0, n = gradientStreams.length; i < n; i++) {
+      this._uploadGradientStream(shaderData, gradientStreams[i]);
     }
   }
 

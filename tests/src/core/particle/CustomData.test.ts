@@ -346,11 +346,11 @@ describe("CustomDataModule", function () {
 
     // Internal caches are rebuilt — _updateShaderData would now upload uniforms.
     //@ts-ignore - inspecting private internal cache
-    const clonedCurveStreams = (clonedCustomData as any)._curveStreams as Map<string, unknown>;
+    const clonedCurveStreams = (clonedCustomData as any)._curveStreams as { name: string }[];
     //@ts-ignore
-    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams as Map<string, unknown>;
-    expect([...clonedCurveStreams.keys()]).to.deep.eq(["Intensity"]);
-    expect([...clonedGradientStreams.keys()]).to.deep.eq(["Tint"]);
+    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams as { name: string }[];
+    expect(clonedCurveStreams.map((s) => s.name)).to.deep.eq(["Intensity"]);
+    expect(clonedGradientStreams.map((s) => s.name)).to.deep.eq(["Tint"]);
 
     // Mutation isolation: bumping the clone does not bleed back into the source.
     clonedCustomData.curves.get("Intensity")!.constantMax = 0.1;
