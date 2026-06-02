@@ -57,10 +57,10 @@ describe("CustomDataModule", function () {
 
     const customData = particleRenderer.generator.customData;
     customData.enabled = false;
-    for (const name of Object.keys(customData.curves)) {
+    for (const name of [...customData.curves.keys()]) {
       customData.removeCurve(name);
     }
-    for (const name of Object.keys(customData.gradients)) {
+    for (const name of [...customData.gradients.keys()]) {
       customData.removeGradient(name);
     }
   });
@@ -68,15 +68,15 @@ describe("CustomDataModule", function () {
   it("starts empty", function () {
     const customData = particleRenderer.generator.customData;
     expect(customData.enabled).to.eq(false);
-    expect(Object.keys(customData.curves).length).to.eq(0);
-    expect(Object.keys(customData.gradients).length).to.eq(0);
+    expect(customData.curves.size).to.eq(0);
+    expect(customData.gradients.size).to.eq(0);
   });
 
   it("addCurve registers and stores by reference", function () {
     const customData = particleRenderer.generator.customData;
     const curve = new ParticleCompositeCurve(1.0);
     customData.addCurve("Intensity", curve);
-    expect(customData.curves["Intensity"]).to.eq(curve);
+    expect(customData.curves.get("Intensity")).to.eq(curve);
   });
 
   it("addCurve rejects invalid identifiers (Logger.error, no insert)", function () {
@@ -86,14 +86,40 @@ describe("CustomDataModule", function () {
     customData.addCurve("has space", new ParticleCompositeCurve(0));
     customData.addCurve("dash-name", new ParticleCompositeCurve(0));
     customData.addCurve("中文", new ParticleCompositeCurve(0));
-    expect(Object.keys(customData.curves).length).to.eq(0);
+    expect(customData.curves.size).to.eq(0);
+  });
+
+  it("addCurve accepts Object.prototype names (no prototype-chain false-positive on dup check)", function () {
+    // Pre-Map storage used a plain `{}` which inherited `toString` / `hasOwnProperty`
+    // / `constructor` / `__proto__` from `Object.prototype`; the dup check
+    // `name in this._curves` would then fire on these names even when no entry
+    // existed. With Map backing, only explicitly-registered keys count.
+    const customData = particleRenderer.generator.customData;
+    customData.addCurve("toString", new ParticleCompositeCurve(0.1));
+    customData.addCurve("hasOwnProperty", new ParticleCompositeCurve(0.2));
+    customData.addCurve("constructor", new ParticleCompositeCurve(0.3));
+    expect(customData.curves.size).to.eq(3);
+    expect(customData.curves.get("toString")!.constantMax).to.eq(0.1);
+  });
+
+  it("addCurve accepts __proto__ as a name without polluting the container's prototype", function () {
+    // On a plain `{}`, `obj["__proto__"] = curve` mutates the object's prototype
+    // chain — subsequent `for...in` would walk through the curve's own enumerable
+    // properties. Map.set on the literal key "__proto__" has no such effect.
+    const customData = particleRenderer.generator.customData;
+    const curve = new ParticleCompositeCurve(0.5);
+    customData.addCurve("__proto__", curve);
+    expect(customData.curves.size).to.eq(1);
+    expect(customData.curves.get("__proto__")).to.eq(curve);
+    // The map's own prototype is still Map.prototype, not the curve.
+    expect(Object.getPrototypeOf(customData.curves)).to.eq(Map.prototype);
   });
 
   it("addCurve accepts digit-leading names — the renderer_ prefix keeps the final GLSL identifier valid", function () {
     const customData = particleRenderer.generator.customData;
     customData.addCurve("0intensity", new ParticleCompositeCurve(0.5));
     customData.addCurve("42", new ParticleCompositeCurve(1));
-    expect(Object.keys(customData.curves).length).to.eq(2);
+    expect(customData.curves.size).to.eq(2);
   });
 
   it("addCurve / addGradient reject names that collide with engine particle module namespaces", function () {
@@ -105,11 +131,11 @@ describe("CustomDataModule", function () {
     // Suffix-extended also rejected (`FOLSpeedMaxConst` collides with FOL's existing uniform space)
     customData.addCurve("FOLSpeed", new ParticleCompositeCurve(0));
     customData.addGradient("TSAFrame", new ParticleCompositeGradient(new Color()));
-    expect(Object.keys(customData.curves).length).to.eq(0);
-    expect(Object.keys(customData.gradients).length).to.eq(0);
+    expect(customData.curves.size).to.eq(0);
+    expect(customData.gradients.size).to.eq(0);
     // Names that merely happen to contain the substring are NOT rejected — only the leading prefix matters.
     customData.addCurve("MyVOL", new ParticleCompositeCurve(0));
-    expect(Object.keys(customData.curves).length).to.eq(1);
+    expect(customData.curves.size).to.eq(1);
   });
 
   it("addCurve rejects duplicate name (cross with gradients)", function () {
@@ -117,16 +143,16 @@ describe("CustomDataModule", function () {
     customData.addCurve("Foo", new ParticleCompositeCurve(1));
     customData.addCurve("Foo", new ParticleCompositeCurve(2));
     customData.addGradient("Foo", new ParticleCompositeGradient(new Color(1, 1, 1, 1)));
-    expect(Object.keys(customData.curves).length).to.eq(1);
-    expect(Object.keys(customData.gradients).length).to.eq(0);
-    expect(customData.curves["Foo"].constantMax).to.eq(1);
+    expect(customData.curves.size).to.eq(1);
+    expect(customData.gradients.size).to.eq(0);
+    expect(customData.curves.get("Foo")!.constantMax).to.eq(1);
   });
 
   it("addGradient registers and stores by reference", function () {
     const customData = particleRenderer.generator.customData;
     const gradient = new ParticleCompositeGradient(new Color(1, 0.5, 0.2, 1));
     customData.addGradient("Tint", gradient);
-    expect(customData.gradients["Tint"]).to.eq(gradient);
+    expect(customData.gradients.get("Tint")).to.eq(gradient);
   });
 
   it("removeCurve / removeGradient clear entries", function () {
@@ -137,8 +163,8 @@ describe("CustomDataModule", function () {
     customData.removeGradient("B");
     customData.removeCurve("A"); // no-op
     customData.removeGradient("B"); // no-op
-    expect(Object.keys(customData.curves).length).to.eq(0);
-    expect(Object.keys(customData.gradients).length).to.eq(0);
+    expect(customData.curves.size).to.eq(0);
+    expect(customData.gradients.size).to.eq(0);
   });
 
   it("removeCurve / removeGradient zero out shaderData uniforms", function () {
@@ -193,8 +219,8 @@ describe("CustomDataModule", function () {
         new ParticleCurve(new CurveKey(0, 0.5), new CurveKey(1, 1))
       )
     );
-    expect(customData.curves["C2"].mode).to.eq(ParticleCurveMode.TwoConstants);
-    expect(customData.curves["C4"].mode).to.eq(ParticleCurveMode.TwoCurves);
+    expect(customData.curves.get("C2")!.mode).to.eq(ParticleCurveMode.TwoConstants);
+    expect(customData.curves.get("C4")!.mode).to.eq(ParticleCurveMode.TwoCurves);
     expect(() => {
       //@ts-ignore
       customData._updateShaderData(particleRenderer.shaderData);
@@ -209,7 +235,7 @@ describe("CustomDataModule", function () {
       "G2",
       new ParticleCompositeGradient(new Color(0, 0, 0, 1), new Color(1, 1, 1, 1))
     );
-    expect(customData.gradients["G2"].mode).to.eq(ParticleGradientMode.TwoConstants);
+    expect(customData.gradients.get("G2")!.mode).to.eq(ParticleGradientMode.TwoConstants);
     expect(() => {
       //@ts-ignore
       customData._updateShaderData(particleRenderer.shaderData);
@@ -290,8 +316,8 @@ describe("CustomDataModule", function () {
   });
 
   it("clones deep — entries detached, internal caches rebuilt", function () {
-    // Bug guard: CloneManager can't recurse into Record entries, so the
-    // default field-by-field clone leaves `cloned.curves === source.curves`
+    // Bug guard: CloneManager can't recurse into Map entries, so the default
+    // field-by-field clone would leave `cloned.curves === source.curves`
     // (mutation aliasing) and an empty `_curveStreams` (silent no-op
     // _updateShaderData). The module's `_cloneTo` hook deep-clones each
     // entry and rebuilds the internal caches via addCurve / addGradient.
@@ -308,27 +334,27 @@ describe("CustomDataModule", function () {
     const clonedRenderer = clonedEntity.getComponent(ParticleRenderer);
     const clonedCustomData = clonedRenderer.generator.customData;
 
-    // Record containers are fresh, not aliased.
+    // Map containers are fresh, not aliased.
     expect(clonedCustomData.curves).to.not.eq(sourceCustomData.curves);
     expect(clonedCustomData.gradients).to.not.eq(sourceCustomData.gradients);
 
     // Entries themselves are fresh (deep clone), not shared.
-    expect(clonedCustomData.curves["Intensity"]).to.not.eq(sourceCustomData.curves["Intensity"]);
-    expect(clonedCustomData.curves["Intensity"].constantMax).to.eq(0.8);
-    expect(clonedCustomData.gradients["Tint"]).to.not.eq(sourceCustomData.gradients["Tint"]);
-    expect(clonedCustomData.gradients["Tint"].constantMax.r).to.be.closeTo(1, 1e-6);
+    expect(clonedCustomData.curves.get("Intensity")).to.not.eq(sourceCustomData.curves.get("Intensity"));
+    expect(clonedCustomData.curves.get("Intensity")!.constantMax).to.eq(0.8);
+    expect(clonedCustomData.gradients.get("Tint")).to.not.eq(sourceCustomData.gradients.get("Tint"));
+    expect(clonedCustomData.gradients.get("Tint")!.constantMax.r).to.be.closeTo(1, 1e-6);
 
     // Internal caches are rebuilt — _updateShaderData would now upload uniforms.
     //@ts-ignore - inspecting private internal cache
-    const clonedCurveStreams = (clonedCustomData as any)._curveStreams as { name: string }[];
+    const clonedCurveStreams = (clonedCustomData as any)._curveStreams as Map<string, unknown>;
     //@ts-ignore
-    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams as { name: string }[];
-    expect(clonedCurveStreams.map((s) => s.name)).to.deep.eq(["Intensity"]);
-    expect(clonedGradientStreams.map((s) => s.name)).to.deep.eq(["Tint"]);
+    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams as Map<string, unknown>;
+    expect([...clonedCurveStreams.keys()]).to.deep.eq(["Intensity"]);
+    expect([...clonedGradientStreams.keys()]).to.deep.eq(["Tint"]);
 
     // Mutation isolation: bumping the clone does not bleed back into the source.
-    clonedCustomData.curves["Intensity"].constantMax = 0.1;
-    expect(sourceCustomData.curves["Intensity"].constantMax).to.eq(0.8);
+    clonedCustomData.curves.get("Intensity")!.constantMax = 0.1;
+    expect(sourceCustomData.curves.get("Intensity")!.constantMax).to.eq(0.8);
 
     sourceEntity.destroy();
     clonedEntity.destroy();

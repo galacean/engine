@@ -10,7 +10,6 @@ import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 
 interface CurveStream {
-  name: string;
   curve: ParticleCompositeCurve;
   lastMode: ParticleCurveMode;
   propMaxConst: ShaderProperty;
@@ -20,7 +19,6 @@ interface CurveStream {
 }
 
 interface GradientStream {
-  name: string;
   gradient: ParticleCompositeGradient;
   lastMode: ParticleGradientMode;
   propMaxConst: ShaderProperty;
@@ -37,6 +35,19 @@ interface GradientStream {
  * Custom data module — exposes any number of named per-particle data channels
  * (scalars or colors) readable from a custom particle shader by their generated
  * `renderer_<name>...` uniforms.
+ *
+ * **Per-drawcall, not per-particle.** Each registered stream becomes one
+ * uniform shared across every particle in the same drawcall — not a per-particle
+ * vertex attribute. To differentiate between particles inside the shader, mix
+ * the uniform with `a_Random*` / `normalizedAge` / etc. on the shader side.
+ * This is NOT equivalent to Unity's `ParticleSystem.SetCustomParticleData`,
+ * which uploads one vec4 per particle.
+ *
+ * **Attachment order.** When wiring this module on a freshly created entity,
+ * configure the generator (set the material's custom shader, call `addCurve` /
+ * `addGradient`) BEFORE attaching the entity to the scene. `ParticleRenderer`'s
+ * `_onEnable` lifecycle hook fires as soon as the entity joins the scene tree;
+ * streams registered afterward will miss the first frame.
  */
 export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _streamNamePattern = /^[A-Za-z0-9_]+$/;
@@ -51,26 +62,26 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _zeroVector4 = new Vector4(0, 0, 0, 0);
 
   @ignoreClone
-  private _curves: Record<string, ParticleCompositeCurve> = {};
+  private _curves: Map<string, ParticleCompositeCurve> = new Map();
   @ignoreClone
-  private _gradients: Record<string, ParticleCompositeGradient> = {};
+  private _gradients: Map<string, ParticleCompositeGradient> = new Map();
 
   @ignoreClone
-  private _curveStreams: CurveStream[] = [];
+  private _curveStreams: Map<string, CurveStream> = new Map();
   @ignoreClone
-  private _gradientStreams: GradientStream[] = [];
+  private _gradientStreams: Map<string, GradientStream> = new Map();
 
   /**
    * Curves keyed by name.
    */
-  get curves(): Readonly<Record<string, ParticleCompositeCurve>> {
+  get curves(): ReadonlyMap<string, ParticleCompositeCurve> {
     return this._curves;
   }
 
   /**
    * Gradients keyed by name.
    */
-  get gradients(): Readonly<Record<string, ParticleCompositeGradient>> {
+  get gradients(): ReadonlyMap<string, ParticleCompositeGradient> {
     return this._gradients;
   }
 
@@ -91,9 +102,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
     if (!this._validateName(name, "addCurve")) {
       return;
     }
-    this._curves[name] = curve;
-    this._curveStreams.push({
-      name,
+    this._curves.set(name, curve);
+    this._curveStreams.set(name, {
       curve,
       lastMode: curve.mode,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
@@ -113,6 +123,10 @@ export class CustomDataModule extends ParticleGeneratorModule {
    * | Gradient     | `vec4 renderer_<name>MaxGradientColor[4]`, `vec2 renderer_<name>MaxGradientAlpha[4]`, `vec4 renderer_<name>KeysCount` |
    * | TwoGradients | + `vec4 renderer_<name>MinGradientColor[4]`, `vec2 renderer_<name>MinGradientAlpha[4]`                                |
    *
+   * `KeysCount` packs the last keyframe times the shader needs to normalize
+   * its sample t: `(colorMinKeys.last.time, alphaMinKeys.last.time, colorMaxKeys.last.time, alphaMaxKeys.last.time)`.
+   * In single-Gradient mode the min channels mirror the max channels.
+   *
    * @param name     - Same validation as {@link addCurve}.
    * @param gradient - Stored by reference.
    */
@@ -120,9 +134,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
     if (!this._validateName(name, "addGradient")) {
       return;
     }
-    this._gradients[name] = gradient;
-    this._gradientStreams.push({
-      name,
+    this._gradients.set(name, gradient);
+    this._gradientStreams.set(name, {
       gradient,
       lastMode: gradient.mode,
       propMaxConst: ShaderProperty.getByName(`renderer_${name}MaxConst`),
@@ -141,22 +154,13 @@ export class CustomDataModule extends ParticleGeneratorModule {
    * @param name - The name passed to {@link addCurve}
    */
   removeCurve(name: string): void {
-    const streams = this._curveStreams;
-    let idx = -1;
-    for (let i = 0, n = streams.length; i < n; i++) {
-      if (streams[i].name === name) {
-        idx = i;
-        break;
-      }
-    }
-    if (idx < 0) {
+    const stream = this._curveStreams.get(name);
+    if (!stream) {
       return;
     }
-    const stream = streams[idx];
     this._zeroCurveUniforms(this._generator._renderer.shaderData, stream);
-    streams[idx] = streams[streams.length - 1];
-    streams.pop();
-    delete this._curves[name];
+    this._curveStreams.delete(name);
+    this._curves.delete(name);
   }
 
   /**
@@ -164,38 +168,32 @@ export class CustomDataModule extends ParticleGeneratorModule {
    * @param name - The name passed to {@link addGradient}
    */
   removeGradient(name: string): void {
-    const streams = this._gradientStreams;
-    let idx = -1;
-    for (let i = 0, n = streams.length; i < n; i++) {
-      if (streams[i].name === name) {
-        idx = i;
-        break;
-      }
-    }
-    if (idx < 0) {
+    const stream = this._gradientStreams.get(name);
+    if (!stream) {
       return;
     }
-    const stream = streams[idx];
     this._zeroGradientUniforms(this._generator._renderer.shaderData, stream);
-    streams[idx] = streams[streams.length - 1];
-    streams.pop();
-    delete this._gradients[name];
+    this._gradientStreams.delete(name);
+    this._gradients.delete(name);
   }
 
   /**
    * @internal
    */
   _cloneTo(target: CustomDataModule): void {
-    const sourceCurves = this._curves;
-    for (const name in sourceCurves) {
+    // Share one deep-instance map across both loops so that a sub-object
+    // referenced by multiple entries (e.g. two curves whose `curveMax` points
+    // to the same ParticleCurve instance) stays shared in the clone, instead
+    // of being deep-copied once per entry.
+    const deepInstanceMap = new Map<Object, Object>();
+    for (const [name, curve] of this._curves) {
       const clonedCurve = new ParticleCompositeCurve(0);
-      CloneManager.deepCloneObject(sourceCurves[name], clonedCurve, new Map());
+      CloneManager.deepCloneObject(curve, clonedCurve, deepInstanceMap);
       target.addCurve(name, clonedCurve);
     }
-    const sourceGradients = this._gradients;
-    for (const name in sourceGradients) {
+    for (const [name, gradient] of this._gradients) {
       const clonedGradient = new ParticleCompositeGradient(new Color());
-      CloneManager.deepCloneObject(sourceGradients[name], clonedGradient, new Map());
+      CloneManager.deepCloneObject(gradient, clonedGradient, deepInstanceMap);
       target.addGradient(name, clonedGradient);
     }
   }
@@ -207,13 +205,11 @@ export class CustomDataModule extends ParticleGeneratorModule {
     if (!this.enabled) {
       return;
     }
-    const curveStreams = this._curveStreams;
-    for (let i = 0, n = curveStreams.length; i < n; i++) {
-      this._uploadCurveStream(shaderData, curveStreams[i]);
+    for (const stream of this._curveStreams.values()) {
+      this._uploadCurveStream(shaderData, stream);
     }
-    const gradientStreams = this._gradientStreams;
-    for (let i = 0, n = gradientStreams.length; i < n; i++) {
-      this._uploadGradientStream(shaderData, gradientStreams[i]);
+    for (const stream of this._gradientStreams.values()) {
+      this._uploadGradientStream(shaderData, stream);
     }
   }
 
@@ -308,7 +304,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
       );
       return false;
     }
-    if (name in this._curves || name in this._gradients) {
+    if (this._curves.has(name) || this._gradients.has(name)) {
       Logger.error(`CustomDataModule.${method}: "${name}" is already in use; call ignored.`);
       return false;
     }
