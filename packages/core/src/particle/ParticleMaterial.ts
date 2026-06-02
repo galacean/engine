@@ -9,16 +9,17 @@ export class ParticleMaterial extends EffectMaterial {
   /**
    * Create a particle material instance.
    * @param engine - Engine to which the material belongs
+   * @param shader - Shader used by the material
    */
-  constructor(engine: Engine) {
-    super(engine, Shader.find("Effect/Particle"));
+  constructor(engine: Engine, shader: Shader = Shader.find("Effect/Particle")) {
+    super(engine, shader);
   }
 
   /**
    * @inheritdoc
    */
   override clone(): ParticleMaterial {
-    const dest = new ParticleMaterial(this._engine);
+    const dest = new ParticleMaterial(this._engine, this.shader);
     this._cloneToAndModifyName(dest);
     return dest;
   }
