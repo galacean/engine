@@ -1815,4 +1815,23 @@ describe("Animator test", function () {
     // preserved by the playSpeed===0 guard
     expect(layerData.destPlayData?.playedTime).to.be.greaterThan(0);
   });
+
+  it("clone bumps AnimatorController ref count by exactly 1 (no leak)", () => {
+    const scene = engine.sceneManager.activeScene;
+    const entity = scene.createRootEntity("animator-refcount");
+    const cloneAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    cloneAnimator.animatorController = controller;
+
+    const before = controller.refCount;
+    const clone = entity.clone();
+    // Exactly +1: the clone gate's Assignment branch bumps the shared controller; the manual bump
+    // that used to also run in Animator._cloneTo would double-count (+2 -> leak on destroy).
+    expect(controller.refCount).to.eq(before + 1);
+
+    clone.destroy();
+    expect(controller.refCount).to.eq(before);
+
+    entity.destroy();
+  });
 });

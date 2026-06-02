@@ -340,7 +340,8 @@ export class Animator extends Component {
   _cloneTo(target: Animator): void {
     const animatorController = target._animatorController;
     if (animatorController) {
-      target._addResourceReferCount(animatorController, 1);
+      // Ref count is bumped centrally by the clone gate (Assignment branch); only the change flag
+      // needs re-registering here.
       target._controllerUpdateFlag = animatorController._registerChangeFlag();
     }
   }
