@@ -12,14 +12,6 @@ export abstract class ObjectPool<T extends IPoolElement> {
     this._type = type;
   }
 
-  garbageCollection(): void {
-    const elements = this._elements;
-    for (let i = elements.length - 1; i >= 0; i--) {
-      elements[i].dispose && elements[i].dispose();
-    }
-    elements.length = 0;
-  }
-
   abstract get(): T;
 }
 

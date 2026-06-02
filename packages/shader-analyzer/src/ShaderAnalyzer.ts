@@ -15,10 +15,7 @@ export interface AnalyzerOptions {
 }
 
 export interface AnalysisResult {
-  /**
-   * Diagnostics collected from ShaderLab structure parsing and per-pass GLSL parsing.
-   * Phase 1 returns the existing `GSError` objects verbatim; structured codes/ranges come later.
-   */
+  /** Diagnostics from ShaderLab structure parsing and per-pass GLSL parse + codegen. */
   diagnostics: Error[];
 }
 

@@ -59,7 +59,7 @@ const commonPlugins = [
     : null
 ];
 
-function config({ location, pkgJson, verboseMode }) {
+function config({ location, pkgJson }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
@@ -69,7 +69,7 @@ function config({ location, pkgJson, verboseMode }) {
   const alwaysFull = pkgJson.name === "@galacean/engine-shader-parser";
   curPlugins.push(
     jscc({
-      values: { _VERBOSE: verboseMode || alwaysFull }
+      values: { _VERBOSE: alwaysFull }
     })
   );
 
@@ -84,17 +84,12 @@ function config({ location, pkgJson, verboseMode }) {
   return {
     umd: (compress) => {
       const umdConfig = pkgJson.umd;
-      let file = path.join(location, "dist", "browser.js");
 
       if (compress) {
         curPlugins.push(minify({ sourceMap: true }));
       }
 
-      if (verboseMode) {
-        file = path.join(location, "dist", compress ? "browser.verbose.min.js" : "browser.verbose.js");
-      } else {
-        file = path.join(location, "dist", compress ? "browser.min.js" : "browser.js");
-      }
+      const file = path.join(location, "dist", compress ? "browser.min.js" : "browser.js");
 
       const umdExternal = Object.keys(umdConfig.globals ?? {});
 
@@ -114,12 +109,8 @@ function config({ location, pkgJson, verboseMode }) {
       };
     },
     module: () => {
-      let esFile = path.join(location, pkgJson.module);
-      let mainFile = path.join(location, pkgJson.main);
-      if (verboseMode) {
-        esFile = path.join(location, "dist", "module.verbose.js");
-        mainFile = path.join(location, "dist", "main.verbose.js");
-      }
+      const esFile = path.join(location, pkgJson.module);
+      const mainFile = path.join(location, pkgJson.main);
       return {
         input,
         external,

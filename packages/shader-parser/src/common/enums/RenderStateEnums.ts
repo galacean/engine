@@ -1,5 +1,5 @@
-// Synced copy of engine-core's render-state enums (packages/core/src/shader/enums) so the parser
-// carries no engine-core dependency. Values MUST stay identical to engine-core — guarded by a sync test.
+// Copy of engine-core's render-state enums (packages/core/src/shader/enums) so the parser carries no
+// engine-core dependency. Values must be kept identical to engine-core.
 
 export enum BlendFactor {
   Zero,
