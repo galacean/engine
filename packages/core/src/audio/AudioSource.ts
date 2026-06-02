@@ -213,7 +213,6 @@ export class AudioSource extends Component {
    * @internal
    */
   _cloneTo(target: AudioSource): void {
-    target._clip?._addReferCount(1);
     target._gainNode.gain.setValueAtTime(target._volume, AudioManager.getContext().currentTime);
   }
 
