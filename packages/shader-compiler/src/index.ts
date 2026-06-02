@@ -1,6 +1,6 @@
 export { ShaderCompiler } from "./ShaderCompiler";
 
-export * from "./GSError";
+export { GSError, GSErrorName } from "@galacean/engine-shader-parser";
 
 //@ts-ignore
 export const version = `__buildVersion`;

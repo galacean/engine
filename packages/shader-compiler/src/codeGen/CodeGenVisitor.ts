@@ -1,19 +1,19 @@
-import { ShaderPosition, ShaderRange } from "../common";
-import { BaseToken } from "../common/BaseToken";
-import { GSErrorName } from "../GSError";
-import { ASTNode, TreeNode } from "../parser/AST";
-import { NoneTerminal } from "../parser/GrammarSymbol";
-import { ESymbolType, FnSymbol } from "../parser/symbolTable";
-import { NodeChild, StructProp } from "../parser/types";
-import { ParserUtils } from "../ParserUtils";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
-import type { ICodeGenVisitor } from "../parser/ICodeGenVisitor";
+import { ShaderPosition, ShaderRange } from "@galacean/engine-shader-parser";
+import { BaseToken } from "@galacean/engine-shader-parser";
+import { GSErrorName } from "@galacean/engine-shader-parser";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
+import { NoneTerminal } from "@galacean/engine-shader-parser";
+import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser";
+import { NodeChild, StructProp } from "@galacean/engine-shader-parser";
+import { ParserUtils } from "@galacean/engine-shader-parser";
+import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
+import type { ICodeGenVisitor } from "@galacean/engine-shader-parser";
 import { StructRole, VisitorContext } from "./VisitorContext";
 // #if _VERBOSE
-import { GSError } from "../GSError";
+import { GSError } from "@galacean/engine-shader-parser";
 // #endif
 import { ReturnableObjectPool } from "@galacean/engine-core";
-import { Keyword } from "../common/enums/Keyword";
+import { Keyword } from "@galacean/engine-shader-parser";
 import { TempArray } from "../TempArray";
 import { ICodeSegment } from "./types";
 

@@ -1,0 +1,30 @@
+{
+  "name": "@galacean/engine-shader-parser",
+  "version": "2.0.0-alpha.33",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.js",
+  "debug": "src/index.ts",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@galacean/engine-math": "workspace:*"
+  },
+  "devDependencies": {
+    "@galacean/engine-design": "workspace:*"
+  }
+}

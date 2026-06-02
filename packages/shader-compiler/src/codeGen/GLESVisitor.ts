@@ -1,11 +1,11 @@
 import type { IShaderInfo } from "@galacean/engine-design";
-import { BaseToken } from "../common/BaseToken";
-import { EShaderStage } from "../common/enums/ShaderStage";
-import { Keyword } from "../common/enums/Keyword";
-import { ASTNode, TreeNode } from "../parser/AST";
-import { NodeChild } from "../parser/types";
-import { ShaderData } from "../parser/ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "../parser/symbolTable";
+import { BaseToken } from "@galacean/engine-shader-parser";
+import { EShaderStage } from "@galacean/engine-shader-parser";
+import { Keyword } from "@galacean/engine-shader-parser";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
+import { NodeChild } from "@galacean/engine-shader-parser";
+import { ShaderData } from "@galacean/engine-shader-parser";
+import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "@galacean/engine-shader-parser";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { StructRole, VisitorContext } from "./VisitorContext";

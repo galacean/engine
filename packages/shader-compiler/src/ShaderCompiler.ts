@@ -3,12 +3,12 @@ import { ShaderLanguage } from "@galacean/engine-core";
 import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { Lexer } from "./lexer";
+import { Lexer } from "@galacean/engine-shader-parser";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
-import { ShaderTargetParser } from "./parser";
-import { Preprocessor, IncludeMap, ChunkOutputCache } from "./Preprocessor";
-import { ShaderCompilerUtils } from "./ShaderCompilerUtils";
-import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
+import { ShaderTargetParser } from "@galacean/engine-shader-parser";
+import { Preprocessor, IncludeMap, ChunkOutputCache } from "@galacean/engine-shader-parser";
+import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
+import { ShaderSourceParser } from "@galacean/engine-shader-parser";
 
 export class ShaderCompiler {
   private static _parser = ShaderTargetParser.create();

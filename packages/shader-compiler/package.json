@@ -61,7 +61,8 @@
   "dependencies": {
     "@rollup/pluginutils": "^5.0.0",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-core": "workspace:*"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-shader-parser": "workspace:*"
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*"

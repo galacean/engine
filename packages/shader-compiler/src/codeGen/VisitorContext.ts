@@ -1,11 +1,11 @@
-import { BaseToken } from "../common/BaseToken";
-import { EShaderStage } from "../common/enums/ShaderStage";
-import { SymbolTable } from "../common/SymbolTable";
-import { GSErrorName } from "../GSError";
-import { ASTNode, TreeNode } from "../parser/AST";
-import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
-import { StructProp } from "../parser/types";
-import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
+import { BaseToken } from "@galacean/engine-shader-parser";
+import { EShaderStage } from "@galacean/engine-shader-parser";
+import { SymbolTable } from "@galacean/engine-shader-parser";
+import { GSErrorName } from "@galacean/engine-shader-parser";
+import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
+import { ESymbolType, SymbolInfo } from "@galacean/engine-shader-parser";
+import { StructProp } from "@galacean/engine-shader-parser";
+import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
 
 /** Role of a struct type in the shader compiler's IO flattening. */
 export type StructRole = "varying" | "attribute" | "mrt";

@@ -67,9 +67,12 @@ function config({ location, pkgJson, verboseMode }) {
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
 
+  // shader-parser ships a single always-full build (no release/verbose split): its `#if _VERBOSE`
+  // blocks (line/column tracking, error collection) are always kept so diagnostics stay available.
+  const alwaysFull = pkgJson.name === "@galacean/engine-shader-parser";
   curPlugins.push(
     jscc({
-      values: { _VERBOSE: verboseMode }
+      values: { _VERBOSE: verboseMode || alwaysFull }
     })
   );
 

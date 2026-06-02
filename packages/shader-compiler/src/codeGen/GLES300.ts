@@ -1,7 +1,7 @@
-import { EShaderStage } from "../common/enums/ShaderStage";
-import { ASTNode } from "../parser/AST";
-import { ShaderData } from "../parser/ShaderInfo";
-import { StructProp } from "../parser/types";
+import { EShaderStage } from "@galacean/engine-shader-parser";
+import { ASTNode } from "@galacean/engine-shader-parser";
+import { ShaderData } from "@galacean/engine-shader-parser";
+import { StructProp } from "@galacean/engine-shader-parser";
 import { GLESVisitor } from "./GLESVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
