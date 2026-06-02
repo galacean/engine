@@ -212,8 +212,10 @@ export class ParticleGradient {
     const alphaKeys = this._alphaKeys;
     const alphaCount = alphaKeys.length;
     if (alphaCount === 0) {
-      // Empty gradient: alpha identity for multiply (shader returns 0 here).
-      out.a = 1;
+      // Mirror the shader: an empty gradient evaluates to 0. Its uploaded keys
+      // and maxTime are all zero, so the shader's first all-zero key matches and
+      // returns 0 — not the multiply-identity 1.
+      out.a = 0;
     } else {
       const alphaMaxTime = alphaKeys[alphaCount - 1].time;
       const alphaT = Math.min(time, alphaMaxTime);
@@ -235,10 +237,10 @@ export class ParticleGradient {
     const colorKeys = this._colorKeys;
     const colorCount = colorKeys.length;
     if (colorCount === 0) {
-      // Empty gradient: color identity for multiply (shader returns black here).
-      out.r = 1;
-      out.g = 1;
-      out.b = 1;
+      // Mirror the shader: an empty gradient evaluates to black (see alpha note).
+      out.r = 0;
+      out.g = 0;
+      out.b = 0;
     } else {
       const colorMaxTime = colorKeys[colorCount - 1].time;
       const colorT = Math.min(time, colorMaxTime);
