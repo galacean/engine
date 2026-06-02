@@ -25,6 +25,11 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   /**
    * Add a sub-emitter slot. `emitter` is required — a slot with no target fires
    * nothing. Tweak a slot's fields later via `subEmitters[index]`.
+   * @param emitter - The target particle renderer
+   * @param type - The trigger event (`Birth` / `Death`)
+   * @param inheritProperties - The inherited properties
+   * @param emitProbability - The emit probability [0, 1]
+   * @param emitCount - The emit count
    */
   addSubEmitter(
     emitter: ParticleRenderer,
@@ -44,6 +49,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   /**
    * Remove the sub-emitter slot at `index`.
+   * @param index - The slot index
    */
   removeSubEmitterByIndex(index: number): void {
     this.subEmitters.splice(index, 1);
