@@ -200,10 +200,6 @@ export class ParticleGradient {
 
   /**
    * @internal
-   * CPU mirror of the shader's `evaluateParticleGradient`, so sub-emit inheritance
-   * matches the rendered parent. Keys are time-sorted, so the `min(t, maxTime)`
-   * lookup always hits a key; an empty gradient evaluates to 0 like the shader,
-   * not the multiply-identity 1.
    */
   _evaluate(time: number, out: Color): void {
     const alphaKeys = this._alphaKeys;
