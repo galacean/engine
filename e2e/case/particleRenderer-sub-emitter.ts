@@ -165,11 +165,13 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   //   sub.color = sub.startColor × (parent.startColor × COL(1))
   //   sub.size  = sub.startSize  × (parent.startSize  × SOL(1))
   parentGenerator.subEmitters.enabled = true;
-  const slot = parentGenerator.subEmitters.addSubEmitter();
-  slot.emitter = subRenderer;
-  slot.type = ParticleSubEmitterType.Death;
-  slot.emitCount = 4;
-  slot.inheritProperties = ParticleSubEmitterInheritProperty.Color | ParticleSubEmitterInheritProperty.Size;
+  parentGenerator.subEmitters.addSubEmitter(
+    subRenderer,
+    ParticleSubEmitterType.Death,
+    ParticleSubEmitterInheritProperty.Color | ParticleSubEmitterInheritProperty.Size,
+    undefined,
+    4
+  );
 
   // Attach the fully-configured tree as a unit: onEnable now sees
   // playOnEnabled = false, so the sub stays idle until the parent's Death drives it.

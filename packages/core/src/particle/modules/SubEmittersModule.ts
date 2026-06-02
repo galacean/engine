@@ -4,6 +4,7 @@ import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import { ParticleGenerator } from "../ParticleGenerator";
+import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { SubEmitter } from "./SubEmitter";
 
@@ -27,13 +28,30 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Add a new sub-emitter slot. Returns the created `SubEmitter` for further
-   * configuration.
+   * Add a sub-emitter slot. `emitter` is required — a slot with no target fires
+   * nothing. Tweak a slot's fields later via `subEmitters[index]`.
    */
-  addSubEmitter(): SubEmitter {
+  addSubEmitter(
+    emitter: ParticleRenderer,
+    type: ParticleSubEmitterType = ParticleSubEmitterType.Birth,
+    inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None,
+    emitProbability: number = 1,
+    emitCount: number = 1
+  ): void {
     const sub = new SubEmitter();
+    sub.emitter = emitter;
+    sub.type = type;
+    sub.inheritProperties = inheritProperties;
+    sub.emitProbability = emitProbability;
+    sub.emitCount = emitCount;
     this.subEmitters.push(sub);
-    return sub;
+  }
+
+  /**
+   * Remove the sub-emitter slot at `index`.
+   */
+  removeSubEmitterByIndex(index: number): void {
+    this.subEmitters.splice(index, 1);
   }
 
   /**
