@@ -38,13 +38,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Fire every slot matching `type` for one parent-particle event.
-   *
-   * @param type - the parent-particle event that occurred (Birth / Death)
-   * @param worldPosition - parent particle's event position in world space
-   * @param parentColor - parent particle's color at the event moment
-   * @param parentSize - parent particle's size at the event moment
-   * @param parentRotation - parent particle's rotation at the event moment (radians, vec3)
+   * Fire every slot whose trigger matches `type` for one parent-particle event.
    */
   _dispatchEvent(
     type: ParticleSubEmitterType,
