@@ -60,8 +60,8 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     parentSize: Vector3,
     parentRotation: Vector3
   ): void {
-    if (!this._enabled) return;
-
+    // Callers (_dispatchBirthEvent / _dispatchDeathEvent) only reach here when
+    // the module is enabled, so no `_enabled` re-check is needed.
     const subEmitters = this.subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       const sub = subEmitters[i];
