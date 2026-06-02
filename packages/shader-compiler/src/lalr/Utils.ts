@@ -4,7 +4,7 @@ import { TranslationRule } from "../parser/SemanticAnalyzer";
 import { NoneTerminal, GrammarSymbol } from "../parser/GrammarSymbol";
 import Production from "./Production";
 import { ActionInfo, EAction } from "./types";
-import { ShaderCompiler } from "../ShaderCompiler";
+import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import { NodeChild } from "../parser/types";
 import { Keyword } from "../common/enums/Keyword";
@@ -49,7 +49,7 @@ export default class GrammarUtils {
           } else {
             const start = children[0].location.start;
             const end = children[children.length - 1].location.end;
-            const location = ShaderCompiler.createRange(start, end);
+            const location = ShaderCompilerUtils.createRange(start, end);
             ASTNode.get(pool, sa, location, children);
           }
         }

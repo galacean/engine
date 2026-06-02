@@ -5,7 +5,6 @@ import { GSErrorName } from "../GSError";
 import { ASTNode, TreeNode } from "../parser/AST";
 import { ESymbolType, SymbolInfo } from "../parser/symbolTable";
 import { StructProp } from "../parser/types";
-import { ShaderCompiler } from "../ShaderCompiler";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 
 /** Role of a struct type in the shader compiler's IO flattening. */
@@ -139,7 +138,7 @@ export class VisitorContext {
       return ShaderCompilerUtils.createGSError(
         `referenced ${role} not found: ${name}`,
         GSErrorName.CompilationError,
-        ShaderCompiler._processingPassText,
+        ShaderCompilerUtils.processingPassText,
         location
       );
     }

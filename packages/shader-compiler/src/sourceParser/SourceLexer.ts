@@ -4,7 +4,6 @@ import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { GSErrorName } from "../GSError";
-import { ShaderCompiler } from "../ShaderCompiler";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 
 export default class SourceLexer extends BaseLexer {
@@ -184,7 +183,7 @@ export default class SourceLexer extends BaseLexer {
 
     const lexeme = this._source.substring(start.index, end.index);
     const tokenType = SourceLexer._keywordLexemeTable[lexeme] ?? ETokenType.ID;
-    const range = ShaderCompiler.createRange(start, end);
+    const range = ShaderCompilerUtils.createRange(start, end);
     const token = BaseToken.pool.get();
     token.set(tokenType, lexeme, range);
     return token;

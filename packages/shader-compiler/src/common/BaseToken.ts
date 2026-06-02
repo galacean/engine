@@ -1,6 +1,5 @@
 import { ETokenType } from "./types";
 import { ShaderRange, ShaderPosition } from ".";
-import { ShaderCompiler } from "../ShaderCompiler";
 import type { IPoolElement } from "@galacean/engine-core";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 
@@ -50,14 +49,14 @@ export class BaseToken<T extends number = number> implements IPoolElement {
       if (arg instanceof ShaderRange) {
         this.location = arg as ShaderRange;
       } else {
-        const end = ShaderCompiler.createPosition(
+        const end = ShaderCompilerUtils.createPosition(
           arg.index + lexeme.length,
           // #if _VERBOSE
           arg.line,
           arg.column + lexeme.length
           // #endif
         );
-        this.location = ShaderCompiler.createRange(arg, end);
+        this.location = ShaderCompilerUtils.createRange(arg, end);
       }
     }
   }

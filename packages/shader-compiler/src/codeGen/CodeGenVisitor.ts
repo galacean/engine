@@ -6,7 +6,8 @@ import { NoneTerminal } from "../parser/GrammarSymbol";
 import { ESymbolType, FnSymbol } from "../parser/symbolTable";
 import { NodeChild, StructProp } from "../parser/types";
 import { ParserUtils } from "../ParserUtils";
-import { ShaderCompiler } from "../ShaderCompiler";
+import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
+import type { ICodeGenVisitor } from "../parser/ICodeGenVisitor";
 import { StructRole, VisitorContext } from "./VisitorContext";
 // #if _VERBOSE
 import { GSError } from "../GSError";
@@ -20,7 +21,7 @@ import { ICodeSegment } from "./types";
  * @internal
  * The code generator
  */
-export abstract class CodeGenVisitor {
+export abstract class CodeGenVisitor implements ICodeGenVisitor {
   // #if _VERBOSE
   readonly errors: Error[] = [];
   // #endif
@@ -381,7 +382,7 @@ export abstract class CodeGenVisitor {
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
     // #if _VERBOSE
-    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText));
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText));
     // #else
     console.error(message);
     // #endif

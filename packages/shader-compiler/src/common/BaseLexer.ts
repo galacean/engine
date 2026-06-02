@@ -1,6 +1,5 @@
 import { ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
-import { ShaderCompiler } from "../ShaderCompiler";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BaseToken } from "./BaseToken";
 
@@ -120,7 +119,7 @@ export abstract class BaseLexer {
   }
 
   getShaderPosition(backOffset = 0): ShaderPosition {
-    return ShaderCompiler.createPosition(
+    return ShaderCompilerUtils.createPosition(
       this._currentIndex - backOffset,
       // #if _VERBOSE
       this._line,

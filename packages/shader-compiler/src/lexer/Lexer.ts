@@ -3,7 +3,7 @@ import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken, BranchConstraint, BranchSignature, EMPTY_BRANCH, EOF } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
-import { ShaderCompiler } from "../ShaderCompiler";
+import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 
 /**
  * The Lexer of Shader Compiler
@@ -518,7 +518,7 @@ export class Lexer extends BaseLexer {
       this.advance(1);
     }
     this.advance(1);
-    const range = ShaderCompiler.createRange(start, this.getShaderPosition());
+    const range = ShaderCompilerUtils.createRange(start, this.getShaderPosition());
 
     const token = BaseToken.pool.get();
     token.set(ETokenType.STRING_CONST, buffer.join(""), range);

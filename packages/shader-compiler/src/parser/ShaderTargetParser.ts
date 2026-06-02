@@ -7,7 +7,6 @@ import { addTranslationRule, createGrammar } from "../lalr/CFG";
 import { EAction, StateActionTable, StateGotoTable } from "../lalr/types";
 import { MacroDefineList } from "../Preprocessor";
 import { ParserUtils } from "../ParserUtils";
-import { ShaderCompiler } from "../ShaderCompiler";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
 import { Grammar } from "./Grammar";
@@ -122,7 +121,7 @@ export class ShaderTargetParser {
         const error = ShaderCompilerUtils.createGSError(
           `Unexpected token ${token.lexeme}`,
           GSErrorName.CompilationError,
-          ShaderCompiler._processingPassText,
+          ShaderCompilerUtils.processingPassText,
           token.location
         );
         // #if _VERBOSE

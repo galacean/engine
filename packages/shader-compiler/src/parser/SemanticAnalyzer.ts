@@ -4,7 +4,7 @@ import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSError, GSErrorName } from "../GSError";
 import { SymbolInfo } from "../parser/symbolTable";
-import { ShaderCompiler } from "../ShaderCompiler";
+import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
 import { ShaderData } from "./ShaderInfo";
 import { NodeChild } from "./types";
@@ -82,13 +82,15 @@ export default class SemanticAnalyzer {
 
   reportError(loc: ShaderRange, message: string): void {
     // #if _VERBOSE
-    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompiler._processingPassText));
+    this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText));
     // #else
     console.error(message);
     // #endif
   }
 
   reportWarning(loc: ShaderRange, message: string): void {
-    Logger.warn(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompiler._processingPassText).toString());
+    Logger.warn(
+      new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompilerUtils.processingPassText).toString()
+    );
   }
 }

@@ -1,5 +1,5 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
-import { CodeGenVisitor } from "../codeGen";
+import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
@@ -76,7 +76,7 @@ export abstract class TreeNode implements IPoolElement {
   }
 
   // Visitor pattern interface for code generation
-  codeGen(visitor: CodeGenVisitor) {
+  codeGen(visitor: ICodeGenVisitor) {
     const code = visitor.defaultCodeGen(this.children);
     this.setCache(code);
     return code;
@@ -147,7 +147,7 @@ export namespace ASTNode {
       }
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitJumpStatement(this));
     }
   }
@@ -252,7 +252,7 @@ export namespace ASTNode {
       sa.symbolTableStack.insert(sm);
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitSingleDeclaration(this));
     }
   }
@@ -502,7 +502,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.declaration)
   export class Declaration extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitDeclaration(this));
     }
   }
@@ -556,7 +556,7 @@ export namespace ASTNode {
       this.returnType = children[0] as FullySpecifiedType;
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitFunctionHeader(this));
     }
   }
@@ -598,7 +598,7 @@ export namespace ASTNode {
       }
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitFunctionParameterList(this));
     }
   }
@@ -680,7 +680,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitStatementList(this));
     }
   }
@@ -723,7 +723,7 @@ export namespace ASTNode {
       curFunctionInfo.returnStatement = undefined;
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitFunctionDefinition(this));
     }
   }
@@ -734,7 +734,7 @@ export namespace ASTNode {
       this.type = (this.children[0] as FunctionCallGeneric).type;
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitFunctionCall(this));
     }
   }
@@ -848,7 +848,7 @@ export namespace ASTNode {
       this.isBuiltin = typeof this.ident !== "string";
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitFunctionIdentifier(this));
     }
   }
@@ -922,7 +922,7 @@ export namespace ASTNode {
       }
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitPostfixExpression(this));
     }
   }
@@ -1104,7 +1104,7 @@ export namespace ASTNode {
       }
     }
 
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       return this.setCache(visitor.visitStructSpecifier(this));
     }
   }
@@ -1328,7 +1328,7 @@ export namespace ASTNode {
       }
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       if (this.isStatic) {
         return super.codeGen(visitor);
       } else {
@@ -1494,11 +1494,11 @@ export namespace ASTNode {
       return true;
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitVariableIdentifier(this));
     }
 
-    getLexeme(visitor: CodeGenVisitor): string {
+    getLexeme(visitor: ICodeGenVisitor): string {
       const child = this.children[0] as BaseToken | MacroCallSymbol | MacroCallFunction;
       if (child instanceof BaseToken) {
         return child.lexeme;
@@ -1548,7 +1548,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.macro_undef)
   export class MacroUndef extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       return this.setCache(super.codeGen(visitor) + "\n");
     }
   }
@@ -1559,7 +1559,7 @@ export namespace ASTNode {
       sa.symbolTableStack._macroLevel++;
     }
 
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
@@ -1570,21 +1570,21 @@ export namespace ASTNode {
       sa.symbolTableStack._macroLevel--;
     }
 
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_elif_expression)
   export class MacroElifExpression extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
 
   @ASTNodeDecorator(NoneTerminal.macro_else_expression)
   export class MacroElseExpression extends TreeNode {
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       return this.setCache("\n" + super.codeGen(visitor) + "\n");
     }
   }
@@ -1609,7 +1609,7 @@ export namespace ASTNode {
       }
     }
 
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       const children = this.children as TreeNode[];
       if (children.length === 1) {
         return this.setCache(children[0].codeGen(visitor));
@@ -1805,7 +1805,7 @@ export namespace ASTNode {
       this.aliasesNonBuiltinIdent = child.aliasesNonBuiltinIdent;
     }
 
-    override codeGen(visitor: CodeGenVisitor) {
+    override codeGen(visitor: ICodeGenVisitor) {
       return this.setCache(visitor.visitMacroCallFunction(this));
     }
   }
@@ -1898,7 +1898,7 @@ export namespace ASTNode {
       }
     }
 
-    override codeGen(visitor: CodeGenVisitor): string {
+    override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitMacroDefine(this));
     }
   }

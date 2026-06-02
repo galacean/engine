@@ -8,11 +8,36 @@ import { GSError } from "./GSError";
 
 export class ShaderCompilerUtils {
   private static _shaderCompilerObjectPoolSet: ClearableObjectPool<IPoolElement>[] = [];
+  private static _shaderPositionPool = ShaderCompilerUtils.createObjectPool(ShaderPosition);
+  private static _shaderRangePool = ShaderCompilerUtils.createObjectPool(ShaderRange);
+
+  // #if _VERBOSE
+  /** Source text of the pass being compiled, attached to diagnostics as context. */
+  static processingPassText?: string;
+  // #endif
 
   static createObjectPool<T extends IPoolElement>(type: new () => T) {
     const pool = new ClearableObjectPool<T>(type);
     ShaderCompilerUtils._shaderCompilerObjectPoolSet.push(pool);
     return pool;
+  }
+
+  static createPosition(index: number, line?: number, column?: number): ShaderPosition {
+    const position = ShaderCompilerUtils._shaderPositionPool.get();
+    position.set(
+      index,
+      // #if _VERBOSE
+      line,
+      column
+      // #endif
+    );
+    return position;
+  }
+
+  static createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
+    const range = ShaderCompilerUtils._shaderRangePool.get();
+    range.set(start, end);
+    return range;
   }
 
   static clearAllShaderCompilerObjectPool() {

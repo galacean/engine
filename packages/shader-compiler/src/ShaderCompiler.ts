@@ -3,7 +3,6 @@ import { ShaderLanguage } from "@galacean/engine-core";
 import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
-import { ShaderPosition, ShaderRange } from "./common";
 import { Lexer } from "./lexer";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import { ShaderTargetParser } from "./parser";
@@ -13,12 +12,6 @@ import { ShaderSourceParser } from "./sourceParser/ShaderSourceParser";
 
 export class ShaderCompiler {
   private static _parser = ShaderTargetParser.create();
-  private static _shaderPositionPool = ShaderCompilerUtils.createObjectPool(ShaderPosition);
-  private static _shaderRangePool = ShaderCompilerUtils.createObjectPool(ShaderRange);
-
-  // #if _VERBOSE
-  static _processingPassText?: string;
-  // #endif
 
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
@@ -27,24 +20,6 @@ export class ShaderCompiler {
   _setIncludeMap(includeMap: IncludeMap): void {
     this._includeMap = includeMap;
     this._chunkOutputCache.clear();
-  }
-
-  static createPosition(index: number, line?: number, column?: number): ShaderPosition {
-    const position = this._shaderPositionPool.get();
-    position.set(
-      index,
-      // #if _VERBOSE
-      line,
-      column
-      // #endif
-    );
-    return position;
-  }
-
-  static createRange(start: ShaderPosition, end: ShaderPosition): ShaderRange {
-    const range = this._shaderRangePool.get();
-    range.set(start, end);
-    return range;
   }
 
   _parseShaderSource(sourceCode: string): IShaderSource {
@@ -78,7 +53,7 @@ export class ShaderCompiler {
     const tokens = lexer.tokenize();
     const { _parser: parser } = ShaderCompiler;
 
-    ShaderCompiler._processingPassText = noIncludeContent;
+    ShaderCompilerUtils.processingPassText = noIncludeContent;
 
     const program = parser.parse(tokens, macroDefineList);
 
@@ -93,7 +68,7 @@ export class ShaderCompiler {
     const codeGen = backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
 
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
-    ShaderCompiler._processingPassText = undefined;
+    ShaderCompilerUtils.processingPassText = undefined;
 
     // #if _VERBOSE
     this._logErrors(codeGen.errors);
