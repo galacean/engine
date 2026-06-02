@@ -130,7 +130,7 @@ export class VisitorContext {
     name: string,
     list: StructProp[],
     refList: Record<string, StructProp[]>,
-    location: any
+    location: BaseToken["location"]
   ): Error | void {
     if (refList[name]) return;
     const props = list.filter((item) => item.ident.lexeme === name);

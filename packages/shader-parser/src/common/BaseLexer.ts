@@ -208,7 +208,7 @@ export abstract class BaseLexer {
     return null;
   }
 
-  throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
+  throwError(pos: ShaderPosition | ShaderRange, ...msgs: unknown[]) {
     const error = ShaderCompilerUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
     console.error(error!.toString());
     throw error;

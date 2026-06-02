@@ -7,7 +7,6 @@ import { shaderCompiler } from "@galacean/engine-shader-compiler/bundler/rollup"
 import serve from "rollup-plugin-serve";
 import replace from "@rollup/plugin-replace";
 import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
-import jscc from "rollup-plugin-jscc";
 
 const { BUILD_TYPE, NODE_ENV } = process.env;
 
@@ -63,15 +62,6 @@ function config({ location, pkgJson }) {
   const input = path.join(location, "src", "index.ts");
   const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
   const curPlugins = Array.from(commonPlugins);
-
-  // shader-parser ships a single always-full build (no release/verbose split): its `#if _VERBOSE`
-  // blocks (line/column tracking, error collection) are always kept so diagnostics stay available.
-  const alwaysFull = pkgJson.name === "@galacean/engine-shader-parser";
-  curPlugins.push(
-    jscc({
-      values: { _VERBOSE: alwaysFull }
-    })
-  );
 
   const external = Object.keys(dependencies);
   curPlugins.push(

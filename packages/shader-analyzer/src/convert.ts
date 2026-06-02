@@ -74,6 +74,7 @@ function gSErrorNameToCode(name: GSErrorName, message: string): string {
   if (message.includes("same struct as Varying and Attribute")) return "C0-19";
   if (message.includes("same struct as Varying and MRT")) return "C0-20";
   if (message.includes("same struct as Attribute and MRT")) return "C0-21";
+  if (message.includes("referenced") && message.includes("not found")) return "C0-22";
 
   // ShaderSourceParser errors (A/B layer) — matched by message content
   if (message.includes("Invalid render state property")) return "B1-01";

@@ -54,6 +54,7 @@ export const DiagnosticCode = {
   C0_19: "C0-19", // Same struct as Varying and Attribute
   C0_20: "C0-20", // Same struct as Varying and MRT
   C0_21: "C0-21", // Same struct as Attribute and MRT
+  C0_22: "C0-22", // Referenced IO symbol (attribute/varying/mrt) not found
 
   // ── A1/A2: ShaderLab structure ──
   A1_01: "A1-01", // Missing required ShaderLab element
