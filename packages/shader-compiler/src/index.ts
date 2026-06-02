@@ -1,13 +1,9 @@
 export { ShaderCompiler } from "./ShaderCompiler";
+export { GLES100Visitor, GLES300Visitor } from "./codeGen";
 
 export { GSError, GSErrorName } from "@galacean/engine-shader-parser";
 
 //@ts-ignore
 export const version = `__buildVersion`;
 
-let mode = "Release";
-// #if _VERBOSE
-mode = "Verbose";
-// #endif
-
-console.log(`Galacean Engine Shader Compiler Version: ${version} | Mode: ${mode}`);
+console.log(`Galacean Engine Shader Compiler Version: ${version}`);

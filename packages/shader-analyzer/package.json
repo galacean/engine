@@ -23,7 +23,8 @@
   ],
   "dependencies": {
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-shader-parser": "workspace:*"
+    "@galacean/engine-shader-parser": "workspace:*",
+    "@galacean/engine-shader-compiler": "workspace:*"
   },
   "devDependencies": {
     "@galacean/engine-design": "workspace:*"

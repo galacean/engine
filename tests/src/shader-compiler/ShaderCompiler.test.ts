@@ -9,7 +9,6 @@ import {
   StencilOperation
 } from "@galacean/engine-core";
 import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader-compiler";
-import { ShaderCompiler as ShaderCompilerVerbose } from "@galacean/engine-shader-compiler/verbose";
 import { glslValidate } from "./ShaderValidate";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
@@ -18,7 +17,6 @@ import { describe, expect, it, vi } from "vitest";
 const { readFile } = server.commands;
 Logger.enable();
 
-const shaderCompilerVerbose = new ShaderCompilerVerbose();
 const shaderCompilerRelease = new ShaderCompilerRelease();
 
 describe("ShaderCompiler", async () => {
@@ -27,12 +25,12 @@ describe("ShaderCompiler", async () => {
   const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
 
   it("create shaderCompiler", async () => {
-    expect(shaderCompilerVerbose).not.be.null;
+    expect(shaderCompilerRelease).not.be.null;
     expect(shaderCompilerRelease).not.be.null;
   });
 
   it("PBR", async () => {
-    const shader = shaderCompilerVerbose._parseShaderSource(PBRSource);
+    const shader = shaderCompilerRelease._parseShaderSource(PBRSource);
     const subShader = shader.subShaders[0];
     const passList = subShader.passes;
     const pass1 = passList[2];
@@ -72,7 +70,7 @@ describe("ShaderCompiler", async () => {
     });
 
     // Compile test
-    glslValidate(engine, PBRSource, shaderCompilerVerbose);
+    glslValidate(engine, PBRSource, shaderCompilerRelease);
     glslValidate(engine, PBRSource, shaderCompilerRelease);
 
     // some material variants
@@ -190,7 +188,7 @@ describe("ShaderCompiler", async () => {
         }
       }
     }`;
-    const result = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const result = shaderCompilerRelease._parseShaderSource(shaderSource);
     const pass = result.subShaders[0].passes[0];
     // CompareFunction should not appear in constantMap because bitwise OR is not allowed on non-bitmask enums
     expect(pass.renderStates.constantMap[RenderStateElementKey.DepthStateCompareFunction]).to.be.undefined;
@@ -206,7 +204,7 @@ describe("ShaderCompiler", async () => {
         }
       }
     }`;
-    const result = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const result = shaderCompilerRelease._parseShaderSource(shaderSource);
     const pass = result.subShaders[0].passes[0];
     // Mixed enum types should be rejected
     expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
@@ -222,7 +220,7 @@ describe("ShaderCompiler", async () => {
         }
       }
     }`;
-    const result = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const result = shaderCompilerRelease._parseShaderSource(shaderSource);
     const pass = result.subShaders[0].passes[0];
     // ColorWriteMask should not appear in constantMap due to invalid syntax after '|'
     expect(pass.renderStates.constantMap[RenderStateElementKey.BlendStateColorWriteMask0]).to.be.undefined;
@@ -256,7 +254,7 @@ describe("ShaderCompiler", async () => {
     const origWarn = console.warn;
     console.warn = (...args: any[]) => warns.push(args.join(" "));
     try {
-      glslValidate(engine, src, shaderCompilerVerbose);
+      glslValidate(engine, src, shaderCompilerRelease);
     } finally {
       console.warn = origWarn;
     }
@@ -266,7 +264,7 @@ describe("ShaderCompiler", async () => {
 
   it("macro-negate-number (!0, !1 in #if expressions)", async () => {
     const shaderSource = await readFile("./shaders/macro-negate-number.shader");
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
@@ -279,9 +277,9 @@ describe("ShaderCompiler", async () => {
     const shaderSource = await readFile("./shaders/define-struct-access-global.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
 
-    const shader = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
     const passSource = shader.subShaders[0].passes[0];
-    const { vertex, fragment } = shaderCompilerVerbose._parseShaderPass(
+    const { vertex, fragment } = shaderCompilerRelease._parseShaderPass(
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
@@ -298,9 +296,9 @@ describe("ShaderCompiler", async () => {
     const shaderSource = await readFile("./shaders/define-struct-access.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
 
-    const shader = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
     const passSource = shader.subShaders[0].passes[0];
-    const { vertex, fragment } = shaderCompilerVerbose._parseShaderPass(
+    const { vertex, fragment } = shaderCompilerRelease._parseShaderPass(
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
@@ -326,9 +324,9 @@ describe("ShaderCompiler", async () => {
       // Also verify verbose mode (semantic analysis) succeeds — this was the original bug:
       // member access macros resolved to struct type "Varyings" instead of TypeAny,
       // causing builtin overload matching to fail.
-      const shader = shaderCompilerVerbose._parseShaderSource(shaderSource);
+      const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
       const passSource = shader.subShaders[0].passes[0];
-      const { vertex, fragment } = shaderCompilerVerbose._parseShaderPass(
+      const { vertex, fragment } = shaderCompilerRelease._parseShaderPass(
         passSource.contents,
         passSource.vertexEntry,
         passSource.fragmentEntry,
@@ -358,9 +356,9 @@ describe("ShaderCompiler", async () => {
 
     // Verify verbose mode: global "Varyings o;" should not produce "uniform Varyings o;"
     // and should not duplicate varying declarations.
-    const shader = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
     const passSource = shader.subShaders[0].passes[0];
-    const { vertex, fragment } = shaderCompilerVerbose._parseShaderPass(
+    const { vertex, fragment } = shaderCompilerRelease._parseShaderPass(
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
@@ -386,37 +384,37 @@ describe("ShaderCompiler", async () => {
   it("define-ctor-with-member (constructor-style macro with struct member access)", async () => {
     const shaderSource = await readFile("./shaders/define-ctor-with-member.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("paren-define (object-like with space-before-paren vs function-like without space)", async () => {
     const shaderSource = await readFile("./shaders/paren-define-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("macro-value-refs (uniforms referenced inside paren / operator / fn-call / unary / nested macro values)", async () => {
     const shaderSource = await readFile("./shaders/macro-value-refs.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("macro-call-struct-arg (struct-member access as function-like macro arg)", async () => {
     const shaderSource = await readFile("./shaders/macro-call-struct-arg-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("macro-top-level-comma (replacement list with top-level `,` — GLSL ES 3.00 §3.4)", async () => {
     const shaderSource = await readFile("./shaders/macro-top-level-comma-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("macro-leading-dot-float (`.5` is a legal GLSL ES §4.1.4 float literal)", async () => {
     const shaderSource = await readFile("./shaders/macro-leading-dot-float.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   // Authoring-error `#define` shapes (trailing comma, unbalanced bracket,
@@ -461,91 +459,91 @@ describe("ShaderCompiler", async () => {
   it("type-alias-repro (FXAA-style portability macros aliasing GLSL types)", async () => {
     const shaderSource = await readFile("./shaders/type-alias-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("type-alias-sampler-only (sampler2D alias alone — should pass via legacy path)", async () => {
     const shaderSource = await readFile("./shaders/type-alias-sampler-only.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("digit-ending-id-repro (struct field ending in digit: v0.xyz, uv1.xy)", async () => {
     const shaderSource = await readFile("./shaders/digit-ending-id-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("paren-member-access-repro (inline (v).v_uv release-mode flatten)", async () => {
     const shaderSource = await readFile("./shaders/paren-member-access-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-in-comment-repro (Issue 2980 ex.1: regex must not false-positive on /* #define */)", async () => {
     const shaderSource = await readFile("./shaders/define-in-comment-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-line-continuation-repro (Issue 2980 ex.2: \\-continuation in #define value)", async () => {
     const shaderSource = await readFile("./shaders/define-line-continuation-repro.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-comment-in-peek (block comment between macro name and value)", async () => {
     const shaderSource = await readFile("./shaders/define-comment-in-peek.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-comment-with-dot (reviewer P1-1: `.` inside block comment must not route to AST)", async () => {
     const shaderSource = await readFile("./shaders/define-comment-with-dot.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-line-continuation-member-access (reviewer P1-2: `\\\\\\n` followed by .field must route to AST)", async () => {
     const shaderSource = await readFile("./shaders/define-line-continuation-member-access.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-line-continuation-no-dot (`\\\\\\n` in directive without member access — `_registerMacroDefine` must fold before regex)", async () => {
     const shaderSource = await readFile("./shaders/define-line-continuation-no-dot.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-multiline-params (`\\\\\\n` inside function-like macro header — `_scanUtilBreakLine`/`_scanMacroDefineParams` must honor line continuation)", async () => {
     const shaderSource = await readFile("./shaders/define-multiline-params.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-if-stack-balance (#if/#elif must keep branch-stack depth so #endif pops correct level)", async () => {
     const shaderSource = await readFile("./shaders/define-if-stack-balance.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-elif-polarity (#elif arm must not inherit previous arm's branch tag)", async () => {
     const shaderSource = await readFile("./shaders/define-elif-polarity.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("frag-return-vec4 (Cocos pattern: fragment entry returns vec4 instead of void)", async () => {
     const shaderSource = await readFile("./shaders/frag-return-vec4.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("macro-type-alias (macro-defined type aliases in declarations, params, struct members, return types)", async () => {
     const shaderSource = await readFile("./shaders/macro-type-alias.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("cross-if-declarator-collision (declarator name shadowed by #define in sibling #if arm)", async () => {
@@ -564,9 +562,9 @@ describe("ShaderCompiler", async () => {
     //      sibling-arm declaration so the variant where `#if` is false
     //      still has `lumaS` defined.
     const shaderSource = await readFile("./shaders/cross-if-declarator-collision.shader");
-    const sourceMeta = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const sourceMeta = shaderCompilerRelease._parseShaderSource(shaderSource);
     const passSource = sourceMeta.subShaders[0].passes[0];
-    const passProgram = shaderCompilerVerbose._parseShaderPass(
+    const passProgram = shaderCompilerRelease._parseShaderPass(
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
@@ -580,37 +578,37 @@ describe("ShaderCompiler", async () => {
     expect(passProgram!.vertex, "vertex must keep #else-arm `lumaS` declaration").to.match(/float\s+lumaS\s*=/);
     // The full shader pass should still validate end-to-end.
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("texture-generic (GVec4 → vec4 resolve)", async () => {
     const shaderSource = await readFile("./shaders/texture-generic.shader");
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("generic-return-type (builtin generic return as arg to user function)", async () => {
     const shaderSource = await readFile("./shaders/generic-return-type.shader");
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-nested-ifdef (branch stack: nested #ifdef registers entries under combined signatures)", async () => {
     const shaderSource = await readFile("./shaders/define-nested-ifdef.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
   it("define-branch-scoped-ast (per-branch filtering: same flag, both AST forms, different members)", async () => {
     const shaderSource = await readFile("./shaders/define-branch-scoped-ast.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
 
     // Default macro state activates the `#else` branch — codegen must reference
     // `v_tangent`, not `v_normal`, in the macro substitution path.
-    const shader = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
     const passSource = shader.subShaders[0].passes[0];
-    const { fragment } = shaderCompilerVerbose._parseShaderPass(
+    const { fragment } = shaderCompilerRelease._parseShaderPass(
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,
@@ -632,13 +630,13 @@ describe("ShaderCompiler", async () => {
     // legacy branch was active. Fix: switch to `.every(...)` so mixed forms
     // fall back to legacy `referenceSymbolNames`-based inference.
     glslValidate(engine, shaderSource, shaderCompilerRelease);
-    glslValidate(engine, shaderSource, shaderCompilerVerbose);
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
 
     // Default macro state activates the legacy branch — generated GLSL must
     // reference `u_globalLightDir`, not the AST-form `v.v_normal` substitution.
-    const shader = shaderCompilerVerbose._parseShaderSource(shaderSource);
+    const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
     const passSource = shader.subShaders[0].passes[0];
-    const { fragment } = shaderCompilerVerbose._parseShaderPass(
+    const { fragment } = shaderCompilerRelease._parseShaderPass(
       passSource.contents,
       passSource.vertexEntry,
       passSource.fragmentEntry,

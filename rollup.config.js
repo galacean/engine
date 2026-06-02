@@ -24,9 +24,6 @@ const pkgs = fs
     };
   });
 
-const shaderCompilerPkg = pkgs.find((item) => item.pkgJson.name === "@galacean/engine-shader-compiler");
-pkgs.push({ ...shaderCompilerPkg, verboseMode: true });
-
 // toGlobalName
 const extensions = [".js", ".jsx", ".ts", ".tsx"];
 const mainFields = NODE_ENV === "development" ? ["debug", "module", "main"] : undefined;

@@ -7,6 +7,7 @@ import {
   ShaderSourceParser,
   ShaderTargetParser
 } from "@galacean/engine-shader-parser";
+import { GLES300Visitor } from "@galacean/engine-shader-compiler";
 
 export interface AnalyzerOptions {
   /** `#include` lookup table; keys are include paths, values are chunk sources. */
@@ -22,8 +23,8 @@ export interface AnalysisResult {
 }
 
 /**
- * Static analyzer for ShaderLab / GLSL. Drives the same parse pipeline as the runtime compiler
- * but stops before code generation, surfacing the diagnostics the compiler discards.
+ * Static analyzer for ShaderLab / GLSL. Drives the full compile pipeline (parse + code generation)
+ * and surfaces the diagnostics the runtime compiler discards.
  */
 export class ShaderAnalyzer {
   private static _parser = ShaderTargetParser.create();
@@ -53,14 +54,14 @@ export class ShaderAnalyzer {
     for (const subShader of shaderSource.subShaders) {
       for (const pass of subShader.passes) {
         if (pass.isUsePass) continue;
-        this._analyzePass(pass.contents, diagnostics);
+        this._analyzePass(pass.contents, pass.vertexEntry, pass.fragmentEntry, diagnostics);
       }
     }
 
     return { diagnostics };
   }
 
-  private _analyzePass(source: string, diagnostics: Error[]): void {
+  private _analyzePass(source: string, vertexEntry: string, fragmentEntry: string, diagnostics: Error[]): void {
     const { _parser: parser } = ShaderAnalyzer;
     try {
       const macroDefineList = {};
@@ -68,8 +69,15 @@ export class ShaderAnalyzer {
       const lexer = new Lexer(noIncludeContent, macroDefineList);
       const tokens = lexer.tokenize();
       ShaderCompilerUtils.processingPassText = noIncludeContent;
-      parser.parse(tokens, macroDefineList);
+      const program = parser.parse(tokens, macroDefineList);
       diagnostics.push(...parser.errors);
+      if (program) {
+        // Run code generation too: some diagnostics (varying/attribute/MRT struct misuse,
+        // gl_FragColor with MRT, …) are only detected during codegen, not parsing.
+        const codeGen = GLES300Visitor.getVisitor();
+        codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
+        diagnostics.push(...codeGen.errors);
+      }
     } catch (e) {
       // Some authoring errors (e.g. malformed `#define`) throw during lex/preprocess rather than
       // landing in `parser.errors`; capture them so a single analyze() surfaces every diagnostic.

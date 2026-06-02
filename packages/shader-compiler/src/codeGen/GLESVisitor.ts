@@ -31,9 +31,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
-    // #if _VERBOSE
     this.errors.length = 0;
-    // #endif
     VisitorContext.reset();
     this.reset();
 

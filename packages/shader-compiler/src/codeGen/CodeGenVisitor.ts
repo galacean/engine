@@ -9,9 +9,7 @@ import { ParserUtils } from "@galacean/engine-shader-parser";
 import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
 import type { ICodeGenVisitor } from "@galacean/engine-shader-parser";
 import { StructRole, VisitorContext } from "./VisitorContext";
-// #if _VERBOSE
 import { GSError } from "@galacean/engine-shader-parser";
-// #endif
 import { ReturnableObjectPool } from "@galacean/engine-core";
 import { Keyword } from "@galacean/engine-shader-parser";
 import { TempArray } from "../TempArray";
@@ -22,9 +20,7 @@ import { ICodeSegment } from "./types";
  * The code generator
  */
 export abstract class CodeGenVisitor implements ICodeGenVisitor {
-  // #if _VERBOSE
   readonly errors: Error[] = [];
-  // #endif
 
   abstract getAttributeProp(prop: StructProp): string;
   abstract getVaryingProp(prop: StructProp): string;
@@ -72,9 +68,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
               : role === "varying"
                 ? context.referenceVarying(prop)
                 : context.referenceMRTProp(prop);
-          // #if _VERBOSE
           if (error) this.errors.push(<GSError>error);
-          // #endif
           return prop.lexeme;
         }
 
@@ -381,10 +375,6 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
   }
 
   protected _reportError(loc: ShaderRange | ShaderPosition, message: string): void {
-    // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText));
-    // #else
-    console.error(message);
-    // #endif
   }
 }

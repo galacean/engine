@@ -30,11 +30,6 @@
       "require": "./bundler/precompile.cjs.js",
       "types": "./types/bundler/precompile.d.ts"
     },
-    "./verbose": {
-      "import": "./dist/module.verbose.js",
-      "require": "./dist/main.verbose.js",
-      "types": "./types/index.d.ts"
-    },
     "./src/*": "./src/*.ts",
     "./package.json": "./package.json"
   },
@@ -55,8 +50,7 @@
   "files": [
     "dist/**/*",
     "bundler/**/*",
-    "types/**/*",
-    "verbose/package.json"
+    "types/**/*"
   ],
   "dependencies": {
     "@rollup/pluginutils": "^5.0.0",

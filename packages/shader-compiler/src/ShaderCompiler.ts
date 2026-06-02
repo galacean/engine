@@ -26,10 +26,6 @@ export class ShaderCompiler {
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
     const shaderSource = ShaderSourceParser.parse(sourceCode);
 
-    // #if _VERBOSE
-    this._logErrors(ShaderSourceParser.errors);
-    // #endif
-
     return shaderSource;
   }
 
@@ -57,10 +53,6 @@ export class ShaderCompiler {
 
     const program = parser.parse(tokens, macroDefineList);
 
-    // #if _VERBOSE
-    this._logErrors(parser.errors);
-    // #endif
-
     if (!program) {
       return undefined;
     }
@@ -69,10 +61,6 @@ export class ShaderCompiler {
 
     const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
     ShaderCompilerUtils.processingPassText = undefined;
-
-    // #if _VERBOSE
-    this._logErrors(codeGen.errors);
-    // #endif
 
     if (ret) {
       ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
@@ -148,17 +136,4 @@ export class ShaderCompiler {
       variableMap: renderStates.variableMap
     };
   }
-
-  // #if _VERBOSE
-  /**
-   * @internal
-   */
-  _logErrors(errors: Error[]) {
-    if (errors.length === 0) return;
-    console.error(`${errors.length} errors occur!`);
-    for (const err of errors) {
-      console.error(err.toString());
-    }
-  }
-  // #endif
 }

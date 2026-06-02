@@ -11,8 +11,7 @@
     "noImplicitOverride": true,
     "sourceMap": true,
     "incremental": false,
-    "skipLibCheck": true,
-    "stripInternal": true
+    "skipLibCheck": true
   },
   "include": ["src/**/*"],
   "ts-node": {

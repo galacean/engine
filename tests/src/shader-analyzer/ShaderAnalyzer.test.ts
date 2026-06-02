@@ -33,4 +33,22 @@ describe("ShaderAnalyzer", () => {
     const { diagnostics } = analyzer.analyze(source);
     expect(diagnostics).to.be.empty;
   });
+
+  it("surfaces a codegen-level diagnostic (gl_FragData) that parse-only analysis misses", () => {
+    const source = `Shader "codegen" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragData[0] = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const messages = diagnostics.map((d) => d.message).join("\n");
+    expect(messages).to.include("gl_FragData");
+  });
 });
