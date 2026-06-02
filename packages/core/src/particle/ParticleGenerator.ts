@@ -175,7 +175,7 @@ export class ParticleGenerator {
   // doesn't clobber the parent's in-flight payload (class-level statics
   // would be unsafe under nested dispatch).
   @ignoreClone
-  private _eventWorldPos = new Vector3();
+  private _eventPos = new Vector3();
   @ignoreClone
   private _eventColor = new Color();
   @ignoreClone
@@ -1138,34 +1138,51 @@ export class ParticleGenerator {
 
     this._firstFreeElement = nextFreeElement;
 
-    // ─── Sub-emitter Birth dispatch ──
+    // ─── Sub-emitter Birth dispatch (symmetric with _dispatchDeathEvent) ──
+    this._dispatchBirthEvent(offset, position, transform);
+  }
+
+  /**
+   * @internal
+   * Birth event for one just-spawned parent particle — mirror of
+   * `_dispatchDeathEvent`. No-op when sub-emitters are disabled, have no slots,
+   * or this emit was itself triggered by a sub-emitter (self-recursion guard).
+   */
+  private _dispatchBirthEvent(offset: number, position: Vector3, transform: Transform): void {
     // Skip when this very emit was triggered BY a sub-emitter (avoids self-recursion);
     // also skip when the module has no slots at all (cheap early-out).
     const subEmitters = this.subEmitters;
-    if (!this._suppressSubEmitterDispatch && subEmitters.enabled && subEmitters.subEmitters.length > 0) {
-      const birthWorldPos = this._eventWorldPos;
-      Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthWorldPos);
-      birthWorldPos.add(transform.worldPosition);
-
-      const parentColor = this._eventColor;
-      parentColor.r = instanceVertices[offset + 8];
-      parentColor.g = instanceVertices[offset + 9];
-      parentColor.b = instanceVertices[offset + 10];
-      parentColor.a = instanceVertices[offset + 11];
-
-      const parentSize = this._eventSize;
-      parentSize.set(instanceVertices[offset + 12], instanceVertices[offset + 13], instanceVertices[offset + 14]);
-
-      const parentRotation = this._eventRotation;
-      parentRotation.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
-
-      // Apply COL/SOL/ROL modulation at normalizedAge = 0 so children inherit
-      // the parent's visible appearance at the moment of birth, not the raw
-      // pre-modulation start values.
-      this._modulateInheritByLifetime(offset, 0, parentColor, parentSize, parentRotation);
-
-      subEmitters._dispatchEvent(ParticleSubEmitterType.Birth, birthWorldPos, parentColor, parentSize, parentRotation);
+    if (this._suppressSubEmitterDispatch || !subEmitters.enabled || subEmitters.subEmitters.length === 0) {
+      return;
     }
+
+    const instanceVertices = this._instanceVertices;
+
+    const birthPos = this._eventPos;
+    Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthPos);
+    birthPos.add(transform.worldPosition);
+
+    // Read AFTER the sub-emit override was applied above — for nested A→B→C this
+    // gives C the cascaded color (B's startColor × inheritFromA), so inheritance
+    // accumulates down the chain rather than resetting to B's raw start values.
+    const parentColor = this._eventColor;
+    parentColor.r = instanceVertices[offset + 8];
+    parentColor.g = instanceVertices[offset + 9];
+    parentColor.b = instanceVertices[offset + 10];
+    parentColor.a = instanceVertices[offset + 11];
+
+    const parentSize = this._eventSize;
+    parentSize.set(instanceVertices[offset + 12], instanceVertices[offset + 13], instanceVertices[offset + 14]);
+
+    const parentRotation = this._eventRotation;
+    parentRotation.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
+
+    // Apply COL/SOL/ROL modulation at normalizedAge = 0 so children inherit
+    // the parent's visible appearance at the moment of birth, not the raw
+    // pre-modulation start values.
+    this._modulateInheritByLifetime(offset, 0, parentColor, parentSize, parentRotation);
+
+    subEmitters._dispatchEvent(ParticleSubEmitterType.Birth, birthPos, parentColor, parentSize, parentRotation);
   }
 
   /**
@@ -1318,7 +1335,7 @@ export class ParticleGenerator {
     const gravityMod = instanceVertices[particleOffset + 19];
 
     // Local-space end position before world rotation: a_ShapePos + dir·speed·lifetime
-    const local = this._eventWorldPos;
+    const local = this._eventPos;
     local.set(
       instanceVertices[particleOffset + 0] + instanceVertices[particleOffset + 4] * startSpeed * lifetime,
       instanceVertices[particleOffset + 1] + instanceVertices[particleOffset + 5] * startSpeed * lifetime,
