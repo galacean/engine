@@ -59,6 +59,7 @@ function gSErrorNameToCode(name: GSErrorName, message: string): string {
 
   // CompilationError — disambiguate by message content
   if (message.includes("Invalid swizzle")) return "C1-01";
+  if (message.includes("Cannot assign a value of type")) return "C1-02";
   if (message.includes("Array of array")) return "C0-01";
   if (message.includes("not implemented operator")) return "C0-02";
   if (message.includes("Invalid integer")) return "C0-03";

@@ -59,6 +59,7 @@ export const DiagnosticCode = {
 
   // ── C1: GLSL type system ──
   C1_01: "C1-01", // Invalid vector swizzle
+  C1_02: "C1-02", // Type mismatch in assignment
 
   // ── A1/A2: ShaderLab structure ──
   A1_01: "A1-01", // Missing required ShaderLab element

@@ -116,6 +116,45 @@ export class ParserUtils {
     return null;
   }
 
+  /**
+   * GLSL ES 3.00 assignability with implicit scalar/vector conversions (spec 4.1.10):
+   * `int → uint, float`; `uint → float`; `ivecN → uvecN, vecN`; `uvecN → vecN`. Returns `true`
+   * when `source` may be assigned to `target`, or when either side is unknown / a struct (those
+   * are skipped — not modeled here). Returns `false` only for a definite type conflict.
+   */
+  static isAssignable(target: GalaceanDataType | undefined, source: GalaceanDataType | undefined): boolean {
+    if (target == undefined || source == undefined || target === TypeAny || source === TypeAny) return true;
+    if (typeof target === "string" || typeof source === "string") return true;
+    if (target === source) return true;
+    switch (source) {
+      case Keyword.INT:
+        return target === Keyword.UINT || target === Keyword.FLOAT;
+      case Keyword.UINT:
+        return target === Keyword.FLOAT;
+      case Keyword.IVEC2:
+        return target === Keyword.UVEC2 || target === Keyword.VEC2;
+      case Keyword.IVEC3:
+        return target === Keyword.UVEC3 || target === Keyword.VEC3;
+      case Keyword.IVEC4:
+        return target === Keyword.UVEC4 || target === Keyword.VEC4;
+      case Keyword.UVEC2:
+        return target === Keyword.VEC2;
+      case Keyword.UVEC3:
+        return target === Keyword.VEC3;
+      case Keyword.UVEC4:
+        return target === Keyword.VEC4;
+      default:
+        return false;
+    }
+  }
+
+  /** Human-readable GLSL name of a resolved type, for diagnostic messages. */
+  static typeName(type: GalaceanDataType | undefined): string {
+    if (typeof type === "string") return type;
+    if (type == undefined) return "unknown";
+    return (Keyword[type] ?? String(type)).toLowerCase();
+  }
+
   private static _vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {
       case Keyword.VEC2:

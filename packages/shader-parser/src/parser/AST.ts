@@ -853,8 +853,15 @@ export namespace ASTNode {
         const expr = this.children[0] as ConditionalExpression;
         this.type = expr.type ?? TypeAny;
       } else {
-        const expr = this.children[2] as AssignmentExpression;
-        this.type = expr.type ?? TypeAny;
+        const lhs = this.children[0] as ExpressionAstNode;
+        const rhs = this.children[2] as AssignmentExpression;
+        this.type = rhs.type ?? TypeAny;
+        if (!ParserUtils.isAssignable(lhs.type, rhs.type)) {
+          sa.reportError(
+            this.location,
+            `Cannot assign a value of type '${ParserUtils.typeName(rhs.type)}' to '${ParserUtils.typeName(lhs.type)}'.`
+          );
+        }
       }
     }
   }

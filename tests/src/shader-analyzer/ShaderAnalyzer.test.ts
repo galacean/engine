@@ -165,4 +165,51 @@ describe("ShaderAnalyzer", () => {
     expect(sw, "expected a C1-01 swizzle diagnostic").to.be.ok;
     expect(sw!.message).to.include("out of range");
   });
+
+  it("reports an incompatible-type assignment (C1-02)", () => {
+    const source = `Shader "c1-02" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() {
+        float a = 1.0;
+        vec3 b = vec3(0.0, 0.0, 0.0);
+        a = b;
+        gl_FragColor = vec4(a, a, a, 1.0);
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const mismatch = diagnostics.find((d: Diagnostic) => d.code === "C1-02");
+    expect(mismatch, "expected a C1-02 type-mismatch diagnostic").to.be.ok;
+    expect(mismatch!.message).to.include("float");
+  });
+
+  it("does not flag a valid implicit conversion (int -> float)", () => {
+    const source = `Shader "implicit" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() {
+        float a = 0.0;
+        int i = 1;
+        a = i;
+        gl_FragColor = vec4(a, a, a, 1.0);
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const mismatch = diagnostics.find((d: Diagnostic) => d.code === "C1-02");
+    expect(mismatch, "int -> float is a valid implicit conversion, must not flag").to.be.undefined;
+  });
 });
