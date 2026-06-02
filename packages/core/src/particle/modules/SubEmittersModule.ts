@@ -9,14 +9,9 @@ import { SubEmitter } from "./SubEmitter";
 
 /**
  * Sub Emitters module — fires additional particle systems on parent particle
- * lifecycle events (Birth / Death).
- *
- * Each slot in `subEmitters` references a target `ParticleRenderer` and
- * configures the trigger event, inherited properties, emit probability, and
- * burst count. The target renderer's own emission/lifetime/curves are
- * preserved; only `Color/Size/Rotation` (when flagged in `inheritProperties`)
- * are multiplied/added on top of the sub particle's start values, and
- * Position is implicitly the parent particle's event position.
+ * lifecycle events (Birth / Death). Sub particles emit at the parent
+ * particle's event position; inherited properties (Color / Size / Rotation)
+ * are configured per slot via `inheritProperties`.
  */
 export class SubEmittersModule extends ParticleGeneratorModule {
   /** Sub emitter slots. */
