@@ -2,10 +2,8 @@ import { ETokenType, GalaceanDataType, TypeAny } from "./common";
 import { BaseToken as Token } from "./common/BaseToken";
 import { ASTNode, TreeNode } from "./parser/AST";
 import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
-// #if _VERBOSE
 import { Keyword } from "./common/enums/Keyword";
 import State from "./lalr/State";
-// #endif
 
 export class ParserUtils {
   static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: NoneTerminal): T | undefined {
@@ -76,7 +74,6 @@ export class ParserUtils {
     return child instanceof Token ? child.lexeme : null;
   }
 
-  // #if _VERBOSE
   /**
    * Check if type `tb` is compatible with type `ta`.
    */
@@ -94,7 +91,6 @@ export class ParserUtils {
     }
     return NoneTerminal[sm];
   }
-  // #endif
 
   static isTerminal(sm: GrammarSymbol) {
     return sm < NoneTerminal.START;
@@ -103,7 +99,6 @@ export class ParserUtils {
   /**
    * @internal
    */
-  // #if _VERBOSE
   static printStatePool(logPath: string) {
     let output = "";
 
@@ -123,5 +118,4 @@ export class ParserUtils {
     console.log("state count:", count);
     console.log(output);
   }
-  // #endif
 }

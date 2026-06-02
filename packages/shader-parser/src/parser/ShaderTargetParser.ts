@@ -35,12 +35,10 @@ export class ShaderTargetParser {
     return this.gotoTable.get(this.curState);
   }
 
-  // #if _VERBOSE
   /** @internal */
   get errors() {
     return this.sematicAnalyzer.errors;
   }
-  // #endif
 
   static _singleton: ShaderTargetParser;
 
@@ -124,15 +122,12 @@ export class ShaderTargetParser {
           ShaderCompilerUtils.processingPassText,
           token.location
         );
-        // #if _VERBOSE
         this.sematicAnalyzer.errors.push(<GSError>error);
-        // #endif
         return null;
       }
     }
   }
 
-  // #if _VERBOSE
   private _printStack(nextToken: BaseToken) {
     let str = "";
     for (let i = 0; i < this._traceBackStack.length - 1; i++) {
@@ -143,5 +138,4 @@ export class ShaderTargetParser {
     str += `State${this._traceBackStack[this._traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
     console.info(str);
   }
-  // #endif
 }

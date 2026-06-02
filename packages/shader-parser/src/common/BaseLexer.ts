@@ -83,10 +83,8 @@ export abstract class BaseLexer {
   protected _currentIndex = 0;
   protected _source: string;
 
-  // #if _VERBOSE
   protected _column = 0;
   protected _line = 0;
-  // #endif
 
   get currentIndex(): number {
     return this._currentIndex;
@@ -96,7 +94,6 @@ export abstract class BaseLexer {
     return this._source;
   }
 
-  // #if _VERBOSE
   get line() {
     return this._line;
   }
@@ -104,7 +101,6 @@ export abstract class BaseLexer {
   get column() {
     return this._column;
   }
-  // #endif
 
   constructor(source?: string) {
     this._source = source;
@@ -113,19 +109,11 @@ export abstract class BaseLexer {
   setSource(source: string): void {
     this._source = source;
     this._currentIndex = 0;
-    // #if _VERBOSE
     this._line = this._column = 0;
-    // #endif
   }
 
   getShaderPosition(backOffset = 0): ShaderPosition {
-    return ShaderCompilerUtils.createPosition(
-      this._currentIndex - backOffset,
-      // #if _VERBOSE
-      this._line,
-      this._column - backOffset
-      // #endif
-    );
+    return ShaderCompilerUtils.createPosition(this._currentIndex - backOffset, this._line, this._column - backOffset);
   }
 
   isEnd(): boolean {
@@ -141,7 +129,6 @@ export abstract class BaseLexer {
   }
 
   advance(count: number): void {
-    // #if _VERBOSE
     const source = this._source;
     const startIndex = this._currentIndex;
     for (let i = 0; i < count; i++) {
@@ -152,7 +139,6 @@ export abstract class BaseLexer {
         this._column += 1;
       }
     }
-    // #endif
     this._currentIndex += count;
   }
 
@@ -224,9 +210,7 @@ export abstract class BaseLexer {
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: any[]) {
     const error = ShaderCompilerUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
-    // #if _VERBOSE
     console.error(error!.toString());
-    // #endif
     throw error;
   }
 

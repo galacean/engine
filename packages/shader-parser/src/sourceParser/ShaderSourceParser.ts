@@ -20,9 +20,7 @@ import { ETokenType, ShaderPosition, ShaderRange } from "../common";
 import { BaseToken } from "../common/BaseToken";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSErrorName } from "../GSError";
-// #if _VERBOSE
 import { GSError } from "../GSError";
-// #endif
 import { BaseLexer } from "../common/BaseLexer";
 import { Keyword } from "../common/enums/Keyword";
 import { SymbolTable } from "../common/SymbolTable";
@@ -159,9 +157,7 @@ export class ShaderSourceParser {
         const sm = this._symbolTableStack.lookup(lookupSymbol);
         if (!sm?.value) {
           this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme}`, nextToken.location);
-          // #if _VERBOSE
           return;
-          // #endif
         }
         renderState = sm.value as IRenderStates;
       }
@@ -215,9 +211,7 @@ export class ShaderSourceParser {
 
   private static _createCompileError(message: string, location?: ShaderPosition | ShaderRange): void {
     const error = this._lexer.createCompileError(message, location);
-    // #if _VERBOSE
     this.errors.push(<GSError>error);
-    // #endif
   }
 
   private static _scanEnumConstValue(enumName: string): number | undefined {
@@ -230,9 +224,7 @@ export class ShaderSourceParser {
         `Invalid engine constant: ${enumName}.${constValueToken.lexeme}`,
         constValueToken.location
       );
-      // #if _VERBOSE
       lexer.scanToCharacter(";");
-      // #endif
     }
     return value;
   }
@@ -251,10 +243,8 @@ export class ShaderSourceParser {
         lexer.scanLexeme("=");
       } else if (scannedLexeme !== "=") {
         this._createCompileError(`Invalid syntax, expect '[' or '=', but got unexpected token`);
-        // #if _VERBOSE
         lexer.scanToCharacter(";");
         return;
-        // #endif
       }
       stateElementKey += keyIndex;
     } else {
@@ -264,10 +254,8 @@ export class ShaderSourceParser {
     const renderStateElementKey = RenderStateElementKey[stateLexeme + stateElementKey];
     if (renderStateElementKey === undefined) {
       this._createCompileError(`Invalid render state property ${propertyLexeme}`);
-      // #if _VERBOSE
       lexer.scanToCharacter(";");
       return;
-      // #endif
     }
 
     lexer.skipCommentsAndSpace();
@@ -298,9 +286,7 @@ export class ShaderSourceParser {
               `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this`,
               valueToken.location
             );
-            // #if _VERBOSE
             lexer.scanToCharacter(";");
-            // #endif
             return;
           }
           while (lexer.getCurChar() === "|") {
@@ -308,9 +294,7 @@ export class ShaderSourceParser {
             const nextEnumToken = lexer.scanToken();
             if (nextEnumToken == undefined || lexer.getCurChar() !== ".") {
               this._createCompileError(`Invalid syntax after '|', expect 'EnumType.Value'`, nextEnumToken?.location);
-              // #if _VERBOSE
               lexer.scanToCharacter(";");
-              // #endif
               return;
             }
             if (nextEnumToken.lexeme !== valueToken.lexeme) {
@@ -318,9 +302,7 @@ export class ShaderSourceParser {
                 `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}'`,
                 nextEnumToken.location
               );
-              // #if _VERBOSE
               lexer.scanToCharacter(";");
-              // #endif
               return;
             }
             const nextValue = this._scanEnumConstValue(nextEnumToken.lexeme);
@@ -335,10 +317,8 @@ export class ShaderSourceParser {
         lookupSymbol.set(valueToken.lexeme, ETokenType.ID);
         if (!this._symbolTableStack.lookup(lookupSymbol)) {
           this._createCompileError(`Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
-          // #if _VERBOSE
           lexer.scanToCharacter(";");
           return;
-          // #endif
         }
       }
     }
@@ -363,9 +343,7 @@ export class ShaderSourceParser {
 
     if (token.lexeme !== "=") {
       this._createCompileError(`Invalid syntax, expect character '=', but got ${token.lexeme}`, token.location);
-      // #if _VERBOSE
       return;
-      // #endif
     }
     const word = lexer.scanToken();
     lexer.scanLexeme(";");
@@ -378,9 +356,7 @@ export class ShaderSourceParser {
       const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm) {
         this._createCompileError(`Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
-        // #if _VERBOSE
         return;
-        // #endif
       }
     } else {
       renderStates.constantMap[key] = value;
@@ -498,10 +474,8 @@ export class ShaderSourceParser {
               lexer.source,
               lexer.getShaderPosition(0)
             );
-            // #if _VERBOSE
             console.error(error.toString());
             throw error;
-            // #endif
           }
           const key = token.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
           passSource[key] = entry.lexeme;

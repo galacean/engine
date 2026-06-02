@@ -152,7 +152,6 @@ export namespace ASTNode {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.conditionopt)
   export class ConditionOpt extends TreeNode {}
 
@@ -173,7 +172,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.expression_statement)
   export class ExpressionStatement extends TreeNode {}
-  // #endif
 
   export abstract class ExpressionAstNode extends TreeNode {
     protected _type?: GalaceanDataType;
@@ -189,7 +187,6 @@ export namespace ASTNode {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.initializer_list)
   export class InitializerList extends ExpressionAstNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
@@ -208,7 +205,6 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.single_declaration)
   export class SingleDeclaration extends TreeNode {
@@ -238,11 +234,9 @@ export namespace ASTNode {
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
         const arraySpecifier = children[2] as ArraySpecifier;
-        // #if _VERBOSE
         if (arraySpecifier && this.arraySpecifier) {
           sa.reportError(arraySpecifier.location, "Array of array is not supported.");
         }
-        // #endif
         this.arraySpecifier = arraySpecifier;
         const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
         const initializer = children[4] as Initializer;
@@ -300,7 +294,6 @@ export namespace ASTNode {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.storage_qualifier)
   export class StorageQualifier extends BasicTypeQualifier {}
 
@@ -312,7 +305,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.invariant_qualifier)
   export class InvariantQualifier extends BasicTypeQualifier {}
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.type_specifier)
   export class TypeSpecifier extends TreeNode {
@@ -390,16 +382,13 @@ export namespace ASTNode {
         const child = this.children[0];
         if (child instanceof BaseToken) {
           this.value = Number(child.lexeme);
-        }
-        // #if _VERBOSE
-        else {
+        } else {
           const id = child as VariableIdentifier;
           if (!ParserUtils.typeCompatible(Keyword.INT, id.typeInfo)) {
             sa.reportError(id.location, "Invalid integer.");
             return;
           }
         }
-        // #endif
       }
     }
   }
@@ -461,11 +450,9 @@ export namespace ASTNode {
       } else if (childrenLength === 4 || childrenLength === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
-        // #if _VERBOSE
         if (typeInfo.arraySpecifier && arraySpecifier) {
           sa.reportError(arraySpecifier.location, "Array of array is not supported.");
         }
-        // #endif
         typeInfo.arraySpecifier = arraySpecifier;
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
@@ -662,21 +649,17 @@ export namespace ASTNode {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.simple_statement)
   export class SimpleStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.compound_statement)
   export class CompoundStatement extends TreeNode {}
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.compound_statement_no_scope)
   export class CompoundStatementNoScope extends TreeNode {}
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.statement)
   export class Statement extends TreeNode {}
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
@@ -762,13 +745,11 @@ export namespace ASTNode {
             paramSig = paramList.paramSig as any;
           }
         }
-        // #if _VERBOSE
         const builtinFn = BuiltinFunction.resolveOverload(fnIdent, paramSig);
         if (builtinFn) {
           this.type = builtinFn.realReturnType;
           return;
         }
-        // #endif
 
         const lookupSymbol = SemanticAnalyzer._lookupSymbol;
         lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
@@ -776,7 +757,6 @@ export namespace ASTNode {
         const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true) as FnSymbol;
 
         if (!fnSymbol) {
-          // #if _VERBOSE
           // The lookup above is keyed by argument signature, so a miss conflates an unknown
           // name with a known function called with the wrong arguments; re-probe by name
           // alone (and the builtin registry) to report whichever it actually is.
@@ -786,7 +766,6 @@ export namespace ASTNode {
             this.location,
             nameDeclared ? `No overload function type found: ${fnIdent}` : `Undefined function: ${fnIdent}`
           );
-          // #endif
           return;
         }
         this.type = fnSymbol?.dataType?.type;
@@ -874,10 +853,8 @@ export namespace ASTNode {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.assignment_operator)
   export class AssignmentOperator extends TreeNode {}
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.expression)
   export class Expression extends ExpressionAstNode {
@@ -935,7 +912,6 @@ export namespace ASTNode {
     }
   }
 
-  // #if _VERBOSE
   @ASTNodeDecorator(NoneTerminal.unary_operator)
   export class UnaryOperator extends TreeNode {}
 
@@ -1084,7 +1060,6 @@ export namespace ASTNode {
       }
     }
   }
-  // #endif
 
   @ASTNodeDecorator(NoneTerminal.struct_specifier)
   export class StructSpecifier extends TreeNode {
@@ -1485,11 +1460,9 @@ export namespace ASTNode {
       sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
 
       if (!symbols.length) {
-        // #if _VERBOSE
         if (missWarnLoc) {
           sa.reportWarning(missWarnLoc, `Please sure the identifier "${name}" will be declared before used.`);
         }
-        // #endif
         return false;
       }
       const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);

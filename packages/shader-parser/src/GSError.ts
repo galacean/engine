@@ -32,7 +32,6 @@ export class GSError extends Error {
 
     let diagnosticMessage = `${this.name}: ${message}\n\n`;
 
-    // #if _VERBOSE
     const lineSplit = "|···";
 
     const wrappingLineCount = GSError.wrappingLineCount;
@@ -56,7 +55,6 @@ export class GSError extends Error {
 
       diagnosticMessage += " ".repeat(paddingLength) + "^".repeat(remarkLength) + "\n";
     }
-    // #endif
 
     return diagnosticMessage;
   }

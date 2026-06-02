@@ -49,13 +49,7 @@ export class BaseToken<T extends number = number> implements IPoolElement {
       if (arg instanceof ShaderRange) {
         this.location = arg as ShaderRange;
       } else {
-        const end = ShaderCompilerUtils.createPosition(
-          arg.index + lexeme.length,
-          // #if _VERBOSE
-          arg.line,
-          arg.column + lexeme.length
-          // #endif
-        );
+        const end = ShaderCompilerUtils.createPosition(arg.index + lexeme.length, arg.line, arg.column + lexeme.length);
         this.location = ShaderCompilerUtils.createRange(arg, end);
       }
     }

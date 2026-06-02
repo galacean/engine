@@ -168,14 +168,12 @@ export class LALR1 {
       if (LALR1._isKnownShiftPreferred(terminal, exist, action)) {
         if (exist.action === EAction.Shift && action.action === EAction.Reduce) return;
       } else {
-        // #if _VERBOSE
         Logger.warn(
           `conflict detect: <Terminal ${GrammarUtils.toString(terminal)}> \n`,
           Utils.printAction(exist),
           "\n",
           Utils.printAction(action)
         );
-        // #endif
       }
     }
     table.set(terminal, action);

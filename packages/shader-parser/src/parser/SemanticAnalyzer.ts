@@ -36,9 +36,7 @@ export default class SemanticAnalyzer {
 
   private _macroDefineList: MacroDefineList;
 
-  // #if _VERBOSE
   readonly errors: Error[] = [];
-  // #endif
 
   get shaderData() {
     return this._shaderData;
@@ -58,9 +56,7 @@ export default class SemanticAnalyzer {
     this._shaderData = new ShaderData();
     this.symbolTableStack.clear();
     this.pushScope();
-    // #if _VERBOSE
     this.errors.length = 0;
-    // #endif
   }
 
   pushScope() {
@@ -80,16 +76,10 @@ export default class SemanticAnalyzer {
   }
 
   reportError(loc: ShaderRange, message: string): void {
-    // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText));
-    // #else
-    console.error(message);
-    // #endif
   }
 
   reportWarning(loc: ShaderRange, message: string): void {
-    // #if _VERBOSE
     this.errors.push(new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompilerUtils.processingPassText));
-    // #endif
   }
 }
