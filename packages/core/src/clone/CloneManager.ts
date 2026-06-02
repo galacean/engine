@@ -2,6 +2,8 @@ import { TypedArray } from "../base/Constant";
 import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
+export { CloneMode };
+
 /**
  * Property decorator. Marks a field as a managed property of the type — it participates in
  * cloning. HOW it is cloned is decided by the field's runtime type + the type's `@defaultCloneMode`
@@ -18,9 +20,16 @@ export function property(target: Object, propertyKey: string): void {
 }
 
 /**
- * @internal
- * Class decorator. Sets the default clone mode for instances of the decorated type, used when a field
- * holding such an instance is cloned (HOW is type-driven, not per field).
+ * Class decorator that sets the default clone mode for instances of the decorated type — applied when
+ * an undecorated field holds such an instance. Built-in defaults: Entity / Component → `Remap`,
+ * ReferResource → `Assignment`. Use it on a custom type that should be shared (not deep cloned) when
+ * it appears inside a cloned object:
+ *
+ * @example
+ * ```ts
+ * @defaultCloneMode(CloneMode.Assignment)
+ * class MySharedAsset {}
+ * ```
  */
 export function defaultCloneMode(mode: CloneMode) {
   return function (target: Function): void {

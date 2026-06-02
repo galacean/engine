@@ -1,11 +1,11 @@
 /**
- * Clone mode.
+ * How a value is cloned, decided by its type (see `@defaultCloneMode`).
  */
 export enum CloneMode {
-  /** Assignment clone. */
+  /** Share the reference; a ref-counted resource is kept alive by the clone (used for assets). */
   Assignment,
-  /** Deep clone. */
+  /** Recursively deep clone the value. */
   Deep,
-  /** Remap an Entity / Component reference to its clone via the identity map. */
+  /** Remap an Entity / Component reference to its clone within the cloned subtree, else keep as-is. */
   Remap
 }
