@@ -16,7 +16,6 @@ import {
   ParticleStopMode,
   ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
-  Vector3,
   WebGLEngine
 } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -212,11 +211,11 @@ describe("SubEmitter", () => {
     updateEngine(engine, 3);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const startColor = new Color();
-    child.generator._readParticleStartColor(0, startColor);
-    expect(startColor.r).to.be.closeTo(0.5, 1e-4);
-    expect(startColor.g).to.be.closeTo(0.25, 1e-4);
-    expect(startColor.b).to.be.closeTo(1.0, 1e-4);
+    const verts = (child.generator as any)._instanceVertices as Float32Array;
+    // a_StartColor @ float offsets 8..11 (slot 0 = first emitted slot)
+    expect(verts[8]).to.be.closeTo(0.5, 1e-4); // r
+    expect(verts[9]).to.be.closeTo(0.25, 1e-4); // g
+    expect(verts[10]).to.be.closeTo(1.0, 1e-4); // b
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -279,12 +278,12 @@ describe("SubEmitter", () => {
     updateEngine(engine, 10);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const startColor = new Color();
-    child.generator._readParticleStartColor(0, startColor);
-    expect(startColor.r).to.be.closeTo(0.5, 1e-3);
-    expect(startColor.g).to.be.closeTo(0.5, 1e-3);
-    expect(startColor.b).to.be.closeTo(0.5, 1e-3);
-    expect(startColor.a).to.be.closeTo(1.0, 1e-3);
+    const verts = (child.generator as any)._instanceVertices as Float32Array;
+    // a_StartColor @ float offsets 8..11
+    expect(verts[8]).to.be.closeTo(0.5, 1e-3); // r
+    expect(verts[9]).to.be.closeTo(0.5, 1e-3); // g
+    expect(verts[10]).to.be.closeTo(0.5, 1e-3); // b
+    expect(verts[11]).to.be.closeTo(1.0, 1e-3); // a
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -322,11 +321,11 @@ describe("SubEmitter", () => {
     updateEngine(engine, 10);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const startSize = new Vector3();
-    child.generator._readParticleStartSize(0, startSize);
-    expect(startSize.x).to.be.closeTo(1.0, 1e-3);
-    expect(startSize.y).to.be.closeTo(1.0, 1e-3);
-    expect(startSize.z).to.be.closeTo(1.0, 1e-3);
+    const verts = (child.generator as any)._instanceVertices as Float32Array;
+    // a_StartSize @ float offsets 12..14
+    expect(verts[12]).to.be.closeTo(1.0, 1e-3); // x
+    expect(verts[13]).to.be.closeTo(1.0, 1e-3); // y
+    expect(verts[14]).to.be.closeTo(1.0, 1e-3); // z
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -356,10 +355,9 @@ describe("SubEmitter", () => {
     updateEngine(engine, 3);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const startRotation = new Vector3();
-    child.generator._readParticleStartRotation(0, startRotation);
-    // 2D rotation mode (default) stores Z rotation in the X slot of the attribute.
-    expect(startRotation.x).to.be.closeTo(0.75, 1e-3);
+    const verts = (child.generator as any)._instanceVertices as Float32Array;
+    // 2D rotation mode (default) stores Z rotation in the X slot of a_StartRotation0 (float offset 15).
+    expect(verts[15]).to.be.closeTo(0.75, 1e-3);
 
     parent.entity.destroy();
     child.entity.destroy();
@@ -398,9 +396,9 @@ describe("SubEmitter", () => {
     updateEngine(engine, 10);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
-    const startRotation = new Vector3();
-    child.generator._readParticleStartRotation(0, startRotation);
-    expect(startRotation.x).to.be.closeTo(1.25, 1e-3);
+    const verts = (child.generator as any)._instanceVertices as Float32Array;
+    // a_StartRotation0.x @ float offset 15 (2D mode stores Z rotation here)
+    expect(verts[15]).to.be.closeTo(1.25, 1e-3);
 
     parent.entity.destroy();
     child.entity.destroy();
