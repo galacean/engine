@@ -23,6 +23,9 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
 
   clear(): void {
     this.stack.length = 0;
+    // Working state, not just the stack: a parse that bails inside a macro branch leaves this
+    // non-zero, so a failed compile would make the next one think it is in a macro branch.
+    this._macroLevel = 0;
   }
 
   popScope(): T | undefined {

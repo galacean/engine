@@ -251,4 +251,36 @@ describe("ShaderAnalyzer", () => {
     const ret = diagnostics.find((d: Diagnostic) => d.code === "C1-03");
     expect(ret, "int -> float return is a valid implicit conversion").to.be.undefined;
   });
+
+  it("isolates analyze() calls — a prior parse failure must not corrupt the next", () => {
+    // The extra `)` is a GLSL syntax error, so parser.parse() bails early (returns null) — which
+    // used to leave the shared singleton parser's trace stack / macro level dirty.
+    const broken = `Shader "broken" {
+  SubShader "Default" {
+    Pass "test" {
+      void frag() { gl_FragColor = vec4(1.0)) ; }
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const brokenResult = analyzer.analyze(broken);
+    expect(brokenResult.diagnostics.length, "the broken shader should produce a diagnostic").to.be.greaterThan(0);
+
+    // The same valid shader must be clean afterwards — proving the failed parse left no residue.
+    const valid = `Shader "valid" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      float u_a;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(valid);
+    expect(diagnostics, "a valid shader must stay clean even after a prior parse failure").to.be.empty;
+  });
 });

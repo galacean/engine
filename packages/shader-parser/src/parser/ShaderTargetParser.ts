@@ -64,6 +64,10 @@ export class ShaderTargetParser {
   parse(tokens: Generator<BaseToken, BaseToken>, macroDefineList: MacroDefineList): ASTNode.GLShaderProgram | null {
     this.sematicAnalyzer.reset(macroDefineList);
     const { _traceBackStack: traceBackStack, sematicAnalyzer } = this;
+    // A prior parse that bailed early (syntax error -> `return null` below) leaves this working
+    // stack dirty; the parser is a shared singleton, so start every parse from a clean stack or a
+    // failed compile corrupts the next one.
+    traceBackStack.length = 0;
     traceBackStack.push(0);
 
     let nextToken = tokens.next();
