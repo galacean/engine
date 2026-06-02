@@ -1,4 +1,5 @@
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import type { Diagnostic } from "@galacean/engine-shader-analyzer";
 import { server } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
 
@@ -7,13 +8,16 @@ const { readFile } = server.commands;
 describe("ShaderAnalyzer", () => {
   const analyzer = new ShaderAnalyzer();
 
-  it("surfaces a macro author error as a diagnostic (parity with verbose compiler)", async () => {
+  it("surfaces a macro author error as a structured diagnostic", async () => {
     const source = await readFile("../shader-compiler/shaders/macro-author-error-unbalanced-paren.shader");
     const { diagnostics } = analyzer.analyze(source);
     expect(diagnostics.length).to.be.greaterThan(0);
-    const messages = diagnostics.map((d) => d.message).join("\n");
-    expect(messages).to.match(/#define BAD: invalid replacement list/);
-    expect(messages).to.include("u_a(");
+    const d = diagnostics[0];
+    expect(d.code).to.equal("A1-01");
+    expect(d.severity).to.equal("error");
+    expect(d.message).to.include("#define BAD");
+    expect(d.range.start.line).to.be.greaterThan(0);
+    expect(d.source).to.equal("galacean-shader-analyzer");
   });
 
   it("yields no diagnostics for a valid self-contained shader", () => {
@@ -34,7 +38,7 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostics).to.be.empty;
   });
 
-  it("surfaces a codegen-level diagnostic (gl_FragData) that parse-only analysis misses", () => {
+  it("surfaces a codegen-level diagnostic (gl_FragData) with structured code", () => {
     const source = `Shader "codegen" {
   SubShader "Default" {
     Pass "test" {
@@ -48,7 +52,9 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const messages = diagnostics.map((d) => d.message).join("\n");
-    expect(messages).to.include("gl_FragData");
+    expect(diagnostics.length).to.be.greaterThan(0);
+    const fragDataDiag = diagnostics.find((d: Diagnostic) => d.message.includes("gl_FragData"));
+    expect(fragDataDiag).to.be.ok;
+    expect(fragDataDiag!.code).to.equal("C0-12");
   });
 });
