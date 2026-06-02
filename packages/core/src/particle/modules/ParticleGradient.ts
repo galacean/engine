@@ -200,21 +200,15 @@ export class ParticleGradient {
 
   /**
    * @internal
-   * CPU mirror of shader `evaluateParticleGradient`. Linearly interpolates the
-   * color and alpha key arrays at `time`. Each channel is independently clamped
-   * to its own last-key time (matches the shader's `min(t, maxTime)`).
+   * CPU mirror of the shader's `evaluateParticleGradient`, so sub-emit inheritance
+   * matches the rendered parent. Keys are time-sorted, so the `min(t, maxTime)`
+   * lookup always hits a key; an empty gradient evaluates to 0 like the shader,
+   * not the multiply-identity 1.
    */
   _evaluate(time: number, out: Color): void {
-    // Block order (alpha then color) and `min(t, maxTime)` clamping mirror the
-    // shader's `evaluateParticleGradient`. Keys are kept time-sorted by `_addKey`,
-    // so the clamped `t` always lands on or before the last key — the loop always
-    // breaks and needs no past-the-end fallback.
     const alphaKeys = this._alphaKeys;
     const alphaCount = alphaKeys.length;
     if (alphaCount === 0) {
-      // Mirror the shader: an empty gradient evaluates to 0. Its uploaded keys
-      // and maxTime are all zero, so the shader's first all-zero key matches and
-      // returns 0 — not the multiply-identity 1.
       out.a = 0;
     } else {
       const alphaMaxTime = alphaKeys[alphaCount - 1].time;
@@ -237,7 +231,6 @@ export class ParticleGradient {
     const colorKeys = this._colorKeys;
     const colorCount = colorKeys.length;
     if (colorCount === 0) {
-      // Mirror the shader: an empty gradient evaluates to black (see alpha note).
       out.r = 0;
       out.g = 0;
       out.b = 0;
