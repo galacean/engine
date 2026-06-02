@@ -36,24 +36,15 @@ interface GradientStream {
  * (scalars or colors) readable from a custom particle shader by their generated
  * `renderer_<name>...` uniforms.
  *
- * **Per-drawcall, not per-particle.** Each registered stream becomes one
- * uniform shared across every particle in the same drawcall — not a per-particle
- * vertex attribute. To differentiate between particles inside the shader, mix
- * the uniform with `a_Random*` / `normalizedAge` / etc. on the shader side.
- * This is NOT equivalent to Unity's `ParticleSystem.SetCustomParticleData`,
- * which uploads one vec4 per particle.
+ * Each stream is one uniform shared across the drawcall, not a per-particle
+ * attribute (unlike Unity's `SetCustomParticleData`); shader-side
+ * differentiation must mix in `a_Random*` / `normalizedAge` / etc.
  *
- * **Attachment order.** When wiring this module on a freshly created entity,
- * configure the generator (set the material's custom shader, call `addCurve` /
- * `addGradient`) BEFORE attaching the entity to the scene. `ParticleRenderer`'s
- * `_onEnable` lifecycle hook fires as soon as the entity joins the scene tree;
- * streams registered afterward will miss the first frame.
+ * Register streams BEFORE attaching the entity to the scene — `ParticleRenderer._onEnable`
+ * uploads on the first frame and won't see entries added afterward.
  */
 export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _streamNamePattern = /^[A-Za-z0-9_]+$/;
-  // Engine-internal particle module uniform prefixes: VOL/FOL/SOL/COL/ROL/TSA/LVL.
-  // A user `name` starting with any of these would generate a `renderer_<name>...`
-  // uniform that collides with an existing engine uniform in the same ShaderData slot.
   private static readonly _reservedPrefixPattern = /^(?:VOL|FOL|SOL|COL|ROL|TSA|LVL)/;
   private static readonly _zeroCurveArray = new Float32Array(8);
   private static readonly _zeroGradientColorArray = new Float32Array(16);
@@ -123,9 +114,8 @@ export class CustomDataModule extends ParticleGeneratorModule {
    * | Gradient     | `vec4 renderer_<name>MaxGradientColor[4]`, `vec2 renderer_<name>MaxGradientAlpha[4]`, `vec4 renderer_<name>KeysCount` |
    * | TwoGradients | + `vec4 renderer_<name>MinGradientColor[4]`, `vec2 renderer_<name>MinGradientAlpha[4]`                                |
    *
-   * `KeysCount` packs the last keyframe times the shader needs to normalize
-   * its sample t: `(colorMinKeys.last.time, alphaMinKeys.last.time, colorMaxKeys.last.time, alphaMaxKeys.last.time)`.
-   * In single-Gradient mode the min channels mirror the max channels.
+   * `KeysCount` packs `(colorMin, alphaMin, colorMax, alphaMax)` last-keyframe times for shader-side normalization;
+   * in single-Gradient mode the min lanes mirror the max lanes.
    *
    * @param name     - Same validation as {@link addCurve}.
    * @param gradient - Stored by reference.
@@ -181,10 +171,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
    * @internal
    */
   _cloneTo(target: CustomDataModule): void {
-    // Share one deep-instance map across both loops so that a sub-object
-    // referenced by multiple entries (e.g. two curves whose `curveMax` points
-    // to the same ParticleCurve instance) stays shared in the clone, instead
-    // of being deep-copied once per entry.
+    // Shared across both loops so cross-entry sub-object references stay shared in the clone.
     const deepInstanceMap = new Map<Object, Object>();
     for (const [name, curve] of this._curves) {
       const clonedCurve = new ParticleCompositeCurve(0);
@@ -216,8 +203,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private _uploadCurveStream(shaderData: ShaderData, stream: CurveStream): void {
     const { curve } = stream;
     const mode = curve.mode;
-    // On mode change, zero the uniforms the old mode wrote so the GPU doesn't
-    // keep reading stale values from the unused mode path.
+    // Mode flip: clear the old path's uniforms so the GPU doesn't keep reading stale values.
     if (mode !== stream.lastMode) {
       this._zeroCurveUniforms(shaderData, stream);
       stream.lastMode = mode;
