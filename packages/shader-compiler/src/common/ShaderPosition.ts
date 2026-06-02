@@ -1,4 +1,4 @@
-import type { IPoolElement } from "@galacean/engine-core";
+import type { IPoolElement } from "./ObjectPool";
 
 export class ShaderPosition implements IPoolElement {
   index: number;

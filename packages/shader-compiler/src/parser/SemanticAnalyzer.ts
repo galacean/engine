@@ -1,4 +1,4 @@
-import { Logger } from "@galacean/engine-core";
+import { Logger } from "../common/Logger";
 import { ShaderRange } from "../common";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";

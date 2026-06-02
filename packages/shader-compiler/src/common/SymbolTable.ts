@@ -1,4 +1,4 @@
-import { Logger } from "@galacean/engine-core";
+import { Logger } from "./Logger";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
