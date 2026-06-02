@@ -25,6 +25,7 @@ import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
+import { CustomDataModule } from "./modules/CustomDataModule";
 import { EmissionModule } from "./modules/EmissionModule";
 import { ForceOverLifetimeModule } from "./modules/ForceOverLifetimeModule";
 import { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
@@ -87,6 +88,9 @@ export class ParticleGenerator {
   /** Noise module. */
   @deepClone
   readonly noise: NoiseModule;
+  /** Custom data module. */
+  @deepClone
+  readonly customData: CustomDataModule;
 
   /** @internal */
   _currentParticleCount = 0;
@@ -195,6 +199,7 @@ export class ParticleGenerator {
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
     this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
     this.noise = new NoiseModule(this);
+    this.customData = new CustomDataModule(this);
 
     this.emission.enabled = true;
   }
@@ -622,6 +627,7 @@ export class ParticleGenerator {
     this.rotationOverLifetime._updateShaderData(shaderData);
     this.colorOverLifetime._updateShaderData(shaderData);
     this.noise._updateShaderData(shaderData);
+    this.customData._updateShaderData(shaderData);
   }
 
   /**
