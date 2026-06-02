@@ -7,6 +7,7 @@ import {
   ShaderSourceParser,
   ShaderTargetParser
 } from "@galacean/engine-shader-parser";
+import type { IShaderSource } from "@galacean/engine-design";
 import { GLES300Visitor } from "@galacean/engine-shader-compiler";
 
 export interface AnalyzerOptions {
@@ -39,7 +40,7 @@ export class ShaderAnalyzer {
 
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
 
-    let shaderSource: ReturnType<typeof ShaderSourceParser.parse>;
+    let shaderSource: IShaderSource;
     try {
       shaderSource = ShaderSourceParser.parse(source);
     } catch (e) {

@@ -4,23 +4,13 @@ export interface IPoolElement {
   dispose?(): void;
 }
 
-export abstract class ObjectPool<T extends IPoolElement> {
-  protected _type: new () => T;
-  protected _elements: T[];
-
-  constructor(type: new () => T) {
-    this._type = type;
-  }
-
-  abstract get(): T;
-}
-
-export class ClearableObjectPool<T extends IPoolElement> extends ObjectPool<T> {
+export class ClearableObjectPool<T extends IPoolElement> {
+  private _type: new () => T;
+  private _elements: T[] = [];
   private _usedElementCount: number = 0;
 
   constructor(type: new () => T) {
-    super(type);
-    this._elements = [];
+    this._type = type;
   }
 
   get(): T {
