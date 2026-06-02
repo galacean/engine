@@ -1164,7 +1164,7 @@ export class ParticleGenerator {
       // pre-modulation start values.
       this._modulateInheritByLifetime(offset, 0, parentColor, parentSize, parentRotation);
 
-      subEmitters._onParticleBirth(birthWorldPos, parentColor, parentSize, parentRotation);
+      subEmitters._dispatchEvent(ParticleSubEmitterType.Birth, birthWorldPos, parentColor, parentSize, parentRotation);
     }
   }
 
@@ -1382,7 +1382,7 @@ export class ParticleGenerator {
     const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
     this._modulateInheritByLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
 
-    this.subEmitters._onParticleDeath(local, parentColor, parentSize, parentRotation);
+    this.subEmitters._dispatchEvent(ParticleSubEmitterType.Death, local, parentColor, parentSize, parentRotation);
   }
 
   /**

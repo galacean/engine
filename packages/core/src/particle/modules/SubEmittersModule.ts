@@ -43,35 +43,27 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Dispatch a Birth event for one parent particle.
+   * Fire every slot matching `type` for one parent-particle event.
    *
-   * @param worldPosition - parent particle's emission position in world space
-   * @param parentColor - parent particle's raw start color
-   * @param parentSize - parent particle's raw start size
-   * @param parentRotation - parent particle's raw start rotation (radians, vec3)
+   * @param type - the parent-particle event that occurred (Birth / Death)
+   * @param worldPosition - parent particle's event position in world space
+   * @param parentColor - parent particle's color at the event moment
+   * @param parentSize - parent particle's size at the event moment
+   * @param parentRotation - parent particle's rotation at the event moment (radians, vec3)
    */
-  _onParticleBirth(worldPosition: Vector3, parentColor: Color, parentSize: Vector3, parentRotation: Vector3): void {
+  _dispatchEvent(
+    type: ParticleSubEmitterType,
+    worldPosition: Vector3,
+    parentColor: Color,
+    parentSize: Vector3,
+    parentRotation: Vector3
+  ): void {
     if (!this._enabled) return;
 
     const slots = this.subEmitters;
     for (let i = 0, n = slots.length; i < n; i++) {
       const sub = slots[i];
-      if (sub.type !== ParticleSubEmitterType.Birth) continue;
-      this._fireSlot(sub, worldPosition, parentColor, parentSize, parentRotation);
-    }
-  }
-
-  /**
-   * @internal
-   * Dispatch a Death event for one parent particle.
-   */
-  _onParticleDeath(worldPosition: Vector3, parentColor: Color, parentSize: Vector3, parentRotation: Vector3): void {
-    if (!this._enabled) return;
-
-    const slots = this.subEmitters;
-    for (let i = 0, n = slots.length; i < n; i++) {
-      const sub = slots[i];
-      if (sub.type !== ParticleSubEmitterType.Death) continue;
+      if (sub.type !== type) continue;
       this._fireSlot(sub, worldPosition, parentColor, parentSize, parentRotation);
     }
   }
