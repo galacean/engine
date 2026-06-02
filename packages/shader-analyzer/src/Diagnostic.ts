@@ -57,6 +57,9 @@ export const DiagnosticCode = {
   C0_21: "C0-21", // Same struct as Attribute and MRT
   C0_22: "C0-22", // Referenced IO symbol (attribute/varying/mrt) not found
 
+  // ── C1: GLSL type system ──
+  C1_01: "C1-01", // Invalid vector swizzle
+
   // ── A1/A2: ShaderLab structure ──
   A1_01: "A1-01", // Missing required ShaderLab element
   A2_01: "A2-01", // Entry function assignment order

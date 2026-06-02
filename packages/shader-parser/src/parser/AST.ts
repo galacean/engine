@@ -913,6 +913,16 @@ export namespace ASTNode {
       }
     }
 
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      // 3-child postfix is `base . field`; validate it as a swizzle when the base is a known vector.
+      const children = this.children;
+      if (children.length === 3 && children[2] instanceof BaseToken) {
+        const base = children[0] as ExpressionAstNode;
+        const error = ParserUtils.swizzleError(base.type, children[2].lexeme);
+        if (error) sa.reportError(children[2].location, error);
+      }
+    }
+
     override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitPostfixExpression(this));
     }

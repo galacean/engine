@@ -85,6 +85,59 @@ export class ParserUtils {
     return ta === tb;
   }
 
+  /**
+   * Validate a `.field` access on a vector as a GLSL swizzle. Returns an error message when the
+   * access is an invalid swizzle on a known vector type, or `null` when it is valid or the base
+   * is not a known vector (struct member / scalar / unresolved — left for other checks).
+   */
+  static swizzleError(baseType: GalaceanDataType | undefined, swizzle: string): string | null {
+    const size = ParserUtils._vectorComponentCount(baseType);
+    if (size === 0) return null;
+    if (swizzle.length < 1 || swizzle.length > 4) {
+      return `Invalid swizzle ".${swizzle}": a vector swizzle selects 1-4 components.`;
+    }
+    const sets = ["xyzw", "rgba", "stpq"];
+    let setIndex = -1;
+    for (const ch of swizzle) {
+      let matched = false;
+      for (let s = 0; s < sets.length; s++) {
+        const idx = sets[s].indexOf(ch);
+        if (idx === -1) continue;
+        if (setIndex === -1) setIndex = s;
+        else if (setIndex !== s)
+          return `Invalid swizzle ".${swizzle}": components must come from one set (xyzw, rgba, or stpq).`;
+        if (idx >= size)
+          return `Invalid swizzle ".${swizzle}": component '${ch}' is out of range for a ${size}-component vector.`;
+        matched = true;
+        break;
+      }
+      if (!matched) return `Invalid swizzle ".${swizzle}": '${ch}' is not a vector component.`;
+    }
+    return null;
+  }
+
+  private static _vectorComponentCount(type: GalaceanDataType | undefined): number {
+    switch (type) {
+      case Keyword.VEC2:
+      case Keyword.IVEC2:
+      case Keyword.UVEC2:
+      case Keyword.BVEC2:
+        return 2;
+      case Keyword.VEC3:
+      case Keyword.IVEC3:
+      case Keyword.UVEC3:
+      case Keyword.BVEC3:
+        return 3;
+      case Keyword.VEC4:
+      case Keyword.IVEC4:
+      case Keyword.UVEC4:
+      case Keyword.BVEC4:
+        return 4;
+      default:
+        return 0;
+    }
+  }
+
   static toString(sm: GrammarSymbol) {
     if (this.isTerminal(sm)) {
       return ETokenType[sm] ?? Keyword[sm];

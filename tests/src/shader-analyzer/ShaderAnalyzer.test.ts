@@ -145,4 +145,24 @@ describe("ShaderAnalyzer", () => {
     const redef = diagnostics.find((d: Diagnostic) => d.code === "C0-10");
     expect(redef, "macro-arm siblings must not be flagged as redefinition").to.be.undefined;
   });
+
+  it("reports an out-of-range vector swizzle", () => {
+    const source = `Shader "c1-01" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      vec2 u_uv;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(u_uv.z, 0.0, 0.0, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const sw = diagnostics.find((d: Diagnostic) => d.code === "C1-01");
+    expect(sw, "expected a C1-01 swizzle diagnostic").to.be.ok;
+    expect(sw!.message).to.include("out of range");
+  });
 });

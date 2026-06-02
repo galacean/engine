@@ -58,6 +58,7 @@ function gSErrorNameToCode(name: GSErrorName, message: string): string {
   if (name === GSErrorName.ScannerError || name === GSErrorName.PreprocessorError) return "A1-01";
 
   // CompilationError — disambiguate by message content
+  if (message.includes("Invalid swizzle")) return "C1-01";
   if (message.includes("Array of array")) return "C0-01";
   if (message.includes("not implemented operator")) return "C0-02";
   if (message.includes("Invalid integer")) return "C0-03";
