@@ -91,36 +91,53 @@ export class CloneManager {
   }
 
   /**
-   * Clone one value through the classify gate and return the clone.
+   * Decide how to clone one value (the gate — does no recursion itself):
+   *   - primitive / null / undefined → by value.
+   *   - function → keep the clone's own (transient; re-established by its constructor).
+   *   - Assignment → share the reference, and bump the ref count of a ref-counted resource (the clone
+   *     balances it on destroy); no-op for non-ref-counted flyweights.
+   *   - Remap → resolve an Entity / Component to its clone via the identity map; refs outside the
+   *     cloned subtree are kept as-is.
+   *   - otherwise → deep clone.
    *
-   * `reuse` is the clone's existing slot value: a pre-allocated same-type instance to reuse (e.g. a
-   * constructor-created Vector3, or a container to refill in place), or the value to keep for
-   * function / transient members. Pass `undefined` for container members that have no target slot.
+   * `reuse` is the clone's existing slot value, reused in place for value types / typed arrays so any
+   * constructor-bound callbacks survive; pass `undefined` when there is no slot.
    */
   private static _cloneValue(value: any, reuse: any, cloneMap: Map<Object, Object>): any {
     if (!(value instanceof Object)) return value;
-    // Functions are transient (bound handlers the clone re-establishes in its constructor) — keep the
-    // clone's own, never copy the source's.
     if (typeof value === "function") return reuse;
 
-    // HOW is decided purely by the value's type.
     const cloneMode = (<ICustomClone>value)._defaultCloneMode ?? CloneMode.Deep;
     if (cloneMode === CloneMode.Assignment) {
-      // Shared reference: a new holder now points at the resource, so bump its ref count (no-op for
-      // non-ref-counted flyweights). The clone releases it on destroy, keeping the count balanced.
       (<{ _addReferCount?(count: number): void }>value)._addReferCount?.(1);
       return value;
     }
     if (cloneMode === CloneMode.Remap) {
-      // Entity / Component reference → resolve to its clone; refs outside the cloned subtree are
-      // absent from the map and kept unchanged.
       return cloneMap.get(value) ?? value;
     }
+    return CloneManager._deepClone(value, reuse, cloneMap);
+  }
 
-    // Deep clone. Cycles / shared sub-graphs dedup through the identity map.
+  /**
+   * Deep-clone one object graph. Cycles / shared sub-graphs dedup through the identity map; every
+   * member recurses back through {@link _cloneValue}.
+   */
+  private static _deepClone(value: any, reuse: any, cloneMap: Map<Object, Object>): any {
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
+    // Value type (Vector3, Color, Matrix, ...) — copy in place into the reused instance so its
+    // constructor-bound callbacks survive.
+    if ((<ICustomClone>value).copyFrom) {
+      const dst =
+        reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
+      cloneMap.set(value, dst);
+      (<ICustomClone>dst).copyFrom(<ICustomClone>value);
+      (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, cloneMap);
+      return dst;
+    }
+
+    // Typed array — copy into the reused buffer when it fits, else a fresh slice.
     if (ArrayBuffer.isView(value) && !(value instanceof DataView)) {
       const src = <TypedArray>value;
       if (reuse && reuse.constructor === src.constructor && (<TypedArray>reuse).length === src.length) {
@@ -129,17 +146,18 @@ export class CloneManager {
       }
       return src.slice();
     }
+
+    // Container — always a fresh instance; every member recurses through the gate.
     if (Array.isArray(value)) {
-      const dst: any[] = Array.isArray(reuse) ? reuse : new Array(value.length);
-      dst.length = value.length;
+      const dst = new Array(value.length);
       cloneMap.set(value, dst);
       for (let i = 0, n = value.length; i < n; i++) {
-        dst[i] = CloneManager._cloneValue(value[i], dst[i], cloneMap);
+        dst[i] = CloneManager._cloneValue(value[i], undefined, cloneMap);
       }
       return dst;
     }
     if (value instanceof Map) {
-      const dst: Map<any, any> = reuse instanceof Map ? (reuse.clear(), reuse) : new Map<any, any>();
+      const dst = new Map<any, any>();
       cloneMap.set(value, dst);
       value.forEach((v, key) => {
         dst.set(CloneManager._cloneValue(key, undefined, cloneMap), CloneManager._cloneValue(v, undefined, cloneMap));
@@ -147,24 +165,19 @@ export class CloneManager {
       return dst;
     }
     if (value instanceof Set) {
-      const dst: Set<any> = reuse instanceof Set ? (reuse.clear(), reuse) : new Set<any>();
+      const dst = new Set<any>();
       cloneMap.set(value, dst);
       value.forEach((v) => dst.add(CloneManager._cloneValue(v, undefined, cloneMap)));
       return dst;
     }
 
-    // Object — 3-stage lifecycle.
-    // 1. Construct: reuse a pre-allocated same-type instance, else `new ctor()`. A cloneable class must
-    //    be parameterless-constructible — do real init in `_cloneTo` / lifecycle, not the constructor
-    //    (cf. UE / Unity / Cocos).
+    // Object — reuse a same-type instance else `new ctor()` (must be parameterless-constructible; do
+    // real init in `_cloneTo` / lifecycle). A plain object clones every entry; a class clones its own
+    // `@property` fields. Then run the post-clone hook.
     const dst =
       reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
     cloneMap.set(value, dst);
-    // 2. Populate: copyFrom fast path for value types (Vector3, Color, Matrix, ...); a plain object
-    //    clones every entry; a class instance clones only its own `@property` fields.
-    if ((<ICustomClone>value).copyFrom) {
-      (<ICustomClone>dst).copyFrom(<ICustomClone>value);
-    } else if (value.constructor === Object) {
+    if (value.constructor === Object) {
       for (const key in value) {
         dst[key] = CloneManager._cloneValue(value[key], dst[key], cloneMap);
       }
@@ -173,7 +186,6 @@ export class CloneManager {
         dst[key] = CloneManager._cloneValue(value[key], dst[key], cloneMap);
       });
     }
-    // 3. Finalize: post-clone side-effect hook.
     (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, cloneMap);
     return dst;
   }
