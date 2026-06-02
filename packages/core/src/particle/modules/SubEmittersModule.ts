@@ -62,9 +62,9 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   ): void {
     if (!this._enabled) return;
 
-    const slots = this.subEmitters;
-    for (let i = 0, n = slots.length; i < n; i++) {
-      const sub = slots[i];
+    const subEmitters = this.subEmitters;
+    for (let i = 0, n = subEmitters.length; i < n; i++) {
+      const sub = subEmitters[i];
       if (sub.type !== type) continue;
       this._fireSlot(sub, worldPosition, parentColor, parentSize, parentRotation);
     }
@@ -84,31 +84,19 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     parentSize: Vector3,
     parentRotation: Vector3
   ): void {
-    // Run all non-RNG filters BEFORE the probability roll so an invalid slot
-    // (null / destroyed target, self-reference, emitCount <= 0) never consumes
-    // a random number. Otherwise the per-event `_probabilityRand` sequence
-    // becomes sensitive to dead slots — adding a no-op slot would shift every
-    // downstream probability check.
+    // Run non-RNG filters before the probability roll — otherwise dead slots
+    // shift `_probabilityRand` for downstream slots in the same event.
     const target = sub.emitter;
     if (target === null || target.destroyed) return;
 
     const targetGen = target.generator;
-    if (targetGen === this._generator) {
-      // Self-reference would recurse infinitely on Birth; bail.
-      return;
-    }
+    if (targetGen === this._generator) return; // self-reference
 
-    // Per-event emit count is the slot's explicit `emitCount`. The target
-    // renderer's own EmissionModule (bursts / rate / playOnEnabled) is left
-    // alone so it can co-exist with sub-emit driving without double-firing
-    // bursts. (Reading bursts here would duplicate any burst that the
-    // target's own EmissionModule fires when it plays.)
     const count = sub.emitCount | 0;
     if (count <= 0) return;
 
-    // Rand.random() returns the closed interval [0, 1]; using `>=` here makes
-    // emitProbability = 0 mean "never fire" instead of leaking through when
-    // the RNG happens to produce exactly 0.0 (probability 1 / 2^32).
+    // `>=` not `>`: Rand.random() includes a 1/2^32 chance of exactly 0.0, so
+    // emitProbability = 0 still means "never fire".
     if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
       return;
     }
