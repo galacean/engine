@@ -98,4 +98,51 @@ describe("ShaderAnalyzer", () => {
     expect(undef!.severity).to.equal("error");
     expect(undef!.message).to.include("doesNotExist");
   });
+
+  it("warns on a variable redeclared in the same scope", () => {
+    const source = `Shader "c0-10" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      float u_a;
+      float u_a;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(u_a); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const redef = diagnostics.find((d: Diagnostic) => d.code === "C0-10");
+    expect(redef, "expected a C0-10 redefinition warning").to.be.ok;
+    expect(redef!.severity).to.equal("warning");
+    expect(redef!.message).to.include("u_a");
+  });
+
+  it("does not flag the same name across exclusive macro branches", () => {
+    const source = `Shader "macro-arms" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() {
+        #ifdef FOO
+          float c = 1.0;
+        #else
+          float c = 0.0;
+        #endif
+        gl_FragColor = vec4(c);
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics } = analyzer.analyze(source);
+    const redef = diagnostics.find((d: Diagnostic) => d.code === "C0-10");
+    expect(redef, "macro-arm siblings must not be flagged as redefinition").to.be.undefined;
+  });
 });

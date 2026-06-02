@@ -29,8 +29,8 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
     return this.stack.pop();
   }
 
-  insert(symbol: S): void {
-    this.scope.insert(symbol, this.isInMacroBranch);
+  insert(symbol: S): boolean {
+    return this.scope.insert(symbol, this.isInMacroBranch);
   }
 
   lookup(symbol: S, includeMacro = false): S | undefined {

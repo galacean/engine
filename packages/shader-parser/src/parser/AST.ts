@@ -243,7 +243,9 @@ export namespace ASTNode {
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
-      sa.symbolTableStack.insert(sm);
+      if (sa.symbolTableStack.insert(sm)) {
+        sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`);
+      }
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -446,7 +448,9 @@ export namespace ASTNode {
       if (childrenLength === 3 || childrenLength === 5) {
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
-        sa.symbolTableStack.insert(sm);
+        if (sa.symbolTableStack.insert(sm)) {
+          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`);
+        }
       } else if (childrenLength === 4 || childrenLength === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
@@ -456,7 +460,9 @@ export namespace ASTNode {
         typeInfo.arraySpecifier = arraySpecifier;
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
-        sa.symbolTableStack.insert(sm);
+        if (sa.symbolTableStack.insert(sm)) {
+          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`);
+        }
       }
     }
   }
@@ -1304,7 +1310,9 @@ export namespace ASTNode {
       this.type = type;
       const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
-      sa.symbolTableStack.insert(sm);
+      if (sa.symbolTableStack.insert(sm)) {
+        sa.reportWarning(ident.location, `Redefinition of '${ident.lexeme}'.`);
+      }
 
       if (children.length === 4) {
         this.isStatic = true;

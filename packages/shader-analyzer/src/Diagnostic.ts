@@ -41,6 +41,7 @@ export const DiagnosticCode = {
   C0_07: "C0-07", // Identifier used before declaration (warning)
   C0_08: "C0-08", // Unexpected token (parser generic)
   C0_09: "C0-09", // Undefined function call
+  C0_10: "C0-10", // Redefinition of a variable in the same scope (warning)
 
   // ── C0-codegen: migrated from CodeGenVisitor._reportError ──
   C0_11: "C0-11", // gl_FragColor with MRT

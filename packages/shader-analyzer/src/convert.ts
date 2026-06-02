@@ -50,7 +50,9 @@ function gSErrorLocationToRange(location: InstanceType<typeof GSError>["location
  * Phase 2 will replace this with per-check code assignment in DiagnosticVisitor.
  */
 function gSErrorNameToCode(name: GSErrorName, message: string): string {
-  if (name === GSErrorName.CompilationWarn) return "C0-07";
+  if (name === GSErrorName.CompilationWarn) {
+    return message.includes("Redefinition") ? "C0-10" : "C0-07";
+  }
 
   // ShaderSourceParser / Preprocessor / Scanner errors → A-layer
   if (name === GSErrorName.ScannerError || name === GSErrorName.PreprocessorError) return "A1-01";

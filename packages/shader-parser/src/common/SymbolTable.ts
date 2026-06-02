@@ -1,24 +1,24 @@
-import { Logger } from "./Logger";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
   private _table: Map<string, T[]> = new Map();
 
-  insert(symbol: T, isInMacroBranch = false): void {
+  // Returns true when an equal non-macro symbol already existed in this scope and was replaced (a redefinition).
+  insert(symbol: T, isInMacroBranch = false): boolean {
     symbol.isInMacroBranch = isInMacroBranch;
 
     const entry = this._table.get(symbol.ident) ?? [];
     for (let i = 0, n = entry.length; i < n; i++) {
       if (entry[i].isInMacroBranch) continue;
       if (entry[i].equal(symbol)) {
-        Logger.warn("Replace symbol:", symbol.ident);
         entry[i] = symbol;
-        return;
+        return true;
       }
     }
 
     entry.push(symbol);
     this._table.set(symbol.ident, entry);
+    return false;
   }
 
   getSymbol(symbol: T, includeMacro = false): T | undefined {
