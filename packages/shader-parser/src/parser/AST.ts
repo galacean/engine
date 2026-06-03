@@ -358,7 +358,7 @@ export namespace ASTNode {
     compute?: (a: number, b: number) => number;
     lexeme: string;
 
-    override semanticAnalyze(_: SemanticAnalyzer): void {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
       const operator = this.children[0] as BaseToken;
       this.lexeme = operator.lexeme;
       switch (operator.type) {
@@ -377,6 +377,8 @@ export namespace ASTNode {
         case ETokenType.PERCENT:
           this.compute = (a, b) => a % b;
           break;
+        default:
+          sa.reportError(operator.location, `not implemented operator ${operator.lexeme}`);
       }
     }
   }
@@ -927,6 +929,16 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         const child = this.children[0] as PrimaryExpression | FunctionCall;
         this.type = child.type;
+      }
+    }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      // 3-child postfix is `base . field`; validate it as a swizzle when the base is a known vector.
+      const children = this.children;
+      if (children.length === 3 && children[2] instanceof BaseToken) {
+        const base = children[0] as ExpressionAstNode;
+        const error = ParserUtils.swizzleError(base.type, children[2].lexeme);
+        if (error) sa.reportError(children[2].location, error);
       }
     }
 
