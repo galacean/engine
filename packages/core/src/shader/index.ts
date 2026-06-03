@@ -7,6 +7,7 @@ export { RenderQueueType } from "./enums/RenderQueueType";
 export { RenderStateElementKey } from "./enums/RenderStateElementKey";
 export { ShaderDataGroup } from "./enums/ShaderDataGroup";
 export { ShaderLanguage } from "./enums/ShaderLanguage";
+export { ShaderPreprocessorDirective } from "./enums/ShaderPreprocessorDirective";
 export { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";

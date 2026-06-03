@@ -1,21 +1,7 @@
 import type { Condition, ShaderInstruction } from "@galacean/engine-design";
+import { ShaderPreprocessorDirective } from "@galacean/engine-core";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
-
-/** Must stay in sync with ShaderPreprocessorDirective in @galacean/engine-core */
-const ShaderPreprocessorDirective = {
-  Text: 0,
-  IfDef: 1,
-  IfNdef: 2,
-  IfCmp: 3,
-  IfExpr: 4,
-  Else: 5,
-  Endif: 6,
-  Define: 7,
-  DefineVal: 8,
-  DefineFunc: 9,
-  Undef: 10
-} as const;
 
 interface ExprCtx {
   s: string;
