@@ -119,7 +119,9 @@ export class ParticleCurve {
   _evaluateCumulative(normalizedAge: number): number {
     const { keys } = this;
     const { length } = keys;
-    if (length < 2) return 0;
+    if (length === 0) return 0;
+    // Single key is a constant curve (matches `_evaluate`); its integral is value × age.
+    if (length === 1) return keys[0].value * normalizedAge;
 
     let cumulative = 0;
     for (let i = 1; i < length; i++) {

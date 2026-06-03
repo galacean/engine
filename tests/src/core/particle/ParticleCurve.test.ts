@@ -71,4 +71,17 @@ describe("ParticleCurve tests", () => {
     curve.removeKey(0);
  +  expect(curve.keys.length).to.equal(0);
   });
+
+  it("_evaluateCumulative", () => {
+    // Empty curve integrates to 0.
+    expect((new ParticleCurve() as any)._evaluateCumulative(0.5)).to.equal(0);
+
+    // Single key is a constant curve; its integral is value × age.
+    expect((new ParticleCurve(new CurveKey(0, 2)) as any)._evaluateCumulative(0.5)).to.equal(1.0);
+    expect((new ParticleCurve(new CurveKey(0, 2)) as any)._evaluateCumulative(0)).to.equal(0);
+
+    // Linear ramp 0→2 over [0,1]: integral to t is t² → 0.25 at t = 0.5.
+    const ramp = new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 2));
+    expect((ramp as any)._evaluateCumulative(0.5)).to.equal(0.25);
+  });
 });
