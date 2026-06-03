@@ -330,6 +330,9 @@ importers:
 
   packages/shader-parser:
     dependencies:
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../core
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math

@@ -8,7 +8,6 @@ export * from "./common/SymbolTable";
 export * from "./common/SymbolTableStack";
 export * from "./common/IBaseSymbol";
 export * from "./common/ObjectPool";
-export * from "./common/Logger";
 export * from "./common/enums/ShaderStage";
 export * from "./common/enums/RenderStateEnums";
 

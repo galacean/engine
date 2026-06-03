@@ -1,5 +1,5 @@
 import { Color } from "@galacean/engine-math";
-import { Logger } from "../common/Logger";
+import { Logger } from "@galacean/engine-core";
 import {
   BlendFactor,
   BlendOperation,

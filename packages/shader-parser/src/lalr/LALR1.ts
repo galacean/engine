@@ -1,4 +1,4 @@
-import { Logger } from "../common/Logger";
+import { Logger } from "@galacean/engine-core";
 import { ETokenType } from "../common";
 import { Keyword } from "../common/enums/Keyword";
 import { Grammar } from "../parser/Grammar";

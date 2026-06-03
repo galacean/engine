@@ -1,6 +1,6 @@
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
-import { Logger } from "./common/Logger";
+import { Logger } from "@galacean/engine-core";
 
 // Mirrors `ShaderPass._shaderRootPath`; inlined to keep shader-compiler standalone.
 const SHADER_ROOT_PATH = "shaders://root/";

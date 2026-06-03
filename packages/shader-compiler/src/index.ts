@@ -1,4 +1,4 @@
-import { Logger } from "@galacean/engine-shader-parser";
+import { Logger } from "@galacean/engine-core";
 
 export { ShaderCompiler } from "./ShaderCompiler";
 export { GLES100Visitor, GLES300Visitor } from "./codeGen";

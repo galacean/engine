@@ -2,7 +2,7 @@ import { ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BaseToken } from "./BaseToken";
-import { Logger } from "./Logger";
+import { Logger } from "@galacean/engine-core";
 
 export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
 
