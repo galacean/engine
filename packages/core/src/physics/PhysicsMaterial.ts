@@ -33,6 +33,20 @@ export class PhysicsMaterial {
   }
 
   /**
+   * @internal
+   * Sync the cloned JS values into the clone's own native material — populate writes the `@property`
+   * fields directly, bypassing the setters that normally push into native.
+   */
+  _cloneTo(target: PhysicsMaterial): void {
+    const nativeMaterial = target._nativeMaterial;
+    nativeMaterial.setBounciness(this._bounciness);
+    nativeMaterial.setDynamicFriction(this._dynamicFriction);
+    nativeMaterial.setStaticFriction(this._staticFriction);
+    nativeMaterial.setBounceCombine(this._bounceCombine);
+    nativeMaterial.setFrictionCombine(this._frictionCombine);
+  }
+
+  /**
    * The coefficient of bounciness, ranging from 0 to 1.
    */
   get bounciness(): number {

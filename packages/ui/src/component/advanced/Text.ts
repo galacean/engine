@@ -37,7 +37,6 @@ export class Text extends UIRenderer implements ITextRenderer {
   @property
   private _text: string = "";
   private _localBounds: BoundingBox = new BoundingBox();
-  @property
   private _font: Font = null;
   @property
   private _fontSize: number = 24;

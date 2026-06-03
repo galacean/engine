@@ -384,6 +384,29 @@ describe("TextRenderer", () => {
     expect(renderer2).not.to.be.undefined;
   });
 
+  it("clone does not leak the default font ref count", () => {
+    const entity = rootEntity.createChild("TextRendererFontLeak");
+    const renderer = entity.addComponent(TextRenderer);
+    const customFont = new Font(engine, "FontLeakTest");
+    renderer.font = customFont;
+
+    const defaultFont = engine["_textDefaultFont"] as Font;
+    const defaultBefore = defaultFont.refCount;
+    const customBefore = customFont.refCount;
+
+    // The clone's constructor temporarily holds the default font; `_cloneTo` must release it and
+    // take a ref on the actual (custom) font instead — otherwise the default font leaks +1 per clone.
+    const clone = entity.clone();
+    expect(defaultFont.refCount).to.equal(defaultBefore);
+    expect(customFont.refCount).to.equal(customBefore + 1);
+
+    clone.destroy();
+    expect(customFont.refCount).to.equal(customBefore);
+    expect(defaultFont.refCount).to.equal(defaultBefore);
+
+    entity.destroy();
+  });
+
   it("destroy", () => {
     // Test that destroy works correctly.
     let entity = rootEntity.findByName("TextRenderer2");

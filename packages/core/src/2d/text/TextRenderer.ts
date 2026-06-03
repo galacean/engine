@@ -35,7 +35,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
   private _textChunks = Array<TextChunk>();
   /** @internal */
-  @property
   _subFont: SubFont = null;
   /** @internal */
   _dirtyFlag = DirtyFlag.Font;
@@ -48,7 +47,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   @property
   private _height = 0;
   private _localBounds = new BoundingBox();
-  @property
   private _font: Font = null;
   @property
   private _fontSize = 24;
