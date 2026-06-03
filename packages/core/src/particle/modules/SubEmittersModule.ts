@@ -67,7 +67,25 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       const sub = subEmitters[i];
       if (sub.type !== type) continue;
-      this._fireSubEmitter(sub, worldPosition, parentColor, parentSize, parentRotation);
+
+      const target = sub.emitter;
+      if (target === null || target.destroyed) continue;
+
+      if (target.generator === this._generator) continue;
+
+      const count = sub.emitCount | 0;
+      if (count <= 0) continue;
+
+      if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
+        continue;
+      }
+
+      const inherit = sub.inheritProperties;
+      const colorOverride = (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? parentColor : null;
+      const sizeOverride = (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? parentSize : null;
+      const rotationOverride = (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? parentRotation : null;
+
+      target.generator._emitFromSubEmitter(count, worldPosition, colorOverride, sizeOverride, rotationOverride);
     }
   }
 
@@ -76,32 +94,5 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._probabilityRand.reset(seed, ParticleRandomSubSeeds.SubEmitter);
-  }
-
-  private _fireSubEmitter(
-    sub: SubEmitter,
-    worldPosition: Vector3,
-    parentColor: Color,
-    parentSize: Vector3,
-    parentRotation: Vector3
-  ): void {
-    const target = sub.emitter;
-    if (target === null || target.destroyed) return;
-
-    if (target.generator === this._generator) return;
-
-    const count = sub.emitCount | 0;
-    if (count <= 0) return;
-
-    if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
-      return;
-    }
-
-    const inherit = sub.inheritProperties;
-    const colorOverride = (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? parentColor : null;
-    const sizeOverride = (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? parentSize : null;
-    const rotationOverride = (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? parentRotation : null;
-
-    target.generator._emitFromSubEmitter(count, worldPosition, colorOverride, sizeOverride, rotationOverride);
   }
 }
