@@ -204,18 +204,13 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("Self-reference does not infinite-recurse", () => {
+  it("Self-reference throws at configuration time", () => {
     const parent = createParticleRenderer(engine, "Parent_Self");
 
     parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(parent, ParticleSubEmitterType.Birth);
-
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
-    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    parent.generator.play();
-
-    updateEngine(engine, 5);
-    expect(parent.generator._getAliveParticleCount()).to.equal(2);
+    expect(() => parent.generator.subEmitters.addSubEmitter(parent, ParticleSubEmitterType.Birth)).to.throw(
+      "Sub-emitter cannot reference itself"
+    );
 
     parent.entity.destroy();
   });

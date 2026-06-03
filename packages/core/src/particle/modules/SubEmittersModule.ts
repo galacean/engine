@@ -8,36 +8,34 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { SubEmitter } from "./SubEmitter";
 
 /**
- * Sub Emitters module — fires additional particle systems on parent particle
- * lifecycle events (Birth / Death). Sub particles emit at the parent
- * particle's event position; inherited properties (Color / Size / Rotation)
- * are configured per slot via `inheritProperties`.
+ * Fires sub-emitters on parent particle lifecycle events (Birth / Death).
  */
 export class SubEmittersModule extends ParticleGeneratorModule {
-  /** Sub emitter slots. */
+  /** The list of sub-emitters. */
   @deepClone
   readonly subEmitters: SubEmitter[] = [];
 
-  /** @internal */
   @ignoreClone
-  _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
+  private _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
 
   /**
-   * Add a sub-emitter slot. `emitter` is required — a slot with no target fires
-   * nothing. Tweak a slot's fields later via `subEmitters[index]`.
-   * @param emitter - The target particle renderer
-   * @param type - The trigger event (`Birth` / `Death`)
-   * @param inheritProperties - The inherited properties
-   * @param emitProbability - The emit probability [0, 1]
-   * @param emitCount - The emit count
+   * Add a sub-emitter slot.
+   * @param emitter - Target particle renderer
+   * @param type - Trigger event (`Birth` / `Death`)
+   * @param inheritProperties - Bitmask of properties inherited from the parent particle
+   * @param emitProbability - Per-event fire probability [0, 1]
+   * @param emitCount - Number of sub particles emitted per parent event
    */
   addSubEmitter(
     emitter: ParticleRenderer,
-    type: ParticleSubEmitterType = ParticleSubEmitterType.Birth,
+    type: ParticleSubEmitterType,
     inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None,
     emitProbability: number = 1,
     emitCount: number = 1
   ): void {
+    if (emitter.generator === this._generator) {
+      throw new Error("Sub-emitter cannot reference itself");
+    }
     const sub = new SubEmitter();
     sub.emitter = emitter;
     sub.type = type;
@@ -48,8 +46,8 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Remove the sub-emitter slot at `index`.
-   * @param index - The slot index
+   * Remove the sub-emitter at the given index.
+   * @param index - Index of the sub-emitter to remove
    */
   removeSubEmitterByIndex(index: number): void {
     this.subEmitters.splice(index, 1);
@@ -57,7 +55,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Fire every slot whose trigger matches `type` for one parent-particle event.
    */
   _dispatchEvent(
     type: ParticleSubEmitterType,
@@ -66,13 +63,11 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     parentSize: Vector3,
     parentRotation: Vector3
   ): void {
-    // Callers (_dispatchBirthEvent / _dispatchDeathEvent) only reach here when
-    // the module is enabled, so no `_enabled` re-check is needed.
     const subEmitters = this.subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       const sub = subEmitters[i];
       if (sub.type !== type) continue;
-      this._fireSlot(sub, worldPosition, parentColor, parentSize, parentRotation);
+      this._fireSubEmitter(sub, worldPosition, parentColor, parentSize, parentRotation);
     }
   }
 
@@ -83,26 +78,24 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     this._probabilityRand.reset(seed, ParticleRandomSubSeeds.SubEmitter);
   }
 
-  private _fireSlot(
+  private _fireSubEmitter(
     sub: SubEmitter,
     worldPosition: Vector3,
     parentColor: Color,
     parentSize: Vector3,
     parentRotation: Vector3
   ): void {
-    // Run non-RNG filters before the probability roll — otherwise dead slots
-    // shift `_probabilityRand` for downstream slots in the same event.
+    // Filter before the probability check — otherwise dead slots shift `_probabilityRand`
     const target = sub.emitter;
     if (target === null || target.destroyed) return;
 
-    const targetGen = target.generator;
-    if (targetGen === this._generator) return; // self-reference
+    // Recursion guard for slots set outside addSubEmitter (which rejects self-reference)
+    if (target.generator === this._generator) return;
 
     const count = sub.emitCount | 0;
     if (count <= 0) return;
 
-    // `>=` not `>`: Rand.random() includes a 1/2^32 chance of exactly 0.0, so
-    // emitProbability = 0 still means "never fire".
+    // `>=` (not `>`) so emitProbability = 0 never fires — Rand.random() includes 0.0
     if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
       return;
     }
@@ -112,6 +105,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     const sizeOverride = (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? parentSize : null;
     const rotationOverride = (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? parentRotation : null;
 
-    targetGen._emitFromSubEmitter(count, worldPosition, colorOverride, sizeOverride, rotationOverride);
+    target.generator._emitFromSubEmitter(count, worldPosition, colorOverride, sizeOverride, rotationOverride);
   }
 }
