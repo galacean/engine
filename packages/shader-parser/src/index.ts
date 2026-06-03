@@ -8,7 +8,6 @@ export * from "./common/SymbolTable";
 export * from "./common/SymbolTableStack";
 export * from "./common/IBaseSymbol";
 export * from "./common/enums/ShaderStage";
-export * from "./common/enums/RenderStateEnums";
 
 export * from "./lexer";
 export * from "./lalr";

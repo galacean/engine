@@ -1,15 +1,15 @@
 import { Color } from "@galacean/engine-math";
-import { Logger } from "@galacean/engine-core";
 import {
   BlendFactor,
   BlendOperation,
   ColorWriteMask,
   CompareFunction,
   CullMode,
+  Logger,
   RenderQueueType,
   RenderStateElementKey,
   StencilOperation
-} from "../common/enums/RenderStateEnums";
+} from "@galacean/engine-core";
 import type {
   IRenderStates,
   IShaderPassSource,
