@@ -52,8 +52,6 @@ export class ParticleGenerator {
   private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
   private static _tempQuat0 = new Quaternion();
-  // Sub-emit override slots + Birth/Death dispatch scratch. Safe as statics because
-  // `_suppressSubEmitterDispatch` prevents nested dispatch within one synchronous emit.
   private static _subEmitColorOverride: Color = null;
   private static _subEmitSizeOverride: Vector3 = null;
   private static _subEmitRotationOverride: Vector3 = null;
@@ -100,7 +98,7 @@ export class ParticleGenerator {
   /** Noise module. */
   @deepClone
   readonly noise: NoiseModule;
-  /** Sub emitters module — fires another particle renderer on Birth/Death events. */
+  /** Sub emitters module. */
   @deepClone
   readonly subEmitters: SubEmittersModule;
   /** Custom data module. */
@@ -1102,8 +1100,6 @@ export class ParticleGenerator {
     Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthPos);
     birthPos.add(transform.worldPosition);
 
-    // Evaluate at normalizedAge = 0, AFTER the sub-emit override above — so a nested
-    // A→B→C chain inherits the cascaded value rather than B's raw start values.
     const parentColor = ParticleGenerator._eventColor;
     const parentSize = ParticleGenerator._eventSize;
     const parentRotation = ParticleGenerator._eventRotation;
@@ -1114,12 +1110,6 @@ export class ParticleGenerator {
 
   /**
    * @internal
-   * Emit `count` particles into this generator at `worldPosition`, with optional
-   * inherit-overrides multiplied/added into per-particle start values.
-   *
-   * Called by `SubEmittersModule` when a parent particle's Birth or Death
-   * event fires. Bypasses the emission shape (position is event-driven, not
-   * shape-derived); direction defaults to `(0, 0, -1)`.
    */
   _emitFromSubEmitter(
     count: number,

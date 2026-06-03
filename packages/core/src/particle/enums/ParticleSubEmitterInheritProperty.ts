@@ -1,8 +1,5 @@
 /**
- * Bitmask of parent properties a sub-emitter inherits at the event moment.
- * Combine with bitwise OR. Values reflect the parent's currently-visible state
- * (start value modulated by ColorOverLifetime / SizeOverLifetime /
- * RotationOverLifetime at event time), not the raw start values.
+ * Bitmask of parent properties a sub-emitter inherits. Combine with bitwise OR.
  */
 export enum ParticleSubEmitterInheritProperty {
   None = 0x0,

@@ -52,27 +52,14 @@ WebGLEngine.create({
     })
     .then((texture) => {
       createSubEmitterScene(engine, rootEntity, <Texture2D>texture);
-      // 50ms × 14 frames = 0.7s total.
-      // Parent burst at t=0, lifetime 0.3s → all retire around t=0.3s, Death events
-      // spawn sub particles. Sub lifetime 0.8s → at snapshot (t=0.7s) sub particles
-      // are roughly half-way through their life — visibly distinct, color & size
-      // inherited from parent.
       updateForE2E(engine, 50, 14);
       initScreenshot(engine, camera);
     });
 });
 
 function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Texture2D): void {
-  // Build the whole tree off-scene first, then attach it as a unit at the end.
-  // Creating children directly under a live rootEntity would run
-  // ParticleRenderer.onEnable synchronously at addComponent — before
-  // `playOnEnabled = false` / `useAutoRandomSeed = false` are set — so the sub
-  // would auto-play once and reseed itself with Math.random(), making the
-  // snapshot non-deterministic. Configuring while detached avoids that.
   const sceneRoot = new Entity(engine, "SubEmitterScene");
 
-  // ── Sub particle target: each parent Death spawns a small splash here, inheriting
-  //    parent's Color and Size. Sub particles fan out via cone shape.
   const subEntity = sceneRoot.createChild("Sub");
   const subRenderer = subEntity.addComponent(ParticleRenderer);
   const subGenerator = subRenderer.generator;
@@ -96,19 +83,15 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   subMain.startColor.constant = new Color(1, 1, 1, 1);
   subMain.gravityModifier.constant = 0.3;
   subMain.simulationSpace = ParticleSimulationSpace.World;
-  // Don't auto-play sub renderer; parent Death event drives it.
   subMain.playOnEnabled = false;
   subGenerator.emission.rateOverTime.constant = 0;
 
-  // Cone shape so sub particles spray outward.
   const subShape = new ConeShape();
   subShape.angle = 35;
   subShape.radius = 0.05;
   subShape.emitType = ConeEmitType.Base;
   subGenerator.emission.shape = subShape;
 
-  // ── Parent: bursts a fan of bright particles from a sphere shape, dies after a
-  //    short lifetime, triggering sub-emitter Death event.
   const parentEntity = sceneRoot.createChild("Parent");
   parentEntity.transform.setPosition(0, 1.2, 0);
   const parentRenderer = parentEntity.addComponent(ParticleRenderer);
@@ -137,14 +120,10 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   parentGenerator.emission.rateOverTime.constant = 0;
   parentGenerator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(10)));
 
-  // Sphere shape spreads parent particles outward in all directions.
   const parentShape = new SphereShape();
   parentShape.radius = 0.2;
   parentGenerator.emission.shape = parentShape;
 
-  // Parent COL: orange-tinted multiplier fades from white (no tint at t=0) to a
-  // dim warm color at t=1. At Death, the parent's visible color is
-  // startColor × COL(1) — children inherit that, not the raw startColor.
   const parentCOL = parentGenerator.colorOverLifetime;
   parentCOL.enabled = true;
   parentCOL.color.mode = ParticleGradientMode.Gradient;
@@ -153,17 +132,11 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
     [new GradientAlphaKey(0, 1), new GradientAlphaKey(1, 1)]
   );
 
-  // Parent SOL: shrink to 60% of start over lifetime. Sub spawns at Death pick
-  // up parent's visible (shrunk) size, not the raw startSize.
   const parentSOL = parentGenerator.sizeOverLifetime;
   parentSOL.enabled = true;
   parentSOL.size.mode = ParticleCurveMode.Curve;
   (parentSOL.size as any).curve = new ParticleCurve(new CurveKey(0, 1.0), new CurveKey(1, 0.6));
 
-  // Sub-emitter slot: parent's Death → 4 sub particles at each parent's last
-  // position. Inherit chain (matches what's visible at Death):
-  //   sub.color = sub.startColor × (parent.startColor × COL(1))
-  //   sub.size  = sub.startSize  × (parent.startSize  × SOL(1))
   parentGenerator.subEmitters.enabled = true;
   parentGenerator.subEmitters.addSubEmitter(
     subRenderer,
@@ -173,8 +146,6 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
     4
   );
 
-  // Attach the fully-configured tree as a unit: onEnable now sees
-  // playOnEnabled = false, so the sub stays idle until the parent's Death drives it.
   rootEntity.addChild(sceneRoot);
   parentGenerator.play();
 }

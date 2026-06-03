@@ -85,17 +85,14 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     parentSize: Vector3,
     parentRotation: Vector3
   ): void {
-    // Filter before the probability check — otherwise dead slots shift `_probabilityRand`
     const target = sub.emitter;
     if (target === null || target.destroyed) return;
 
-    // Recursion guard for slots set outside addSubEmitter (which rejects self-reference)
     if (target.generator === this._generator) return;
 
     const count = sub.emitCount | 0;
     if (count <= 0) return;
 
-    // `>=` (not `>`) so emitProbability = 0 never fires — Rand.random() includes 0.0
     if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
       return;
     }
