@@ -69,6 +69,7 @@ export * from "./env-probe/index";
 export * from "./shader/index";
 export * from "./Layer";
 export * from "./clone/CloneManager";
+export * from "./clone/enums/CloneMode";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";

@@ -2,8 +2,6 @@ import { TypedArray } from "../base/Constant";
 import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
-export { CloneMode };
-
 /**
  * Property decorator. Marks a field as a managed property of the type — it participates in
  * cloning. HOW it is cloned is decided by the field's runtime type + the type's `@defaultCloneMode`
@@ -95,7 +93,7 @@ export class CloneManager {
     return fields;
   }
 
-  static cloneProperty(source: Object, target: Object, k: string | number, cloneMap: Map<Object, Object>): void {
+  static copyProperty(source: Object, target: Object, k: string | number, cloneMap: Map<Object, Object>): void {
     target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap);
   }
 
@@ -200,12 +198,13 @@ export class CloneManager {
   }
 
   /**
-   * Deep clone every enumerable field of `source` into `target` (type-driven per field). Explicit
-   * deep-copy helper for objects outside the opt-in `@property` system (e.g. ShaderMacroCollection).
+   * Copy every enumerable property of `source` into the pre-existing `target`, deep-cloning each
+   * value through the type-driven gate (deep / share / remap). The opt-out helper for objects outside
+   * the `@property` system (e.g. ShaderMacroCollection).
    */
-  static deepCloneObject(source: Object, target: Object, cloneMap: Map<Object, Object>): void {
+  static copyProperties(source: Object, target: Object, cloneMap: Map<Object, Object>): void {
     for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, cloneMap);
+      CloneManager.copyProperty(source, target, k, cloneMap);
     }
   }
 }

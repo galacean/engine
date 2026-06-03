@@ -30,7 +30,7 @@ export class ComponentCloner {
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<Object, Object>): void {
     CloneManager.getProperties(source.constructor).forEach((k) => {
-      CloneManager.cloneProperty(source, target, k, cloneMap);
+      CloneManager.copyProperty(source, target, k, cloneMap);
     });
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }
