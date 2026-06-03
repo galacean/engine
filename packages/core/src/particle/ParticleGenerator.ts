@@ -52,8 +52,16 @@ export class ParticleGenerator {
   private static _tempVector32 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor0 = new Color();
-  private static _tempColor1 = new Color();
   private static _tempQuat0 = new Quaternion();
+  // Sub-emit override slots + Birth/Death dispatch scratch. Safe as statics because
+  // `_suppressSubEmitterDispatch` prevents nested dispatch within one synchronous emit.
+  private static _subEmitColorOverride: Color = null;
+  private static _subEmitSizeOverride: Vector3 = null;
+  private static _subEmitRotationOverride: Vector3 = null;
+  private static _eventPos = new Vector3();
+  private static _eventColor = new Color();
+  private static _eventSize = new Vector3();
+  private static _eventRotation = new Vector3();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
 
   private static readonly _particleIncreaseCount = 128;
@@ -162,30 +170,8 @@ export class ParticleGenerator {
   @ignoreClone
   private _playStartDelay = 0;
 
-  // ─── Sub emitter override slots ──────────────────────────────────────
-  // Set by `_emitFromSubEmitter` before calling `_addNewParticle`; consumed
-  // and cleared by `_addNewParticle`. Non-null means override the next emit.
-  @ignoreClone
-  private _subEmitColorOverride: Color = null;
-  @ignoreClone
-  private _subEmitSizeOverride: Vector3 = null;
-  @ignoreClone
-  private _subEmitRotationOverride: Vector3 = null;
   @ignoreClone
   private _suppressSubEmitterDispatch = false;
-
-  // Per-generator scratch buffers for Birth/Death dispatch payloads.
-  // Allocated per instance so recursive sub-emit on a different generator
-  // doesn't clobber the parent's in-flight payload (class-level statics
-  // would be unsafe under nested dispatch).
-  @ignoreClone
-  private _eventPos = new Vector3();
-  @ignoreClone
-  private _eventColor = new Color();
-  @ignoreClone
-  private _eventSize = new Vector3();
-  @ignoreClone
-  private _eventRotation = new Vector3();
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -1075,23 +1061,21 @@ export class ParticleGenerator {
       instanceVertices[offset + 41] = limitVelocityOverLifetime._speedRand.random();
     }
 
-    // ─── Sub-emitter inherit overrides (multiplicative for color/size, additive for rotation) ──
-    const colorOverride = this._subEmitColorOverride;
+    // Apply sub-emit inherit: multiply color/size, add rotation
+    const colorOverride = ParticleGenerator._subEmitColorOverride;
     if (colorOverride) {
-      const colorOffset = offset + 8;
-      instanceVertices[colorOffset] *= colorOverride.r;
-      instanceVertices[colorOffset + 1] *= colorOverride.g;
-      instanceVertices[colorOffset + 2] *= colorOverride.b;
-      instanceVertices[colorOffset + 3] *= colorOverride.a;
+      instanceVertices[offset + 8] *= colorOverride.r;
+      instanceVertices[offset + 9] *= colorOverride.g;
+      instanceVertices[offset + 10] *= colorOverride.b;
+      instanceVertices[offset + 11] *= colorOverride.a;
     }
-    const sizeOverride = this._subEmitSizeOverride;
+    const sizeOverride = ParticleGenerator._subEmitSizeOverride;
     if (sizeOverride) {
-      const sizeOffset = offset + 12;
-      instanceVertices[sizeOffset] *= sizeOverride.x;
-      instanceVertices[sizeOffset + 1] *= sizeOverride.y;
-      instanceVertices[sizeOffset + 2] *= sizeOverride.z;
+      instanceVertices[offset + 12] *= sizeOverride.x;
+      instanceVertices[offset + 13] *= sizeOverride.y;
+      instanceVertices[offset + 14] *= sizeOverride.z;
     }
-    const rotationOverride = this._subEmitRotationOverride;
+    const rotationOverride = ParticleGenerator._subEmitRotationOverride;
     if (rotationOverride) {
       instanceVertices[offset + 15] += rotationOverride.x;
       instanceVertices[offset + 16] += rotationOverride.y;
@@ -1105,49 +1089,26 @@ export class ParticleGenerator {
 
     this._firstFreeElement = nextFreeElement;
 
-    // ─── Sub-emitter Birth dispatch (symmetric with _dispatchDeathEvent) ──
-    this._dispatchBirthEvent(offset, position, transform);
+    // Sub-emitter Birth dispatch
+    this._onParticleBirth(offset, position, transform);
   }
 
-  /**
-   * @internal
-   * Birth event for one just-spawned parent particle — mirror of
-   * `_dispatchDeathEvent`. No-op when sub-emitters are disabled, have no slots,
-   * or this emit was itself triggered by a sub-emitter (self-recursion guard).
-   */
-  private _dispatchBirthEvent(offset: number, position: Vector3, transform: Transform): void {
-    // Skip when this very emit was triggered BY a sub-emitter (avoids self-recursion);
-    // also skip when the module has no slots at all (cheap early-out).
+  private _onParticleBirth(offset: number, position: Vector3, transform: Transform): void {
     const subEmitters = this.subEmitters;
     if (this._suppressSubEmitterDispatch || !subEmitters.enabled || subEmitters.subEmitters.length === 0) {
       return;
     }
 
-    const instanceVertices = this._instanceVertices;
-
-    const birthPos = this._eventPos;
+    const birthPos = ParticleGenerator._eventPos;
     Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthPos);
     birthPos.add(transform.worldPosition);
 
-    // Read AFTER the sub-emit override was applied above — for nested A→B→C this
-    // gives C the cascaded color (B's startColor × inheritFromA), so inheritance
-    // accumulates down the chain rather than resetting to B's raw start values.
-    const parentColor = this._eventColor;
-    parentColor.r = instanceVertices[offset + 8];
-    parentColor.g = instanceVertices[offset + 9];
-    parentColor.b = instanceVertices[offset + 10];
-    parentColor.a = instanceVertices[offset + 11];
-
-    const parentSize = this._eventSize;
-    parentSize.set(instanceVertices[offset + 12], instanceVertices[offset + 13], instanceVertices[offset + 14]);
-
-    const parentRotation = this._eventRotation;
-    parentRotation.set(instanceVertices[offset + 15], instanceVertices[offset + 16], instanceVertices[offset + 17]);
-
-    // Apply COL/SOL/ROL modulation at normalizedAge = 0 so children inherit
-    // the parent's visible appearance at the moment of birth, not the raw
-    // pre-modulation start values.
-    this._modulateInheritByLifetime(offset, 0, parentColor, parentSize, parentRotation);
+    // Evaluate at normalizedAge = 0, AFTER the sub-emit override above — so a nested
+    // A→B→C chain inherits the cascaded value rather than B's raw start values.
+    const parentColor = ParticleGenerator._eventColor;
+    const parentSize = ParticleGenerator._eventSize;
+    const parentRotation = ParticleGenerator._eventRotation;
+    this._evaluateOverLifetime(offset, 0, parentColor, parentSize, parentRotation);
 
     subEmitters._dispatchEvent(ParticleSubEmitterType.Birth, birthPos, parentColor, parentSize, parentRotation);
   }
@@ -1190,9 +1151,9 @@ export class ParticleGenerator {
     const direction = ParticleGenerator._tempVector31;
     direction.set(0, 0, -1);
 
-    this._subEmitColorOverride = inheritColor;
-    this._subEmitSizeOverride = inheritSize;
-    this._subEmitRotationOverride = inheritRotation;
+    ParticleGenerator._subEmitColorOverride = inheritColor;
+    ParticleGenerator._subEmitSizeOverride = inheritSize;
+    ParticleGenerator._subEmitRotationOverride = inheritRotation;
     this._suppressSubEmitterDispatch = true;
 
     const playTime = this._playTime;
@@ -1200,9 +1161,9 @@ export class ParticleGenerator {
       this._addNewParticle(localPos, direction, transform, playTime);
     }
 
-    this._subEmitColorOverride = null;
-    this._subEmitSizeOverride = null;
-    this._subEmitRotationOverride = null;
+    ParticleGenerator._subEmitColorOverride = null;
+    ParticleGenerator._subEmitSizeOverride = null;
+    ParticleGenerator._subEmitRotationOverride = null;
     this._suppressSubEmitterDispatch = false;
   }
 
@@ -1249,7 +1210,7 @@ export class ParticleGenerator {
     // Pre-flight: are there any Death sub-emitter slots? (avoid per-particle scan)
     let hasDeathSlot = false;
     const subEmitters = this.subEmitters;
-    if (subEmitters.enabled && !this._suppressSubEmitterDispatch) {
+    if (subEmitters.enabled) {
       const slots = subEmitters.subEmitters;
       for (let i = 0, n = slots.length; i < n; i++) {
         if (slots[i].type === ParticleSubEmitterType.Death) {
@@ -1270,7 +1231,7 @@ export class ParticleGenerator {
       }
 
       if (hasDeathSlot) {
-        this._dispatchDeathEvent(activeParticleOffset);
+        this._onParticleDeath(activeParticleOffset);
       }
 
       // Store frame count in time offset to free retired particle
@@ -1284,14 +1245,8 @@ export class ParticleGenerator {
     }
   }
 
-  /**
-   * Compute approximate death-time world position via ballistic formula
-   * (a_ShapePos + dir·speed·lifetime + ½·gravity·r0·lifetime²) and dispatch
-   * Death event to sub-emitter slots. Does NOT account for VOL/FOL/Noise
-   * contributions — particle systems with those modules enabled will see
-   * sub-emitter spawn locations drift from the visual particle's last frame.
-   */
-  private _dispatchDeathEvent(particleOffset: number): void {
+  // Death position is a ballistic approximation; ignores VOL/FOL/Noise contributions.
+  private _onParticleDeath(particleOffset: number): void {
     const instanceVertices = this._instanceVertices;
     const main = this.main;
     const transform = this._renderer.entity.transform;
@@ -1302,7 +1257,7 @@ export class ParticleGenerator {
     const gravityMod = instanceVertices[particleOffset + 19];
 
     // Local-space end position before world rotation: a_ShapePos + dir·speed·lifetime
-    const local = this._eventPos;
+    const local = ParticleGenerator._eventPos;
     local.set(
       instanceVertices[particleOffset + 0] + instanceVertices[particleOffset + 4] * startSpeed * lifetime,
       instanceVertices[particleOffset + 1] + instanceVertices[particleOffset + 5] * startSpeed * lifetime,
@@ -1339,48 +1294,18 @@ export class ParticleGenerator {
     local.y += gravity.y * halfTSquaredR;
     local.z += gravity.z * halfTSquaredR;
 
-    const parentColor = this._eventColor;
-    parentColor.r = instanceVertices[particleOffset + 8];
-    parentColor.g = instanceVertices[particleOffset + 9];
-    parentColor.b = instanceVertices[particleOffset + 10];
-    parentColor.a = instanceVertices[particleOffset + 11];
-
-    const parentSize = this._eventSize;
-    parentSize.set(
-      instanceVertices[particleOffset + 12],
-      instanceVertices[particleOffset + 13],
-      instanceVertices[particleOffset + 14]
-    );
-
-    const parentRotation = this._eventRotation;
-    parentRotation.set(
-      instanceVertices[particleOffset + 15],
-      instanceVertices[particleOffset + 16],
-      instanceVertices[particleOffset + 17]
-    );
-
-    // Apply COL/SOL/ROL modulation at the parent's normalizedAge so children
-    // inherit the parent's visible appearance at death rather than the raw
-    // pre-modulation start values.
+    // Evaluate at the parent's normalizedAge so children inherit its visible appearance at death.
+    const parentColor = ParticleGenerator._eventColor;
+    const parentSize = ParticleGenerator._eventSize;
+    const parentRotation = ParticleGenerator._eventRotation;
     const bornTime = instanceVertices[particleOffset + 7];
     const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
-    this._modulateInheritByLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
+    this._evaluateOverLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
 
     this.subEmitters._dispatchEvent(ParticleSubEmitterType.Death, local, parentColor, parentSize, parentRotation);
   }
 
-  /**
-   * Multiply COL / SOL into parentColor/parentSize and add ROL into
-   * parentRotation, mirroring the per-vertex modulation the shader performs at
-   * `normalizedAge`. Random factors used by Two* modes are read from the same
-   * instance-buffer slots the shader samples (`a_Random0.y/z/w` → byte offsets
-   * 20/21/22).
-   *
-   * SOL only contributes in Curve / TwoCurves modes (shader gates on
-   * `RENDERER_SOL_CURVE_MODE`); Constant / TwoConstants are silently dropped
-   * shader-side so we match that.
-   */
-  private _modulateInheritByLifetime(
+  private _evaluateOverLifetime(
     particleOffset: number,
     normalizedAge: number,
     parentColor: Color,
@@ -1389,63 +1314,63 @@ export class ParticleGenerator {
   ): void {
     const instanceVertices = this._instanceVertices;
 
+    let r = instanceVertices[particleOffset + 8];
+    let g = instanceVertices[particleOffset + 9];
+    let b = instanceVertices[particleOffset + 10];
+    let a = instanceVertices[particleOffset + 11];
     const col = this.colorOverLifetime;
     if (col.enabled) {
-      const colRand = instanceVertices[particleOffset + 20];
-      const tmp = ParticleGenerator._tempColor1;
-      col.color.evaluate(normalizedAge, colRand, tmp);
-      parentColor.r *= tmp.r;
-      parentColor.g *= tmp.g;
-      parentColor.b *= tmp.b;
-      parentColor.a *= tmp.a;
+      const tmp = ParticleGenerator._tempColor0;
+      col.color.evaluate(normalizedAge, instanceVertices[particleOffset + 20], tmp);
+      r *= tmp.r;
+      g *= tmp.g;
+      b *= tmp.b;
+      a *= tmp.a;
     }
+    parentColor.set(r, g, b, a);
 
+    let sx = instanceVertices[particleOffset + 12];
+    let sy = instanceVertices[particleOffset + 13];
+    let sz = instanceVertices[particleOffset + 14];
     const sol = this.sizeOverLifetime;
-    if (sol.enabled) {
+    // SOL only contributes in Curve / TwoCurves modes (shader gates on RENDERER_SOL_CURVE_MODE)
+    if (sol.enabled && (sol.sizeX.mode === ParticleCurveMode.Curve || sol.sizeX.mode === ParticleCurveMode.TwoCurves)) {
       const sizeRand = instanceVertices[particleOffset + 21];
-      const solMode = sol.sizeX.mode;
-      if (solMode === ParticleCurveMode.Curve || solMode === ParticleCurveMode.TwoCurves) {
-        if (sol.separateAxes) {
-          parentSize.x *= sol.sizeX.evaluate(normalizedAge, sizeRand);
-          parentSize.y *= sol.sizeY.evaluate(normalizedAge, sizeRand);
-          parentSize.z *= sol.sizeZ.evaluate(normalizedAge, sizeRand);
-        } else {
-          const factor = sol.sizeX.evaluate(normalizedAge, sizeRand);
-          parentSize.x *= factor;
-          parentSize.y *= factor;
-          parentSize.z *= factor;
-        }
+      if (sol.separateAxes) {
+        sx *= sol.sizeX.evaluate(normalizedAge, sizeRand);
+        sy *= sol.sizeY.evaluate(normalizedAge, sizeRand);
+        sz *= sol.sizeZ.evaluate(normalizedAge, sizeRand);
+      } else {
+        const factor = sol.sizeX.evaluate(normalizedAge, sizeRand);
+        sx *= factor;
+        sy *= factor;
+        sz *= factor;
       }
     }
+    parentSize.set(sx, sy, sz);
 
+    let rx = instanceVertices[particleOffset + 15];
+    let ry = instanceVertices[particleOffset + 16];
+    let rz = instanceVertices[particleOffset + 17];
     const rol = this.rotationOverLifetime;
     if (rol.enabled) {
       const rotRand = instanceVertices[particleOffset + 22];
       const lifetime = instanceVertices[particleOffset + 3];
       const rolZ = ParticleGenerator._curveCumulative(rol.rotationZ, normalizedAge, rotRand) * lifetime;
       if (rol.separateAxes) {
-        // Per-axis ROL: shader treats X/Y/Z independently (3D rotation mode
-        // implicitly enabled by separateAxes).
-        parentRotation.x += ParticleGenerator._curveCumulative(rol.rotationX, normalizedAge, rotRand) * lifetime;
-        parentRotation.y += ParticleGenerator._curveCumulative(rol.rotationY, normalizedAge, rotRand) * lifetime;
-        parentRotation.z += rolZ;
+        rx += ParticleGenerator._curveCumulative(rol.rotationX, normalizedAge, rotRand) * lifetime;
+        ry += ParticleGenerator._curveCumulative(rol.rotationY, normalizedAge, rotRand) * lifetime;
+        rz += rolZ;
       } else if (this.main.startRotation3D) {
-        // 3D start rotation: Z accumulates into the Z Euler component.
-        parentRotation.z += rolZ;
+        rz += rolZ;
       } else {
-        // 2D start rotation (default): the shader stores the Z angle in
-        // a_StartRotation0.x, so ROL cumulative goes into the .x slot.
-        parentRotation.x += rolZ;
+        rx += rolZ; // 2D rotation: shader stores the Z angle in a_StartRotation0.x
       }
     }
+    parentRotation.set(rx, ry, rz);
   }
 
-  /**
-   * Trapezoidal-integrate a `ParticleCompositeCurve` from 0 to `normalizedAge`.
-   * Mirrors shader `evaluateParticleCurveCumulative`. Only used by sub-emitter
-   * Rotation-Over-Lifetime accumulation; caller multiplies the returned value
-   * by lifetime to convert from normalizedAge units to age units.
-   */
+  // Cumulative integral of a curve from 0 to normalizedAge (mirrors shader evaluateParticleCurveCumulative)
   private static _curveCumulative(curve: ParticleCompositeCurve, normalizedAge: number, lerpFactor: number): number {
     switch (curve.mode) {
       case ParticleCurveMode.Constant:
