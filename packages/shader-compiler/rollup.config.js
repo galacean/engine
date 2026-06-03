@@ -1,20 +1,19 @@
 // Self-contained build for the shader compiler package.
 //
 // Produces a self-contained runtime + bundler plumbing for the
-// `shader-precompile` CLI. shader-compiler is a standalone offline compiler
-// (see `src/enums/README.md`) — at runtime it only needs `Color` from
+// `shader-precompile` CLI. shader-compiler is a standalone offline compiler —
+// at runtime it only needs `Color` from
 // `@galacean/engine-math`, which we bundle in directly from math's `src/`
 // (via `mainFields: ["debug"]`) so this build has zero workspace dist
 // prerequisites and works on a cold checkout.
 //
 // The root rollup later rebuilds the runtime entry with `external: math`
 // (sharing the math package at runtime instead of inlining) and adds the
-// `_VERBOSE` split + UMD/browser formats. Both products are correct; this
-// one only has to live long enough for `pnpm precompile` to run.
+// UMD/browser formats. Both products are correct; this one only has to live
+// long enough for `pnpm precompile` to run.
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import swc from "rollup-plugin-swc3";
-import jscc from "rollup-plugin-jscc";
 
 const bundlerExternal = [
   // Pulled in dynamically by precompile.ts (`await import("../dist/main.js")`);
@@ -45,10 +44,6 @@ const swcPluginRuntime = swc({
   sourceMaps: true
 });
 
-// Strip `// #if _VERBOSE` … `// #endif` blocks. The root rollup later
-// rebuilds with `_VERBOSE: true` as a sibling `*.verbose.js` output.
-const jsccPlugin = jscc({ values: { _VERBOSE: false } });
-
 // Nothing externalized at the runtime entry: `@galacean/engine-math` is
 // resolved to its `src/index.ts` via `mainFields: ["debug"]` and bundled
 // inline (no math/dist prerequisite). `@galacean/engine-design` imports are
@@ -72,8 +67,7 @@ export default [
       // uses the freshest source — no stale-dist risk on warm starts.
       resolve({ extensions: [".js", ".ts"], mainFields: ["debug"] }),
       swcPluginRuntime,
-      commonjs(),
-      jsccPlugin
+      commonjs()
     ]
   },
   {

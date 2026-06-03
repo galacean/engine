@@ -826,8 +826,8 @@ export class Lexer extends BaseLexer {
 
   /** Consuming wrapper around `_skipNonSemantic` operating on the lexer's
    *  current position. Used by the `#define`-value scan state machine. Goes
-   *  through `advance(diff)` so verbose builds keep their line/column counters
-   *  in sync (advance walks the consumed slice and bumps `_line` on `\n`). */
+   *  through `advance(diff)` to keep the line/column counters in sync
+   *  (advance walks the consumed slice and bumps `_line` on `\n`). */
   private _skipInlineSpaceAndComments(): void {
     const next = Lexer._skipNonSemantic(this._source, this._currentIndex, this._source.length);
     if (next > this._currentIndex) this.advance(next - this._currentIndex);

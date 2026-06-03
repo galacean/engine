@@ -45,10 +45,7 @@ function gSErrorLocationToRange(location: InstanceType<typeof GSError>["location
   };
 }
 
-/**
- * Map GSErrorName + message heuristics to a structured code.
- * Phase 2 will replace this with per-check code assignment in DiagnosticVisitor.
- */
+/** Map a GSErrorName + message heuristics to a structured diagnostic code. */
 function gSErrorNameToCode(name: GSErrorName, message: string): string {
   if (name === GSErrorName.CompilationWarn) {
     return message.includes("Redefinition") ? "C0-10" : "C0-07";

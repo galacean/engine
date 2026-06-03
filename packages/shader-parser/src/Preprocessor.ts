@@ -2,7 +2,7 @@ import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
 import { Logger } from "@galacean/engine-core";
 
-// Mirrors `ShaderPass._shaderRootPath`; inlined to keep shader-compiler standalone.
+// Mirrors `ShaderPass._shaderRootPath` (from core's ShaderPass).
 const SHADER_ROOT_PATH = "shaders://root/";
 
 export type IncludeMap = { readonly [includeName: string]: string | undefined };
