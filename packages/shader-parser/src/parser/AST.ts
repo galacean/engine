@@ -355,10 +355,10 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.integer_constant_expression_operator)
   export class IntegerConstantExpressionOperator extends TreeNode {
-    compute: (a: number, b: number) => number;
+    compute?: (a: number, b: number) => number;
     lexeme: string;
 
-    override semanticAnalyze(sa: SemanticAnalyzer): void {
+    override semanticAnalyze(_: SemanticAnalyzer): void {
       const operator = this.children[0] as BaseToken;
       this.lexeme = operator.lexeme;
       switch (operator.type) {
@@ -377,8 +377,6 @@ export namespace ASTNode {
         case ETokenType.PERCENT:
           this.compute = (a, b) => a % b;
           break;
-        default:
-          sa.reportError(operator.location, `not implemented operator ${operator.lexeme}`);
       }
     }
   }

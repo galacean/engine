@@ -29,6 +29,9 @@ export class SemanticWalker {
   private _check(node: TreeNode): void {
     if (node instanceof ASTNode.PostfixExpression) {
       this._checkSwizzle(node);
+    } else if (node instanceof ASTNode.IntegerConstantExpressionOperator && !node.compute) {
+      // An operator without a `compute` clue is one the grammar accepted but we don't implement.
+      this._report(DiagnosticCode.C0_02, `not implemented operator ${node.lexeme}`, node.location);
     }
   }
 
