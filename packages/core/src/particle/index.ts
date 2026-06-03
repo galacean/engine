@@ -11,6 +11,7 @@ export { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 export { ParticleSubEmitterInheritProperty } from "./enums/ParticleSubEmitterInheritProperty";
 export { Burst } from "./modules/Burst";
 export { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
+export { CustomDataModule } from "./modules/CustomDataModule";
 export { EmissionModule } from "./modules/EmissionModule";
 export { MainModule } from "./modules/MainModule";
 export { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";

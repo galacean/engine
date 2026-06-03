@@ -466,6 +466,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-rateOverDistance",
       threshold: 0,
       diffPercentage: 0
+    },
+    customShader: {
+      category: "Particle",
+      caseFileName: "particleRenderer-customShader",
+      threshold: 0,
+      diffPercentage: 0
     }
   },
   PostProcess: {
