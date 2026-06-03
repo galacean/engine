@@ -1,4 +1,4 @@
-import { Entity, MeshRenderer, Script, Signal, property } from "@galacean/engine-core";
+import { Entity, MeshRenderer, Script, Signal, property, ShaderMacro } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
@@ -966,6 +966,49 @@ describe("Clone remap", async () => {
       expect(cs.entityMap.get("internal")).eq(cloned.children[0]);
       expect(cs.entityMap.get("external")).eq(external);
 
+      rootEntity.destroy();
+    });
+  });
+
+  describe("ShaderData clone", () => {
+    it("component shaderData macros and values survive clone", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("renderer");
+      const renderer = entity.addComponent(MeshRenderer);
+      renderer.shaderData.enableMacro("CUSTOM_CLONE_MACRO");
+      renderer.shaderData.setFloat("u_customCloneValue", 7);
+
+      const cloned = entity.clone();
+      const clonedRenderer = cloned.getComponent(MeshRenderer);
+
+      // The clone gets its own ShaderData instance, but with the source's macros + values copied in
+      // (not left at the constructor defaults of a freshly-built ShaderData).
+      expect(clonedRenderer.shaderData).not.eq(renderer.shaderData);
+      // @ts-ignore — macro carried over to the clone
+      expect(clonedRenderer.shaderData._macroCollection.isEnable(ShaderMacro.getByName("CUSTOM_CLONE_MACRO"))).eq(true);
+      expect(clonedRenderer.shaderData.getFloat("u_customCloneValue")).eq(7);
+
+      cloned.destroy();
+      rootEntity.destroy();
+    });
+
+    it("cloned renderer preserves receiveShadows macro state", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("renderer");
+      const renderer = entity.addComponent(MeshRenderer);
+      // Disabling receiveShadows clears the macro on shaderData; the constructor enables it by default,
+      // so a clone that doesn't copy shaderData would keep the macro enabled while the field reads false.
+      renderer.receiveShadows = false;
+
+      const cloned = entity.clone();
+      const clonedRenderer = cloned.getComponent(MeshRenderer);
+      const macro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
+
+      expect(clonedRenderer.receiveShadows).eq(false);
+      // @ts-ignore — the derived macro must match the field, not the ctor default (enabled)
+      expect(clonedRenderer.shaderData._macroCollection.isEnable(macro)).eq(false);
+
+      cloned.destroy();
       rootEntity.destroy();
     });
   });

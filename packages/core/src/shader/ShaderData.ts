@@ -635,6 +635,17 @@ export class ShaderData implements IReferable, IClone {
 
   /**
    * @internal
+   * Entity-clone hook (invoked by CloneManager for a `@property` ShaderData field). Delegates to
+   * `cloneTo` so a cloned component's ShaderData carries its macros / property values instead of being
+   * left at constructor defaults. `cloneTo` balances texture ref counts via the target's own ref
+   * count, so this composes with the central clone gate without double-counting.
+   */
+  _cloneTo(target: ShaderData): void {
+    this.cloneTo(target);
+  }
+
+  /**
+   * @internal
    */
   _setPropertyValue<T extends ShaderPropertyValueType>(
     property: string | ShaderProperty,

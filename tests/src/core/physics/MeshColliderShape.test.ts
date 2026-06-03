@@ -763,5 +763,54 @@ describe("MeshColliderShape PhysX", () => {
 
       entity.destroy();
     });
+
+    it("clone — cloned MeshColliderShape rebuilds its native PhysX shape", async () => {
+      // MeshColliderShape._nativeShape is not a cloned field; without a _cloneTo that cooks a fresh
+      // shape from the cloned vertex/index buffers, the cloned entity has no collision surface
+      // (a sphere falls straight through the cloned ground).
+      const groundEntity = root.createChild("meshGroundForClone");
+      groundEntity.transform.setPosition(0, 0, 0);
+      const groundCollider = groundEntity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      const mesh = createModelMesh(engine, [-10, 0, -10, 10, 0, -10, -10, 0, 10, 10, 0, 10], [0, 2, 1, 1, 2, 3]);
+      meshShape.mesh = mesh;
+      groundCollider.addShape(meshShape);
+
+      const clonedGround = groundEntity.clone();
+      // Move the original aside so the cloned ground is the only surface below the sphere.
+      groundEntity.transform.setPosition(1000, 0, 0);
+      root.addChild(clonedGround);
+      clonedGround.transform.setPosition(0, 0, 0);
+
+      const clonedShape = clonedGround.getComponent(StaticCollider).shapes[0] as MeshColliderShape;
+      // @ts-ignore — the cloned shape must have a usable native PhysX handle
+      expect(clonedShape._nativeShape).not.toBeNull();
+      // @ts-ignore
+      expect(clonedShape._nativeShape._pxShape).toBeDefined();
+
+      const sphereEntity = root.createChild("sphereForClone");
+      sphereEntity.transform.setPosition(0, 2, 0);
+      const dynamicCollider = sphereEntity.addComponent(DynamicCollider);
+      const sphereShape = new SphereColliderShape();
+      const sphereMaterial = sphereShape.material;
+      sphereShape.radius = 0.5;
+      dynamicCollider.addShape(sphereShape);
+
+      for (let i = 0; i < 60; i++) {
+        physicsScene._update(1 / 60);
+      }
+
+      // Sphere lands on the cloned ground (y > -1) rather than falling forever (y < -10).
+      const sphereY = sphereEntity.transform.position.y;
+      expect(sphereY).toBeGreaterThan(-1);
+      expect(sphereY).toBeLessThan(2);
+
+      groundEntity.destroy();
+      clonedGround.destroy();
+      sphereEntity.destroy();
+      meshMaterial?.destroy();
+      sphereMaterial?.destroy();
+    });
   });
 });
