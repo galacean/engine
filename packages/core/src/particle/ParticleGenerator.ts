@@ -1086,10 +1086,7 @@ export class ParticleGenerator {
 
     this._firstFreeElement = nextFreeElement;
 
-    if (
-      !this._suppressSubEmitterDispatch &&
-      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)
-    ) {
+    if (!this._suppressSubEmitterDispatch && this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
       this._onParticleBirth(offset, position, transform);
     }
   }
