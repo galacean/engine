@@ -1,4 +1,4 @@
-import { ClearableObjectPool, type IPoolElement } from "./common/ObjectPool";
+import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import { GSError, GSErrorName } from "./GSError";
 import { ShaderRange } from "./common/ShaderRange";
 import { ShaderPosition } from "./common/ShaderPosition";
