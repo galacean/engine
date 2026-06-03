@@ -14,6 +14,7 @@ import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
 import type { CustomRule, RuleContext } from "./Rule";
 import { gseErrorToDiagnostic } from "./convert";
+import { SemanticWalker } from "./SemanticWalker";
 
 export interface AnalyzerOptions {
   /** `#include` lookup table; keys are include paths, values are chunk sources. */
@@ -35,6 +36,7 @@ export class ShaderAnalyzer {
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
   private readonly _rules: CustomRule[] = [];
+  private readonly _walker = new SemanticWalker();
 
   /** Register a custom diagnostic rule; it runs after the built-in checks on every `analyze()`. */
   registerRule(rule: CustomRule): void {
@@ -153,6 +155,7 @@ export class ShaderAnalyzer {
       const program = parser.parse(tokens, macroDefineList);
       diagnostics.push(...(parser.errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
       if (program) {
+        this._walker.collect(program, diagnostics);
         const codeGen = GLES300Visitor.getVisitor();
         codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
         diagnostics.push(...(codeGen.errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
