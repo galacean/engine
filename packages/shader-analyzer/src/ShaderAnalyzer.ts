@@ -10,6 +10,7 @@ import {
 } from "@galacean/engine-shader-parser";
 import type { IShaderSource } from "@galacean/engine-design";
 import { GLES300Visitor } from "@galacean/engine-shader-compiler";
+import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
 import type { CustomRule, RuleContext } from "./Rule";
 import { gseErrorToDiagnostic } from "./convert";
@@ -71,7 +72,29 @@ export class ShaderAnalyzer {
       this._runRules(source, shaderSource, diagnostics);
     }
 
+    this._logDiagnostics(diagnostics);
     return { diagnostics };
+  }
+
+  /** Print collected diagnostics through the engine Logger (off by default; `Logger.enable()` to see them). */
+  private _logDiagnostics(diagnostics: Diagnostic[]): void {
+    for (const d of diagnostics) {
+      const text = `[${d.code}] ${d.message} (line ${d.range.start.line}, col ${d.range.start.column})`;
+      switch (d.severity) {
+        case "error":
+          Logger.error(text);
+          break;
+        case "warning":
+          Logger.warn(text);
+          break;
+        case "info":
+          Logger.info(text);
+          break;
+        case "hint":
+          Logger.debug(text);
+          break;
+      }
+    }
   }
 
   private _runRules(source: string, shaderSource: IShaderSource | undefined, diagnostics: Diagnostic[]): void {

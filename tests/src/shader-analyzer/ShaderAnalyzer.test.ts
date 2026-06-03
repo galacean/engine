@@ -1,5 +1,6 @@
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import type { Diagnostic } from "@galacean/engine-shader-analyzer";
+import { Logger } from "@galacean/engine-core";
 import { server } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
 
@@ -342,5 +343,34 @@ describe("ShaderAnalyzer", () => {
     const ruleError = ra.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "bad/rule-error");
     expect(ruleError, "a throwing rule surfaces a rule-error diagnostic instead of crashing").to.be.ok;
     expect(ruleError!.severity).to.equal("warning");
+  });
+
+  it("prints diagnostics through Logger", () => {
+    const ra = new ShaderAnalyzer();
+    const logged: string[] = [];
+    const origError = Logger.error;
+    Logger.error = (...args: unknown[]) => {
+      logged.push(args.join(" "));
+    };
+    try {
+      ra.analyze(`Shader "log" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(doesNotExist(1.0)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`);
+    } finally {
+      Logger.error = origError;
+    }
+    expect(
+      logged.some((l) => l.includes("doesNotExist")),
+      "the analyzer should print the diagnostic via Logger"
+    ).to.be.true;
   });
 });
