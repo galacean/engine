@@ -1086,16 +1086,16 @@ export class ParticleGenerator {
 
     this._firstFreeElement = nextFreeElement;
 
-    // Sub-emitter Birth dispatch
-    this._onParticleBirth(offset, position, transform);
+    if (
+      !this._suppressSubEmitterDispatch &&
+      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)
+    ) {
+      this._onParticleBirth(offset, position, transform);
+    }
   }
 
   private _onParticleBirth(offset: number, position: Vector3, transform: Transform): void {
     const subEmitters = this.subEmitters;
-    if (this._suppressSubEmitterDispatch || !subEmitters.enabled || subEmitters.subEmitters.length === 0) {
-      return;
-    }
-
     const birthPos = ParticleGenerator._eventPos;
     Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthPos);
     birthPos.add(transform.worldPosition);
@@ -1197,17 +1197,7 @@ export class ParticleGenerator {
     const instanceVertices = this._instanceVertices;
 
     // Pre-flight: are there any Death sub-emitter slots? (avoid per-particle scan)
-    let hasDeathSlot = false;
-    const subEmitters = this.subEmitters;
-    if (subEmitters.enabled) {
-      const slots = subEmitters.subEmitters;
-      for (let i = 0, n = slots.length; i < n; i++) {
-        if (slots[i].type === ParticleSubEmitterType.Death) {
-          hasDeathSlot = true;
-          break;
-        }
-      }
-    }
+    const hasDeathSlot = this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
 
     while (this._firstActiveElement !== this._firstNewElement) {
       const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;

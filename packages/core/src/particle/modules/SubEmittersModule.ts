@@ -95,4 +95,16 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   _resetRandomSeed(seed: number): void {
     this._probabilityRand.reset(seed, ParticleRandomSubSeeds.SubEmitter);
   }
+
+  /**
+   * @internal
+   */
+  _hasSubEmitterOfType(type: ParticleSubEmitterType): boolean {
+    if (!this.enabled) return false;
+    const subEmitters = this.subEmitters;
+    for (let i = 0, n = subEmitters.length; i < n; i++) {
+      if (subEmitters[i].type === type) return true;
+    }
+    return false;
+  }
 }
