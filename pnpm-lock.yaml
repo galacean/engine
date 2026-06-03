@@ -185,6 +185,9 @@ importers:
       '@galacean/engine-shader':
         specifier: workspace:*
         version: link:../packages/shader
+      '@galacean/engine-shader-analyzer':
+        specifier: workspace:*
+        version: link:../packages/shader-analyzer
       '@galacean/engine-shader-compiler':
         specifier: workspace:*
         version: link:../packages/shader-compiler
