@@ -19,7 +19,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic | null {
   }
 
   const severity = error.name === GSErrorName.CompilationWarn ? "warning" : "error";
-  const code = gSErrorNameToCode(error.name as GSErrorName, error.message);
+  const code = error.code ?? gSErrorNameToCode(error.name as GSErrorName, error.message);
 
   return {
     severity,

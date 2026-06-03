@@ -1,3 +1,4 @@
+import type { DiagnosticCodeValue } from "./DiagnosticCode";
 import { ShaderPosition } from "./common/ShaderPosition";
 import { ShaderRange } from "./common/ShaderRange";
 
@@ -9,7 +10,8 @@ export class GSError extends Error {
     message: string,
     public readonly location: ShaderRange | ShaderPosition,
     public readonly source: string,
-    public readonly file?: string
+    public readonly file?: string,
+    public readonly code?: DiagnosticCodeValue
   ) {
     super(message);
     this.name = name;
