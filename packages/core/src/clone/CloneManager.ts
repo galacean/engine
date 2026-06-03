@@ -116,6 +116,7 @@ export class CloneManager {
 
     const cloneMode = (<ICustomClone>value)._defaultCloneMode ?? CloneMode.Deep;
     if (cloneMode === CloneMode.Assignment) {
+      (<{ _addReferCount?(count: number): void }>reuse)?._addReferCount?.(-1);
       (<{ _addReferCount?(count: number): void }>value)._addReferCount?.(1);
       return value;
     }

@@ -35,6 +35,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
 
   private _textChunks = Array<TextChunk>();
   /** @internal */
+  @property
   _subFont: SubFont = null;
   /** @internal */
   _dirtyFlag = DirtyFlag.Font;
@@ -47,6 +48,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   @property
   private _height = 0;
   private _localBounds = new BoundingBox();
+  @property
   private _font: Font = null;
   @property
   private _fontSize = 24;
@@ -323,15 +325,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     this._textChunks = null;
 
     this._subFont && (this._subFont = null);
-  }
-
-  /**
-   * @internal
-   */
-  override _cloneTo(target: TextRenderer): void {
-    super._cloneTo(target);
-    target.font = this._font;
-    target._subFont = this._subFont;
   }
 
   /**

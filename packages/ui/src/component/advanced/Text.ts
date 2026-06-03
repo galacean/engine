@@ -33,10 +33,12 @@ export class Text extends UIRenderer implements ITextRenderer {
   private static _charRenderInfos: CharRenderInfo[] = [];
 
   private _textChunks = Array<TextChunk>();
+  @property
   private _subFont: SubFont = null;
   @property
   private _text: string = "";
   private _localBounds: BoundingBox = new BoundingBox();
+  @property
   private _font: Font = null;
   @property
   private _fontSize: number = 24;
@@ -258,14 +260,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     this._textChunks = null;
 
     this._subFont && (this._subFont = null);
-  }
-
-  // @ts-ignore
-  override _cloneTo(target: Text): void {
-    // @ts-ignore
-    super._cloneTo(target);
-    target.font = this._font;
-    target._subFont = this._subFont;
   }
 
   /**
