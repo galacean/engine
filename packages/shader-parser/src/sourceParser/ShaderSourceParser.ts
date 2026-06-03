@@ -1,4 +1,5 @@
 import { Color } from "@galacean/engine-math";
+import { Logger } from "../common/Logger";
 import {
   BlendFactor,
   BlendOperation,
@@ -474,7 +475,7 @@ export class ShaderSourceParser {
               lexer.source,
               lexer.getShaderPosition(0)
             );
-            console.error(error.toString());
+            Logger.error(error.toString());
             throw error;
           }
           const key = token.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";

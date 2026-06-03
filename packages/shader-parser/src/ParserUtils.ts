@@ -3,7 +3,6 @@ import { BaseToken as Token } from "./common/BaseToken";
 import { ASTNode, TreeNode } from "./parser/AST";
 import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
 import { Keyword } from "./common/enums/Keyword";
-import State from "./lalr/State";
 
 export class ParserUtils {
   static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: NoneTerminal): T | undefined {
@@ -186,28 +185,5 @@ export class ParserUtils {
 
   static isTerminal(sm: GrammarSymbol) {
     return sm < NoneTerminal.START;
-  }
-
-  /**
-   * @internal
-   */
-  static printStatePool(logPath: string) {
-    let output = "";
-
-    console.log("========== Parser Pool ==========");
-
-    let count = 0;
-    for (const state of State.pool.values()) {
-      count++;
-      let tmp = "";
-      tmp += `${state.id}: \n`.padEnd(4);
-      for (const psItem of state.items) {
-        tmp += "     " + psItem.toString() + "\n";
-      }
-      output += tmp;
-    }
-
-    console.log("state count:", count);
-    console.log(output);
   }
 }

@@ -2,6 +2,7 @@ import { ShaderPosition, ShaderRange } from ".";
 import { GSErrorName } from "../GSError";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BaseToken } from "./BaseToken";
+import { Logger } from "./Logger";
 
 export type OnToken = (token: BaseToken, scanner: BaseLexer) => void;
 
@@ -210,7 +211,7 @@ export abstract class BaseLexer {
 
   throwError(pos: ShaderPosition | ShaderRange, ...msgs: unknown[]) {
     const error = ShaderCompilerUtils.createGSError(msgs.join(" "), GSErrorName.ScannerError, this._source, pos);
-    console.error(error!.toString());
+    Logger.error(error!.toString());
     throw error;
   }
 

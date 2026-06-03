@@ -10,7 +10,6 @@ import { ParserUtils } from "../ParserUtils";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
 import { Grammar } from "./Grammar";
-import { GrammarSymbol, NoneTerminal } from "./GrammarSymbol";
 import SematicAnalyzer from "./SemanticAnalyzer";
 import { ESymbolType, SymbolInfo } from "./symbolTable";
 import { TraceStackItem } from "./types";
@@ -130,16 +129,5 @@ export class ShaderTargetParser {
         return null;
       }
     }
-  }
-
-  private _printStack(nextToken: BaseToken) {
-    let str = "";
-    for (let i = 0; i < this._traceBackStack.length - 1; i++) {
-      const state = <NoneTerminal>this._traceBackStack[i++];
-      const token = this._traceBackStack[i];
-      str += `State${state} - ${(<BaseToken>token).lexeme ?? ParserUtils.toString(token as GrammarSymbol)}; `;
-    }
-    str += `State${this._traceBackStack[this._traceBackStack.length - 1]} --- ${nextToken.lexeme}`;
-    console.info(str);
   }
 }

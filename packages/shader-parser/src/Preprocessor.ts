@@ -1,5 +1,6 @@
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
+import { Logger } from "./common/Logger";
 
 // Mirrors `ShaderPass._shaderRootPath`; inlined to keep shader-compiler standalone.
 const SHADER_ROOT_PATH = "shaders://root/";
@@ -59,7 +60,7 @@ export class Preprocessor {
 
     const chunk = includeMap[path];
     if (!chunk) {
-      console.error(`Shader slice "${path}" not founded.`);
+      Logger.error(`Shader slice "${path}" not founded.`);
       return "";
     }
 
