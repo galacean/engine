@@ -50,7 +50,7 @@ export class ParticleGenerator {
   private static _tempVector31 = new Vector3();
   private static _tempVector32 = new Vector3();
   private static _tempMat = new Matrix();
-  private static _tempColor0 = new Color();
+  private static _tempColor = new Color();
   private static _tempQuat0 = new Quaternion();
   private static _subEmitColorOverride: Color = null;
   private static _subEmitSizeOverride: Vector3 = null;
@@ -928,7 +928,7 @@ export class ParticleGenerator {
     instanceVertices[offset + ParticleBufferUtils.timeOffset] = playTime;
 
     // Color
-    const startColor = ParticleGenerator._tempColor0;
+    const startColor = ParticleGenerator._tempColor;
     main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
 
     startColor.copyToArray(instanceVertices, offset + 8);
@@ -1309,12 +1309,12 @@ export class ParticleGenerator {
     let a = instanceVertices[particleOffset + 11];
     const col = this.colorOverLifetime;
     if (col.enabled) {
-      const tmp = ParticleGenerator._tempColor0;
-      col.color.evaluate(normalizedAge, instanceVertices[particleOffset + 20], tmp);
-      r *= tmp.r;
-      g *= tmp.g;
-      b *= tmp.b;
-      a *= tmp.a;
+      const colorFactor = ParticleGenerator._tempColor;
+      col.color.evaluate(normalizedAge, instanceVertices[particleOffset + 20], colorFactor);
+      r *= colorFactor.r;
+      g *= colorFactor.g;
+      b *= colorFactor.b;
+      a *= colorFactor.a;
     }
     parentColor.set(r, g, b, a);
 
