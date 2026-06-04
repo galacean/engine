@@ -52,9 +52,6 @@ export class ParticleGenerator {
   private static _tempMat = new Matrix();
   private static _tempColor = new Color();
   private static _tempQuat0 = new Quaternion();
-  private static _subEmitColorOverride: Color = null;
-  private static _subEmitSizeOverride: Vector3 = null;
-  private static _subEmitRotationOverride: Vector3 = null;
   private static _eventPos = new Vector3();
   private static _eventColor = new Color();
   private static _eventSize = new Vector3();
@@ -870,7 +867,10 @@ export class ParticleGenerator {
     direction: Vector3,
     transform: Transform,
     playTime: number,
-    emitWorldPositionOverride?: Vector3
+    emitWorldPositionOverride?: Vector3,
+    inheritColor?: Color,
+    inheritSize?: Vector3,
+    inheritRotation?: Vector3
   ): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
@@ -1059,24 +1059,21 @@ export class ParticleGenerator {
     }
 
     // Apply sub-emit inherit: multiply color/size, add rotation
-    const colorOverride = ParticleGenerator._subEmitColorOverride;
-    if (colorOverride) {
-      instanceVertices[offset + 8] *= colorOverride.r;
-      instanceVertices[offset + 9] *= colorOverride.g;
-      instanceVertices[offset + 10] *= colorOverride.b;
-      instanceVertices[offset + 11] *= colorOverride.a;
+    if (inheritColor) {
+      instanceVertices[offset + 8] *= inheritColor.r;
+      instanceVertices[offset + 9] *= inheritColor.g;
+      instanceVertices[offset + 10] *= inheritColor.b;
+      instanceVertices[offset + 11] *= inheritColor.a;
     }
-    const sizeOverride = ParticleGenerator._subEmitSizeOverride;
-    if (sizeOverride) {
-      instanceVertices[offset + 12] *= sizeOverride.x;
-      instanceVertices[offset + 13] *= sizeOverride.y;
-      instanceVertices[offset + 14] *= sizeOverride.z;
+    if (inheritSize) {
+      instanceVertices[offset + 12] *= inheritSize.x;
+      instanceVertices[offset + 13] *= inheritSize.y;
+      instanceVertices[offset + 14] *= inheritSize.z;
     }
-    const rotationOverride = ParticleGenerator._subEmitRotationOverride;
-    if (rotationOverride) {
-      instanceVertices[offset + 15] += rotationOverride.x;
-      instanceVertices[offset + 16] += rotationOverride.y;
-      instanceVertices[offset + 17] += rotationOverride.z;
+    if (inheritRotation) {
+      instanceVertices[offset + 15] += inheritRotation.x;
+      instanceVertices[offset + 16] += inheritRotation.y;
+      instanceVertices[offset + 17] += inheritRotation.z;
     }
 
     // Initialize feedback buffer for this particle
@@ -1137,19 +1134,22 @@ export class ParticleGenerator {
     const direction = ParticleGenerator._tempVector31;
     direction.set(0, 0, -1);
 
-    ParticleGenerator._subEmitColorOverride = inheritColor;
-    ParticleGenerator._subEmitSizeOverride = inheritSize;
-    ParticleGenerator._subEmitRotationOverride = inheritRotation;
     this._suppressSubEmitterDispatch = true;
 
     const playTime = this._playTime;
     for (let i = 0; i < count; i++) {
-      this._addNewParticle(localPos, direction, transform, playTime);
+      this._addNewParticle(
+        localPos,
+        direction,
+        transform,
+        playTime,
+        undefined,
+        inheritColor,
+        inheritSize,
+        inheritRotation
+      );
     }
 
-    ParticleGenerator._subEmitColorOverride = null;
-    ParticleGenerator._subEmitSizeOverride = null;
-    ParticleGenerator._subEmitRotationOverride = null;
     this._suppressSubEmitterDispatch = false;
   }
 
