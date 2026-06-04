@@ -1,6 +1,7 @@
 import { BaseToken } from "@galacean/engine-shader-parser";
 import { ASTNode } from "@galacean/engine-shader-parser";
 import { StructProp } from "@galacean/engine-shader-parser";
+import { DiagnosticCode } from "@galacean/engine-shader-parser";
 import { GLESVisitor } from "./GLESVisitor";
 import { VisitorContext } from "./VisitorContext";
 
@@ -33,7 +34,11 @@ export class GLES100Visitor extends GLESVisitor {
       const propReferenced = children[2] as BaseToken;
       const prop = context.mrtList.find((item) => item.ident.lexeme === propReferenced.lexeme);
       if (!prop) {
-        this._reportError(propReferenced.location, `not found mrt property: ${propReferenced.lexeme}`);
+        this._reportError(
+          propReferenced.location,
+          `not found mrt property: ${propReferenced.lexeme}`,
+          DiagnosticCode.C0_18
+        );
         return "";
       }
       return `gl_FragData[${prop.mrtIndex!}]`;

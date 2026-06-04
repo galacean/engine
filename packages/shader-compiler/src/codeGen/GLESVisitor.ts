@@ -6,6 +6,7 @@ import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { NodeChild } from "@galacean/engine-shader-parser";
 import { ShaderData } from "@galacean/engine-shader-parser";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "@galacean/engine-shader-parser";
+import { DiagnosticCode } from "@galacean/engine-shader-parser";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { StructRole, VisitorContext } from "./VisitorContext";
@@ -140,7 +141,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
         const varyingSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
         if (!varyingSymbols.length) {
-          this._reportError(returnType.location, `invalid varying struct: "${returnType.type}".`);
+          this._reportError(returnType.location, `invalid varying struct: "${returnType.type}".`, DiagnosticCode.C0_13);
         } else {
           for (let i = 0; i < varyingSymbols.length; i++) {
             const varyingSymbol = varyingSymbols[i];
@@ -152,7 +153,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           }
         }
       } else if (returnType.type !== Keyword.VOID) {
-        this._reportError(returnType.location, "vertex main entry can only return struct or void.");
+        this._reportError(
+          returnType.location,
+          "vertex main entry can only return struct or void.",
+          DiagnosticCode.C0_14
+        );
       }
 
       const paramList = fnNode.protoType.parameterList;
@@ -163,7 +168,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           lookupSymbol.set(attributeType, ESymbolType.STRUCT);
           const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
           if (!attributeSymbols.length) {
-            this._reportError(attributeParam.astNode.location, `invalid attribute struct: "${attributeType}".`);
+            this._reportError(
+              attributeParam.astNode.location,
+              `invalid attribute struct: "${attributeType}".`,
+              DiagnosticCode.C0_15
+            );
           } else {
             for (let i = 0; i < attributeSymbols.length; i++) {
               const attributeSymbol = attributeSymbols[i];
@@ -230,7 +239,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
         const mrtSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
         if (!mrtSymbols.length) {
-          this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`);
+          this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`, DiagnosticCode.C0_16);
         } else {
           for (let i = 0; i < mrtSymbols.length; i++) {
             const mrtSymbol = mrtSymbols[i];
@@ -242,7 +251,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           }
         }
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
-        this._reportError(returnLocation, "fragment main entry can only return struct or vec4.");
+        this._reportError(returnLocation, "fragment main entry can only return struct or vec4.", DiagnosticCode.C0_17);
       }
     });
 
