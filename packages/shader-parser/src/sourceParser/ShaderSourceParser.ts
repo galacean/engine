@@ -10,6 +10,8 @@ import {
   RenderStateElementKey,
   StencilOperation
 } from "@galacean/engine-core";
+import { DiagnosticCode } from "../DiagnosticCode";
+import type { DiagnosticCodeValue } from "../DiagnosticCode";
 import type {
   IRenderStates,
   IShaderPassSource,
@@ -157,7 +159,11 @@ export class ShaderSourceParser {
         lookupSymbol.set(nextToken.lexeme, stateToken.type);
         const sm = this._symbolTableStack.lookup(lookupSymbol);
         if (!sm?.value) {
-          this._createCompileError(`Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme}`, nextToken.location);
+          this._createCompileError(
+            `Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme}`,
+            nextToken.location,
+            DiagnosticCode.B2_01
+          );
           return;
         }
         renderState = sm.value as IRenderStates;
@@ -210,8 +216,12 @@ export class ShaderSourceParser {
     return renderStates;
   }
 
-  private static _createCompileError(message: string, location?: ShaderPosition | ShaderRange): void {
-    const error = this._lexer.createCompileError(message, location);
+  private static _createCompileError(
+    message: string,
+    location?: ShaderPosition | ShaderRange,
+    code?: DiagnosticCodeValue
+  ): void {
+    const error = this._lexer.createCompileError(message, location, code);
     this.errors.push(<GSError>error);
   }
 
@@ -223,7 +233,8 @@ export class ShaderSourceParser {
     if (value == undefined) {
       this._createCompileError(
         `Invalid engine constant: ${enumName}.${constValueToken.lexeme}`,
-        constValueToken.location
+        constValueToken.location,
+        DiagnosticCode.B1_02
       );
       lexer.scanToCharacter(";");
     }
@@ -243,7 +254,11 @@ export class ShaderSourceParser {
         lexer.scanLexeme("]");
         lexer.scanLexeme("=");
       } else if (scannedLexeme !== "=") {
-        this._createCompileError(`Invalid syntax, expect '[' or '=', but got unexpected token`);
+        this._createCompileError(
+          `Invalid syntax, expect '[' or '=', but got unexpected token`,
+          undefined,
+          DiagnosticCode.A1_01
+        );
         lexer.scanToCharacter(";");
         return;
       }
@@ -254,7 +269,7 @@ export class ShaderSourceParser {
 
     const renderStateElementKey = RenderStateElementKey[stateLexeme + stateElementKey];
     if (renderStateElementKey === undefined) {
-      this._createCompileError(`Invalid render state property ${propertyLexeme}`);
+      this._createCompileError(`Invalid render state property ${propertyLexeme}`, undefined, DiagnosticCode.B1_01);
       lexer.scanToCharacter(";");
       return;
     }
@@ -285,7 +300,8 @@ export class ShaderSourceParser {
           if (valueToken.lexeme !== "ColorWriteMask") {
             this._createCompileError(
               `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this`,
-              valueToken.location
+              valueToken.location,
+              DiagnosticCode.B1_03
             );
             lexer.scanToCharacter(";");
             return;
@@ -294,14 +310,19 @@ export class ShaderSourceParser {
             lexer.advance(1);
             const nextEnumToken = lexer.scanToken();
             if (nextEnumToken == undefined || lexer.getCurChar() !== ".") {
-              this._createCompileError(`Invalid syntax after '|', expect 'EnumType.Value'`, nextEnumToken?.location);
+              this._createCompileError(
+                `Invalid syntax after '|', expect 'EnumType.Value'`,
+                nextEnumToken?.location,
+                DiagnosticCode.A1_01
+              );
               lexer.scanToCharacter(";");
               return;
             }
             if (nextEnumToken.lexeme !== valueToken.lexeme) {
               this._createCompileError(
                 `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}'`,
-                nextEnumToken.location
+                nextEnumToken.location,
+                DiagnosticCode.B1_04
               );
               lexer.scanToCharacter(";");
               return;
@@ -317,7 +338,11 @@ export class ShaderSourceParser {
         const lookupSymbol = this._lookupSymbol;
         lookupSymbol.set(valueToken.lexeme, ETokenType.ID);
         if (!this._symbolTableStack.lookup(lookupSymbol)) {
-          this._createCompileError(`Invalid ${stateLexeme} variable: ${valueToken.lexeme}`, valueToken.location);
+          this._createCompileError(
+            `Invalid ${stateLexeme} variable: ${valueToken.lexeme}`,
+            valueToken.location,
+            DiagnosticCode.B2_01
+          );
           lexer.scanToCharacter(";");
           return;
         }
@@ -343,7 +368,11 @@ export class ShaderSourceParser {
     }
 
     if (token.lexeme !== "=") {
-      this._createCompileError(`Invalid syntax, expect character '=', but got ${token.lexeme}`, token.location);
+      this._createCompileError(
+        `Invalid syntax, expect character '=', but got ${token.lexeme}`,
+        token.location,
+        DiagnosticCode.A1_01
+      );
       return;
     }
     const word = lexer.scanToken();
@@ -356,7 +385,11 @@ export class ShaderSourceParser {
       lookupSymbol.set(word.lexeme, Keyword.GSRenderQueueType);
       const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm) {
-        this._createCompileError(`Invalid RenderQueueType variable: ${word.lexeme}`, word.location);
+        this._createCompileError(
+          `Invalid RenderQueueType variable: ${word.lexeme}`,
+          word.location,
+          DiagnosticCode.B2_02
+        );
         return;
       }
     } else {
@@ -473,7 +506,8 @@ export class ShaderSourceParser {
               "Reassign main entry",
               GSErrorName.CompilationError,
               lexer.source,
-              lexer.getShaderPosition(0)
+              lexer.getShaderPosition(0),
+              DiagnosticCode.A2_01
             );
             Logger.error(error.toString());
             throw error;

@@ -3,8 +3,10 @@ import { DiagnosticCode } from "./Diagnostic";
 import { GSError, GSErrorName } from "@galacean/engine-shader-parser";
 
 /**
- * Convert a GSError (parser/codegen internal error) to a structured Diagnostic.
- * GSError carries location + source; we extract line/column/offset from it.
+ * Convert a GSError to a structured Diagnostic. The code is stamped at the
+ * judgment site (parser/codegen) and read directly here — no message matching.
+ * Only scanner/preprocessor errors (which carry no per-site code) fall back to a
+ * name-based code.
  */
 export function gseErrorToDiagnostic(error: Error): Diagnostic | null {
   if (!(error instanceof GSError)) {
@@ -19,7 +21,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic | null {
   }
 
   const severity = error.name === GSErrorName.CompilationWarn ? "warning" : "error";
-  const code = error.code ?? gSErrorNameToCode(error.name as GSErrorName, error.message);
+  const code = error.code ?? nameBasedCode(error.name as GSErrorName);
 
   return {
     severity,
@@ -46,50 +48,9 @@ function gSErrorLocationToRange(location: InstanceType<typeof GSError>["location
   };
 }
 
-/** Map a GSErrorName + message heuristics to a structured diagnostic code. */
-function gSErrorNameToCode(name: GSErrorName, message: string): DiagnosticCodeValue {
-  if (name === GSErrorName.CompilationWarn) {
-    return message.includes("Redefinition") ? DiagnosticCode.C0_10 : DiagnosticCode.C0_07;
-  }
-
-  // ShaderSourceParser / Preprocessor / Scanner errors → A-layer
-  if (name === GSErrorName.ScannerError || name === GSErrorName.PreprocessorError) return DiagnosticCode.A1_01;
-
-  // CompilationError — disambiguate by message content
-  if (message.includes("Invalid swizzle")) return DiagnosticCode.C1_01;
-  if (message.includes("Cannot assign a value of type")) return DiagnosticCode.C1_02;
-  if (message.includes("Cannot return a value of type")) return DiagnosticCode.C1_03;
-  if (message.includes("Array of array")) return DiagnosticCode.C0_01;
-  if (message.includes("not implemented operator")) return DiagnosticCode.C0_02;
-  if (message.includes("Invalid integer")) return DiagnosticCode.C0_03;
-  if (message.includes("Return in void")) return DiagnosticCode.C0_04;
-  if (message.includes("No return statement")) return DiagnosticCode.C0_05;
-  if (message.includes("Undefined function")) return DiagnosticCode.C0_09;
-  if (message.includes("No overload function")) return DiagnosticCode.C0_06;
-  if (message.includes("gl_FragColor cannot be used with MRT")) return DiagnosticCode.C0_11;
-  if (message.includes("gl_FragData")) return DiagnosticCode.C0_12;
-  if (message.includes("invalid varying struct")) return DiagnosticCode.C0_13;
-  if (message.includes("vertex main entry")) return DiagnosticCode.C0_14;
-  if (message.includes("invalid attribute struct")) return DiagnosticCode.C0_15;
-  if (message.includes("invalid mrt struct") || message.includes("invalid mrt")) return DiagnosticCode.C0_16;
-  if (message.includes("fragment main entry")) return DiagnosticCode.C0_17;
-  if (message.includes("not found mrt property")) return DiagnosticCode.C0_18;
-  if (message.includes("same struct as Varying and Attribute")) return DiagnosticCode.C0_19;
-  if (message.includes("same struct as Varying and MRT")) return DiagnosticCode.C0_20;
-  if (message.includes("same struct as Attribute and MRT")) return DiagnosticCode.C0_21;
-  if (message.includes("referenced") && message.includes("not found")) return DiagnosticCode.C0_22;
-
-  // ShaderSourceParser errors (A/B layer) — matched by message content
-  if (message.includes("Invalid render state property")) return DiagnosticCode.B1_01;
-  if (message.includes("Bitwise OR")) return DiagnosticCode.B1_03;
-  if (message.includes("Cannot mix enum types")) return DiagnosticCode.B1_04;
-  if (message.includes("Invalid") && message.includes("variable")) return DiagnosticCode.B2_01;
-  if (message.includes("Invalid RenderQueueType")) return DiagnosticCode.B2_02;
-  if (message.includes("#define") && message.includes("invalid replacement list")) return DiagnosticCode.A1_01;
-
-  // Remaining CompilationError from ShaderSourceParser → A1-01
-  if (message.includes("Invalid syntax") || message.includes("Invalid") || message.includes("expect"))
-    return DiagnosticCode.A1_01;
-
-  return DiagnosticCode.C0_08; // generic fallback
+/** Scanner/preprocessor errors carry no per-site code; map them by name. Everything else stamps its own. */
+function nameBasedCode(name: GSErrorName): DiagnosticCodeValue {
+  return name === GSErrorName.ScannerError || name === GSErrorName.PreprocessorError
+    ? DiagnosticCode.A1_01
+    : DiagnosticCode.C0_08;
 }
