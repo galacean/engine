@@ -407,6 +407,9 @@ importers:
       '@galacean/engine-shader-compiler':
         specifier: workspace:*
         version: link:../packages/shader-compiler
+      '@galacean/engine-shader-parser':
+        specifier: workspace:*
+        version: link:../packages/shader-parser
       '@galacean/engine-ui':
         specifier: workspace:*
         version: link:../packages/ui

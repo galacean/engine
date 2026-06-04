@@ -17,6 +17,7 @@ export * from "./parser/AST";
 export * from "./parser/types";
 export * from "./parser/GrammarSymbol";
 export * from "./parser/ShaderInfo";
+export * from "./parser/ShaderIOAnalyzer";
 export * from "./parser/ICodeGenVisitor";
 export * from "./parser/symbolTable";
 export * from "./parser/builtin";
