@@ -52,10 +52,6 @@ export class ParticleGenerator {
   private static _tempMat = new Matrix();
   private static _tempColor = new Color();
   private static _tempQuat0 = new Quaternion();
-  private static _eventPos = new Vector3();
-  private static _eventColor = new Color();
-  private static _eventSize = new Vector3();
-  private static _eventRotation = new Vector3();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
 
   private static readonly _particleIncreaseCount = 128;
@@ -164,8 +160,16 @@ export class ParticleGenerator {
   @ignoreClone
   private _playStartDelay = 0;
 
+  // Per-instance scratch for Birth/Death dispatch payloads — must be instance, not static,
+  // so a nested A→B→C dispatch chain doesn't clobber an ancestor's in-flight payload.
   @ignoreClone
-  private _suppressSubEmitterDispatch = false;
+  private _eventPos = new Vector3();
+  @ignoreClone
+  private _eventColor = new Color();
+  @ignoreClone
+  private _eventSize = new Vector3();
+  @ignoreClone
+  private _eventRotation = new Vector3();
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -1083,20 +1087,20 @@ export class ParticleGenerator {
 
     this._firstFreeElement = nextFreeElement;
 
-    if (!this._suppressSubEmitterDispatch && this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
+    if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
       this._onParticleBirth(offset, position, transform);
     }
   }
 
   private _onParticleBirth(offset: number, position: Vector3, transform: Transform): void {
     const subEmitters = this.subEmitters;
-    const birthPos = ParticleGenerator._eventPos;
+    const birthPos = this._eventPos;
     Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthPos);
     birthPos.add(transform.worldPosition);
 
-    const parentColor = ParticleGenerator._eventColor;
-    const parentSize = ParticleGenerator._eventSize;
-    const parentRotation = ParticleGenerator._eventRotation;
+    const parentColor = this._eventColor;
+    const parentSize = this._eventSize;
+    const parentRotation = this._eventRotation;
     this._evaluateOverLifetime(offset, 0, parentColor, parentSize, parentRotation);
 
     subEmitters._dispatchEvent(ParticleSubEmitterType.Birth, birthPos, parentColor, parentSize, parentRotation);
@@ -1134,8 +1138,6 @@ export class ParticleGenerator {
     const direction = ParticleGenerator._tempVector31;
     direction.set(0, 0, -1);
 
-    this._suppressSubEmitterDispatch = true;
-
     const playTime = this._playTime;
     for (let i = 0; i < count; i++) {
       this._addNewParticle(
@@ -1149,8 +1151,6 @@ export class ParticleGenerator {
         inheritRotation
       );
     }
-
-    this._suppressSubEmitterDispatch = false;
   }
 
   private _addFeedbackParticle(
@@ -1233,7 +1233,7 @@ export class ParticleGenerator {
     const gravityMod = instanceVertices[particleOffset + 19];
 
     // Local-space end position before world rotation: a_ShapePos + dir·speed·lifetime
-    const local = ParticleGenerator._eventPos;
+    const local = this._eventPos;
     local.set(
       instanceVertices[particleOffset + 0] + instanceVertices[particleOffset + 4] * startSpeed * lifetime,
       instanceVertices[particleOffset + 1] + instanceVertices[particleOffset + 5] * startSpeed * lifetime,
@@ -1271,9 +1271,9 @@ export class ParticleGenerator {
     local.z += gravity.z * halfTSquaredR;
 
     // Evaluate at the parent's normalizedAge so children inherit its visible appearance at death.
-    const parentColor = ParticleGenerator._eventColor;
-    const parentSize = ParticleGenerator._eventSize;
-    const parentRotation = ParticleGenerator._eventRotation;
+    const parentColor = this._eventColor;
+    const parentSize = this._eventSize;
+    const parentRotation = this._eventRotation;
     const bornTime = instanceVertices[particleOffset + 7];
     const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
     this._evaluateOverLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);

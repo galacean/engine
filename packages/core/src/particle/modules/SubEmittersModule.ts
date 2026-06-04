@@ -3,6 +3,7 @@ import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
+import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { SubEmitter } from "./SubEmitter";
@@ -17,6 +18,11 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   @ignoreClone
   private _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
+
+  // Scratch for _wouldCreateCycle. Safe as statics: it runs only at configuration
+  // time, is non-reentrant, and clears them within the same call.
+  private static _cycleVisited = new Set<ParticleGenerator>();
+  private static _cycleStack: ParticleGenerator[] = [];
 
   /**
    * Add a sub-emitter slot.
@@ -33,8 +39,11 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     emitProbability: number = 1,
     emitCount: number = 1
   ): void {
-    if (emitter.generator === this._generator) {
-      throw new Error("Sub-emitter cannot reference itself");
+    // Cycle prevention is enforced here, at the single configuration entry point, so the
+    // runtime dispatch can nest freely. Mutating `subEmitters` / `emitter` directly bypasses
+    // this check and is unsupported.
+    if (SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
+      throw new Error("Sub-emitter would create a cycle");
     }
     const sub = new SubEmitter();
     sub.emitter = emitter;
@@ -71,8 +80,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       const target = sub.emitter;
       if (target === null || target.destroyed) continue;
 
-      if (target.generator === this._generator) continue;
-
       const count = sub.emitCount | 0;
       if (count <= 0) continue;
 
@@ -106,5 +113,39 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       if (subEmitters[i].type === type) return true;
     }
     return false;
+  }
+
+  // Returns true if linking `root` -> `target` would close a cycle, i.e. `target` can
+  // already reach `root` through the existing sub-emitter graph (DFS, O(V + E)).
+  private static _wouldCreateCycle(target: ParticleRenderer, root: ParticleGenerator): boolean {
+    const start = target.generator;
+    if (start === root) return true;
+
+    const visited = SubEmittersModule._cycleVisited;
+    const stack = SubEmittersModule._cycleStack;
+    visited.clear();
+    stack.length = 0;
+    stack.push(start);
+
+    let found = false;
+    while (stack.length > 0) {
+      const cur = stack.pop()!;
+      if (visited.has(cur)) continue;
+      visited.add(cur);
+      const slots = cur.subEmitters.subEmitters;
+      for (let i = 0, n = slots.length; i < n; i++) {
+        const child = slots[i].emitter?.generator;
+        if (child === root) {
+          found = true;
+          break;
+        }
+        if (child && !visited.has(child)) stack.push(child);
+      }
+      if (found) break;
+    }
+
+    visited.clear();
+    stack.length = 0;
+    return found;
   }
 }
