@@ -1136,6 +1136,8 @@ export class ParticleGenerator {
     Vector3.transformByQuat(localPos, invRot, localPos);
 
     const direction = ParticleGenerator._tempVector31;
+    // Parent velocity is not inherited — children always emit along the default axis,
+    // regardless of the parent particle's motion at the event
     direction.set(0, 0, -1);
 
     const playTime = this._playTime;
@@ -1221,7 +1223,12 @@ export class ParticleGenerator {
     }
   }
 
-  // Death position is a ballistic approximation; ignores VOL/FOL/Noise contributions.
+  // Death position is a ballistic approximation. Missing module contributions:
+  // - VelocityOverLifetime: closed-form, mirrorable via `_evaluateCumulative` per axis × lifetime (rand slots 24-26)
+  // - ForceOverLifetime: closed-form, needs a double-integral mirror of `evaluateForceParticleCurveCumulative` (rand slots 38-40)
+  // - LimitVelocityOverLifetime (dampen/drag): feedback path only — stateful on the GPU, no closed form
+  // - Noise: feedback path only — stateful on the GPU, no closed form
+  // Death timing is frame-quantized — children spawn at the tick, no sub-frame catch-up.
   private _onParticleDeath(particleOffset: number): void {
     const instanceVertices = this._instanceVertices;
     const main = this.main;
