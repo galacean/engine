@@ -104,7 +104,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       const target = sub.emitter;
       if (target === null || target.destroyed) continue;
 
-      const count = sub.emitCount | 0;
+      const count = sub.emitCount;
       if (count <= 0) continue;
 
       if (sub.emitProbability < 1.0 && this._probabilityRand.random() >= sub.emitProbability) {
