@@ -1,4 +1,3 @@
-import { ignoreClone } from "../../clone/CloneManager";
 import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
@@ -8,8 +7,7 @@ import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
  * fires, on which parent event, with what inheritance, probability, and count.
  */
 export class SubEmitter {
-  /** Target particle renderer the sub particles emit into. */
-  @ignoreClone
+  /** Target particle renderer the sub particles emit into. Remapped on clone. */
   emitter: ParticleRenderer = null;
 
   /** Which parent-particle event drives this slot. */
