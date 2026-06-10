@@ -21,7 +21,9 @@ export function property(target: Object, propertyKey: string): void {
  * Class decorator that sets the default clone mode for instances of the decorated type — applied when
  * an undecorated field holds such an instance. Built-in defaults: Entity / Component → `Remap`,
  * ReferResource → `Assignment`. Use it on a custom type that should be shared (not deep cloned) when
- * it appears inside a cloned object:
+ * it appears inside a cloned object.
+ *
+ * @param mode - The clone mode applied to instances of the decorated type
  *
  * @example
  * ```ts
@@ -101,8 +103,9 @@ export class CloneManager {
    * Decide how to clone one value (the gate — does no recursion itself):
    *   - primitive / null / undefined → by value.
    *   - function → keep the clone's own (transient; re-established by its constructor).
-   *   - Assignment → share the reference, and bump the ref count of a ref-counted resource (the clone
-   *     balances it on destroy); no-op for non-ref-counted flyweights.
+   *   - Assignment → share the source reference. For a ref-counted resource, release the clone's reused
+   *     slot value (its constructor-preset default) and acquire the source — net-balanced by the clone's
+   *     own destroy; no-op for non-ref-counted flyweights.
    *   - Remap → resolve an Entity / Component to its clone via the identity map; refs outside the
    *     cloned subtree are kept as-is.
    *   - otherwise → deep clone.

@@ -429,6 +429,60 @@ describe("camera test", function () {
     expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
   });
 
+  it("clone preserves the replacement shader and keeps its ref count balanced", () => {
+    const entity = rootEntity.createChild("replacementCameraSource");
+    const cam = entity.addComponent(Camera);
+    const shader =
+      Shader.find("CameraCloneReplacementTest") ||
+      Shader.create("CameraCloneReplacementTest", [new ShaderPass("Default", [], [], ShaderLanguage.GLSLES100)]);
+    // @ts-ignore
+    const before = shader._getReferCount();
+
+    cam.setReplacementShader(shader, "ReplacementTag");
+    // @ts-ignore — setReplacementShader now ref-counts the shader (managed like renderTarget)
+    expect(shader._getReferCount()).to.equal(before + 1);
+    // Re-setting the same shader leaves the count unchanged
+    cam.setReplacementShader(shader, "ReplacementTag");
+    // @ts-ignore
+    expect(shader._getReferCount()).to.equal(before + 1);
+
+    const cloned = entity.clone();
+    const clonedCamera = cloned.getComponent(Camera);
+    // Clone shares the same shader (config carried over) and the gate bumps its ref count
+    // @ts-ignore
+    expect(clonedCamera._replacementShader).to.equal(shader);
+    // @ts-ignore
+    expect(clonedCamera._replacementSubShaderTag).to.equal(cam._replacementSubShaderTag);
+    // @ts-ignore
+    expect(shader._getReferCount()).to.equal(before + 2);
+
+    cloned.destroy();
+    // @ts-ignore
+    expect(shader._getReferCount()).to.equal(before + 1);
+
+    // Replacing releases the old shader and acquires the new one
+    const shaderB =
+      Shader.find("CameraCloneReplacementTestB") ||
+      Shader.create("CameraCloneReplacementTestB", [new ShaderPass("Default", [], [], ShaderLanguage.GLSLES100)]);
+    // @ts-ignore
+    const beforeB = shaderB._getReferCount();
+    cam.setReplacementShader(shaderB, "ReplacementTag");
+    // @ts-ignore
+    expect(shader._getReferCount()).to.equal(before);
+    // @ts-ignore
+    expect(shaderB._getReferCount()).to.equal(beforeB + 1);
+
+    // Reset releases; destroy after reset must not release again
+    cam.resetReplacementShader();
+    // @ts-ignore
+    expect(shaderB._getReferCount()).to.equal(beforeB);
+    entity.destroy();
+    // @ts-ignore
+    expect(shader._getReferCount()).to.equal(before);
+    // @ts-ignore
+    expect(shaderB._getReferCount()).to.equal(beforeB);
+  });
+
   it("destroy test", () => {
     camera.destroy();
   });

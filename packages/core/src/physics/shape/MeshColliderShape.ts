@@ -107,8 +107,8 @@ export class MeshColliderShape extends ColliderShape {
    */
   override _cloneTo(target: MeshColliderShape): void {
     // The mesh is shared by the clone, but the extracted buffers and the native PhysX shape are not
-    // cloned — rebuild the native shape from the cloned mesh so the clone has real collision geometry.
-    // The Collider re-attaches it afterwards via `_addNativeShape`.
+    // cloned — rebuild the native shape from the cloned mesh so the clone has real collision geometry
+    // The Collider re-attaches it afterwards via `_addNativeShape`
     const mesh = target._mesh;
     if (mesh && target._extractMeshData(mesh)) {
       target._createNativeShape();

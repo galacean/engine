@@ -130,10 +130,13 @@ export class Camera extends Component {
   @property
   _virtualCamera: VirtualCamera = new VirtualCamera();
   /** @internal */
+  @property
   _replacementShader: Shader = null;
   /** @internal */
+  @property
   _replacementSubShaderTag: ShaderTagKey = null;
   /** @internal */
+  @property
   _replacementFailureStrategy: ReplacementFailureStrategy = null;
   /** @internal */
   _cameraIndex: number = -1;
@@ -722,7 +725,12 @@ export class Camera extends Component {
     replacementTag?: string | ShaderTagKey,
     failureStrategy: ReplacementFailureStrategy = ReplacementFailureStrategy.KeepOriginalShader
   ): void {
-    this._replacementShader = shader;
+    const lastShader = this._replacementShader;
+    if (lastShader !== shader) {
+      lastShader && this._addResourceReferCount(lastShader, -1);
+      shader && this._addResourceReferCount(shader, 1);
+      this._replacementShader = shader;
+    }
     this._replacementSubShaderTag =
       typeof replacementTag === "string" ? ShaderTagKey.getByName(replacementTag) : replacementTag;
     this._replacementFailureStrategy = failureStrategy;
@@ -732,6 +740,7 @@ export class Camera extends Component {
    * Reset and clear the replacement shader.
    */
   resetReplacementShader(): void {
+    this._replacementShader && this._addResourceReferCount(this._replacementShader, -1);
     this._replacementShader = null;
     this._replacementSubShaderTag = null;
     this._replacementFailureStrategy = null;
@@ -847,10 +856,14 @@ export class Camera extends Component {
     this._isViewMatrixDirty.destroy();
     this._addResourceReferCount(this.shaderData, -1);
     this._renderTarget && this._addResourceReferCount(this._renderTarget, -1);
+    this._replacementShader && this._addResourceReferCount(this._replacementShader, -1);
 
     //@ts-ignore
     this._viewport._onValueChanged = null;
     this.engine.canvas._sizeUpdateFlagManager.removeListener(this._onPixelViewportChanged);
+    this._replacementShader = null;
+    this._replacementSubShaderTag = null;
+    this._replacementFailureStrategy = null;
     this._globalShaderMacro = null;
     this._frustum = null;
     this._renderPipeline = null;
