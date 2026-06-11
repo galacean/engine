@@ -159,27 +159,11 @@ export class AudioSource extends Component {
     if (AudioManager.isAudioContextRunning()) {
       this._startPlayback();
     } else {
-      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
-      // Document-level events won't work - must call resume() directly here in play().
       this._pendingPlay = true;
-      AudioManager.resume().then(
-        () => {
-          // Check if cancelled by stop()/pause()
-          if (!this._pendingPlay) {
-            return;
-          }
-          this._pendingPlay = false;
-          // Check if still valid to play after async resume
-          if (this._destroyed || !this.enabled || !this._clip) {
-            return;
-          }
-          this._startPlayback();
-        },
-        (e) => {
-          this._pendingPlay = false;
-          console.warn("Failed to resume AudioContext:", e);
-        }
-      );
+      AudioManager._registerPendingSource(this);
+      AudioManager.resume().catch((e) => {
+        console.warn("Failed to resume AudioContext:", e);
+      });
     }
   }
 
@@ -187,23 +171,27 @@ export class AudioSource extends Component {
    * Stops playing the clip.
    */
   stop(): void {
-    this._pendingPlay = false;
+    this._cancelPendingPlayback();
+    AudioManager._unregisterInterruptedSource(this);
 
     if (this._isPlaying) {
       this._clearSourceNode();
 
       this._isPlaying = false;
-      this._pausedTime = -1;
-      this._playTime = -1;
       AudioManager._playingCount--;
+      AudioManager._unregisterPlayingSource(this);
     }
+
+    this._pausedTime = -1;
+    this._playTime = -1;
   }
 
   /**
    * Pauses playing the clip.
    */
   pause(): void {
-    this._pendingPlay = false;
+    this._cancelPendingPlayback();
+    AudioManager._unregisterInterruptedSource(this);
 
     if (this._isPlaying) {
       this._clearSourceNode();
@@ -211,6 +199,7 @@ export class AudioSource extends Component {
       this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
       AudioManager._playingCount--;
+      AudioManager._unregisterPlayingSource(this);
     }
   }
 
@@ -250,34 +239,120 @@ export class AudioSource extends Component {
     this.stop();
   }
 
+  /** @internal */
+  _resumePendingPlayback(): void {
+    if (!this._pendingPlay) {
+      return;
+    }
+
+    this._pendingPlay = false;
+
+    if (this._destroyed || !this.enabled || !this._clip?._getAudioSource()) {
+      return;
+    }
+
+    this._startPlayback();
+  }
+
+  /** @internal */
+  _suspendPlaybackForInterruption(): boolean {
+    if (!this._isPlaying) {
+      return false;
+    }
+
+    const pausedTime = AudioManager.getContext().currentTime;
+    this._clearSourceNode();
+
+    this._pausedTime = pausedTime;
+    this._isPlaying = false;
+    AudioManager._playingCount--;
+    AudioManager._unregisterPlayingSource(this);
+
+    return true;
+  }
+
+  /** @internal */
+  _resumeInterruptedPlayback(): void {
+    if (
+      this._destroyed ||
+      !this.enabled ||
+      this._isPlaying ||
+      this._pendingPlay ||
+      !this._clip?._getAudioSource() ||
+      this._playTime < 0
+    ) {
+      return;
+    }
+
+    if (AudioManager.isAudioContextRunning()) {
+      this._startPlayback();
+    } else {
+      this._pendingPlay = true;
+      AudioManager._registerPendingSource(this);
+    }
+  }
+
   private _startPlayback(): void {
     const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
-    this._initSourceNode(startTime);
+    if (!this._initSourceNode(startTime)) {
+      this._pausedTime = -1;
+      this._playTime = -1;
+      return;
+    }
 
     this._playTime = AudioManager.getContext().currentTime - startTime;
     this._pausedTime = -1;
     this._isPlaying = true;
     AudioManager._playingCount++;
+    AudioManager._registerPlayingSource(this);
   }
 
-  private _initSourceNode(startTime: number): void {
+  private _initSourceNode(startTime: number): boolean {
     const context = AudioManager.getContext();
     const sourceNode = context.createBufferSource();
+    const audioBuffer = this._clip._getAudioSource();
+    const duration = audioBuffer.duration;
+    let offset = Math.max(0, startTime);
 
-    sourceNode.buffer = this._clip._getAudioSource();
+    if (duration > 0) {
+      if (this._loop) {
+        offset %= duration;
+      } else if (offset >= duration) {
+        return false;
+      }
+    }
+
+    sourceNode.buffer = audioBuffer;
     sourceNode.playbackRate.value = this._playbackRate;
     sourceNode.loop = this._loop;
     sourceNode.onended = this._onPlayEnd;
     this._sourceNode = sourceNode;
 
     sourceNode.connect(this._gainNode);
-    sourceNode.start(0, startTime);
+    sourceNode.start(0, offset);
+    return true;
   }
 
   private _clearSourceNode(): void {
-    this._sourceNode.stop();
-    this._sourceNode.disconnect();
-    this._sourceNode.onended = null;
+    const sourceNode = this._sourceNode;
+    if (!sourceNode) {
+      return;
+    }
+
+    sourceNode.onended = null;
+    try {
+      sourceNode.stop();
+    } catch {}
+    sourceNode.disconnect();
     this._sourceNode = null;
+  }
+
+  private _cancelPendingPlayback(): void {
+    if (!this._pendingPlay) {
+      return;
+    }
+
+    this._pendingPlay = false;
+    AudioManager._unregisterPendingSource(this);
   }
 }
