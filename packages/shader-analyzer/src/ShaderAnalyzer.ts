@@ -1,12 +1,9 @@
 import {
   ChunkOutputCache,
-  GSError,
   IncludeMap,
-  Lexer,
-  Preprocessor,
+  parseShaderPass,
   ShaderCompilerUtils,
-  ShaderSourceParser,
-  ShaderTargetParser
+  ShaderSourceParser
 } from "@galacean/engine-shader-parser";
 import type { IShaderSource } from "@galacean/engine-design";
 import { GLES300Visitor } from "@galacean/engine-shader-compiler";
@@ -30,8 +27,6 @@ export interface AnalysisResult {
  * and surfaces structured diagnostics the runtime compiler discards.
  */
 export class ShaderAnalyzer {
-  private static _parser = ShaderTargetParser.create();
-
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
   private readonly _rules: CustomRule[] = [];
@@ -137,25 +132,23 @@ export class ShaderAnalyzer {
   }
 
   private _analyzePass(source: string, vertexEntry: string, fragmentEntry: string, diagnostics: Diagnostic[]): void {
-    const { _parser: parser } = ShaderAnalyzer;
     try {
-      const macroDefineList = {};
-      const noIncludeContent = Preprocessor.parse(source, "", this._includeMap, this._chunkOutputCache);
-      const lexer = new Lexer(noIncludeContent, macroDefineList);
-      const tokens = lexer.tokenize();
-      ShaderCompilerUtils.processingPassText = noIncludeContent;
-      const program = parser.parse(tokens, macroDefineList);
-      diagnostics.push(...(parser.errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
+      const { program, errors, passText } = parseShaderPass(source, this._includeMap, this._chunkOutputCache);
+      diagnostics.push(...(errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
       if (program) {
-        const codeGen = GLES300Visitor.getVisitor();
-        codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
-        diagnostics.push(...(codeGen.errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
+        // Codegen runs a second AST pass for IO diagnostics; it reads `processingPassText` for error context.
+        ShaderCompilerUtils.processingPassText = passText;
+        try {
+          const codeGen = GLES300Visitor.getVisitor();
+          codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
+          diagnostics.push(...(codeGen.errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
+        } finally {
+          ShaderCompilerUtils.processingPassText = undefined;
+        }
       }
     } catch (e) {
       const d = gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e)));
       if (d) diagnostics.push(d);
-    } finally {
-      ShaderCompilerUtils.processingPassText = undefined;
     }
   }
 }
