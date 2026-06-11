@@ -1,36 +1,75 @@
-import { AnimatorStateInstance } from "../AnimatorStateInstance";
+import { AnimationClip } from "../AnimationClip";
+import { AnimatorState } from "../AnimatorState";
+import { AnimatorStateTransition } from "../AnimatorStateTransition";
 import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
 import { WrapMode } from "../enums/WrapMode";
+import { StateMachineScript } from "../StateMachineScript";
 import { AnimatorStateData } from "./AnimatorStateData";
 
 /**
- * @internal
+ * Per-instance runtime data for an AnimatorState.
+ * Proxies read-only properties from the shared AnimatorState asset,
+ * while providing per-instance mutable properties (e.g. speed, wrapMode).
  */
 export class AnimatorStatePlayData {
+  /** @internal */
+  state: AnimatorState;
+  /** @internal */
   stateData: AnimatorStateData;
+  /** @internal */
+  playedTime: number;
+  playState: AnimatorStatePlayState;
+  /** @internal */
+  clipTime: number;
+  /** @internal */
+  currentEventIndex: number;
+  /** @internal */
+  isForward = true;
+  /** @internal */
+  offsetFrameTime: number;
+  /** Per-instance speed. Initialized from AnimatorState.speed, safe to modify without affecting other instances. */
+  speed: number = 1.0;
+  /** Per-instance wrap mode. Initialized from AnimatorState.wrapMode, safe to modify without affecting other instances. */
+  wrapMode: WrapMode = WrapMode.Loop;
 
-  playedTime: number = 0;
-  playState: AnimatorStatePlayState = AnimatorStatePlayState.UnStarted;
-  clipTime: number = 0;
-  currentEventIndex: number = 0;
-  isForward: boolean = true;
-  offsetFrameTime: number = 0;
+  // ── Proxy properties from AnimatorState (read-only) ──
 
-  private _changedOrientation: boolean = false;
+  /** The name of the state. */
+  get name(): string {
+    return this.state.name;
+  }
 
-  constructor(public readonly instance: AnimatorStateInstance) {}
+  /** The clip played by this state. */
+  get clip(): AnimationClip {
+    return this.state.clip;
+  }
 
-  reset(stateData: AnimatorStateData, offsetFrameTime: number): void {
-    const state = this.instance._state;
-    this.stateData = stateData;
-    this.offsetFrameTime = offsetFrameTime;
+  /** The transitions going out of this state. */
+  get transitions(): Readonly<AnimatorStateTransition[]> {
+    return this.state.transitions;
+  }
+
+  /**
+   * Add a state machine script to the underlying AnimatorState.
+   */
+  addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
+    return this.state.addStateMachineScript(scriptType);
+  }
+
+  private _changedOrientation = false;
+
+  reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
+    this.state = state;
     this.playedTime = 0;
+    this.offsetFrameTime = offsetFrameTime;
+    this.stateData = stateData;
     this.playState = AnimatorStatePlayState.UnStarted;
     this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
     this.isForward = true;
-    this._changedOrientation = false;
-    state._transitionCollection.needResetCurrentCheckIndex = true;
+    this.speed = state.speed;
+    this.wrapMode = state.wrapMode;
+    this.state._transitionCollection.needResetCurrentCheckIndex = true;
   }
 
   updateOrientation(deltaTime: number): void {
@@ -46,12 +85,11 @@ export class AnimatorStatePlayData {
 
   update(deltaTime: number): void {
     this.playedTime += deltaTime;
-    const instance = this.instance;
-    const state = instance._state;
+    const state = this.state;
     let time = this.playedTime + this.offsetFrameTime;
     const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
-    if (instance.wrapMode === WrapMode.Loop) {
+    if (this.wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;
     } else {
       if (Math.abs(time) >= duration) {
@@ -69,9 +107,8 @@ export class AnimatorStatePlayData {
     }
   }
 
-  private _correctTime(): void {
-    const state = this.instance._state;
-    // Reverse playback at clipTime=0 would step into negatives; jump to clipEnd.
+  private _correctTime() {
+    const { state } = this;
     if (this.clipTime === 0) {
       this.clipTime = state.clipEndTime * state.clip.length;
     }

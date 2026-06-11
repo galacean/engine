@@ -6,11 +6,11 @@ import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { ClearableObjectPool } from "../utils/ClearableObjectPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateInstance } from "./AnimatorStateInstance";
 import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { AnimatorStateTransitionCollection } from "./AnimatorStateTransitionCollection";
 import { KeyframeValueType } from "./Keyframe";
@@ -19,6 +19,7 @@ import { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
+import { WrapMode } from "./enums/WrapMode";
 import { AnimationCurveLayerOwner } from "./internal/AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
@@ -31,13 +32,15 @@ import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCur
  */
 export class Animator extends Component {
   private static _passedTriggerParameterNames = new Array<string>();
-  private static _tempScripts: Script[] = [];
 
   /** Culling mode of this Animator. */
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
   @assignmentClone
   speed = 1.0;
+  /** Whether the Animator sends AnimationEvent callbacks. */
+  @assignmentClone
+  fireEvents = true;
 
   /** @internal */
   _playFrameCount = -1;
@@ -54,7 +57,9 @@ export class Animator extends Component {
   @ignoreClone
   private _animatorLayersData = new Array<AnimatorLayerData>();
   @ignoreClone
-  private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
+  private _curveOwnerPool: WeakMap<Component, Record<string, AnimationCurveOwner<KeyframeValueType>>> = new WeakMap();
+  @ignoreClone
+  private _animationEventHandlerPool = new ClearableObjectPool(AnimationEventHandler);
   @ignoreClone
   private _parametersValueMap = <Record<string, AnimatorControllerParameterValue>>Object.create(null);
 
@@ -114,7 +119,9 @@ export class Animator extends Component {
    * @param normalizedTimeOffset - The normalized time offset (between 0 and 1, default 0) to start the state's animation from
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
-    this._resetIfControllerUpdated();
+    if (this._controllerUpdateFlag?.flag) {
+      this._reset();
+    }
 
     const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
     const { state } = stateInfo;
@@ -189,7 +196,9 @@ export class Animator extends Component {
       return;
     }
 
-    this._resetIfControllerUpdated();
+    if (this._controllerUpdateFlag?.flag) {
+      this._reset();
+    }
 
     this._updateMark++;
 
@@ -201,34 +210,43 @@ export class Animator extends Component {
   }
 
   /**
-   * Get the state instance currently playing on the target layer.
+   * Get the playing state from the target layerIndex.
    * @param layerIndex - The layer index
-   * @returns The state instance, or null if nothing is playing
-   * @remarks The returned instance is tied to the current controller's layer data. After a controller structure change (layers added or removed), the instance is invalidated; re-call this method to get a fresh one.
    */
-  getCurrentAnimatorState(layerIndex: number): AnimatorStateInstance | null {
-    this._resetIfControllerUpdated();
-    return this._animatorLayersData[layerIndex]?.srcPlayData?.instance ?? null;
+  getCurrentAnimatorState(layerIndex: number): AnimatorState {
+    return this._animatorLayersData[layerIndex]?.srcPlayData?.state;
   }
 
   /**
-   * Get the state instance for a named state on this Animator.
-   * Overrides on the returned instance only affect this Animator.
+   * Get the state by name.
+   * @param stateName - The state name
+   * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
+   */
+  /**
+   * Find the per-instance play data for a state by name.
+   * The returned object's `speed` and `wrapMode` are per-instance and safe to modify without affecting other Animator instances.
    * @param stateName - The state name
    * @param layerIndex - The layer index (default -1, searches all layers)
-   * @returns The state instance, or null if no state matches
-   * @remarks The returned instance is tied to the current controller's layer data. After a controller structure change (layers added or removed), the instance is invalidated; re-call this method to get a fresh one.
+   * @returns Per-instance AnimatorStatePlayData, or null if not found
    */
-  findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStateInstance | null {
-    this._resetIfControllerUpdated();
+  findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorStatePlayData {
     const { state, layerIndex: foundLayer } = this._getAnimatorStateInfo(stateName, layerIndex);
-    if (!state) return null;
-    return this._getAnimatorLayerData(foundLayer).getOrCreateInstance(state);
+    if (!state || foundLayer < 0) return null;
+    const layerData = this._animatorLayersData[foundLayer];
+    if (!layerData) return null;
+    // Check srcPlayData and destPlayData for the matching state
+    if (layerData.srcPlayData.state === state) return layerData.srcPlayData;
+    if (layerData.destPlayData.state === state) return layerData.destPlayData;
+    // State exists in controller but not currently playing — return srcPlayData initialized with the state
+    return layerData.srcPlayData;
   }
 
   /**
    * Get the layer by name.
    * @param name - The layer's name.
+   * @todo Return per-instance layer data (like AnimatorStatePlayData for states) instead of shared asset.
+   *       Currently returns the shared AnimatorControllerLayer — modifying `weight` affects all instances.
+   *       Should follow Unity's pattern: Animator.SetLayerWeight/GetLayerWeight (per-instance).
    */
   findLayerByName(name: string): AnimatorControllerLayer {
     return this._animatorController?._layersMap[name];
@@ -316,27 +334,37 @@ export class Animator extends Component {
    * @internal
    */
   _reset(): void {
-    const { _curveOwnerPool: animationCurveOwners } = this;
-    for (let instanceId in animationCurveOwners) {
-      const propertyOwners = animationCurveOwners[instanceId];
-      for (let property in propertyOwners) {
-        const owner = propertyOwners[property];
-        owner.revertDefaultValue();
+    // revertDefaultValue 可能在死 target 上抛；listener 清理必须始终发生，否则
+    // polyfill 的 clipChangedListener 会留在共享的 AnimatorState 上，捕获 this(Animator)→Entity 整树。
+    // 用 try/catch 隔离 revert，listener 块紧跟其后无条件执行。
+    const layersData = this._animatorLayersData;
+    for (let i = 0, n = layersData.length; i < n; i++) {
+      const stateDataMap = layersData[i].animatorStateDataMap;
+      for (const stateName in stateDataMap) {
+        const stateData = stateDataMap[stateName];
+        const layerOwners = stateData.curveLayerOwner;
+        for (let j = 0, m = layerOwners.length; j < m; j++) {
+          try {
+            layerOwners[j]?.curveOwner?.revertDefaultValue();
+          } catch (e) {
+            Logger.warn("Animator._reset: revertDefaultValue threw", e);
+          }
+        }
+        if (stateData.clipChangedListener && stateData.state) {
+          stateData.state._updateFlagManager.removeListener(stateData.clipChangedListener);
+          stateData.clipChangedListener = null;
+          stateData.state = null;
+        }
       }
     }
 
     this._animatorLayersData.length = 0;
-    this._curveOwnerPool = Object.create(null);
+    this._curveOwnerPool = new WeakMap();
     this._parametersValueMap = Object.create(null);
+    this._animationEventHandlerPool.clear();
 
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
-    }
-  }
-
-  private _resetIfControllerUpdated(): void {
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
     }
   }
 
@@ -353,6 +381,7 @@ export class Animator extends Component {
 
   protected override _onDestroy(): void {
     super._onDestroy();
+    this._reset();
     const controller = this._animatorController;
     if (controller) {
       this._addResourceReferCount(controller, -1);
@@ -367,12 +396,12 @@ export class Animator extends Component {
     normalizedTimeOffset: number,
     isFixedDuration: boolean
   ): void {
-    this._resetIfControllerUpdated();
+    if (this._controllerUpdateFlag?.flag) {
+      this._reset();
+    }
 
     const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
-    if (!state) {
-      return;
-    }
+    if (!state) return;
     const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
     manuallyTransition.duration = duration;
 
@@ -398,10 +427,8 @@ export class Animator extends Component {
             break;
           }
         }
-      } else if (layerIndex >= 0 && layerIndex < layers.length) {
-        state = layers[layerIndex].stateMachine.findStateByName(stateName);
       } else {
-        layerIndex = -1;
+        state = layers[layerIndex].stateMachine.findStateByName(stateName);
       }
     }
     stateInfo.layerIndex = layerIndex;
@@ -410,18 +437,19 @@ export class Animator extends Component {
   }
 
   private _getAnimatorStateData(
+    stateName: string,
     animatorState: AnimatorState,
     animatorLayerData: AnimatorLayerData,
     layerIndex: number
   ): AnimatorStateData {
     const { animatorStateDataMap } = animatorLayerData;
-    let animatorStateData = animatorStateDataMap.get(animatorState);
+    let animatorStateData = animatorStateDataMap[stateName];
     if (!animatorStateData) {
-      animatorStateData = new AnimatorStateData(animatorState);
-      animatorStateDataMap.set(animatorState, animatorStateData);
+      animatorStateData = new AnimatorStateData();
+      animatorStateDataMap[stateName] = animatorStateData;
       this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
+      this._saveAnimatorEventHandlers(animatorState, animatorStateData);
     }
-    this._ensureEventHandlers(animatorState, animatorStateData);
     return animatorStateData;
   }
 
@@ -453,17 +481,20 @@ export class Animator extends Component {
         }
 
         const { property } = curve;
-        const { instanceId } = component;
-        // Get owner
-        const propertyOwners = (curveOwnerPool[instanceId] ||= <Record<string, AnimationCurveOwner<KeyframeValueType>>>(
-          Object.create(null)
-        ));
+        // Get owner — WeakMap keyed by Component so dead components let entries GC.
+        let propertyOwners = curveOwnerPool.get(component);
+        if (!propertyOwners) {
+          propertyOwners = <Record<string, AnimationCurveOwner<KeyframeValueType>>>Object.create(null);
+          curveOwnerPool.set(component, propertyOwners);
+        }
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity, component));
 
-        // Get layer owner
-        const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= <Record<string, AnimationCurveLayerOwner>>(
-          Object.create(null)
-        ));
+        // Get layer owner — same WeakMap-by-Component pattern (was Record<instanceId,...> which kept dead components pinned for the Animator's lifetime).
+        let layerPropertyOwners = layerCurveOwnerPool.get(component);
+        if (!layerPropertyOwners) {
+          layerPropertyOwners = <Record<string, AnimationCurveLayerOwner>>Object.create(null);
+          layerCurveOwnerPool.set(component, layerPropertyOwners);
+        }
         const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
 
         if (mask && mask.pathMasks.length) {
@@ -478,41 +509,36 @@ export class Animator extends Component {
     }
   }
 
-  private _ensureEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
-    // state._updateFlagManager dispatches on both clip-swap and clip-events-mutation,
-    // so its version covers every input that affects eventHandlers binding
-    const stateVersion = state._updateFlagManager.version;
-    const scriptsVersion = this._entity._scriptsVersion;
-    if (
-      animatorStateData.eventsBuiltVersion === stateVersion &&
-      animatorStateData.eventsBuiltScriptsVersion === scriptsVersion
-    ) {
-      return;
-    }
-
-    const scripts = Animator._tempScripts;
-    this._entity.getComponents(Script, scripts);
-    const scriptCount = scripts.length;
-    const { events } = state.clip;
+  private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
+    const eventHandlerPool = this._animationEventHandlerPool;
+    const scripts = [];
     const { eventHandlers } = animatorStateData;
-    eventHandlers.length = 0;
-    for (let i = 0, n = events.length; i < n; i++) {
-      const event = events[i];
-      const eventHandler = new AnimationEventHandler();
-      const funcName = event.functionName;
-      const { handlers } = eventHandler;
 
-      eventHandler.event = event;
-      for (let j = scriptCount - 1; j >= 0; j--) {
-        const script = scripts[j];
-        const handler = <Function>script[funcName]?.bind(script);
-        handler && handlers.push(handler);
+    const clipChangedListener = () => {
+      this._entity.getComponents(Script, scripts);
+      const scriptCount = scripts.length;
+      const { events } = state.clip;
+      eventHandlers.length = 0;
+      for (let i = 0, n = events.length; i < n; i++) {
+        const event = events[i];
+        const eventHandler = eventHandlerPool.get();
+        const funcName = event.functionName;
+        const { handlers } = eventHandler;
+
+        eventHandler.event = event;
+        handlers.length = 0;
+        for (let j = scriptCount - 1; j >= 0; j--) {
+          const script = scripts[j];
+          const handler = <Function>script[funcName]?.bind(script);
+          handler && handlers.push(handler);
+        }
+        eventHandlers.push(eventHandler);
       }
-      eventHandlers.push(eventHandler);
-    }
-    scripts.length = 0;
-    animatorStateData.eventsBuiltVersion = stateVersion;
-    animatorStateData.eventsBuiltScriptsVersion = scriptsVersion;
+    };
+    clipChangedListener();
+    state._updateFlagManager.addListener(clipChangedListener);
+    animatorStateData.state = state;
+    animatorStateData.clipChangedListener = clipChangedListener;
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
@@ -539,8 +565,8 @@ export class Animator extends Component {
   }
 
   private _prepareStandbyCrossFading(animatorLayerData: AnimatorLayerData): void {
-    // Standby have two sub state, one is never play (srcPlayData is null), one is finished (srcPlayData is non-null)
-    animatorLayerData.srcPlayData && this._prepareSrcCrossData(animatorLayerData, true);
+    // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null
+    animatorLayerData.srcPlayData.state && this._prepareSrcCrossData(animatorLayerData, true);
     // Add dest cross curve data
     this._prepareDestCrossData(animatorLayerData, true);
   }
@@ -632,9 +658,9 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): void {
     const { srcPlayData } = layerData;
-    const state = srcPlayData.instance._state;
+    const { state } = srcPlayData;
 
-    const playSpeed = srcPlayData.instance.speed * this.speed;
+    const playSpeed = srcPlayData.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
 
     srcPlayData.updateOrientation(playDeltaTime);
@@ -717,8 +743,7 @@ export class Animator extends Component {
     );
 
     if (transition) {
-      // Remove speed factor, use actual cost time. Per-instance speed=0 means the source
-      // state is paused, so it consumes no time — pass deltaTime through to the destination.
+      // Remove speed factor, use actual cost time
       const remainDeltaTime = playSpeed === 0 ? deltaTime : deltaTime - playCostTime / playSpeed;
       remainDeltaTime > 0 && this._updateState(layerData, remainDeltaTime, aniUpdate);
     }
@@ -730,7 +755,7 @@ export class Animator extends Component {
     additive: boolean,
     aniUpdate: boolean
   ): void {
-    const curveBindings = playData.instance.clip._curveBindings;
+    const curveBindings = playData.state.clip._curveBindings;
     const finished = playData.playState === AnimatorStatePlayState.Finished;
 
     if (aniUpdate || finished) {
@@ -764,20 +789,20 @@ export class Animator extends Component {
   ) {
     const { srcPlayData, destPlayData, layerIndex } = layerData;
     const { speed } = this;
-    const srcState = srcPlayData.instance._state;
-    const destState = destPlayData.instance._state;
+    const { state: srcState } = srcPlayData;
+    const { state: destState } = destPlayData;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
     if (this._tryCrossFadeInterrupt(layerData, transitionDuration, destState, deltaTime, aniUpdate)) {
       return;
     }
 
-    const srcPlaySpeed = srcPlayData.instance.speed * speed;
-    const dstPlaySpeed = destPlayData.instance.speed * speed;
+    const srcPlaySpeed = srcPlayData.speed * speed;
+    const dstPlaySpeed = destPlayData.speed * speed;
     const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
 
-    srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
-    destPlayData.updateOrientation(dstPlayDeltaTime);
+    srcPlayData && srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
+    destPlayData && destPlayData.updateOrientation(dstPlayDeltaTime);
 
     const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
@@ -855,8 +880,8 @@ export class Animator extends Component {
     aniUpdate: boolean
   ) {
     const { crossLayerOwnerCollection } = layerData;
-    const { _curveBindings: srcCurves } = srcPlayData.instance.clip;
-    const destState = destPlayData.instance._state;
+    const { _curveBindings: srcCurves } = srcPlayData.state.clip;
+    const { state: destState } = destPlayData;
     const { _curveBindings: destCurves } = destState.clip;
 
     const finished = destPlayData.playState === AnimatorStatePlayState.Finished;
@@ -895,14 +920,14 @@ export class Animator extends Component {
     aniUpdate: boolean
   ) {
     const { destPlayData } = layerData;
-    const state = destPlayData.instance._state;
+    const { state } = destPlayData;
     const transitionDuration = layerData.crossFadeTransition._getFixedDuration();
 
     if (this._tryCrossFadeInterrupt(layerData, transitionDuration, state, deltaTime, aniUpdate)) {
       return;
     }
 
-    const playSpeed = destPlayData.instance.speed * this.speed;
+    const playSpeed = destPlayData.speed * this.speed;
     const playDeltaTime = playSpeed * deltaTime;
 
     destPlayData.updateOrientation(playDeltaTime);
@@ -969,7 +994,7 @@ export class Animator extends Component {
     aniUpdate: boolean
   ) {
     const { crossLayerOwnerCollection } = layerData;
-    const state = destPlayData.instance._state;
+    const { state } = destPlayData;
     const { _curveBindings: curveBindings } = state.clip;
 
     const { clipTime: destClipTime, playState } = destPlayData;
@@ -1007,8 +1032,8 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): void {
     const playData = layerData.srcPlayData;
-    const state = playData.instance._state;
-    const actualSpeed = playData.instance.speed * this.speed;
+    const { state } = playData;
+    const actualSpeed = playData.speed * this.speed;
     const actualDeltaTime = actualSpeed * deltaTime;
 
     playData.updateOrientation(actualDeltaTime);
@@ -1049,7 +1074,7 @@ export class Animator extends Component {
     }
 
     const { curveLayerOwner } = playData.stateData;
-    const { _curveBindings: curveBindings } = playData.instance.clip;
+    const { _curveBindings: curveBindings } = playData.state.clip;
 
     for (let i = curveBindings.length - 1; i >= 0; i--) {
       const layerOwner = curveLayerOwner[i];
@@ -1070,13 +1095,14 @@ export class Animator extends Component {
     } else {
       layerData.layerState = LayerState.Playing;
     }
-    layerData.completeCrossFade();
+    layerData.switchPlayData();
+    layerData.crossFadeTransition = null;
   }
 
   private _preparePlayOwner(layerData: AnimatorLayerData, playState: AnimatorState): void {
     if (layerData.layerState === LayerState.Playing) {
       const srcPlayData = layerData.srcPlayData;
-      if (srcPlayData.instance._state !== playState) {
+      if (srcPlayData.state !== playState) {
         const { curveLayerOwner } = srcPlayData.stateData;
         for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
           curveLayerOwner[i]?.curveOwner.revertDefaultValue();
@@ -1100,7 +1126,7 @@ export class Animator extends Component {
     deltaTime: number,
     aniUpdate: boolean
   ): AnimatorStateTransition {
-    const state = playData.instance._state;
+    const { state } = playData;
     const clipDuration = state.clip.length;
     let targetTransition: AnimatorStateTransition = null;
     const startTime = state.clipStartTime * clipDuration;
@@ -1317,23 +1343,19 @@ export class Animator extends Component {
   }
 
   private _preparePlay(state: AnimatorState, layerIndex: number, normalizedTimeOffset: number = 0): boolean {
+    const name = state.name;
     if (!state.clip) {
-      Logger.warn(`The state named ${state.name} has no AnimationClip data.`);
+      Logger.warn(`The state named ${name} has no AnimationClip data.`);
       return false;
     }
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
-    const animatorStateData = this._getAnimatorStateData(state, animatorLayerData, layerIndex);
+    const animatorStateData = this._getAnimatorStateData(name, state, animatorLayerData, layerIndex);
 
     this._preparePlayOwner(animatorLayerData, state);
 
     animatorLayerData.layerState = LayerState.Playing;
-    const playData = animatorLayerData.getOrCreateInstance(state)._playData;
-    playData.reset(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
-    animatorLayerData.srcPlayData = playData;
-    // Drop any dangling cross-fade slot from a previously-interrupted crossFade
-    // so a later crossFade(B) isn't wrongly no-op'd by the active-dest guard.
-    animatorLayerData.clearCrossFadeSlot();
+    animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
     animatorLayerData.resetCurrentCheckIndex();
 
     return true;
@@ -1433,21 +1455,13 @@ export class Animator extends Component {
     }
 
     const animatorLayerData = this._getAnimatorLayerData(layerIndex);
+    const animatorStateData = this._getAnimatorStateData(crossState.name, crossState, animatorLayerData, layerIndex);
 
-    // Self/active-dest cross-fade is a no-op: each state has one persistent
-    // instance per layer, so a second concurrent fade has nowhere to live.
-    if (
-      animatorLayerData.srcPlayData?.instance._state === crossState ||
-      animatorLayerData.destPlayData?.instance._state === crossState
-    ) {
-      return false;
-    }
-
-    const animatorStateData = this._getAnimatorStateData(crossState, animatorLayerData, layerIndex);
-
-    const destPlayData = animatorLayerData.getOrCreateInstance(crossState)._playData;
-    destPlayData.reset(animatorStateData, transition.offset * crossState._getClipActualEndTime());
-    animatorLayerData.destPlayData = destPlayData;
+    animatorLayerData.destPlayData.reset(
+      crossState,
+      animatorStateData,
+      transition.offset * crossState._getClipActualEndTime()
+    );
     animatorLayerData.resetCurrentCheckIndex();
 
     switch (animatorLayerData.layerState) {
@@ -1482,24 +1496,28 @@ export class Animator extends Component {
     lastClipTime: number,
     deltaTime: number
   ): void {
-    const { isForward, clipTime } = playData;
-    const state = playData.instance._state;
+    const { state, isForward, clipTime, wrapMode } = playData;
     const startTime = state._getClipActualStartTime();
     const endTime = state._getClipActualEndTime();
+    const canWrap = wrapMode === WrapMode.Loop;
 
     if (isForward) {
       if (lastClipTime + deltaTime >= endTime) {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, endTime);
-        playData.currentEventIndex = 0;
-        this._fireSubAnimationEvents(playData, eventHandlers, startTime, clipTime);
+        if (canWrap) {
+          playData.currentEventIndex = 0;
+          this._fireSubAnimationEvents(playData, eventHandlers, startTime, clipTime);
+        }
       } else {
         this._fireSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }
     } else {
       if (lastClipTime + deltaTime <= startTime) {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, startTime);
-        playData.currentEventIndex = eventHandlers.length - 1;
-        this._fireBackwardSubAnimationEvents(playData, eventHandlers, endTime, clipTime);
+        if (canWrap) {
+          playData.currentEventIndex = eventHandlers.length - 1;
+          this._fireBackwardSubAnimationEvents(playData, eventHandlers, endTime, clipTime);
+        }
       } else {
         this._fireBackwardSubAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
       }
@@ -1595,12 +1613,10 @@ export class Animator extends Component {
     lastPlayState: AnimatorStatePlayState,
     deltaTime: number
   ) {
-    // Re-check whether the clip events/scripts changed since the last build —
-    // play()/crossFade() entry points already ensure on enter, but addEvent()
-    // or addComponent(Script) after play() must also flow through.
-    this._ensureEventHandlers(state, playData.stateData);
     const { eventHandlers } = playData.stateData;
-    eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
+    this.fireEvents &&
+      eventHandlers.length &&
+      this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       state._callOnEnter(this, layerIndex);

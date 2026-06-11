@@ -205,6 +205,15 @@ export class AnimationClip extends EngineObject {
   }
 
   /**
+   * Samples an animation at a given time.
+   * @param entity - The animated entity
+   * @param time - The time to sample an animation
+   */
+  sampleAnimation(entity: Entity, time: number): void {
+    this._sampleAnimation(entity, time);
+  }
+
+  /**
    * @internal
    * Samples an animation at a given time.
    * @param entity - The animated entity

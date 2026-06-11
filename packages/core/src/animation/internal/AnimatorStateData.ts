@@ -8,8 +8,6 @@ import { AnimationEventHandler } from "./AnimationEventHandler";
 export class AnimatorStateData {
   curveLayerOwner: AnimationCurveLayerOwner[] = [];
   eventHandlers: AnimationEventHandler[] = [];
-  eventsBuiltVersion = -1;
-  eventsBuiltScriptsVersion = -1;
-
-  constructor(readonly state: AnimatorState) {}
+  state: AnimatorState = null;
+  clipChangedListener: () => void = null;
 }
