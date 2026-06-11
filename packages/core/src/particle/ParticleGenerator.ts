@@ -174,6 +174,9 @@ export class ParticleGenerator {
   private _eventSize = new Vector3();
   @ignoreClone
   private _eventRotation = new Vector3();
+  // Parent's world-space velocity at death, used to emit sub particles along its motion.
+  @ignoreClone
+  private _eventDir = new Vector3();
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -1121,7 +1124,8 @@ export class ParticleGenerator {
     worldPosition: Vector3,
     inheritColor: Color,
     inheritSize: Vector3,
-    inheritRotation: Vector3
+    inheritRotation: Vector3,
+    worldDirection?: Vector3
   ): void {
     if (count <= 0) return;
 
@@ -1142,10 +1146,20 @@ export class ParticleGenerator {
     Quaternion.invert(worldRot, invRot);
     Vector3.transformByQuat(localPos, invRot, localPos);
 
+    // Emit along the parent's motion (worldDirection rotated into this emitter's local space);
+    // fall back to -Z when there's no direction (Birth events) or it's ~zero (stationary parent).
     const direction = ParticleGenerator._tempVector31;
-    // Parent velocity is not inherited — children always emit along the default axis,
-    // regardless of the parent particle's motion at the event
-    direction.set(0, 0, -1);
+    if (worldDirection) {
+      Vector3.transformByQuat(worldDirection, invRot, direction);
+      const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+      if (len > 1e-6) {
+        direction.set(direction.x / len, direction.y / len, direction.z / len);
+      } else {
+        direction.set(0, 0, -1);
+      }
+    } else {
+      direction.set(0, 0, -1);
+    }
 
     const playTime = this._playTime;
     for (let i = 0; i < count; i++) {
@@ -1258,6 +1272,15 @@ export class ParticleGenerator {
       local.add(transform.worldPosition);
     }
 
+    // Parent's world-space velocity (feedback velocity is in sim space): rotate to world for
+    // local sim, as-is for world sim. VOL's instantaneous term is not added — it isn't stored in
+    // the feedback velocity and re-evaluating it on CPU would reintroduce mirror debt.
+    const dir = this._eventDir;
+    dir.set(fb[fbBase + 3], fb[fbBase + 4], fb[fbBase + 5]);
+    if (simSpaceLocal) {
+      Vector3.transformByQuat(dir, transform.worldRotationQuaternion, dir);
+    }
+
     // Evaluate at the parent's normalizedAge so children inherit its visible appearance at death.
     const lifetime = instanceVertices[particleOffset + 3];
     const bornTime = instanceVertices[particleOffset + 7];
@@ -1267,7 +1290,7 @@ export class ParticleGenerator {
     const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
     this._evaluateOverLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
 
-    this.subEmitters._dispatchEvent(ParticleSubEmitterType.Death, local, parentColor, parentSize, parentRotation);
+    this.subEmitters._dispatchEvent(ParticleSubEmitterType.Death, local, parentColor, parentSize, parentRotation, dir);
   }
 
   private _evaluateOverLifetime(

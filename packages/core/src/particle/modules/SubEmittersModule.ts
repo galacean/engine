@@ -115,7 +115,8 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     worldPosition: Vector3,
     parentColor: Color,
     parentSize: Vector3,
-    parentRotation: Vector3
+    parentRotation: Vector3,
+    worldDirection?: Vector3
   ): void {
     const subEmitters = this.subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
@@ -136,8 +137,18 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       const colorOverride = (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? parentColor : null;
       const sizeOverride = (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? parentSize : null;
       const rotationOverride = (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? parentRotation : null;
+      // Velocity inherit is opt-in (and only Death carries a direction); otherwise the target
+      // emits along its own default direction.
+      const directionOverride = (inherit & ParticleSubEmitterInheritProperty.Velocity) !== 0 ? worldDirection : null;
 
-      target.generator._emitFromSubEmitter(count, worldPosition, colorOverride, sizeOverride, rotationOverride);
+      target.generator._emitFromSubEmitter(
+        count,
+        worldPosition,
+        colorOverride,
+        sizeOverride,
+        rotationOverride,
+        directionOverride
+      );
     }
   }
 

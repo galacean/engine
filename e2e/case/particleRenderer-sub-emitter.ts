@@ -141,7 +141,9 @@ function createSubEmitterScene(engine: Engine, rootEntity: Entity, texture: Text
   parentGenerator.subEmitters.addSubEmitter(
     subRenderer,
     ParticleSubEmitterType.Death,
-    ParticleSubEmitterInheritProperty.Color | ParticleSubEmitterInheritProperty.Size,
+    ParticleSubEmitterInheritProperty.Color |
+      ParticleSubEmitterInheritProperty.Size |
+      ParticleSubEmitterInheritProperty.Velocity,
     undefined,
     4
   );
