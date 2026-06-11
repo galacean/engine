@@ -190,6 +190,7 @@ beforeAll(async function () {
           skins: [
             {
               inverseBindMatrices: 0,
+              skeleton: 0,
               joints: [2, 3]
             }
           ],
@@ -746,7 +747,7 @@ describe("glTF scene root structure", function () {
     expect(defaultSceneRoot.children[0].name).to.equal("entity1");
   });
 
-  it("Multi-root skins without skeleton should use the scene wrapper as rootBone", async () => {
+  it("Multi-root skins without skeleton should use the joints LCA as rootBone", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
       url: "mock/path/testSkinRoot.gltf"
@@ -755,7 +756,8 @@ describe("glTF scene root structure", function () {
 
     expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
     expect(defaultSceneRoot.children.length).to.equal(2);
-    expect(skins[0].rootBone).to.equal(defaultSceneRoot);
+    expect(skins[0].rootBone).to.not.equal(defaultSceneRoot);
+    expect(skins[0].rootBone.name).to.equal("mixamorig:Hips");
   });
 
   it("Multi-root scenes whose joints converge to a single top-level root should not use the scene wrapper", async () => {
@@ -771,7 +773,7 @@ describe("glTF scene root structure", function () {
     expect(skins[0].rootBone.name).to.equal("Character_Root");
   });
 
-  it("Skinned mesh bounds should stay in rootBone space when inferred rootBone is outside joints", async () => {
+  it("Skinned mesh bounds should stay in rootBone space when explicit rootBone is outside joints", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
       url: "mock/path/testSkinRootBounds.gltf"

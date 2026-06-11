@@ -7,21 +7,16 @@ describe("GLTFSkinParser rootBone resolution", () => {
     return new GLTFSkinParser();
   }
 
-  it("includes skinned mesh nodes when resolving missing skin.skeleton", async () => {
+  it("ignores skinned mesh nodes when resolving missing skin.skeleton", async () => {
     const parser = await createParser();
     const sceneRoot = { name: "GLTF_ROOT" };
     const meshRoot = { name: "Character_Man", parent: sceneRoot };
     const hips = { name: "mixamorig:Hips", parent: sceneRoot };
     const spine = { name: "mixamorig:Spine", parent: hips };
 
-    const rootBone = (parser as any)._findSkinRootBoneByLCA(
-      0,
-      [1, 2],
-      [meshRoot, hips, spine],
-      [{ name: "Character_Man", skin: 0 }, { name: "mixamorig:Hips" }, { name: "mixamorig:Spine" }]
-    );
+    const rootBone = (parser as any)._findSkinRootBoneByLCA([1, 2], [meshRoot, hips, spine]);
 
-    expect(rootBone).toBe(sceneRoot);
+    expect(rootBone).toBe(hips);
   });
 
   it("does not promote to the scene wrapper for unrelated top-level siblings", async () => {
@@ -32,12 +27,7 @@ describe("GLTFSkinParser rootBone resolution", () => {
     const hips = { name: "mixamorig:Hips", parent: characterRoot };
     const light = { name: "Light", parent: sceneRoot };
 
-    const rootBone = (parser as any)._findSkinRootBoneByLCA(
-      0,
-      [3],
-      [characterRoot, mesh, light, hips],
-      [{ name: "Character_Root" }, { name: "Character_Mesh", skin: 0 }, { name: "Light" }, { name: "mixamorig:Hips" }]
-    );
+    const rootBone = (parser as any)._findSkinRootBoneByLCA([0, 3], [characterRoot, mesh, light, hips]);
 
     expect(rootBone).toBe(characterRoot);
   });

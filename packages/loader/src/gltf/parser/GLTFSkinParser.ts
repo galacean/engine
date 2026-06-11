@@ -42,7 +42,7 @@ export class GLTFSkinParser extends GLTFParser {
         }
         skin.rootBone = rootBone;
       } else {
-        const rootBone = this._findSkinRootBoneByLCA(index, joints, entities, glTF.nodes);
+        const rootBone = this._findSkinRootBoneByLCA(joints, entities);
         if (rootBone) {
           skin.rootBone = rootBone;
         } else {
@@ -56,20 +56,8 @@ export class GLTFSkinParser extends GLTFParser {
     return AssetPromise.resolve(skinPromise);
   }
 
-  private _findSkinRootBoneByLCA(
-    skinIndex: number,
-    joints: number[],
-    entities: Entity[],
-    nodes: Array<{ skin?: number }> = []
-  ): Entity | null {
-    const nodeIndices = joints.slice();
-    for (let i = 0, n = nodes.length; i < n; i++) {
-      if (nodes[i]?.skin === skinIndex) {
-        nodeIndices.push(i);
-      }
-    }
-
-    return this._findRootBoneByLCA(nodeIndices, entities);
+  private _findSkinRootBoneByLCA(joints: number[], entities: Entity[]): Entity | null {
+    return this._findRootBoneByLCA(joints, entities);
   }
 
   private _findRootBoneByLCA(nodeIndices: number[], entities: Entity[]): Entity | null {
