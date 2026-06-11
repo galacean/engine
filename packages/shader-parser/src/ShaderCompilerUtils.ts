@@ -1,6 +1,6 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import { GSError, GSErrorName } from "./GSError";
-import type { DiagnosticCodeValue } from "./DiagnosticCode";
+import type { DiagnosticType } from "./DiagnosticType";
 import { ShaderRange } from "./common/ShaderRange";
 import { ShaderPosition } from "./common/ShaderPosition";
 
@@ -41,7 +41,7 @@ export class ShaderCompilerUtils {
     errorName: GSErrorName,
     source: string,
     location: ShaderRange | ShaderPosition,
-    code?: DiagnosticCodeValue,
+    code?: DiagnosticType,
     file?: string
   ): Error {
     return new GSError(errorName, message, location, source, file, code);

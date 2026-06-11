@@ -10,8 +10,7 @@ import {
   RenderStateElementKey,
   StencilOperation
 } from "@galacean/engine-core";
-import { DiagnosticCode } from "../DiagnosticCode";
-import type { DiagnosticCodeValue } from "../DiagnosticCode";
+import { DiagnosticType } from "../DiagnosticType";
 import type {
   IRenderStates,
   IShaderPassSource,
@@ -162,7 +161,7 @@ export class ShaderSourceParser {
           this._createCompileError(
             `Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme}`,
             nextToken.location,
-            DiagnosticCode.B2_01
+            DiagnosticType.InvalidRenderStateVariable
           );
           return;
         }
@@ -219,7 +218,7 @@ export class ShaderSourceParser {
   private static _createCompileError(
     message: string,
     location?: ShaderPosition | ShaderRange,
-    code?: DiagnosticCodeValue
+    code?: DiagnosticType
   ): void {
     const error = this._lexer.createCompileError(message, location, code);
     this.errors.push(<GSError>error);
@@ -234,7 +233,7 @@ export class ShaderSourceParser {
       this._createCompileError(
         `Invalid engine constant: ${enumName}.${constValueToken.lexeme}`,
         constValueToken.location,
-        DiagnosticCode.B1_02
+        DiagnosticType.InvalidEnumValue
       );
       lexer.scanToCharacter(";");
     }
@@ -257,7 +256,7 @@ export class ShaderSourceParser {
         this._createCompileError(
           `Invalid syntax, expect '[' or '=', but got unexpected token`,
           undefined,
-          DiagnosticCode.A1_01
+          DiagnosticType.SyntaxError
         );
         lexer.scanToCharacter(";");
         return;
@@ -269,7 +268,11 @@ export class ShaderSourceParser {
 
     const renderStateElementKey = RenderStateElementKey[stateLexeme + stateElementKey];
     if (renderStateElementKey === undefined) {
-      this._createCompileError(`Invalid render state property ${propertyLexeme}`, undefined, DiagnosticCode.B1_01);
+      this._createCompileError(
+        `Invalid render state property ${propertyLexeme}`,
+        undefined,
+        DiagnosticType.InvalidRenderStateProperty
+      );
       lexer.scanToCharacter(";");
       return;
     }
@@ -301,7 +304,7 @@ export class ShaderSourceParser {
             this._createCompileError(
               `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this`,
               valueToken.location,
-              DiagnosticCode.B1_03
+              DiagnosticType.BitwiseOrOnNonBitmask
             );
             lexer.scanToCharacter(";");
             return;
@@ -313,7 +316,7 @@ export class ShaderSourceParser {
               this._createCompileError(
                 `Invalid syntax after '|', expect 'EnumType.Value'`,
                 nextEnumToken?.location,
-                DiagnosticCode.A1_01
+                DiagnosticType.SyntaxError
               );
               lexer.scanToCharacter(";");
               return;
@@ -322,7 +325,7 @@ export class ShaderSourceParser {
               this._createCompileError(
                 `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}'`,
                 nextEnumToken.location,
-                DiagnosticCode.B1_04
+                DiagnosticType.MixedEnumTypes
               );
               lexer.scanToCharacter(";");
               return;
@@ -341,7 +344,7 @@ export class ShaderSourceParser {
           this._createCompileError(
             `Invalid ${stateLexeme} variable: ${valueToken.lexeme}`,
             valueToken.location,
-            DiagnosticCode.B2_01
+            DiagnosticType.InvalidRenderStateVariable
           );
           lexer.scanToCharacter(";");
           return;
@@ -371,7 +374,7 @@ export class ShaderSourceParser {
       this._createCompileError(
         `Invalid syntax, expect character '=', but got ${token.lexeme}`,
         token.location,
-        DiagnosticCode.A1_01
+        DiagnosticType.SyntaxError
       );
       return;
     }
@@ -388,7 +391,7 @@ export class ShaderSourceParser {
         this._createCompileError(
           `Invalid RenderQueueType variable: ${word.lexeme}`,
           word.location,
-          DiagnosticCode.B2_02
+          DiagnosticType.InvalidRenderQueueVariable
         );
         return;
       }
@@ -507,7 +510,7 @@ export class ShaderSourceParser {
               GSErrorName.CompilationError,
               lexer.source,
               lexer.getShaderPosition(0),
-              DiagnosticCode.A2_01
+              DiagnosticType.DuplicateEntryAssignment
             );
             Logger.error(error.toString());
             throw error;

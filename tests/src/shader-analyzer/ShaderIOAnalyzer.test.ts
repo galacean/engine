@@ -73,8 +73,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "C0-13: vertex returns undefined varying struct (once)",
-    expected: ["C0-13"],
+    name: "InvalidVaryingStruct: vertex returns undefined varying struct (once)",
+    expected: ["InvalidVaryingStruct"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
       Varyings vert(Attributes attr) { Varyings o; return o; }
@@ -83,8 +83,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "C0-14: vertex returns non-struct/void (once)",
-    expected: ["C0-14"],
+    name: "VertexEntryReturnType: vertex returns non-struct/void (once)",
+    expected: ["VertexEntryReturnType"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
       float vert(Attributes attr) { return 1.0; }
@@ -93,8 +93,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "C0-15: vertex attribute param undefined struct (once)",
-    expected: ["C0-15"],
+    name: "InvalidAttributeStruct: vertex attribute param undefined struct (once)",
+    expected: ["InvalidAttributeStruct"],
     source: wrap(`
       void vert(Attributes attr) { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(0.0); }
@@ -102,8 +102,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "C0-17: fragment returns non-struct/vec4 (once)",
-    expected: ["C0-17"],
+    name: "FragmentEntryReturnType: fragment returns non-struct/vec4 (once)",
+    expected: ["FragmentEntryReturnType"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
@@ -112,8 +112,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "C0-19: same struct as Varying and Attribute — reported ONCE",
-    expected: ["C0-19"],
+    name: "StructRoleConflict: same struct as Varying and Attribute — reported ONCE",
+    expected: ["StructRoleConflict"],
     source: wrap(`
       struct IO { vec4 v; };
       IO vert(IO attr) { IO o; return o; }

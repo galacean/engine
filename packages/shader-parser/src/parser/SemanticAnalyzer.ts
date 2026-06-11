@@ -2,7 +2,7 @@ import { ShaderRange } from "../common";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSError, GSErrorName } from "../GSError";
-import type { DiagnosticCodeValue } from "../DiagnosticCode";
+import type { DiagnosticType } from "../DiagnosticType";
 import { SymbolInfo } from "../parser/symbolTable";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { ASTNode, TreeNode } from "./AST";
@@ -76,13 +76,13 @@ export default class SemanticAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
-  reportError(loc: ShaderRange, message: string, code?: DiagnosticCodeValue): void {
+  reportError(loc: ShaderRange, message: string, code?: DiagnosticType): void {
     this.errors.push(
       new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
     );
   }
 
-  reportWarning(loc: ShaderRange, message: string, code?: DiagnosticCodeValue): void {
+  reportWarning(loc: ShaderRange, message: string, code?: DiagnosticType): void {
     this.errors.push(
       new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
     );

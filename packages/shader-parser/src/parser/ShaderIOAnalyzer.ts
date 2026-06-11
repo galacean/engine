@@ -2,7 +2,7 @@ import { ASTNode } from "./AST";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, SymbolTable } from "./symbolTable";
 import { StructProp } from "./types";
 import { GSError, GSErrorName } from "../GSError";
-import { DiagnosticCode, type DiagnosticCodeValue } from "../DiagnosticCode";
+import { DiagnosticType } from "../DiagnosticType";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { Keyword } from "../common/enums/Keyword";
 import type { ShaderPosition, ShaderRange } from "../common";
@@ -79,7 +79,7 @@ export class ShaderIOAnalyzer {
 
   private static _error(
     errors: GSError[],
-    code: DiagnosticCodeValue,
+    code: DiagnosticType,
     message: string,
     loc: ShaderRange | ShaderPosition,
     source: string
@@ -103,7 +103,7 @@ export class ShaderIOAnalyzer {
         if (!varyings.length) {
           this._error(
             errors,
-            DiagnosticCode.C0_13,
+            DiagnosticType.InvalidVaryingStruct,
             `invalid varying struct: "${returnType.type}".`,
             returnType.location,
             source
@@ -114,7 +114,7 @@ export class ShaderIOAnalyzer {
       } else if (returnType.type !== Keyword.VOID) {
         this._error(
           errors,
-          DiagnosticCode.C0_14,
+          DiagnosticType.VertexEntryReturnType,
           "vertex main entry can only return struct or void.",
           returnType.location,
           source
@@ -129,7 +129,7 @@ export class ShaderIOAnalyzer {
           if (!attributes.length) {
             this._error(
               errors,
-              DiagnosticCode.C0_15,
+              DiagnosticType.InvalidAttributeStruct,
               `invalid attribute struct: "${attributeType}".`,
               attributeParam.astNode.location,
               source
@@ -154,14 +154,20 @@ export class ShaderIOAnalyzer {
       if (typeof returnDataType === "string") {
         const mrts = this._structSymbols(symbolTable, returnDataType);
         if (!mrts.length) {
-          this._error(errors, DiagnosticCode.C0_16, `invalid mrt struct: ${returnDataType}`, returnLocation, source);
+          this._error(
+            errors,
+            DiagnosticType.InvalidMrtStruct,
+            `invalid mrt struct: ${returnDataType}`,
+            returnLocation,
+            source
+          );
         } else {
           this._pushStruct(mrts, io.mrtStructs, io.mrtList);
         }
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
         this._error(
           errors,
-          DiagnosticCode.C0_17,
+          DiagnosticType.FragmentEntryReturnType,
           "fragment main entry can only return struct or vec4.",
           returnLocation,
           source
@@ -175,19 +181,31 @@ export class ShaderIOAnalyzer {
       if (io.attributeStructs.indexOf(node) !== -1) {
         this._error(
           errors,
-          DiagnosticCode.C0_19,
+          DiagnosticType.StructRoleConflict,
           "cannot use same struct as Varying and Attribute",
           node.location,
           source
         );
       }
       if (io.mrtStructs.indexOf(node) !== -1) {
-        this._error(errors, DiagnosticCode.C0_20, "cannot use same struct as Varying and MRT", node.location, source);
+        this._error(
+          errors,
+          DiagnosticType.StructRoleConflict,
+          "cannot use same struct as Varying and MRT",
+          node.location,
+          source
+        );
       }
     }
     for (const node of io.attributeStructs) {
       if (io.mrtStructs.indexOf(node) !== -1) {
-        this._error(errors, DiagnosticCode.C0_21, "cannot use same struct as Attribute and MRT", node.location, source);
+        this._error(
+          errors,
+          DiagnosticType.StructRoleConflict,
+          "cannot use same struct as Attribute and MRT",
+          node.location,
+          source
+        );
       }
     }
   }

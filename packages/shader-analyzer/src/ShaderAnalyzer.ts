@@ -87,12 +87,6 @@ export class ShaderAnalyzer {
         case "warning":
           Logger.warn(text);
           break;
-        case "info":
-          Logger.info(text);
-          break;
-        case "hint":
-          Logger.debug(text);
-          break;
       }
     }
   }

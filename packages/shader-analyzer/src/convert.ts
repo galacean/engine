@@ -1,5 +1,5 @@
-import type { Diagnostic, DiagnosticCodeValue } from "./Diagnostic";
-import { DiagnosticCode } from "./Diagnostic";
+import type { Diagnostic } from "./Diagnostic";
+import { DiagnosticType } from "./Diagnostic";
 import { GSError, GSErrorName } from "@galacean/engine-shader-parser";
 
 /**
@@ -13,7 +13,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic | null {
     // Non-GSError (e.g. thrown from lexer/preprocess) — best-effort
     return {
       severity: "error",
-      code: DiagnosticCode.C0_08,
+      code: DiagnosticType.SyntaxError,
       message: error.message,
       range: { start: { line: 0, column: 0, offset: 0 }, end: { line: 0, column: 0, offset: 0 } },
       source: "galacean-shader-analyzer"
@@ -21,7 +21,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic | null {
   }
 
   const severity = error.name === GSErrorName.CompilationWarn ? "warning" : "error";
-  const code = error.code ?? nameBasedCode(error.name as GSErrorName);
+  const code = error.code ?? DiagnosticType.SyntaxError;
 
   return {
     severity,
@@ -46,11 +46,4 @@ function gSErrorLocationToRange(location: InstanceType<typeof GSError>["location
     start: { line: location.line, column: location.column, offset: location.index },
     end: { line: location.line, column: location.column, offset: location.index }
   };
-}
-
-/** Scanner/preprocessor errors carry no per-site code; map them by name. Everything else stamps its own. */
-function nameBasedCode(name: GSErrorName): DiagnosticCodeValue {
-  return name === GSErrorName.ScannerError || name === GSErrorName.PreprocessorError
-    ? DiagnosticCode.A1_01
-    : DiagnosticCode.C0_08;
 }

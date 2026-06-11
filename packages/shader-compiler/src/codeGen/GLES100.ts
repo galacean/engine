@@ -1,7 +1,7 @@
 import { BaseToken } from "@galacean/engine-shader-parser";
 import { ASTNode } from "@galacean/engine-shader-parser";
 import { StructProp } from "@galacean/engine-shader-parser";
-import { DiagnosticCode } from "@galacean/engine-shader-parser";
+import { DiagnosticType } from "@galacean/engine-shader-parser";
 import { GLESVisitor } from "./GLESVisitor";
 import { VisitorContext } from "./VisitorContext";
 
@@ -37,7 +37,7 @@ export class GLES100Visitor extends GLESVisitor {
         this._reportError(
           propReferenced.location,
           `not found mrt property: ${propReferenced.lexeme}`,
-          DiagnosticCode.C0_18
+          DiagnosticType.UnresolvedIoReference
         );
         return "";
       }

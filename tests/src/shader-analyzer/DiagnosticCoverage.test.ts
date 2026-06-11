@@ -17,35 +17,44 @@ function pass(body: string): string {
 // Each case: a shader expected to produce `code`. `gap` marks codes with no
 // analyzer-reachable trigger (dead / backend-specific) — documented, not dropped.
 const cases: { code: string; source?: string; gap?: string }[] = [
-  { code: "C0-02", gap: "operator check unreachable: grammar only yields valid operators; `compute` clue never read" },
-  { code: "C0-03", gap: "integer check inert: VariableIdentifier.typeInfo is undefined so typeCompatible passes" },
-  { code: "A2-01", gap: "reassign-entry not detected from a double VertexShader assignment — needs investigation" },
-  { code: "C0-18", gap: "GLES100-only; the analyzer runs GLES300, which yields C0-22 instead for the same case" },
-  { code: "C0-22", gap: "codegen-internal: source-level missing struct member is caught earlier as C0-08" },
+  {
+    code: "DuplicateEntryAssignment",
+    gap: "reassign-entry not detected from a double VertexShader assignment — needs investigation"
+  },
+  {
+    code: "UnresolvedIoReference",
+    gap: "codegen-internal: a source-level missing struct member surfaces earlier as SyntaxError"
+  },
   // ── B: RenderState ──
-  { code: "B1-01", source: pass(`BlendState bs { NotARealProperty = true; }`) },
-  { code: "B1-02", source: pass(`BlendState bs { SourceColorBlendFactor = BlendFactor.NotReal; }`) },
-  { code: "B1-03", source: pass(`BlendState bs { SourceColorBlendFactor = BlendFactor.One | BlendFactor.Zero; }`) },
-  { code: "B1-04", source: pass(`BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`) },
-  { code: "B2-01", source: pass(`DepthState = undefinedDepthVar;`) },
-  { code: "B2-02", source: pass(`RenderQueueType = undefinedQueueVar;`) },
+  { code: "InvalidRenderStateProperty", source: pass(`BlendState bs { NotARealProperty = true; }`) },
+  { code: "InvalidEnumValue", source: pass(`BlendState bs { SourceColorBlendFactor = BlendFactor.NotReal; }`) },
+  {
+    code: "BitwiseOrOnNonBitmask",
+    source: pass(`BlendState bs { SourceColorBlendFactor = BlendFactor.One | BlendFactor.Zero; }`)
+  },
+  { code: "MixedEnumTypes", source: pass(`BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`) },
+  { code: "InvalidRenderStateVariable", source: pass(`DepthState = undefinedDepthVar;`) },
+  { code: "InvalidRenderQueueVariable", source: pass(`RenderQueueType = undefinedQueueVar;`) },
 
   // ── C0: GLSL semantics ──
-  { code: "C0-01", source: pass(`void frag() { float[2] arr[3]; gl_FragColor = vec4(0.0); } FragmentShader = frag;`) },
-  { code: "C0-04", source: pass(`void frag() { return vec4(0.0); } FragmentShader = frag;`) },
   {
-    code: "C0-05",
+    code: "ArrayOfArray",
+    source: pass(`void frag() { float[2] arr[3]; gl_FragColor = vec4(0.0); } FragmentShader = frag;`)
+  },
+  { code: "ReturnInVoidFunction", source: pass(`void frag() { return vec4(0.0); } FragmentShader = frag;`) },
+  {
+    code: "MissingReturn",
     source: pass(`float getX() { float a = 1.0; } void frag() { gl_FragColor = vec4(getX()); } FragmentShader = frag;`)
   },
   {
-    code: "C0-06",
+    code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`
     )
   },
-  { code: "C0-08", source: pass(`void frag() { vec3 = ; } FragmentShader = frag;`) },
+  { code: "SyntaxError", source: pass(`void frag() { vec3 = ; } FragmentShader = frag;`) },
   {
-    code: "C0-11",
+    code: "GlFragColorWithMrt",
     source: pass(`
       struct MRT { vec4 c0; };
       void vert() { gl_Position = vec4(0.0); }
@@ -53,14 +62,14 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
-    code: "C0-16",
+    code: "InvalidMrtStruct",
     source: pass(`
       void vert() { gl_Position = vec4(0.0); }
       Undefined frag() { Undefined o; return o; }
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
-    code: "C0-20",
+    code: "StructRoleConflict",
     source: pass(`
       struct IO { vec4 v; };
       IO vert() { IO o; return o; }
@@ -68,7 +77,7 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
-    code: "C0-21",
+    code: "StructRoleConflict",
     source: pass(`
       struct IO { vec4 v; };
       void vert(IO attr) { gl_Position = vec4(0.0); }

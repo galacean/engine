@@ -4,7 +4,7 @@ import { BaseLexer } from "../common/BaseLexer";
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { GSErrorName } from "../GSError";
-import type { DiagnosticCodeValue } from "../DiagnosticCode";
+import type { DiagnosticType } from "../DiagnosticType";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 
 export default class SourceLexer extends BaseLexer {
@@ -159,7 +159,7 @@ export default class SourceLexer extends BaseLexer {
     this.advance(1);
   }
 
-  createCompileError(message: string, location?: ShaderPosition | ShaderRange, code?: DiagnosticCodeValue) {
+  createCompileError(message: string, location?: ShaderPosition | ShaderRange, code?: DiagnosticType) {
     return ShaderCompilerUtils.createGSError(
       message,
       GSErrorName.CompilationError,

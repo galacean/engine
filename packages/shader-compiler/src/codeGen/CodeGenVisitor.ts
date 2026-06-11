@@ -10,8 +10,7 @@ import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
 import type { ICodeGenVisitor } from "@galacean/engine-shader-parser";
 import { StructRole, VisitorContext } from "./VisitorContext";
 import { GSError } from "@galacean/engine-shader-parser";
-import { DiagnosticCode } from "@galacean/engine-shader-parser";
-import type { DiagnosticCodeValue } from "@galacean/engine-shader-parser";
+import { DiagnosticType } from "@galacean/engine-shader-parser";
 import { ReturnableObjectPool } from "@galacean/engine-core";
 import { Keyword } from "@galacean/engine-shader-parser";
 import { TempArray } from "../TempArray";
@@ -84,7 +83,11 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       const identLexeme = identNode.codeGen(this);
       const indexLexeme = indexNode.codeGen(this);
       if (identLexeme === "gl_FragData") {
-        this._reportError(identNode.location, "Please use MRT struct instead of gl_FragData.", DiagnosticCode.C0_12);
+        this._reportError(
+          identNode.location,
+          "Please use MRT struct instead of gl_FragData.",
+          DiagnosticType.GlFragData
+        );
       }
       return `${identLexeme}[${indexLexeme}]`;
     }
@@ -312,15 +315,23 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const isMRTStruct = mrtStructs.indexOf(node) !== -1;
 
     if (isVaryingStruct && isAttributeStruct) {
-      this._reportError(node.location, "cannot use same struct as Varying and Attribute", DiagnosticCode.C0_19);
+      this._reportError(
+        node.location,
+        "cannot use same struct as Varying and Attribute",
+        DiagnosticType.StructRoleConflict
+      );
     }
 
     if (isVaryingStruct && isMRTStruct) {
-      this._reportError(node.location, "cannot use same struct as Varying and MRT", DiagnosticCode.C0_20);
+      this._reportError(node.location, "cannot use same struct as Varying and MRT", DiagnosticType.StructRoleConflict);
     }
 
     if (isAttributeStruct && isMRTStruct) {
-      this._reportError(node.location, "cannot use same struct as Attribute and MRT", DiagnosticCode.C0_21);
+      this._reportError(
+        node.location,
+        "cannot use same struct as Attribute and MRT",
+        DiagnosticType.StructRoleConflict
+      );
     }
 
     if (isVaryingStruct || isAttributeStruct || isMRTStruct) {
@@ -376,7 +387,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     }
   }
 
-  protected _reportError(loc: ShaderRange | ShaderPosition, message: string, code?: DiagnosticCodeValue): void {
+  protected _reportError(loc: ShaderRange | ShaderPosition, message: string, code?: DiagnosticType): void {
     this.errors.push(
       new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
     );

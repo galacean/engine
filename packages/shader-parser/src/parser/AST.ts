@@ -4,7 +4,7 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
-import { DiagnosticCode } from "../DiagnosticCode";
+import { DiagnosticType } from "../DiagnosticType";
 import { Lexer } from "../lexer/Lexer";
 import { MacroDefineInfo } from "../Preprocessor";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
@@ -154,7 +154,7 @@ export namespace ASTNode {
             sa.reportError(
               children[1].location,
               `Cannot return a value of type '${ParserUtils.typeName(returned)}' from a function returning '${ParserUtils.typeName(declared)}'.`,
-              DiagnosticCode.C1_03
+              DiagnosticType.ReturnTypeMismatch
             );
           }
         }
@@ -249,7 +249,7 @@ export namespace ASTNode {
       } else {
         const arraySpecifier = children[2] as ArraySpecifier;
         if (arraySpecifier && this.arraySpecifier) {
-          sa.reportError(arraySpecifier.location, "Array of array is not supported.", DiagnosticCode.C0_01);
+          sa.reportError(arraySpecifier.location, "Array of array is not supported.", DiagnosticType.ArrayOfArray);
         }
         this.arraySpecifier = arraySpecifier;
         const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
@@ -258,7 +258,7 @@ export namespace ASTNode {
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       }
       if (sa.symbolTableStack.insert(sm)) {
-        sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticCode.C0_10);
+        sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
       }
     }
 
@@ -379,8 +379,6 @@ export namespace ASTNode {
         case ETokenType.PERCENT:
           this.compute = (a, b) => a % b;
           break;
-        default:
-          sa.reportError(operator.location, `not implemented operator ${operator.lexeme}`, DiagnosticCode.C0_02);
       }
     }
   }
@@ -398,12 +396,6 @@ export namespace ASTNode {
         const child = this.children[0];
         if (child instanceof BaseToken) {
           this.value = Number(child.lexeme);
-        } else {
-          const id = child as VariableIdentifier;
-          if (!ParserUtils.typeCompatible(Keyword.INT, id.typeInfo)) {
-            sa.reportError(id.location, "Invalid integer.", DiagnosticCode.C0_03);
-            return;
-          }
         }
       }
     }
@@ -463,19 +455,19 @@ export namespace ASTNode {
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
         if (sa.symbolTableStack.insert(sm)) {
-          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticCode.C0_10);
+          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
         }
       } else if (childrenLength === 4 || childrenLength === 6) {
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
         if (typeInfo.arraySpecifier && arraySpecifier) {
-          sa.reportError(arraySpecifier.location, "Array of array is not supported.", DiagnosticCode.C0_01);
+          sa.reportError(arraySpecifier.location, "Array of array is not supported.", DiagnosticType.ArrayOfArray);
         }
         typeInfo.arraySpecifier = arraySpecifier;
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
         if (sa.symbolTableStack.insert(sm)) {
-          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticCode.C0_10);
+          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
         }
       }
     }
@@ -713,11 +705,11 @@ export namespace ASTNode {
       const { header, returnStatement } = curFunctionInfo;
       if (header.returnType.type === Keyword.VOID) {
         if (returnStatement) {
-          sa.reportError(header.returnType.location, "Return in void function.", DiagnosticCode.C0_04);
+          sa.reportError(header.returnType.location, "Return in void function.", DiagnosticType.ReturnInVoidFunction);
         }
       } else {
         if (!returnStatement) {
-          sa.reportError(header.returnType.location, `No return statement found.`, DiagnosticCode.C0_05);
+          sa.reportError(header.returnType.location, `No return statement found.`, DiagnosticType.MissingReturn);
         } else {
           this.returnStatement = returnStatement;
         }
@@ -785,7 +777,7 @@ export namespace ASTNode {
           sa.reportError(
             this.location,
             nameDeclared ? `No overload function type found: ${fnIdent}` : `Undefined function: ${fnIdent}`,
-            nameDeclared ? DiagnosticCode.C0_06 : DiagnosticCode.C0_09
+            nameDeclared ? DiagnosticType.NoMatchingOverload : DiagnosticType.UndefinedFunction
           );
           return;
         }
@@ -875,7 +867,7 @@ export namespace ASTNode {
           sa.reportError(
             this.location,
             `Cannot assign a value of type '${ParserUtils.typeName(rhs.type)}' to '${ParserUtils.typeName(lhs.type)}'.`,
-            DiagnosticCode.C1_02
+            DiagnosticType.AssignTypeMismatch
           );
         }
       }
@@ -942,7 +934,7 @@ export namespace ASTNode {
       if (children.length === 3 && children[2] instanceof BaseToken) {
         const base = children[0] as ExpressionAstNode;
         const error = ParserUtils.swizzleError(base.type, children[2].lexeme);
-        if (error) sa.reportError(children[2].location, error, DiagnosticCode.C1_01);
+        if (error) sa.reportError(children[2].location, error, DiagnosticType.InvalidSwizzle);
       }
     }
 
@@ -1344,7 +1336,7 @@ export namespace ASTNode {
       const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
       if (sa.symbolTableStack.insert(sm)) {
-        sa.reportWarning(ident.location, `Redefinition of '${ident.lexeme}'.`, DiagnosticCode.C0_10);
+        sa.reportWarning(ident.location, `Redefinition of '${ident.lexeme}'.`, DiagnosticType.Redefinition);
       }
 
       if (children.length === 4) {
@@ -1502,7 +1494,7 @@ export namespace ASTNode {
 
       if (!symbols.length) {
         if (missErrorLoc) {
-          sa.reportError(missErrorLoc, `'${name}' : undeclared identifier`, DiagnosticCode.C0_07);
+          sa.reportError(missErrorLoc, `'${name}' : undeclared identifier`, DiagnosticType.UseBeforeDeclaration);
         }
         return false;
       }

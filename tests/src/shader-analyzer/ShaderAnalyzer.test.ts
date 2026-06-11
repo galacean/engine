@@ -14,7 +14,7 @@ describe("ShaderAnalyzer", () => {
     const { diagnostics } = analyzer.analyze(source);
     expect(diagnostics.length).to.be.greaterThan(0);
     const d = diagnostics[0];
-    expect(d.code).to.equal("A1-01");
+    expect(d.code).to.equal("SyntaxError");
     expect(d.severity).to.equal("error");
     expect(d.message).to.include("#define BAD");
     expect(d.range.start.line).to.be.greaterThan(0);
@@ -56,7 +56,7 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostics.length).to.be.greaterThan(0);
     const fragDataDiag = diagnostics.find((d: Diagnostic) => d.message.includes("gl_FragData"));
     expect(fragDataDiag).to.be.ok;
-    expect(fragDataDiag!.code).to.equal("C0-12");
+    expect(fragDataDiag!.code).to.equal("GlFragData");
   });
 
   it("surfaces an undeclared identifier as an error diagnostic", () => {
@@ -73,7 +73,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const err = diagnostics.find((d: Diagnostic) => d.code === "C0-07");
+    const err = diagnostics.find((d: Diagnostic) => d.code === "UseBeforeDeclaration");
     expect(err, "expected a C0-07 error for the undeclared identifier").to.be.ok;
     expect(err!.severity).to.equal("error");
     expect(err!.message).to.include("undeclared_color");
@@ -94,7 +94,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const undef = diagnostics.find((d: Diagnostic) => d.code === "C0-09");
+    const undef = diagnostics.find((d: Diagnostic) => d.code === "UndefinedFunction");
     expect(undef, "expected a C0-09 undefined-function diagnostic").to.be.ok;
     expect(undef!.severity).to.equal("error");
     expect(undef!.message).to.include("doesNotExist");
@@ -116,7 +116,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const redef = diagnostics.find((d: Diagnostic) => d.code === "C0-10");
+    const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(redef, "expected a C0-10 redefinition warning").to.be.ok;
     expect(redef!.severity).to.equal("warning");
     expect(redef!.message).to.include("u_a");
@@ -143,7 +143,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const redef = diagnostics.find((d: Diagnostic) => d.code === "C0-10");
+    const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(redef, "macro-arm siblings must not be flagged as redefinition").to.be.undefined;
   });
 
@@ -162,7 +162,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const sw = diagnostics.find((d: Diagnostic) => d.code === "C1-01");
+    const sw = diagnostics.find((d: Diagnostic) => d.code === "InvalidSwizzle");
     expect(sw, "expected a C1-01 swizzle diagnostic").to.be.ok;
     expect(sw!.message).to.include("out of range");
   });
@@ -186,7 +186,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const mismatch = diagnostics.find((d: Diagnostic) => d.code === "C1-02");
+    const mismatch = diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
     expect(mismatch, "expected a C1-02 type-mismatch diagnostic").to.be.ok;
     expect(mismatch!.message).to.include("float");
   });
@@ -210,7 +210,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const mismatch = diagnostics.find((d: Diagnostic) => d.code === "C1-02");
+    const mismatch = diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
     expect(mismatch, "int -> float is a valid implicit conversion, must not flag").to.be.undefined;
   });
 
@@ -229,7 +229,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const ret = diagnostics.find((d: Diagnostic) => d.code === "C1-03");
+    const ret = diagnostics.find((d: Diagnostic) => d.code === "ReturnTypeMismatch");
     expect(ret, "expected a C1-03 return-type diagnostic").to.be.ok;
     expect(ret!.message).to.include("vec3");
   });
@@ -249,7 +249,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const ret = diagnostics.find((d: Diagnostic) => d.code === "C1-03");
+    const ret = diagnostics.find((d: Diagnostic) => d.code === "ReturnTypeMismatch");
     expect(ret, "int -> float return is a valid implicit conversion").to.be.undefined;
   });
 

@@ -1,3 +1,5 @@
+import { DiagnosticType } from "@galacean/engine-shader-parser";
+
 /**
  * Structured diagnostic produced by the shader analyzer.
  *
@@ -5,8 +7,11 @@
  */
 export interface Diagnostic {
   severity: DiagnosticSeverity;
-  /** Structured error code, e.g. "C0-01", "A1-01" (or "ruleName/code" for custom rules). */
-  code: string;
+  /**
+   * Semantic classification of the diagnostic. Built-in diagnostics carry a `DiagnosticType`;
+   * custom rules carry a `"ruleName/code"` namespaced string.
+   */
+  code: DiagnosticType | (string & {});
   message: string;
   range: {
     start: { line: number; column: number; offset: number };
@@ -17,8 +22,7 @@ export interface Diagnostic {
   relatedSource?: string;
 }
 
-export type DiagnosticSeverity = "error" | "warning" | "info" | "hint";
+export type DiagnosticSeverity = "error" | "warning";
 
-// Code registry lives with the producers (parser/codegen); re-exported here for analyzer consumers.
-export { DiagnosticCode } from "@galacean/engine-shader-parser";
-export type { DiagnosticCodeValue } from "@galacean/engine-shader-parser";
+// Classification enum lives with the producers (parser/codegen); re-exported here for analyzer consumers.
+export { DiagnosticType };
