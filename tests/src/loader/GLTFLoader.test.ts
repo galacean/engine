@@ -26,7 +26,7 @@ import {
   registerGLTFParser
 } from "@galacean/engine-loader";
 import { Color } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, afterAll, expect, it } from "vitest";
 
 let engine: WebGLEngine;
@@ -68,6 +68,60 @@ beforeAll(async function () {
             {
               inverseBindMatrices: 0,
               joints: [1, 2]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "MAT4"
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 128
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 128
+            }
+          ]
+        });
+      }
+
+      if (context.glTFResource.url.endsWith("testSingleSkeleton.gltf")) {
+        context.buffers = [new ArrayBuffer(128)];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              nodes: [0, 2]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Root",
+              children: [1]
+            },
+            {
+              name: "mixamorig:Hips"
+            },
+            {
+              name: "Light"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              joints: [0, 1]
             }
           ],
           accessors: [
@@ -704,6 +758,19 @@ describe("glTF scene root structure", function () {
     expect(skins[0].rootBone).to.equal(defaultSceneRoot);
   });
 
+  it("Multi-root scenes whose joints converge to a single top-level root should not use the scene wrapper", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testSingleSkeleton.gltf"
+    });
+    const { defaultSceneRoot, skins } = glTFResource;
+
+    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
+    expect(defaultSceneRoot.children.length).to.equal(2);
+    expect(skins[0].rootBone).to.not.equal(defaultSceneRoot);
+    expect(skins[0].rootBone.name).to.equal("Character_Root");
+  });
+
   it("Skinned mesh bounds should stay in rootBone space when inferred rootBone is outside joints", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
@@ -715,6 +782,7 @@ describe("glTF scene root structure", function () {
     const renderer = characterMesh.getComponent(SkinnedMeshRenderer);
 
     expect(skins[0].rootBone).to.equal(characterGroup);
+    expect(renderer).to.exist;
     expect(renderer.localBounds.min.x).to.be.closeTo(6, 1e-5);
     expect(renderer.localBounds.max.x).to.be.closeTo(8, 1e-5);
     expect(renderer.bounds.min.x).to.be.closeTo(9, 1e-5);
