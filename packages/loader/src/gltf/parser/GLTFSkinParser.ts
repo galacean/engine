@@ -37,6 +37,9 @@ export class GLTFSkinParser extends GLTFParser {
       // Get skeleton
       if (skeleton !== undefined) {
         const rootBone = entities[skeleton];
+        if (!rootBone) {
+          throw `Skin skeleton index ${skeleton} is out of range.`;
+        }
         skin.rootBone = rootBone;
       } else {
         const rootBone = this._findSkinRootBoneByLCA(index, joints, entities, glTF.nodes);
