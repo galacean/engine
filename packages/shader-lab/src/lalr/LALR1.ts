@@ -29,6 +29,11 @@ export class LALR1 {
   generate() {
     this.computeFirstSet();
     this.buildStateTable();
+    // The action/goto tables are self-contained (numeric state/production ids),
+    // so the State/StateItem closure graph used to build them is never read at
+    // runtime. Release it here. `Production.pool` must stay alive: reduce
+    // actions resolve productions by id while parsing.
+    State.clearPool();
   }
 
   private buildStateTable() {

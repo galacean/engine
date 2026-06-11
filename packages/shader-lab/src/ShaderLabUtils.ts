@@ -21,6 +21,19 @@ export class ShaderLabUtils {
     }
   }
 
+  /**
+   * Truly release all pooled objects, in contrast to `clearAllShaderLabObjectPool`
+   * which only resets the used counter and keeps every element referenced (pool
+   * capacity stays at the compilation-time peak — ~150k token/AST objects in real
+   * projects). Call when compilation has converged (e.g. after shader warm-up);
+   * pools transparently re-allocate on demand if compilation happens again.
+   */
+  static releaseAllShaderLabObjectPool() {
+    for (let i = 0, n = ShaderLabUtils._shaderLabObjectPoolSet.length; i < n; i++) {
+      ShaderLabUtils._shaderLabObjectPoolSet[i].garbageCollection();
+    }
+  }
+
   static createGSError(
     message: string,
     errorName: GSErrorName,

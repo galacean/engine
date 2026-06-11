@@ -37,6 +37,20 @@ export class ShaderLab implements IShaderLab {
     return range;
   }
 
+  /**
+   * Release compilation caches: the token/AST object pools, which otherwise stay
+   * at their compilation-time peak for the whole engine lifetime (~9MB plus GC
+   * mark cost in real projects; the LALR table-construction scaffold is already
+   * released automatically once the parse table is built).
+   *
+   * Call when no further shader compilation is expected soon — typically after
+   * shader warm-up. Compiling again afterwards is still fully supported: pools
+   * simply re-allocate on demand.
+   */
+  static releaseCompilationCache(): void {
+    ShaderLabUtils.releaseAllShaderLabObjectPool();
+  }
+
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderLabUtils.clearAllShaderLabObjectPool();
     const shaderSource = ShaderSourceParser.parse(sourceCode);

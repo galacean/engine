@@ -7,6 +7,20 @@ export default class State {
   static pool: Map<number, State> = new Map();
   static _id = 0;
 
+  /**
+   * Release the table-construction scaffold (the whole State/StateItem closure graph).
+   * Runtime parsing only reads the action/goto tables, whose entries are numeric
+   * state/production ids, so this graph is garbage once `LALR1.generate` finishes —
+   * yet it pins 10k+ objects (each `StateItem.lookaheadSet` costs ~2KB of hash
+   * buckets on JavaScriptCore, ~30MB total in real projects).
+   * Note: `printStatePool` (_VERBOSE debug helper) dumps nothing after this runs;
+   * break before `LALR1.generate` returns if you need the state graph.
+   */
+  static clearPool() {
+    this.closureMap.clear();
+    this.pool.clear();
+  }
+
   readonly id: number;
   readonly cores: Set<StateItem>;
   private _items: Set<StateItem>;
