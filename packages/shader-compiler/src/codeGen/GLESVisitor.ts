@@ -143,7 +143,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         if (!varyingSymbols.length) {
           this._reportError(
             returnType.location,
-            `invalid varying struct: "${returnType.type}".`,
+            `Invalid varying struct: "${returnType.type}".`,
             DiagnosticType.InvalidVaryingStruct
           );
         } else {
@@ -174,7 +174,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
           if (!attributeSymbols.length) {
             this._reportError(
               attributeParam.astNode.location,
-              `invalid attribute struct: "${attributeType}".`,
+              `Invalid attribute struct: "${attributeType}".`,
               DiagnosticType.InvalidAttributeStruct
             );
           } else {
@@ -243,7 +243,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
         lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
         const mrtSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
         if (!mrtSymbols.length) {
-          this._reportError(returnLocation, `invalid mrt struct: ${returnDataType}`, DiagnosticType.InvalidMrtStruct);
+          this._reportError(returnLocation, `Invalid MRT struct: ${returnDataType}`, DiagnosticType.InvalidMrtStruct);
         } else {
           for (let i = 0; i < mrtSymbols.length; i++) {
             const mrtSymbol = mrtSymbols[i];

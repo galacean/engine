@@ -104,7 +104,7 @@ export class ShaderIOAnalyzer {
           this._error(
             errors,
             DiagnosticType.InvalidVaryingStruct,
-            `invalid varying struct: "${returnType.type}".`,
+            `Invalid varying struct: "${returnType.type}".`,
             returnType.location,
             source
           );
@@ -130,7 +130,7 @@ export class ShaderIOAnalyzer {
             this._error(
               errors,
               DiagnosticType.InvalidAttributeStruct,
-              `invalid attribute struct: "${attributeType}".`,
+              `Invalid attribute struct: "${attributeType}".`,
               attributeParam.astNode.location,
               source
             );
@@ -157,7 +157,7 @@ export class ShaderIOAnalyzer {
           this._error(
             errors,
             DiagnosticType.InvalidMrtStruct,
-            `invalid mrt struct: ${returnDataType}`,
+            `Invalid MRT struct: ${returnDataType}`,
             returnLocation,
             source
           );
