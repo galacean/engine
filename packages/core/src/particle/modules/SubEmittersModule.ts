@@ -65,8 +65,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     emitProbability: number = 1,
     emitCount: number = 1
   ): void {
-    // Death events read the dying particle's exact position back from the transform-feedback
-    // buffer, which is WebGL2-only.
     if (type === ParticleSubEmitterType.Death && !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
       throw new Error("Death sub-emitter requires WebGL2");
     }
@@ -81,7 +79,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     sub.emitProbability = emitProbability;
     sub.emitCount = emitCount;
     this.subEmitters.push(sub);
-    // A Death slot forces transform-feedback on (it reads the feedback buffer).
     this._generator._setTransformFeedback();
   }
 
@@ -91,7 +88,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    */
   removeSubEmitterByIndex(index: number): void {
     this.subEmitters.splice(index, 1);
-    // Removing the last Death slot may turn transform-feedback back off.
     this._generator._setTransformFeedback();
   }
 
@@ -102,7 +98,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   override set enabled(value: boolean) {
     if (value !== this._enabled) {
       this._enabled = value;
-      // Enabling/disabling gates whether Death slots force transform-feedback on.
       this._generator._setTransformFeedback();
     }
   }
@@ -137,8 +132,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       const colorOverride = (inherit & ParticleSubEmitterInheritProperty.Color) !== 0 ? parentColor : null;
       const sizeOverride = (inherit & ParticleSubEmitterInheritProperty.Size) !== 0 ? parentSize : null;
       const rotationOverride = (inherit & ParticleSubEmitterInheritProperty.Rotation) !== 0 ? parentRotation : null;
-      // Velocity inherit is opt-in (and only Death carries a direction); otherwise the target
-      // emits along its own default direction.
       const directionOverride = (inherit & ParticleSubEmitterInheritProperty.Velocity) !== 0 ? worldDirection : null;
 
       target.generator._emitFromSubEmitter(

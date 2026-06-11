@@ -137,8 +137,6 @@ export class ParticleGenerator {
   /** @internal */
   @ignoreClone
   private _feedbackBindingIndex = -1;
-  // Death-frame snapshot of the feedback buffer (position+velocity per particle), read back
-  // from the GPU so `_onParticleDeath` uses the true simulated position.
   @ignoreClone
   private _feedbackReadback: Float32Array = null;
 
@@ -164,8 +162,6 @@ export class ParticleGenerator {
   @ignoreClone
   private _playStartDelay = 0;
 
-  // Per-instance scratch for Birth/Death dispatch payloads — must be instance, not static,
-  // so a nested A→B→C dispatch chain doesn't clobber an ancestor's in-flight payload.
   @ignoreClone
   private _eventPos = new Vector3();
   @ignoreClone
@@ -174,7 +170,6 @@ export class ParticleGenerator {
   private _eventSize = new Vector3();
   @ignoreClone
   private _eventRotation = new Vector3();
-  // Parent's world-space velocity at death, used to emit sub particles along its motion.
   @ignoreClone
   private _eventDir = new Vector3();
 
@@ -1146,8 +1141,6 @@ export class ParticleGenerator {
     Quaternion.invert(worldRot, invRot);
     Vector3.transformByQuat(localPos, invRot, localPos);
 
-    // Emit along the parent's motion (worldDirection rotated into this emitter's local space);
-    // fall back to -Z when there's no direction (Birth events) or it's ~zero (stationary parent).
     const direction = ParticleGenerator._tempVector31;
     if (worldDirection) {
       Vector3.transformByQuat(worldDirection, invRot, direction);
@@ -1216,11 +1209,8 @@ export class ParticleGenerator {
     const frameCount = engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
-    // Pre-flight: are there any Death sub-emitter slots? (avoid per-particle scan)
     const hasDeathSlot = this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
     if (hasDeathSlot && this._feedbackSimulator) {
-      // A Death slot forces transform-feedback on; snapshot the whole feedback buffer once so
-      // `_onParticleDeath` reads each dying particle's true simulated position (last frame's).
       const floatCount = (this._currentParticleCount * ParticleBufferUtils.feedbackVertexStride) / 4;
       let readback = this._feedbackReadback;
       if (!readback || readback.length < floatCount) {
@@ -1260,8 +1250,6 @@ export class ParticleGenerator {
     const transform = this._renderer.entity.transform;
     const simSpaceLocal = main.simulationSpace === ParticleSimulationSpace.Local;
 
-    // True simulated position from this frame's feedback snapshot (a_FeedbackPosition is in
-    // simulation space, like the render TF branch): local → rotate + worldPosition, world → as-is.
     const ringIndex = particleOffset / ParticleBufferUtils.instanceVertexFloatStride;
     const fb = this._feedbackReadback;
     const fbBase = (ringIndex * ParticleBufferUtils.feedbackVertexStride) / 4;
@@ -1272,9 +1260,6 @@ export class ParticleGenerator {
       local.add(transform.worldPosition);
     }
 
-    // Parent's world-space velocity (feedback velocity is in sim space): rotate to world for
-    // local sim, as-is for world sim. VOL's instantaneous term is not added — it isn't stored in
-    // the feedback velocity and re-evaluating it on CPU would reintroduce mirror debt.
     const dir = this._eventDir;
     dir.set(fb[fbBase + 3], fb[fbBase + 4], fb[fbBase + 5]);
     if (simSpaceLocal) {
