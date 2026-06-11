@@ -150,8 +150,8 @@ beforeAll(async function () {
       if (context.glTFResource.url.endsWith("testSkinRootBounds.gltf")) {
         const buffer = new ArrayBuffer(152);
         const floats = new Float32Array(buffer);
-        // Inverse bind matrices for Hips and Spine. Their bind pose world x is
-        // Character_Group(3) + Hips(10), so inverse bind translates by -13.
+        // Inverse bind matrices for Hips and Spine; their bind pose world x is
+        // Character_Group(3) + Hips(10), so inverse bind translates by -13
         floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 0);
         floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 16);
         floats.set([9, -1, -1, 11, 1, 1], 32);

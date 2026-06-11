@@ -34,7 +34,8 @@ export class GLTFSkinParser extends GLTFParser {
       }
       skin.bones = bones;
 
-      // Get skeleton
+      // Respect explicit skeleton root. If missing, infer only from the joint
+      // hierarchy; mesh nodes using the skin are owners, not skeleton roots
       if (skeleton !== undefined) {
         const rootBone = entities[skeleton];
         if (!rootBone) {
@@ -60,6 +61,7 @@ export class GLTFSkinParser extends GLTFParser {
     return this._findRootBoneByLCA(joints, entities);
   }
 
+  /** Resolves missing skin.skeleton from the joints' lowest common ancestor. */
   private _findRootBoneByLCA(nodeIndices: number[], entities: Entity[]): Entity | null {
     const paths: Entity[][] = [];
     for (const index of nodeIndices) {
