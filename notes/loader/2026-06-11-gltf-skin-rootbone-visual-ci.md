@@ -38,7 +38,5 @@ Keep the separate bounds behavior for explicit root bones outside the joint list
 
 - `pnpm vitest run tests/src/loader/GLTFLoader.test.ts --testNamePattern "Multi-root skins without skeleton"` failed before the fix with `skins[0].rootBone === defaultSceneRoot`.
 - `npm run build` passed.
-- `pnpm vitest run packages/loader/src/gltf/parser/GLTFSkinParser.test.ts` passed.
 - `pnpm vitest run tests/src/loader/GLTFLoader.test.ts --testNamePattern "Multi-root skins without skeleton|Skinned mesh bounds"` passed.
 - `CI=true PLAYWRIGHT_FORCE_TTY=1 npx playwright test --grep "(Animator.*(additive|crossfade|play$|playBackWards|stateMachine$)|Material.*unlit|Shadow.*basic|Camera.*opaqueTexture)" --reporter=list,github` passed: 8/8.
-

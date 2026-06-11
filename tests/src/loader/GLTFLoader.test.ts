@@ -53,8 +53,7 @@ beforeAll(async function () {
           ],
           nodes: [
             {
-              name: "Character_Man",
-              skin: 0
+              name: "Character_Man"
             },
             {
               name: "mixamorig:Hips",
