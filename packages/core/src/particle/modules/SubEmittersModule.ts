@@ -65,6 +65,11 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     emitProbability: number = 1,
     emitCount: number = 1
   ): void {
+    // Death events read the dying particle's exact position back from the transform-feedback
+    // buffer, which is WebGL2-only.
+    if (type === ParticleSubEmitterType.Death && !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
+      throw new Error("Death sub-emitter requires WebGL2");
+    }
     // Sole cycle guard — runtime dispatch trusts it; mutating slots directly is unsupported
     if (SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
       throw new Error("Sub-emitter would create a cycle");
@@ -76,6 +81,8 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     sub.emitProbability = emitProbability;
     sub.emitCount = emitCount;
     this.subEmitters.push(sub);
+    // A Death slot forces transform-feedback on (it reads the feedback buffer).
+    this._generator._setTransformFeedback();
   }
 
   /**
@@ -84,6 +91,20 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    */
   removeSubEmitterByIndex(index: number): void {
     this.subEmitters.splice(index, 1);
+    // Removing the last Death slot may turn transform-feedback back off.
+    this._generator._setTransformFeedback();
+  }
+
+  override get enabled(): boolean {
+    return this._enabled;
+  }
+
+  override set enabled(value: boolean) {
+    if (value !== this._enabled) {
+      this._enabled = value;
+      // Enabling/disabling gates whether Death slots force transform-feedback on.
+      this._generator._setTransformFeedback();
+    }
   }
 
   /**

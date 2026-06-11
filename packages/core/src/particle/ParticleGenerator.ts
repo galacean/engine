@@ -137,6 +137,10 @@ export class ParticleGenerator {
   /** @internal */
   @ignoreClone
   private _feedbackBindingIndex = -1;
+  // Death-frame snapshot of the feedback buffer (position+velocity per particle), read back
+  // from the GPU so `_onParticleDeath` uses the true simulated position.
+  @ignoreClone
+  private _feedbackReadback: Float32Array = null;
 
   @ignoreClone
   private _isPlaying = false;
@@ -669,7 +673,10 @@ export class ParticleGenerator {
    * @internal
    */
   _setTransformFeedback(): void {
-    const needed = this.limitVelocityOverLifetime.enabled || this.noise.enabled;
+    const needed =
+      this.limitVelocityOverLifetime.enabled ||
+      this.noise.enabled ||
+      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
     if (needed === this._useTransformFeedback) return;
     this._useTransformFeedback = needed;
 
@@ -1197,6 +1204,16 @@ export class ParticleGenerator {
 
     // Pre-flight: are there any Death sub-emitter slots? (avoid per-particle scan)
     const hasDeathSlot = this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
+    if (hasDeathSlot && this._feedbackSimulator) {
+      // A Death slot forces transform-feedback on; snapshot the whole feedback buffer once so
+      // `_onParticleDeath` reads each dying particle's true simulated position (last frame's).
+      const floatCount = (this._currentParticleCount * ParticleBufferUtils.feedbackVertexStride) / 4;
+      let readback = this._feedbackReadback;
+      if (!readback || readback.length < floatCount) {
+        readback = this._feedbackReadback = new Float32Array(floatCount);
+      }
+      this._feedbackSimulator.readBinding.buffer.getData(readback, 0, 0, floatCount);
+    }
 
     while (this._firstActiveElement !== this._firstNewElement) {
       const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
@@ -1223,65 +1240,30 @@ export class ParticleGenerator {
     }
   }
 
-  // Death position is a ballistic approximation. Missing module contributions:
-  // - VelocityOverLifetime: closed-form, mirrorable via `_evaluateCumulative` per axis × lifetime (rand slots 24-26)
-  // - ForceOverLifetime: closed-form, needs a double-integral mirror of `evaluateForceParticleCurveCumulative` (rand slots 38-40)
-  // - LimitVelocityOverLifetime (dampen/drag): feedback path only — stateful on the GPU, no closed form
-  // - Noise: feedback path only — stateful on the GPU, no closed form
-  // Death timing is frame-quantized — children spawn at the tick, no sub-frame catch-up.
   private _onParticleDeath(particleOffset: number): void {
     const instanceVertices = this._instanceVertices;
     const main = this.main;
     const transform = this._renderer.entity.transform;
     const simSpaceLocal = main.simulationSpace === ParticleSimulationSpace.Local;
 
-    const lifetime = instanceVertices[particleOffset + 3];
-    const startSpeed = instanceVertices[particleOffset + 18];
-    const gravityMod = instanceVertices[particleOffset + 19];
-
-    // Local-space end position before world rotation: a_ShapePos + dir·speed·lifetime
+    // True simulated position from this frame's feedback snapshot (a_FeedbackPosition is in
+    // simulation space, like the render TF branch): local → rotate + worldPosition, world → as-is.
+    const ringIndex = particleOffset / ParticleBufferUtils.instanceVertexFloatStride;
+    const fb = this._feedbackReadback;
+    const fbBase = (ringIndex * ParticleBufferUtils.feedbackVertexStride) / 4;
     const local = this._eventPos;
-    local.set(
-      instanceVertices[particleOffset + 0] + instanceVertices[particleOffset + 4] * startSpeed * lifetime,
-      instanceVertices[particleOffset + 1] + instanceVertices[particleOffset + 5] * startSpeed * lifetime,
-      instanceVertices[particleOffset + 2] + instanceVertices[particleOffset + 6] * startSpeed * lifetime
-    );
-
-    let worldRotation: Quaternion;
+    local.set(fb[fbBase], fb[fbBase + 1], fb[fbBase + 2]);
     if (simSpaceLocal) {
-      worldRotation = transform.worldRotationQuaternion;
-    } else {
-      const tempQ = ParticleGenerator._tempQuat0;
-      tempQ.set(
-        instanceVertices[particleOffset + 30],
-        instanceVertices[particleOffset + 31],
-        instanceVertices[particleOffset + 32],
-        instanceVertices[particleOffset + 33]
-      );
-      worldRotation = tempQ;
-    }
-    Vector3.transformByQuat(local, worldRotation, local);
-
-    if (simSpaceLocal) {
+      Vector3.transformByQuat(local, transform.worldRotationQuaternion, local);
       local.add(transform.worldPosition);
-    } else {
-      local.x += instanceVertices[particleOffset + 27];
-      local.y += instanceVertices[particleOffset + 28];
-      local.z += instanceVertices[particleOffset + 29];
     }
-
-    // Gravity contribution: 0.5 · gravity · gravityMod · lifetime² (world-space)
-    const gravity = this._renderer.scene.physics.gravity;
-    const halfTSquaredR = 0.5 * lifetime * lifetime * gravityMod;
-    local.x += gravity.x * halfTSquaredR;
-    local.y += gravity.y * halfTSquaredR;
-    local.z += gravity.z * halfTSquaredR;
 
     // Evaluate at the parent's normalizedAge so children inherit its visible appearance at death.
+    const lifetime = instanceVertices[particleOffset + 3];
+    const bornTime = instanceVertices[particleOffset + 7];
     const parentColor = this._eventColor;
     const parentSize = this._eventSize;
     const parentRotation = this._eventRotation;
-    const bornTime = instanceVertices[particleOffset + 7];
     const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
     this._evaluateOverLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
 
