@@ -13,9 +13,12 @@ import {
   ParticleGradientMode,
   ParticleMaterial,
   ParticleRenderer,
+  ParticleSimulationSpace,
   ParticleStopMode,
   ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
+  ConeShape,
+  Vector3,
   WebGLEngine
 } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -464,5 +467,58 @@ describe("SubEmitter", () => {
 
     parent.entity.destroy();
     child.entity.destroy();
+  });
+
+  it("World-space Velocity inherit rotates feedback velocity by the spawn rotation (regression)", () => {
+    // World sim, gravity off, cone angle 0 → feedback velocity is exactly (0,0,-1) in the
+    // spawn-local frame. That frame persists in the feedback buffer regardless of sim space,
+    // so converting to world must use the emitter's spawn rotation, not identity.
+    function build(name: string, rotXDeg: number) {
+      const parent = createParticleRenderer(engine, name + "_P");
+      const child = createParticleRenderer(engine, name + "_C");
+      parent.generator.main.simulationSpace = ParticleSimulationSpace.World;
+      parent.generator.main.gravityModifier.constant = 0;
+      parent.generator.main.startLifetime.constant = 0.5;
+      parent.generator.main.startSpeed.constant = 2;
+      const shape = new ConeShape();
+      shape.angle = 0;
+      shape.radius = 0;
+      parent.generator.emission.shape = shape;
+      parent.entity.transform.rotation = new Vector3(rotXDeg, 0, 0);
+      parent.generator.subEmitters.enabled = true;
+      parent.generator.subEmitters.addSubEmitter(
+        child,
+        ParticleSubEmitterType.Death,
+        ParticleSubEmitterInheritProperty.Velocity,
+        undefined,
+        1
+      );
+      parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+      parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+      child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.play();
+      return { parent, child };
+    }
+    const straight = build("VelStraight", 0);
+    const spun = build("VelSpun", 90);
+    updateEngine(engine, 10);
+
+    // a_DirectionTime @ float offset 4..6 holds the child's (normalized) emission direction.
+    const s = (straight.child.generator as any)._instanceVertices as Float32Array;
+    expect(straight.child.generator._getAliveParticleCount()).to.equal(1);
+    expect(s[4]).to.be.closeTo(0, 1e-4);
+    expect(s[5]).to.be.closeTo(0, 1e-4);
+    expect(s[6]).to.be.closeTo(-1, 1e-4);
+
+    // Spawn rotation 90° about X maps (0,0,-1) → (0,1,0); under the bug it stayed (0,0,-1).
+    const r = (spun.child.generator as any)._instanceVertices as Float32Array;
+    expect(r[4]).to.be.closeTo(0, 1e-4);
+    expect(r[5]).to.be.closeTo(1, 1e-4);
+    expect(r[6]).to.be.closeTo(0, 1e-4);
+
+    straight.parent.entity.destroy();
+    straight.child.entity.destroy();
+    spun.parent.entity.destroy();
+    spun.child.entity.destroy();
   });
 });

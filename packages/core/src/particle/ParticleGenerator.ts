@@ -1268,6 +1268,15 @@ export class ParticleGenerator {
     dir.set(fb[fbBase + 3], fb[fbBase + 4], fb[fbBase + 5]);
     if (simSpaceLocal) {
       Vector3.transformByQuat(dir, transform.worldRotationQuaternion, dir);
+    } else {
+      const spawnRotation = ParticleGenerator._tempQuat0;
+      spawnRotation.set(
+        instanceVertices[particleOffset + 30],
+        instanceVertices[particleOffset + 31],
+        instanceVertices[particleOffset + 32],
+        instanceVertices[particleOffset + 33]
+      );
+      Vector3.transformByQuat(dir, spawnRotation, dir);
     }
 
     // Evaluate at the parent's normalizedAge so children inherit its visible appearance at death.
