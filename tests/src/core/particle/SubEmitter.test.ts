@@ -263,6 +263,40 @@ describe("SubEmitter", () => {
     c.entity.destroy();
   });
 
+  it("Multi-level Birth chain keeps each sibling's emission position (regression)", () => {
+    const a = createParticleRenderer(engine, "Clobber_A");
+    const b = createParticleRenderer(engine, "Clobber_B");
+    const c = createParticleRenderer(engine, "Clobber_C");
+
+    // B sits 10 units from A, so its sub particles land at local x = -10. A and C emit
+    // at their own origins, so C's local x is 0 — a clear marker of cross-talk.
+    b.entity.transform.setPosition(10, 0, 0);
+
+    a.generator.subEmitters.enabled = true;
+    a.generator.subEmitters.addSubEmitter(b, ParticleSubEmitterType.Birth, undefined, undefined, 2);
+    b.generator.subEmitters.enabled = true;
+    b.generator.subEmitters.addSubEmitter(c, ParticleSubEmitterType.Birth, undefined, undefined, 1);
+
+    a.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    a.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    b.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    c.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    a.generator.play();
+
+    updateEngine(engine, 5);
+
+    const stride = 42; // ParticleBufferUtils.instanceVertexFloatStride
+    const verts = (b.generator as any)._instanceVertices as Float32Array;
+    expect(b.generator._getAliveParticleCount()).to.equal(2);
+    expect(verts[0]).to.be.closeTo(-10, 1e-4); // B particle 1
+    // Particle 1's Birth nested into C (origin) mid-loop; particle 2 must still read -10, not 0.
+    expect(verts[stride]).to.be.closeTo(-10, 1e-4);
+
+    a.entity.destroy();
+    b.entity.destroy();
+    c.entity.destroy();
+  });
+
   it("Color inherit at Death uses parent's COL-modulated value (matches visible color)", () => {
     // Parent: startColor white, COL fades to (0.5, 0.5, 0.5, 1) at t=1.
     // Child:  startColor white.

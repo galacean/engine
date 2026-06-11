@@ -172,6 +172,10 @@ export class ParticleGenerator {
   private _eventRotation = new Vector3();
   @ignoreClone
   private _eventDir = new Vector3();
+  @ignoreClone
+  private _emitLocalPos = new Vector3();
+  @ignoreClone
+  private _emitDirection = new Vector3();
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -1135,13 +1139,13 @@ export class ParticleGenerator {
     const worldRot = transform.worldRotationQuaternion;
 
     // Convert event world position into local emission space for a_ShapePos
-    const localPos = ParticleGenerator._tempVector30;
+    const localPos = this._emitLocalPos;
     Vector3.subtract(worldPosition, worldPos, localPos);
     const invRot = ParticleGenerator._tempQuat0;
     Quaternion.invert(worldRot, invRot);
     Vector3.transformByQuat(localPos, invRot, localPos);
 
-    const direction = ParticleGenerator._tempVector31;
+    const direction = this._emitDirection;
     if (worldDirection) {
       Vector3.transformByQuat(worldDirection, invRot, direction);
       const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
