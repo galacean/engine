@@ -59,7 +59,7 @@ describe("ShaderAnalyzer", () => {
     expect(fragDataDiag!.code).to.equal("C0-12");
   });
 
-  it("surfaces an undeclared identifier as a warning diagnostic", () => {
+  it("surfaces an undeclared identifier as an error diagnostic", () => {
     const source = `Shader "c2" {
   SubShader "Default" {
     Pass "test" {
@@ -73,11 +73,11 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const warn = diagnostics.find((d: Diagnostic) => d.code === "C0-07");
-    expect(warn, "expected a C0-07 warning for the undeclared identifier").to.be.ok;
-    expect(warn!.severity).to.equal("warning");
-    expect(warn!.message).to.include("undeclared_color");
-    expect(warn!.range.start.line).to.be.greaterThan(0);
+    const err = diagnostics.find((d: Diagnostic) => d.code === "C0-07");
+    expect(err, "expected a C0-07 error for the undeclared identifier").to.be.ok;
+    expect(err!.severity).to.equal("error");
+    expect(err!.message).to.include("undeclared_color");
+    expect(err!.range.start.line).to.be.greaterThan(0);
   });
 
   it("reports an undefined function call distinctly from an overload mismatch", () => {

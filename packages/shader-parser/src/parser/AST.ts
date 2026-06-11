@@ -1482,8 +1482,8 @@ export namespace ASTNode {
 
     /** Look up `name` in the symbol stack and, if a global var/fn declaration
      *  exists, push it into `referenceGlobalSymbolNames`. Returns `true` iff
-     *  the lookup hit (caller can then derive type info). When `missWarnLoc`
-     *  is non-null, a miss reports a "declared before used" warning; pass
+     *  the lookup hit (caller can then derive type info). When `missErrorLoc`
+     *  is non-null, a miss reports an "undeclared identifier" error; pass
      *  `null` for silent probes (e.g. FXAA-style cross-arm shadowing).
      *
      *  Mutation contract: `symbols` is used as scratch storage — `lookupAll`
@@ -1494,19 +1494,15 @@ export namespace ASTNode {
       name: string,
       symbols: (VarSymbol | FnSymbol)[],
       referenceGlobalSymbolNames: string[],
-      missWarnLoc: ShaderRange | null
+      missErrorLoc: ShaderRange | null
     ): boolean {
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
       sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
 
       if (!symbols.length) {
-        if (missWarnLoc) {
-          sa.reportWarning(
-            missWarnLoc,
-            `Please sure the identifier "${name}" will be declared before used.`,
-            DiagnosticCode.C0_07
-          );
+        if (missErrorLoc) {
+          sa.reportError(missErrorLoc, `'${name}' : undeclared identifier`, DiagnosticCode.C0_07);
         }
         return false;
       }
