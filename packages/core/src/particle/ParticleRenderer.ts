@@ -46,10 +46,11 @@ export class ParticleRenderer extends Renderer {
   /** @internal */
   @ignoreClone
   _transformedBounds = new BoundingBox();
+  @ignoreClone
+  private _mesh: ModelMesh;
 
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
   private _currentRenderModeMacro: ShaderMacro;
-  private _mesh: ModelMesh;
   private _supportInstancedArrays: boolean;
 
   /**
@@ -264,6 +265,14 @@ export class ParticleRenderer extends Renderer {
     }
     super._onDestroy();
     this.generator._destroy();
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: ParticleRenderer): void {
+    super._cloneTo(target);
+    target.mesh = this._mesh;
   }
 
   /**

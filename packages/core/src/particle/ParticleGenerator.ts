@@ -412,6 +412,9 @@ export class ParticleGenerator {
 
     if (renderer.renderMode === ParticleRenderMode.Mesh) {
       const { mesh } = renderer;
+      if (!mesh) {
+        return;
+      }
       const positionElement = mesh.getVertexElement(VertexAttribute.Position);
       const colorElement = mesh.getVertexElement(VertexAttribute.Color);
       const uvElement = mesh.getVertexElement(VertexAttribute.UV);

@@ -1,4 +1,4 @@
-import { Camera, ModelMesh, ParticleRenderer, ParticleRenderMode, Scene } from "@galacean/engine-core";
+import { Camera, ModelMesh, ParticleRenderer, ParticleRenderMode, PrimitiveMesh, Scene } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
 
@@ -87,5 +87,57 @@ describe("ParticleRenderer", () => {
 
     mesh.destroy(true);
     expect(mesh.refCount).to.eq(0);
+  });
+
+  it("clone with mesh render mode", () => {
+    const entity = scene.createRootEntity("CloneSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = mesh;
+    expect(mesh.refCount).to.eq(1);
+
+    const cloneEntity = entity.clone();
+    scene.addRootEntity(cloneEntity);
+    const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+    expect(cloneRenderer.renderMode).to.eq(ParticleRenderMode.Mesh);
+    expect(cloneRenderer.mesh).to.eq(mesh);
+    expect(mesh.refCount).to.eq(2);
+
+    // Each renderer holds its own reference, destroying one should not release the other's
+    cloneEntity.destroy();
+    expect(mesh.refCount).to.eq(1);
+    entity.destroy();
+    expect(mesh.refCount).to.eq(0);
+  });
+
+  it("clone with mesh render mode but no mesh", () => {
+    const entity = scene.createRootEntity("CloneSourceNoMesh");
+    const renderer = entity.addComponent(ParticleRenderer);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+
+    expect(() => {
+      const cloneEntity = entity.clone();
+      const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+      expect(cloneRenderer.renderMode).to.eq(ParticleRenderMode.Mesh);
+      expect(cloneRenderer.mesh).to.be.undefined;
+      cloneEntity.destroy();
+    }).not.to.throw();
+
+    entity.destroy();
+  });
+
+  it("reorganize geometry buffers with mesh render mode but no mesh", () => {
+    const entity = scene.createRootEntity("NoMeshReorganize");
+    const renderer = entity.addComponent(ParticleRenderer);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+
+    // Toggling noise module triggers buffer reorganization, which must tolerate a null mesh
+    expect(() => {
+      renderer.generator.noise.enabled = true;
+      renderer.generator.noise.enabled = false;
+    }).not.to.throw();
+
+    entity.destroy();
   });
 });
