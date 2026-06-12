@@ -150,11 +150,11 @@ beforeAll(async function () {
       if (context.glTFResource.url.endsWith("testSkinRootBounds.gltf")) {
         const buffer = new ArrayBuffer(152);
         const floats = new Float32Array(buffer);
-        // Inverse bind matrices for Hips and Spine; their bind pose world x is
-        // Character_Group(3) + Hips(10), so inverse bind translates by -13
-        floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 0);
-        floats.set([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, -13, 0, 0, 1], 16);
-        floats.set([9, -1, -1, 11, 1, 1], 32);
+        // Inverse bind matrices for Hips and Spine; Character_Group scales by
+        // (2, 3, 1), then offsets Hips by 10 on x, so Hips world x is 23.
+        floats.set([0.5, 0, 0, 0, 0, 1 / 3, 0, 0, 0, 0, 1, 0, -11.5, 0, 0, 1], 0);
+        floats.set([0.5, 0, 0, 0, 0, 1 / 3, 0, 0, 0, 0, 1, 0, -11.5, 0, 0, 1], 16);
+        floats.set([9, -3, -1, 11, 3, 1], 32);
         context.buffers = [buffer];
         return Promise.resolve({
           asset: {
@@ -170,6 +170,7 @@ beforeAll(async function () {
             {
               name: "Character_Group",
               translation: [3, 0, 0],
+              scale: [2, 3, 1],
               children: [1, 2]
             },
             {
@@ -219,8 +220,8 @@ beforeAll(async function () {
               componentType: 5126,
               count: 2,
               type: "VEC3",
-              min: [9, -1, -1],
-              max: [11, 1, 1]
+              min: [9, -3, -1],
+              max: [11, 3, 1]
             }
           ],
           bufferViews: [
@@ -772,7 +773,7 @@ describe("glTF scene root structure", function () {
     expect(skins[0].rootBone.name).to.equal("Character_Root");
   });
 
-  it("Skinned mesh bounds should stay in rootBone space when explicit rootBone is outside joints", async () => {
+  it("Skinned mesh bounds should stay in scaled rootBone space when explicit rootBone is outside joints", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,
       url: "mock/path/testSkinRootBounds.gltf"
@@ -784,10 +785,14 @@ describe("glTF scene root structure", function () {
 
     expect(skins[0].rootBone).to.equal(characterGroup);
     expect(renderer).to.exist;
-    expect(renderer.localBounds.min.x).to.be.closeTo(6, 1e-5);
-    expect(renderer.localBounds.max.x).to.be.closeTo(8, 1e-5);
+    expect(renderer.localBounds.min.x).to.be.closeTo(3, 1e-5);
+    expect(renderer.localBounds.max.x).to.be.closeTo(4, 1e-5);
+    expect(renderer.localBounds.min.y).to.be.closeTo(-1, 1e-5);
+    expect(renderer.localBounds.max.y).to.be.closeTo(1, 1e-5);
     expect(renderer.bounds.min.x).to.be.closeTo(9, 1e-5);
     expect(renderer.bounds.max.x).to.be.closeTo(11, 1e-5);
+    expect(renderer.bounds.min.y).to.be.closeTo(-3, 1e-5);
+    expect(renderer.bounds.max.y).to.be.closeTo(3, 1e-5);
   });
 });
 
