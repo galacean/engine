@@ -1459,6 +1459,7 @@ export namespace ASTNode {
         const builtinVar = BuiltinVariable.getVar(name);
         if (builtinVar) {
           this.typeInfo = builtinVar.type;
+          if (name === "gl_FragColor") sa.shaderData.glFragColorReferences.push(this.location);
           continue;
         }
 

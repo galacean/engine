@@ -1,7 +1,7 @@
-import { ASTNode, TreeNode } from "./AST";
+import { ASTNode } from "./AST";
+import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, SymbolTable } from "./symbolTable";
 import { StructProp } from "./types";
-import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
 import { DiagnosticType } from "../DiagnosticType";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
@@ -27,15 +27,15 @@ export interface ShaderIOInfo {
 }
 
 /**
- * Derives the IO roles from a pass's vertex/fragment entry signatures and checks
- * the role-level constraints (C0-13..C0-17 existence, C0-19..C0-21 conflict).
- * Pure analysis over symbol table + AST — no code emission.
+ * Derives the IO roles from a pass's vertex/fragment entry signatures and checks the
+ * pipeline constraints: struct existence, entry return shape, role conflicts, and
+ * gl_FragColor-with-MRT (from a parse-time clue). Pure analysis — no code emission.
  */
 export class ShaderIOAnalyzer {
   private static _lookup = new SymbolInfo("", null);
 
   static analyze(
-    symbolTable: SymbolTable<SymbolInfo>,
+    shaderData: ShaderData,
     vertexEntry: string,
     fragmentEntry: string,
     source: string
@@ -50,10 +50,25 @@ export class ShaderIOAnalyzer {
       structVarMap: Object.create(null)
     };
     const errors: GSError[] = [];
+    const symbolTable = shaderData.symbolTable;
 
     this._analyzeVertex(symbolTable, vertexEntry, io, errors, source);
     this._analyzeFragment(symbolTable, fragmentEntry, io, errors, source);
     this._checkRoleConflicts(io, errors, source);
+
+    // MRT and gl_FragColor are mutually exclusive fragment outputs (clue collected at parse time).
+    if (io.mrtStructs.length) {
+      const refs = shaderData.glFragColorReferences;
+      for (let i = 0; i < refs.length; i++) {
+        this._error(
+          errors,
+          DiagnosticType.GlFragColorWithMrt,
+          "gl_FragColor cannot be used with MRT (Multiple Render Targets).",
+          refs[i],
+          source
+        );
+      }
+    }
 
     return { io, errors };
   }
@@ -164,8 +179,6 @@ export class ShaderIOAnalyzer {
           );
         } else {
           this._pushStruct(mrts, io.mrtStructs, io.mrtList);
-          // MRT and gl_FragColor are mutually exclusive outputs; a fragment writing both is ambiguous.
-          this._checkGlFragColorWithMrt(fnSymbol.astNode, errors, source);
         }
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
         this._error(
@@ -175,26 +188,6 @@ export class ShaderIOAnalyzer {
           returnLocation,
           source
         );
-      }
-    }
-  }
-
-  /** Walk a fragment entry body and flag every `gl_FragColor` reference (caller ensures MRT is active). */
-  private static _checkGlFragColorWithMrt(node: TreeNode, errors: GSError[], source: string): void {
-    for (const child of node.children) {
-      if (child instanceof ASTNode.VariableIdentifier) {
-        const token = child.children[0];
-        if (token instanceof BaseToken && token.lexeme === "gl_FragColor") {
-          this._error(
-            errors,
-            DiagnosticType.GlFragColorWithMrt,
-            "gl_FragColor cannot be used with MRT (Multiple Render Targets).",
-            child.location,
-            source
-          );
-        }
-      } else if (child instanceof TreeNode) {
-        this._checkGlFragColorWithMrt(child, errors, source);
       }
     }
   }

@@ -31,12 +31,7 @@ function ioCodes(source: string): string[] {
       ShaderCompilerUtils.processingPassText = content;
       const program = parser.parse(tokens, macroDefineList);
       if (program) {
-        const { errors } = ShaderIOAnalyzer.analyze(
-          program.shaderData.symbolTable,
-          pass.vertexEntry,
-          pass.fragmentEntry,
-          content
-        );
+        const { errors } = ShaderIOAnalyzer.analyze(program.shaderData, pass.vertexEntry, pass.fragmentEntry, content);
         for (const e of errors) codes.push(e.code ?? "?");
       }
       ShaderCompilerUtils.processingPassText = undefined;

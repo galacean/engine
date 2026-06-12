@@ -136,12 +136,7 @@ export class ShaderAnalyzer {
       const { program, errors, passText } = parseShaderPass(source, this._includeMap, this._chunkOutputCache);
       diagnostics.push(...(errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
       if (program) {
-        const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
-          program.shaderData.symbolTable,
-          vertexEntry,
-          fragmentEntry,
-          passText
-        );
+        const { errors: ioErrors } = ShaderIOAnalyzer.analyze(program.shaderData, vertexEntry, fragmentEntry, passText);
         diagnostics.push(...(ioErrors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
       }
     } catch (e) {

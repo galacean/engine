@@ -3,10 +3,9 @@ import { DiagnosticType } from "./Diagnostic";
 import { GSError, GSErrorName } from "@galacean/engine-shader-parser";
 
 /**
- * Convert a GSError to a structured Diagnostic. The code is stamped at the
- * judgment site (parser/codegen) and read directly here — no message matching.
- * Only scanner/preprocessor errors (which carry no per-site code) fall back to a
- * name-based code.
+ * Convert a GSError to a structured Diagnostic. The DiagnosticType is stamped at the
+ * judgment site (parser/codegen) and read directly here — no message matching. Errors
+ * with no stamped type (e.g. scanner/preprocessor) fall back to SyntaxError.
  */
 export function gseErrorToDiagnostic(error: Error): Diagnostic | null {
   if (!(error instanceof GSError)) {
