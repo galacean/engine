@@ -8,12 +8,9 @@ import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { Keyword } from "../common/enums/Keyword";
 import type { ShaderPosition, ShaderRange } from "../common";
 
-/** Role of a struct type in the shader IO flattening — a parser-produced clue consumed by codegen and analyzer. */
-export type StructRole = "varying" | "attribute" | "mrt";
-
 /**
- * IO semantic clue computed by the parser from the entry signatures. Both codegen
- * (to emit `in`/`out`) and analyzer (to diagnose) read this — neither re-derives roles.
+ * IO structs derived by the parser from the entry signatures, consumed by both codegen
+ * (to emit `in`/`out`) and the analyzer (to diagnose) — neither re-collects them.
  */
 export interface ShaderIOInfo {
   attributeStructs: ASTNode.StructSpecifier[];
@@ -22,8 +19,6 @@ export interface ShaderIOInfo {
   varyingList: StructProp[];
   mrtStructs: ASTNode.StructSpecifier[];
   mrtList: StructProp[];
-  /** Variable names whose type carries an IO role (entry params, locals, module globals). */
-  structVarMap: Record<string, StructRole>;
 }
 
 /**
@@ -46,8 +41,7 @@ export class ShaderIOAnalyzer {
       varyingStructs: [],
       varyingList: [],
       mrtStructs: [],
-      mrtList: [],
-      structVarMap: Object.create(null)
+      mrtList: []
     };
     const errors: GSError[] = [];
     const symbolTable = shaderData.symbolTable;

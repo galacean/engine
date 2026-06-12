@@ -5,8 +5,8 @@ import { Keyword } from "@galacean/engine-shader-parser";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { NodeChild } from "@galacean/engine-shader-parser";
 import { ShaderData } from "@galacean/engine-shader-parser";
-import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo } from "@galacean/engine-shader-parser";
-import { DiagnosticType } from "@galacean/engine-shader-parser";
+import { ESymbolType, FnSymbol, SymbolInfo } from "@galacean/engine-shader-parser";
+import { ShaderCompilerUtils, ShaderIOAnalyzer } from "@galacean/engine-shader-parser";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
 import { StructRole, VisitorContext } from "./VisitorContext";
@@ -42,7 +42,22 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
 
-    // `_structVarMap` must span both stages so global `#define` references rewrite consistently across vertex/fragment outputs.
+    // Single source for IO structs + pipeline diagnostics: the parser's IO analyzer.
+    const { io, errors } = ShaderIOAnalyzer.analyze(
+      shaderData,
+      vertexEntry,
+      fragmentEntry,
+      ShaderCompilerUtils.processingPassText
+    );
+    this.errors.push(...errors);
+    context.attributeStructs.push(...io.attributeStructs);
+    context.attributeList.push(...io.attributeList);
+    context.varyingStructs.push(...io.varyingStructs);
+    context.varyingList.push(...io.varyingList);
+    context.mrtStructs.push(...io.mrtStructs);
+    context.mrtList.push(...io.mrtList);
+
+    // `_structVarMap` (local/global var → role) must span both stages so global `#define` references rewrite consistently.
     this._collectAllStructVars(vertexEntry, fragmentEntry);
 
     return {
@@ -132,64 +147,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
     if (!fnSymbols.length) throw `no entry function found: ${entry}`;
 
-    const { attributeStructs, attributeList, varyingStructs, varyingList } = context;
-    fnSymbols.forEach((fnSymbol) => {
-      const fnNode = fnSymbol.astNode;
-      const returnType = fnNode.protoType.returnType;
-
-      if (typeof returnType.type === "string") {
-        lookupSymbol.set(returnType.type, ESymbolType.STRUCT);
-        const varyingSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-        if (!varyingSymbols.length) {
-          this._reportError(
-            returnType.location,
-            `Invalid varying struct: "${returnType.type}".`,
-            DiagnosticType.InvalidVaryingStruct
-          );
-        } else {
-          for (let i = 0; i < varyingSymbols.length; i++) {
-            const varyingSymbol = varyingSymbols[i];
-            const astNode = varyingSymbol.astNode;
-            varyingStructs.push(astNode);
-            for (const prop of astNode.propList) {
-              varyingList.push(prop);
-            }
-          }
-        }
-      } else if (returnType.type !== Keyword.VOID) {
-        this._reportError(
-          returnType.location,
-          "vertex main entry can only return struct or void.",
-          DiagnosticType.VertexEntryReturnType
-        );
-      }
-
-      const paramList = fnNode.protoType.parameterList;
-      const attributeParam = paramList?.[0];
-      if (attributeParam) {
-        const attributeType = attributeParam.typeInfo.type;
-        if (typeof attributeType === "string") {
-          lookupSymbol.set(attributeType, ESymbolType.STRUCT);
-          const attributeSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-          if (!attributeSymbols.length) {
-            this._reportError(
-              attributeParam.astNode.location,
-              `Invalid attribute struct: "${attributeType}".`,
-              DiagnosticType.InvalidAttributeStruct
-            );
-          } else {
-            for (let i = 0; i < attributeSymbols.length; i++) {
-              const attributeSymbol = attributeSymbols[i];
-              const astNode = attributeSymbol.astNode;
-              attributeStructs.push(astNode);
-              for (const prop of astNode.propList) {
-                attributeList.push(prop);
-              }
-            }
-          }
-        }
-      }
-    });
+    // attribute/varying structs were collected in visitShaderProgram (ShaderIOAnalyzer).
 
     // Pre-walk global `#define` values so referenced struct properties emit `attribute`/`varying` declarations.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroDeclarations);
@@ -229,37 +187,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
     if (!fnSymbols?.length) throw `no entry function found: ${entry}`;
 
-    // Fragment varying info inherits from vertex stage (preserved across `context.reset(false)`).
+    // MRT structs were collected in visitShaderProgram; here only mark the fragment return statements.
     fnSymbols.forEach((fnSymbol) => {
-      const fnNode = fnSymbol.astNode;
-      const { returnStatement } = fnNode;
-
+      const { returnStatement } = fnSymbol.astNode;
       if (returnStatement) {
         returnStatement.isFragReturnStatement = true;
-      }
-
-      const { type: returnDataType, location: returnLocation } = fnNode.protoType.returnType;
-      if (typeof returnDataType === "string") {
-        lookupSymbol.set(returnDataType, ESymbolType.STRUCT);
-        const mrtSymbols = <StructSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-        if (!mrtSymbols.length) {
-          this._reportError(returnLocation, `Invalid MRT struct: ${returnDataType}`, DiagnosticType.InvalidMrtStruct);
-        } else {
-          for (let i = 0; i < mrtSymbols.length; i++) {
-            const mrtSymbol = mrtSymbols[i];
-            const astNode = mrtSymbol.astNode;
-            context.mrtStructs.push(astNode);
-            for (const prop of astNode.propList) {
-              context.mrtList.push(prop);
-            }
-          }
-        }
-      } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
-        this._reportError(
-          returnLocation,
-          "fragment main entry can only return struct or vec4.",
-          DiagnosticType.FragmentEntryReturnType
-        );
       }
     });
 

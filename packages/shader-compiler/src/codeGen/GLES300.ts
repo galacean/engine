@@ -2,7 +2,6 @@ import { EShaderStage } from "@galacean/engine-shader-parser";
 import { ASTNode } from "@galacean/engine-shader-parser";
 import { ShaderData } from "@galacean/engine-shader-parser";
 import { StructProp } from "@galacean/engine-shader-parser";
-import { DiagnosticType } from "@galacean/engine-shader-parser";
 import { GLESVisitor } from "./GLESVisitor";
 import { ICodeSegment } from "./types";
 import { VisitorContext } from "./VisitorContext";
@@ -88,12 +87,8 @@ export class GLES300Visitor extends GLESVisitor {
   override visitVariableIdentifier(node: ASTNode.VariableIdentifier): string {
     const { context } = VisitorContext;
     if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
+      // gl_FragColor with MRT is invalid (flagged by ShaderIOAnalyzer); emit nothing for the error case.
       if (context.mrtStructs.length) {
-        this._reportError(
-          node.location,
-          "gl_FragColor cannot be used with MRT (Multiple Render Targets).",
-          DiagnosticType.GlFragColorWithMrt
-        );
         return;
       }
       this._registerFragColorVariable();
