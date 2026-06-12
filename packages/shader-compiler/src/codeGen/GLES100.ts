@@ -1,7 +1,6 @@
 import { BaseToken } from "@galacean/engine-shader-parser";
 import { ASTNode } from "@galacean/engine-shader-parser";
 import { StructProp } from "@galacean/engine-shader-parser";
-import { DiagnosticType } from "@galacean/engine-shader-parser";
 import { GLESVisitor } from "./GLESVisitor";
 import { VisitorContext } from "./VisitorContext";
 
@@ -33,14 +32,9 @@ export class GLES100Visitor extends GLESVisitor {
     if (postExpr instanceof ASTNode.PostfixExpression && context.isMRTStruct(<string>postExpr.type)) {
       const propReferenced = children[2] as BaseToken;
       const prop = context.mrtList.find((item) => item.ident.lexeme === propReferenced.lexeme);
-      if (!prop) {
-        this._reportError(
-          propReferenced.location,
-          `not found mrt property: ${propReferenced.lexeme}`,
-          DiagnosticType.UndeclaredStructMember
-        );
-        return "";
-      }
+      // The parser already validated struct fields (UndeclaredStructMember); a miss here is an
+      // already-errored shader, so emit nothing rather than re-report.
+      if (!prop) return "";
       return `gl_FragData[${prop.mrtIndex!}]`;
     }
     return super.visitPostfixExpression(node);

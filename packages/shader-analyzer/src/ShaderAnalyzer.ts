@@ -49,9 +49,7 @@ export class ShaderAnalyzer {
     let shaderSource: IShaderSource | undefined;
     try {
       shaderSource = ShaderSourceParser.parse(source);
-      diagnostics.push(
-        ...(ShaderSourceParser.errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[])
-      );
+      diagnostics.push(...ShaderSourceParser.errors.map((e) => gseErrorToDiagnostic(e)));
       for (const subShader of shaderSource.subShaders) {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
@@ -59,8 +57,7 @@ export class ShaderAnalyzer {
         }
       }
     } catch (e) {
-      const d = gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e)));
-      if (d) diagnostics.push(d);
+      diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
 
     if (this._rules.length > 0) {
@@ -134,14 +131,13 @@ export class ShaderAnalyzer {
   private _analyzePass(source: string, vertexEntry: string, fragmentEntry: string, diagnostics: Diagnostic[]): void {
     try {
       const { program, errors, passText } = parseShaderPass(source, this._includeMap, this._chunkOutputCache);
-      diagnostics.push(...(errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
+      diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
       if (program) {
         const { errors: ioErrors } = ShaderIOAnalyzer.analyze(program.shaderData, vertexEntry, fragmentEntry, passText);
-        diagnostics.push(...(ioErrors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
+        diagnostics.push(...ioErrors.map((e) => gseErrorToDiagnostic(e)));
       }
     } catch (e) {
-      const d = gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e)));
-      if (d) diagnostics.push(d);
+      diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
   }
 }

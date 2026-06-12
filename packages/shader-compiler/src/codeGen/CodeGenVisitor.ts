@@ -1,16 +1,12 @@
-import { ShaderPosition, ShaderRange } from "@galacean/engine-shader-parser";
 import { BaseToken } from "@galacean/engine-shader-parser";
-import { GSErrorName } from "@galacean/engine-shader-parser";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { NoneTerminal } from "@galacean/engine-shader-parser";
 import { ESymbolType, FnSymbol } from "@galacean/engine-shader-parser";
 import { NodeChild, StructProp } from "@galacean/engine-shader-parser";
 import { ParserUtils } from "@galacean/engine-shader-parser";
-import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
+import { StructRole } from "@galacean/engine-shader-parser";
 import type { ICodeGenVisitor } from "@galacean/engine-shader-parser";
-import { StructRole, VisitorContext } from "./VisitorContext";
-import { GSError } from "@galacean/engine-shader-parser";
-import { DiagnosticType } from "@galacean/engine-shader-parser";
+import { VisitorContext } from "./VisitorContext";
 import { ReturnableObjectPool } from "@galacean/engine-core";
 import { Keyword } from "@galacean/engine-shader-parser";
 import { TempArray } from "../TempArray";
@@ -21,8 +17,6 @@ import { ICodeSegment } from "./types";
  * The code generator
  */
 export abstract class CodeGenVisitor implements ICodeGenVisitor {
-  readonly errors: Error[] = [];
-
   abstract getAttributeProp(prop: StructProp): string;
   abstract getVaryingProp(prop: StructProp): string;
   abstract getMRTProp(prop: StructProp): string;
@@ -300,26 +294,6 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     const isAttributeStruct = attributeStructs.indexOf(node) !== -1;
     const isMRTStruct = mrtStructs.indexOf(node) !== -1;
 
-    if (isVaryingStruct && isAttributeStruct) {
-      this._reportError(
-        node.location,
-        "cannot use same struct as Varying and Attribute",
-        DiagnosticType.StructRoleConflict
-      );
-    }
-
-    if (isVaryingStruct && isMRTStruct) {
-      this._reportError(node.location, "cannot use same struct as Varying and MRT", DiagnosticType.StructRoleConflict);
-    }
-
-    if (isAttributeStruct && isMRTStruct) {
-      this._reportError(
-        node.location,
-        "cannot use same struct as Attribute and MRT",
-        DiagnosticType.StructRoleConflict
-      );
-    }
-
     if (isVaryingStruct || isAttributeStruct || isMRTStruct) {
       let result: ICodeSegment[] = [];
 
@@ -371,11 +345,5 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     } else {
       return this.defaultCodeGen(fnNode.children);
     }
-  }
-
-  protected _reportError(loc: ShaderRange | ShaderPosition, message: string, code?: DiagnosticType): void {
-    this.errors.push(
-      new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
-    );
   }
 }

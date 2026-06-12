@@ -3,10 +3,7 @@ import { EShaderStage } from "@galacean/engine-shader-parser";
 import { SymbolTable } from "@galacean/engine-shader-parser";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { ESymbolType, SymbolInfo } from "@galacean/engine-shader-parser";
-import { StructProp } from "@galacean/engine-shader-parser";
-
-/** Role of a struct type in the shader compiler's IO flattening. */
-export type StructRole = "varying" | "attribute" | "mrt";
+import { StructProp, StructRole } from "@galacean/engine-shader-parser";
 
 /** @internal */
 export class VisitorContext {

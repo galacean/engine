@@ -7,7 +7,7 @@ import { GSError, GSErrorName } from "@galacean/engine-shader-parser";
  * judgment site (parser/codegen) and read directly here — no message matching. Errors
  * with no stamped type (e.g. scanner/preprocessor) fall back to SyntaxError.
  */
-export function gseErrorToDiagnostic(error: Error): Diagnostic | null {
+export function gseErrorToDiagnostic(error: Error): Diagnostic {
   if (!(error instanceof GSError)) {
     // Non-GSError (e.g. thrown from lexer/preprocess) — best-effort
     return {

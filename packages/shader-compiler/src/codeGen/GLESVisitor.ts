@@ -32,7 +32,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   }
 
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
-    this.errors.length = 0;
     VisitorContext.reset();
     this.reset();
 
@@ -42,14 +41,13 @@ export abstract class GLESVisitor extends CodeGenVisitor {
 
     const outerGlobalMacroDeclarations = shaderData.getOuterGlobalMacroDeclarations();
 
-    // Single source for IO structs + pipeline diagnostics: the parser's IO analyzer.
-    const { io, errors } = ShaderIOAnalyzer.analyze(
+    // IO structs + roles come from the parser's analyzer; codegen consumes them and ignores its diagnostics.
+    const { io } = ShaderIOAnalyzer.analyze(
       shaderData,
       vertexEntry,
       fragmentEntry,
       ShaderCompilerUtils.processingPassText
     );
-    this.errors.push(...errors);
     context.attributeStructs.push(...io.attributeStructs);
     context.attributeList.push(...io.attributeList);
     context.varyingStructs.push(...io.varyingStructs);

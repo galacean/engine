@@ -5,6 +5,8 @@ import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
 import { Keyword } from "./common/enums/Keyword";
 
 export class ParserUtils {
+  private static _swizzleSets = ["xyzw", "rgba", "stpq"];
+
   static unwrapNodeByType<T = TreeNode>(node: TreeNode, type: NoneTerminal): T | undefined {
     const child = node.children[0];
     if (child instanceof Token) return;
@@ -95,7 +97,7 @@ export class ParserUtils {
     if (swizzle.length < 1 || swizzle.length > 4) {
       return `Invalid swizzle ".${swizzle}": a vector swizzle selects 1-4 components.`;
     }
-    const sets = ["xyzw", "rgba", "stpq"];
+    const sets = ParserUtils._swizzleSets;
     let setIndex = -1;
     for (const ch of swizzle) {
       let matched = false;
