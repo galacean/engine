@@ -80,16 +80,7 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     } else if (derivationLength === 4) {
       const identNode = children[0] as ASTNode.PostfixExpression;
       const indexNode = children[2] as ASTNode.Expression;
-      const identLexeme = identNode.codeGen(this);
-      const indexLexeme = indexNode.codeGen(this);
-      if (identLexeme === "gl_FragData") {
-        this._reportError(
-          identNode.location,
-          "Please use MRT struct instead of gl_FragData.",
-          DiagnosticType.GlFragData
-        );
-      }
-      return `${identLexeme}[${indexLexeme}]`;
+      return `${identNode.codeGen(this)}[${indexNode.codeGen(this)}]`;
     }
 
     return this.defaultCodeGen(node.children);

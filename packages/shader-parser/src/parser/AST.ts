@@ -935,6 +935,16 @@ export namespace ASTNode {
         const base = children[0] as ExpressionAstNode;
         const error = ParserUtils.swizzleError(base.type, children[2].lexeme);
         if (error) sa.reportError(children[2].location, error, DiagnosticType.InvalidSwizzle);
+      } else if (
+        children.length === 4 &&
+        ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData"
+      ) {
+        // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
+        sa.reportError(
+          children[0].location,
+          "Please use MRT struct instead of gl_FragData.",
+          DiagnosticType.GlFragData
+        );
       }
     }
 
