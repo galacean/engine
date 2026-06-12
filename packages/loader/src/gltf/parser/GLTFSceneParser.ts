@@ -195,10 +195,7 @@ export class GLTFSceneParser extends GLTFParser {
     if (rootBoneIndex !== -1) {
       BoundingBox.transform(mesh.bounds, inverseBindMatrices[rootBoneIndex], skinnedMeshRenderer.localBounds);
     } else {
-      // rootBone is outside the joints list, so no inverse bind matrix exists
-      // for it; map mesh bounds into rootBone space with the loaded transform
-      const inverseRootBoneWorld = new Matrix();
-      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBoneWorld);
+      const inverseRootBoneWorld = rootBone.transform.worldMatrix.clone().invert(); // rootBone can be outside skin.joints
       BoundingBox.transform(mesh.bounds, inverseRootBoneWorld, skinnedMeshRenderer.localBounds);
     }
   }

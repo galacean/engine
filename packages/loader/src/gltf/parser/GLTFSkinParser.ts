@@ -44,11 +44,10 @@ export class GLTFSkinParser extends GLTFParser {
         skin.rootBone = rootBone;
       } else {
         const rootBone = this._findSkinRootBoneByLCA(joints, entities);
-        if (rootBone) {
-          skin.rootBone = rootBone;
-        } else {
+        if (!rootBone) {
           throw "Failed to find skeleton root bone.";
         }
+        skin.rootBone = rootBone;
       }
 
       return skin;
@@ -59,26 +58,27 @@ export class GLTFSkinParser extends GLTFParser {
 
   /** Resolves missing skin.skeleton from the joints' lowest common ancestor. */
   private _findSkinRootBoneByLCA(joints: number[], entities: Entity[]): Entity | null {
-    const paths = joints.map((index) => {
+    const paths = <Record<number, Entity[]>>{};
+    for (const index of joints) {
       const path = new Array<Entity>();
       let entity = entities[index];
       while (entity) {
         path.unshift(entity);
         entity = entity.parent;
       }
-      return path;
-    });
+      paths[index] = path;
+    }
 
     let rootNode: Entity | null = null;
     for (let i = 0; ; i++) {
-      let path = paths[0];
+      let path = paths[joints[0]];
       if (i >= path.length) {
         return rootNode;
       }
 
       const entity = path[i];
-      for (let j = 1, m = paths.length; j < m; j++) {
-        path = paths[j];
+      for (let j = 1, m = joints.length; j < m; j++) {
+        path = paths[joints[j]];
         if (i >= path.length || entity !== path[i]) {
           return rootNode;
         }
