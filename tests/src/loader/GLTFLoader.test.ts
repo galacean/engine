@@ -21,7 +21,6 @@ import {
   GLTFParserContext,
   GLTFParserType,
   GLTFResource,
-  GLTFSceneParser,
   GLTFSchemaParser,
   registerGLTFExtension,
   registerGLTFParser
@@ -785,13 +784,6 @@ describe("glTF scene root structure", function () {
 
     expect(skins[0].rootBone).to.equal(characterGroup);
     expect(renderer).to.exist;
-    (new GLTFSceneParser() as any)._computeLocalBounds(
-      renderer,
-      renderer.mesh,
-      skins[0].bones,
-      skins[0].rootBone,
-      skins[0].inverseBindMatrices
-    );
     expect(renderer.localBounds.min.x).to.be.closeTo(6, 1e-5);
     expect(renderer.localBounds.max.x).to.be.closeTo(8, 1e-5);
     expect(renderer.bounds.min.x).to.be.closeTo(9, 1e-5);
