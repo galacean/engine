@@ -146,7 +146,7 @@ export namespace ASTNode {
       const children = this.children!;
       if (ASTNode._unwrapToken(children[0]).type === Keyword.RETURN) {
         sa.curFunctionInfo.returnStatement = this;
-        // C1-03: a returned value must be assignable to the declared return type (void is C0-04's job).
+        // A returned value must be assignable to the declared return type (the void case is ReturnInVoidFunction's job).
         if (children.length === 3) {
           const declared = sa.curFunctionInfo.header?.returnType?.type;
           const returned = (children[1] as ExpressionAstNode).type;

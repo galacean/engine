@@ -10,8 +10,9 @@ let _parser: ShaderTargetParser;
 /**
  * Drive preprocess → lex → parse for one pass's GLSL source, returning the AST program
  * and parse-stage diagnostics. Lets consumers obtain an AST without touching the
- * preprocessor / lexer / LALR parser directly. `processingPassText` is reset on exit;
- * callers that run a later AST pass (codegen/IO) re-set it from the returned `passText`.
+ * preprocessor / lexer / LALR parser directly. `processingPassText` is set for the parse
+ * (so parse-time diagnostics carry source context) and reset on exit; the returned
+ * `passText` lets a later pass supply that context itself.
  */
 export function parseShaderPass(
   source: string,
