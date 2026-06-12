@@ -57,28 +57,17 @@ export class GLTFSkinParser extends GLTFParser {
     return AssetPromise.resolve(skinPromise);
   }
 
-  private _findSkinRootBoneByLCA(joints: number[], entities: Entity[]): Entity | null {
-    return this._findRootBoneByLCA(joints, entities);
-  }
-
   /** Resolves missing skin.skeleton from the joints' lowest common ancestor. */
-  private _findRootBoneByLCA(nodeIndices: number[], entities: Entity[]): Entity | null {
-    const paths: Entity[][] = [];
-    for (const index of nodeIndices) {
+  private _findSkinRootBoneByLCA(joints: number[], entities: Entity[]): Entity | null {
+    const paths = joints.map((index) => {
       const path = new Array<Entity>();
       let entity = entities[index];
       while (entity) {
         path.unshift(entity);
         entity = entity.parent;
       }
-      if (path.length) {
-        paths.push(path);
-      }
-    }
-
-    if (!paths.length) {
-      return null;
-    }
+      return path;
+    });
 
     let rootNode: Entity | null = null;
     for (let i = 0; ; i++) {
