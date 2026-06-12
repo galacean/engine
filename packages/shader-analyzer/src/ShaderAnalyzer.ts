@@ -3,10 +3,10 @@ import {
   IncludeMap,
   parseShaderPass,
   ShaderCompilerUtils,
+  ShaderIOAnalyzer,
   ShaderSourceParser
 } from "@galacean/engine-shader-parser";
 import type { IShaderSource } from "@galacean/engine-design";
-import { GLES300Visitor } from "@galacean/engine-shader-compiler";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
 import type { CustomRule, RuleContext } from "./Rule";
@@ -136,15 +136,13 @@ export class ShaderAnalyzer {
       const { program, errors, passText } = parseShaderPass(source, this._includeMap, this._chunkOutputCache);
       diagnostics.push(...(errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
       if (program) {
-        // Codegen runs a second AST pass for IO diagnostics; it reads `processingPassText` for error context.
-        ShaderCompilerUtils.processingPassText = passText;
-        try {
-          const codeGen = GLES300Visitor.getVisitor();
-          codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
-          diagnostics.push(...(codeGen.errors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
-        } finally {
-          ShaderCompilerUtils.processingPassText = undefined;
-        }
+        const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
+          program.shaderData.symbolTable,
+          vertexEntry,
+          fragmentEntry,
+          passText
+        );
+        diagnostics.push(...(ioErrors.map((e) => gseErrorToDiagnostic(e)).filter(Boolean) as Diagnostic[]));
       }
     } catch (e) {
       const d = gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e)));

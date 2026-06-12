@@ -120,6 +120,16 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`)
+  },
+  {
+    name: "GlFragColorWithMrt: fragment returns MRT yet writes gl_FragColor",
+    expected: ["GlFragColorWithMrt"],
+    source: wrap(`
+      struct MRT { vec4 c0; };
+      void vert() { gl_Position = vec4(0.0); }
+      MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
+      VertexShader = vert;
+      FragmentShader = frag;`)
   }
 ];
 

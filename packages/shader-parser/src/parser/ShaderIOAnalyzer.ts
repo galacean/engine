@@ -1,6 +1,7 @@
-import { ASTNode } from "./AST";
+import { ASTNode, TreeNode } from "./AST";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, SymbolTable } from "./symbolTable";
 import { StructProp } from "./types";
+import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
 import { DiagnosticType } from "../DiagnosticType";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
@@ -163,6 +164,8 @@ export class ShaderIOAnalyzer {
           );
         } else {
           this._pushStruct(mrts, io.mrtStructs, io.mrtList);
+          // MRT and gl_FragColor are mutually exclusive outputs; a fragment writing both is ambiguous.
+          this._checkGlFragColorWithMrt(fnSymbol.astNode, errors, source);
         }
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
         this._error(
@@ -172,6 +175,26 @@ export class ShaderIOAnalyzer {
           returnLocation,
           source
         );
+      }
+    }
+  }
+
+  /** Walk a fragment entry body and flag every `gl_FragColor` reference (caller ensures MRT is active). */
+  private static _checkGlFragColorWithMrt(node: TreeNode, errors: GSError[], source: string): void {
+    for (const child of node.children) {
+      if (child instanceof ASTNode.VariableIdentifier) {
+        const token = child.children[0];
+        if (token instanceof BaseToken && token.lexeme === "gl_FragColor") {
+          this._error(
+            errors,
+            DiagnosticType.GlFragColorWithMrt,
+            "gl_FragColor cannot be used with MRT (Multiple Render Targets).",
+            child.location,
+            source
+          );
+        }
+      } else if (child instanceof TreeNode) {
+        this._checkGlFragColorWithMrt(child, errors, source);
       }
     }
   }

@@ -301,9 +301,6 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../math
-      '@galacean/engine-shader-compiler':
-        specifier: workspace:*
-        version: link:../shader-compiler
       '@galacean/engine-shader-parser':
         specifier: workspace:*
         version: link:../shader-parser
