@@ -1,6 +1,7 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader/ShaderMacro";
+import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { Burst } from "./Burst";
@@ -29,6 +30,9 @@ export class EmissionModule extends ParticleGeneratorModule {
   /** @internal */
   @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
+  /** @internal */
+  @ignoreClone
+  _rateRand = new Rand(0, ParticleRandomSubSeeds.EmissionRate);
   /** @internal */
   _frameRateTime: number = 0;
 
@@ -153,6 +157,7 @@ export class EmissionModule extends ParticleGeneratorModule {
   _resetRandomSeed(seed: number): void {
     this._burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
     this._shapeRand.reset(seed, ParticleRandomSubSeeds.Shape);
+    this._rateRand.reset(seed, ParticleRandomSubSeeds.EmissionRate);
   }
 
   /** @internal */
@@ -171,16 +176,21 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitByRateOverTime(playTime: number): void {
-    const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
-    if (ratePerSeconds <= 0) {
-      this._frameRateTime = playTime;
-      return;
-    }
-    const generator = this._generator;
-    const emitInterval = 1.0 / ratePerSeconds;
+    const { rateOverTime, _generator: generator } = this;
+    const isConstant = rateOverTime.mode === ParticleCurveMode.Constant;
+    const duration = generator.main.duration;
 
     let cumulativeTime = playTime - this._frameRateTime;
-    while (cumulativeTime >= emitInterval) {
+    while (true) {
+      const ratePerSeconds = isConstant
+        ? rateOverTime.constant
+        : rateOverTime.evaluate((this._frameRateTime % duration) / duration, this._rateRand.random());
+      if (!(ratePerSeconds > 0)) {
+        this._frameRateTime = playTime;
+        return;
+      }
+      const emitInterval = 1.0 / ratePerSeconds;
+      if (cumulativeTime < emitInterval) break;
       cumulativeTime -= emitInterval;
       this._frameRateTime += emitInterval;
       generator._emit(this._frameRateTime, 1);
@@ -188,10 +198,16 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitByRateOverDistance(lastPlayTime: number, playTime: number): void {
-    const ratePerUnit = this.rateOverDistance.evaluate(undefined, undefined);
-    const generator = this._generator;
+    const { rateOverDistance, _generator: generator } = this;
+    const ratePerUnit =
+      rateOverDistance.mode === ParticleCurveMode.Constant
+        ? rateOverDistance.constant
+        : rateOverDistance.evaluate(
+            (playTime % generator.main.duration) / generator.main.duration,
+            this._rateRand.random()
+          );
 
-    if (ratePerUnit <= 0) {
+    if (!(ratePerUnit > 0)) {
       this._hasLastEmitPosition = false;
       this._distanceAccumulator = 0;
       return;
