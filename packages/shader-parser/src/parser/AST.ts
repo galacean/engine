@@ -12,7 +12,7 @@ import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./buil
 import { NoneTerminal } from "./GrammarSymbol";
 import SemanticAnalyzer from "./SemanticAnalyzer";
 import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, VarSymbol } from "./symbolTable";
+import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
@@ -920,6 +920,8 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.postfix_expression)
   export class PostfixExpression extends ExpressionAstNode {
+    private static _structScratch: SymbolInfo[] = [];
+
     override init(): void {
       super.init();
       if (this.children.length === 1) {
@@ -929,12 +931,17 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      // 3-child postfix is `base . field`; validate it as a swizzle when the base is a known vector.
+      // 3-child postfix is `base . field`: a vector base means swizzle, a struct base means field selection.
       const children = this.children;
       if (children.length === 3 && children[2] instanceof BaseToken) {
         const base = children[0] as ExpressionAstNode;
-        const error = ParserUtils.swizzleError(base.type, children[2].lexeme);
-        if (error) sa.reportError(children[2].location, error, DiagnosticType.InvalidSwizzle);
+        const field = children[2];
+        const swizzleError = ParserUtils.swizzleError(base.type, field.lexeme);
+        if (swizzleError) {
+          sa.reportError(field.location, swizzleError, DiagnosticType.InvalidSwizzle);
+        } else if (typeof base.type === "string") {
+          PostfixExpression._checkStructField(sa, base.type, field);
+        }
       } else if (
         children.length === 4 &&
         ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData"
@@ -946,6 +953,23 @@ export namespace ASTNode {
           DiagnosticType.GlFragData
         );
       }
+    }
+
+    /** A `struct.field` access where the struct type is resolvable: the field must be a declared member. */
+    private static _checkStructField(sa: SemanticAnalyzer, structName: string, field: BaseToken): void {
+      const lookup = SemanticAnalyzer._lookupSymbol;
+      lookup.set(structName, ESymbolType.STRUCT);
+      const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch);
+      // Unresolved struct (e.g. a built-in or out-of-scope type) — skip rather than risk a false positive.
+      if (!structs.length) return;
+      for (let i = 0; i < structs.length; i++) {
+        if ((structs[i] as StructSymbol).astNode.propList.some((prop) => prop.ident.lexeme === field.lexeme)) return;
+      }
+      sa.reportError(
+        field.location,
+        `'${field.lexeme}' : no such field in '${structName}'`,
+        DiagnosticType.UndeclaredStructMember
+      );
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {

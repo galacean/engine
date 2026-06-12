@@ -1,11 +1,9 @@
 import { BaseToken } from "@galacean/engine-shader-parser";
 import { EShaderStage } from "@galacean/engine-shader-parser";
 import { SymbolTable } from "@galacean/engine-shader-parser";
-import { GSErrorName } from "@galacean/engine-shader-parser";
 import { ASTNode, TreeNode } from "@galacean/engine-shader-parser";
 import { ESymbolType, SymbolInfo } from "@galacean/engine-shader-parser";
 import { StructProp } from "@galacean/engine-shader-parser";
-import { ShaderCompilerUtils } from "@galacean/engine-shader-parser";
 
 /** Role of a struct type in the shader compiler's IO flattening. */
 export type StructRole = "varying" | "attribute" | "mrt";
@@ -97,22 +95,16 @@ export class VisitorContext {
     this._structVarMap[varName] = role;
   }
 
-  referenceAttribute(ident: BaseToken): Error | void {
-    return this._referenceProp(
-      "attribute",
-      ident.lexeme,
-      this.attributeList,
-      this._referencedAttributeList,
-      ident.location
-    );
+  referenceAttribute(ident: BaseToken): void {
+    this._referenceProp(ident.lexeme, this.attributeList, this._referencedAttributeList);
   }
 
-  referenceVarying(ident: BaseToken): Error | void {
-    return this._referenceProp("varying", ident.lexeme, this.varyingList, this._referencedVaryingList, ident.location);
+  referenceVarying(ident: BaseToken): void {
+    this._referenceProp(ident.lexeme, this.varyingList, this._referencedVaryingList);
   }
 
-  referenceMRTProp(ident: BaseToken): Error | void {
-    return this._referenceProp("mrt", ident.lexeme, this.mrtList, this._referencedMRTList, ident.location);
+  referenceMRTProp(ident: BaseToken): void {
+    this._referenceProp(ident.lexeme, this.mrtList, this._referencedMRTList);
   }
 
   referenceGlobal(ident: string, type: ESymbolType): void {
@@ -125,23 +117,10 @@ export class VisitorContext {
     this._passSymbolTable.getSymbols(lookupSymbol, true, this._referencedGlobals[ident]);
   }
 
-  private _referenceProp(
-    role: StructRole,
-    name: string,
-    list: StructProp[],
-    refList: Record<string, StructProp[]>,
-    location: BaseToken["location"]
-  ): Error | void {
+  // Track which IO props are actually referenced (drives in/out emission). A missing member is no
+  // longer flagged here — that's the parser's struct-field check (UndeclaredStructMember).
+  private _referenceProp(name: string, list: StructProp[], refList: Record<string, StructProp[]>): void {
     if (refList[name]) return;
-    const props = list.filter((item) => item.ident.lexeme === name);
-    if (!props.length) {
-      return ShaderCompilerUtils.createGSError(
-        `referenced ${role} not found: ${name}`,
-        GSErrorName.CompilationError,
-        ShaderCompilerUtils.processingPassText,
-        location
-      );
-    }
-    refList[name] = props;
+    refList[name] = list.filter((item) => item.ident.lexeme === name);
   }
 }

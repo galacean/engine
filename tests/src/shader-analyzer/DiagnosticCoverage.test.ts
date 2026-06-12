@@ -22,8 +22,12 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     gap: "reassign-entry not detected from a double VertexShader assignment — needs investigation"
   },
   {
-    code: "UnresolvedIoReference",
-    gap: "codegen-internal: a source-level missing struct member surfaces earlier as SyntaxError"
+    code: "UndeclaredStructMember",
+    source: pass(`
+      struct Varyings { vec4 v; };
+      Varyings vert() { Varyings o; o.v = vec4(0.0); return o; }
+      void frag(Varyings i) { gl_FragColor = i.notAField; }
+      VertexShader = vert; FragmentShader = frag;`)
   },
   // ── B: RenderState ──
   { code: "InvalidRenderStateProperty", source: pass(`BlendState bs { NotARealProperty = true; }`) },

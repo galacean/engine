@@ -37,7 +37,7 @@ export class GLES100Visitor extends GLESVisitor {
         this._reportError(
           propReferenced.location,
           `not found mrt property: ${propReferenced.lexeme}`,
-          DiagnosticType.UnresolvedIoReference
+          DiagnosticType.UndeclaredStructMember
         );
         return "";
       }

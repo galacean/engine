@@ -15,6 +15,7 @@ export enum DiagnosticType {
 
   // Type
   InvalidSwizzle = "InvalidSwizzle",
+  UndeclaredStructMember = "UndeclaredStructMember",
   AssignTypeMismatch = "AssignTypeMismatch",
   ReturnTypeMismatch = "ReturnTypeMismatch",
   ArrayOfArray = "ArrayOfArray",
@@ -33,7 +34,6 @@ export enum DiagnosticType {
   DuplicateEntryAssignment = "DuplicateEntryAssignment",
   GlFragColorWithMrt = "GlFragColorWithMrt",
   GlFragData = "GlFragData",
-  UnresolvedIoReference = "UnresolvedIoReference",
 
   // RenderState
   InvalidRenderStateProperty = "InvalidRenderStateProperty",
