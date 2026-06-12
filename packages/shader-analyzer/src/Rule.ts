@@ -13,7 +13,7 @@ export interface RuleDiagnostic {
 
 /** Context passed to a custom rule for a single `analyze()` call. */
 export interface RuleContext {
-  /** Full ShaderLab source under analysis. */
+  /** Full shader source under analysis. */
   readonly source: string;
   /** Parsed shader structure (name / subShaders / passes), or `undefined` when structure parsing failed. */
   readonly shaderSource: IShaderSource | undefined;

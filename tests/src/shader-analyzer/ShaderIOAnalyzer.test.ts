@@ -16,7 +16,7 @@ import { describe, expect, it } from "vitest";
 
 const parser = ShaderTargetParser.create();
 
-/** Run ShaderIOAnalyzer over a ShaderLab source; return the IO diagnostic codes (with multiplicity). */
+/** Run ShaderIOAnalyzer over a shader source; return the IO diagnostic codes (with multiplicity). */
 function ioCodes(source: string): string[] {
   ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
   const shaderSource = ShaderSourceParser.parse(source);

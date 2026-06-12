@@ -19,7 +19,12 @@ function pass(body: string): string {
 const cases: { code: string; source?: string; gap?: string }[] = [
   {
     code: "DuplicateEntryAssignment",
-    gap: "reassign-entry not detected from a double VertexShader assignment — needs investigation"
+    source: pass(`
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void vert2(Attributes attr) { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; VertexShader = vert2; FragmentShader = frag;`)
   },
   {
     code: "UndeclaredStructMember",

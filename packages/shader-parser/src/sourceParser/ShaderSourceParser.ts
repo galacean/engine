@@ -504,7 +504,8 @@ export class ShaderSourceParser {
           this._addPendingContents(start, token.lexeme.length, passSource.pendingContents);
           lexer.scanLexeme("=");
           const entry = lexer.scanToken();
-          if (passSource[token.lexeme]) {
+          const key = token.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
+          if (passSource[key]) {
             const error = ShaderCompilerUtils.createGSError(
               "Reassign main entry",
               GSErrorName.CompilationError,
@@ -515,7 +516,6 @@ export class ShaderSourceParser {
             Logger.error(error.toString());
             throw error;
           }
-          const key = token.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
           passSource[key] = entry.lexeme;
           lexer.scanLexeme(";");
           start = lexer.getShaderPosition(0);

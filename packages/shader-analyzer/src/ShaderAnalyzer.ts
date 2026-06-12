@@ -18,13 +18,13 @@ export interface AnalyzerOptions {
 }
 
 export interface AnalysisResult {
-  /** Structured diagnostics from ShaderLab structure parsing and per-pass GLSL parse + codegen. */
+  /** Structured diagnostics from shader-source structure parsing and per-pass GLSL analysis. */
   diagnostics: Diagnostic[];
 }
 
 /**
- * Static analyzer for ShaderLab / GLSL. Drives the full compile pipeline (parse + code generation)
- * and surfaces structured diagnostics the runtime compiler discards.
+ * Static analyzer for shader source / GLSL. Drives parse + the parser's IO analysis and surfaces
+ * structured diagnostics the runtime compiler discards. It does not run code generation.
  */
 export class ShaderAnalyzer {
   private _includeMap: IncludeMap = {};
