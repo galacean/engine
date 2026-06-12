@@ -9,7 +9,7 @@ import { ESymbolType, FnSymbol, SymbolInfo } from "@galacean/engine-shader-parse
 import { ShaderCompilerUtils, ShaderIOAnalyzer } from "@galacean/engine-shader-parser";
 import { CodeGenVisitor } from "./CodeGenVisitor";
 import { ICodeSegment } from "./types";
-import { StructRole, VisitorContext } from "./VisitorContext";
+import { VisitorContext } from "./VisitorContext";
 
 /**
  * @internal
@@ -56,80 +56,14 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     context.varyingList.push(...io.varyingList);
     context.mrtStructs.push(...io.mrtStructs);
     context.mrtList.push(...io.mrtList);
-
-    // `_structVarMap` (local/global var → role) must span both stages so global `#define` references rewrite consistently.
-    this._collectAllStructVars(vertexEntry, fragmentEntry);
+    for (const varName in io.structVarMap) {
+      context.registerStructVar(varName, io.structVarMap[varName]);
+    }
 
     return {
       vertex: this._vertexMain(vertexEntry, shaderData, outerGlobalMacroDeclarations),
       fragment: this._fragmentMain(fragmentEntry, shaderData, outerGlobalMacroDeclarations)
     };
-  }
-
-  /** Populate `_structVarMap` for varying/attribute/mrt-typed variables across both stages before codegen. */
-  private _collectAllStructVars(vertexEntry: string, fragmentEntry: string): void {
-    const context = VisitorContext.context;
-    const lookupSymbol = GLESVisitor._lookupSymbol;
-    const symbolTable = context._passSymbolTable;
-
-    // Roles from entry signatures: vertex param[0]=attribute, return=varying; fragment param[0]=varying, return=mrt.
-    const structRoles: Record<string, StructRole> = Object.create(null);
-
-    const addEntryRoles = (entry: string, paramRole: StructRole, returnRole: StructRole): FnSymbol[] => {
-      lookupSymbol.set(entry, ESymbolType.FN);
-      const fns = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-      for (const fn of fns) {
-        const proto = fn.astNode.protoType;
-        const param0 = proto.parameterList?.[0];
-        if (param0 && typeof param0.typeInfo?.type === "string") {
-          structRoles[param0.typeInfo.typeLexeme] = paramRole;
-        }
-        if (typeof proto.returnType.type === "string") {
-          structRoles[<string>proto.returnType.type] = returnRole;
-        }
-      }
-      return fns;
-    };
-
-    const entryFns = addEntryRoles(vertexEntry, "attribute", "varying").concat(
-      addEntryRoles(fragmentEntry, "varying", "mrt")
-    );
-
-    const registerByType = (typeLexeme: string | undefined, varName: string): void => {
-      if (!typeLexeme) return;
-      const role = structRoles[typeLexeme];
-      if (role) context.registerStructVar(varName, role);
-    };
-
-    const walkLocals = (node: TreeNode): void => {
-      for (const child of node.children) {
-        if (child instanceof ASTNode.InitDeclaratorList) {
-          const typeLexeme = child.typeInfo?.typeLexeme;
-          if (typeLexeme && structRoles[typeLexeme]) {
-            this._extractLocalVarNames(child, context, structRoles[typeLexeme]);
-          }
-        } else if (child instanceof TreeNode) {
-          walkLocals(child);
-        }
-      }
-    };
-
-    for (const fn of entryFns) {
-      const proto = fn.astNode.protoType;
-      if (proto.parameterList) {
-        for (const param of proto.parameterList) {
-          if (param.ident && typeof param.typeInfo?.type === "string") {
-            registerByType(param.typeInfo.typeLexeme, param.ident.lexeme);
-          }
-        }
-      }
-      walkLocals(fn.astNode.statements);
-    }
-
-    // Register module-level globals whose type carries a role (e.g. `Varyings o;`).
-    symbolTable.forEach((sym) => {
-      if (sym.type === ESymbolType.VAR) registerByType(sym.dataType?.typeLexeme, sym.ident);
-    });
   }
 
   private _vertexMain(
@@ -217,25 +151,6 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     this.reset();
 
     return globalCode;
-  }
-
-  private _extractLocalVarNames(node: ASTNode.InitDeclaratorList, context: VisitorContext, role: StructRole): void {
-    const children = node.children;
-    if (children.length === 1) {
-      const singleDecl = children[0] as ASTNode.SingleDeclaration;
-      const identChildren = singleDecl.children;
-      if (identChildren.length >= 2 && identChildren[1] instanceof BaseToken) {
-        context.registerStructVar(identChildren[1].lexeme, role);
-      }
-    } else if (children.length >= 3) {
-      const initDeclList = children[0];
-      if (initDeclList instanceof ASTNode.InitDeclaratorList) {
-        this._extractLocalVarNames(initDeclList, context, role);
-      }
-      if (children[2] instanceof BaseToken) {
-        context.registerStructVar((children[2] as BaseToken).lexeme, role);
-      }
-    }
   }
 
   /**

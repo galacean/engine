@@ -1,16 +1,21 @@
-import { ASTNode } from "./AST";
+import { ASTNode, TreeNode } from "./AST";
 import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, SymbolTable } from "./symbolTable";
 import { StructProp } from "./types";
+import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
 import { DiagnosticType } from "../DiagnosticType";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { Keyword } from "../common/enums/Keyword";
 import type { ShaderPosition, ShaderRange } from "../common";
 
+/** Role of a struct type in the shader IO flattening — a parser-derived clue codegen consumes to emit `in`/`out`. */
+export type StructRole = "varying" | "attribute" | "mrt";
+
 /**
- * IO structs derived by the parser from the entry signatures, consumed by both codegen
- * (to emit `in`/`out`) and the analyzer (to diagnose) — neither re-collects them.
+ * IO structs and per-variable roles derived by the parser from the entry signatures,
+ * consumed by both codegen (to emit `in`/`out`, rewrite `#define`) and the analyzer (to
+ * diagnose) — neither re-derives them.
  */
 export interface ShaderIOInfo {
   attributeStructs: ASTNode.StructSpecifier[];
@@ -19,6 +24,8 @@ export interface ShaderIOInfo {
   varyingList: StructProp[];
   mrtStructs: ASTNode.StructSpecifier[];
   mrtList: StructProp[];
+  /** Variable names (entry params, locals, module globals) whose type carries an IO role. */
+  structVarMap: Record<string, StructRole>;
 }
 
 /**
@@ -41,7 +48,8 @@ export class ShaderIOAnalyzer {
       varyingStructs: [],
       varyingList: [],
       mrtStructs: [],
-      mrtList: []
+      mrtList: [],
+      structVarMap: Object.create(null)
     };
     const errors: GSError[] = [];
     const symbolTable = shaderData.symbolTable;
@@ -49,6 +57,7 @@ export class ShaderIOAnalyzer {
     this._analyzeVertex(symbolTable, vertexEntry, io, errors, source);
     this._analyzeFragment(symbolTable, fragmentEntry, io, errors, source);
     this._checkRoleConflicts(io, errors, source);
+    this._deriveStructVarMap(symbolTable, vertexEntry, fragmentEntry, io.structVarMap);
 
     // MRT and gl_FragColor are mutually exclusive fragment outputs (clue collected at parse time).
     if (io.mrtStructs.length) {
@@ -218,5 +227,87 @@ export class ShaderIOAnalyzer {
         );
       }
     }
+  }
+
+  /**
+   * Map variable names (entry params, locals, module globals) to their IO role. Roles come from
+   * the entry signatures; a body walk picks up locals like `Varyings o;`. Codegen reads this to
+   * rewrite struct-prop references consistently across vertex/fragment `#define` expansions.
+   */
+  private static _deriveStructVarMap(
+    symbolTable: SymbolTable<SymbolInfo>,
+    vertexEntry: string,
+    fragmentEntry: string,
+    structVarMap: Record<string, StructRole>
+  ): void {
+    // Roles from entry signatures: vertex param[0]=attribute, return=varying; fragment param[0]=varying, return=mrt.
+    const structRoles: Record<string, StructRole> = Object.create(null);
+
+    const addEntryRoles = (entry: string, paramRole: StructRole, returnRole: StructRole): FnSymbol[] => {
+      const fns = this._entryFns(symbolTable, entry);
+      for (const fn of fns) {
+        const proto = fn.astNode.protoType;
+        const param0 = proto.parameterList?.[0];
+        if (param0 && typeof param0.typeInfo?.type === "string") {
+          structRoles[param0.typeInfo.typeLexeme] = paramRole;
+        }
+        if (typeof proto.returnType.type === "string") {
+          structRoles[<string>proto.returnType.type] = returnRole;
+        }
+      }
+      return fns;
+    };
+
+    const entryFns = addEntryRoles(vertexEntry, "attribute", "varying").concat(
+      addEntryRoles(fragmentEntry, "varying", "mrt")
+    );
+
+    const registerByType = (typeLexeme: string | undefined, varName: string): void => {
+      if (!typeLexeme) return;
+      const role = structRoles[typeLexeme];
+      if (role) structVarMap[varName] = role;
+    };
+
+    const extractLocalVarNames = (node: ASTNode.InitDeclaratorList, role: StructRole): void => {
+      const children = node.children;
+      if (children.length === 1) {
+        const identChildren = (children[0] as ASTNode.SingleDeclaration).children;
+        if (identChildren.length >= 2 && identChildren[1] instanceof BaseToken) {
+          structVarMap[identChildren[1].lexeme] = role;
+        }
+      } else if (children.length >= 3) {
+        const initDeclList = children[0];
+        if (initDeclList instanceof ASTNode.InitDeclaratorList) extractLocalVarNames(initDeclList, role);
+        if (children[2] instanceof BaseToken) structVarMap[(children[2] as BaseToken).lexeme] = role;
+      }
+    };
+
+    const walkLocals = (node: TreeNode): void => {
+      for (const child of node.children) {
+        if (child instanceof ASTNode.InitDeclaratorList) {
+          const typeLexeme = child.typeInfo?.typeLexeme;
+          if (typeLexeme && structRoles[typeLexeme]) extractLocalVarNames(child, structRoles[typeLexeme]);
+        } else if (child instanceof TreeNode) {
+          walkLocals(child);
+        }
+      }
+    };
+
+    for (const fn of entryFns) {
+      const proto = fn.astNode.protoType;
+      if (proto.parameterList) {
+        for (const param of proto.parameterList) {
+          if (param.ident && typeof param.typeInfo?.type === "string") {
+            registerByType(param.typeInfo.typeLexeme, param.ident.lexeme);
+          }
+        }
+      }
+      walkLocals(fn.astNode.statements);
+    }
+
+    // Register module-level globals whose type carries a role (e.g. `Varyings o;`).
+    symbolTable.forEach((sym) => {
+      if (sym.type === ESymbolType.VAR) registerByType(sym.dataType?.typeLexeme, sym.ident);
+    });
   }
 }

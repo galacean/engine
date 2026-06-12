@@ -215,9 +215,8 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
     if (fullType instanceof ASTNode.FullySpecifiedType && fullType.typeSpecifier.isCustom) {
       const context = VisitorContext.context;
       // Global variables whose declared type is a varying/attribute/mrt struct
-      // (e.g. `Varyings o;`) are not emitted as `uniform`. The variable itself is
-      // already registered in `_structVarMap` by the pre-pass in
-      // `GLESVisitor._collectAllStructVars`, so `visitPostfixExpression` can
+      // (e.g. `Varyings o;`) are not emitted as `uniform`. The variable's role comes
+      // from `ShaderIOAnalyzer`'s `structVarMap`, so `visitPostfixExpression` can
       // flatten `o.field` at macro-value codegen time.
       if (context.getStructRole(fullType.typeSpecifier.lexeme)) {
         return "";
