@@ -1,4 +1,5 @@
 import { TypedArray } from "../base/Constant";
+import { Logger } from "../base/Logger";
 import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
@@ -7,6 +8,14 @@ import { CloneMode } from "./enums/CloneMode";
  * cloning. HOW it is cloned is decided by the field's runtime type + the type's `@defaultCloneMode`
  * (Entity / Component → Remap, ReferResource / interned flyweights → Assignment, otherwise → deep
  * clone). Opt-in: an unmarked field is not cloned.
+ *
+ * Contracts a `@property` field imposes on the types it can hold:
+ * - A deep-cloned class (no `@defaultCloneMode`) must be parameterless-constructible — the
+ *   Construct stage builds an empty shell with `new ctor()` (no reuse exists for container
+ *   members); state is restored by the Populate stage / `_cloneTo`.
+ * - A constructor that presets a ref-counted resource into a `@property` slot must own a
+ *   reference for it (assign via its setter or an explicit +1): the clone gate releases the
+ *   slot's old value when overwriting it with the source's.
  */
 export function property(target: Object, propertyKey: string): void {
   let fields = CloneManager._subPropertyMap.get(target.constructor);
@@ -15,6 +24,9 @@ export function property(target: Object, propertyKey: string): void {
     CloneManager._subPropertyMap.set(target.constructor, fields);
   }
   fields.add(propertyKey);
+  // A new registration extends this class AND every subclass; the affected subclass set is
+  // unknown here, so drop all flattened sets (registration is a cold path, rebuild is lazy).
+  CloneManager._propertyMap.clear();
 }
 
 /**
@@ -119,7 +131,19 @@ export class CloneManager {
 
     const cloneMode = (<ICustomClone>value)._defaultCloneMode ?? CloneMode.Deep;
     if (cloneMode === CloneMode.Assignment) {
-      (<{ _addReferCount?(count: number): void }>reuse)?._addReferCount?.(-1);
+      const reusedResource = <{ _addReferCount?(count: number): void; refCount?: number }>reuse;
+      if (reusedResource?._addReferCount) {
+        // The slot's old value must own one reference (see the `@property` contract): a constructor
+        // preset that skipped the +1 would get its count corrupted here and be released early.
+        const presetRefCount = reusedResource.refCount;
+        presetRefCount !== undefined &&
+          presetRefCount <= 0 &&
+          Logger.error(
+            `CloneManager: the clone's preset ${reuse.constructor.name} holds no owned reference; ` +
+              `a constructor presetting a ref-counted resource must acquire it (assign via its setter or an explicit +1).`
+          );
+        reusedResource._addReferCount(-1);
+      }
       (<{ _addReferCount?(count: number): void }>value)._addReferCount?.(1);
       return value;
     }
