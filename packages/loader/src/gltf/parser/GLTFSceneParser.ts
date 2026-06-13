@@ -18,6 +18,8 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
+  private static _tempMatrix: Matrix = new Matrix();
+
   parse(context: GLTFParserContext, index: number): AssetPromise<Entity> {
     const {
       glTF: { scenes, scene = 0 },
@@ -195,7 +197,9 @@ export class GLTFSceneParser extends GLTFParser {
     if (rootBoneIndex !== -1) {
       BoundingBox.transform(mesh.bounds, inverseBindMatrices[rootBoneIndex], skinnedMeshRenderer.localBounds);
     } else {
-      const inverseRootBoneWorld = rootBone.transform.worldMatrix.clone().invert(); // rootBone can be outside skin.joints
+      // rootBone can be outside skin.joints, so it has no inverse bind matrix
+      const inverseRootBoneWorld = GLTFSceneParser._tempMatrix;
+      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBoneWorld);
       BoundingBox.transform(mesh.bounds, inverseRootBoneWorld, skinnedMeshRenderer.localBounds);
     }
   }
