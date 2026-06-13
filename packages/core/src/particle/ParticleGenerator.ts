@@ -93,6 +93,7 @@ export class ParticleGenerator {
   readonly customData: CustomDataModule;
 
   /** @internal */
+  @ignoreClone
   _currentParticleCount = 0;
   /** @internal */
   @ignoreClone

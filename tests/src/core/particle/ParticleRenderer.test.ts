@@ -1,6 +1,31 @@
-import { Camera, ModelMesh, ParticleRenderer, ParticleRenderMode, PrimitiveMesh, Scene } from "@galacean/engine-core";
+import {
+  Camera,
+  Engine,
+  ModelMesh,
+  ParticleRenderer,
+  ParticleRenderMode,
+  ParticleSimulationSpace,
+  PrimitiveMesh,
+  Scene,
+  ShaderMacro
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
+
+function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
+  //@ts-ignore
+  engine._vSyncCount = Infinity;
+  //@ts-ignore
+  engine._time._lastSystemTime = 0;
+  let times = 0;
+  performance.now = function () {
+    times++;
+    return times * deltaTime;
+  };
+  for (let i = 0; i < frames; i++) {
+    engine.update();
+  }
+}
 
 describe("ParticleRenderer", () => {
   let engine: WebGLEngine;
@@ -111,6 +136,38 @@ describe("ParticleRenderer", () => {
     expect(mesh.refCount).to.eq(0);
   });
 
+  it("clone applies render mode macro and mesh layout together", () => {
+    const meshMacro = ShaderMacro.getByName("RENDERER_MODE_MESH");
+    const billboardMacro = ShaderMacro.getByName("RENDERER_MODE_SPHERE_BILLBOARD");
+
+    // Mesh mode + noise triggers buffer reorganization mid-clone, before mesh is applied
+    const entity = scene.createRootEntity("CloneMacroSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const mesh = PrimitiveMesh.createCuboid(engine);
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = mesh;
+    renderer.generator.noise.enabled = true;
+
+    let cloneEntity: typeof entity;
+    expect(() => {
+      cloneEntity = entity.clone();
+      scene.addRootEntity(cloneEntity);
+    }).not.to.throw();
+
+    const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+    expect(cloneRenderer.renderMode).to.eq(ParticleRenderMode.Mesh);
+    expect(cloneRenderer.mesh).to.eq(mesh);
+    expect(mesh.refCount).to.eq(2);
+    // Shader macro must match renderMode, not stay on the constructor's billboard default
+    const macroCollection = cloneRenderer.shaderData["_macroCollection"];
+    expect(macroCollection.isEnable(meshMacro)).to.eq(true);
+    expect(macroCollection.isEnable(billboardMacro)).to.eq(false);
+
+    cloneEntity.destroy();
+    entity.destroy();
+    expect(mesh.refCount).to.eq(0);
+  });
+
   it("clone with mesh render mode but no mesh", () => {
     const entity = scene.createRootEntity("CloneSourceNoMesh");
     const renderer = entity.addComponent(ParticleRenderer);
@@ -138,6 +195,69 @@ describe("ParticleRenderer", () => {
       renderer.generator.noise.enabled = false;
     }).not.to.throw();
 
+    entity.destroy();
+  });
+
+  it("clone a grown particle system keeps capacity consistent", () => {
+    const entity = scene.createRootEntity("GrownSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const generator = renderer.generator;
+    generator.main.maxParticles = 1000;
+    generator.main.startLifetime.constant = 100;
+    generator.emission.rateOverTime.constant = 500;
+    generator.play();
+
+    // Drive the simulation so the instance buffer grows well past its initial capacity
+    updateEngine(engine, 30, 100);
+    const sourceCount = generator["_currentParticleCount"];
+    expect(sourceCount).to.be.greaterThan(128);
+
+    const cloneEntity = entity.clone();
+    scene.addRootEntity(cloneEntity);
+    const cloneGenerator = cloneEntity.getComponent(ParticleRenderer).generator;
+
+    // The clone starts with a freshly built buffer; it must not inherit the source's grown count,
+    // otherwise the capacity and the actual buffer length disagree and emitting overflows
+    expect(cloneGenerator["_currentParticleCount"]).to.be.lessThan(sourceCount);
+
+    // The clone can play and grow on its own without crashing on the stale capacity
+    expect(() => {
+      cloneGenerator.play();
+      updateEngine(engine, 30, 100);
+    }).not.to.throw();
+
+    cloneEntity.destroy();
+    entity.destroy();
+  });
+
+  it("clone preserves generator module config", () => {
+    const entity = scene.createRootEntity("ConfigSource");
+    const generator = entity.addComponent(ParticleRenderer).generator;
+
+    // Spread config across several @deepClone modules and value kinds (scalar / bool / enum / curve / module enabled)
+    generator.main.duration = 7.5;
+    generator.main.isLoop = false;
+    generator.main.simulationSpace = ParticleSimulationSpace.World;
+    generator.main.startLifetime.constant = 3;
+    generator.emission.rateOverTime.constant = 42;
+    generator.noise.enabled = true;
+    generator.noise.frequency = 1.5;
+
+    const cloneEntity = entity.clone();
+    const cloneGenerator = cloneEntity.getComponent(ParticleRenderer).generator;
+
+    expect(cloneGenerator.main.duration).to.eq(7.5);
+    expect(cloneGenerator.main.isLoop).to.eq(false);
+    expect(cloneGenerator.main.simulationSpace).to.eq(ParticleSimulationSpace.World);
+    expect(cloneGenerator.main.startLifetime.constant).to.eq(3);
+    expect(cloneGenerator.emission.rateOverTime.constant).to.eq(42);
+    expect(cloneGenerator.noise.enabled).to.eq(true);
+    expect(cloneGenerator.noise.frequency).to.eq(1.5);
+
+    // Cloned config curves must be independent instances, not shared with the source
+    expect(cloneGenerator.main.startLifetime).to.not.eq(generator.main.startLifetime);
+
+    cloneEntity.destroy();
     entity.destroy();
   });
 });

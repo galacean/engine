@@ -49,7 +49,9 @@ export class ParticleRenderer extends Renderer {
   @ignoreClone
   private _mesh: ModelMesh;
 
+  @ignoreClone
   private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
+  @ignoreClone
   private _currentRenderModeMacro: ShaderMacro;
   private _supportInstancedArrays: boolean;
 
@@ -95,9 +97,7 @@ export class ParticleRenderer extends Renderer {
       const wasMeshMode = lastRenderMode === ParticleRenderMode.Mesh;
       const isMeshMode = value === ParticleRenderMode.Mesh;
       if (wasMeshMode !== isMeshMode) {
-        if (!isMeshMode || this.mesh) {
-          this.generator._reorganizeGeometryBuffers();
-        }
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -272,6 +272,7 @@ export class ParticleRenderer extends Renderer {
    */
   override _cloneTo(target: ParticleRenderer): void {
     super._cloneTo(target);
+    target.renderMode = this._renderMode;
     target.mesh = this._mesh;
   }
 
