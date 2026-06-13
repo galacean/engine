@@ -67,6 +67,36 @@ describe("Burst", () => {
     expect(burst.repeatInterval).to.equal(0.1);
   });
 
+  it("Bursts survive entity.clone() as deep, independent copies", () => {
+    const scene = engine.sceneManager.activeScene;
+    const root = scene.createRootEntity("BurstCloneRoot");
+    const entity = root.createChild("src");
+    const renderer = entity.addComponent(ParticleRenderer);
+    const emission = renderer.generator.emission;
+    emission.addBurst(new Burst(0.5, new ParticleCompositeCurve(10), 3, 0.2));
+
+    // Array members have no reuse slot — each Burst goes through `new Burst()` + field populate
+    const cloned = entity.clone();
+    const srcBurst = emission.bursts[0];
+    const clonedBursts = cloned.getComponent(ParticleRenderer).generator.emission.bursts;
+
+    expect(clonedBursts.length).to.equal(1);
+    const clonedBurst = clonedBursts[0];
+    expect(clonedBurst).to.not.equal(srcBurst);
+    expect(clonedBurst.time).to.equal(0.5);
+    expect(clonedBurst.cycles).to.equal(3);
+    expect(clonedBurst.repeatInterval).to.equal(0.2);
+    expect(clonedBurst.count).to.not.equal(srcBurst.count);
+    expect(clonedBurst.count.evaluate(undefined, undefined)).to.equal(10);
+
+    // Mutating the clone must not leak back into the source
+    clonedBurst.count.constant = 99;
+    expect(srcBurst.count.evaluate(undefined, undefined)).to.equal(10);
+
+    cloned.destroy();
+    root.destroy();
+  });
+
   it("Single cycle backward compatible", () => {
     const scene = engine.sceneManager.activeScene;
     const entity = scene.createRootEntity("SingleCycle");

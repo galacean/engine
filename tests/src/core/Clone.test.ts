@@ -1,4 +1,14 @@
-import { Entity, MeshRenderer, Script, Signal, property, ShaderMacro } from "@galacean/engine-core";
+import {
+  Entity,
+  MeshRenderer,
+  ParticleCompositeCurve,
+  ParticleCompositeGradient,
+  Script,
+  Signal,
+  property,
+  ShaderMacro
+} from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
@@ -157,6 +167,14 @@ class SignalScript extends Script {
   readonly onFire = new Signal<[number]>();
 }
 
+/** Script holding bare @property value-type fields (no initializer → cloned via `new ctor()`) */
+class ValueTypeFieldScript extends Script {
+  @property
+  curve: ParticleCompositeCurve;
+  @property
+  gradient: ParticleCompositeGradient;
+}
+
 describe("Clone remap", async () => {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = 1024;
@@ -165,7 +183,7 @@ describe("Clone remap", async () => {
   engine.run();
 
   describe("Basic Entity/Component remap", () => {
-    it("script undecorated Entity ref should remap to cloned entity", () => {
+    it("script @property Entity ref should remap to cloned entity", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
@@ -183,7 +201,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("script undecorated Component ref should remap to cloned component", () => {
+    it("script @property Component ref should remap to cloned component", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
@@ -1009,6 +1027,34 @@ describe("Clone remap", async () => {
       expect(clonedRenderer.shaderData._macroCollection.isEnable(macro)).eq(false);
 
       cloned.destroy();
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Deep-clone parameterless construct", () => {
+    it("a bare @property value-type field clones via its parameterless constructor", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const entity = rootEntity.createChild("valueTypes");
+      const script = entity.addComponent(ValueTypeFieldScript);
+      script.curve = new ParticleCompositeCurve(5);
+      script.gradient = new ParticleCompositeGradient(new Color(1, 0, 0, 1));
+
+      // The fields have no initializer, so the clone target's slots are undefined — the gate has no
+      // reuse and must build each value with `new ctor()`. That requires these engine value types to
+      // be parameterless-constructible (state is then restored by the Populate stage). A value type
+      // that demanded constructor args here (the pre-fix ParticleCompositeGradient) would throw.
+      const cloned = entity.clone();
+      const clonedScript = cloned.getComponent(ValueTypeFieldScript);
+
+      expect(clonedScript.curve).to.not.eq(script.curve);
+      expect(clonedScript.curve.constant).to.eq(5);
+      expect(clonedScript.gradient).to.not.eq(script.gradient);
+      expect(clonedScript.gradient.constant.r).to.eq(1);
+
+      // Independent copies — mutating the clone must not leak back into the source.
+      clonedScript.curve.constant = 9;
+      expect(script.curve.constant).to.eq(5);
+
       rootEntity.destroy();
     });
   });

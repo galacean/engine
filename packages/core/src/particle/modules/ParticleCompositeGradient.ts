@@ -46,6 +46,12 @@ export class ParticleCompositeGradient {
   }
 
   /**
+   * Create a particle gradient that generates a constant white color. Parameterless construction is
+   * required by the deep-clone Construct stage (state is then populated field-by-field).
+   */
+  constructor();
+
+  /**
    * Create a particle gradient that generates a constant color.
    * @param constant - The constant color
    */
@@ -71,7 +77,10 @@ export class ParticleCompositeGradient {
    */
   constructor(gradientMin: ParticleGradient, gradientMax: ParticleGradient);
 
-  constructor(constantOrGradient: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+  constructor(
+    constantOrGradient: Color | ParticleGradient = new Color(),
+    constantMaxOrGradientMax?: Color | ParticleGradient
+  ) {
     if (constantOrGradient.constructor === Color) {
       if (constantMaxOrGradientMax) {
         this.constantMin.copyFrom(<Color>constantOrGradient);

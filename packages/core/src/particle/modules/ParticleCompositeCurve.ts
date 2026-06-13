@@ -115,6 +115,12 @@ export class ParticleCompositeCurve {
   }
 
   /**
+   * Create a particle curve that generates a constant value of 0. Parameterless construction is
+   * required by the deep-clone Construct stage (state is then populated field-by-field).
+   */
+  constructor();
+
+  /**
    * Create a particle curve that generates a constant value.
    * @param constant - The constant value
    */
@@ -140,7 +146,7 @@ export class ParticleCompositeCurve {
    */
   constructor(curveMin: ParticleCurve, curveMax: ParticleCurve);
 
-  constructor(constantOrCurve: number | ParticleCurve, constantMaxOrCurveMax?: number | ParticleCurve) {
+  constructor(constantOrCurve: number | ParticleCurve = 0, constantMaxOrCurveMax?: number | ParticleCurve) {
     this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
     if (typeof constantOrCurve === "number") {
       if (constantMaxOrCurveMax) {
