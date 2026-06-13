@@ -245,6 +245,7 @@ export class PointerManager implements IInput {
             pointer._downMap[button] = frameCount;
             pointer._frameEvents |= PointerEventType.Down;
             pointer.phase = PointerPhase.Down;
+            pointer.pressedPosition.copyFrom(pointer.position);
             break;
           }
           case "pointerup": {
