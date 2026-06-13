@@ -1,4 +1,5 @@
 import {
+  BoxShape,
   Camera,
   Engine,
   ModelMesh,
@@ -256,6 +257,32 @@ describe("ParticleRenderer", () => {
 
     // Cloned config curves must be independent instances, not shared with the source
     expect(cloneGenerator.main.startLifetime).to.not.eq(generator.main.startLifetime);
+
+    cloneEntity.destroy();
+    entity.destroy();
+  });
+
+  it("clone keeps emission shape macro in sync", () => {
+    const emissionShapeMacro = ShaderMacro.getByName("RENDERER_EMISSION_SHAPE");
+
+    const entity = scene.createRootEntity("EmissionShapeSource");
+    const renderer = entity.addComponent(ParticleRenderer);
+    renderer.generator.emission.shape = new BoxShape();
+    renderer.generator.emission.rateOverTime.constant = 100;
+    renderer.generator.play();
+
+    const cloneEntity = entity.clone();
+    scene.addRootEntity(cloneEntity);
+    const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+
+    // Shape value is deep cloned into an independent instance
+    expect(cloneRenderer.generator.emission.shape).to.not.eq(renderer.generator.emission.shape);
+    expect(cloneRenderer.generator.emission.shape).to.be.instanceOf(BoxShape);
+
+    // The macro is derived every frame from `enabled && shape`, so after a frame the clone's
+    // shaderData carries the emission shape macro instead of staying on the constructor default
+    updateEngine(engine, 2, 100);
+    expect(cloneRenderer.shaderData["_macroCollection"].isEnable(emissionShapeMacro)).to.eq(true);
 
     cloneEntity.destroy();
     entity.destroy();
