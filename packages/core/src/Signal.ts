@@ -126,6 +126,9 @@ export class Signal<T extends any[] = []> {
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
       if (listener.destroyed || !listener.methodName) continue;
+      // A target outside the cloned subtree is not in the map and is intentionally kept as-is
+      // (the clone's signal keeps notifying the original component). The guard below only filters
+      // a null-target binding — it can no longer mean "remap failed".
       const clonedTarget = (cloneMap.get(listener.target) ?? listener.target) as Component;
       if (clonedTarget) {
         const clonedArgs = this._cloneArguments(listener.arguments, cloneMap);
