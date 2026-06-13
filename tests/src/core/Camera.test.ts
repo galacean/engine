@@ -429,6 +429,30 @@ describe("camera test", function () {
     expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
   });
 
+  it("clone preserves custom view/projection matrices with their flags", () => {
+    const entity = rootEntity.createChild("customMatrixCameraSource");
+    const cam = entity.addComponent(Camera);
+    const customView = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 3, 4, 5, 1);
+    const customProj = new Matrix(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1);
+    cam.viewMatrix = customView;
+    cam.projectionMatrix = customProj;
+
+    const cloned = entity.clone();
+    const clonedCam = cloned.getComponent(Camera);
+
+    // The custom flag clones together with the matrix content (an independent copy, not a shared ref)
+    expect(clonedCam.viewMatrix).to.not.eq(cam.viewMatrix);
+    expect(Matrix.equals(clonedCam.viewMatrix as Matrix, customView)).to.eq(true);
+    expect(Matrix.equals(clonedCam.projectionMatrix as Matrix, customProj)).to.eq(true);
+
+    // Custom matrices stay pinned on the clone: moving its transform must not trigger a recompute
+    cloned.transform.setPosition(10, 0, 0);
+    expect(Matrix.equals(clonedCam.viewMatrix as Matrix, customView)).to.eq(true);
+
+    cloned.destroy();
+    entity.destroy();
+  });
+
   it("clone preserves the replacement shader and keeps its ref count balanced", () => {
     const entity = rootEntity.createChild("replacementCameraSource");
     const cam = entity.addComponent(Camera);
