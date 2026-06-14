@@ -1097,22 +1097,34 @@ export class ParticleGenerator {
     this._firstFreeElement = nextFreeElement;
 
     if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
-      this._onParticleBirth(offset, position, transform);
+      this._onParticleBirth(offset, position, direction, transform);
     }
   }
 
-  private _onParticleBirth(offset: number, position: Vector3, transform: Transform): void {
+  private _onParticleBirth(offset: number, position: Vector3, direction: Vector3, transform: Transform): void {
     const subEmitters = this.subEmitters;
+    const worldRotation = transform.worldRotationQuaternion;
     const birthPos = this._eventPos;
-    Vector3.transformByQuat(position, transform.worldRotationQuaternion, birthPos);
+    Vector3.transformByQuat(position, worldRotation, birthPos);
     birthPos.add(transform.worldPosition);
+
+    // Birth emission direction is known directly; Death reads it back from the feedback buffer
+    const worldDirection = this._eventDir;
+    Vector3.transformByQuat(direction, worldRotation, worldDirection);
 
     const parentColor = this._eventColor;
     const parentSize = this._eventSize;
     const parentRotation = this._eventRotation;
     this._evaluateOverLifetime(offset, 0, parentColor, parentSize, parentRotation);
 
-    subEmitters._dispatchEvent(ParticleSubEmitterType.Birth, birthPos, parentColor, parentSize, parentRotation);
+    subEmitters._dispatchEvent(
+      ParticleSubEmitterType.Birth,
+      birthPos,
+      parentColor,
+      parentSize,
+      parentRotation,
+      worldDirection
+    );
   }
 
   /**
@@ -1264,10 +1276,10 @@ export class ParticleGenerator {
       local.add(transform.worldPosition);
     }
 
-    const dir = this._eventDir;
-    dir.set(fb[fbBase + 3], fb[fbBase + 4], fb[fbBase + 5]);
+    const worldDirection = this._eventDir;
+    worldDirection.set(fb[fbBase + 3], fb[fbBase + 4], fb[fbBase + 5]);
     if (simSpaceLocal) {
-      Vector3.transformByQuat(dir, transform.worldRotationQuaternion, dir);
+      Vector3.transformByQuat(worldDirection, transform.worldRotationQuaternion, worldDirection);
     } else {
       const spawnRotation = ParticleGenerator._tempQuat0;
       spawnRotation.set(
@@ -1276,7 +1288,7 @@ export class ParticleGenerator {
         instanceVertices[particleOffset + 32],
         instanceVertices[particleOffset + 33]
       );
-      Vector3.transformByQuat(dir, spawnRotation, dir);
+      Vector3.transformByQuat(worldDirection, spawnRotation, worldDirection);
     }
 
     // Evaluate at the parent's normalizedAge so children inherit its visible appearance at death.
@@ -1288,7 +1300,14 @@ export class ParticleGenerator {
     const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
     this._evaluateOverLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
 
-    this.subEmitters._dispatchEvent(ParticleSubEmitterType.Death, local, parentColor, parentSize, parentRotation, dir);
+    this.subEmitters._dispatchEvent(
+      ParticleSubEmitterType.Death,
+      local,
+      parentColor,
+      parentSize,
+      parentRotation,
+      worldDirection
+    );
   }
 
   private _evaluateOverLifetime(

@@ -521,4 +521,54 @@ describe("SubEmitter", () => {
     spun.parent.entity.destroy();
     spun.child.entity.destroy();
   });
+
+  it("Birth Velocity inherit emits along the parent's birth emission direction", () => {
+    // Birth velocity is closed-form (the parent's emission direction at spawn), no transform
+    // feedback needed. A cone aimed down -Z, rotated 90° about X, should make the sub particle
+    // emit along +Y in world space (-Z → +Y under a 90° X rotation).
+    function build(name: string, rotXDeg: number) {
+      const parent = createParticleRenderer(engine, name + "_P");
+      const child = createParticleRenderer(engine, name + "_C");
+      parent.generator.main.startSpeed.constant = 2;
+      const shape = new ConeShape();
+      shape.angle = 0;
+      shape.radius = 0;
+      parent.generator.emission.shape = shape;
+      parent.entity.transform.rotation = new Vector3(rotXDeg, 0, 0);
+      parent.generator.subEmitters.enabled = true;
+      parent.generator.subEmitters.addSubEmitter(
+        child,
+        ParticleSubEmitterType.Birth,
+        ParticleSubEmitterInheritProperty.Velocity,
+        undefined,
+        1
+      );
+      parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+      parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+      child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.play();
+      return { parent, child };
+    }
+    const straight = build("BirthVelStraight", 0);
+    const spun = build("BirthVelSpun", 90);
+    updateEngine(engine, 5);
+
+    // a_DirectionTime @ float offset 4..6 holds the child's (normalized) emission direction.
+    const s = (straight.child.generator as any)._instanceVertices as Float32Array;
+    expect(straight.child.generator._getAliveParticleCount()).to.equal(1);
+    expect(s[4]).to.be.closeTo(0, 1e-4);
+    expect(s[5]).to.be.closeTo(0, 1e-4);
+    expect(s[6]).to.be.closeTo(-1, 1e-4);
+
+    // 90° about X maps the cone's -Z emission to +Y; without Birth velocity it stayed -Z.
+    const r = (spun.child.generator as any)._instanceVertices as Float32Array;
+    expect(r[4]).to.be.closeTo(0, 1e-4);
+    expect(r[5]).to.be.closeTo(1, 1e-4);
+    expect(r[6]).to.be.closeTo(0, 1e-4);
+
+    straight.parent.entity.destroy();
+    straight.child.entity.destroy();
+    spun.parent.entity.destroy();
+    spun.child.entity.destroy();
+  });
 });

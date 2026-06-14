@@ -9,6 +9,6 @@ export enum ParticleSubEmitterInheritProperty {
   Size = 0x2,
   /** Add parent's current rotation onto the sub particle's start rotation. */
   Rotation = 0x4,
-  /** Emit the sub particle along the parent's velocity direction. Death events only. */
+  /** Emit the sub particle along the parent's velocity direction. */
   Velocity = 0x8
 }
