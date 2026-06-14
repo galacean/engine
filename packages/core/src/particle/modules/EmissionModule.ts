@@ -177,15 +177,12 @@ export class EmissionModule extends ParticleGeneratorModule {
 
   private _emitByRateOverTime(playTime: number): void {
     const { rateOverTime, _generator: generator } = this;
-    const isConstant = rateOverTime.mode === ParticleCurveMode.Constant;
-    const duration = generator.main.duration;
 
     let cumulativeTime = playTime - this._frameRateTime;
     while (true) {
-      const ratePerSeconds = isConstant
-        ? rateOverTime.constant
-        : rateOverTime.evaluate((this._frameRateTime % duration) / duration, this._rateRand.random());
-      if (!(ratePerSeconds > 0)) {
+      // Re-sample inside the loop so a time-varying curve is integrated at each emit cursor
+      const ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
+      if (ratePerSeconds <= 0) {
         this._frameRateTime = playTime;
         return;
       }
@@ -199,15 +196,10 @@ export class EmissionModule extends ParticleGeneratorModule {
 
   private _emitByRateOverDistance(lastPlayTime: number, playTime: number): void {
     const { rateOverDistance, _generator: generator } = this;
-    const ratePerUnit =
-      rateOverDistance.mode === ParticleCurveMode.Constant
-        ? rateOverDistance.constant
-        : rateOverDistance.evaluate(
-            (playTime % generator.main.duration) / generator.main.duration,
-            this._rateRand.random()
-          );
+    // Distance rate is sampled once per frame at the current cycle position
+    const ratePerUnit = this._evaluateRate(rateOverDistance, playTime);
 
-    if (!(ratePerUnit > 0)) {
+    if (ratePerUnit <= 0) {
       this._hasLastEmitPosition = false;
       this._distanceAccumulator = 0;
       return;
@@ -257,6 +249,22 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
 
     lastPos.copyFrom(currentPos);
+  }
+
+  private _evaluateRate(rate: ParticleCompositeCurve, cursorTime: number): number {
+    switch (rate.mode) {
+      case ParticleCurveMode.Constant:
+        return rate.constant;
+      case ParticleCurveMode.Curve: {
+        const duration = this._generator.main.duration;
+        return rate.evaluate((cursorTime % duration) / duration, undefined);
+      }
+      default: {
+        // TwoConstants / TwoCurves: lerp between the two values with a per-sample random factor
+        const duration = this._generator.main.duration;
+        return rate.evaluate((cursorTime % duration) / duration, this._rateRand.random());
+      }
+    }
   }
 
   private _emitByBurst(lastPlayTime: number, playTime: number): void {
