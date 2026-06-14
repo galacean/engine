@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
 import { Primitive } from "../graphic/Primitive";
@@ -1102,7 +1102,6 @@ export class ParticleGenerator {
   }
 
   private _onParticleBirth(offset: number, position: Vector3, direction: Vector3, transform: Transform): void {
-    const subEmitters = this.subEmitters;
     const worldRotation = transform.worldRotationQuaternion;
     const birthPos = this._eventPos;
     Vector3.transformByQuat(position, worldRotation, birthPos);
@@ -1117,7 +1116,7 @@ export class ParticleGenerator {
     const parentRotation = this._eventRotation;
     this._evaluateOverLifetime(offset, 0, parentColor, parentSize, parentRotation);
 
-    subEmitters._dispatchEvent(
+    this.subEmitters._dispatchEvent(
       ParticleSubEmitterType.Birth,
       birthPos,
       parentColor,
@@ -1147,21 +1146,20 @@ export class ParticleGenerator {
     if (count > available) count = available;
 
     const transform = this._renderer.entity.transform;
-    const worldPos = transform.worldPosition;
-    const worldRot = transform.worldRotationQuaternion;
+    const { worldPosition: emitterWorldPosition, worldRotationQuaternion: emitterWorldRotation } = transform;
 
     // Convert event world position into local emission space for a_ShapePos
     const localPos = this._emitLocalPos;
-    Vector3.subtract(worldPosition, worldPos, localPos);
+    Vector3.subtract(worldPosition, emitterWorldPosition, localPos);
     const invRot = ParticleGenerator._tempQuat0;
-    Quaternion.invert(worldRot, invRot);
+    Quaternion.invert(emitterWorldRotation, invRot);
     Vector3.transformByQuat(localPos, invRot, localPos);
 
     const direction = this._emitDirection;
     if (worldDirection) {
       Vector3.transformByQuat(worldDirection, invRot, direction);
       const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
-      if (len > 1e-6) {
+      if (len > MathUtil.zeroTolerance) {
         direction.set(direction.x / len, direction.y / len, direction.z / len);
       } else {
         direction.set(0, 0, -1);
@@ -1262,24 +1260,28 @@ export class ParticleGenerator {
 
   private _onParticleDeath(particleOffset: number): void {
     const instanceVertices = this._instanceVertices;
-    const main = this.main;
     const transform = this._renderer.entity.transform;
-    const simSpaceLocal = main.simulationSpace === ParticleSimulationSpace.Local;
+    const simSpaceLocal = this.main.simulationSpace === ParticleSimulationSpace.Local;
 
+    const worldRotation = transform.worldRotationQuaternion;
     const ringIndex = particleOffset / ParticleBufferUtils.instanceVertexFloatStride;
-    const fb = this._feedbackReadback;
-    const fbBase = (ringIndex * ParticleBufferUtils.feedbackVertexStride) / 4;
+    const feedbackData = this._feedbackReadback;
+    const feedbackOffset = (ringIndex * ParticleBufferUtils.feedbackVertexStride) / 4;
     const local = this._eventPos;
-    local.set(fb[fbBase], fb[fbBase + 1], fb[fbBase + 2]);
+    local.set(feedbackData[feedbackOffset], feedbackData[feedbackOffset + 1], feedbackData[feedbackOffset + 2]);
     if (simSpaceLocal) {
-      Vector3.transformByQuat(local, transform.worldRotationQuaternion, local);
+      Vector3.transformByQuat(local, worldRotation, local);
       local.add(transform.worldPosition);
     }
 
     const worldDirection = this._eventDir;
-    worldDirection.set(fb[fbBase + 3], fb[fbBase + 4], fb[fbBase + 5]);
+    worldDirection.set(
+      feedbackData[feedbackOffset + 3],
+      feedbackData[feedbackOffset + 4],
+      feedbackData[feedbackOffset + 5]
+    );
     if (simSpaceLocal) {
-      Vector3.transformByQuat(worldDirection, transform.worldRotationQuaternion, worldDirection);
+      Vector3.transformByQuat(worldDirection, worldRotation, worldDirection);
     } else {
       const spawnRotation = ParticleGenerator._tempQuat0;
       spawnRotation.set(
