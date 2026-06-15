@@ -52,14 +52,18 @@ class MockAudioContext {
       return Promise.reject(new Error("autoplay blocked"));
     }
     this.state = "running";
-    this.onstatechange?.();
-    return Promise.resolve();
+    const cb = this.onstatechange;
+    return Promise.resolve().then(() => {
+      cb?.();
+    });
   }
 
   suspend(): Promise<void> {
     this.state = "suspended";
-    this.onstatechange?.();
-    return Promise.resolve();
+    const cb = this.onstatechange;
+    return Promise.resolve().then(() => {
+      cb?.();
+    });
   }
 }
 
