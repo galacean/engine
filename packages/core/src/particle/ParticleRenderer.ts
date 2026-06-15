@@ -272,8 +272,8 @@ export class ParticleRenderer extends Renderer {
    */
   override _cloneTo(target: ParticleRenderer): void {
     super._cloneTo(target);
-    target.renderMode = this._renderMode;
     target.mesh = this._mesh;
+    target.renderMode = this._renderMode;
     target.generator.emission._updateShapeMacro();
   }
 
