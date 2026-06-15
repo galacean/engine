@@ -13,9 +13,9 @@ import { ShaderCompiler as ShaderCompilerVerbose } from "@galacean/engine-shader
 import { glslValidate } from "./ShaderValidate";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
-import { server } from "@vitest/browser/context";
 import { describe, expect, it, vi } from "vitest";
-const { readFile } = server.commands;
+import { readFile } from "./readShaderTestFile";
+
 Logger.enable();
 
 const shaderCompilerVerbose = new ShaderCompilerVerbose();

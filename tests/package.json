@@ -28,6 +28,6 @@
     "@galacean/engine-shader": "workspace:*"
   },
   "devDependencies": {
-    "@vitest/browser": "2.1.3"
+    "@vitest/browser": "3.2.6"
   }
 }

@@ -8,10 +8,9 @@ import {
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
-import { server } from "@vitest/browser/context";
 import { beforeAll, describe, expect, it } from "vitest";
+import { readFile } from "./readShaderTestFile";
 
-const { readFile } = server.commands;
 Logger.enable();
 
 const shaderCompiler = new ShaderCompiler();

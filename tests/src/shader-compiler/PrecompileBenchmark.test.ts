@@ -18,10 +18,8 @@ import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMac
 import { shaders as builtinShaders } from "@galacean/engine-shader/sources";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
-import { server } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
-
-const { readFile } = server.commands;
+import { readFile } from "./readShaderTestFile";
 
 function builtinSource(path: string): string {
   const entry = builtinShaders.find((s) => s.path === path);
