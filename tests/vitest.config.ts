@@ -1,4 +1,5 @@
 import { defineProject } from "vitest/config";
+import type {} from "@vitest/browser/providers/playwright";
 
 export default defineProject({
   server: {
@@ -17,15 +18,17 @@ export default defineProject({
     browser: {
       provider: "playwright",
       enabled: true,
-      name: "chromium",
-      providerOptions: {
-        launch: {
-          args:
-            process.env.HEADLESS === "true"
-              ? ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle", "--headless"]
-              : ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
+      instances: [
+        {
+          browser: "chromium",
+          launch: {
+            args:
+              process.env.HEADLESS === "true"
+                ? ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle", "--headless"]
+                : ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
+          }
         }
-      }
+      ]
     }
   }
 });

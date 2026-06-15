@@ -99,6 +99,7 @@ export class ParticleGenerator {
   readonly customData: CustomDataModule;
 
   /** @internal */
+  @ignoreClone
   _currentParticleCount = 0;
   /** @internal */
   @ignoreClone
@@ -436,6 +437,9 @@ export class ParticleGenerator {
 
     if (renderer.renderMode === ParticleRenderMode.Mesh) {
       const { mesh } = renderer;
+      if (!mesh) {
+        return;
+      }
       const positionElement = mesh.getVertexElement(VertexAttribute.Position);
       const colorElement = mesh.getVertexElement(VertexAttribute.Color);
       const uvElement = mesh.getVertexElement(VertexAttribute.UV);
@@ -643,6 +647,7 @@ export class ParticleGenerator {
    */
   _updateShaderData(shaderData: ShaderData): void {
     this.main._updateShaderData(shaderData);
+    this.emission._updateShaderData(shaderData);
     this.velocityOverLifetime._updateShaderData(shaderData);
     this.forceOverLifetime._updateShaderData(shaderData);
     this.limitVelocityOverLifetime._updateShaderData(shaderData);

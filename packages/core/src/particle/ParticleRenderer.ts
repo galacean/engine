@@ -46,10 +46,13 @@ export class ParticleRenderer extends Renderer {
   /** @internal */
   @ignoreClone
   _transformedBounds = new BoundingBox();
-
-  private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
-  private _currentRenderModeMacro: ShaderMacro;
+  @ignoreClone
   private _mesh: ModelMesh;
+
+  @ignoreClone
+  private _renderMode: ParticleRenderMode = ParticleRenderMode.Billboard;
+  @ignoreClone
+  private _currentRenderModeMacro: ShaderMacro;
   private _supportInstancedArrays: boolean;
 
   /**
@@ -94,9 +97,7 @@ export class ParticleRenderer extends Renderer {
       const wasMeshMode = lastRenderMode === ParticleRenderMode.Mesh;
       const isMeshMode = value === ParticleRenderMode.Mesh;
       if (wasMeshMode !== isMeshMode) {
-        if (!isMeshMode || this.mesh) {
-          this.generator._reorganizeGeometryBuffers();
-        }
+        this.generator._reorganizeGeometryBuffers();
       }
     }
   }
@@ -264,6 +265,15 @@ export class ParticleRenderer extends Renderer {
     }
     super._onDestroy();
     this.generator._destroy();
+  }
+
+  /**
+   * @internal
+   */
+  override _cloneTo(target: ParticleRenderer): void {
+    super._cloneTo(target);
+    target.mesh = this._mesh;
+    target.renderMode = this._renderMode;
   }
 
   /**
