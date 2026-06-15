@@ -7,7 +7,7 @@ import {
   ShaderSourceParser
 } from "@galacean/engine-shader-parser";
 import type { ASTNode } from "@galacean/engine-shader-parser";
-import type { IShaderSource } from "@galacean/engine-design";
+import type { IShaderAnalyzer, IShaderProgram, IShaderSource } from "@galacean/engine-design";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticSeverity, DIAGNOSTIC_SOURCE } from "./Diagnostic";
@@ -41,7 +41,10 @@ export interface AnalysisResult {
  * Static analyzer for shader source / GLSL. Drives parse + the parser's IO analysis and surfaces
  * structured diagnostics the runtime compiler discards. It does not run code generation.
  */
-export class ShaderAnalyzer {
+export class ShaderAnalyzer implements IShaderAnalyzer {
+  /** Optional sink for structured diagnostics (e.g. an editor drawing squiggles); fires alongside Logger. */
+  onDiagnostics?: (diagnostics: Diagnostic[]) => void;
+
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
   private readonly _rules: CustomRule[] = [];
@@ -83,6 +86,25 @@ export class ShaderAnalyzer {
 
     this._logDiagnostics(diagnostics);
     return { diagnostics, passes };
+  }
+
+  /**
+   * @internal
+   * Diagnose an already-parsed program (no re-parse) plus its parse-stage errors, surfacing the
+   * result via `onDiagnostics` and Logger. Called by the compiler when this analyzer is injected.
+   */
+  _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): void {
+    const shaderData = (program as unknown as ASTNode.GLShaderProgram).shaderData;
+    const diagnostics: Diagnostic[] = parseErrors.map((e) => gseErrorToDiagnostic(e));
+    const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
+      shaderData,
+      vertexEntry,
+      fragmentEntry,
+      ShaderCompilerUtils.processingPassText
+    );
+    for (const e of ioErrors) diagnostics.push(gseErrorToDiagnostic(e));
+    this.onDiagnostics?.(diagnostics);
+    this._logDiagnostics(diagnostics);
   }
 
   /** Print collected diagnostics through the engine Logger (off by default; `Logger.enable()` to see them). */

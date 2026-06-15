@@ -1,4 +1,5 @@
 import { IPrecompiledShader } from "./IPrecompiledShader";
+import { IShaderAnalyzer } from "./IShaderAnalyzer";
 import { IShaderProgramSource } from "./IShaderProgramSource";
 import { IShaderSource } from "./shaderSource/IShaderSource";
 
@@ -6,6 +7,13 @@ import { IShaderSource } from "./shaderSource/IShaderSource";
  * Shader compiler interface.
  */
 export interface IShaderCompiler {
+  /**
+   * @internal
+   * Attach an analyzer so each `_parseShaderPass` also diagnoses the parsed program (no re-parse).
+   * Without one, compilation runs no diagnostics.
+   */
+  _setAnalyzer(analyzer: IShaderAnalyzer): void;
+
   /**
    * @internal
    * Parse shader source code to get the source structure of shader.

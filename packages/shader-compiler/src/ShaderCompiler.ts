@@ -1,6 +1,6 @@
 import { Color } from "@galacean/engine-math";
 import { ShaderLanguage } from "@galacean/engine-core";
-import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
+import type { IPrecompiledShader, IRenderStates, IShaderAnalyzer, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
 import type { ASTNode } from "@galacean/engine-shader-parser";
@@ -16,11 +16,17 @@ export class ShaderCompiler {
 
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
+  private _analyzer?: IShaderAnalyzer;
 
   /** Replace the `#include` lookup table and clear the derived chunk cache. */
   _setIncludeMap(includeMap: IncludeMap): void {
     this._includeMap = includeMap;
     this._chunkOutputCache.clear();
+  }
+
+  /** Attach an analyzer; each `_parseShaderPass` then diagnoses the parsed program (no re-parse). */
+  _setAnalyzer(analyzer: IShaderAnalyzer): void {
+    this._analyzer = analyzer;
   }
 
   _parseShaderSource(sourceCode: string): IShaderSource {
@@ -56,7 +62,10 @@ export class ShaderCompiler {
     // pointing at this pass's text — the next compile would otherwise stamp errors with stale source.
     try {
       const program = parser.parse(tokens, macroDefineList);
-      return program ? this.generate(program, vertexEntry, fragmentEntry, backend) : undefined;
+      if (!program) return undefined;
+      // When an analyzer is injected, diagnose the parsed program before codegen — same parse, no extra pass.
+      this._analyzer?._diagnose(program, parser.errors, vertexEntry, fragmentEntry);
+      return this.generate(program, vertexEntry, fragmentEntry, backend);
     } finally {
       ShaderCompilerUtils.processingPassText = undefined;
     }
