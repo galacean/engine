@@ -274,6 +274,7 @@ export class ParticleRenderer extends Renderer {
     super._cloneTo(target);
     target.renderMode = this._renderMode;
     target.mesh = this._mesh;
+    target.generator.emission._updateShapeMacro();
   }
 
   /**

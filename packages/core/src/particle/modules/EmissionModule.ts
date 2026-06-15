@@ -1,6 +1,6 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ShaderData, ShaderMacro } from "../../shader";
+import { ShaderMacro } from "../../shader";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { Burst } from "./Burst";
@@ -63,6 +63,7 @@ export class EmissionModule extends ParticleGeneratorModule {
         this._resyncCursors(this._generator._playTime);
       }
       this._enabled = value;
+      this._updateShapeMacro();
     }
   }
 
@@ -82,6 +83,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       lastShape?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
       value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
 
+      this._updateShapeMacro();
       renderer._onGeneratorParamsChanged();
     }
   }
@@ -142,7 +144,8 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _updateShaderData(shaderData: ShaderData): void {
+  _updateShapeMacro(): void {
+    const shaderData = this._generator._renderer.shaderData;
     const shapeMacro = this._enabled && this._shape ? EmissionModule._emissionShapeMacro : null;
     this._shapeMacro = this._enableMacro(shaderData, this._shapeMacro, shapeMacro);
   }
