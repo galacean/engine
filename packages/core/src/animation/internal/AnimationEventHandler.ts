@@ -1,11 +1,9 @@
-import { IPoolElement } from "../../utils/ObjectPool";
 import { AnimationEvent } from "../AnimationEvent";
+
 /**
  * @internal
  */
-export class AnimationEventHandler implements IPoolElement {
+export class AnimationEventHandler {
   event: AnimationEvent;
   handlers: Function[] = [];
-
-  dispose() {}
 }
