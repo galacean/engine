@@ -153,6 +153,13 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
+  _cloneTo(target: EmissionModule): void {
+    target._updateShapeMacro();
+  }
+
+  /**
+   * @internal
+   */
   _resetRandomSeed(seed: number): void {
     this._burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
     this._shapeRand.reset(seed, ParticleRandomSubSeeds.Shape);
