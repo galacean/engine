@@ -51,6 +51,7 @@ export class Transform extends Component {
 
   @ignoreClone
   protected _isParentDirty: boolean = true;
+  @ignoreClone
   private _parentTransformCache: Transform = null;
   @ignoreClone
   private _dirtyFlag: number = TransformModifyFlags.LqLmWmWpWeWqWsWus;
@@ -563,19 +564,7 @@ export class Transform extends Component {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    this._propagateReparentDirty(TransformModifyFlags.WmWpWeWqWsWus);
-  }
-
-  private _propagateReparentDirty(flags: TransformModifyFlags): void {
-    this._worldAssociatedChange(flags);
-    const children = this._entity._children;
-    for (let i = 0, n = children.length; i < n; i++) {
-      const transform = children[i].transform;
-      if (transform) {
-        transform._isParentDirty = true;
-        transform._propagateReparentDirty(flags);
-      }
-    }
+    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
   }
 
   /**

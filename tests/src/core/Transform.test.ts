@@ -1,4 +1,4 @@
-import { deepClone, Entity, Scene, Transform } from "@galacean/engine-core";
+import { deepClone, Entity, Scene, Script, Transform } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, describe, expect, it } from "vitest";
@@ -122,6 +122,35 @@ describe("Transform test", function () {
     expect(preTransform1.destroyed).to.equal(true);
     expect(entity1.transform instanceof Transform).to.equal(true);
     expect(entity1.transform instanceof SubClassOfTransform).to.equal(false);
+  });
+
+  it("clone with worldMatrix listener should not produce stale parent cache after reparent", () => {
+    class WorldMatrixListener extends Script {
+      constructor(entity: Entity) {
+        super(entity);
+        // @ts-ignore
+        entity._updateFlagManager.addListener(() => {
+          entity.transform.worldMatrix;
+        });
+      }
+    }
+
+    const source = new Entity(engine, "source");
+    const child = source.createChild("child");
+    child.transform.setPosition(10, 20, 30);
+    child.addComponent(WorldMatrixListener);
+
+    const clone = source.clone();
+    const cloneChild = clone.findByName("child");
+
+    const root = scene.createRootEntity("root");
+    root.transform.setPosition(1000, 2000, 3000);
+    root.addChild(clone);
+
+    const world = cloneChild.transform.worldMatrix;
+    expect(world.elements[12]).to.equal(1010);
+    expect(world.elements[13]).to.equal(2020);
+    expect(world.elements[14]).to.equal(3030);
   });
 });
 
