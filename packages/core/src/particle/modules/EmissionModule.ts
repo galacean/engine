@@ -179,19 +179,16 @@ export class EmissionModule extends ParticleGeneratorModule {
     const { rateOverTime, _generator: generator } = this;
 
     let cumulativeTime = playTime - this._frameRateTime;
-    while (true) {
-      // Re-sample inside the loop so a time-varying curve is integrated at each emit cursor
-      const ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
-      if (ratePerSeconds <= 0) {
-        this._frameRateTime = playTime;
-        return;
-      }
+    let ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
+    while (ratePerSeconds > 0) {
       const emitInterval = 1.0 / ratePerSeconds;
-      if (cumulativeTime < emitInterval) break;
+      if (cumulativeTime < emitInterval) return;
       cumulativeTime -= emitInterval;
       this._frameRateTime += emitInterval;
       generator._emit(this._frameRateTime, 1);
+      ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
     }
+    this._frameRateTime = playTime;
   }
 
   private _emitByRateOverDistance(lastPlayTime: number, playTime: number): void {
