@@ -60,6 +60,7 @@ export class AudioManager {
     let context = AudioManager._context;
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
+      AudioManager._hidden = document.hidden;
       context.onstatechange = AudioManager._onContextStateChange;
       document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
       window.addEventListener("pagehide", AudioManager._onHidden);
@@ -142,7 +143,7 @@ export class AudioManager {
   }
 
   private static _resumePendingSources(): void {
-    if (!AudioManager._pendingSources.size || !AudioManager.isAudioContextRunning()) {
+    if (!AudioManager._pendingSources.size || AudioManager._hidden || !AudioManager.isAudioContextRunning()) {
       return;
     }
     const sources = Array.from(AudioManager._pendingSources);
