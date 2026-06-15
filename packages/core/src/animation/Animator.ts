@@ -322,7 +322,9 @@ export class Animator extends Component {
   _reset(): void {
     const layersData = this._animatorLayersData;
     for (let i = 0, n = layersData.length; i < n; i++) {
-      const stateDataList = layersData[i].stateDataList;
+      const layerData = layersData[i];
+      if (!layerData) continue;
+      const stateDataList = layerData.stateDataList;
       for (let j = 0, m = stateDataList.length; j < m; j++) {
         const layerOwners = stateDataList[j].curveLayerOwner;
         for (let k = 0, l = layerOwners.length; k < l; k++) {

@@ -21,7 +21,7 @@ import {
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
 import { Quaternion } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { glbResource } from "./model/fox";
 const canvasDOM = document.createElement("canvas");
@@ -58,8 +58,8 @@ describe("Animator test", function () {
   });
 
   afterAll(function () {
-    animator.destroy();
-    engine.destroy();
+    animator?.destroy();
+    engine?.destroy();
   });
 
   afterEach(function () {
@@ -1446,7 +1446,7 @@ describe("Animator test", function () {
     animator.engine.time._frameCount++;
     animator.update(preExitDeltaTime);
     expect(layerData.srcPlayData.state.name).to.eq("Walk");
-    expect(layerData.destPlayData.state).to.be.undefined;
+    expect(layerData.destPlayData).to.be.null;
 
     // Update past exitTime, should transition to Run.
     // @ts-ignore

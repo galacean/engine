@@ -1,8 +1,8 @@
 import { Animator, Camera } from "@galacean/engine-core";
 import "@galacean/engine-loader";
 import type { GLTFResource } from "@galacean/engine-loader";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { beforeAll, describe, expect, it } from "vitest";
+import { WebGLEngine } from "@galacean/engine";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { glbResource } from "./model/fox";
 
 const canvasDOM = document.createElement("canvas");
@@ -11,9 +11,10 @@ canvasDOM.height = 1024;
 
 describe("Canvas 1024 test", function () {
   let animator: Animator;
+  let engine: WebGLEngine;
 
   beforeAll(async function () {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM });
+    engine = await WebGLEngine.create({ canvas: canvasDOM });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
     rootEntity.addComponent(Camera);
@@ -21,6 +22,10 @@ describe("Canvas 1024 test", function () {
     const defaultSceneRoot = resource.defaultSceneRoot;
     rootEntity.addChild(defaultSceneRoot);
     animator = defaultSceneRoot.getComponent(Animator);
+  });
+
+  afterAll(function () {
+    engine?.destroy();
   });
 
   it("loaded", () => {
