@@ -41,8 +41,15 @@ export class AudioManager {
   static resume(): Promise<void> {
     AudioManager._suspendedByCaller = false;
     AudioManager._clearForegroundResumeTimer();
-    if (AudioManager._hidden || document.hidden) {
-      AudioManager._hidden = true;
+    if (document.hidden) {
+      AudioManager._onHidden();
+      if (AudioManager._pendingSources.size > 0) {
+        AudioManager._needsUserGestureResume = true;
+      }
+      return Promise.resolve();
+    }
+
+    if (AudioManager._hidden) {
       if (AudioManager._pendingSources.size > 0) {
         AudioManager._needsUserGestureResume = true;
       }
@@ -143,12 +150,13 @@ export class AudioManager {
   }
 
   private static _onHidden(): void {
-    if (AudioManager._hidden) {
+    const context = AudioManager._context;
+    if (AudioManager._hidden && context?.state !== "running") {
       return;
     }
     AudioManager._hidden = true;
     AudioManager._clearForegroundResumeTimer();
-    AudioManager._context?.suspend();
+    context?.suspend().catch(() => {});
   }
 
   private static _onShown(): void {
@@ -190,7 +198,12 @@ export class AudioManager {
   }
 
   private static _resumePendingSources(): void {
-    if (!AudioManager._pendingSources.size || AudioManager._hidden || !AudioManager.isAudioContextRunning()) {
+    if (
+      !AudioManager._pendingSources.size ||
+      AudioManager._hidden ||
+      document.hidden ||
+      !AudioManager.isAudioContextRunning()
+    ) {
       return;
     }
     const sources = Array.from(AudioManager._pendingSources);

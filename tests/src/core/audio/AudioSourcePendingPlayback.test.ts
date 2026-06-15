@@ -123,6 +123,21 @@ function captureScheduledTimers(): Array<() => void> {
   return scheduledTimers;
 }
 
+function setDocumentHiddenForTest(hidden: boolean): () => void {
+  const ownDescriptor = Object.getOwnPropertyDescriptor(document, "hidden");
+  Object.defineProperty(document, "hidden", {
+    configurable: true,
+    get: () => hidden
+  });
+  return () => {
+    if (ownDescriptor) {
+      Object.defineProperty(document, "hidden", ownDescriptor);
+    } else {
+      delete (document as any).hidden;
+    }
+  };
+}
+
 describe("AudioSource pending playback", () => {
   beforeEach(() => {
     resetAudioManagerState();
@@ -269,6 +284,47 @@ describe("AudioSource pending playback", () => {
     expect(resumeSpy).not.toHaveBeenCalled();
     expect(context.state).to.equal("suspended");
     expect(audioSource.isPlaying).to.be.true;
+  });
+
+  it("suspends the context when resume runs after document becomes hidden but before hidden handler", async () => {
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    const suspendSpy = vi.spyOn(context, "suspend");
+    const resumeSpy = vi.spyOn(context, "resume");
+
+    context.state = "running";
+    const restoreDocumentHidden = setDocumentHiddenForTest(true);
+
+    await AudioManager.resume();
+    restoreDocumentHidden();
+    await flushAsync();
+
+    expect(resumeSpy).not.toHaveBeenCalled();
+    expect(suspendSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._hidden).to.be.true;
+
+    (AudioManager as any)._onHidden();
+    await flushAsync();
+
+    expect(context.state).to.equal("suspended");
+  });
+
+  it("does not resume pending sources after document becomes hidden but before hidden handler", async () => {
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    const pendingSource = {
+      _resumePendingPlayback: vi.fn()
+    };
+
+    context.state = "running";
+    const restoreDocumentHidden = setDocumentHiddenForTest(true);
+    (AudioManager as any)._registerPendingSource(pendingSource);
+
+    (AudioManager as any)._resumePendingSources();
+    restoreDocumentHidden();
+
+    expect(pendingSource._resumePendingPlayback).not.toHaveBeenCalled();
+    expect((AudioManager as any)._pendingSources.size).to.equal(1);
   });
 
   it("does not auto-resume a caller-controlled suspend on the next gesture", async () => {

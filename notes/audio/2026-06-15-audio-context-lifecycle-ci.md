@@ -28,6 +28,17 @@ The first fix still left two `resume()` edges open:
 
 The follow-up fix keeps hidden `resume()` as a no-op before touching the context, and restores gesture retry state when `context.resume()` rejects while pending sources exist. Coverage now also drives `_onContextStateChange()` directly for external non-running context state.
 
+## Second review follow-up
+
+The hidden `resume()` guard still had one ordering hole: `document.hidden` could already be `true` while `AudioManager._hidden` was still `false`. If another visibility listener called `AudioManager.resume()` in that window, the previous guard set `_hidden = true` and returned without suspending the running context. The real `_onHidden()` call then saw `_hidden === true` and skipped the required suspend.
+
+The fix routes the `document.hidden` branch through `_onHidden()`, and makes `_onHidden()` idempotent only when the context is already not running. `_resumePendingSources()` now also checks `document.hidden` so pending sources do not start in the same pre-handler hidden window.
+
+Regression coverage now includes both orders:
+
+- `document.hidden === true`, then `AudioManager.resume()`, before the hidden handler runs.
+- `document.hidden === true`, then `_resumePendingSources()`, before the hidden handler runs.
+
 ## Verification
 
 - `pnpm exec vitest run tests/src/core/audio/AudioSourcePendingPlayback.test.ts`
