@@ -19,7 +19,9 @@ import { shaders as builtinShaders } from "@galacean/engine-shader/sources";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
-import { readFile } from "./readShaderTestFile";
+import { server } from "@vitest/browser/context";
+
+const { readFile } = server.commands;
 
 function builtinSource(path: string): string {
   const entry = builtinShaders.find((s) => s.path === path);
@@ -153,7 +155,7 @@ describe("Precompile Benchmark", async () => {
 
   for (const entry of shaderFiles) {
     if (!entry.source && entry.file) {
-      entry.source = await readFile(`./shaders/${entry.file}`);
+      entry.source = await readFile(`src/shader-compiler/shaders/${entry.file}`);
     }
   }
 
