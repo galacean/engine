@@ -14,13 +14,23 @@ export class AudioManager {
   private static _needsUserGestureResume = false;
   private static _pendingSources = new Set<PendingAudioSource>();
   private static _hidden = false;
+  private static _foregroundResumeTimer: ReturnType<typeof setTimeout> | null = null;
+  private static _suspendedByCaller = false;
 
   /**
    * Suspend the audio context.
    * @returns A promise that resolves when the audio context is suspended
    */
   static suspend(): Promise<void> {
-    return AudioManager._context?.suspend() ?? Promise.resolve();
+    const context = AudioManager._context;
+    if (!context) {
+      return Promise.resolve();
+    }
+    AudioManager._suspendedByCaller = true;
+    AudioManager._needsUserGestureResume = false;
+    AudioManager._clearForegroundResumeTimer();
+    AudioManager._removeGestureListeners();
+    return context.suspend();
   }
 
   /**
@@ -29,6 +39,8 @@ export class AudioManager {
    * @returns A promise that resolves when the audio context is resumed
    */
   static resume(): Promise<void> {
+    AudioManager._suspendedByCaller = false;
+    AudioManager._clearForegroundResumeTimer();
     const context = AudioManager.getContext();
     if (context.state === "running") {
       AudioManager._needsUserGestureResume = false;
@@ -93,10 +105,17 @@ export class AudioManager {
   private static _onContextStateChange(): void {
     const state = AudioManager._context?.state;
     if (state === "running" && !AudioManager._hidden) {
+      AudioManager._suspendedByCaller = false;
       AudioManager._needsUserGestureResume = false;
       AudioManager._resumePendingSources();
       AudioManager._removeGestureListeners();
-    } else if (state && state !== "running" && !AudioManager._hidden) {
+    } else if (
+      state &&
+      state !== "running" &&
+      !AudioManager._hidden &&
+      !AudioManager._suspendedByCaller &&
+      !AudioManager._foregroundResumeTimer
+    ) {
       AudioManager._needsUserGestureResume = true;
       AudioManager._addGestureListeners();
     }
@@ -111,6 +130,7 @@ export class AudioManager {
       return;
     }
     AudioManager._hidden = true;
+    AudioManager._clearForegroundResumeTimer();
     AudioManager._context?.suspend();
   }
 
@@ -121,21 +141,31 @@ export class AudioManager {
     AudioManager._hidden = false;
 
     const context = AudioManager._context;
-    if (!context) {
+    if (!context || AudioManager._suspendedByCaller) {
       return;
     }
     // iOS WKWebView zombie fix (https://bugs.webkit.org/show_bug.cgi?id=263627):
     // force suspend then resume after a short delay to reset the audio rendering pipeline.
     context.suspend();
-    setTimeout(() => {
+    AudioManager._foregroundResumeTimer = setTimeout(() => {
+      AudioManager._foregroundResumeTimer = null;
+      if (AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context) {
+        return;
+      }
       context
         .resume()
         .then(() => {
+          if (AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context) {
+            return;
+          }
           AudioManager._needsUserGestureResume = false;
           AudioManager._resumePendingSources();
           AudioManager._removeGestureListeners();
         })
         .catch(() => {
+          if (AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context) {
+            return;
+          }
           AudioManager._needsUserGestureResume = true;
           AudioManager._addGestureListeners();
         });
@@ -154,8 +184,18 @@ export class AudioManager {
   }
 
   private static _resumeAfterInterruption(): void {
-    if (AudioManager._needsUserGestureResume || AudioManager._pendingSources.size > 0) {
+    if (
+      !AudioManager._suspendedByCaller &&
+      (AudioManager._needsUserGestureResume || AudioManager._pendingSources.size > 0)
+    ) {
       AudioManager.resume().catch(() => {});
+    }
+  }
+
+  private static _clearForegroundResumeTimer(): void {
+    if (AudioManager._foregroundResumeTimer !== null) {
+      clearTimeout(AudioManager._foregroundResumeTimer);
+      AudioManager._foregroundResumeTimer = null;
     }
   }
 
