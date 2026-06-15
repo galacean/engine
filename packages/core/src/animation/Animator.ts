@@ -328,11 +328,7 @@ export class Animator extends Component {
       for (let j = 0, m = stateDataList.length; j < m; j++) {
         const layerOwners = stateDataList[j].curveLayerOwner;
         for (let k = 0, l = layerOwners.length; k < l; k++) {
-          try {
-            layerOwners[k]?.curveOwner?.revertDefaultValue();
-          } catch (e) {
-            Logger.warn("Animator._reset: revertDefaultValue threw", e);
-          }
+          layerOwners[k]?.curveOwner?.revertDefaultValue();
         }
       }
     }

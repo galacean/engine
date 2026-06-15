@@ -44,6 +44,37 @@ describe("Animator test", function () {
 
   const findSharedState = (stateName: string) =>
     animator.animatorController.layers[0].stateMachine.findStateByName(stateName);
+  const createLoopAnimator = () => {
+    const entity = new Entity(engine);
+    const localAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("Base Layer");
+    controller.addLayer(layer);
+
+    const state = layer.stateMachine.addState("loop");
+    state.wrapMode = WrapMode.Loop;
+
+    const clip = new AnimationClip("loop-clip");
+    const curve = new AnimationFloatCurve();
+    const start = new Keyframe<number>();
+    const end = new Keyframe<number>();
+    start.time = 0;
+    start.value = 0;
+    end.time = 1;
+    end.value = 1;
+    curve.addKey(start);
+    curve.addKey(end);
+    clip.addCurveBinding("", Transform, "position.x", curve);
+    state.clip = clip;
+
+    localAnimator.animatorController = controller;
+    return { entity, animator: localAnimator, clip };
+  };
+  const updateAnimator = (target: Animator, deltaTime: number) => {
+    // @ts-ignore
+    target.engine.time._frameCount++;
+    target.update(deltaTime);
+  };
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({ canvas: canvasDOM });
@@ -531,6 +562,95 @@ describe("Animator test", function () {
     animator.fireEvents = true;
     animator.update(0.1);
     expect(testScriptSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("fires animation events across forward loop wrap", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+      event1(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const event0Spy = vi.spyOn(testScript, "event0");
+    const event1Spy = vi.spyOn(testScript, "event1");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.1;
+    const event1 = new AnimationEvent();
+    event1.functionName = "event1";
+    event1.time = 0.75;
+    clip.addEvent(event0);
+    clip.addEvent(event1);
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 1.25);
+
+      expect(event0Spy).toHaveBeenCalledTimes(2);
+      expect(event1Spy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
+  });
+
+  it("fires animation events across backward loop wrap", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+      event1(): void {}
+      event2(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const event0Spy = vi.spyOn(testScript, "event0");
+    const event1Spy = vi.spyOn(testScript, "event1");
+    const event2Spy = vi.spyOn(testScript, "event2");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.1;
+    const event2 = new AnimationEvent();
+    event2.functionName = "event2";
+    event2.time = 0.6;
+    const event1 = new AnimationEvent();
+    event1.functionName = "event1";
+    event1.time = 0.75;
+    clip.addEvent(event0);
+    clip.addEvent(event2);
+    clip.addEvent(event1);
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 0.25);
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).not.toHaveBeenCalled();
+      expect(event2Spy).not.toHaveBeenCalled();
+
+      event0Spy.mockClear();
+      event1Spy.mockClear();
+      event2Spy.mockClear();
+      loopAnimator.speed = -1;
+      updateAnimator(loopAnimator, 0.5);
+
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).toHaveBeenCalledTimes(1);
+      expect(event2Spy).not.toHaveBeenCalled();
+
+      event0Spy.mockClear();
+      event1Spy.mockClear();
+      event2Spy.mockClear();
+      updateAnimator(loopAnimator, 0.25);
+
+      expect(event0Spy).not.toHaveBeenCalled();
+      expect(event1Spy).not.toHaveBeenCalled();
+      expect(event2Spy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
   });
 
   it("does not refire animation events when a once clip reaches the end", () => {

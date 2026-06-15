@@ -17,6 +17,6 @@ Animation event handlers are rebuilt lazily from the state update version and en
 - `pnpm -F @galacean/engine-core run b:types` passed.
 - `pnpm run b:module` passed.
 - `pnpm vitest tests/src/core/Animator.test.ts tests/src/core/AnimatorHang.test.ts --run` passed after using the same `@galacean/engine` WebGLEngine entrypoint as the rest of the test suite.
-- `pnpm run coverage` passed locally with `111` files and `1423` tests.
-- GitHub CI for PR #3024 passed build, lint, e2e, Codecov project, and Codecov patch on commit `c975875de`.
+- `CI=true pnpm run coverage` passed locally with `111` files and `1425` tests.
 - Focused behavioral coverage was added for stable non-playing state instances, invalid layer lookup/play/crossFade, event binding after scripts are added post-play, and removing a default state.
+- Looping AnimationEvent coverage was added for both forward and backward wrap scans.
