@@ -42,7 +42,7 @@
     "shader-compiler-precompile": "./bundler/cli.js"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js && shx chmod +x bundler/cli.js",
+    "build": "rollup -c rollup.config.js && node -e \"require('fs').chmodSync('bundler/cli.js', 0o755)\"",
     "b:types": "tsc"
   },
   "umd": {
@@ -59,12 +59,11 @@
     "verbose/package.json"
   ],
   "dependencies": {
-    "@galacean/engine-core": "workspace:*",
+    "@rollup/pluginutils": "^5.0.0",
     "@galacean/engine-math": "workspace:*",
-    "@rollup/pluginutils": "^5.0.0"
+    "@galacean/engine-core": "workspace:*"
   },
   "devDependencies": {
-    "@galacean/engine-design": "workspace:*",
-    "shx": "^0.4.0"
+    "@galacean/engine-design": "workspace:*"
   }
 }
