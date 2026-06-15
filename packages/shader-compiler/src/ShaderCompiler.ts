@@ -3,6 +3,7 @@ import { ShaderLanguage } from "@galacean/engine-core";
 import type { IPrecompiledShader, IRenderStates, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
+import type { ASTNode } from "@galacean/engine-shader-parser";
 import { Lexer } from "@galacean/engine-shader-parser";
 import { ShaderInstructionEncoder } from "./ShaderInstructionEncoder";
 import { ShaderTargetParser } from "@galacean/engine-shader-parser";
@@ -55,24 +56,31 @@ export class ShaderCompiler {
     // pointing at this pass's text — the next compile would otherwise stamp errors with stale source.
     try {
       const program = parser.parse(tokens, macroDefineList);
-
-      if (!program) {
-        return undefined;
-      }
-
-      const codeGen = backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
-
-      const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
-
-      if (ret) {
-        ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
-        ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);
-      }
-
-      return ret;
+      return program ? this.generate(program, vertexEntry, fragmentEntry, backend) : undefined;
     } finally {
       ShaderCompilerUtils.processingPassText = undefined;
     }
+  }
+
+  /**
+   * Generate GLSL (and encoded instructions) from an already-parsed program — e.g. one returned by
+   * `ShaderAnalyzer.analyze().passes[i].program`, so an editor can reuse the analysis parse instead
+   * of re-parsing. This is the exact codegen `_parseShaderPass` runs, so the output is identical and
+   * both the engine and the editor go through one entry rather than reaching into a visitor.
+   */
+  generate(
+    program: ASTNode.GLShaderProgram,
+    vertexEntry: string,
+    fragmentEntry: string,
+    backend: ShaderLanguage
+  ): IShaderProgramSource {
+    const codeGen = backend === ShaderLanguage.GLSLES100 ? GLES100Visitor.getVisitor() : GLES300Visitor.getVisitor();
+    const ret = codeGen.visitShaderProgram(program, vertexEntry, fragmentEntry);
+    if (ret) {
+      ret.vertexShaderInstructions = ShaderInstructionEncoder.parse(ret.vertex);
+      ret.fragmentShaderInstructions = ShaderInstructionEncoder.parse(ret.fragment);
+    }
+    return ret;
   }
 
   _precompile(sourceCode: string, platformTarget: ShaderLanguage, basePathForIncludeKey: string): IPrecompiledShader {

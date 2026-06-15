@@ -57,8 +57,8 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
         if (!role) role = context.getStructRole(<string>postExpr.type);
 
         if (role) {
-          if (role === "attribute") context.referenceAttribute(prop);
-          else if (role === "varying") context.referenceVarying(prop);
+          if (role === StructRole.Attribute) context.referenceAttribute(prop);
+          else if (role === StructRole.Varying) context.referenceVarying(prop);
           else context.referenceMRTProp(prop);
           return prop.lexeme;
         }

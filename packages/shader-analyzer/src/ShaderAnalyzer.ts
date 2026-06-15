@@ -10,6 +10,7 @@ import type { ASTNode } from "@galacean/engine-shader-parser";
 import type { IShaderSource } from "@galacean/engine-design";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
+import { DiagnosticSeverity, DIAGNOSTIC_SOURCE } from "./Diagnostic";
 import type { CustomRule, RuleContext } from "./Rule";
 import { gseErrorToDiagnostic } from "./convert";
 
@@ -89,10 +90,10 @@ export class ShaderAnalyzer {
     for (const d of diagnostics) {
       const text = `[${d.code}] ${d.message} (line ${d.range.start.line}, col ${d.range.start.column})`;
       switch (d.severity) {
-        case "error":
+        case DiagnosticSeverity.Error:
           Logger.error(text);
           break;
-        case "warning":
+        case DiagnosticSeverity.Warning:
           Logger.warn(text);
           break;
       }
@@ -122,11 +123,11 @@ export class ShaderAnalyzer {
         positionAt,
         report: (d) =>
           diagnostics.push({
-            severity: d.severity ?? "error",
+            severity: d.severity ?? DiagnosticSeverity.Error,
             code: `${rule.name}/${d.code}`,
             message: d.message,
             range: d.range,
-            source: "galacean-shader-analyzer"
+            source: DIAGNOSTIC_SOURCE
           })
       };
       try {
@@ -134,11 +135,11 @@ export class ShaderAnalyzer {
       } catch (e) {
         // A buggy custom rule must not break analysis; surface its failure as a warning instead.
         diagnostics.push({
-          severity: "warning",
+          severity: DiagnosticSeverity.Warning,
           code: `${rule.name}/rule-error`,
           message: `Custom rule "${rule.name}" threw: ${e instanceof Error ? e.message : String(e)}`,
           range: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } },
-          source: "galacean-shader-analyzer"
+          source: DIAGNOSTIC_SOURCE
         });
       }
     }

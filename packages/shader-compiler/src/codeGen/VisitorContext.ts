@@ -82,9 +82,9 @@ export class VisitorContext {
 
   /** Return the role of a struct type, or undefined if it isn't one of the IO roles. */
   getStructRole(typeLexeme: string): StructRole | undefined {
-    if (this.isAttributeStruct(typeLexeme)) return "attribute";
-    if (this.isVaryingStruct(typeLexeme)) return "varying";
-    if (this.isMRTStruct(typeLexeme)) return "mrt";
+    if (this.isAttributeStruct(typeLexeme)) return StructRole.Attribute;
+    if (this.isVaryingStruct(typeLexeme)) return StructRole.Varying;
+    if (this.isMRTStruct(typeLexeme)) return StructRole.Mrt;
   }
 
   /** Register a variable as holding a value of a varying/attribute/mrt struct type. */

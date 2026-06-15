@@ -1,4 +1,4 @@
-import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import { DiagnosticSeverity, ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import type { Diagnostic } from "@galacean/engine-shader-analyzer";
 import { Logger } from "@galacean/engine-core";
 import { server } from "@vitest/browser/context";
@@ -293,7 +293,7 @@ describe("ShaderAnalyzer", () => {
         const idx = ctx.source.indexOf("discard");
         if (idx >= 0) {
           ctx.report({
-            severity: "warning",
+            severity: DiagnosticSeverity.Warning,
             code: "banned",
             message: "`discard` is banned by team policy.",
             range: { start: ctx.positionAt(idx), end: ctx.positionAt(idx + 7) }

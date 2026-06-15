@@ -10,7 +10,11 @@ import { Keyword } from "../common/enums/Keyword";
 import type { ShaderPosition, ShaderRange } from "../common";
 
 /** Role of a struct type in the shader IO flattening — a parser-derived clue codegen consumes to emit `in`/`out`. */
-export type StructRole = "varying" | "attribute" | "mrt";
+export enum StructRole {
+  Varying = "varying",
+  Attribute = "attribute",
+  Mrt = "mrt"
+}
 
 /**
  * IO structs and per-variable roles derived by the parser from the entry signatures,
@@ -258,8 +262,8 @@ export class ShaderIOAnalyzer {
       return fns;
     };
 
-    const entryFns = addEntryRoles(vertexEntry, "attribute", "varying").concat(
-      addEntryRoles(fragmentEntry, "varying", "mrt")
+    const entryFns = addEntryRoles(vertexEntry, StructRole.Attribute, StructRole.Varying).concat(
+      addEntryRoles(fragmentEntry, StructRole.Varying, StructRole.Mrt)
     );
 
     const registerByType = (typeLexeme: string | undefined, varName: string): void => {

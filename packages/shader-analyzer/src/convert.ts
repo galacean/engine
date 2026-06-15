@@ -1,5 +1,5 @@
 import type { Diagnostic } from "./Diagnostic";
-import { DiagnosticType } from "./Diagnostic";
+import { DiagnosticType, DiagnosticSeverity, DIAGNOSTIC_SOURCE } from "./Diagnostic";
 import { GSError, GSErrorName } from "@galacean/engine-shader-parser";
 
 /**
@@ -11,15 +11,15 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic {
   if (!(error instanceof GSError)) {
     // Non-GSError (e.g. thrown from lexer/preprocess) — best-effort
     return {
-      severity: "error",
+      severity: DiagnosticSeverity.Error,
       code: DiagnosticType.SyntaxError,
       message: error.message,
       range: { start: { line: 0, column: 0, offset: 0 }, end: { line: 0, column: 0, offset: 0 } },
-      source: "galacean-shader-analyzer"
+      source: DIAGNOSTIC_SOURCE
     };
   }
 
-  const severity = error.name === GSErrorName.CompilationWarn ? "warning" : "error";
+  const severity = error.name === GSErrorName.CompilationWarn ? DiagnosticSeverity.Warning : DiagnosticSeverity.Error;
   const code = error.code ?? DiagnosticType.SyntaxError;
 
   return {
@@ -27,7 +27,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic {
     code,
     message: error.message,
     range: gSErrorLocationToRange(error.location),
-    source: "galacean-shader-analyzer",
+    source: DIAGNOSTIC_SOURCE,
     relatedSource: error.source || undefined
   };
 }

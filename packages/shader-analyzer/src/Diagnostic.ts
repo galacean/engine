@@ -1,5 +1,13 @@
 import { DiagnosticType } from "@galacean/engine-shader-parser";
 
+export enum DiagnosticSeverity {
+  Error = "error",
+  Warning = "warning"
+}
+
+/** The `source` field every analyzer diagnostic carries (LSP "producer" id). */
+export const DIAGNOSTIC_SOURCE = "galacean-shader-analyzer";
+
 /**
  * Structured diagnostic produced by the shader analyzer.
  *
@@ -17,12 +25,10 @@ export interface Diagnostic {
     start: { line: number; column: number; offset: number };
     end: { line: number; column: number; offset: number };
   };
-  source: "galacean-shader-analyzer";
+  source: typeof DIAGNOSTIC_SOURCE;
   /** Source text of the pass where the error occurred (for context display). */
   relatedSource?: string;
 }
-
-export type DiagnosticSeverity = "error" | "warning";
 
 // Classification enum lives with the producers (parser/codegen); re-exported here for analyzer consumers.
 export { DiagnosticType };
