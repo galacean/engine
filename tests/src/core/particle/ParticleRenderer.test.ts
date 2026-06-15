@@ -279,8 +279,9 @@ describe("ParticleRenderer", () => {
     expect(cloneRenderer.generator.emission.shape).to.not.eq(renderer.generator.emission.shape);
     expect(cloneRenderer.generator.emission.shape).to.be.instanceOf(BoxShape);
 
-    // The macro is re-applied once during clone, so the clone's shaderData carries the emission
-    // shape macro immediately instead of staying on the constructor default or needing a frame
+    // The macro is derived every frame from `enabled && shape`, so after a frame the clone's
+    // shaderData carries the emission shape macro instead of staying on the constructor default
+    updateEngine(engine, 2, 100);
     expect(cloneRenderer.shaderData["_macroCollection"].isEnable(emissionShapeMacro)).to.eq(true);
 
     cloneEntity.destroy();

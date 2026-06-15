@@ -623,6 +623,7 @@ export class ParticleGenerator {
    */
   _updateShaderData(shaderData: ShaderData): void {
     this.main._updateShaderData(shaderData);
+    this.emission._updateShaderData(shaderData);
     this.velocityOverLifetime._updateShaderData(shaderData);
     this.forceOverLifetime._updateShaderData(shaderData);
     this.limitVelocityOverLifetime._updateShaderData(shaderData);
