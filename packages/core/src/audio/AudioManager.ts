@@ -43,16 +43,10 @@ export class AudioManager {
     AudioManager._clearForegroundResumeTimer();
     if (document.hidden) {
       AudioManager._onHidden();
-      if (AudioManager._pendingSources.size > 0) {
-        AudioManager._needsUserGestureResume = true;
-      }
-      return Promise.resolve();
     }
 
     if (AudioManager._hidden) {
-      if (AudioManager._pendingSources.size > 0) {
-        AudioManager._needsUserGestureResume = true;
-      }
+      AudioManager._markPendingGestureResume();
       return Promise.resolve();
     }
 
@@ -87,6 +81,12 @@ export class AudioManager {
   /** @internal */
   static _unregisterPendingSource(source: PendingAudioSource): void {
     AudioManager._pendingSources.delete(source);
+  }
+
+  private static _markPendingGestureResume(): void {
+    if (AudioManager._pendingSources.size > 0) {
+      AudioManager._needsUserGestureResume = true;
+    }
   }
 
   /**
@@ -169,18 +169,20 @@ export class AudioManager {
     if (!context || AudioManager._suspendedByCaller) {
       return;
     }
+    const isForegroundResumeStale = (): boolean =>
+      AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context;
     // iOS WKWebView zombie fix (https://bugs.webkit.org/show_bug.cgi?id=263627):
     // force suspend then resume after a short delay to reset the audio rendering pipeline.
     context.suspend();
     AudioManager._foregroundResumeTimer = setTimeout(() => {
       AudioManager._foregroundResumeTimer = null;
-      if (AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context) {
+      if (isForegroundResumeStale()) {
         return;
       }
       context
         .resume()
         .then(() => {
-          if (AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context) {
+          if (isForegroundResumeStale()) {
             return;
           }
           AudioManager._needsUserGestureResume = false;
@@ -188,7 +190,7 @@ export class AudioManager {
           AudioManager._removeGestureListeners();
         })
         .catch(() => {
-          if (AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context) {
+          if (isForegroundResumeStale()) {
             return;
           }
           AudioManager._needsUserGestureResume = true;
