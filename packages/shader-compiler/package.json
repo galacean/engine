@@ -42,7 +42,7 @@
     "shader-compiler-precompile": "./bundler/cli.js"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js && chmod +x bundler/cli.js",
+    "build": "rollup -c rollup.config.js && node -e \"require('fs').chmodSync('bundler/cli.js', 0o755)\"",
     "b:types": "tsc"
   },
   "umd": {
