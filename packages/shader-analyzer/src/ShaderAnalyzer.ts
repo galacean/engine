@@ -6,6 +6,7 @@ import {
   ShaderIOAnalyzer,
   ShaderSourceParser
 } from "@galacean/engine-shader-parser";
+import type { ASTNode } from "@galacean/engine-shader-parser";
 import type { IShaderSource } from "@galacean/engine-design";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
@@ -17,9 +18,22 @@ export interface AnalyzerOptions {
   includeMap?: IncludeMap;
 }
 
+export interface AnalyzedPass {
+  /**
+   * The parsed AST for this pass. Feed it to the compiler's `visitShaderProgram` to generate GLSL
+   * without re-parsing. Valid only until the next `analyze()` — AST nodes are pooled and recycled,
+   * so consume it before analyzing another source.
+   */
+  program: ASTNode.GLShaderProgram;
+  vertexEntry: string;
+  fragmentEntry: string;
+}
+
 export interface AnalysisResult {
   /** Structured diagnostics from shader-source structure parsing and per-pass GLSL analysis. */
   diagnostics: Diagnostic[];
+  /** Per-pass parsed ASTs in source order — reuse for codegen so the editor parses only once. */
+  passes: AnalyzedPass[];
 }
 
 /**
@@ -43,6 +57,7 @@ export class ShaderAnalyzer {
     }
 
     const diagnostics: Diagnostic[] = [];
+    const passes: AnalyzedPass[] = [];
 
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
 
@@ -53,7 +68,8 @@ export class ShaderAnalyzer {
       for (const subShader of shaderSource.subShaders) {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
-          this._analyzePass(pass.contents, pass.vertexEntry, pass.fragmentEntry, diagnostics);
+          const analyzed = this._analyzePass(pass.contents, pass.vertexEntry, pass.fragmentEntry, diagnostics);
+          if (analyzed) passes.push(analyzed);
         }
       }
     } catch (e) {
@@ -65,7 +81,7 @@ export class ShaderAnalyzer {
     }
 
     this._logDiagnostics(diagnostics);
-    return { diagnostics };
+    return { diagnostics, passes };
   }
 
   /** Print collected diagnostics through the engine Logger (off by default; `Logger.enable()` to see them). */
@@ -128,16 +144,23 @@ export class ShaderAnalyzer {
     }
   }
 
-  private _analyzePass(source: string, vertexEntry: string, fragmentEntry: string, diagnostics: Diagnostic[]): void {
+  private _analyzePass(
+    source: string,
+    vertexEntry: string,
+    fragmentEntry: string,
+    diagnostics: Diagnostic[]
+  ): AnalyzedPass | null {
     try {
       const { program, errors, passText } = parseShaderPass(source, this._includeMap, this._chunkOutputCache);
       diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
       if (program) {
         const { errors: ioErrors } = ShaderIOAnalyzer.analyze(program.shaderData, vertexEntry, fragmentEntry, passText);
         diagnostics.push(...ioErrors.map((e) => gseErrorToDiagnostic(e)));
+        return { program, vertexEntry, fragmentEntry };
       }
     } catch (e) {
       diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
+    return null;
   }
 }
