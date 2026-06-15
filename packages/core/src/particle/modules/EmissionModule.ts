@@ -196,7 +196,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     // Distance rate is sampled once per frame at the current cycle position
     const ratePerUnit = this._evaluateRate(rateOverDistance, playTime);
 
-    if (ratePerUnit <= 0) {
+    if (!(ratePerUnit > 0)) {
       this._hasLastEmitPosition = false;
       this._distanceAccumulator = 0;
       return;
