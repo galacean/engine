@@ -19,6 +19,15 @@ The test file amplified the problem by relying on `document.hidden` getter mocks
 - Guard the delayed recovery callback and its async result against hidden pages, stale contexts, and caller-controlled suspension.
 - Make the audio lifecycle tests import the source audio module, reset `AudioManager` listeners/state per case, and drive scheduled callbacks explicitly instead of relying on DOM getter mocks or fake timer ordering.
 
+## Review follow-up
+
+The first fix still left two `resume()` edges open:
+
+- Calling `AudioManager.resume()` while hidden could resume the shared context and make already-started source nodes continue in the background.
+- Calling `AudioSource.play()` after an explicit `AudioManager.suspend()` could register pending playback, hit an autoplay rejection, and stay stuck because `suspend()` had already removed the gesture listeners.
+
+The follow-up fix keeps hidden `resume()` as a no-op before touching the context, and restores gesture retry state when `context.resume()` rejects while pending sources exist. Coverage now also drives `_onContextStateChange()` directly for external non-running context state.
+
 ## Verification
 
 - `pnpm exec vitest run tests/src/core/audio/AudioSourcePendingPlayback.test.ts`

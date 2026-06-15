@@ -41,6 +41,14 @@ export class AudioManager {
   static resume(): Promise<void> {
     AudioManager._suspendedByCaller = false;
     AudioManager._clearForegroundResumeTimer();
+    if (AudioManager._hidden || document.hidden) {
+      AudioManager._hidden = true;
+      if (AudioManager._pendingSources.size > 0) {
+        AudioManager._needsUserGestureResume = true;
+      }
+      return Promise.resolve();
+    }
+
     const context = AudioManager.getContext();
     if (context.state === "running") {
       AudioManager._needsUserGestureResume = false;
@@ -48,11 +56,20 @@ export class AudioManager {
       AudioManager._removeGestureListeners();
       return Promise.resolve();
     }
-    return context.resume().then(() => {
-      AudioManager._needsUserGestureResume = false;
-      AudioManager._resumePendingSources();
-      AudioManager._removeGestureListeners();
-    });
+    return context
+      .resume()
+      .then(() => {
+        AudioManager._needsUserGestureResume = false;
+        AudioManager._resumePendingSources();
+        AudioManager._removeGestureListeners();
+      })
+      .catch((e) => {
+        if (!AudioManager._hidden && AudioManager._pendingSources.size > 0) {
+          AudioManager._needsUserGestureResume = true;
+          AudioManager._addGestureListeners();
+        }
+        throw e;
+      });
   }
 
   /** @internal */
