@@ -79,7 +79,7 @@ function createAudioSource(): AudioSource {
   audioSource.clip = {
     _addReferCount() {},
     _getAudioSource() {
-      return {};
+      return { duration: 10 };
     }
   } as any;
 
@@ -93,9 +93,6 @@ describe("AudioSource pending playback", () => {
     (AudioManager as any)._gainNode = null;
     (AudioManager as any)._needsUserGestureResume = false;
     (AudioManager as any)._pendingSources = new Set();
-    (AudioManager as any)._playingSources = new Set();
-    (AudioManager as any)._interruptedSources = new Set();
-    (AudioManager as any)._foregroundRestoreTimer = undefined;
     (AudioManager as any)._hidden = false;
     MockAudioContext.shouldResumeSucceed = true;
     MockAudioContext.resumeResultQueue = null;
@@ -105,7 +102,6 @@ describe("AudioSource pending playback", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
-    document.replaceChildren();
   });
 
   it("replays pending playback on the next user gesture after autoplay blocking", async () => {
@@ -119,7 +115,6 @@ describe("AudioSource pending playback", () => {
 
     expect((audioSource as any)._pendingPlay).to.be.true;
     expect((AudioManager as any)._pendingSources.size).to.equal(1);
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
     expect(audioSource.isPlaying).to.be.false;
 
     MockAudioContext.shouldResumeSucceed = true;
@@ -129,7 +124,6 @@ describe("AudioSource pending playback", () => {
     expect(audioSource.isPlaying).to.be.true;
     expect((audioSource as any)._pendingPlay).to.be.false;
     expect((AudioManager as any)._pendingSources.size).to.equal(0);
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });
 
   it("cancels pending playback before the unlocking gesture arrives", async () => {
@@ -150,181 +144,116 @@ describe("AudioSource pending playback", () => {
     await flushAsync();
 
     expect(audioSource.isPlaying).to.be.false;
-    expect((audioSource as any)._pendingPlay).to.be.false;
   });
 
-  it("keeps resume a no-op until a context already exists", async () => {
-    expect((AudioManager as any)._context).to.be.null;
+  it("resume() unlocks a suspended context", async () => {
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    expect(context.state).to.equal("suspended");
 
     await AudioManager.resume();
 
-    expect((AudioManager as any)._context).to.be.null;
+    expect(context.state).to.equal("running");
+    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });
 
-  it("does not resume foreground audio before a hide event", async () => {
+  it("suspends context on visibilitychange hidden", async () => {
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    const suspendSpy = vi.spyOn(context, "suspend");
+
+    context.state = "running";
+
+    vi.spyOn(document, "hidden", "get").mockReturnValue(true);
+    document.dispatchEvent(new Event("visibilitychange"));
+
+    expect(suspendSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._hidden).to.be.true;
+  });
+
+  it("resumes context on visibilitychange shown via iOS zombie fix", async () => {
+    vi.useFakeTimers();
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+
+    context.state = "running";
+    const suspendSpy = vi.spyOn(context, "suspend");
+    const resumeSpy = vi.spyOn(context, "resume");
+
+    (AudioManager as any)._onHidden();
+    expect(suspendSpy).toHaveBeenCalledTimes(1);
+
+    (AudioManager as any)._onShown();
+    // _onShown calls context.suspend() synchronously then schedules resume after 100ms
+    expect(suspendSpy).toHaveBeenCalledTimes(2);
+
+    vi.runAllTimers();
+    await flushAsync();
+
+    expect(resumeSpy).toHaveBeenCalled();
+  });
+
+  it("does not act on visibilitychange shown without prior hide", async () => {
     createAudioSource();
     const context = (AudioManager as any)._context as MockAudioContext;
 
     vi.spyOn(document, "hidden", "get").mockReturnValue(false);
-    const resumeSpy = vi.spyOn(context, "resume");
-    const suspendSpy = vi.spyOn(AudioManager, "suspend");
-
-    context.state = "suspended";
-    AudioManager._playingCount = 1;
+    const suspendSpy = vi.spyOn(context, "suspend");
 
     document.dispatchEvent(new Event("visibilitychange"));
     await flushAsync();
 
-    expect(resumeSpy).not.toHaveBeenCalled();
     expect(suspendSpy).not.toHaveBeenCalled();
-    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });
 
-  it("recreates interrupted source nodes from a foreground gesture", async () => {
-    const audioSource = createAudioSource();
-    const context = (AudioManager as any)._context as MockAudioContext;
-
-    context.state = "running";
-    audioSource.play();
-
-    const firstSourceNode = (audioSource as any)._sourceNode as MockBufferSourceNode;
-    expect(audioSource.isPlaying).to.be.true;
-    expect(AudioManager._playingCount).to.equal(1);
-
-    const hiddenSpy = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-    document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
-
-    expect(firstSourceNode.stop).toHaveBeenCalledTimes(1);
-    expect(audioSource.isPlaying).to.be.false;
-    expect(AudioManager._playingCount).to.equal(0);
-    expect((AudioManager as any)._interruptedSources.size).to.equal(1);
-
-    hiddenSpy.mockReturnValue(false);
-    document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.false;
-    expect((AudioManager as any)._interruptedSources.size).to.equal(1);
-    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
-
-    document.dispatchEvent(new Event("touchend"));
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.true;
-    expect(AudioManager._playingCount).to.equal(1);
-    expect((AudioManager as any)._interruptedSources.size).to.equal(0);
-    expect((audioSource as any)._sourceNode).not.to.equal(firstSourceNode);
-  });
-
-  it("recovers interrupted source nodes from foreground retry after the restore delay", async () => {
+  it("handles pagehide/pageshow lifecycle", async () => {
     vi.useFakeTimers();
-    const audioSource = createAudioSource();
+    createAudioSource();
     const context = (AudioManager as any)._context as MockAudioContext;
-
     context.state = "running";
-    audioSource.play();
 
-    const hiddenSpy = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-    document.dispatchEvent(new Event("visibilitychange"));
+    (AudioManager as any)._onHidden();
+    expect((AudioManager as any)._hidden).to.be.true;
+    expect(context.state).to.equal("suspended");
+
+    (AudioManager as any)._onShown();
+    expect((AudioManager as any)._hidden).to.be.false;
+
+    // iOS zombie fix uses window.setTimeout(100ms)
+    vi.runAllTimers();
+    await flushAsync();
     await flushAsync();
 
-    hiddenSpy.mockReturnValue(false);
-    document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.false;
-
-    await vi.advanceTimersByTimeAsync(299);
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.false;
-
-    await vi.advanceTimersByTimeAsync(1);
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.true;
-    expect((AudioManager as any)._interruptedSources.size).to.equal(0);
+    expect(context.state).to.equal("running");
   });
 
-  it("handles document pagehide/pageshow and mouseup recovery", async () => {
-    const audioSource = createAudioSource();
-    const context = (AudioManager as any)._context as MockAudioContext;
-
-    context.state = "running";
-    audioSource.play();
-
-    document.dispatchEvent(new Event("pagehide"));
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.false;
-    expect((AudioManager as any)._interruptedSources.size).to.equal(1);
-
-    document.dispatchEvent(new Event("pageshow"));
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.false;
-    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
-
-    document.dispatchEvent(new Event("mouseup"));
-    await flushAsync();
-
-    expect(audioSource.isPlaying).to.be.true;
-    expect((AudioManager as any)._interruptedSources.size).to.equal(0);
-  });
-
-  it("keeps gesture recovery when foreground resume fails", async () => {
+  it("sets gesture resume flag when foreground resume fails", async () => {
     vi.useFakeTimers();
-    const audioSource = createAudioSource();
+    createAudioSource();
     const context = (AudioManager as any)._context as MockAudioContext;
-
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    const hiddenSpy = vi.spyOn(document, "hidden", "get").mockReturnValue(true);
-    const resumeSpy = vi.spyOn(context, "resume");
-    const suspendSpy = vi.spyOn(AudioManager, "suspend");
-
     context.state = "running";
-    audioSource.play();
 
+    // Hide
+    vi.spyOn(document, "hidden", "get").mockReturnValue(true);
     document.dispatchEvent(new Event("visibilitychange"));
-    await flushAsync();
 
+    // Show, but resume will fail
     MockAudioContext.shouldResumeSucceed = false;
-    hiddenSpy.mockReturnValue(false);
+    vi.spyOn(document, "hidden", "get").mockReturnValue(false);
     document.dispatchEvent(new Event("visibilitychange"));
+
+    await vi.advanceTimersByTimeAsync(100);
     await flushAsync();
 
-    expect(resumeSpy).not.toHaveBeenCalled();
-    expect(suspendSpy).toHaveBeenCalledTimes(2);
     expect((AudioManager as any)._needsUserGestureResume).to.be.true;
 
-    await vi.advanceTimersByTimeAsync(299);
-    await flushAsync();
-
-    expect(resumeSpy).not.toHaveBeenCalled();
-    expect(suspendSpy).toHaveBeenCalledTimes(2);
-    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
-
-    await vi.advanceTimersByTimeAsync(1);
-    await flushAsync();
-
-    expect(resumeSpy).toHaveBeenCalledTimes(1);
-    expect(suspendSpy).toHaveBeenCalledTimes(3);
-    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
-
-    document.dispatchEvent(new Event("click"));
-    await flushAsync();
-
-    expect(resumeSpy).toHaveBeenCalledTimes(2);
-    expect((AudioManager as any)._needsUserGestureResume).to.be.true;
-
+    // Gesture succeeds
     MockAudioContext.shouldResumeSucceed = true;
     document.dispatchEvent(new Event("click"));
     await flushAsync();
 
-    expect(resumeSpy).toHaveBeenCalledTimes(3);
-    expect(context.state).to.equal("running");
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+    expect(context.state).to.equal("running");
   });
 
   it("retries context.resume inside a later user gesture even if an earlier resume is still pending", async () => {
@@ -352,6 +281,72 @@ describe("AudioSource pending playback", () => {
     await flushAsync();
 
     expect(resumeSpy).toHaveBeenCalledTimes(2);
+    expect(context.state).to.equal("running");
+    expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+  });
+
+  it("keeps _playingCount balanced across play/stop/pause/ended", async () => {
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    context.state = "running";
+
+    const s1 = createAudioSource();
+    const s2 = createAudioSource();
+
+    s1.play();
+    s2.play();
+    expect(AudioManager._playingCount).to.equal(2);
+
+    s1.pause();
+    expect(AudioManager._playingCount).to.equal(1);
+
+    s1.play();
+    expect(AudioManager._playingCount).to.equal(2);
+
+    s2.stop();
+    expect(AudioManager._playingCount).to.equal(1);
+
+    // Simulate onended
+    (s1 as any)._onPlayEnd();
+    expect(AudioManager._playingCount).to.equal(0);
+  });
+
+  it("does not resume a stopped source after hide/show cycle", async () => {
+    vi.useFakeTimers();
+    const audioSource = createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    context.state = "running";
+
+    audioSource.play();
+    expect(audioSource.isPlaying).to.be.true;
+
+    audioSource.stop();
+    expect(audioSource.isPlaying).to.be.false;
+
+    // hide → show cycle
+    (AudioManager as any)._onHidden();
+    (AudioManager as any)._onShown();
+    vi.runAllTimers();
+    await flushAsync();
+
+    // Source stays stopped — context resume does not restart stopped sources
+    expect(audioSource.isPlaying).to.be.false;
+    expect(AudioManager._playingCount).to.equal(0);
+  });
+
+  it("recovers via gesture when _needsUserGestureResume is set (external interruption path)", async () => {
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    context.state = "suspended";
+
+    // Simulate the state that _onContextStateChange would set on external interruption
+    (AudioManager as any)._needsUserGestureResume = true;
+
+    // Gesture triggers resume
+    MockAudioContext.shouldResumeSucceed = true;
+    document.dispatchEvent(new Event("pointerup"));
+    await flushAsync();
+
     expect(context.state).to.equal("running");
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });

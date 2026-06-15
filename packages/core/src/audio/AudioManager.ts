@@ -1,7 +1,5 @@
-type ResumableAudioSource = {
+type PendingAudioSource = {
   _resumePendingPlayback(): void;
-  _suspendPlaybackForInterruption(): boolean;
-  _resumeInterruptedPlayback(): void;
 };
 
 /**
@@ -14,20 +12,14 @@ export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _needsUserGestureResume = false;
-  private static _pendingSources = new Set<ResumableAudioSource>();
-  private static _playingSources = new Set<ResumableAudioSource>();
-  private static _interruptedSources = new Set<ResumableAudioSource>();
-  private static _foregroundRestoreDelay = 300;
-  private static _foregroundRestoreTimer: number | undefined;
+  private static _pendingSources = new Set<PendingAudioSource>();
   private static _hidden = false;
-  private static _eventsBound = false;
 
   /**
    * Suspend the audio context.
    * @returns A promise that resolves when the audio context is suspended
    */
   static suspend(): Promise<void> {
-    AudioManager._suspendActiveSourcesForInterruption();
     return AudioManager._context?.suspend() ?? Promise.resolve();
   }
 
@@ -37,48 +29,28 @@ export class AudioManager {
    * @returns A promise that resolves when the audio context is resumed
    */
   static resume(): Promise<void> {
-    const context = AudioManager._context;
-    if (!context) {
-      return Promise.resolve();
-    }
+    const context = AudioManager.getContext();
     if (context.state === "running") {
-      AudioManager._clearForegroundRestore();
       AudioManager._needsUserGestureResume = false;
       AudioManager._resumePendingSources();
-      AudioManager._resumeInterruptedSources();
+      AudioManager._removeGestureListeners();
       return Promise.resolve();
     }
     return context.resume().then(() => {
-      AudioManager._clearForegroundRestore();
       AudioManager._needsUserGestureResume = false;
       AudioManager._resumePendingSources();
-      AudioManager._resumeInterruptedSources();
+      AudioManager._removeGestureListeners();
     });
   }
 
   /** @internal */
-  static _registerPendingSource(source: ResumableAudioSource): void {
+  static _registerPendingSource(source: PendingAudioSource): void {
     AudioManager._pendingSources.add(source);
   }
 
   /** @internal */
-  static _unregisterPendingSource(source: ResumableAudioSource): void {
+  static _unregisterPendingSource(source: PendingAudioSource): void {
     AudioManager._pendingSources.delete(source);
-  }
-
-  /** @internal */
-  static _registerPlayingSource(source: ResumableAudioSource): void {
-    AudioManager._playingSources.add(source);
-  }
-
-  /** @internal */
-  static _unregisterPlayingSource(source: ResumableAudioSource): void {
-    AudioManager._playingSources.delete(source);
-  }
-
-  /** @internal */
-  static _unregisterInterruptedSource(source: ResumableAudioSource): void {
-    AudioManager._interruptedSources.delete(source);
   }
 
   /**
@@ -89,11 +61,10 @@ export class AudioManager {
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
       context.onstatechange = AudioManager._onContextStateChange;
-      if (!AudioManager._eventsBound) {
-        AudioManager._eventsBound = true;
-        AudioManager._bindLifecycleEvents();
-        AudioManager._bindGestureEvents();
-      }
+      document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
+      window.addEventListener("pagehide", AudioManager._onHidden);
+      window.addEventListener("pageshow", AudioManager._onShown);
+      AudioManager._addGestureListeners();
     }
     return context;
   }
@@ -119,101 +90,19 @@ export class AudioManager {
   }
 
   private static _onContextStateChange(): void {
-    if (AudioManager._context?.state === "running") {
-      if (AudioManager._hidden || AudioManager._needsUserGestureResume) {
-        return;
-      }
+    const state = AudioManager._context?.state;
+    if (state === "running" && !AudioManager._hidden) {
       AudioManager._needsUserGestureResume = false;
       AudioManager._resumePendingSources();
-      AudioManager._resumeInterruptedSources();
+      AudioManager._removeGestureListeners();
+    } else if (state && state !== "running" && !AudioManager._hidden) {
+      AudioManager._needsUserGestureResume = true;
+      AudioManager._addGestureListeners();
     }
   }
 
-  private static _resumePendingSources(): void {
-    if (!AudioManager._pendingSources.size || !AudioManager.isAudioContextRunning()) {
-      return;
-    }
-
-    const pendingSources = Array.from(AudioManager._pendingSources);
-    AudioManager._pendingSources.clear();
-
-    for (let i = 0, n = pendingSources.length; i < n; i++) {
-      pendingSources[i]._resumePendingPlayback();
-    }
-  }
-
-  private static _suspendActiveSourcesForInterruption(): void {
-    if (!AudioManager._playingSources.size) {
-      return;
-    }
-
-    const playingSources = Array.from(AudioManager._playingSources);
-    for (let i = 0, n = playingSources.length; i < n; i++) {
-      const source = playingSources[i];
-      if (source._suspendPlaybackForInterruption()) {
-        AudioManager._interruptedSources.add(source);
-      }
-    }
-  }
-
-  private static _resumeInterruptedSources(): void {
-    if (!AudioManager._interruptedSources.size || !AudioManager.isAudioContextRunning()) {
-      return;
-    }
-
-    const interruptedSources = Array.from(AudioManager._interruptedSources);
-    AudioManager._interruptedSources.clear();
-
-    for (let i = 0, n = interruptedSources.length; i < n; i++) {
-      interruptedSources[i]._resumeInterruptedPlayback();
-    }
-  }
-
-  private static _bindLifecycleEvents(): void {
-    const hiddenProp = AudioManager._getHiddenProp();
-    const visibilityEvents = [
-      "visibilitychange",
-      "mozvisibilitychange",
-      "msvisibilitychange",
-      "webkitvisibilitychange",
-      "qbrowserVisibilityChange"
-    ];
-
-    for (let i = 0, n = visibilityEvents.length; i < n; i++) {
-      document.addEventListener(visibilityEvents[i], (event) => {
-        const hidden = hiddenProp ? Boolean((document as any)[hiddenProp] || (event as any)?.hidden) : document.hidden;
-        hidden ? AudioManager._onHidden() : AudioManager._onShown();
-      });
-    }
-
-    window.addEventListener("pagehide", AudioManager._onHidden);
-    window.addEventListener("pageshow", AudioManager._onShown);
-    document.addEventListener("pagehide", AudioManager._onHidden);
-    document.addEventListener("pageshow", AudioManager._onShown);
-  }
-
-  private static _bindGestureEvents(): void {
-    const gestureEvents = ["pointerdown", "pointerup", "touchstart", "touchend", "mouseup", "click"];
-    for (let i = 0, n = gestureEvents.length; i < n; i++) {
-      document.addEventListener(gestureEvents[i], AudioManager._resumeAfterInterruption, { passive: true });
-    }
-  }
-
-  private static _getHiddenProp(): string {
-    const doc = document as any;
-    if (typeof doc.hidden !== "undefined") return "hidden";
-    if (typeof doc.mozHidden !== "undefined") return "mozHidden";
-    if (typeof doc.msHidden !== "undefined") return "msHidden";
-    if (typeof doc.webkitHidden !== "undefined") return "webkitHidden";
-    return "";
-  }
-
-  private static _hasResumeWork(): boolean {
-    return (
-      AudioManager._needsUserGestureResume ||
-      AudioManager._pendingSources.size > 0 ||
-      AudioManager._interruptedSources.size > 0
-    );
+  private static _onVisibilityChange(): void {
+    document.hidden ? AudioManager._onHidden() : AudioManager._onShown();
   }
 
   private static _onHidden(): void {
@@ -221,8 +110,7 @@ export class AudioManager {
       return;
     }
     AudioManager._hidden = true;
-    AudioManager._clearForegroundRestore();
-    AudioManager.suspend().catch(() => {});
+    AudioManager._context?.suspend();
   }
 
   private static _onShown(): void {
@@ -231,40 +119,52 @@ export class AudioManager {
     }
     AudioManager._hidden = false;
 
-    if (AudioManager._hasResumeWork()) {
-      AudioManager._prepareGestureResume();
-      AudioManager._scheduleForegroundRestore();
+    const context = AudioManager._context;
+    if (!context) {
+      return;
+    }
+    // iOS WKWebView zombie fix (https://bugs.webkit.org/show_bug.cgi?id=263627):
+    // force suspend then resume after a short delay to reset the audio rendering pipeline.
+    context.suspend();
+    setTimeout(() => {
+      context
+        .resume()
+        .then(() => {
+          AudioManager._needsUserGestureResume = false;
+          AudioManager._resumePendingSources();
+          AudioManager._removeGestureListeners();
+        })
+        .catch(() => {
+          AudioManager._needsUserGestureResume = true;
+          AudioManager._addGestureListeners();
+        });
+    }, 100);
+  }
+
+  private static _resumePendingSources(): void {
+    if (!AudioManager._pendingSources.size || !AudioManager.isAudioContextRunning()) {
+      return;
+    }
+    const sources = Array.from(AudioManager._pendingSources);
+    AudioManager._pendingSources.clear();
+    for (let i = 0, n = sources.length; i < n; i++) {
+      sources[i]._resumePendingPlayback();
     }
   }
 
   private static _resumeAfterInterruption(): void {
-    if (AudioManager._hasResumeWork()) {
-      AudioManager.resume().catch((e) => {
-        console.warn("Failed to resume AudioContext:", e);
-      });
+    if (AudioManager._needsUserGestureResume || AudioManager._pendingSources.size > 0) {
+      AudioManager.resume().catch(() => {});
     }
   }
 
-  private static _scheduleForegroundRestore(): void {
-    AudioManager._clearForegroundRestore();
-    AudioManager._foregroundRestoreTimer = window.setTimeout(() => {
-      AudioManager._foregroundRestoreTimer = undefined;
-      AudioManager.resume().catch(() => AudioManager._prepareGestureResume());
-    }, AudioManager._foregroundRestoreDelay);
+  private static _addGestureListeners(): void {
+    document.addEventListener("pointerup", AudioManager._resumeAfterInterruption, { passive: true });
+    document.addEventListener("click", AudioManager._resumeAfterInterruption, { passive: true });
   }
 
-  private static _clearForegroundRestore(): void {
-    if (AudioManager._foregroundRestoreTimer === undefined) {
-      return;
-    }
-    window.clearTimeout(AudioManager._foregroundRestoreTimer);
-    AudioManager._foregroundRestoreTimer = undefined;
-  }
-
-  private static _prepareGestureResume(): Promise<void> {
-    // iOS WKWebView may report a resumable state while rendering is still frozen.
-    // Force a clean context edge, then let a gesture or foreground retry restore sources.
-    AudioManager._needsUserGestureResume = true;
-    return AudioManager.suspend().catch(() => {});
+  private static _removeGestureListeners(): void {
+    document.removeEventListener("pointerup", AudioManager._resumeAfterInterruption);
+    document.removeEventListener("click", AudioManager._resumeAfterInterruption);
   }
 }

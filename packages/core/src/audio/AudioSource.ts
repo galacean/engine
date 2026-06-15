@@ -172,14 +172,11 @@ export class AudioSource extends Component {
    */
   stop(): void {
     this._cancelPendingPlayback();
-    AudioManager._unregisterInterruptedSource(this);
 
     if (this._isPlaying) {
       this._clearSourceNode();
-
       this._isPlaying = false;
       AudioManager._playingCount--;
-      AudioManager._unregisterPlayingSource(this);
     }
 
     this._pausedTime = -1;
@@ -191,15 +188,12 @@ export class AudioSource extends Component {
    */
   pause(): void {
     this._cancelPendingPlayback();
-    AudioManager._unregisterInterruptedSource(this);
 
     if (this._isPlaying) {
       this._clearSourceNode();
-
       this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
       AudioManager._playingCount--;
-      AudioManager._unregisterPlayingSource(this);
     }
   }
 
@@ -254,44 +248,6 @@ export class AudioSource extends Component {
     this._startPlayback();
   }
 
-  /** @internal */
-  _suspendPlaybackForInterruption(): boolean {
-    if (!this._isPlaying) {
-      return false;
-    }
-
-    const pausedTime = AudioManager.getContext().currentTime;
-    this._clearSourceNode();
-
-    this._pausedTime = pausedTime;
-    this._isPlaying = false;
-    AudioManager._playingCount--;
-    AudioManager._unregisterPlayingSource(this);
-
-    return true;
-  }
-
-  /** @internal */
-  _resumeInterruptedPlayback(): void {
-    if (
-      this._destroyed ||
-      !this.enabled ||
-      this._isPlaying ||
-      this._pendingPlay ||
-      !this._clip?._getAudioSource() ||
-      this._playTime < 0
-    ) {
-      return;
-    }
-
-    if (AudioManager.isAudioContextRunning()) {
-      this._startPlayback();
-    } else {
-      this._pendingPlay = true;
-      AudioManager._registerPendingSource(this);
-    }
-  }
-
   private _startPlayback(): void {
     const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
     if (!this._initSourceNode(startTime)) {
@@ -304,7 +260,6 @@ export class AudioSource extends Component {
     this._pausedTime = -1;
     this._isPlaying = true;
     AudioManager._playingCount++;
-    AudioManager._registerPlayingSource(this);
   }
 
   private _initSourceNode(startTime: number): boolean {
