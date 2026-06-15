@@ -563,7 +563,19 @@ export class Transform extends Component {
    */
   _parentChange(): void {
     this._isParentDirty = true;
-    this._updateAllWorldFlag(TransformModifyFlags.WmWpWeWqWsWus);
+    this._propagateReparentDirty(TransformModifyFlags.WmWpWeWqWsWus);
+  }
+
+  private _propagateReparentDirty(flags: TransformModifyFlags): void {
+    this._worldAssociatedChange(flags);
+    const children = this._entity._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const transform = children[i].transform;
+      if (transform) {
+        transform._isParentDirty = true;
+        transform._propagateReparentDirty(flags);
+      }
+    }
   }
 
   /**
