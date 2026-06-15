@@ -1,6 +1,6 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ShaderMacro } from "../../shader/ShaderMacro";
+import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
@@ -30,6 +30,9 @@ export class EmissionModule extends ParticleGeneratorModule {
   /** @internal */
   @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
+
+  @ignoreClone
+  private _shapeMacro: ShaderMacro;
   /** @internal */
   @ignoreClone
   _rateRand = new Rand(0, ParticleRandomSubSeeds.EmissionRate);
@@ -64,11 +67,6 @@ export class EmissionModule extends ParticleGeneratorModule {
         this._resyncCursors(this._generator._playTime);
       }
       this._enabled = value;
-      if (value && this._shape) {
-        this._generator._renderer.shaderData.enableMacro(EmissionModule._emissionShapeMacro);
-      } else {
-        this._generator._renderer.shaderData.disableMacro(EmissionModule._emissionShapeMacro);
-      }
     }
   }
 
@@ -86,13 +84,7 @@ export class EmissionModule extends ParticleGeneratorModule {
 
       const renderer = this._generator._renderer;
       lastShape?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-
-      if (value) {
-        value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
-        this.enabled && renderer.shaderData.enableMacro(EmissionModule._emissionShapeMacro);
-      } else {
-        renderer.shaderData.disableMacro(EmissionModule._emissionShapeMacro);
-      }
+      value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
 
       renderer._onGeneratorParamsChanged();
     }
@@ -149,6 +141,14 @@ export class EmissionModule extends ParticleGeneratorModule {
     this._emitByRateOverTime(playTime);
     this._emitByRateOverDistance(lastPlayTime, playTime);
     this._emitByBurst(lastPlayTime, playTime);
+  }
+
+  /**
+   * @internal
+   */
+  _updateShaderData(shaderData: ShaderData): void {
+    const shapeMacro = this._enabled && this._shape ? EmissionModule._emissionShapeMacro : null;
+    this._shapeMacro = this._enableMacro(shaderData, this._shapeMacro, shapeMacro);
   }
 
   /**
