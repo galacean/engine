@@ -681,9 +681,10 @@ export class ParticleGenerator {
    */
   _setTransformFeedback(): void {
     const needed =
-      this.limitVelocityOverLifetime.enabled ||
-      this.noise.enabled ||
-      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
+      this._renderer.engine._hardwareRenderer.isWebGL2 &&
+      (this.limitVelocityOverLifetime.enabled ||
+        this.noise.enabled ||
+        this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death));
     if (needed === this._useTransformFeedback) return;
     this._useTransformFeedback = needed;
 

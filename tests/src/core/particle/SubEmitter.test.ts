@@ -140,6 +140,28 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("Death slot reconciles transform-feedback on enable (deserialize path)", () => {
+    const parent = createParticleRenderer(engine, "Parent_Reconcile");
+    const child = createParticleRenderer(engine, "Child_Reconcile");
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death, undefined, undefined, 3);
+
+    // Mimic deserialization: a Death slot is present but transform-feedback was never set up
+    // (config restored without going through the setters that call _setTransformFeedback).
+    (parent.generator as any)._useTransformFeedback = false;
+    (parent.generator as any)._feedbackSimulator = null;
+
+    // Re-enable runs _onEnable, which reconciles transform-feedback from the current config.
+    parent.entity.isActive = false;
+    parent.entity.isActive = true;
+
+    expect((parent.generator as any)._useTransformFeedback).to.equal(true);
+    expect((parent.generator as any)._feedbackSimulator).to.not.equal(null);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("emitProbability = 0 skips all events", () => {
     const parent = createParticleRenderer(engine, "Parent_Prob");
     const child = createParticleRenderer(engine, "Child_Prob");

@@ -149,6 +149,7 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _onEnable(): void {
+    this.generator._setTransformFeedback();
     if (this.generator.main.playOnEnabled) {
       this.generator.play(false);
     }
