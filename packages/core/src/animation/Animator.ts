@@ -790,8 +790,8 @@ export class Animator extends Component {
     const dstPlaySpeed = destPlayData.speed * speed;
     const dstPlayDeltaTime = dstPlaySpeed * deltaTime;
 
-    srcPlayData && srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
-    destPlayData && destPlayData.updateOrientation(dstPlayDeltaTime);
+    srcPlayData.updateOrientation(srcPlaySpeed * deltaTime);
+    destPlayData.updateOrientation(dstPlayDeltaTime);
 
     const { clipTime: lastSrcClipTime, playState: lastSrcPlayState } = srcPlayData;
     const { clipTime: lastDestClipTime, playState: lastDstPlayState } = destPlayData;
