@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-shader-compiler",
-  "version": "2.0.0-alpha.34",
+  "version": "2.0.0-alpha.35",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -42,7 +42,7 @@
     "shader-compiler-precompile": "./bundler/cli.js"
   },
   "scripts": {
-    "build": "rollup -c rollup.config.js && chmod +x bundler/cli.js",
+    "build": "rollup -c rollup.config.js && node -e \"require('fs').chmodSync('bundler/cli.js', 0o755)\"",
     "b:types": "tsc"
   },
   "umd": {
