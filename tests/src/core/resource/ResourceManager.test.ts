@@ -1,4 +1,4 @@
-import { AssetType, ResourceManager, Texture2D } from "@galacean/engine";
+import { AssetPromise, AssetType, ResourceManager, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -40,24 +40,24 @@ describe("ResourceManager", () => {
   describe("queryPath", () => {
     it("no encode", () => {
       // @ts-ignore
-      const { assetBaseURL } = engine.resourceManager._parseURL(
+      const { url } = engine.resourceManager._parseURL(
         "https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024"
       );
-      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024");
+      expect(url).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image/resize,l_1024");
     });
 
     it("encode", () => {
       // @ts-ignore
-      const { assetBaseURL } = engine.resourceManager._parseURL(
+      const { url } = engine.resourceManager._parseURL(
         "https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024"
       );
-      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024");
+      expect(url).equal("https://cdn.ali.com/inner.jpg?x-oss-process=image%25resize,l_1024");
     });
 
     it("query path", () => {
       // @ts-ignore
-      const { assetBaseURL, queryPath } = engine.resourceManager._parseURL("https://cdn.ali.com/inner.jpg?q=abc");
-      expect(assetBaseURL).equal("https://cdn.ali.com/inner.jpg");
+      const { url, queryPath } = engine.resourceManager._parseURL("https://cdn.ali.com/inner.jpg?q=abc");
+      expect(url).equal("https://cdn.ali.com/inner.jpg");
       expect(queryPath).equal("abc");
     });
   });
@@ -88,35 +88,34 @@ describe("ResourceManager", () => {
     });
   });
 
-  describe("assignDefaultOptions virtualPath type", () => {
-    it("infers type from virtualPathResourceMap for extensionless url", () => {
+  describe("virtualPath loading", () => {
+    it("infers loader type from virtualPathResourceMap when type is omitted", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.initVirtualResources([
         { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: "Texture2D" }
       ]);
       // @ts-ignore
-      const item = resourceManager._assignDefaultOptions({ url: "Assets/extensionless" });
-      expect(item.type).equal("Texture2D");
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders["Texture2D"], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load({ url: "Assets/extensionless" });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].type).equal("Texture2D");
+      loaderSpy.mockRestore();
     });
 
-    it("infers type for sub-asset query path", () => {
+    it("shares the main asset across sub-asset queries", () => {
       const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
-        { virtualPath: "Assets/withSubAsset", path: "https://cdn.ali.com/b.glb", type: "GLTF" }
-      ]);
       // @ts-ignore
-      const item = resourceManager._assignDefaultOptions({ url: "Assets/withSubAsset?q=materials[0]" });
-      expect(item.type).equal("GLTF");
-    });
+      const loaderSpy = vi.spyOn(ResourceManager._loaders["GLTF"], "load").mockReturnValue(new AssetPromise(() => {}));
 
-    it("keeps explicit type over virtualPathResourceMap type", () => {
-      const resourceManager = engine.resourceManager;
-      resourceManager.initVirtualResources([
-        { virtualPath: "Assets/explicit", path: "https://cdn.ali.com/c.bin", type: "GLTF" }
-      ]);
-      // @ts-ignore
-      const item = resourceManager._assignDefaultOptions({ url: "Assets/explicit", type: "Texture2D" });
-      expect(item.type).equal("Texture2D");
+      resourceManager.load("https://cdn.ali.com/shared.glb?q=materials[0]");
+      resourceManager.load("https://cdn.ali.com/shared.glb?q=materials[1]");
+
+      expect(loaderSpy).toHaveBeenCalledTimes(1);
+      loaderSpy.mockRestore();
     });
   });
 });

@@ -339,34 +339,31 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _assignDefaultOptions(assetInfo: LoadItem): LoadItem {
-    const assetBaseURL = assetInfo.url?.split("?")[0];
-    const remoteType = assetBaseURL ? this._virtualPathResourceMap[assetBaseURL]?.type : undefined;
-    assetInfo.type = assetInfo.type ?? remoteType ?? ResourceManager._getTypeByUrl(assetInfo.url);
+  private _assignDefaultOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): LoadItem {
+    assetInfo.type ||= remoteConfig?.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
     assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
     assetInfo.timeout = assetInfo.timeout ?? this.timeout;
     assetInfo.retryInterval = assetInfo.retryInterval ?? this.retryInterval;
-    assetInfo.url = assetInfo.url ?? assetInfo.urls.join(",");
     return assetInfo;
   }
 
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
-    const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
-    let { url } = item;
-
-    // Not absolute and base url is set
-    if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
-
+    const item = typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL;
+    item.url = item.url ?? item.urls.join(",");
     // Parse url
-    const { assetBaseURL, queryPath } = this._parseURL(url);
+    const { url, queryPath } = this._parseURL(item.url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
-    const remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
+    const remoteConfig = this._virtualPathResourceMap[url];
+    this._assignDefaultOptions(item, remoteConfig);
+
+    // Not absolute and base url is set
+    item.url = !Utils.isAbsoluteUrl(url) && this.baseUrl ? Utils.resolveAbsoluteUrl(this.baseUrl, url) : url;
+    const remoteAssetBaseURL = remoteConfig?.path ?? item.url;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
@@ -415,7 +412,7 @@ export class ResourceManager {
       // Check whether load main asset
       const mainPromise =
         loadingPromises[remoteAssetBaseURL] ||
-        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
+        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
       mainPromise.catch((e) => {
         this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
       });
@@ -423,7 +420,7 @@ export class ResourceManager {
       return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath);
     }
 
-    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
+    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
   }
 
   // For adapter mini-game platform
@@ -431,19 +428,12 @@ export class ResourceManager {
     loader: Loader<T>,
     item: LoadItem,
     remoteAssetBaseURL: string,
-    assetBaseURL: string,
     subpackageName: string
   ): AssetPromise<T> {
-    return this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
+    return this._loadMainAsset(loader, item, remoteAssetBaseURL);
   }
 
-  private _loadMainAsset<T>(
-    loader: Loader<T>,
-    item: LoadItem,
-    remoteAssetBaseURL: string,
-    assetBaseURL: string
-  ): AssetPromise<T> {
-    item.url = assetBaseURL;
+  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
     loadingPromises[remoteAssetBaseURL] = promise;
@@ -527,10 +517,10 @@ export class ResourceManager {
     return subResource;
   }
 
-  private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
+  private _parseURL(path: string): { url: string; queryPath: string } {
     const [baseUrl, searchStr] = path.split("?");
     let queryPath = undefined;
-    let assetBaseURL = baseUrl;
+    let url = baseUrl;
     if (searchStr) {
       const params = searchStr.split("&");
       for (let i = params.length - 1; i >= 0; i--) {
@@ -541,9 +531,9 @@ export class ResourceManager {
           break;
         }
       }
-      assetBaseURL = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
+      url = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
     }
-    return { assetBaseURL, queryPath };
+    return { url, queryPath };
   }
 
   private _parseQueryPath(string): string[] {
