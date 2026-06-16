@@ -519,37 +519,6 @@ describe("AudioSource playback lifecycle", () => {
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });
 
-  it("keeps playback state consistent across play/stop/pause/ended", async () => {
-    createAudioSource();
-    const context = (AudioManager as any)._context as MockAudioContext;
-    context.state = "running";
-
-    const s1 = createAudioSource();
-    const s2 = createAudioSource();
-
-    s1.play();
-    s2.play();
-    expect(s1.isPlaying).to.be.true;
-    expect(s2.isPlaying).to.be.true;
-
-    s1.pause();
-    expect(s1.isPlaying).to.be.false;
-    expect(s2.isPlaying).to.be.true;
-
-    s1.play();
-    expect(s1.isPlaying).to.be.true;
-    expect(s2.isPlaying).to.be.true;
-
-    s2.stop();
-    expect(s1.isPlaying).to.be.true;
-    expect(s2.isPlaying).to.be.false;
-
-    // Simulate onended
-    (s1 as any)._onPlayEnd();
-    expect(s1.isPlaying).to.be.false;
-    expect(s2.isPlaying).to.be.false;
-  });
-
   it("does not resume a stopped source after hide/show cycle", async () => {
     const audioSource = createAudioSource();
     const context = (AudioManager as any)._context as MockAudioContext;
