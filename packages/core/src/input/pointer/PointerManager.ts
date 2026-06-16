@@ -81,9 +81,6 @@ export class PointerManager implements IInput {
     const widthDPR = width / clientWidth;
     const heightDPR = height / clientHeight;
 
-    // Clear the pointer event data pool
-    eventPool.clear();
-
     // Clean up the pointer released in the previous frame
     for (let i = pointers.length - 1; i >= 0; i--) {
       const pointer = pointers[i];
@@ -191,6 +188,7 @@ export class PointerManager implements IInput {
         events.length = 0;
       }
     }
+    this._eventPool.disposeUsedElements();
   }
 
   /**

@@ -1,4 +1,4 @@
-import { PointerEventData, Script } from "@galacean/engine-core";
+import { Entity, PointerEventData, Script } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { CanvasRenderMode, Image, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
@@ -35,6 +35,8 @@ describe("UIEvent", async () => {
     endDragCount = 0;
     upCount = 0;
     dropCount = 0;
+    downTarget: Entity = null;
+    downCurrentTarget: Entity = null;
     onPointerEnter(eventData: PointerEventData): void {
       ++this.enterCount;
     }
@@ -45,6 +47,8 @@ describe("UIEvent", async () => {
 
     onPointerDown(eventData: PointerEventData): void {
       ++this.downCount;
+      this.downTarget = eventData.target;
+      this.downCurrentTarget = eventData.currentTarget;
     }
 
     onPointerClick(eventData: PointerEventData): void {
@@ -289,6 +293,42 @@ describe("UIEvent", async () => {
     expect(script3.endDragCount).toBe(0);
     expect(script3.upCount).toBe(0);
     expect(script3.dropCount).toBe(0);
+  });
+
+  it("ui event target and currentTarget", () => {
+    // @ts-ignore
+    const { _pointerManager: pointerManager } = inputManager;
+    const { _target: target } = pointerManager;
+    const { left, top } = target.getBoundingClientRect();
+
+    // Re-enable the deepest image (disabled by the previous test) and release the leftover pointer.
+    image3.enabled = true;
+    target.dispatchEvent(generatePointerEvent("pointerleave", 2, left + 8, top + 8, -1, 0));
+    engine.update();
+
+    // Reset the records touched by the previous test.
+    script1.downCount = script2.downCount = script3.downCount = 0;
+    script1.downTarget = script2.downTarget = script3.downTarget = null;
+    script1.downCurrentTarget = script2.downCurrentTarget = script3.downCurrentTarget = null;
+
+    // Press at the center so the deepest image (Image3) is hit; the event bubbles Image3 -> Image2 -> Image1.
+    target.dispatchEvent(generatePointerEvent("pointerdown", 3, left + 8, top + 8));
+    engine.update();
+
+    // Down bubbles through all three nested images.
+    expect(script1.downCount).toBe(1);
+    expect(script2.downCount).toBe(1);
+    expect(script3.downCount).toBe(1);
+
+    // `target` stays the deepest hit entity (Image3) for every handler on the bubble path.
+    expect(script1.downTarget).toBe(imageEntity3);
+    expect(script2.downTarget).toBe(imageEntity3);
+    expect(script3.downTarget).toBe(imageEntity3);
+
+    // `currentTarget` is the entity actually handling the event at each bubble step.
+    expect(script1.downCurrentTarget).toBe(imageEntity1);
+    expect(script2.downCurrentTarget).toBe(imageEntity2);
+    expect(script3.downCurrentTarget).toBe(imageEntity3);
   });
 });
 

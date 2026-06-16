@@ -53,13 +53,13 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
 
   override processDrag(pointer: Pointer): void {
     const entity = this._draggedEntity;
-    entity && this._fireDrag(entity, this._createEventData(pointer, entity, entity));
+    entity && this._fireDrag(entity, this._createEventData(pointer, entity));
   }
 
   override processDown(pointer: Pointer): void {
     const entity = (this._pressedEntity = this._draggedEntity = this._enteredEntity);
     if (entity) {
-      const eventData = this._createEventData(pointer, entity, entity);
+      const eventData = this._createEventData(pointer, entity);
       this._fireDown(entity, eventData);
       this._fireBeginDrag(entity, eventData);
     }
@@ -69,14 +69,14 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     const { _enteredEntity: enteredEntity, _draggedEntity: draggedEntity } = this;
     if (enteredEntity) {
       const sameTarget = this._pressedEntity === enteredEntity;
-      const eventData = this._createEventData(pointer, enteredEntity, enteredEntity);
+      const eventData = this._createEventData(pointer, enteredEntity);
       this._fireUp(enteredEntity, eventData);
       sameTarget && this._fireClick(enteredEntity, eventData);
       this._fireDrop(enteredEntity, eventData);
     }
     this._pressedEntity = null;
     if (draggedEntity) {
-      this._fireEndDrag(draggedEntity, this._createEventData(pointer, draggedEntity, draggedEntity));
+      this._fireEndDrag(draggedEntity, this._createEventData(pointer, draggedEntity));
       this._draggedEntity = null;
     }
   }
@@ -84,13 +84,13 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
   override processLeave(pointer: Pointer): void {
     const enteredEntity = this._enteredEntity;
     if (enteredEntity) {
-      this._fireExit(enteredEntity, this._createEventData(pointer, enteredEntity, enteredEntity));
+      this._fireExit(enteredEntity, this._createEventData(pointer, enteredEntity));
       this._enteredEntity = null;
     }
 
     const draggedEntity = this._draggedEntity;
     if (draggedEntity) {
-      this._fireEndDrag(draggedEntity, this._createEventData(pointer, draggedEntity, draggedEntity));
+      this._fireEndDrag(draggedEntity, this._createEventData(pointer, draggedEntity));
       this._draggedEntity = null;
     }
     this._pressedEntity = null;
@@ -108,10 +108,10 @@ export class PhysicsPointerEventEmitter extends PointerEventEmitter {
     const enteredEntity = this._enteredEntity;
     if (entity !== enteredEntity) {
       if (enteredEntity) {
-        this._fireExit(enteredEntity, this._createEventData(pointer, enteredEntity, enteredEntity));
+        this._fireExit(enteredEntity, this._createEventData(pointer, enteredEntity));
       }
       if (entity) {
-        this._fireEnter(entity, this._createEventData(pointer, entity, entity));
+        this._fireEnter(entity, this._createEventData(pointer, entity));
       }
       this._enteredEntity = entity;
     }

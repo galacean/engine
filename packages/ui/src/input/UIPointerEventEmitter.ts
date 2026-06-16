@@ -174,10 +174,10 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     const del = UIPointerEventEmitter._tempArray1;
     if (this._findDiffInPath(enteredPath, curPath, add, del)) {
       for (let i = 0, n = add.length; i < n; i++) {
-        this._fireEnter(add[i], this._createEventData(pointer, add[i], add[i]));
+        this._fireEnter(add[i], this._createEventData(pointer, add[i]));
       }
       for (let i = 0, n = del.length; i < n; i++) {
-        this._fireExit(del[i], this._createEventData(pointer, del[i], del[i]));
+        this._fireExit(del[i], this._createEventData(pointer, del[i]));
       }
 
       const length = (enteredPath.length = curPath.length);
