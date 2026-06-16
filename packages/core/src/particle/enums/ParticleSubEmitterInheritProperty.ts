@@ -1,7 +1,10 @@
 /**
- * Bitmask of parent properties a sub-emitter inherits. Combine with bitwise OR.
+ * Optional parent properties a sub-emitter inherits
+ * Sub particles are always emitted at the parent particle's position; these flags only select
+ * which additional properties are inherited on top of that.
  */
 export enum ParticleSubEmitterInheritProperty {
+  /** Inherit no additional properties; sub particles are still emitted at the parent's position. */
   None = 0x0,
   /** Multiply parent's current color into the sub particle's start color. */
   Color = 0x1,
