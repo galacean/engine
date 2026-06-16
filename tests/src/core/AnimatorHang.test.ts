@@ -28,7 +28,7 @@ describe("Animator GLTF load hang regression on 1024x1024 canvas", function () {
     engine?.destroy();
   });
 
-  it("loaded", () => {
-    expect(animator).not.eq(null);
+  it("loads an Animator component without hanging", () => {
+    expect(animator).toBeInstanceOf(Animator);
   });
 });
