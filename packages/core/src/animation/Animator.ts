@@ -384,7 +384,8 @@ export class Animator extends Component {
     }
 
     const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
-    if (animatorLayerData.srcPlayData?.state === state || animatorLayerData.destPlayData?.state === state) {
+    const { srcPlayData, destPlayData } = animatorLayerData;
+    if ((!destPlayData && srcPlayData?.state === state) || destPlayData?.state === state) {
       return;
     }
 
