@@ -78,14 +78,14 @@ export class AnimatorStatePlayData {
     this.playState = AnimatorStatePlayState.Playing;
     if (wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;
-    } else {
-      if (Math.abs(time) >= duration) {
-        time = time < 0 ? -duration : duration;
-        this.playState = AnimatorStatePlayState.Finished;
-      }
+    } else if (time >= duration || time <= -duration) {
+      time = time < 0 ? -duration : duration;
+      this.playState = AnimatorStatePlayState.Finished;
     }
 
-    time < 0 && (time += duration);
+    if (time < 0) {
+      time += duration;
+    }
     this.clipTime = time + clipStartTime * clipLength;
 
     if (this._changedOrientation) {

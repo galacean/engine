@@ -382,7 +382,13 @@ export class Animator extends Component {
     if (!state) {
       return;
     }
-    const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
+
+    const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
+    if (animatorLayerData.srcPlayData?.state === state || animatorLayerData.destPlayData?.state === state) {
+      return;
+    }
+
+    const { manuallyTransition } = animatorLayerData;
     manuallyTransition.duration = duration;
 
     manuallyTransition.offset = normalizedTimeOffset;
