@@ -263,6 +263,26 @@ describe("Animator test", function () {
     expect(animator.getCurrentAnimatorState(0).speed).to.eq(0.5);
   });
 
+  it("findAnimatorState remains stable after crossFade play slots are reused", () => {
+    const walkState = findSharedState("Walk");
+    const runState = findSharedState("Run");
+
+    animator.play("Walk");
+    const walkInstance = animator.getCurrentAnimatorState(0);
+    const runInstance = animator.findAnimatorState("Run", 0);
+    walkInstance.speed = 2;
+    runInstance.speed = 0.5;
+
+    animator.crossFade("Run", 0.1, 0);
+    updateAnimator(animator, runState._getDuration());
+
+    expect(animator.getCurrentAnimatorState(0)).to.eq(runInstance);
+    expect(animator.getCurrentAnimatorState(0).speed).to.eq(0.5);
+    expect(animator.findAnimatorState("Walk", 0)).to.eq(walkInstance);
+    expect(animator.findAnimatorState("Walk", 0).speed).to.eq(2);
+    expect(animator.findAnimatorState("Walk", 0)._state).to.eq(walkState);
+  });
+
   it("play, crossFade, and state lookup ignore out-of-range layers without throwing", () => {
     animator.play("Walk");
     const before = animator.getCurrentAnimatorState(0);
@@ -536,6 +556,33 @@ describe("Animator test", function () {
     animator.update(0.1);
 
     expect(testScriptSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("animation events added after play rebuild handlers lazily", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const testScriptSpy = vi.spyOn(testScript, "event0");
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 0.05);
+      expect(testScriptSpy).not.toHaveBeenCalled();
+
+      const event0 = new AnimationEvent();
+      event0.functionName = "event0";
+      event0.time = 0.1;
+      clip.addEvent(event0);
+
+      updateAnimator(loopAnimator, 0.1);
+      expect(testScriptSpy).toHaveBeenCalledTimes(1);
+    } finally {
+      entity.destroy();
+    }
   });
 
   it("fireEvents gates AnimationEvent dispatch without consuming the event", () => {
