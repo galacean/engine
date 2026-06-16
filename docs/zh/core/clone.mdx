@@ -5,101 +5,164 @@ type: 核心
 label: Core
 ---
 
+实体克隆是运行时的常用功能。克隆实体时会同时克隆其绑定的所有组件。例如在初始化阶段根据配置动态创建多个相同的实体，然后根据游戏逻辑放置到场景中不同的位置。
 
-节点克隆是运行时的常用功能，同时节点克隆也会附带克隆其绑定的组件。例如在初始化阶段根据配置动态创建一定数量相同的实体,然后根据逻辑规则摆放到场景不同的位置。这里会对脚本的克隆细节进行详细讲解。
+## 实体克隆
 
-## 实体的克隆
-非常简单，直接调用实体的 [clone()](/apis/design/#IClone-clone) 方法即可完成实体以及附属组件的克隆。
+调用实体的 [clone()](/apis/core/#Entity-clone) 方法即可克隆实体及其整个子树和所有附属组件：
+
 ```typescript
 const cloneEntity = entity.clone();
 ```
 
-## 脚本的克隆
-脚本的本质也是组件，所以当我们调用实体的 [clone()](/apis/design/#IClone-clone) 函数时，引擎不仅会对引擎内置组件进行克隆，还会对自定义脚本进行克隆。引擎内置组件的克隆规则官方已经完成定制，同样我们也将脚本的克隆能力和规则定制开放给了开发者。脚本字段默认的克隆方式为浅拷贝，例如我们对脚本的字段值进行修改后再克隆，克隆后的脚本将保持修改后的值,无需增加任何额外的编码。以下为自定义脚本的克隆案例：
+## Opt-in 属性模型
+
+克隆系统采用 **opt-in（显式标记）** 模型：只有标记了 `@property` 装饰器的字段才会参与克隆。未标记的字段在克隆体中保持构造函数的默认值。
+
 ```typescript
-// define a custom script
-class CustomScript extends Script{
-  /** boolean type.*/
-  a:boolean = false;
-  
-  /** number type.*/
-  b:number = 1;
-  
-  /** class type.*/
-  c:Vector3 = new Vector3(0,0,0);
+import { Script, property } from "@galacean/engine";
+import { Vector3 } from "@galacean/engine";
+
+class MyScript extends Script {
+  // 参与克隆：标记了 @property
+  @property
+  speed: number = 10;
+
+  @property
+  offset: Vector3 = new Vector3(1, 0, 0);
+
+  // 不参与克隆：没有装饰器，克隆体保持构造函数默认值
+  private _cache: Map<string, number> = new Map();
+}
+```
+
+## 克隆模式
+
+`@property` 字段**如何**被克隆，取决于其运行时值的类型。克隆系统通过检查值类型的 `@defaultCloneMode` 来决定策略：
+
+| 克隆模式 | 行为 | 典型类型 |
+| :--- | :--- | :--- |
+| `CloneMode.Deep` | 递归深克隆，生成独立副本 | Vector3、Color、自定义类（默认） |
+| `CloneMode.Assignment` | 共享同一引用；引用计数资源 +1 | Texture、Mesh、Material、AnimatorController |
+| `CloneMode.Remap` | 解析为克隆子树中对应的克隆体 | Entity、Component |
+
+无需在字段上指定模式——系统会根据字段持有的值的类型自动判断。
+
+### 深克隆（默认）
+
+当 `@property` 字段持有普通对象或没有 `@defaultCloneMode` 的类实例时，会被深克隆。每个克隆体获得自己的独立副本：
+
+```typescript
+class MyScript extends Script {
+  @property
+  offset: Vector3 = new Vector3(1, 0, 0);
 }
 
-// Init entity and script
-const entity = engine.createEntity();
-const script = entity.addComponent(CustomScript);
-script.a = true;
-script.b = 2;
-script.c.set(1,1,1);
+const clone = entity.clone();
+const cloneScript = clone.getComponent(MyScript);
 
-// Clone logic
-const cloneEntity = entity.clone();
-const cloneScript = cloneEntity.getComponent(CustomScript);
-console.log(cloneScript.a); // output is true.
-console.log(cloneScript.b); // output is 2.
-console.log(cloneScript.c); // output is (1,1,1).
+// 独立副本——修改一个不会影响另一个
+cloneScript.offset.set(2, 2, 2);
+console.log(script.offset); // 仍然是 (1, 0, 0)
 ```
-### 克隆装饰器
-除了默认的克隆方式外，引擎还提供了“克隆装饰器“对脚本字段的克隆方式进行定制。引擎内置四种克隆装饰：
 
-| 装饰器名称 | 装饰器释义 |
-| :--- | :--- |
-| [ignoreClone](/apis/core/#ignoreClone) | 克隆时对字段进行忽略。 |
-| [assignmentClone](/apis/core/#assignmentClone) | ( 默认值，和不添加任何克隆装饰器等效) 克隆时对字段进行赋值。如果是基本类型则会拷贝值，如果是引用类型则会拷贝其引用地址。 |
-| [shallowClone](/apis/core/#shallowClone) | 克隆时对字段进行浅克隆。克隆后会保持自身引用独立，并使用赋值的方式克隆其内部所有字段（如果内部字段是基本类型则会拷贝值，如果内部字段是引用类型则会拷贝其引用地址）。|
-| [deepClone](/apis/core/#deepClone) | 克隆时对字段进行深克隆。克隆后会保持自身引用独立，并且其内部所有深层字段均保持完全独立。|
+### 引用共享（Assignment）
 
-我们将上面的案例稍加修改,分别对 `CustomScript` 中的四个字段添加了不同的“克隆装饰器“。由于 `shallowClone` 和 `deepCone`  较复杂，我们对字段 `c` 和 `d` 增加了额外的打印输出进行进一步讲解。
+`Material`、`Texture`、`Mesh` 等资源类型通过引用共享。克隆体获得一个额外的引用，在销毁时释放：
+
 ```typescript
-// define a custom script
-class CustomScript extends Script{
-  /** boolean type.*/
-  @ignoreClone
-  a:boolean = false;
-  
-  /** number type.*/
-  @assignmentClone
-  b:number = 1;
-  
-  /** class type.*/
-  @shallowClone
-  c:Vector3[] = [new Vector3(0,0,0)];
-  
-  /** class type.*/
-  @deepClone
-  d:Vector3[] = [new Vector3(0,0,0)];
+class MyScript extends Script {
+  @property
+  material: Material;
 }
 
-// Init entity and script
-const entity = engine.createEntity();
-const script = entity.addComponent(CustomScript);
-script.a = true;
-script.b = 2;
-script.c[0].set(1,1,1);
-script.d[0].set(1,1,1);
+const clone = entity.clone();
+const cloneScript = clone.getComponent(MyScript);
 
-// Clone logic
-const cloneEntity = entity.clone();
-const cloneScript = cloneEntity.getComponent(CustomScript);
-console.log(cloneScript.a); // output is false,ignoreClone will ignore the value.
-console.log(cloneScript.b); // output is 2,assignmentClone is just assignment the origin value.
-console.log(cloneScript.c[0]); // output is Vector3(1,1,1),shallowClone clone the array shell,but use the same element.
-console.log(cloneScript.d[0]); // output is Vector3(1,1,1),deepClone clone the array shell and also clone the element.
-
-cloneScript.c[0].set(2,2,2); // change the field c[0] value to (2,2,2).
-cloneScript.d[0].set(2,2,2); // change the field d[0] value to (2,2,2).
-
-console.log(script.c[0]); // output is (2,2,2). bacause shallowClone let c[0] use the same reference with cloneScript's c[0].
-console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use the different reference with cloneScript's d[0].
+// 同一引用——两者指向同一个 material 资源
+console.log(cloneScript.material === script.material); // true
 ```
-- 注意: 
 
-  - `shallowClone` 和 `deepClone` 通常用于 *Object*、*Array* 和 *Class* 类型。
-  - `shallowClone` 克隆后会保持自身引用独立，并使用赋值的方式克隆其内部所有字段（如果内部字段是基本类型则会拷贝值，如果内部字段是引用类型则会拷贝其引用地址）。
-  - `deepClone` 为深克隆，会对属性进行深度递归，至于属性的子属性如何克隆，取决于子属性的装饰器。
-  - 如果克隆装饰器不能满足诉求，可以通过实现 [_cloneTo()](/apis/design/#IClone-cloneTo) 方法追加自定义克隆。
+### 引用重映射（Remap）
 
+当 `@property` 字段持有的 Entity 或 Component 存在于被克隆的子树中时，会自动重映射到对应的克隆体：
+
+```typescript
+class MyScript extends Script {
+  @property
+  target: Entity;
+
+  @property
+  targetRenderer: MeshRenderer;
+}
+
+const parent = scene.createRootEntity("parent");
+const child = parent.createChild("child");
+const renderer = child.addComponent(MeshRenderer);
+
+const script = parent.addComponent(MyScript);
+script.target = child;
+script.targetRenderer = renderer;
+
+const clonedParent = parent.clone();
+const clonedScript = clonedParent.getComponent(MyScript);
+
+// 已重映射到克隆的 child，而非原始对象
+console.log(clonedScript.target === clonedParent.children[0]); // true
+console.log(clonedScript.targetRenderer === clonedParent.children[0].getComponent(MeshRenderer)); // true
+```
+
+如果引用的实体在被克隆子树**之外**，则保持原始引用不变。
+
+## @defaultCloneMode 装饰器
+
+使用 `@defaultCloneMode` 类装饰器来控制自定义类型的实例在 `@property` 字段中的克隆行为：
+
+```typescript
+import { CloneMode, defaultCloneMode } from "@galacean/engine";
+
+// SharedConfig 的实例在克隆时将被共享（而非深克隆）
+@defaultCloneMode(CloneMode.Assignment)
+class SharedConfig {
+  theme: string = "default";
+  maxRetries: number = 3;
+}
+
+class MyScript extends Script {
+  @property
+  config: SharedConfig; // 由于 @defaultCloneMode，通过引用共享
+}
+```
+
+引擎内置类型已经设定了合适的默认模式——只有自定义类型需要使用 `@defaultCloneMode`。
+
+## 自定义克隆钩子
+
+对于克隆字段不足以完成状态恢复的高级场景（如重建原生对象、同步派生状态），可以实现 `_cloneTo` 方法：
+
+```typescript
+class MyScript extends Script {
+  @property
+  private _radius: number = 1;
+
+  private _nativeShape: NativeShape; // 不参与克隆（瞬态状态）
+
+  _cloneTo(target: MyScript): void {
+    // 从已克隆的字段重建原生状态
+    target._nativeShape = NativeShape.create(target._radius);
+  }
+}
+```
+
+`_cloneTo` 钩子在克隆体的所有 `@property` 字段填充完成**之后**调用，参数为克隆实例。
+
+## 快速参考
+
+| 字段类型 | 方式 | 示例 |
+| :--- | :--- | :--- |
+| 基本类型（number、string、boolean） | `@property` — 按值复制 | `@property speed = 10` |
+| 值类型（Vector3、Color、Quaternion） | `@property` — 深克隆为独立副本 | `@property offset = new Vector3()` |
+| 资源（Material、Texture、Mesh） | `@property` — 引用共享 | `@property material: Material` |
+| Entity / Component 引用 | `@property` — 重映射到克隆体 | `@property target: Entity` |
+| 瞬态 / 缓存状态 | 不加装饰器 — 不参与克隆 | `private _cache = new Map()` |
+| Array / Map / Set | `@property` — 深克隆（内容遵循各自类型规则） | `@property items: Vector3[] = []` |

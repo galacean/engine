@@ -5,99 +5,164 @@ type: Core
 label: Core
 ---
 
-Node cloning is a common runtime feature, and node cloning also includes cloning its bound components. For example, during the initialization phase, dynamically create a certain number of identical entities based on configuration, and then place them in different positions in the scene according to logical rules. Here, the details of script cloning will be explained in detail.
+Entity cloning is a common runtime feature. Cloning an entity also clones all its bound components. For example, during initialization you might dynamically create identical entities and place them at different positions according to game logic.
 
 ## Entity Cloning
-It's very simple, just call the entity's [clone()](/apis/design/#IClone-clone) method to complete the cloning of the entity and its attached components.
+
+Call the entity's [clone()](/apis/core/#Entity-clone) method to clone the entity along with its entire subtree and all attached components:
+
 ```typescript
 const cloneEntity = entity.clone();
 ```
 
-## Script Cloning
-Scripts are essentially components, so when we call the entity's [clone()](/apis/design/#IClone-clone) function, the engine will not only clone the built-in components but also clone custom scripts. The cloning rules for built-in components have been customized by the official team, and similarly, we have also opened up the cloning capabilities and rules for scripts to developers. The default cloning method for script fields is shallow copy. For example, if we modify the field values of the script and then clone it, the cloned script will retain the modified values without any additional coding. Below is an example of custom script cloning:
+## Opt-in Property Model
+
+The clone system uses an **opt-in** model: only fields marked with the `@property` decorator participate in cloning. Unmarked fields keep their constructor-initialized default value in the clone.
+
 ```typescript
-// define a custom script
-class CustomScript extends Script{
-  /** boolean type.*/
-  a:boolean = false;
-  
-  /** number type.*/
-  b:number = 1;
-  
-  /** class type.*/
-  c:Vector3 = new Vector3(0,0,0);
+import { Script, property } from "@galacean/engine";
+import { Vector3 } from "@galacean/engine";
+
+class MyScript extends Script {
+  // Cloned: marked with @property
+  @property
+  speed: number = 10;
+
+  @property
+  offset: Vector3 = new Vector3(1, 0, 0);
+
+  // NOT cloned: no decorator, keeps constructor default in the clone
+  private _cache: Map<string, number> = new Map();
+}
+```
+
+## Clone Modes
+
+HOW a `@property` field is cloned depends on its runtime value's type. The clone system inspects the value's `@defaultCloneMode` to determine the strategy:
+
+| Clone Mode | Behavior | Typical Types |
+| :--- | :--- | :--- |
+| `CloneMode.Deep` | Recursively deep-clone, producing an independent copy | Vector3, Color, custom classes (default) |
+| `CloneMode.Assignment` | Share the same reference; ref-counted resources get +1 | Texture, Mesh, Material, AnimatorController |
+| `CloneMode.Remap` | Resolve to the corresponding clone within the cloned subtree | Entity, Component |
+
+You do not need to specify the mode per field — it is determined automatically by the type of the value the field holds.
+
+### Deep Clone (default)
+
+When a `@property` field holds a plain object or a class without `@defaultCloneMode`, it is deep-cloned. Each clone gets its own independent copy:
+
+```typescript
+class MyScript extends Script {
+  @property
+  offset: Vector3 = new Vector3(1, 0, 0);
 }
 
-// Init entity and script
-const entity = engine.createEntity();
-const script = entity.addComponent(CustomScript);
-script.a = true;
-script.b = 2;
-script.c.set(1,1,1);
+const clone = entity.clone();
+const cloneScript = clone.getComponent(MyScript);
 
-// Clone logic
-const cloneEntity = entity.clone();
-const cloneScript = cloneEntity.getComponent(CustomScript);
-console.log(cloneScript.a); // output is true.
-console.log(cloneScript.b); // output is 2.
-console.log(cloneScript.c); // output is (1,1,1).
+// Independent copy — modifying one does not affect the other
+cloneScript.offset.set(2, 2, 2);
+console.log(script.offset); // still (1, 0, 0)
 ```
-### Clone Decorators
-In addition to the default cloning method, the engine also provides "clone decorators" to customize the cloning method for script fields. The engine has four built-in clone decorators:
 
-| Decorator Name | Decorator Description |
-| :--- | :--- |
-| [ignoreClone](/apis/core/#ignoreClone) | Ignore the field during cloning. |
-| [assignmentClone](/apis/core/#assignmentClone) | (Default value, equivalent to not adding any clone decorator) Assign the field during cloning. If it is a basic type, the value will be copied; if it is a reference type, the reference address will be copied. |
-| [shallowClone](/apis/core/#shallowClone) | Shallow clone the field during cloning. After cloning, it will maintain its own independent reference and clone all its internal fields by assignment (if the internal field is a basic type, the value will be copied; if the internal field is a reference type, the reference address will be copied). |
-| [deepClone](/apis/core/#deepClone) | Deep clone the field during cloning. After cloning, it will maintain its own independent reference, and all its internal deep fields will remain completely independent. |
+### Assignment (Shared Reference)
 
-We slightly modify the above example and add different "clone decorators" to the four fields in `CustomScript`. Since `shallowClone` and `deepClone` are more complex, we add additional print output to the fields `c` and `d` for further explanation.
+Asset types like `Material`, `Texture`, and `Mesh` are shared by reference. The clone acquires an additional reference that is released when the clone is destroyed:
+
 ```typescript
-// define a custom script
-class CustomScript extends Script{
-  /** boolean type.*/
-  @ignoreClone
-  a:boolean = false;
-  
-  /** number type.*/
-  @assignmentClone
-  b:number = 1;
-  
-  /** class type.*/
-  @shallowClone
-  c:Vector3[] = [new Vector3(0,0,0)];
-  
-  /** class type.*/
-  @deepClone
-  d:Vector3[] = [new Vector3(0,0,0)];
+class MyScript extends Script {
+  @property
+  material: Material;
 }
 
-// Init entity and script
-const entity = engine.createEntity();
-const script = entity.addComponent(CustomScript);
-script.a = true;
-script.b = 2;
-script.c[0].set(1,1,1);
-script.d[0].set(1,1,1);
+const clone = entity.clone();
+const cloneScript = clone.getComponent(MyScript);
 
-// Clone logic
-const cloneEntity = entity.clone();
-const cloneScript = cloneEntity.getComponent(CustomScript);
-console.log(cloneScript.a); // output is false,ignoreClone will ignore the value.
-console.log(cloneScript.b); // output is 2,assignmentClone is just assignment the origin value.
-console.log(cloneScript.c[0]); // output is Vector3(1,1,1),shallowClone clone the array shell,but use the same element.
-console.log(cloneScript.d[0]); // output is Vector3(1,1,1),deepClone clone the array shell and also clone the element.
-
-cloneScript.c[0].set(2,2,2); // change the field c[0] value to (2,2,2).
-cloneScript.d[0].set(2,2,2); // change the field d[0] value to (2,2,2).
-
-console.log(script.c[0]); // output is (2,2,2). bacause shallowClone let c[0] use the same reference with cloneScript's c[0].
-console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use the different reference with cloneScript's d[0].
+// Same reference — both point to the same material asset
+console.log(cloneScript.material === script.material); // true
 ```
-- Note:
 
-  - `shallowClone` and `deepClone` are usually used for *Object*, *Array*, and *Class* types.
-  - `shallowClone` will maintain its own independent reference after cloning and clone all its internal fields by assignment (if the internal field is a basic type, the value will be copied; if the internal field is a reference type, the reference address will be copied).
-  - `deepClone` is a deep clone that will recursively clone the properties deeply. How the sub-properties of the properties are cloned depends on the decorators of the sub-properties.
-  - If the clone decorators do not meet the requirements, you can implement the [_cloneTo()](/apis/design/#IClone-cloneTo) method to add custom cloning.
+### Remap (Entity / Component References)
+
+When a `@property` field holds an Entity or Component that exists within the cloned subtree, it automatically remaps to the corresponding clone:
+
+```typescript
+class MyScript extends Script {
+  @property
+  target: Entity;
+
+  @property
+  targetRenderer: MeshRenderer;
+}
+
+const parent = scene.createRootEntity("parent");
+const child = parent.createChild("child");
+const renderer = child.addComponent(MeshRenderer);
+
+const script = parent.addComponent(MyScript);
+script.target = child;
+script.targetRenderer = renderer;
+
+const clonedParent = parent.clone();
+const clonedScript = clonedParent.getComponent(MyScript);
+
+// Remapped to the cloned child, not the original
+console.log(clonedScript.target === clonedParent.children[0]); // true
+console.log(clonedScript.targetRenderer === clonedParent.children[0].getComponent(MeshRenderer)); // true
+```
+
+If the referenced entity is **outside** the cloned subtree, the original reference is preserved as-is.
+
+## @defaultCloneMode Decorator
+
+Use the `@defaultCloneMode` class decorator to control how instances of your custom type behave when they appear in `@property` fields:
+
+```typescript
+import { CloneMode, defaultCloneMode } from "@galacean/engine";
+
+// Instances of SharedConfig will be shared (not deep-cloned) across clones
+@defaultCloneMode(CloneMode.Assignment)
+class SharedConfig {
+  theme: string = "default";
+  maxRetries: number = 3;
+}
+
+class MyScript extends Script {
+  @property
+  config: SharedConfig; // Shared by reference due to @defaultCloneMode
+}
+```
+
+Built-in types already have appropriate defaults — you only need `@defaultCloneMode` for your own custom types that should be shared or remapped.
+
+## Custom Clone Hook
+
+For advanced scenarios where cloned fields alone are not sufficient (e.g., rebuilding native objects, syncing derived state), implement the `_cloneTo` method:
+
+```typescript
+class MyScript extends Script {
+  @property
+  private _radius: number = 1;
+
+  private _nativeShape: NativeShape; // Not cloned (transient)
+
+  _cloneTo(target: MyScript): void {
+    // Rebuild native state from the cloned fields
+    target._nativeShape = NativeShape.create(target._radius);
+  }
+}
+```
+
+The `_cloneTo` hook is called **after** all `@property` fields have been populated on the clone. It receives the cloned instance as its argument.
+
+## Quick Reference
+
+| Field Type | Approach | Example |
+| :--- | :--- | :--- |
+| Primitive (number, string, boolean) | `@property` — copied by value | `@property speed = 10` |
+| Value type (Vector3, Color, Quaternion) | `@property` — deep-cloned independently | `@property offset = new Vector3()` |
+| Asset (Material, Texture, Mesh) | `@property` — shared by reference | `@property material: Material` |
+| Entity / Component reference | `@property` — remapped to clone | `@property target: Entity` |
+| Transient / cached state | No decorator — not cloned | `private _cache = new Map()` |
+| Array / Map / Set of values | `@property` — deep-cloned (contents follow their own type rules) | `@property items: Vector3[] = []` |
