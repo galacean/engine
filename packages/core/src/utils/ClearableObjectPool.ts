@@ -32,17 +32,4 @@ export class ClearableObjectPool<T extends IPoolElement> extends ObjectPool<T> {
   clear(): void {
     this._usedElementCount = 0;
   }
-
-  /**
-   * Dispose the used objects to release the external references they hold, then reset the used count.
-   * @remarks Unlike `clear`, this lets each used element drop its references, so a peak-usage frame
-   * does not keep dangling references alive in slots that later frames don't reuse.
-   */
-  disposeUsedElements(): void {
-    const { _elements: elements, _usedElementCount: usedElementCount } = this;
-    for (let i = 0; i < usedElementCount; i++) {
-      elements[i].dispose?.();
-    }
-    this._usedElementCount = 0;
-  }
 }

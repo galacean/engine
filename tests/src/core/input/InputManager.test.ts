@@ -278,6 +278,31 @@ describe("InputManager", async () => {
     expect(inputManager.wheelDelta).to.deep.eq(new Vector3(1, 2, 3));
   });
 
+  it("gc reclaims the pointer event data pool", () => {
+    // @ts-ignore
+    const { _pointerManager: pointerManager } = inputManager;
+    const { _target: target } = pointerManager;
+    // @ts-ignore
+    const elements = pointerManager._eventPool._elements;
+    const { left, top } = target.getBoundingClientRect();
+
+    // Pressing on the box allocates event data into the pool.
+    target.dispatchEvent(generatePointerEvent("pointerdown", 6, left + 2, top + 2));
+    engine.update();
+    expect(elements.length).to.be.greaterThan(0);
+
+    // Engine gc reclaims the pool, releasing the entity references it held.
+    // @ts-ignore
+    engine._pendingGC();
+    expect(elements.length).to.eq(0);
+
+    // The pool keeps working after gc.
+    target.dispatchEvent(generatePointerEvent("pointerup", 6, left + 2, top + 2, 0, 0));
+    target.dispatchEvent(generatePointerEvent("pointerleave", 6, left + 2, top + 2, -1, 0));
+    engine.update();
+    expect(elements.length).to.be.greaterThan(0);
+  });
+
   it("destroy", () => {
     engine.destroy();
     // @ts-ignore
