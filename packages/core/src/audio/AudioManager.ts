@@ -1,7 +1,3 @@
-type PendingAudioSource = {
-  _resumePendingPlayback(): void;
-};
-
 /**
  * Audio Manager for managing global audio context and settings.
  */
@@ -12,7 +8,6 @@ export class AudioManager {
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _needsUserGestureResume = false;
-  private static _pendingSources = new Set<PendingAudioSource>();
   private static _hidden = false;
   private static _foregroundResumeTimer: ReturnType<typeof setTimeout> | null = null;
   private static _suspendedByCaller = false;
@@ -46,47 +41,19 @@ export class AudioManager {
     }
 
     if (AudioManager._hidden) {
-      AudioManager._markPendingGestureResume();
       return Promise.resolve();
     }
 
     const context = AudioManager.getContext();
     if (context.state === "running") {
       AudioManager._needsUserGestureResume = false;
-      AudioManager._resumePendingSources();
       AudioManager._removeGestureListeners();
       return Promise.resolve();
     }
-    return context
-      .resume()
-      .then(() => {
-        AudioManager._needsUserGestureResume = false;
-        AudioManager._resumePendingSources();
-        AudioManager._removeGestureListeners();
-      })
-      .catch((e) => {
-        if (!AudioManager._hidden && AudioManager._pendingSources.size > 0) {
-          AudioManager._needsUserGestureResume = true;
-          AudioManager._addGestureListeners();
-        }
-        throw e;
-      });
-  }
-
-  /** @internal */
-  static _registerPendingSource(source: PendingAudioSource): void {
-    AudioManager._pendingSources.add(source);
-  }
-
-  /** @internal */
-  static _unregisterPendingSource(source: PendingAudioSource): void {
-    AudioManager._pendingSources.delete(source);
-  }
-
-  private static _markPendingGestureResume(): void {
-    if (AudioManager._pendingSources.size > 0) {
-      AudioManager._needsUserGestureResume = true;
-    }
+    return context.resume().then(() => {
+      AudioManager._needsUserGestureResume = false;
+      AudioManager._removeGestureListeners();
+    });
   }
 
   /**
@@ -131,7 +98,6 @@ export class AudioManager {
     if (state === "running" && !AudioManager._hidden) {
       AudioManager._suspendedByCaller = false;
       AudioManager._needsUserGestureResume = false;
-      AudioManager._resumePendingSources();
       AudioManager._removeGestureListeners();
     } else if (
       state &&
@@ -186,7 +152,6 @@ export class AudioManager {
             return;
           }
           AudioManager._needsUserGestureResume = false;
-          AudioManager._resumePendingSources();
           AudioManager._removeGestureListeners();
         })
         .catch(() => {
@@ -199,27 +164,8 @@ export class AudioManager {
     }, 100);
   }
 
-  private static _resumePendingSources(): void {
-    if (
-      !AudioManager._pendingSources.size ||
-      AudioManager._hidden ||
-      document.hidden ||
-      !AudioManager.isAudioContextRunning()
-    ) {
-      return;
-    }
-    const sources = Array.from(AudioManager._pendingSources);
-    AudioManager._pendingSources.clear();
-    for (let i = 0, n = sources.length; i < n; i++) {
-      sources[i]._resumePendingPlayback();
-    }
-  }
-
   private static _resumeAfterInterruption(): void {
-    if (
-      !AudioManager._suspendedByCaller &&
-      (AudioManager._needsUserGestureResume || AudioManager._pendingSources.size > 0)
-    ) {
+    if (!AudioManager._suspendedByCaller && AudioManager._needsUserGestureResume) {
       AudioManager.resume().catch(() => {});
     }
   }

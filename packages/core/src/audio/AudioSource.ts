@@ -160,10 +160,27 @@ export class AudioSource extends Component {
       this._startPlayback();
     } else {
       this._pendingPlay = true;
-      AudioManager._registerPendingSource(this);
-      AudioManager.resume().catch((e) => {
-        console.warn("Failed to resume AudioContext:", e);
-      });
+      AudioManager.resume().then(
+        () => {
+          if (!this._pendingPlay) {
+            return;
+          }
+          this._pendingPlay = false;
+          if (
+            this._destroyed ||
+            !this.enabled ||
+            !this._clip?._getAudioSource() ||
+            !AudioManager.isAudioContextRunning()
+          ) {
+            return;
+          }
+          this._startPlayback();
+        },
+        (e) => {
+          this._pendingPlay = false;
+          console.warn("Failed to resume AudioContext:", e);
+        }
+      );
     }
   }
 
@@ -233,21 +250,6 @@ export class AudioSource extends Component {
     this.stop();
   }
 
-  /** @internal */
-  _resumePendingPlayback(): void {
-    if (!this._pendingPlay) {
-      return;
-    }
-
-    this._pendingPlay = false;
-
-    if (this._destroyed || !this.enabled || !this._clip?._getAudioSource()) {
-      return;
-    }
-
-    this._startPlayback();
-  }
-
   private _startPlayback(): void {
     const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
     if (!this._initSourceNode(startTime)) {
@@ -303,11 +305,6 @@ export class AudioSource extends Component {
   }
 
   private _cancelPendingPlayback(): void {
-    if (!this._pendingPlay) {
-      return;
-    }
-
     this._pendingPlay = false;
-    AudioManager._unregisterPendingSource(this);
   }
 }
