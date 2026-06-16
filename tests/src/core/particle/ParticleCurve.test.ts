@@ -83,5 +83,14 @@ describe("ParticleCurve tests", () => {
     // Linear ramp 0→2 over [0,1]: integral to t is t² → 0.25 at t = 0.5.
     const ramp = new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 2));
     expect((ramp as any)._evaluateCumulative(0.5)).to.equal(0.25);
+
+    // First key at t > 0: clamps before it, integral stays non-negative.
+    const lateStart = new ParticleCurve(new CurveKey(0.5, 2), new CurveKey(1, 2));
+    expect((lateStart as any)._evaluateCumulative(0.25)).to.equal(0.5);
+    expect((lateStart as any)._evaluateCumulative(1.0)).to.equal(2.0);
+
+    // Last key before t=1: clamps after it, integral includes the tail.
+    const earlyEnd = new ParticleCurve(new CurveKey(0, 2), new CurveKey(0.5, 2));
+    expect((earlyEnd as any)._evaluateCumulative(1.0)).to.equal(2.0);
   });
 });

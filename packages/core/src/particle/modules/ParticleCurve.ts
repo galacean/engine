@@ -123,7 +123,10 @@ export class ParticleCurve {
     // Single key is a constant curve (matches `_evaluate`); its integral is value × age.
     if (length === 1) return keys[0].value * normalizedAge;
 
-    let cumulative = 0;
+    const firstKey = keys[0];
+    if (normalizedAge <= firstKey.time) return firstKey.value * normalizedAge;
+
+    let cumulative = firstKey.value * firstKey.time;
     for (let i = 1; i < length; i++) {
       const key = keys[i];
       const lastKey = keys[i - 1];
@@ -139,7 +142,8 @@ export class ParticleCurve {
       }
       cumulative += (lastKey.value + key.value) * 0.5 * segmentTime;
     }
-    return cumulative;
+    const lastKey = keys[length - 1];
+    return cumulative + lastKey.value * (normalizedAge - lastKey.time);
   }
 
   /**
