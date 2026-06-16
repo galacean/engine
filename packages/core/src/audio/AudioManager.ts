@@ -139,7 +139,7 @@ export class AudioManager {
       AudioManager._hidden || AudioManager._suspendedByCaller || AudioManager._context !== context;
     // iOS WKWebView zombie fix (https://bugs.webkit.org/show_bug.cgi?id=263627):
     // force suspend then resume after a short delay to reset the audio rendering pipeline.
-    context.suspend();
+    context.suspend().catch(() => {});
     AudioManager._foregroundResumeTimer = setTimeout(() => {
       AudioManager._foregroundResumeTimer = null;
       if (isForegroundResumeStale()) {

@@ -27,6 +27,7 @@ class MockBufferSourceNode {
 
 class MockAudioContext {
   static shouldResumeSucceed = true;
+  static shouldSuspendSucceed = true;
   static resumeResultQueue: Array<Promise<void> | Error> | null = null;
 
   currentTime = 0;
@@ -65,6 +66,9 @@ class MockAudioContext {
   }
 
   suspend(): Promise<void> {
+    if (!MockAudioContext.shouldSuspendSucceed) {
+      return Promise.reject(new Error("suspend blocked"));
+    }
     this.state = "suspended";
     const cb = this.onstatechange;
     return Promise.resolve().then(() => {
@@ -152,6 +156,7 @@ describe("AudioSource playback lifecycle", () => {
     resetAudioManagerState();
     (window as any).AudioContext = MockAudioContext;
     MockAudioContext.shouldResumeSucceed = true;
+    MockAudioContext.shouldSuspendSucceed = true;
     MockAudioContext.resumeResultQueue = null;
   });
 
@@ -451,6 +456,25 @@ describe("AudioSource playback lifecycle", () => {
     await flushAsync();
 
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
+    expect(context.state).to.equal("running");
+  });
+
+  it("continues foreground resume when the zombie-reset suspend rejects", async () => {
+    createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    const scheduledTimers = captureScheduledTimers();
+    const resumeSpy = vi.spyOn(context, "resume");
+    context.state = "running";
+
+    window.dispatchEvent(new Event("pagehide"));
+    MockAudioContext.shouldSuspendSucceed = false;
+    window.dispatchEvent(new Event("pageshow"));
+    expect(scheduledTimers).to.have.lengthOf(1);
+
+    scheduledTimers[0]();
+    await flushAsync();
+
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
     expect(context.state).to.equal("running");
   });
 
