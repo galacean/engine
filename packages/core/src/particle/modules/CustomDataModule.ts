@@ -47,7 +47,6 @@ interface GradientStream {
  */
 export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _streamNamePattern = /^[A-Za-z0-9_]+$/;
-  private static readonly _reservedPrefixPattern = /^(?:VOL|FOL|SOL|COL|ROL|TSA|LVL)/;
   private static readonly _zeroCurveArray = new Float32Array(8);
   private static readonly _zeroGradientColorArray = new Float32Array(16);
   private static readonly _zeroGradientAlphaArray = new Float32Array(8);
@@ -298,13 +297,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
     if (!CustomDataModule._streamNamePattern.test(name)) {
       Logger.error(
         `CustomDataModule.${method}: "${name}" must contain only letters, digits, or underscores; call ignored.`
-      );
-      return false;
-    }
-    if (CustomDataModule._reservedPrefixPattern.test(name)) {
-      Logger.error(
-        `CustomDataModule.${method}: "${name}" starts with a reserved engine particle module prefix ` +
-          `(VOL/FOL/SOL/COL/ROL/TSA/LVL) and would collide with built-in uniforms; call ignored.`
       );
       return false;
     }

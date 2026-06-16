@@ -17,8 +17,9 @@ export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform, TransformModifyFlags } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
-export type { EngineSettings } from "./EngineSettings";
 export type { EngineConfiguration } from "./Engine";
+export { EngineEventType } from "./EngineEventType";
+export type { EngineSettings } from "./EngineSettings";
 export type { ComponentConstructor } from "./Entity";
 
 export { request } from "./asset/request";
