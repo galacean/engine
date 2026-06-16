@@ -92,24 +92,26 @@ describe("ResourceManager", () => {
     it("infers loader type from virtualPathResourceMap when type is omitted", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.initVirtualResources([
-        { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: "Texture2D" }
+        { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: AssetType.Texture }
       ]);
       // @ts-ignore
       const loaderSpy = vi
-        .spyOn(ResourceManager._loaders["Texture2D"], "load")
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
         .mockReturnValue(new AssetPromise(() => {}));
 
       resourceManager.load({ url: "Assets/extensionless" });
 
       expect(loaderSpy).toHaveBeenCalled();
-      expect(loaderSpy.mock.calls[0][0].type).equal("Texture2D");
+      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
       loaderSpy.mockRestore();
     });
 
     it("shares the main asset across sub-asset queries", () => {
       const resourceManager = engine.resourceManager;
       // @ts-ignore
-      const loaderSpy = vi.spyOn(ResourceManager._loaders["GLTF"], "load").mockReturnValue(new AssetPromise(() => {}));
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
 
       resourceManager.load("https://cdn.ali.com/shared.glb?q=materials[0]");
       resourceManager.load("https://cdn.ali.com/shared.glb?q=materials[1]");
