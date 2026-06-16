@@ -11,7 +11,7 @@ import { PointerEventData } from "./PointerEventData";
 import { PhysicsPointerEventEmitter } from "./emitter/PhysicsPointerEventEmitter";
 import { PointerEventEmitter } from "./emitter/PointerEventEmitter";
 
-type PointerEventEmitterConstructor = new (pool: ClearableObjectPool<PointerEventData>) => PointerEventEmitter;
+type PointerEventEmitterConstructor = new () => PointerEventEmitter;
 
 /**
  * Pointer Manager.
@@ -206,13 +206,22 @@ export class PointerManager implements IInput {
   }
 
   private _addEmitters(pointer: Pointer): void {
-    const { _eventPool: eventPool, _engine: engine } = this;
+    const { _eventPool: pool, _engine: engine } = this;
     const emitters = pointer._emitters;
-    engine._physicsInitialized && emitters.push(new PhysicsPointerEventEmitter(eventPool));
+    engine._physicsInitialized && emitters.push(this._createEmitter(PhysicsPointerEventEmitter, pool));
     const emitterTypes = PointerManager._pointerEventEmitters;
     for (let i = 0, n = emitterTypes.length; i < n; i++) {
-      emitters.push(new emitterTypes[i](eventPool));
+      emitters.push(this._createEmitter(emitterTypes[i], pool));
     }
+  }
+
+  private _createEmitter(
+    type: PointerEventEmitterConstructor,
+    pool: ClearableObjectPool<PointerEventData>
+  ): PointerEventEmitter {
+    const emitter = new type();
+    emitter._pool = pool;
+    return emitter;
   }
 
   private _onPointerEvent(evt: PointerEvent) {
@@ -329,7 +338,7 @@ export class PointerManager implements IInput {
  * Declare pointer event emitter decorator.
  */
 export function registerPointerEventEmitter() {
-  return <T extends PointerEventEmitter>(Target: { new (pool: ClearableObjectPool<PointerEventData>): T }) => {
+  return <T extends PointerEventEmitter>(Target: { new (): T }) => {
     PointerManager._pointerEventEmitters.push(Target);
   };
 }
