@@ -193,7 +193,6 @@ export class AudioSource extends Component {
     if (this._isPlaying) {
       this._clearSourceNode();
       this._isPlaying = false;
-      AudioManager._playingCount--;
     }
 
     this._pausedTime = -1;
@@ -210,7 +209,6 @@ export class AudioSource extends Component {
       this._clearSourceNode();
       this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
-      AudioManager._playingCount--;
     }
   }
 
@@ -261,7 +259,6 @@ export class AudioSource extends Component {
     this._playTime = AudioManager.getContext().currentTime - startTime;
     this._pausedTime = -1;
     this._isPlaying = true;
-    AudioManager._playingCount++;
   }
 
   private _initSourceNode(startTime: number): boolean {

@@ -118,7 +118,6 @@ function resetAudioManagerState(): void {
   (AudioManager as any)._hidden = false;
   (AudioManager as any)._foregroundResumeTimer = null;
   (AudioManager as any)._suspendedByCaller = false;
-  AudioManager._playingCount = 0;
 }
 
 function captureScheduledTimers(): Array<() => void> {
@@ -503,7 +502,7 @@ describe("AudioSource playback lifecycle", () => {
     expect((AudioManager as any)._needsUserGestureResume).to.be.false;
   });
 
-  it("keeps _playingCount balanced across play/stop/pause/ended", async () => {
+  it("keeps playback state consistent across play/stop/pause/ended", async () => {
     createAudioSource();
     const context = (AudioManager as any)._context as MockAudioContext;
     context.state = "running";
@@ -513,20 +512,25 @@ describe("AudioSource playback lifecycle", () => {
 
     s1.play();
     s2.play();
-    expect(AudioManager._playingCount).to.equal(2);
+    expect(s1.isPlaying).to.be.true;
+    expect(s2.isPlaying).to.be.true;
 
     s1.pause();
-    expect(AudioManager._playingCount).to.equal(1);
+    expect(s1.isPlaying).to.be.false;
+    expect(s2.isPlaying).to.be.true;
 
     s1.play();
-    expect(AudioManager._playingCount).to.equal(2);
+    expect(s1.isPlaying).to.be.true;
+    expect(s2.isPlaying).to.be.true;
 
     s2.stop();
-    expect(AudioManager._playingCount).to.equal(1);
+    expect(s1.isPlaying).to.be.true;
+    expect(s2.isPlaying).to.be.false;
 
     // Simulate onended
     (s1 as any)._onPlayEnd();
-    expect(AudioManager._playingCount).to.equal(0);
+    expect(s1.isPlaying).to.be.false;
+    expect(s2.isPlaying).to.be.false;
   });
 
   it("does not resume a stopped source after hide/show cycle", async () => {
@@ -550,7 +554,6 @@ describe("AudioSource playback lifecycle", () => {
 
     // Source stays stopped — context resume does not restart stopped sources
     expect(audioSource.isPlaying).to.be.false;
-    expect(AudioManager._playingCount).to.equal(0);
   });
 
   it("marks external context interruption as gesture-retryable", async () => {

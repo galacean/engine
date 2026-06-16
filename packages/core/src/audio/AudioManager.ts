@@ -2,9 +2,6 @@
  * Audio Manager for managing global audio context and settings.
  */
 export class AudioManager {
-  /** @internal */
-  static _playingCount = 0;
-
   private static _context: AudioContext;
   private static _gainNode: GainNode;
   private static _needsUserGestureResume = false;
@@ -68,7 +65,6 @@ export class AudioManager {
       document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
       window.addEventListener("pagehide", AudioManager._onHidden);
       window.addEventListener("pageshow", AudioManager._onShown);
-      AudioManager._addGestureListeners();
     }
     return context;
   }
