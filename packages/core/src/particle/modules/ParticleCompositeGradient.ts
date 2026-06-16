@@ -7,6 +7,8 @@ import { ParticleGradient } from "./ParticleGradient";
  * Particle composite gradient.
  */
 export class ParticleCompositeGradient {
+  private static _tempColor = new Color();
+
   /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
   /* The min constant color used by the gradient if mode is set to `TwoConstants`. */
@@ -121,6 +123,4 @@ export class ParticleCompositeGradient {
         break;
     }
   }
-
-  private static _tempColor = new Color();
 }
