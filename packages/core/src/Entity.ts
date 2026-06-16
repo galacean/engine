@@ -296,9 +296,10 @@ export class Entity extends EngineObject {
 
   /**
    * Get the components which match the type of the entity and it's children.
+   * @remarks The components are returned in depth-first pre-order: the entity itself first, then each child's subtree in sibling order.
    * @param type - The component type
    * @param results - The components collection
-   * @returns	The components collection which match the type
+   * @returns The components collection which match the type
    */
   getComponentsIncludeChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
