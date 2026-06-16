@@ -245,7 +245,12 @@ export class PointerManager implements IInput {
             pointer._downMap[button] = frameCount;
             pointer._frameEvents |= PointerEventType.Down;
             pointer.phase = PointerPhase.Down;
-            pointer.pressedPosition.copyFrom(pointer.position);
+            // Capture from this event's own coordinates: `pointer.position` already reflects the
+            // frame's last event, which may differ from the down location when events are batched.
+            pointer.pressedPosition.set(
+              (event.clientX - left) * widthPixelRatio,
+              (event.clientY - top) * heightPixelRatio
+            );
             break;
           }
           case "pointerup": {

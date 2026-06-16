@@ -171,6 +171,41 @@ describe("InputManager", async () => {
     engine.update();
   });
 
+  it("pointer pressedPosition", () => {
+    // @ts-ignore
+    const { _pointerManager: pointerManager } = inputManager;
+    const { _target: target } = pointerManager;
+    const { left, top } = target.getBoundingClientRect();
+
+    // Frame 1: a pointerdown and a move to a different position are batched into one frame.
+    target.dispatchEvent(generatePointerEvent("pointerdown", 5, left + 1, top + 1));
+    target.dispatchEvent(generatePointerEvent("pointermove", 5, left + 3, top + 3));
+    engine.update();
+    const pointer = inputManager.pointers[0];
+    // @ts-ignore
+    const uniqueID = pointer._uniqueID;
+    const position1 = pointer.position.clone();
+    const pressedPosition1 = pointer.pressedPosition.clone();
+
+    // Frame 2: keep dragging to yet another position.
+    target.dispatchEvent(generatePointerEvent("pointermove", 5, left + 6, top + 6));
+    engine.update();
+    const position2 = pointer.position.clone();
+    const pressedPosition2 = pointer.pressedPosition.clone();
+
+    // Release the pointer BEFORE asserting, so a failing expectation cannot leak it into later tests.
+    target.dispatchEvent(generatePointerEvent("pointerleave", 5, left + 6, top + 6, -1, 0));
+    engine.update();
+
+    expect(uniqueID).to.eq(5);
+    // `position` always tracks the frame's latest event...
+    expect(position1).to.deep.eq(new Vector2(3 * 2, 3 * 2));
+    expect(position2).to.deep.eq(new Vector2(6 * 2, 6 * 2));
+    // ...while `pressedPosition` stays at the pointerdown location regardless of later moves.
+    expect(pressedPosition1).to.deep.eq(new Vector2(1 * 2, 1 * 2));
+    expect(pressedPosition2).to.deep.eq(new Vector2(1 * 2, 1 * 2));
+  });
+
   it("keyboard", () => {
     // @ts-ignore
     const { _keyboardManager: keyboardManager } = inputManager;
