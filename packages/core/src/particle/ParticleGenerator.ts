@@ -1229,16 +1229,10 @@ export class ParticleGenerator {
     const instanceVertices = this._instanceVertices;
 
     const hasDeathSlot = this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
-    if (hasDeathSlot && this._feedbackSimulator) {
-      const floatCount = (this._currentParticleCount * ParticleBufferUtils.feedbackVertexStride) / 4;
-      let readback = this._feedbackReadback;
-      if (!readback || readback.length < floatCount) {
-        readback = this._feedbackReadback = new Float32Array(floatCount);
-      }
-      this._feedbackSimulator.readBinding.buffer.getData(readback, 0, 0, floatCount);
-    }
+    const firstNewElement = this._firstNewElement;
+    let feedbackLoaded = false;
 
-    while (this._firstActiveElement !== this._firstNewElement) {
+    while (this._firstActiveElement !== firstNewElement) {
       const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
       const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
 
@@ -1249,6 +1243,10 @@ export class ParticleGenerator {
       }
 
       if (hasDeathSlot) {
+        if (this._feedbackSimulator && !feedbackLoaded) {
+          this._readbackFeedback(this._firstActiveElement, firstNewElement);
+          feedbackLoaded = true;
+        }
         this._onParticleDeath(activeParticleOffset);
       }
 
@@ -1260,6 +1258,29 @@ export class ParticleGenerator {
 
       // Record wait process retired element count
       this._waitProcessRetiredElementCount++;
+    }
+  }
+
+  private _readbackFeedback(firstActiveElement: number, firstNewElement: number): void {
+    const stride = ParticleBufferUtils.feedbackVertexStride;
+    const floatStride = stride / 4;
+    const totalFloatCount = this._currentParticleCount * floatStride;
+    let readback = this._feedbackReadback;
+    if (!readback || readback.length < totalFloatCount) {
+      readback = this._feedbackReadback = new Float32Array(totalFloatCount);
+    }
+
+    const buffer = this._feedbackSimulator.readBinding.buffer;
+    const wrapped = firstActiveElement >= firstNewElement;
+    const firstSegmentEnd = wrapped ? this._currentParticleCount : firstNewElement;
+    buffer.getData(
+      readback,
+      firstActiveElement * stride,
+      firstActiveElement * floatStride,
+      (firstSegmentEnd - firstActiveElement) * floatStride
+    );
+    if (wrapped && firstNewElement > 0) {
+      buffer.getData(readback, 0, 0, firstNewElement * floatStride);
     }
   }
 
