@@ -313,9 +313,9 @@ describe("Animator test", function () {
 
   it("animation getCurrentAnimatorState", () => {
     //play animation and get current animator state
+    const layerIndex = 0;
     const expectedStateName = resource.animations[0].name;
-    animator.play(expectedStateName);
-    const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
+    animator.play(expectedStateName, layerIndex);
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
     expect(currentAnimatorState.name).to.eq(expectedStateName);
   });
