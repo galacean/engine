@@ -1,10 +1,14 @@
 import { Sprite, SpriteAtlas, Texture2D } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 describe("SpriteAtlas", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
   it("getSprite returns the sprite when it exists", () => {
     const atlas = new SpriteAtlas(engine);
@@ -24,8 +28,6 @@ describe("SpriteAtlas", async () => {
     const result = atlas.getSprite("nonexistent");
     expect(result).to.be.undefined;
     expect(warnSpy).toHaveBeenCalledWith("There is no sprite named nonexistent in the atlas.");
-
-    warnSpy.mockRestore();
   });
 
   it("getSprites returns matching sprites", () => {
@@ -57,7 +59,5 @@ describe("SpriteAtlas", async () => {
     expect(result).to.eq(out);
     expect(out.length).to.eq(0);
     expect(warnSpy).toHaveBeenCalledWith("There is no sprite named nonexistent in the atlas.");
-
-    warnSpy.mockRestore();
   });
 });
