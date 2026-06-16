@@ -87,4 +87,36 @@ describe("ResourceManager", () => {
       }
     });
   });
+
+  describe("assignDefaultOptions virtualPath type", () => {
+    it("infers type from virtualPathResourceMap for extensionless url", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: "Texture2D" }
+      ]);
+      // @ts-ignore
+      const item = resourceManager._assignDefaultOptions({ url: "Assets/extensionless" });
+      expect(item.type).equal("Texture2D");
+    });
+
+    it("infers type for sub-asset query path", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/withSubAsset", path: "https://cdn.ali.com/b.glb", type: "GLTF" }
+      ]);
+      // @ts-ignore
+      const item = resourceManager._assignDefaultOptions({ url: "Assets/withSubAsset?q=materials[0]" });
+      expect(item.type).equal("GLTF");
+    });
+
+    it("keeps explicit type over virtualPathResourceMap type", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/explicit", path: "https://cdn.ali.com/c.bin", type: "GLTF" }
+      ]);
+      // @ts-ignore
+      const item = resourceManager._assignDefaultOptions({ url: "Assets/explicit", type: "Texture2D" });
+      expect(item.type).equal("Texture2D");
+    });
+  });
 });
