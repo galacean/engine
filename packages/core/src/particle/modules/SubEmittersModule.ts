@@ -43,9 +43,13 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     return found;
   }
 
-  /** The list of sub-emitters. */
   @deepClone
-  readonly subEmitters: SubEmitter[] = [];
+  private _subEmitters: SubEmitter[] = [];
+
+  /** Read-only view of the configured sub-emitters; mutate via {@link addSubEmitter} / {@link removeSubEmitterByIndex}. */
+  get subEmitters(): readonly SubEmitter[] {
+    return this._subEmitters;
+  }
 
   @ignoreClone
   private _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
@@ -78,7 +82,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     sub.inheritProperties = inheritProperties;
     sub.emitProbability = emitProbability;
     sub.emitCount = emitCount;
-    this.subEmitters.push(sub);
+    this._subEmitters.push(sub);
     this._generator._setTransformFeedback();
   }
 
@@ -87,7 +91,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    * @param index - Index of the sub-emitter to remove
    */
   removeSubEmitterByIndex(index: number): void {
-    this.subEmitters.splice(index, 1);
+    this._subEmitters.splice(index, 1);
     this._generator._setTransformFeedback();
   }
 
