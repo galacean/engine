@@ -463,7 +463,7 @@ export class Animator extends Component {
         }
 
         const { property } = curve;
-        // Get owner — WeakMap keyed by Component so dead components let entries GC.
+        // Key owner lookup by Component identity instead of instanceId.
         let propertyOwners = curveOwnerPool.get(component);
         if (!propertyOwners) {
           propertyOwners = <Record<string, AnimationCurveOwner<KeyframeValueType>>>Object.create(null);
@@ -475,7 +475,7 @@ export class Animator extends Component {
           propertyOwners[property] = owner;
         }
 
-        // Get layer owner — same WeakMap-by-Component pattern (was Record<instanceId,...> which kept dead components pinned for the Animator's lifetime).
+        // Keep layer owner lookup on the same Component identity path.
         let layerPropertyOwners = layerCurveOwnerPool.get(component);
         if (!layerPropertyOwners) {
           layerPropertyOwners = <Record<string, AnimationCurveLayerOwner>>Object.create(null);

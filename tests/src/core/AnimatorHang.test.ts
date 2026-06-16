@@ -9,7 +9,7 @@ const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
 canvasDOM.height = 1024;
 
-describe("Canvas 1024 test", function () {
+describe("Animator GLTF load hang regression on 1024x1024 canvas", function () {
   let animator: Animator;
   let engine: WebGLEngine;
 

@@ -283,6 +283,22 @@ describe("Animator test", function () {
     expect(animator.findAnimatorState("Walk", 0)._state).to.eq(walkState);
   });
 
+  it("crossFade to the active state is a no-op", () => {
+    animator.play("Walk");
+    const currentInstance = animator.getCurrentAnimatorState(0);
+    updateAnimator(animator, 0.1);
+
+    const layerData = animator["_animatorLayersData"][0];
+    const playedBefore = layerData.srcPlayData.playedTime;
+
+    animator.crossFade("Walk", 0.1, 0);
+
+    expect(layerData.destPlayData).to.eq(null);
+    expect(layerData.crossFadeTransition).to.eq(null);
+    expect(animator.getCurrentAnimatorState(0)).to.eq(currentInstance);
+    expect(layerData.srcPlayData.playedTime).to.eq(playedBefore);
+  });
+
   it("play, crossFade, and state lookup ignore out-of-range layers without throwing", () => {
     animator.play("Walk");
     const before = animator.getCurrentAnimatorState(0);
