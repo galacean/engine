@@ -119,5 +119,59 @@ describe("ResourceManager", () => {
       expect(loaderSpy).toHaveBeenCalledTimes(1);
       loaderSpy.mockRestore();
     });
+
+    it("keeps the explicit type over the virtualPath map type", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/explicit", path: "https://cdn.ali.com/x.json", type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load({ url: "Assets/explicit", type: AssetType.GLTF });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.GLTF);
+      loaderSpy.mockRestore();
+    });
+
+    it("resolves virtualPath via map even when baseUrl is set", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/withBaseUrl", path: "https://cdn.ali.com/real.json", type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+      resourceManager.baseUrl = "https://base.com/app/";
+
+      try {
+        resourceManager.load({ url: "Assets/withBaseUrl" });
+        expect(loaderSpy).toHaveBeenCalled();
+        expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+      } finally {
+        resourceManager.baseUrl = null;
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("merges urls into a single url before parsing", () => {
+      const resourceManager = engine.resourceManager;
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.KTXCube], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load({
+        type: AssetType.KTXCube,
+        urls: ["px.ktx", "nx.ktx", "py.ktx", "ny.ktx", "pz.ktx", "nz.ktx"]
+      });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      loaderSpy.mockRestore();
+    });
   });
 });

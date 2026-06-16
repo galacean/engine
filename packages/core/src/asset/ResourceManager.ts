@@ -340,7 +340,7 @@ export class ResourceManager {
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): void {
-    assetInfo.type ||= remoteConfig?.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+    assetInfo.type ??= remoteConfig?.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
