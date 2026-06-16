@@ -231,14 +231,14 @@ describe("Animator test", function () {
   it("find animator state", () => {
     const stateName = "Survey";
     const expectedStateName = "Run";
-    const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
+    const layerIndex = 0;
 
-    animator.play(stateName);
+    animator.play(stateName, layerIndex);
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
     let animatorState = animator.findAnimatorState(stateName, layerIndex);
     expect(animatorState).to.eq(currentAnimatorState);
 
-    animator.play(expectedStateName);
+    animator.play(expectedStateName, layerIndex);
     animatorState = animator.findAnimatorState(expectedStateName, layerIndex);
     expect(animatorState).not.to.eq(currentAnimatorState);
     expect(animatorState.name).to.eq(expectedStateName);
@@ -312,13 +312,8 @@ describe("Animator test", function () {
   });
 
   it("animation getCurrentAnimatorState", () => {
-    //get random animation element from gltf resource
-    const min = 0;
-    const max = resource.animations.length - 1;
-    const index = Math.floor(Math.random() * (max - min + 1)) + min;
-
     //play animation and get current animator state
-    const expectedStateName = resource.animations[index].name;
+    const expectedStateName = resource.animations[0].name;
     animator.play(expectedStateName);
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
