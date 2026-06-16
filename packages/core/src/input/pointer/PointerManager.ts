@@ -116,10 +116,7 @@ export class PointerManager implements IInput {
           pointer = pointerPool[j];
           if (!pointer) {
             pointer = pointerPool[j] = new Pointer(j);
-            engine._physicsInitialized && pointer._addEmitters(PhysicsPointerEventEmitter, eventPool);
-            PointerManager._pointerEventEmitters.forEach((emitter) => {
-              pointer._addEmitters(emitter, eventPool);
-            });
+            this._addEmitters(pointer);
           }
           pointer._uniqueID = pointerId;
           pointer._events.push(evt);
@@ -206,6 +203,16 @@ export class PointerManager implements IInput {
   _destroy(): void {
     this._removeEventListener();
     this._pointerPool.length = 0;
+  }
+
+  private _addEmitters(pointer: Pointer): void {
+    const { _eventPool: eventPool, _engine: engine } = this;
+    const emitters = pointer._emitters;
+    engine._physicsInitialized && emitters.push(new PhysicsPointerEventEmitter(eventPool));
+    const emitterTypes = PointerManager._pointerEventEmitters;
+    for (let i = 0, n = emitterTypes.length; i < n; i++) {
+      emitters.push(new emitterTypes[i](eventPool));
+    }
   }
 
   private _onPointerEvent(evt: PointerEvent) {

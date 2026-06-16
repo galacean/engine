@@ -1,9 +1,7 @@
 import { Vector2 } from "@galacean/engine-math";
-import { ClearableObjectPool } from "../../utils/ClearableObjectPool";
 import { DisorderedArray } from "../../utils/DisorderedArray";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerEventData } from "./PointerEventData";
 import { PointerEventEmitter } from "./emitter/PointerEventEmitter";
 
 /**
@@ -49,16 +47,6 @@ export class Pointer {
    */
   constructor(id: number) {
     this.id = id;
-  }
-
-  /**
-   * @internal
-   */
-  _addEmitters<T extends new (pool: ClearableObjectPool<PointerEventData>) => PointerEventEmitter>(
-    type: T,
-    pool: ClearableObjectPool<PointerEventData>
-  ) {
-    this._emitters.push(new type(pool));
   }
 
   /**
