@@ -156,7 +156,7 @@ export class AudioSource extends Component {
       return;
     }
 
-    if (AudioManager.isAudioContextRunning()) {
+    if (AudioManager._canStartPlayback()) {
       this._startPlayback();
     } else {
       this._pendingPlay = true;
@@ -166,12 +166,7 @@ export class AudioSource extends Component {
             return;
           }
           this._pendingPlay = false;
-          if (
-            this._destroyed ||
-            !this.enabled ||
-            !this._clip?._getAudioSource() ||
-            !AudioManager.isAudioContextRunning()
-          ) {
+          if (this._destroyed || !this.enabled || !this._clip?._getAudioSource() || !AudioManager._canStartPlayback()) {
             return;
           }
           this._startPlayback();

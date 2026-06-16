@@ -89,6 +89,20 @@ export class AudioManager {
     return AudioManager.getContext().state === "running";
   }
 
+  /**
+   * @internal
+   */
+  static _canStartPlayback(): boolean {
+    if (document.hidden) {
+      AudioManager._onHidden();
+      return false;
+    }
+    if (AudioManager._hidden) {
+      return false;
+    }
+    return AudioManager.getContext().state === "running";
+  }
+
   private static _onContextStateChange(): void {
     const state = AudioManager._context?.state;
     if (state === "running" && !AudioManager._hidden) {

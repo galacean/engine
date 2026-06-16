@@ -329,6 +329,23 @@ describe("AudioSource playback lifecycle", () => {
     expect(context.state).to.equal("suspended");
   });
 
+  it("does not start playback while document is hidden even if context is still running", async () => {
+    const audioSource = createAudioSource();
+    const context = (AudioManager as any)._context as MockAudioContext;
+    const suspendSpy = vi.spyOn(context, "suspend");
+
+    context.state = "running";
+    const documentHidden = mockDocumentHidden(true);
+
+    audioSource.play();
+    documentHidden.restore();
+    await flushAsync();
+
+    expect(suspendSpy).toHaveBeenCalledTimes(1);
+    expect(audioSource.isPlaying).to.be.false;
+    expect((audioSource as any)._pendingPlay).to.be.false;
+  });
+
   it("drops playback requested while hidden instead of replaying after show", async () => {
     const audioSource = createAudioSource();
     const context = (AudioManager as any)._context as MockAudioContext;
