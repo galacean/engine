@@ -339,7 +339,7 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _assignDefaultOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): LoadItem {
+  private _assignDefaultOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): void {
     assetInfo.type ||= remoteConfig?.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
@@ -347,22 +347,24 @@ export class ResourceManager {
     assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
     assetInfo.timeout = assetInfo.timeout ?? this.timeout;
     assetInfo.retryInterval = assetInfo.retryInterval ?? this.retryInterval;
-    return assetInfo;
   }
 
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
     const item = typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL;
     item.url = item.url ?? item.urls.join(",");
     // Parse url
-    const { url, queryPath } = this._parseURL(item.url);
+    const { assetBaseURL, queryPath } = this._parseURL(item.url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const remoteConfig = this._virtualPathResourceMap[url];
+    const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
     this._assignDefaultOptions(item, remoteConfig);
 
     // Not absolute and base url is set
-    item.url = !Utils.isAbsoluteUrl(url) && this.baseUrl ? Utils.resolveAbsoluteUrl(this.baseUrl, url) : url;
+    item.url =
+      !Utils.isAbsoluteUrl(assetBaseURL) && this.baseUrl
+        ? Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL)
+        : assetBaseURL;
     const remoteAssetBaseURL = remoteConfig?.path ?? item.url;
 
     // Check cache
@@ -517,10 +519,10 @@ export class ResourceManager {
     return subResource;
   }
 
-  private _parseURL(path: string): { url: string; queryPath: string } {
+  private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
     const [baseUrl, searchStr] = path.split("?");
     let queryPath = undefined;
-    let url = baseUrl;
+    let assetBaseURL = baseUrl;
     if (searchStr) {
       const params = searchStr.split("&");
       for (let i = params.length - 1; i >= 0; i--) {
@@ -531,9 +533,9 @@ export class ResourceManager {
           break;
         }
       }
-      url = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
+      assetBaseURL = params.length > 0 ? baseUrl + "?" + params.join("&") : baseUrl;
     }
-    return { url, queryPath };
+    return { assetBaseURL, queryPath };
   }
 
   private _parseQueryPath(string): string[] {
