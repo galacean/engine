@@ -1126,6 +1126,37 @@ describe("Clone remap", async () => {
       expect(target.depthBias).to.eq(0.5);
       expect(target.slopeScaledDepthBias).to.eq(1.5);
     });
+
+    it("RenderTargetBlendState fields should be cloned via @property", () => {
+      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
+      const { RenderTargetBlendState } = require("@galacean/engine-core/src/shader/state/RenderTargetBlendState");
+      const { BlendFactor, BlendOperation, ColorWriteMask } = require("@galacean/engine-core");
+
+      const source = new RenderTargetBlendState();
+      source.enabled = true;
+      source.colorBlendOperation = BlendOperation.Subtract;
+      source.alphaBlendOperation = BlendOperation.Max;
+      source.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+      source.sourceAlphaBlendFactor = BlendFactor.One;
+      source.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
+      source.destinationAlphaBlendFactor = BlendFactor.Zero;
+      source.colorWriteMask = ColorWriteMask.Red | ColorWriteMask.Green;
+
+      const cloneMap = new Map();
+      const target = new RenderTargetBlendState();
+      CloneManager.getProperties(RenderTargetBlendState).forEach((k) => {
+        CloneManager.copyProperty(source, target, k, cloneMap);
+      });
+
+      expect(target.enabled).to.eq(true);
+      expect(target.colorBlendOperation).to.eq(BlendOperation.Subtract);
+      expect(target.alphaBlendOperation).to.eq(BlendOperation.Max);
+      expect(target.sourceColorBlendFactor).to.eq(BlendFactor.SourceAlpha);
+      expect(target.sourceAlphaBlendFactor).to.eq(BlendFactor.One);
+      expect(target.destinationColorBlendFactor).to.eq(BlendFactor.OneMinusSourceAlpha);
+      expect(target.destinationAlphaBlendFactor).to.eq(BlendFactor.Zero);
+      expect(target.colorWriteMask).to.eq(ColorWriteMask.Red | ColorWriteMask.Green);
+    });
   });
 
   describe("PostProcessEffectParameter clone", () => {
