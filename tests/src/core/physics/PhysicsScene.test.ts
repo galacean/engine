@@ -17,7 +17,7 @@ import {
 } from "@galacean/engine-core";
 import { Ray, Vector3, Quaternion } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { vi, describe, beforeAll, expect, it, afterEach } from "vitest";
 
 class CollisionTestScript extends Script {
@@ -62,10 +62,42 @@ class CollisionTestScript extends Script {
   }
 }
 
+class CollisionDemandScript extends Script {
+  onCollisionEnter(): void {}
+}
+
+class TriggerDemandScript extends Script {
+  onTriggerEnter(): void {}
+}
+
 function updatePhysics(physics) {
   for (let i = 0; i < 5; ++i) {
     physics._update(8);
   }
+}
+
+function watchNativeContactEventDemand(physicsScene: PhysicsScene) {
+  const nativeScene = (physicsScene as any)._nativePhysicsScene;
+  const original = nativeScene.setContactEventEnabled;
+  const calls: boolean[] = [];
+  nativeScene.setContactEventEnabled = (enabled: boolean) => {
+    calls.push(enabled);
+    original?.call(nativeScene, enabled);
+  };
+  return {
+    calls,
+    restore() {
+      if (original) {
+        nativeScene.setContactEventEnabled = original;
+      } else {
+        delete nativeScene.setContactEventEnabled;
+      }
+    }
+  };
+}
+
+function getLastContactEventDemandCall(calls: boolean[]): boolean {
+  return calls[calls.length - 1] ?? false;
 }
 
 function resetSpy() {
@@ -163,6 +195,88 @@ describe("Physics Test", () => {
       } finally {
         (physics as any)._nativePhysicsScene = nativePhysicsScene;
         physics.maximumDeltaTime = Infinity;
+      }
+    });
+
+    it("auto-disables native contact events when no active collision callback exists", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-demand-disabled");
+      const entity = root.createChild("body");
+      const collider = entity.addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+
+      try {
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(false);
+      } finally {
+        contactEventDemand.restore();
+        root.destroy();
+      }
+    });
+
+    it("auto-enables native contact events only while an active collision callback exists", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-demand-enabled");
+      const entity = root.createChild("body");
+      const collider = entity.addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      const script = entity.addComponent(CollisionDemandScript);
+      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+
+      try {
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(true);
+
+        script.enabled = false;
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(false);
+      } finally {
+        contactEventDemand.restore();
+        root.destroy();
+      }
+    });
+
+    it("does not rescan contact event demand on every fixed substep", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const fixedTimeStep = physicsScene.fixedTimeStep;
+      const root = scene.createRootEntity("contact-demand-substeps");
+      const entity = root.createChild("body");
+      const collider = entity.addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      entity.addComponent(CollisionDemandScript);
+      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+
+      try {
+        physicsScene.fixedTimeStep = 1 / 480;
+        physicsScene._update(1 / 60);
+        expect(contactEventDemand.calls).to.deep.eq([true]);
+      } finally {
+        physicsScene.fixedTimeStep = fixedTimeStep;
+        contactEventDemand.restore();
+        root.destroy();
+      }
+    });
+
+    it("keeps native contact events disabled when only trigger callbacks exist", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("contact-demand-trigger-only");
+      const entity = root.createChild("body");
+      const collider = entity.addComponent(StaticCollider);
+      collider.addShape(new BoxColliderShape());
+      entity.addComponent(TriggerDemandScript);
+      const contactEventDemand = watchNativeContactEventDemand(physicsScene);
+
+      try {
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(false);
+      } finally {
+        contactEventDemand.restore();
+        root.destroy();
       }
     });
 

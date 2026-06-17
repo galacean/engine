@@ -1,7 +1,7 @@
 import { BoxColliderShape, DynamicCollider, Entity, Engine, Script, StaticCollider } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { WebGLEngine } from "@galacean/engine";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Collision } from "packages/core/types/physics/Collision";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
@@ -160,6 +160,32 @@ describe("Collision", function () {
       );
 
       box1.getComponent(DynamicCollider).applyForce(new Vector3(1000, 0, 0));
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1);
+    });
+  });
+
+  it("reports contact normal from static other shape to dynamic self shape", function () {
+    engine.sceneManager.activeScene.physics.gravity = new Vector3(0, 0, 0);
+    const dynamicBox = addBox(new Vector3(1, 1, 1), DynamicCollider, new Vector3(-3, 0, 0));
+    const staticBox = addBox(new Vector3(1, 1, 1), StaticCollider, new Vector3(0, 0, 0));
+
+    return new Promise<void>((done) => {
+      dynamicBox.addComponent(
+        class extends Script {
+          onCollisionEnter(other: Collision): void {
+            expect(other.shape).toBe(staticBox.getComponent(StaticCollider).shapes[0]);
+            const contacts = [];
+            other.getContacts(contacts);
+            expect(contacts.length).toBeGreaterThan(0);
+            expect(formatValue(contacts[0].normal.x)).toBe(-1);
+
+            done();
+          }
+        }
+      );
+
+      dynamicBox.getComponent(DynamicCollider).applyForce(new Vector3(1000, 0, 0));
       // @ts-ignore
       engine.sceneManager.activeScene.physics._update(1);
     });

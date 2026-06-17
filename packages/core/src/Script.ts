@@ -229,6 +229,9 @@ export class Script extends Component {
     }
 
     this._entity._addScript(this);
+    if (this._hasCollisionEventCallbacks()) {
+      this.scene.physics._markCollisionEventConsumersDirty();
+    }
   }
 
   /**
@@ -252,6 +255,18 @@ export class Script extends Component {
     }
 
     this._entity._removeScript(this);
+    if (this._hasCollisionEventCallbacks()) {
+      this.scene.physics._markCollisionEventConsumersDirty();
+    }
+  }
+
+  private _hasCollisionEventCallbacks(): boolean {
+    const { prototype } = Script;
+    return (
+      this.onCollisionEnter !== prototype.onCollisionEnter ||
+      this.onCollisionExit !== prototype.onCollisionExit ||
+      this.onCollisionStay !== prototype.onCollisionStay
+    );
   }
 
   /**
