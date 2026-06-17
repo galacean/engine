@@ -1,4 +1,6 @@
 import { Color, MathUtil, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { defaultCloneMode } from "../clone/CloneManager";
+import { CloneMode } from "../clone/enums/CloneMode";
 import { Texture } from "../texture";
 
 /**
@@ -6,6 +8,7 @@ import { Texture } from "../texture";
  * @remarks
  * The parameter will be mixed to a final value and be used in post process manager.
  */
+@defaultCloneMode(CloneMode.Deep)
 export abstract class PostProcessEffectParameter<T> {
   /**
    * Whether the parameter is enabled.

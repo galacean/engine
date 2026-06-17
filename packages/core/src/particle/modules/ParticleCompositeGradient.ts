@@ -1,11 +1,13 @@
 import { Color } from "@galacean/engine-math";
-import { deepClone } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
+import { deepClone, defaultCloneMode } from "../../clone/CloneManager";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleGradient } from "./ParticleGradient";
 
 /**
  * Particle composite gradient.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class ParticleCompositeGradient {
   /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;

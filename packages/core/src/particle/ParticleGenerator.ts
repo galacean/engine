@@ -1,6 +1,7 @@
 import { BoundingBox, Color, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { CloneMode } from "../clone/enums/CloneMode";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone, defaultCloneMode } from "../clone/CloneManager";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -40,6 +41,7 @@ import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule
 /**
  * Particle Generator.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class ParticleGenerator {
   private static _tempVector20 = new Vector2();
   private static _tempVector21 = new Vector2();

@@ -1,11 +1,13 @@
 import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { CloneMode } from "../../../clone/enums/CloneMode";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../../clone/CloneManager";
+import { deepClone, ignoreClone, defaultCloneMode } from "../../../clone/CloneManager";
 
 /**
  * Base class for all particle shapes.
  */
+@defaultCloneMode(CloneMode.Deep)
 export abstract class BaseShape {
   /** @internal */
   static _tempVector20 = new Vector2();

@@ -1,9 +1,11 @@
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
+import { deepClone, ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
 
 /**
  * Particle curve.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class ParticleCurve {
   @ignoreClone
   private _updateManager = new UpdateFlagManager();
@@ -162,6 +164,7 @@ export class ParticleCurve {
 /**
  * The key of the curve.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class CurveKey {
   @ignoreClone
   private _updateManager = new UpdateFlagManager();

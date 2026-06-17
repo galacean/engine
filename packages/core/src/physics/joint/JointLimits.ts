@@ -1,9 +1,11 @@
-import { deepClone } from "../../clone/CloneManager";
+import { deepClone, defaultCloneMode } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * JointLimits is used to limit the joints angle.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class JointLimits {
   @deepClone
   /** @internal */

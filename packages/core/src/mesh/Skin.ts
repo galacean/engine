@@ -1,14 +1,16 @@
 import { Matrix } from "@galacean/engine-math";
+import { CloneMode } from "../clone/enums/CloneMode";
 import { Entity } from "../Entity";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { Utils } from "../Utils";
 import { EngineObject } from "../base/EngineObject";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { deepClone, ignoreClone, defaultCloneMode } from "../clone/CloneManager";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 
 /**
  * Skin used for skinned mesh renderer.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class Skin extends EngineObject {
   /** Inverse bind matrices. */
   @deepClone

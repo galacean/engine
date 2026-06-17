@@ -1,6 +1,7 @@
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { deepClone, ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -11,6 +12,7 @@ import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
+@defaultCloneMode(CloneMode.Deep)
 export class MainModule implements ICustomClone {
   private _tempVector40 = new Vector4();
   private static _vector3One = new Vector3(1, 1, 1);

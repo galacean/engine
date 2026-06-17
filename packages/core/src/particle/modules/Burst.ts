@@ -1,9 +1,11 @@
-import { deepClone } from "../../clone/CloneManager";
+import { deepClone, defaultCloneMode } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 
 /**
  * A burst is a particle emission event, where a number of particles are all emitted at the same time
  */
+@defaultCloneMode(CloneMode.Deep)
 export class Burst {
   public time: number;
   @deepClone

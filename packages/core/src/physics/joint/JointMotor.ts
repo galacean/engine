@@ -1,9 +1,11 @@
-import { deepClone } from "../../clone/CloneManager";
+import { deepClone, defaultCloneMode } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * The JointMotor is used to motorize a joint.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class JointMotor {
   @deepClone
   /** @internal */

@@ -1,8 +1,11 @@
 import { PostProcessEffectParameter } from "./PostProcessEffectParameter";
+import { defaultCloneMode } from "../clone/CloneManager";
+import { CloneMode } from "../clone/enums/CloneMode";
 
 /**
  * The base class for post process effect.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class PostProcessEffect {
   private _enabled = true;
   private _parameters: PostProcessEffectParameter<any>[] = [];
