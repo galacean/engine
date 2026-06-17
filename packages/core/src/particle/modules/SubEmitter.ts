@@ -9,13 +9,6 @@ import type { SubEmittersModule } from "./SubEmittersModule";
  * fires, on which parent event, with what inheritance, probability, and count.
  */
 export class SubEmitter {
-  /** @internal */
-  @ignoreClone
-  _module: SubEmittersModule = null;
-
-  private _emitter: ParticleRenderer = null;
-  private _type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
-
   /** Bitmask of properties inherited from the parent particle. */
   inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None;
 
@@ -24,6 +17,13 @@ export class SubEmitter {
 
   /** Number of sub particles emitted per parent event. */
   emitCount: number = 1;
+
+  /** @internal */
+  @ignoreClone
+  _module: SubEmittersModule = null;
+
+  private _emitter: ParticleRenderer = null;
+  private _type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
 
   /** Target particle renderer the sub particles emit into. Remapped on clone. */
   get emitter(): ParticleRenderer {
