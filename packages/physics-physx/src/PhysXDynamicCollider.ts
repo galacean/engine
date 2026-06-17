@@ -219,6 +219,16 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.addForceAtPosition }
+   */
+  addForceAtPosition(force: Vector3, position: Vector3) {
+    this._pxActor.addForceAtPos(
+      { x: force.x, y: force.y, z: force.z },
+      { x: position.x, y: position.y, z: position.z }
+    );
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.addTorque }
    */
   addTorque(torque: Vector3) {
