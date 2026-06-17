@@ -48,7 +48,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   private _subEmitters: SubEmitter[] = [];
 
   /**
-   * Read-only view of the configured sub-emitters; mutate via {@link addSubEmitter} / {@link removeSubEmitterByIndex}.
+   * The configured sub-emitters.
    */
   get subEmitters(): readonly SubEmitter[] {
     return this._subEmitters;
