@@ -9,8 +9,8 @@ import { CloneMode } from "./enums/CloneMode";
 export interface ICustomClone {
   /**
    * @internal
-   * Default clone mode for instances of this type when encountered as a value in a field.
-   * Set via `@defaultCloneMode`. Absence defaults to Assignment (shared reference).
+   * Default clone mode for instances of this type (set via `@defaultCloneMode`).
+   * Absence defaults to Assignment (shared reference).
    */
   readonly _defaultCloneMode?: CloneMode;
   /**
@@ -29,7 +29,7 @@ export interface ICustomClone {
 
 export class ComponentCloner {
   /**
-   * Clone component.
+   * Clone component (opt-out: all fields cloned except @ignoreClone).
    * @param source - Clone source
    * @param target - Clone target
    */
@@ -40,9 +40,17 @@ export class ComponentCloner {
     targetRoot: Entity,
     deepInstanceMap: Map<Object, Object>
   ): void {
-    const cloneModes = CloneManager.getCloneMode(source.constructor);
-    for (let k in source) {
-      CloneManager.cloneProperty(source, target, k, cloneModes[k], srcRoot, targetRoot, deepInstanceMap);
+    const ignoredFields = CloneManager.getIgnoredFields(source.constructor);
+    for (const k in source) {
+      if (ignoredFields.has(k)) continue;
+      const sourceProperty = source[k];
+      // Remappable references (Entity/Component)
+      if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
+        target[k] = (<ICustomClone>sourceProperty)._remap(srcRoot, targetRoot);
+        continue;
+      }
+      // Type-driven clone
+      target[k] = CloneManager._cloneValue(sourceProperty, target[k], deepInstanceMap);
     }
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, srcRoot, targetRoot);
   }
