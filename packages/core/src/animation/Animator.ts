@@ -1540,8 +1540,10 @@ export class Animator extends Component {
 
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
-        for (let j = handlers.length - 1; j >= 0; j--) {
-          handlers[j](parameter);
+        if (this.fireEvents) {
+          for (let j = handlers.length - 1; j >= 0; j--) {
+            handlers[j](parameter);
+          }
         }
         playState.currentEventIndex = Math.min(eventIndex + 1, n - 1);
       }
@@ -1565,8 +1567,10 @@ export class Animator extends Component {
 
       if (time <= lastClipTime) {
         const { handlers } = eventHandler;
-        for (let j = handlers.length - 1; j >= 0; j--) {
-          handlers[j](parameter);
+        if (this.fireEvents) {
+          for (let j = handlers.length - 1; j >= 0; j--) {
+            handlers[j](parameter);
+          }
         }
         playState.currentEventIndex = Math.max(eventIndex - 1, 0);
       }
@@ -1614,9 +1618,7 @@ export class Animator extends Component {
   ) {
     this._ensureEventHandlers(state, playData.stateData);
     const { eventHandlers } = playData.stateData;
-    this.fireEvents &&
-      eventHandlers.length &&
-      this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
+    eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, deltaTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       state._callOnEnter(this, layerIndex);

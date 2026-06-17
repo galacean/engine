@@ -670,6 +670,49 @@ describe("Animator test", function () {
     }
   });
 
+  it("keeps AnimationEvent cursor in sync when fireEvents is disabled across forward loop wrap", () => {
+    const { entity, animator: loopAnimator, clip } = createLoopAnimator();
+
+    class TestScript extends Script {
+      event0(): void {}
+      event1(): void {}
+    }
+
+    const testScript = entity.addComponent(TestScript);
+    const event0Spy = vi.spyOn(testScript, "event0");
+    const event1Spy = vi.spyOn(testScript, "event1");
+
+    const event0 = new AnimationEvent();
+    event0.functionName = "event0";
+    event0.time = 0.1;
+    const event1 = new AnimationEvent();
+    event1.functionName = "event1";
+    event1.time = 0.75;
+    clip.addEvent(event0);
+    clip.addEvent(event1);
+
+    try {
+      loopAnimator.play("loop");
+      updateAnimator(loopAnimator, 0.8);
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).toHaveBeenCalledTimes(1);
+
+      event0Spy.mockClear();
+      event1Spy.mockClear();
+      loopAnimator.fireEvents = false;
+      updateAnimator(loopAnimator, 0.25);
+      expect(event0Spy).not.toHaveBeenCalled();
+      expect(event1Spy).not.toHaveBeenCalled();
+
+      loopAnimator.fireEvents = true;
+      updateAnimator(loopAnimator, 0.45);
+      expect(event0Spy).toHaveBeenCalledTimes(1);
+      expect(event1Spy).not.toHaveBeenCalled();
+    } finally {
+      entity.destroy();
+    }
+  });
+
   it("fires animation events across backward loop wrap", () => {
     const { entity, animator: loopAnimator, clip } = createLoopAnimator();
 
