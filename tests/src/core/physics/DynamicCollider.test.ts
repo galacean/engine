@@ -6,6 +6,7 @@ import {
   DynamicCollider,
   DynamicColliderConstraints,
   CollisionDetectionMode,
+  DynamicColliderKinematicTransformSyncMode,
   StaticCollider,
   PlaneColliderShape
 } from "@galacean/engine-core";
@@ -309,6 +310,80 @@ describe("DynamicCollider", function () {
     expect(formatValue(boxCollider.inertiaTensor.y)).eq(1);
   });
 
+  it("applyForce on sleeping actor must wake up and apply force", function () {
+    // Validates whether PhysX wasm `addForce(force, eFORCE, autowake=true)` actually wakes a
+    // sleeping actor on its own — or whether the engine's explicit wakeUp() call is required.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.linearDamping = 0;
+
+    boxCollider.sleep();
+    expect(boxCollider.isSleeping()).toBe(true);
+
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+    expect(boxCollider.isSleeping()).toBe(false);
+  });
+
+  it("applyForce after kinematic→dynamic switch (mimic billiards game break flow)", function () {
+    // Game pattern: all balls set kinematic at init, switched back to dynamic on break,
+    // then applyForce. Verifies the original 'force lost' bug was actually from this path.
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.mass = 1;
+    boxCollider.useGravity = false;
+    boxCollider.linearDamping = 0;
+
+    boxCollider.isKinematic = true;
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+    boxCollider.isKinematic = false;
+
+    boxCollider.applyForce(new Vector3(1, 0, 0));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    expect(formatValue(boxCollider.linearVelocity.x)).eq(0.01667);
+  });
+
+  it("applyForce is consumed by the first fixed substep in a frame", function () {
+    const scene = engine.sceneManager.activeScene;
+    const originalFTS = scene.physics.fixedTimeStep;
+    let dv_1_60 = 0;
+    let dv_1_480 = 0;
+
+    try {
+      const probe = (fts: number) => {
+        rootEntity.clearChildren();
+        scene.physics.fixedTimeStep = fts;
+        const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+        const c = box.getComponent(DynamicCollider);
+        c.mass = 1;
+        c.useGravity = false;
+        c.linearDamping = 0;
+        c.angularDamping = 0;
+        c.applyForce(new Vector3(100, 0, 0));
+        // @ts-ignore
+        scene.physics._update(1 / 60);
+        return c.linearVelocity.x;
+      };
+
+      dv_1_60 = probe(1 / 60);
+      dv_1_480 = probe(1 / 480);
+    } finally {
+      scene.physics.fixedTimeStep = originalFTS;
+    }
+
+    expect(dv_1_60).toBeCloseTo(100 / 60, 2);
+    expect(dv_1_480).toBeCloseTo(100 / 480, 2);
+    expect(dv_1_60 / dv_1_480).toBeCloseTo(8, 1);
+  });
+
   it("maxAngularVelocity", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
@@ -539,6 +614,48 @@ describe("DynamicCollider", function () {
     expect(box.transform.position.y).below(1);
   });
 
+  it("teleports kinematic target collider on re-enable instead of sweeping from stale native pose", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(-10, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    boxCollider.useGravity = false;
+    boxCollider.isKinematic = true;
+    boxCollider.kinematicTransformSyncMode = DynamicColliderKinematicTransformSyncMode.Target;
+
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1 / 60);
+
+    // @ts-ignore - intentionally observe the native boundary used by Collider sync.
+    const nativeCollider = boxCollider._nativeCollider;
+    const originalMove = nativeCollider.move.bind(nativeCollider);
+    const originalSetWorldTransform = nativeCollider.setWorldTransform.bind(nativeCollider);
+    let moveCalls = 0;
+    let setWorldTransformCalls = 0;
+    nativeCollider.move = (...args: Parameters<typeof nativeCollider.move>) => {
+      moveCalls++;
+      return originalMove(...args);
+    };
+    nativeCollider.setWorldTransform = (...args: Parameters<typeof nativeCollider.setWorldTransform>) => {
+      setWorldTransformCalls++;
+      return originalSetWorldTransform(...args);
+    };
+
+    try {
+      box.isActive = false;
+      box.transform.setPosition(10, 0, 0);
+      box.isActive = true;
+
+      // @ts-ignore
+      engine.sceneManager.activeScene.physics._update(1 / 60);
+
+      expect(moveCalls).eq(0);
+      expect(setWorldTransformCalls).eq(1);
+      expect(formatValue(box.transform.position.x)).eq(10);
+    } finally {
+      nativeCollider.move = originalMove;
+      nativeCollider.setWorldTransform = originalSetWorldTransform;
+    }
+  });
+
   it("constraints", function () {
     const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
     const boxCollider = box.getComponent(DynamicCollider);
@@ -581,6 +698,46 @@ describe("DynamicCollider", function () {
       // @ts-ignore
       boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD)
     ).toBeTruthy();
+  });
+
+  it("CCD mode survives kinematic toggle", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    const physX = boxCollider._nativeCollider._physXPhysics._physX;
+    const ccdFlag = () =>
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD);
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(ccdFlag()).toBeTruthy();
+
+    boxCollider.isKinematic = true;
+    expect(ccdFlag()).toBeFalsy();
+
+    boxCollider.isKinematic = false;
+    expect(ccdFlag()).toBeTruthy();
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.Continuous);
+  });
+
+  it("setCollisionDetectionMode in kinematic state defers native CCD flag application", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    // @ts-ignore
+    const physX = boxCollider._nativeCollider._physXPhysics._physX;
+    const ccdFlag = () =>
+      // @ts-ignore
+      boxCollider._nativeCollider._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD);
+
+    boxCollider.isKinematic = true;
+    expect(ccdFlag()).toBeFalsy();
+
+    boxCollider.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    expect(ccdFlag()).toBeFalsy();
+    expect(boxCollider.collisionDetectionMode).toEqual(CollisionDetectionMode.Continuous);
+
+    boxCollider.isKinematic = false;
+    expect(ccdFlag()).toBeTruthy();
   });
 
   it("sleep", function () {

@@ -1,5 +1,5 @@
 import { ICharacterController } from "@galacean/engine-design";
-import { Vector3 } from "@galacean/engine-math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
@@ -160,6 +160,10 @@ export class CharacterController extends Collider {
     (<ICharacterController>this._nativeCollider).setNonWalkableMode(this._nonWalkableMode);
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
     (<ICharacterController>this._nativeCollider).setSlopeLimit(this._slopeLimit);
+  }
+
+  protected override _teleportToEntityTransform(worldPosition: Vector3, _worldRotation: Quaternion): void {
+    (<ICharacterController>this._nativeCollider).setWorldPosition(worldPosition);
   }
 
   private _syncWorldPositionFromPhysicalSpace(): void {
