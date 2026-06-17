@@ -13,6 +13,7 @@ import { MeshColliderShape } from "./shape/MeshColliderShape";
  */
 export class DynamicCollider extends Collider {
   private static _tempVector3 = new Vector3();
+  private static _tempVector3_1 = new Vector3();
   private static _tempQuat = new Quaternion();
 
   private _linearDamping = 0;
