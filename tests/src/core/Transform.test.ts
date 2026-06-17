@@ -152,6 +152,39 @@ describe("Transform test", function () {
     expect(world.elements[13]).to.equal(2020);
     expect(world.elements[14]).to.equal(3030);
   });
+
+  it("clone keeps correct world position when a component reads worldMatrix during clone", () => {
+    // A component that reads its (world) transform inside `_cloneTo` — exactly what the engine's own
+    // DynamicCollider does (`_cloneTo` -> `_syncNative` -> `_addNativeShape` reads `lossyWorldScale`).
+    // Clone fills children before the parent's own components, so this read resolves the PARENT's
+    // `_parentTransformCache` (and sets `_isParentDirty = false`) BEFORE the parent transform's
+    // `_parentTransformCache` is cloned. Without `@ignoreClone` that copy overwrites the resolved
+    // value with the source's `null`, leaving `cache === null` while `_isParentDirty === false`
+    // (a stale cache that is never revalidated), so after reparent the node renders at the origin.
+    class WorldReaderOnClone extends Script {
+      _cloneTo(target: any): void {
+        target.entity.transform.worldMatrix;
+      }
+    }
+
+    // Source prefab-like subtree, never read/rendered, so its parent caches stay unresolved.
+    const source = new Entity(engine, "source-cloneto");
+    const layer = source.createChild("layer");
+    layer.transform.setPosition(10, 20, 0);
+    layer.createChild("leaf").addComponent(WorldReaderOnClone);
+
+    const clone = source.clone();
+    const cloneLayer = clone.findByName("layer");
+
+    const holder = scene.createRootEntity("holder-cloneto");
+    holder.transform.setPosition(1000, 2000, 0);
+    holder.addChild(clone);
+
+    // Must follow holder (1000 + 10, 2000 + 20), not fall back to its local position (10, 20).
+    const world = cloneLayer.transform.worldMatrix;
+    expect(world.elements[12]).to.equal(1010);
+    expect(world.elements[13]).to.equal(2020);
+  });
 });
 
 class SubClassOfTransform extends Transform {
