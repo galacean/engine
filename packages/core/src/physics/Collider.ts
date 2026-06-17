@@ -122,13 +122,6 @@ export class Collider extends Component implements ICustomClone {
       }
       this._updateFlag.flag = false;
     }
-
-    // Drive per-shape physics update. MeshColliderShape uses this to retry
-    // native shape creation after PhysX cooking returned null despite valid
-    // extracted mesh data.
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      shapes[i]._onPhysicsUpdate();
-    }
   }
 
   /**

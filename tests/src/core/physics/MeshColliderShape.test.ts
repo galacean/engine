@@ -5,6 +5,7 @@ import {
   SphereColliderShape,
   BoxColliderShape,
   DynamicCollider,
+  Engine,
   StaticCollider,
   PhysicsMaterial,
   Script,
@@ -517,6 +518,7 @@ describe("MeshColliderShape PhysX", () => {
         meshShape.mesh = replacementMesh;
 
         expect(consoleErrorSpy).toHaveBeenCalledWith(expect.stringContaining("Failed to create triangle mesh"));
+        expect(meshShape.mesh).toBe(groundMesh);
 
         sphereEntity = root.createChild("transactionalMeshUpdateSphere");
         sphereEntity.transform.setPosition(0, 2, 0);
@@ -538,6 +540,35 @@ describe("MeshColliderShape PhysX", () => {
         groundEntity.destroy();
         meshMaterial?.destroy();
         sphereMaterial?.destroy();
+      }
+    });
+
+    it("does not retry terminal native shape creation failures every physics tick", () => {
+      const entity = root.createChild("terminalCookFailure");
+      const staticCollider = entity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const meshMaterial = meshShape.material;
+      const mesh = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, -1, 0, 1, 1, 0, 1], [0, 2, 1, 1, 2, 3]);
+      const nativePhysics = (Engine as any)._nativePhysics;
+      const originalCreateMeshColliderShape = nativePhysics.createMeshColliderShape;
+      const createMeshColliderShapeSpy = vi.fn(() => null);
+
+      try {
+        nativePhysics.createMeshColliderShape = createMeshColliderShapeSpy;
+        staticCollider.addShape(meshShape);
+        meshShape.mesh = mesh;
+
+        expect(createMeshColliderShapeSpy).toHaveBeenCalledTimes(1);
+
+        for (let i = 0; i < 3; i++) {
+          physicsScene._update(1 / 60);
+        }
+
+        expect(createMeshColliderShapeSpy).toHaveBeenCalledTimes(1);
+      } finally {
+        nativePhysics.createMeshColliderShape = originalCreateMeshColliderShape;
+        entity.destroy();
+        meshMaterial?.destroy();
       }
     });
   });

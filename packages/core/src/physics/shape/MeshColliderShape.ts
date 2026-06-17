@@ -16,11 +16,6 @@ export class MeshColliderShape extends ColliderShape {
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
   private _isShapeAttached = false;
-  /**
-   * `true` if PhysX cooking returned null after valid mesh data was extracted.
-   * Unsupported collider/mesh combinations are terminal and must not enter retry.
-   */
-  private _pendingNativeShapeCreation = false;
 
   /**
    * Cooking flags for this mesh collider shape.
@@ -31,9 +26,12 @@ export class MeshColliderShape extends ColliderShape {
 
   set cookingFlags(value: MeshColliderShapeCookingFlag) {
     if (this._cookingFlags !== value) {
+      const previousValue = this._cookingFlags;
       this._cookingFlags = value;
       if (this._nativeShape) {
-        this._updateNativeShapeData();
+        if (!this._updateNativeShapeData()) {
+          this._cookingFlags = previousValue;
+        }
       } else if (this._mesh && this._extractMeshData(this._mesh)) {
         this._createNativeShape();
       }
@@ -61,7 +59,6 @@ export class MeshColliderShape extends ColliderShape {
           this._createNativeShape();
         } else {
           this._clearMeshData();
-          this._pendingNativeShapeCreation = false;
         }
       }
     }
@@ -77,13 +74,22 @@ export class MeshColliderShape extends ColliderShape {
 
   set mesh(value: ModelMesh) {
     if (this._mesh !== value) {
+      const previousMesh = this._mesh;
+      const previousPositions = this._positions;
+      const previousIndices = this._indices;
       this._mesh?._addReferCount(-1);
       value?._addReferCount(1);
       this._mesh = value;
       if (value) {
         if (this._extractMeshData(value)) {
           if (this._nativeShape) {
-            this._updateNativeShapeData();
+            if (!this._updateNativeShapeData()) {
+              value?._addReferCount(-1);
+              previousMesh?._addReferCount(1);
+              this._mesh = previousMesh;
+              this._positions = previousPositions;
+              this._indices = previousIndices;
+            }
           } else {
             this._createNativeShape();
           }
@@ -91,12 +97,10 @@ export class MeshColliderShape extends ColliderShape {
           // Mesh data extraction cannot recover without assigning a new mesh.
           this._destroyNativeShape();
           this._clearMeshData();
-          this._pendingNativeShapeCreation = false;
         }
       } else {
         this._destroyNativeShape();
         this._clearMeshData();
-        this._pendingNativeShapeCreation = false;
       }
     }
   }
@@ -166,7 +170,7 @@ export class MeshColliderShape extends ColliderShape {
     return true;
   }
 
-  private _updateNativeShapeData(): void {
+  private _updateNativeShapeData(): boolean {
     if (
       (<IMeshColliderShape>this._nativeShape).setMeshData(
         this._positions,
@@ -175,11 +179,12 @@ export class MeshColliderShape extends ColliderShape {
         this._cookingFlags
       )
     ) {
-      // Re-add to collider if previously removed due to cooking failure
       if (this._collider && !this._isShapeAttached) {
         this._attachToCollider();
       }
+      return true;
     }
+    return false;
   }
 
   private _detachFromCollider(): void {
@@ -192,12 +197,11 @@ export class MeshColliderShape extends ColliderShape {
     this._isShapeAttached = true;
   }
 
-  private _createNativeShape(): void {
+  private _createNativeShape(): boolean {
     // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
     if (!this._isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
-      this._pendingNativeShapeCreation = false;
       console.error("MeshColliderShape: Non-convex mesh is not supported on non-kinematic DynamicCollider.");
-      return;
+      return false;
     }
 
     const nativeShape = Engine._nativePhysics.createMeshColliderShape(
@@ -210,13 +214,10 @@ export class MeshColliderShape extends ColliderShape {
     );
 
     if (!nativeShape) {
-      // Cook failed — `_onPhysicsUpdate` will retry next frame
-      this._pendingNativeShapeCreation = true;
-      return;
+      return false;
     }
 
     this._nativeShape = nativeShape;
-    this._pendingNativeShapeCreation = false;
 
     // Sync base class properties (position, rotation, contactOffset, isTrigger, material)
     super._syncNative();
@@ -226,34 +227,14 @@ export class MeshColliderShape extends ColliderShape {
       nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
       this._attachToCollider();
     }
-  }
-
-  /**
-   * @internal
-   * Retry hook: keep attempting `_createNativeShape` until it succeeds.
-   *
-   * Triggered every physics update tick by `Collider._onUpdate`. Handles the case
-   * where `_cookMesh` fails on first attempt due to PhysX cooking pipeline timing
-   * (the mesh data was extracted successfully at `set mesh` time, but the native
-   * cook call returned null). No-op once a valid native shape exists.
-   *
-   * We DO NOT re-call `_extractMeshData` here — once `set mesh` finished, either:
-   *   - extraction succeeded → `_positions` is populated and we reuse it
-   *   - extraction failed → `_clearMeshData` cleared `_positions`, and `mesh.accessible`
-   *     won't recover (GPU upload is one-way), so re-extracting would fail again
-   */
-  override _onPhysicsUpdate(): void {
-    if (!this._pendingNativeShapeCreation || !this._mesh || !this._positions) return;
-    this._createNativeShape();
+    return true;
   }
 
   /**
    * @internal
    * After CloneManager deep-copies `_positions` / `_indices` / `_mesh` and remaps `_collider`,
    * the cloned shape still has no native PhysX shape because `_nativeShape` is `@ignoreClone`.
-   * Cook a fresh native shape now using the already-cloned vertex/index buffers; on transient
-   * cook failure `_createNativeShape` sets `_pendingNativeShapeCreation = true` and
-   * `_onPhysicsUpdate` will retry next tick.
+   * Cook a fresh native shape now using the already-cloned vertex/index buffers.
    */
   override _cloneTo(target: MeshColliderShape): void {
     super._cloneTo(target);
