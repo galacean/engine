@@ -27,7 +27,6 @@ export class SubEmitter {
 
   /**
    * Target particle renderer the sub particles emit into.
-   * @remarks Remapped on clone.
    */
   get emitter(): ParticleRenderer {
     return this._emitter;
