@@ -7,6 +7,7 @@ import {
   Signal,
   property,
   ShaderMacro,
+  CloneManager,
   CompareFunction,
   StencilOperation,
   CullMode,
@@ -15,7 +16,6 @@ import {
   ColorWriteMask,
   PostProcessEffectFloatParameter
 } from "@galacean/engine-core";
-import { CloneManager } from "@galacean/engine-core/src/clone/CloneManager";
 import { DepthState } from "@galacean/engine-core/src/shader/state/DepthState";
 import { StencilState } from "@galacean/engine-core/src/shader/state/StencilState";
 import { RasterState } from "@galacean/engine-core/src/shader/state/RasterState";
