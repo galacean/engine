@@ -25,7 +25,10 @@ export class SubEmitter {
   private _emitter: ParticleRenderer = null;
   private _type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
 
-  /** Target particle renderer the sub particles emit into. Remapped on clone. */
+  /**
+   * Target particle renderer the sub particles emit into.
+   * @remarks Remapped on clone.
+   */
   get emitter(): ParticleRenderer {
     return this._emitter;
   }
