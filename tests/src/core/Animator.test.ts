@@ -1509,8 +1509,7 @@ describe("Animator test", function () {
     expect(wrappedRoot.findByPath("mixamorig:Hips")).to.eq(hips);
     expect(wrappedRoot.findByPath("mixamorig:Hips/mixamorig:Spine")).to.eq(spine);
 
-    // @ts-ignore
-    clip._sampleAnimation(wrappedRoot, 0.1);
+    clip.sampleAnimation(wrappedRoot, 0.1);
 
     expect(wrappedRoot.transform.position.x).to.eq(0);
     expect(hips.transform.position.x).to.eq(1);

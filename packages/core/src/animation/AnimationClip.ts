@@ -210,16 +210,6 @@ export class AnimationClip extends EngineObject {
    * @param time - The time to sample an animation
    */
   sampleAnimation(entity: Entity, time: number): void {
-    this._sampleAnimation(entity, time);
-  }
-
-  /**
-   * @internal
-   * Samples an animation at a given time.
-   * @param entity - The animated entity
-   * @param time - The time to sample an animation
-   */
-  _sampleAnimation(entity: Entity, time: number): void {
     const { _curveBindings: curveBindings } = this;
     const components = AnimationCurveOwner._components;
     for (let i = curveBindings.length - 1; i >= 0; i--) {

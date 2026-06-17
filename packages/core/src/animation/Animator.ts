@@ -324,9 +324,8 @@ export class Animator extends Component {
     for (let i = 0, n = layersData.length; i < n; i++) {
       const layerData = layersData[i];
       if (!layerData) continue;
-      const stateDataList = layerData.stateDataList;
-      for (let j = 0, m = stateDataList.length; j < m; j++) {
-        const layerOwners = stateDataList[j].curveLayerOwner;
+      for (const stateData of layerData.animatorStateDataMap.values()) {
+        const layerOwners = stateData.curveLayerOwner;
         for (let k = 0, l = layerOwners.length; k < l; k++) {
           layerOwners[k]?.curveOwner?.revertDefaultValue();
         }
@@ -435,7 +434,6 @@ export class Animator extends Component {
     if (!animatorStateData) {
       animatorStateData = new AnimatorStateData(animatorState);
       animatorStateDataMap.set(animatorState, animatorStateData);
-      animatorLayerData.stateDataList.push(animatorStateData);
       this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
     }
     this._ensureEventHandlers(animatorState, animatorStateData);
@@ -1091,7 +1089,9 @@ export class Animator extends Component {
     } else {
       layerData.layerState = LayerState.Playing;
     }
-    layerData.completeCrossFade();
+    layerData.srcPlayData = destPlayData;
+    layerData.destPlayData = null;
+    layerData.crossFadeTransition = null;
   }
 
   private _preparePlayOwner(layerData: AnimatorLayerData, playState: AnimatorState): void {
@@ -1352,7 +1352,8 @@ export class Animator extends Component {
     const playData = animatorLayerData.getOrCreateInstance(state)._playData;
     playData.reset(animatorStateData, state._getClipActualEndTime() * normalizedTimeOffset);
     animatorLayerData.srcPlayData = playData;
-    animatorLayerData.clearCrossFadeSlot();
+    animatorLayerData.destPlayData = null;
+    animatorLayerData.crossFadeTransition = null;
     animatorLayerData.resetCurrentCheckIndex();
 
     return true;
