@@ -47,6 +47,30 @@ export function deepClone(target: Object, propertyKey: string): void {
 }
 
 /**
+ * Class decorator that sets the default clone mode for instances of the decorated type.
+ *
+ * When a field holds an instance of a type decorated with `@defaultCloneMode`, the clone system
+ * uses the specified mode instead of the default Assignment behavior. This applies when the field
+ * has no explicit per-field clone decorator, or when the value is encountered inside a container
+ * (Array, Map, Set) that is being deep-cloned.
+ *
+ * @param mode - The clone mode applied to instances of the decorated type
+ *
+ * @example
+ * ```ts
+ * @defaultCloneMode(CloneMode.Deep)
+ * class MyConfig {
+ *   value = 0;
+ * }
+ * ```
+ */
+export function defaultCloneMode(mode: CloneMode) {
+  return function (target: Function): void {
+    Object.defineProperty(target.prototype, "_defaultCloneMode", { value: mode });
+  };
+}
+
+/**
  * @internal
  * Clone manager.
  */
@@ -113,7 +137,18 @@ export class CloneManager {
 
     if (cloneMode === CloneMode.Ignore) return;
 
-    // Primitives, undecorated, or @assignmentClone: direct assign
+    // If no per-field decorator, consult the value's type-level default clone mode
+    if (cloneMode === undefined && sourceProperty instanceof Object) {
+      const typeDefault = (<ICustomClone>sourceProperty)._defaultCloneMode;
+      if (typeDefault === CloneMode.Deep) {
+        cloneMode = CloneMode.Deep;
+      } else if (typeDefault === CloneMode.Shallow) {
+        cloneMode = CloneMode.Shallow;
+      }
+      // typeDefault === undefined or Assignment → fall through to assignment below
+    }
+
+    // Primitives, undecorated (no type default), or @assignmentClone: direct assign
     if (!(sourceProperty instanceof Object) || cloneMode === undefined || cloneMode === CloneMode.Assignment) {
       target[k] = sourceProperty;
       return;
@@ -150,7 +185,7 @@ export class CloneManager {
             <Array<any>>sourceProperty,
             targetPropertyA,
             i,
-            cloneMode,
+            undefined,
             srcRoot,
             targetRoot,
             deepInstanceMap

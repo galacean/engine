@@ -1,3 +1,5 @@
+import { defaultCloneMode } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { BlendOperation } from "../enums/BlendOperation";
 import { BlendFactor } from "../enums/BlendFactor";
 import { ColorWriteMask } from "../enums/ColorWriteMask";
@@ -5,6 +7,7 @@ import { ColorWriteMask } from "../enums/ColorWriteMask";
 /**
  * The blend state of the render target.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class RenderTargetBlendState {
   /** Whether to enable blend. */
   enabled: boolean = false;

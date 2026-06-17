@@ -1,11 +1,18 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { CloneManager } from "./CloneManager";
+import { CloneMode } from "./enums/CloneMode";
 
 /**
  * Custom clone interface.
  */
 export interface ICustomClone {
+  /**
+   * @internal
+   * Default clone mode for instances of this type when encountered as a value in a field.
+   * Set via `@defaultCloneMode`. Absence defaults to Assignment (shared reference).
+   */
+  readonly _defaultCloneMode?: CloneMode;
   /**
    * @internal
    */

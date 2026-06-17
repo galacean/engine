@@ -1,7 +1,8 @@
 import { ShaderData, ShaderProperty } from "..";
 import { RenderStateElementMap } from "../../BasicResources";
 import { Engine } from "../../Engine";
-import { deepClone } from "../../clone/CloneManager";
+import { deepClone, defaultCloneMode } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { BlendState } from "./BlendState";
@@ -12,6 +13,7 @@ import { StencilState } from "./StencilState";
 /**
  * Render state.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class RenderState {
   /** Blend state. */
   @deepClone

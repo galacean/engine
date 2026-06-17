@@ -1,5 +1,7 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
+import { defaultCloneMode } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CullMode } from "../enums/CullMode";
@@ -9,6 +11,7 @@ import { RenderState } from "./RenderState";
 /**
  * Raster state.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class RasterState {
   /** Specifies whether or not front- and/or back-facing polygons can be culled. */
   cullMode: CullMode = CullMode.Back;
