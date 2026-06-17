@@ -72,6 +72,13 @@ describe("DynamicCollider", function () {
     rootEntity.clearChildren();
   });
 
+  it("tolerancesScale drives PhysX default contact offset and sleep threshold", function () {
+    const physics = new PhysXPhysics({ tolerancesScale: { length: 2, speed: 20 } });
+
+    expect(physics.getDefaultContactOffset()).to.closeTo(0.04, 1e-6);
+    expect(physics.getDefaultSleepThreshold()).to.closeTo(0.02, 1e-6);
+  });
+
   it("addShape and removeShape", function () {
     const collider = rootEntity.createChild("entity").addComponent(DynamicCollider);
     const boxCollider = new BoxColliderShape();

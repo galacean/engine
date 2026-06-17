@@ -37,6 +37,16 @@ export interface IPhysics {
   createPhysicsScene(physicsManager: IPhysicsManager): IPhysicsScene;
 
   /**
+   * Get the default contact offset for collider shapes.
+   */
+  getDefaultContactOffset?(): number;
+
+  /**
+   * Get the default sleep threshold for dynamic colliders.
+   */
+  getDefaultSleepThreshold?(): number;
+
+  /**
    * Create dynamic collider.
    * @param position - The global position
    * @param rotation - The global rotation

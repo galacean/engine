@@ -25,7 +25,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     super(physXPhysics);
     this._isConvex = isConvex;
 
-    if (!this._cookMesh(positions, indices, cookingFlags)) {
+    const cooked = this._cookMesh(positions, indices, isConvex, cookingFlags);
+    if (!cooked) {
       return;
     }
 
@@ -36,7 +37,7 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     const createShapeFn = isConvex ? physX.createConvexMeshShape : physX.createTriMeshShape;
 
     this._pxShape = createShapeFn(
-      this._pxMesh,
+      cooked.mesh,
       scaleX,
       scaleY,
       scaleZ,
@@ -48,6 +49,8 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
 
     this._id = uniqueID;
     this._pxMaterial = material._pxMaterial;
+    this._pxMesh = cooked.mesh;
+    this._pxGeometry = cooked.geometry;
     this._pxShape.setUUID(uniqueID);
     this._setLocalPose();
   }
@@ -61,17 +64,28 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     isConvex: boolean,
     cookingFlags: number
   ): boolean {
-    this._pxMesh?.release();
-    this._pxGeometry?.delete();
-    this._pxMesh = null;
-    this._pxGeometry = null;
-    this._isConvex = isConvex;
-
-    if (!this._cookMesh(positions, indices, cookingFlags)) {
+    const cooked = this._cookMesh(positions, indices, isConvex, cookingFlags);
+    if (!cooked) {
       return false;
     }
 
-    this._pxShape.setGeometry(this._pxGeometry);
+    const oldMesh = this._pxMesh;
+    const oldGeometry = this._pxGeometry;
+
+    try {
+      this._pxShape.setGeometry(cooked.geometry);
+    } catch (error) {
+      cooked.mesh?.release();
+      cooked.geometry?.delete();
+      throw error;
+    }
+
+    this._pxMesh = cooked.mesh;
+    this._pxGeometry = cooked.geometry;
+    this._isConvex = isConvex;
+
+    oldMesh?.release();
+    oldGeometry?.delete();
     return true;
   }
 
@@ -94,8 +108,9 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
   private _cookMesh(
     positions: Vector3[],
     indices: Uint8Array | Uint16Array | Uint32Array | null,
+    isConvex: boolean,
     cookingFlags: number
-  ): boolean {
+  ): { mesh: any; geometry: any } | null {
     const {
       _physX: physX,
       _pxPhysics: physics,
@@ -115,48 +130,42 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
     cooking.setParams(cookingParams);
 
     const verticesPtr = this._allocatePositions(positions);
+    let pxMesh: any = null;
 
-    if (this._isConvex) {
-      this._pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
+    if (isConvex) {
+      pxMesh = cooking.createConvexMesh(verticesPtr, positions.length, physics);
       physX._free(verticesPtr);
 
-      if (!this._pxMesh) {
+      if (!pxMesh) {
         this._logConvexCookingError(physX);
-        return false;
+        return null;
       }
     } else {
       if (!indices) {
         physX._free(verticesPtr);
         console.error("PhysXMeshColliderShape: Triangle mesh requires indices.");
-        return false;
+        return null;
       }
 
       const isU32 = indices instanceof Uint32Array;
       const indicesPtr = this._allocateIndices(indices, isU32);
-      this._pxMesh = cooking.createTriMesh(
-        verticesPtr,
-        positions.length,
-        indicesPtr,
-        indices.length / 3,
-        !isU32,
-        physics
-      );
+      pxMesh = cooking.createTriMesh(verticesPtr, positions.length, indicesPtr, indices.length / 3, !isU32, physics);
       physX._free(verticesPtr);
       physX._free(indicesPtr);
 
-      if (!this._pxMesh) {
+      if (!pxMesh) {
         this._logTriMeshCookingError(physX);
-        return false;
+        return null;
       }
     }
 
     const { x: scaleX, y: scaleY, z: scaleZ } = this._worldScale;
-    const meshFlag = this._isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
-    this._pxGeometry = this._isConvex
-      ? physX.createConvexMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, meshFlag)
-      : physX.createTriMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, meshFlag);
+    const meshFlag = isConvex ? PhysXMeshColliderShape._tightBoundsFlag : 0;
+    const geometry = isConvex
+      ? physX.createConvexMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag)
+      : physX.createTriMeshGeometry(pxMesh, scaleX, scaleY, scaleZ, meshFlag);
 
-    return true;
+    return { mesh: pxMesh, geometry };
   }
 
   private _logConvexCookingError(physX: any): void {
@@ -221,8 +230,14 @@ export class PhysXMeshColliderShape extends PhysXColliderShape implements IMeshC
       ? physX.createConvexMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, meshFlag)
       : physX.createTriMeshGeometry(this._pxMesh, scaleX, scaleY, scaleZ, meshFlag);
 
-    this._pxGeometry.delete();
+    const oldGeometry = this._pxGeometry;
+    try {
+      this._pxShape.setGeometry(newGeometry);
+    } catch (error) {
+      newGeometry?.delete();
+      throw error;
+    }
     this._pxGeometry = newGeometry;
-    this._pxShape.setGeometry(this._pxGeometry);
+    oldGeometry?.delete();
   }
 }

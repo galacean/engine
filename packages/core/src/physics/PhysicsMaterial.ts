@@ -1,6 +1,7 @@
 import { IPhysicsMaterial } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
+import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * Material class to represent a set of surface properties.
@@ -14,6 +15,7 @@ export class PhysicsMaterial {
   private _destroyed: boolean;
 
   /** @internal */
+  @ignoreClone
   _nativeMaterial: IPhysicsMaterial;
 
   constructor() {
@@ -21,8 +23,8 @@ export class PhysicsMaterial {
       this._staticFriction,
       this._dynamicFriction,
       this._bounciness,
-      this._bounceCombine,
-      this._frictionCombine
+      this._frictionCombine,
+      this._bounceCombine
     );
   }
 
@@ -102,5 +104,24 @@ export class PhysicsMaterial {
   destroy() {
     !this._destroyed && this._nativeMaterial.destroy();
     this._destroyed = true;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: PhysicsMaterial): void {
+    target._syncNative();
+  }
+
+  /**
+   * @internal
+   */
+  _syncNative(): void {
+    const nativeMaterial = this._nativeMaterial;
+    nativeMaterial.setStaticFriction(this._staticFriction);
+    nativeMaterial.setDynamicFriction(this._dynamicFriction);
+    nativeMaterial.setBounciness(this._bounciness);
+    nativeMaterial.setFrictionCombine(this._frictionCombine);
+    nativeMaterial.setBounceCombine(this._bounceCombine);
   }
 }

@@ -94,7 +94,7 @@ export class PhysXCharacterController implements ICharacterController {
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
     shape._controllers.add(this);
-    this._pxController?.setContactOffset(shape._contractOffset);
+    this._pxController?.setContactOffset(shape._contactOffset);
     this._scene?._addColliderShape(shape._id);
   }
 
