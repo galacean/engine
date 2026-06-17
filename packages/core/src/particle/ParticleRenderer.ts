@@ -149,10 +149,11 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _onEnable(): void {
-    this.generator.subEmitters._bindSlots();
-    this.generator._setTransformFeedback();
-    if (this.generator.main.playOnEnabled) {
-      this.generator.play(false);
+    const generator = this.generator;
+    generator.subEmitters._bindSlots();
+    generator._setTransformFeedback();
+    if (generator.main.playOnEnabled) {
+      generator.play(false);
     }
   }
 
