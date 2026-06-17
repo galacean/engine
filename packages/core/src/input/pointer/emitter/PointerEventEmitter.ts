@@ -11,10 +11,10 @@ export abstract class PointerEventEmitter {
   protected static _tempRay: Ray = new Ray();
 
   protected _hitResult: IHitResult;
-  /** @internal injected by PointerManager (the pool owner). */
-  _pool: ClearableObjectPool<PointerEventData>;
+  protected _pool: ClearableObjectPool<PointerEventData>;
 
-  constructor() {
+  constructor(pool: ClearableObjectPool<PointerEventData>) {
+    this._pool = pool;
     this._init();
   }
 
