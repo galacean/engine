@@ -39,7 +39,9 @@ export class SubEmitter {
     this._emitter = value;
   }
 
-  /** Which parent-particle event drives this slot. */
+  /**
+   * Which parent-particle event drives this slot.
+   */
   get type(): ParticleSubEmitterType {
     return this._type;
   }
