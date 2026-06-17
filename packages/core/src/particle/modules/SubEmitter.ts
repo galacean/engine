@@ -48,6 +48,6 @@ export class SubEmitter {
   set type(value: ParticleSubEmitterType) {
     if (value === this._type) return;
     this._type = value;
-    this._module?._refreshTransformFeedback();
+    this._module?._generator._setTransformFeedback();
   }
 }

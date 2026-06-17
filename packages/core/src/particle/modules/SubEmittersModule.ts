@@ -181,13 +181,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _refreshTransformFeedback(): void {
-    this._generator._setTransformFeedback();
-  }
-
-  /**
-   * @internal
-   */
   _validateEmitter(emitter: ParticleRenderer): void {
     if (emitter && SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
       throw new Error("Sub-emitter would create a cycle");
