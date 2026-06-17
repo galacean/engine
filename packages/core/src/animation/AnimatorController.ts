@@ -115,7 +115,7 @@ export class AnimatorController extends ReferResource {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
-    layer.stateMachine._setChangeCallback(this._onStateMachineChanged);
+    layer._setStateMachineChangeCallback(this._onStateMachineChanged);
     layer._setEngine(this._engine);
     this._updateFlagManager.dispatch();
   }
@@ -127,7 +127,7 @@ export class AnimatorController extends ReferResource {
   removeLayer(layerIndex: number): void {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
-    theLayer.stateMachine._setChangeCallback(null);
+    theLayer._setStateMachineChangeCallback(null);
     delete this._layersMap[theLayer.name];
     this._updateFlagManager.dispatch();
   }
@@ -138,7 +138,7 @@ export class AnimatorController extends ReferResource {
   clearLayers(): void {
     const { _layers: layers } = this;
     for (let i = 0, n = layers.length; i < n; i++) {
-      layers[i].stateMachine._setChangeCallback(null);
+      layers[i]._setStateMachineChangeCallback(null);
     }
     this._layers.length = 0;
     for (let name in this._layersMap) {
@@ -160,7 +160,7 @@ export class AnimatorController extends ReferResource {
   _setEngine(engine: Engine): void {
     const { _layers: layers } = this;
     for (let i = 0, n = layers.length; i < n; i++) {
-      layers[i].stateMachine._setChangeCallback(this._onStateMachineChanged);
+      layers[i]._setStateMachineChangeCallback(this._onStateMachineChanged);
       layers[i]._setEngine(engine);
     }
   }

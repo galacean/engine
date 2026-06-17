@@ -11,22 +11,51 @@ export class AnimatorControllerLayer {
   weight: number = 1.0;
   /** The blending mode used by the layer. It is not taken into account for the first layer. */
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
-  /** The state machine for the layer. */
-  stateMachine: AnimatorStateMachine;
   /** The AnimatorLayerMask is used to mask out certain entities from being animated by an AnimatorLayer. */
   mask: AnimatorLayerMask;
+
+  private _stateMachine: AnimatorStateMachine;
+  private _engine: Engine;
+  private _onStateMachineChanged: (() => void) | null = null;
+
+  /** The state machine for the layer. */
+  get stateMachine(): AnimatorStateMachine {
+    return this._stateMachine;
+  }
+
+  set stateMachine(value: AnimatorStateMachine) {
+    const lastStateMachine = this._stateMachine;
+    if (lastStateMachine === value) {
+      return;
+    }
+
+    lastStateMachine._setChangeCallback(null);
+    this._stateMachine = value;
+    value._setChangeCallback(this._onStateMachineChanged);
+    this._engine && value._setEngine(this._engine);
+    this._onStateMachineChanged?.();
+  }
 
   /**
    * @param name - The layer's name
    */
   constructor(public readonly name: string) {
-    this.stateMachine = new AnimatorStateMachine();
+    this._stateMachine = new AnimatorStateMachine();
   }
 
   /**
    * @internal
    */
   _setEngine(engine: Engine): void {
-    this.stateMachine._setEngine(engine);
+    this._engine = engine;
+    this._stateMachine._setEngine(engine);
+  }
+
+  /**
+   * @internal
+   */
+  _setStateMachineChangeCallback(onChanged: (() => void) | null): void {
+    this._onStateMachineChanged = onChanged;
+    this._stateMachine._setChangeCallback(onChanged);
   }
 }

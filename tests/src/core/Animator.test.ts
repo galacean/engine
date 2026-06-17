@@ -1583,6 +1583,61 @@ describe("Animator test", function () {
     }
   });
 
+  it("replacing a layer state machine keeps state removal invalidation", () => {
+    const entity = new Entity(engine);
+    const localAnimator = entity.addComponent(Animator);
+    const controller = new AnimatorController(engine);
+    const layer = new AnimatorControllerLayer("layer");
+    controller.addLayer(layer);
+
+    const stateMachine = new AnimatorStateMachine();
+    layer.stateMachine = stateMachine;
+
+    const oldState = stateMachine.addState("Temp");
+    const oldClip = new AnimationClip("old-temp-clip");
+    const oldCurve = new AnimationFloatCurve();
+    const oldStart = new Keyframe<number>();
+    const oldEnd = new Keyframe<number>();
+    oldStart.time = 0;
+    oldStart.value = 0;
+    oldEnd.time = 1;
+    oldEnd.value = 1;
+    oldCurve.addKey(oldStart);
+    oldCurve.addKey(oldEnd);
+    oldClip.addCurveBinding("", Transform, "position.x", oldCurve);
+    oldState.clip = oldClip;
+    localAnimator.animatorController = controller;
+
+    try {
+      localAnimator.play("Temp");
+      let layerData = localAnimator["_animatorLayersData"][0];
+      expect(layerData.animatorStateDataMap.has(oldState)).to.eq(true);
+
+      stateMachine.removeState(oldState);
+      const newState = stateMachine.addState("Temp");
+      const newClip = new AnimationClip("new-temp-clip");
+      const newCurve = new AnimationFloatCurve();
+      const newStart = new Keyframe<number>();
+      const newEnd = new Keyframe<number>();
+      newStart.time = 0;
+      newStart.value = 0;
+      newEnd.time = 1;
+      newEnd.value = 2;
+      newCurve.addKey(newStart);
+      newCurve.addKey(newEnd);
+      newClip.addCurveBinding("", Transform, "position.x", newCurve);
+      newState.clip = newClip;
+
+      localAnimator.play("Temp");
+      layerData = localAnimator["_animatorLayersData"][0];
+
+      expect(layerData.animatorStateDataMap.has(oldState)).to.eq(false);
+      expect(layerData.animatorStateDataMap.has(newState)).to.eq(true);
+    } finally {
+      entity.destroy();
+    }
+  });
+
   it("Clone", () => {
     expect(animator.entity.clone().getComponent(Animator).animatorController).to.eq(animator.animatorController);
   });
