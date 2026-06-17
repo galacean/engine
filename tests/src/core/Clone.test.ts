@@ -6,8 +6,20 @@ import {
   Script,
   Signal,
   property,
-  ShaderMacro
+  ShaderMacro,
+  CompareFunction,
+  StencilOperation,
+  CullMode,
+  BlendFactor,
+  BlendOperation,
+  ColorWriteMask,
+  PostProcessEffectFloatParameter
 } from "@galacean/engine-core";
+import { CloneManager } from "@galacean/engine-core/src/clone/CloneManager";
+import { DepthState } from "@galacean/engine-core/src/shader/state/DepthState";
+import { StencilState } from "@galacean/engine-core/src/shader/state/StencilState";
+import { RasterState } from "@galacean/engine-core/src/shader/state/RasterState";
+import { RenderTargetBlendState } from "@galacean/engine-core/src/shader/state/RenderTargetBlendState";
 import { Color } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
@@ -1061,10 +1073,6 @@ describe("Clone remap", async () => {
 
   describe("RenderState clone", () => {
     it("DepthState fields should be cloned via @property", () => {
-      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
-      const { DepthState } = require("@galacean/engine-core/src/shader/state/DepthState");
-      const { CompareFunction } = require("@galacean/engine-core");
-
       const source = new DepthState();
       source.enabled = false;
       source.compareFunction = CompareFunction.Always;
@@ -1082,10 +1090,6 @@ describe("Clone remap", async () => {
     });
 
     it("StencilState fields should be cloned via @property", () => {
-      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
-      const { StencilState } = require("@galacean/engine-core/src/shader/state/StencilState");
-      const { CompareFunction, StencilOperation } = require("@galacean/engine-core");
-
       const source = new StencilState();
       source.enabled = true;
       source.referenceValue = 42;
@@ -1107,10 +1111,6 @@ describe("Clone remap", async () => {
     });
 
     it("RasterState fields should be cloned via @property", () => {
-      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
-      const { RasterState } = require("@galacean/engine-core/src/shader/state/RasterState");
-      const { CullMode } = require("@galacean/engine-core");
-
       const source = new RasterState();
       source.cullMode = CullMode.Front;
       source.depthBias = 0.5;
@@ -1128,10 +1128,6 @@ describe("Clone remap", async () => {
     });
 
     it("RenderTargetBlendState fields should be cloned via @property", () => {
-      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
-      const { RenderTargetBlendState } = require("@galacean/engine-core/src/shader/state/RenderTargetBlendState");
-      const { BlendFactor, BlendOperation, ColorWriteMask } = require("@galacean/engine-core");
-
       const source = new RenderTargetBlendState();
       source.enabled = true;
       source.colorBlendOperation = BlendOperation.Subtract;
@@ -1161,9 +1157,6 @@ describe("Clone remap", async () => {
 
   describe("PostProcessEffectParameter clone", () => {
     it("_needLerp should be preserved after clone", () => {
-      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
-      const { PostProcessEffectFloatParameter } = require("@galacean/engine-core");
-
       const source = new PostProcessEffectFloatParameter(0.5, 0, 1, true);
       expect(source._needLerp).to.eq(true);
 
@@ -1178,9 +1171,6 @@ describe("Clone remap", async () => {
     });
 
     it("_needLerp=false should also be preserved", () => {
-      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
-      const { PostProcessEffectFloatParameter } = require("@galacean/engine-core");
-
       const source = new PostProcessEffectFloatParameter(1, 0, 10, false);
       const target = new PostProcessEffectFloatParameter(0, 0, 10, true);
 

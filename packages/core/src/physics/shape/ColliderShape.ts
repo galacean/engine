@@ -19,6 +19,7 @@ export abstract class ColliderShape implements ICustomClone {
   _nativeShape: IColliderShape;
 
   protected _id: number;
+  @property
   protected _material: PhysicsMaterial;
   @property
   private _isTrigger: boolean = false;

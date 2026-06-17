@@ -1,21 +1,18 @@
 import { IPhysicsMaterial } from "@galacean/engine-design";
 import { Engine } from "../Engine";
+import { defaultCloneMode } from "../clone/CloneManager";
+import { CloneMode } from "../clone/enums/CloneMode";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
-import { property } from "../clone/CloneManager";
 
 /**
  * Material class to represent a set of surface properties.
  */
+@defaultCloneMode(CloneMode.Assignment)
 export class PhysicsMaterial {
-  @property
   private _bounciness = 0;
-  @property
   private _dynamicFriction = 0.6;
-  @property
   private _staticFriction = 0.6;
-  @property
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
-  @property
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _destroyed: boolean;
 
@@ -30,20 +27,6 @@ export class PhysicsMaterial {
       this._bounceCombine,
       this._frictionCombine
     );
-  }
-
-  /**
-   * @internal
-   * Sync the cloned JS values into the clone's own native material — populate writes the `@property`
-   * fields directly, bypassing the setters that normally push into native.
-   */
-  _cloneTo(target: PhysicsMaterial): void {
-    const nativeMaterial = target._nativeMaterial;
-    nativeMaterial.setBounciness(this._bounciness);
-    nativeMaterial.setDynamicFriction(this._dynamicFriction);
-    nativeMaterial.setStaticFriction(this._staticFriction);
-    nativeMaterial.setBounceCombine(this._bounceCombine);
-    nativeMaterial.setFrictionCombine(this._frictionCombine);
   }
 
   /**
