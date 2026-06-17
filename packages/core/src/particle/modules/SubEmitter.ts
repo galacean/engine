@@ -9,7 +9,7 @@ import type { SubEmittersModule } from "./SubEmittersModule";
  * fires, on which parent event, with what inheritance, probability, and count.
  */
 export class SubEmitter {
-  /** @internal Owning module; bound when the slot is registered so field changes re-validate. */
+  /** @internal */
   @ignoreClone
   _module: SubEmittersModule = null;
 

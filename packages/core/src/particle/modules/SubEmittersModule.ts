@@ -171,8 +171,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Bind every slot back to this module so direct field changes route through validation.
-   * Slots restored by deserialization / clone arrive unbound, so re-bind on renderer enable.
    */
   _bindSlots(): void {
     const subEmitters = this._subEmitters;
@@ -183,7 +181,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Re-evaluate transform-feedback after a slot's `type` changed (a Death slot forces it on).
    */
   _refreshTransformFeedback(): void {
     this._generator._setTransformFeedback();
@@ -191,7 +188,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Reject a slot `emitter` change that would create a cycle (same guard as `addSubEmitter`).
    */
   _validateEmitter(emitter: ParticleRenderer): void {
     if (emitter && SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
