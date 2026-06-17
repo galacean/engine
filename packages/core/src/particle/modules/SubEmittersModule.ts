@@ -47,7 +47,9 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   @deepClone
   private _subEmitters: SubEmitter[] = [];
 
-  /** Read-only view of the configured sub-emitters; mutate via {@link addSubEmitter} / {@link removeSubEmitterByIndex}. */
+  /**
+   * Read-only view of the configured sub-emitters; mutate via {@link addSubEmitter} / {@link removeSubEmitterByIndex}.
+   */
   get subEmitters(): readonly SubEmitter[] {
     return this._subEmitters;
   }
