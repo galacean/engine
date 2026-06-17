@@ -9,6 +9,10 @@ type OffscreenCanvas = any;
 export class WebCanvas extends Canvas {
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
+  isOffscreenCanvas(): boolean {
+    return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
+  }
+
   private _scale: Vector2 = new Vector2();
 
   /**
@@ -17,7 +21,7 @@ export class WebCanvas extends Canvas {
    */
   get scale(): Vector2 {
     const webCanvas = this._webCanvas;
-    if (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas)) {
+    if (!this.isOffscreenCanvas()) {
       this._scale.set(
         (webCanvas.clientWidth * devicePixelRatio) / webCanvas.width,
         (webCanvas.clientHeight * devicePixelRatio) / webCanvas.height
@@ -28,7 +32,7 @@ export class WebCanvas extends Canvas {
 
   set scale(value: Vector2) {
     const webCanvas = this._webCanvas;
-    if (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas)) {
+    if (!this.isOffscreenCanvas()) {
       webCanvas.style.transformOrigin = `left top`;
       webCanvas.style.transform = `scale(${value.x}, ${value.y})`;
     }
@@ -40,7 +44,7 @@ export class WebCanvas extends Canvas {
    */
   resizeByClientSize(pixelRatio: number = window.devicePixelRatio): void {
     const webCanvas = this._webCanvas;
-    if (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas)) {
+    if (!this.isOffscreenCanvas()) {
       const exportWidth = webCanvas.clientWidth * pixelRatio;
       const exportHeight = webCanvas.clientHeight * pixelRatio;
       this.width = exportWidth;

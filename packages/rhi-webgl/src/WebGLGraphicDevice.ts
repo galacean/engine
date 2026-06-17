@@ -213,10 +213,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     this._webCanvas = webCanvas;
 
     const webGLOptions = this._webGLOptions;
-    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext | undefined;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
       gl = webCanvas.getContext("webgl2", webGLOptions);
-      if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
+      if (!gl && !(canvas as WebCanvas).isOffscreenCanvas()) {
         gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", webGLOptions);
       }
       this._isWebGL2 = true;
@@ -230,7 +230,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
         gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", webGLOptions);
-        if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
+        if (!gl && !(canvas as WebCanvas).isOffscreenCanvas()) {
           gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", webGLOptions);
         }
         this._isWebGL2 = false;
