@@ -1058,4 +1058,107 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
   });
+
+  describe("RenderState clone", () => {
+    it("DepthState fields should be cloned via @property", () => {
+      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
+      const { DepthState } = require("@galacean/engine-core/src/shader/state/DepthState");
+      const { CompareFunction } = require("@galacean/engine-core");
+
+      const source = new DepthState();
+      source.enabled = false;
+      source.compareFunction = CompareFunction.Always;
+      source.writeEnabled = false;
+
+      const cloneMap = new Map();
+      const target = new DepthState();
+      CloneManager.getProperties(DepthState).forEach((k) => {
+        CloneManager.copyProperty(source, target, k, cloneMap);
+      });
+
+      expect(target.enabled).to.eq(false);
+      expect(target.compareFunction).to.eq(CompareFunction.Always);
+      expect(target.writeEnabled).to.eq(false);
+    });
+
+    it("StencilState fields should be cloned via @property", () => {
+      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
+      const { StencilState } = require("@galacean/engine-core/src/shader/state/StencilState");
+      const { CompareFunction, StencilOperation } = require("@galacean/engine-core");
+
+      const source = new StencilState();
+      source.enabled = true;
+      source.referenceValue = 42;
+      source.mask = 0xf0;
+      source.compareFunctionFront = CompareFunction.NotEqual;
+      source.passOperationBack = StencilOperation.Replace;
+
+      const cloneMap = new Map();
+      const target = new StencilState();
+      CloneManager.getProperties(StencilState).forEach((k) => {
+        CloneManager.copyProperty(source, target, k, cloneMap);
+      });
+
+      expect(target.enabled).to.eq(true);
+      expect(target.referenceValue).to.eq(42);
+      expect(target.mask).to.eq(0xf0);
+      expect(target.compareFunctionFront).to.eq(CompareFunction.NotEqual);
+      expect(target.passOperationBack).to.eq(StencilOperation.Replace);
+    });
+
+    it("RasterState fields should be cloned via @property", () => {
+      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
+      const { RasterState } = require("@galacean/engine-core/src/shader/state/RasterState");
+      const { CullMode } = require("@galacean/engine-core");
+
+      const source = new RasterState();
+      source.cullMode = CullMode.Front;
+      source.depthBias = 0.5;
+      source.slopeScaledDepthBias = 1.5;
+
+      const cloneMap = new Map();
+      const target = new RasterState();
+      CloneManager.getProperties(RasterState).forEach((k) => {
+        CloneManager.copyProperty(source, target, k, cloneMap);
+      });
+
+      expect(target.cullMode).to.eq(CullMode.Front);
+      expect(target.depthBias).to.eq(0.5);
+      expect(target.slopeScaledDepthBias).to.eq(1.5);
+    });
+  });
+
+  describe("PostProcessEffectParameter clone", () => {
+    it("_needLerp should be preserved after clone", () => {
+      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
+      const { PostProcessEffectFloatParameter } = require("@galacean/engine-core");
+
+      const source = new PostProcessEffectFloatParameter(0.5, 0, 1, true);
+      expect(source._needLerp).to.eq(true);
+
+      const cloneMap = new Map();
+      const target = new PostProcessEffectFloatParameter(0, 0, 1, false);
+      CloneManager.getProperties(source.constructor).forEach((k) => {
+        CloneManager.copyProperty(source, target, k, cloneMap);
+      });
+
+      expect(target._needLerp).to.eq(true);
+      expect(target.value).to.eq(0.5);
+    });
+
+    it("_needLerp=false should also be preserved", () => {
+      const { CloneManager } = require("@galacean/engine-core/src/clone/CloneManager");
+      const { PostProcessEffectFloatParameter } = require("@galacean/engine-core");
+
+      const source = new PostProcessEffectFloatParameter(1, 0, 10, false);
+      const target = new PostProcessEffectFloatParameter(0, 0, 10, true);
+
+      const cloneMap = new Map();
+      CloneManager.getProperties(source.constructor).forEach((k) => {
+        CloneManager.copyProperty(source, target, k, cloneMap);
+      });
+
+      expect(target._needLerp).to.eq(false);
+    });
+  });
 });

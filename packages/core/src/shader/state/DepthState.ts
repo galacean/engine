@@ -1,5 +1,6 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
+import { property } from "../../clone/CloneManager";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
@@ -34,10 +35,13 @@ export class DepthState {
   }
 
   /** Whether to enable the depth test. */
+  @property
   enabled: boolean = true;
   /** Depth comparison function. */
+  @property
   compareFunction: CompareFunction = CompareFunction.Less;
   /** Whether the depth value can be written.*/
+  @property
   writeEnabled: boolean = true;
 
   /**

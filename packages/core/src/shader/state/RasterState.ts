@@ -1,5 +1,6 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
+import { property } from "../../clone/CloneManager";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CullMode } from "../enums/CullMode";
@@ -11,10 +12,13 @@ import { RenderState } from "./RenderState";
  */
 export class RasterState {
   /** Specifies whether or not front- and/or back-facing polygons can be culled. */
+  @property
   cullMode: CullMode = CullMode.Back;
   /** The multiplier by which an implementation-specific value is multiplied with to create a constant depth offset. */
+  @property
   depthBias: number = 0;
   /** The scale factor for the variable depth offset for each polygon. */
+  @property
   slopeScaledDepthBias: number = 0;
 
   /** @internal */

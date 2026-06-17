@@ -14,6 +14,7 @@ export abstract class PostProcessEffectParameter<T> {
   @property
   enabled = true;
 
+  @property
   protected _needLerp = false;
   @property
   protected _value: T;

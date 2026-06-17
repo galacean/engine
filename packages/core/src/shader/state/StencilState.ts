@@ -1,5 +1,6 @@
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
+import { property } from "../../clone/CloneManager";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
@@ -58,28 +59,40 @@ export class StencilState {
   }
 
   /** Whether to enable stencil test. */
+  @property
   enabled: boolean = false;
   /** Write the reference value of the stencil buffer. */
+  @property
   referenceValue: number = 0;
   /** Specifying a bit-wise mask that is used to AND the reference value and the stored stencil value when the test is done. */
+  @property
   mask: number = 0xff;
   /** Specifying a bit mask to enable or disable writing of individual bits in the stencil planes. */
+  @property
   writeMask: number = 0xff;
   /** The comparison function of the reference value of the front face of the geometry and the current buffer storage value. */
+  @property
   compareFunctionFront: CompareFunction = CompareFunction.Always;
   /** The comparison function of the reference value of the back of the geometry and the current buffer storage value. */
+  @property
   compareFunctionBack: CompareFunction = CompareFunction.Always;
   /** specifying the function to use for front face when both the stencil test and the depth test pass. */
+  @property
   passOperationFront: StencilOperation = StencilOperation.Keep;
   /** specifying the function to use for back face when both the stencil test and the depth test pass. */
+  @property
   passOperationBack: StencilOperation = StencilOperation.Keep;
   /** specifying the function to use for front face when the stencil test fails. */
+  @property
   failOperationFront: StencilOperation = StencilOperation.Keep;
   /** specifying the function to use for back face when the stencil test fails. */
+  @property
   failOperationBack: StencilOperation = StencilOperation.Keep;
   /** specifying the function to use for front face when the stencil test passes, but the depth test fails. */
+  @property
   zFailOperationFront: StencilOperation = StencilOperation.Keep;
   /** specifying the function to use for back face when the stencil test passes, but the depth test fails. */
+  @property
   zFailOperationBack: StencilOperation = StencilOperation.Keep;
 
   /**
