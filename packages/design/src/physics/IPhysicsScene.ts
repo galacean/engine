@@ -44,6 +44,12 @@ export interface IPhysicsScene {
   update(elapsedTime: number): void;
 
   /**
+   * Enable contact event buffering.
+   * @param enabled - Whether collision contact events should be buffered for dispatch.
+   */
+  setContactEventEnabled?(enabled: boolean): void;
+
+  /**
    * Collect buffered collision and trigger events.
    * Must be called after update() and after syncing transforms back from physics.
    */

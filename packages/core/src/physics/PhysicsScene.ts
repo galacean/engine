@@ -29,6 +29,9 @@ export class PhysicsScene {
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
+  private _collisionEventConsumersDirty = true;
+  private _hasCollisionEventConsumersCache = false;
+  private _contactEventEnabled: boolean | undefined;
 
   /**
    * The gravity of physics scene.
@@ -646,6 +649,7 @@ export class PhysicsScene {
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
       this._callColliderOnUpdate();
+      this._syncContactEventDemand();
       nativePhysicsManager.update(fixedTimeStep);
       this._callColliderOnLateUpdate();
       this._dispatchEvents(nativePhysicsManager.updateEvents());
@@ -661,6 +665,7 @@ export class PhysicsScene {
     if (collider._index === -1) {
       collider._index = this._colliders.length;
       this._colliders.add(collider);
+      this._markCollisionEventConsumersDirty();
     }
     this._nativePhysicsScene.addCollider(<ICollider>collider._nativeCollider);
   }
@@ -674,6 +679,7 @@ export class PhysicsScene {
     if (controller._index === -1) {
       controller._index = this._colliders.length;
       this._colliders.add(controller);
+      this._markCollisionEventConsumersDirty();
     }
     this._nativePhysicsScene.addCharacterController(<ICharacterController>controller._nativeCollider);
   }
@@ -687,6 +693,7 @@ export class PhysicsScene {
     const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;
+    this._markCollisionEventConsumersDirty();
     this._nativePhysicsScene.removeCollider(<ICollider>collider._nativeCollider);
   }
 
@@ -699,7 +706,15 @@ export class PhysicsScene {
     const replaced = this._colliders.deleteByIndex(controller._index);
     replaced && (replaced._index = controller._index);
     controller._index = -1;
+    this._markCollisionEventConsumersDirty();
     this._nativePhysicsScene.removeCharacterController(<ICharacterController>controller._nativeCollider);
+  }
+
+  /**
+   * @internal
+   */
+  _markCollisionEventConsumersDirty(): void {
+    this._collisionEventConsumersDirty = true;
   }
 
   /**
@@ -822,6 +837,44 @@ export class PhysicsScene {
           }, scriptIndexSetter);
           break;
       }
+    }
+  }
+
+  private _hasCollisionEventConsumers(): boolean {
+    if (!this._collisionEventConsumersDirty) {
+      return this._hasCollisionEventConsumersCache;
+    }
+
+    const { _elements: colliders } = this._colliders;
+    const { onCollisionEnter, onCollisionExit, onCollisionStay } = Script.prototype;
+
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
+      const scripts = colliders[i].entity._scripts;
+      const scriptElements = scripts._elements;
+      for (let j = scripts.length - 1; j >= 0; --j) {
+        const script = scriptElements[j];
+        if (
+          script.onCollisionEnter !== onCollisionEnter ||
+          script.onCollisionExit !== onCollisionExit ||
+          script.onCollisionStay !== onCollisionStay
+        ) {
+          this._collisionEventConsumersDirty = false;
+          this._hasCollisionEventConsumersCache = true;
+          return true;
+        }
+      }
+    }
+
+    this._collisionEventConsumersDirty = false;
+    this._hasCollisionEventConsumersCache = false;
+    return this._hasCollisionEventConsumersCache;
+  }
+
+  private _syncContactEventDemand(): void {
+    const enabled = this._hasCollisionEventConsumers();
+    if (this._contactEventEnabled !== enabled) {
+      this._nativePhysicsScene.setContactEventEnabled?.(enabled);
+      this._contactEventEnabled = enabled;
     }
   }
 
