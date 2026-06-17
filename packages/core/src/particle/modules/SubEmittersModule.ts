@@ -171,10 +171,11 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _bindSlots(): void {
-    const subEmitters = this._subEmitters;
+  _cloneTo(target: SubEmittersModule): void {
+    // _module is @ignoreClone, so re-link each cloned slot back to its new module
+    const subEmitters = target._subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
-      subEmitters[i]._module = this;
+      subEmitters[i]._module = target;
     }
   }
 

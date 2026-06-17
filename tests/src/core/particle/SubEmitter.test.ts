@@ -663,4 +663,27 @@ describe("SubEmitter", () => {
     parent.entity.destroy();
     child.entity.destroy();
   });
+
+  it("Cloned sub-emitter slots re-link to the cloned module", () => {
+    const parent = createParticleRenderer(engine, "CloneParent");
+    const child = createParticleRenderer(engine, "CloneChild");
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+
+    const cloneEntity = parent.entity.clone();
+    engine.sceneManager.activeScene.addRootEntity(cloneEntity);
+    const cloneRenderer = cloneEntity.getComponent(ParticleRenderer);
+    const cloneSlot = cloneRenderer.generator.subEmitters.subEmitters[0];
+
+    // The cloned slot's back-pointer must target the cloned module, not the source or null
+    expect((cloneSlot as any)._module).to.equal(cloneRenderer.generator.subEmitters);
+    expect((cloneSlot as any)._module).to.not.equal(parent.generator.subEmitters);
+
+    // And it must be functional: changing the cloned slot's type drives the cloned generator's
+    // transform feedback without dereferencing a null module
+    expect(() => (cloneSlot.type = ParticleSubEmitterType.Death)).to.not.throw();
+
+    cloneEntity.destroy();
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
 });
