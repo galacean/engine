@@ -593,4 +593,42 @@ describe("SubEmitter", () => {
     spun.parent.entity.destroy();
     spun.child.entity.destroy();
   });
+
+  it("Changing a slot's type to Death reconciles transform-feedback", () => {
+    const parent = createParticleRenderer(engine, "Encap_TypeParent");
+    const child = createParticleRenderer(engine, "Encap_TypeChild");
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    expect((parent.generator as any)._useTransformFeedback).to.equal(false);
+
+    // Flip the slot to Death directly — the reactive setter must set transform-feedback up,
+    // otherwise a parent death would later read a null feedback buffer and crash.
+    parent.generator.subEmitters.subEmitters[0].type = ParticleSubEmitterType.Death;
+    expect((parent.generator as any)._useTransformFeedback).to.equal(true);
+    expect((parent.generator as any)._feedbackSimulator).to.not.equal(null);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Changing a slot's emitter to form a cycle throws", () => {
+    const a = createParticleRenderer(engine, "Encap_CycleA");
+    const b = createParticleRenderer(engine, "Encap_CycleB");
+    const c = createParticleRenderer(engine, "Encap_CycleC");
+    a.generator.subEmitters.enabled = true;
+    b.generator.subEmitters.enabled = true;
+    a.generator.subEmitters.addSubEmitter(b, ParticleSubEmitterType.Birth); // A → B
+    b.generator.subEmitters.addSubEmitter(c, ParticleSubEmitterType.Birth); // B → C
+
+    // Redirect B's slot from C to A — that closes A → B → A. The setter must reject it.
+    const slot = b.generator.subEmitters.subEmitters[0];
+    expect(() => {
+      slot.emitter = a;
+    }).to.throw("Sub-emitter would create a cycle");
+    expect(slot.emitter).to.equal(c); // value left unchanged on rejection
+
+    a.entity.destroy();
+    b.entity.destroy();
+    c.entity.destroy();
+  });
 });

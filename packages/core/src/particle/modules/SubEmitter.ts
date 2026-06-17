@@ -1,17 +1,20 @@
+import { ignoreClone } from "../../clone/CloneManager";
 import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
+import type { SubEmittersModule } from "./SubEmittersModule";
 
 /**
  * One slot in `SubEmittersModule.subEmitters`. Configures which sub-emitter
  * fires, on which parent event, with what inheritance, probability, and count.
  */
 export class SubEmitter {
-  /** Target particle renderer the sub particles emit into. Remapped on clone. */
-  emitter: ParticleRenderer = null;
+  /** @internal Owning module; bound when the slot is registered so field changes re-validate. */
+  @ignoreClone
+  _module: SubEmittersModule = null;
 
-  /** Which parent-particle event drives this slot. */
-  type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
+  private _emitter: ParticleRenderer = null;
+  private _type: ParticleSubEmitterType = ParticleSubEmitterType.Birth;
 
   /** Bitmask of properties inherited from the parent particle. */
   inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None;
@@ -21,4 +24,26 @@ export class SubEmitter {
 
   /** Number of sub particles emitted per parent event. */
   emitCount: number = 1;
+
+  /** Target particle renderer the sub particles emit into. Remapped on clone. */
+  get emitter(): ParticleRenderer {
+    return this._emitter;
+  }
+
+  set emitter(value: ParticleRenderer) {
+    if (value === this._emitter) return;
+    this._module?._validateEmitter(value);
+    this._emitter = value;
+  }
+
+  /** Which parent-particle event drives this slot. */
+  get type(): ParticleSubEmitterType {
+    return this._type;
+  }
+
+  set type(value: ParticleSubEmitterType) {
+    if (value === this._type) return;
+    this._type = value;
+    this._module?._refreshTransformFeedback();
+  }
 }
