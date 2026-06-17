@@ -631,4 +631,36 @@ describe("SubEmitter", () => {
     b.entity.destroy();
     c.entity.destroy();
   });
+
+  it("Sub-emitter stays inert on WebGL1 instead of crashing on Death", () => {
+    const parent = createParticleRenderer(engine, "WebGL1_Parent");
+    const child = createParticleRenderer(engine, "WebGL1_Child");
+    parent.generator.main.startLifetime.constant = 0.5;
+
+    // Pretend WebGL1 from the start: the whole module must be inert (enabled → false),
+    // and no transform-feedback buffer is built, so a parent death never reads a null buffer.
+    const hardwareRenderer = (engine as any)._hardwareRenderer;
+    const realIsWebGL2 = hardwareRenderer._isWebGL2;
+    hardwareRenderer._isWebGL2 = false;
+    try {
+      parent.generator.subEmitters.enabled = true;
+      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death, undefined, undefined, 3);
+
+      expect(parent.generator.subEmitters.enabled).to.equal(false);
+      expect((parent.generator as any)._useTransformFeedback).to.equal(false);
+      expect((parent.generator as any)._feedbackSimulator).to.not.exist;
+
+      parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(4), 1, 0.01));
+      parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+      child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.play();
+      expect(() => updateEngine(engine, 10)).to.not.throw(); // parent death must not crash
+      expect(child.generator._getAliveParticleCount()).to.equal(0); // Death inert on WebGL1
+    } finally {
+      hardwareRenderer._isWebGL2 = realIsWebGL2;
+    }
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
 });

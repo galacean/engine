@@ -10,6 +10,7 @@ import { SubEmitter } from "./SubEmitter";
 
 /**
  * Fires sub-emitters on parent particle lifecycle events (Birth / Death).
+ * @remarks Requires WebGL2; the module stays inactive on WebGL1.
  */
 export class SubEmittersModule extends ParticleGeneratorModule {
   private static _cycleVisited = new Set<ParticleGenerator>();
@@ -69,10 +70,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     emitProbability: number = 1,
     emitCount: number = 1
   ): void {
-    if (type === ParticleSubEmitterType.Death && !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
-      throw new Error("Death sub-emitter requires WebGL2");
-    }
-    // Sole cycle guard — runtime dispatch trusts it; mutating slots directly is unsupported
     if (SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
       throw new Error("Sub-emitter would create a cycle");
     }
@@ -97,7 +94,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   }
 
   override get enabled(): boolean {
-    return this._enabled;
+    return this._enabled && this._generator._renderer.engine._hardwareRenderer.isWebGL2;
   }
 
   override set enabled(value: boolean) {
