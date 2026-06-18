@@ -197,14 +197,28 @@ export class BasicRenderPipeline {
     // Scalable ambient obscurance pass
     // Before opaque pass so materials can sample ambient occlusion in BRDF
     const saoPass = this._saoPass;
-    if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
-      saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
-      saoPass.onRender(context);
-    } else {
-      this._saoPass.release();
-    }
+    try {
+      if (ambientOcclusionEnabled && supportDepthTexture && saoPass.isSupported) {
+        saoPass.onConfig(camera, this._depthOnlyPass.renderTarget);
+        saoPass.onRender(context);
+      } else {
+        this._saoPass.release();
+      }
 
-    this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+      this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+    } finally {
+      // Always return the per-frame leases, even if a pass threw, so the next camera with
+      // matching shape can reuse them and the pool never strands an internal RT/texture.
+      const pool = engine._renderTargetPool;
+      if (this._internalColorTarget) {
+        pool.freeRenderTarget(this._internalColorTarget);
+        this._internalColorTarget = null;
+      }
+      if (this._copyBackgroundTexture) {
+        pool.freeTexture(this._copyBackgroundTexture);
+        this._copyBackgroundTexture = null;
+      }
+    }
   }
 
   private _drawRenderPass(
@@ -343,17 +357,6 @@ export class BasicRenderPipeline {
 
     cameraRenderTarget?._blitRenderTarget();
     cameraRenderTarget?.generateMipmaps();
-
-    // Release per-frame leases so the next camera with matching shape can reuse them.
-    const pool = engine._renderTargetPool;
-    if (this._internalColorTarget) {
-      pool.freeRenderTarget(this._internalColorTarget);
-      this._internalColorTarget = null;
-    }
-    if (this._copyBackgroundTexture) {
-      pool.freeTexture(this._copyBackgroundTexture);
-      this._copyBackgroundTexture = null;
-    }
   }
 
   /**
