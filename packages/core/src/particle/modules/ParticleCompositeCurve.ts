@@ -188,6 +188,27 @@ export class ParticleCompositeCurve {
   /**
    * @internal
    */
+  _evaluateCumulative(normalizedAge: number, lerpFactor: number): number {
+    switch (this.mode) {
+      case ParticleCurveMode.Constant:
+        return this.constantMax * normalizedAge;
+      case ParticleCurveMode.TwoConstants:
+        return (this.constantMin + (this.constantMax - this.constantMin) * lerpFactor) * normalizedAge;
+      case ParticleCurveMode.Curve:
+        return this.curveMax?._evaluateCumulative(normalizedAge) ?? 0;
+      case ParticleCurveMode.TwoCurves: {
+        const min = this.curveMin?._evaluateCumulative(normalizedAge) ?? 0;
+        const max = this.curveMax?._evaluateCumulative(normalizedAge) ?? 0;
+        return min + (max - min) * lerpFactor;
+      }
+      default:
+        return 0;
+    }
+  }
+
+  /**
+   * @internal
+   */
   _getMax(): number {
     switch (this.mode) {
       case ParticleCurveMode.Constant:
