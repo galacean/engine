@@ -63,9 +63,10 @@ export class WebGLEngine extends Engine {
       });
 
       // Start observing the canvas element for size changes.
-      // Note: ResizeObserver callbacks are delivered asynchronously in a microtask
-      // before the next paint (NOT synchronously during observe()). The canvas will
-      // still be resized early enough in the frame lifecycle to be correct for rendering.
+      // Note: ResizeObserver callbacks fire after the current frame's rAF,
+      // so the canvas resize only takes effect in the following frame.
+      // The current frame may render with stale dimensions (e.g. a flash of
+      // incorrect sizing / blank area), and will recover on the next frame.
       this._resizeObserver.observe(webCanvas);
     }
   }

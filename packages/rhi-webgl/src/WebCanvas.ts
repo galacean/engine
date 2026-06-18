@@ -9,6 +9,10 @@ type OffscreenCanvas = any;
 export class WebCanvas extends Canvas {
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
+  /**
+   * Whether the underlying canvas is an OffscreenCanvas.
+   * @returns Whether it is an OffscreenCanvas
+   */
   isOffscreenCanvas(): boolean {
     return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
   }
