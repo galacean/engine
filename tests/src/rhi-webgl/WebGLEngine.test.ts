@@ -1,4 +1,4 @@
-import { Camera, Entity, Script } from "@galacean/engine-core";
+import { Camera, EngineEventType, Entity, Script } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, expect, it } from "vitest";
@@ -101,5 +101,45 @@ describe("webgl engine test", () => {
       window.onerror = originalOnError;
       engine.destroy();
     }
+  });
+
+  it("engine auto resize", async () => {
+    const canvas = document.createElement("canvas");
+    const engine = await WebGLEngine.create({ canvas });
+    engine.run();
+
+    const rawListenerCount = engine.listenerCount(EngineEventType.Shutdown);
+
+    engine.enableAutoResize();
+    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount + 1);
+    expect((engine as any)._resizeObserver).toBeDefined();
+    const firstObserver = (engine as any)._resizeObserver;
+    const firstObserverDisconnectSpy = vi.spyOn(firstObserver, "disconnect");
+    expect(firstObserverDisconnectSpy).toHaveBeenCalledTimes(0);
+
+    engine.enableAutoResize();
+    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount + 1);
+    expect((engine as any)._resizeObserver).toBeDefined();
+    expect((engine as any)._resizeObserver).not.toBe(firstObserver);
+    expect(firstObserverDisconnectSpy).toHaveBeenCalledTimes(1);
+
+    engine.disableAutoResize();
+    expect((engine as any)._resizeObserver).toBeUndefined();
+    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount);
+
+    const resizeSpy = vi.spyOn(engine.canvas, "resizeByClientSize");
+    engine.enableAutoResize();
+    expect((engine as any)._resizeObserver).toBeDefined();
+    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount + 1);
+
+    canvas.style.width = "800px";
+    canvas.style.height = "600px";
+    // Wait for the ResizeObserver to fire the resize callback
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    expect(resizeSpy).toHaveBeenCalledTimes(1);
+
+    engine.destroy();
+    expect((engine as any)._resizeObserver).toBeUndefined();
+    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount);
   });
 });
