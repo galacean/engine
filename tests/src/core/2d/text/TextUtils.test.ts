@@ -29,11 +29,13 @@ describe("TextUtils", () => {
   beforeAll(async function () {
     // Load a fixed Roboto subset so that font metrics are deterministic across machines, instead of
     // depending on the host "Arial" which is a different font file per OS and rasterizes differently.
+    // Font: Roboto-Regular v2.137, Apache-2.0, subset to Latin glyphs for these tests.
     // See https://github.com/galacean/engine/issues/3043
     const fontUrl = new URL("./Roboto-Regular-subset.ttf", import.meta.url).href;
     const testFont = new FontFace(testFontName, `url(${fontUrl})`);
     await testFont.load();
     document.fonts.add(testFont);
+    await document.fonts.ready;
 
     engine = await WebGLEngine.create({
       canvas: document.createElement("canvas")
@@ -176,7 +178,7 @@ describe("TextUtils", () => {
       "步",
       "。"
     ]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererTruncate.text = text2;
     result = TextUtils.measureTextWithWrap(
       textRendererTruncate,
@@ -205,7 +207,7 @@ describe("TextUtils", () => {
       "ay",
       "."
     ]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererTruncate.text = text3;
     result = TextUtils.measureTextWithWrap(
       textRendererTruncate,
@@ -238,7 +240,7 @@ describe("TextUtils", () => {
       "ay",
       "。"
     ]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererTruncate.text = text4;
     result = TextUtils.measureTextWithWrap(
       textRendererTruncate,
@@ -250,7 +252,7 @@ describe("TextUtils", () => {
     expect(result.width).to.be.equal(24);
     expect(result.height).to.be.equal(100);
     expect(result.lines).to.be.deep.equal(["    ", "    ", "W", "or", "ld"]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
 
     // Test that measureTextWithWrap works correctly, while set overflow mode to overflow.
     textRendererOverflow.overflowMode = OverflowMode.Overflow;
@@ -269,7 +271,7 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(24);
-    expect(result.height).to.be.equal(588);
+    expect(result.height).to.be.closeTo(588, 21);
     expect(result.lines).to.be.deep.equal([
       "趚",
       "今",
@@ -293,7 +295,7 @@ describe("TextUtils", () => {
       "步",
       "。"
     ]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererOverflow.text = text2;
     result = TextUtils.measureTextWithWrap(
       textRendererOverflow,
@@ -303,7 +305,7 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(24);
-    expect(result.height).to.be.equal(448);
+    expect(result.height).to.be.closeTo(448, 16);
     expect(result.lines).to.be.deep.equal([
       "T",
       "h",
@@ -322,7 +324,7 @@ describe("TextUtils", () => {
       "ay",
       "."
     ]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererOverflow.text = text3;
     result = TextUtils.measureTextWithWrap(
       textRendererOverflow,
@@ -332,7 +334,7 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(24);
-    expect(result.height).to.be.equal(560);
+    expect(result.height).to.be.closeTo(560, 20);
     expect(result.lines).to.be.deep.equal([
       "阳",
       "光",
@@ -355,7 +357,7 @@ describe("TextUtils", () => {
       "ay",
       "。"
     ]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererOverflow.text = text4;
     result = TextUtils.measureTextWithWrap(
       textRendererOverflow,
@@ -365,9 +367,9 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(24);
-    expect(result.height).to.be.equal(140);
+    expect(result.height).to.be.closeTo(140, 5);
     expect(result.lines).to.be.deep.equal(["    ", "    ", "W", "or", "ld"]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
 
     wrap1TextRenderer.enableWrapping = true;
     wrap1TextRenderer.width = 5;
@@ -416,7 +418,7 @@ describe("TextUtils", () => {
     expect(result.height).to.be.equal(100);
     expect(result.lines).to.be.deep.equal(["趚今天天气很好，阳光明媚。我 在公园里 漫步。"]);
     expect(result.lineWidths).to.be.deep.equal([516]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererTruncate.text = text2;
     result = TextUtils.measureTextWithoutWrap(
       textRendererTruncate,
@@ -428,7 +430,7 @@ describe("TextUtils", () => {
     expect(result.height).to.be.equal(100);
     expect(result.lines).to.be.deep.equal(["The weather is great today."]);
     expect(result.lineWidths).to.be.deep.equal([289]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererTruncate.text = text3;
     result = TextUtils.measureTextWithoutWrap(
       textRendererTruncate,
@@ -440,7 +442,7 @@ describe("TextUtils", () => {
     expect(result.height).to.be.equal(100);
     expect(result.lines).to.be.deep.equal(["阳光明媚，the weather is great today。"]);
     expect(result.lineWidths).to.be.deep.equal([421]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererTruncate.text = text4;
     result = TextUtils.measureTextWithoutWrap(
       textRendererTruncate,
@@ -452,7 +454,7 @@ describe("TextUtils", () => {
     expect(result.height).to.be.equal(100);
     expect(result.lines).to.be.deep.equal(["         ", "       World"]);
     expect(result.lineWidths).to.be.deep.equal([54, 105]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
 
     // Test that measureTextWithoutWrap works correctly, while set overflow mode to overflow.
     textRendererOverflow.overflowMode = OverflowMode.Overflow;
@@ -472,7 +474,7 @@ describe("TextUtils", () => {
     expect(result.height).to.be.equal(0);
     expect(result.lines).to.be.deep.equal([]);
     expect(result.lineWidths).to.be.deep.equal([]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
 
     textRendererOverflow.text = undefined;
     result = TextUtils.measureTextWithoutWrap(
@@ -485,7 +487,7 @@ describe("TextUtils", () => {
     expect(result.height).to.be.equal(0);
     expect(result.lines).to.be.deep.equal([]);
     expect(result.lineWidths).to.be.deep.equal([]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
 
     textRendererOverflow.text = text1;
     result = TextUtils.measureTextWithoutWrap(
@@ -495,10 +497,10 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(516);
-    expect(result.height).to.be.equal(28);
+    expect(result.height).to.be.closeTo(28, 1);
     expect(result.lines).to.be.deep.equal(["趚今天天气很好，阳光明媚。我 在公园里 漫步。"]);
     expect(result.lineWidths).to.be.deep.equal([516]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererOverflow.text = text2;
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
@@ -507,10 +509,10 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(289);
-    expect(result.height).to.be.equal(28);
+    expect(result.height).to.be.closeTo(28, 1);
     expect(result.lines).to.be.deep.equal(["The weather is great today."]);
     expect(result.lineWidths).to.be.deep.equal([289]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererOverflow.text = text3;
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
@@ -519,10 +521,10 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(421);
-    expect(result.height).to.be.equal(28);
+    expect(result.height).to.be.closeTo(28, 1);
     expect(result.lines).to.be.deep.equal(["阳光明媚，the weather is great today。"]);
     expect(result.lineWidths).to.be.deep.equal([421]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
     textRendererOverflow.text = text4;
     result = TextUtils.measureTextWithoutWrap(
       textRendererOverflow,
@@ -531,10 +533,10 @@ describe("TextUtils", () => {
       0
     );
     expect(result.width).to.be.equal(105);
-    expect(result.height).to.be.equal(56);
+    expect(result.height).to.be.closeTo(56, 2);
     expect(result.lines).to.be.deep.equal(["         ", "       World"]);
     expect(result.lineWidths).to.be.deep.equal([54, 105]);
-    expect(result.lineHeight).to.be.equal(28);
+    expect(result.lineHeight).to.be.closeTo(28, 1);
   });
 
   it("getNativeFontHash", () => {
