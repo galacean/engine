@@ -2,6 +2,8 @@ import {
   RendererUpdateFlags,
   Sprite,
   SpriteDrawMode,
+  SpriteFilledMode,
+  SpriteFilledOrigin,
   SpriteMaskInteraction,
   SpriteMaskLayer,
   SpriteRenderer,
@@ -1577,6 +1579,201 @@ describe("SpriteRenderer", async () => {
     expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
     expect(spriteRenderer.bounds.min).to.deep.eq(new Vector3(-0.5, -1, 0));
     expect(spriteRenderer.bounds.max).to.deep.eq(new Vector3(0.5, 1, 0));
+  });
+
+  it("get set filled properties", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.drawMode = SpriteDrawMode.Filled;
+
+    // filledAmount is clamped to [0, 1]
+    spriteRenderer.filledAmount = 2;
+    expect(spriteRenderer.filledAmount).to.eq(1);
+    spriteRenderer.filledAmount = -1;
+    expect(spriteRenderer.filledAmount).to.eq(0);
+    spriteRenderer.filledAmount = 0.5;
+    expect(spriteRenderer.filledAmount).to.eq(0.5);
+
+    spriteRenderer.filledClockWise = false;
+    expect(spriteRenderer.filledClockWise).to.eq(false);
+
+    // Changing filledMode resets filledOrigin to a valid default for the new mode
+    spriteRenderer.filledMode = SpriteFilledMode.Horizontal;
+    expect(spriteRenderer.filledMode).to.eq(SpriteFilledMode.Horizontal);
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.Left);
+    spriteRenderer.filledMode = SpriteFilledMode.Vertical;
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.Bottom);
+    spriteRenderer.filledMode = SpriteFilledMode.Radial90;
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.BottomLeft);
+    spriteRenderer.filledMode = SpriteFilledMode.Radial180;
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.Bottom);
+    spriteRenderer.filledMode = SpriteFilledMode.Radial360;
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.Bottom);
+
+    // filledOrigin can still be set explicitly
+    spriteRenderer.filledOrigin = SpriteFilledOrigin.TopRight;
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.TopRight);
+  });
+
+  it("draw Filled Sprite (linear)", () => {
+    const rootEntity = scene.getRootEntity();
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const sprite = new Sprite(engine, texture2D);
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.sprite = sprite;
+    spriteRenderer.drawMode = SpriteDrawMode.Filled;
+    spriteRenderer.width = 4;
+    spriteRenderer.height = 5;
+    sprite.pivot = new Vector2(0, 0);
+    // @ts-ignore
+    const subChunk = spriteRenderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
+    const readVertex = (i: number) => {
+      const o = subChunk.vertexArea.start + i * 9;
+      return {
+        pos: new Vector3(vertices[o], vertices[o + 1], vertices[o + 2]),
+        uv: new Vector2(vertices[o + 3], vertices[o + 4])
+      };
+    };
+
+    // Horizontal, default origin Left → fill the left half
+    spriteRenderer.filledMode = SpriteFilledMode.Horizontal;
+    spriteRenderer.filledAmount = 0.5;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(subChunk.indices.length).to.eq(6);
+    expect(Vector3.equals(readVertex(0).pos, new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(readVertex(1).pos, new Vector3(2, 0, 0))).to.eq(true);
+    expect(Vector3.equals(readVertex(2).pos, new Vector3(0, 5, 0))).to.eq(true);
+    expect(Vector3.equals(readVertex(3).pos, new Vector3(2, 5, 0))).to.eq(true);
+    expect(Vector2.equals(readVertex(0).uv, new Vector2(0, 1))).to.eq(true);
+    expect(Vector2.equals(readVertex(1).uv, new Vector2(0.5, 1))).to.eq(true);
+    expect(Vector2.equals(readVertex(2).uv, new Vector2(0, 0))).to.eq(true);
+    expect(Vector2.equals(readVertex(3).uv, new Vector2(0.5, 0))).to.eq(true);
+
+    // Vertical, default origin Bottom → fill the bottom half
+    spriteRenderer.filledMode = SpriteFilledMode.Vertical;
+    spriteRenderer.filledAmount = 0.5;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(subChunk.indices.length).to.eq(6);
+    expect(Vector3.equals(readVertex(0).pos, new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(readVertex(1).pos, new Vector3(4, 0, 0))).to.eq(true);
+    expect(Vector3.equals(readVertex(2).pos, new Vector3(0, 2.5, 0))).to.eq(true);
+    expect(Vector3.equals(readVertex(3).pos, new Vector3(4, 2.5, 0))).to.eq(true);
+  });
+
+  it("draw Filled Sprite (radial amount bounds)", () => {
+    const rootEntity = scene.getRootEntity();
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const sprite = new Sprite(engine, texture2D);
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.sprite = sprite;
+    spriteRenderer.drawMode = SpriteDrawMode.Filled;
+    spriteRenderer.width = 4;
+    spriteRenderer.height = 5;
+    sprite.pivot = new Vector2(0, 0);
+    // @ts-ignore
+    const subChunk = spriteRenderer._subChunk;
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
+
+    // Radial360 full fill → 4 quadrants (4 quads × 6 indices)
+    spriteRenderer.filledMode = SpriteFilledMode.Radial360;
+    spriteRenderer.filledAmount = 1;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(subChunk.indices.length).to.eq(24);
+
+    // amount 0 → nothing is drawn
+    spriteRenderer.filledAmount = 0;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(subChunk.indices.length).to.eq(0);
+
+    // Radial90 full fill → single quad
+    spriteRenderer.filledMode = SpriteFilledMode.Radial90;
+    spriteRenderer.filledAmount = 1;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(subChunk.indices.length).to.eq(6);
+  });
+
+  it("draw Filled Sprite falls back to the default origin for an unsupported origin", () => {
+    const rootEntity = scene.getRootEntity();
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const sprite = new Sprite(engine, texture2D);
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.sprite = sprite;
+    spriteRenderer.drawMode = SpriteDrawMode.Filled;
+    spriteRenderer.width = 4;
+    spriteRenderer.height = 5;
+    sprite.pivot = new Vector2(0, 0);
+    // @ts-ignore
+    const subChunk = spriteRenderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
+    // The radial cut depends only on amount/clockwise, so all origins emit one triangle here.
+    const snapshotGeom = () => {
+      const start = subChunk.vertexArea.start;
+      const out: number[] = [];
+      for (let i = 0; i < 3; ++i) {
+        const o = start + i * 9;
+        out.push(vertices[o], vertices[o + 1], vertices[o + 2], vertices[o + 3], vertices[o + 4]);
+      }
+      return out;
+    };
+
+    // Radial90 with its default corner origin (BottomLeft)
+    spriteRenderer.filledMode = SpriteFilledMode.Radial90;
+    spriteRenderer.filledAmount = 0.5;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    const bottomLeftGeom = snapshotGeom();
+
+    // A different valid corner origin produces different geometry
+    spriteRenderer.filledOrigin = SpriteFilledOrigin.TopRight;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(snapshotGeom()).to.not.eql(bottomLeftGeom);
+
+    // An unsupported edge origin must fall back to the default (BottomLeft),
+    // not silently reuse the previous (TopRight) geometry.
+    spriteRenderer.filledOrigin = SpriteFilledOrigin.Top;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(snapshotGeom()).to.eql(bottomLeftGeom);
+  });
+
+  it("filled mode refreshes UV when the atlas region changes", () => {
+    const rootEntity = scene.getRootEntity();
+    const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
+    const sprite = new Sprite(engine, texture2D);
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.sprite = sprite;
+    spriteRenderer.drawMode = SpriteDrawMode.Filled;
+    spriteRenderer.filledMode = SpriteFilledMode.Horizontal;
+    spriteRenderer.filledAmount = 1;
+    spriteRenderer.width = 4;
+    spriteRenderer.height = 5;
+    sprite.pivot = new Vector2(0, 0);
+    // @ts-ignore
+    const subChunk = spriteRenderer._subChunk;
+    const vertices = subChunk.chunk.vertices;
+    const context = { camera: { engine: engine, _renderPipeline: { pushRenderElement: () => {} } } };
+    // U of the right (RB) vertex, which equals the sprite's right UV for a full horizontal fill.
+    const rightU = () => vertices[subChunk.vertexArea.start + 9 + 3];
+
+    // @ts-ignore
+    spriteRenderer._render(context);
+    const uvBefore = rightU();
+
+    // Changing the atlas region dispatches SpriteModifyFlags.atlasRegion. Filled mode bakes
+    // UVs inside updatePositions, so the renderer must re-run it instead of a no-op updateUVs.
+    sprite.atlasRegion = new Rect(0, 0, 0.5, 0.5);
+    // @ts-ignore
+    spriteRenderer._render(context);
+    expect(rightU()).to.not.eq(uvBefore);
   });
 });
 

@@ -160,9 +160,18 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   set filledMode(value: SpriteFilledMode) {
     if (this._filledMode !== value) {
       this._filledMode = value;
-      // Reset origin to a valid default for the new mode
-      this._filledOrigin =
-        value === SpriteFilledMode.Radial90 ? SpriteFilledOrigin.BottomLeft : SpriteFilledOrigin.Bottom;
+      // Reset origin to a valid default for the new mode, since each mode only accepts a subset of origins.
+      switch (value) {
+        case SpriteFilledMode.Horizontal:
+          this._filledOrigin = SpriteFilledOrigin.Left;
+          break;
+        case SpriteFilledMode.Radial90:
+          this._filledOrigin = SpriteFilledOrigin.BottomLeft;
+          break;
+        default:
+          this._filledOrigin = SpriteFilledOrigin.Bottom;
+          break;
+      }
       if (this._drawMode === SpriteDrawMode.Filled) {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
       }
@@ -542,7 +551,11 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
         break;
       case SpriteModifyFlags.atlasRegion:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
+        // Filled mode bakes UVs inside `updatePositions`, so a UV-only refresh would be a no-op.
+        this._dirtyUpdateFlag |=
+          this._drawMode === SpriteDrawMode.Filled
+            ? SpriteRendererUpdateFlags.WorldVolumeAndUV
+            : SpriteRendererUpdateFlags.UV;
         break;
       case SpriteModifyFlags.pivot:
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;

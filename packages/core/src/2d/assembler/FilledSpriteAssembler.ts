@@ -143,7 +143,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[15];
+    const { x: right, y: top } = spriteUVs[3];
 
     const subChunk = renderer._subChunk;
     const vertices = subChunk.chunk.vertices;
@@ -228,7 +228,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[15];
+    const { x: right, y: top } = spriteUVs[3];
 
     // Transform 4 corners to world space
     const [wLB, wRB, wLT, wRT] = this._worldPositions;
@@ -242,12 +242,6 @@ export class FilledSpriteAssembler {
     // [center, CW-adjacent, CCW-adjacent, opposite]
     const { _inPositions: inPositions, _inUVs: inUVs, _outPositions: outPositions, _outUVs: outUVs } = this;
     switch (origin) {
-      case SpriteFilledOrigin.BottomLeft:
-        (inPositions[0] = wLB), (inUVs[0] = uvLB);
-        (inPositions[1] = wRB), (inUVs[1] = uvRB);
-        (inPositions[2] = wLT), (inUVs[2] = uvLT);
-        (inPositions[3] = wRT), (inUVs[3] = uvRT);
-        break;
       case SpriteFilledOrigin.BottomRight:
         (inPositions[0] = wRB), (inUVs[0] = uvRB);
         (inPositions[1] = wRT), (inUVs[1] = uvRT);
@@ -266,7 +260,13 @@ export class FilledSpriteAssembler {
         (inPositions[2] = wRT), (inUVs[2] = uvRT);
         (inPositions[3] = wRB), (inUVs[3] = uvRB);
         break;
+      // BottomLeft is the default; any unsupported origin falls back to it instead of rendering stale data.
+      case SpriteFilledOrigin.BottomLeft:
       default:
+        (inPositions[0] = wLB), (inUVs[0] = uvLB);
+        (inPositions[1] = wRB), (inUVs[1] = uvRB);
+        (inPositions[2] = wLT), (inUVs[2] = uvLT);
+        (inPositions[3] = wRT), (inUVs[3] = uvRT);
         break;
     }
 
@@ -294,7 +294,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[15];
+    const { x: right, y: top } = spriteUVs[3];
 
     // Transform corners and compute edge midpoints
     const [wLB, wMB, wRB, wLM, , wRM, wLT, wMT, wRT] = this._worldPositions;
@@ -318,18 +318,6 @@ export class FilledSpriteAssembler {
     // Center is at the origin edge midpoint; two quadrants cover the full sprite.
     // Quadrant A (0°-90°), Quadrant B (90°-180°)
     switch (origin) {
-      case SpriteFilledOrigin.Bottom:
-        // Center=MB, A: [MB,RB,MT,RT], B: [MB,MT,LB,LT]
-        (inPositions[0] = wMB), (inUVs[0] = uvMB);
-        (inPositions[1] = wRB), (inUVs[1] = uvRB);
-        (inPositions[2] = wMT), (inUVs[2] = uvMT);
-        (inPositions[3] = wRT), (inUVs[3] = uvRT);
-        this._radialCut(subChunk, inPositions, inUVs, startAngle, endAngle, outPositions, outUVs);
-        (inPositions[1] = wMT), (inUVs[1] = uvMT);
-        (inPositions[2] = wLB), (inUVs[2] = uvLB);
-        (inPositions[3] = wLT), (inUVs[3] = uvLT);
-        this._radialCut(subChunk, inPositions, inUVs, startAngle - 90, endAngle - 90, outPositions, outUVs);
-        break;
       case SpriteFilledOrigin.Top:
         // Center=MT, A: [MT,LT,MB,LB], B: [MT,MB,RT,RB]
         (inPositions[0] = wMT), (inUVs[0] = uvMT);
@@ -366,7 +354,19 @@ export class FilledSpriteAssembler {
         (inPositions[3] = wLB), (inUVs[3] = uvLB);
         this._radialCut(subChunk, inPositions, inUVs, startAngle - 90, endAngle - 90, outPositions, outUVs);
         break;
+      // Bottom is the default; any unsupported origin falls back to it instead of rendering stale data.
+      case SpriteFilledOrigin.Bottom:
       default:
+        // Center=MB, A: [MB,RB,MT,RT], B: [MB,MT,LB,LT]
+        (inPositions[0] = wMB), (inUVs[0] = uvMB);
+        (inPositions[1] = wRB), (inUVs[1] = uvRB);
+        (inPositions[2] = wMT), (inUVs[2] = uvMT);
+        (inPositions[3] = wRT), (inUVs[3] = uvRT);
+        this._radialCut(subChunk, inPositions, inUVs, startAngle, endAngle, outPositions, outUVs);
+        (inPositions[1] = wMT), (inUVs[1] = uvMT);
+        (inPositions[2] = wLB), (inUVs[2] = uvLB);
+        (inPositions[3] = wLT), (inUVs[3] = uvLT);
+        this._radialCut(subChunk, inPositions, inUVs, startAngle - 90, endAngle - 90, outPositions, outUVs);
         break;
     }
 
@@ -387,9 +387,6 @@ export class FilledSpriteAssembler {
 
     let startAngle = 0;
     switch (origin) {
-      case SpriteFilledOrigin.Right:
-        startAngle = cw ? 360 - amount * 360 : 0;
-        break;
       case SpriteFilledOrigin.Top:
         startAngle = cw ? 450 - amount * 360 : 90;
         break;
@@ -399,7 +396,10 @@ export class FilledSpriteAssembler {
       case SpriteFilledOrigin.Bottom:
         startAngle = cw ? 630 - amount * 360 : 270;
         break;
+      // Right is the default; any unsupported origin falls back to it.
+      case SpriteFilledOrigin.Right:
       default:
+        startAngle = cw ? 360 - amount * 360 : 0;
         break;
     }
     const endAngle = startAngle + amount * 360;
@@ -420,7 +420,7 @@ export class FilledSpriteAssembler {
     const [lPosLB, lPosRB, lPosLT, lPosRT] = sprite._getPositions();
     const spriteUVs = sprite._getUVs();
     const { x: left, y: bottom } = spriteUVs[0];
-    const { x: right, y: top } = spriteUVs[15];
+    const { x: right, y: top } = spriteUVs[3];
 
     // ---------------
     //   LT  - MT -  RT
