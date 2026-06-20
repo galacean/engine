@@ -72,7 +72,8 @@ export class AudioSource extends Component {
   set volume(value: number) {
     value = Math.min(Math.max(0, value), 1.0);
     this._volume = value;
-    this._gainNode.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
+    // No node yet -> _ensureGainNode() applies _volume on first play
+    this._gainNode?.gain.setValueAtTime(value, AudioManager.getContext().currentTime);
   }
 
   /**
@@ -143,9 +144,9 @@ export class AudioSource extends Component {
   constructor(entity: Entity) {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
-
-    this._gainNode = AudioManager.getContext().createGain();
-    this._gainNode.connect(AudioManager.getGainNode());
+    // Gain node is created lazily on first play, not here: creating it would spin up the AudioContext
+    // before any user gesture, and on iOS such a pre-gesture context never recovers from a phone-call
+    // interruption (stays a silent zombie)
   }
 
   /**
@@ -155,18 +156,26 @@ export class AudioSource extends Component {
     if (!this._clip?._getAudioSource() || this._isPlaying || this._pendingPlay) {
       return;
     }
+    // Hidden page: don't start (would leak a sound) and don't pend (would replay out of sync) -> drop
+    if (document.hidden) {
+      return;
+    }
 
-    if (AudioManager._canStartPlayback()) {
+    if (AudioManager.isAudioContextRunning()) {
       this._startPlayback();
     } else {
+      // iOS Safari requires resume() to be called within the same user gesture callback that triggers playback.
+      // Document-level events won't work - must call resume() directly here in play().
       this._pendingPlay = true;
       AudioManager.resume().then(
         () => {
+          // Check if cancelled by stop()/pause()
           if (!this._pendingPlay) {
             return;
           }
           this._pendingPlay = false;
-          if (this._destroyed || !this.enabled || !this._clip?._getAudioSource() || !AudioManager._canStartPlayback()) {
+          // Check if still valid to play after async resume (page may have been hidden meanwhile)
+          if (this._destroyed || !this.enabled || !this._clip || document.hidden) {
             return;
           }
           this._startPlayback();
@@ -183,27 +192,30 @@ export class AudioSource extends Component {
    * Stops playing the clip.
    */
   stop(): void {
-    this._cancelPendingPlayback();
+    this._pendingPlay = false;
 
     if (this._isPlaying) {
       this._clearSourceNode();
-      this._isPlaying = false;
-    }
 
-    this._pausedTime = -1;
-    this._playTime = -1;
+      this._isPlaying = false;
+      this._pausedTime = -1;
+      this._playTime = -1;
+      AudioManager._playingCount--;
+    }
   }
 
   /**
    * Pauses playing the clip.
    */
   pause(): void {
-    this._cancelPendingPlayback();
+    this._pendingPlay = false;
 
     if (this._isPlaying) {
       this._clearSourceNode();
+
       this._pausedTime = AudioManager.getContext().currentTime;
       this._isPlaying = false;
+      AudioManager._playingCount--;
     }
   }
 
@@ -212,7 +224,7 @@ export class AudioSource extends Component {
    */
   _cloneTo(target: AudioSource): void {
     target._clip?._addReferCount(1);
-    target._gainNode.gain.setValueAtTime(target._volume, AudioManager.getContext().currentTime);
+    // _volume is field-cloned; its gain node is applied lazily on first play
   }
 
   /**
@@ -243,60 +255,44 @@ export class AudioSource extends Component {
     this.stop();
   }
 
+  private _ensureGainNode(): GainNode {
+    let gainNode = this._gainNode;
+    if (!gainNode) {
+      this._gainNode = gainNode = AudioManager.getContext().createGain();
+      gainNode.connect(AudioManager.getGainNode());
+      gainNode.gain.setValueAtTime(this._volume, AudioManager.getContext().currentTime);
+    }
+    return gainNode;
+  }
+
   private _startPlayback(): void {
     const startTime = this._pausedTime > 0 ? this._pausedTime - this._playTime : 0;
-    if (!this._initSourceNode(startTime)) {
-      this._pausedTime = -1;
-      this._playTime = -1;
-      return;
-    }
+    this._initSourceNode(startTime);
 
     this._playTime = AudioManager.getContext().currentTime - startTime;
     this._pausedTime = -1;
     this._isPlaying = true;
+    AudioManager._playingCount++;
   }
 
-  private _initSourceNode(startTime: number): boolean {
+  private _initSourceNode(startTime: number): void {
     const context = AudioManager.getContext();
     const sourceNode = context.createBufferSource();
-    const audioBuffer = this._clip._getAudioSource();
-    const duration = audioBuffer.duration;
-    let offset = Math.max(0, startTime);
 
-    if (duration > 0) {
-      if (this._loop) {
-        offset %= duration;
-      } else if (offset >= duration) {
-        return false;
-      }
-    }
-
-    sourceNode.buffer = audioBuffer;
+    sourceNode.buffer = this._clip._getAudioSource();
     sourceNode.playbackRate.value = this._playbackRate;
     sourceNode.loop = this._loop;
     sourceNode.onended = this._onPlayEnd;
     this._sourceNode = sourceNode;
 
-    sourceNode.connect(this._gainNode);
-    sourceNode.start(0, offset);
-    return true;
+    sourceNode.connect(this._ensureGainNode());
+    sourceNode.start(0, startTime);
   }
 
   private _clearSourceNode(): void {
-    const sourceNode = this._sourceNode;
-    if (!sourceNode) {
-      return;
-    }
-
-    sourceNode.onended = null;
-    try {
-      sourceNode.stop();
-    } catch {}
-    sourceNode.disconnect();
+    this._sourceNode.stop();
+    this._sourceNode.disconnect();
+    this._sourceNode.onended = null;
     this._sourceNode = null;
-  }
-
-  private _cancelPendingPlayback(): void {
-    this._pendingPlay = false;
   }
 }
