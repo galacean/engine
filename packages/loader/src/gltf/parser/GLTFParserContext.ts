@@ -116,13 +116,13 @@ export class GLTFParserContext {
 
       return AssetPromise.all([
         this.get<void>(GLTFParserType.Validator),
+        this.get<Entity>(GLTFParserType.Scene),
         this.get<Texture2D>(GLTFParserType.Texture),
         this.get<Material>(GLTFParserType.Material),
         this.get<ModelMesh[]>(GLTFParserType.Mesh),
         this.get<Skin>(GLTFParserType.Skin),
         this.get<AnimationClip>(GLTFParserType.Animation),
-        this.get<AnimatorController>(GLTFParserType.AnimatorController),
-        this.get<Entity>(GLTFParserType.Scene)
+        this.get<AnimatorController>(GLTFParserType.AnimatorController)
       ]).then(() => {
         const glTFResource = this.glTFResource;
         const animatorController = glTFResource.animatorController;

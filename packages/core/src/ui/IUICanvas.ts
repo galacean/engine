@@ -10,7 +10,8 @@ export interface IUICanvas {
   entity: Entity;
   sortOrder: number;
   _canvasIndex: number;
-  _renderElement: RenderElement;
+  _renderElements: RenderElement[];
+  _batchedRenderElements: RenderElement[];
   _canRender(camera: Camera): boolean;
   _prepareRender(renderContext: RenderContext): void;
 }

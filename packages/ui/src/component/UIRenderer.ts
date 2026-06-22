@@ -1,5 +1,5 @@
 import {
-  BatchUtils,
+  VertexMergeBatcher,
   Color,
   DependentMode,
   Entity,
@@ -113,19 +113,19 @@ export class UIRenderer extends Renderer implements IGraphics {
   }
 
   // @ts-ignore
-  override _canBatch(elementA, elementB): boolean {
-    return BatchUtils.canBatchSprite(elementA, elementB);
+  override _canBatch(preElement, curElement): boolean {
+    return VertexMergeBatcher.canBatchSprite(preElement, curElement);
   }
 
   // @ts-ignore
-  override _batch(elementA, elementB?): void {
-    BatchUtils.batchFor2D(elementA, elementB);
+  override _batch(preElement, curElement): void {
+    VertexMergeBatcher.batch(preElement, curElement);
   }
 
   // @ts-ignore
-  override _updateTransformShaderData(context, onlyMVP: boolean, batched: boolean): void {
+  override _updateTransformShaderData(context, onlyMVP: boolean): void {
     // @ts-ignore
-    super._updateTransformShaderData(context, onlyMVP, true);
+    this._updateWorldSpaceTransformShaderData(context, onlyMVP);
   }
 
   // @ts-ignore

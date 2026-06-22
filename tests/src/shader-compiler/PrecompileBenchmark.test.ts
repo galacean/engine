@@ -2,7 +2,14 @@
  * Precompile Benchmark — performance comparison between old and new paths
  */
 
-import { Shader, ShaderFactory, ShaderLanguage, ShaderMacro, ShaderMacroCollection, ShaderPass } from "@galacean/engine-core";
+import {
+  Shader,
+  ShaderFactory,
+  ShaderLanguage,
+  ShaderMacro,
+  ShaderMacroCollection,
+  ShaderPass
+} from "@galacean/engine-core";
 import { ShaderProgram } from "@galacean/engine-core/src/shader/ShaderProgram";
 import type { ShaderInstruction } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
@@ -11,8 +18,8 @@ import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMac
 import { shaders as builtinShaders } from "@galacean/engine-shader/sources";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
-import { server } from "@vitest/browser/context";
 import { describe, expect, it } from "vitest";
+import { server } from "@vitest/browser/context";
 
 const { readFile } = server.commands;
 
@@ -148,7 +155,7 @@ describe("Precompile Benchmark", async () => {
 
   for (const entry of shaderFiles) {
     if (!entry.source && entry.file) {
-      entry.source = await readFile(`./shaders/${entry.file}`);
+      entry.source = await readFile(`src/shader-compiler/shaders/${entry.file}`);
     }
   }
 
@@ -366,5 +373,4 @@ describe("Precompile Benchmark", async () => {
       console.log(`\nRuntime evaluator: ${rtResult.avg.toFixed(3)}ms avg`);
     });
   });
-
 });

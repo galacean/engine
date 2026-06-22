@@ -1,14 +1,18 @@
 import { Shader, ShaderLanguage, ShaderMacro, ShaderMacroCollection } from "@galacean/engine-core";
 import { IPrecompiledShader } from "@galacean/engine-design";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { ShaderInstructionEncoder, ShaderInstruction } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
+import {
+  ShaderInstructionEncoder,
+  ShaderInstruction
+} from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
+import { beforeAll, describe, expect, it } from "vitest";
 import { server } from "@vitest/browser/context";
-import { describe, expect, it } from "vitest";
 
 const { readFile } = server.commands;
+
 Logger.enable();
 
 const shaderCompiler = new ShaderCompiler();
@@ -21,8 +25,7 @@ function makeMacroMap(entries: Array<[string, string]>): Map<string, string> {
 describe("ShaderCompiler Precompile", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas, shaderCompiler });
-  const PBRSource = await readFile("../../../packages/shader/src/Shaders/PBR.shader");
-
+  const PBRSource = await readFile("../packages/shader/src/Shaders/PBR.shader");
 
   // ─────────────────────────────────────────────────────────
   // 1. JSON Serialization round-trip
@@ -512,16 +515,28 @@ describe("ShaderCompiler Precompile", async () => {
 
     it("#if comparison operators", () => {
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "5"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "5"]])
+        )
       ).toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"), makeMacroMap([["FOO", "2"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO > 3\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "2"]])
+        )
       ).not.toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "1"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "1"]])
+        )
       ).toContain("YES");
       expect(
-        ShaderMacroProcessor.evaluate(ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"), makeMacroMap([["FOO", "0"]]))
+        ShaderMacroProcessor.evaluate(
+          ShaderInstructionEncoder.parse("#if FOO != 0\nYES\n#endif\n"),
+          makeMacroMap([["FOO", "0"]])
+        )
       ).not.toContain("YES");
     });
 
@@ -595,7 +610,9 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("#define with comment stripped — comment not in output", () => {
-      const inst = ShaderInstructionEncoder.parse("#define HALF_EPS 4.8828125e-4 // machine epsilon\nfloat x = HALF_EPS;\n");
+      const inst = ShaderInstructionEncoder.parse(
+        "#define HALF_EPS 4.8828125e-4 // machine epsilon\nfloat x = HALF_EPS;\n"
+      );
       const result = eval_(inst, []);
       expect(result).toContain("4.8828125e-4");
       expect(result).not.toContain("machine epsilon");
@@ -846,7 +863,7 @@ describe("ShaderCompiler Precompile", async () => {
     // Note: This first test is a self-check (idempotency) — it verifies that calling
     // evaluateShaderInstructions twice with the same inputs produces identical output.
     it("evaluateShaderInstructions is deterministic (same input → same output)", async () => {
-      const source = await readFile("./shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const macroCombinations: Array<Array<[string, string]>> = [
@@ -869,7 +886,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("evaluateShaderInstructions output survives JSON round-trip of instructions", async () => {
-      const source = await readFile("./shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       for (const subShader of precompiled.subShaders) {
@@ -953,7 +970,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("simple shader (noFragArgs) → instructions should be single TEXT", async () => {
-      const source = await readFile("./shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       for (const subShader of precompiled.subShaders) {
@@ -969,7 +986,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("macro-heavy shader → instructions with conditionals", async () => {
-      const source = await readFile("./shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       let foundMacroPass = false;
@@ -988,7 +1005,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("multi-pass shader → renderStates have constantMap entries (BlendState)", async () => {
-      const source = await readFile("./shaders/multi-pass.shader");
+      const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       let hasConstant = false;
@@ -1003,7 +1020,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("multi-pass shader → UsePass correctly flagged", async () => {
-      const source = await readFile("./shaders/multi-pass.shader");
+      const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const allPasses = precompiled.subShaders.flatMap((s) => s.passes);
@@ -1031,7 +1048,7 @@ describe("ShaderCompiler Precompile", async () => {
     // Hammersley `radicalInverse_VdC` bit twiddle (from
     // `galacean-tools/baker/IBLBaker.shader`) so `<<`/`>>` are covered too.
     it("preserves every GLSL ES 3.00 numeric literal form", async () => {
-      const source = await readFile("./shaders/numeric-literals.shader");
+      const source = await readFile("src/shader-compiler/shaders/numeric-literals.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES300);
       const pass = precompiled.subShaders[0].passes[0];
       const text = [
@@ -1077,8 +1094,81 @@ describe("ShaderCompiler Precompile", async () => {
       }
     });
 
+    // Regression for SkyMat `material_AtmosphereThickness undeclared`. The
+    // fixture exercises paren / operator / fn-call / unary / nested-fn macro
+    // values; each must emit a DefineVal and every user identifier in the
+    // value must become a real `uniform` declaration.
+    it("emits object-like Define instructions and uniforms for complex macro values", async () => {
+      const source = await readFile("src/shader-compiler/shaders/macro-value-refs.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
+
+      const defines = new Map<string, ShaderInstruction>();
+      for (const inst of fragInstr) {
+        if ((inst[0] === 8 || inst[0] === 9) && typeof inst[1] === "string") defines.set(inst[1], inst);
+      }
+      // AST-emitted values are re-rendered by the visitor with token-separating
+      // whitespace; assert structural (whitespace-normalized) identity.
+      const expectedDefines: Array<[string, string]> = [
+        ["V_PAREN", "(u_paren)"],
+        ["V_OP", "u_op_a + u_op_b"],
+        ["V_FN", "mix(u_fn_a, u_fn_b, 0.5)"],
+        ["V_UNARY", "-u_unary"],
+        ["V_SKY", "(mix(0.0, 0.0025, pow(material_AtmosphereThickness, 2.5)))"]
+      ];
+      const norm = (s: string) => s.replace(/\s+/g, "");
+      for (const [name, value] of expectedDefines) {
+        const inst = defines.get(name);
+        expect(inst, `missing #define ${name}`).toBeDefined();
+        expect(inst![0], `${name} must be DefineVal (8), got ${inst![0]}`).toBe(8);
+        expect(norm(inst![2] as string), `${name} value mismatch`).toBe(norm(value));
+      }
+
+      const fragText = fragInstr
+        .filter((i) => i[0] === 0)
+        .map((i) => i[1] as string)
+        .join("");
+      for (const name of [
+        "u_paren",
+        "u_op_a",
+        "u_op_b",
+        "u_fn_a",
+        "u_fn_b",
+        "u_unary",
+        "material_AtmosphereThickness"
+      ]) {
+        expect(fragText, `missing uniform decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
+      }
+    });
+
+    // Regression: comment text inside `#define` values must not leak into the
+    // identifier scanner. Real `u_used_*` refs are kept; `u_in_comment_*`
+    // mentions are not promoted to uniforms.
+    it("does not collect identifiers from comments inside #define values", async () => {
+      const source = await readFile("src/shader-compiler/shaders/macro-value-refs-with-comments.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const fragInstr = (precompiled.subShaders[0].passes[0].fragmentShaderInstructions as ShaderInstruction[]) ?? [];
+      const fragText = fragInstr
+        .filter((i) => i[0] === 0)
+        .map((i) => i[1] as string)
+        .join("");
+
+      // Real references (in macro value proper) must be kept.
+      for (const name of ["u_used_block", "u_used_line", "u_used_mid"]) {
+        expect(fragText, `missing real ref decl: ${name}`).toMatch(new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`));
+      }
+
+      // Comment-only mentions must NOT be promoted to references — if they
+      // are, dead-code elimination keeps these unused globals alive.
+      for (const name of ["u_in_comment_block", "u_in_comment_line", "u_in_comment_mid", "u_in_comment_tail"]) {
+        expect(fragText, `fake ref leaked from comment: ${name}`).not.toMatch(
+          new RegExp(`uniform\\s+\\w+\\s+${name}\\s*;`)
+        );
+      }
+    });
+
     it("subShader tags are preserved", async () => {
-      const source = await readFile("./shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const sub = precompiled.subShaders[0];
@@ -1087,12 +1177,57 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("pass tags are preserved", async () => {
-      const source = await readFile("./shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       const pass = precompiled.subShaders[0].passes[0];
       expect(pass.tags).toBeDefined();
       expect(pass.tags!["ReplacementTag"]).toBe("opaque");
+    });
+  });
+
+  // After LALR enforces shift on `macro_call_symbol . '('`, the visitor at
+  // `K(args)` must distinguish three callee kinds derived from the macro's
+  // replacement and apply IO-struct formal flattening only when the callee is
+  // a user-declared function. Earlier the filter ran for every object-like
+  // macro and silently dropped member-access / literal args (e.g. emitting
+  // `vec3()` from `MyVec3(attr.POSITION.x, attr.POSITION.y, attr.POSITION.z)`).
+  describe("MacroCallFunction calleeKind-aware arg filtering", () => {
+    let evaluated: string;
+    beforeAll(async () => {
+      const source = await readFile("src/shader-compiler/shaders/macro-as-type-args.shader");
+      const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
+      const vi = precompiled.subShaders[0].passes[0].vertexShaderInstructions ?? [];
+      evaluated = ShaderMacroProcessor.evaluate(vi as any, new Map());
+    });
+
+    // (1) builtin type alias: constructor call, no formal flattening
+    it("builtin type alias keeps member-access args", () => {
+      // After flatten, `attr.POSITION.x/y/z` → `POSITION.x/y/z`.
+      expect(evaluated).toMatch(/vec3\s*\(\s*POSITION\.x\s*,\s*POSITION\.y\s*,\s*POSITION\.z\s*\)/);
+    });
+    it("builtin type alias keeps literal args", () => {
+      expect(evaluated).toMatch(/vec3\s*\(\s*0\.1\s*,\s*0\.2\s*,\s*0\.3\s*\)/);
+    });
+    it("builtin type alias never emits an empty constructor call", () => {
+      // Defends against the original bug where every arg was filtered.
+      expect(evaluated).not.toMatch(/vec3\s*\(\s*\)/);
+    });
+
+    // (2) builtin function alias: args are values, no flattening
+    it("builtin function alias keeps all args verbatim", () => {
+      expect(evaluated).toMatch(/mix\s*\(\s*v_member\s*,\s*v_literal\s*,\s*0\.5\s*\)/);
+    });
+
+    // (3) user-fn alias: formal flattening DOES apply — bare IO-struct arg
+    //     must be dropped so the call site matches the flattened signature.
+    it("user-fn alias drops bare IO-struct arg paired with flattened formal", () => {
+      // `computeColor(Attributes a)` flattens to `computeColor()` and call
+      // becomes `computeColor()` (the `attr` arg drops).
+      expect(evaluated).toMatch(/computeColor\s*\(\s*\)/);
+      // The macro name `MyHelper` should still appear in the macro define
+      // table (the directive itself), but never as `MyHelper(attr)` text.
+      expect(evaluated).not.toMatch(/MyHelper\s*\(\s*attr\s*\)/);
     });
   });
 
@@ -1113,7 +1248,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("platformTarget is set on each ShaderPass", async () => {
-      const source = await readFile("./shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_PlatformTarget" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1129,7 +1264,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("_vertexShaderInstructions / _fragmentShaderInstructions are set correctly", async () => {
-      const source = await readFile("./shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_ShaderInstructions" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1147,7 +1282,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("_vertexShaderInstructions populated for macro-heavy shader", async () => {
-      const source = await readFile("./shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_ShaderInstructions" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1169,7 +1304,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("SubShader tags are preserved after _createFromPrecompiled", async () => {
-      const source = await readFile("./shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestMacroPre_CFP_Tags" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1181,7 +1316,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("ShaderPass tags are preserved after _createFromPrecompiled", async () => {
-      const source = await readFile("./shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestNoFrag_CFP_PassTags" };
       const shader = Shader._createFromPrecompiled(testData);
@@ -1205,7 +1340,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("UsePass in multi-pass shader is handled without throwing", async () => {
-      const source = await readFile("./shaders/multi-pass.shader");
+      const source = await readFile("src/shader-compiler/shaders/multi-pass.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
       const testData = { ...precompiled, name: "TestMultiPass_CFP_UsePass" };
 
@@ -1229,7 +1364,7 @@ describe("ShaderCompiler Precompile", async () => {
 
     for (const shaderFile of testShaders) {
       it(`${shaderFile}: precompile output matches live compilation`, async () => {
-        const source = await readFile(`./shaders/${shaderFile}`);
+        const source = await readFile(`src/shader-compiler/shaders/${shaderFile}`);
         const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
         const liveSource = shaderCompiler._parseShaderSource(source);
 
@@ -1256,7 +1391,7 @@ describe("ShaderCompiler Precompile", async () => {
     }
 
     it("GLSLES300 precompile output matches GLSLES300 live compilation", async () => {
-      const source = await readFile("./shaders/noFragArgs.shader");
+      const source = await readFile("src/shader-compiler/shaders/noFragArgs.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES300);
       const liveSource = shaderCompiler._parseShaderSource(source);
 
@@ -1270,7 +1405,9 @@ describe("ShaderCompiler Precompile", async () => {
             livePass.fragmentEntry,
             ShaderLanguage.GLSLES300
           );
-          expect(precompiled.subShaders[i].passes[j].vertexShaderInstructions).toEqual(liveProgram.vertexShaderInstructions);
+          expect(precompiled.subShaders[i].passes[j].vertexShaderInstructions).toEqual(
+            liveProgram.vertexShaderInstructions
+          );
         }
       }
     });
@@ -1305,7 +1442,7 @@ describe("ShaderCompiler Precompile", async () => {
     });
 
     it("evaluateShaderInstructions is fast on macro-heavy shader", async () => {
-      const source = await readFile("./shaders/macro-pre.shader");
+      const source = await readFile("src/shader-compiler/shaders/macro-pre.shader");
       const precompiled = shaderCompiler._precompile(source, ShaderLanguage.GLSLES100);
 
       let fragmentShaderInstructions: ShaderInstruction[] | undefined;

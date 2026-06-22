@@ -5,7 +5,9 @@ import { Utils } from "./Utils";
  * @internal
  */
 export class UpdateFlagManager {
-  /** @internal */
+  /** Monotonic counter bumped on every `dispatch`; consumers can snapshot it for lazy pull-style cache invalidation. */
+  version = 0;
+
   _updateFlags: UpdateFlag[] = [];
 
   private _listeners: ((type?: number, param?: Object) => void)[] = [];
@@ -62,6 +64,8 @@ export class UpdateFlagManager {
    * @param param - Event param
    */
   dispatch(type?: number, param?: Object): void {
+    this.version++;
+
     const updateFlags = this._updateFlags;
     for (let i = updateFlags.length - 1; i >= 0; i--) {
       updateFlags[i].dispatch(type, param);

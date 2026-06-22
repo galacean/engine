@@ -1,7 +1,7 @@
 {
   "name": "@galacean/engine-e2e",
   "private": true,
-  "version": "2.0.0-alpha.30",
+  "version": "2.0.0-alpha.37",
   "license": "MIT",
   "scripts": {
     "case": "vite serve .dev --config .dev/vite.config.js",
@@ -19,6 +19,7 @@
     "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
+    "@galacean/engine-ui": "workspace:*",
     "dat.gui": "^0.7.9",
     "vite": "3.1.6",
     "sass": "^1.55.0"

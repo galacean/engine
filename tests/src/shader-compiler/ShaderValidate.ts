@@ -1,4 +1,12 @@
-import { Engine, Shader, ShaderFactory, ShaderMacro, ShaderMacroCollection, ShaderPass, ShaderLanguage } from "@galacean/engine-core";
+import {
+  Engine,
+  Shader,
+  ShaderFactory,
+  ShaderMacro,
+  ShaderMacroCollection,
+  ShaderPass,
+  ShaderLanguage
+} from "@galacean/engine-core";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { expect } from "vitest";
 
@@ -64,7 +72,7 @@ export function glslValidate(
         });
 
         // @ts-ignore
-        const shaderProgram = shaderPass._getCanonicalShaderProgram(engine, macroMockCollection);
+        const shaderProgram = shaderPass._compileShaderProgram(engine, macroMockCollection);
         expect(shaderProgram.isValid).to.be.true;
       });
     });

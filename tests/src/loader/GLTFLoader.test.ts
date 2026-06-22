@@ -39,6 +39,211 @@ beforeAll(async function () {
   @registerGLTFParser(GLTFParserType.Schema)
   class GLTFCustomJSONParser extends GLTFParser {
     parse(context: GLTFParserContext) {
+      if (context.glTFResource.url.endsWith("testSkinRoot.gltf")) {
+        context.buffers = [new ArrayBuffer(128)];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              nodes: [0, 1]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Man"
+            },
+            {
+              name: "mixamorig:Hips",
+              children: [2]
+            },
+            {
+              name: "mixamorig:Spine"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              joints: [1, 2]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "MAT4"
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 128
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 128
+            }
+          ]
+        });
+      }
+
+      if (context.glTFResource.url.endsWith("testSingleSkeleton.gltf")) {
+        context.buffers = [new ArrayBuffer(128)];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              nodes: [0, 2]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Root",
+              children: [1]
+            },
+            {
+              name: "mixamorig:Hips"
+            },
+            {
+              name: "Light"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              joints: [0, 1]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "MAT4"
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 128
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 128
+            }
+          ]
+        });
+      }
+
+      if (context.glTFResource.url.endsWith("testSkinRootBounds.gltf")) {
+        const buffer = new ArrayBuffer(152);
+        const floats = new Float32Array(buffer);
+        // Inverse bind matrices for Hips and Spine; Character_Group scales by
+        // (2, 3, 1), then offsets Hips by 10 on x, so Hips world x is 23.
+        floats.set([0.5, 0, 0, 0, 0, 1 / 3, 0, 0, 0, 0, 1, 0, -11.5, 0, 0, 1], 0);
+        floats.set([0.5, 0, 0, 0, 0, 1 / 3, 0, 0, 0, 0, 1, 0, -11.5, 0, 0, 1], 16);
+        floats.set([9, -3, -1, 11, 3, 1], 32);
+        context.buffers = [buffer];
+        return Promise.resolve({
+          asset: {
+            version: "2.0"
+          },
+          scene: 0,
+          scenes: [
+            {
+              nodes: [0]
+            }
+          ],
+          nodes: [
+            {
+              name: "Character_Group",
+              translation: [3, 0, 0],
+              scale: [2, 3, 1],
+              children: [1, 2]
+            },
+            {
+              name: "Character_Man",
+              mesh: 0,
+              skin: 0
+            },
+            {
+              name: "mixamorig:Hips",
+              translation: [10, 0, 0],
+              children: [3]
+            },
+            {
+              name: "mixamorig:Spine"
+            }
+          ],
+          skins: [
+            {
+              inverseBindMatrices: 0,
+              skeleton: 0,
+              joints: [2, 3]
+            }
+          ],
+          meshes: [
+            {
+              primitives: [
+                {
+                  attributes: {
+                    POSITION: 1
+                  },
+                  mode: 4
+                }
+              ]
+            }
+          ],
+          accessors: [
+            {
+              bufferView: 0,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "MAT4"
+            },
+            {
+              bufferView: 1,
+              byteOffset: 0,
+              componentType: 5126,
+              count: 2,
+              type: "VEC3",
+              min: [9, -3, -1],
+              max: [11, 3, 1]
+            }
+          ],
+          bufferViews: [
+            {
+              buffer: 0,
+              byteOffset: 0,
+              byteLength: 128
+            },
+            {
+              buffer: 0,
+              byteOffset: 128,
+              byteLength: 24
+            }
+          ],
+          buffers: [
+            {
+              byteLength: 152
+            }
+          ]
+        });
+      }
+
       const glTF = <any>{
         buffers: [
           {
@@ -393,7 +598,7 @@ beforeAll(async function () {
 
 afterAll(() => {
   @registerGLTFParser(GLTFParserType.Schema)
-  class test extends GLTFSchemaParser { }
+  class test extends GLTFSchemaParser {}
 });
 
 describe("glTF Loader test", function () {
@@ -481,6 +686,17 @@ describe("glTF Loader test", function () {
     expect(renderer).to.exist;
     expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
   });
+
+  it("single-root animation root channel should bind to the root node path", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testA.gltf"
+    });
+
+    const clip = glTFResource.animations?.[0];
+    expect(clip).to.exist;
+    expect(clip.curveBindings[0].relativePath).to.equal("entity1");
+  });
 });
 
 describe("glTF instance test", function () {
@@ -529,6 +745,54 @@ describe("glTF scene root structure", function () {
     expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
     expect(defaultSceneRoot.children.length).to.equal(1);
     expect(defaultSceneRoot.children[0].name).to.equal("entity1");
+  });
+
+  it("Multi-root skins without skeleton should use the joints LCA as rootBone", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testSkinRoot.gltf"
+    });
+    const { defaultSceneRoot, skins } = glTFResource;
+
+    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
+    expect(defaultSceneRoot.children.length).to.equal(2);
+    expect(skins[0].rootBone).to.not.equal(defaultSceneRoot);
+    expect(skins[0].rootBone.name).to.equal("mixamorig:Hips");
+  });
+
+  it("Multi-root scenes whose joints converge to a single top-level root should not use the scene wrapper", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testSingleSkeleton.gltf"
+    });
+    const { defaultSceneRoot, skins } = glTFResource;
+
+    expect(defaultSceneRoot.name).to.equal("GLTF_ROOT");
+    expect(defaultSceneRoot.children.length).to.equal(2);
+    expect(skins[0].rootBone).to.not.equal(defaultSceneRoot);
+    expect(skins[0].rootBone.name).to.equal("Character_Root");
+  });
+
+  it("Skinned mesh bounds should stay in scaled rootBone space when explicit rootBone is outside joints", async () => {
+    const glTFResource: GLTFResource = await engine.resourceManager.load({
+      type: AssetType.GLTF,
+      url: "mock/path/testSkinRootBounds.gltf"
+    });
+    const { defaultSceneRoot, skins } = glTFResource;
+    const characterGroup = defaultSceneRoot.children[0];
+    const characterMesh = characterGroup.children[0];
+    const renderer = characterMesh.getComponent(SkinnedMeshRenderer);
+
+    expect(skins[0].rootBone).to.equal(characterGroup);
+    expect(renderer).to.exist;
+    expect(renderer.localBounds.min.x).to.be.closeTo(3, 1e-5);
+    expect(renderer.localBounds.max.x).to.be.closeTo(4, 1e-5);
+    expect(renderer.localBounds.min.y).to.be.closeTo(-1, 1e-5);
+    expect(renderer.localBounds.max.y).to.be.closeTo(1, 1e-5);
+    expect(renderer.bounds.min.x).to.be.closeTo(9, 1e-5);
+    expect(renderer.bounds.max.x).to.be.closeTo(11, 1e-5);
+    expect(renderer.bounds.min.y).to.be.closeTo(-3, 1e-5);
+    expect(renderer.bounds.max.y).to.be.closeTo(3, 1e-5);
   });
 });
 

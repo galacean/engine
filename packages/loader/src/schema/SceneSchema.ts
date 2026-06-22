@@ -10,14 +10,14 @@ import type { HierarchyFile } from "./HierarchySchema";
 import type { Vec3Tuple, Vec4Tuple } from "./CommonSchema";
 
 export enum SpecularMode {
-  Sky = "Sky",
-  Custom = "Custom"
+  Sky = 0,
+  Custom = 1
 }
 
 export interface SceneFile extends HierarchyFile {
   scene: {
     name?: string;
-    entities: number[];
+    rootEntities: number[];
     background: {
       mode: BackgroundMode;
       color: Vec4Tuple;

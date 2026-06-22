@@ -105,6 +105,8 @@ export class Entity extends EngineObject {
   /** @internal */
   _scripts: DisorderedArray<Script> = new DisorderedArray<Script>();
   /** @internal */
+  _scriptsVersion = 0;
+  /** @internal */
   _children: Entity[] = [];
   /** @internal */
   _scene: Scene;
@@ -294,9 +296,10 @@ export class Entity extends EngineObject {
 
   /**
    * Get the components which match the type of the entity and it's children.
+   * @remarks The components are returned in depth-first pre-order: the entity itself first, then each child's subtree in sibling order.
    * @param type - The component type
    * @param results - The components collection
-   * @returns	The components collection which match the type
+   * @returns The components collection which match the type
    */
   getComponentsIncludeChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
@@ -341,7 +344,7 @@ export class Entity extends EngineObject {
    * @deprecated Please use `children` property instead.
    * Find child entity by index.
    * @param index - The index of the child entity
-   * @returns	The component which be found
+   * @returns The entity that was found
    */
   getChild(index: number): Entity {
     return this._children[index];
@@ -349,8 +352,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find entity by name.
-   * @param name - The name of the entity which want to be found
-   * @returns The component which be found
+   * @param name - The name of the entity to find
+   * @returns The entity that was found
    */
   findByName(name: string): Entity {
     if (name === this.name) {
@@ -369,14 +372,13 @@ export class Entity extends EngineObject {
   /**
    * Find the entity by path.
    * @param path - The path of the entity eg: /entity
-   * @returns The component which be found
+   * @returns The entity that was found
    */
   findByPath(path: string): Entity {
     const splits = path.split("/").filter(Boolean);
     if (!splits.length) {
       return this;
     }
-
     return Entity._findChildByName(this, 0, splits, 0);
   }
 
@@ -538,6 +540,7 @@ export class Entity extends EngineObject {
   _addScript(script: Script) {
     script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
+    this._scriptsVersion++;
   }
 
   /**
@@ -547,6 +550,7 @@ export class Entity extends EngineObject {
     const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
     replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
     script._entityScriptsIndex = -1;
+    this._scriptsVersion++;
   }
 
   /**
@@ -679,14 +683,16 @@ export class Entity extends EngineObject {
   }
 
   private _getComponentsInChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): void {
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
       if (component instanceof type) {
         results.push(component);
       }
     }
-    for (let i = this._children.length - 1; i >= 0; i--) {
-      this._children[i]._getComponentsInChildren<T>(type, results);
+    const children = this._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i]._getComponentsInChildren<T>(type, results);
     }
   }
 

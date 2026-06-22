@@ -45,10 +45,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
       const animator = defaultSceneRoot.getComponent(Animator)!;
 
-      animator.play("Right");
-      const state = animator.getCurrentAnimatorState(0);
+      // clipStartTime/clipEndTime are on the shared AnimatorState asset, not the per-Animator instance view.
+      const state = animator.animatorController.layers[0].stateMachine.findStateByName("Right");
       state.clipStartTime = 1;
       state.clipEndTime = 1;
+      animator.play("Right");
 
       updateForE2E(engine);
 

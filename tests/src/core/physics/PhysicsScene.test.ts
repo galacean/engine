@@ -469,16 +469,15 @@ describe("Physics Test", () => {
       expect(outHitResult.normal).to.be.deep.include({ x: 0, y: 0, z: 0 });
       expect(outHitResult.entity).to.be.null;
 
-      // Test that return origin point if origin is inside collider.
+      // Test that initial overlap is skipped when ray origin is inside collider.
+      // Use a strictly-inside origin (2.9,2.9,2.9) rather than the box corner
+      // (3,3,3), which is a boundary point whose hit/miss depends on PhysX edge
+      // tolerance and can flake regardless of the initial-overlap-skip behavior.
       boxShape.size = new Vector3(6, 6, 6);
-      ray = new Ray(new Vector3(3, 3, 3), new Vector3(0, -1, 0).normalize());
-      expect(physicsScene.raycast(ray, outHitResult)).to.eq(true);
+      ray = new Ray(new Vector3(2.9, 2.9, 2.9), new Vector3(0, -1, 0).normalize());
+      expect(physicsScene.raycast(ray, outHitResult)).to.eq(false);
       expect(outHitResult.distance).to.be.eq(0);
-      expect(outHitResult.point).to.be.deep.include({ x: 3, y: 3, z: 3 });
-      expect(outHitResult.normal.x).to.be.eq(0);
-      expect(outHitResult.normal.y).to.be.eq(1);
-      expect(outHitResult.normal.z).to.be.eq(0);
-      expect(outHitResult.entity).to.be.eq(raycastTestRoot);
+      expect(outHitResult.entity).to.be.null;
 
       // Test that raycast works correctly if shape is not at origin of coordinate.
       boxShape.size = new Vector3(1, 1, 1);
@@ -537,6 +536,279 @@ describe("Physics Test", () => {
       root.destroy();
     });
 
+    it("raycast skips initial overlap when ray origin is inside a collider", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("root");
+
+      // Box at origin, encompassing the ray origin
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCollider = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCollider.addShape(insideShape);
+
+      // Box further along the ray direction
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCollider = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCollider.addShape(farShape);
+
+      // Cast ray from origin (inside `insideBox`) outward
+      const hit = new HitResult();
+      const ray = new Ray(new Vector3(0, 0, 0), new Vector3(1, 0, 0));
+      const ok = physicsScene.raycast(ray, 100, hit);
+
+      expect(ok).to.eq(true);
+      // Should hit the far box, NOT the box at origin (initial overlap is skipped)
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("boxCast skips initial overlap and hits far collider beyond", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("boxcast_initial_overlap_root");
+
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCol = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCol.addShape(insideShape);
+
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCol = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCol.addShape(farShape);
+
+      const halfExtents = new Vector3(0.5, 0.5, 0.5);
+      const direction = new Vector3(1, 0, 0);
+      const hit = new HitResult();
+      // Sweep origin (0,0,0) is inside insideBox; should skip and hit farBox
+      const ok = physicsScene.boxCast(new Vector3(0, 0, 0), halfExtents, direction, 100, hit);
+
+      expect(ok).to.eq(true);
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("sphereCast skips initial overlap and hits far collider beyond", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("spherecast_initial_overlap_root");
+
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCol = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCol.addShape(insideShape);
+
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCol = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCol.addShape(farShape);
+
+      const direction = new Vector3(1, 0, 0);
+      const hit = new HitResult();
+      const ok = physicsScene.sphereCast(new Vector3(0, 0, 0), 0.4, direction, 100, hit);
+
+      expect(ok).to.eq(true);
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("capsuleCast skips initial overlap and hits far collider beyond", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const physicsScene = scene.physics;
+      const root = scene.createRootEntity("capsulecast_initial_overlap_root");
+
+      const insideBox = root.createChild("inside_box");
+      insideBox.transform.position = new Vector3(0, 0, 0);
+      const insideCol = insideBox.addComponent(StaticCollider);
+      const insideShape = new BoxColliderShape();
+      insideShape.size = new Vector3(2, 2, 2);
+      insideCol.addShape(insideShape);
+
+      const farBox = root.createChild("far_box");
+      farBox.transform.position = new Vector3(5, 0, 0);
+      const farCol = farBox.addComponent(StaticCollider);
+      const farShape = new BoxColliderShape();
+      farShape.size = new Vector3(2, 2, 2);
+      farCol.addShape(farShape);
+
+      const direction = new Vector3(1, 0, 0);
+      const hit = new HitResult();
+      const ok = physicsScene.capsuleCast(new Vector3(0, 0, 0), 0.3, 0.5, direction, 100, hit);
+
+      expect(ok).to.eq(true);
+      expect(hit.entity).to.eq(farBox);
+      expect(hit.distance).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("raycast nested inside another raycast's onRaycast keeps stack ordering", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("nested_raycast_root");
+      // Native PhysX scene exposes the (ray, distance, onRaycast, hit) signature
+      // that takes a per-call filter; the persistent-callback stack pattern is
+      // verified through this layer.
+      const nativeScene = (scene.physics as any)._nativePhysicsScene;
+
+      const boxA = root.createChild("box_a");
+      boxA.transform.position = new Vector3(2, 0, 0);
+      const colA = boxA.addComponent(StaticCollider);
+      const shapeA = new BoxColliderShape();
+      shapeA.size = new Vector3(1, 1, 1);
+      colA.addShape(shapeA);
+
+      const boxB = root.createChild("box_b");
+      boxB.transform.position = new Vector3(0, 2, 0);
+      const colB = boxB.addComponent(StaticCollider);
+      const shapeB = new BoxColliderShape();
+      shapeB.size = new Vector3(1, 1, 1);
+      colB.addShape(shapeB);
+
+      const seenInOuter: number[] = [];
+      const seenInInner: number[] = [];
+
+      const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
+      nativeScene.raycast(outerRay, 100, (uuid: number) => {
+        seenInOuter.push(uuid);
+        // Nested raycast inside the outer's filter callback. If the stack got
+        // mixed up, the inner ray's preFilter would dispatch to the outer
+        // recorder (or vice versa).
+        const innerRay = new Ray(new Vector3(0, -5, 0), new Vector3(0, 1, 0));
+        nativeScene.raycast(innerRay, 100, (innerUuid: number) => {
+          seenInInner.push(innerUuid);
+          return true;
+        });
+        return true;
+      });
+
+      // The outer ray (along +X from -5,0,0) cannot intersect boxB at (0,2,0),
+      // so its preFilter must never see shapeB. Conversely, the inner ray
+      // (along +Y from 0,-5,0) cannot intersect boxA at (2,0,0), so its
+      // preFilter must never see shapeA. Stack mixing would violate either.
+      expect(seenInOuter).to.not.include(shapeB.id);
+      expect(seenInInner).to.not.include(shapeA.id);
+      // Both filters must have run — otherwise the assertions above are vacuous.
+      expect(seenInOuter.length).to.be.greaterThan(0);
+      expect(seenInInner.length).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("sweep nested inside raycast's onRaycast uses independent filter stacks", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("nested_mixed_root");
+      const nativeScene = (scene.physics as any)._nativePhysicsScene;
+
+      const boxA = root.createChild("box_a");
+      boxA.transform.position = new Vector3(3, 0, 0);
+      const colA = boxA.addComponent(StaticCollider);
+      const shapeA = new BoxColliderShape();
+      shapeA.size = new Vector3(1, 1, 1);
+      colA.addShape(shapeA);
+
+      let outerCalls = 0;
+      let innerSweepCalls = 0;
+      const innerSweepUuids: number[] = [];
+
+      const outerRay = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
+      const outerHitFn = (uuid: number, distance: number, _p: Vector3, _n: Vector3) => {
+        // The outer raycast must successfully report a hit on shapeA's UUID.
+        expect(uuid).to.eq(shapeA.id);
+        expect(distance).to.be.greaterThan(0);
+      };
+      const result = nativeScene.raycast(
+        outerRay,
+        100,
+        (uuid: number) => {
+          outerCalls++;
+          // Nested boxCast (sweep) inside the raycast filter — uses a different
+          // persistent callback / stack on the PhysX side. The two stacks must
+          // not interfere.
+          const sweepCenter = new Vector3(3, 0, 0);
+          const halfExtents = new Vector3(0.5, 0.5, 0.5);
+          const direction = new Vector3(0, 1, 0);
+          const orientation = new Quaternion(0, 0, 0, 1);
+          nativeScene.boxCast(sweepCenter, orientation, halfExtents, direction, 100, (sweepUuid: number) => {
+            innerSweepCalls++;
+            innerSweepUuids.push(sweepUuid);
+            return false; // skip everything in inner sweep
+          });
+          return uuid === shapeA.id;
+        },
+        outerHitFn
+      );
+
+      // Outer raycast must succeed despite the nested sweep with its own filter.
+      expect(result).to.eq(true);
+      expect(outerCalls).to.be.greaterThan(0);
+      // Nested sweep had to actually run at least once for this test to be meaningful.
+      expect(innerSweepCalls).to.be.greaterThan(0);
+
+      root.destroy();
+    });
+
+    it("raycast callback throwing leaves the filter stack clean for subsequent calls", () => {
+      const scene = enginePhysX.sceneManager.activeScene;
+      const root = scene.createRootEntity("throw_recovery_root");
+      const nativeScene = (scene.physics as any)._nativePhysicsScene;
+
+      const box = root.createChild("box");
+      box.transform.position = new Vector3(2, 0, 0);
+      const col = box.addComponent(StaticCollider);
+      const shape = new BoxColliderShape();
+      shape.size = new Vector3(1, 1, 1);
+      col.addShape(shape);
+
+      const ray = new Ray(new Vector3(-5, 0, 0), new Vector3(1, 0, 0));
+
+      expect(() => {
+        nativeScene.raycast(ray, 100, () => {
+          throw new Error("intentional in test");
+        });
+      }).to.throw("intentional in test");
+
+      // Stack must be clean — subsequent raycast must work and the shared
+      // persistent callback must dispatch to the new filter, not a stale one.
+      let secondCalled = false;
+      let observedUuid = -1;
+      const ok = nativeScene.raycast(
+        ray,
+        100,
+        (uuid: number) => {
+          secondCalled = true;
+          observedUuid = uuid;
+          return true;
+        },
+        (_uuid: number, _distance: number, _p: Vector3, _n: Vector3) => {}
+      );
+
+      expect(secondCalled).to.eq(true);
+      expect(ok).to.eq(true);
+      expect(observedUuid).to.eq(shape.id);
+
+      root.destroy();
+    });
+
     it("boxCast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
@@ -584,7 +856,7 @@ describe("Physics Test", () => {
         physicsScene.boxCast(center, halfExtents, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test boxCast when box is inside collider
+      // Test that initial overlap is skipped when sweep starts inside a collider.
       center.set(0, 0, 0);
       expect(
         physicsScene.boxCast(
@@ -596,8 +868,7 @@ describe("Physics Test", () => {
           Layer.Everything,
           outHitResult
         )
-      ).to.eq(true);
-      expect(outHitResult.distance).to.be.eq(0);
+      ).to.eq(false);
 
       // Test boxCast with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);
@@ -728,12 +999,11 @@ describe("Physics Test", () => {
       // Test sphereCast with distance limit
       expect(physicsScene.sphereCast(center, radius, direction, 0.1, Layer.Everything, outHitResult)).to.eq(false);
 
-      // Test sphereCast when sphere is inside collider
+      // Test that initial overlap is skipped when sphere starts inside a collider.
       center.set(0, 0, 0);
       expect(
         physicsScene.sphereCast(center, radius, direction, Number.MAX_VALUE, Layer.Everything, outHitResult)
-      ).to.eq(true);
-      expect(outHitResult.distance).to.be.eq(0);
+      ).to.eq(false);
 
       // Test sphereCast with multiple colliders
       const collider2 = sweepTestRoot.addComponent(StaticCollider);
@@ -855,7 +1125,7 @@ describe("Physics Test", () => {
         physicsScene.capsuleCast(center, radius, height, direction, orientation, 0.1, Layer.Everything, outHitResult)
       ).to.eq(false);
 
-      // Test capsuleCast when capsule is inside collider
+      // Test that initial overlap is skipped when capsule starts inside a collider.
       center.set(0, 0, 0);
       expect(
         physicsScene.capsuleCast(
@@ -868,8 +1138,7 @@ describe("Physics Test", () => {
           Layer.Everything,
           outHitResult
         )
-      ).to.eq(true);
-      expect(outHitResult.distance).to.be.eq(0);
+      ).to.eq(false);
 
       // Test capsuleCast with rotation
       Quaternion.rotationEuler(0, Math.PI / 4, 0, orientation);

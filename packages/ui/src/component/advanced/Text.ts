@@ -7,7 +7,6 @@ import {
   FontStyle,
   ITextRenderer,
   OverflowMode,
-  RenderQueueFlags,
   RendererUpdateFlags,
   ShaderData,
   ShaderDataGroup,
@@ -350,23 +349,24 @@ export class Text extends UIRenderer implements ITextRenderer {
     }
 
     const engine = context.camera.engine;
-    const textSubRenderElementPool = engine._textSubRenderElementPool;
+    const textRenderElementPool = engine._textRenderElementPool;
     const material = this.getMaterial();
-    const renderElement = canvas._renderElement;
+    const renderElements = canvas._renderElements;
+    const priority = canvas.sortOrder;
+    const distanceForSort = canvas._sortDistance;
     const textChunks = this._textChunks;
-    const isOverlay = canvas._realRenderMode === CanvasRenderMode.ScreenSpaceOverlay;
+    const subShader = material.shader.subShaders[0];
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
-      const subRenderElement = textSubRenderElementPool.get();
-      subRenderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
+      const renderElement = textRenderElementPool.get();
+      renderElement.set(this, material, subChunk.chunk.primitive, subChunk.subMesh, texture, subChunk);
       // @ts-ignore
-      subRenderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
-      subRenderElement.shaderData.setTexture(Text._textTextureProperty, texture);
-      if (isOverlay) {
-        subRenderElement.shaderPasses = material.shader.subShaders[0].passes;
-        subRenderElement.renderQueueFlags = RenderQueueFlags.All;
-      }
-      renderElement.addSubRenderElement(subRenderElement);
+      renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
+      renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
+      renderElement.subShader = subShader;
+      renderElement.priority = priority;
+      renderElement.distanceForSort = distanceForSort;
+      renderElements.push(renderElement);
     }
   }
 

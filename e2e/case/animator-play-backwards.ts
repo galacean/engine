@@ -33,7 +33,11 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       const { defaultSceneRoot } = gltfResource;
       rootEntity.addChild(defaultSceneRoot);
       const animator = defaultSceneRoot.getComponent(Animator);
-      animator.findAnimatorState("walk").speed = -1;
+      const walkState = animator.findAnimatorState("walk");
+      if (!walkState) {
+        throw new Error("Animator state not found: walk");
+      }
+      walkState.speed = -1;
       animator.play("walk");
       updateForE2E(engine);
 

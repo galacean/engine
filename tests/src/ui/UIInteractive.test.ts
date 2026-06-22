@@ -1,7 +1,16 @@
 import { Camera, PointerEventData, Script, SpriteDrawMode } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { Button, ColorTransition, Image, ScaleTransition, Text, UICanvas, UIGroup, UITransform } from "@galacean/engine-ui";
+import {
+  Button,
+  ColorTransition,
+  Image,
+  ScaleTransition,
+  Text,
+  UICanvas,
+  UIGroup,
+  UITransform
+} from "@galacean/engine-ui";
 import { describe, expect, it, vi } from "vitest";
 
 class ClickHandler extends Script {
@@ -40,7 +49,7 @@ describe("Button", async () => {
   const canvasEntity = root.createChild("canvas");
   canvasEntity.addComponent(UIGroup);
 
-  const commonTextEntity = canvasEntity.createChild("commonText")
+  const commonTextEntity = canvasEntity.createChild("commonText");
   const commonText = commonTextEntity.addComponent(Text);
 
   // Create button
@@ -54,7 +63,6 @@ describe("Button", async () => {
   text.text = "Button";
   text.color.set(0, 0, 0, 1);
   const button = buttonEntity.addComponent(Button);
-
 
   it("Set and Get", () => {
     // Click
@@ -135,7 +143,7 @@ describe("Button", async () => {
     const cloneButton = cloneButtonEntity.getComponent(Button);
     const cloneTransitions = cloneButton.transitions;
     const cloneTransition = cloneTransitions[0];
-    expect(cloneTransition.target).to.eq(cloneButtonEntity.getComponent(Image))
+    expect(cloneTransition.target).to.eq(cloneButtonEntity.getComponent(Image));
 
     const cloneTransitionOne = cloneTransitions[1];
     expect(cloneTransitionOne.target).to.eq(cloneButtonEntity.findByName("Text").getComponent(Text));

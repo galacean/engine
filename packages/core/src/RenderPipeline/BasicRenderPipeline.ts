@@ -10,9 +10,8 @@ import { ScalableAmbientObscurancePass } from "../lighting/ambientOcclusion/Scal
 import { FinalPass } from "../postProcess";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { ShaderPass } from "../shader/ShaderPass";
+import { SubShader } from "../shader/SubShader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
-import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import {
@@ -30,7 +29,6 @@ import { OpaqueTexturePass } from "./OpaqueTexturePass";
 import { PipelineUtils } from "./PipelineUtils";
 import { ContextRendererUpdateFlag, RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
-import { SubRenderElement } from "./SubRenderElement";
 import { PipelineStage } from "./enums/PipelineStage";
 /**
  * Basic render pipeline.
@@ -132,7 +130,6 @@ export class BasicRenderPipeline {
       this._cascadedShadowCasterPass.onRender(context);
     }
 
-    const batcherManager = engine._batcherManager;
     cullingResults.reset();
 
     // Depth use camera's view and projection matrix
@@ -140,6 +137,7 @@ export class BasicRenderPipeline {
     context.applyVirtualCamera(camera._virtualCamera, depthPassEnabled);
     this._prepareRender(context);
 
+    const batcherManager = engine._batcherManager;
     cullingResults.sortBatch(batcherManager);
     batcherManager.uploadBuffer();
 
@@ -369,77 +367,77 @@ export class BasicRenderPipeline {
    * @param renderElement - Render element
    */
   pushRenderElement(context: RenderContext, renderElement: RenderElement): void {
-    renderElement.renderQueueFlags = RenderQueueFlags.None;
-    const subRenderElements = renderElement.subRenderElements;
-    for (let i = 0, n = subRenderElements.length; i < n; ++i) {
-      const subRenderElement = subRenderElements[i];
-      const { material } = subRenderElement;
-      const materialSubShader = material.shader.subShaders[0];
-      const replacementShader = context.replacementShader;
-      if (replacementShader) {
-        const replacementSubShaders = replacementShader.subShaders;
-        const { replacementTag } = context;
-        if (replacementTag) {
-          let replacementSuccess = false;
-          for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
-            const subShader = replacementSubShaders[j];
-            if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
-              this.pushRenderElementByType(renderElement, subRenderElement, subShader.passes);
-              replacementSuccess = true;
-            }
+    const { material } = renderElement;
+    const materialSubShader = material.shader.subShaders[0];
+    const replacementShader = context.replacementShader;
+    if (replacementShader) {
+      const replacementSubShaders = replacementShader.subShaders;
+      const { replacementTag } = context;
+      if (replacementTag) {
+        let replacementSuccess = false;
+        for (let j = 0, m = replacementSubShaders.length; j < m; j++) {
+          const subShader = replacementSubShaders[j];
+          if (subShader.getTagValue(replacementTag) === materialSubShader.getTagValue(replacementTag)) {
+            this._pushRenderElementByType(renderElement, subShader);
+            replacementSuccess = true;
           }
+        }
 
-          if (
-            !replacementSuccess &&
-            context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
-          ) {
-            this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes);
-          }
-        } else {
-          this.pushRenderElementByType(renderElement, subRenderElement, replacementSubShaders[0].passes);
+        if (
+          !replacementSuccess &&
+          context.replacementFailureStrategy === ReplacementFailureStrategy.KeepOriginalShader
+        ) {
+          this._pushRenderElementByType(renderElement, materialSubShader);
         }
       } else {
-        this.pushRenderElementByType(renderElement, subRenderElement, materialSubShader.passes);
+        this._pushRenderElementByType(renderElement, replacementSubShaders[0]);
       }
+    } else {
+      this._pushRenderElementByType(renderElement, materialSubShader);
     }
   }
 
-  private pushRenderElementByType(
-    renderElement: RenderElement,
-    subRenderElement: SubRenderElement,
-    shaderPasses: ReadonlyArray<ShaderPass>
-  ): void {
+  private _pushRenderElementByType(renderElement: RenderElement, subShader: SubShader): void {
+    const shaderPasses = subShader.passes;
     const cullingResults = this._cullingResults;
+    renderElement.subShader = subShader;
+    let pushedQueueFlags = RenderQueueFlags.None;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      // Get render queue type
       const shaderPass = shaderPasses[i];
       const renderState = shaderPass._renderState;
       const renderQueueType = renderState._getRenderQueueByShaderData(
         shaderPass._renderStateDataMap,
-        subRenderElement.material.shaderData
+        renderElement.material.shaderData
       );
 
       const flag = 1 << renderQueueType;
-
-      subRenderElement.shaderPasses = shaderPasses;
-      subRenderElement.renderQueueFlags |= flag;
-
-      if (renderElement.renderQueueFlags & flag) {
+      if (pushedQueueFlags & flag) {
         continue;
+      }
+
+      // First queue keeps the original element; subsequent queues each get an isolated
+      // clone so per-queue batch state (`_isBatched`, `instancedRenderers`) doesn't
+      // leak across queues for multi-pass materials (e.g. Opaque + Transparent)
+      let elementForQueue: RenderElement;
+      if (pushedQueueFlags === RenderQueueFlags.None) {
+        elementForQueue = renderElement;
+      } else {
+        elementForQueue = renderElement.component.engine._renderElementPool.get();
+        elementForQueue._cloneFrom(renderElement);
       }
 
       switch (renderQueueType) {
         case RenderQueueType.Opaque:
-          cullingResults.opaqueQueue.pushRenderElement(renderElement);
+          cullingResults.opaqueQueue.pushRenderElement(elementForQueue);
           break;
         case RenderQueueType.AlphaTest:
-          cullingResults.alphaTestQueue.pushRenderElement(renderElement);
+          cullingResults.alphaTestQueue.pushRenderElement(elementForQueue);
           break;
         case RenderQueueType.Transparent:
-          cullingResults.transparentQueue.pushRenderElement(renderElement);
+          cullingResults.transparentQueue.pushRenderElement(elementForQueue);
           break;
       }
-      renderElement.renderQueueFlags |= flag;
+      pushedQueueFlags |= flag;
     }
   }
 
@@ -505,7 +503,10 @@ export class BasicRenderPipeline {
         continue;
       }
       canvas._prepareRender(context);
-      this.pushRenderElement(context, canvas._renderElement);
+      const canvasElements = canvas._batchedRenderElements;
+      for (let j = 0, m = canvasElements.length; j < m; j++) {
+        this.pushRenderElement(context, canvasElements[j]);
+      }
     }
   }
 }

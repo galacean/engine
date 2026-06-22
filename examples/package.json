@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-examples",
-  "version": "2.0.0-alpha.30",
+  "version": "2.0.0-alpha.37",
   "private": true,
   "license": "MIT",
   "main": "dist/main.js",
@@ -22,6 +22,7 @@
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
     "@galacean/engine-toolkit": "latest",
+    "@galacean/engine-toolkit-stats": "latest",
     "@galacean/engine-ui": "workspace:*"
   },
   "devDependencies": {

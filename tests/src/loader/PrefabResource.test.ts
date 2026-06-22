@@ -546,7 +546,15 @@ describe("Prefab instance overrides", () => {
           instance: {
             asset: 0,
             overrides: {
-              removedComponents: [{ path: [], selectors: [{ type: "MeshRenderer", index: 0 }, { type: "MeshRenderer", index: 2 }] }]
+              removedComponents: [
+                {
+                  path: [],
+                  selectors: [
+                    { type: "MeshRenderer", index: 0 },
+                    { type: "MeshRenderer", index: 2 }
+                  ]
+                }
+              ]
             }
           }
         }
@@ -760,10 +768,7 @@ describe("Cross-prefab $component ref", () => {
     const outerPrefabData: PrefabFile = {
       version: "2.0",
       refs: [{ url: "deep-entity-nested.prefab" }],
-      entities: [
-        { name: "outerRoot", children: [1], components: [0] },
-        { instance: { asset: 0 } }
-      ],
+      entities: [{ name: "outerRoot", children: [1], components: [0] }, { instance: { asset: 0 } }],
       components: [
         {
           type: "EntityRefScript",
@@ -809,10 +814,7 @@ describe("Cross-prefab $component ref", () => {
     const outerPrefabData: PrefabFile = {
       version: "2.0",
       refs: [{ url: "deep-comp-nested.prefab" }],
-      entities: [
-        { name: "outerRoot", children: [1], components: [0] },
-        { instance: { asset: 0 } }
-      ],
+      entities: [{ name: "outerRoot", children: [1], components: [0] }, { instance: { asset: 0 } }],
       components: [
         {
           type: "DiceScript",

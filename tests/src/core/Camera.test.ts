@@ -118,7 +118,7 @@ describe("camera test", function () {
     // get enableHDR
     expect(camera.enableHDR).to.eq(false);
     // @ts-ignore
-    expect(camera._isIndependentCanvasEnabled()).to.eq(true);// Because sRGB pass
+    expect(camera._isIndependentCanvasEnabled()).to.eq(true); // Because sRGB pass
     // set enableHDR
     camera.enableHDR = true;
     expect(camera.enableHDR).to.eq(true);
@@ -420,14 +420,14 @@ describe("camera test", function () {
     camera.nearClipPlane = 1;
     camera.farClipPlane = 255;
     const cloneCamera = camera.entity.clone().getComponent(Camera);
-    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic)
+    expect(cloneCamera.isOrthographic).to.eq(camera.isOrthographic);
     expect(cloneCamera.nearClipPlane).to.eq(camera.nearClipPlane);
     expect(cloneCamera.farClipPlane).to.eq(camera.farClipPlane);
     expect(cloneCamera.renderTarget).to.eq(camera.renderTarget);
     expect(cloneCamera.shaderData).to.not.eq(camera.shaderData);
     // @ts-ignore
     expect(cloneCamera._globalShaderMacro).to.not.eq(camera._globalShaderMacro);
-  })
+  });
 
   it("destroy test", () => {
     camera.destroy();

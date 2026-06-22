@@ -4,7 +4,7 @@ import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-class TestComponent extends Script { }
+class TestComponent extends Script {}
 
 describe("Entity", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
@@ -568,7 +568,9 @@ describe("Entity", async () => {
       const entityGrandsonClone = entityChildClone.children[0];
       // @ts-ignore
       expect(entityChildClone.transform.instanceId).eq(entityGrandsonClone.transform._getParentTransform()?.instanceId);
-      expect(Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)).eq(true);
+      expect(
+        Quaternion.equals(new Quaternion(0.7071067, 0, 0, 0.7071067), entityGrandsonClone.transform.rotationQuaternion)
+      ).eq(true);
     });
   });
 
@@ -655,8 +657,8 @@ describe("Entity", async () => {
 
     it("addChildAfterDestroy", () => {
       class DestroyScript extends Script {
-        onDisable(): void { }
-        onDestroy(): void { }
+        onDisable(): void {}
+        onDestroy(): void {}
       }
       DestroyScript.prototype.onDisable = vi.fn(DestroyScript.prototype.onDisable);
       DestroyScript.prototype.onDestroy = vi.fn(DestroyScript.prototype.onDestroy);
@@ -869,6 +871,48 @@ describe("Entity", async () => {
       A.isActive = false;
       // Children-first + reverse: C, B, then A
       expect(order).toEqual(["C", "B", "A"]);
+    });
+  });
+
+  describe("getComponentsIncludeChildren", () => {
+    class ScriptA extends Script {}
+    class ScriptB extends Script {}
+
+    it("should return components in depth-first front-to-back order", () => {
+      const root = new Entity(engine, "root");
+      root.parent = scene.getRootEntity();
+
+      const child0 = new Entity(engine, "child0");
+      child0.parent = root;
+      const child1 = new Entity(engine, "child1");
+      child1.parent = root;
+
+      const grandchild = new Entity(engine, "grandchild");
+      grandchild.parent = child0;
+
+      const compRoot = root.addComponent(ScriptA);
+      const compChild0 = child0.addComponent(ScriptA);
+      const compGrandchild = grandchild.addComponent(ScriptA);
+      const compChild1 = child1.addComponent(ScriptA);
+
+      const results: ScriptA[] = [];
+      root.getComponentsIncludeChildren(ScriptA, results);
+
+      expect(results).toEqual([compRoot, compChild0, compGrandchild, compChild1]);
+    });
+
+    it("should return multiple components per entity in add order", () => {
+      const root = new Entity(engine, "root");
+      root.parent = scene.getRootEntity();
+
+      const comp1 = root.addComponent(ScriptA);
+      const comp2 = root.addComponent(ScriptB);
+
+      const results: Script[] = [];
+      root.getComponentsIncludeChildren(Script, results);
+
+      expect(results[0]).eq(comp1);
+      expect(results[1]).eq(comp2);
     });
   });
 });

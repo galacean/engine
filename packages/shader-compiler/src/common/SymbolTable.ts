@@ -1,3 +1,4 @@
+import { Logger } from "@galacean/engine-core";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
@@ -10,7 +11,7 @@ export class SymbolTable<T extends IBaseSymbol> {
     for (let i = 0, n = entry.length; i < n; i++) {
       if (entry[i].isInMacroBranch) continue;
       if (entry[i].equal(symbol)) {
-        console.warn("Replace symbol:", symbol.ident);
+        Logger.warn("Replace symbol:", symbol.ident);
         entry[i] = symbol;
         return;
       }

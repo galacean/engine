@@ -1,8 +1,8 @@
 import { Engine } from "../Engine";
 import { Renderer } from "../Renderer";
+import { InstanceBuffer } from "./InstanceBuffer";
 import { PrimitiveChunkManager } from "./PrimitiveChunkManager";
-import { RenderQueue } from "./RenderQueue";
-import { SubRenderElement } from "./SubRenderElement";
+import { RenderElement } from "./RenderElement";
 
 /**
  * @internal
@@ -11,8 +11,13 @@ export class BatcherManager {
   private _primitiveChunkManager2D: PrimitiveChunkManager;
   private _primitiveChunkManagerMask: PrimitiveChunkManager;
   private _primitiveChunkManagerUI: PrimitiveChunkManager;
+  private _instanceBuffer: InstanceBuffer;
 
   constructor(public engine: Engine) {}
+
+  get instanceBuffer(): InstanceBuffer {
+    return (this._instanceBuffer ||= new InstanceBuffer(this.engine));
+  }
 
   get primitiveChunkManager2D(): PrimitiveChunkManager {
     return (this._primitiveChunkManager2D ||= new PrimitiveChunkManager(this.engine));
@@ -39,47 +44,46 @@ export class BatcherManager {
       this._primitiveChunkManagerUI.destroy();
       this._primitiveChunkManagerUI = null;
     }
+    if (this._instanceBuffer) {
+      this._instanceBuffer.destroy();
+      this._instanceBuffer = null;
+    }
   }
 
-  batch(renderQueue: RenderQueue): void {
-    const { elements, batchedSubElements, renderQueueType } = renderQueue;
-    let preSubElement: SubRenderElement;
+  batch(input: RenderElement[], output: RenderElement[]): void {
+    let preElement: RenderElement;
     let preRenderer: Renderer;
     let preConstructor: Function;
-    for (let i = 0, n = elements.length; i < n; ++i) {
-      const subElements = elements[i].subRenderElements;
-      for (let j = 0, m = subElements.length; j < m; ++j) {
-        const subElement = subElements[j];
+    for (let i = 0, n = input.length; i < n; ++i) {
+      const curElement = input[i];
 
-        // Some sub render elements may not belong to the current render queue
-        if (!(subElement.renderQueueFlags & (1 << renderQueueType))) {
-          continue;
-        }
+      // Already-batched leaders (e.g. produced by UICanvas pre-batching) are terminal —
+      // each carries an opaque, self-contained draw range that must not be merged again.
+      // Flush any pending pre and pass the leader straight through
+      if (curElement._isBatched) {
+        preElement && (BatcherManager._flush(output, preElement), (preElement = null));
+        output.push(curElement);
+        continue;
+      }
 
-        const renderer = subElement.component;
-        const constructor = renderer.constructor;
-        if (preSubElement) {
-          if (preConstructor === constructor && preRenderer._canBatch(preSubElement, subElement)) {
-            preRenderer._batch(preSubElement, subElement);
-            preSubElement.batched = true;
-          } else {
-            batchedSubElements.push(preSubElement);
-            preSubElement = subElement;
-            preRenderer = renderer;
-            preConstructor = constructor;
-            renderer._batch(subElement);
-            subElement.batched = false;
-          }
-        } else {
-          preSubElement = subElement;
-          preRenderer = renderer;
-          preConstructor = constructor;
-          renderer._batch(subElement);
-          subElement.batched = false;
-        }
+      const renderer = curElement.component;
+      const constructor = renderer.constructor;
+      if (preElement && preConstructor === constructor && preRenderer._canBatch(preElement, curElement)) {
+        preRenderer._batch(preElement, curElement);
+      } else {
+        preElement && BatcherManager._flush(output, preElement);
+        preElement = curElement;
+        preRenderer = renderer;
+        preConstructor = constructor;
+        renderer._batch(null, curElement);
       }
     }
-    preSubElement && batchedSubElements.push(preSubElement);
+    preElement && BatcherManager._flush(output, preElement);
+  }
+
+  private static _flush(output: RenderElement[], element: RenderElement): void {
+    element._isBatched = true;
+    output.push(element);
   }
 
   uploadBuffer() {

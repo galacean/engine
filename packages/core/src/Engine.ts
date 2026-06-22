@@ -11,13 +11,13 @@ import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
+import { EngineEventType } from "./EngineEventType";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderElement } from "./RenderPipeline/RenderElement";
 import { RenderTargetPool } from "./RenderPipeline/RenderTargetPool";
-import { SubRenderElement } from "./RenderPipeline/SubRenderElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { RenderingStatistics } from "./asset/RenderingStatistics";
@@ -32,7 +32,7 @@ import { PostProcessUberPass } from "./postProcess/PostProcessUberPass";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { ShaderProgramMap } from "./shader/ShaderProgramMap";
 import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
@@ -91,9 +91,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
-  _subRenderElementPool = new ClearableObjectPool(SubRenderElement);
-  /* @internal */
-  _textSubRenderElementPool = new ClearableObjectPool(SubRenderElement);
+  _textRenderElementPool = new ClearableObjectPool(RenderElement);
   /* @internal */
   _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
@@ -110,7 +108,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
-  _shaderProgramPools: ShaderProgramPool[] = [];
+  _shaderProgramMaps: ShaderProgramMap[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
   /** @internal */
@@ -327,9 +325,8 @@ export class Engine extends EventDispatcher {
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
-    this._subRenderElementPool.clear();
-    this._textSubRenderElementPool.clear();
     this._renderElementPool.clear();
+    this._textRenderElementPool.clear();
 
     this.xrManager?._update();
     const { inputManager, _physicsInitialized: physicsInitialized } = this;
@@ -406,7 +403,7 @@ export class Engine extends EventDispatcher {
    */
   run(): void {
     this.resume();
-    this.dispatch("run", this);
+    this.dispatch(EngineEventType.Run, this);
   }
 
   /**
@@ -509,7 +506,7 @@ export class Engine extends EventDispatcher {
     this._batcherManager.destroy();
     this._renderTargetPool.gc();
     this.xrManager?._destroy();
-    this.dispatch("shutdown", this);
+    this.dispatch(EngineEventType.Shutdown, this);
 
     // Cancel animation
     this.pause();
@@ -539,18 +536,18 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(index: number, trackPools?: ShaderProgramPool[]): ShaderProgramPool {
-    const shaderProgramPools = this._shaderProgramPools;
-    let pool = shaderProgramPools[index];
-    if (!pool) {
+  _getShaderProgramMap(index: number, trackMaps?: ShaderProgramMap[]): ShaderProgramMap {
+    const shaderProgramMaps = this._shaderProgramMaps;
+    let map = shaderProgramMaps[index];
+    if (!map) {
       const length = index + 1;
-      if (length > shaderProgramPools.length) {
-        shaderProgramPools.length = length;
+      if (length > shaderProgramMaps.length) {
+        shaderProgramMaps.length = length;
       }
-      shaderProgramPools[index] = pool = new ShaderProgramPool(this);
-      trackPools?.push(pool);
+      shaderProgramMaps[index] = map = new ShaderProgramMap(this);
+      trackMaps?.push(map);
     }
-    return pool;
+    return map;
   }
 
   /**
@@ -674,15 +671,15 @@ export class Engine extends EventDispatcher {
     this.resourceManager._lostGraphicResources();
     this._renderingStatistics._reset();
     console.log("Device lost.");
-    this.dispatch("devicelost", this);
+    this.dispatch(EngineEventType.DeviceLost, this);
   }
 
   private _onDeviceRestored(): void {
     this._hardwareRenderer.resetState();
     this._lastRenderState = new RenderState();
-    // Clear shader pools
+    // Clear shader program maps
     Shader._clear(this);
-    this._shaderProgramPools.length = 0;
+    this._shaderProgramMaps.length = 0;
 
     const { resourceManager } = this;
     // Restore graphic resources
@@ -695,7 +692,7 @@ export class Engine extends EventDispatcher {
       ._restoreResourcesContent()
       .then(() => {
         console.log("Graphic resource content restored.\n\n" + "Device restored.");
-        this.dispatch("devicerestored", this);
+        this.dispatch(EngineEventType.DeviceRestored, this);
       })
       .catch((error) => {
         console.error(error);
@@ -703,9 +700,8 @@ export class Engine extends EventDispatcher {
   }
 
   private _gc(): void {
-    this._subRenderElementPool.garbageCollection();
-    this._textSubRenderElementPool.garbageCollection();
     this._renderElementPool.garbageCollection();
+    this._textRenderElementPool.garbageCollection();
     this._renderContext.garbageCollection();
     const scenes = this._sceneManager._scenes.getLoopArray();
     for (let i = 0, n = scenes.length; i < n; i++) {

@@ -45,7 +45,7 @@ export class SpriteAtlas extends ReferResource {
         sprite.name === name && outSprites.push(sprite);
       }
     } else {
-      console.warn("The name of the sprite you want to find is not exit in SpriteAtlas.");
+      console.warn("There is no sprite named " + name + " in the atlas.");
     }
     return outSprites;
   }

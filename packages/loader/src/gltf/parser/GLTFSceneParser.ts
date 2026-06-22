@@ -18,6 +18,8 @@ import { GLTFParserContext, GLTFParserType, registerGLTFParser } from "./GLTFPar
 
 @registerGLTFParser(GLTFParserType.Scene)
 export class GLTFSceneParser extends GLTFParser {
+  private static _tempMatrix: Matrix = new Matrix();
+
   parse(context: GLTFParserContext, index: number): AssetPromise<Entity> {
     const {
       glTF: { scenes, scene = 0 },
@@ -195,49 +197,10 @@ export class GLTFSceneParser extends GLTFParser {
     if (rootBoneIndex !== -1) {
       BoundingBox.transform(mesh.bounds, inverseBindMatrices[rootBoneIndex], skinnedMeshRenderer.localBounds);
     } else {
-      // Root bone is not in joints list, we can only compute approximate inverse bind matrix
-      // Average all root bone's children inverse bind matrix
-      const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-      let subRootBoneCount = this._computeApproximateBindMatrix(
-        bones,
-        inverseBindMatrices,
-        rootBone,
-        approximateBindMatrix
-      );
-
-      if (subRootBoneCount !== 0) {
-        Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
-        BoundingBox.transform(mesh.bounds, approximateBindMatrix, skinnedMeshRenderer.localBounds);
-      } else {
-        skinnedMeshRenderer.localBounds.copyFrom(mesh.bounds);
-      }
+      // rootBone can be outside skin.joints, so it has no inverse bind matrix
+      const inverseRootBoneWorld = GLTFSceneParser._tempMatrix;
+      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBoneWorld);
+      BoundingBox.transform(mesh.bounds, inverseRootBoneWorld, skinnedMeshRenderer.localBounds);
     }
-  }
-
-  private _computeApproximateBindMatrix(
-    jointEntities: ReadonlyArray<Entity>,
-    inverseBindMatrices: Matrix[],
-    rootEntity: Entity,
-    approximateBindMatrix: Matrix
-  ): number {
-    let subRootBoneCount = 0;
-    const children = rootEntity.children;
-    for (let i = 0, n = children.length; i < n; i++) {
-      const rootChild = children[i];
-      const index = jointEntities.indexOf(rootChild);
-      if (index !== -1) {
-        Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
-        subRootBoneCount++;
-      } else {
-        subRootBoneCount += this._computeApproximateBindMatrix(
-          jointEntities,
-          inverseBindMatrices,
-          rootChild,
-          approximateBindMatrix
-        );
-      }
-    }
-
-    return subRootBoneCount;
   }
 }

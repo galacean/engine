@@ -24,8 +24,7 @@ shaderCompiler._includeMap = ShaderFactory.includeMap;
 // @ts-ignore
 Shader._shaderCompiler = shaderCompiler;
 
-const makePass = (name = "Default") =>
-  new ShaderPass(name, [], [], ShaderLanguage.GLSLES100);
+const makePass = (name = "Default") => new ShaderPass(name, [], [], ShaderLanguage.GLSLES100);
 
 describe("Shader", () => {
   describe("Custom Shader", () => {
