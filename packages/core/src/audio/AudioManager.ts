@@ -17,10 +17,14 @@ export class AudioManager {
    * @returns A promise that resolves when the audio context is suspended
    */
   static suspend(): Promise<void> {
-    AudioManager._suspendedByCaller = true;
-    // No context yet means nothing is playing; don't create a (cold) one just to suspend it
+    // No context means nothing is playing: suspending is a no-op and must NOT flag a caller-suspend
+    // (a ghost flag would later block foreground recovery), and don't create a cold context just to suspend
     const context = AudioManager._context;
-    return context ? context.suspend() : Promise.resolve();
+    if (!context) {
+      return Promise.resolve();
+    }
+    AudioManager._suspendedByCaller = true;
+    return context.suspend();
   }
 
   /**

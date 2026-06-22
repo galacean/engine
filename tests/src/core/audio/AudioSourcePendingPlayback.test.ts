@@ -648,11 +648,36 @@ describe("AudioSource playback lifecycle", () => {
   });
 
   // suspend() must not create a context just to suspend it (would be the cold-ctx iOS zombie we avoid)
-  it("does not create a context when suspend() is called before any playback", async () => {
+  // suspend() with no context is a no-op: it must NOT create a context AND must NOT flag a caller-suspend
+  // (a ghost flag would later block foreground recovery once playback starts)
+  it("does not create a context or flag a caller-suspend when suspend() runs before any playback", async () => {
     await AudioManager.suspend();
 
     expect((AudioManager as any)._context == null).to.be.true;
-    expect((AudioManager as any)._suspendedByCaller).to.be.true;
+    expect((AudioManager as any)._suspendedByCaller).to.be.false;
+  });
+
+  // root cause regression: suspend() before first play (no ctx) must not leave a ghost flag that blocks
+  // foreground recovery after the page is later backgrounded and restored
+  it("recovers after suspend()-before-first-play then a hide/show cycle", async () => {
+    vi.useFakeTimers();
+    AudioManager.suspend();
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+    audioSource.play();
+    expect((AudioManager as any)._suspendedByCaller).to.be.false;
+
+    context.state = "suspended";
+    const resumeSpy = vi.spyOn(context, "resume");
+    const documentHidden = mockDocumentHidden(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    vi.advanceTimersByTime(100);
+    await flushAsync();
+    documentHidden.restore();
+
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect(context.state).to.equal("running");
   });
 
   // hide-suspend: desktop/Android don't auto-suspend WebAudio when backgrounded, so we suspend on hide
