@@ -40,11 +40,15 @@ export class FilledSpriteAssembler {
   private static _outUVs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private static _vertexOffset = 0;
   private static _indicesOffset = 0;
+  // Fill amounts at or below this are treated as empty (render nothing), avoiding degenerate geometry.
+  private static readonly _fillAmountEpsilon = 0.001;
 
   static resetData(renderer: ISpriteRenderer): void {
     const manager = renderer._getChunkManager();
     const lastSubChunk = renderer._subChunk;
     lastSubChunk && manager.freeSubChunk(lastSubChunk);
+    // Allocate the maximum any fill mode can produce (Radial360 = 4 quadrants x 4 verts = 16).
+    // A fixed size avoids reallocating the sub-chunk when filledMode changes at runtime.
     const subChunk = manager.allocateSubChunk(16);
     subChunk.indices = [];
     renderer._subChunk = subChunk;
@@ -134,7 +138,7 @@ export class FilledSpriteAssembler {
 
   private static _filledLinear(renderer: ISpriteRenderer, matrix: Matrix, isHorizontal: boolean): void {
     const amount = renderer.filledAmount;
-    if (amount <= 0.001) {
+    if (amount <= this._fillAmountEpsilon) {
       renderer._subChunk.indices.length = 0;
       return;
     }
@@ -219,7 +223,7 @@ export class FilledSpriteAssembler {
     amount: number,
     cw: boolean
   ): void {
-    if (amount <= 0.001) {
+    if (amount <= this._fillAmountEpsilon) {
       renderer._subChunk.indices.length = 0;
       return;
     }
@@ -285,7 +289,7 @@ export class FilledSpriteAssembler {
     amount: number,
     cw: boolean
   ): void {
-    if (amount <= 0.001) {
+    if (amount <= this._fillAmountEpsilon) {
       renderer._subChunk.indices.length = 0;
       return;
     }
@@ -380,7 +384,7 @@ export class FilledSpriteAssembler {
     amount: number,
     cw: boolean
   ): void {
-    if (amount <= 0.001) {
+    if (amount <= this._fillAmountEpsilon) {
       renderer._subChunk.indices.length = 0;
       return;
     }
@@ -396,7 +400,7 @@ export class FilledSpriteAssembler {
       case SpriteFilledOrigin.Bottom:
         startAngle = cw ? 630 - amount * 360 : 270;
         break;
-      // Right is the default; any unsupported origin falls back to it.
+      // Right is handled here, and this branch also catches any unsupported origin as a fallback.
       case SpriteFilledOrigin.Right:
       default:
         startAngle = cw ? 360 - amount * 360 : 0;
@@ -553,6 +557,8 @@ export class FilledSpriteAssembler {
       }
     }
 
+    // 45° is the quadrant diagonal: a sector spanning it reaches the far corner and needs a quad;
+    // otherwise the cut produces a triangle.
     if (start < 45 && end > 45) {
       outPositions[3].copyFrom(positions[3]);
       outUVs[3].copyFrom(uvs[3]);
