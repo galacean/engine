@@ -40,17 +40,18 @@ export class ComponentCloner {
     targetRoot: Entity,
     deepInstanceMap: Map<Object, Object>
   ): void {
-    const ignoredFields = CloneManager.getIgnoredFields(source.constructor);
+    const fieldModes = CloneManager.getFieldModes(source.constructor);
     for (const k in source) {
-      if (ignoredFields.has(k)) continue;
       const sourceProperty = source[k];
-      // Remappable references (Entity/Component)
+      // Entity/Component references are always remapped (reference correctness, above field ignore).
       if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
         target[k] = (<ICustomClone>sourceProperty)._remap(srcRoot, targetRoot);
         continue;
       }
-      // Type-driven clone
-      target[k] = CloneManager._cloneValue(sourceProperty, target[k], deepInstanceMap);
+      const fieldMode = fieldModes.get(k);
+      if (fieldMode === CloneMode.Ignore) continue;
+      // Field decorator (highest) → value-shape / type default.
+      target[k] = CloneManager._cloneValue(sourceProperty, target[k], deepInstanceMap, fieldMode, srcRoot, targetRoot);
     }
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, srcRoot, targetRoot);
   }

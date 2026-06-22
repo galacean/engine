@@ -4,7 +4,8 @@ import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { deepClone, defaultCloneMode, ignoreClone } from "../../clone/CloneManager";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { Collider } from "../Collider";
 import { DynamicCollider } from "../DynamicCollider";
 
@@ -321,6 +322,7 @@ enum AnchorOwner {
 /**
  * @internal
  */
+@defaultCloneMode(CloneMode.Deep)
 class JointColliderInfo {
   collider: Collider = null;
   @deepClone

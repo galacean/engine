@@ -1,38 +1,51 @@
+import {
+  BoundingBox,
+  BoundingFrustum,
+  BoundingSphere,
+  Color,
+  Matrix,
+  Matrix3x3,
+  Plane,
+  Quaternion,
+  Rect,
+  SphericalHarmonics3,
+  Vector2,
+  Vector3,
+  Vector4
+} from "@galacean/engine-math";
 import { TypedArray } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
- * Property decorator, ignore the property when cloning.
+ * Property decorator — deep clone this field, overriding the value type's default clone mode.
+ * Field-level decorators have the highest priority.
  */
-export function ignoreClone(target: Object, propertyKey: string): void {
-  let fields = CloneManager._subIgnoreMap.get(target.constructor);
-  if (!fields) {
-    fields = new Set<string>();
-    CloneManager._subIgnoreMap.set(target.constructor, fields);
-  }
-  fields.add(propertyKey);
-  CloneManager._ignoreMap.clear();
+export function deepClone(target: Object, propertyKey: string): void {
+  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Deep);
 }
 
 /**
- * @deprecated No longer needed — Assignment is the default clone behavior for unrecognized types.
- * Kept for backward compatibility; acts as a no-op.
+ * Property decorator — assign (share the reference) this field, overriding the value type's default clone mode.
  */
-export function assignmentClone(_target: Object, _propertyKey: string): void {}
+export function assignmentClone(target: Object, propertyKey: string): void {
+  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Assignment);
+}
 
 /**
- * @deprecated Use `@defaultCloneMode(CloneMode.Deep)` on the class instead.
- * Kept for backward compatibility; acts as a no-op.
+ * Property decorator — ignore this field when cloning; keep the clone's own constructor-built value.
  */
-export function shallowClone(_target: Object, _propertyKey: string): void {}
+export function ignoreClone(target: Object, propertyKey: string): void {
+  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Ignore);
+}
 
 /**
- * @deprecated Use `@defaultCloneMode(CloneMode.Deep)` on the class instead.
- * Kept for backward compatibility; acts as a no-op.
+ * @deprecated Shallow clone is no longer a distinct mode; treated as deep clone.
  */
-export function deepClone(_target: Object, _propertyKey: string): void {}
+export function shallowClone(target: Object, propertyKey: string): void {
+  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Deep);
+}
 
 /**
  * Class decorator that sets the default clone mode for instances of the decorated type.
@@ -73,33 +86,49 @@ export function defaultCloneMode(mode: CloneMode) {
  * Cycles / shared sub-graphs dedup through the identity map.
  */
 export class CloneManager {
-  /** @internal Own `@ignoreClone` field names per class (excluding inherited). */
-  static _subIgnoreMap = new Map<Object, Set<string>>();
-  /** @internal Flattened `@ignoreClone` field names per class (across the prototype chain), cached. */
-  static _ignoreMap = new Map<Object, Set<string>>();
+  /** @internal Own field-level clone modes per class (excluding inherited), from `@deepClone`/`@assignmentClone`/`@ignoreClone`. */
+  static _subFieldModeMap = new Map<Object, Map<string, CloneMode>>();
+  /** @internal Flattened field-level clone modes per class (across the prototype chain), cached. */
+  static _fieldModeMap = new Map<Object, Map<string, CloneMode>>();
 
   private static _objectType = Object.getPrototypeOf(Object);
 
   /**
-   * Get the ignored field names of a type, flattened across its prototype chain.
+   * @internal
+   * Register a field-level clone mode (highest priority — overrides the value type's `@defaultCloneMode`).
    */
-  static getIgnoredFields(type: Function): Set<string> {
-    let fields = CloneManager._ignoreMap.get(type);
+  static _registerFieldMode(target: Object, propertyKey: string, mode: CloneMode): void {
+    let fields = CloneManager._subFieldModeMap.get(target.constructor);
     if (!fields) {
-      fields = new Set<string>();
-      CloneManager._ignoreMap.set(type, fields);
+      fields = new Map<string, CloneMode>();
+      CloneManager._subFieldModeMap.set(target.constructor, fields);
+    }
+    fields.set(propertyKey, mode);
+    CloneManager._fieldModeMap.clear();
+  }
+
+  /**
+   * Get the field-level clone modes of a type, flattened across its prototype chain.
+   */
+  static getFieldModes(type: Function): Map<string, CloneMode> {
+    let modes = CloneManager._fieldModeMap.get(type);
+    if (!modes) {
+      modes = new Map<string, CloneMode>();
+      CloneManager._fieldModeMap.set(type, modes);
       const objectType = CloneManager._objectType;
-      const subMap = CloneManager._subIgnoreMap;
+      const subMap = CloneManager._subFieldModeMap;
       let current = type;
       while (current !== objectType) {
         const own = subMap.get(current);
         if (own) {
-          own.forEach((field) => fields.add(field));
+          own.forEach((mode, key) => {
+            if (!modes.has(key)) modes.set(key, mode);
+          });
         }
         current = Object.getPrototypeOf(current);
       }
     }
-    return fields;
+    return modes;
   }
 
   static copyProperty(source: Object, target: Object, k: string | number, cloneMap: Map<Object, Object>): void {
@@ -110,11 +139,34 @@ export class CloneManager {
    * @internal
    * Clone gate — decides how to clone one value based on its type.
    */
-  static _cloneValue(value: any, reuse: any, cloneMap: Map<Object, Object>): any {
+  static _cloneValue(
+    value: any,
+    reuse: any,
+    cloneMap: Map<Object, Object>,
+    fieldMode?: CloneMode,
+    srcRoot?: any,
+    targetRoot?: any
+  ): any {
     if (!(value instanceof Object)) return value;
     if (typeof value === "function") return reuse;
 
-    const cloneMode = (<ICustomClone>value)._defaultCloneMode ?? CloneMode.Assignment;
+    // Mode priority: field decorator (highest) → container default deep → type's `@defaultCloneMode` → Assignment.
+    let cloneMode = fieldMode;
+    if (cloneMode === undefined) {
+      if (
+        Array.isArray(value) ||
+        value instanceof Map ||
+        value instanceof Set ||
+        ArrayBuffer.isView(value) ||
+        value.constructor === Object
+      ) {
+        cloneMode = CloneMode.Deep;
+      } else {
+        cloneMode = (<ICustomClone>value)._defaultCloneMode ?? CloneMode.Assignment;
+      }
+    }
+
+    if (cloneMode === CloneMode.Ignore) return reuse;
     if (cloneMode === CloneMode.Assignment) {
       const reusedResource = <{ _addReferCount?(count: number): void; refCount?: number }>reuse;
       if (reusedResource?._addReferCount) {
@@ -133,13 +185,20 @@ export class CloneManager {
     if (cloneMode === CloneMode.Remap) {
       return cloneMap.get(value) ?? value;
     }
-    return CloneManager._deepClone(value, reuse, cloneMap);
+    return CloneManager._deepClone(value, reuse, cloneMap, srcRoot, targetRoot);
   }
 
   /**
    * Deep-clone one object graph. Cycles / shared sub-graphs dedup through the identity map.
+   * `srcRoot`/`targetRoot` are threaded to `_cloneTo` hooks that remap entity/component references.
    */
-  private static _deepClone(value: any, reuse: any, cloneMap: Map<Object, Object>): any {
+  private static _deepClone(
+    value: any,
+    reuse: any,
+    cloneMap: Map<Object, Object>,
+    srcRoot?: any,
+    targetRoot?: any
+  ): any {
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
@@ -149,7 +208,7 @@ export class CloneManager {
         reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
       cloneMap.set(value, dst);
       (<ICustomClone>dst).copyFrom(<ICustomClone>value);
-      (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst);
+      (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, srcRoot, targetRoot);
       return dst;
     }
 
@@ -168,7 +227,7 @@ export class CloneManager {
       const dst = new Array(value.length);
       cloneMap.set(value, dst);
       for (let i = 0, n = value.length; i < n; i++) {
-        dst[i] = CloneManager._cloneValue(value[i], undefined, cloneMap);
+        dst[i] = CloneManager._cloneValue(value[i], undefined, cloneMap, undefined, srcRoot, targetRoot);
       }
       return dst;
     }
@@ -178,7 +237,10 @@ export class CloneManager {
       const dst = new Map<any, any>();
       cloneMap.set(value, dst);
       value.forEach((v, key) => {
-        dst.set(CloneManager._cloneValue(key, undefined, cloneMap), CloneManager._cloneValue(v, undefined, cloneMap));
+        dst.set(
+          CloneManager._cloneValue(key, undefined, cloneMap, undefined, srcRoot, targetRoot),
+          CloneManager._cloneValue(v, undefined, cloneMap, undefined, srcRoot, targetRoot)
+        );
       });
       return dst;
     }
@@ -187,7 +249,7 @@ export class CloneManager {
     if (value instanceof Set) {
       const dst = new Set<any>();
       cloneMap.set(value, dst);
-      value.forEach((v) => dst.add(CloneManager._cloneValue(v, undefined, cloneMap)));
+      value.forEach((v) => dst.add(CloneManager._cloneValue(v, undefined, cloneMap, undefined, srcRoot, targetRoot)));
       return dst;
     }
 
@@ -195,12 +257,13 @@ export class CloneManager {
     const dst =
       reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
     cloneMap.set(value, dst);
-    const ignoredFields = CloneManager.getIgnoredFields(value.constructor);
+    const fieldModes = CloneManager.getFieldModes(value.constructor);
     for (const key in value) {
-      if (ignoredFields.has(key)) continue;
-      dst[key] = CloneManager._cloneValue(value[key], dst[key], cloneMap);
+      const fieldMode = fieldModes.get(key);
+      if (fieldMode === CloneMode.Ignore) continue;
+      dst[key] = CloneManager._cloneValue(value[key], dst[key], cloneMap, fieldMode, srcRoot, targetRoot);
     }
-    (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst);
+    (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, srcRoot, targetRoot);
     return dst;
   }
 
@@ -223,3 +286,23 @@ export class CloneManager {
     }
   }
 }
+
+// Built-in default clone mode for math value types. The math package cannot depend on core's
+// `@defaultCloneMode`, so they are registered here instead (core → math is the normal dependency
+// direction). All are value-semantic and always deep cloned.
+const _markDeep = defaultCloneMode(CloneMode.Deep);
+[
+  Vector2,
+  Vector3,
+  Vector4,
+  Quaternion,
+  Matrix,
+  Matrix3x3,
+  Color,
+  Rect,
+  BoundingBox,
+  BoundingFrustum,
+  BoundingSphere,
+  Plane,
+  SphericalHarmonics3
+].forEach((type) => _markDeep(type));

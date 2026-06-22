@@ -1,9 +1,12 @@
 import { UpdateFlag } from "./UpdateFlag";
 import { Utils } from "./Utils";
+import { defaultCloneMode } from "./clone/CloneManager";
+import { CloneMode } from "./clone/enums/CloneMode";
 
 /**
  * @internal
  */
+@defaultCloneMode(CloneMode.Ignore)
 export class UpdateFlagManager {
   /** Monotonic counter bumped on every `dispatch`; consumers can snapshot it for lazy pull-style cache invalidation. */
   version = 0;

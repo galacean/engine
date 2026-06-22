@@ -1,4 +1,4 @@
-import { deepClone, defaultCloneMode } from "../../clone/CloneManager";
+import { defaultCloneMode } from "../../clone/CloneManager";
 import { CloneMode } from "../../clone/enums/CloneMode";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
@@ -7,7 +7,6 @@ import { UpdateFlagManager } from "../../UpdateFlagManager";
  */
 @defaultCloneMode(CloneMode.Deep)
 export class JointMotor {
-  @deepClone
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 

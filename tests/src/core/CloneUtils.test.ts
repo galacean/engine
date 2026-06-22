@@ -220,7 +220,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("primitive and plain object props should not be affected", () => {
+    it("primitive props copied by value; plain object deep cloned", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(TestScript);
@@ -236,7 +236,9 @@ describe("Clone remap", async () => {
       expect(clonedScript.speed).eq(42);
       expect(clonedScript.name2).eq("test");
       expect(clonedScript.flag).eq(true);
-      expect(clonedScript.data).eq(obj);
+      // plain object is deep cloned into an independent copy, not shared
+      expect(clonedScript.data).not.eq(obj);
+      expect(clonedScript.data.x).eq(1);
 
       rootEntity.destroy();
     });

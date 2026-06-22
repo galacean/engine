@@ -7,5 +7,7 @@ export enum CloneMode {
   /** Recursively deep clone the value, producing an independent copy. */
   Deep,
   /** Remap an Entity / Component reference to its clone within the cloned subtree. */
-  Remap
+  Remap,
+  /** Skip — keep the clone's own constructor-built value (for runtime / transient state). */
+  Ignore
 }
