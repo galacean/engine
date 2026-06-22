@@ -48,9 +48,7 @@ export class UIInteractive extends Script implements IGroupAble {
   @ignoreClone
   _globalInteractiveDirty: boolean = false;
 
-  @deepClone
   protected _transitions: Transition[] = [];
-  @assignmentClone
   protected _interactive: boolean = true;
   @ignoreClone
   protected _state: InteractiveState = InteractiveState.Normal;

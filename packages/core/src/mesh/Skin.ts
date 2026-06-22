@@ -4,7 +4,7 @@ import { Entity } from "../Entity";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { Utils } from "../Utils";
 import { EngineObject } from "../base/EngineObject";
-import { deepClone, ignoreClone, defaultCloneMode } from "../clone/CloneManager";
+import { ignoreClone, defaultCloneMode } from "../clone/CloneManager";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 
 /**
@@ -13,18 +13,15 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 @defaultCloneMode(CloneMode.Deep)
 export class Skin extends EngineObject {
   /** Inverse bind matrices. */
-  @deepClone
   inverseBindMatrices = new Array<Matrix>();
 
   /** @internal */
-  @deepClone
   _skinMatrices: Float32Array;
   /** @internal */
   @ignoreClone
   _updatedManager = new UpdateFlagManager();
 
   private _rootBone: Entity;
-  @deepClone
   private _bones = new Array<Entity>();
   @ignoreClone
   private _updateMark = -1;

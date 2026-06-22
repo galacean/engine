@@ -1,7 +1,8 @@
 import { IClone } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
-import { CloneManager, ignoreClone } from "../clone/CloneManager";
+import { CloneManager, defaultCloneMode, ignoreClone } from "../clone/CloneManager";
+import { CloneMode } from "../clone/enums/CloneMode";
 import { Texture } from "../texture/Texture";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
@@ -12,6 +13,7 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
 /**
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
+@defaultCloneMode(CloneMode.Deep)
 export class ShaderData implements IReferable, IClone {
   /** @internal */
   @ignoreClone
@@ -637,6 +639,14 @@ export class ShaderData implements IReferable, IClone {
         targetPropertyValueMap[k] = property;
       }
     }
+  }
+
+  /**
+   * @internal
+   * Deep-clone hook invoked by the clone gate; delegates to `cloneTo`.
+   */
+  _cloneTo(target: ShaderData): void {
+    this.cloneTo(target);
   }
 
   /**

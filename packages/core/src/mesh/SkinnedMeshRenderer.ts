@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -29,7 +29,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
-  @deepClone
   private _localBounds: BoundingBox = new BoundingBox();
 
   @ignoreClone
@@ -42,7 +41,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _jointTexture: Texture2D;
 
-  @deepClone
   private _skin: Skin;
 
   /**

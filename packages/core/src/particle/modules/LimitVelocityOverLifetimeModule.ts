@@ -1,5 +1,5 @@
 import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
@@ -70,14 +70,10 @@ export class LimitVelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _dragVelocityMacro: ShaderMacro;
 
   private _separateAxes = false;
-  @deepClone
   private _speedX: ParticleCompositeCurve;
-  @deepClone
   private _speedY: ParticleCompositeCurve;
-  @deepClone
   private _speedZ: ParticleCompositeCurve;
   private _dampen: number = 0;
-  @deepClone
   private _drag: ParticleCompositeCurve;
   private _multiplyDragByParticleSize = false;
   private _multiplyDragByParticleVelocity = false;

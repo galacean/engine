@@ -1,5 +1,5 @@
 import { Rand, Vector3 } from "@galacean/engine-math";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -29,13 +29,10 @@ export class RotationOverLifetimeModule extends ParticleGeneratorModule {
   /** Specifies whether the rotation is separate on each axis, when disabled, only `rotationZ` is used. */
   separateAxes: boolean = false;
   /** Rotation over lifetime for x axis, in degrees. */
-  @deepClone
   rotationX = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for y axis, in degrees. */
-  @deepClone
   rotationY = new ParticleCompositeCurve(0);
   /** Rotation over lifetime for z axis, in degrees. */
-  @deepClone
   rotationZ = new ParticleCompositeCurve(45);
 
   /** @internal */

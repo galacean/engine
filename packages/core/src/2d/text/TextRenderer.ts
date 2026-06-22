@@ -8,7 +8,7 @@ import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderProperty } from "../../shader";
 import { ShaderDataGroup } from "../../shader/enums/ShaderDataGroup";
 import { Texture2D } from "../../texture";
@@ -36,38 +36,24 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   @ignoreClone
   private _textChunks = Array<TextChunk>();
   /** @internal */
-  @assignmentClone
   _subFont: SubFont = null;
   /** @internal */
   @ignoreClone
   _dirtyFlag = DirtyFlag.Font;
-  @deepClone
   private _color = new Color(1, 1, 1, 1);
-  @assignmentClone
   private _text = "";
-  @assignmentClone
   private _width = 0;
-  @assignmentClone
   private _height = 0;
   @ignoreClone
   private _localBounds = new BoundingBox();
-  @assignmentClone
   private _font: Font = null;
-  @assignmentClone
   private _fontSize = 24;
-  @assignmentClone
   private _fontStyle = FontStyle.None;
-  @assignmentClone
   private _lineSpacing = 0;
-  @assignmentClone
   private _characterSpacing = 0;
-  @assignmentClone
   private _horizontalAlignment = TextHorizontalAlignment.Center;
-  @assignmentClone
   private _verticalAlignment = TextVerticalAlignment.Center;
-  @assignmentClone
   private _enableWrapping = false;
-  @assignmentClone
   private _overflowMode = OverflowMode.Overflow;
 
   /**

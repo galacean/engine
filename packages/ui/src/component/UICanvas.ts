@@ -84,15 +84,10 @@ export class UICanvas extends Component implements IElement {
   private _renderMode = CanvasRenderMode.WorldSpace;
   private _camera: Camera;
   private _cameraObserver: Camera;
-  @assignmentClone
   private _resolutionAdaptationMode = ResolutionAdaptationMode.HeightAdaptation;
-  @assignmentClone
   private _sortOrder: number = 0;
-  @assignmentClone
   private _distance: number = 10;
-  @deepClone
   private _referenceResolution: Vector2 = new Vector2(800, 600);
-  @assignmentClone
   private _referenceResolutionPerUnit: number = 100;
   @ignoreClone
   private _hierarchyVersion: number = -1;

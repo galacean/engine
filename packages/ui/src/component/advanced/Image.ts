@@ -30,9 +30,7 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
 
   /**

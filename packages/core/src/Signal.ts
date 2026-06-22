@@ -1,13 +1,15 @@
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { CloneUtils } from "./clone/CloneUtils";
-import { ignoreClone } from "./clone/CloneManager";
+import { defaultCloneMode, ignoreClone } from "./clone/CloneManager";
+import { CloneMode } from "./clone/enums/CloneMode";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Signal is a typed event mechanism for Galacean Engine.
  * @typeParam T - Tuple type of the signal arguments
  */
+@defaultCloneMode(CloneMode.Deep)
 export class Signal<T extends any[] = []> {
   @ignoreClone
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();

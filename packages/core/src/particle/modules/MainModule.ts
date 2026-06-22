@@ -1,7 +1,7 @@
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { CloneMode } from "../../clone/enums/CloneMode";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
+import { ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -32,25 +32,20 @@ export class MainModule implements ICustomClone {
   isLoop = true;
 
   /** Start delay in seconds. */
-  @deepClone
   startDelay = new ParticleCompositeCurve(0);
 
   /** A flag to enable 3D particle rotation, when disabled, only `startRotationZ` is used. */
   startRotation3D = false;
   /** The initial rotation of particles around the x-axis when emitted, in degrees. */
-  @deepClone
   startRotationX = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the y-axis when emitted, in degrees. */
-  @deepClone
   startRotationY = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the z-axis when emitted, in degrees. */
-  @deepClone
   startRotationZ = new ParticleCompositeCurve(0);
   /** Makes some particles spin in the opposite direction. */
   flipRotation = 0;
 
   /** The mode of start color */
-  @deepClone
   startColor = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
   /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
   /** Override the default playback speed of the Particle Generator. */
@@ -85,18 +80,12 @@ export class MainModule implements ICustomClone {
   @ignoreClone
   readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
 
-  @deepClone
   private _startLifetime: ParticleCompositeCurve;
-  @deepClone
   private _startSpeed: ParticleCompositeCurve;
   private _startSize3D = false;
-  @deepClone
   private _startSizeX: ParticleCompositeCurve;
-  @deepClone
   private _startSizeY: ParticleCompositeCurve;
-  @deepClone
   private _startSizeZ: ParticleCompositeCurve;
-  @deepClone
   private _gravityModifier: ParticleCompositeCurve;
   private _simulationSpace = ParticleSimulationSpace.Local;
   @ignoreClone

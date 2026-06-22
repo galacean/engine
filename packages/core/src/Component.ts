@@ -1,6 +1,6 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
-import { assignmentClone, defaultCloneMode, ignoreClone } from "./clone/CloneManager";
+import { defaultCloneMode, ignoreClone } from "./clone/CloneManager";
 import { CloneUtils } from "./clone/CloneUtils";
 import { CloneMode } from "./clone/enums/CloneMode";
 import { Entity } from "./Entity";
@@ -25,7 +25,6 @@ export class Component extends EngineObject {
   @ignoreClone
   private _phasedActive: boolean = false;
 
-  @assignmentClone
   private _enabled: boolean = true;
 
   /**

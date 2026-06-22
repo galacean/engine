@@ -1,4 +1,4 @@
-import { deepClone, defaultCloneMode } from "../../clone/CloneManager";
+import { defaultCloneMode } from "../../clone/CloneManager";
 import { CloneMode } from "../../clone/enums/CloneMode";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 
@@ -8,7 +8,6 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 @defaultCloneMode(CloneMode.Deep)
 export class Burst {
   public time: number;
-  @deepClone
   public count: ParticleCompositeCurve;
 
   private _cycles: number;

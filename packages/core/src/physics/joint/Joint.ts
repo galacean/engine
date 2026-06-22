@@ -4,7 +4,7 @@ import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, defaultCloneMode, ignoreClone } from "../../clone/CloneManager";
+import { defaultCloneMode, ignoreClone } from "../../clone/CloneManager";
 import { CloneMode } from "../../clone/enums/CloneMode";
 import { Collider } from "../Collider";
 import { DynamicCollider } from "../DynamicCollider";
@@ -19,9 +19,7 @@ export abstract class Joint extends Component {
   private static _tempQuat = new Quaternion();
   private static _tempMatrix = new Matrix();
 
-  @deepClone
   protected _colliderInfo = new JointColliderInfo();
-  @deepClone
   protected _connectedColliderInfo = new JointColliderInfo();
   @ignoreClone
   protected _nativeJoint: IJoint;
@@ -325,9 +323,7 @@ enum AnchorOwner {
 @defaultCloneMode(CloneMode.Deep)
 class JointColliderInfo {
   collider: Collider = null;
-  @deepClone
   anchor = new Vector3();
-  @deepClone
   actualAnchor = new Vector3();
   massScale: number = 1;
   inertiaScale: number = 1;

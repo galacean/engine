@@ -2,7 +2,7 @@ import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } fro
 import { CloneMode } from "../../../clone/enums/CloneMode";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { deepClone, ignoreClone, defaultCloneMode } from "../../../clone/CloneManager";
+import { ignoreClone, defaultCloneMode } from "../../../clone/CloneManager";
 
 /**
  * Base class for all particle shapes.
@@ -27,11 +27,8 @@ export abstract class BaseShape {
   private _enabled = true;
   private _randomDirectionAmount = 0;
 
-  @deepClone
   private _position = new Vector3(0, 0, 0);
-  @deepClone
   private _rotation = new Vector3(0, 0, 0);
-  @deepClone
   private _scale = new Vector3(1, 1, 1);
   @ignoreClone
   private _matrix = new Matrix();

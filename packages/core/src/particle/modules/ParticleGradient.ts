@@ -1,15 +1,13 @@
 import { Color } from "@galacean/engine-math";
 import { CloneMode } from "../../clone/enums/CloneMode";
-import { deepClone, ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
+import { ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
 
 /**
  * Particle gradient.
  */
 @defaultCloneMode(CloneMode.Deep)
 export class ParticleGradient {
-  @deepClone
   private _colorKeys: GradientColorKey[] = [];
-  @deepClone
   private _alphaKeys: GradientAlphaKey[] = [];
   @ignoreClone
   private _colorTypeArray: Float32Array;

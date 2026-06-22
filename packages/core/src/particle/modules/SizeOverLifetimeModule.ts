@@ -1,4 +1,4 @@
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -24,11 +24,8 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_SOLMaxCurveZ");
 
   private _separateAxes = false;
-  @deepClone
   private _sizeX: ParticleCompositeCurve;
-  @deepClone
   private _sizeY: ParticleCompositeCurve;
-  @deepClone
   private _sizeZ: ParticleCompositeCurve;
 
   @ignoreClone

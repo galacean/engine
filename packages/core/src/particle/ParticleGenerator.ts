@@ -1,7 +1,7 @@
 import { BoundingBox, Color, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { CloneMode } from "../clone/enums/CloneMode";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone, defaultCloneMode } from "../clone/CloneManager";
+import { ignoreClone, defaultCloneMode } from "../clone/CloneManager";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -61,37 +61,26 @@ export class ParticleGenerator {
   useAutoRandomSeed = true;
 
   /** Main module. */
-  @deepClone
   readonly main: MainModule;
   /** Emission module. */
-  @deepClone
   readonly emission = new EmissionModule(this);
   /** Velocity over lifetime module. */
-  @deepClone
   readonly velocityOverLifetime: VelocityOverLifetimeModule;
   /** Force over lifetime module. */
-  @deepClone
   readonly forceOverLifetime: ForceOverLifetimeModule;
   /** Limit velocity over lifetime module. */
-  @deepClone
   readonly limitVelocityOverLifetime: LimitVelocityOverLifetimeModule;
   /** Size over lifetime module. */
-  @deepClone
   readonly sizeOverLifetime: SizeOverLifetimeModule;
   /** Rotation over lifetime module. */
-  @deepClone
   readonly rotationOverLifetime = new RotationOverLifetimeModule(this);
   /** Color over lifetime module. */
-  @deepClone
   readonly colorOverLifetime = new ColorOverLifetimeModule(this);
   /** Texture sheet animation module. */
-  @deepClone
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
   /** Noise module. */
-  @deepClone
   readonly noise: NoiseModule;
   /** Custom data module. */
-  @deepClone
   readonly customData: CustomDataModule;
 
   /** @internal */
