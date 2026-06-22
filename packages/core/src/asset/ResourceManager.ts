@@ -589,7 +589,7 @@ export class ResourceManager {
     }
 
     const loadUrl = key ? url + "?q=" + key : url;
-    // type is intentionally omitted: `_loadSingleItem` resolves it from the virtualPath map (the single source of truth)
+    // type omitted: resolved from the virtualPath map, the single source of truth
     const promise = this.load<T>({ url: loadUrl, params: mapped.params });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
