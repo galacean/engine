@@ -106,6 +106,51 @@ describe("ResourceManager", () => {
       loaderSpy.mockRestore();
     });
 
+    it("fills params from virtualPathResourceMap when params is omitted", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        {
+          virtualPath: "Assets/withParams",
+          path: "https://cdn.ali.com/p.json",
+          type: AssetType.Texture,
+          params: { mipmap: false }
+        } as any
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load({ url: "Assets/withParams" });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].params).deep.equal({ mipmap: false });
+      loaderSpy.mockRestore();
+    });
+
+    it("prefers explicit params over the virtualPath map params", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        {
+          virtualPath: "Assets/overrideParams",
+          path: "https://cdn.ali.com/o.json",
+          type: AssetType.Texture,
+          params: { mipmap: false }
+        } as any
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      // Explicit params overrides the map params (overwrite, not merge), mirroring type precedence
+      resourceManager.load({ url: "Assets/overrideParams", params: { mipmap: true } });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].params).deep.equal({ mipmap: true });
+      loaderSpy.mockRestore();
+    });
+
     it("shares the main asset across sub-asset queries", () => {
       const resourceManager = engine.resourceManager;
       // @ts-ignore

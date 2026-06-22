@@ -344,6 +344,7 @@ export class ResourceManager {
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
+    assetInfo.params ??= virtualResourceEntry?.params;
     assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
     assetInfo.timeout = assetInfo.timeout ?? this.timeout;
     assetInfo.retryInterval = assetInfo.retryInterval ?? this.retryInterval;
@@ -589,8 +590,8 @@ export class ResourceManager {
     }
 
     const loadUrl = key ? url + "?q=" + key : url;
-    // type omitted: resolved from the virtualPath map, the single source of truth
-    const promise = this.load<T>({ url: loadUrl, params: mapped.params });
+    // type and params omitted: resolved from the virtualPath map, the single source of truth
+    const promise = this.load<T>({ url: loadUrl });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
 
