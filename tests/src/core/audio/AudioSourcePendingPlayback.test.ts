@@ -93,7 +93,7 @@ function createAudioSource(): AudioSource {
 }
 
 function resetAudioManagerState(): void {
-  document.removeEventListener("visibilitychange", (AudioManager as any)._recoverPlaybackContext);
+  document.removeEventListener("visibilitychange", (AudioManager as any)._onVisibilityChange);
   window.removeEventListener("pageshow", (AudioManager as any)._onPageShow);
   document.removeEventListener("touchstart", (AudioManager as any)._resumeAfterInterruption);
   document.removeEventListener("touchend", (AudioManager as any)._resumeAfterInterruption);
@@ -645,5 +645,77 @@ describe("AudioSource playback lifecycle", () => {
     expect((audioSource as any)._playTime).to.equal(-1);
     expect((AudioManager as any)._playingCount).to.equal(playingCount2 - 1);
     expect((audioSource as any)._pendingPlay).to.be.false;
+  });
+
+  // hide-suspend: desktop/Android don't auto-suspend WebAudio when backgrounded, so we suspend on hide
+  it("suspends the context when the page is hidden", () => {
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+    audioSource.play();
+    const suspendSpy = vi.spyOn(context, "suspend");
+
+    const documentHidden = mockDocumentHidden(true);
+    document.dispatchEvent(new Event("visibilitychange"));
+    documentHidden.restore();
+
+    expect(suspendSpy).toHaveBeenCalledTimes(1);
+  });
+
+  // hide-suspend must not create a context (would break the deferred-creation root-cause fix)
+  it("does not create a context on hide when none exists", () => {
+    document.removeEventListener("visibilitychange", (AudioManager as any)._onVisibilityChange);
+    document.addEventListener("visibilitychange", (AudioManager as any)._onVisibilityChange);
+
+    const documentHidden = mockDocumentHidden(true);
+    document.dispatchEvent(new Event("visibilitychange"));
+    documentHidden.restore();
+
+    expect((AudioManager as any)._context == null).to.be.true;
+  });
+
+  // hide-suspend uses the bare context.suspend(), so a return to foreground still recovers
+  it("recovers after a hide-suspend (hide does not flag _suspendedByCaller)", async () => {
+    vi.useFakeTimers();
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+    audioSource.play();
+
+    const documentHidden = mockDocumentHidden(true);
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect((AudioManager as any)._suspendedByCaller).to.be.false;
+
+    const resumeSpy = vi.spyOn(context, "resume");
+    documentHidden.set(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    vi.advanceTimersByTime(100);
+    await flushAsync();
+    documentHidden.restore();
+
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect(context.state).to.equal("running");
+  });
+
+  // staleness guard: hidden again during the 100ms recovery delay must not resume on a backgrounded page
+  it("does not resume if hidden again during the recovery delay", async () => {
+    vi.useFakeTimers();
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+    audioSource.play();
+    context.state = "suspended";
+
+    const documentHidden = mockDocumentHidden(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    const resumeSpy = vi.spyOn(context, "resume");
+
+    // hidden again before the 100ms timer fires
+    documentHidden.set(true);
+    vi.advanceTimersByTime(100);
+    await flushAsync();
+    documentHidden.restore();
+
+    expect(resumeSpy).not.toHaveBeenCalled();
   });
 });

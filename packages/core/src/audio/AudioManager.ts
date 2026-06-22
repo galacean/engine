@@ -45,7 +45,7 @@ export class AudioManager {
     let context = AudioManager._context;
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
-      document.addEventListener("visibilitychange", AudioManager._recoverPlaybackContext);
+      document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
       // bfcache restore fires pageshow (persisted) but NOT visibilitychange, so recover here too
       window.addEventListener("pageshow", AudioManager._onPageShow);
       // iOS Safari requires user gesture to resume AudioContext
@@ -76,6 +76,16 @@ export class AudioManager {
     return AudioManager.getContext().state === "running";
   }
 
+  private static _onVisibilityChange(): void {
+    if (document.hidden) {
+      // Desktop/Android don't auto-suspend a running WebAudio context when backgrounded (only iOS does),
+      // so suspend here to stop audio in the background; only if a context already exists (don't create one)
+      AudioManager._context?.suspend().catch(() => {});
+    } else {
+      AudioManager._recoverPlaybackContext();
+    }
+  }
+
   private static _recoverPlaybackContext(): void {
     // Returning to foreground with a non-running context (and not a deliberate pause): iOS leaves it
     // "interrupted", which cannot be resumed directly; suspend() first transitions it to "suspended",
@@ -100,6 +110,10 @@ export class AudioManager {
     // 100ms is an empirical delay; resuming too soon after suspend is unreliable.
     setTimeout(() => {
       AudioManager._recovering = false;
+      // Hidden again during the delay, or a deliberate pause landed: don't resume on a backgrounded page
+      if (document.hidden || AudioManager._suspendedByCaller) {
+        return;
+      }
       context
         .resume()
         .then(() => {
