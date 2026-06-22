@@ -10,8 +10,10 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
+import { defaultCloneMode } from "./clone/CloneManager";
 import { CloneUtils } from "./clone/CloneUtils";
 import { ComponentCloner } from "./clone/ComponentCloner";
+import { CloneMode } from "./clone/enums/CloneMode";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
 import { DisorderedArray } from "./utils/DisorderedArray";
@@ -19,6 +21,7 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 /**
  * Entity, be used as components container.
  */
+@defaultCloneMode(CloneMode.Remap)
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
@@ -421,7 +424,9 @@ export class Entity extends EngineObject {
    */
   clone(): Entity {
     const cloneEntity = this._createCloneEntity();
-    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
+    const cloneMap = new Map<Object, Object>();
+    this._registerCloneMap(this, cloneEntity, cloneMap);
+    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, cloneMap);
     return cloneEntity;
   }
 
@@ -469,6 +474,26 @@ export class Entity extends EngineObject {
       cloneEntity.addChild(srcChildren[i]._createCloneEntity());
     }
     return cloneEntity;
+  }
+
+  /**
+   * Register every source Entity / Component to its clone in the identity map, so the value-copy
+   * pass (`_parseCloneEntity`) can remap references — including ones nested in arrays / maps / objects —
+   * through the clone gate. Must complete for the whole subtree before any value is copied, because a
+   * component anywhere in the tree may reference an entity anywhere else in it.
+   */
+  private _registerCloneMap(src: Entity, target: Entity, cloneMap: Map<Object, Object>): void {
+    cloneMap.set(src, target);
+    const srcComponents = src._components;
+    const targetComponents = target._components;
+    for (let i = 0, n = srcComponents.length; i < n; i++) {
+      cloneMap.set(srcComponents[i], targetComponents[i]);
+    }
+    const srcChildren = src._children;
+    const targetChildren = target._children;
+    for (let i = 0, n = srcChildren.length; i < n; i++) {
+      this._registerCloneMap(srcChildren[i], targetChildren[i], cloneMap);
+    }
   }
 
   private _parseCloneEntity(
