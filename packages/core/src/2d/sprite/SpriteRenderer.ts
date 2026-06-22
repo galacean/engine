@@ -160,18 +160,9 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   set filledMode(value: SpriteFilledMode) {
     if (this._filledMode !== value) {
       this._filledMode = value;
-      // Reset origin to a valid default for the new mode, since each mode only accepts a subset of origins.
-      switch (value) {
-        case SpriteFilledMode.Horizontal:
-          this._filledOrigin = SpriteFilledOrigin.Left;
-          break;
-        case SpriteFilledMode.Radial90:
-          this._filledOrigin = SpriteFilledOrigin.BottomLeft;
-          break;
-        default:
-          this._filledOrigin = SpriteFilledOrigin.Bottom;
-          break;
-      }
+      // Keep the current origin if it is still valid for the new mode, otherwise snap to the mode's
+      // default, since each mode only accepts a subset of origins.
+      this._filledOrigin = SpriteRenderer._correctOrigin(value, this._filledOrigin);
       if (this._drawMode === SpriteDrawMode.Filled) {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.WorldVolumeAndUV;
       }
@@ -186,6 +177,8 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   }
 
   set filledOrigin(value: SpriteFilledOrigin) {
+    // Snap to a value valid for the current mode so state stays self-consistent (getter === rendered).
+    value = SpriteRenderer._correctOrigin(this._filledMode, value);
     if (this._filledOrigin !== value) {
       this._filledOrigin = value;
       if (this._drawMode === SpriteDrawMode.Filled) {
@@ -569,6 +562,39 @@ export class SpriteRenderer extends Renderer implements ISpriteRenderer {
   @ignoreClone
   private _onColorChanged(): void {
     this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.Color;
+  }
+
+  /**
+   * Returns an origin valid for the given fill mode: the passed origin when it belongs to the mode's
+   * accepted subset, otherwise the mode's default. Keeps `filledMode`/`filledOrigin` always consistent.
+   */
+  private static _correctOrigin(mode: SpriteFilledMode, origin: SpriteFilledOrigin): SpriteFilledOrigin {
+    switch (mode) {
+      case SpriteFilledMode.Horizontal:
+        return origin === SpriteFilledOrigin.Left || origin === SpriteFilledOrigin.Right
+          ? origin
+          : SpriteFilledOrigin.Left;
+      case SpriteFilledMode.Vertical:
+        return origin === SpriteFilledOrigin.Top || origin === SpriteFilledOrigin.Bottom
+          ? origin
+          : SpriteFilledOrigin.Bottom;
+      case SpriteFilledMode.Radial90:
+        // Radial90 accepts the four corner origins.
+        return origin === SpriteFilledOrigin.TopLeft ||
+          origin === SpriteFilledOrigin.TopRight ||
+          origin === SpriteFilledOrigin.BottomLeft ||
+          origin === SpriteFilledOrigin.BottomRight
+          ? origin
+          : SpriteFilledOrigin.BottomLeft;
+      default:
+        // Radial180 / Radial360 accept the four edge origins.
+        return origin === SpriteFilledOrigin.Top ||
+          origin === SpriteFilledOrigin.Bottom ||
+          origin === SpriteFilledOrigin.Left ||
+          origin === SpriteFilledOrigin.Right
+          ? origin
+          : SpriteFilledOrigin.Bottom;
+    }
   }
 }
 

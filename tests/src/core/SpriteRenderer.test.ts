@@ -1610,8 +1610,18 @@ describe("SpriteRenderer", async () => {
     spriteRenderer.filledMode = SpriteFilledMode.Radial360;
     expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.Bottom);
 
-    // filledOrigin can still be set explicitly
+    // A valid origin for the current mode (Radial360 accepts edges) is kept
+    spriteRenderer.filledOrigin = SpriteFilledOrigin.Top;
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.Top);
+    // An origin invalid for the current mode snaps to the mode's default
     spriteRenderer.filledOrigin = SpriteFilledOrigin.TopRight;
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.Bottom);
+
+    // Corner-based modes validate origin the same way
+    spriteRenderer.filledMode = SpriteFilledMode.Radial90;
+    spriteRenderer.filledOrigin = SpriteFilledOrigin.Top; // edge origin invalid for Radial90 → snap default
+    expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.BottomLeft);
+    spriteRenderer.filledOrigin = SpriteFilledOrigin.TopRight; // valid corner → kept
     expect(spriteRenderer.filledOrigin).to.eq(SpriteFilledOrigin.TopRight);
   });
 
