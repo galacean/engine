@@ -647,6 +647,14 @@ describe("AudioSource playback lifecycle", () => {
     expect((audioSource as any)._pendingPlay).to.be.false;
   });
 
+  // suspend() must not create a context just to suspend it (would be the cold-ctx iOS zombie we avoid)
+  it("does not create a context when suspend() is called before any playback", async () => {
+    await AudioManager.suspend();
+
+    expect((AudioManager as any)._context == null).to.be.true;
+    expect((AudioManager as any)._suspendedByCaller).to.be.true;
+  });
+
   // hide-suspend: desktop/Android don't auto-suspend WebAudio when backgrounded, so we suspend on hide
   it("suspends the context when the page is hidden", () => {
     const audioSource = createAudioSource();

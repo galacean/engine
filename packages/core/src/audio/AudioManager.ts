@@ -18,7 +18,9 @@ export class AudioManager {
    */
   static suspend(): Promise<void> {
     AudioManager._suspendedByCaller = true;
-    return AudioManager.getContext().suspend();
+    // No context yet means nothing is playing; don't create a (cold) one just to suspend it
+    const context = AudioManager._context;
+    return context ? context.suspend() : Promise.resolve();
   }
 
   /**
