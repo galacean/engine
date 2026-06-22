@@ -125,6 +125,7 @@ describe("webgl engine test", () => {
 
     engine.disableAutoResize();
     expect((engine as any)._resizeObserver).toBeUndefined();
+    expect((engine as any)._pendingResizePixelRatio).toBeUndefined();
     expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount);
 
     const resizeSpy = vi.spyOn(engine.canvas, "resizeByClientSize");
@@ -137,9 +138,12 @@ describe("webgl engine test", () => {
     // Wait for the ResizeObserver to fire the resize callback
     await new Promise((resolve) => setTimeout(resolve, 1000));
     expect(resizeSpy).toHaveBeenCalledTimes(1);
+    // _pendingResizePixelRatio should be consumed by update() and cleared
+    expect((engine as any)._pendingResizePixelRatio).toBeUndefined();
 
     engine.destroy();
     expect((engine as any)._resizeObserver).toBeUndefined();
+    expect((engine as any)._pendingResizePixelRatio).toBeUndefined();
     expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount);
   });
 });

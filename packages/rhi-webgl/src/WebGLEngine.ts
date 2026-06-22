@@ -33,40 +33,44 @@ export class WebGLEngine extends Engine {
   }
 
   private _resizeObserver?: ResizeObserver;
+  private _pendingResize: boolean = false;
+  private _pendingResizePixelRatio?: number;
 
-  private static _cleanupResizeObserver(engine: WebGLEngine): void {
+  private static _cleanupAutoResize(engine: WebGLEngine): void {
     if (engine._resizeObserver) {
       engine._resizeObserver.disconnect();
       engine._resizeObserver = undefined;
     }
+    engine._pendingResize = false;
+    engine._pendingResizePixelRatio = undefined;
   }
 
   /**
    * Enable automatic canvas resizing via ResizeObserver.
-   * @param pixelRatio - Optional custom pixel ratio; falls back to device pixel ratio if omitted
+   * @param pixelRatio - Optional custom pixel ratio; lazily reads window.devicePixelRatio on resize when omitted
    */
   enableAutoResize(pixelRatio?: number): void {
     const webCanvas = this.canvas._webCanvas;
 
     if (!this.canvas.isOffscreenCanvas()) {
       if (!this._resizeObserver) {
-        this.once(EngineEventType.Shutdown, WebGLEngine._cleanupResizeObserver);
+        this.once(EngineEventType.Shutdown, WebGLEngine._cleanupAutoResize);
       }
 
       // Disconnect previous observer to avoid duplicate observation
       this._resizeObserver?.disconnect();
 
-      // Always create a new ResizeObserver to capture the latest pixelRatio parameter,
-      // avoiding stale closure values when enableAutoResize is called again.
+      // Re-create the observer each call so the closure always captures the
+      // latest pixelRatio. The actual resize is deferred to update(), keeping
+      // it in the same frame as rendering to prevent a blank flash.
+      // When pixelRatio is undefined, resizeByClientSize falls back to
+      // window.devicePixelRatio on each invocation, naturally tracking DPR changes.
       this._resizeObserver = new ResizeObserver(() => {
-        this.canvas.resizeByClientSize(pixelRatio);
+        this._pendingResize = true;
+        this._pendingResizePixelRatio = pixelRatio;
       });
 
       // Start observing the canvas element for size changes.
-      // Note: ResizeObserver callbacks fire after the current frame's rAF,
-      // so the canvas resize only takes effect in the following frame.
-      // The current frame may render with stale dimensions (e.g. a flash of
-      // incorrect sizing / blank area), and will recover on the next frame.
       this._resizeObserver.observe(webCanvas);
     }
   }
@@ -76,9 +80,23 @@ export class WebGLEngine extends Engine {
    */
   disableAutoResize(): void {
     if (this._resizeObserver) {
-      this.off(EngineEventType.Shutdown, WebGLEngine._cleanupResizeObserver);
-      WebGLEngine._cleanupResizeObserver(this);
+      this.off(EngineEventType.Shutdown, WebGLEngine._cleanupAutoResize);
+      WebGLEngine._cleanupAutoResize(this);
     }
+  }
+
+  /**
+   * @override
+   * Apply any pending canvas resize before the rendering pipeline runs,
+   * ensuring that resize and render occur within the same frame to avoid white flickering.
+   */
+  override update(): void {
+    if (this._pendingResize) {
+      this.canvas.resizeByClientSize(this._pendingResizePixelRatio);
+      this._pendingResize = false;
+      this._pendingResizePixelRatio = undefined;
+    }
+    super.update();
   }
 }
 

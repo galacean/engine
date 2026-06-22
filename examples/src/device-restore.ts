@@ -6,7 +6,7 @@
 import { Animator, Camera, Color, GLTFResource, Vector3, WebGLEngine } from "@galacean/engine";
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
+  engine.enableAutoResize();
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity();
   rootEntity.scene.background.solidColor = new Color(0.39, 0.31, 0.55, 1.0);
@@ -27,7 +27,7 @@ WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
       rootEntity.addChild(defaultSceneRoot);
 
       const animator = defaultSceneRoot.getComponent(Animator);
-      animator.play(animations![0].name);
+      animator?.play(animations![0].name);
 
       engine.on("devicelost", () => {
         domText.textContent = "Device is lost!";
