@@ -340,7 +340,7 @@ export class ResourceManager {
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): void {
-    assetInfo.type ??= remoteConfig?.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+    assetInfo.type = remoteConfig?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
@@ -589,7 +589,8 @@ export class ResourceManager {
     }
 
     const loadUrl = key ? url + "?q=" + key : url;
-    const promise = this.load<T>({ url: loadUrl, type: mapped.type, params: mapped.params });
+    // type is intentionally omitted: `_loadSingleItem` resolves it from the virtualPath map (the single source of truth)
+    const promise = this.load<T>({ url: loadUrl, params: mapped.params });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
 

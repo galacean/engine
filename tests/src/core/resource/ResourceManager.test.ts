@@ -120,20 +120,40 @@ describe("ResourceManager", () => {
       loaderSpy.mockRestore();
     });
 
-    it("keeps the explicit type over the virtualPath map type", () => {
+    it("prefers the virtualPath map type over an explicit type", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.initVirtualResources([
         { virtualPath: "Assets/explicit", path: "https://cdn.ali.com/x.json", type: AssetType.Texture }
       ]);
       // @ts-ignore
       const loaderSpy = vi
-        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
         .mockReturnValue(new AssetPromise(() => {}));
 
+      // A registered virtualPath is the single source of truth for its type;
+      // an explicit type cannot override the type the editor recorded for it.
       resourceManager.load({ url: "Assets/explicit", type: AssetType.GLTF });
 
       expect(loaderSpy).toHaveBeenCalled();
-      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.GLTF);
+      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+      loaderSpy.mockRestore();
+    });
+
+    it("getResourceByRef resolves the type from the map without passing it explicitly", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/byRef", path: "https://cdn.ali.com/r.json", type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      // @ts-ignore — getResourceByRef no longer forwards a type; the map must drive loader selection
+      resourceManager.getResourceByRef({ url: "Assets/byRef" });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
       loaderSpy.mockRestore();
     });
 
