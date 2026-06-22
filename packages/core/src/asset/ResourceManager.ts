@@ -339,8 +339,8 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _resolveLoadItemOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): void {
-    assetInfo.type = remoteConfig?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+  private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: EditorResourceItem): void {
+    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
@@ -357,15 +357,15 @@ export class ResourceManager {
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
-    this._resolveLoadItemOptions(item, remoteConfig);
+    const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
+    this._resolveLoadItemOptions(item, virtualResourceEntry);
 
     // Not absolute and base url is set
     item.url =
       !Utils.isAbsoluteUrl(assetBaseURL) && this.baseUrl
         ? Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL)
         : assetBaseURL;
-    const remoteAssetBaseURL = remoteConfig?.path ?? item.url;
+    const remoteAssetBaseURL = virtualResourceEntry?.path ?? item.url;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
@@ -407,7 +407,7 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
-    const subpackageName = remoteConfig?.subpackageName;
+    const subpackageName = virtualResourceEntry?.subpackageName;
 
     // Check sub asset
     if (queryPath) {
