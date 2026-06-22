@@ -339,7 +339,7 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _assignDefaultOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): void {
+  private _resolveLoadItemOptions(assetInfo: LoadItem, remoteConfig?: EditorResourceItem): void {
     assetInfo.type = remoteConfig?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
@@ -358,7 +358,7 @@ export class ResourceManager {
 
     // Get remote asset base url
     const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
-    this._assignDefaultOptions(item, remoteConfig);
+    this._resolveLoadItemOptions(item, remoteConfig);
 
     // Not absolute and base url is set
     item.url =
