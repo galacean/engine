@@ -48,9 +48,9 @@ export class AudioManager {
     if (!context) {
       AudioManager._context = context = new window.AudioContext();
       document.addEventListener("visibilitychange", AudioManager._onVisibilityChange);
-      // bfcache restore fires pageshow (persisted) but NOT visibilitychange, so recover here too
+      // iOS Safari bfcache restore fires pageshow (persisted) but NOT visibilitychange, so recover here too
       window.addEventListener("pageshow", AudioManager._onPageShow);
-      // iOS Safari requires user gesture to resume AudioContext
+      // iOS Safari requires a user gesture to resume the AudioContext
       document.addEventListener("touchstart", AudioManager._resumeAfterInterruption, { passive: true });
       document.addEventListener("touchend", AudioManager._resumeAfterInterruption, { passive: true });
       document.addEventListener("click", AudioManager._resumeAfterInterruption);
@@ -126,13 +126,14 @@ export class AudioManager {
   }
 
   private static _onPageShow(event: PageTransitionEvent): void {
-    // Only a bfcache restore needs handling here; a normal load has no suspended context to recover
+    // iOS Safari bfcache restore (persisted) needs recovery; a normal load has no suspended context
     if (event.persisted) {
       AudioManager._recoverPlaybackContext();
     }
   }
 
   private static _resumeAfterInterruption(): void {
+    // iOS Safari fallback: when auto-resume is blocked, resume on the next user gesture
     if (!AudioManager._suspendedByCaller && AudioManager._needsUserGestureResume) {
       AudioManager.resume().catch((e) => {
         console.warn("Failed to resume AudioContext:", e);
