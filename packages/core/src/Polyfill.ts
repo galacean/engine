@@ -7,6 +7,7 @@ export class Polyfill {
   static registerPolyfill(): void {
     Polyfill._registerMatchAll();
     Polyfill._registerAudioContext();
+    Polyfill._registerOfflineAudioContext();
     Polyfill._registerTextMetrics();
     Polyfill._registerPromiseFinally();
   }
@@ -50,6 +51,41 @@ export class Polyfill {
       ) => void;
 
       AudioContext.prototype.decodeAudioData = function (
+        arrayBuffer: ArrayBuffer,
+        successCallback?: DecodeSuccessCallback | null,
+        errorCallback?: DecodeErrorCallback | null
+      ): Promise<AudioBuffer> {
+        return new Promise<AudioBuffer>((resolve, reject) => {
+          originalDecodeAudioData.call(
+            this,
+            arrayBuffer,
+            (buffer: AudioBuffer) => {
+              successCallback?.(buffer);
+              resolve(buffer);
+            },
+            (error: DOMException) => {
+              errorCallback?.(error);
+              reject(error);
+            }
+          );
+        });
+      };
+    }
+  }
+
+  private static _registerOfflineAudioContext(): void {
+    // iOS 14.0 and earlier expose only webkitOfflineAudioContext, with callback-form decodeAudioData
+    if (!window.OfflineAudioContext && (window as any).webkitOfflineAudioContext) {
+      Logger.info("Polyfill window.OfflineAudioContext");
+      window.OfflineAudioContext = (window as any).webkitOfflineAudioContext;
+
+      const originalDecodeAudioData = OfflineAudioContext.prototype.decodeAudioData as (
+        audioData: ArrayBuffer,
+        successCallback?: DecodeSuccessCallback | null,
+        errorCallback?: DecodeErrorCallback | null
+      ) => void;
+
+      OfflineAudioContext.prototype.decodeAudioData = function (
         arrayBuffer: ArrayBuffer,
         successCallback?: DecodeSuccessCallback | null,
         errorCallback?: DecodeErrorCallback | null

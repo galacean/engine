@@ -53,9 +53,8 @@ class AudioLoader extends Loader<AudioClip> {
   }
 
   private static _getDecodeContext(): OfflineAudioContext {
-    // length/channels unused (decode only); decodeAudioData resamples to this rate, then the buffer is
-    // resampled again to the playback rate at play time, so pitch/duration are unaffected; 44100 is the
-    // safest rate across browsers; unprefixed OfflineAudioContext requires iOS >= 14.5
+    // length/channels are decode-only placeholders; 44100 is the safest cross-browser rate.
+    // decodeAudioData resamples once to this rate then again to the playback rate, so pitch/duration are unaffected
     return (AudioLoader._decodeContext ||= new OfflineAudioContext(1, 1, 44100));
   }
 }
