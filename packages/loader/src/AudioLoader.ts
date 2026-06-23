@@ -2,15 +2,20 @@ import {
   AssetPromise,
   AssetType,
   AudioClip,
-  AudioManager,
   LoadItem,
   Loader,
   RequestConfig,
   ResourceManager,
   resourceLoader
 } from "@galacean/engine-core";
+
 @resourceLoader(AssetType.Audio, ["mp3", "ogg", "wav", "m4a", "aac", "flac"])
 class AudioLoader extends Loader<AudioClip> {
+  // Decode here instead of the playback AudioContext: decoding happens at load time (before any user
+  // gesture), and creating the playback context that early breaks iOS phone-call recovery; the offline
+  // context decodes without touching the playback context
+  private static _decodeContext: OfflineAudioContext;
+
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AudioClip> {
     return new AssetPromise((resolve, reject) => {
       const { url } = item;
@@ -24,8 +29,7 @@ class AudioLoader extends Loader<AudioClip> {
         ._request<ArrayBuffer>(url, requestConfig)
         .then((arrayBuffer) => {
           const audioClip = new AudioClip(resourceManager.engine);
-          // @ts-ignore
-          AudioManager.getContext()
+          AudioLoader._getDecodeContext()
             .decodeAudioData(arrayBuffer)
             .then((result: AudioBuffer) => {
               // @ts-ignore
@@ -46,5 +50,11 @@ class AudioLoader extends Loader<AudioClip> {
           reject(e);
         });
     });
+  }
+
+  private static _getDecodeContext(): OfflineAudioContext {
+    // length/channels are decode-only placeholders; 44100 is the safest cross-browser rate.
+    // decodeAudioData resamples once to this rate then again to the playback rate, so pitch/duration are unaffected
+    return (AudioLoader._decodeContext ||= new OfflineAudioContext(1, 1, 44100));
   }
 }
