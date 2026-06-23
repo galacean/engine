@@ -196,12 +196,13 @@ export class AudioSource extends Component {
 
     if (this._isPlaying) {
       this._clearSourceNode();
-
       this._isPlaying = false;
-      this._pausedTime = -1;
-      this._playTime = -1;
       AudioManager._playingCount--;
     }
+
+    // stop() always resets to the start, including from a paused state (where _isPlaying is already false)
+    this._pausedTime = -1;
+    this._playTime = -1;
   }
 
   /**
@@ -278,15 +279,19 @@ export class AudioSource extends Component {
   private _initSourceNode(startTime: number): void {
     const context = AudioManager.getContext();
     const sourceNode = context.createBufferSource();
+    const buffer = this._clip._getAudioSource();
 
-    sourceNode.buffer = this._clip._getAudioSource();
+    sourceNode.buffer = buffer;
     sourceNode.playbackRate.value = this._playbackRate;
     sourceNode.loop = this._loop;
     sourceNode.onended = this._onPlayEnd;
     this._sourceNode = sourceNode;
 
     sourceNode.connect(this._ensureGainNode());
-    sourceNode.start(0, startTime);
+    // startTime is total elapsed time; for a looping clip wrap it into the buffer to keep the loop phase
+    // (start()'s offset clamps past the end, it does not wrap)
+    const offset = this._loop && buffer.duration > 0 ? startTime % buffer.duration : startTime;
+    sourceNode.start(0, offset);
   }
 
   private _clearSourceNode(): void {

@@ -647,6 +647,45 @@ describe("AudioSource playback lifecycle", () => {
     expect((audioSource as any)._pendingPlay).to.be.false;
   });
 
+  // stop() from a PAUSED state must reset the offset so the next play() starts from 0, not the pause point
+  it("stop() resets the paused offset (play -> pause -> stop -> play starts from 0)", () => {
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+    context.currentTime = 5;
+
+    audioSource.play();
+    context.currentTime = 8;
+    audioSource.pause();
+    expect((audioSource as any)._pausedTime > 0).to.be.true;
+
+    // stop() while paused (_isPlaying already false) must still clear the offset
+    audioSource.stop();
+    expect((audioSource as any)._pausedTime).to.equal(-1);
+    expect((audioSource as any)._playTime).to.equal(-1);
+
+    context.currentTime = 12;
+    audioSource.play();
+    expect(audioSource.time).to.equal(0);
+  });
+
+  // a looping clip resumed past one full loop must start from the loop phase, not a clamped offset
+  it("wraps the resume offset into the loop for a looping clip", () => {
+    const audioSource = createAudioSource();
+    audioSource.loop = true;
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+
+    // simulate resuming at 35s elapsed on a 10s clip (duration from the clip mock)
+    (audioSource as any)._pausedTime = 35;
+    (audioSource as any)._playTime = 0;
+    audioSource.play();
+
+    const sourceNode = (audioSource as any)._sourceNode;
+    // start(0, offset): 35 % 10 = 5, not the clamped 35
+    expect(sourceNode.start).toHaveBeenCalledWith(0, 5);
+  });
+
   // suspend() must not create a context just to suspend it (would be the cold-ctx iOS zombie we avoid)
   // suspend() with no context is a no-op: it must NOT create a context AND must NOT flag a caller-suspend
   // (a ghost flag would later block foreground recovery once playback starts)
