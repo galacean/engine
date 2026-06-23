@@ -120,12 +120,10 @@ export class AudioManager {
       if (document.hidden || AudioManager._suspendedByCaller) {
         return;
       }
-      context
-        .resume()
-        .then(() => {
-          AudioManager._needsUserGestureResume = false;
-        })
-        .catch(() => {});
+      // Go through AudioManager.resume() so its _resumePromise coalesces any user-gesture resume that
+      // races us during the slow iOS interrupted->running transition (~300-400ms); otherwise a bare
+      // context.resume() here would not occupy the promise and a gesture would issue a second call
+      AudioManager.resume().catch(() => {});
     }, 100);
   }
 
@@ -137,11 +135,14 @@ export class AudioManager {
   }
 
   private static _resumeAfterInterruption(): void {
-    // iOS Safari fallback: when auto-resume is blocked, resume on the next user gesture
-    if (!AudioManager._suspendedByCaller && AudioManager._needsUserGestureResume) {
-      AudioManager.resume().catch((e) => {
-        console.warn("Failed to resume AudioContext:", e);
-      });
+    // iOS Safari fallback: when auto-resume is blocked, resume on the next user gesture.
+    // Skip while _recovering: the recovery timer still owns the resume, and resuming now would both
+    // double-call context.resume() and fire before the suspend has settled (the empirical delay)
+    if (AudioManager._recovering || AudioManager._suspendedByCaller || !AudioManager._needsUserGestureResume) {
+      return;
     }
+    AudioManager.resume().catch((e) => {
+      console.warn("Failed to resume AudioContext:", e);
+    });
   }
 }

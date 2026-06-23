@@ -587,6 +587,78 @@ describe("AudioSource playback lifecycle", () => {
     expect((AudioManager as any)._recovering).to.be.false;
   });
 
+  // a gesture landing inside the 100ms recovery window must NOT resume: the timer still owns it, and
+  // a gesture resume here would both double-call context.resume() and fire before the suspend settled
+  it("ignores a gesture while recovery is in flight, leaving the single timer resume", async () => {
+    vi.useFakeTimers();
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+
+    audioSource.play();
+    context.state = "suspended";
+
+    const documentHidden = mockDocumentHidden(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    // recovery in flight: _recovering true, gesture-fallback armed, timer not yet fired
+    expect((AudioManager as any)._recovering).to.be.true;
+
+    const resumeSpy = vi.spyOn(context, "resume");
+    document.dispatchEvent(new Event("click")); // gesture inside the 100ms window
+    await flushAsync();
+    expect(resumeSpy).not.toHaveBeenCalled(); // gesture did NOT resume (recovery owns it)
+
+    vi.advanceTimersByTime(100);
+    await flushAsync();
+    documentHidden.restore();
+
+    // exactly one resume, from the timer; gesture did not double-call it
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect(context.state).to.equal("running");
+  });
+
+  // a storm of clicks AFTER the 100ms guard window but BEFORE the resume settles must coalesce via
+  // _resumePromise into the timer's resume (the timer goes through AudioManager.resume() now)
+  it("coalesces a click-storm during the slow iOS resume settle into a single context.resume()", async () => {
+    vi.useFakeTimers();
+    const audioSource = createAudioSource();
+    const context = AudioManager.getContext() as unknown as MockAudioContext;
+    context.state = "running";
+
+    audioSource.play();
+    context.state = "suspended";
+
+    // hold resume unresolved to simulate the slow iOS interrupted->running transition
+    let releaseResume: () => void;
+    MockAudioContext.resumeResultQueue = [
+      new Promise<void>((resolve) => {
+        releaseResume = resolve;
+      })
+    ];
+
+    const documentHidden = mockDocumentHidden(false);
+    document.dispatchEvent(new Event("visibilitychange"));
+    const resumeSpy = vi.spyOn(context, "resume");
+
+    // 100ms timer fires -> timer calls AudioManager.resume() which sets _resumePromise
+    vi.advanceTimersByTime(100);
+    await flushAsync();
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+    expect((AudioManager as any)._recovering).to.be.false;
+    expect((AudioManager as any)._resumePromise).to.not.be.null;
+
+    // storm of clicks while the resume is still pending -> _resumePromise coalesces them
+    for (let i = 0; i < 10; i++) {
+      document.dispatchEvent(new Event("click"));
+    }
+    await flushAsync();
+    expect(resumeSpy).toHaveBeenCalledTimes(1);
+
+    releaseResume!();
+    await flushAsync();
+    documentHidden.restore();
+  });
+
   it("treats a non-persisted pageshow as a no-op", () => {
     const audioSource = createAudioSource();
     const context = AudioManager.getContext() as unknown as MockAudioContext;
