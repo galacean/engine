@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { CloneMode } from "../clone/enums/CloneMode";
 import { Transform } from "../Transform";
 import { ignoreClone, defaultCloneMode } from "../clone/CloneManager";
@@ -24,6 +24,7 @@ import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import { ParticleFeedbackVertexAttribute } from "./enums/attributes/ParticleFeedbackVertexAttribute";
 import { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
 import { CustomDataModule } from "./modules/CustomDataModule";
@@ -37,6 +38,7 @@ import { SizeOverLifetimeModule } from "./modules/SizeOverLifetimeModule";
 import { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModule";
 import { NoiseModule } from "./modules/NoiseModule";
 import { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
+import { SubEmittersModule } from "./modules/SubEmittersModule";
 
 /**
  * Particle Generator.
@@ -50,7 +52,8 @@ export class ParticleGenerator {
   private static _tempVector31 = new Vector3();
   private static _tempVector32 = new Vector3();
   private static _tempMat = new Matrix();
-  private static _tempColor0 = new Color();
+  private static _tempColor = new Color();
+  private static _tempQuat0 = new Quaternion();
   private static _tempParticleRenderers = new Array<ParticleRenderer>();
 
   private static readonly _particleIncreaseCount = 128;
@@ -80,6 +83,8 @@ export class ParticleGenerator {
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
   /** Noise module. */
   readonly noise: NoiseModule;
+  /** Sub emitters module. */
+  readonly subEmitters: SubEmittersModule;
   /** Custom data module. */
   readonly customData: CustomDataModule;
 
@@ -123,6 +128,8 @@ export class ParticleGenerator {
   /** @internal */
   @ignoreClone
   private _feedbackBindingIndex = -1;
+  @ignoreClone
+  private _feedbackReadback: Float32Array = null;
 
   @ignoreClone
   private _isPlaying = false;
@@ -145,6 +152,21 @@ export class ParticleGenerator {
   private _firstFreeTransformedBoundingBox = 0;
   @ignoreClone
   private _playStartDelay = 0;
+
+  @ignoreClone
+  private _eventPos = new Vector3();
+  @ignoreClone
+  private _eventColor = new Color();
+  @ignoreClone
+  private _eventSize = new Vector3();
+  @ignoreClone
+  private _eventRotation = new Vector3();
+  @ignoreClone
+  private _eventDir = new Vector3();
+  @ignoreClone
+  private _emitLocalPos = new Vector3();
+  @ignoreClone
+  private _emitDirection = new Vector3();
 
   /**
    * Whether the particle generator is contain alive or is still creating particles.
@@ -191,6 +213,7 @@ export class ParticleGenerator {
     this.sizeOverLifetime = new SizeOverLifetimeModule(this);
     this.limitVelocityOverLifetime = new LimitVelocityOverLifetimeModule(this);
     this.noise = new NoiseModule(this);
+    this.subEmitters = new SubEmittersModule(this);
     this.customData = new CustomDataModule(this);
 
     this.emission.enabled = true;
@@ -640,13 +663,18 @@ export class ParticleGenerator {
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
     this.noise._resetRandomSeed(seed);
+    this.subEmitters._resetRandomSeed(seed);
   }
 
   /**
    * @internal
    */
   _setTransformFeedback(): void {
-    const needed = this.limitVelocityOverLifetime.enabled || this.noise.enabled;
+    const needed =
+      this._renderer.engine._hardwareRenderer.isWebGL2 &&
+      (this.limitVelocityOverLifetime.enabled ||
+        this.noise.enabled ||
+        this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death));
     if (needed === this._useTransformFeedback) return;
     this._useTransformFeedback = needed;
 
@@ -848,7 +876,10 @@ export class ParticleGenerator {
     direction: Vector3,
     transform: Transform,
     playTime: number,
-    emitWorldPositionOverride?: Vector3
+    emitWorldPositionOverride?: Vector3,
+    inheritColor?: Color,
+    inheritSize?: Vector3,
+    inheritRotation?: Vector3
   ): void {
     const firstFreeElement = this._firstFreeElement;
     let nextFreeElement = firstFreeElement + 1;
@@ -906,7 +937,7 @@ export class ParticleGenerator {
     instanceVertices[offset + ParticleBufferUtils.timeOffset] = playTime;
 
     // Color
-    const startColor = ParticleGenerator._tempColor0;
+    const startColor = ParticleGenerator._tempColor;
     main.startColor.evaluate(undefined, main._startColorRand.random(), startColor);
 
     startColor.copyToArray(instanceVertices, offset + 8);
@@ -1036,12 +1067,116 @@ export class ParticleGenerator {
       instanceVertices[offset + 41] = limitVelocityOverLifetime._speedRand.random();
     }
 
+    // Apply sub-emit inherit: multiply color/size, add rotation
+    if (inheritColor) {
+      instanceVertices[offset + 8] *= inheritColor.r;
+      instanceVertices[offset + 9] *= inheritColor.g;
+      instanceVertices[offset + 10] *= inheritColor.b;
+      instanceVertices[offset + 11] *= inheritColor.a;
+    }
+    if (inheritSize) {
+      instanceVertices[offset + 12] *= inheritSize.x;
+      instanceVertices[offset + 13] *= inheritSize.y;
+      instanceVertices[offset + 14] *= inheritSize.z;
+    }
+    if (inheritRotation) {
+      instanceVertices[offset + 15] += inheritRotation.x;
+      instanceVertices[offset + 16] += inheritRotation.y;
+      instanceVertices[offset + 17] += inheritRotation.z;
+    }
+
     // Initialize feedback buffer for this particle
     if (this._useTransformFeedback) {
       this._addFeedbackParticle(firstFreeElement, position, direction, startSpeed, transform, pos);
     }
 
     this._firstFreeElement = nextFreeElement;
+
+    if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
+      this._onParticleBirth(offset, position, direction, transform);
+    }
+  }
+
+  private _onParticleBirth(offset: number, position: Vector3, direction: Vector3, transform: Transform): void {
+    const worldRotation = transform.worldRotationQuaternion;
+    const birthPos = this._eventPos;
+    Vector3.transformByQuat(position, worldRotation, birthPos);
+    birthPos.add(transform.worldPosition);
+
+    // Birth emission direction is known directly; Death reads it back from the feedback buffer
+    const worldDirection = this._eventDir;
+    Vector3.transformByQuat(direction, worldRotation, worldDirection);
+
+    const parentColor = this._eventColor;
+    const parentSize = this._eventSize;
+    const parentRotation = this._eventRotation;
+    this._evaluateOverLifetime(offset, 0, parentColor, parentSize, parentRotation);
+
+    this.subEmitters._dispatchEvent(
+      ParticleSubEmitterType.Birth,
+      birthPos,
+      parentColor,
+      parentSize,
+      parentRotation,
+      worldDirection
+    );
+  }
+
+  /**
+   * @internal
+   */
+  _emitFromSubEmitter(
+    count: number,
+    worldPosition: Vector3,
+    inheritColor: Color,
+    inheritSize: Vector3,
+    inheritRotation: Vector3,
+    worldDirection?: Vector3
+  ): void {
+    if (count <= 0) return;
+
+    const main = this.main;
+    const notRetired = this._getNotRetiredParticleCount();
+    const available = main.maxParticles - notRetired;
+    if (available <= 0) return;
+    if (count > available) count = available;
+
+    const transform = this._renderer.entity.transform;
+    const { worldPosition: emitterWorldPosition, worldRotationQuaternion: emitterWorldRotation } = transform;
+
+    // Convert event world position into local emission space for a_ShapePos
+    const localPos = this._emitLocalPos;
+    Vector3.subtract(worldPosition, emitterWorldPosition, localPos);
+    const invRot = ParticleGenerator._tempQuat0;
+    Quaternion.invert(emitterWorldRotation, invRot);
+    Vector3.transformByQuat(localPos, invRot, localPos);
+
+    const direction = this._emitDirection;
+    if (worldDirection) {
+      Vector3.transformByQuat(worldDirection, invRot, direction);
+      const len = Math.sqrt(direction.x * direction.x + direction.y * direction.y + direction.z * direction.z);
+      if (len > MathUtil.zeroTolerance) {
+        direction.set(direction.x / len, direction.y / len, direction.z / len);
+      } else {
+        direction.set(0, 0, -1);
+      }
+    } else {
+      direction.set(0, 0, -1);
+    }
+
+    const playTime = this._playTime;
+    for (let i = 0; i < count; i++) {
+      this._addNewParticle(
+        localPos,
+        direction,
+        transform,
+        playTime,
+        undefined,
+        inheritColor,
+        inheritSize,
+        inheritRotation
+      );
+    }
   }
 
   private _addFeedbackParticle(
@@ -1084,7 +1219,11 @@ export class ParticleGenerator {
     const frameCount = engine.time.frameCount;
     const instanceVertices = this._instanceVertices;
 
-    while (this._firstActiveElement !== this._firstNewElement) {
+    const hasDeathSlot = this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death);
+    const firstNewElement = this._firstNewElement;
+    let feedbackLoaded = false;
+
+    while (this._firstActiveElement !== firstNewElement) {
       const activeParticleOffset = this._firstActiveElement * ParticleBufferUtils.instanceVertexFloatStride;
       const activeParticleTimeOffset = activeParticleOffset + ParticleBufferUtils.timeOffset;
 
@@ -1092,6 +1231,14 @@ export class ParticleGenerator {
       // Use `Math.fround` to ensure the precision of comparison is same
       if (Math.fround(particleAge) < instanceVertices[activeParticleOffset + ParticleBufferUtils.startLifeTimeOffset]) {
         break;
+      }
+
+      if (hasDeathSlot) {
+        if (this._feedbackSimulator && !feedbackLoaded) {
+          this._readbackFeedback(this._firstActiveElement, firstNewElement);
+          feedbackLoaded = true;
+        }
+        this._onParticleDeath(activeParticleOffset);
       }
 
       // Store frame count in time offset to free retired particle
@@ -1103,6 +1250,148 @@ export class ParticleGenerator {
       // Record wait process retired element count
       this._waitProcessRetiredElementCount++;
     }
+  }
+
+  private _readbackFeedback(firstActiveElement: number, firstNewElement: number): void {
+    const stride = ParticleBufferUtils.feedbackVertexStride;
+    const floatStride = stride / 4;
+    const totalFloatCount = this._currentParticleCount * floatStride;
+    let readback = this._feedbackReadback;
+    if (!readback || readback.length < totalFloatCount) {
+      readback = this._feedbackReadback = new Float32Array(totalFloatCount);
+    }
+
+    const buffer = this._feedbackSimulator.readBinding.buffer;
+    const wrapped = firstActiveElement >= firstNewElement;
+    const firstSegmentEnd = wrapped ? this._currentParticleCount : firstNewElement;
+    buffer.getData(
+      readback,
+      firstActiveElement * stride,
+      firstActiveElement * floatStride,
+      (firstSegmentEnd - firstActiveElement) * floatStride
+    );
+    if (wrapped && firstNewElement > 0) {
+      buffer.getData(readback, 0, 0, firstNewElement * floatStride);
+    }
+  }
+
+  private _onParticleDeath(particleOffset: number): void {
+    const instanceVertices = this._instanceVertices;
+    const transform = this._renderer.entity.transform;
+    const simSpaceLocal = this.main.simulationSpace === ParticleSimulationSpace.Local;
+
+    const worldRotation = transform.worldRotationQuaternion;
+    const ringIndex = particleOffset / ParticleBufferUtils.instanceVertexFloatStride;
+    const feedbackData = this._feedbackReadback;
+    const feedbackOffset = (ringIndex * ParticleBufferUtils.feedbackVertexStride) / 4;
+    const local = this._eventPos;
+    local.set(feedbackData[feedbackOffset], feedbackData[feedbackOffset + 1], feedbackData[feedbackOffset + 2]);
+    if (simSpaceLocal) {
+      Vector3.transformByQuat(local, worldRotation, local);
+      local.add(transform.worldPosition);
+    }
+
+    const worldDirection = this._eventDir;
+    worldDirection.set(
+      feedbackData[feedbackOffset + 3],
+      feedbackData[feedbackOffset + 4],
+      feedbackData[feedbackOffset + 5]
+    );
+    if (simSpaceLocal) {
+      Vector3.transformByQuat(worldDirection, worldRotation, worldDirection);
+    } else {
+      const spawnRotation = ParticleGenerator._tempQuat0;
+      spawnRotation.set(
+        instanceVertices[particleOffset + 30],
+        instanceVertices[particleOffset + 31],
+        instanceVertices[particleOffset + 32],
+        instanceVertices[particleOffset + 33]
+      );
+      Vector3.transformByQuat(worldDirection, spawnRotation, worldDirection);
+    }
+
+    // Evaluate at the parent's normalizedAge so children inherit its visible appearance at death.
+    const lifetime = instanceVertices[particleOffset + 3];
+    const bornTime = instanceVertices[particleOffset + 7];
+    const parentColor = this._eventColor;
+    const parentSize = this._eventSize;
+    const parentRotation = this._eventRotation;
+    const normalizedAge = Math.min(Math.max((this._playTime - bornTime) / lifetime, 0), 1);
+    this._evaluateOverLifetime(particleOffset, normalizedAge, parentColor, parentSize, parentRotation);
+
+    this.subEmitters._dispatchEvent(
+      ParticleSubEmitterType.Death,
+      local,
+      parentColor,
+      parentSize,
+      parentRotation,
+      worldDirection
+    );
+  }
+
+  private _evaluateOverLifetime(
+    particleOffset: number,
+    normalizedAge: number,
+    parentColor: Color,
+    parentSize: Vector3,
+    parentRotation: Vector3
+  ): void {
+    const instanceVertices = this._instanceVertices;
+
+    let r = instanceVertices[particleOffset + 8];
+    let g = instanceVertices[particleOffset + 9];
+    let b = instanceVertices[particleOffset + 10];
+    let a = instanceVertices[particleOffset + 11];
+    const col = this.colorOverLifetime;
+    if (col.enabled) {
+      const colorFactor = ParticleGenerator._tempColor;
+      col.color.evaluate(normalizedAge, instanceVertices[particleOffset + 20], colorFactor);
+      r *= colorFactor.r;
+      g *= colorFactor.g;
+      b *= colorFactor.b;
+      a *= colorFactor.a;
+    }
+    parentColor.set(r, g, b, a);
+
+    let sx = instanceVertices[particleOffset + 12];
+    let sy = instanceVertices[particleOffset + 13];
+    let sz = instanceVertices[particleOffset + 14];
+    const sol = this.sizeOverLifetime;
+    // SOL only contributes in Curve / TwoCurves modes (shader gates on RENDERER_SOL_CURVE_MODE)
+    if (sol.enabled && (sol.sizeX.mode === ParticleCurveMode.Curve || sol.sizeX.mode === ParticleCurveMode.TwoCurves)) {
+      const sizeRand = instanceVertices[particleOffset + 21];
+      if (sol.separateAxes) {
+        sx *= sol.sizeX.evaluate(normalizedAge, sizeRand);
+        sy *= sol.sizeY.evaluate(normalizedAge, sizeRand);
+        sz *= sol.sizeZ.evaluate(normalizedAge, sizeRand);
+      } else {
+        const factor = sol.sizeX.evaluate(normalizedAge, sizeRand);
+        sx *= factor;
+        sy *= factor;
+        sz *= factor;
+      }
+    }
+    parentSize.set(sx, sy, sz);
+
+    let rx = instanceVertices[particleOffset + 15];
+    let ry = instanceVertices[particleOffset + 16];
+    let rz = instanceVertices[particleOffset + 17];
+    const rol = this.rotationOverLifetime;
+    if (rol.enabled) {
+      const rotRand = instanceVertices[particleOffset + 22];
+      const lifetime = instanceVertices[particleOffset + 3];
+      const rolZ = rol.rotationZ._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+      if (rol.separateAxes) {
+        rx += rol.rotationX._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+        ry += rol.rotationY._evaluateCumulative(normalizedAge, rotRand) * lifetime;
+        rz += rolZ;
+      } else if (this.main.startRotation3D) {
+        rz += rolZ;
+      } else {
+        rx += rolZ; // 2D rotation: shader stores the Z angle in a_StartRotation0.x
+      }
+    }
+    parentRotation.set(rx, ry, rz);
   }
 
   private _freeRetiredParticles(): void {

@@ -9,8 +9,9 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
  */
 @defaultCloneMode(CloneMode.Deep)
 export abstract class ParticleGeneratorModule {
+  /** @internal */
   @ignoreClone
-  protected _generator: ParticleGenerator;
+  _generator: ParticleGenerator;
 
   protected _enabled: boolean = false;
 
