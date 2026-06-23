@@ -2,7 +2,7 @@
 
 ---
 printWidth: 120
-proseWrap: never
+proseWrap: preserve
 singleQuote: false
 trailingComma: none
 semi: true

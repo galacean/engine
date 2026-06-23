@@ -3,6 +3,9 @@
   "version": "2.0.0-alpha.35",
   "packageManager": "pnpm@9.3.0",
   "private": true,
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "pretest": "vitest --version && playwright install --with-deps chromium",
@@ -10,7 +13,7 @@
     "coverage": "cross-env HEADLESS=true vitest --coverage",
     "examples": "pnpm --filter @galacean/engine-examples dev",
     "build": "npm run b:module && npm run b:types",
-    "lint": "eslint packages/*/src --ext .ts",
+    "lint": "eslint \"packages/*/src/**/*.ts\"",
     "watch": "npm run precompile && cross-env NODE_ENV=release BUILD_TYPE=MODULE rollup -cw -m inline",
     "watch:umd": "npm run precompile && cross-env NODE_ENV=release BUILD_TYPE=UMD rollup -cw -m inline",
     "dev": "npm run precompile && cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
@@ -52,6 +55,7 @@
     "electron": "^13",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^8.8.0",
+    "eslint-parser-plain": "^0.1.1",
     "eslint-plugin-prettier": "^5.0.0",
     "fs-extra": "^10.1.0",
     "husky": "^8.0.0",
@@ -68,9 +72,8 @@
     "vitest": "3.2.6"
   },
   "lint-staged": {
-    "**/*.ts": [
-      "eslint --fix"
-    ]
+    "**/*.ts": ["eslint --fix"],
+    "**/*.{md,mdx,json,yaml,yml,html}": ["eslint --fix"]
   },
   "repository": "git@github.com:galacean/runtime.git"
 }
