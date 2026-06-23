@@ -110,19 +110,15 @@ export class AudioManager {
     AudioManager._needsUserGestureResume = true; // fallback if the auto-resume below is rejected
     const context = AudioManager.getContext();
     context.suspend().catch(() => {});
-    // Clear _recovering on the timer itself, NOT off a promise: suspending/resuming an "interrupted"
-    // context on iOS may never settle, which would leave _recovering stuck true and block all later
-    // recovery. The timer always fires, and 100ms already covers the bfcache double-dispatch window.
-    // 100ms is an empirical delay; resuming too soon after suspend is unreliable.
+    // 100ms empirical delay (resume too soon after suspend is unreliable on iOS); _recovering is cleared
+    // on the timer rather than off a promise because iOS may never settle suspend/resume in interrupted
     setTimeout(() => {
       AudioManager._recovering = false;
-      // Hidden again during the delay, or a deliberate pause landed: don't resume on a backgrounded page
       if (document.hidden || AudioManager._suspendedByCaller) {
         return;
       }
-      // Go through AudioManager.resume() so its _resumePromise coalesces any user-gesture resume that
-      // races us during the slow iOS interrupted->running transition (~300-400ms); otherwise a bare
-      // context.resume() here would not occupy the promise and a gesture would issue a second call
+      // Go through AudioManager.resume() so _resumePromise coalesces any gesture-resume racing us during
+      // the slow iOS interrupted->running transition; a bare context.resume() here wouldn't dedupe
       AudioManager.resume().catch(() => {});
     }, 100);
   }
@@ -135,9 +131,8 @@ export class AudioManager {
   }
 
   private static _resumeAfterInterruption(): void {
-    // iOS Safari fallback: when auto-resume is blocked, resume on the next user gesture.
-    // Skip while _recovering: the recovery timer still owns the resume, and resuming now would both
-    // double-call context.resume() and fire before the suspend has settled (the empirical delay)
+    // iOS Safari gesture fallback for when auto-resume is blocked.
+    // _recovering: don't bypass the 100ms delay (would resume on a still-interrupted context)
     if (AudioManager._recovering || AudioManager._suspendedByCaller || !AudioManager._needsUserGestureResume) {
       return;
     }
