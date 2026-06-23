@@ -162,6 +162,8 @@ describe("Physics Test", () => {
 
         expect(error).eq(`Physics-lite don't support ${method}. Use Physics-PhysX instead!`);
       }
+
+      root.destroy();
     });
 
     it("removeShape", () => {
