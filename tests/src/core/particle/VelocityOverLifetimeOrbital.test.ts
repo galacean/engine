@@ -215,4 +215,24 @@ describe("VelocityOverLifetimeModule orbital/radial", function () {
     expect(clonedVol._isOrbitalActive()).to.eq(true);
     expect(clonedVol._isRadialActive()).to.eq(true);
   });
+
+  it("offset component changes dirty bounds after clone", function () {
+    const dirtyBoundsFlags = 0x7;
+    const generatorBoundsFlag = 0x4;
+
+    const renderer = particleRenderer as any;
+    renderer._setDirtyFlagFalse(dirtyBoundsFlags);
+
+    particleRenderer.generator.velocityOverLifetime.offset.x = 1;
+
+    expect(renderer._isContainDirtyFlag(generatorBoundsFlag)).to.eq(true);
+
+    const cloneEntity = entity.clone();
+    const clonedRenderer = cloneEntity.getComponent(ParticleRenderer) as any;
+    clonedRenderer._setDirtyFlagFalse(dirtyBoundsFlags);
+
+    clonedRenderer.generator.velocityOverLifetime.offset.set(2, 0, 0);
+
+    expect(clonedRenderer._isContainDirtyFlag(generatorBoundsFlag)).to.eq(true);
+  });
 });
