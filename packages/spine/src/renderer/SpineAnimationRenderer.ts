@@ -297,7 +297,7 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     const tintBlack = this.tintBlack;
 
     const key = `${texture.instanceId}_${blendMode}_${premultipliedAlpha ? 1 : 0}`;
-    let cached = SpineAnimationRenderer._materialCacheMap[key] as SpineMaterial;
+    let cached = SpineAnimationRenderer._materialCacheMap.get(key);
     if (!cached) {
       cached = new SpineMaterial(engine);
       cached.isGCIgnored = true;

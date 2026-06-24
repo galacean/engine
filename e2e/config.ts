@@ -1,4 +1,18 @@
 export const E2E_CONFIG = {
+  Spine: {
+    spineboy: {
+      category: "Spine",
+      caseFileName: "spine-spineboy",
+      threshold: 0,
+      diffPercentage: 0.05
+    },
+    tintBlack: {
+      category: "Spine",
+      caseFileName: "spine-tint-black",
+      threshold: 0,
+      diffPercentage: 0.05
+    }
+  },
   Animator: {
     additive: {
       category: "Animator",
