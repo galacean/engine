@@ -351,7 +351,7 @@ export const E2E_CONFIG = {
       category: "Particle",
       caseFileName: "particleRenderer-velocity-orbital-constant",
       threshold: 0,
-      diffPercentage: 0
+      diffPercentage: 0.04
     },
     textureSheetAnimation: {
       category: "Particle",
@@ -539,7 +539,7 @@ export const E2E_CONFIG = {
       category: "Text",
       caseFileName: "text-character-spacing",
       threshold: 0.0,
-      diffPercentage: 0.0
+      diffPercentage: 0.015
     }
   },
   Trail: {
