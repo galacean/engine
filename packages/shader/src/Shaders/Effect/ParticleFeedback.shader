@@ -53,7 +53,7 @@ Shader "Effect/ParticleFeedback" {
       // Get VOL instantaneous velocity at normalizedAge
       vec3 getVOLVelocity(Attributes attributes, float normalizedAge) {
           vec3 vel = vec3(0.0);
-          #ifdef _VOL_MODULE_ENABLED
+          #ifdef _VOL_LINEAR_MODULE_ENABLED
               #ifdef RENDERER_VOL_CONSTANT_MODE
                   vel = renderer_VOLMaxConst;
                   #ifdef RENDERER_VOL_IS_RANDOM_TWO
@@ -108,6 +108,31 @@ Shader "Effect/ParticleFeedback" {
           return acc;
       }
 
+      // Orbital angular velocity (radians/second) at normalizedAge
+      #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
+      vec3 getVOLOrbital(float normalizedAge) {
+          #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
+              return renderer_VOLOrbitalConst;
+          #else
+              return vec3(
+                  evaluateParticleCurve(renderer_VOLOrbitalCurveX, normalizedAge),
+                  evaluateParticleCurve(renderer_VOLOrbitalCurveY, normalizedAge),
+                  evaluateParticleCurve(renderer_VOLOrbitalCurveZ, normalizedAge));
+          #endif
+      }
+      #endif
+
+      // Radial velocity at normalizedAge (away from center when positive)
+      #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+      float getVOLRadial(float normalizedAge) {
+          #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
+              return renderer_VOLRadialConst;
+          #else
+              return evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+          #endif
+      }
+      #endif
+
       Varyings main(Attributes attr) {
           Varyings v;
 
@@ -138,7 +163,7 @@ Shader "Effect/ParticleFeedback" {
 
           vec3 volLocal = vec3(0.0);
           vec3 volWorld = vec3(0.0);
-          #ifdef _VOL_MODULE_ENABLED
+          #ifdef _VOL_LINEAR_MODULE_ENABLED
               vec3 vol = getVOLVelocity(attr, normalizedAge);
               if (renderer_VOLSpace == 0) {
                   volLocal = vol;
@@ -236,6 +261,35 @@ Shader "Effect/ParticleFeedback" {
               totalVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
           #endif
           vec3 position = attr.a_FeedbackPosition + totalVelocity * dt;
+
+          // Orbital / Radial: rotate/grow the integrated position around the orbit center.
+          #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+          {
+              vec3 rel;
+              if (renderer_SimulationSpace == 0) {
+                  rel = position - renderer_VOLOffset;
+              } else {
+                  rel = rotationByQuaternions(position - attr.a_SimulationWorldPosition, invWorldRotation) - renderer_VOLOffset;
+              }
+
+              #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+                  float relLen = length(rel);
+                  if (relLen > 1e-5) {
+                      rel += (rel / relLen) * getVOLRadial(normalizedAge) * dt;
+                  }
+              #endif
+
+              #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
+                  rel = rotationByEuler(rel, getVOLOrbital(normalizedAge) * dt);
+              #endif
+
+              if (renderer_SimulationSpace == 0) {
+                  position = renderer_VOLOffset + rel;
+              } else {
+                  position = attr.a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
+              }
+          }
+          #endif
 
           v.v_FeedbackPosition = position;
           v.v_FeedbackVelocity = localVelocity;

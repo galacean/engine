@@ -680,17 +680,16 @@ export class ParticleGenerator {
    * @internal
    */
   _setTransformFeedback(): void {
-    const needed =
+    const needed = !!(
       this._renderer.engine._hardwareRenderer.isWebGL2 &&
-      (this.limitVelocityOverLifetime.enabled ||
-        this.noise.enabled ||
-        this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death));
+      (this.limitVelocityOverLifetime?.enabled ||
+        this.noise?.enabled ||
+        this.velocityOverLifetime?._needTransformFeedback() ||
+        this.subEmitters?._hasSubEmitterOfType(ParticleSubEmitterType.Death))
+    );
     if (needed === this._useTransformFeedback) return;
     this._useTransformFeedback = needed;
 
-    // Switching TF mode invalidates all active particle state: feedback buffers and instance
-    // buffer layout are incompatible between the two paths. Clear rather than show a one-frame
-    // jump; new particles will fill in naturally from the next emit cycle.
     this._clearActiveParticles();
 
     if (needed) {
@@ -1698,6 +1697,36 @@ export class ParticleGenerator {
           worldOffsetMax.y + forceMinMaxY.y,
           worldOffsetMax.z + forceMinMaxZ.y
         );
+      }
+    }
+
+    // Orbital sweeps particles around `offset`; radial grows their distance from it.
+    // Conservatively cover a cube of `reach` around the offset center (local space).
+    if (velocityOverLifetime._needTransformFeedback()) {
+      const offset = velocityOverLifetime.offset;
+      let radialReach = 0;
+      if (velocityOverLifetime._isRadialActive()) {
+        this._getExtremeValueFromZero(velocityOverLifetime.radial, velMinMaxX);
+        radialReach = Math.max(Math.abs(velMinMaxX.x), Math.abs(velMinMaxX.y)) * maxLifetime;
+      }
+      if (velocityOverLifetime._isOrbitalActive()) {
+        const dx = Math.max(Math.abs(min.x - offset.x), Math.abs(max.x - offset.x));
+        const dy = Math.max(Math.abs(min.y - offset.y), Math.abs(max.y - offset.y));
+        const dz = Math.max(Math.abs(min.z - offset.z), Math.abs(max.z - offset.z));
+        const reach = Math.sqrt(dx * dx + dy * dy + dz * dz) + radialReach;
+        min.set(
+          Math.min(min.x, offset.x - reach),
+          Math.min(min.y, offset.y - reach),
+          Math.min(min.z, offset.z - reach)
+        );
+        max.set(
+          Math.max(max.x, offset.x + reach),
+          Math.max(max.y, offset.y + reach),
+          Math.max(max.z, offset.z + reach)
+        );
+      } else if (radialReach > 0) {
+        min.set(min.x - radialReach, min.y - radialReach, min.z - radialReach);
+        max.set(max.x + radialReach, max.y + radialReach, max.z + radialReach);
       }
     }
 

@@ -347,6 +347,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.0364
     },
+    velocityOrbitalConstant: {
+      category: "Particle",
+      caseFileName: "particleRenderer-velocity-orbital-constant",
+      threshold: 0,
+      diffPercentage: 0
+    },
     textureSheetAnimation: {
       category: "Particle",
       caseFileName: "particleRenderer-textureSheetAnimation",

@@ -114,7 +114,7 @@ vec3 computeParticlePosition(Attributes attributes, in vec3 startVelocity, in fl
     vec3 localPositionOffset = startPosition;
     vec3 worldPositionOffset;
 
-    #ifdef _VOL_MODULE_ENABLED
+    #ifdef _VOL_LINEAR_MODULE_ENABLED
         vec3 lifeVelocity;
         vec3 velocityPositionOffset = computeVelocityPositionOffset(attributes, normalizedAge, age, lifeVelocity);
         if (renderer_VOLSpace == 0) {
@@ -175,7 +175,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         localVelocity = attr.a_FeedbackVelocity;
         worldVelocity = vec3(0.0);
 
-        #ifdef _VOL_MODULE_ENABLED
+        #ifdef _VOL_LINEAR_MODULE_ENABLED
             vec3 instantVOLVelocity;
             computeVelocityPositionOffset(attr, normalizedAge, age, instantVOLVelocity);
             if (renderer_VOLSpace == 0) {
