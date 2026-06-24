@@ -263,11 +263,11 @@ Shader "Effect/ParticleFeedback" {
           #endif
 
           // Step 4: Integrate position
-          vec3 totalVelocity;
+          vec3 baseVelocity;
           if (renderer_SimulationSpace == 0) {
-            totalVelocity = localVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+            baseVelocity = localVelocity;
           } else {
-            totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
+            baseVelocity = rotationByQuaternions(localVelocity, worldRotation);
           }
           #ifdef RENDERER_NOISE_MODULE_ENABLED
               vec3 noiseBasePos;
@@ -278,12 +278,43 @@ Shader "Effect/ParticleFeedback" {
                       attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * age,
                       worldRotation) + attr.a_SimulationWorldPosition;
               }
-              totalVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
+              baseVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
           #endif
-          vec3 position = attr.a_FeedbackPosition + totalVelocity * dt;
 
-          // Orbital / Radial: rotate/grow the integrated position around the orbit center.
           #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+          vec3 currentLinearOffset = vec3(0.0);
+          vec3 previousLinearOffset = vec3(0.0);
+          #ifdef _VOL_LINEAR_MODULE_ENABLED
+              float previousAge = max(age - dt, 0.0);
+              float previousNormalizedAge = previousAge / lifetime;
+              vec3 currentVOLVelocity;
+              vec3 previousVOLVelocity;
+              vec3 currentVOLPositionOffset =
+                  computeVelocityPositionOffset(attr, normalizedAge, age, currentVOLVelocity);
+              vec3 previousVOLPositionOffset =
+                  computeVelocityPositionOffset(attr, previousNormalizedAge, previousAge, previousVOLVelocity);
+              if (renderer_VOLSpace == 0) {
+                  if (renderer_SimulationSpace == 0) {
+                      currentLinearOffset = currentVOLPositionOffset;
+                      previousLinearOffset = previousVOLPositionOffset;
+                  } else {
+                      currentLinearOffset = rotationByQuaternions(currentVOLPositionOffset, worldRotation);
+                      previousLinearOffset = rotationByQuaternions(previousVOLPositionOffset, worldRotation);
+                  }
+              } else {
+                  if (renderer_SimulationSpace == 0) {
+                      currentLinearOffset = rotationByQuaternions(currentVOLPositionOffset, invWorldRotation);
+                      previousLinearOffset = rotationByQuaternions(previousVOLPositionOffset, invWorldRotation);
+                  } else {
+                      currentLinearOffset = currentVOLPositionOffset;
+                      previousLinearOffset = previousVOLPositionOffset;
+                  }
+              }
+          #endif
+
+          vec3 position = attr.a_FeedbackPosition - previousLinearOffset + baseVelocity * dt;
+
+          // Orbital / Radial: rotate/grow the integrated orbit base around the orbit center.
           {
               vec3 rel;
               if (renderer_SimulationSpace == 0) {
@@ -309,6 +340,15 @@ Shader "Effect/ParticleFeedback" {
                   position = attr.a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
               }
           }
+          position += currentLinearOffset;
+          #else
+          vec3 totalVelocity;
+          if (renderer_SimulationSpace == 0) {
+            totalVelocity = baseVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+          } else {
+            totalVelocity = baseVelocity + rotationByQuaternions(volLocal, worldRotation) + volWorld;
+          }
+          vec3 position = attr.a_FeedbackPosition + totalVelocity * dt;
           #endif
 
           v.v_FeedbackPosition = position;

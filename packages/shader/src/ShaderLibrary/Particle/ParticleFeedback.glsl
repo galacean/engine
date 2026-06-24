@@ -68,6 +68,43 @@ vec3 getVOLVelocity(float normalizedAge) {
     return vel;
 }
 
+vec3 computeVOLPositionOffsetTF(float normalizedAge, float age, out vec3 currentVelocity) {
+    vec3 velocityPosition = vec3(0.0);
+    currentVelocity = vec3(0.0);
+    #ifdef _VOL_LINEAR_MODULE_ENABLED
+        #ifdef RENDERER_VOL_CONSTANT_MODE
+            currentVelocity = renderer_VOLMaxConst;
+            #ifdef RENDERER_VOL_IS_RANDOM_TWO
+                currentVelocity = mix(renderer_VOLMinConst, currentVelocity, a_Random1.yzw);
+            #endif
+
+            velocityPosition = currentVelocity * age;
+        #endif
+        #ifdef RENDERER_VOL_CURVE_MODE
+            velocityPosition = vec3(
+                evaluateParticleCurveCumulative(renderer_VOLMaxGradientX, normalizedAge, currentVelocity.x),
+                evaluateParticleCurveCumulative(renderer_VOLMaxGradientY, normalizedAge, currentVelocity.y),
+                evaluateParticleCurveCumulative(renderer_VOLMaxGradientZ, normalizedAge, currentVelocity.z)
+            );
+
+            #ifdef RENDERER_VOL_IS_RANDOM_TWO
+                vec3 minCurrentVelocity;
+                vec3 minVelocityPosition = vec3(
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientX, normalizedAge, minCurrentVelocity.x),
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientY, normalizedAge, minCurrentVelocity.y),
+                    evaluateParticleCurveCumulative(renderer_VOLMinGradientZ, normalizedAge, minCurrentVelocity.z)
+                );
+
+                currentVelocity = mix(minCurrentVelocity, currentVelocity, a_Random1.yzw);
+                velocityPosition = mix(minVelocityPosition, velocityPosition, a_Random1.yzw);
+            #endif
+
+            velocityPosition *= a_ShapePositionStartLifeTime.w;
+        #endif
+    #endif
+    return velocityPosition;
+}
+
 // Get FOL instantaneous acceleration at normalizedAge
 vec3 getFOLAcceleration(float normalizedAge) {
     vec3 acc = vec3(0.0);
@@ -276,13 +313,14 @@ void main() {
     // World mode: position in world space, velocity rotated to world
     // =====================================================
     // FOL is now fully in localVelocity (both local and world-space FOL).
-    // VOL and Noise overlays are added here (not persisted).
+    // Noise is added here (not persisted). Linear VOL is handled separately
+    // when orbital/radial is active so it does not move the orbit base.
 
-    vec3 totalVelocity;
+    vec3 baseVelocity;
     if (renderer_SimulationSpace == 0) {
-      totalVelocity = localVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+      baseVelocity = localVelocity;
     } else {
-      totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
+      baseVelocity = rotationByQuaternions(localVelocity, worldRotation);
     }
     #ifdef RENDERER_NOISE_MODULE_ENABLED
         // Use analytical base position (birth + initial velocity * age) instead of
@@ -295,12 +333,41 @@ void main() {
                 a_ShapePositionStartLifeTime.xyz + a_DirectionTime.xyz * a_StartSpeed * age,
                 worldRotation) + a_SimulationWorldPosition;
         }
-        totalVelocity += computeNoiseVelocity(noiseBasePos, normalizedAge);
+        baseVelocity += computeNoiseVelocity(noiseBasePos, normalizedAge);
     #endif
-    vec3 position = a_FeedbackPosition + totalVelocity * dt;
 
-    // Orbital / Radial: rotate/grow the integrated position around the orbit center.
     #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+    vec3 currentLinearOffset = vec3(0.0);
+    vec3 previousLinearOffset = vec3(0.0);
+    #ifdef _VOL_LINEAR_MODULE_ENABLED
+        float previousAge = max(age - dt, 0.0);
+        float previousNormalizedAge = previousAge / lifetime;
+        vec3 currentVOLVelocity;
+        vec3 previousVOLVelocity;
+        vec3 currentVOLPositionOffset = computeVOLPositionOffsetTF(normalizedAge, age, currentVOLVelocity);
+        vec3 previousVOLPositionOffset = computeVOLPositionOffsetTF(previousNormalizedAge, previousAge, previousVOLVelocity);
+        if (renderer_VOLSpace == 0) {
+            if (renderer_SimulationSpace == 0) {
+                currentLinearOffset = currentVOLPositionOffset;
+                previousLinearOffset = previousVOLPositionOffset;
+            } else {
+                currentLinearOffset = rotationByQuaternions(currentVOLPositionOffset, worldRotation);
+                previousLinearOffset = rotationByQuaternions(previousVOLPositionOffset, worldRotation);
+            }
+        } else {
+            if (renderer_SimulationSpace == 0) {
+                currentLinearOffset = rotationByQuaternions(currentVOLPositionOffset, invWorldRotation);
+                previousLinearOffset = rotationByQuaternions(previousVOLPositionOffset, invWorldRotation);
+            } else {
+                currentLinearOffset = currentVOLPositionOffset;
+                previousLinearOffset = previousVOLPositionOffset;
+            }
+        }
+    #endif
+
+    vec3 position = a_FeedbackPosition - previousLinearOffset + baseVelocity * dt;
+
+    // Orbital / Radial: rotate/grow the integrated orbit base around the orbit center.
     {
         vec3 rel;
         if (renderer_SimulationSpace == 0) {
@@ -326,6 +393,15 @@ void main() {
             position = a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
         }
     }
+    position += currentLinearOffset;
+    #else
+    vec3 totalVelocity;
+    if (renderer_SimulationSpace == 0) {
+      totalVelocity = baseVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+    } else {
+      totalVelocity = baseVelocity + rotationByQuaternions(volLocal, worldRotation) + volWorld;
+    }
+    vec3 position = a_FeedbackPosition + totalVelocity * dt;
     #endif
 
     v_FeedbackPosition = position;
