@@ -14,6 +14,7 @@ import ScalableAmbientOcclusionSource from "./Lighting/ScalableAmbientOcclusion.
 import ShadowCasterSource from "./Pipeline/ShadowCaster.shaderc";
 import SkyboxSource from "./Sky/Skybox.shaderc";
 import SkyProceduralSource from "./Sky/SkyProcedural.shaderc";
+import SpineSource from "./2D/Spine.shaderc";
 import SpriteMaskSource from "./2D/SpriteMask.shaderc";
 import SpriteSource from "./2D/Sprite.shaderc";
 import TextSource from "./2D/Text.shaderc";
@@ -39,6 +40,7 @@ export {
   ShadowCasterSource,
   SkyboxSource,
   SkyProceduralSource,
+  SpineSource,
   SpriteMaskSource,
   SpriteSource,
   TextSource,

@@ -44,7 +44,10 @@ const commonPlugins = [
   swc(
     defineRollupSwcOption({
       include: /\.[mc]?[jt]sx?$/,
-      exclude: /node_modules/,
+      // Transpile bundled @esotericsoftware/spine-core to es5 too, so spine core packages'
+      // es5 subclasses (e.g. SpineTexture extends Texture) can extend it without the
+      // "Class constructor cannot be invoked without 'new'" es5-extends-es6 error.
+      exclude: /node_modules\/(?!\.pnpm\/@esotericsoftware\+|@esotericsoftware\/)/,
       jsc: {
         loose: true,
         externalHelpers: true,
