@@ -26,7 +26,7 @@ Shader "Effect/ParticleFeedback" {
           float a_StartSpeed;
           vec4 a_Random0;
 
-          #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO)
+          #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO) || defined(RENDERER_VOL_ORBITAL_IS_RANDOM_TWO) || defined(RENDERER_VOL_RADIAL_IS_RANDOM_TWO)
               vec4 a_Random1;
           #endif
 
@@ -110,25 +110,45 @@ Shader "Effect/ParticleFeedback" {
 
       // Orbital angular velocity (radians/second) at normalizedAge
       #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
-      vec3 getVOLOrbital(float normalizedAge) {
+      vec3 getVOLOrbital(Attributes attributes, float normalizedAge) {
           #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
-              return renderer_VOLOrbitalConst;
+              vec3 orbital = renderer_VOLOrbitalConst;
+              #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+                  orbital = mix(renderer_VOLOrbitalMinConst, orbital, attributes.a_Random1.yzw);
+              #endif
+              return orbital;
           #else
-              return vec3(
+              vec3 orbital = vec3(
                   evaluateParticleCurve(renderer_VOLOrbitalCurveX, normalizedAge),
                   evaluateParticleCurve(renderer_VOLOrbitalCurveY, normalizedAge),
                   evaluateParticleCurve(renderer_VOLOrbitalCurveZ, normalizedAge));
+              #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+                  vec3 minOrbital = vec3(
+                      evaluateParticleCurve(renderer_VOLOrbitalMinCurveX, normalizedAge),
+                      evaluateParticleCurve(renderer_VOLOrbitalMinCurveY, normalizedAge),
+                      evaluateParticleCurve(renderer_VOLOrbitalMinCurveZ, normalizedAge));
+                  orbital = mix(minOrbital, orbital, attributes.a_Random1.yzw);
+              #endif
+              return orbital;
           #endif
       }
       #endif
 
       // Radial velocity at normalizedAge (away from center when positive)
       #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
-      float getVOLRadial(float normalizedAge) {
+      float getVOLRadial(Attributes attributes, float normalizedAge) {
           #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
-              return renderer_VOLRadialConst;
+              float radial = renderer_VOLRadialConst;
+              #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+                  radial = mix(renderer_VOLRadialMinConst, radial, attributes.a_Random1.y);
+              #endif
+              return radial;
           #else
-              return evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+              float radial = evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+              #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+                  radial = mix(evaluateParticleCurve(renderer_VOLRadialMinCurve, normalizedAge), radial, attributes.a_Random1.y);
+              #endif
+              return radial;
           #endif
       }
       #endif
@@ -275,12 +295,12 @@ Shader "Effect/ParticleFeedback" {
               #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
                   float relLen = length(rel);
                   if (relLen > 1e-5) {
-                      rel += (rel / relLen) * getVOLRadial(normalizedAge) * dt;
+                      rel += (rel / relLen) * getVOLRadial(attr, normalizedAge) * dt;
                   }
               #endif
 
               #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
-                  rel = rotationByEuler(rel, getVOLOrbital(normalizedAge) * dt);
+                  rel = rotationByEuler(rel, getVOLOrbital(attr, normalizedAge) * dt);
               #endif
 
               if (renderer_SimulationSpace == 0) {

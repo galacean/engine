@@ -101,12 +101,24 @@ vec3 getFOLAcceleration(float normalizedAge) {
 #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
 vec3 getVOLOrbital(float normalizedAge) {
     #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
-        return renderer_VOLOrbitalConst;
+        vec3 orbital = renderer_VOLOrbitalConst;
+        #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+            orbital = mix(renderer_VOLOrbitalMinConst, orbital, a_Random1.yzw);
+        #endif
+        return orbital;
     #else
-        return vec3(
+        vec3 orbital = vec3(
             evaluateParticleCurve(renderer_VOLOrbitalCurveX, normalizedAge),
             evaluateParticleCurve(renderer_VOLOrbitalCurveY, normalizedAge),
             evaluateParticleCurve(renderer_VOLOrbitalCurveZ, normalizedAge));
+        #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+            vec3 minOrbital = vec3(
+                evaluateParticleCurve(renderer_VOLOrbitalMinCurveX, normalizedAge),
+                evaluateParticleCurve(renderer_VOLOrbitalMinCurveY, normalizedAge),
+                evaluateParticleCurve(renderer_VOLOrbitalMinCurveZ, normalizedAge));
+            orbital = mix(minOrbital, orbital, a_Random1.yzw);
+        #endif
+        return orbital;
     #endif
 }
 #endif
@@ -115,9 +127,17 @@ vec3 getVOLOrbital(float normalizedAge) {
 #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
 float getVOLRadial(float normalizedAge) {
     #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
-        return renderer_VOLRadialConst;
+        float radial = renderer_VOLRadialConst;
+        #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+            radial = mix(renderer_VOLRadialMinConst, radial, a_Random1.y);
+        #endif
+        return radial;
     #else
-        return evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+        float radial = evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+        #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+            radial = mix(evaluateParticleCurve(renderer_VOLRadialMinCurve, normalizedAge), radial, a_Random1.y);
+        #endif
+        return radial;
     #endif
 }
 #endif

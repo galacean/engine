@@ -76,17 +76,31 @@
 
     #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
         vec3 renderer_VOLOrbitalConst; // radians/second around x,y,z
+        #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+            vec3 renderer_VOLOrbitalMinConst;
+        #endif
     #endif
     #ifdef RENDERER_VOL_ORBITAL_CURVE_MODE
         vec2 renderer_VOLOrbitalCurveX[4]; // x:time y:value
         vec2 renderer_VOLOrbitalCurveY[4];
         vec2 renderer_VOLOrbitalCurveZ[4];
+        #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+            vec2 renderer_VOLOrbitalMinCurveX[4];
+            vec2 renderer_VOLOrbitalMinCurveY[4];
+            vec2 renderer_VOLOrbitalMinCurveZ[4];
+        #endif
     #endif
     #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
         float renderer_VOLRadialConst;
+        #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+            float renderer_VOLRadialMinConst;
+        #endif
     #endif
     #ifdef RENDERER_VOL_RADIAL_CURVE_MODE
         vec2 renderer_VOLRadialCurve[4]; // x:time y:value
+        #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+            vec2 renderer_VOLRadialMinCurve[4];
+        #endif
     #endif
 #endif
 

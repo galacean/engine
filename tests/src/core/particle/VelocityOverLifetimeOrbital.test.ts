@@ -165,6 +165,71 @@ describe("VelocityOverLifetimeModule orbital/radial", function () {
     expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialConst"))).to.eq(4);
   });
 
+  it("orbital/radial two constants upload min/max shader data", function () {
+    const generator = particleRenderer.generator;
+    const vol = generator.velocityOverLifetime;
+
+    vol.enabled = true;
+    vol.orbitalX = new ParticleCompositeCurve(-1, 1);
+    vol.orbitalY = new ParticleCompositeCurve(-2, 2);
+    vol.orbitalZ = new ParticleCompositeCurve(-3, 3);
+    vol.radial = new ParticleCompositeCurve(4, 5);
+    generator._updateShaderData(particleRenderer.shaderData);
+
+    const macros = particleRenderer.shaderData.getMacros().map((macro: ShaderMacro) => macro.name);
+    expect(macros).to.include("RENDERER_VOL_ORBITAL_CONSTANT_MODE");
+    expect(macros).to.include("RENDERER_VOL_ORBITAL_IS_RANDOM_TWO");
+    expect(macros).to.include("RENDERER_VOL_RADIAL_CONSTANT_MODE");
+    expect(macros).to.include("RENDERER_VOL_RADIAL_IS_RANDOM_TWO");
+
+    const orbitalMin = particleRenderer.shaderData.getVector3(ShaderProperty.getByName("renderer_VOLOrbitalMinConst"));
+    const orbitalMax = particleRenderer.shaderData.getVector3(ShaderProperty.getByName("renderer_VOLOrbitalConst"));
+    expect(orbitalMin.x).to.eq(-1);
+    expect(orbitalMin.y).to.eq(-2);
+    expect(orbitalMin.z).to.eq(-3);
+    expect(orbitalMax.x).to.eq(1);
+    expect(orbitalMax.y).to.eq(2);
+    expect(orbitalMax.z).to.eq(3);
+    expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialMinConst"))).to.eq(4);
+    expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialConst"))).to.eq(5);
+  });
+
+  it("orbital/radial two curves upload min/max shader data", function () {
+    const generator = particleRenderer.generator;
+    const vol = generator.velocityOverLifetime;
+
+    vol.enabled = true;
+    vol.orbitalY = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, -1), new CurveKey(1, -2)),
+      new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 2))
+    );
+    vol.radial = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 3), new CurveKey(1, 4)),
+      new ParticleCurve(new CurveKey(0, 5), new CurveKey(1, 6))
+    );
+    generator._updateShaderData(particleRenderer.shaderData);
+
+    const macros = particleRenderer.shaderData.getMacros().map((macro: ShaderMacro) => macro.name);
+    expect(macros).to.include("RENDERER_VOL_ORBITAL_CURVE_MODE");
+    expect(macros).to.include("RENDERER_VOL_ORBITAL_IS_RANDOM_TWO");
+    expect(macros).to.include("RENDERER_VOL_RADIAL_CURVE_MODE");
+    expect(macros).to.include("RENDERER_VOL_RADIAL_IS_RANDOM_TWO");
+
+    const orbitalMinY = particleRenderer.shaderData.getFloatArray(
+      ShaderProperty.getByName("renderer_VOLOrbitalMinCurveY")
+    );
+    const orbitalMaxY = particleRenderer.shaderData.getFloatArray(
+      ShaderProperty.getByName("renderer_VOLOrbitalCurveY")
+    );
+    const radialMin = particleRenderer.shaderData.getFloatArray(ShaderProperty.getByName("renderer_VOLRadialMinCurve"));
+    const radialMax = particleRenderer.shaderData.getFloatArray(ShaderProperty.getByName("renderer_VOLRadialCurve"));
+
+    expect(Array.from(orbitalMinY.slice(0, 4))).to.deep.eq([0, -1, 1, -2]);
+    expect(Array.from(orbitalMaxY.slice(0, 4))).to.deep.eq([0, 1, 1, 2]);
+    expect(Array.from(radialMin.slice(0, 4))).to.deep.eq([0, 3, 1, 4]);
+    expect(Array.from(radialMax.slice(0, 4))).to.deep.eq([0, 5, 1, 6]);
+  });
+
   it("switching orbital curve back to constants restores constant shader data", function () {
     const generator = particleRenderer.generator;
     const vol = generator.velocityOverLifetime;

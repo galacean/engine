@@ -1017,12 +1017,7 @@ export class ParticleGenerator {
 
     // Velocity random
     const velocityOverLifetime = this.velocityOverLifetime;
-    if (
-      velocityOverLifetime.enabled &&
-      velocityOverLifetime.velocityX.mode === ParticleCurveMode.TwoConstants &&
-      velocityOverLifetime.velocityY.mode === ParticleCurveMode.TwoConstants &&
-      velocityOverLifetime.velocityZ.mode === ParticleCurveMode.TwoConstants
-    ) {
+    if (velocityOverLifetime.enabled && velocityOverLifetime._isRandomMode()) {
       const rand = velocityOverLifetime._velocityRand;
       instanceVertices[offset + 24] = rand.random();
       instanceVertices[offset + 25] = rand.random();
