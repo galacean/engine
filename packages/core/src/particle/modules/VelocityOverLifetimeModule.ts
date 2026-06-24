@@ -276,6 +276,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this.orbitalY = new ParticleCompositeCurve(0);
     this.orbitalZ = new ParticleCompositeCurve(0);
     this.radial = new ParticleCompositeCurve(0);
+    // @ts-ignore
     this._offset._onValueChanged = () => this._generator._renderer._onGeneratorParamsChanged();
   }
 
