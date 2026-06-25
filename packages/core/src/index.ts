@@ -65,6 +65,7 @@ export * from "./animation/index";
 export * from "./mesh/index";
 export * from "./sky/index";
 export * from "./particle/index";
+export * from "./gaussian-splatting/index";
 export * from "./trail/index";
 export * from "./env-probe/index";
 export * from "./shader/index";
