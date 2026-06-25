@@ -1,55 +1,57 @@
 /**
  * Asset Type.
  */
-export enum AssetType {
+export const AssetType = {
   /** Plain text. */
-  Text = "Text",
+  Text: "Text",
   /** JSON. */
-  JSON = "JSON",
+  JSON: "JSON",
   /** ArrayBuffer. */
-  Buffer = "Buffer",
+  Buffer: "Buffer",
   /** Texture. */
-  Texture = "Texture",
+  Texture: "Texture",
   /** Material. */
-  Material = "Material",
+  Material: "Material",
   /** Shader. */
-  Shader = "Shader",
+  Shader: "Shader",
   /** Mesh. */
-  Mesh = "Mesh",
+  Mesh: "Mesh",
   /** AnimationClip. */
-  AnimationClip = "AnimationClip",
+  AnimationClip: "AnimationClip",
   /** AnimatorController. */
-  AnimatorController = "AnimatorController",
+  AnimatorController: "AnimatorController",
   /** Prefab.*/
-  Prefab = "Prefab",
+  Prefab: "Prefab",
   /** GLTF.*/
-  GLTF = "GLTF",
+  GLTF: "GLTF",
   /** Compress Texture. */
-  KTX = "KTX",
+  KTX: "KTX",
   /** Cube Compress Texture. */
-  KTXCube = "KTXCube",
+  KTXCube: "KTXCube",
   /** KTX2 Compress Texture */
-  KTX2 = "KTX2",
+  KTX2: "KTX2",
   /** Sprite. */
-  Sprite = "Sprite",
+  Sprite: "Sprite",
   /** PrimitiveMesh. */
-  PrimitiveMesh = "PrimitiveMesh",
+  PrimitiveMesh: "PrimitiveMesh",
   /** Sprite Atlas. */
-  SpriteAtlas = "SpriteAtlas",
+  SpriteAtlas: "SpriteAtlas",
   /** Ambient light. */
-  AmbientLight = "AmbientLight",
+  AmbientLight: "AmbientLight",
   /** Scene. */
-  Scene = "Scene",
+  Scene: "Scene",
   /** Font. */
-  Font = "Font",
+  Font: "Font",
   /** Source Font, include ttf, otf and woff. */
-  SourceFont = "SourceFont",
+  SourceFont: "SourceFont",
   /** AudioClip, include ogg, wav, mp3, m4a, aac and flac. */
-  Audio = "Audio",
+  Audio: "Audio",
   /** Project asset. */
-  Project = "project",
+  Project: "project",
   /** PhysicsMaterial. */
-  PhysicsMaterial = "PhysicsMaterial",
+  PhysicsMaterial: "PhysicsMaterial",
   /** RenderTarget. */
-  RenderTarget = "RenderTarget"
-}
+  RenderTarget: "RenderTarget"
+} as const;
+
+export type AssetType = (typeof AssetType)[keyof typeof AssetType];

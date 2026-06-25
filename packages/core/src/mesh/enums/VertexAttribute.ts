@@ -1,33 +1,35 @@
 /**
  * Vertex attribute types of a vertex in a ModelMesh.
  */
-export enum VertexAttribute {
+export const VertexAttribute = {
   /** Vertex position. */
-  Position = "POSITION",
+  Position: "POSITION",
   /** Vertex normal. */
-  Normal = "NORMAL",
+  Normal: "NORMAL",
   /** Vertex color. */
-  Color = "COLOR_0",
+  Color: "COLOR_0",
   /** Vertex tangent. */
-  Tangent = "TANGENT",
+  Tangent: "TANGENT",
   /** Vertex bone weight. */
-  BoneWeight = "WEIGHTS_0",
+  BoneWeight: "WEIGHTS_0",
   /** Vertex bone index. */
-  BoneIndex = "JOINTS_0",
+  BoneIndex: "JOINTS_0",
   /** Vertex UV. */
-  UV = "TEXCOORD_0",
+  UV: "TEXCOORD_0",
   /** Vertex UV1. */
-  UV1 = "TEXCOORD_1",
+  UV1: "TEXCOORD_1",
   /** Vertex UV2. */
-  UV2 = "TEXCOORD_2",
+  UV2: "TEXCOORD_2",
   /** Vertex UV3. */
-  UV3 = "TEXCOORD_3",
+  UV3: "TEXCOORD_3",
   /** Vertex UV4. */
-  UV4 = "TEXCOORD_4",
+  UV4: "TEXCOORD_4",
   /** Vertex UV5. */
-  UV5 = "TEXCOORD_5",
+  UV5: "TEXCOORD_5",
   /** Vertex UV6. */
-  UV6 = "TEXCOORD_6",
+  UV6: "TEXCOORD_6",
   /** Vertex UV7. */
-  UV7 = "TEXCOORD_7"
-}
+  UV7: "TEXCOORD_7"
+} as const;
+
+export type VertexAttribute = (typeof VertexAttribute)[keyof typeof VertexAttribute];

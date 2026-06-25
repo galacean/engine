@@ -14,13 +14,15 @@ export interface IMaterialSchema {
   shaderRef: RefItem;
 }
 
-export enum MaterialLoaderType {
-  Vector2 = "Vector2",
-  Vector3 = "Vector3",
-  Vector4 = "Vector4",
-  Color = "Color",
-  Float = "Float",
-  Texture = "Texture",
-  Boolean = "Boolean",
-  Integer = "Integer"
-}
+export const MaterialLoaderType = {
+  Vector2: "Vector2",
+  Vector3: "Vector3",
+  Vector4: "Vector4",
+  Color: "Color",
+  Float: "Float",
+  Texture: "Texture",
+  Boolean: "Boolean",
+  Integer: "Integer"
+} as const;
+
+export type MaterialLoaderType = (typeof MaterialLoaderType)[keyof typeof MaterialLoaderType];

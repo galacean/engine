@@ -1,11 +1,13 @@
 /**
  * Pipeline stage.
  */
-export enum PipelineStage {
+export const PipelineStage = {
   /** DepthOnly stage. */
-  DepthOnly = "DepthOnly",
+  DepthOnly: "DepthOnly",
   /** Shadow caster stage. */
-  ShadowCaster = "ShadowCaster",
+  ShadowCaster: "ShadowCaster",
   /** Forward shading stage. */
-  Forward = "Forward"
-}
+  Forward: "Forward"
+} as const;
+
+export type PipelineStage = (typeof PipelineStage)[keyof typeof PipelineStage];

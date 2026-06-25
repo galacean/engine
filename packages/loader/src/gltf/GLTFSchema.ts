@@ -37,122 +37,135 @@ export enum AccessorComponentType {
 /**
  * Specifies if the attirbute is a scalar, vector, or matrix
  */
-export enum AccessorType {
+export const AccessorType = {
   /**
    * Scalar
    */
-  SCALAR = "SCALAR",
+  SCALAR: "SCALAR",
   /**
    * Vector2
    */
-  VEC2 = "VEC2",
+  VEC2: "VEC2",
   /**
    * Vector3
    */
-  VEC3 = "VEC3",
+  VEC3: "VEC3",
   /**
    * Vector4
    */
-  VEC4 = "VEC4",
+  VEC4: "VEC4",
   /**
    * Matrix2x2
    */
-  MAT2 = "MAT2",
+  MAT2: "MAT2",
   /**
    * Matrix3x3
    */
-  MAT3 = "MAT3",
+  MAT3: "MAT3",
   /**
    * Matrix4x4
    */
-  MAT4 = "MAT4"
-}
+  MAT4: "MAT4"
+} as const;
+
+export type AccessorType = (typeof AccessorType)[keyof typeof AccessorType];
 
 /**
  * The name of the node's TRS property to modify, or the weights of the Morph Targets it instantiates
  */
-export enum AnimationChannelTargetPath {
+export const AnimationChannelTargetPath = {
   /**
    * Translation
    */
-  TRANSLATION = "translation",
+  TRANSLATION: "translation",
   /**
    * Rotation
    */
-  ROTATION = "rotation",
+  ROTATION: "rotation",
   /**
    * Scale
    */
-  SCALE = "scale",
+  SCALE: "scale",
   /**
    * Weights
    */
-  WEIGHTS = "weights"
-}
+  WEIGHTS: "weights"
+} as const;
+
+export type AnimationChannelTargetPath = (typeof AnimationChannelTargetPath)[keyof typeof AnimationChannelTargetPath];
 
 /**
  * Interpolation algorithm
  */
-export enum AnimationSamplerInterpolation {
+export const AnimationSamplerInterpolation = {
   /**
    * The animated values are linearly interpolated between keyframes
    */
-  Linear = "LINEAR",
+  Linear: "LINEAR",
   /**
    * The animated values remain constant to the output of the first keyframe, until the next keyframe
    */
-  Step = "STEP",
+  Step: "STEP",
   /**
    * The animation's interpolation is computed using a cubic spline with specified tangents
    */
-  CubicSpine = "CUBICSPLINE"
-}
+  CubicSpine: "CUBICSPLINE"
+} as const;
+
+export type AnimationSamplerInterpolation =
+  (typeof AnimationSamplerInterpolation)[keyof typeof AnimationSamplerInterpolation];
 
 /**
  * A camera's projection.  A node can reference a camera to apply a transform to place the camera in the scene
  */
-export enum CameraType {
+export const CameraType = {
   /**
    * A perspective camera containing properties to create a perspective projection matrix
    */
-  PERSPECTIVE = "perspective",
+  PERSPECTIVE: "perspective",
   /**
    * An orthographic camera containing properties to create an orthographic projection matrix
    */
-  ORTHOGRAPHIC = "orthographic"
-}
+  ORTHOGRAPHIC: "orthographic"
+} as const;
+
+export type CameraType = (typeof CameraType)[keyof typeof CameraType];
 
 /**
  * The mime-type of the image
  */
-export enum ImageMimeType {
+export const ImageMimeType = {
   /**
    * JPEG Mime-type
    */
-  JPEG = "image/jpeg",
+  JPEG: "image/jpeg",
   /**
    * PNG Mime-type
    */
-  PNG = "image/png"
-}
+  PNG: "image/png"
+} as const;
+
+export type ImageMimeType = (typeof ImageMimeType)[keyof typeof ImageMimeType];
 
 /**
  * The alpha rendering mode of the material
  */
-export enum MaterialAlphaMode {
+export const MaterialAlphaMode = {
   /**
    * The alpha value is ignored and the rendered output is fully opaque
    */
-  OPAQUE = "OPAQUE",
+  OPAQUE: "OPAQUE",
   /**
    * The rendered output is either fully opaque or fully transparent depending on the alpha value and the specified alpha cutoff value
    */
-  MASK = "MASK",
+  MASK: "MASK",
   /**
    * The alpha value is used to composite the source and destination areas. The rendered output is combined with the background using the normal painting operation (i.e. the Porter and Duff over operator)
    */
-  BLEND = "BLEND"
-}
+  BLEND: "BLEND"
+} as const;
+
+export type MaterialAlphaMode = (typeof MaterialAlphaMode)[keyof typeof MaterialAlphaMode];
 
 /**
  * Magnification filter.  Valid values correspond to WebGL enums: 9728 (NEAREST) and 9729 (LINEAR)
