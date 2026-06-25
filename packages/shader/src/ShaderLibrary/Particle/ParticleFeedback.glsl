@@ -8,6 +8,7 @@
 // Previous frame TF data
 vec3 a_FeedbackPosition;
 vec3 a_FeedbackVelocity;
+vec3 a_FeedbackVisualVelocity;
 
 // Per-particle instance data
 vec4 a_ShapePositionStartLifeTime;
@@ -32,6 +33,7 @@ int renderer_SimulationSpace;
 // TF outputs
 vec3 v_FeedbackPosition;
 vec3 v_FeedbackVelocity;
+vec3 v_FeedbackVisualVelocity;
 
 #include "ShaderLibrary/Particle/ParticleCommon.glsl"
 #include "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl"
@@ -191,6 +193,7 @@ void main() {
     if (normalizedAge >= 1.0 || normalizedAge < 0.0) {
         v_FeedbackPosition = a_FeedbackPosition;
         v_FeedbackVelocity = a_FeedbackVelocity;
+        v_FeedbackVisualVelocity = a_FeedbackVisualVelocity;
         gl_Position = vec4(0.0);
         return;
     }
@@ -406,6 +409,7 @@ void main() {
 
     v_FeedbackPosition = position;
     v_FeedbackVelocity = localVelocity;
+    v_FeedbackVisualVelocity = dt > 1e-5 ? (position - a_FeedbackPosition) / dt : a_FeedbackVisualVelocity;
     gl_Position = vec4(0.0);
 }
 

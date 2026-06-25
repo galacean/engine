@@ -81,6 +81,7 @@ struct Attributes {
     #ifdef RENDERER_TRANSFORM_FEEDBACK
         vec3 a_FeedbackPosition;
         vec3 a_FeedbackVelocity;
+        vec3 a_FeedbackVisualVelocity;
     #endif
 
     #ifdef MATERIAL_HAS_BASETEXTURE
@@ -174,6 +175,15 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         }
         localVelocity = attr.a_FeedbackVelocity;
         worldVelocity = vec3(0.0);
+        vec3 visualLocalVelocity;
+        vec3 visualWorldVelocity;
+        if (renderer_SimulationSpace == 0) {
+            visualLocalVelocity = attr.a_FeedbackVisualVelocity;
+            visualWorldVelocity = vec3(0.0);
+        } else {
+            visualLocalVelocity = vec3(0.0);
+            visualWorldVelocity = attr.a_FeedbackVisualVelocity;
+        }
 
         #ifdef _VOL_LINEAR_MODULE_ENABLED
             vec3 instantVOLVelocity;
@@ -189,7 +199,11 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         vec3 gravityVelocity = renderer_Gravity * attr.a_Random0.x * age;
         localVelocity = startVelocity;
         worldVelocity = gravityVelocity;
+        vec3 visualLocalVelocity = localVelocity;
+        vec3 visualWorldVelocity = worldVelocity;
         vec3 center = computeParticlePosition(attr, startVelocity, age, normalizedAge, gravityVelocity, worldRotation, localVelocity, worldVelocity);
+        visualLocalVelocity = localVelocity;
+        visualWorldVelocity = worldVelocity;
     #endif
 
     // Billboard / Mesh mode positioning
@@ -225,7 +239,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
     #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
         vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
-        vec3 velocity = rotationByQuaternions(renderer_SizeScale * localVelocity, worldRotation) + worldVelocity;
+        vec3 velocity = rotationByQuaternions(renderer_SizeScale * visualLocalVelocity, worldRotation) + visualWorldVelocity;
         vec3 cameraUpVector = normalize(velocity);
         vec3 direction = normalize(center - camera_Position);
         vec3 sideVector = normalize(cross(direction, normalize(velocity)));

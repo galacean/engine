@@ -4,5 +4,6 @@
  */
 export enum ParticleFeedbackVertexAttribute {
   Position = "a_FeedbackPosition",
-  Velocity = "a_FeedbackVelocity"
+  Velocity = "a_FeedbackVelocity",
+  VisualVelocity = "a_FeedbackVisualVelocity"
 }

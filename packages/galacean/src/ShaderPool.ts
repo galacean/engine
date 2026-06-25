@@ -88,6 +88,6 @@ export class ShaderPool {
     // `ParticleTransformFeedbackSimulator`, so no caching needed here.
     const feedbackPass = Shader.find("Effect/ParticleFeedback").subShaders[0].passes[0];
     // @ts-ignore — `_feedbackVaryings` is `ShaderPass` @internal.
-    feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity"];
+    feedbackPass._feedbackVaryings = ["v_FeedbackPosition", "v_FeedbackVelocity", "v_FeedbackVisualVelocity"];
   }
 }
