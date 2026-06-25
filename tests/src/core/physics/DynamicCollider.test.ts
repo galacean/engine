@@ -10,9 +10,13 @@ import {
   PlaneColliderShape
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
+import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
+
+const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
+const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
+  .href;
 
 describe("DynamicCollider", function () {
   let engine: Engine;
@@ -53,7 +57,13 @@ describe("DynamicCollider", function () {
   }
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({
+      canvas: document.createElement("canvas"),
+      physics: new PhysXPhysics(PhysXRuntimeMode.Auto, {
+        wasmModeUrl: physXWasmModeUrl,
+        wasmSIMDModeUrl: physXWasmSIMDModeUrl
+      })
+    });
 
     rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
   });
@@ -288,6 +298,57 @@ describe("DynamicCollider", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(boxCollider.angularVelocity.y)).eq(200);
+  });
+
+  it("applyForceAtPosition delegates world-space force and position to the native collider", function () {
+    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+    const boxCollider = box.getComponent(DynamicCollider);
+    const nativeCollider = (boxCollider as any)._nativeCollider;
+    const force = new Vector3(1, 2, 3);
+    const position = new Vector3(4, 5, 6);
+    const addForceAtPositionSpy = vi.spyOn(nativeCollider, "addForceAtPosition").mockImplementation(() => {});
+
+    boxCollider.applyForceAtPosition(force, position);
+
+    expect(addForceAtPositionSpy).toHaveBeenCalledOnce();
+    expect(addForceAtPositionSpy).toHaveBeenCalledWith(force, position);
+  });
+
+  it("applyForceAtPosition produces the same motion as an equivalent force and torque", function () {
+    const setupBox = () => {
+      const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
+      const collider = box.getComponent(DynamicCollider);
+      collider.mass = 1;
+      collider.useGravity = false;
+      collider.centerOfMass = new Vector3(0, 0, 0);
+      collider.inertiaTensor = new Vector3(1, 1, 1);
+      return collider;
+    };
+
+    const force = new Vector3(1, 0, 0);
+    const position = new Vector3(0, 1, 0);
+
+    const reference = setupBox();
+    reference.applyForce(force);
+    reference.applyTorque(new Vector3(0, 0, -1));
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+    const referenceLinearVelocity = reference.linearVelocity.clone();
+    const referenceAngularVelocity = reference.angularVelocity.clone();
+
+    rootEntity.clearChildren();
+
+    const target = setupBox();
+    target.applyForceAtPosition(force, position);
+    // @ts-ignore
+    engine.sceneManager.activeScene.physics._update(1);
+
+    expect(formatValue(target.linearVelocity.x)).eq(formatValue(referenceLinearVelocity.x));
+    expect(formatValue(target.linearVelocity.y)).eq(formatValue(referenceLinearVelocity.y));
+    expect(formatValue(target.linearVelocity.z)).eq(formatValue(referenceLinearVelocity.z));
+    expect(formatValue(target.angularVelocity.x)).eq(formatValue(referenceAngularVelocity.x));
+    expect(formatValue(target.angularVelocity.y)).eq(formatValue(referenceAngularVelocity.y));
+    expect(formatValue(target.angularVelocity.z)).eq(formatValue(referenceAngularVelocity.z));
   });
 
   it("maxDepenetrationVelocity", function () {
