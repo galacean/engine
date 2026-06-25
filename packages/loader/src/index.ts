@@ -2,6 +2,7 @@ import "./AnimationClipLoader";
 import "./AnimatorControllerLoader";
 import "./BufferLoader";
 import "./AmbientLightLoader";
+import "./GaussianSplatLoader";
 import "./FontLoader";
 import "./GLTFLoader";
 import "./PrefabLoader";
