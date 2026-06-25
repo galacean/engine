@@ -51,5 +51,7 @@ export enum AssetType {
   /** PhysicsMaterial. */
   PhysicsMaterial = "PhysicsMaterial",
   /** RenderTarget. */
-  RenderTarget = "RenderTarget"
+  RenderTarget = "RenderTarget",
+  /** 3D Gaussian Splatting scene (.ply, .splat, .spz). */
+  GaussianSplat = "GaussianSplat"
 }
