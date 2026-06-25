@@ -1,13 +1,15 @@
 /**
  * Engine event type.
  */
-export enum EngineEventType {
+export const EngineEventType = {
   /** Dispatched when the engine starts running. */
-  Run = "run",
+  Run: "run",
   /** Dispatched when the engine shuts down. */
-  Shutdown = "shutdown",
+  Shutdown: "shutdown",
   /** Dispatched when the graphic device is lost. */
-  DeviceLost = "devicelost",
+  DeviceLost: "devicelost",
   /** Dispatched when the graphic device is restored. */
-  DeviceRestored = "devicerestored"
-}
+  DeviceRestored: "devicerestored"
+} as const;
+
+export type EngineEventType = (typeof EngineEventType)[keyof typeof EngineEventType];
