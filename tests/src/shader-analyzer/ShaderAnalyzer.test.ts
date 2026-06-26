@@ -578,4 +578,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ShiftOutOfRange");
     expect(diag, "an in-range shift must not report ShiftOutOfRange").to.be.undefined;
   });
+
+  it("flags a constant vector index out of bounds (IndexOutOfBounds)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(0.0); float y = v[5]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    expect(diag, "indexing a vec3 at 5 must report IndexOutOfBounds").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag an in-bounds vector index", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(0.0); float y = v[1]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    expect(diag, "an in-bounds index must not report IndexOutOfBounds").to.be.undefined;
+  });
 });

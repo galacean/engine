@@ -83,6 +83,10 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`void frag() { int x = 1 << 40; gl_FragColor = vec4(float(x)); } FragmentShader = frag;`)
   },
   {
+    code: "IndexOutOfBounds",
+    source: pass(`void frag() { vec3 v = vec3(0.0); float y = v[5]; gl_FragColor = vec4(y); } FragmentShader = frag;`)
+  },
+  {
     code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`

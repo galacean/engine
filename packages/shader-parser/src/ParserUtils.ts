@@ -92,7 +92,7 @@ export class ParserUtils {
    * is not a known vector (struct member / scalar / unresolved — left for other checks).
    */
   static swizzleError(baseType: GalaceanDataType | undefined, swizzle: string): string | null {
-    const size = ParserUtils._vectorComponentCount(baseType);
+    const size = ParserUtils.vectorComponentCount(baseType);
     if (size === 0) return null;
     if (swizzle.length < 1 || swizzle.length > 4) {
       return `Invalid swizzle ".${swizzle}": a vector swizzle selects 1-4 components.`;
@@ -216,7 +216,8 @@ export class ParserUtils {
     }
   }
 
-  private static _vectorComponentCount(type: GalaceanDataType | undefined): number {
+  /** Component count of a vector type (2/3/4), or 0 for non-vectors. */
+  static vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {
       case Keyword.VEC2:
       case Keyword.IVEC2:

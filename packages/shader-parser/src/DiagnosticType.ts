@@ -21,6 +21,7 @@ export enum DiagnosticType {
   ArrayOfArray = "ArrayOfArray",
   ConstDivideByZero = "ConstDivideByZero",
   ShiftOutOfRange = "ShiftOutOfRange",
+  IndexOutOfBounds = "IndexOutOfBounds",
 
   // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",

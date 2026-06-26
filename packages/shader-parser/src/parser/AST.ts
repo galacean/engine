@@ -985,16 +985,31 @@ export namespace ASTNode {
         } else if (typeof base.type === "string") {
           PostfixExpression._checkStructField(sa, base.type, field);
         }
-      } else if (
-        children.length === 4 &&
-        ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData"
-      ) {
-        // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
-        sa.reportError(
-          children[0].location,
-          "Please use MRT struct instead of gl_FragData.",
-          DiagnosticType.GlFragData
-        );
+      } else if (children.length === 4) {
+        // `base [ index ]`.
+        if (ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData") {
+          // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
+          sa.reportError(
+            children[0].location,
+            "Please use MRT struct instead of gl_FragData.",
+            DiagnosticType.GlFragData
+          );
+        } else {
+          // A constant index past a known vector's size is out of bounds.
+          const base = children[0] as ExpressionAstNode;
+          const size = ParserUtils.vectorComponentCount(base.type);
+          const index = children[2];
+          if (size > 0 && index instanceof TreeNode) {
+            const n = ParserUtils.constNumericValue(index);
+            if (n !== undefined && (n < 0 || n >= size)) {
+              sa.reportError(
+                index.location,
+                `Index ${n} is out of bounds for a ${size}-component vector.`,
+                DiagnosticType.IndexOutOfBounds
+              );
+            }
+          }
+        }
       }
     }
 
