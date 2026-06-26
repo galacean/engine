@@ -52,7 +52,6 @@ const source = `Shader "${name}" {
       sampler2D material_CovBTexture;
       sampler2D material_ColorTexture;
       vec2 material_DataTextureSize;
-      vec2 material_Focal;
       vec2 material_InvViewport;
       float material_KernelSize;
 
@@ -98,9 +97,14 @@ const source = `Shader "${name}" {
           covA.z, covB.x, covB.y
         );
 
+        // Derive pixel focal length from the same projection the framebuffer renders with, so its Y sign
+        // matches (Galacean flips projection Y when rendering to a texture). A mismatched focal Y sign mirrors
+        // rotated splats' screen-space ellipse, producing spikes at certain view angles.
+        vec2 focal = 0.5 * vec2(camera_ProjMat[0][0], camera_ProjMat[1][1]) / material_InvViewport;
+
         mat3 J = mat3(
-          material_Focal.x / camspace.z, 0.0, -(material_Focal.x * camspace.x) / (camspace.z * camspace.z),
-          0.0, material_Focal.y / camspace.z, -(material_Focal.y * camspace.y) / (camspace.z * camspace.z),
+          focal.x / camspace.z, 0.0, -(focal.x * camspace.x) / (camspace.z * camspace.z),
+          0.0, focal.y / camspace.z, -(focal.y * camspace.y) / (camspace.z * camspace.z),
           0.0, 0.0, 0.0
         );
         mat3 T = gsTranspose(mat3(modelView)) * J;
