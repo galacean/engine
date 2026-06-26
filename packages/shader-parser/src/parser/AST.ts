@@ -15,6 +15,24 @@ import { ShaderData } from "./ShaderInfo";
 import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, VarSymbol } from "./symbolTable";
 import { IParamInfo, NodeChild, StructProp, SymbolType } from "./types";
 
+/** Texture-sampling builtins whose first argument is a sampler — used to flag a non-sampler arg0. */
+const TEXTURE_SAMPLING_BUILTINS = new Set([
+  "texture",
+  "texture2D",
+  "texture2DLod",
+  "texture2DLodEXT",
+  "textureCube",
+  "textureCubeLod",
+  "textureCubeLodEXT",
+  "textureLod",
+  "textureOffset",
+  "textureProj",
+  "textureProjLod",
+  "textureProjOffset",
+  "textureSize",
+  "texelFetch"
+]);
+
 function ASTNodeDecorator(nonTerminal: NoneTerminal) {
   return function <T extends { new (): TreeNode }>(ASTNode: T) {
     ASTNode.prototype.nt = nonTerminal;
@@ -895,6 +913,20 @@ export namespace ASTNode {
             return;
           }
         }
+        // A texture-sampling builtin's first argument must be a sampler. Flag a known non-sampler arg0
+        // here (specific) rather than letting it fall through to the generic NoMatchingOverload below.
+        if (TEXTURE_SAMPLING_BUILTINS.has(fnIdent)) {
+          const arg0 = paramSig?.[0];
+          if (arg0 !== undefined && arg0 !== TypeAny && !ParserUtils.isSamplerType(arg0)) {
+            sa.reportError(
+              this.location,
+              `'${fnIdent}' expects a sampler as its first argument, got '${ParserUtils.typeName(arg0)}'.`,
+              DiagnosticType.ExpectedSampler
+            );
+            return;
+          }
+        }
+
         const builtinFn = BuiltinFunction.resolveOverload(fnIdent, paramSig);
         if (builtinFn) {
           this.type = builtinFn.realReturnType;
@@ -1093,6 +1125,18 @@ export namespace ASTNode {
           // `base [ index ]`: the index must be an integer; a constant index past a known vector's size is out of bounds.
           const base = children[0] as ExpressionAstNode;
           const index = children[2];
+          // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
+          // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
+          if (ParserUtils.isScalarType(base.type)) {
+            const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+            if (baseIdent && !baseIdent.isArray) {
+              sa.reportError(
+                base.location,
+                `Type '${ParserUtils.typeName(base.type)}' is not indexable.`,
+                DiagnosticType.NonIndexableType
+              );
+            }
+          }
           if (index instanceof ExpressionAstNode) {
             const indexType = index.type;
             if (indexType !== TypeAny && !ParserUtils.isIntegerType(indexType)) {
@@ -1679,12 +1723,15 @@ export namespace ASTNode {
   export class VariableIdentifier extends TreeNode {
     // @todo: typeInfo may be multiple types
     typeInfo: GalaceanDataType;
+    /** Whether the resolved symbol is an array — `typeInfo` alone drops array-ness, but indexing rules need it. */
+    isArray: boolean;
     referenceGlobalSymbolNames: string[] = [];
 
     private _symbols: Array<VarSymbol | FnSymbol> = [];
 
     override init(): void {
       this.typeInfo = TypeAny;
+      this.isArray = false;
       this.referenceGlobalSymbolNames.length = 0;
       this._symbols.length = 0;
     }
@@ -1728,6 +1775,7 @@ export namespace ASTNode {
         // member type). Skip type inference for those and keep TypeAny.
         if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
           this.typeInfo = symbols[0].dataType?.type;
+          this.isArray = !!symbols[0].dataType?.arraySpecifier;
         }
       }
 

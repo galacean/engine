@@ -22,6 +22,8 @@ export enum DiagnosticType {
   ShiftOutOfRange = "ShiftOutOfRange",
   IndexOutOfBounds = "IndexOutOfBounds",
   NonIntegerIndex = "NonIntegerIndex",
+  NonIndexableType = "NonIndexableType",
+  ExpectedSampler = "ExpectedSampler",
   InvalidUnaryOperand = "InvalidUnaryOperand",
   InvalidBinaryOperands = "InvalidBinaryOperands",
   InvalidConversion = "InvalidConversion",

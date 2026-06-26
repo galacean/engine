@@ -933,4 +933,71 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
     expect(diag, "break inside a loop must not report MisplacedControlFlow").to.be.undefined;
   });
+
+  it("flags indexing a scalar (NonIndexableType)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float f = 1.0; float y = f[0]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIndexableType");
+    expect(diag, "indexing a scalar must report NonIndexableType").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag indexing an array or a vector", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a[3]; vec3 v = vec3(0.0); float y = a[0] + v[0]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIndexableType");
+    expect(diag, "indexing an array or a vector must not report NonIndexableType").to.be.undefined;
+  });
+
+  it("flags a texture sample whose first arg is not a sampler (ExpectedSampler)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec2 uv = vec2(0.0); vec4 c = texture(uv, uv); gl_FragColor = c; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ExpectedSampler");
+    expect(diag, "texture() with a non-sampler first arg must report ExpectedSampler").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a texture sample with a real sampler", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      mediump sampler2D u_tex;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec2 uv = vec2(0.0); vec4 c = texture(u_tex, uv); gl_FragColor = c; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ExpectedSampler");
+    expect(diag, "texture(sampler2D, uv) must not report ExpectedSampler").to.be.undefined;
+  });
 });

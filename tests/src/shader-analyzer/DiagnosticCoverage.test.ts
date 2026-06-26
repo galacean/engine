@@ -95,6 +95,16 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); } FragmentShader = frag;`)
   },
   {
+    code: "NonIndexableType",
+    source: pass(`void frag() { float f = 1.0; float y = f[0]; gl_FragColor = vec4(y); } FragmentShader = frag;`)
+  },
+  {
+    code: "ExpectedSampler",
+    source: pass(
+      `void frag() { vec2 uv = vec2(0.0); vec4 c = texture(uv, uv); gl_FragColor = c; } FragmentShader = frag;`
+    )
+  },
+  {
     code: "InvalidConversion",
     source: pass(
       `mediump sampler2D u_tex; void frag() { float x = float(u_tex); gl_FragColor = vec4(x); } FragmentShader = frag;`
