@@ -45,7 +45,9 @@ export class ShaderIOAnalyzer {
     shaderData: ShaderData,
     vertexEntry: string,
     fragmentEntry: string,
-    source: string
+    source: string,
+    vertexEntryLocation?: ShaderRange | ShaderPosition,
+    fragmentEntryLocation?: ShaderRange | ShaderPosition
   ): { io: ShaderIOInfo; errors: GSError[] } {
     const io: ShaderIOInfo = {
       attributeStructs: [],
@@ -58,6 +60,15 @@ export class ShaderIOAnalyzer {
     };
     const errors: GSError[] = [];
     const symbolTable = shaderData.symbolTable;
+
+    // A bound entry name that resolves to no function is a typo (e.g. `VertexShader = vrt`). Empty entry
+    // strings are MissingEntry's job, handled at parse time — only a non-empty miss is flagged here.
+    if (vertexEntry && !this._entryFns(symbolTable, vertexEntry).length) {
+      this._reportEntryNotFound(errors, vertexEntry, vertexEntryLocation, source);
+    }
+    if (fragmentEntry && !this._entryFns(symbolTable, fragmentEntry).length) {
+      this._reportEntryNotFound(errors, fragmentEntry, fragmentEntryLocation, source);
+    }
 
     this._analyzeVertex(symbolTable, vertexEntry, io, errors, source);
     this._analyzeFragment(symbolTable, fragmentEntry, io, errors, source);
@@ -153,6 +164,22 @@ export class ShaderIOAnalyzer {
     source: string
   ): void {
     errors.push(<GSError>ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, source, loc, code));
+  }
+
+  private static _reportEntryNotFound(
+    errors: GSError[],
+    entry: string,
+    loc: ShaderRange | ShaderPosition | undefined,
+    source: string
+  ): void {
+    // Codegen callers don't plumb the entry location; fall back to a 0-position so the diagnostic still fires.
+    this._error(
+      errors,
+      DiagnosticType.EntryNotFound,
+      `Entry function '${entry}' not found.`,
+      loc ?? <ShaderPosition>{ index: 0, line: 0, column: 0 },
+      source
+    );
   }
 
   private static _analyzeVertex(

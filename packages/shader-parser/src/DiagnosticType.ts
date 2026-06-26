@@ -50,6 +50,7 @@ export enum DiagnosticType {
   StructRoleConflict = "StructRoleConflict",
   DuplicateEntryAssignment = "DuplicateEntryAssignment",
   MissingEntry = "MissingEntry",
+  EntryNotFound = "EntryNotFound",
   GlFragColorWithMrt = "GlFragColorWithMrt",
   GlFragData = "GlFragData",
   NestedIOStruct = "NestedIOStruct",

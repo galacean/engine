@@ -1102,4 +1102,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
     expect(diag, "an array sized by a literal or a const must not report NonConstArraySize").to.be.undefined;
   });
+
+  it("flags a bound entry that is not a function (EntryNotFound)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vrt;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
+    expect(diag, "binding an entry name that is not a function must report EntryNotFound").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag valid bound entries", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
+    expect(diag, "valid bound entries must not report EntryNotFound").to.be.undefined;
+  });
 });

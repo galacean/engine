@@ -505,7 +505,9 @@ export class ShaderSourceParser {
           this._addPendingContents(start, token.lexeme.length, passSource.pendingContents);
           lexer.scanLexeme("=");
           const entry = lexer.scanToken();
-          const key = token.type === Keyword.GSVertexShader ? "vertexEntry" : "fragmentEntry";
+          const isVertex = token.type === Keyword.GSVertexShader;
+          const key = isVertex ? "vertexEntry" : "fragmentEntry";
+          passSource[isVertex ? "vertexEntryLocation" : "fragmentEntryLocation"] = entry.location;
           if (passSource[key]) {
             const error = ShaderCompilerUtils.createGSError(
               "Reassign main entry",

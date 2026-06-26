@@ -7,7 +7,7 @@ import {
   ShaderSourceParser
 } from "@galacean/engine-shader-parser";
 import type { ASTNode } from "@galacean/engine-shader-parser";
-import type { IShaderAnalyzer, IShaderProgram, IShaderSource } from "@galacean/engine-design";
+import type { IShaderAnalyzer, IShaderPassSource, IShaderProgram, IShaderSource } from "@galacean/engine-design";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticSeverity } from "./Diagnostic";
@@ -61,7 +61,7 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       for (const subShader of shaderSource.subShaders) {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
-          const analyzed = this._analyzePass(pass.contents, pass.vertexEntry, pass.fragmentEntry, diagnostics);
+          const analyzed = this._analyzePass(pass, diagnostics);
           if (analyzed) passes.push(analyzed);
         }
       }
@@ -106,17 +106,20 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
     }
   }
 
-  private _analyzePass(
-    source: string,
-    vertexEntry: string,
-    fragmentEntry: string,
-    diagnostics: Diagnostic[]
-  ): AnalyzedPass | null {
+  private _analyzePass(pass: IShaderPassSource, diagnostics: Diagnostic[]): AnalyzedPass | null {
+    const { vertexEntry, fragmentEntry } = pass;
     try {
-      const { program, errors, passText } = parseShaderPass(source, this._includeMap, this._chunkOutputCache);
+      const { program, errors, passText } = parseShaderPass(pass.contents, this._includeMap, this._chunkOutputCache);
       diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
       if (program) {
-        const { errors: ioErrors } = ShaderIOAnalyzer.analyze(program.shaderData, vertexEntry, fragmentEntry, passText);
+        const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
+          program.shaderData,
+          vertexEntry,
+          fragmentEntry,
+          passText,
+          pass.vertexEntryLocation,
+          pass.fragmentEntryLocation
+        );
         diagnostics.push(...ioErrors.map((e) => gseErrorToDiagnostic(e)));
         return { program, vertexEntry, fragmentEntry };
       }

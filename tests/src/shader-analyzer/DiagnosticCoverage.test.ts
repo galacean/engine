@@ -131,6 +131,13 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); } FragmentShader = frag;`)
   },
   {
+    code: "EntryNotFound",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vrt; FragmentShader = frag;`)
+  },
+  {
     code: "MissingVertexPosition",
     source: pass(
       `void vert() { } void frag() { gl_FragColor = vec4(0.0); } VertexShader = vert; FragmentShader = frag;`
