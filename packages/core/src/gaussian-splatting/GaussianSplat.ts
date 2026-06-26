@@ -204,19 +204,23 @@ export class GaussianSplat extends ReferResource {
     this._bounds.min.copyFrom(min);
     this._bounds.max.copyFrom(max);
 
+    // Center/covariance are raw data — must stay linear. Color is sRGB; tagging it lets the GPU linearize on
+    // read, so blending is correct. Reading sRGB color as linear over-brightens it and makes the soft tails of
+    // near-edge-on splats read as bright streaks instead of fading out.
     this._centerTexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, centers);
     this._covATexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covA);
     this._covBTexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covB);
-    this._colorTexture = this._createDataTexture(width, height, TextureFormat.R8G8B8A8, colors);
+    this._colorTexture = this._createDataTexture(width, height, TextureFormat.R8G8B8A8, colors, true);
   }
 
   private _createDataTexture(
     width: number,
     height: number,
     format: TextureFormat,
-    data: Float32Array | Uint16Array | Uint8Array
+    data: Float32Array | Uint16Array | Uint8Array,
+    isSRGBColorSpace = false
   ): Texture2D {
-    const texture = new Texture2D(this.engine, width, height, format, false, false);
+    const texture = new Texture2D(this.engine, width, height, format, false, isSRGBColorSpace);
     texture.filterMode = TextureFilterMode.Point;
     texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Clamp;
     texture.setPixelBuffer(data);
