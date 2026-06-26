@@ -36,6 +36,7 @@ export enum DiagnosticType {
   RecursiveFunction = "RecursiveFunction",
   NonConstructibleReturnType = "NonConstructibleReturnType",
   UnreachableCode = "UnreachableCode",
+  MisplacedControlFlow = "MisplacedControlFlow",
 
   // Pipeline (vertex/fragment IO)
   InvalidVaryingStruct = "InvalidVaryingStruct",

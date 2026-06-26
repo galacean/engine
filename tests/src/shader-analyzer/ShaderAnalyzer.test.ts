@@ -900,4 +900,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "UnreachableCode");
     expect(diag, "code after a conditional return is reachable").to.be.undefined;
   });
+
+  it("flags break outside a loop (MisplacedControlFlow)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); break; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    expect(diag, "break outside a loop must report MisplacedControlFlow").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag break inside a loop", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { for (int i = 0; i < 4; i++) { break; } gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    expect(diag, "break inside a loop must not report MisplacedControlFlow").to.be.undefined;
+  });
 });

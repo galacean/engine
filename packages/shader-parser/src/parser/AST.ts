@@ -745,10 +745,36 @@ export namespace ASTNode {
       this.returnStatement = undefined;
     }
 
+    /**
+     * `break` / `continue` are only valid inside a loop. Post-order reduction means a jump reduces
+     * before its enclosing loop, so the context can't be read at the JumpStatement; instead walk the
+     * body once here tracking loop depth (GLSL has no nested functions, so a single walk suffices).
+     */
+    private static _checkControlFlow(sa: SemanticAnalyzer, node: TreeNode, loopDepth: number): void {
+      if (node instanceof IterationStatement) {
+        for (const c of node.children)
+          if (c instanceof TreeNode) FunctionDefinition._checkControlFlow(sa, c, loopDepth + 1);
+        return;
+      }
+      if (node instanceof JumpStatement) {
+        const kw = ASTNode._unwrapToken(node.children[0]).type;
+        if (loopDepth === 0 && (kw === Keyword.BREAK || kw === Keyword.CONTINUE)) {
+          sa.reportError(
+            node.location,
+            `'${kw === Keyword.BREAK ? "break" : "continue"}' is only allowed inside a loop.`,
+            DiagnosticType.MisplacedControlFlow
+          );
+        }
+        return;
+      }
+      for (const c of node.children) if (c instanceof TreeNode) FunctionDefinition._checkControlFlow(sa, c, loopDepth);
+    }
+
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       this.protoType = children[0] as FunctionProtoType;
       this.statements = children[1] as CompoundStatementNoScope;
+      FunctionDefinition._checkControlFlow(sa, this.statements, 0);
 
       sa.popScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
