@@ -611,4 +611,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
     expect(diag, "an in-bounds index must not report IndexOutOfBounds").to.be.undefined;
   });
+
+  it("flags '!' applied to a non-bool (InvalidUnaryOperand)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float u_f = 1.0; bool ok = !u_f; gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidUnaryOperand");
+    expect(diag, "'!' on a float must report InvalidUnaryOperand").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a valid unary operand", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { bool b = true; bool ok = !b; gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidUnaryOperand");
+    expect(diag, "'!' on a bool must not report InvalidUnaryOperand").to.be.undefined;
+  });
 });

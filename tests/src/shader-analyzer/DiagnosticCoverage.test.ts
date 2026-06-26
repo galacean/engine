@@ -87,6 +87,10 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`void frag() { vec3 v = vec3(0.0); float y = v[5]; gl_FragColor = vec4(y); } FragmentShader = frag;`)
   },
   {
+    code: "InvalidUnaryOperand",
+    source: pass(`void frag() { float u_f = 1.0; bool ok = !u_f; gl_FragColor = vec4(0.0); } FragmentShader = frag;`)
+  },
+  {
     code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`

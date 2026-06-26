@@ -1043,6 +1043,37 @@ export namespace ASTNode {
     override init(): void {
       this.type = (this.children[0] as PostfixExpression).type;
     }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      // Unary operand-type rules: `!` needs bool, `~` needs integer, `-`/`+` need numeric. The operand
+      // type is read directly (not the deduced result), so this fires for known operands and skips
+      // TypeAny (continue-with-unknown); `++`/`--` reduce with a raw token child and are not handled here.
+      if (this.children.length !== 2 || !(this.children[0] instanceof UnaryOperator)) return;
+      const opToken = (this.children[0] as UnaryOperator).children[0];
+      const operand = this.children[1] as ExpressionAstNode;
+      const t = operand.type;
+      if (!(opToken instanceof BaseToken) || t === TypeAny) return;
+      let bad = false;
+      switch (opToken.type) {
+        case ETokenType.BANG:
+          bad = !ParserUtils.isBoolType(t);
+          break;
+        case ETokenType.TILDE:
+          bad = !ParserUtils.isIntegerType(t);
+          break;
+        case ETokenType.DASH:
+        case ETokenType.PLUS:
+          bad = ParserUtils.isBoolType(t) || ParserUtils.isSamplerType(t) || typeof t === "string";
+          break;
+      }
+      if (bad) {
+        sa.reportError(
+          this.location,
+          `Operator '${opToken.lexeme}' cannot be applied to operand of type '${ParserUtils.typeName(t)}'.`,
+          DiagnosticType.InvalidUnaryOperand
+        );
+      }
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.multiplicative_expression)

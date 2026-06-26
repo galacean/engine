@@ -216,6 +216,28 @@ export class ParserUtils {
     }
   }
 
+  /** A boolean scalar/vector type. */
+  static isBoolType(type: GalaceanDataType | undefined): boolean {
+    return type === Keyword.BOOL || type === Keyword.BVEC2 || type === Keyword.BVEC3 || type === Keyword.BVEC4;
+  }
+
+  /** An integer scalar/vector type (signed or unsigned). */
+  static isIntegerType(type: GalaceanDataType | undefined): boolean {
+    switch (type) {
+      case Keyword.INT:
+      case Keyword.UINT:
+      case Keyword.IVEC2:
+      case Keyword.IVEC3:
+      case Keyword.IVEC4:
+      case Keyword.UVEC2:
+      case Keyword.UVEC3:
+      case Keyword.UVEC4:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   /** Component count of a vector type (2/3/4), or 0 for non-vectors. */
   static vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {
