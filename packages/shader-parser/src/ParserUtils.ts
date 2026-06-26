@@ -240,8 +240,11 @@ export class ParserUtils {
     const ident = ParserUtils.unwrapBareIdentifier(node, { allowParens: true });
     if (!ident) return false;
     const child = ident.children[0];
+    // A `#define`'d name used at a site is lexed as a MACRO_CALL (only registered macros become one),
+    // so it's a compile-time constant — its replacement is fixed before the compiler runs.
+    if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return true;
     if (!(child instanceof Token)) return false;
-    // A `#define`'d name is a compile-time constant (it just survived unexpanded at this site).
+    // A `#define`'d name that survived as a plain token (no macro substitution) is likewise constant.
     if (sa.macroDefineList[child.lexeme]) return true;
     const lookup = SemanticAnalyzer._lookupSymbol;
     lookup.set(child.lexeme, ESymbolType.VAR);

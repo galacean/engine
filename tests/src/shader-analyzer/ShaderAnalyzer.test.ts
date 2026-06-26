@@ -513,7 +513,24 @@ describe("ShaderAnalyzer", () => {
     expect(diag, "a flat IO struct must not report NestedIOStruct").to.be.undefined;
   });
 
-  it("flags division by a constant zero (ConstDivideByZero)", () => {
+  it("flags integer division by a constant zero (ConstDivideByZero)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
+    expect(diag, "integer division by constant zero must report ConstDivideByZero").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag float division by a constant zero (1.0/0.0 is Inf, not an error)", () => {
     const source = `Shader "x" {
   SubShader "Default" {
     Pass "test" {
@@ -526,8 +543,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
-    expect(diag, "division by constant zero must report ConstDivideByZero").to.be.ok;
-    expect(diag!.severity).to.equal("error");
+    expect(diag, "float division by zero yields Inf, must not report ConstDivideByZero").to.be.undefined;
   });
 
   it("does not flag division by a non-zero constant", () => {
@@ -610,6 +626,39 @@ describe("ShaderAnalyzer", () => {
 }`;
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
     expect(diag, "an in-bounds index must not report IndexOutOfBounds").to.be.undefined;
+  });
+
+  it("flags a constant array index out of bounds (IndexOutOfBounds)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a[3]; float y = a[5]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    expect(diag, "indexing a 3-element array at 5 must report IndexOutOfBounds").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag an in-bounds array index", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a[3]; float y = a[2]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "IndexOutOfBounds");
+    expect(diag, "an in-bounds array index must not report IndexOutOfBounds").to.be.undefined;
   });
 
   it("flags '!' applied to a non-bool (InvalidUnaryOperand)", () => {
@@ -934,6 +983,39 @@ describe("ShaderAnalyzer", () => {
     expect(diag, "break inside a loop must not report MisplacedControlFlow").to.be.undefined;
   });
 
+  it("flags continue outside a loop (MisplacedControlFlow)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); continue; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    expect(diag, "continue outside a loop must report MisplacedControlFlow").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag continue inside a loop", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { for (int i = 0; i < 4; i++) { continue; } gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MisplacedControlFlow");
+    expect(diag, "continue inside a loop must not report MisplacedControlFlow").to.be.undefined;
+  });
+
   it("flags indexing a scalar (NonIndexableType)", () => {
     const source = `Shader "x" {
   SubShader "Default" {
@@ -1101,6 +1183,23 @@ describe("ShaderAnalyzer", () => {
 }`;
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
     expect(diag, "an array sized by a literal or a const must not report NonConstArraySize").to.be.undefined;
+  });
+
+  it("does not flag an array sized by a #define macro", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      #define ARR_LEN 3
+      void frag() { float a[ARR_LEN]; gl_FragColor = vec4(a[0]); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
+    expect(diag, "a macro-sized array must not report NonConstArraySize").to.be.undefined;
   });
 
   it("flags a bound entry that is not a function (EntryNotFound)", () => {

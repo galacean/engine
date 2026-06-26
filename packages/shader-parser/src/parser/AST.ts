@@ -1176,6 +1176,18 @@ export namespace ASTNode {
             const m = `Index ${n} is out of bounds for a ${size}-component vector.`;
             sa.reportError(index.location, m, DiagnosticType.IndexOutOfBounds);
           }
+        } else {
+          // A constant index past a fixed-size array's bounds is out of bounds (Naga bounds-checks
+          // fixed-size arrays, not just vectors). Unsized / non-array bases keep arraySize undefined.
+          const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+          const arraySize = baseIdent?.arraySize;
+          if (arraySize !== undefined) {
+            const n = ParserUtils.constNumericValue(index);
+            if (n !== undefined && (n < 0 || n >= arraySize)) {
+              const m = `Index ${n} is out of bounds for an array of size ${arraySize}.`;
+              sa.reportError(index.location, m, DiagnosticType.IndexOutOfBounds);
+            }
+          }
         }
       }
     }
@@ -1271,12 +1283,14 @@ export namespace ASTNode {
         );
         return;
       }
-      // Division or modulo by a compile-time constant zero is undefined.
+      // Integer division/modulo by a compile-time constant zero is an error; float `1.0/0.0` yields Inf
+      // (unspecified, not an error). `%` is integer-only in GLSL ES; `/` qualifies only when the result
+      // type deduced to an integer (int/int) — FLOAT or TypeAny don't flag.
       if (
         op instanceof BaseToken &&
-        (op.type === ETokenType.SLASH || op.type === ETokenType.PERCENT) &&
         divisor instanceof TreeNode &&
-        ParserUtils.constNumericValue(divisor) === 0
+        ParserUtils.constNumericValue(divisor) === 0 &&
+        (op.type === ETokenType.PERCENT || (op.type === ETokenType.SLASH && ParserUtils.isIntegerType(this.type)))
       ) {
         sa.reportError(
           divisor.location,
@@ -1741,6 +1755,8 @@ export namespace ASTNode {
     typeInfo: GalaceanDataType;
     /** Whether the resolved symbol is an array — `typeInfo` alone drops array-ness, but indexing rules need it. */
     isArray: boolean;
+    /** A fixed array's element count, for constant index bounds-checking; `undefined` if unsized/unknown. */
+    arraySize?: number;
     referenceGlobalSymbolNames: string[] = [];
 
     private _symbols: Array<VarSymbol | FnSymbol> = [];
@@ -1748,6 +1764,7 @@ export namespace ASTNode {
     override init(): void {
       this.typeInfo = TypeAny;
       this.isArray = false;
+      this.arraySize = undefined;
       this.referenceGlobalSymbolNames.length = 0;
       this._symbols.length = 0;
     }
@@ -1792,6 +1809,7 @@ export namespace ASTNode {
         if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
           this.typeInfo = symbols[0].dataType?.type;
           this.isArray = !!symbols[0].dataType?.arraySpecifier;
+          this.arraySize = symbols[0].dataType?.arraySpecifier?.size;
         }
       }
 

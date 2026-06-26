@@ -72,7 +72,7 @@ const cases: { code: string; source?: string; gap?: string }[] = [
   },
   {
     code: "ConstDivideByZero",
-    source: pass(`void frag() { float x = 1.0 / 0.0; gl_FragColor = vec4(x); } FragmentShader = frag;`)
+    source: pass(`void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); } FragmentShader = frag;`)
   },
   {
     code: "ShiftOutOfRange",
