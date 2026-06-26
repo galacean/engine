@@ -62,6 +62,16 @@ const source = `Shader "${name}" {
         return mat3(m[0][0], m[1][0], m[2][0], m[0][1], m[1][1], m[2][1], m[0][2], m[1][2], m[2][2]);
       }
 
+      // Mirror the engine's color management (ShaderLibrary/Common/Common.glsl) so splats blend in the same
+      // space as every other material instead of floating outside it.
+      float gsSRGBToLinear(float c) {
+        return (c <= 0.04045) ? (c / 12.92) : pow((c + 0.055) / 1.055, 2.4);
+      }
+      float gsLinearToSRGB(float c) {
+        c = max(c, 0.0);
+        return (c <= 0.0031308) ? (c * 12.9232102) : (1.055 * pow(c, 1.0 / 2.4) - 0.055);
+      }
+
       vec2 getDataUV(float index) {
         float w = material_DataTextureSize.x;
         float y = floor(index / w);
@@ -79,7 +89,12 @@ const source = `Shader "${name}" {
         // Covariance is stored half-float, normalized by center.w; restore it here.
         vec4 covA = texture2D(material_CovATexture, uv) * center.w;
         vec4 covB = texture2D(material_CovBTexture, uv) * center.w;
+        // Color is an sRGB texture; the hardware linearizes it on read, except where sRGB textures are
+        // unsupported (ENGINE_NO_SRGB) and we must do it ourselves. Covariance below stays linear.
         v.color = texture2D(material_ColorTexture, uv);
+        #ifdef ENGINE_NO_SRGB
+          v.color.rgb = vec3(gsSRGBToLinear(v.color.r), gsSRGBToLinear(v.color.g), gsSRGBToLinear(v.color.b));
+        #endif
 
         mat4 modelView = camera_ViewMat * renderer_ModelMat;
         vec4 camspace = modelView * vec4(center.xyz, 1.0);
@@ -137,7 +152,13 @@ const source = `Shader "${name}" {
         float A = -dot(v.position, v.position);
         if (A < -4.0) discard;
         float B = exp(A) * v.color.a;
-        gl_FragColor = vec4(v.color.rgb, B);
+        vec3 rgb = v.color.rgb;
+        // When the camera renders straight to the gamma screen, encode linear->sRGB so splats composite in the
+        // same space as other materials; rendering to the linear internal target leaves the macro off (no-op).
+        #ifdef ENGINE_OUTPUT_SRGB_CORRECT
+          rgb = vec3(gsLinearToSRGB(rgb.r), gsLinearToSRGB(rgb.g), gsLinearToSRGB(rgb.b));
+        #endif
+        gl_FragColor = vec4(rgb, B);
       }
     }
   }
