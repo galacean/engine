@@ -995,18 +995,29 @@ export namespace ASTNode {
             DiagnosticType.GlFragData
           );
         } else {
-          // A constant index past a known vector's size is out of bounds.
+          // `base [ index ]`: the index must be an integer; a constant index past a known vector's size is out of bounds.
           const base = children[0] as ExpressionAstNode;
-          const size = ParserUtils.vectorComponentCount(base.type);
           const index = children[2];
-          if (size > 0 && index instanceof TreeNode) {
-            const n = ParserUtils.constNumericValue(index);
-            if (n !== undefined && (n < 0 || n >= size)) {
+          if (index instanceof ExpressionAstNode) {
+            const indexType = index.type;
+            if (indexType !== TypeAny && !ParserUtils.isIntegerType(indexType)) {
               sa.reportError(
                 index.location,
-                `Index ${n} is out of bounds for a ${size}-component vector.`,
-                DiagnosticType.IndexOutOfBounds
+                `Index must be an integer, got '${ParserUtils.typeName(indexType)}'.`,
+                DiagnosticType.NonIntegerIndex
               );
+            } else {
+              const size = ParserUtils.vectorComponentCount(base.type);
+              if (size > 0) {
+                const n = ParserUtils.constNumericValue(index);
+                if (n !== undefined && (n < 0 || n >= size)) {
+                  sa.reportError(
+                    index.location,
+                    `Index ${n} is out of bounds for a ${size}-component vector.`,
+                    DiagnosticType.IndexOutOfBounds
+                  );
+                }
+              }
             }
           }
         }

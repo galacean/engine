@@ -22,6 +22,7 @@ export enum DiagnosticType {
   ConstDivideByZero = "ConstDivideByZero",
   ShiftOutOfRange = "ShiftOutOfRange",
   IndexOutOfBounds = "IndexOutOfBounds",
+  NonIntegerIndex = "NonIntegerIndex",
   InvalidUnaryOperand = "InvalidUnaryOperand",
   InvalidBinaryOperands = "InvalidBinaryOperands",
 

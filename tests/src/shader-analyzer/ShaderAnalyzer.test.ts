@@ -677,4 +677,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidBinaryOperands");
     expect(diag, "numeric arithmetic must not report InvalidBinaryOperands").to.be.undefined;
   });
+
+  it("flags a non-integer index (NonIntegerIndex)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIntegerIndex");
+    expect(diag, "a float index must report NonIntegerIndex").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag an integer index", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(0.0); float y = v[1]; gl_FragColor = vec4(y); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIntegerIndex");
+    expect(diag, "an integer index must not report NonIntegerIndex").to.be.undefined;
+  });
 });
