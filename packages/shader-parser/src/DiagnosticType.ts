@@ -32,6 +32,7 @@ export enum DiagnosticType {
   FragmentEntryReturnType = "FragmentEntryReturnType",
   StructRoleConflict = "StructRoleConflict",
   DuplicateEntryAssignment = "DuplicateEntryAssignment",
+  MissingEntry = "MissingEntry",
   GlFragColorWithMrt = "GlFragColorWithMrt",
   GlFragData = "GlFragData",
 

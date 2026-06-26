@@ -312,4 +312,39 @@ describe("ShaderAnalyzer", () => {
       "the analyzer should print the diagnostic via Logger"
     ).to.be.true;
   });
+
+  it("flags a Pass that does not bind both vertex and fragment entries (MissingEntry)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
+    expect(diag, "a Pass missing FragmentShader must report MissingEntry").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+    expect(diag!.range.start.line, "diagnostic points at the Pass").to.be.greaterThan(0);
+  });
+
+  it("does not flag a Pass that binds both entries", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
+    expect(diag, "a Pass binding both entries must not report MissingEntry").to.be.undefined;
+  });
 });

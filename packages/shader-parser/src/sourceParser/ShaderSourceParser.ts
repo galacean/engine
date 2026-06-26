@@ -487,6 +487,7 @@ export class ShaderSourceParser {
   private static _parsePass(): IShaderPassSource {
     this._pushScope();
     const lexer = this._lexer;
+    const passStart = lexer.getShaderPosition(0);
 
     const name = lexer.scanPairedChar('"', '"', false, false);
     const passSource = ShaderSourceFactory.createShaderPassSource(name);
@@ -526,6 +527,13 @@ export class ShaderSourceParser {
         case Keyword.RightBrace:
           if (--braceLevel === 0) {
             this._addPendingContents(start, token.lexeme.length, passSource.pendingContents);
+            if (!passSource.vertexEntry || !passSource.fragmentEntry) {
+              this._createCompileError(
+                "Pass must bind both VertexShader and FragmentShader entries.",
+                passStart,
+                DiagnosticType.MissingEntry
+              );
+            }
             this._popScope();
             return passSource;
           }
