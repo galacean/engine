@@ -545,4 +545,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
     expect(diag, "division by a non-zero constant must not report ConstDivideByZero").to.be.undefined;
   });
+
+  it("flags a shift amount out of range (ShiftOutOfRange)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int x = 1 << 40; gl_FragColor = vec4(float(x)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ShiftOutOfRange");
+    expect(diag, "a shift amount >= 32 must report ShiftOutOfRange").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag an in-range shift amount", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int x = 1 << 4; gl_FragColor = vec4(float(x)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ShiftOutOfRange");
+    expect(diag, "an in-range shift must not report ShiftOutOfRange").to.be.undefined;
+  });
 });

@@ -1089,6 +1089,20 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const expr = this.children[0] as ExpressionAstNode;
       this.type = expr.type;
+      // A shift by a constant amount outside [0, 32) is out of range — GLSL ES int/uint are 32-bit.
+      if (this.children.length === 3) {
+        const amount = this.children[2];
+        if (amount instanceof TreeNode) {
+          const n = ParserUtils.constNumericValue(amount);
+          if (n !== undefined && (n < 0 || n >= 32)) {
+            sa.reportError(
+              amount.location,
+              `Shift amount ${n} is out of range; must be in [0, 32).`,
+              DiagnosticType.ShiftOutOfRange
+            );
+          }
+        }
+      }
     }
   }
 

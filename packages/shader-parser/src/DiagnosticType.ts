@@ -20,6 +20,7 @@ export enum DiagnosticType {
   ReturnTypeMismatch = "ReturnTypeMismatch",
   ArrayOfArray = "ArrayOfArray",
   ConstDivideByZero = "ConstDivideByZero",
+  ShiftOutOfRange = "ShiftOutOfRange",
 
   // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",
