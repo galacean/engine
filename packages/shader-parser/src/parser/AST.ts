@@ -262,10 +262,10 @@ export namespace ASTNode {
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
       } else {
+        // Array-of-array is target-divergent (GLSL ES 3.00 / WGSL allow it, ES 1.00 doesn't) and the
+        // backend can always emit it, so it's left to codegen/driver — not flagged here. The nested
+        // array structure stays as the neutral clue.
         const arraySpecifier = children[2] as ArraySpecifier;
-        if (arraySpecifier && this.arraySpecifier) {
-          sa.reportError(arraySpecifier.location, "Array of array is not supported.", DiagnosticType.ArrayOfArray);
-        }
         this.arraySpecifier = arraySpecifier;
         const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
         const initializer = children[4] as Initializer;
@@ -473,11 +473,9 @@ export namespace ASTNode {
           sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
         }
       } else if (childrenLength === 4 || childrenLength === 6) {
+        // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
         const typeInfo = this.typeInfo;
         const arraySpecifier = this.children[3] as ArraySpecifier;
-        if (typeInfo.arraySpecifier && arraySpecifier) {
-          sa.reportError(arraySpecifier.location, "Array of array is not supported.", DiagnosticType.ArrayOfArray);
-        }
         typeInfo.arraySpecifier = arraySpecifier;
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);

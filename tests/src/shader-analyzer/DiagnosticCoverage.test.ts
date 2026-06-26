@@ -46,10 +46,6 @@ const cases: { code: string; source?: string; gap?: string }[] = [
   { code: "InvalidRenderQueueVariable", source: pass(`RenderQueueType = undefinedQueueVar;`) },
 
   // ── C0: GLSL semantics ──
-  {
-    code: "ArrayOfArray",
-    source: pass(`void frag() { float[2] arr[3]; gl_FragColor = vec4(0.0); } FragmentShader = frag;`)
-  },
   { code: "ReturnInVoidFunction", source: pass(`void frag() { return vec4(0.0); } FragmentShader = frag;`) },
   {
     code: "GlFragData",

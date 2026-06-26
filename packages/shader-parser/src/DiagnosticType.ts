@@ -18,7 +18,6 @@ export enum DiagnosticType {
   UndeclaredStructMember = "UndeclaredStructMember",
   AssignTypeMismatch = "AssignTypeMismatch",
   ReturnTypeMismatch = "ReturnTypeMismatch",
-  ArrayOfArray = "ArrayOfArray",
   ConstDivideByZero = "ConstDivideByZero",
   ShiftOutOfRange = "ShiftOutOfRange",
   IndexOutOfBounds = "IndexOutOfBounds",
