@@ -917,39 +917,6 @@ describe("ShaderAnalyzer", () => {
     expect(diag, "vec3 = vec3 + vec3 must not report AssignTypeMismatch").to.be.undefined;
   });
 
-  it("flags a statement after return (UnreachableCode)", () => {
-    const source = `Shader "x" {
-  SubShader "Default" {
-    Pass "test" {
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(0.0); return; gl_FragColor = vec4(1.0); }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "UnreachableCode");
-    expect(diag, "a statement after return must report UnreachableCode").to.be.ok;
-    expect(diag!.severity).to.equal("error");
-  });
-
-  it("does not flag a statement after a conditional return", () => {
-    const source = `Shader "x" {
-  SubShader "Default" {
-    Pass "test" {
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { float a = 1.0; if (a > 0.0) { return; } gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "UnreachableCode");
-    expect(diag, "code after a conditional return is reachable").to.be.undefined;
-  });
-
   it("flags break outside a loop (MisplacedControlFlow)", () => {
     const source = `Shader "x" {
   SubShader "Default" {

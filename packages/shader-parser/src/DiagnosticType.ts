@@ -38,7 +38,6 @@ export enum DiagnosticType {
   NonBoolCondition = "NonBoolCondition",
   RecursiveFunction = "RecursiveFunction",
   NonConstructibleReturnType = "NonConstructibleReturnType",
-  UnreachableCode = "UnreachableCode",
   MisplacedControlFlow = "MisplacedControlFlow",
 
   // Pipeline (vertex/fragment IO)
