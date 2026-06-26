@@ -191,6 +191,9 @@ importers:
       '@galacean/engine-toolkit':
         specifier: latest
         version: 1.6.0(@galacean/engine-ui@packages+ui)(@galacean/engine@packages+galacean)
+      '@galacean/engine-toolkit-controls':
+        specifier: latest
+        version: 1.6.0(@galacean/engine@packages+galacean)
       '@galacean/engine-toolkit-stats':
         specifier: latest
         version: 1.6.0(@galacean/engine@packages+galacean)
@@ -4641,7 +4644,7 @@ snapshots:
   '@jridgewell/source-map@0.3.11':
     dependencies:
       '@jridgewell/gen-mapping': 0.3.5
-      '@jridgewell/trace-mapping': 0.3.25
+      '@jridgewell/trace-mapping': 0.3.31
     optional: true
 
   '@jridgewell/sourcemap-codec@1.5.0': {}
