@@ -10,7 +10,7 @@ describe("ShaderAnalyzer", () => {
   const analyzer = new ShaderAnalyzer();
 
   it("surfaces a macro author error as a structured diagnostic", async () => {
-    const source = await readFile("../shader-compiler/shaders/macro-author-error-unbalanced-paren.shader");
+    const source = await readFile("src/shader-compiler/shaders/macro-author-error-unbalanced-paren.shader");
     const { diagnostics } = analyzer.analyze(source);
     expect(diagnostics.length).to.be.greaterThan(0);
     const d = diagnostics[0];
