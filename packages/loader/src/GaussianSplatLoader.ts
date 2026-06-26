@@ -64,7 +64,7 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
 
   /**
    * Decode the gzip-decompressed SPZ payload (v2/v3) into the 32-byte layout. Spherical-harmonic bands are
-   * skipped because the renderer is DC-only. Ported from BabylonJS's ParseSpz.
+   * skipped because the renderer is DC-only. Follows the SPZ v2/v3 spec (nianticlabs/spz).
    */
   private static _parseSpzToSplat(data: ArrayBuffer): ArrayBuffer {
     const ubuf = new Uint8Array(data);

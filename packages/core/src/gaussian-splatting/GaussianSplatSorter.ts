@@ -1,7 +1,7 @@
 /**
- * Per-frame back-to-front depth sort of gaussian splats. O(n) counting sort over a depth-derived integer key,
- * ported from BabylonJS's GaussianSplattingSortWorker (run here on the main thread for simplicity). Scratch
- * buffers are reused across frames to avoid per-frame allocation.
+ * Per-frame back-to-front depth sort of gaussian splats. O(n) counting sort over a depth-derived integer key
+ * (run here on the main thread for simplicity). Scratch buffers are reused across frames to avoid per-frame
+ * allocation.
  */
 export class GaussianSplatSorter {
   private _depths: Float32Array = new Float32Array(0);
@@ -38,7 +38,7 @@ export class GaussianSplatSorter {
       depth > maxDepth && (maxDepth = depth);
     }
 
-    // Bucket bit depth follows PlayCanvas/Babylon: round(log2(n/4)) clamped to [10, 20].
+    // Bucket bit depth scales with splat count: round(log2(n/4)) clamped to [10, 20].
     const compareBits = Math.max(10, Math.min(20, Math.round(Math.log2(Math.max(1, count) / 4))));
     const bucketCount = 2 ** compareBits + 1;
     if (this._counts.length !== bucketCount) {
