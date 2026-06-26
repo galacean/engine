@@ -475,4 +475,41 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstructibleReturnType");
     expect(diag, "a normal return type must not report NonConstructibleReturnType").to.be.undefined;
   });
+
+  it("flags a struct-typed member in an IO struct (NestedIOStruct)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      struct Inner { vec4 v; };
+      struct Varyings { Inner nested; };
+      Varyings vert(Attributes attr) { Varyings o; o.nested.v = vec4(attr.POSITION, 1.0); return o; }
+      void frag(Varyings i) { gl_FragColor = i.nested.v; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NestedIOStruct");
+    expect(diag, "a struct member of an IO struct must report NestedIOStruct").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+    expect(diag!.message).to.include("nested");
+  });
+
+  it("does not flag an IO struct with only primitive members", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      struct Varyings { vec4 v; };
+      Varyings vert(Attributes attr) { Varyings o; o.v = vec4(attr.POSITION, 1.0); return o; }
+      void frag(Varyings i) { gl_FragColor = i.v; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NestedIOStruct");
+    expect(diag, "a flat IO struct must not report NestedIOStruct").to.be.undefined;
+  });
 });

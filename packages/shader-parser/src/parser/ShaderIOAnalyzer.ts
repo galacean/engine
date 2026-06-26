@@ -92,11 +92,30 @@ export class ShaderIOAnalyzer {
     return <StructSymbol[]>symbolTable.getSymbols(lookup, true, []);
   }
 
-  private static _pushStruct(symbols: StructSymbol[], structs: ASTNode.StructSpecifier[], list: StructProp[]): void {
+  private static _pushStruct(
+    symbols: StructSymbol[],
+    structs: ASTNode.StructSpecifier[],
+    list: StructProp[],
+    errors: GSError[],
+    source: string
+  ): void {
     for (let i = 0; i < symbols.length; i++) {
       const astNode = symbols[i].astNode;
       structs.push(astNode);
-      for (const prop of astNode.propList) list.push(prop);
+      for (const prop of astNode.propList) {
+        list.push(prop);
+        // An IO struct (varying/attribute/MRT) member cannot itself be a struct — GLSL ES forbids
+        // nested IO. A struct-typed member carries its type as a name string (primitives are Keyword numbers).
+        if (typeof prop.typeInfo.type === "string") {
+          this._error(
+            errors,
+            DiagnosticType.NestedIOStruct,
+            `IO struct member '${prop.ident.lexeme}' cannot be a struct ('${prop.typeInfo.type}'); nested IO structs are not allowed.`,
+            prop.ident.location,
+            source
+          );
+        }
+      }
     }
   }
 
@@ -132,7 +151,7 @@ export class ShaderIOAnalyzer {
             source
           );
         } else {
-          this._pushStruct(varyings, io.varyingStructs, io.varyingList);
+          this._pushStruct(varyings, io.varyingStructs, io.varyingList, errors, source);
         }
       } else if (returnType.type !== Keyword.VOID) {
         this._error(
@@ -158,7 +177,7 @@ export class ShaderIOAnalyzer {
               source
             );
           } else {
-            this._pushStruct(attributes, io.attributeStructs, io.attributeList);
+            this._pushStruct(attributes, io.attributeStructs, io.attributeList, errors, source);
           }
         }
       }
@@ -185,7 +204,7 @@ export class ShaderIOAnalyzer {
             source
           );
         } else {
-          this._pushStruct(mrts, io.mrtStructs, io.mrtList);
+          this._pushStruct(mrts, io.mrtStructs, io.mrtList, errors, source);
         }
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
         this._error(

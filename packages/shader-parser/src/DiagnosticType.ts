@@ -38,6 +38,7 @@ export enum DiagnosticType {
   MissingEntry = "MissingEntry",
   GlFragColorWithMrt = "GlFragColorWithMrt",
   GlFragData = "GlFragData",
+  NestedIOStruct = "NestedIOStruct",
 
   // RenderState
   InvalidRenderStateProperty = "InvalidRenderStateProperty",
