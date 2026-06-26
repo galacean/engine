@@ -5,7 +5,7 @@ const name = "GaussianSplat";
 
 // EWA splatting: each gaussian is drawn as a camera-facing quad whose screen-space ellipse comes from
 // projecting the 3D covariance through the perspective Jacobian, shaded with a 2D gaussian falloff and
-// composited back-to-front with straight-alpha "over". Math mirrors BabylonJS's gaussianSplatting include.
+// composited back-to-front with straight-alpha "over". Follows the standard EWA / 3DGS formulation.
 const source = `Shader "${name}" {
   SubShader "Default" {
     Pass "Forward" {
