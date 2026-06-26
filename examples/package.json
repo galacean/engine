@@ -17,7 +17,6 @@
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-loader": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",

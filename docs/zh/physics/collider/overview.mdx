@@ -32,14 +32,15 @@ label: Physics
 
 目前支持了四种 `碰撞形状`，但不同的后端物理包支持程度不同，具体如下：
 
-| 名称                                                     | 解释             | 支持的后端物理包             |
-| :------------------------------------------------------- | :--------------- | :--------------------------- |
-| [BoxColliderShape](/apis/core/#BoxColliderShape)         | 盒形碰撞外形     | physics-lite， physics-physx |
-| [SphereColliderShape](/apis/core/#SphereColliderShape)   | 球形碰撞外形     | physics-lite， physics-physx |
-| [PlaneColliderShape](/apis/core/#PlaneColliderShape)     | 无界平面碰撞外形 | physics-physx                |
-| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | 胶囊碰撞外形     | physics-physx                |
+| 名称                                                     | 解释             | 支持的后端物理包 |
+| :------------------------------------------------------- | :--------------- | :--------------- |
+| [BoxColliderShape](/apis/core/#BoxColliderShape)         | 盒形碰撞外形     | physics-physx    |
+| [SphereColliderShape](/apis/core/#SphereColliderShape)   | 球形碰撞外形     | physics-physx    |
+| [PlaneColliderShape](/apis/core/#PlaneColliderShape)     | 无界平面碰撞外形 | physics-physx    |
+| [CapsuleColliderShape](/apis/core/#CapsuleColliderShape) | 胶囊碰撞外形     | physics-physx    |
 
 2. **变换同步**：
+
    - 碰撞器会自动同步实体的世界变换，包括位置、旋转和缩放的同步
    - `碰撞形状` 可以设置相对于实体的局部偏移和旋转
 
@@ -95,7 +96,6 @@ const dynamicCollider = entity.addComponent(DynamicCollider);
 // 添加角色控制器
 const characterController = entity.addComponent(CharacterController);
 ```
-
 
 ## 更多信息
 
