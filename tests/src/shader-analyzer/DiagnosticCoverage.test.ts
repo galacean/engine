@@ -105,12 +105,6 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     )
   },
   {
-    code: "InvalidConversion",
-    source: pass(
-      `mediump sampler2D u_tex; void frag() { float x = float(u_tex); gl_FragColor = vec4(x); } FragmentShader = frag;`
-    )
-  },
-  {
     code: "ConstructorArgType",
     source: pass(
       `mediump sampler2D u_tex; void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); } FragmentShader = frag;`
@@ -169,7 +163,7 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
-    code: "InvalidMrtStruct",
+    code: "InvalidIOStruct",
     source: pass(`
       void vert() { gl_Position = vec4(0.0); }
       Undefined frag() { Undefined o; return o; }
@@ -212,18 +206,15 @@ describe("diagnostic coverage map", () => {
   it("every DiagnosticType has a triggering test", () => {
     const coveredElsewhere = new Set([
       "AssignTypeMismatch",
-      "FragmentEntryReturnType",
-      "InvalidAttributeStruct",
+      "InvalidEntryReturnType",
       "InvalidSwizzle",
-      "InvalidVaryingStruct",
       "MissingEntry",
       "NonBoolCondition",
       "RecursiveFunction",
       "Redefinition",
       "ReturnTypeMismatch",
       "UndefinedFunction",
-      "UseBeforeDeclaration",
-      "VertexEntryReturnType"
+      "UseBeforeDeclaration"
     ]);
     const here = new Set(cases.map((c) => c.code));
     const uncovered = Object.values(DiagnosticType).filter((t) => !here.has(t) && !coveredElsewhere.has(t));

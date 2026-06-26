@@ -68,8 +68,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "InvalidVaryingStruct: vertex returns undefined varying struct (once)",
-    expected: ["InvalidVaryingStruct"],
+    name: "InvalidIOStruct: vertex returns undefined varying struct (once)",
+    expected: ["InvalidIOStruct"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
       Varyings vert(Attributes attr) { Varyings o; gl_Position = vec4(0.0); return o; }
@@ -78,8 +78,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "VertexEntryReturnType: vertex returns non-struct/void (once)",
-    expected: ["VertexEntryReturnType"],
+    name: "InvalidEntryReturnType: vertex returns non-struct/void (once)",
+    expected: ["InvalidEntryReturnType"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
       float vert(Attributes attr) { gl_Position = vec4(0.0); return 1.0; }
@@ -88,8 +88,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "InvalidAttributeStruct: vertex attribute param undefined struct (once)",
-    expected: ["InvalidAttributeStruct"],
+    name: "InvalidIOStruct: vertex attribute param undefined struct (once)",
+    expected: ["InvalidIOStruct"],
     source: wrap(`
       void vert(Attributes attr) { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(0.0); }
@@ -97,8 +97,8 @@ const cases: { name: string; source: string; expected: string[] }[] = [
       FragmentShader = frag;`)
   },
   {
-    name: "FragmentEntryReturnType: fragment returns non-struct/vec4 (once)",
-    expected: ["FragmentEntryReturnType"],
+    name: "InvalidEntryReturnType: fragment returns non-struct/vec4 (once)",
+    expected: ["InvalidEntryReturnType"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }

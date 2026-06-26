@@ -760,7 +760,7 @@ describe("ShaderAnalyzer", () => {
     expect(diag, "an integer index must not report NonIntegerIndex").to.be.undefined;
   });
 
-  it("flags a sampler cast (InvalidConversion)", () => {
+  it("flags a single-arg sampler cast (ConstructorArgType)", () => {
     const source = `Shader "x" {
   SubShader "Default" {
     Pass "test" {
@@ -773,8 +773,8 @@ describe("ShaderAnalyzer", () => {
     }
   }
 }`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidConversion");
-    expect(diag, "float(sampler) must report InvalidConversion").to.be.ok;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgType");
+    expect(diag, "float(sampler) must report ConstructorArgType").to.be.ok;
     expect(diag!.severity).to.equal("error");
   });
 
@@ -809,10 +809,6 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const diags = analyzer.analyze(source).diagnostics;
-    expect(
-      diags.find((d: Diagnostic) => d.code === "InvalidConversion"),
-      "numeric ctor: no InvalidConversion"
-    ).to.be.undefined;
     expect(
       diags.find((d: Diagnostic) => d.code === "ConstructorArgType"),
       "numeric ctor: no ConstructorArgType"

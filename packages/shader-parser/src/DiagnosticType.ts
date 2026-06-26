@@ -26,7 +26,6 @@ export enum DiagnosticType {
   ExpectedSampler = "ExpectedSampler",
   InvalidUnaryOperand = "InvalidUnaryOperand",
   InvalidBinaryOperands = "InvalidBinaryOperands",
-  InvalidConversion = "InvalidConversion",
   ConstructorArgType = "ConstructorArgType",
   ConstructorArgCount = "ConstructorArgCount",
   NonConstInitializer = "NonConstInitializer",
@@ -41,11 +40,8 @@ export enum DiagnosticType {
   MisplacedControlFlow = "MisplacedControlFlow",
 
   // Pipeline (vertex/fragment IO)
-  InvalidVaryingStruct = "InvalidVaryingStruct",
-  InvalidAttributeStruct = "InvalidAttributeStruct",
-  InvalidMrtStruct = "InvalidMrtStruct",
-  VertexEntryReturnType = "VertexEntryReturnType",
-  FragmentEntryReturnType = "FragmentEntryReturnType",
+  InvalidIOStruct = "InvalidIOStruct",
+  InvalidEntryReturnType = "InvalidEntryReturnType",
   StructRoleConflict = "StructRoleConflict",
   DuplicateEntryAssignment = "DuplicateEntryAssignment",
   MissingEntry = "MissingEntry",

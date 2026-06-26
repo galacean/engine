@@ -851,7 +851,7 @@ export namespace ASTNode {
               `Cannot construct '${ParserUtils.typeName(functionIdentifier.ident)}' from a '${ParserUtils.typeName(
                 list.paramSig[badIndex]
               )}' argument.`,
-              list.paramSig.length === 1 ? DiagnosticType.InvalidConversion : DiagnosticType.ConstructorArgType
+              DiagnosticType.ConstructorArgType
             );
           } else {
             // A vecN constructor needs exactly N components from its arguments — too few is an error.

@@ -197,7 +197,7 @@ export class ShaderIOAnalyzer {
         if (!varyings.length) {
           this._error(
             errors,
-            DiagnosticType.InvalidVaryingStruct,
+            DiagnosticType.InvalidIOStruct,
             `Invalid varying struct: "${returnType.type}".`,
             returnType.location,
             source
@@ -208,7 +208,7 @@ export class ShaderIOAnalyzer {
       } else if (returnType.type !== Keyword.VOID) {
         this._error(
           errors,
-          DiagnosticType.VertexEntryReturnType,
+          DiagnosticType.InvalidEntryReturnType,
           "vertex main entry can only return struct or void.",
           returnType.location,
           source
@@ -223,7 +223,7 @@ export class ShaderIOAnalyzer {
           if (!attributes.length) {
             this._error(
               errors,
-              DiagnosticType.InvalidAttributeStruct,
+              DiagnosticType.InvalidIOStruct,
               `Invalid attribute struct: "${attributeType}".`,
               attributeParam.astNode.location,
               source
@@ -250,7 +250,7 @@ export class ShaderIOAnalyzer {
         if (!mrts.length) {
           this._error(
             errors,
-            DiagnosticType.InvalidMrtStruct,
+            DiagnosticType.InvalidIOStruct,
             `Invalid MRT struct: ${returnDataType}`,
             returnLocation,
             source
@@ -261,7 +261,7 @@ export class ShaderIOAnalyzer {
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
         this._error(
           errors,
-          DiagnosticType.FragmentEntryReturnType,
+          DiagnosticType.InvalidEntryReturnType,
           "fragment main entry can only return struct or vec4.",
           returnLocation,
           source
