@@ -1661,6 +1661,7 @@ export namespace ASTNode {
         if (builtinVar) {
           this.typeInfo = builtinVar.type;
           if (name === "gl_FragColor") sa.shaderData.glFragColorReferences.push(this.location);
+          else if (name === "gl_Position") sa.shaderData.glPositionReferences.push(this.location);
           continue;
         }
 

@@ -72,7 +72,7 @@ const cases: { name: string; source: string; expected: string[] }[] = [
     expected: ["InvalidVaryingStruct"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
-      Varyings vert(Attributes attr) { Varyings o; return o; }
+      Varyings vert(Attributes attr) { Varyings o; gl_Position = vec4(0.0); return o; }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`)
@@ -82,7 +82,7 @@ const cases: { name: string; source: string; expected: string[] }[] = [
     expected: ["VertexEntryReturnType"],
     source: wrap(`
       struct Attributes { vec3 POSITION; };
-      float vert(Attributes attr) { return 1.0; }
+      float vert(Attributes attr) { gl_Position = vec4(0.0); return 1.0; }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`)
@@ -111,7 +111,7 @@ const cases: { name: string; source: string; expected: string[] }[] = [
     expected: ["StructRoleConflict"],
     source: wrap(`
       struct IO { vec4 v; };
-      IO vert(IO attr) { IO o; return o; }
+      IO vert(IO attr) { IO o; gl_Position = vec4(0.0); return o; }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`)

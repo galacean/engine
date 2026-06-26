@@ -11,6 +11,9 @@ export class ShaderData {
   /** Source locations where `gl_FragColor` is referenced — a parse-time clue for the MRT-conflict check. */
   glFragColorReferences: ShaderRange[] = [];
 
+  /** Source locations where `gl_Position` is referenced — a parse-time clue for the missing-position check. */
+  glPositionReferences: ShaderRange[] = [];
+
   globalPrecisions: ASTNode.PrecisionSpecifier[] = [];
 
   globalMacroDeclarations: ASTNode.GlobalDeclaration[] = [];

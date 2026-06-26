@@ -802,4 +802,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
     expect(diag, "splat / exact-component constructors must not report ConstructorArgCount").to.be.undefined;
   });
+
+  it("flags a vertex that never writes gl_Position (MissingVertexPosition)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    expect(diag, "a vertex without gl_Position must report MissingVertexPosition").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a vertex that writes gl_Position", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    expect(diag, "a vertex writing gl_Position must not report MissingVertexPosition").to.be.undefined;
+  });
 });

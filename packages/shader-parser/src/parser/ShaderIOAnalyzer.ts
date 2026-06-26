@@ -77,6 +77,21 @@ export class ShaderIOAnalyzer {
       }
     }
 
+    // A vertex entry must write gl_Position. The reference clue is global, so a single write anywhere
+    // clears it (no false positive); only a complete absence with a present vertex entry is flagged.
+    if (shaderData.glPositionReferences.length === 0) {
+      const vertFns = this._entryFns(symbolTable, vertexEntry);
+      if (vertFns.length) {
+        this._error(
+          errors,
+          DiagnosticType.MissingVertexPosition,
+          "Vertex shader must write gl_Position.",
+          vertFns[0].astNode.protoType.returnType.location,
+          source
+        );
+      }
+    }
+
     return { io, errors };
   }
 

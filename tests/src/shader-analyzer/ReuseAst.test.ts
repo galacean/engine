@@ -15,7 +15,7 @@ const source = `Shader "x" {
     Pass "p" {
       struct Attributes { vec3 POSITION; };
       struct Varyings { vec4 color; };
-      Varyings vert(Attributes attr) { Varyings o; o.color = vec4(attr.POSITION, 1.0); return o; }
+      Varyings vert(Attributes attr) { Varyings o; o.color = vec4(attr.POSITION, 1.0); gl_Position = vec4(attr.POSITION, 1.0); return o; }
       void frag(Varyings i) { gl_FragColor = i.color; }
       VertexShader = vert;
       FragmentShader = frag;
