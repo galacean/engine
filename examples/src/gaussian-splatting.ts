@@ -12,7 +12,7 @@ import {
   WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
-import { Stats } from "@galacean/engine-toolkit-stats";
+import { GaussianSplatStats } from "@galacean/engine-toolkit-stats";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import * as dat from "dat.gui";
 
@@ -42,7 +42,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
   const cameraEntity = rootEntity.createChild("camera");
   const camera = cameraEntity.addComponent(Camera);
   const control = cameraEntity.addComponent(OrbitControl);
-  cameraEntity.addComponent(Stats);
+  const stats = cameraEntity.addComponent(GaussianSplatStats);
 
   let splatEntity: Entity = null;
   let currentSplat: GaussianSplat = null;
@@ -57,6 +57,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
     splatEntity = rootEntity.createChild("splat");
     splatEntity.transform.setScale(1, yScale, 1);
     splatEntity.addComponent(GaussianSplatRenderer).splat = splat;
+    stats.splatCount = splat.splatCount;
 
     // Frame the camera to the splat bounds (the Y scale maps local center.y to world yScale * center.y).
     const center = splat.bounds.getCenter(new Vector3());
