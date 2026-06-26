@@ -21,6 +21,7 @@
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
     "@galacean/engine-toolkit": "latest",
+    "@galacean/engine-toolkit-controls": "latest",
     "@galacean/engine-toolkit-stats": "latest",
     "@galacean/engine-ui": "workspace:*"
   },
