@@ -27,6 +27,7 @@ export enum DiagnosticType {
   InvalidBinaryOperands = "InvalidBinaryOperands",
   InvalidConversion = "InvalidConversion",
   ConstructorArgType = "ConstructorArgType",
+  ConstructorArgCount = "ConstructorArgCount",
 
   // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",

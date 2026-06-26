@@ -769,4 +769,37 @@ describe("ShaderAnalyzer", () => {
       "numeric ctor: no ConstructorArgType"
     ).to.be.undefined;
   });
+
+  it("flags too few constructor components (ConstructorArgCount)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    expect(diag, "vec3(1.0, 2.0) must report ConstructorArgCount").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a valid constructor (splat or exact components)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 a = vec3(1.0); vec4 b = vec4(a, 1.0); gl_FragColor = b; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    expect(diag, "splat / exact-component constructors must not report ConstructorArgCount").to.be.undefined;
+  });
 });

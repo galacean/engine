@@ -251,6 +251,11 @@ export class ParserUtils {
     );
   }
 
+  /** A scalar numeric/bool type (the things a vector is built from). */
+  static isScalarType(type: GalaceanDataType | undefined): boolean {
+    return type === Keyword.FLOAT || type === Keyword.INT || type === Keyword.UINT || type === Keyword.BOOL;
+  }
+
   /** Component count of a vector type (2/3/4), or 0 for non-vectors. */
   static vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {

@@ -784,6 +784,32 @@ export namespace ASTNode {
               )}' argument.`,
               list.paramSig.length === 1 ? DiagnosticType.InvalidConversion : DiagnosticType.ConstructorArgType
             );
+          } else {
+            // A vecN constructor needs exactly N components from its arguments — too few is an error.
+            // A single scalar is a valid splat; matrices/unknown args can't be counted, so skip those.
+            const need = ParserUtils.vectorComponentCount(functionIdentifier.ident);
+            if (need > 0) {
+              let total = 0;
+              let countable = list.paramSig.length > 0;
+              for (const t of list.paramSig) {
+                const c = ParserUtils.isScalarType(t) ? 1 : ParserUtils.vectorComponentCount(t);
+                if (c === 0) {
+                  countable = false;
+                  break;
+                }
+                total += c;
+              }
+              const singleScalar = list.paramSig.length === 1 && ParserUtils.isScalarType(list.paramSig[0]);
+              if (countable && !singleScalar && total < need) {
+                sa.reportError(
+                  list.location,
+                  `Constructor '${ParserUtils.typeName(
+                    functionIdentifier.ident
+                  )}' needs ${need} components but the arguments provide ${total}.`,
+                  DiagnosticType.ConstructorArgCount
+                );
+              }
+            }
           }
         }
       } else {

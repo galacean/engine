@@ -111,6 +111,10 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     )
   },
   {
+    code: "ConstructorArgCount",
+    source: pass(`void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); } FragmentShader = frag;`)
+  },
+  {
     code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`
