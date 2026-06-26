@@ -39,9 +39,14 @@ export class GaussianSplatRenderer extends Renderer {
   private _sorter = new GaussianSplatSorter();
 
   private _sortMatrix = new Matrix();
+  private _lastSortMatrix = new Matrix();
+  private _needsSort = false;
   private _focal = new Vector2();
   private _invViewport = new Vector2();
   private _dataTextureSize = new Vector2();
+
+  /** Wall-clock duration (ms) of the most recent CPU depth sort, for profiling. */
+  lastSortTime = 0;
 
   /**
    * The gaussian splatting scene to render.
@@ -61,6 +66,7 @@ export class GaussianSplatRenderer extends Renderer {
       this._addResourceReferCount(value, 1);
       this._buildMesh(value);
       this._bindSplat(value);
+      this._needsSort = true;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -128,10 +134,22 @@ export class GaussianSplatRenderer extends Renderer {
     const camera = context.camera;
     const count = splat.splatCount;
 
-    // Per-frame back-to-front sort for this camera, then upload the new draw order.
+    // Re-sort only when the view relative to the splats actually changed; a static view reuses the last order.
     Matrix.multiply(camera.viewMatrix, this._transformEntity.transform.worldMatrix, this._sortMatrix);
-    this._sorter.sort(splat.positions, count, this._sortMatrix.elements, this._instanceData);
-    this._instanceBuffer.setData(this._instanceData);
+    const cur = this._sortMatrix.elements;
+    const last = this._lastSortMatrix.elements;
+    let delta = 0;
+    for (let i = 0; i < 16; i++) delta += Math.abs(cur[i] - last[i]);
+    if (this._needsSort || delta > 1e-4) {
+      const t0 = performance.now();
+      this._sorter.sort(splat.positions, count, cur, this._instanceData);
+      this._instanceBuffer.setData(this._instanceData);
+      this.lastSortTime = performance.now() - t0;
+      this._lastSortMatrix.copyFrom(this._sortMatrix);
+      this._needsSort = false;
+    } else {
+      this.lastSortTime = 0;
+    }
 
     // Pixel focal length and inverse viewport drive the covariance-to-screen projection in the shader.
     const viewport = camera.pixelViewport;
