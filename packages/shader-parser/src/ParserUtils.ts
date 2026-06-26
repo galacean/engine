@@ -256,6 +256,28 @@ export class ParserUtils {
     return type === Keyword.FLOAT || type === Keyword.INT || type === Keyword.UINT || type === Keyword.BOOL;
   }
 
+  /**
+   * Result type of an arithmetic binary operator (+, -, *, /) on operands `a` and `b`, for the
+   * confident GLSL cases only: same type → that type; numeric-scalar ⊙ vector/matrix → the vector/
+   * matrix (component-wise / scalar broadcast). Everything ambiguous (scalar promotion like int⊙float,
+   * matrix·vector, mismatched vector sizes, any non-arithmetic operand) returns `TypeAny` — leaving the
+   * type unknown exactly as before, so this only ever *adds* information and never mis-deduces.
+   */
+  static arithmeticResultType(
+    a: GalaceanDataType | undefined,
+    b: GalaceanDataType | undefined
+  ): GalaceanDataType | undefined {
+    if (a == undefined || b == undefined || a === TypeAny || b === TypeAny) return TypeAny;
+    if (this.nonArithmeticOperand(a) || this.nonArithmeticOperand(b)) return TypeAny;
+    if (a === b) return a;
+    const aScalar = this.isScalarType(a);
+    const bScalar = this.isScalarType(b);
+    if (aScalar && bScalar) return TypeAny; // different scalars: int/float promotion — stay conservative
+    if (aScalar) return b; // scalar ⊙ vector/matrix
+    if (bScalar) return a;
+    return TypeAny; // vector·matrix, mismatched vector sizes — leave unknown
+  }
+
   /** Component count of a vector type (2/3/4), or 0 for non-vectors. */
   static vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {

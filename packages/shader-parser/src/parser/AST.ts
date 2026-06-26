@@ -1134,13 +1134,11 @@ export namespace ASTNode {
       super.init();
       if (this.children.length === 1) {
         this.type = (this.children[0] as UnaryExpression).type;
-        // TODO: Temporarily remove type deduce due to generic function type issue.
-        // } else {
-        //   const exp1 = this.children[0] as MultiplicativeExpression;
-        //   const exp2 = this.children[2] as UnaryExpression;
-        //   if (exp1.type === exp2.type) {
-        //     this.type = exp1.type;
-        //   }
+      } else {
+        this.type = ParserUtils.arithmeticResultType(
+          (this.children[0] as ExpressionAstNode).type,
+          (this.children[2] as ExpressionAstNode).type
+        );
       }
     }
 
@@ -1182,13 +1180,11 @@ export namespace ASTNode {
       super.init();
       if (this.children.length === 1) {
         this.type = (this.children[0] as MultiplicativeExpression).type;
-        // TODO: Temporarily remove type deduce due to generic function type issue.
-        // } else {
-        //   const exp1 = this.children[0] as AdditiveExpression;
-        //   const exp2 = this.children[2] as MultiplicativeExpression;
-        //   if (exp1.type === exp2.type) {
-        //     this.type = exp1.type;
-        //   }
+      } else {
+        this.type = ParserUtils.arithmeticResultType(
+          (this.children[0] as ExpressionAstNode).type,
+          (this.children[2] as ExpressionAstNode).type
+        );
       }
     }
 

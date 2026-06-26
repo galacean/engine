@@ -835,4 +835,36 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
     expect(diag, "a vertex writing gl_Position must not report MissingVertexPosition").to.be.undefined;
   });
+
+  it("deduces an arithmetic result type (vec3+vec3 -> vec3 enables AssignTypeMismatch)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 a = vec3(0.0); vec3 b = vec3(1.0); float x = 0.0; x = a + b; gl_FragColor = vec4(x); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
+    expect(diag, "assigning vec3 (a+b) to float must report AssignTypeMismatch").to.be.ok;
+  });
+
+  it("does not flag a matching arithmetic assignment", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 a = vec3(0.0); vec3 b = vec3(1.0); vec3 x = vec3(0.0); x = a + b; gl_FragColor = vec4(x, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
+    expect(diag, "vec3 = vec3 + vec3 must not report AssignTypeMismatch").to.be.undefined;
+  });
 });
