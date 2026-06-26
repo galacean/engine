@@ -16,12 +16,22 @@ import { Stats } from "@galacean/engine-toolkit-stats";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import * as dat from "dat.gui";
 
-// Same captured scene is not available in all three formats, so each option is its own scene; the point is
-// that .splat (no SH), .ply (Inria training output) and .spz (gzip v2/v3) all feed the same renderer.
-const FORMATS: Record<string, string> = {
-  "skull (.splat)": "https://mdn.alipayobjects.com/rms/afts/file/A*59VdRpKYJ7gAAAAAgFAAAAgAehQnAQ/gs_Skull.splat",
-  "halo (.ply)": "https://mdn.alipayobjects.com/rms/afts/file/A*o8-hTq3fs7wAAAAAgSAAAAgAehQnAQ/Halo_Believe.ply",
-  "lizard (.spz)": "https://mdn.alipayobjects.com/rms/afts/file/A*XCefRbxaXQ0AAAAAgRAAAAgAehQnAQ/hornedlizard.spz"
+// Each option is its own scene; the point is that .splat (no SH), .ply (Inria training output) and .spz
+// (gzip v2/v3) all feed the same renderer. `yDown` is the source axis convention: Inria .splat/.ply are
+// Y-down, SPZ defaults to Y-up (RUB), so only the former are flipped into Galacean's Y-up world.
+const FORMATS: Record<string, { url: string; yDown: boolean }> = {
+  "skull (.splat)": {
+    url: "https://mdn.alipayobjects.com/rms/afts/file/A*59VdRpKYJ7gAAAAAgFAAAAgAehQnAQ/gs_Skull.splat",
+    yDown: true
+  },
+  "halo (.ply)": {
+    url: "https://mdn.alipayobjects.com/rms/afts/file/A*o8-hTq3fs7wAAAAAgSAAAAgAehQnAQ/Halo_Believe.ply",
+    yDown: true
+  },
+  "lizard (.spz)": {
+    url: "https://mdn.alipayobjects.com/rms/afts/file/A*XCefRbxaXQ0AAAAAgRAAAAgAehQnAQ/hornedlizard.spz",
+    yDown: false
+  }
 };
 
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then(async (engine) => {
@@ -37,22 +47,23 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
   let splatEntity: Entity = null;
   let currentSplat: GaussianSplat = null;
 
-  const loadFormat = async (url: string): Promise<void> => {
+  const loadFormat = async (format: { url: string; yDown: boolean }): Promise<void> => {
     splatEntity?.destroy();
     currentSplat?.destroy();
-    const splat = await engine.resourceManager.load<GaussianSplat>({ url, type: AssetType.GaussianSplat });
+    const splat = await engine.resourceManager.load<GaussianSplat>({ url: format.url, type: AssetType.GaussianSplat });
     currentSplat = splat;
 
+    const yScale = format.yDown ? -1 : 1;
     splatEntity = rootEntity.createChild("splat");
-    // .ply/.splat/.spz scenes are stored Y-down relative to Galacean's Y-up convention.
-    splatEntity.transform.setScale(1, -1, 1);
+    splatEntity.transform.setScale(1, yScale, 1);
     splatEntity.addComponent(GaussianSplatRenderer).splat = splat;
 
-    // Frame the camera to the splat bounds (the Y flip maps local center.y to world -center.y).
+    // Frame the camera to the splat bounds (the Y scale maps local center.y to world yScale * center.y).
     const center = splat.bounds.getCenter(new Vector3());
     const radius = Vector3.distance(splat.bounds.min, splat.bounds.max) * 0.5;
-    control.target.set(center.x, -center.y, center.z);
-    cameraEntity.transform.setPosition(center.x, -center.y, center.z + radius * 2.2);
+    const wy = center.y * yScale;
+    control.target.set(center.x, wy, center.z);
+    cameraEntity.transform.setPosition(center.x, wy, center.z + radius * 2.2);
     camera.farClipPlane = radius * 20;
   };
 
