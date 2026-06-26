@@ -1035,4 +1035,71 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFlatIntegerVarying");
     expect(diag, "a flat integer varying or a float varying must not report NonFlatIntegerVarying").to.be.undefined;
   });
+
+  it("flags a const initialized from a non-constant (NonConstInitializer)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      float u_scale;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { const float c = u_scale; gl_FragColor = vec4(c); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstInitializer");
+    expect(diag, "const initialized from a uniform must report NonConstInitializer").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a const initialized from a literal or another const", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { const float a = 1.0; const float b = a; gl_FragColor = vec4(b); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstInitializer");
+    expect(diag, "const = literal / const = const must not report NonConstInitializer").to.be.undefined;
+  });
+
+  it("flags an array sized by a non-const variable (NonConstArraySize)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
+    expect(diag, "an array sized by a non-const variable must report NonConstArraySize").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag an array sized by a literal or a const", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { const int N = 3; float a[N]; float b[4]; gl_FragColor = vec4(a[0] + b[0]); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstArraySize");
+    expect(diag, "an array sized by a literal or a const must not report NonConstArraySize").to.be.undefined;
+  });
 });

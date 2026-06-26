@@ -10,6 +10,8 @@ export class VarSymbol extends SymbolInfo {
     | ASTNode.VariableDeclaration;
 
   readonly isGlobalVariable: boolean;
+  /** `const`-qualified — lets a const-expression check resolve identifier references to constants. */
+  readonly isConst: boolean;
 
   constructor(
     ident: string,
@@ -19,9 +21,11 @@ export class VarSymbol extends SymbolInfo {
       | ASTNode.Initializer
       | ASTNode.ParameterDeclarator
       | ASTNode.InitDeclaratorList
-      | ASTNode.VariableDeclaration
+      | ASTNode.VariableDeclaration,
+    isConst = false
   ) {
     super(ident, ESymbolType.VAR, initAst, dataType);
     this.isGlobalVariable = isGlobalVariable;
+    this.isConst = isConst;
   }
 }

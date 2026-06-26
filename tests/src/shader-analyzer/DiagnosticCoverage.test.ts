@@ -121,6 +121,16 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); } FragmentShader = frag;`)
   },
   {
+    code: "NonConstInitializer",
+    source: pass(
+      `float u_scale; void frag() { const float c = u_scale; gl_FragColor = vec4(c); } FragmentShader = frag;`
+    )
+  },
+  {
+    code: "NonConstArraySize",
+    source: pass(`void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); } FragmentShader = frag;`)
+  },
+  {
     code: "MissingVertexPosition",
     source: pass(
       `void vert() { } void frag() { gl_FragColor = vec4(0.0); } VertexShader = vert; FragmentShader = frag;`

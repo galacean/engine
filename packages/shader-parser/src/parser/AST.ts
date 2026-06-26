@@ -272,13 +272,15 @@ export namespace ASTNode {
       this.arraySpecifier = typeSpecifier.arraySpecifier;
 
       const id = children[1] as BaseToken;
+      const isConst = fullyType.isConst;
 
       let sm: VarSymbol;
+      let initializer: Initializer | undefined;
       if (childrenLen === 2 || childrenLen === 4) {
         const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
-        const initializer = children[3] as Initializer;
+        initializer = children[3] as Initializer;
 
-        sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
+        sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       } else {
         // Array-of-array is target-divergent (GLSL ES 3.00 / WGSL allow it, ES 1.00 doesn't) and the
         // backend can always emit it, so it's left to codegen/driver — not flagged here. The nested
@@ -286,12 +288,20 @@ export namespace ASTNode {
         const arraySpecifier = children[2] as ArraySpecifier;
         this.arraySpecifier = arraySpecifier;
         const symbolType = new SymbolType(fullyType.type, typeSpecifier.lexeme, this.arraySpecifier);
-        const initializer = children[4] as Initializer;
+        initializer = children[4] as Initializer;
 
-        sm = new VarSymbol(id.lexeme, symbolType, false, initializer);
+        sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       }
       if (sa.symbolTableStack.insert(sm)) {
         sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
+      }
+      // A `const`-qualified variable's initializer must be a compile-time constant.
+      if (isConst && initializer && !ParserUtils.isConstExpr(initializer, sa)) {
+        sa.reportError(
+          initializer.location,
+          `'${id.lexeme}': const initializer must be a constant expression.`,
+          DiagnosticType.NonConstInitializer
+        );
       }
     }
 
@@ -304,9 +314,12 @@ export namespace ASTNode {
   export class FullySpecifiedType extends TreeNode {
     typeSpecifier: TypeSpecifier;
     type: GalaceanDataType;
+    /** Whether the declaration is `const`-qualified — drives the const-initializer / array-size checks. */
+    isConst: boolean;
 
     override semanticAnalyze(_: SemanticAnalyzer): void {
       const children = this.children;
+      this.isConst = children.length === 2 && ParserUtils.hasConstQualifier(children[0] as TreeNode);
       this.typeSpecifier = (children.length === 1 ? children[0] : children[1]) as TypeSpecifier;
       this.type = this.typeSpecifier.type;
     }
@@ -383,8 +396,22 @@ export namespace ASTNode {
   export class ArraySpecifier extends TreeNode {
     size: number | undefined;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      const integerConstantExpr = this.children[1] as IntegerConstantExpression;
+      const integerConstantExpr = this.children[1];
+      if (!(integerConstantExpr instanceof IntegerConstantExpression)) return; // `[ ]` — unsized
       this.size = integerConstantExpr.value;
+      // A non-literal size must be a constant. Only a single bare `variable_identifier` is checked: a
+      // const symbol is valid GLSL, a non-const isn't. Literals (value set) and compound arithmetic
+      // expressions (operands left to the type system) are not flagged — no false positive on macros.
+      const exprChildren = integerConstantExpr.children;
+      if (this.size === undefined && exprChildren.length === 1 && exprChildren[0] instanceof VariableIdentifier) {
+        if (!ParserUtils.isConstExpr(exprChildren[0], sa)) {
+          sa.reportError(
+            exprChildren[0].location,
+            "Array size must be a constant expression.",
+            DiagnosticType.NonConstArraySize
+          );
+        }
+      }
     }
   }
 

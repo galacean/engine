@@ -29,6 +29,8 @@ export enum DiagnosticType {
   InvalidConversion = "InvalidConversion",
   ConstructorArgType = "ConstructorArgType",
   ConstructorArgCount = "ConstructorArgCount",
+  NonConstInitializer = "NonConstInitializer",
+  NonConstArraySize = "NonConstArraySize",
 
   // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",

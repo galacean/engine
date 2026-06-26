@@ -3,6 +3,8 @@ import { BaseToken as Token } from "./common/BaseToken";
 import { ASTNode, TreeNode } from "./parser/AST";
 import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
 import { Keyword } from "./common/enums/Keyword";
+import SemanticAnalyzer from "./parser/SemanticAnalyzer";
+import { ESymbolType, VarSymbol } from "./parser/symbolTable";
 
 export class ParserUtils {
   private static _swizzleSets = ["xyzw", "rgba", "stpq"];
@@ -214,6 +216,37 @@ export class ParserUtils {
       }
       return undefined;
     }
+  }
+
+  /** Walk a `type_qualifier` token chain for a `const` storage qualifier (Keyword.CONST === 0, so test by value). */
+  static hasConstQualifier(node: TreeNode): boolean {
+    for (const child of node.children) {
+      if (child instanceof Token) {
+        if (child.type === Keyword.CONST) return true;
+      } else if (child instanceof TreeNode && ParserUtils.hasConstQualifier(child)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Whether an expression is a compile-time constant: a numeric literal, or a bare identifier whose
+   * symbol is `const` (so `const float A = 1.0; const float B = A;` resolves). Compound arithmetic and
+   * non-const references return `false`; callers report only a definite non-constant, never on unknown.
+   */
+  static isConstExpr(node: TreeNode, sa: SemanticAnalyzer): boolean {
+    if (ParserUtils.constNumericValue(node) !== undefined) return true;
+    const ident = ParserUtils.unwrapBareIdentifier(node, { allowParens: true });
+    if (!ident) return false;
+    const child = ident.children[0];
+    if (!(child instanceof Token)) return false;
+    // A `#define`'d name is a compile-time constant (it just survived unexpanded at this site).
+    if (sa.macroDefineList[child.lexeme]) return true;
+    const lookup = SemanticAnalyzer._lookupSymbol;
+    lookup.set(child.lexeme, ESymbolType.VAR);
+    const symbol = sa.symbolTableStack.lookup(lookup, true);
+    return symbol instanceof VarSymbol && symbol.isConst;
   }
 
   /** A boolean scalar/vector type. */
