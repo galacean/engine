@@ -24,6 +24,7 @@ export enum DiagnosticType {
   ReturnInVoidFunction = "ReturnInVoidFunction",
   MissingReturn = "MissingReturn",
   NonBoolCondition = "NonBoolCondition",
+  RecursiveFunction = "RecursiveFunction",
 
   // Pipeline (vertex/fragment IO)
   InvalidVaryingStruct = "InvalidVaryingStruct",

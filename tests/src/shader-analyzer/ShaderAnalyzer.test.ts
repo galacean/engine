@@ -381,4 +381,62 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
     expect(diag, "if (bool) must not report NonBoolCondition").to.be.undefined;
   });
+
+  it("flags a directly recursive function (RecursiveFunction)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float fib(float x) { return fib(x); }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diags = analyzer.analyze(source).diagnostics;
+    const rec = diags.find((d: Diagnostic) => d.code === "RecursiveFunction");
+    expect(rec, "a self-calling function must report RecursiveFunction").to.be.ok;
+    expect(rec!.severity).to.equal("error");
+    expect(
+      diags.find((d: Diagnostic) => d.code === "UndefinedFunction"),
+      "recursion must not be mis-reported as UndefinedFunction"
+    ).to.be.undefined;
+  });
+
+  it("does not flag a non-recursive function", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float dbl(float x) { return x + x; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(dbl(0.5)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const rec = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "RecursiveFunction");
+    expect(rec, "a non-recursive function must not report RecursiveFunction").to.be.undefined;
+  });
+
+  it("does not flag a call to a different overload of the same name", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float pick(float x) { return x; }
+      float pick(vec2 v) { return pick(v.x); }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const rec = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "RecursiveFunction");
+    expect(rec, "calling a different overload of the same name is not recursion").to.be.undefined;
+  });
 });

@@ -772,6 +772,25 @@ export namespace ASTNode {
             paramSig = paramList.paramSig as any;
           }
         }
+
+        // GLSL forbids recursion. A self-call — same name AND same parameter signature as the
+        // enclosing function (i.e. the same overload) — is reported here and short-circuited: the
+        // function symbol isn't inserted until after its body, so the lookup below would otherwise
+        // mis-report it as Undefined / NoMatchingOverload. The exact-signature match avoids flagging
+        // a call to a *different* overload of the same name.
+        const header = sa.curFunctionInfo.header;
+        if (header?.ident?.lexeme === fnIdent) {
+          const hSig = header.paramSig ?? [];
+          const cSig = paramSig ?? [];
+          if (hSig.length === cSig.length && hSig.every((t, i) => t === cSig[i])) {
+            sa.reportError(
+              this.location,
+              `Recursive call to '${fnIdent}' is not allowed (GLSL forbids recursion).`,
+              DiagnosticType.RecursiveFunction
+            );
+            return;
+          }
+        }
         const builtinFn = BuiltinFunction.resolveOverload(fnIdent, paramSig);
         if (builtinFn) {
           this.type = builtinFn.realReturnType;
