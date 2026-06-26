@@ -24,7 +24,6 @@ const _covATextureProp = ShaderProperty.getByName("material_CovATexture");
 const _covBTextureProp = ShaderProperty.getByName("material_CovBTexture");
 const _colorTextureProp = ShaderProperty.getByName("material_ColorTexture");
 const _dataTextureSizeProp = ShaderProperty.getByName("material_DataTextureSize");
-const _focalProp = ShaderProperty.getByName("material_Focal");
 const _invViewportProp = ShaderProperty.getByName("material_InvViewport");
 
 /**
@@ -43,7 +42,6 @@ export class GaussianSplatRenderer extends Renderer {
   private _sortMatrix = new Matrix();
   private _lastSortMatrix = new Matrix();
   private _needsSort = false;
-  private _focal = new Vector2();
   private _invViewport = new Vector2();
   private _dataTextureSize = new Vector2();
 
@@ -177,14 +175,12 @@ export class GaussianSplatRenderer extends Renderer {
       this.lastSortTime = 0;
     }
 
-    // Pixel focal length and inverse viewport drive the covariance-to-screen projection in the shader.
+    // Inverse viewport drives the covariance-to-screen projection; the shader derives focal from the
+    // projection matrix itself so its Y sign stays consistent with the framebuffer's flipped projection.
     const viewport = camera.pixelViewport;
-    const focal = viewport.height * camera.projectionMatrix.elements[5] * 0.5;
     const material = this.getMaterial();
     const shaderData = material.shaderData;
-    this._focal.set(focal, focal);
     this._invViewport.set(1 / viewport.width, 1 / viewport.height);
-    shaderData.setVector2(_focalProp, this._focal);
     shaderData.setVector2(_invViewportProp, this._invViewport);
 
     const engine = this._engine;
