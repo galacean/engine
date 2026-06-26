@@ -156,6 +156,30 @@ export class ParserUtils {
     return (Keyword[type] ?? String(type)).toLowerCase();
   }
 
+  /** A sampler (opaque) type — not constructible: it cannot be a function return, a local, or a value. */
+  static isSamplerType(type: GalaceanDataType | undefined): boolean {
+    switch (type) {
+      case Keyword.SAMPLER2D:
+      case Keyword.SAMPLER3D:
+      case Keyword.SAMPLER_CUBE:
+      case Keyword.SAMPLER2D_SHADOW:
+      case Keyword.SAMPLER_CUBE_SHADOW:
+      case Keyword.SAMPLER2D_ARRAY:
+      case Keyword.SAMPLER2D_ARRAY_SHADOW:
+      case Keyword.I_SAMPLER2D:
+      case Keyword.I_SAMPLER3D:
+      case Keyword.I_SAMPLER_CUBE:
+      case Keyword.I_SAMPLER2D_ARRAY:
+      case Keyword.U_SAMPLER2D:
+      case Keyword.U_SAMPLER3D:
+      case Keyword.U_SAMPLER_CUBE:
+      case Keyword.U_SAMPLER2D_ARRAY:
+        return true;
+      default:
+        return false;
+    }
+  }
+
   private static _vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {
       case Keyword.VEC2:

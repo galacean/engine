@@ -63,6 +63,12 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`float getX() { float a = 1.0; } void frag() { gl_FragColor = vec4(getX()); } FragmentShader = frag;`)
   },
   {
+    code: "NonConstructibleReturnType",
+    source: pass(
+      `mediump sampler2D u_tex; sampler2D getTex() { return u_tex; } void frag() { gl_FragColor = vec4(0.0); } FragmentShader = frag;`
+    )
+  },
+  {
     code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`

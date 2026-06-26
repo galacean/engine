@@ -555,6 +555,15 @@ export namespace ASTNode {
       this.returnType = header.returnType;
       this.parameterInfoList = parameterList?.parameterInfoList;
       this.paramSig = parameterList?.paramSig;
+
+      // A sampler (opaque) type cannot be returned by value — GLSL forbids it.
+      if (ParserUtils.isSamplerType(this.returnType.type)) {
+        sa.reportError(
+          this.returnType.location,
+          `Function return type '${ParserUtils.typeName(this.returnType.type)}' is not constructible; samplers cannot be returned.`,
+          DiagnosticType.NonConstructibleReturnType
+        );
+      }
     }
   }
 

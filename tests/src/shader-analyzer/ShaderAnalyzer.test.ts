@@ -439,4 +439,40 @@ describe("ShaderAnalyzer", () => {
     const rec = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "RecursiveFunction");
     expect(rec, "calling a different overload of the same name is not recursion").to.be.undefined;
   });
+
+  it("flags a sampler return type (NonConstructibleReturnType)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      mediump sampler2D u_tex;
+      struct Attributes { vec3 POSITION; };
+      sampler2D getTex() { return u_tex; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstructibleReturnType");
+    expect(diag, "a function returning a sampler must report NonConstructibleReturnType").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a normal return type", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float getX() { return 1.0; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(getX()); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonConstructibleReturnType");
+    expect(diag, "a normal return type must not report NonConstructibleReturnType").to.be.undefined;
+  });
 });
