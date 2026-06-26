@@ -86,7 +86,7 @@ For some functional modules that require additional compatibility considerations
 | Module | Compatibility Considerations | Specific Documentation |
 | :-- | :-- | :-- |
 | [Mouse and Touch](/en/docs/input) | [PointerEvent](https://caniuse.com/?search=PointerEvent) | For compatibility, please refer to [polyfill-pointer-event](https://github.com/galacean/polyfill-pointer-event) |
-| [PhysX](/en/docs/physics/overall) | [WebAssembly](https://caniuse.com/?search=wasm) | In environments that do not support WebAssembly, it will degrade to the JS version, with slightly lower performance and performance compared to the WebAssembly version |
+| [PhysX](/en/docs/physics/overall) | [WebAssembly](https://caniuse.com/?search=wasm) | PhysX requires WebAssembly; `Auto` runtime mode only selects between SIMD and non-SIMD WebAssembly builds |
 
 ## Open Source Collaboration
 

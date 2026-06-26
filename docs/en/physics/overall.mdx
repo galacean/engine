@@ -16,6 +16,7 @@ Developers can set the physics backend in the **Project Settings** panel opened 
 ## Script Usage
 
 ```typescript
+import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 
 const engine = await WebGLEngine.create({
@@ -26,7 +27,7 @@ const engine = await WebGLEngine.create({
 
 ## Backend Notes
 
-PhysX provides complete physics functionality and high-performance simulation. It automatically falls back to pure JavaScript on platforms that do not support WebAssembly. Choosing the PhysX backend adds about 2.5 MB of wasm/js runtime files, which can affect package size and initialization speed.
+PhysX provides complete physics functionality and high-performance simulation. It requires WebAssembly; `Auto` runtime mode only selects between SIMD and non-SIMD WebAssembly builds. Choosing the PhysX backend adds about 2.5 MB of wasm/js runtime files, which can affect package size and initialization speed.
 
 | Feature                        | physics-physx |
 | ------------------------------ | ------------- |

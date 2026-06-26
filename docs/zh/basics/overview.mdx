@@ -86,7 +86,7 @@ Galacean Runtime 在支持 WebGL 的环境下运行，到目前为止，所有�
 | 模块 | 兼容考虑 | 具体文档 |
 | :-- | :-- | :-- |
 | [鼠标与触控](/docs/input/input/) | [PointerEvent](https://caniuse.com/?search=PointerEvent) | 兼容请参照 [polyfill-pointer-event](https://github.com/galacean/polyfill-pointer-event) |
-| [PhysX](/docs/physics/overall) | [WebAssembly](https://caniuse.com/?search=wasm) | 在不支持 WebAssembly 的情况下，会降级为 JS 版本，略低于 WebAssembly 版本的性能与表现 |
+| [PhysX](/docs/physics/overall) | [WebAssembly](https://caniuse.com/?search=wasm) | PhysX 依赖 WebAssembly；`Auto` 运行时模式只会在 SIMD 与非 SIMD WebAssembly 构建之间选择 |
 
 ## 开源共建
 
