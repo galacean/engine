@@ -4,7 +4,7 @@ import { IShaderProgram } from "./IShaderProgram";
  * Shader analyzer interface. Inject a concrete analyzer alongside the compiler (e.g.
  * `WebGLEngine.create({ shaderCompiler, shaderAnalyzer })`) to turn on diagnostics during shader
  * compilation. The compiler calls `_diagnose` on the already-parsed program — no re-parse — and the
- * analyzer surfaces the diagnostics itself (Logger and/or an `onDiagnostics` callback).
+ * analyzer surfaces the diagnostics itself (via the engine Logger).
  */
 export interface IShaderAnalyzer {
   /**

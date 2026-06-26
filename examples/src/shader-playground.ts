@@ -27,7 +27,6 @@ const SAMPLE = `Shader "Playground/Demo" {
         float a = u_uv.z;                  // C1-01: vec2 has no .z component
         a = getColor();                    // C1-02: cannot assign vec3 to float
         a = missingFn(a);                  // C0-09: undefined function
-        discard;                           // demo/no-discard: custom rule
         gl_FragColor = vec4(a, 0.0, 0.0, 1.0);
       }
 
@@ -62,21 +61,6 @@ const editor = document.getElementById("ed") as HTMLTextAreaElement;
 const output = document.getElementById("out") as HTMLDivElement;
 
 const analyzer = new ShaderAnalyzer();
-// Showcase the custom-rule API: flag `discard` per a (fake) team policy.
-analyzer.registerRule({
-  name: "demo/no-discard",
-  check(context) {
-    const index = context.source.indexOf("discard");
-    if (index >= 0) {
-      context.report({
-        severity: "warning",
-        code: "banned",
-        message: "`discard` is discouraged by team policy (custom-rule demo).",
-        range: { start: context.positionAt(index), end: context.positionAt(index + 7) }
-      });
-    }
-  }
-});
 
 function escapeHtml(text: string): string {
   return text.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] as string);

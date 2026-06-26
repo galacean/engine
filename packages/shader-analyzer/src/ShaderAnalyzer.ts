@@ -10,8 +10,7 @@ import type { ASTNode } from "@galacean/engine-shader-parser";
 import type { IShaderAnalyzer, IShaderProgram, IShaderSource } from "@galacean/engine-design";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
-import { DiagnosticSeverity, DIAGNOSTIC_SOURCE } from "./Diagnostic";
-import type { CustomRule, RuleContext } from "./Rule";
+import { DiagnosticSeverity } from "./Diagnostic";
 import { gseErrorToDiagnostic } from "./convert";
 
 export interface AnalyzerOptions {
@@ -42,17 +41,8 @@ export interface AnalysisResult {
  * structured diagnostics the runtime compiler discards. It does not run code generation.
  */
 export class ShaderAnalyzer implements IShaderAnalyzer {
-  /** Optional sink for structured diagnostics (e.g. an editor drawing squiggles); fires alongside Logger. */
-  onDiagnostics?: (diagnostics: Diagnostic[]) => void;
-
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
-  private readonly _rules: CustomRule[] = [];
-
-  /** Register a custom diagnostic rule; it runs after the built-in checks on every `analyze()`. */
-  registerRule(rule: CustomRule): void {
-    this._rules.push(rule);
-  }
 
   analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
     if (options?.includeMap) {
@@ -65,9 +55,8 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
 
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
 
-    let shaderSource: IShaderSource | undefined;
     try {
-      shaderSource = ShaderSourceParser.parse(source);
+      const shaderSource: IShaderSource = ShaderSourceParser.parse(source);
       diagnostics.push(...ShaderSourceParser.errors.map((e) => gseErrorToDiagnostic(e)));
       for (const subShader of shaderSource.subShaders) {
         for (const pass of subShader.passes) {
@@ -80,10 +69,6 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
 
-    if (this._rules.length > 0) {
-      this._runRules(source, shaderSource, diagnostics);
-    }
-
     this._logDiagnostics(diagnostics);
     return { diagnostics, passes };
   }
@@ -91,7 +76,7 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
   /**
    * @internal
    * Diagnose an already-parsed program (no re-parse) plus its parse-stage errors, surfacing the
-   * result via `onDiagnostics` and Logger. Called by the compiler when this analyzer is injected.
+   * result via Logger. Called by the compiler when this analyzer is injected.
    */
   _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): void {
     const shaderData = (program as unknown as ASTNode.GLShaderProgram).shaderData;
@@ -103,7 +88,6 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       ShaderCompilerUtils.processingPassText
     );
     for (const e of ioErrors) diagnostics.push(gseErrorToDiagnostic(e));
-    this.onDiagnostics?.(diagnostics);
     this._logDiagnostics(diagnostics);
   }
 
@@ -118,51 +102,6 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
         case DiagnosticSeverity.Warning:
           Logger.warn(text);
           break;
-      }
-    }
-  }
-
-  private _runRules(source: string, shaderSource: IShaderSource | undefined, diagnostics: Diagnostic[]): void {
-    const positionAt = (offset: number): Diagnostic["range"]["start"] => {
-      let line = 1;
-      let column = 1;
-      const end = Math.min(offset, source.length);
-      for (let i = 0; i < end; i++) {
-        if (source.charCodeAt(i) === 10 /* \n */) {
-          line++;
-          column = 1;
-        } else {
-          column++;
-        }
-      }
-      return { line, column, offset };
-    };
-
-    for (const rule of this._rules) {
-      const context: RuleContext = {
-        source,
-        shaderSource,
-        positionAt,
-        report: (d) =>
-          diagnostics.push({
-            severity: d.severity ?? DiagnosticSeverity.Error,
-            code: `${rule.name}/${d.code}`,
-            message: d.message,
-            range: d.range,
-            source: DIAGNOSTIC_SOURCE
-          })
-      };
-      try {
-        rule.check(context);
-      } catch (e) {
-        // A buggy custom rule must not break analysis; surface its failure as a warning instead.
-        diagnostics.push({
-          severity: DiagnosticSeverity.Warning,
-          code: `${rule.name}/rule-error`,
-          message: `Custom rule "${rule.name}" threw: ${e instanceof Error ? e.message : String(e)}`,
-          range: { start: { line: 1, column: 1, offset: 0 }, end: { line: 1, column: 1, offset: 0 } },
-          source: DIAGNOSTIC_SOURCE
-        });
       }
     }
   }

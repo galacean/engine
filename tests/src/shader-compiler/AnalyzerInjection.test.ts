@@ -1,13 +1,13 @@
 /**
  * Injecting an analyzer (engine: `WebGLEngine.create({ shaderCompiler, shaderAnalyzer })`) turns on
  * diagnostics during shader compilation — the compiler diagnoses the program it already parsed (no
- * extra parse) and the analyzer surfaces it via `onDiagnostics`. Without an analyzer, compilation
- * runs no diagnostics and is unchanged.
+ * extra parse) and the analyzer surfaces it through the engine Logger. Without an analyzer,
+ * compilation runs no diagnostics and is unchanged.
  */
-import { ShaderLanguage } from "@galacean/engine-core";
+import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 // Valid entries, but `i.notAField` references a struct member that doesn't exist.
 const passWithIssue = `
@@ -17,26 +17,32 @@ Varyings vert(Attributes attr) { Varyings o; o.color = vec4(attr.POSITION, 1.0);
 void frag(Varyings i) { gl_FragColor = i.notAField; }`;
 
 describe("analyzer injection: diagnostics ride along with compilation", () => {
-  it("injected analyzer surfaces diagnostics during _parseShaderPass (one parse)", () => {
+  it("injected analyzer surfaces diagnostics via Logger during _parseShaderPass (one parse)", () => {
     const compiler = new ShaderCompiler();
     const analyzer = new ShaderAnalyzer();
     compiler._setAnalyzer(analyzer);
 
-    const captured: { code: string }[] = [];
-    analyzer.onDiagnostics = (d) => captured.push(...d);
-
-    const out = compiler._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
-
-    expect(captured.map((d) => d.code)).to.include("UndeclaredStructMember");
-    expect(out, "compilation still produces GLSL (best-effort)").to.not.be.undefined;
+    const spy = vi.spyOn(Logger, "error").mockImplementation(() => {});
+    try {
+      const out = compiler._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
+      const logged = spy.mock.calls.map((c) => String(c[0])).join("\n");
+      expect(logged).to.include("UndeclaredStructMember");
+      expect(out, "compilation still produces GLSL (best-effort)").to.not.be.undefined;
+    } finally {
+      spy.mockRestore();
+    }
   });
 
-  it("no analyzer → no diagnostics fired, compilation unchanged", () => {
+  it("no analyzer → compilation runs no diagnostics, unchanged", () => {
     const compiler = new ShaderCompiler();
-    let fired = false;
-    // (no analyzer injected)
-    const out = compiler._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
-    expect(fired).to.equal(false);
-    expect(out).to.not.be.undefined;
+    const spy = vi.spyOn(Logger, "error").mockImplementation(() => {});
+    try {
+      const out = compiler._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
+      const logged = spy.mock.calls.map((c) => String(c[0])).join("\n");
+      expect(logged, "no analyzer → no diagnostic logged").to.not.include("UndeclaredStructMember");
+      expect(out).to.not.be.undefined;
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

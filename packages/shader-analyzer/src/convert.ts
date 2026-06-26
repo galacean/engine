@@ -1,5 +1,5 @@
 import type { Diagnostic } from "./Diagnostic";
-import { DiagnosticType, DiagnosticSeverity, DIAGNOSTIC_SOURCE } from "./Diagnostic";
+import { DiagnosticType, DiagnosticSeverity } from "./Diagnostic";
 import { GSError, GSErrorName } from "@galacean/engine-shader-parser";
 
 /**
@@ -14,8 +14,7 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic {
       severity: DiagnosticSeverity.Error,
       code: DiagnosticType.SyntaxError,
       message: error.message,
-      range: { start: { line: 0, column: 0, offset: 0 }, end: { line: 0, column: 0, offset: 0 } },
-      source: DIAGNOSTIC_SOURCE
+      range: { start: { line: 0, column: 0, offset: 0 }, end: { line: 0, column: 0, offset: 0 } }
     };
   }
 
@@ -27,7 +26,6 @@ export function gseErrorToDiagnostic(error: Error): Diagnostic {
     code,
     message: error.message,
     range: gSErrorLocationToRange(error.location),
-    source: DIAGNOSTIC_SOURCE,
     relatedSource: error.source || undefined
   };
 }

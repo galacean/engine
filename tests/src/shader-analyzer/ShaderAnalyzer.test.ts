@@ -1,4 +1,4 @@
-import { DiagnosticSeverity, ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import type { Diagnostic } from "@galacean/engine-shader-analyzer";
 import { Logger } from "@galacean/engine-core";
 import { server } from "@vitest/browser/context";
@@ -18,7 +18,6 @@ describe("ShaderAnalyzer", () => {
     expect(d.severity).to.equal("error");
     expect(d.message).to.include("#define BAD");
     expect(d.range.start.line).to.be.greaterThan(0);
-    expect(d.source).to.equal("galacean-shader-analyzer");
   });
 
   it("yields no diagnostics for a valid self-contained shader", () => {
@@ -283,66 +282,6 @@ describe("ShaderAnalyzer", () => {
 }`;
     const { diagnostics } = analyzer.analyze(valid);
     expect(diagnostics, "a valid shader must stay clean even after a prior parse failure").to.be.empty;
-  });
-
-  it("runs a registered custom rule and namespaces its code", () => {
-    const ra = new ShaderAnalyzer();
-    ra.registerRule({
-      name: "myteam/no-discard",
-      check(ctx) {
-        const idx = ctx.source.indexOf("discard");
-        if (idx >= 0) {
-          ctx.report({
-            severity: DiagnosticSeverity.Warning,
-            code: "banned",
-            message: "`discard` is banned by team policy.",
-            range: { start: ctx.positionAt(idx), end: ctx.positionAt(idx + 7) }
-          });
-        }
-      }
-    });
-    const source = `Shader "x" {
-  SubShader "Default" {
-    Pass "test" {
-      mat4 renderer_MVPMat;
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
-      void frag() { discard; gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`;
-    const custom = ra.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "myteam/no-discard/banned");
-    expect(custom, "expected the namespaced custom-rule diagnostic").to.be.ok;
-    expect(custom!.severity).to.equal("warning");
-    expect(custom!.message).to.include("discard");
-    expect(custom!.range.start.line).to.be.greaterThan(0);
-  });
-
-  it("does not let a throwing custom rule break analysis", () => {
-    const ra = new ShaderAnalyzer();
-    ra.registerRule({
-      name: "bad",
-      check() {
-        throw new Error("boom");
-      }
-    });
-    const source = `Shader "x" {
-  SubShader "Default" {
-    Pass "test" {
-      mat4 renderer_MVPMat;
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`;
-    const ruleError = ra.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "bad/rule-error");
-    expect(ruleError, "a throwing rule surfaces a rule-error diagnostic instead of crashing").to.be.ok;
-    expect(ruleError!.severity).to.equal("warning");
   });
 
   it("prints diagnostics through Logger", () => {
