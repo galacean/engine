@@ -112,10 +112,9 @@ const source = `Shader "${name}" {
           covA.z, covB.x, covB.y
         );
 
-        // Derive pixel focal length from the same projection the framebuffer renders with, so its Y sign
-        // matches (Galacean flips projection Y when rendering to a texture). A mismatched focal Y sign mirrors
-        // rotated splats' screen-space ellipse, producing spikes at certain view angles.
-        vec2 focal = 0.5 * vec2(camera_ProjMat[0][0], camera_ProjMat[1][1]) / material_InvViewport;
+        // Positive focal: build the screen-space ellipse in the standard (Y-up) frame, then reflect Y at the end
+        // to land in Galacean's Y-flipped offscreen target (the projection flips Y so camera_ProjMat[1][1] < 0).
+        vec2 focal = 0.5 * abs(vec2(camera_ProjMat[0][0], camera_ProjMat[1][1])) / material_InvViewport;
 
         mat3 J = mat3(
           focal.x / camspace.z, 0.0, -(focal.x * camspace.x) / (camspace.z * camspace.z),
@@ -141,10 +140,10 @@ const source = `Shader "${name}" {
         vec2 majorAxis = min(sqrt(2.0 * lambda1), 1024.0) * diag;
         vec2 minorAxis = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diag.y, -diag.x);
 
-        gl_Position = vec4(
-          pos2d.xy + (attr.CORNER.x * majorAxis + attr.CORNER.y * minorAxis) * material_InvViewport * pos2d.w,
-          pos2d.zw
-        );
+        vec2 offset = (attr.CORNER.x * majorAxis + attr.CORNER.y * minorAxis) * material_InvViewport * pos2d.w;
+        // Reflect the offset's Y to match the already-flipped center in Galacean's Y-flipped offscreen target.
+        float ySign = camera_ProjMat[1][1] < 0.0 ? -1.0 : 1.0;
+        gl_Position = vec4(pos2d.x + offset.x, pos2d.y + ySign * offset.y, pos2d.zw);
         return v;
       }
 
