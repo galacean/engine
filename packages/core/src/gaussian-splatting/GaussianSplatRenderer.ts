@@ -13,6 +13,7 @@ import { ShaderProperty } from "../shader/ShaderProperty";
 import { GaussianSplat } from "./GaussianSplat";
 import { GaussianSplatMaterial } from "./GaussianSplatMaterial";
 import { GaussianSplatSorter } from "./GaussianSplatSorter";
+import { GaussianSplatSortWorker } from "./GaussianSplatSortWorker";
 
 // Camera-facing quad covering the gaussian out to the ~2-sigma fragment cutoff.
 const _quadCorners = new Float32Array([-2, -2, 2, -2, 2, 2, -2, 2]);
@@ -27,9 +28,9 @@ const _focalProp = ShaderProperty.getByName("material_Focal");
 const _invViewportProp = ShaderProperty.getByName("material_InvViewport");
 
 /**
- * Renders a {@link GaussianSplat} as instanced, depth-sorted, alpha-blended quads. Each frame the splats are
- * re-sorted back-to-front on the CPU for the active camera and the resulting index order is uploaded to a
- * dynamic per-instance buffer.
+ * Renders a {@link GaussianSplat} as instanced, depth-sorted, alpha-blended quads. When the view changes the
+ * splats are re-sorted back-to-front for the active camera — on a Web Worker when available, otherwise on the
+ * main thread — and the resulting index order is uploaded to a dynamic per-instance buffer.
  */
 export class GaussianSplatRenderer extends Renderer {
   private _splat: GaussianSplat = null;
@@ -37,6 +38,7 @@ export class GaussianSplatRenderer extends Renderer {
   private _instanceBuffer: Buffer = null;
   private _instanceData: Float32Array = null;
   private _sorter = new GaussianSplatSorter();
+  private _sortWorker: GaussianSplatSortWorker = null;
 
   private _sortMatrix = new Matrix();
   private _lastSortMatrix = new Matrix();
@@ -66,6 +68,7 @@ export class GaussianSplatRenderer extends Renderer {
       this._addResourceReferCount(value, 1);
       this._buildMesh(value);
       this._bindSplat(value);
+      this._sortWorker?.setPositions(value.positions);
       this._needsSort = true;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
@@ -74,6 +77,17 @@ export class GaussianSplatRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this.setMaterial(new GaussianSplatMaterial(this.engine));
+    try {
+      this._sortWorker = new GaussianSplatSortWorker((indices) => {
+        // Drop a result that belongs to a previous scene (different splat count after a switch).
+        if (this._splat && indices.length === this._splat.splatCount) {
+          this._instanceData = indices;
+          this._instanceBuffer?.setData(indices);
+        }
+      });
+    } catch {
+      this._sortWorker = null; // Workers unavailable: fall back to the main-thread sort.
+    }
   }
 
   private _buildMesh(splat: GaussianSplat): void {
@@ -85,6 +99,7 @@ export class GaussianSplatRenderer extends Renderer {
 
     const cornerBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, _quadCorners, BufferUsage.Static);
     const instanceData = (this._instanceData = new Float32Array(count));
+    for (let i = 0; i < count; i++) instanceData[i] = i; // identity order until the first sort lands
     const instanceBuffer = (this._instanceBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
@@ -141,12 +156,23 @@ export class GaussianSplatRenderer extends Renderer {
     let delta = 0;
     for (let i = 0; i < 16; i++) delta += Math.abs(cur[i] - last[i]);
     if (this._needsSort || delta > 1e-4) {
-      const t0 = performance.now();
-      this._sorter.sort(splat.positions, count, cur, this._instanceData);
-      this._instanceBuffer.setData(this._instanceData);
-      this.lastSortTime = performance.now() - t0;
-      this._lastSortMatrix.copyFrom(this._sortMatrix);
-      this._needsSort = false;
+      if (this._sortWorker) {
+        // Off-thread sort: dispatch only when the worker is idle and the index buffer is on our side.
+        if (!this._sortWorker.busy && this._instanceData) {
+          this._sortWorker.requestSort(-cur[2], -cur[6], -cur[10], -cur[14], count, this._instanceData);
+          this._instanceData = null; // transferred to the worker until it posts back
+          this._lastSortMatrix.copyFrom(this._sortMatrix);
+          this._needsSort = false;
+        }
+        this.lastSortTime = 0;
+      } else {
+        const t0 = performance.now();
+        this._sorter.sort(splat.positions, count, cur, this._instanceData);
+        this._instanceBuffer.setData(this._instanceData);
+        this.lastSortTime = performance.now() - t0;
+        this._lastSortMatrix.copyFrom(this._sortMatrix);
+        this._needsSort = false;
+      }
     } else {
       this.lastSortTime = 0;
     }
@@ -175,6 +201,8 @@ export class GaussianSplatRenderer extends Renderer {
     this._splat = null;
     this._mesh?.destroy();
     this._mesh = null;
+    this._sortWorker?.destroy();
+    this._sortWorker = null;
     super._onDestroy();
   }
 }
