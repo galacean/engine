@@ -131,9 +131,6 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../packages/math
-      '@galacean/engine-physics-lite':
-        specifier: workspace:*
-        version: link:../packages/physics-lite
       '@galacean/engine-physics-physx':
         specifier: workspace:*
         version: link:../packages/physics-physx
@@ -176,9 +173,6 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../packages/math
-      '@galacean/engine-physics-lite':
-        specifier: workspace:*
-        version: link:../packages/physics-lite
       '@galacean/engine-rhi-webgl':
         specifier: workspace:*
         version: link:../packages/rhi-webgl
@@ -255,15 +249,6 @@ importers:
         version: link:../rhi-webgl
 
   packages/math: {}
-
-  packages/physics-lite:
-    devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
-      '@galacean/engine-design':
-        specifier: workspace:*
-        version: link:../design
 
   packages/physics-physx:
     devDependencies:
@@ -386,9 +371,6 @@ importers:
       '@galacean/engine-math':
         specifier: workspace:*
         version: link:../packages/math
-      '@galacean/engine-physics-lite':
-        specifier: workspace:*
-        version: link:../packages/physics-lite
       '@galacean/engine-physics-physx':
         specifier: workspace:*
         version: link:../packages/physics-physx

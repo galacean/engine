@@ -17,7 +17,6 @@
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
-    "@galacean/engine-physics-lite": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-ui": "workspace:*",
     "dat.gui": "^0.7.9",
