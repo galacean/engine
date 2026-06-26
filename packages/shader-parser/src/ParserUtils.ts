@@ -218,12 +218,12 @@ export class ParserUtils {
     }
   }
 
-  /** Walk a `type_qualifier` token chain for a `const` storage qualifier (Keyword.CONST === 0, so test by value). */
-  static hasConstQualifier(node: TreeNode): boolean {
+  /** Recursively walk a `type_qualifier` token chain for a keyword (e.g. `const`, `flat`; test by value as CONST === 0). */
+  static hasQualifier(node: TreeNode, keyword: Keyword): boolean {
     for (const child of node.children) {
       if (child instanceof Token) {
-        if (child.type === Keyword.CONST) return true;
-      } else if (child instanceof TreeNode && ParserUtils.hasConstQualifier(child)) {
+        if (child.type === keyword) return true;
+      } else if (child instanceof TreeNode && ParserUtils.hasQualifier(child, keyword)) {
         return true;
       }
     }
@@ -282,6 +282,14 @@ export class ParserUtils {
       type !== TypeAny &&
       (this.isBoolType(type) || this.isSamplerType(type) || typeof type === "string")
     );
+  }
+
+  /** The first arithmetic-binary operand whose type can't be an operand (bool/sampler/struct), else undefined. */
+  static firstNonArithmeticOperand(a: TreeNode | Token, b: TreeNode | Token): ASTNode.ExpressionAstNode | undefined {
+    for (const n of [a, b]) {
+      if (n instanceof ASTNode.ExpressionAstNode && this.nonArithmeticOperand(n.type)) return n;
+    }
+    return undefined;
   }
 
   /** A scalar numeric/bool type (the things a vector is built from). */

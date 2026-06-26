@@ -319,7 +319,7 @@ export namespace ASTNode {
 
     override semanticAnalyze(_: SemanticAnalyzer): void {
       const children = this.children;
-      this.isConst = children.length === 2 && ParserUtils.hasConstQualifier(children[0] as TreeNode);
+      this.isConst = children.length === 2 && ParserUtils.hasQualifier(children[0] as TreeNode, Keyword.CONST);
       this.typeSpecifier = (children.length === 1 ? children[0] : children[1]) as TypeSpecifier;
       this.type = this.typeSpecifier.type;
     }
@@ -1148,43 +1148,33 @@ export namespace ASTNode {
             "Please use MRT struct instead of gl_FragData.",
             DiagnosticType.GlFragData
           );
-        } else {
-          // `base [ index ]`: the index must be an integer; a constant index past a known vector's size is out of bounds.
-          const base = children[0] as ExpressionAstNode;
-          const index = children[2];
-          // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
-          // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
-          if (ParserUtils.isScalarType(base.type)) {
-            const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
-            if (baseIdent && !baseIdent.isArray) {
-              sa.reportError(
-                base.location,
-                `Type '${ParserUtils.typeName(base.type)}' is not indexable.`,
-                DiagnosticType.NonIndexableType
-              );
-            }
+          return;
+        }
+        const base = children[0] as ExpressionAstNode;
+        const index = children[2];
+        // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
+        // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
+        if (ParserUtils.isScalarType(base.type)) {
+          const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+          if (baseIdent && !baseIdent.isArray) {
+            const m = `Type '${ParserUtils.typeName(base.type)}' is not indexable.`;
+            sa.reportError(base.location, m, DiagnosticType.NonIndexableType);
           }
-          if (index instanceof ExpressionAstNode) {
-            const indexType = index.type;
-            if (indexType !== TypeAny && !ParserUtils.isIntegerType(indexType)) {
-              sa.reportError(
-                index.location,
-                `Index must be an integer, got '${ParserUtils.typeName(indexType)}'.`,
-                DiagnosticType.NonIntegerIndex
-              );
-            } else {
-              const size = ParserUtils.vectorComponentCount(base.type);
-              if (size > 0) {
-                const n = ParserUtils.constNumericValue(index);
-                if (n !== undefined && (n < 0 || n >= size)) {
-                  sa.reportError(
-                    index.location,
-                    `Index ${n} is out of bounds for a ${size}-component vector.`,
-                    DiagnosticType.IndexOutOfBounds
-                  );
-                }
-              }
-            }
+        }
+        if (!(index instanceof ExpressionAstNode)) return;
+        // The index must be an integer; a constant integer index past a known vector's size is out of bounds.
+        const indexType = index.type;
+        if (indexType !== TypeAny && !ParserUtils.isIntegerType(indexType)) {
+          const m = `Index must be an integer, got '${ParserUtils.typeName(indexType)}'.`;
+          sa.reportError(index.location, m, DiagnosticType.NonIntegerIndex);
+          return;
+        }
+        const size = ParserUtils.vectorComponentCount(base.type);
+        if (size > 0) {
+          const n = ParserUtils.constNumericValue(index);
+          if (n !== undefined && (n < 0 || n >= size)) {
+            const m = `Index ${n} is out of bounds for a ${size}-component vector.`;
+            sa.reportError(index.location, m, DiagnosticType.IndexOutOfBounds);
           }
         }
       }
@@ -1272,9 +1262,7 @@ export namespace ASTNode {
       const op = this.children[1];
       const divisor = this.children[2];
       // Operands of `*` `/` `%` must be arithmetic (numeric scalar/vector/matrix), not bool/sampler/struct.
-      const bad = [this.children[0], divisor].find(
-        (n) => n instanceof ExpressionAstNode && ParserUtils.nonArithmeticOperand(n.type)
-      ) as ExpressionAstNode | undefined;
+      const bad = ParserUtils.firstNonArithmeticOperand(this.children[0], divisor);
       if (bad) {
         sa.reportError(
           bad.location,
@@ -1316,9 +1304,7 @@ export namespace ASTNode {
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       if (this.children.length !== 3) return;
       // Operands of `+` `-` must be arithmetic (numeric scalar/vector/matrix), not bool/sampler/struct.
-      const bad = [this.children[0], this.children[2]].find(
-        (n) => n instanceof ExpressionAstNode && ParserUtils.nonArithmeticOperand(n.type)
-      ) as ExpressionAstNode | undefined;
+      const bad = ParserUtils.firstNonArithmeticOperand(this.children[0], this.children[2]);
       if (bad) {
         sa.reportError(
           bad.location,
@@ -1555,7 +1541,7 @@ export namespace ASTNode {
       } else {
         // `type_qualifier type_specifier struct_declarator_list ;` — the qualifier (children[0]) may carry
         // `flat`, which integer varyings need; the 3-child form has no qualifier so it can't be flat.
-        const isFlat = children.length === 4 && StructDeclaration._hasFlatQualifier(children[0] as TreeNode);
+        const isFlat = children.length === 4 && ParserUtils.hasQualifier(children[0] as TreeNode, Keyword.FLAT);
         const declaratorList = this._declaratorList.declaratorList;
         const declaratorListLength = declaratorList.length;
         props.length = declaratorListLength;
@@ -1566,18 +1552,6 @@ export namespace ASTNode {
           props[i] = prop;
         }
       }
-    }
-
-    /** Walk the left-recursive `type_qualifier` token chain for a `flat` interpolation qualifier. */
-    private static _hasFlatQualifier(node: TreeNode): boolean {
-      for (const child of node.children) {
-        if (child instanceof BaseToken) {
-          if (child.type === Keyword.FLAT) return true;
-        } else if (child instanceof TreeNode && StructDeclaration._hasFlatQualifier(child)) {
-          return true;
-        }
-      }
-      return false;
     }
   }
 

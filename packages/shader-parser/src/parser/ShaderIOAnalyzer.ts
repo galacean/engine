@@ -132,8 +132,7 @@ export class ShaderIOAnalyzer {
       structs.push(astNode);
       for (const prop of astNode.propList) {
         list.push(prop);
-        // An IO struct (varying/attribute/MRT) member cannot itself be a struct — GLSL ES forbids
-        // nested IO. A struct-typed member carries its type as a name string (primitives are Keyword numbers).
+        // GLSL ES forbids nested IO structs; a struct-typed member's type is a name string (primitives are Keyword numbers).
         if (typeof prop.typeInfo.type === "string") {
           this._error(
             errors,
