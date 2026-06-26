@@ -1,6 +1,7 @@
 import { MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ShaderMacro } from "../../shader/ShaderMacro";
+import { ShaderData, ShaderMacro } from "../../shader";
+import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { Burst } from "./Burst";
@@ -29,6 +30,12 @@ export class EmissionModule extends ParticleGeneratorModule {
   /** @internal */
   @ignoreClone
   _shapeRand = new Rand(0, ParticleRandomSubSeeds.Shape);
+
+  @ignoreClone
+  private _shapeMacro: ShaderMacro;
+  /** @internal */
+  @ignoreClone
+  _rateRand = new Rand(0, ParticleRandomSubSeeds.EmissionRate);
   /** @internal */
   _frameRateTime: number = 0;
 
@@ -60,11 +67,6 @@ export class EmissionModule extends ParticleGeneratorModule {
         this._resyncCursors(this._generator._playTime);
       }
       this._enabled = value;
-      if (value && this._shape) {
-        this._generator._renderer.shaderData.enableMacro(EmissionModule._emissionShapeMacro);
-      } else {
-        this._generator._renderer.shaderData.disableMacro(EmissionModule._emissionShapeMacro);
-      }
     }
   }
 
@@ -82,13 +84,7 @@ export class EmissionModule extends ParticleGeneratorModule {
 
       const renderer = this._generator._renderer;
       lastShape?._unRegisterOnValueChanged(renderer._onGeneratorParamsChanged);
-
-      if (value) {
-        value._registerOnValueChanged(renderer._onGeneratorParamsChanged);
-        this.enabled && renderer.shaderData.enableMacro(EmissionModule._emissionShapeMacro);
-      } else {
-        renderer.shaderData.disableMacro(EmissionModule._emissionShapeMacro);
-      }
+      value?._registerOnValueChanged(renderer._onGeneratorParamsChanged);
 
       renderer._onGeneratorParamsChanged();
     }
@@ -150,9 +146,18 @@ export class EmissionModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
+  _updateShaderData(shaderData: ShaderData): void {
+    const shapeMacro = this._enabled && this._shape ? EmissionModule._emissionShapeMacro : null;
+    this._shapeMacro = this._enableMacro(shaderData, this._shapeMacro, shapeMacro);
+  }
+
+  /**
+   * @internal
+   */
   _resetRandomSeed(seed: number): void {
     this._burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
     this._shapeRand.reset(seed, ParticleRandomSubSeeds.Shape);
+    this._rateRand.reset(seed, ParticleRandomSubSeeds.EmissionRate);
   }
 
   /** @internal */
@@ -171,27 +176,27 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   private _emitByRateOverTime(playTime: number): void {
-    const ratePerSeconds = this.rateOverTime.evaluate(undefined, undefined);
-    if (ratePerSeconds <= 0) {
-      this._frameRateTime = playTime;
-      return;
-    }
-    const generator = this._generator;
-    const emitInterval = 1.0 / ratePerSeconds;
+    const { rateOverTime, _generator: generator } = this;
 
     let cumulativeTime = playTime - this._frameRateTime;
-    while (cumulativeTime >= emitInterval) {
+    let ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
+    while (ratePerSeconds > 0) {
+      const emitInterval = 1.0 / ratePerSeconds;
+      if (cumulativeTime < emitInterval) return;
       cumulativeTime -= emitInterval;
       this._frameRateTime += emitInterval;
       generator._emit(this._frameRateTime, 1);
+      ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
     }
+    this._frameRateTime = playTime;
   }
 
   private _emitByRateOverDistance(lastPlayTime: number, playTime: number): void {
-    const ratePerUnit = this.rateOverDistance.evaluate(undefined, undefined);
-    const generator = this._generator;
+    const { rateOverDistance, _generator: generator } = this;
+    // Distance rate is sampled once per frame at the current cycle position
+    const ratePerUnit = this._evaluateRate(rateOverDistance, playTime);
 
-    if (ratePerUnit <= 0) {
+    if (!(ratePerUnit > 0)) {
       this._hasLastEmitPosition = false;
       this._distanceAccumulator = 0;
       return;
@@ -241,6 +246,22 @@ export class EmissionModule extends ParticleGeneratorModule {
     }
 
     lastPos.copyFrom(currentPos);
+  }
+
+  private _evaluateRate(rate: ParticleCompositeCurve, cursorTime: number): number {
+    switch (rate.mode) {
+      case ParticleCurveMode.Constant:
+        return rate.constant;
+      case ParticleCurveMode.Curve: {
+        const duration = this._generator.main.duration;
+        return rate.evaluate((cursorTime % duration) / duration, undefined);
+      }
+      default: {
+        // TwoConstants / TwoCurves: lerp between the two values with a per-sample random factor
+        const duration = this._generator.main.duration;
+        return rate.evaluate((cursorTime % duration) / duration, this._rateRand.random());
+      }
+    }
   }
 
   private _emitByBurst(lastPlayTime: number, playTime: number): void {

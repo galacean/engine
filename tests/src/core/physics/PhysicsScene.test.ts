@@ -138,6 +138,34 @@ describe("Physics Test", () => {
       engineLite.run();
     });
 
+    it("dynamic force APIs report unsupported behavior", () => {
+      const root = engineLite.sceneManager.activeScene.createRootEntity("root");
+      const collider = root.addComponent(DynamicCollider);
+      const force = new Vector3(1, 0, 0);
+      const unsupportedOperations: Array<[string, () => unknown]> = [
+        ["addForce", () => collider.applyForce(force)],
+        ["addForceAtPosition", () => collider.applyForceAtPosition(force, new Vector3(0, 1, 0))],
+        ["addTorque", () => collider.applyTorque(force)],
+        ["putToSleep", () => collider.sleep()],
+        ["wakeUp", () => collider.wakeUp()],
+        ["isSleeping", () => collider.isSleeping()]
+      ];
+
+      for (const [method, operation] of unsupportedOperations) {
+        let error: unknown;
+
+        try {
+          operation();
+        } catch (caughtError) {
+          error = caughtError;
+        }
+
+        expect(error).eq(`Physics-lite don't support ${method}. Use Physics-PhysX instead!`);
+      }
+
+      root.destroy();
+    });
+
     it("removeShape", () => {
       const scene = engineLite.sceneManager.activeScene;
       const root = scene.createRootEntity("root");

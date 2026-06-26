@@ -339,32 +339,34 @@ export class ResourceManager {
     this._loadingPromises = null;
   }
 
-  private _assignDefaultOptions(assetInfo: LoadItem): LoadItem {
-    assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
+  private _resolveLoadItemOptions(assetInfo: LoadItem, virtualResourceEntry?: EditorResourceItem): void {
+    assetInfo.type = virtualResourceEntry?.type ?? assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
       throw `asset type should be specified: ${assetInfo.url}`;
     }
+    assetInfo.params ??= virtualResourceEntry?.params;
     assetInfo.retryCount = assetInfo.retryCount ?? this.retryCount;
     assetInfo.timeout = assetInfo.timeout ?? this.timeout;
     assetInfo.retryInterval = assetInfo.retryInterval ?? this.retryInterval;
-    assetInfo.url = assetInfo.url ?? assetInfo.urls.join(",");
-    return assetInfo;
   }
 
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
-    const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
-    let { url } = item;
-
-    // Not absolute and base url is set
-    if (!Utils.isAbsoluteUrl(url) && this.baseUrl) url = Utils.resolveAbsoluteUrl(this.baseUrl, url);
-
+    const item = typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL;
+    item.url = item.url ?? item.urls.join(",");
     // Parse url
-    const { assetBaseURL, queryPath } = this._parseURL(url);
+    const { assetBaseURL, queryPath } = this._parseURL(item.url);
     const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Get remote asset base url
-    const remoteConfig = this._virtualPathResourceMap[assetBaseURL];
-    const remoteAssetBaseURL = remoteConfig?.path ?? assetBaseURL;
+    const virtualResourceEntry = this._virtualPathResourceMap[assetBaseURL];
+    this._resolveLoadItemOptions(item, virtualResourceEntry);
+
+    // Not absolute and base url is set
+    item.url =
+      !Utils.isAbsoluteUrl(assetBaseURL) && this.baseUrl
+        ? Utils.resolveAbsoluteUrl(this.baseUrl, assetBaseURL)
+        : assetBaseURL;
+    const remoteAssetBaseURL = virtualResourceEntry?.path ?? item.url;
 
     // Check cache
     const cacheObject = this._assetUrlPool[remoteAssetBaseURL];
@@ -406,14 +408,14 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
-    const subpackageName = remoteConfig?.subpackageName;
+    const subpackageName = virtualResourceEntry?.subpackageName;
 
     // Check sub asset
     if (queryPath) {
       // Check whether load main asset
       const mainPromise =
         loadingPromises[remoteAssetBaseURL] ||
-        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
+        this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
       mainPromise.catch((e) => {
         this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
       });
@@ -421,7 +423,7 @@ export class ResourceManager {
       return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath);
     }
 
-    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL, subpackageName);
+    return this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
   }
 
   // For adapter mini-game platform
@@ -429,19 +431,12 @@ export class ResourceManager {
     loader: Loader<T>,
     item: LoadItem,
     remoteAssetBaseURL: string,
-    assetBaseURL: string,
     subpackageName: string
   ): AssetPromise<T> {
-    return this._loadMainAsset(loader, item, remoteAssetBaseURL, assetBaseURL);
+    return this._loadMainAsset(loader, item, remoteAssetBaseURL);
   }
 
-  private _loadMainAsset<T>(
-    loader: Loader<T>,
-    item: LoadItem,
-    remoteAssetBaseURL: string,
-    assetBaseURL: string
-  ): AssetPromise<T> {
-    item.url = assetBaseURL;
+  private _loadMainAsset<T>(loader: Loader<T>, item: LoadItem, remoteAssetBaseURL: string): AssetPromise<T> {
     const loadingPromises = this._loadingPromises;
     const promise = loader.load(item, this);
     loadingPromises[remoteAssetBaseURL] = promise;
@@ -595,7 +590,8 @@ export class ResourceManager {
     }
 
     const loadUrl = key ? url + "?q=" + key : url;
-    const promise = this.load<T>({ url: loadUrl, type: mapped.type, params: mapped.params });
+    // type and params omitted: resolved from the virtualPath map, the single source of truth
+    const promise = this.load<T>({ url: loadUrl });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
 

@@ -52,23 +52,40 @@ describe("ParticleCurve tests", () => {
 
   it("Add and remove", () => {
     const curve = new ParticleCurve(new CurveKey(0, 0.3), new CurveKey(0.6, 0.7));
- +  expect(curve.keys.length).to.equal(2);
- +  
- 
-    curve.addKey(new CurveKey(0, 0.4));
- +  expect(curve.keys.length).to.equal(3);
- +  expect(curve.keys[0].value).to.equal(0.3);
- + 
-    curve.removeKey(2);
- +  expect(curve.keys.length).to.equal(2);
- +  
-    curve.removeKey(0);
-    
- +  expect(curve.keys.length).to.equal(1);
- +  expect(curve.keys[0].time).to.equal(0.0);
- +  expect(curve.keys[0].value).to.equal(0.4);
- +  
-    curve.removeKey(0);
- +  expect(curve.keys.length).to.equal(0);
+    +expect(curve.keys.length).to.equal(2);
+    +curve.addKey(new CurveKey(0, 0.4));
+    +expect(curve.keys.length).to.equal(3);
+    +expect(curve.keys[0].value).to.equal(0.3);
+    +curve.removeKey(2);
+    +expect(curve.keys.length).to.equal(2);
+    +curve.removeKey(0);
+
+    +expect(curve.keys.length).to.equal(1);
+    +expect(curve.keys[0].time).to.equal(0.0);
+    +expect(curve.keys[0].value).to.equal(0.4);
+    +curve.removeKey(0);
+    +expect(curve.keys.length).to.equal(0);
+  });
+
+  it("_evaluateCumulative", () => {
+    // Empty curve integrates to 0.
+    expect((new ParticleCurve() as any)._evaluateCumulative(0.5)).to.equal(0);
+
+    // Single key is a constant curve; its integral is value × age.
+    expect((new ParticleCurve(new CurveKey(0, 2)) as any)._evaluateCumulative(0.5)).to.equal(1.0);
+    expect((new ParticleCurve(new CurveKey(0, 2)) as any)._evaluateCumulative(0)).to.equal(0);
+
+    // Linear ramp 0→2 over [0,1]: integral to t is t² → 0.25 at t = 0.5.
+    const ramp = new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 2));
+    expect((ramp as any)._evaluateCumulative(0.5)).to.equal(0.25);
+
+    // First key at t > 0: clamps before it, integral stays non-negative.
+    const lateStart = new ParticleCurve(new CurveKey(0.5, 2), new CurveKey(1, 2));
+    expect((lateStart as any)._evaluateCumulative(0.25)).to.equal(0.5);
+    expect((lateStart as any)._evaluateCumulative(1.0)).to.equal(2.0);
+
+    // Last key before t=1: clamps after it, integral includes the tail.
+    const earlyEnd = new ParticleCurve(new CurveKey(0, 2), new CurveKey(0.5, 2));
+    expect((earlyEnd as any)._evaluateCumulative(1.0)).to.equal(2.0);
   });
 });

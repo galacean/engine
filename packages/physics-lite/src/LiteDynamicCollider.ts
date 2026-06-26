@@ -50,6 +50,13 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.addForceAtPosition }
+   */
+  addForceAtPosition(force: Vector3, position: Vector3): void {
+    throw "Physics-lite don't support addForceAtPosition. Use Physics-PhysX instead!";
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.addTorque }
    */
   addTorque(torque: Vector3): void {

@@ -59,6 +59,18 @@ describe("ParticleGradient tests", () => {
     expect(gradient.alphaKeys).to.deep.equal(newAlphaKeys);
   });
 
+  it("Throws when setKeys is given more than the maximum allowed color keys", () => {
+    const gradient = new ParticleGradient();
+    const tooManyColorKeys = [0, 1, 2, 3, 4].map((i) => new GradientColorKey(i / 5, new Color(1, 0, 0, 1)));
+    expect(() => gradient.setKeys(tooManyColorKeys, [])).to.throw("Gradient can only have 4 color keys");
+  });
+
+  it("Throws when setKeys is given more than the maximum allowed alpha keys", () => {
+    const gradient = new ParticleGradient();
+    const tooManyAlphaKeys = [0, 1, 2, 3, 4].map((i) => new GradientAlphaKey(i / 5, 1));
+    expect(() => gradient.setKeys([], tooManyAlphaKeys)).to.throw("Gradient can only have 4 alpha keys");
+  });
+
   it("Throws error when adding more than the maximum allowed color keys", () => {
     const gradient = new ParticleGradient();
     const maxColorKeys = 4;

@@ -7,8 +7,9 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
  * Particle generator module.
  */
 export abstract class ParticleGeneratorModule {
+  /** @internal */
   @ignoreClone
-  protected _generator: ParticleGenerator;
+  _generator: ParticleGenerator;
 
   protected _enabled: boolean = false;
 

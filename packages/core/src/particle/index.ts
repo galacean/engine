@@ -7,8 +7,11 @@ export { ParticleRenderMode } from "./enums/ParticleRenderMode";
 export { ParticleScaleMode } from "./enums/ParticleScaleMode";
 export { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 export { ParticleStopMode } from "./enums/ParticleStopMode";
+export { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
+export { ParticleSubEmitterInheritProperty } from "./enums/ParticleSubEmitterInheritProperty";
 export { Burst } from "./modules/Burst";
 export { ColorOverLifetimeModule } from "./modules/ColorOverLifetimeModule";
+export { CustomDataModule } from "./modules/CustomDataModule";
 export { EmissionModule } from "./modules/EmissionModule";
 export { MainModule } from "./modules/MainModule";
 export { ParticleCompositeCurve } from "./modules/ParticleCompositeCurve";
@@ -21,4 +24,6 @@ export { TextureSheetAnimationModule } from "./modules/TextureSheetAnimationModu
 export { VelocityOverLifetimeModule } from "./modules/VelocityOverLifetimeModule";
 export { LimitVelocityOverLifetimeModule } from "./modules/LimitVelocityOverLifetimeModule";
 export { NoiseModule } from "./modules/NoiseModule";
+export { SubEmitter } from "./modules/SubEmitter";
+export { SubEmittersModule } from "./modules/SubEmittersModule";
 export * from "./modules/shape/index";

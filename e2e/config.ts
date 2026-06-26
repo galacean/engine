@@ -455,9 +455,21 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.2
     },
+    subEmitter: {
+      category: "Particle",
+      caseFileName: "particleRenderer-sub-emitter",
+      threshold: 0,
+      diffPercentage: 0
+    },
     rateOverDistance: {
       category: "Particle",
       caseFileName: "particleRenderer-rateOverDistance",
+      threshold: 0,
+      diffPercentage: 0
+    },
+    customShader: {
+      category: "Particle",
+      caseFileName: "particleRenderer-customShader",
       threshold: 0,
       diffPercentage: 0
     }
