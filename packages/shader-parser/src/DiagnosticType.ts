@@ -20,9 +20,10 @@ export enum DiagnosticType {
   ReturnTypeMismatch = "ReturnTypeMismatch",
   ArrayOfArray = "ArrayOfArray",
 
-  // Function
+  // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",
   MissingReturn = "MissingReturn",
+  NonBoolCondition = "NonBoolCondition",
 
   // Pipeline (vertex/fragment IO)
   InvalidVaryingStruct = "InvalidVaryingStruct",

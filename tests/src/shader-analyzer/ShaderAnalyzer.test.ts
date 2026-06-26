@@ -347,4 +347,38 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingEntry");
     expect(diag, "a Pass binding both entries must not report MissingEntry").to.be.undefined;
   });
+
+  it("flags a non-bool 'if' condition (NonBoolCondition)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a = 1.0; if (a) { gl_FragColor = vec4(0.0); } }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    expect(diag, "if (float) must report NonBoolCondition").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+    expect(diag!.range.start.line, "diagnostic points at the condition").to.be.greaterThan(0);
+  });
+
+  it("does not flag a bool 'if' condition", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a = 1.0; if (a > 0.0) { gl_FragColor = vec4(0.0); } }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    expect(diag, "if (bool) must not report NonBoolCondition").to.be.undefined;
+  });
 });

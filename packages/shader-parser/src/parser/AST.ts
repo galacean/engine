@@ -182,7 +182,22 @@ export namespace ASTNode {
   export class IterationStatement extends TreeNode {}
 
   @ASTNodeDecorator(NoneTerminal.selection_statement)
-  export class SelectionStatement extends TreeNode {}
+  export class SelectionStatement extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      // `if (cond)` — cond must be a bool. GLSL ES has no implicit scalar→bool, so a float/int
+      // condition is an error. Skip TypeAny (unknown) to avoid false positives (continue-with-unknown).
+      const condition = this.children.find((c) => c instanceof ExpressionAstNode) as ExpressionAstNode | undefined;
+      if (!condition) return;
+      const t = condition.type;
+      if (t !== TypeAny && t !== Keyword.BOOL) {
+        sa.reportError(
+          condition.location,
+          `Condition of 'if' must be a bool, got '${ParserUtils.typeName(t)}'.`,
+          DiagnosticType.NonBoolCondition
+        );
+      }
+    }
+  }
 
   @ASTNodeDecorator(NoneTerminal.expression_statement)
   export class ExpressionStatement extends TreeNode {}
