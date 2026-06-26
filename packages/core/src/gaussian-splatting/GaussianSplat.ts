@@ -163,19 +163,21 @@ export class GaussianSplat extends ReferResource {
       const r21 = 2 * (qy * qz + qw * qx);
       const r22 = 1 - 2 * (qx * qx + qy * qy);
 
-      // Covariance Sigma = R * diag((2s)^2) * R^T. The 2x scale matches the projection's quad sizing.
+      // Covariance Sigma = R^T * diag((2s)^2) * R. R is built from the w-negated (conjugated) quaternion above,
+      // so R^T is the splat's actual orientation; the textbook R*D*R^T applies the inverse rotation and shears
+      // rotated splats into spikes. The 2x scale matches the projection's quad sizing.
       const sx = fBuffer[f + 3] * 2;
       const sy = fBuffer[f + 4] * 2;
       const sz = fBuffer[f + 5] * 2;
       const ax = sx * sx;
       const ay = sy * sy;
       const az = sz * sz;
-      const s00 = r00 * r00 * ax + r01 * r01 * ay + r02 * r02 * az;
-      const s01 = r00 * r10 * ax + r01 * r11 * ay + r02 * r12 * az;
-      const s02 = r00 * r20 * ax + r01 * r21 * ay + r02 * r22 * az;
-      const s11 = r10 * r10 * ax + r11 * r11 * ay + r12 * r12 * az;
-      const s12 = r10 * r20 * ax + r11 * r21 * ay + r12 * r22 * az;
-      const s22 = r20 * r20 * ax + r21 * r21 * ay + r22 * r22 * az;
+      const s00 = r00 * r00 * ax + r10 * r10 * ay + r20 * r20 * az;
+      const s01 = r00 * r01 * ax + r10 * r11 * ay + r20 * r21 * az;
+      const s02 = r00 * r02 * ax + r10 * r12 * ay + r20 * r22 * az;
+      const s11 = r01 * r01 * ax + r11 * r11 * ay + r21 * r21 * az;
+      const s12 = r01 * r02 * ax + r11 * r12 * ay + r21 * r22 * az;
+      const s22 = r02 * r02 * ax + r12 * r12 * ay + r22 * r22 * az;
 
       // Normalize the covariance by its largest magnitude so it survives half-float precision; the shader
       // restores it from center.w.
