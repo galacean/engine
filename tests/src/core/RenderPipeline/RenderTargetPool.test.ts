@@ -98,58 +98,15 @@ describe("RenderTargetPool", () => {
     });
   });
 
-  describe("frame-age eviction via tick()", () => {
-    it("does not evict entries within maxFreeAgeFrames", () => {
-      pool.maxFreeAgeFrames = 5;
-      const a = alloc(pool, 256, 256);
-      pool.freeRenderTarget(a);
-      const baseFrame = engine.time.frameCount;
-      pool.tick(baseFrame + 3);
-      const b = alloc(pool, 256, 256);
-      expect(b).to.equal(a);
-    });
-
-    it("destroys entries idle longer than maxFreeAgeFrames", () => {
-      pool.maxFreeAgeFrames = 5;
-      const a = alloc(pool, 256, 256);
-      const baseFrame = engine.time.frameCount;
-      pool.freeRenderTarget(a);
-      pool.tick(baseFrame + 100);
-      // Entry was destroyed; next allocate produces a fresh RT
-      const b = alloc(pool, 256, 256);
-      expect(b).to.not.equal(a);
-      expect(a.destroyed).to.equal(true);
-    });
-
-    it("evicts exactly at the maxFreeAgeFrames boundary (inclusive)", () => {
-      pool.maxFreeAgeFrames = 5;
-      const a = alloc(pool, 256, 256);
-      const baseFrame = engine.time.frameCount;
-      pool.freeRenderTarget(a);
-      // One frame short of the cap: survives.
-      pool.tick(baseFrame + 4);
-      expect(a.destroyed).to.equal(false);
-      // Exactly at the cap: destroyed.
-      pool.tick(baseFrame + 5);
-      expect(a.destroyed).to.equal(true);
-    });
-  });
-
   describe("texture free-list", () => {
-    it("reuses a freed texture within maxFreeAgeFrames, evicts past it", () => {
-      pool.maxFreeAgeFrames = 5;
+    it("reuses a freed texture of matching shape, allocates fresh on mismatch", () => {
       const a = allocTex(pool, 128, 128);
-      const baseFrame = engine.time.frameCount;
       pool.freeTexture(a);
-
-      pool.tick(baseFrame + 3);
       const b = allocTex(pool, 128, 128);
       expect(b).to.equal(a);
 
       pool.freeTexture(b);
-      pool.tick(baseFrame + 100);
-      expect(a.destroyed).to.equal(true);
-      const c = allocTex(pool, 128, 128);
+      const c = allocTex(pool, 64, 64);
       expect(c).to.not.equal(a);
     });
   });

@@ -5,73 +5,9 @@ import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapM
  * @internal
  */
 export class RenderTargetPool {
-  private static _destroyRenderTargetResource(rt: RenderTarget): void {
-    const colorTexture = rt.getColorTexture(0);
-    const depthTexture = rt.depthTexture;
-    rt.destroy(true);
-    colorTexture?.destroy(true);
-    if (depthTexture && depthTexture !== colorTexture) {
-      depthTexture.destroy(true);
-    }
-  }
-
-  private static _matchRenderTarget(
-    renderTarget: RenderTarget,
-    width: number,
-    height: number,
-    colorFormat: TextureFormat | null,
-    depthFormat: TextureFormat | null,
-    needDepthTexture: boolean,
-    mipmap: boolean,
-    isSRGBColorSpace: boolean,
-    antiAliasing: number
-  ): boolean {
-    if (renderTarget.width !== width || renderTarget.height !== height || renderTarget.antiAliasing !== antiAliasing) {
-      return false;
-    }
-
-    const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
-    if (colorFormat != null) {
-      if (
-        !colorTexture ||
-        colorTexture.format !== colorFormat ||
-        colorTexture.mipmapCount > 1 !== mipmap ||
-        colorTexture.isSRGBColorSpace !== isSRGBColorSpace
-      ) {
-        return false;
-      }
-    } else if (colorTexture) {
-      return false;
-    }
-
-    const depthTexture = renderTarget.depthTexture;
-    if (needDepthTexture) {
-      if (depthFormat) {
-        if (!depthTexture || (depthTexture as Texture2D).format !== depthFormat) {
-          return false;
-        }
-      } else if (depthTexture) {
-        return false;
-      }
-    } else {
-      if (renderTarget._depthFormat !== depthFormat) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  /** An entry idle for at least this many frames is destroyed by `tick()`. */
-  maxFreeAgeFrames: number = 60;
-
-  private _engine: Engine;
-
   private _freeRenderTargets: RenderTarget[] = [];
-  private _freeRenderTargetFrames: number[] = [];
-
   private _freeTextures: Texture2D[] = [];
-  private _freeTextureFrames: number[] = [];
+  private _engine: Engine;
 
   constructor(engine: Engine) {
     this._engine = engine;
@@ -105,7 +41,8 @@ export class RenderTargetPool {
           antiAliasing
         )
       ) {
-        this._removeFreeRenderTargetAt(i);
+        freeRenderTargets[i] = freeRenderTargets[freeRenderTargets.length - 1];
+        freeRenderTargets.length--;
         const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
         if (colorTexture) {
           colorTexture.wrapModeU = colorTexture.wrapModeV = wrapMode;
@@ -166,7 +103,8 @@ export class RenderTargetPool {
         texture.mipmapCount > 1 === mipmap &&
         texture.isSRGBColorSpace === isSRGBColorSpace
       ) {
-        this._removeFreeTextureAt(i);
+        freeTextures[i] = freeTextures[freeTextures.length - 1];
+        freeTextures.length--;
         texture.wrapModeU = texture.wrapModeV = wrapMode;
         texture.filterMode = filterMode;
         return texture;
@@ -184,72 +122,78 @@ export class RenderTargetPool {
   freeRenderTarget(renderTarget: RenderTarget): void {
     if (!renderTarget || renderTarget.destroyed) return;
     this._freeRenderTargets.push(renderTarget);
-    this._freeRenderTargetFrames.push(this._engine.time.frameCount);
   }
 
   freeTexture(texture: Texture2D): void {
     if (!texture || texture.destroyed) return;
     this._freeTextures.push(texture);
-    this._freeTextureFrames.push(this._engine.time.frameCount);
-  }
-
-  tick(currentFrame: number): void {
-    const maxAge = this.maxFreeAgeFrames;
-    const rtFrames = this._freeRenderTargetFrames;
-    for (let i = rtFrames.length - 1; i >= 0; i--) {
-      if (currentFrame - rtFrames[i] >= maxAge) {
-        this._destroyFreeRenderTargetAt(i);
-      }
-    }
-    const texFrames = this._freeTextureFrames;
-    for (let i = texFrames.length - 1; i >= 0; i--) {
-      if (currentFrame - texFrames[i] >= maxAge) {
-        this._destroyFreeTextureAt(i);
-      }
-    }
   }
 
   gc(): void {
     const freeRenderTargets = this._freeRenderTargets;
     for (let i = 0, n = freeRenderTargets.length; i < n; i++) {
-      RenderTargetPool._destroyRenderTargetResource(freeRenderTargets[i]);
+      const renderTarget = freeRenderTargets[i];
+      const colorTexture = renderTarget.getColorTexture(0);
+      const depthTexture = renderTarget.depthTexture;
+      renderTarget.destroy(true);
+      colorTexture?.destroy(true);
+      if (depthTexture && depthTexture !== colorTexture) {
+        depthTexture.destroy(true);
+      }
     }
     freeRenderTargets.length = 0;
-    this._freeRenderTargetFrames.length = 0;
 
     const freeTextures = this._freeTextures;
     for (let i = 0, n = freeTextures.length; i < n; i++) {
       freeTextures[i].destroy(true);
     }
     freeTextures.length = 0;
-    this._freeTextureFrames.length = 0;
   }
 
-  private _removeFreeRenderTargetAt(index: number): void {
-    const last = this._freeRenderTargets.length - 1;
-    this._freeRenderTargets[index] = this._freeRenderTargets[last];
-    this._freeRenderTargetFrames[index] = this._freeRenderTargetFrames[last];
-    this._freeRenderTargets.length = last;
-    this._freeRenderTargetFrames.length = last;
-  }
+  private static _matchRenderTarget(
+    renderTarget: RenderTarget,
+    width: number,
+    height: number,
+    colorFormat: TextureFormat | null,
+    depthFormat: TextureFormat | null,
+    needDepthTexture: boolean,
+    mipmap: boolean,
+    isSRGBColorSpace: boolean,
+    antiAliasing: number
+  ): boolean {
+    if (renderTarget.width !== width || renderTarget.height !== height || renderTarget.antiAliasing !== antiAliasing) {
+      return false;
+    }
 
-  private _removeFreeTextureAt(index: number): void {
-    const last = this._freeTextures.length - 1;
-    this._freeTextures[index] = this._freeTextures[last];
-    this._freeTextureFrames[index] = this._freeTextureFrames[last];
-    this._freeTextures.length = last;
-    this._freeTextureFrames.length = last;
-  }
+    const colorTexture = renderTarget.getColorTexture(0) as Texture2D;
+    if (colorFormat != null) {
+      if (
+        !colorTexture ||
+        colorTexture.format !== colorFormat ||
+        colorTexture.mipmapCount > 1 !== mipmap ||
+        colorTexture.isSRGBColorSpace !== isSRGBColorSpace
+      ) {
+        return false;
+      }
+    } else if (colorTexture) {
+      return false;
+    }
 
-  private _destroyFreeRenderTargetAt(index: number): void {
-    const rt = this._freeRenderTargets[index];
-    this._removeFreeRenderTargetAt(index);
-    RenderTargetPool._destroyRenderTargetResource(rt);
-  }
+    const depthTexture = renderTarget.depthTexture;
+    if (needDepthTexture) {
+      if (depthFormat) {
+        if (!depthTexture || (depthTexture as Texture2D).format !== depthFormat) {
+          return false;
+        }
+      } else if (depthTexture) {
+        return false;
+      }
+    } else {
+      if (renderTarget._depthFormat !== depthFormat) {
+        return false;
+      }
+    }
 
-  private _destroyFreeTextureAt(index: number): void {
-    const tex = this._freeTextures[index];
-    this._removeFreeTextureAt(index);
-    tex.destroy(true);
+    return true;
   }
 }
