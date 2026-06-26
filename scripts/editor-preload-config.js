@@ -16,11 +16,6 @@ module.exports = {
       browserPath: "dist/browser.min.js"
     },
     {
-      name: "@galacean/engine-physics-lite",
-      path: "packages/physics-lite",
-      browserPath: "dist/browser.min.js"
-    },
-    {
       name: "@galacean/engine-physics-physx",
       path: "packages/physics-physx",
       browserPath: "dist/browser.min.js"
