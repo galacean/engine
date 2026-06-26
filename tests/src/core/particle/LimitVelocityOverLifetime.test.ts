@@ -13,7 +13,6 @@ import {
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 describe("LimitVelocityOverLifetimeModule", function () {
@@ -22,7 +21,7 @@ describe("LimitVelocityOverLifetimeModule", function () {
   let entity: Entity;
 
   beforeAll(async function () {
-    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new PhysXPhysics() });
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
 

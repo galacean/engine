@@ -18,7 +18,6 @@ import {
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { describe, beforeAll, beforeEach, afterAll, expect, it } from "vitest";
 
 describe("CustomDataModule", function () {
@@ -28,8 +27,7 @@ describe("CustomDataModule", function () {
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({
-      canvas: document.createElement("canvas"),
-      physics: new PhysXPhysics()
+      canvas: document.createElement("canvas")
     });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
