@@ -6,7 +6,7 @@ import {
   ShaderIOAnalyzer,
   ShaderSourceParser
 } from "@galacean/engine-shader-parser";
-import type { ASTNode } from "@galacean/engine-shader-parser";
+import type { ASTNode, ShaderRange } from "@galacean/engine-shader-parser";
 import type { IShaderAnalyzer, IShaderPassSource, IShaderProgram, IShaderSource } from "@galacean/engine-design";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
@@ -112,13 +112,15 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       const { program, errors, passText } = parseShaderPass(pass.contents, this._includeMap, this._chunkOutputCache);
       diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
       if (program) {
+        // IShaderPassSource types the entry location structurally (design stays class-free); the parser
+        // stored a ShaderRange there — restore the concrete type ShaderIOAnalyzer/createGSError consume.
         const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
           program.shaderData,
           vertexEntry,
           fragmentEntry,
           passText,
-          pass.vertexEntryLocation,
-          pass.fragmentEntryLocation
+          pass.vertexEntryLocation as ShaderRange | undefined,
+          pass.fragmentEntryLocation as ShaderRange | undefined
         );
         diagnostics.push(...ioErrors.map((e) => gseErrorToDiagnostic(e)));
         return { program, vertexEntry, fragmentEntry };
