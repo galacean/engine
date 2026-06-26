@@ -77,8 +77,9 @@ const source = `Shader "${name}" {
 
         vec2 uv = getDataUV(attr.SPLAT_INDEX);
         vec4 center = texture2D(material_CenterTexture, uv);
-        vec4 covA = texture2D(material_CovATexture, uv);
-        vec4 covB = texture2D(material_CovBTexture, uv);
+        // Covariance is stored half-float, normalized by center.w; restore it here.
+        vec4 covA = texture2D(material_CovATexture, uv) * center.w;
+        vec4 covB = texture2D(material_CovBTexture, uv) * center.w;
         v.color = texture2D(material_ColorTexture, uv);
 
         mat4 modelView = camera_ViewMat * renderer_ModelMat;
