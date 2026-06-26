@@ -29,5 +29,6 @@ export * from "./sourceParser/ShaderSourceFactory";
 export * from "./Preprocessor";
 export * from "./ParserUtils";
 export * from "./GSError";
+export * from "./formatDiagnostic";
 export * from "./DiagnosticType";
 export * from "./ShaderCompilerUtils";

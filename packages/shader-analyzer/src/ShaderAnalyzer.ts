@@ -10,7 +10,7 @@ import type { ASTNode, ShaderRange } from "@galacean/engine-shader-parser";
 import type { IShaderAnalyzer, IShaderPassSource, IShaderProgram, IShaderSource } from "@galacean/engine-design";
 import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
-import { DiagnosticSeverity } from "./Diagnostic";
+import { DiagnosticSeverity, formatDiagnostic } from "./Diagnostic";
 import { gseErrorToDiagnostic } from "./convert";
 
 export interface AnalyzerOptions {
@@ -94,13 +94,12 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
   /** Print collected diagnostics through the engine Logger (off by default; `Logger.enable()` to see them). */
   private _logDiagnostics(diagnostics: Diagnostic[]): void {
     for (const d of diagnostics) {
-      const text = `[${d.code}] ${d.message} (line ${d.range.start.line}, col ${d.range.start.column})`;
       switch (d.severity) {
         case DiagnosticSeverity.Error:
-          Logger.error(text);
+          Logger.error(formatDiagnostic(d));
           break;
         case DiagnosticSeverity.Warning:
-          Logger.warn(text);
+          Logger.warn(formatDiagnostic(d));
           break;
       }
     }

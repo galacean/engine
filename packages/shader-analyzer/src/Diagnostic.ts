@@ -1,4 +1,4 @@
-import { DiagnosticType } from "@galacean/engine-shader-parser";
+import { DiagnosticType, formatDiagnosticSource } from "@galacean/engine-shader-parser";
 
 export enum DiagnosticSeverity {
   Error = "error",
@@ -21,3 +21,11 @@ export interface Diagnostic {
 
 // Classification enum lives with the producers (parser/codegen); re-exported here for analyzer consumers.
 export { DiagnosticType };
+
+/**
+ * Render a diagnostic as a `code: message` header plus a gutter-numbered source block with carets —
+ * the shared formatter the runtime logger and the playground example both use, identical everywhere.
+ */
+export function formatDiagnostic(d: Diagnostic): string {
+  return formatDiagnosticSource(d.relatedSource, d.range, `${d.code}: ${d.message}`);
+}
