@@ -512,4 +512,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NestedIOStruct");
     expect(diag, "a flat IO struct must not report NestedIOStruct").to.be.undefined;
   });
+
+  it("flags division by a constant zero (ConstDivideByZero)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float x = 1.0 / 0.0; gl_FragColor = vec4(x); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
+    expect(diag, "division by constant zero must report ConstDivideByZero").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag division by a non-zero constant", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float x = 1.0 / 2.0; gl_FragColor = vec4(x); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstDivideByZero");
+    expect(diag, "division by a non-zero constant must not report ConstDivideByZero").to.be.undefined;
+  });
 });

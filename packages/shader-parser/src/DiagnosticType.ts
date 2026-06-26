@@ -19,6 +19,7 @@ export enum DiagnosticType {
   AssignTypeMismatch = "AssignTypeMismatch",
   ReturnTypeMismatch = "ReturnTypeMismatch",
   ArrayOfArray = "ArrayOfArray",
+  ConstDivideByZero = "ConstDivideByZero",
 
   // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",

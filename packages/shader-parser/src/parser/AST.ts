@@ -1045,6 +1045,26 @@ export namespace ASTNode {
         //   }
       }
     }
+
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      // Division or modulo by a compile-time constant zero is undefined.
+      if (this.children.length === 3) {
+        const op = this.children[1];
+        const divisor = this.children[2];
+        if (
+          op instanceof BaseToken &&
+          (op.type === ETokenType.SLASH || op.type === ETokenType.PERCENT) &&
+          divisor instanceof TreeNode &&
+          ParserUtils.constNumericValue(divisor) === 0
+        ) {
+          sa.reportError(
+            divisor.location,
+            op.type === ETokenType.PERCENT ? "Modulo by constant zero." : "Division by constant zero.",
+            DiagnosticType.ConstDivideByZero
+          );
+        }
+      }
+    }
   }
 
   @ASTNodeDecorator(NoneTerminal.additive_expression)

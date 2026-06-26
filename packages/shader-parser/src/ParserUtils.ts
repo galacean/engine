@@ -180,6 +180,42 @@ export class ParserUtils {
     }
   }
 
+  /**
+   * Evaluate an expression node to its compile-time numeric literal, unwrapping the single-child
+   * precedence chain and parenthesised groups. Returns `undefined` for anything that is not a plain
+   * numeric literal (identifiers, compound/arithmetic expressions) — callers treat that as "not a
+   * known constant" and skip (continue-with-unknown), so this never produces a false positive.
+   */
+  static constNumericValue(node: TreeNode): number | undefined {
+    let cur: TreeNode = node;
+    while (true) {
+      if (cur instanceof ASTNode.PrimaryExpression) {
+        if (cur.children.length === 3) {
+          const inner = cur.children[1];
+          if (!(inner instanceof TreeNode)) return undefined;
+          cur = inner;
+          continue;
+        }
+        const leaf = cur.children[0];
+        if (
+          leaf instanceof Token &&
+          (leaf.type === ETokenType.INT_CONSTANT || leaf.type === ETokenType.FLOAT_CONSTANT)
+        ) {
+          const n = Number(leaf.lexeme);
+          return Number.isNaN(n) ? undefined : n;
+        }
+        return undefined;
+      }
+      if (cur instanceof ASTNode.ExpressionAstNode && cur.children.length === 1) {
+        const child = cur.children[0];
+        if (!(child instanceof TreeNode)) return undefined;
+        cur = child;
+        continue;
+      }
+      return undefined;
+    }
+  }
+
   private static _vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {
       case Keyword.VEC2:
