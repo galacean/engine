@@ -18,7 +18,9 @@ export class StructProp implements IParamInfo {
     public typeInfo: SymbolType,
     public ident: BaseToken,
     public mrtIndex?: number,
-    public isInMacroBranch = false
+    public isInMacroBranch = false,
+    /** Whether the member carries the `flat` interpolation qualifier — integer varyings require it. */
+    public isFlat = false
   ) {}
 }
 

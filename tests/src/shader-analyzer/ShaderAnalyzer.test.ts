@@ -1000,4 +1000,39 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ExpectedSampler");
     expect(diag, "texture(sampler2D, uv) must not report ExpectedSampler").to.be.undefined;
   });
+
+  it("flags an integer varying without flat (NonFlatIntegerVarying)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      struct Varyings { vec4 pos; int id; };
+      Varyings vert(Attributes attr) { Varyings o; o.pos = vec4(attr.POSITION, 1.0); o.id = 0; gl_Position = o.pos; return o; }
+      void frag(Varyings i) { gl_FragColor = vec4(float(i.id)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFlatIntegerVarying");
+    expect(diag, "an integer varying without flat must report NonFlatIntegerVarying").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a flat integer varying or a float varying", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      struct Varyings { vec4 pos; flat int id; float w; };
+      Varyings vert(Attributes attr) { Varyings o; o.pos = vec4(attr.POSITION, 1.0); o.id = 0; o.w = 1.0; gl_Position = o.pos; return o; }
+      void frag(Varyings i) { gl_FragColor = vec4(float(i.id) + i.w); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFlatIntegerVarying");
+    expect(diag, "a flat integer varying or a float varying must not report NonFlatIntegerVarying").to.be.undefined;
+  });
 });

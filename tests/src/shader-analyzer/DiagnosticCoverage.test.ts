@@ -127,6 +127,12 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     )
   },
   {
+    code: "NonFlatIntegerVarying",
+    source: pass(
+      `struct Varyings { vec4 pos; int id; }; Varyings vert() { Varyings o; gl_Position = vec4(0.0); return o; } void frag(Varyings i) { gl_FragColor = vec4(float(i.id)); } VertexShader = vert; FragmentShader = frag;`
+    )
+  },
+  {
     code: "UnreachableCode",
     source: pass(`void frag() { gl_FragColor = vec4(0.0); return; gl_FragColor = vec4(1.0); } FragmentShader = frag;`)
   },

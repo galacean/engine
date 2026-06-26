@@ -52,6 +52,7 @@ export enum DiagnosticType {
   GlFragData = "GlFragData",
   NestedIOStruct = "NestedIOStruct",
   MissingVertexPosition = "MissingVertexPosition",
+  NonFlatIntegerVarying = "NonFlatIntegerVarying",
 
   // RenderState
   InvalidRenderStateProperty = "InvalidRenderStateProperty",

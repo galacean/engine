@@ -1526,16 +1526,31 @@ export namespace ASTNode {
         const prop = new StructProp(typeInfo, declarator.ident, firstChild.index, isInMacroBranch);
         props.push(prop);
       } else {
+        // `type_qualifier type_specifier struct_declarator_list ;` — the qualifier (children[0]) may carry
+        // `flat`, which integer varyings need; the 3-child form has no qualifier so it can't be flat.
+        const isFlat = children.length === 4 && StructDeclaration._hasFlatQualifier(children[0] as TreeNode);
         const declaratorList = this._declaratorList.declaratorList;
         const declaratorListLength = declaratorList.length;
         props.length = declaratorListLength;
         for (let i = 0; i < declaratorListLength; i++) {
           const declarator = declaratorList[i];
           const typeInfo = new SymbolType(type, lexeme, declarator.arraySpecifier);
-          const prop = new StructProp(typeInfo, declarator.ident, undefined, isInMacroBranch);
+          const prop = new StructProp(typeInfo, declarator.ident, undefined, isInMacroBranch, isFlat);
           props[i] = prop;
         }
       }
+    }
+
+    /** Walk the left-recursive `type_qualifier` token chain for a `flat` interpolation qualifier. */
+    private static _hasFlatQualifier(node: TreeNode): boolean {
+      for (const child of node.children) {
+        if (child instanceof BaseToken) {
+          if (child.type === Keyword.FLAT) return true;
+        } else if (child instanceof TreeNode && StructDeclaration._hasFlatQualifier(child)) {
+          return true;
+        }
+      }
+      return false;
     }
   }
 

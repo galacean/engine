@@ -6,6 +6,7 @@ import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
 import { DiagnosticType } from "../DiagnosticType";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
+import { ParserUtils } from "../ParserUtils";
 import { Keyword } from "../common/enums/Keyword";
 import type { ShaderPosition, ShaderRange } from "../common";
 
@@ -112,7 +113,8 @@ export class ShaderIOAnalyzer {
     structs: ASTNode.StructSpecifier[],
     list: StructProp[],
     errors: GSError[],
-    source: string
+    source: string,
+    role: StructRole
   ): void {
     for (let i = 0; i < symbols.length; i++) {
       const astNode = symbols[i].astNode;
@@ -126,6 +128,15 @@ export class ShaderIOAnalyzer {
             errors,
             DiagnosticType.NestedIOStruct,
             `IO struct member '${prop.ident.lexeme}' cannot be a struct ('${prop.typeInfo.type}'); nested IO structs are not allowed.`,
+            prop.ident.location,
+            source
+          );
+        } else if (role === StructRole.Varying && !prop.isFlat && ParserUtils.isIntegerType(prop.typeInfo.type)) {
+          // An integer varying has no default interpolation — GLSL ES requires `flat`.
+          this._error(
+            errors,
+            DiagnosticType.NonFlatIntegerVarying,
+            `Integer varying '${prop.ident.lexeme}' must be declared 'flat'.`,
             prop.ident.location,
             source
           );
@@ -166,7 +177,7 @@ export class ShaderIOAnalyzer {
             source
           );
         } else {
-          this._pushStruct(varyings, io.varyingStructs, io.varyingList, errors, source);
+          this._pushStruct(varyings, io.varyingStructs, io.varyingList, errors, source, StructRole.Varying);
         }
       } else if (returnType.type !== Keyword.VOID) {
         this._error(
@@ -192,7 +203,7 @@ export class ShaderIOAnalyzer {
               source
             );
           } else {
-            this._pushStruct(attributes, io.attributeStructs, io.attributeList, errors, source);
+            this._pushStruct(attributes, io.attributeStructs, io.attributeList, errors, source, StructRole.Attribute);
           }
         }
       }
@@ -219,7 +230,7 @@ export class ShaderIOAnalyzer {
             source
           );
         } else {
-          this._pushStruct(mrts, io.mrtStructs, io.mrtList, errors, source);
+          this._pushStruct(mrts, io.mrtStructs, io.mrtList, errors, source, StructRole.Mrt);
         }
       } else if (returnDataType !== Keyword.VOID && returnDataType !== Keyword.VEC4) {
         this._error(
