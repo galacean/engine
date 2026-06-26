@@ -99,6 +99,18 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); } FragmentShader = frag;`)
   },
   {
+    code: "InvalidConversion",
+    source: pass(
+      `mediump sampler2D u_tex; void frag() { float x = float(u_tex); gl_FragColor = vec4(x); } FragmentShader = frag;`
+    )
+  },
+  {
+    code: "ConstructorArgType",
+    source: pass(
+      `mediump sampler2D u_tex; void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); } FragmentShader = frag;`
+    )
+  },
+  {
     code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`

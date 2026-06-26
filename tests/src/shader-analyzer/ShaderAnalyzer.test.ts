@@ -710,4 +710,63 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonIntegerIndex");
     expect(diag, "an integer index must not report NonIntegerIndex").to.be.undefined;
   });
+
+  it("flags a sampler cast (InvalidConversion)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      mediump sampler2D u_tex;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float x = float(u_tex); gl_FragColor = vec4(x); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidConversion");
+    expect(diag, "float(sampler) must report InvalidConversion").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("flags a sampler constructor argument (ConstructorArgType)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      mediump sampler2D u_tex;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgType");
+    expect(diag, "vec2(sampler, ...) must report ConstructorArgType").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a numeric constructor", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(1.0, 2.0, 3.0); gl_FragColor = vec4(v, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diags = analyzer.analyze(source).diagnostics;
+    expect(
+      diags.find((d: Diagnostic) => d.code === "InvalidConversion"),
+      "numeric ctor: no InvalidConversion"
+    ).to.be.undefined;
+    expect(
+      diags.find((d: Diagnostic) => d.code === "ConstructorArgType"),
+      "numeric ctor: no ConstructorArgType"
+    ).to.be.undefined;
+  });
 });

@@ -25,6 +25,8 @@ export enum DiagnosticType {
   NonIntegerIndex = "NonIntegerIndex",
   InvalidUnaryOperand = "InvalidUnaryOperand",
   InvalidBinaryOperands = "InvalidBinaryOperands",
+  InvalidConversion = "InvalidConversion",
+  ConstructorArgType = "ConstructorArgType",
 
   // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",

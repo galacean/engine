@@ -771,6 +771,21 @@ export namespace ASTNode {
       const functionIdentifier = this.children[0] as FunctionIdentifier;
       if (functionIdentifier.isBuiltin) {
         this.type = functionIdentifier.ident;
+        // A builtin numeric constructor cannot take a sampler or struct argument.
+        if (this.children.length === 4 && this.children[2] instanceof FunctionCallParameterList) {
+          const list = this.children[2] as FunctionCallParameterList;
+          const badIndex = list.paramSig.findIndex((t) => ParserUtils.isSamplerType(t) || typeof t === "string");
+          if (badIndex >= 0) {
+            const argNode = list.paramNodes[badIndex] as TreeNode | undefined;
+            sa.reportError(
+              argNode?.location ?? list.location,
+              `Cannot construct '${ParserUtils.typeName(functionIdentifier.ident)}' from a '${ParserUtils.typeName(
+                list.paramSig[badIndex]
+              )}' argument.`,
+              list.paramSig.length === 1 ? DiagnosticType.InvalidConversion : DiagnosticType.ConstructorArgType
+            );
+          }
+        }
       } else {
         const fnIdent = <string>functionIdentifier.ident;
 
