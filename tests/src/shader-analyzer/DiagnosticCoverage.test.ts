@@ -1,4 +1,4 @@
-import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import { ShaderAnalyzer, DiagnosticType } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -209,4 +209,28 @@ describe("diagnostic coverage map", () => {
       expect(codes, `expected ${c.code}, got [${[...new Set(codes)].join(", ")}]`).to.include(c.code);
     });
   }
+
+  // Completeness gate: every DiagnosticType must have a triggering AB test. The richer per-rule tests
+  // live in ShaderAnalyzer.test.ts / ShaderIOAnalyzer.test.ts; those codes are registered here so a
+  // newly-added diagnostic that ships with no test anywhere fails this check.
+  it("every DiagnosticType has a triggering test", () => {
+    const coveredElsewhere = new Set([
+      "AssignTypeMismatch",
+      "FragmentEntryReturnType",
+      "InvalidAttributeStruct",
+      "InvalidSwizzle",
+      "InvalidVaryingStruct",
+      "MissingEntry",
+      "NonBoolCondition",
+      "RecursiveFunction",
+      "Redefinition",
+      "ReturnTypeMismatch",
+      "UndefinedFunction",
+      "UseBeforeDeclaration",
+      "VertexEntryReturnType"
+    ]);
+    const here = new Set(cases.map((c) => c.code));
+    const uncovered = Object.values(DiagnosticType).filter((t) => !here.has(t) && !coveredElsewhere.has(t));
+    expect(uncovered, `DiagnosticTypes with no triggering test: ${uncovered.join(", ")}`).to.be.empty;
+  });
 });
