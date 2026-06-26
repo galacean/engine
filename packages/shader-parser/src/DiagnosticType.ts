@@ -23,6 +23,7 @@ export enum DiagnosticType {
   ShiftOutOfRange = "ShiftOutOfRange",
   IndexOutOfBounds = "IndexOutOfBounds",
   InvalidUnaryOperand = "InvalidUnaryOperand",
+  InvalidBinaryOperands = "InvalidBinaryOperands",
 
   // Function / control flow
   ReturnInVoidFunction = "ReturnInVoidFunction",

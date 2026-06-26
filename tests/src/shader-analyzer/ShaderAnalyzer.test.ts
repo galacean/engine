@@ -644,4 +644,37 @@ describe("ShaderAnalyzer", () => {
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidUnaryOperand");
     expect(diag, "'!' on a bool must not report InvalidUnaryOperand").to.be.undefined;
   });
+
+  it("flags arithmetic on a bool operand (InvalidBinaryOperands)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { bool b = true; float x = b + 1.0; gl_FragColor = vec4(x); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidBinaryOperands");
+    expect(diag, "bool + float must report InvalidBinaryOperands").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag arithmetic on numeric operands", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float x = 1.0 + 2.0; vec3 v = vec3(1.0) * 2.0; gl_FragColor = vec4(v, x); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidBinaryOperands");
+    expect(diag, "numeric arithmetic must not report InvalidBinaryOperands").to.be.undefined;
+  });
 });

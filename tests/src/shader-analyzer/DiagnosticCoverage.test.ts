@@ -91,6 +91,10 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     source: pass(`void frag() { float u_f = 1.0; bool ok = !u_f; gl_FragColor = vec4(0.0); } FragmentShader = frag;`)
   },
   {
+    code: "InvalidBinaryOperands",
+    source: pass(`void frag() { bool b = true; float x = b + 1.0; gl_FragColor = vec4(x); } FragmentShader = frag;`)
+  },
+  {
     code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`

@@ -238,6 +238,19 @@ export class ParserUtils {
     }
   }
 
+  /**
+   * True when `type` is a known type that cannot be an operand of an arithmetic operator (+, -, *, /):
+   * bool, sampler, or struct. Returns false for `TypeAny`/unknown so callers skip (continue-with-unknown).
+   * The numeric/vector/matrix size-compatibility rules are intentionally left to the type system.
+   */
+  static nonArithmeticOperand(type: GalaceanDataType | undefined): boolean {
+    return (
+      type != undefined &&
+      type !== TypeAny &&
+      (this.isBoolType(type) || this.isSamplerType(type) || typeof type === "string")
+    );
+  }
+
   /** Component count of a vector type (2/3/4), or 0 for non-vectors. */
   static vectorComponentCount(type: GalaceanDataType | undefined): number {
     switch (type) {
