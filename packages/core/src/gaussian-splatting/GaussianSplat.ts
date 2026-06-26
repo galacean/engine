@@ -6,6 +6,32 @@ import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 
+const _halfF32 = new Float32Array(1);
+const _halfI32 = new Int32Array(_halfF32.buffer);
+
+/** Encode a float32 as a float16 (half) bit pattern, for upload into an R16G16B16A16 texture. */
+function toHalf(value: number): number {
+  _halfF32[0] = value;
+  const x = _halfI32[0];
+  let bits = (x >> 16) & 0x8000;
+  let m = (x >> 12) & 0x07ff;
+  const e = (x >> 23) & 0xff;
+  if (e < 103) return bits;
+  if (e > 142) {
+    bits |= 0x7c00;
+    bits |= (e === 255 ? 0 : 1) && x & 0x007fffff;
+    return bits;
+  }
+  if (e < 113) {
+    m |= 0x0800;
+    bits |= (m >> (114 - e)) + ((m >> (113 - e)) & 1);
+    return bits;
+  }
+  bits |= ((e - 112) << 10) | (m >> 1);
+  bits += m & 1;
+  return bits;
+}
+
 /**
  * A loaded 3D Gaussian Splatting scene: per-splat center, covariance and color baked into GPU data
  * textures, addressed by linear splat index. Assign it to a {@link GaussianSplatRenderer} via `splat`.
@@ -90,8 +116,8 @@ export class GaussianSplat extends ReferResource {
     const texelCount = width * height;
 
     const centers = new Float32Array(texelCount * 4);
-    const covA = new Float32Array(texelCount * 4);
-    const covB = new Float32Array(texelCount * 4);
+    const covA = new Uint16Array(texelCount * 4);
+    const covB = new Uint16Array(texelCount * 4);
     const colors = new Uint8Array(texelCount * 4);
     const positions = (this._positions = new Float32Array(count * 4));
 
@@ -151,17 +177,22 @@ export class GaussianSplat extends ReferResource {
       const s12 = r10 * r20 * ax + r11 * r21 * ay + r12 * r22 * az;
       const s22 = r20 * r20 * ax + r21 * r21 * ay + r22 * r22 * az;
 
+      // Normalize the covariance by its largest magnitude so it survives half-float precision; the shader
+      // restores it from center.w.
+      const factor =
+        Math.max(Math.abs(s00), Math.abs(s01), Math.abs(s02), Math.abs(s11), Math.abs(s12), Math.abs(s22)) || 1;
+      const inv = 1 / factor;
       const o = i * 4;
       centers[o + 0] = x;
       centers[o + 1] = y;
       centers[o + 2] = z;
-      centers[o + 3] = 1;
-      covA[o + 0] = s00;
-      covA[o + 1] = s01;
-      covA[o + 2] = s02;
-      covA[o + 3] = s11;
-      covB[o + 0] = s12;
-      covB[o + 1] = s22;
+      centers[o + 3] = factor;
+      covA[o + 0] = toHalf(s00 * inv);
+      covA[o + 1] = toHalf(s01 * inv);
+      covA[o + 2] = toHalf(s02 * inv);
+      covA[o + 3] = toHalf(s11 * inv);
+      covB[o + 0] = toHalf(s12 * inv);
+      covB[o + 1] = toHalf(s22 * inv);
       colors[o + 0] = uBuffer[u + 24];
       colors[o + 1] = uBuffer[u + 25];
       colors[o + 2] = uBuffer[u + 26];
@@ -172,8 +203,8 @@ export class GaussianSplat extends ReferResource {
     this._bounds.max.copyFrom(max);
 
     this._centerTexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, centers);
-    this._covATexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, covA);
-    this._covBTexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, covB);
+    this._covATexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covA);
+    this._covBTexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covB);
     this._colorTexture = this._createDataTexture(width, height, TextureFormat.R8G8B8A8, colors);
   }
 
@@ -181,7 +212,7 @@ export class GaussianSplat extends ReferResource {
     width: number,
     height: number,
     format: TextureFormat,
-    data: Float32Array | Uint8Array
+    data: Float32Array | Uint16Array | Uint8Array
   ): Texture2D {
     const texture = new Texture2D(this.engine, width, height, format, false, false);
     texture.filterMode = TextureFilterMode.Point;
