@@ -699,6 +699,36 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.statement_list)
   export class StatementList extends TreeNode {
+    override semanticAnalyze(sa: SemanticAnalyzer): void {
+      // Left-recursive list `[rest, lastStmt]`: if the statement right before `lastStmt` is a terminal
+      // jump (return/break/continue/discard), `lastStmt` is unreachable. A nested block / if / loop is
+      // not a direct jump, so `if (c) { return; } a;` does not flag `a` (no false positive).
+      if (this.children.length !== 2) return;
+      const rest = this.children[0];
+      const lastStmt = this.children[1];
+      if (!(rest instanceof StatementList) || !(lastStmt instanceof TreeNode)) return;
+      const prevStmt = rest.children[rest.children.length - 1];
+      if (prevStmt instanceof TreeNode && StatementList._isTerminalJump(prevStmt)) {
+        sa.reportError(
+          lastStmt.location,
+          "Unreachable code: this statement follows a return / break / continue / discard.",
+          DiagnosticType.UnreachableCode
+        );
+      }
+    }
+
+    /** Walk single-child statement wrappers down to a JumpStatement (a non-wrapper node aborts). */
+    private static _isTerminalJump(stmt: TreeNode): boolean {
+      let cur: TreeNode = stmt;
+      while (true) {
+        if (cur instanceof JumpStatement) return true;
+        if (cur.children.length !== 1) return false;
+        const child = cur.children[0];
+        if (!(child instanceof TreeNode)) return false;
+        cur = child;
+      }
+    }
+
     override codeGen(visitor: ICodeGenVisitor): string {
       return this.setCache(visitor.visitStatementList(this));
     }

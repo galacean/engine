@@ -121,6 +121,10 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     )
   },
   {
+    code: "UnreachableCode",
+    source: pass(`void frag() { gl_FragColor = vec4(0.0); return; gl_FragColor = vec4(1.0); } FragmentShader = frag;`)
+  },
+  {
     code: "NoMatchingOverload",
     source: pass(
       `float f(float a) { return a; } void frag() { gl_FragColor = vec4(f(vec3(0.0))); } FragmentShader = frag;`
