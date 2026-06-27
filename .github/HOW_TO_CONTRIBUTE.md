@@ -48,7 +48,7 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 - Clone the Galacean playground repository and write a demo for your change.
 - Write an unit test in the Galacean repository and run `pnpm test` to execute the unit test.
 
-- [Write an e2e test](https://github.com/galacean/runtime/wiki/How-to-write-an-e2e-Test-for-runtime) in the Galacean repository and run `pnpm e2e` to execute the e2e test.
+- [Write an e2e test](https://github.com/galacean/engine/wiki/How-to-write-an-e2e-Test-for-runtime) in the Galacean repository and run `pnpm e2e` to execute the e2e test.
 
 
 
@@ -137,7 +137,7 @@ git pull --ff upstream master
 
 - All features or bug fixes **must be tested** by one or more specs (unit-tests).
 - All public API methods **must be documented**.
-- We use Prettier as an automatic code formatter, integrated with ESLint. Run `pnpm lint` after making any changes to the code.
+- We use Prettier as an automatic code formatter. Run `pnpm format` to format your code, and `pnpm lint` to check code quality, after making any changes to the code.
 
 
 
