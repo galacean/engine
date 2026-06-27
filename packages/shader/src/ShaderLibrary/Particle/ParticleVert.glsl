@@ -174,15 +174,70 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         }
         localVelocity = attr.a_FeedbackVelocity;
         worldVelocity = vec3(0.0);
+        vec3 visualLocalVelocity = localVelocity;
+        vec3 visualWorldVelocity = worldVelocity;
+        vec3 currentLinearOffset = vec3(0.0);
+        vec3 currentLinearVelocity = vec3(0.0);
 
         #ifdef _VOL_LINEAR_MODULE_ENABLED
             vec3 instantVOLVelocity;
-            computeVelocityPositionOffset(attr, normalizedAge, age, instantVOLVelocity);
+            vec3 currentVOLPositionOffset = computeVelocityPositionOffset(attr, normalizedAge, age, instantVOLVelocity);
             if (renderer_VOLSpace == 0) {
                 localVelocity += instantVOLVelocity;
+                currentLinearVelocity = renderer_SimulationSpace == 0
+                    ? instantVOLVelocity
+                    : rotationByQuaternions(instantVOLVelocity, worldRotation);
+                currentLinearOffset = renderer_SimulationSpace == 0
+                    ? currentVOLPositionOffset
+                    : rotationByQuaternions(currentVOLPositionOffset, worldRotation);
             } else {
                 worldVelocity += instantVOLVelocity;
+                currentLinearVelocity = renderer_SimulationSpace == 0
+                    ? rotationByQuaternions(instantVOLVelocity, quaternionConjugate(worldRotation))
+                    : instantVOLVelocity;
+                currentLinearOffset = renderer_SimulationSpace == 0
+                    ? rotationByQuaternions(currentVOLPositionOffset, quaternionConjugate(worldRotation))
+                    : currentVOLPositionOffset;
             }
+        #endif
+
+        #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+            vec3 visualSimulationVelocity = renderer_SimulationSpace == 0
+                ? attr.a_FeedbackVelocity
+                : rotationByQuaternions(attr.a_FeedbackVelocity, worldRotation);
+            visualSimulationVelocity += currentLinearVelocity;
+
+            vec3 rel;
+            if (renderer_SimulationSpace == 0) {
+                rel = attr.a_FeedbackPosition - currentLinearOffset - renderer_VOLOffset;
+            } else {
+                rel = rotationByQuaternions(
+                    attr.a_FeedbackPosition - currentLinearOffset - attr.a_SimulationWorldPosition,
+                    quaternionConjugate(worldRotation)) - renderer_VOLOffset;
+            }
+
+            vec3 orbitalRadialVelocity = vec3(0.0);
+            #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+                float relLen = length(rel);
+                if (relLen > 1e-5) {
+                    orbitalRadialVelocity += (rel / relLen) * evaluateVOLRadial(attr, normalizedAge);
+                }
+            #endif
+
+            #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
+                orbitalRadialVelocity += cross(evaluateVOLOrbital(attr, normalizedAge), rel);
+            #endif
+
+            if (renderer_SimulationSpace == 0) {
+                visualLocalVelocity = visualSimulationVelocity + orbitalRadialVelocity;
+                visualWorldVelocity = vec3(0.0);
+            } else {
+                visualLocalVelocity = vec3(0.0);
+                visualWorldVelocity = visualSimulationVelocity + rotationByQuaternions(orbitalRadialVelocity, worldRotation);
+            }
+        #else
+            visualLocalVelocity = localVelocity;
+            visualWorldVelocity = worldVelocity;
         #endif
     #else
         vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
@@ -190,6 +245,8 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         localVelocity = startVelocity;
         worldVelocity = gravityVelocity;
         vec3 center = computeParticlePosition(attr, startVelocity, age, normalizedAge, gravityVelocity, worldRotation, localVelocity, worldVelocity);
+        vec3 visualLocalVelocity = localVelocity;
+        vec3 visualWorldVelocity = worldVelocity;
     #endif
 
     // Billboard / Mesh mode positioning
@@ -225,7 +282,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
     #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
         vec2 corner = attr.a_CornerTextureCoordinate.xy + renderer_PivotOffset.xy;
-        vec3 velocity = rotationByQuaternions(renderer_SizeScale * localVelocity, worldRotation) + worldVelocity;
+        vec3 velocity = rotationByQuaternions(renderer_SizeScale * visualLocalVelocity, worldRotation) + visualWorldVelocity;
         vec3 cameraUpVector = normalize(velocity);
         vec3 direction = normalize(center - camera_Position);
         vec3 sideVector = normalize(cross(direction, normalize(velocity)));

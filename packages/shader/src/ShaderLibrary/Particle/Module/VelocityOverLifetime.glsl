@@ -102,6 +102,49 @@
             vec2 renderer_VOLRadialMinCurve[4];
         #endif
     #endif
+
+    #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
+        vec3 evaluateVOLOrbital(Attributes attributes, float normalizedAge) {
+            #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
+                vec3 orbital = renderer_VOLOrbitalConst;
+                #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+                    orbital = mix(renderer_VOLOrbitalMinConst, orbital, attributes.a_Random1.yzw);
+                #endif
+                return orbital;
+            #else
+                vec3 orbital = vec3(
+                    evaluateParticleCurve(renderer_VOLOrbitalCurveX, normalizedAge),
+                    evaluateParticleCurve(renderer_VOLOrbitalCurveY, normalizedAge),
+                    evaluateParticleCurve(renderer_VOLOrbitalCurveZ, normalizedAge));
+                #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
+                    vec3 minOrbital = vec3(
+                        evaluateParticleCurve(renderer_VOLOrbitalMinCurveX, normalizedAge),
+                        evaluateParticleCurve(renderer_VOLOrbitalMinCurveY, normalizedAge),
+                        evaluateParticleCurve(renderer_VOLOrbitalMinCurveZ, normalizedAge));
+                    orbital = mix(minOrbital, orbital, attributes.a_Random1.yzw);
+                #endif
+                return orbital;
+            #endif
+        }
+    #endif
+
+    #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+        float evaluateVOLRadial(Attributes attributes, float normalizedAge) {
+            #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
+                float radial = renderer_VOLRadialConst;
+                #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+                    radial = mix(renderer_VOLRadialMinConst, radial, attributes.a_Random1.y);
+                #endif
+                return radial;
+            #else
+                float radial = evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+                #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
+                    radial = mix(evaluateParticleCurve(renderer_VOLRadialMinCurve, normalizedAge), radial, attributes.a_Random1.y);
+                #endif
+                return radial;
+            #endif
+        }
+    #endif
 #endif
 
 #endif
