@@ -24,6 +24,7 @@
   "dependencies": {
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-math": "workspace:*",
-    "@galacean/engine-rhi-webgl": "workspace:*"
+    "@galacean/engine-rhi-webgl": "workspace:*",
+    "fzstd": "^0.1.1"
   }
 }
