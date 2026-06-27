@@ -14,6 +14,17 @@ import {
 } from "@galacean/engine-shader-parser";
 
 /**
+ * Walk-local context threaded down the recursion: the enclosing function (for the declared return
+ * type and the recursion self-call check) and the current loop nesting depth (for break/continue).
+ * These can't be read off a node post-parse — the parser carried them as transient SA state — so the
+ * walk reconstructs them as it descends.
+ */
+interface WalkContext {
+  currentFunction: ASTNode.FunctionDefinition | null;
+  loopDepth: number;
+}
+
+/**
  * Post-parse validation pass. Walks the already-typed AST (the parser built the symbol table and
  * inferred `.type` inline; only validation moved here) and collects diagnostics. The pass source is
  * passed in — `parseShaderPass` clears `ShaderCompilerUtils.processingPassText` on exit, so the
@@ -22,15 +33,27 @@ import {
 export class ShaderValidator {
   static validate(program: ASTNode.GLShaderProgram, source: string): GSError[] {
     const errors: GSError[] = [];
-    ShaderValidator._walk(program, source, errors);
+    ShaderValidator._walk(program, source, errors, { currentFunction: null, loopDepth: 0 });
     return errors;
   }
 
-  private static _walk(node: TreeNode, source: string, errors: GSError[]): void {
-    if (node instanceof ASTNode.SelectionStatement) {
+  private static _walk(node: TreeNode, source: string, errors: GSError[], ctx: WalkContext): void {
+    // A FunctionDefinition becomes the enclosing function for its subtree (GLSL has no nested
+    // functions, so it always replaces rather than nests); an iteration statement (for/while/do)
+    // raises the loop depth for its subtree.
+    let childCtx = ctx;
+    if (node instanceof ASTNode.FunctionDefinition) {
+      ShaderValidator._checkFunctionReturn(node, source, errors);
+      childCtx = { currentFunction: node, loopDepth: ctx.loopDepth };
+    } else if (node instanceof ASTNode.IterationStatement) {
+      childCtx = { currentFunction: ctx.currentFunction, loopDepth: ctx.loopDepth + 1 };
+    } else if (node instanceof ASTNode.SelectionStatement) {
       ShaderValidator._checkNonBoolCondition(node, source, errors);
+    } else if (node instanceof ASTNode.JumpStatement) {
+      ShaderValidator._checkJump(node, source, errors, ctx);
     } else if (node instanceof ASTNode.FunctionCallGeneric) {
       ShaderValidator._checkConstructorArgs(node, source, errors);
+      ShaderValidator._checkRecursiveCall(node, source, errors, ctx);
     } else if (node instanceof ASTNode.UnaryExpression) {
       ShaderValidator._checkUnaryOperand(node, source, errors);
     } else if (node instanceof ASTNode.MultiplicativeExpression) {
@@ -48,7 +71,7 @@ export class ShaderValidator {
     const children = node.children;
     if (children) {
       for (const child of children) {
-        if (child instanceof TreeNode) ShaderValidator._walk(child, source, errors);
+        if (child instanceof TreeNode) ShaderValidator._walk(child, source, errors, childCtx);
       }
     }
   }
@@ -318,6 +341,106 @@ export class ShaderValidator {
         source,
         returnType.location,
         DiagnosticType.NonConstructibleReturnType
+      );
+    }
+  }
+
+  /**
+   * Function-level return checks (read off the node — the parser recorded `returnStatement` during
+   * parsing): a `void` function that returns a value is `InvalidReturnType`, a non-void function with
+   * no return statement is `MissingReturn`. Mutually exclusive — mirrors the parser's if/else.
+   */
+  private static _checkFunctionReturn(node: ASTNode.FunctionDefinition, source: string, errors: GSError[]): void {
+    const returnType = node.protoType.returnType;
+    if (returnType.type === Keyword.VOID) {
+      if (node.returnStatement) {
+        ShaderValidator._push(
+          errors,
+          "Return in void function.",
+          source,
+          returnType.location,
+          DiagnosticType.InvalidReturnType
+        );
+      }
+    } else if (!node.returnStatement) {
+      ShaderValidator._push(
+        errors,
+        `No return statement found.`,
+        source,
+        returnType.location,
+        DiagnosticType.MissingReturn
+      );
+    }
+  }
+
+  /**
+   * Jump-statement checks needing walk-local context: a `return value;` whose value isn't assignable
+   * to the enclosing function's declared (non-void) return type is `InvalidReturnType`; a
+   * `break`/`continue` at loop depth 0 (outside any loop) is `MisplacedControlFlow`.
+   */
+  private static _checkJump(node: ASTNode.JumpStatement, source: string, errors: GSError[], ctx: WalkContext): void {
+    const children = node.children;
+    const keyword = ASTNode._unwrapToken(children[0]).type;
+    if (keyword === Keyword.RETURN) {
+      // The void-return case is reported once per function in _checkFunctionReturn; here only the
+      // value-vs-declared-type mismatch, matching the parser's `declared !== VOID` guard.
+      if (children.length === 3 && ctx.currentFunction) {
+        const declared = ctx.currentFunction.protoType.returnType?.type;
+        const returned = (children[1] as ASTNode.ExpressionAstNode).type;
+        if (declared != undefined && declared !== Keyword.VOID && !TypeSystem.isAssignable(declared, returned)) {
+          ShaderValidator._push(
+            errors,
+            `Cannot return a value of type '${TypeSystem.typeName(returned)}' from a function returning '${TypeSystem.typeName(declared)}'.`,
+            source,
+            children[1].location,
+            DiagnosticType.InvalidReturnType
+          );
+        }
+      }
+    } else if ((keyword === Keyword.BREAK || keyword === Keyword.CONTINUE) && ctx.loopDepth === 0) {
+      ShaderValidator._push(
+        errors,
+        `'${keyword === Keyword.BREAK ? "break" : "continue"}' is only allowed inside a loop.`,
+        source,
+        node.location,
+        DiagnosticType.MisplacedControlFlow
+      );
+    }
+  }
+
+  /**
+   * GLSL forbids recursion: a call whose callee name AND parameter signature match the enclosing
+   * function (the same overload) is `RecursiveFunction`. The parser short-circuits this same case
+   * during overload resolution (so it isn't mis-reported as Undefined/NoMatchingOverload); the
+   * exact-signature match avoids flagging a call to a different overload of the same name.
+   */
+  private static _checkRecursiveCall(
+    node: ASTNode.FunctionCallGeneric,
+    source: string,
+    errors: GSError[],
+    ctx: WalkContext
+  ): void {
+    const currentFunction = ctx.currentFunction;
+    if (!currentFunction) return;
+    const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
+    if (functionIdentifier.isBuiltin) return;
+    const fnIdent = functionIdentifier.ident as string;
+    const proto = currentFunction.protoType;
+    if (proto.ident.lexeme !== fnIdent) return;
+
+    let callSig: ASTNode.FunctionCallParameterList["paramSig"] | undefined;
+    if (node.children.length === 4 && node.children[2] instanceof ASTNode.FunctionCallParameterList) {
+      callSig = (node.children[2] as ASTNode.FunctionCallParameterList).paramSig;
+    }
+    const headerSig = proto.paramSig ?? [];
+    const cSig = callSig ?? [];
+    if (headerSig.length === cSig.length && headerSig.every((t, i) => t === cSig[i])) {
+      ShaderValidator._push(
+        errors,
+        `Recursive call to '${fnIdent}' is not allowed (GLSL forbids recursion).`,
+        source,
+        node.location,
+        DiagnosticType.RecursiveFunction
       );
     }
   }

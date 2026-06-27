@@ -165,18 +165,6 @@ export namespace ASTNode {
       const children = this.children!;
       if (ASTNode._unwrapToken(children[0]).type === Keyword.RETURN) {
         sa.curFunctionInfo.returnStatement = this;
-        // A returned value must be assignable to the declared return type (the void-return case is handled by the void-function branch).
-        if (children.length === 3) {
-          const declared = sa.curFunctionInfo.header?.returnType?.type;
-          const returned = (children[1] as ExpressionAstNode).type;
-          if (declared != undefined && declared !== Keyword.VOID && !TypeSystem.isAssignable(declared, returned)) {
-            sa.reportError(
-              children[1].location,
-              `Cannot return a value of type '${TypeSystem.typeName(returned)}' from a function returning '${TypeSystem.typeName(declared)}'.`,
-              DiagnosticType.InvalidReturnType
-            );
-          }
-        }
       }
     }
 
@@ -735,36 +723,10 @@ export namespace ASTNode {
       this.returnStatement = undefined;
     }
 
-    /**
-     * `break` / `continue` are only valid inside a loop. Post-order reduction means a jump reduces
-     * before its enclosing loop, so the context can't be read at the JumpStatement; instead walk the
-     * body once here tracking loop depth (GLSL has no nested functions, so a single walk suffices).
-     */
-    private static _checkControlFlow(sa: SemanticAnalyzer, node: TreeNode, loopDepth: number): void {
-      if (node instanceof IterationStatement) {
-        for (const c of node.children)
-          if (c instanceof TreeNode) FunctionDefinition._checkControlFlow(sa, c, loopDepth + 1);
-        return;
-      }
-      if (node instanceof JumpStatement) {
-        const kw = ASTNode._unwrapToken(node.children[0]).type;
-        if (loopDepth === 0 && (kw === Keyword.BREAK || kw === Keyword.CONTINUE)) {
-          sa.reportError(
-            node.location,
-            `'${kw === Keyword.BREAK ? "break" : "continue"}' is only allowed inside a loop.`,
-            DiagnosticType.MisplacedControlFlow
-          );
-        }
-        return;
-      }
-      for (const c of node.children) if (c instanceof TreeNode) FunctionDefinition._checkControlFlow(sa, c, loopDepth);
-    }
-
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const children = this.children;
       this.protoType = children[0] as FunctionProtoType;
       this.statements = children[1] as CompoundStatementNoScope;
-      FunctionDefinition._checkControlFlow(sa, this.statements, 0);
 
       sa.popScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
@@ -772,18 +734,7 @@ export namespace ASTNode {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
-      const { header, returnStatement } = curFunctionInfo;
-      if (header.returnType.type === Keyword.VOID) {
-        if (returnStatement) {
-          sa.reportError(header.returnType.location, "Return in void function.", DiagnosticType.InvalidReturnType);
-        }
-      } else {
-        if (!returnStatement) {
-          sa.reportError(header.returnType.location, `No return statement found.`, DiagnosticType.MissingReturn);
-        } else {
-          this.returnStatement = returnStatement;
-        }
-      }
+      this.returnStatement = curFunctionInfo.returnStatement ?? undefined;
       curFunctionInfo.header = undefined;
       curFunctionInfo.returnStatement = undefined;
     }
@@ -829,20 +780,15 @@ export namespace ASTNode {
         }
 
         // GLSL forbids recursion. A self-call — same name AND same parameter signature as the
-        // enclosing function (i.e. the same overload) — is reported here and short-circuited: the
-        // function symbol isn't inserted until after its body, so the lookup below would otherwise
-        // mis-report it as Undefined / NoMatchingOverload. The exact-signature match avoids flagging
-        // a call to a *different* overload of the same name.
+        // enclosing function (i.e. the same overload) — is short-circuited here: the function symbol
+        // isn't inserted until after its body, so the lookup below would otherwise mis-report it as
+        // Undefined / NoMatchingOverload. The validator reports RecursiveFunction; the exact-signature
+        // match avoids short-circuiting a call to a *different* overload of the same name.
         const header = sa.curFunctionInfo.header;
         if (header?.ident?.lexeme === fnIdent) {
           const hSig = header.paramSig ?? [];
           const cSig = paramSig ?? [];
           if (hSig.length === cSig.length && hSig.every((t, i) => t === cSig[i])) {
-            sa.reportError(
-              this.location,
-              `Recursive call to '${fnIdent}' is not allowed (GLSL forbids recursion).`,
-              DiagnosticType.RecursiveFunction
-            );
             return;
           }
         }
