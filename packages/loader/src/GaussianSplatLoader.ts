@@ -2,6 +2,7 @@ import {
   AssetPromise,
   AssetType,
   GaussianSplat,
+  GaussianSplatData,
   Loader,
   LoadItem,
   ResourceManager,
@@ -40,9 +41,42 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
       .then((buffer) => GaussianSplatLoader._toSplatBuffer(buffer))
       .then((splatBuffer) => {
         const splat = new GaussianSplat(resourceManager.engine);
-        splat.setData(splatBuffer);
+        splat.setData(GaussianSplatLoader._splatBufferToData(splatBuffer));
         return splat;
       });
+  }
+
+  /** Unpack the common 32-byte-per-splat layout into structured splat data (no spherical harmonics). */
+  private static _splatBufferToData(buffer: ArrayBuffer): GaussianSplatData {
+    const u8 = new Uint8Array(buffer);
+    const f32 = new Float32Array(buffer);
+    const count = (u8.length / 32) | 0;
+    const positions = new Float32Array(count * 3);
+    const scales = new Float32Array(count * 3);
+    const rotations = new Float32Array(count * 4);
+    const opacities = new Float32Array(count);
+    const colors = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const f = i * 8;
+      const u = i * 32;
+      positions[i * 3 + 0] = f32[f + 0];
+      positions[i * 3 + 1] = f32[f + 1];
+      positions[i * 3 + 2] = f32[f + 2];
+      scales[i * 3 + 0] = f32[f + 3];
+      scales[i * 3 + 1] = f32[f + 4];
+      scales[i * 3 + 2] = f32[f + 5];
+      // Trainer-space quaternion (x, y, z, w); the packed bytes store w at offset 28.
+      rotations[i * 4 + 0] = (u8[u + 29] - 127.5) / 127.5;
+      rotations[i * 4 + 1] = (u8[u + 30] - 127.5) / 127.5;
+      rotations[i * 4 + 2] = (u8[u + 31] - 127.5) / 127.5;
+      rotations[i * 4 + 3] = (u8[u + 28] - 127.5) / 127.5;
+      opacities[i] = u8[u + 27] / 255;
+      // sRGB base color byte -> DC spherical-harmonic coefficient.
+      colors[i * 3 + 0] = (u8[u + 24] / 255 - 0.5) / SH_C0;
+      colors[i * 3 + 1] = (u8[u + 25] / 255 - 0.5) / SH_C0;
+      colors[i * 3 + 2] = (u8[u + 26] / 255 - 0.5) / SH_C0;
+    }
+    return { count, shDegree: 0, positions, scales, rotations, opacities, colors, sh: new Float32Array(0) };
   }
 
   /** Normalize any supported container (.splat / .ply / .spz v1-4) to the common 32-byte-per-splat layout. */

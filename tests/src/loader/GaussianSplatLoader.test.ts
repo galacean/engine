@@ -1,4 +1,4 @@
-import { AssetType, GaussianSplat } from "@galacean/engine-core";
+import { AssetType, GaussianSplat, GaussianSplatData } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import {
@@ -13,8 +13,8 @@ import {
 } from "./gaussianSplatFixtures";
 
 let engine: WebGLEngine;
-let captured: ArrayBuffer | null;
-let originSetData: (buffer: ArrayBuffer) => void;
+let captured: GaussianSplatData | null;
+let originSetData: (data: GaussianSplatData) => void;
 
 function bytesFromBase64(b64: string): Uint8Array {
   return Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
@@ -24,8 +24,8 @@ function urlFromBytes(bytes: Uint8Array, ext: string): string {
   return URL.createObjectURL(new Blob([bytes])) + "#." + ext;
 }
 
-/** Load a fixture and return the decoded 32-byte-per-splat buffer that the loader handed to GaussianSplat.setData. */
-async function decode(b64: string, ext = "spz"): Promise<ArrayBuffer> {
+/** Load a fixture and return the decoded splat data the loader handed to GaussianSplat.setData. */
+async function decode(b64: string, ext = "spz"): Promise<GaussianSplatData> {
   captured = null;
   await engine.resourceManager.load<GaussianSplat>({
     url: urlFromBytes(bytesFromBase64(b64), ext),
@@ -40,10 +40,10 @@ function load(bytes: Uint8Array, ext = "spz"): Promise<GaussianSplat> {
 
 beforeAll(async () => {
   engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-  // Capture the decoded buffer and skip the real GPU upload so the test exercises only the parse/dequant path.
+  // Capture the decoded data and skip the real GPU upload so the test exercises only the parse/dequant path.
   originSetData = GaussianSplat.prototype.setData;
-  GaussianSplat.prototype.setData = function (buffer: ArrayBuffer) {
-    captured = buffer.slice(0);
+  GaussianSplat.prototype.setData = function (data: GaussianSplatData) {
+    captured = data;
   };
 });
 
@@ -54,44 +54,42 @@ afterAll(() => {
 
 describe("GaussianSplatLoader", () => {
   it("decodes SPZ v4 (NGSP / ZSTD)", async () => {
-    const buffer = await decode(SPZ_V4_B64);
-    expect(buffer.byteLength).to.equal(32 * SPLAT_COUNT);
-    const f32 = new Float32Array(buffer);
-    expect(f32[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
-    expect(f32[1]).to.be.closeTo(EXPECTED_FIRST_POSITION[1], 1e-3);
-    expect(f32[2]).to.be.closeTo(EXPECTED_FIRST_POSITION[2], 1e-3);
+    const data = await decode(SPZ_V4_B64);
+    expect(data.count).to.equal(SPLAT_COUNT);
+    expect(data.positions[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
+    expect(data.positions[1]).to.be.closeTo(EXPECTED_FIRST_POSITION[1], 1e-3);
+    expect(data.positions[2]).to.be.closeTo(EXPECTED_FIRST_POSITION[2], 1e-3);
   });
 
-  it("decodes SPZ v3 and v4 of the same scene byte-identically", async () => {
+  it("decodes SPZ v3 and v4 of the same scene to identical data", async () => {
     // v3 (gzip) and v4 (NGSP) carry identical quantized attributes — only the container differs — so the
     // proven gzip path is ground truth for the new ZSTD path.
-    const v3 = new Uint8Array(await decode(SPZ_V3_B64));
-    const v4 = new Uint8Array(await decode(SPZ_V4_B64));
-    expect(v4).to.deep.equal(v3);
+    const v3 = await decode(SPZ_V3_B64);
+    const v4 = await decode(SPZ_V4_B64);
+    expect(v4.positions).to.deep.equal(v3.positions);
+    expect(v4.colors).to.deep.equal(v3.colors);
   });
 
   it("decodes SPZ v2 (legacy quaternion encoding)", async () => {
-    const buffer = await decode(SPZ_V2_B64);
-    expect(buffer.byteLength).to.equal(32 * SPLAT_COUNT);
-    const f32 = new Float32Array(buffer);
-    expect(f32[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
+    const data = await decode(SPZ_V2_B64);
+    expect(data.count).to.equal(SPLAT_COUNT);
+    expect(data.positions[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
   });
 
   it("decodes SPZ v4 with no spherical-harmonics stream", async () => {
-    const buffer = await decode(SPZ_V4_NO_SH_B64);
-    expect(buffer.byteLength).to.equal(32 * SPLAT_COUNT);
+    const data = await decode(SPZ_V4_NO_SH_B64);
+    expect(data.count).to.equal(SPLAT_COUNT);
   });
 
   it("passes through a raw .splat buffer", async () => {
-    const buffer = await decode(SPLAT_B64, "splat");
-    expect(buffer.byteLength).to.equal(32 * SPLAT_COUNT);
+    const data = await decode(SPLAT_B64, "splat");
+    expect(data.count).to.equal(SPLAT_COUNT);
   });
 
   it("decodes a binary 3DGS .ply", async () => {
-    const buffer = await decode(PLY_B64, "ply");
-    expect(buffer.byteLength).to.equal(32 * SPLAT_COUNT);
-    const f32 = new Float32Array(buffer);
-    expect(f32[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
+    const data = await decode(PLY_B64, "ply");
+    expect(data.count).to.equal(SPLAT_COUNT);
+    expect(data.positions[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
   });
 
   it("rejects an unsupported SPZ version", async () => {

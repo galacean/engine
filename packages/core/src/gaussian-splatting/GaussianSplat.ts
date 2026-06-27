@@ -32,14 +32,32 @@ function toHalf(value: number): number {
   return bits;
 }
 
+const SH_C0 = 0.28209479177387814;
+
+/** Decoded gaussian splat attributes — the common output every loader format normalizes to. */
+export interface GaussianSplatData {
+  count: number;
+  /** Spherical-harmonic degree present in `sh` (0 = none, DC color only). */
+  shDegree: number;
+  /** xyz world position, stride 3. */
+  positions: Float32Array;
+  /** xyz linear scale, stride 3. */
+  scales: Float32Array;
+  /** xyzw trainer-space quaternion, stride 4 (w is negated when building the rotation). */
+  rotations: Float32Array;
+  /** opacity in [0, 1], stride 1. */
+  opacities: Float32Array;
+  /** rgb DC spherical-harmonic coefficient, stride 3. */
+  colors: Float32Array;
+  /** higher-degree SH coefficients, coefficient-major per splat; empty when shDegree is 0. */
+  sh: Float32Array;
+}
+
 /**
  * A loaded 3D Gaussian Splatting scene: per-splat center, covariance and color baked into GPU data
  * textures, addressed by linear splat index. Assign it to a {@link GaussianSplatRenderer} via `splat`.
  */
 export class GaussianSplat extends ReferResource {
-  /** Bytes per splat in the decoded layout: position(3 float) + scale(3 float) + color(4 byte) + quaternion(4 byte). */
-  private static readonly _rowLength = 3 * 4 + 3 * 4 + 4 + 4;
-
   private _splatCount = 0;
   private _textureWidth = 0;
   private _textureHeight = 0;
@@ -98,16 +116,10 @@ export class GaussianSplat extends ReferResource {
     super(engine);
   }
 
-  /**
-   * Decode a standard 32-byte-per-splat buffer (antimatter15 `.splat` layout, also the target of the PLY/SPZ
-   * parsers) into the GPU data textures.
-   * @param buffer - Raw splat buffer
-   */
-  setData(buffer: ArrayBuffer): void {
-    const rowLength = GaussianSplat._rowLength;
-    const uBuffer = new Uint8Array(buffer);
-    const fBuffer = new Float32Array(buffer);
-    const count = (this._splatCount = (uBuffer.length / rowLength) | 0);
+  /** Build the GPU data textures from decoded splat attributes. */
+  setData(data: GaussianSplatData): void {
+    const { positions: srcPositions, scales, rotations, opacities, colors: srcColors } = data;
+    const count = (this._splatCount = data.count);
 
     // Near-square layout keeps both dimensions <= ceil(sqrt(count)) (~1415 even for 2M splats), comfortably
     // inside the WebGL2 minimum MAX_TEXTURE_SIZE, so no capability query or width capping is needed.
@@ -118,18 +130,16 @@ export class GaussianSplat extends ReferResource {
     const centers = new Float32Array(texelCount * 4);
     const covA = new Uint16Array(texelCount * 4);
     const covB = new Uint16Array(texelCount * 4);
-    const colors = new Uint8Array(texelCount * 4);
+    const colors = new Uint8ClampedArray(texelCount * 4);
     const positions = (this._positions = new Float32Array(count * 4));
 
     const min = new Vector3(Infinity, Infinity, Infinity);
     const max = new Vector3(-Infinity, -Infinity, -Infinity);
 
     for (let i = 0; i < count; i++) {
-      const f = i * 8;
-      const u = i * rowLength;
-      const x = fBuffer[f + 0];
-      const y = fBuffer[f + 1];
-      const z = fBuffer[f + 2];
+      const x = srcPositions[i * 3 + 0];
+      const y = srcPositions[i * 3 + 1];
+      const z = srcPositions[i * 3 + 2];
 
       positions[i * 4 + 0] = x;
       positions[i * 4 + 1] = y;
@@ -141,11 +151,11 @@ export class GaussianSplat extends ReferResource {
       y > max.y && (max.y = y);
       z > max.z && (max.z = z);
 
-      // Quaternion packed as (w, x, y, z) bytes; w is negated to match the trainer's handedness.
-      let qx = (uBuffer[u + 29] - 127.5) / 127.5;
-      let qy = (uBuffer[u + 30] - 127.5) / 127.5;
-      let qz = (uBuffer[u + 31] - 127.5) / 127.5;
-      let qw = -(uBuffer[u + 28] - 127.5) / 127.5;
+      // Quaternion is trainer-space (x, y, z, w); w is negated to match the trainer's handedness.
+      let qx = rotations[i * 4 + 0];
+      let qy = rotations[i * 4 + 1];
+      let qz = rotations[i * 4 + 2];
+      let qw = -rotations[i * 4 + 3];
       const ql = Math.hypot(qx, qy, qz, qw) || 1;
       qx /= ql;
       qy /= ql;
@@ -166,9 +176,9 @@ export class GaussianSplat extends ReferResource {
       // Covariance Sigma = R^T * diag((2s)^2) * R. R is built from the w-negated (conjugated) quaternion above,
       // so R^T is the splat's actual orientation; the textbook R*D*R^T applies the inverse rotation and shears
       // rotated splats into spikes. The 2x scale matches the projection's quad sizing.
-      const sx = fBuffer[f + 3] * 2;
-      const sy = fBuffer[f + 4] * 2;
-      const sz = fBuffer[f + 5] * 2;
+      const sx = scales[i * 3 + 0] * 2;
+      const sy = scales[i * 3 + 1] * 2;
+      const sz = scales[i * 3 + 2] * 2;
       const ax = sx * sx;
       const ay = sy * sy;
       const az = sz * sz;
@@ -195,10 +205,11 @@ export class GaussianSplat extends ReferResource {
       covA[o + 3] = toHalf(s11 * inv);
       covB[o + 0] = toHalf(s12 * inv);
       covB[o + 1] = toHalf(s22 * inv);
-      colors[o + 0] = uBuffer[u + 24];
-      colors[o + 1] = uBuffer[u + 25];
-      colors[o + 2] = uBuffer[u + 26];
-      colors[o + 3] = uBuffer[u + 27];
+      // DC spherical-harmonic coefficient -> sRGB base color; opacity is already 0..1.
+      colors[o + 0] = (0.5 + SH_C0 * srcColors[i * 3 + 0]) * 255;
+      colors[o + 1] = (0.5 + SH_C0 * srcColors[i * 3 + 1]) * 255;
+      colors[o + 2] = (0.5 + SH_C0 * srcColors[i * 3 + 2]) * 255;
+      colors[o + 3] = opacities[i] * 255;
     }
 
     this._bounds.min.copyFrom(min);
@@ -210,7 +221,13 @@ export class GaussianSplat extends ReferResource {
     this._centerTexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, centers);
     this._covATexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covA);
     this._covBTexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covB);
-    this._colorTexture = this._createDataTexture(width, height, TextureFormat.R8G8B8A8, colors, true);
+    this._colorTexture = this._createDataTexture(
+      width,
+      height,
+      TextureFormat.R8G8B8A8,
+      new Uint8Array(colors.buffer),
+      true
+    );
   }
 
   private _createDataTexture(
