@@ -164,7 +164,7 @@ export namespace ASTNode {
       const children = this.children!;
       if (ASTNode._unwrapToken(children[0]).type === Keyword.RETURN) {
         sa.curFunctionInfo.returnStatement = this;
-        // A returned value must be assignable to the declared return type (the void case is ReturnInVoidFunction's job).
+        // A returned value must be assignable to the declared return type (the void-return case is handled by the void-function branch).
         if (children.length === 3) {
           const declared = sa.curFunctionInfo.header?.returnType?.type;
           const returned = (children[1] as ExpressionAstNode).type;
@@ -172,7 +172,7 @@ export namespace ASTNode {
             sa.reportError(
               children[1].location,
               `Cannot return a value of type '${ParserUtils.typeName(returned)}' from a function returning '${ParserUtils.typeName(declared)}'.`,
-              DiagnosticType.ReturnTypeMismatch
+              DiagnosticType.InvalidReturnType
             );
           }
         }
@@ -798,7 +798,7 @@ export namespace ASTNode {
       const { header, returnStatement } = curFunctionInfo;
       if (header.returnType.type === Keyword.VOID) {
         if (returnStatement) {
-          sa.reportError(header.returnType.location, "Return in void function.", DiagnosticType.ReturnInVoidFunction);
+          sa.reportError(header.returnType.location, "Return in void function.", DiagnosticType.InvalidReturnType);
         }
       } else {
         if (!returnStatement) {

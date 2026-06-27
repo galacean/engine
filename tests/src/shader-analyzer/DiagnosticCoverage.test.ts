@@ -46,7 +46,7 @@ const cases: { code: string; source?: string; gap?: string }[] = [
   { code: "InvalidRenderQueueVariable", source: pass(`RenderQueueType = undefinedQueueVar;`) },
 
   // ── C0: GLSL semantics ──
-  { code: "ReturnInVoidFunction", source: pass(`void frag() { return vec4(0.0); } FragmentShader = frag;`) },
+  { code: "InvalidReturnType", source: pass(`void frag() { return vec4(0.0); } FragmentShader = frag;`) },
   {
     code: "GlFragData",
     source: pass(`
@@ -212,7 +212,6 @@ describe("diagnostic coverage map", () => {
       "NonBoolCondition",
       "RecursiveFunction",
       "Redefinition",
-      "ReturnTypeMismatch",
       "UndefinedFunction",
       "UseBeforeDeclaration"
     ]);

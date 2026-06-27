@@ -228,7 +228,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const ret = diagnostics.find((d: Diagnostic) => d.code === "ReturnTypeMismatch");
+    const ret = diagnostics.find((d: Diagnostic) => d.code === "InvalidReturnType");
     expect(ret, "expected a C1-03 return-type diagnostic").to.be.ok;
     expect(ret!.message).to.include("vec3");
   });
@@ -248,7 +248,7 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics } = analyzer.analyze(source);
-    const ret = diagnostics.find((d: Diagnostic) => d.code === "ReturnTypeMismatch");
+    const ret = diagnostics.find((d: Diagnostic) => d.code === "InvalidReturnType");
     expect(ret, "int -> float return is a valid implicit conversion").to.be.undefined;
   });
 

@@ -22,7 +22,7 @@ const SAMPLES: Record<string, string> = {
       float u_a;
       float u_a;                                          // Redefinition
       struct Attributes { vec3 POSITION; };
-      vec3 getColor() { return 1.0; }                     // ReturnTypeMismatch
+      vec3 getColor() { return 1.0; }                     // InvalidReturnType
       void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
       void frag() {
         float a = u_uv.z;                                 // InvalidSwizzle
@@ -86,7 +86,7 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  ReturnTypeMismatch: pass(`      struct Attributes { vec3 POSITION; };
+  InvalidReturnType: pass(`      struct Attributes { vec3 POSITION; };
       vec3 getColor() { return 1.0; }                     // float vs vec3
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(getColor(), 1.0); }
@@ -132,9 +132,6 @@ const SAMPLES: Record<string, string> = {
       FragmentShader = frag;`),
 
   // ── Function / control flow ──
-  ReturnInVoidFunction: pass(`      void frag() { return vec4(0.0); }
-      FragmentShader = frag;`),
-
   MissingReturn: pass(`      float getX() { float a = 1.0; }
       void frag() { gl_FragColor = vec4(getX()); }
       FragmentShader = frag;`),

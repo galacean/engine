@@ -17,7 +17,6 @@ export enum DiagnosticType {
   InvalidSwizzle = "InvalidSwizzle",
   UndeclaredStructMember = "UndeclaredStructMember",
   AssignTypeMismatch = "AssignTypeMismatch",
-  ReturnTypeMismatch = "ReturnTypeMismatch",
   ConstDivideByZero = "ConstDivideByZero",
   ShiftOutOfRange = "ShiftOutOfRange",
   IndexOutOfBounds = "IndexOutOfBounds",
@@ -32,7 +31,7 @@ export enum DiagnosticType {
   NonConstArraySize = "NonConstArraySize",
 
   // Function / control flow
-  ReturnInVoidFunction = "ReturnInVoidFunction",
+  InvalidReturnType = "InvalidReturnType",
   MissingReturn = "MissingReturn",
   NonBoolCondition = "NonBoolCondition",
   RecursiveFunction = "RecursiveFunction",
