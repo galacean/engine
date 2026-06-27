@@ -584,15 +584,6 @@ export namespace ASTNode {
       this.returnType = header.returnType;
       this.parameterInfoList = parameterList?.parameterInfoList;
       this.paramSig = parameterList?.paramSig;
-
-      // A sampler (opaque) type cannot be returned by value — GLSL forbids it.
-      if (TypeSystem.isSamplerType(this.returnType.type)) {
-        sa.reportError(
-          this.returnType.location,
-          `Function return type '${TypeSystem.typeName(this.returnType.type)}' is not constructible; samplers cannot be returned.`,
-          DiagnosticType.NonConstructibleReturnType
-        );
-      }
     }
   }
 
@@ -1043,66 +1034,13 @@ export namespace ASTNode {
     }
 
     override semanticAnalyze(sa: SemanticAnalyzer): void {
-      // 3-child postfix is `base . field`: a vector base means swizzle, a struct base means field selection.
+      // `struct.field` reads the symbol table, so it stays inline; the stateless swizzle/index checks
+      // (InvalidSwizzle, GlFragData, NonIndexableType, NonIntegerIndex, IndexOutOfBounds) moved to ShaderValidator.
       const children = this.children;
       if (children.length === 3 && children[2] instanceof BaseToken) {
         const base = children[0] as ExpressionAstNode;
-        const field = children[2];
-        const swizzleError = ParserUtils.swizzleError(base.type, field.lexeme);
-        if (swizzleError) {
-          sa.reportError(field.location, swizzleError, DiagnosticType.InvalidSwizzle);
-        } else if (typeof base.type === "string") {
-          PostfixExpression._checkStructField(sa, base.type, field);
-        }
-      } else if (children.length === 4) {
-        // `base [ index ]`.
-        if (ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData") {
-          // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
-          sa.reportError(
-            children[0].location,
-            "Please use MRT struct instead of gl_FragData.",
-            DiagnosticType.GlFragData
-          );
-          return;
-        }
-        const base = children[0] as ExpressionAstNode;
-        const index = children[2];
-        // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
-        // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
-        if (TypeSystem.isScalarType(base.type)) {
-          const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
-          if (baseIdent && !baseIdent.isArray) {
-            const m = `Type '${TypeSystem.typeName(base.type)}' is not indexable.`;
-            sa.reportError(base.location, m, DiagnosticType.NonIndexableType);
-          }
-        }
-        if (!(index instanceof ExpressionAstNode)) return;
-        // The index must be an integer; a constant integer index past a known vector's size is out of bounds.
-        const indexType = index.type;
-        if (indexType !== TypeAny && !TypeSystem.isIntegerType(indexType)) {
-          const m = `Index must be an integer, got '${TypeSystem.typeName(indexType)}'.`;
-          sa.reportError(index.location, m, DiagnosticType.NonIntegerIndex);
-          return;
-        }
-        const size = TypeSystem.vectorComponentCount(base.type);
-        if (size > 0) {
-          const n = ParserUtils.constNumericValue(index);
-          if (n !== undefined && (n < 0 || n >= size)) {
-            const m = `Index ${n} is out of bounds for a ${size}-component vector.`;
-            sa.reportError(index.location, m, DiagnosticType.IndexOutOfBounds);
-          }
-        } else {
-          // A constant index past a fixed-size array's bounds is out of bounds (Naga bounds-checks
-          // fixed-size arrays, not just vectors). Unsized / non-array bases keep arraySize undefined.
-          const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
-          const arraySize = baseIdent?.arraySize;
-          if (arraySize !== undefined) {
-            const n = ParserUtils.constNumericValue(index);
-            if (n !== undefined && (n < 0 || n >= arraySize)) {
-              const m = `Index ${n} is out of bounds for an array of size ${arraySize}.`;
-              sa.reportError(index.location, m, DiagnosticType.IndexOutOfBounds);
-            }
-          }
+        if (typeof base.type === "string") {
+          PostfixExpression._checkStructField(sa, base.type, children[2]);
         }
       }
     }

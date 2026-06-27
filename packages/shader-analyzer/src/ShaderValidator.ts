@@ -40,6 +40,10 @@ export class ShaderValidator {
       ShaderValidator._checkArithmeticOperands(node, source, errors);
     } else if (node instanceof ASTNode.ShiftExpression) {
       ShaderValidator._checkShiftRange(node, source, errors);
+    } else if (node instanceof ASTNode.PostfixExpression) {
+      ShaderValidator._checkPostfix(node, source, errors);
+    } else if (node instanceof ASTNode.FunctionDeclarator) {
+      ShaderValidator._checkReturnType(node, source, errors);
     }
     const children = node.children;
     if (children) {
@@ -229,6 +233,91 @@ export class ShaderValidator {
         source,
         amount.location,
         DiagnosticType.ShiftOutOfRange
+      );
+    }
+  }
+
+  /**
+   * Stateless postfix checks: an invalid swizzle on a known vector (`InvalidSwizzle`), and the
+   * `base[index]` family — `gl_FragData[i]` (`GlFragData`), a scalar non-array base (`NonIndexableType`),
+   * a non-integer index (`NonIntegerIndex`), and a constant index past a known vector/array size
+   * (`IndexOutOfBounds`). The struct-field (`else if`) path stays inline in the parser since it reads the
+   * symbol table; preserve the original control flow here (early returns, gl_FragData-vs-index branching).
+   */
+  private static _checkPostfix(node: ASTNode.PostfixExpression, source: string, errors: GSError[]): void {
+    const children = node.children;
+    if (children.length === 3 && children[2] instanceof BaseToken) {
+      const base = children[0] as ASTNode.ExpressionAstNode;
+      const field = children[2];
+      const swizzleError = ParserUtils.swizzleError(base.type, field.lexeme);
+      if (swizzleError) {
+        ShaderValidator._push(errors, swizzleError, source, field.location, DiagnosticType.InvalidSwizzle);
+      }
+    } else if (children.length === 4) {
+      // `base [ index ]`.
+      if (ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData") {
+        // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
+        ShaderValidator._push(
+          errors,
+          "Please use MRT struct instead of gl_FragData.",
+          source,
+          children[0].location,
+          DiagnosticType.GlFragData
+        );
+        return;
+      }
+      const base = children[0] as ASTNode.ExpressionAstNode;
+      const index = children[2];
+      // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
+      // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
+      if (TypeSystem.isScalarType(base.type)) {
+        const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+        if (baseIdent && !baseIdent.isArray) {
+          const m = `Type '${TypeSystem.typeName(base.type)}' is not indexable.`;
+          ShaderValidator._push(errors, m, source, base.location, DiagnosticType.NonIndexableType);
+        }
+      }
+      if (!(index instanceof ASTNode.ExpressionAstNode)) return;
+      // The index must be an integer; a constant integer index past a known vector's size is out of bounds.
+      const indexType = index.type;
+      if (indexType !== TypeAny && !TypeSystem.isIntegerType(indexType)) {
+        const m = `Index must be an integer, got '${TypeSystem.typeName(indexType)}'.`;
+        ShaderValidator._push(errors, m, source, index.location, DiagnosticType.NonIntegerIndex);
+        return;
+      }
+      const size = TypeSystem.vectorComponentCount(base.type);
+      if (size > 0) {
+        const n = ParserUtils.constNumericValue(index);
+        if (n !== undefined && (n < 0 || n >= size)) {
+          const m = `Index ${n} is out of bounds for a ${size}-component vector.`;
+          ShaderValidator._push(errors, m, source, index.location, DiagnosticType.IndexOutOfBounds);
+        }
+      } else {
+        // A constant index past a fixed-size array's bounds is out of bounds (Naga bounds-checks
+        // fixed-size arrays, not just vectors). Unsized / non-array bases keep arraySize undefined.
+        const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+        const arraySize = baseIdent?.arraySize;
+        if (arraySize !== undefined) {
+          const n = ParserUtils.constNumericValue(index);
+          if (n !== undefined && (n < 0 || n >= arraySize)) {
+            const m = `Index ${n} is out of bounds for an array of size ${arraySize}.`;
+            ShaderValidator._push(errors, m, source, index.location, DiagnosticType.IndexOutOfBounds);
+          }
+        }
+      }
+    }
+  }
+
+  /** A sampler (opaque) type cannot be returned by value — GLSL forbids it. */
+  private static _checkReturnType(node: ASTNode.FunctionDeclarator, source: string, errors: GSError[]): void {
+    const returnType = node.returnType;
+    if (TypeSystem.isSamplerType(returnType.type)) {
+      ShaderValidator._push(
+        errors,
+        `Function return type '${TypeSystem.typeName(returnType.type)}' is not constructible; samplers cannot be returned.`,
+        source,
+        returnType.location,
+        DiagnosticType.NonConstructibleReturnType
       );
     }
   }
