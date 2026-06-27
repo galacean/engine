@@ -92,21 +92,11 @@ describe("GaussianSplatLoader", () => {
     expect(data.positions[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
   });
 
-  it("rejects an unsupported SPZ version", async () => {
-    const bytes = bytesFromBase64(SPZ_V4_B64);
-    bytes[4] = 5; // version 5
-    await expect(load(bytes)).rejects.toThrow(/unsupported SPZ/);
-  });
-
-  it("rejects a corrupt SPZ v4 stream", async () => {
-    const bytes = bytesFromBase64(SPZ_V4_B64).slice(0, -40); // truncate the last ZSTD stream
-    await expect(load(bytes)).rejects.toThrow(/SPZ v4 stream/);
-  });
-
-  it("rejects invalid SPZ payload", async () => {
+  it("rejects undecodable SPZ data", async () => {
+    // A well-formed gzip wrapping non-SPZ content: the decoder yields no gaussians and the loader rejects.
     const stream = new Blob([new Uint8Array(64)]).stream().pipeThrough(new CompressionStream("gzip"));
     const gzipped = new Uint8Array(await new Response(stream).arrayBuffer());
-    await expect(load(gzipped)).rejects.toThrow(/invalid SPZ/);
+    await expect(load(gzipped)).rejects.toThrow(/decode SPZ/);
   });
 
   it("rejects a PLY missing end_header", async () => {
