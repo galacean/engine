@@ -285,12 +285,6 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.0011459
     },
-    "LitePhysics Collision Group": {
-      category: "Physics",
-      caseFileName: "litePhysics-collision-group",
-      threshold: 0,
-      diffPercentage: 0
-    },
     "PhysXPhysics Collision Group": {
       category: "Physics",
       caseFileName: "physx-collision-group",

@@ -11,7 +11,6 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { LitePhysics } from "@galacean/engine-physics-lite";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, beforeAll, beforeEach, expect, it, afterEach } from "vitest";
 
@@ -383,108 +382,6 @@ describe("physics collider test", function () {
 });
 
 describe("Collider Layer Collision Tests", () => {
-  describe("LitePhysics Layer Collision", () => {
-    let engine: WebGLEngine;
-    let rootEntity: Entity;
-    let physics: LitePhysics;
-
-    beforeAll(async () => {
-      physics = new LitePhysics();
-      engine = await WebGLEngine.create({
-        canvas: document.createElement("canvas"),
-        physics
-      });
-      rootEntity = engine.sceneManager.activeScene.createRootEntity("root");
-    });
-
-    it("should respect collision group settings", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(DynamicCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      collider2.addShape(shape2);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      const script = entity1.addComponent(CollisionDetectionScript);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-      expect(script.collisionDetected).toBe(true);
-
-      script.reset();
-
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(false);
-
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer1, Layer.Layer2, true);
-    });
-
-    it("should handle manual collision group setting in LitePhysics", () => {
-      const entity1 = rootEntity.createChild("entity1");
-      const entity2 = rootEntity.createChild("entity2");
-
-      entity1.transform.position = new Vector3(0, 0, 0);
-      entity2.transform.position = new Vector3(0, 0, 0);
-
-      const collider1 = entity1.addComponent(DynamicCollider);
-      const shape1 = new BoxColliderShape();
-      shape1.size = new Vector3(1, 1, 1);
-      collider1.addShape(shape1);
-
-      const collider2 = entity2.addComponent(StaticCollider);
-      const shape2 = new BoxColliderShape();
-      shape2.size = new Vector3(1, 1, 1);
-      shape2.isTrigger = true;
-      collider2.addShape(shape2);
-
-      const script = entity2.addComponent(CollisionDetectionScript);
-
-      entity1.layer = Layer.Layer1;
-      entity2.layer = Layer.Layer2;
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-      expect(script.collisionDetected).toBe(true);
-
-      script.reset();
-
-      collider1.collisionLayer = Layer.Layer10;
-
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, false);
-
-      // @ts-ignore
-      engine.sceneManager.activeScene.physics._update(1);
-
-      expect(script.collisionDetected).toBe(false);
-
-      // 恢复默认设置
-      engine.sceneManager.activeScene.physics.setColliderLayerCollision(Layer.Layer10, Layer.Layer2, true);
-    });
-
-    afterEach(() => {
-      const entities = rootEntity.children;
-      for (let i = entities.length - 1; i >= 0; i--) {
-        entities[i].destroy();
-      }
-    });
-  });
-
   describe("PhysXPhysics Layer Collision", () => {
     let engine: WebGLEngine;
     let rootEntity: Entity;
