@@ -12,6 +12,7 @@ import { Logger } from "@galacean/engine-core";
 import type { Diagnostic } from "./Diagnostic";
 import { DiagnosticSeverity, formatDiagnostic } from "./Diagnostic";
 import { gseErrorToDiagnostic } from "./convert";
+import { ShaderValidator } from "./ShaderValidator";
 
 export interface AnalyzerOptions {
   /** `#include` lookup table; keys are include paths, values are chunk sources. */
@@ -79,14 +80,13 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
    * result via Logger. Called by the compiler when this analyzer is injected.
    */
   _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): void {
-    const shaderData = (program as unknown as ASTNode.GLShaderProgram).shaderData;
+    const glProgram = program as unknown as ASTNode.GLShaderProgram;
+    const shaderData = glProgram.shaderData;
+    const passText = ShaderCompilerUtils.processingPassText;
     const diagnostics: Diagnostic[] = parseErrors.map((e) => gseErrorToDiagnostic(e));
-    const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
-      shaderData,
-      vertexEntry,
-      fragmentEntry,
-      ShaderCompilerUtils.processingPassText
-    );
+    // Validation moved out of the parser: walk the typed AST and fold its diagnostics in.
+    for (const e of ShaderValidator.validate(glProgram, passText)) diagnostics.push(gseErrorToDiagnostic(e));
+    const { errors: ioErrors } = ShaderIOAnalyzer.analyze(shaderData, vertexEntry, fragmentEntry, passText);
     for (const e of ioErrors) diagnostics.push(gseErrorToDiagnostic(e));
     this._logDiagnostics(diagnostics);
   }
@@ -111,6 +111,8 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       const { program, errors, passText } = parseShaderPass(pass.contents, this._includeMap, this._chunkOutputCache);
       diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
       if (program) {
+        // Validation moved out of the parser: walk the typed AST and fold its diagnostics in.
+        diagnostics.push(...ShaderValidator.validate(program, passText).map((e) => gseErrorToDiagnostic(e)));
         // IShaderPassSource types the entry location structurally (design stays class-free); the parser
         // stored a ShaderRange there — restore the concrete type ShaderIOAnalyzer/createGSError consume.
         const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
