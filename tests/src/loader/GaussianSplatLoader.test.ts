@@ -86,10 +86,18 @@ describe("GaussianSplatLoader", () => {
     expect(data.count).to.equal(SPLAT_COUNT);
   });
 
-  it("decodes a binary 3DGS .ply", async () => {
+  it("decodes a binary 3DGS .ply with spherical harmonics", async () => {
     const data = await decode(PLY_B64, "ply");
     expect(data.count).to.equal(SPLAT_COUNT);
     expect(data.positions[0]).to.be.closeTo(EXPECTED_FIRST_POSITION[0], 1e-3);
+    expect(data.shDegree).to.equal(3);
+    // The .ply carries the same scene's SH as the spz; the channel-major f_rest must transpose to the same
+    // coefficient-major layout the decoder produces (a wrong transpose scrambles it well past quantization noise).
+    const spz = await decode(SPZ_V4_B64);
+    expect(data.sh.length).to.equal(spz.sh.length);
+    for (let i = 0; i < data.sh.length; i += 31) {
+      expect(data.sh[i]).to.be.closeTo(spz.sh[i], 0.1);
+    }
   });
 
   it("rejects undecodable SPZ data", async () => {
