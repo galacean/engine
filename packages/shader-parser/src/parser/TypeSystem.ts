@@ -5,17 +5,6 @@ export type { GalaceanDataType } from "../common/types";
 
 export class TypeSystem {
   /**
-   * Check if type `tb` is compatible with type `ta`.
-   */
-  static typeCompatible(ta: GalaceanDataType, tb: GalaceanDataType | undefined) {
-    if (tb == undefined || tb === TypeAny) return true;
-    if (ta === Keyword.INT) {
-      return ta === tb || tb === Keyword.UINT;
-    }
-    return ta === tb;
-  }
-
-  /**
    * GLSL ES 3.00 assignability with implicit scalar/vector conversions (spec 4.1.10):
    * `int → uint, float`; `uint → float`; `ivecN → uvecN, vecN`; `uvecN → vecN`. Returns `true`
    * when `source` may be assigned to `target`, or when either side is unknown / a struct (those

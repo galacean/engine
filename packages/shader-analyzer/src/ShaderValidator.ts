@@ -8,6 +8,7 @@ import {
   Keyword,
   ParserUtils,
   ShaderCompilerUtils,
+  ShaderRange,
   TreeNode,
   TypeAny,
   TypeSystem
@@ -32,59 +33,58 @@ interface WalkContext {
  */
 export class ShaderValidator {
   static validate(program: ASTNode.GLShaderProgram, source: string): GSError[] {
-    const errors: GSError[] = [];
-    ShaderValidator._walk(program, source, errors, { currentFunction: null, loopDepth: 0 });
-    return errors;
+    const v = new ShaderValidator(source);
+    v._walk(program, { currentFunction: null, loopDepth: 0 });
+    return v._errors;
   }
 
-  private static _walk(node: TreeNode, source: string, errors: GSError[], ctx: WalkContext): void {
+  private _errors: GSError[] = [];
+
+  private constructor(private _source: string) {}
+
+  private _walk(node: TreeNode, ctx: WalkContext): void {
     // A FunctionDefinition becomes the enclosing function for its subtree (GLSL has no nested
     // functions, so it always replaces rather than nests); an iteration statement (for/while/do)
     // raises the loop depth for its subtree.
     let childCtx = ctx;
     if (node instanceof ASTNode.FunctionDefinition) {
-      ShaderValidator._checkFunctionReturn(node, source, errors);
+      this._checkFunctionReturn(node);
       childCtx = { currentFunction: node, loopDepth: ctx.loopDepth };
     } else if (node instanceof ASTNode.IterationStatement) {
       childCtx = { currentFunction: ctx.currentFunction, loopDepth: ctx.loopDepth + 1 };
     } else if (node instanceof ASTNode.SelectionStatement) {
-      ShaderValidator._checkNonBoolCondition(node, source, errors);
+      this._checkNonBoolCondition(node);
     } else if (node instanceof ASTNode.JumpStatement) {
-      ShaderValidator._checkJump(node, source, errors, ctx);
+      this._checkJump(node, ctx);
     } else if (node instanceof ASTNode.FunctionCallGeneric) {
-      ShaderValidator._checkConstructorArgs(node, source, errors);
-      ShaderValidator._checkRecursiveCall(node, source, errors, ctx);
+      this._checkConstructorArgs(node);
+      this._checkRecursiveCall(node, ctx);
     } else if (node instanceof ASTNode.UnaryExpression) {
-      ShaderValidator._checkUnaryOperand(node, source, errors);
+      this._checkUnaryOperand(node);
     } else if (node instanceof ASTNode.MultiplicativeExpression) {
-      ShaderValidator._checkArithmeticOperands(node, source, errors);
-      ShaderValidator._checkConstDivideByZero(node, source, errors);
+      // A bad operand reports InvalidBinaryOperands and suppresses the divide-by-zero check on the
+      // same node — clean operands are the only case the const-zero check needs to consider.
+      if (!this._checkArithmeticOperands(node)) this._checkConstDivideByZero(node);
     } else if (node instanceof ASTNode.AdditiveExpression) {
-      ShaderValidator._checkArithmeticOperands(node, source, errors);
+      this._checkArithmeticOperands(node);
     } else if (node instanceof ASTNode.ShiftExpression) {
-      ShaderValidator._checkShiftRange(node, source, errors);
+      this._checkShiftRange(node);
     } else if (node instanceof ASTNode.PostfixExpression) {
-      ShaderValidator._checkPostfix(node, source, errors);
+      this._checkPostfix(node);
     } else if (node instanceof ASTNode.FunctionDeclarator) {
-      ShaderValidator._checkReturnType(node, source, errors);
+      this._checkReturnType(node);
     }
     const children = node.children;
     if (children) {
       for (const child of children) {
-        if (child instanceof TreeNode) ShaderValidator._walk(child, source, errors, childCtx);
+        if (child instanceof TreeNode) this._walk(child, childCtx);
       }
     }
   }
 
-  private static _push(
-    errors: GSError[],
-    message: string,
-    source: string,
-    location: ASTNode.ExpressionAstNode["location"],
-    code: DiagnosticType
-  ): void {
-    errors.push(
-      <GSError>ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, source, location, code)
+  private _push(message: string, location: ShaderRange, code: DiagnosticType): void {
+    this._errors.push(
+      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code)
     );
   }
 
@@ -92,17 +92,15 @@ export class ShaderValidator {
    * `if (cond)` — cond must be a bool. GLSL ES has no implicit scalar→bool, so a float/int
    * condition is an error. Skip TypeAny (unknown) to avoid false positives (continue-with-unknown).
    */
-  private static _checkNonBoolCondition(node: ASTNode.SelectionStatement, source: string, errors: GSError[]): void {
+  private _checkNonBoolCondition(node: ASTNode.SelectionStatement): void {
     const condition = node.children.find((c) => c instanceof ASTNode.ExpressionAstNode) as
       | ASTNode.ExpressionAstNode
       | undefined;
     if (!condition) return;
     const t = condition.type;
     if (t !== TypeAny && t !== Keyword.BOOL) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Condition of 'if' must be a bool, got '${TypeSystem.typeName(t)}'.`,
-        source,
         condition.location,
         DiagnosticType.NonBoolCondition
       );
@@ -113,7 +111,7 @@ export class ShaderValidator {
    * A builtin numeric constructor (`vecN(...)` etc.) cannot take a sampler/struct argument
    * (ConstructorArgType), and a vecN needs exactly N components — too few is ConstructorArgCount.
    */
-  private static _checkConstructorArgs(node: ASTNode.FunctionCallGeneric, source: string, errors: GSError[]): void {
+  private _checkConstructorArgs(node: ASTNode.FunctionCallGeneric): void {
     const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
     if (!functionIdentifier.isBuiltin) return;
     if (!(node.children.length === 4 && node.children[2] instanceof ASTNode.FunctionCallParameterList)) return;
@@ -121,12 +119,10 @@ export class ShaderValidator {
     const badIndex = list.paramSig.findIndex((t) => TypeSystem.isSamplerType(t) || typeof t === "string");
     if (badIndex >= 0) {
       const argNode = list.paramNodes[badIndex] as TreeNode | undefined;
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Cannot construct '${TypeSystem.typeName(functionIdentifier.ident)}' from a '${TypeSystem.typeName(
           list.paramSig[badIndex]
         )}' argument.`,
-        source,
         argNode?.location ?? list.location,
         DiagnosticType.ConstructorArgType
       );
@@ -148,10 +144,8 @@ export class ShaderValidator {
     }
     const singleScalar = list.paramSig.length === 1 && TypeSystem.isScalarType(list.paramSig[0]);
     if (countable && !singleScalar && total < need) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Constructor '${TypeSystem.typeName(functionIdentifier.ident)}' needs ${need} components but the arguments provide ${total}.`,
-        source,
         list.location,
         DiagnosticType.ConstructorArgCount
       );
@@ -163,7 +157,7 @@ export class ShaderValidator {
    * type is read directly (not the deduced result), so this fires for known operands and skips
    * TypeAny (continue-with-unknown); `++`/`--` reduce with a raw token child and are not handled here.
    */
-  private static _checkUnaryOperand(node: ASTNode.UnaryExpression, source: string, errors: GSError[]): void {
+  private _checkUnaryOperand(node: ASTNode.UnaryExpression): void {
     if (node.children.length !== 2 || !(node.children[0] instanceof ASTNode.UnaryOperator)) return;
     const opToken = (node.children[0] as ASTNode.UnaryOperator).children[0];
     const operand = node.children[1] as ASTNode.ExpressionAstNode;
@@ -183,60 +177,49 @@ export class ShaderValidator {
         break;
     }
     if (bad) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Operator '${opToken.lexeme}' cannot be applied to operand of type '${TypeSystem.typeName(t)}'.`,
-        source,
         node.location,
         DiagnosticType.InvalidUnaryOperand
       );
     }
   }
 
-  /** Operands of `*` `/` `%` `+` `-` must be arithmetic (numeric scalar/vector/matrix), not bool/sampler/struct. */
-  private static _checkArithmeticOperands(
-    node: ASTNode.MultiplicativeExpression | ASTNode.AdditiveExpression,
-    source: string,
-    errors: GSError[]
-  ): void {
-    if (node.children.length !== 3) return;
+  /**
+   * Operands of `*` `/` `%` `+` `-` must be arithmetic (numeric scalar/vector/matrix), not
+   * bool/sampler/struct. Returns true when a bad operand was reported, so the caller can suppress a
+   * redundant divide-by-zero diagnostic on the same node.
+   */
+  private _checkArithmeticOperands(node: ASTNode.MultiplicativeExpression | ASTNode.AdditiveExpression): boolean {
+    if (node.children.length !== 3) return false;
     const bad = ParserUtils.firstNonArithmeticOperand(node.children[0], node.children[2]);
     if (bad) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Type '${TypeSystem.typeName(bad.type)}' is not a valid operand for an arithmetic operator.`,
-        source,
         bad.location,
         DiagnosticType.InvalidBinaryOperands
       );
+      return true;
     }
+    return false;
   }
 
   /**
    * Integer division/modulo by a compile-time constant zero is an error; float `1.0/0.0` yields Inf
    * (unspecified, not an error). `%` is integer-only in GLSL ES; `/` qualifies only when the result
-   * type deduced to an integer (int/int) — FLOAT or TypeAny don't flag.
+   * type deduced to an integer (int/int) — FLOAT or TypeAny don't flag. Only reached with clean
+   * operands (the arithmetic-operand check already suppressed bad ones), so it scans operands once.
    */
-  private static _checkConstDivideByZero(
-    node: ASTNode.MultiplicativeExpression,
-    source: string,
-    errors: GSError[]
-  ): void {
+  private _checkConstDivideByZero(node: ASTNode.MultiplicativeExpression): void {
     if (node.children.length !== 3) return;
     const op = node.children[1];
+    // Gate on the operator before touching operands: only `/` and `%` can divide by zero.
+    if (!(op instanceof BaseToken) || (op.type !== ETokenType.PERCENT && op.type !== ETokenType.SLASH)) return;
+    if (op.type === ETokenType.SLASH && !TypeSystem.isIntegerType(node.type)) return;
     const divisor = node.children[2];
-    // A non-arithmetic operand already reported InvalidBinaryOperands; don't double-report on the same node.
-    if (ParserUtils.firstNonArithmeticOperand(node.children[0], divisor)) return;
-    if (
-      op instanceof BaseToken &&
-      divisor instanceof TreeNode &&
-      ParserUtils.constNumericValue(divisor) === 0 &&
-      (op.type === ETokenType.PERCENT || (op.type === ETokenType.SLASH && TypeSystem.isIntegerType(node.type)))
-    ) {
-      ShaderValidator._push(
-        errors,
+    if (divisor instanceof TreeNode && ParserUtils.constNumericValue(divisor) === 0) {
+      this._push(
         op.type === ETokenType.PERCENT ? "Modulo by constant zero." : "Division by constant zero.",
-        source,
         divisor.location,
         DiagnosticType.ConstDivideByZero
       );
@@ -244,16 +227,14 @@ export class ShaderValidator {
   }
 
   /** A shift by a constant amount outside [0, 32) is out of range — GLSL ES int/uint are 32-bit. */
-  private static _checkShiftRange(node: ASTNode.ShiftExpression, source: string, errors: GSError[]): void {
+  private _checkShiftRange(node: ASTNode.ShiftExpression): void {
     if (node.children.length !== 3) return;
     const amount = node.children[2];
     if (!(amount instanceof TreeNode)) return;
     const n = ParserUtils.constNumericValue(amount);
     if (n !== undefined && (n < 0 || n >= 32)) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Shift amount ${n} is out of range; must be in [0, 32).`,
-        source,
         amount.location,
         DiagnosticType.ShiftOutOfRange
       );
@@ -267,26 +248,20 @@ export class ShaderValidator {
    * (`IndexOutOfBounds`). The struct-field (`else if`) path stays inline in the parser since it reads the
    * symbol table; preserve the original control flow here (early returns, gl_FragData-vs-index branching).
    */
-  private static _checkPostfix(node: ASTNode.PostfixExpression, source: string, errors: GSError[]): void {
+  private _checkPostfix(node: ASTNode.PostfixExpression): void {
     const children = node.children;
     if (children.length === 3 && children[2] instanceof BaseToken) {
       const base = children[0] as ASTNode.ExpressionAstNode;
       const field = children[2];
       const swizzleError = ParserUtils.swizzleError(base.type, field.lexeme);
       if (swizzleError) {
-        ShaderValidator._push(errors, swizzleError, source, field.location, DiagnosticType.InvalidSwizzle);
+        this._push(swizzleError, field.location, DiagnosticType.InvalidSwizzle);
       }
     } else if (children.length === 4) {
       // `base [ index ]`.
       if (ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData") {
         // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
-        ShaderValidator._push(
-          errors,
-          "Please use MRT struct instead of gl_FragData.",
-          source,
-          children[0].location,
-          DiagnosticType.GlFragData
-        );
+        this._push("Please use MRT struct instead of gl_FragData.", children[0].location, DiagnosticType.GlFragData);
         return;
       }
       const base = children[0] as ASTNode.ExpressionAstNode;
@@ -297,7 +272,7 @@ export class ShaderValidator {
         const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
         if (baseIdent && !baseIdent.isArray) {
           const m = `Type '${TypeSystem.typeName(base.type)}' is not indexable.`;
-          ShaderValidator._push(errors, m, source, base.location, DiagnosticType.NonIndexableType);
+          this._push(m, base.location, DiagnosticType.NonIndexableType);
         }
       }
       if (!(index instanceof ASTNode.ExpressionAstNode)) return;
@@ -305,7 +280,7 @@ export class ShaderValidator {
       const indexType = index.type;
       if (indexType !== TypeAny && !TypeSystem.isIntegerType(indexType)) {
         const m = `Index must be an integer, got '${TypeSystem.typeName(indexType)}'.`;
-        ShaderValidator._push(errors, m, source, index.location, DiagnosticType.NonIntegerIndex);
+        this._push(m, index.location, DiagnosticType.NonIntegerIndex);
         return;
       }
       const size = TypeSystem.vectorComponentCount(base.type);
@@ -313,7 +288,7 @@ export class ShaderValidator {
         const n = ParserUtils.constNumericValue(index);
         if (n !== undefined && (n < 0 || n >= size)) {
           const m = `Index ${n} is out of bounds for a ${size}-component vector.`;
-          ShaderValidator._push(errors, m, source, index.location, DiagnosticType.IndexOutOfBounds);
+          this._push(m, index.location, DiagnosticType.IndexOutOfBounds);
         }
       } else {
         // A constant index past a fixed-size array's bounds is out of bounds (Naga bounds-checks
@@ -324,7 +299,7 @@ export class ShaderValidator {
           const n = ParserUtils.constNumericValue(index);
           if (n !== undefined && (n < 0 || n >= arraySize)) {
             const m = `Index ${n} is out of bounds for an array of size ${arraySize}.`;
-            ShaderValidator._push(errors, m, source, index.location, DiagnosticType.IndexOutOfBounds);
+            this._push(m, index.location, DiagnosticType.IndexOutOfBounds);
           }
         }
       }
@@ -332,13 +307,11 @@ export class ShaderValidator {
   }
 
   /** A sampler (opaque) type cannot be returned by value — GLSL forbids it. */
-  private static _checkReturnType(node: ASTNode.FunctionDeclarator, source: string, errors: GSError[]): void {
+  private _checkReturnType(node: ASTNode.FunctionDeclarator): void {
     const returnType = node.returnType;
     if (TypeSystem.isSamplerType(returnType.type)) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Function return type '${TypeSystem.typeName(returnType.type)}' is not constructible; samplers cannot be returned.`,
-        source,
         returnType.location,
         DiagnosticType.NonConstructibleReturnType
       );
@@ -350,26 +323,14 @@ export class ShaderValidator {
    * parsing): a `void` function that returns a value is `InvalidReturnType`, a non-void function with
    * no return statement is `MissingReturn`. Mutually exclusive — mirrors the parser's if/else.
    */
-  private static _checkFunctionReturn(node: ASTNode.FunctionDefinition, source: string, errors: GSError[]): void {
+  private _checkFunctionReturn(node: ASTNode.FunctionDefinition): void {
     const returnType = node.protoType.returnType;
     if (returnType.type === Keyword.VOID) {
       if (node.returnStatement) {
-        ShaderValidator._push(
-          errors,
-          "Return in void function.",
-          source,
-          returnType.location,
-          DiagnosticType.InvalidReturnType
-        );
+        this._push("Return in void function.", returnType.location, DiagnosticType.InvalidReturnType);
       }
     } else if (!node.returnStatement) {
-      ShaderValidator._push(
-        errors,
-        `No return statement found.`,
-        source,
-        returnType.location,
-        DiagnosticType.MissingReturn
-      );
+      this._push(`No return statement found.`, returnType.location, DiagnosticType.MissingReturn);
     }
   }
 
@@ -378,30 +339,26 @@ export class ShaderValidator {
    * to the enclosing function's declared (non-void) return type is `InvalidReturnType`; a
    * `break`/`continue` at loop depth 0 (outside any loop) is `MisplacedControlFlow`.
    */
-  private static _checkJump(node: ASTNode.JumpStatement, source: string, errors: GSError[], ctx: WalkContext): void {
+  private _checkJump(node: ASTNode.JumpStatement, ctx: WalkContext): void {
     const children = node.children;
     const keyword = ASTNode._unwrapToken(children[0]).type;
     if (keyword === Keyword.RETURN) {
       // The void-return case is reported once per function in _checkFunctionReturn; here only the
       // value-vs-declared-type mismatch, matching the parser's `declared !== VOID` guard.
       if (children.length === 3 && ctx.currentFunction) {
-        const declared = ctx.currentFunction.protoType.returnType?.type;
+        const declared = ctx.currentFunction.protoType.returnType.type;
         const returned = (children[1] as ASTNode.ExpressionAstNode).type;
         if (declared != undefined && declared !== Keyword.VOID && !TypeSystem.isAssignable(declared, returned)) {
-          ShaderValidator._push(
-            errors,
+          this._push(
             `Cannot return a value of type '${TypeSystem.typeName(returned)}' from a function returning '${TypeSystem.typeName(declared)}'.`,
-            source,
             children[1].location,
             DiagnosticType.InvalidReturnType
           );
         }
       }
     } else if ((keyword === Keyword.BREAK || keyword === Keyword.CONTINUE) && ctx.loopDepth === 0) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `'${keyword === Keyword.BREAK ? "break" : "continue"}' is only allowed inside a loop.`,
-        source,
         node.location,
         DiagnosticType.MisplacedControlFlow
       );
@@ -414,12 +371,7 @@ export class ShaderValidator {
    * during overload resolution (so it isn't mis-reported as Undefined/NoMatchingOverload); the
    * exact-signature match avoids flagging a call to a different overload of the same name.
    */
-  private static _checkRecursiveCall(
-    node: ASTNode.FunctionCallGeneric,
-    source: string,
-    errors: GSError[],
-    ctx: WalkContext
-  ): void {
+  private _checkRecursiveCall(node: ASTNode.FunctionCallGeneric, ctx: WalkContext): void {
     const currentFunction = ctx.currentFunction;
     if (!currentFunction) return;
     const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
@@ -435,10 +387,8 @@ export class ShaderValidator {
     const headerSig = proto.paramSig ?? [];
     const cSig = callSig ?? [];
     if (headerSig.length === cSig.length && headerSig.every((t, i) => t === cSig[i])) {
-      ShaderValidator._push(
-        errors,
+      this._push(
         `Recursive call to '${fnIdent}' is not allowed (GLSL forbids recursion).`,
-        source,
         node.location,
         DiagnosticType.RecursiveFunction
       );

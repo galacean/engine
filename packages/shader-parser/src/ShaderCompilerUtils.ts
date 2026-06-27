@@ -43,7 +43,7 @@ export class ShaderCompilerUtils {
     location: ShaderRange | ShaderPosition,
     code?: DiagnosticType,
     file?: string
-  ): Error {
+  ): GSError {
     return new GSError(errorName, message, location, source, file, code);
   }
 }

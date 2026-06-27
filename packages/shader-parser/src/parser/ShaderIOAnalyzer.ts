@@ -162,7 +162,7 @@ export class ShaderIOAnalyzer {
     loc: ShaderRange | ShaderPosition,
     source: string
   ): void {
-    errors.push(<GSError>ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, source, loc, code));
+    errors.push(ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, source, loc, code));
   }
 
   private static _reportEntryNotFound(
