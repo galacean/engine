@@ -518,15 +518,6 @@ export class ParticleGenerator {
           1
         )
       );
-      primitive.addVertexElement(
-        new VertexElement(
-          ParticleFeedbackVertexAttribute.VisualVelocity,
-          24,
-          VertexElementFormat.Vector3,
-          this._feedbackBindingIndex,
-          1
-        )
-      );
       vertexBufferBindings.push(this._feedbackSimulator.readBinding);
     } else {
       this._feedbackBindingIndex = -1;
@@ -1306,9 +1297,9 @@ export class ParticleGenerator {
 
     const worldDirection = this._eventDir;
     worldDirection.set(
-      feedbackData[feedbackOffset + 6],
-      feedbackData[feedbackOffset + 7],
-      feedbackData[feedbackOffset + 8]
+      feedbackData[feedbackOffset + 3],
+      feedbackData[feedbackOffset + 4],
+      feedbackData[feedbackOffset + 5]
     );
     if (simSpaceLocal) {
       Vector3.transformByQuat(worldDirection, worldRotation, worldDirection);

@@ -20,7 +20,6 @@ Shader "Effect/ParticleFeedback" {
       struct Attributes {
           vec3 a_FeedbackPosition;
           vec3 a_FeedbackVelocity;
-          vec3 a_FeedbackVisualVelocity;
           vec4 a_ShapePositionStartLifeTime;
           vec4 a_DirectionTime;
           vec3 a_StartSize;
@@ -42,7 +41,6 @@ Shader "Effect/ParticleFeedback" {
       struct Varyings {
           vec3 v_FeedbackPosition;
           vec3 v_FeedbackVelocity;
-          vec3 v_FeedbackVisualVelocity;
       };
 
       // Module includes (after Attributes/Varyings)
@@ -166,7 +164,6 @@ Shader "Effect/ParticleFeedback" {
           if (normalizedAge >= 1.0 || normalizedAge < 0.0) {
               v.v_FeedbackPosition = attr.a_FeedbackPosition;
               v.v_FeedbackVelocity = attr.a_FeedbackVelocity;
-              v.v_FeedbackVisualVelocity = attr.a_FeedbackVisualVelocity;
               gl_Position = vec4(0.0);
               return v;
           }
@@ -356,8 +353,6 @@ Shader "Effect/ParticleFeedback" {
 
           v.v_FeedbackPosition = position;
           v.v_FeedbackVelocity = localVelocity;
-          v.v_FeedbackVisualVelocity =
-              dt > 1e-5 ? (position - attr.a_FeedbackPosition) / dt : attr.a_FeedbackVisualVelocity;
           gl_Position = vec4(0.0);
           return v;
       }
