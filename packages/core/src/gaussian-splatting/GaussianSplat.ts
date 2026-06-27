@@ -69,6 +69,11 @@ export class GaussianSplat extends ReferResource {
   private _covATexture: Texture2D = null;
   private _covBTexture: Texture2D = null;
   private _colorTexture: Texture2D = null;
+  private _shTexture: Texture2D = null;
+  private _shDegree = 0;
+  private _shTextureWidth = 0;
+  private _shTextureHeight = 0;
+  private _shTexelsPerSplat = 0;
 
   /** Number of gaussians. */
   get splatCount(): number {
@@ -110,6 +115,31 @@ export class GaussianSplat extends ReferResource {
   /** RGBA8: diffuse color + opacity. */
   get colorTexture(): Texture2D {
     return this._colorTexture;
+  }
+
+  /** RGBA16F: higher-order spherical-harmonic coefficients, tightly packed; null when shDegree is 0. */
+  get shTexture(): Texture2D {
+    return this._shTexture;
+  }
+
+  /** Spherical-harmonic degree (0-3); 0 means DC-only color. */
+  get shDegree(): number {
+    return this._shDegree;
+  }
+
+  /** Width of the SH texture, for addressing a splat's coefficient block in the shader. */
+  get shTextureWidth(): number {
+    return this._shTextureWidth;
+  }
+
+  /** Height of the SH texture. */
+  get shTextureHeight(): number {
+    return this._shTextureHeight;
+  }
+
+  /** RGBA16F texels occupied by one splat's SH coefficients. */
+  get shTexelsPerSplat(): number {
+    return this._shTexelsPerSplat;
   }
 
   constructor(engine: Engine) {
@@ -228,6 +258,41 @@ export class GaussianSplat extends ReferResource {
       new Uint8Array(colors.buffer),
       true
     );
+
+    // Spherical-harmonic coefficients incl. the DC term (coefficient 0), tightly packed into RGBA16F, one
+    // texel-aligned block per splat. The DC is kept here too so the shader can rebuild the full 3DGS color from
+    // raw coefficients and run it through the same sRGB path as the DC-only color (the color texture is already
+    // sRGB-encoded, so adding the linear higher-order terms there would mismatch color spaces).
+    this._shDegree = data.shDegree;
+    if (data.shDegree > 0) {
+      // One RGBA16F texel per coefficient (RGB used) so the shader reads `sh[k]` with a single fetch. DC is
+      // coefficient 0; the rest follow in coefficient-major order.
+      const texelsPerSplat = (data.shDegree + 1) * (data.shDegree + 1); // coefficients incl. DC
+      const restCoeffs = texelsPerSplat - 1;
+      const totalTexels = count * texelsPerSplat;
+      const shWidth = Math.ceil(Math.sqrt(totalTexels));
+      const shHeight = Math.ceil(totalTexels / shWidth);
+      const shData = new Uint16Array(shWidth * shHeight * 4);
+      const colors = data.colors;
+      const sh = data.sh;
+      for (let i = 0; i < count; i++) {
+        let dst = i * texelsPerSplat * 4;
+        shData[dst + 0] = toHalf(colors[i * 3 + 0]);
+        shData[dst + 1] = toHalf(colors[i * 3 + 1]);
+        shData[dst + 2] = toHalf(colors[i * 3 + 2]);
+        const src = i * restCoeffs * 3;
+        for (let k = 0; k < restCoeffs; k++) {
+          dst += 4;
+          shData[dst + 0] = toHalf(sh[src + k * 3 + 0]);
+          shData[dst + 1] = toHalf(sh[src + k * 3 + 1]);
+          shData[dst + 2] = toHalf(sh[src + k * 3 + 2]);
+        }
+      }
+      this._shTexture = this._createDataTexture(shWidth, shHeight, TextureFormat.R16G16B16A16, shData);
+      this._shTextureWidth = shWidth;
+      this._shTextureHeight = shHeight;
+      this._shTexelsPerSplat = texelsPerSplat;
+    }
   }
 
   private _createDataTexture(
@@ -250,7 +315,8 @@ export class GaussianSplat extends ReferResource {
     this._covATexture?.destroy();
     this._covBTexture?.destroy();
     this._colorTexture?.destroy();
-    this._centerTexture = this._covATexture = this._covBTexture = this._colorTexture = null;
+    this._shTexture?.destroy();
+    this._centerTexture = this._covATexture = this._covBTexture = this._colorTexture = this._shTexture = null;
     this._positions = null;
   }
 }

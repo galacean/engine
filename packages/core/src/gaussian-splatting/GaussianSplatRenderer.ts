@@ -9,6 +9,7 @@ import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
+import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { GaussianSplat } from "./GaussianSplat";
 import { GaussianSplatMaterial } from "./GaussianSplatMaterial";
@@ -25,6 +26,11 @@ const _covBTextureProp = ShaderProperty.getByName("material_CovBTexture");
 const _colorTextureProp = ShaderProperty.getByName("material_ColorTexture");
 const _dataTextureSizeProp = ShaderProperty.getByName("material_DataTextureSize");
 const _invViewportProp = ShaderProperty.getByName("material_InvViewport");
+const _shTextureProp = ShaderProperty.getByName("material_ShTexture");
+const _shTextureSizeProp = ShaderProperty.getByName("material_ShTextureSize");
+const _shTexelsPerSplatProp = ShaderProperty.getByName("material_ShTexelsPerSplat");
+const _cameraPositionProp = ShaderProperty.getByName("material_CameraPosition");
+const _shMacro = ShaderMacro.getByName("RENDERER_GS_SH");
 
 /**
  * Renders a {@link GaussianSplat} as instanced, depth-sorted, alpha-blended quads. When the view changes the
@@ -44,6 +50,7 @@ export class GaussianSplatRenderer extends Renderer {
   private _needsSort = false;
   private _invViewport = new Vector2();
   private _dataTextureSize = new Vector2();
+  private _shTextureSize = new Vector2();
 
   /** Wall-clock duration (ms) of the most recent CPU depth sort, for profiling. */
   lastSortTime = 0;
@@ -125,6 +132,17 @@ export class GaussianSplatRenderer extends Renderer {
     shaderData.setTexture(_colorTextureProp, splat.colorTexture);
     this._dataTextureSize.set(splat.textureWidth, splat.textureHeight);
     shaderData.setVector2(_dataTextureSizeProp, this._dataTextureSize);
+
+    // View-dependent color from spherical harmonics, compiled in only when the splat carries them.
+    if (splat.shDegree > 0) {
+      shaderData.setTexture(_shTextureProp, splat.shTexture);
+      this._shTextureSize.set(splat.shTextureWidth, splat.shTextureHeight);
+      shaderData.setVector2(_shTextureSizeProp, this._shTextureSize);
+      shaderData.setFloat(_shTexelsPerSplatProp, splat.shTexelsPerSplat);
+      shaderData.enableMacro(_shMacro);
+    } else {
+      shaderData.disableMacro(_shMacro);
+    }
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
@@ -182,6 +200,10 @@ export class GaussianSplatRenderer extends Renderer {
     const shaderData = material.shaderData;
     this._invViewport.set(1 / viewport.width, 1 / viewport.height);
     shaderData.setVector2(_invViewportProp, this._invViewport);
+
+    if (splat.shDegree > 0) {
+      shaderData.setVector3(_cameraPositionProp, camera.entity.transform.worldPosition);
+    }
 
     const engine = this._engine;
     const renderElement = engine._renderElementPool.get();
