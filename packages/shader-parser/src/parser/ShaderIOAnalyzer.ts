@@ -6,7 +6,7 @@ import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
 import { DiagnosticType } from "../DiagnosticType";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
-import { ParserUtils } from "../ParserUtils";
+import { TypeSystem } from "./TypeSystem";
 import { Keyword } from "../common/enums/Keyword";
 import type { ShaderPosition, ShaderRange } from "../common";
 
@@ -141,7 +141,7 @@ export class ShaderIOAnalyzer {
             prop.ident.location,
             source
           );
-        } else if (role === StructRole.Varying && !prop.isFlat && ParserUtils.isIntegerType(prop.typeInfo.type)) {
+        } else if (role === StructRole.Varying && !prop.isFlat && TypeSystem.isIntegerType(prop.typeInfo.type)) {
           // An integer varying has no default interpolation — GLSL ES requires `flat`.
           this._error(
             errors,

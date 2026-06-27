@@ -4,6 +4,7 @@ import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from ".
 import { BaseToken } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
+import { TypeSystem } from "./TypeSystem";
 import { DiagnosticType } from "../DiagnosticType";
 import { Lexer } from "../lexer/Lexer";
 import { MacroDefineInfo } from "../Preprocessor";
@@ -168,10 +169,10 @@ export namespace ASTNode {
         if (children.length === 3) {
           const declared = sa.curFunctionInfo.header?.returnType?.type;
           const returned = (children[1] as ExpressionAstNode).type;
-          if (declared != undefined && declared !== Keyword.VOID && !ParserUtils.isAssignable(declared, returned)) {
+          if (declared != undefined && declared !== Keyword.VOID && !TypeSystem.isAssignable(declared, returned)) {
             sa.reportError(
               children[1].location,
-              `Cannot return a value of type '${ParserUtils.typeName(returned)}' from a function returning '${ParserUtils.typeName(declared)}'.`,
+              `Cannot return a value of type '${TypeSystem.typeName(returned)}' from a function returning '${TypeSystem.typeName(declared)}'.`,
               DiagnosticType.InvalidReturnType
             );
           }
@@ -210,7 +211,7 @@ export namespace ASTNode {
       if (t !== TypeAny && t !== Keyword.BOOL) {
         sa.reportError(
           condition.location,
-          `Condition of 'if' must be a bool, got '${ParserUtils.typeName(t)}'.`,
+          `Condition of 'if' must be a bool, got '${TypeSystem.typeName(t)}'.`,
           DiagnosticType.NonBoolCondition
         );
       }
@@ -600,10 +601,10 @@ export namespace ASTNode {
       this.paramSig = parameterList?.paramSig;
 
       // A sampler (opaque) type cannot be returned by value — GLSL forbids it.
-      if (ParserUtils.isSamplerType(this.returnType.type)) {
+      if (TypeSystem.isSamplerType(this.returnType.type)) {
         sa.reportError(
           this.returnType.location,
-          `Function return type '${ParserUtils.typeName(this.returnType.type)}' is not constructible; samplers cannot be returned.`,
+          `Function return type '${TypeSystem.typeName(this.returnType.type)}' is not constructible; samplers cannot be returned.`,
           DiagnosticType.NonConstructibleReturnType
         );
       }
@@ -843,12 +844,12 @@ export namespace ASTNode {
         // A builtin numeric constructor cannot take a sampler or struct argument.
         if (this.children.length === 4 && this.children[2] instanceof FunctionCallParameterList) {
           const list = this.children[2] as FunctionCallParameterList;
-          const badIndex = list.paramSig.findIndex((t) => ParserUtils.isSamplerType(t) || typeof t === "string");
+          const badIndex = list.paramSig.findIndex((t) => TypeSystem.isSamplerType(t) || typeof t === "string");
           if (badIndex >= 0) {
             const argNode = list.paramNodes[badIndex] as TreeNode | undefined;
             sa.reportError(
               argNode?.location ?? list.location,
-              `Cannot construct '${ParserUtils.typeName(functionIdentifier.ident)}' from a '${ParserUtils.typeName(
+              `Cannot construct '${TypeSystem.typeName(functionIdentifier.ident)}' from a '${TypeSystem.typeName(
                 list.paramSig[badIndex]
               )}' argument.`,
               DiagnosticType.ConstructorArgType
@@ -856,23 +857,23 @@ export namespace ASTNode {
           } else {
             // A vecN constructor needs exactly N components from its arguments — too few is an error.
             // A single scalar is a valid splat; matrices/unknown args can't be counted, so skip those.
-            const need = ParserUtils.vectorComponentCount(functionIdentifier.ident);
+            const need = TypeSystem.vectorComponentCount(functionIdentifier.ident);
             if (need > 0) {
               let total = 0;
               let countable = list.paramSig.length > 0;
               for (const t of list.paramSig) {
-                const c = ParserUtils.isScalarType(t) ? 1 : ParserUtils.vectorComponentCount(t);
+                const c = TypeSystem.isScalarType(t) ? 1 : TypeSystem.vectorComponentCount(t);
                 if (c === 0) {
                   countable = false;
                   break;
                 }
                 total += c;
               }
-              const singleScalar = list.paramSig.length === 1 && ParserUtils.isScalarType(list.paramSig[0]);
+              const singleScalar = list.paramSig.length === 1 && TypeSystem.isScalarType(list.paramSig[0]);
               if (countable && !singleScalar && total < need) {
                 sa.reportError(
                   list.location,
-                  `Constructor '${ParserUtils.typeName(
+                  `Constructor '${TypeSystem.typeName(
                     functionIdentifier.ident
                   )}' needs ${need} components but the arguments provide ${total}.`,
                   DiagnosticType.ConstructorArgCount
@@ -914,10 +915,10 @@ export namespace ASTNode {
         // here (specific) rather than letting it fall through to the generic NoMatchingOverload below.
         if (TEXTURE_SAMPLING_BUILTINS.has(fnIdent)) {
           const arg0 = paramSig?.[0];
-          if (arg0 !== undefined && arg0 !== TypeAny && !ParserUtils.isSamplerType(arg0)) {
+          if (arg0 !== undefined && arg0 !== TypeAny && !TypeSystem.isSamplerType(arg0)) {
             sa.reportError(
               this.location,
-              `'${fnIdent}' expects a sampler as its first argument, got '${ParserUtils.typeName(arg0)}'.`,
+              `'${fnIdent}' expects a sampler as its first argument, got '${TypeSystem.typeName(arg0)}'.`,
               DiagnosticType.ExpectedSampler
             );
             return;
@@ -1030,10 +1031,10 @@ export namespace ASTNode {
         const lhs = this.children[0] as ExpressionAstNode;
         const rhs = this.children[2] as AssignmentExpression;
         this.type = rhs.type ?? TypeAny;
-        if (!ParserUtils.isAssignable(lhs.type, rhs.type)) {
+        if (!TypeSystem.isAssignable(lhs.type, rhs.type)) {
           sa.reportError(
             this.location,
-            `Cannot assign a value of type '${ParserUtils.typeName(rhs.type)}' to '${ParserUtils.typeName(lhs.type)}'.`,
+            `Cannot assign a value of type '${TypeSystem.typeName(rhs.type)}' to '${TypeSystem.typeName(lhs.type)}'.`,
             DiagnosticType.AssignTypeMismatch
           );
         }
@@ -1124,22 +1125,22 @@ export namespace ASTNode {
         const index = children[2];
         // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
         // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
-        if (ParserUtils.isScalarType(base.type)) {
+        if (TypeSystem.isScalarType(base.type)) {
           const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
           if (baseIdent && !baseIdent.isArray) {
-            const m = `Type '${ParserUtils.typeName(base.type)}' is not indexable.`;
+            const m = `Type '${TypeSystem.typeName(base.type)}' is not indexable.`;
             sa.reportError(base.location, m, DiagnosticType.NonIndexableType);
           }
         }
         if (!(index instanceof ExpressionAstNode)) return;
         // The index must be an integer; a constant integer index past a known vector's size is out of bounds.
         const indexType = index.type;
-        if (indexType !== TypeAny && !ParserUtils.isIntegerType(indexType)) {
-          const m = `Index must be an integer, got '${ParserUtils.typeName(indexType)}'.`;
+        if (indexType !== TypeAny && !TypeSystem.isIntegerType(indexType)) {
+          const m = `Index must be an integer, got '${TypeSystem.typeName(indexType)}'.`;
           sa.reportError(index.location, m, DiagnosticType.NonIntegerIndex);
           return;
         }
-        const size = ParserUtils.vectorComponentCount(base.type);
+        const size = TypeSystem.vectorComponentCount(base.type);
         if (size > 0) {
           const n = ParserUtils.constNumericValue(index);
           if (n !== undefined && (n < 0 || n >= size)) {
@@ -1205,20 +1206,20 @@ export namespace ASTNode {
       let bad = false;
       switch (opToken.type) {
         case ETokenType.BANG:
-          bad = !ParserUtils.isBoolType(t);
+          bad = !TypeSystem.isBoolType(t);
           break;
         case ETokenType.TILDE:
-          bad = !ParserUtils.isIntegerType(t);
+          bad = !TypeSystem.isIntegerType(t);
           break;
         case ETokenType.DASH:
         case ETokenType.PLUS:
-          bad = ParserUtils.isBoolType(t) || ParserUtils.isSamplerType(t) || typeof t === "string";
+          bad = TypeSystem.isBoolType(t) || TypeSystem.isSamplerType(t) || typeof t === "string";
           break;
       }
       if (bad) {
         sa.reportError(
           this.location,
-          `Operator '${opToken.lexeme}' cannot be applied to operand of type '${ParserUtils.typeName(t)}'.`,
+          `Operator '${opToken.lexeme}' cannot be applied to operand of type '${TypeSystem.typeName(t)}'.`,
           DiagnosticType.InvalidUnaryOperand
         );
       }
@@ -1232,7 +1233,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (this.children[0] as UnaryExpression).type;
       } else {
-        this.type = ParserUtils.arithmeticResultType(
+        this.type = TypeSystem.arithmeticResultType(
           (this.children[0] as ExpressionAstNode).type,
           (this.children[2] as ExpressionAstNode).type
         );
@@ -1248,7 +1249,7 @@ export namespace ASTNode {
       if (bad) {
         sa.reportError(
           bad.location,
-          `Type '${ParserUtils.typeName(bad.type)}' is not a valid operand for an arithmetic operator.`,
+          `Type '${TypeSystem.typeName(bad.type)}' is not a valid operand for an arithmetic operator.`,
           DiagnosticType.InvalidBinaryOperands
         );
         return;
@@ -1260,7 +1261,7 @@ export namespace ASTNode {
         op instanceof BaseToken &&
         divisor instanceof TreeNode &&
         ParserUtils.constNumericValue(divisor) === 0 &&
-        (op.type === ETokenType.PERCENT || (op.type === ETokenType.SLASH && ParserUtils.isIntegerType(this.type)))
+        (op.type === ETokenType.PERCENT || (op.type === ETokenType.SLASH && TypeSystem.isIntegerType(this.type)))
       ) {
         sa.reportError(
           divisor.location,
@@ -1278,7 +1279,7 @@ export namespace ASTNode {
       if (this.children.length === 1) {
         this.type = (this.children[0] as MultiplicativeExpression).type;
       } else {
-        this.type = ParserUtils.arithmeticResultType(
+        this.type = TypeSystem.arithmeticResultType(
           (this.children[0] as ExpressionAstNode).type,
           (this.children[2] as ExpressionAstNode).type
         );
@@ -1292,7 +1293,7 @@ export namespace ASTNode {
       if (bad) {
         sa.reportError(
           bad.location,
-          `Type '${ParserUtils.typeName(bad.type)}' is not a valid operand for an arithmetic operator.`,
+          `Type '${TypeSystem.typeName(bad.type)}' is not a valid operand for an arithmetic operator.`,
           DiagnosticType.InvalidBinaryOperands
         );
       }

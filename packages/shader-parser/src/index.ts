@@ -22,6 +22,7 @@ export * from "./parser/PassParser";
 export * from "./parser/ICodeGenVisitor";
 export * from "./parser/symbolTable";
 export * from "./parser/builtin";
+export * from "./parser/TypeSystem";
 
 export * from "./sourceParser";
 export * from "./sourceParser/ShaderSourceFactory";
