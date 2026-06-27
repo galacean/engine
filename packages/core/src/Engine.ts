@@ -139,10 +139,7 @@ export class Engine extends EventDispatcher {
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
 
-  /** Flush the render target pool's free list when the canvas resizes; canvas-sized entries are now stale. */
-  private _onCanvasResize = (): void => {
-    this._renderTargetPool.gc();
-  };
+  private _onCanvasResize = (): void => this._renderTargetPool.gc();
 
   private _animate = () => {
     if (this._vSyncCount) {
