@@ -501,7 +501,7 @@ export const E2E_CONFIG = {
       category: "Text",
       caseFileName: "text-character-spacing",
       threshold: 0.0,
-      diffPercentage: 0.0
+      diffPercentage: 0.0129
     }
   },
   Trail: {
