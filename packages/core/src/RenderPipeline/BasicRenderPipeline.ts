@@ -151,6 +151,8 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
+    const pool = engine._renderTargetPool;
+
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
       let depthFormat: TextureFormat;
@@ -166,7 +168,6 @@ export class BasicRenderPipeline {
         depthFormat = null;
       }
       const viewport = camera.pixelViewport;
-      const pool = engine._renderTargetPool;
       this._internalColorTarget = pool.allocateRenderTarget(
         viewport.width,
         viewport.height,
@@ -207,7 +208,6 @@ export class BasicRenderPipeline {
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
 
     // Return the per-frame leases so the next camera with matching shape can reuse them
-    const pool = engine._renderTargetPool;
     if (this._internalColorTarget) {
       pool.freeRenderTarget(this._internalColorTarget);
       this._internalColorTarget = null;
