@@ -49,7 +49,7 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
   private static _toSplatData(buffer: ArrayBuffer): GaussianSplatData | Promise<GaussianSplatData> {
     const u8 = new Uint8Array(buffer, 0, 4);
     if (u8[0] === 0x70 && u8[1] === 0x6c && u8[2] === 0x79) {
-      return GaussianSplatLoader._splatBufferToData(GaussianSplatLoader._convertPLYToSplat(buffer)); // "ply"
+      return GaussianSplatLoader._parsePLY(buffer); // "ply"
     }
     // SPZ — gzip (v1-3) or "NGSP" (v4) — decoded by the official reference decoder.
     if ((u8[0] === 0x1f && u8[1] === 0x8b) || (u8[0] === 0x4e && u8[1] === 0x47 && u8[2] === 0x53 && u8[3] === 0x50)) {
@@ -92,10 +92,10 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
   }
 
   /**
-   * Convert a binary 3DGS `.ply` (Inria training output) into the 32-byte-per-splat layout, applying the
-   * stored activations: scale = exp(s), opacity = sigmoid(o), color = 0.5 + C0 * f_dc, quaternion normalized.
+   * Parse a binary 3DGS `.ply` (Inria training output) into structured splat data, applying the stored
+   * activations (scale = exp, opacity = sigmoid) and reading the `f_rest_*` higher-order SH bands when present.
    */
-  private static _convertPLYToSplat(buffer: ArrayBuffer): ArrayBuffer {
+  private static _parsePLY(buffer: ArrayBuffer): GaussianSplatData {
     const headerText = new TextDecoder().decode(new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 1024 * 10)));
     const marker = "end_header\n";
     const headerEnd = headerText.indexOf(marker);
@@ -103,56 +103,70 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
       throw new Error("GaussianSplatLoader: invalid PLY, missing end_header.");
     }
 
-    let vertexCount = 0;
+    let count = 0;
     let inVertex = false;
     let stride = 0;
+    let restCount = 0;
     const offsets: Record<string, number> = {};
     for (const line of headerText.substring(0, headerEnd).split("\n")) {
       if (line.startsWith("element ")) {
         const tokens = line.split(/\s+/);
         inVertex = tokens[1] === "vertex";
         if (inVertex) {
-          vertexCount = parseInt(tokens[2]);
+          count = parseInt(tokens[2]);
         }
       } else if (inVertex && line.startsWith("property ")) {
         const [, type, name] = line.split(/\s+/);
         offsets[name] = stride;
         stride += PLY_TYPE_SIZE[type] ?? 0;
+        if (name.startsWith("f_rest_")) restCount++;
       }
     }
 
     const view = new DataView(buffer, headerEnd + marker.length);
-    const out = new ArrayBuffer(vertexCount * 32);
-    const f32 = new Float32Array(out);
-    const u8 = new Uint8ClampedArray(out);
     const get = (row: number, name: string): number => view.getFloat32(row * stride + offsets[name], true);
 
-    for (let i = 0; i < vertexCount; i++) {
-      const fo = i * 8;
-      const uo = i * 32;
-      f32[fo + 0] = get(i, "x");
-      f32[fo + 1] = get(i, "y");
-      f32[fo + 2] = get(i, "z");
-      f32[fo + 3] = Math.exp(get(i, "scale_0"));
-      f32[fo + 4] = Math.exp(get(i, "scale_1"));
-      f32[fo + 5] = Math.exp(get(i, "scale_2"));
+    const restCoeffs = (restCount / 3) | 0; // vec3 SH coefficients beyond DC
+    const shDegree = Math.round(Math.sqrt(restCoeffs + 1)) - 1;
 
-      u8[uo + 24] = (0.5 + SH_C0 * get(i, "f_dc_0")) * 255;
-      u8[uo + 25] = (0.5 + SH_C0 * get(i, "f_dc_1")) * 255;
-      u8[uo + 26] = (0.5 + SH_C0 * get(i, "f_dc_2")) * 255;
-      u8[uo + 27] = (1 / (1 + Math.exp(-get(i, "opacity")))) * 255;
+    const positions = new Float32Array(count * 3);
+    const scales = new Float32Array(count * 3);
+    const rotations = new Float32Array(count * 4);
+    const opacities = new Float32Array(count);
+    const colors = new Float32Array(count * 3);
+    const sh = new Float32Array(count * restCoeffs * 3);
 
+    for (let i = 0; i < count; i++) {
+      positions[i * 3 + 0] = get(i, "x");
+      positions[i * 3 + 1] = get(i, "y");
+      positions[i * 3 + 2] = get(i, "z");
+      scales[i * 3 + 0] = Math.exp(get(i, "scale_0"));
+      scales[i * 3 + 1] = Math.exp(get(i, "scale_1"));
+      scales[i * 3 + 2] = Math.exp(get(i, "scale_2"));
+      colors[i * 3 + 0] = get(i, "f_dc_0");
+      colors[i * 3 + 1] = get(i, "f_dc_1");
+      colors[i * 3 + 2] = get(i, "f_dc_2");
+      opacities[i] = 1 / (1 + Math.exp(-get(i, "opacity")));
+
+      // PLY stores the quaternion as (w, x, y, z); reorder to the trainer (x, y, z, w) layout setData expects.
       const r0 = get(i, "rot_0");
       const r1 = get(i, "rot_1");
       const r2 = get(i, "rot_2");
       const r3 = get(i, "rot_3");
       const len = Math.hypot(r0, r1, r2, r3) || 1;
-      u8[uo + 28] = (r0 / len) * 128 + 128;
-      u8[uo + 29] = (r1 / len) * 128 + 128;
-      u8[uo + 30] = (r2 / len) * 128 + 128;
-      u8[uo + 31] = (r3 / len) * 128 + 128;
+      rotations[i * 4 + 0] = r1 / len;
+      rotations[i * 4 + 1] = r2 / len;
+      rotations[i * 4 + 2] = r3 / len;
+      rotations[i * 4 + 3] = r0 / len;
+
+      // f_rest is channel-major (all R coefficients, then G, then B); transpose to coefficient-major.
+      for (let k = 0; k < restCoeffs; k++) {
+        sh[i * restCoeffs * 3 + k * 3 + 0] = get(i, "f_rest_" + k);
+        sh[i * restCoeffs * 3 + k * 3 + 1] = get(i, "f_rest_" + (k + restCoeffs));
+        sh[i * restCoeffs * 3 + k * 3 + 2] = get(i, "f_rest_" + (k + 2 * restCoeffs));
+      }
     }
 
-    return out;
+    return { count, shDegree, positions, scales, rotations, opacities, colors, sh };
   }
 }
