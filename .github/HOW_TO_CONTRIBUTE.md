@@ -31,7 +31,7 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 
 <br />To set up for contributing code, you will take a few steps:<br />
 
-1. Ensure you have node.js installed. You can download Node.js from [nodejs.org](https://nodejs.org/en/) and make sure your Node.js is later than `18`. Use `node -v` to check your Node.js version.
+1. Ensure you have node.js installed. You can download Node.js from [nodejs.org](https://nodejs.org/en/) and make sure your Node.js is later than `20.19`. Use `node -v` to check your Node.js version.
 1. Fork the Galacean repository.
 1. Run `pnpm install` and `pnpm build` in your cloned folder to install all the dependencies for Galacean.
 

@@ -92,7 +92,7 @@ git clone git@github.com:galacean/engine.git
 
 Prerequisites:
 
-- [Node.js v18.0.0+](https://nodejs.org/en/) (Install by official website)
+- [Node.js v20.19.0+](https://nodejs.org/en/) (Install by official website)
 - [PNPM](https://pnpm.io/) (Install globally by `npm install -g pnpm`)
 
 In the folder where you have cloned the repository, install the build dependencies using pnpm:

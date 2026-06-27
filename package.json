@@ -4,7 +4,7 @@
   "packageManager": "pnpm@9.3.0",
   "private": true,
   "engines": {
-    "node": ">=18"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
