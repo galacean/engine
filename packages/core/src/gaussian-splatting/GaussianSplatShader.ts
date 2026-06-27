@@ -55,6 +55,13 @@ const source = `Shader "${name}" {
       vec2 material_InvViewport;
       float material_KernelSize;
 
+      #ifdef RENDERER_GS_SH
+        sampler2D material_ShTexture;
+        vec2 material_ShTextureSize;
+        float material_ShTexelsPerSplat;
+        vec3 material_CameraPosition;
+      #endif
+
       VertexShader = vert;
       FragmentShader = frag;
 
@@ -79,6 +86,67 @@ const source = `Shader "${name}" {
         return vec2((x + 0.5) / w, (y + 0.5) / material_DataTextureSize.y);
       }
 
+      #ifdef RENDERER_GS_SH
+        // Standard 3DGS spherical-harmonic basis.
+        #define SH_C1 0.4886025119029199
+        #define SH_C2_0 1.0925484305920792
+        #define SH_C2_1 -1.0925484305920792
+        #define SH_C2_2 0.31539156525252005
+        #define SH_C2_3 -1.0925484305920792
+        #define SH_C2_4 0.5462742152960396
+        #define SH_C3_0 -0.5900435899266435
+        #define SH_C3_1 2.890611442640554
+        #define SH_C3_2 -0.4570457994644658
+        #define SH_C3_3 0.3731763325901154
+        #define SH_C3_4 -0.4570457994644658
+        #define SH_C3_5 1.445305721320277
+        #define SH_C3_6 -0.5900435899266435
+        const float SH_C0 = 0.28209479177387814;
+
+        mat3 gsInverse(mat3 m) {
+          float a00 = m[0][0], a01 = m[0][1], a02 = m[0][2];
+          float a10 = m[1][0], a11 = m[1][1], a12 = m[1][2];
+          float a20 = m[2][0], a21 = m[2][1], a22 = m[2][2];
+          float b01 = a22 * a11 - a12 * a21;
+          float b11 = -a22 * a10 + a12 * a20;
+          float b21 = a21 * a10 - a11 * a20;
+          float det = a00 * b01 + a01 * b11 + a02 * b21;
+          return mat3(
+            b01, -a22 * a01 + a02 * a21, a12 * a01 - a02 * a11,
+            b11, a22 * a00 - a02 * a20, -a12 * a00 + a02 * a10,
+            b21, -a21 * a00 + a01 * a20, a11 * a00 - a01 * a10
+          ) / det;
+        }
+
+        vec3 gsShCoeff(float splatIndex, float k) {
+          float index = splatIndex * material_ShTexelsPerSplat + k;
+          float w = material_ShTextureSize.x;
+          float y = floor(index / w);
+          float x = index - y * w;
+          return texture2D(material_ShTexture, vec2((x + 0.5) / w, (y + 0.5) / material_ShTextureSize.y)).rgb;
+        }
+
+        // Rebuild the full 3DGS color from raw SH coefficients (coefficient 0 is the DC term) and view direction.
+        vec3 gsEvalSH(float splatIndex, vec3 dir) {
+          vec3 sh[16];
+          int n = int(material_ShTexelsPerSplat);
+          for (int k = 0; k < 16; k++) {
+            sh[k] = k < n ? gsShCoeff(splatIndex, float(k)) : vec3(0.0);
+          }
+          float x = dir.x, y = dir.y, z = dir.z;
+          vec3 result = SH_C0 * sh[0];
+          result += SH_C1 * (-y * sh[1] + z * sh[2] - x * sh[3]);
+          float xx = x * x, yy = y * y, zz = z * z, xy = x * y, yz = y * z, xz = x * z;
+          result += SH_C2_0 * xy * sh[4] + SH_C2_1 * yz * sh[5] + SH_C2_2 * (2.0 * zz - xx - yy) * sh[6] +
+            SH_C2_3 * xz * sh[7] + SH_C2_4 * (xx - yy) * sh[8];
+          result += SH_C3_0 * y * (3.0 * xx - yy) * sh[9] + SH_C3_1 * xy * z * sh[10] +
+            SH_C3_2 * y * (4.0 * zz - xx - yy) * sh[11] + SH_C3_3 * z * (2.0 * zz - 3.0 * xx - 3.0 * yy) * sh[12] +
+            SH_C3_4 * x * (4.0 * zz - xx - yy) * sh[13] + SH_C3_5 * z * (xx - yy) * sh[14] +
+            SH_C3_6 * x * (xx - 3.0 * yy) * sh[15];
+          return max(result + 0.5, vec3(0.0));
+        }
+      #endif
+
       Varyings vert(Attributes attr) {
         Varyings v;
         v.color = vec4(0.0);
@@ -94,6 +162,14 @@ const source = `Shader "${name}" {
         v.color = texture2D(material_ColorTexture, uv);
         #ifdef ENGINE_NO_SRGB
           v.color.rgb = vec3(gsSRGBToLinear(v.color.r), gsSRGBToLinear(v.color.g), gsSRGBToLinear(v.color.b));
+        #endif
+        #ifdef RENDERER_GS_SH
+          // View direction in the splat's local frame (un-rotate by the model transform so SH stays correct under
+          // node rotation), then rebuild the full color and match the DC path's sRGB->linear; opacity is kept.
+          vec3 worldCenter = (renderer_ModelMat * vec4(center.xyz, 1.0)).xyz;
+          vec3 dir = normalize(gsInverse(mat3(renderer_ModelMat)) * (worldCenter - material_CameraPosition));
+          vec3 shColor = min(gsEvalSH(attr.SPLAT_INDEX, dir), 1.0);
+          v.color.rgb = vec3(gsSRGBToLinear(shColor.r), gsSRGBToLinear(shColor.g), gsSRGBToLinear(shColor.b));
         #endif
 
         mat4 modelView = camera_ViewMat * renderer_ModelMat;
