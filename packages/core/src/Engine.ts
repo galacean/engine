@@ -137,6 +137,8 @@ export class Engine extends EventDispatcher {
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
 
+  private _onCanvasResize = (): void => this._renderTargetPool.gc();
+
   private _animate = () => {
     if (this._vSyncCount) {
       const raf = this.xrManager?._getRequestAnimationFrame() || requestAnimationFrame;
@@ -254,6 +256,7 @@ export class Engine extends EventDispatcher {
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
+    canvas._sizeUpdateFlagManager.addListener(this._onCanvasResize);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -498,6 +501,8 @@ export class Engine extends EventDispatcher {
   private _destroy(): void {
     this._destroyed = true;
     this._waitingDestroy = false;
+
+    this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
 
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
