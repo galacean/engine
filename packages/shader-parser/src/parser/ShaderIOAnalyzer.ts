@@ -262,7 +262,7 @@ export class ShaderIOAnalyzer {
         this._error(
           errors,
           DiagnosticType.InvalidEntryReturnType,
-          "fragment main entry can only return struct or vec4.",
+          "fragment main entry can only return struct, vec4, or void.",
           returnLocation,
           source
         );
