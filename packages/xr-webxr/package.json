@@ -1,6 +1,6 @@
 {
   "name": "@galacean/engine-xr-webxr",
-  "version": "0.0.0-experimental-2.0-game.17",
+  "version": "0.0.0-experimental-2.0-game.18",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
