@@ -100,7 +100,8 @@ export class TextUtils {
     rendererWidth: number,
     rendererHeight: number,
     lineSpacing: number,
-    characterSpacing: number
+    characterSpacing: number,
+    uploadCharTexture: boolean = true
   ): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
@@ -137,7 +138,7 @@ export class TextUtils {
 
       for (let j = 0, m = subText.length; j < m; ++j) {
         const char = subText[j];
-        const charInfo = TextUtils._getCharInfo(char, fontString, subFont);
+        const charInfo = TextUtils._getCharInfo(char, fontString, subFont, uploadCharTexture);
         const charCode = char.charCodeAt(0);
         const isSpace = charCode === 32;
 
@@ -284,7 +285,8 @@ export class TextUtils {
     renderer: ITextRenderer,
     rendererHeight: number,
     lineSpacing: number,
-    characterSpacing: number
+    characterSpacing: number,
+    uploadCharTexture: boolean = true
   ): TextMetrics {
     const subFont = renderer._getSubFont();
     const fontString = subFont.nativeFontString;
@@ -306,7 +308,7 @@ export class TextUtils {
       let maxDescent = 0;
 
       for (let j = 0; j < lineLength; ++j) {
-        const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
+        const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont, uploadCharTexture);
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
@@ -335,6 +337,85 @@ export class TextUtils {
       lineHeight,
       lineMaxSizes
     };
+  }
+
+  /**
+   * Measure text in SHRINK overflow mode: keep shrinking the font size until the text fits
+   * within the bounds (both width and height). Mirrors Cocos Creator's `Overflow.SHRINK`.
+   *
+   * @param renderer - The text renderer
+   * @param rendererWidth - The width of the bounds in pixels
+   * @param rendererHeight - The height of the bounds in pixels
+   * @param originalFontSize - The font size set on the renderer (the upper bound, never enlarged)
+   * @param lineSpacing - The line spacing ratio (relative to font size)
+   * @param characterSpacing - The character spacing ratio (relative to font size)
+   * @param enableWrapping - Whether wrapping is enabled
+   * @param applyFontSize - Callback that switches the renderer's sub font to the given font size
+   * @returns The fitted text metrics and the actual font size used for layout
+   */
+  static measureTextWithShrink(
+    renderer: ITextRenderer,
+    rendererWidth: number,
+    rendererHeight: number,
+    originalFontSize: number,
+    lineSpacing: number,
+    characterSpacing: number,
+    enableWrapping: boolean,
+    applyFontSize: (fontSize: number) => void
+  ): { metrics: TextMetrics; fontSize: number } {
+    // During the binary search we only need the text dimensions, so pass `uploadCharTexture=false`
+    // to avoid building GPU font atlases for the intermediate font sizes that won't be used.
+    // The fitted size is then re-measured once with upload=true to populate its atlas. This trades
+    // one extra full measure pass (CPU) for skipping ~log2(size) throwaway atlas textures (GPU);
+    // we can't reuse the search's last measure because its char bitmaps were never cached.
+    const measureAt = (fontSize: number, uploadCharTexture: boolean): TextMetrics => {
+      applyFontSize(fontSize);
+      return enableWrapping
+        ? TextUtils.measureTextWithWrap(
+            renderer,
+            rendererWidth,
+            rendererHeight,
+            lineSpacing * fontSize,
+            characterSpacing * fontSize,
+            uploadCharTexture
+          )
+        : TextUtils.measureTextWithoutWrap(
+            renderer,
+            rendererHeight,
+            lineSpacing * fontSize,
+            characterSpacing * fontSize,
+            uploadCharTexture
+          );
+    };
+    // The content height is `lineHeight * lineCount`; `metrics.height` is clamped to the bounds
+    // unless overflowMode is Overflow, so it can't be used to detect vertical overflow here.
+    const isFit = (metrics: TextMetrics): boolean =>
+      metrics.width <= rendererWidth && metrics.lineHeight * metrics.lines.length <= rendererHeight;
+
+    // If the text already fits at the original size, keep it (SHRINK only shrinks, never enlarges).
+    let metrics = measureAt(originalFontSize, false);
+    if (isFit(metrics)) {
+      metrics = measureAt(originalFontSize, true);
+      return { metrics, fontSize: originalFontSize };
+    }
+
+    // Binary search for the largest integer font size that fits (measure only, no atlas upload).
+    let low = 1;
+    let high = Math.floor(originalFontSize);
+    let fitFontSize = low;
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      metrics = measureAt(mid, false);
+      if (isFit(metrics)) {
+        fitFontSize = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    // Re-measure the fitted size with upload=true so the sub font / atlas correspond to it.
+    metrics = measureAt(fitFontSize, true);
+    return { metrics, fontSize: fitFontSize };
   }
 
   /**
@@ -462,12 +543,16 @@ export class TextUtils {
   /**
    * @internal
    */
-  static _getCharInfo(char: string, fontString: string, font: SubFont): CharInfo {
+  static _getCharInfo(char: string, fontString: string, font: SubFont, uploadCharTexture: boolean = true): CharInfo {
     let charInfo = font._getCharInfo(char);
     if (!charInfo) {
       charInfo = TextUtils.measureChar(char, fontString);
-      font._uploadCharTexture(charInfo);
-      font._addCharInfo(char, charInfo);
+      // SHRINK 的二分阶段只需字符尺寸(measureChar 已给出),传 uploadCharTexture=false 跳过 GPU
+      // 字形图集上传与缓存,避免给用不到的中间字号建字体 atlas 纹理。
+      if (uploadCharTexture) {
+        font._uploadCharTexture(charInfo);
+        font._addCharInfo(char, charInfo);
+      }
     }
 
     return charInfo;

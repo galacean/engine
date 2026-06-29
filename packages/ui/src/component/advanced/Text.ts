@@ -420,6 +420,17 @@ export class Text extends UIRenderer implements ITextRenderer {
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
+  /**
+   * Switch the sub font to a specific font size, used by the SHRINK overflow measurement.
+   */
+  private _applyFontSizeForShrink(fontSize: number): void {
+    const font = this._font;
+    // @ts-ignore
+    const subFont = font._getSubFont(fontSize, this._fontStyle);
+    subFont.nativeFontString = TextUtils.getNativeFontString(font.name, fontSize, this._fontStyle);
+    this._subFont = subFont;
+  }
+
   private _updatePosition(): void {
     const e = this._transformEntity.transform.worldMatrix.elements;
 
@@ -490,27 +501,45 @@ export class Text extends UIRenderer implements ITextRenderer {
     const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Text._charRenderInfos;
-    const charFont = this._getSubFont();
     const { size, pivot } = <UITransform>this._transformEntity.transform;
     let rendererWidth = size.x;
     let rendererHeight = size.y;
     const offsetWidth = rendererWidth * (0.5 - pivot.x);
     const offsetHeight = rendererHeight * (0.5 - pivot.y);
-    const characterSpacing = this._characterSpacing * this._fontSize;
-    const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(
-          this,
-          rendererWidth * pixelsPerResolution,
-          rendererHeight * pixelsPerResolution,
-          this._lineSpacing * this._fontSize,
-          characterSpacing
-        )
-      : TextUtils.measureTextWithoutWrap(
-          this,
-          rendererHeight * pixelsPerResolution,
-          this._lineSpacing * this._fontSize,
-          characterSpacing
-        );
+    let fontSize = this._fontSize;
+    let textMetrics: ReturnType<typeof TextUtils.measureTextWithWrap>;
+    if (this._overflowMode === OverflowMode.Shrink) {
+      const result = TextUtils.measureTextWithShrink(
+        this,
+        rendererWidth * pixelsPerResolution,
+        rendererHeight * pixelsPerResolution,
+        this._fontSize,
+        this._lineSpacing,
+        this._characterSpacing,
+        this.enableWrapping,
+        (sizeValue) => this._applyFontSizeForShrink(sizeValue)
+      );
+      fontSize = result.fontSize;
+      textMetrics = result.metrics;
+    } else {
+      const characterSpacing = this._characterSpacing * fontSize;
+      textMetrics = this.enableWrapping
+        ? TextUtils.measureTextWithWrap(
+            this,
+            rendererWidth * pixelsPerResolution,
+            rendererHeight * pixelsPerResolution,
+            this._lineSpacing * fontSize,
+            characterSpacing
+          )
+        : TextUtils.measureTextWithoutWrap(
+            this,
+            rendererHeight * pixelsPerResolution,
+            this._lineSpacing * fontSize,
+            characterSpacing
+          );
+    }
+    const charFont = this._getSubFont();
+    const characterSpacing = this._characterSpacing * fontSize;
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
@@ -533,7 +562,10 @@ export class Text extends UIRenderer implements ITextRenderer {
           startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
           break;
         case TextVerticalAlignment.Center:
-          startY = height * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
+          // Center the text block (lineHeight * lineCount) within the renderer, independent of
+          // `height` — which equals the renderer height for Truncate/Shrink and would otherwise
+          // push the text upward by (rendererHeight - blockHeight) / 2 when the box is taller.
+          startY = lineHeight * linesLen * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
           break;
         case TextVerticalAlignment.Bottom:
           startY = height - rendererHeight * 0.5 - halfLineHeight - bottomDiff;
@@ -662,7 +694,7 @@ export class Text extends UIRenderer implements ITextRenderer {
       this._text === "" ||
       this._fontSize === 0 ||
       (this.enableWrapping && size.x <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && size.y <= 0) ||
+      ((this.overflowMode === OverflowMode.Truncate || this.overflowMode === OverflowMode.Shrink) && size.y <= 0) ||
       !this._getRootCanvas()
     );
   }

@@ -502,6 +502,16 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
+  /**
+   * Switch the sub font to a specific font size, used by the SHRINK overflow measurement.
+   */
+  private _applyFontSizeForShrink(fontSize: number): void {
+    const font = this._font;
+    const subFont = font._getSubFont(fontSize, this._fontStyle);
+    subFont.nativeFontString = TextUtils.getNativeFontString(font.name, fontSize, this._fontStyle);
+    this._subFont = subFont;
+  }
+
   private _updatePosition(): void {
     const { transform } = this.entity;
     const e = transform.worldMatrix.elements;
@@ -575,22 +585,37 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     const { _pixelsPerUnit } = Engine;
     const { min, max } = this._localBounds;
     const charRenderInfos = TextRenderer._charRenderInfos;
+    const rendererWidth = this.width * _pixelsPerUnit;
+    const rendererHeight = this.height * _pixelsPerUnit;
+    let fontSize = this._fontSize;
+    let textMetrics: ReturnType<typeof TextUtils.measureTextWithWrap>;
+    if (this._overflowMode === OverflowMode.Shrink) {
+      const result = TextUtils.measureTextWithShrink(
+        this,
+        rendererWidth,
+        rendererHeight,
+        this._fontSize,
+        this._lineSpacing,
+        this._characterSpacing,
+        this.enableWrapping,
+        (size) => this._applyFontSizeForShrink(size)
+      );
+      fontSize = result.fontSize;
+      textMetrics = result.metrics;
+    } else {
+      const characterSpacing = this._characterSpacing * fontSize;
+      textMetrics = this.enableWrapping
+        ? TextUtils.measureTextWithWrap(
+            this,
+            rendererWidth,
+            rendererHeight,
+            this._lineSpacing * fontSize,
+            characterSpacing
+          )
+        : TextUtils.measureTextWithoutWrap(this, rendererHeight, this._lineSpacing * fontSize, characterSpacing);
+    }
     const charFont = this._getSubFont();
-    const characterSpacing = this._characterSpacing * this._fontSize;
-    const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(
-          this,
-          this.width * _pixelsPerUnit,
-          this.height * _pixelsPerUnit,
-          this._lineSpacing * this._fontSize,
-          characterSpacing
-        )
-      : TextUtils.measureTextWithoutWrap(
-          this,
-          this.height * _pixelsPerUnit,
-          this._lineSpacing * this._fontSize,
-          characterSpacing
-        );
+    const characterSpacing = this._characterSpacing * fontSize;
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const charRenderInfoPool = this.engine._charRenderInfoPool;
     const linesLen = lines.length;
@@ -599,9 +624,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     if (linesLen > 0) {
       const { horizontalAlignment } = this;
       const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-      const rendererWidth = this._width * _pixelsPerUnit;
       const halfRendererWidth = rendererWidth * 0.5;
-      const rendererHeight = this._height * _pixelsPerUnit;
       const halfLineHeight = lineHeight * 0.5;
 
       let startY = 0;
@@ -612,7 +635,10 @@ export class TextRenderer extends Renderer implements ITextRenderer {
           startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
           break;
         case TextVerticalAlignment.Center:
-          startY = height * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
+          // Center the text block (lineHeight * lineCount) within the renderer, independent of
+          // `height` — which equals the renderer height for Truncate/Shrink and would otherwise
+          // push the text upward by (rendererHeight - blockHeight) / 2 when the box is taller.
+          startY = lineHeight * linesLen * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
           break;
         case TextVerticalAlignment.Bottom:
           startY = height - rendererHeight * 0.5 - halfLineHeight - bottomDiff;
@@ -737,7 +763,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
       this._text === "" ||
       this._fontSize === 0 ||
       (this.enableWrapping && this.width <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
+      ((this.overflowMode === OverflowMode.Truncate || this.overflowMode === OverflowMode.Shrink) && this.height <= 0)
     );
   }
 
