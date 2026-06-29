@@ -394,9 +394,17 @@ describe("LimitVelocityOverLifetimeModule", function () {
     const vol = generator.velocityOverLifetime;
 
     vol.enabled = true;
+    vol.orbitalX = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, -3), new CurveKey(1, -4)),
+      new ParticleCurve(new CurveKey(0, 3), new CurveKey(1, 4))
+    );
     vol.orbitalY = new ParticleCompositeCurve(
       new ParticleCurve(new CurveKey(0, -1), new CurveKey(1, -2)),
       new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 2))
+    );
+    vol.orbitalZ = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, -5), new CurveKey(1, -6)),
+      new ParticleCurve(new CurveKey(0, 5), new CurveKey(1, 6))
     );
     vol.radial = new ParticleCompositeCurve(
       new ParticleCurve(new CurveKey(0, 3), new CurveKey(1, 4)),
@@ -423,6 +431,21 @@ describe("LimitVelocityOverLifetimeModule", function () {
     expect(Array.from(orbitalMaxY.slice(0, 4))).to.deep.eq([0, 1, 1, 2]);
     expect(Array.from(radialMin.slice(0, 4))).to.deep.eq([0, 3, 1, 4]);
     expect(Array.from(radialMax.slice(0, 4))).to.deep.eq([0, 5, 1, 6]);
+  });
+
+  it("velocity over lifetime orbital mixed axis modes do not use curve shader path", function () {
+    const generator = particleRenderer.generator;
+    const vol = generator.velocityOverLifetime;
+
+    vol.enabled = true;
+    vol.orbitalX = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 1), new CurveKey(1, 2)));
+    vol.orbitalY = new ParticleCompositeCurve(3);
+    vol.orbitalZ = new ParticleCompositeCurve(4);
+    generator._updateShaderData(particleRenderer.shaderData);
+
+    const macros = particleRenderer.shaderData.getMacros().map((macro: ShaderMacro) => macro.name);
+    expect(macros).to.not.include("RENDERER_VOL_ORBITAL_CURVE_MODE");
+    expect(macros).to.not.include("RENDERER_VOL_ORBITAL_IS_RANDOM_TWO");
   });
 
   it("velocity over lifetime clone preserves orbital/radial/offset", function () {
