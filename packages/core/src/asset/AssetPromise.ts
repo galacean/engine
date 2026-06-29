@@ -164,16 +164,16 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @returns AssetPromise
    */
   onProgress(
-    onTaskComplete: (loaded: number, total: number) => void,
+    onTaskComplete?: (loaded: number, total: number) => void,
     onTaskDetail?: (identifier: string, loaded: number, total: number) => void
   ): AssetPromise<T> {
     const completeProgress = this._taskCompleteProgress;
     const detailProgress = this._taskDetailProgress;
-    if (completeProgress) {
+    if (completeProgress && onTaskComplete) {
       onTaskComplete(completeProgress.loaded, completeProgress.total);
     }
 
-    if (detailProgress) {
+    if (detailProgress && onTaskDetail) {
       for (let url in detailProgress) {
         const { loaded, total } = detailProgress[url];
         onTaskDetail(url, loaded, total);
