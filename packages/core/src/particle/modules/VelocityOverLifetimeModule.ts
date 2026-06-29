@@ -434,7 +434,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Orbital and radial velocities are position-dependent and only run in the transform-feedback path.
    */
   _needTransformFeedback(): boolean {
     if (!this._enabled || !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
