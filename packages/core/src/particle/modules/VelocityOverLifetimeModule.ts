@@ -327,7 +327,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
 
-      // Orbital / Radial run only in the transform-feedback path (WebGL2).
       const orbitalActive = this._isOrbitalActive();
       const radialActive = this._isRadialActive();
 
