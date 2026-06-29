@@ -75,10 +75,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _radialMacro: ShaderMacro;
   @ignoreClone
   private _radialRandomModeMacro: ShaderMacro;
-  @ignoreClone
-  private readonly _onTransformFeedbackDirty = (): void => {
-    this._generator._setTransformFeedback();
-  };
 
   @deepClone
   private _velocityX: ParticleCompositeCurve;
@@ -97,6 +93,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   @deepClone
   private _offset = new Vector3();
   private _space = ParticleSimulationSpace.Local;
+
+  @ignoreClone
+  private readonly _onTransformFeedbackDirty = (): void => this._generator._setTransformFeedback();
 
   /**
    * Velocity over lifetime for x axis.
