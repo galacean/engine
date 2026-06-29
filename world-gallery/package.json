@@ -1,0 +1,19 @@
+{
+  "name": "@galacean/world-gallery",
+  "version": "0.0.0",
+  "private": true,
+  "description": "World Engine preview gallery — each feature is a demos/<feature> directory; run `pnpm world-gallery`.",
+  "scripts": {
+    "dev": "vite serve . --config vite.config.js"
+  },
+  "dependencies": {
+    "@galacean/engine": "workspace:*",
+    "@galacean/engine-shader": "workspace:*",
+    "@galacean/engine-shader-compiler": "workspace:*",
+    "@galacean/engine-toolkit-controls": "latest"
+  },
+  "devDependencies": {
+    "dat.gui": "^0.7.9",
+    "vite": "^4.4.4"
+  }
+}
