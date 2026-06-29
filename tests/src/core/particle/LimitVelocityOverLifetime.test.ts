@@ -353,11 +353,11 @@ describe("LimitVelocityOverLifetimeModule", function () {
     expect(macros).not.to.include("RENDERER_VOL_ORBITAL_CURVE_MODE");
     expect(macros).not.to.include("RENDERER_VOL_RADIAL_CURVE_MODE");
 
-    const orbital = particleRenderer.shaderData.getVector3(ShaderProperty.getByName("renderer_VOLOrbitalConst"));
+    const orbital = particleRenderer.shaderData.getVector3(ShaderProperty.getByName("renderer_VOLOrbitalMaxConst"));
     expect(orbital.x).to.eq(0.77);
     expect(orbital.y).to.eq(1.02);
     expect(orbital.z).to.eq(0.94);
-    expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialConst"))).to.eq(4);
+    expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialMaxConst"))).to.eq(4);
   });
 
   it("velocity over lifetime orbital/radial two constants upload min/max shader data", function () {
@@ -378,7 +378,7 @@ describe("LimitVelocityOverLifetimeModule", function () {
     expect(macros).to.include("RENDERER_VOL_RADIAL_IS_RANDOM_TWO");
 
     const orbitalMin = particleRenderer.shaderData.getVector3(ShaderProperty.getByName("renderer_VOLOrbitalMinConst"));
-    const orbitalMax = particleRenderer.shaderData.getVector3(ShaderProperty.getByName("renderer_VOLOrbitalConst"));
+    const orbitalMax = particleRenderer.shaderData.getVector3(ShaderProperty.getByName("renderer_VOLOrbitalMaxConst"));
     expect(orbitalMin.x).to.eq(-1);
     expect(orbitalMin.y).to.eq(-2);
     expect(orbitalMin.z).to.eq(-3);
@@ -386,7 +386,7 @@ describe("LimitVelocityOverLifetimeModule", function () {
     expect(orbitalMax.y).to.eq(2);
     expect(orbitalMax.z).to.eq(3);
     expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialMinConst"))).to.eq(4);
-    expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialConst"))).to.eq(5);
+    expect(particleRenderer.shaderData.getFloat(ShaderProperty.getByName("renderer_VOLRadialMaxConst"))).to.eq(5);
   });
 
   it("velocity over lifetime orbital/radial two curves upload min/max shader data", function () {
@@ -422,10 +422,10 @@ describe("LimitVelocityOverLifetimeModule", function () {
       ShaderProperty.getByName("renderer_VOLOrbitalMinCurveY")
     );
     const orbitalMaxY = particleRenderer.shaderData.getFloatArray(
-      ShaderProperty.getByName("renderer_VOLOrbitalCurveY")
+      ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveY")
     );
     const radialMin = particleRenderer.shaderData.getFloatArray(ShaderProperty.getByName("renderer_VOLRadialMinCurve"));
-    const radialMax = particleRenderer.shaderData.getFloatArray(ShaderProperty.getByName("renderer_VOLRadialCurve"));
+    const radialMax = particleRenderer.shaderData.getFloatArray(ShaderProperty.getByName("renderer_VOLRadialMaxCurve"));
 
     expect(Array.from(orbitalMinY.slice(0, 4))).to.deep.eq([0, -1, 1, -2]);
     expect(Array.from(orbitalMaxY.slice(0, 4))).to.deep.eq([0, 1, 1, 2]);

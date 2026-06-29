@@ -138,16 +138,16 @@ vec3 getFOLAcceleration(float normalizedAge) {
 #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
 vec3 getVOLOrbital(float normalizedAge) {
     #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
-        vec3 orbital = renderer_VOLOrbitalConst;
+        vec3 orbital = renderer_VOLOrbitalMaxConst;
         #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
             orbital = mix(renderer_VOLOrbitalMinConst, orbital, a_Random1.yzw);
         #endif
         return orbital;
     #else
         vec3 orbital = vec3(
-            evaluateParticleCurve(renderer_VOLOrbitalCurveX, normalizedAge),
-            evaluateParticleCurve(renderer_VOLOrbitalCurveY, normalizedAge),
-            evaluateParticleCurve(renderer_VOLOrbitalCurveZ, normalizedAge));
+            evaluateParticleCurve(renderer_VOLOrbitalMaxCurveX, normalizedAge),
+            evaluateParticleCurve(renderer_VOLOrbitalMaxCurveY, normalizedAge),
+            evaluateParticleCurve(renderer_VOLOrbitalMaxCurveZ, normalizedAge));
         #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
             vec3 minOrbital = vec3(
                 evaluateParticleCurve(renderer_VOLOrbitalMinCurveX, normalizedAge),
@@ -164,13 +164,13 @@ vec3 getVOLOrbital(float normalizedAge) {
 #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
 float getVOLRadial(float normalizedAge) {
     #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
-        float radial = renderer_VOLRadialConst;
+        float radial = renderer_VOLRadialMaxConst;
         #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
             radial = mix(renderer_VOLRadialMinConst, radial, a_Random1.y);
         #endif
         return radial;
     #else
-        float radial = evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+        float radial = evaluateParticleCurve(renderer_VOLRadialMaxCurve, normalizedAge);
         #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
             radial = mix(evaluateParticleCurve(renderer_VOLRadialMinCurve, normalizedAge), radial, a_Random1.y);
         #endif

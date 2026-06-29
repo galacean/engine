@@ -75,15 +75,15 @@
     #endif
 
     #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
-        vec3 renderer_VOLOrbitalConst; // radians/second around x,y,z
+        vec3 renderer_VOLOrbitalMaxConst; // radians/second around x,y,z
         #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
             vec3 renderer_VOLOrbitalMinConst;
         #endif
     #endif
     #ifdef RENDERER_VOL_ORBITAL_CURVE_MODE
-        vec2 renderer_VOLOrbitalCurveX[4]; // x:time y:value
-        vec2 renderer_VOLOrbitalCurveY[4];
-        vec2 renderer_VOLOrbitalCurveZ[4];
+        vec2 renderer_VOLOrbitalMaxCurveX[4]; // x:time y:value
+        vec2 renderer_VOLOrbitalMaxCurveY[4];
+        vec2 renderer_VOLOrbitalMaxCurveZ[4];
         #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
             vec2 renderer_VOLOrbitalMinCurveX[4];
             vec2 renderer_VOLOrbitalMinCurveY[4];
@@ -91,13 +91,13 @@
         #endif
     #endif
     #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
-        float renderer_VOLRadialConst;
+        float renderer_VOLRadialMaxConst;
         #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
             float renderer_VOLRadialMinConst;
         #endif
     #endif
     #ifdef RENDERER_VOL_RADIAL_CURVE_MODE
-        vec2 renderer_VOLRadialCurve[4]; // x:time y:value
+        vec2 renderer_VOLRadialMaxCurve[4]; // x:time y:value
         #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
             vec2 renderer_VOLRadialMinCurve[4];
         #endif
@@ -106,16 +106,16 @@
     #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
         vec3 evaluateVOLOrbital(Attributes attributes, float normalizedAge) {
             #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE
-                vec3 orbital = renderer_VOLOrbitalConst;
+                vec3 orbital = renderer_VOLOrbitalMaxConst;
                 #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
                     orbital = mix(renderer_VOLOrbitalMinConst, orbital, attributes.a_Random1.yzw);
                 #endif
                 return orbital;
             #else
                 vec3 orbital = vec3(
-                    evaluateParticleCurve(renderer_VOLOrbitalCurveX, normalizedAge),
-                    evaluateParticleCurve(renderer_VOLOrbitalCurveY, normalizedAge),
-                    evaluateParticleCurve(renderer_VOLOrbitalCurveZ, normalizedAge));
+                    evaluateParticleCurve(renderer_VOLOrbitalMaxCurveX, normalizedAge),
+                    evaluateParticleCurve(renderer_VOLOrbitalMaxCurveY, normalizedAge),
+                    evaluateParticleCurve(renderer_VOLOrbitalMaxCurveZ, normalizedAge));
                 #ifdef RENDERER_VOL_ORBITAL_IS_RANDOM_TWO
                     vec3 minOrbital = vec3(
                         evaluateParticleCurve(renderer_VOLOrbitalMinCurveX, normalizedAge),
@@ -131,13 +131,13 @@
     #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
         float evaluateVOLRadial(Attributes attributes, float normalizedAge) {
             #ifdef RENDERER_VOL_RADIAL_CONSTANT_MODE
-                float radial = renderer_VOLRadialConst;
+                float radial = renderer_VOLRadialMaxConst;
                 #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
                     radial = mix(renderer_VOLRadialMinConst, radial, attributes.a_Random1.y);
                 #endif
                 return radial;
             #else
-                float radial = evaluateParticleCurve(renderer_VOLRadialCurve, normalizedAge);
+                float radial = evaluateParticleCurve(renderer_VOLRadialMaxCurve, normalizedAge);
                 #ifdef RENDERER_VOL_RADIAL_IS_RANDOM_TWO
                     radial = mix(evaluateParticleCurve(renderer_VOLRadialMinCurve, normalizedAge), radial, attributes.a_Random1.y);
                 #endif

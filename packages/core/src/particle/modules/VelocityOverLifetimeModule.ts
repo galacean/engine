@@ -36,17 +36,17 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _radialRandomModeMacro = ShaderMacro.getByName("RENDERER_VOL_RADIAL_IS_RANDOM_TWO");
 
   static readonly _orbitalMinConstantProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinConst");
-  static readonly _orbitalConstantProperty = ShaderProperty.getByName("renderer_VOLOrbitalConst");
+  static readonly _orbitalMaxConstantProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxConst");
   static readonly _orbitalMinCurveXProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveX");
   static readonly _orbitalMinCurveYProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveY");
   static readonly _orbitalMinCurveZProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveZ");
-  static readonly _orbitalCurveXProperty = ShaderProperty.getByName("renderer_VOLOrbitalCurveX");
-  static readonly _orbitalCurveYProperty = ShaderProperty.getByName("renderer_VOLOrbitalCurveY");
-  static readonly _orbitalCurveZProperty = ShaderProperty.getByName("renderer_VOLOrbitalCurveZ");
+  static readonly _orbitalMaxCurveXProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveX");
+  static readonly _orbitalMaxCurveYProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveY");
+  static readonly _orbitalMaxCurveZProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveZ");
   static readonly _radialMinConstantProperty = ShaderProperty.getByName("renderer_VOLRadialMinConst");
-  static readonly _radialConstantProperty = ShaderProperty.getByName("renderer_VOLRadialConst");
+  static readonly _radialMaxConstantProperty = ShaderProperty.getByName("renderer_VOLRadialMaxConst");
   static readonly _radialMinCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMinCurve");
-  static readonly _radialCurveProperty = ShaderProperty.getByName("renderer_VOLRadialCurve");
+  static readonly _radialMaxCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMaxCurve");
   static readonly _offsetProperty = ShaderProperty.getByName("renderer_VOLOffset");
 
   private static _tempMinMax = new Vector2();
@@ -348,15 +348,15 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
             orbitalZ.mode === ParticleCurveMode.Curve)
         ) {
           shaderData.setFloatArray(
-            VelocityOverLifetimeModule._orbitalCurveXProperty,
+            VelocityOverLifetimeModule._orbitalMaxCurveXProperty,
             orbitalX.curveMax._getTypeArray()
           );
           shaderData.setFloatArray(
-            VelocityOverLifetimeModule._orbitalCurveYProperty,
+            VelocityOverLifetimeModule._orbitalMaxCurveYProperty,
             orbitalY.curveMax._getTypeArray()
           );
           shaderData.setFloatArray(
-            VelocityOverLifetimeModule._orbitalCurveZProperty,
+            VelocityOverLifetimeModule._orbitalMaxCurveZProperty,
             orbitalZ.curveMax._getTypeArray()
           );
           orbitalMacro = VelocityOverLifetimeModule._orbitalCurveModeMacro;
@@ -377,7 +377,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
           }
         } else {
           this._orbitalConstant.set(orbitalX.constantMax, orbitalY.constantMax, orbitalZ.constantMax);
-          shaderData.setVector3(VelocityOverLifetimeModule._orbitalConstantProperty, this._orbitalConstant);
+          shaderData.setVector3(VelocityOverLifetimeModule._orbitalMaxConstantProperty, this._orbitalConstant);
           orbitalMacro = VelocityOverLifetimeModule._orbitalConstantModeMacro;
           if (
             orbitalX.mode === ParticleCurveMode.TwoConstants &&
@@ -395,7 +395,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
         const radial = this._radial;
         const isRadialRandomMode = this._isRandomCurveMode(radial);
         if (this._isCurveMode(radial)) {
-          shaderData.setFloatArray(VelocityOverLifetimeModule._radialCurveProperty, radial.curveMax._getTypeArray());
+          shaderData.setFloatArray(VelocityOverLifetimeModule._radialMaxCurveProperty, radial.curveMax._getTypeArray());
           radialMacro = VelocityOverLifetimeModule._radialCurveModeMacro;
           if (isRadialRandomMode) {
             shaderData.setFloatArray(
@@ -405,7 +405,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
             radialRandomModeMacro = VelocityOverLifetimeModule._radialRandomModeMacro;
           }
         } else {
-          shaderData.setFloat(VelocityOverLifetimeModule._radialConstantProperty, radial.constantMax);
+          shaderData.setFloat(VelocityOverLifetimeModule._radialMaxConstantProperty, radial.constantMax);
           radialMacro = VelocityOverLifetimeModule._radialConstantModeMacro;
           if (isRadialRandomMode) {
             shaderData.setFloat(VelocityOverLifetimeModule._radialMinConstantProperty, radial.constantMin);
