@@ -1695,8 +1695,6 @@ export class ParticleGenerator {
       }
     }
 
-    // Orbital sweeps particles around `offset`; radial grows their distance from it.
-    // Conservatively cover a cube of `reach` around the offset center (local space).
     if (velocityOverLifetime._needTransformFeedback()) {
       const offset = velocityOverLifetime.offset;
       let radialReach = 0;
