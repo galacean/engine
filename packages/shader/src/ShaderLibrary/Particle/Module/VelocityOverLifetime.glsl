@@ -33,6 +33,32 @@
         #endif
     #endif
 
+    vec3 evaluateVOLVelocity(Attributes attributes, in float normalizedAge) {
+        vec3 velocity;
+
+        #ifdef RENDERER_VOL_CONSTANT_MODE
+            velocity = renderer_VOLMaxConst;
+            #ifdef RENDERER_VOL_IS_RANDOM_TWO
+                velocity = mix(renderer_VOLMinConst, velocity, attributes.a_Random1.yzw);
+            #endif
+        #endif
+
+        #ifdef RENDERER_VOL_CURVE_MODE
+            velocity = vec3(
+                evaluateParticleCurve(renderer_VOLMaxGradientX, normalizedAge),
+                evaluateParticleCurve(renderer_VOLMaxGradientY, normalizedAge),
+                evaluateParticleCurve(renderer_VOLMaxGradientZ, normalizedAge));
+            #ifdef RENDERER_VOL_IS_RANDOM_TWO
+                vec3 minVelocity = vec3(
+                    evaluateParticleCurve(renderer_VOLMinGradientX, normalizedAge),
+                    evaluateParticleCurve(renderer_VOLMinGradientY, normalizedAge),
+                    evaluateParticleCurve(renderer_VOLMinGradientZ, normalizedAge));
+                velocity = mix(minVelocity, velocity, attributes.a_Random1.yzw);
+            #endif
+        #endif
+        return velocity;
+    }
+
     vec3 computeVelocityPositionOffset(Attributes attributes, in float normalizedAge, in float age, out vec3 currentVelocity) {
         vec3 velocityPosition;
 

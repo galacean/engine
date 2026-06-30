@@ -180,8 +180,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         vec3 currentLinearVelocity = vec3(0.0);
 
         #ifdef _VOL_LINEAR_MODULE_ENABLED
-            vec3 instantVOLVelocity;
-            computeVelocityPositionOffset(attr, normalizedAge, age, instantVOLVelocity);
+            vec3 instantVOLVelocity = evaluateVOLVelocity(attr, normalizedAge);
             if (renderer_VOLSpace == 0) {
                 localVelocity += instantVOLVelocity;
                 currentLinearVelocity = renderer_SimulationSpace == 0
