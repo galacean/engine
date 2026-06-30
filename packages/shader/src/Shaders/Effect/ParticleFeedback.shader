@@ -282,39 +282,26 @@ Shader "Effect/ParticleFeedback" {
           #endif
 
           #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
-          vec3 currentLinearOffset = vec3(0.0);
-          vec3 previousLinearOffset = vec3(0.0);
+          vec3 linearVelocity = vec3(0.0);
           #ifdef _VOL_LINEAR_MODULE_ENABLED
-              float previousAge = max(age - dt, 0.0);
-              float previousNormalizedAge = previousAge / lifetime;
-              vec3 currentVOLVelocity;
-              vec3 previousVOLVelocity;
-              vec3 currentVOLPositionOffset =
-                  computeVelocityPositionOffset(attr, normalizedAge, age, currentVOLVelocity);
-              vec3 previousVOLPositionOffset =
-                  computeVelocityPositionOffset(attr, previousNormalizedAge, previousAge, previousVOLVelocity);
-              if (renderer_VOLSpace == 0) {
-                  if (renderer_SimulationSpace == 0) {
-                      currentLinearOffset = currentVOLPositionOffset;
-                      previousLinearOffset = previousVOLPositionOffset;
-                  } else {
-                      currentLinearOffset = rotationByQuaternions(currentVOLPositionOffset, worldRotation);
-                      previousLinearOffset = rotationByQuaternions(previousVOLPositionOffset, worldRotation);
-                  }
+              if (renderer_SimulationSpace == 0) {
+                  linearVelocity = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
               } else {
-                  if (renderer_SimulationSpace == 0) {
-                      currentLinearOffset = rotationByQuaternions(currentVOLPositionOffset, invWorldRotation);
-                      previousLinearOffset = rotationByQuaternions(previousVOLPositionOffset, invWorldRotation);
-                  } else {
-                      currentLinearOffset = currentVOLPositionOffset;
-                      previousLinearOffset = previousVOLPositionOffset;
-                  }
+                  linearVelocity = rotationByQuaternions(volLocal, worldRotation) + volWorld;
               }
           #endif
 
-          vec3 position = attr.a_FeedbackPosition - previousLinearOffset + baseVelocity * dt;
+          vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
+          vec3 startVelocityInSimulationSpace;
+          if (renderer_SimulationSpace == 0) {
+              startVelocityInSimulationSpace = startVelocity;
+          } else {
+              startVelocityInSimulationSpace = rotationByQuaternions(startVelocity, worldRotation);
+          }
+          vec3 orbitVelocity = startVelocityInSimulationSpace + linearVelocity;
+          vec3 externalVelocity = baseVelocity - startVelocityInSimulationSpace;
+          vec3 position = attr.a_FeedbackPosition + orbitVelocity * dt;
 
-          // Orbital / Radial: rotate/grow the integrated orbit base around the orbit center.
           {
               vec3 rel;
               if (renderer_SimulationSpace == 0) {
@@ -340,7 +327,7 @@ Shader "Effect/ParticleFeedback" {
                   position = attr.a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
               }
           }
-          position += currentLinearOffset;
+          position += externalVelocity * dt;
           #else
           vec3 totalVelocity;
           if (renderer_SimulationSpace == 0) {
