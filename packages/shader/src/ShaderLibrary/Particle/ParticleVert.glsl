@@ -176,6 +176,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         worldVelocity = vec3(0.0);
         vec3 visualLocalVelocity = localVelocity;
         vec3 visualWorldVelocity = worldVelocity;
+        vec4 invWorldRotation = quaternionConjugate(worldRotation);
         vec3 currentLinearVelocity = vec3(0.0);
 
         #ifdef _VOL_LINEAR_MODULE_ENABLED
@@ -189,7 +190,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             } else {
                 worldVelocity += instantVOLVelocity;
                 currentLinearVelocity = renderer_SimulationSpace == 0
-                    ? rotationByQuaternions(instantVOLVelocity, quaternionConjugate(worldRotation))
+                    ? rotationByQuaternions(instantVOLVelocity, invWorldRotation)
                     : instantVOLVelocity;
             }
         #endif
@@ -206,7 +207,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             } else {
                 rel = rotationByQuaternions(
                     attr.a_FeedbackPosition - attr.a_SimulationWorldPosition,
-                    quaternionConjugate(worldRotation)) - renderer_VOLOffset;
+                    invWorldRotation) - renderer_VOLOffset;
             }
 
             vec3 orbitalRadialVelocity = vec3(0.0);
