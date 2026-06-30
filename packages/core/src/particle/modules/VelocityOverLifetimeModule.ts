@@ -482,9 +482,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   private _onOrbitalRadialChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+    this._onCompositeCurveChange(lastValue, value);
     lastValue?._unRegisterOnValueChanged(this._onTransformFeedbackDirty);
     value?._registerOnValueChanged(this._onTransformFeedbackDirty);
-    this._onCompositeCurveChange(lastValue, value);
     this._generator._setTransformFeedback();
   }
 }
