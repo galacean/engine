@@ -176,28 +176,21 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         worldVelocity = vec3(0.0);
         vec3 visualLocalVelocity = localVelocity;
         vec3 visualWorldVelocity = worldVelocity;
-        vec3 currentLinearOffset = vec3(0.0);
         vec3 currentLinearVelocity = vec3(0.0);
 
         #ifdef _VOL_LINEAR_MODULE_ENABLED
             vec3 instantVOLVelocity;
-            vec3 currentVOLPositionOffset = computeVelocityPositionOffset(attr, normalizedAge, age, instantVOLVelocity);
+            computeVelocityPositionOffset(attr, normalizedAge, age, instantVOLVelocity);
             if (renderer_VOLSpace == 0) {
                 localVelocity += instantVOLVelocity;
                 currentLinearVelocity = renderer_SimulationSpace == 0
                     ? instantVOLVelocity
                     : rotationByQuaternions(instantVOLVelocity, worldRotation);
-                currentLinearOffset = renderer_SimulationSpace == 0
-                    ? currentVOLPositionOffset
-                    : rotationByQuaternions(currentVOLPositionOffset, worldRotation);
             } else {
                 worldVelocity += instantVOLVelocity;
                 currentLinearVelocity = renderer_SimulationSpace == 0
                     ? rotationByQuaternions(instantVOLVelocity, quaternionConjugate(worldRotation))
                     : instantVOLVelocity;
-                currentLinearOffset = renderer_SimulationSpace == 0
-                    ? rotationByQuaternions(currentVOLPositionOffset, quaternionConjugate(worldRotation))
-                    : currentVOLPositionOffset;
             }
         #endif
 
@@ -209,10 +202,10 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
 
             vec3 rel;
             if (renderer_SimulationSpace == 0) {
-                rel = attr.a_FeedbackPosition - currentLinearOffset - renderer_VOLOffset;
+                rel = attr.a_FeedbackPosition - renderer_VOLOffset;
             } else {
                 rel = rotationByQuaternions(
-                    attr.a_FeedbackPosition - currentLinearOffset - attr.a_SimulationWorldPosition,
+                    attr.a_FeedbackPosition - attr.a_SimulationWorldPosition,
                     quaternionConjugate(worldRotation)) - renderer_VOLOffset;
             }
 
