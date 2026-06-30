@@ -37,7 +37,6 @@ import Particle_Module_SizeOverLifetime from "./Particle/Module/SizeOverLifetime
 import Particle_Module_TextureSheetAnimation from "./Particle/Module/TextureSheetAnimation.glsl";
 import Particle_Module_VelocityOverLifetime from "./Particle/Module/VelocityOverLifetime.glsl";
 import Particle_ParticleCommon from "./Particle/ParticleCommon.glsl";
-import Particle_ParticleFeedback from "./Particle/ParticleFeedback.glsl";
 import Particle_ParticleMesh from "./Particle/ParticleMesh.glsl";
 import Particle_ParticleVert from "./Particle/ParticleVert.glsl";
 import PostProcess_Bloom_BloomBlurH from "./PostProcess/Bloom/BloomBlurH.glsl";
@@ -99,7 +98,6 @@ export const shaderLibrary: IShaderSource[] = [
   { source: Particle_Module_TextureSheetAnimation, path: "ShaderLibrary/Particle/Module/TextureSheetAnimation.glsl" },
   { source: Particle_Module_VelocityOverLifetime, path: "ShaderLibrary/Particle/Module/VelocityOverLifetime.glsl" },
   { source: Particle_ParticleCommon, path: "ShaderLibrary/Particle/ParticleCommon.glsl" },
-  { source: Particle_ParticleFeedback, path: "ShaderLibrary/Particle/ParticleFeedback.glsl" },
   { source: Particle_ParticleMesh, path: "ShaderLibrary/Particle/ParticleMesh.glsl" },
   { source: Particle_ParticleVert, path: "ShaderLibrary/Particle/ParticleVert.glsl" },
   { source: PostProcess_Bloom_BloomBlurH, path: "ShaderLibrary/PostProcess/Bloom/BloomBlurH.glsl" },
