@@ -73,10 +73,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _radialMacro: ShaderMacro;
   @ignoreClone
   private _radialRandomModeMacro: ShaderMacro;
-  @ignoreClone
-  private readonly _onTransformFeedbackDirty = (): void => {
-    this._generator._setTransformFeedback();
-  };
 
   @deepClone
   private _velocityX: ParticleCompositeCurve;
@@ -95,6 +91,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   @deepClone
   private _offset = new Vector3();
   private _space = ParticleSimulationSpace.Local;
+
+  @ignoreClone
+  private readonly _onTransformFeedbackDirty = (): void => this._generator._setTransformFeedback();
 
   /**
    * Velocity over lifetime for x axis.
@@ -326,7 +325,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
 
-      // Orbital / Radial run only in the transform-feedback path (WebGL2).
       const orbitalActive = this._isOrbitalActive();
       const radialActive = this._isRadialActive();
 
@@ -433,7 +431,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * @internal
-   * Orbital and radial velocities are position-dependent and only run in the transform-feedback path.
    */
   _needTransformFeedback(): boolean {
     if (!this._enabled || !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
