@@ -416,12 +416,13 @@ describe("Entity", async () => {
       };
       expect(siblingIndexBadFn).to.throw();
 
-      // thorw error when set lonely entity
+      // setting sibling index on a lonely entity (no parent, not in scene root) warns instead of throwing
       const entityX = new Entity(engine, "entityX");
-      var lonelyBadFn = function () {
+      var lonelyFn = function () {
         entityX.siblingIndex = 1;
       };
-      expect(lonelyBadFn).to.throw();
+      expect(lonelyFn).not.to.throw();
+      expect(entityX.siblingIndex).eq(-1);
     });
 
     it("isRoot", () => {

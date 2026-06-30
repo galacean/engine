@@ -214,7 +214,7 @@ export class Entity extends EngineObject {
   set siblingIndex(value: number) {
     if (this._isRoot) {
       this._setSiblingIndex(this._scene._rootEntities, value);
-    } else {
+    } else if (this._parent) {
       const parent = this._parent;
       this._setSiblingIndex(parent._children, value);
       parent._dispatchModify(EntityModifyFlags.Child, parent);
@@ -402,10 +402,6 @@ export class Entity extends EngineObject {
       const child = children[i];
       child._parent = null;
       child._siblingIndex = -1;
-      // Dispatch `Child` to the old parent before `_processInActive` (which unregisters
-      // UI listeners via `cleanRootCanvas`), so subscribers such as UICanvas can react
-      // to the hierarchy change while still attached.
-      this._dispatchModify(EntityModifyFlags.Child, this);
 
       let activeChangeFlag = ActiveChangeFlag.None;
       child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -417,6 +413,9 @@ export class Entity extends EngineObject {
       child._setParentChange();
     }
     children.length = 0;
+    // Dispatch a single `Child` modify event for the whole clear so subscribers
+    // (e.g. UICanvas) can invalidate their cached hierarchy state once.
+    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   /**
