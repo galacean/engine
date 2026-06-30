@@ -1,4 +1,4 @@
-import { Rand, Vector2, Vector3 } from "@galacean/engine-math";
+import { Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderMacro } from "../../shader";
 import { ShaderData } from "../../shader/ShaderData";
@@ -48,8 +48,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _radialMinCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMinCurve");
   static readonly _radialMaxCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMaxCurve");
   static readonly _offsetProperty = ShaderProperty.getByName("renderer_VOLOffset");
-
-  private static _tempMinMax = new Vector2();
 
   /** @internal */
   @ignoreClone
@@ -393,8 +391,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
       if (radialActive) {
         const radial = this._radial;
-        const isRadialRandomMode = this._isRandomCurveMode(radial);
-        if (this._isCurveMode(radial)) {
+        const isRadialRandomMode = radial._isRandomMode();
+        if (radial._isCurveMode()) {
           shaderData.setFloatArray(VelocityOverLifetimeModule._radialMaxCurveProperty, radial.curveMax._getTypeArray());
           radialMacro = VelocityOverLifetimeModule._radialCurveModeMacro;
           if (isRadialRandomMode) {
@@ -448,18 +446,14 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    * @internal
    */
   _isOrbitalActive(): boolean {
-    return (
-      this._isCompositeCurveActive(this._orbitalX) ||
-      this._isCompositeCurveActive(this._orbitalY) ||
-      this._isCompositeCurveActive(this._orbitalZ)
-    );
+    return !(this._orbitalX._isZero() && this._orbitalY._isZero() && this._orbitalZ._isZero());
   }
 
   /**
    * @internal
    */
   _isRadialActive(): boolean {
-    return this._isCompositeCurveActive(this._radial);
+    return !this._radial._isZero();
   }
 
   /**
@@ -487,21 +481,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
         orbitalY.mode === ParticleCurveMode.TwoCurves &&
         orbitalZ.mode === ParticleCurveMode.TwoCurves);
 
-    return isLinearRandomMode || isOrbitalRandomMode || this._isRandomCurveMode(this._radial);
-  }
-
-  private _isCompositeCurveActive(curve: ParticleCompositeCurve): boolean {
-    const minMax = VelocityOverLifetimeModule._tempMinMax;
-    curve._getMinMax(minMax);
-    return minMax.x !== 0 || minMax.y !== 0;
-  }
-
-  private _isCurveMode(curve: ParticleCompositeCurve): boolean {
-    return curve.mode === ParticleCurveMode.Curve || curve.mode === ParticleCurveMode.TwoCurves;
-  }
-
-  private _isRandomCurveMode(curve: ParticleCompositeCurve): boolean {
-    return curve.mode === ParticleCurveMode.TwoConstants || curve.mode === ParticleCurveMode.TwoCurves;
+    return isLinearRandomMode || isOrbitalRandomMode || this._radial._isRandomMode();
   }
 
   private _onOrbitalRadialChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {

@@ -8,6 +8,8 @@ import { CurveKey, ParticleCurve } from "./ParticleCurve";
  * Particle composite curve.
  */
 export class ParticleCompositeCurve {
+  private static _minMaxRange = new Vector2();
+
   @ignoreClone
   private _updateManager = new UpdateFlagManager();
   private _mode = ParticleCurveMode.Constant;
@@ -252,6 +254,29 @@ export class ParticleCompositeCurve {
         out.set(min, max);
         break;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _isZero(): boolean {
+    const minMax = ParticleCompositeCurve._minMaxRange;
+    this._getMinMax(minMax);
+    return minMax.x === 0 && minMax.y === 0;
+  }
+
+  /**
+   * @internal
+   */
+  _isCurveMode(): boolean {
+    return this._mode === ParticleCurveMode.Curve || this._mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomMode(): boolean {
+    return this._mode === ParticleCurveMode.TwoConstants || this._mode === ParticleCurveMode.TwoCurves;
   }
 
   /**
