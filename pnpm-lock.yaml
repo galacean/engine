@@ -303,16 +303,6 @@ importers:
         specifier: workspace:*
         version: link:../galacean
 
-  packages/spine-core-3.8:
-    dependencies:
-      '@galacean/engine-spine':
-        specifier: workspace:*
-        version: link:../spine
-    devDependencies:
-      '@galacean/engine':
-        specifier: workspace:*
-        version: link:../galacean
-
   packages/spine-core-4.2:
     dependencies:
       '@galacean/engine-spine':
