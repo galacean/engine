@@ -24,6 +24,7 @@ export class PhysicsScene {
   private _scene: Scene;
   private _restTime: number = 0;
   private _fixedTimeStep: number = 1 / 60;
+  private _maximumDeltaTime: number = Infinity;
 
   private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
@@ -53,6 +54,17 @@ export class PhysicsScene {
 
   set fixedTimeStep(value: number) {
     this._fixedTimeStep = Math.max(value, MathUtil.zeroTolerance);
+  }
+
+  /**
+   * Maximum delta time in seconds allowed per frame for physics simulation.
+   */
+  get maximumDeltaTime(): number {
+    return this._maximumDeltaTime;
+  }
+
+  set maximumDeltaTime(value: number) {
+    this._maximumDeltaTime = Math.max(value, MathUtil.zeroTolerance);
   }
 
   constructor(scene: Scene) {
@@ -640,7 +652,7 @@ export class PhysicsScene {
     const { _fixedTimeStep: fixedTimeStep, _nativePhysicsScene: nativePhysicsManager } = this;
     const componentsManager = this._scene._componentsManager;
 
-    const simulateTime = this._restTime + deltaTime;
+    const simulateTime = this._restTime + Math.min(deltaTime, this._maximumDeltaTime);
     const step = Math.floor(simulateTime / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {

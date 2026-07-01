@@ -142,6 +142,30 @@ describe("Physics Test", () => {
       expect(enginePhysX.sceneManager.scenes[0].physics.fixedTimeStep).to.eq(fixedTimeStep);
     });
 
+    it("maximumDeltaTime", () => {
+      const physics = enginePhysX.sceneManager.scenes[0].physics;
+      expect(physics.maximumDeltaTime).to.eq(Infinity);
+
+      physics.fixedTimeStep = 1 / 60;
+      physics.maximumDeltaTime = 1 / 60;
+      (physics as any)._restTime = 0;
+
+      const nativePhysicsScene = (physics as any)._nativePhysicsScene;
+      const update = vi.fn();
+      (physics as any)._nativePhysicsScene = {
+        update,
+        updateEvents: () => ({ contactEvents: [], contactEventCount: 0, triggerEvents: [] })
+      };
+
+      try {
+        physics._update(1);
+        expect(update).toHaveBeenCalledTimes(1);
+      } finally {
+        (physics as any)._nativePhysicsScene = nativePhysicsScene;
+        physics.maximumDeltaTime = Infinity;
+      }
+    });
+
     it("raycast", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
