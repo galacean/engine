@@ -23,7 +23,8 @@ body.appendChild(canvasDOM);
 describe("InputManager", async () => {
   const engine = await WebGLEngine.create({ canvas: canvasDOM, physics: new LitePhysics() });
   const { inputManager, canvas } = engine;
-  canvas.resizeByClientSize(2);
+  // Canvas is 5x5 CSS px; lock the render buffer to the equivalent size at pixelRatio 2.
+  canvas.setResolution(10, 10);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 

@@ -11,6 +11,10 @@ export class WebCanvas extends Canvas {
 
   private _scale: Vector2 = new Vector2();
 
+  private _resizeObserver?: ResizeObserver;
+  private _autoResolutionScale: number = 1;
+  private _pendingResize: boolean = false;
+
   /**
    * The scale of canvas, the value is visible width/height divide the render width/height.
    * @remarks Need to re-assign after modification to ensure that the modification takes effect.
@@ -42,18 +46,19 @@ export class WebCanvas extends Canvas {
     return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
   }
 
-  /**
-   * Resize the rendering size according to the clientWidth and clientHeight of the canvas.
-   * @param pixelRatio - Pixel ratio
-   */
-  resizeByClientSize(pixelRatio: number = window.devicePixelRatio): void {
-    const webCanvas = this._webCanvas;
-    if (!this.isOffscreenCanvas()) {
-      const exportWidth = webCanvas.clientWidth * pixelRatio;
-      const exportHeight = webCanvas.clientHeight * pixelRatio;
-      this.width = exportWidth;
-      this.height = exportHeight;
+  override setAutoResolution(scale: number = 1): void {
+    // TODO: OffscreenCanvas has no display size; warn once.
+    if (this.isOffscreenCanvas()) return;
+
+    this._autoResolutionScale = scale;
+
+    if (!this._resizeObserver) {
+      // Flag only; the resize is applied in `_pumpPendingResize` so it lands in the render frame.
+      this._resizeObserver = new ResizeObserver(() => (this._pendingResize = true));
+      this._resizeObserver.observe(this._webCanvas);
     }
+
+    this._pendingResize = true;
   }
 
   /**
@@ -62,11 +67,8 @@ export class WebCanvas extends Canvas {
    */
   constructor(webCanvas: HTMLCanvasElement | OffscreenCanvas) {
     super();
-    const width = webCanvas.width;
-    const height = webCanvas.height;
     this._webCanvas = webCanvas;
-    this.width = width;
-    this.height = height;
+    this._setSize(webCanvas.width, webCanvas.height);
   }
 
   /**
@@ -79,11 +81,35 @@ export class WebCanvas extends Canvas {
     this.scale = this._scale;
   }
 
-  protected override _onWidthChanged(value: number): void {
-    this._webCanvas.width = value;
+  override _pumpPendingResize(): void {
+    if (!this._pendingResize) return;
+
+    const webCanvas = this._webCanvas;
+    // Skip while the canvas has no layout size yet (e.g. not mounted); keep the flag so a later
+    // observe with a real size applies the resize, never setting a 0x0 buffer.
+    if (webCanvas.clientWidth === 0 || webCanvas.clientHeight === 0) return;
+
+    this._pendingResize = false;
+    const pixelRatio = window.devicePixelRatio * this._autoResolutionScale;
+    // Round so the cached size matches the integer buffer; TODO: use `devicePixelContentBoxSize`.
+    this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
   }
 
-  protected override _onHeightChange(value: number): void {
-    this._webCanvas.height = value;
+  override _destroy(): void {
+    this._exitAutoResize();
+  }
+
+  protected override _exitAutoResize(): void {
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = undefined;
+    }
+    this._pendingResize = false;
+  }
+
+  protected override _onSizeChanged(width: number, height: number): void {
+    const webCanvas = this._webCanvas;
+    webCanvas.width = width;
+    webCanvas.height = height;
   }
 }

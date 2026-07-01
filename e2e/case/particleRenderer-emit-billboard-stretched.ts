@@ -29,7 +29,7 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
+  engine.canvas.setResolution(1200, 800);
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 
@@ -89,7 +89,8 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;
-  const { main, emission, rotationOverLifetime, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } = generator;
+  const { main, emission, rotationOverLifetime, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } =
+    generator;
 
   // Main module
   const { startLifetime, startSpeed, startSize, startRotationZ } = main;
@@ -99,8 +100,6 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   main.simulationSpace = ParticleSimulationSpace.Local;
   // main.startRotation3D = true;
   main.startRotationZ.constant = 0;
- 
-
 
   const coneShape = new ConeShape();
   coneShape.angle = 0.01;

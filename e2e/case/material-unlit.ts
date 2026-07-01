@@ -8,7 +8,7 @@ Logger.enable();
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setResolution(2400, 1600);
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

@@ -171,13 +171,12 @@ describe("camera test", function () {
     expect(viewportPoint.z).to.be.closeTo(expectedviewportPoint.z, 0.1, "Result z should match expected value");
 
     const webCanvas = engine.canvas;
-    webCanvas.width = 100;
-    webCanvas.height = 1000;
+    webCanvas.setResolution(100, 1000);
     camera.viewportToWorldPoint(viewportPoint, worldPoint);
     expect(worldPoint.x).to.be.closeTo(-1.73, 0.1, "Result x should match expected value");
     expect(worldPoint.y).to.be.closeTo(17.32, 0.1, "Result y should match expected value");
     expect(worldPoint.z).to.be.closeTo(-30, 0.1, "Result z should match expected value");
-    webCanvas.width = webCanvas.height = 256;
+    webCanvas.setResolution(256, 256);
   });
 
   it("viewport to world point, while isOrthographic = true", () => {

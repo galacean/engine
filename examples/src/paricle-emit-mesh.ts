@@ -56,7 +56,8 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   const generator = particleRenderer.generator;
   generator.useAutoRandomSeed = false;
-  const { main, emission, rotationOverLifetime, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } = generator;
+  const { main, emission, rotationOverLifetime, textureSheetAnimation, sizeOverLifetime, colorOverLifetime } =
+    generator;
 
   // Main module
   const { startLifetime, startSpeed, startSize, startRotationZ } = main;
@@ -65,12 +66,11 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   main.simulationSpace = ParticleSimulationSpace.Local;
   main.startRotation3D = true;
-   main.startRotationX.constant = -40;
+  main.startRotationX.constant = -40;
   main.startRotationZ.constant = 0;
- 
+
   // main.startRotationY.constant = 40;
   // main.startRotationZ.constant = -70;
-
 
   rotationOverLifetime.enabled = true;
   rotationOverLifetime.separateAxes = true;
@@ -94,7 +94,6 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   // coneShape.angle = 0.01;
   // emission.shape = coneShape;
 
-
   const coneShape = new ConeShape();
   coneShape.angle = 0.01;
   emission.shape = coneShape;
@@ -105,7 +104,6 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 async function main() {
   // Create engine and get root entity
   const engine = await WebGLEngine.create({ canvas: "canvas" });
-  engine.canvas.resizeByClientSize();
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 

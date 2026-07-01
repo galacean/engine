@@ -1,4 +1,4 @@
-import { Camera, EngineEventType, Entity, Script } from "@galacean/engine-core";
+import { Camera, Entity, Script } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, expect, it } from "vitest";
@@ -103,47 +103,57 @@ describe("webgl engine test", () => {
     }
   });
 
-  it("engine auto resize", async () => {
+  it("canvas auto resize", async () => {
+    // autoResize defaults to true: create enters auto mode and attaches an observer.
     const canvas = document.createElement("canvas");
     const engine = await WebGLEngine.create({ canvas });
     engine.run();
+    const webCanvas = engine.canvas;
+    const observer = (webCanvas as any)._resizeObserver;
+    expect(observer).toBeDefined();
 
-    const rawListenerCount = engine.listenerCount(EngineEventType.Shutdown);
+    // Re-entering auto reuses the same observer and updates the scale.
+    webCanvas.setAutoResolution(0.5);
+    expect((webCanvas as any)._resizeObserver).toBe(observer);
+    expect((webCanvas as any)._autoResolutionScale).toBe(0.5);
 
-    engine.enableAutoResize();
-    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount + 1);
-    expect((engine as any)._resizeObserver).toBeDefined();
-    const firstObserver = (engine as any)._resizeObserver;
-    const firstObserverDisconnectSpy = vi.spyOn(firstObserver, "disconnect");
-    expect(firstObserverDisconnectSpy).toHaveBeenCalledTimes(0);
+    // A pending resize is applied on the next frame pump. jsdom has no layout, so stub clientWidth/Height.
+    Object.defineProperty(canvas, "clientWidth", { value: 800, configurable: true });
+    Object.defineProperty(canvas, "clientHeight", { value: 600, configurable: true });
+    (webCanvas as any)._pendingResize = true;
+    webCanvas._pumpPendingResize();
+    expect((webCanvas as any)._pendingResize).toBe(false);
+    expect(webCanvas.width).toBe(Math.round(800 * window.devicePixelRatio * 0.5));
+    expect(webCanvas.height).toBe(Math.round(600 * window.devicePixelRatio * 0.5));
 
-    engine.enableAutoResize();
-    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount + 1);
-    expect((engine as any)._resizeObserver).toBeDefined();
-    expect((engine as any)._resizeObserver).not.toBe(firstObserver);
-    expect(firstObserverDisconnectSpy).toHaveBeenCalledTimes(1);
+    // A pending resize is skipped while the canvas has no layout size (never a 0x0 buffer).
+    Object.defineProperty(canvas, "clientWidth", { value: 0, configurable: true });
+    (webCanvas as any)._pendingResize = true;
+    webCanvas._pumpPendingResize();
+    expect((webCanvas as any)._pendingResize).toBe(true); // kept for a later valid observe
 
-    engine.disableAutoResize();
-    expect((engine as any)._resizeObserver).toBeUndefined();
-    expect((engine as any)._pendingResizePixelRatio).toBeUndefined();
-    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount);
+    // setResolution locks a fixed size and exits auto mode (observer released).
+    webCanvas.setResolution(320, 240);
+    expect((webCanvas as any)._resizeObserver).toBeUndefined();
+    expect(webCanvas.width).toBe(320);
+    expect(webCanvas.height).toBe(240);
 
-    const resizeSpy = vi.spyOn(engine.canvas, "resizeByClientSize");
-    engine.enableAutoResize();
-    expect((engine as any)._resizeObserver).toBeDefined();
-    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount + 1);
+    // setResolution rejects invalid sizes.
+    expect(() => webCanvas.setResolution(0, 100)).to.throw();
+    expect(() => webCanvas.setResolution(-1, 100)).to.throw();
 
-    canvas.style.width = "800px";
-    canvas.style.height = "600px";
-    // Wait for the ResizeObserver to fire the resize callback
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    expect(resizeSpy).toHaveBeenCalledTimes(1);
-    // _pendingResizePixelRatio should be consumed by update() and cleared
-    expect((engine as any)._pendingResizePixelRatio).toBeUndefined();
-
+    // destroy releases the observer.
+    webCanvas.setAutoResolution();
+    expect((webCanvas as any)._resizeObserver).toBeDefined();
     engine.destroy();
-    expect((engine as any)._resizeObserver).toBeUndefined();
-    expect((engine as any)._pendingResizePixelRatio).toBeUndefined();
-    expect(engine.listenerCount(EngineEventType.Shutdown)).toBe(rawListenerCount);
+    expect((webCanvas as any)._resizeObserver).toBeUndefined();
+  });
+
+  it("autoResize false disables the default follow", async () => {
+    const canvas = document.createElement("canvas");
+    const engine = await WebGLEngine.create({ canvas, autoResize: false });
+    // No observer attached when auto-resize is opted out.
+    expect((engine.canvas as any)._resizeObserver).toBeUndefined();
+    engine.destroy();
   });
 });

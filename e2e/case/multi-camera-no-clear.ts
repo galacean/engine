@@ -29,7 +29,7 @@ WebGLEngine.create({
     antialias: false
   }
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
+  engine.canvas.setResolution(1200, 800);
 
   initFirstScene(engine);
   engine.run();

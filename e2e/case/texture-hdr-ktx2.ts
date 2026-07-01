@@ -55,7 +55,7 @@ const shaderSource = `Shader "test-hdr" {
 }`;
 
 WebGLEngine.create({ canvas: "canvas", shaderCompiler, ktx2Loader: { workerCount: 0 } }).then((engine) => {
-  engine.canvas.resizeByClientSize(2);
+  engine.canvas.setResolution(2400, 1600);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 

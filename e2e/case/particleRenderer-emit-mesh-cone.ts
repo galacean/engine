@@ -41,7 +41,7 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
+  engine.canvas.setResolution(1200, 800);
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 

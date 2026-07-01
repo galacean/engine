@@ -29,7 +29,7 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
+  engine.canvas.setResolution(1200, 800);
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 
@@ -75,7 +75,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   const particleEntity = new Entity(engine, "EmitMeshParticle");
   particleEntity.transform.rotation.set(220, -20, 0);
-  particleEntity.transform.scale.set(10,1,1);
+  particleEntity.transform.scale.set(10, 1, 1);
 
   // var r=0;
   // setInterval(() => {
@@ -89,7 +89,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   material.baseColor = new Color(1.0, 1.0, 1.0, 1.0);
   // material.blendMode = BlendMode.Additive;
   material.baseTexture = glTFModel.textures[0];
-  material.baseTexture.anisoLevel=12;
+  material.baseTexture.anisoLevel = 12;
   particleRenderer.setMaterial(material);
 
   particleRenderer.renderMode = ParticleRenderMode.Mesh;
@@ -102,11 +102,11 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
 
   // Main module
   const { startLifetime, startSpeed, startSize, startRotationZ } = main;
-  startSpeed.constant =1.0;
+  startSpeed.constant = 1.0;
   startSize.constant = 0.2;
 
   main.simulationSpace = ParticleSimulationSpace.Local;
-  main.startRotationZ.constant=-45;
+  main.startRotationZ.constant = -45;
   // startLifetime.constantMin = 0.2;
   // startLifetime.constantMax = 0.8;
   // startLifetime.mode = ParticleCurveMode.TwoConstants;
@@ -120,7 +120,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   // startSize.mode = ParticleCurveMode.TwoConstants;
 
   const coneShape = new ConeShape();
-  coneShape.angle=0.01;
+  coneShape.angle = 0.01;
   emission.shape = coneShape;
 
   return particleEntity;

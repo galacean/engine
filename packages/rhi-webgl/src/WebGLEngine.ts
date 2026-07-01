@@ -16,6 +16,13 @@ export class WebGLEngine extends Engine {
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
+    // Release the canvas resize observer when the engine shuts down.
+    engine.once(EngineEventType.Shutdown, WebGLEngine._releaseCanvas);
+    // Follow the display size by default; the first resize is deferred to update() and skipped while
+    // the canvas has no layout size, so an unmounted canvas never gets a 0x0 buffer.
+    if (configuration.autoResize ?? true) {
+      webCanvas.setAutoResolution();
+    }
     // @ts-ignore
     const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
     return promise.then(() => {
@@ -24,9 +31,9 @@ export class WebGLEngine extends Engine {
     });
   }
 
-  private _resizeObserver?: ResizeObserver;
-  private _pendingResize: boolean = false;
-  private _pendingResizePixelRatio?: number;
+  private static _releaseCanvas(engine: WebGLEngine): void {
+    engine.canvas._destroy();
+  }
 
   /**
    * Web canvas.
@@ -36,66 +43,28 @@ export class WebGLEngine extends Engine {
     return this._canvas as WebCanvas;
   }
 
-  private static _cleanupAutoResize(engine: WebGLEngine): void {
-    if (engine._resizeObserver) {
-      engine._resizeObserver.disconnect();
-      engine._resizeObserver = undefined;
-    }
-    engine._pendingResize = false;
-    engine._pendingResizePixelRatio = undefined;
-  }
-
   /**
-   * Enable automatic canvas resizing via ResizeObserver.
-   * @param pixelRatio - Optional custom pixel ratio; lazily reads window.devicePixelRatio on resize when omitted
+   * Enable automatic canvas resizing.
+   * @deprecated Use `engine.canvas.setAutoResolution()` instead. Auto-resolution is a canvas capability.
+   * @param pixelRatio - Deprecated; the device pixel ratio is applied automatically
    */
   enableAutoResize(pixelRatio?: number): void {
-    const webCanvas = this.canvas._webCanvas;
-
-    if (!this.canvas.isOffscreenCanvas()) {
-      if (!this._resizeObserver) {
-        this.once(EngineEventType.Shutdown, WebGLEngine._cleanupAutoResize);
-      }
-
-      // Disconnect previous observer to avoid duplicate observation
-      this._resizeObserver?.disconnect();
-
-      // Re-create the observer each call so the closure always captures the
-      // latest pixelRatio. The actual resize is deferred to update(), keeping
-      // it in the same frame as rendering to prevent a blank flash.
-      // When pixelRatio is undefined, resizeByClientSize falls back to
-      // window.devicePixelRatio on each invocation, naturally tracking DPR changes.
-      this._resizeObserver = new ResizeObserver(() => {
-        this._pendingResize = true;
-        this._pendingResizePixelRatio = pixelRatio;
-      });
-
-      // Start observing the canvas element for size changes.
-      this._resizeObserver.observe(webCanvas);
-    }
+    // The old pixelRatio replaced dpr; the new model applies dpr automatically, so drop the argument.
+    this.canvas.setAutoResolution();
   }
 
   /**
-   * Disable automatic canvas resizing and clean up the observer.
+   * Disable automatic canvas resizing.
+   * @deprecated Use `engine.canvas.setResolution(width, height)` to lock a fixed resolution instead.
    */
   disableAutoResize(): void {
-    if (this._resizeObserver) {
-      this.off(EngineEventType.Shutdown, WebGLEngine._cleanupAutoResize);
-      WebGLEngine._cleanupAutoResize(this);
-    }
+    const canvas = this.canvas;
+    canvas.setResolution(canvas.width, canvas.height);
   }
 
-  /**
-   * @override
-   * Apply any pending canvas resize before the rendering pipeline runs,
-   * ensuring that resize and render occur within the same frame to avoid white flickering.
-   */
   override update(): void {
-    if (this._pendingResize) {
-      this.canvas.resizeByClientSize(this._pendingResizePixelRatio);
-      this._pendingResize = false;
-      this._pendingResizePixelRatio = undefined;
-    }
+    // Apply pending resize before rendering so both land in the same frame (no white flash).
+    this.canvas._pumpPendingResize();
     super.update();
   }
 }
@@ -108,4 +77,6 @@ export interface WebGLEngineConfiguration extends EngineConfiguration {
   canvas: HTMLCanvasElement | OffscreenCanvas | string;
   /** Graphic device options. */
   graphicDeviceOptions?: WebGLGraphicDeviceOptions;
+  /** Whether the render buffer automatically follows the canvas display size. Defaults to `true`. */
+  autoResize?: boolean;
 }

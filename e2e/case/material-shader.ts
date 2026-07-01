@@ -67,7 +67,7 @@ function createPlaneMesh(engine: WebGLEngine) {
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
-  engine.canvas.resizeByClientSize();
+  engine.canvas.setResolution(1200, 800);
 
   const shaderMap = {
     normal: Shader.create(normalShaderSource)
