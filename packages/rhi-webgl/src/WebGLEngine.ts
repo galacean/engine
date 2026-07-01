@@ -24,6 +24,10 @@ export class WebGLEngine extends Engine {
     });
   }
 
+  private _resizeObserver?: ResizeObserver;
+  private _pendingResize: boolean = false;
+  private _pendingResizePixelRatio?: number;
+
   /**
    * Web canvas.
    */
@@ -31,10 +35,6 @@ export class WebGLEngine extends Engine {
     // @ts-ignore
     return this._canvas as WebCanvas;
   }
-
-  private _resizeObserver?: ResizeObserver;
-  private _pendingResize: boolean = false;
-  private _pendingResizePixelRatio?: number;
 
   private static _cleanupAutoResize(engine: WebGLEngine): void {
     if (engine._resizeObserver) {
