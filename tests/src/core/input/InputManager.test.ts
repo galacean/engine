@@ -10,7 +10,7 @@ import {
   StaticCollider
 } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
-import { LitePhysics } from "@galacean/engine-physics-lite";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { vi, describe, expect, it } from "vitest";
 
@@ -21,7 +21,7 @@ canvasDOM.style.height = "5px";
 body.appendChild(canvasDOM);
 
 describe("InputManager", async () => {
-  const engine = await WebGLEngine.create({ canvas: canvasDOM, physics: new LitePhysics() });
+  const engine = await WebGLEngine.create({ canvas: canvasDOM, physics: new PhysXPhysics() });
   const { inputManager, canvas } = engine;
   // Canvas is 5x5 CSS px; lock the render buffer to the equivalent size at pixelRatio 2.
   canvas.setResolution(10, 10);
@@ -80,7 +80,8 @@ describe("InputManager", async () => {
     }
 
     const cameraEntity = root.createChild("camera");
-    cameraEntity.transform.setPosition(0, 0, 1);
+    cameraEntity.transform.setPosition(0, 0, 10);
+    cameraEntity.transform.lookAt(new Vector3());
     cameraEntity.addComponent(Camera);
 
     const boxEntity = root.createChild("box");
@@ -220,14 +221,16 @@ describe("InputManager", async () => {
   });
 
   it("change listener target", () => {
-    window.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    const pointerId = 5;
+    const pointerCount = inputManager.pointers.length;
+    window.dispatchEvent(generatePointerEvent("pointerdown", pointerId, 1, 1));
     engine.update();
-    expect(inputManager.pointers.length).to.eq(0);
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", 1, 1, 1));
+    expect(inputManager.pointers.length).to.eq(pointerCount);
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerdown", pointerId, 1, 1));
     engine.update();
-    expect(inputManager.pointers.length).to.eq(1);
-    window.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1));
-    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", 1, 1, 1));
+    expect(inputManager.pointers.length).to.eq(pointerCount + 1);
+    window.dispatchEvent(generatePointerEvent("pointerleave", pointerId, 1, 1));
+    canvasDOM.dispatchEvent(generatePointerEvent("pointerleave", pointerId, 1, 1));
 
     canvasDOM.dispatchEvent(generateKeyboardEvent("keydown", "KeyA"));
     engine.update();

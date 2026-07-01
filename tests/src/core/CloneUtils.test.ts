@@ -100,7 +100,7 @@ class ClickHandler extends Script {
     this.callCount++;
   }
 
-  handleClickWithPrefix(prefix: string): void {
+  handleClickWithPrefix(arg: number, prefix: string): void {
     this.callCount++;
     this.lastPrefix = prefix;
   }

@@ -149,6 +149,8 @@ export class BasicRenderPipeline {
       camera.shaderData.setTexture(Camera._cameraDepthTextureProperty, engine._basicResources.whiteTexture2D);
     }
 
+    const pool = engine._renderTargetPool;
+
     // Check if need to create internal color texture or grab texture
     if (independentCanvasEnabled) {
       let depthFormat: TextureFormat;
@@ -164,9 +166,7 @@ export class BasicRenderPipeline {
         depthFormat = null;
       }
       const viewport = camera.pixelViewport;
-      const internalColorTarget = PipelineUtils.recreateRenderTargetIfNeeded(
-        engine,
-        this._internalColorTarget,
+      this._internalColorTarget = pool.allocateRenderTarget(
         viewport.width,
         viewport.height,
         camera._getInternalColorTextureFormat(),
@@ -181,9 +181,7 @@ export class BasicRenderPipeline {
 
       if (this._shouldCopyBackgroundColor) {
         const colorTexture = camera.renderTarget?.getColorTexture(0);
-        const copyBackgroundTexture = PipelineUtils.recreateTextureIfNeeded(
-          engine,
-          this._copyBackgroundTexture,
+        this._copyBackgroundTexture = pool.allocateTexture(
           viewport.width,
           viewport.height,
           colorTexture?.format ?? TextureFormat.R8G8B8A8,
@@ -192,21 +190,6 @@ export class BasicRenderPipeline {
           TextureWrapMode.Clamp,
           TextureFilterMode.Bilinear
         );
-        this._copyBackgroundTexture = copyBackgroundTexture;
-      }
-
-      this._internalColorTarget = internalColorTarget;
-    } else {
-      const internalColorTarget = this._internalColorTarget;
-      const copyBackgroundTexture = this._copyBackgroundTexture;
-      const pool = engine._renderTargetPool;
-      if (internalColorTarget) {
-        pool.freeRenderTarget(internalColorTarget);
-        this._internalColorTarget = null;
-      }
-      if (copyBackgroundTexture) {
-        pool.freeTexture(copyBackgroundTexture);
-        this._copyBackgroundTexture = null;
       }
     }
 
@@ -221,6 +204,16 @@ export class BasicRenderPipeline {
     }
 
     this._drawRenderPass(context, camera, finalClearFlags, cubeFace, mipLevel);
+
+    // Return the per-frame leases so the next camera with matching shape can reuse them
+    if (this._internalColorTarget) {
+      pool.freeRenderTarget(this._internalColorTarget);
+      this._internalColorTarget = null;
+    }
+    if (this._copyBackgroundTexture) {
+      pool.freeTexture(this._copyBackgroundTexture);
+      this._copyBackgroundTexture = null;
+    }
   }
 
   private _drawRenderPass(

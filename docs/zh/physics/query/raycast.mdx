@@ -58,11 +58,11 @@ raycast(
 
 ```typescript
 import { WebGLEngine, HitResult, Ray, Vector3, Vector2 } from "@galacean/engine";
-import { LitePhysics } from "@galacean/engine-physics-lite";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 
 const engine = await WebGLEngine.create({
   canvas: "canvas",
-  physics: new LitePhysics()
+  physics: new PhysXPhysics()
 });
 engine.canvas.resizeByClientSize();
 const scene = engine.scenes[0];
@@ -99,10 +99,10 @@ document.getElementById("canvas").addEventListener("click", (e) => {
   const ratio = window.devicePixelRatio;
   const ray = new Ray();
   const screenPoint = new Vector2(e.offsetX * ratio, e.offsetY * ratio);
-  
+
   // 将屏幕坐标转换为射线
   camera.screenPointToRay(screenPoint, ray);
-  
+
   const hit = new HitResult();
   if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit)) {
     console.log(`选中了: ${hit.entity.name}`);
@@ -120,20 +120,20 @@ function fireBullet(startPosition: Vector3, direction: Vector3): Entity | null {
   const hitResult = new HitResult();
   const maxRange = 100.0; // 射程限制
   const targetLayer = Layer.Layer2 | Layer.Layer1;
-  
+
   if (scene.physics.raycast(ray, maxRange, targetLayer, hitResult)) {
     // 击中目标，应用伤害或效果
     const target = hitResult.entity;
     const distance = hitResult.distance;
-    
+
     console.log(`击中目标: ${target.name}，距离: ${distance.toFixed(2)}m`);
-    
+
     // 在击中点创建弹孔或特效
     createImpactEffect(hitResult.point, hitResult.normal);
-    
+
     return target;
   }
-  
+
   return null; // 未击中任何目标
 }
 ```
@@ -148,14 +148,14 @@ function checkGroundBelow(characterPosition: Vector3): number | null {
     rayOrigin,
     new Vector3(0, -1, 0) // 向下检测
   );
-  
+
   const hit = new HitResult();
   const maxDistance = 5.0; // 最大检测距离
-  
+
   if (scene.physics.raycast(ray, maxDistance, Layer.Layer1, hit)) {
     return hit.point.y; // 返回地面高度
   }
-  
+
   return null; // 没有检测到地面
 }
 
@@ -176,7 +176,7 @@ function hasLineOfSight(from: Vector3, to: Vector3, obstacleLayer: Layer = Layer
   const direction = to.clone().subtract(from).normalize();
   const distance = Vector3.distance(from, to);
   const ray = new Ray(from, direction);
-  
+
   // 如果射线在目标距离内击中了障碍物，则视线被阻挡
   return !scene.physics.raycast(ray, distance, obstacleLayer);
 }
@@ -205,32 +205,27 @@ if (hasLineOfSight(playerPos, enemyPos)) {
 class RaycastManager {
   private static readonly _hitResult = new HitResult();
   private static readonly _commonRay = new Ray();
-  
+
   // 快速地面检测
   static checkGround(position: Vector3, maxDistance: number = 2.0): number | null {
     this._commonRay.origin.copyFrom(position);
     this._commonRay.direction.set(0, -1, 0);
-    
-    if (scene.physics.raycast(
-      this._commonRay, 
-      maxDistance, 
-      Layer.Layer1, 
-      this._hitResult
-    )) {
+
+    if (scene.physics.raycast(this._commonRay, maxDistance, Layer.Layer1, this._hitResult)) {
       return this._hitResult.point.y;
     }
     return null;
   }
-  
+
   // 快速障碍物检测
   static checkObstacle(from: Vector3, to: Vector3): boolean {
     const direction = to.clone().subtract(from);
     const distance = direction.length();
     direction.normalize();
-    
+
     this._commonRay.origin.copyFrom(from);
     this._commonRay.direction.copyFrom(direction);
-    
+
     return scene.physics.raycast(this._commonRay, distance, Layer.Layer1);
   }
 }
@@ -245,13 +240,13 @@ class RaycastManager {
 
 ## 与其他查询方法的对比
 
-| 特性 | 射线检测 | 形状投射 | 重叠检测 |
-|------|----------|----------|----------|
-| 检测精度 | 点精度 | 体积精度 | 区域精度 |
-| 返回结果 | 第一个命中 | 第一个命中 | 所有重叠 |
-| 适用场景 | 点选、瞄准 | 移动预测 | 区域触发 |
-| 性能消耗 | 低 | 中等 | 中等 |
-| 实现复杂度 | 简单 | 中等 | 中等 |
+| 特性       | 射线检测   | 形状投射   | 重叠检测 |
+| ---------- | ---------- | ---------- | -------- |
+| 检测精度   | 点精度     | 体积精度   | 区域精度 |
+| 返回结果   | 第一个命中 | 第一个命中 | 所有重叠 |
+| 适用场景   | 点选、瞄准 | 移动预测   | 区域触发 |
+| 性能消耗   | 低         | 中等       | 中等     |
+| 实现复杂度 | 简单       | 中等       | 中等     |
 
 ## 与 InputManager 的结合使用
 
@@ -266,17 +261,17 @@ export class ClickDetectionScript extends Script {
   onPointerUp(eventData: PointerEventData): void {
     const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
     const ray = new Ray();
-    
+
     // 使用事件数据中的世界坐标位置
     camera.screenPointToRay(eventData.pointer.position, ray);
-    
+
     const hit = new HitResult();
     if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
       console.log(`点击了: ${hit.entity.name}`);
       this.handleObjectClick(hit.entity);
     }
   }
-  
+
   private handleObjectClick(entity: Entity): void {
     // 处理点击逻辑
   }
@@ -291,7 +286,7 @@ import { Script, PointerButton, Ray, HitResult, Layer, Vector2 } from "@galacean
 export class InputPollingScript extends Script {
   onUpdate(): void {
     const inputManager = this.engine.inputManager;
-    
+
     // 检测鼠标左键是否在当前帧释放
     if (inputManager.isPointerUp(PointerButton.Primary)) {
       // 获取第一个指针的位置
@@ -300,9 +295,9 @@ export class InputPollingScript extends Script {
         const pointer = pointers[0];
         const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
         const ray = new Ray();
-        
+
         camera.screenPointToRay(pointer.position, ray);
-        
+
         const hit = new HitResult();
         if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
           console.log(`点击了: ${hit.entity.name}`);
@@ -311,7 +306,7 @@ export class InputPollingScript extends Script {
       }
     }
   }
-  
+
   private handleObjectClick(entity: Entity): void {
     // 处理点击逻辑
   }

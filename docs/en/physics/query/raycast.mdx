@@ -58,11 +58,11 @@ Using raycasting requires the following steps:
 
 ```typescript
 import { WebGLEngine, HitResult, Ray, Vector3, Vector2 } from "@galacean/engine";
-import { LitePhysics } from "@galacean/engine-physics-lite";
+import { PhysXPhysics } from "@galacean/engine-physics-physx";
 
 const engine = await WebGLEngine.create({
   canvas: "canvas",
-  physics: new LitePhysics()
+  physics: new PhysXPhysics()
 });
 engine.canvas.resizeByClientSize();
 const scene = engine.scenes[0];
@@ -99,10 +99,10 @@ document.getElementById("canvas").addEventListener("click", (e) => {
   const ratio = window.devicePixelRatio;
   const ray = new Ray();
   const screenPoint = new Vector2(e.offsetX * ratio, e.offsetY * ratio);
-  
+
   // Convert screen coordinates to ray
   camera.screenPointToRay(screenPoint, ray);
-  
+
   const hit = new HitResult();
   if (scene.physics.raycast(ray, Number.MAX_VALUE, Layer.Everything, hit)) {
     console.log(`Selected: ${hit.entity.name}`);
@@ -120,20 +120,20 @@ function fireBullet(startPosition: Vector3, direction: Vector3): Entity | null {
   const hitResult = new HitResult();
   const maxRange = 100.0; // Range limit
   const targetLayer = Layer.Layer2 | Layer.Layer1;
-  
+
   if (scene.physics.raycast(ray, maxRange, targetLayer, hitResult)) {
     // Hit target, apply damage or effects
     const target = hitResult.entity;
     const distance = hitResult.distance;
-    
+
     console.log(`Hit target: ${target.name}, distance: ${distance.toFixed(2)}m`);
-    
+
     // Create bullet hole or effects at hit point
     createImpactEffect(hitResult.point, hitResult.normal);
-    
+
     return target;
   }
-  
+
   return null; // No target hit
 }
 ```
@@ -148,14 +148,14 @@ function checkGroundBelow(characterPosition: Vector3): number | null {
     rayOrigin,
     new Vector3(0, -1, 0) // Detect downward
   );
-  
+
   const hit = new HitResult();
   const maxDistance = 5.0; // Maximum detection distance
-  
+
   if (scene.physics.raycast(ray, maxDistance, Layer.Layer1, hit)) {
     return hit.point.y; // Return ground height
   }
-  
+
   return null; // No ground detected
 }
 
@@ -176,7 +176,7 @@ function hasLineOfSight(from: Vector3, to: Vector3, obstacleLayer: Layer = Layer
   const direction = to.clone().subtract(from).normalize();
   const distance = Vector3.distance(from, to);
   const ray = new Ray(from, direction);
-  
+
   // If ray hits obstacle within target distance, line of sight is blocked
   return !scene.physics.raycast(ray, distance, obstacleLayer);
 }
@@ -205,32 +205,27 @@ if (hasLineOfSight(playerPos, enemyPos)) {
 class RaycastManager {
   private static readonly _hitResult = new HitResult();
   private static readonly _commonRay = new Ray();
-  
+
   // Quick ground detection
   static checkGround(position: Vector3, maxDistance: number = 2.0): number | null {
     this._commonRay.origin.copyFrom(position);
     this._commonRay.direction.set(0, -1, 0);
-    
-    if (scene.physics.raycast(
-      this._commonRay, 
-      maxDistance, 
-      Layer.Layer1, 
-      this._hitResult
-    )) {
+
+    if (scene.physics.raycast(this._commonRay, maxDistance, Layer.Layer1, this._hitResult)) {
       return this._hitResult.point.y;
     }
     return null;
   }
-  
+
   // Quick obstacle detection
   static checkObstacle(from: Vector3, to: Vector3): boolean {
     const direction = to.clone().subtract(from);
     const distance = direction.length();
     direction.normalize();
-    
+
     this._commonRay.origin.copyFrom(from);
     this._commonRay.direction.copyFrom(direction);
-    
+
     return scene.physics.raycast(this._commonRay, distance, Layer.Layer1);
   }
 }
@@ -245,13 +240,13 @@ class RaycastManager {
 
 ## Comparison with Other Query Methods
 
-| Feature | Raycasting | Shape Casting | Overlap Detection |
-|---------|------------|---------------|-------------------|
-| Detection Precision | Point precision | Volume precision | Area precision |
-| Return Results | First hit | First hit | All overlapping |
-| Use Cases | Picking, aiming | Movement prediction | Area triggers |
-| Performance Cost | Low | Medium | Medium |
-| Implementation Complexity | Simple | Medium | Medium |
+| Feature                   | Raycasting      | Shape Casting       | Overlap Detection |
+| ------------------------- | --------------- | ------------------- | ----------------- |
+| Detection Precision       | Point precision | Volume precision    | Area precision    |
+| Return Results            | First hit       | First hit           | All overlapping   |
+| Use Cases                 | Picking, aiming | Movement prediction | Area triggers     |
+| Performance Cost          | Low             | Medium              | Medium            |
+| Implementation Complexity | Simple          | Medium              | Medium            |
 
 ## Integration with InputManager
 
@@ -266,17 +261,17 @@ export class ClickDetectionScript extends Script {
   onPointerUp(eventData: PointerEventData): void {
     const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
     const ray = new Ray();
-    
+
     // Use world position from event data
     camera.screenPointToRay(eventData.pointer.position, ray);
-    
+
     const hit = new HitResult();
     if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
       console.log(`Clicked: ${hit.entity.name}`);
       this.handleObjectClick(hit.entity);
     }
   }
-  
+
   private handleObjectClick(entity: Entity): void {
     // Handle click logic
   }
@@ -291,7 +286,7 @@ import { Script, PointerButton, Ray, HitResult, Layer, Vector2 } from "@galacean
 export class InputPollingScript extends Script {
   onUpdate(): void {
     const inputManager = this.engine.inputManager;
-    
+
     // Check if left mouse button was released this frame
     if (inputManager.isPointerUp(PointerButton.Primary)) {
       // Get first pointer position
@@ -300,9 +295,9 @@ export class InputPollingScript extends Script {
         const pointer = pointers[0];
         const camera = this.entity.scene.findEntityByName("Camera").getComponent(Camera);
         const ray = new Ray();
-        
+
         camera.screenPointToRay(pointer.position, ray);
-        
+
         const hit = new HitResult();
         if (this.entity.scene.physics.raycast(ray, 50, Layer.Layer0, hit)) {
           console.log(`Clicked: ${hit.entity.name}`);
@@ -311,7 +306,7 @@ export class InputPollingScript extends Script {
       }
     }
   }
-  
+
   private handleObjectClick(entity: Entity): void {
     // Handle click logic
   }

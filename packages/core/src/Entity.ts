@@ -296,9 +296,10 @@ export class Entity extends EngineObject {
 
   /**
    * Get the components which match the type of the entity and it's children.
+   * @remarks The components are returned in depth-first pre-order: the entity itself first, then each child's subtree in sibling order.
    * @param type - The component type
    * @param results - The components collection
-   * @returns	The components collection which match the type
+   * @returns The components collection which match the type
    */
   getComponentsIncludeChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): T[] {
     results.length = 0;
@@ -682,14 +683,16 @@ export class Entity extends EngineObject {
   }
 
   private _getComponentsInChildren<T extends Component>(type: ComponentConstructor<T>, results: T[]): void {
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
       if (component instanceof type) {
         results.push(component);
       }
     }
-    for (let i = this._children.length - 1; i >= 0; i--) {
-      this._children[i]._getComponentsInChildren<T>(type, results);
+    const children = this._children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      children[i]._getComponentsInChildren<T>(type, results);
     }
   }
 
