@@ -77,12 +77,13 @@ export class ReflectionParser {
    * 1. null/undefined/primitive → passthrough
    * 2. Array → recurse each element
    * 3. { $ref }       → asset reference
-   * 4. { $type }      → polymorphic type construct
+   * 4. { $type }      → polymorphic type construct; optional $args are constructor args
    * 5. { $class }     → registered class constructor
    * 6. { $entity }    → entity reference by path (flat index + optional children descent)
    * 7. { $component } → component reference
    * 8. { $signal }    → signal binding
-   * 9. plain object   → recurse values (modify originValue in place if exists)
+   * 9. { $props/$calls } → mutate the existing target object
+   * 10. plain object   → recurse values (modify originValue in place if exists)
    */
   private _resolveValue(value: unknown, originValue?: any): Promise<any> {
     if (value == null || typeof value !== "object") return Promise.resolve(value);
@@ -111,10 +112,16 @@ export class ReflectionParser {
 
     // $type — polymorphic type: construct instance and apply remaining props
     if ("$type" in obj) {
-      const { $type, ...rest } = obj;
+      const { $type, $args, $props, $calls, ...rest } = obj;
       return this._resolveRegisteredClass($type, "$type").then((Class) => {
-        const instance = new Class();
-        return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
+        if ($args !== undefined && !Array.isArray($args)) {
+          return Promise.reject(new Error("$type.$args must be an array"));
+        }
+
+        return Promise.all((($args as unknown[]) ?? []).map((arg) => this._resolveValue(arg))).then((resolvedArgs) => {
+          const instance = new Class(...resolvedArgs);
+          return this._applyRuntimeMutation(instance, Object.keys(rest).length > 0 ? rest : undefined, $props, $calls);
+        });
       });
     }
 
@@ -138,6 +145,15 @@ export class ReflectionParser {
       return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
     }
 
+    // Runtime mutation block for existing nested objects.
+    if ("$props" in obj || "$calls" in obj) {
+      const target =
+        originValue && typeof originValue === "object" && !Array.isArray(originValue)
+          ? originValue
+          : ({} as Record<string, unknown>);
+      return this._applyRuntimeMutation(target, undefined, obj.$props, obj.$calls);
+    }
+
     // Plain object — recurse each value, modifying originValue in place or building a new object
     const target =
       originValue && typeof originValue === "object" && !Array.isArray(originValue)
@@ -148,6 +164,46 @@ export class ReflectionParser {
       promises.push(this._resolveValue(obj[key], target[key]).then((v) => (target[key] = v)));
     }
     return Promise.all(promises).then(() => target);
+  }
+
+  private _applyRuntimeMutation(
+    target: any,
+    directProps?: Record<string, unknown>,
+    runtimeProps?: unknown,
+    runtimeCalls?: unknown
+  ): Promise<any> {
+    let props = directProps ? { ...directProps } : undefined;
+    let calls: CallSpec[] | undefined;
+    try {
+      const normalizedProps = this._normalizeRuntimeProps(runtimeProps);
+      if (normalizedProps) {
+        props = Object.assign(props ?? {}, normalizedProps);
+      }
+      calls = this._normalizeRuntimeCalls(runtimeCalls);
+    } catch (error) {
+      return Promise.reject(error);
+    }
+
+    return this.parseMutationBlock(target, {
+      props,
+      calls
+    });
+  }
+
+  private _normalizeRuntimeProps(props: unknown): Record<string, unknown> | undefined {
+    if (props === undefined) return undefined;
+    if (props == null || typeof props !== "object" || Array.isArray(props)) {
+      throw new Error("$props must be an object");
+    }
+    return props as Record<string, unknown>;
+  }
+
+  private _normalizeRuntimeCalls(calls: unknown): CallSpec[] | undefined {
+    if (calls === undefined) return undefined;
+    if (!Array.isArray(calls)) {
+      throw new Error("$calls must be an array");
+    }
+    return calls as CallSpec[];
   }
 
   private _getRegisteredClass(value: unknown, sentinel: "$type" | "$class"): any {

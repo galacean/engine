@@ -37,6 +37,21 @@ class TestValueType {
 }
 Loader.registerClass("TestValueType", TestValueType);
 
+class TestConstructedValue {
+  x: number;
+  y: number;
+
+  constructor(x = 0, y = 0) {
+    this.x = x;
+    this.y = y;
+  }
+
+  setY(y: number): void {
+    this.y = y;
+  }
+}
+Loader.registerClass("TestConstructedValue", TestConstructedValue);
+
 class CallOrderComponent extends Script {
   value = "";
   receivedArgs: any[] = [];
@@ -135,6 +150,25 @@ describe("ReflectionParser v2 props resolution", () => {
     expect(target.position.x).to.equal(1);
     expect(target.position.y).to.equal(2);
     expect(target.position.z).to.equal(3);
+  });
+
+  it("should apply $props and $calls to an existing nested object", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const original = new TestConstructedValue();
+    const target: any = { nested: original };
+
+    await parser.parseProps(target, {
+      nested: {
+        $props: { x: 1 },
+        $calls: [{ method: "setY", args: [2] }]
+      }
+    });
+
+    expect(target.nested).to.equal(original);
+    expect(target.nested.x).to.equal(1);
+    expect(target.nested.y).to.equal(2);
   });
 
   it("should resolve arrays recursively", async () => {
@@ -784,6 +818,19 @@ describe("ReflectionParser $type resolution", () => {
     expect(target.value).to.be.instanceOf(TestValueType);
     expect(target.value.x).to.equal(10);
     expect(target.value.y).to.equal(20);
+  });
+
+  it("should construct $type instance with $args before applying props", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await parser.parseProps(target, {
+      value: { $type: "TestConstructedValue", $args: [1, 2], y: 3 }
+    });
+    expect(target.value).to.be.instanceOf(TestConstructedValue);
+    expect(target.value.x).to.equal(1);
+    expect(target.value.y).to.equal(3);
   });
 
   it("should construct $type instance without props", async () => {
