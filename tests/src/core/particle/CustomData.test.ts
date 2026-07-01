@@ -18,7 +18,6 @@ import {
 } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { LitePhysics } from "@galacean/engine-physics-lite";
 import { describe, beforeAll, beforeEach, afterAll, expect, it } from "vitest";
 
 describe("CustomDataModule", function () {
@@ -28,8 +27,7 @@ describe("CustomDataModule", function () {
 
   beforeAll(async function () {
     engine = await WebGLEngine.create({
-      canvas: document.createElement("canvas"),
-      physics: new LitePhysics()
+      canvas: document.createElement("canvas")
     });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
@@ -122,20 +120,18 @@ describe("CustomDataModule", function () {
     expect(customData.curves.size).to.eq(2);
   });
 
-  it("addCurve / addGradient reject names that collide with engine particle module namespaces", function () {
+  it("accepts names that merely start with an engine module prefix (no false rejection)", function () {
+    // Validation only checks the character set and duplicate names — it does NOT
+    // reject by prefix. Names like "COLOR" / "VOLUME" generate `renderer_COLOR...` /
+    // `renderer_VOLUME...`, which never equal an engine uniform (`renderer_COL...` /
+    // `renderer_VOL...`), so they must be accepted.
     const customData = particleRenderer.generator.customData;
-    Logger.enable();
-    // Bare prefixes (exact collision with module's MaxConst/MaxGradient*…)
-    customData.addCurve("VOL", new ParticleCompositeCurve(0));
-    customData.addGradient("COL", new ParticleCompositeGradient(new Color()));
-    // Suffix-extended also rejected (`FOLSpeedMaxConst` collides with FOL's existing uniform space)
+    customData.addCurve("COLOR", new ParticleCompositeCurve(0));
+    customData.addCurve("VOLUME", new ParticleCompositeCurve(0));
+    customData.addCurve("SOLID", new ParticleCompositeCurve(0));
+    customData.addCurve("ROLL", new ParticleCompositeCurve(0));
     customData.addCurve("FOLSpeed", new ParticleCompositeCurve(0));
-    customData.addGradient("TSAFrame", new ParticleCompositeGradient(new Color()));
-    expect(customData.curves.size).to.eq(0);
-    expect(customData.gradients.size).to.eq(0);
-    // Names that merely happen to contain the substring are NOT rejected — only the leading prefix matters.
-    customData.addCurve("MyVOL", new ParticleCompositeCurve(0));
-    expect(customData.curves.size).to.eq(1);
+    expect(customData.curves.size).to.eq(5);
   });
 
   it("addCurve rejects duplicate name (cross with gradients)", function () {
@@ -208,10 +204,7 @@ describe("CustomDataModule", function () {
     customData.enabled = true;
     customData.addCurve("C1", new ParticleCompositeCurve(1));
     customData.addCurve("C2", new ParticleCompositeCurve(1, 5));
-    customData.addCurve(
-      "C3",
-      new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1)))
-    );
+    customData.addCurve("C3", new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))));
     customData.addCurve(
       "C4",
       new ParticleCompositeCurve(
@@ -231,10 +224,7 @@ describe("CustomDataModule", function () {
     const customData = particleRenderer.generator.customData;
     customData.enabled = true;
     customData.addGradient("G1", new ParticleCompositeGradient(new Color(1, 0.5, 0.25, 1)));
-    customData.addGradient(
-      "G2",
-      new ParticleCompositeGradient(new Color(0, 0, 0, 1), new Color(1, 1, 1, 1))
-    );
+    customData.addGradient("G2", new ParticleCompositeGradient(new Color(0, 0, 0, 1), new Color(1, 1, 1, 1)));
     expect(customData.gradients.get("G2")!.mode).to.eq(ParticleGradientMode.TwoConstants);
     expect(() => {
       //@ts-ignore

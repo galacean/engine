@@ -116,6 +116,39 @@ export class ParticleCurve {
   /**
    * @internal
    */
+  _evaluateCumulative(normalizedAge: number): number {
+    const { keys } = this;
+    const { length } = keys;
+    if (length === 0) return 0;
+    // Single key is a constant curve (matches `_evaluate`); its integral is value × age.
+    if (length === 1) return keys[0].value * normalizedAge;
+
+    const firstKey = keys[0];
+    if (normalizedAge <= firstKey.time) return firstKey.value * normalizedAge;
+
+    let cumulative = firstKey.value * firstKey.time;
+    for (let i = 1; i < length; i++) {
+      const key = keys[i];
+      const lastKey = keys[i - 1];
+      const segmentTime = key.time - lastKey.time;
+      if (segmentTime <= 0) continue;
+
+      if (key.time >= normalizedAge) {
+        const offsetTime = normalizedAge - lastKey.time;
+        const t = offsetTime / segmentTime;
+        const currentValue = lastKey.value + (key.value - lastKey.value) * t;
+        cumulative += (lastKey.value + currentValue) * 0.5 * offsetTime;
+        return cumulative;
+      }
+      cumulative += (lastKey.value + key.value) * 0.5 * segmentTime;
+    }
+    const lastKey = keys[length - 1];
+    return cumulative + lastKey.value * (normalizedAge - lastKey.time);
+  }
+
+  /**
+   * @internal
+   */
   _getTypeArray(): Float32Array {
     const typeArray = (this._typeArray ||= new Float32Array(4 * 2));
     if (this._typeArrayDirty) {

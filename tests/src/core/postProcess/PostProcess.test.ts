@@ -296,7 +296,6 @@ describe("PostProcess", () => {
       const engine = await WebGLEngine.create({
         canvas: document.createElement("canvas"),
         physics: new PhysXPhysics()
-        // physics: new LitePhysics()
       });
       const scene = engine.sceneManager.scenes[0];
       const passes = engine.postProcessPasses;

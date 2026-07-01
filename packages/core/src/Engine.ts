@@ -11,6 +11,7 @@ import { Font } from "./2d/text/Font";
 import { BasicResources } from "./BasicResources";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
+import { EngineEventType } from "./EngineEventType";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { BatcherManager } from "./RenderPipeline/BatcherManager";
@@ -32,7 +33,6 @@ import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProgramMap } from "./shader/ShaderProgramMap";
-import { ShaderProgram } from "./shader/ShaderProgram";
 import { ShaderFactory } from "./shader/ShaderFactory";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureFormat } from "./texture";
@@ -136,6 +136,8 @@ export class Engine extends EventDispatcher {
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
+
+  private _onCanvasResize = (): void => this._renderTargetPool.gc();
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -254,6 +256,7 @@ export class Engine extends EventDispatcher {
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
+    canvas._sizeUpdateFlagManager.addListener(this._onCanvasResize);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -403,7 +406,7 @@ export class Engine extends EventDispatcher {
    */
   run(): void {
     this.resume();
-    this.dispatch("run", this);
+    this.dispatch(EngineEventType.Run, this);
   }
 
   /**
@@ -499,6 +502,8 @@ export class Engine extends EventDispatcher {
     this._destroyed = true;
     this._waitingDestroy = false;
 
+    this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
+
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
 
@@ -506,7 +511,7 @@ export class Engine extends EventDispatcher {
     this._batcherManager.destroy();
     this._renderTargetPool.gc();
     this.xrManager?._destroy();
-    this.dispatch("shutdown", this);
+    this.dispatch(EngineEventType.Shutdown, this);
 
     // Cancel animation
     this.pause();
@@ -656,7 +661,7 @@ export class Engine extends EventDispatcher {
     }
 
     const loaders = ResourceManager._loaders;
-    for (let key in loaders) {
+    for (const key in loaders) {
       const loader = loaders[key];
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }
@@ -671,7 +676,7 @@ export class Engine extends EventDispatcher {
     this.resourceManager._lostGraphicResources();
     this._renderingStatistics._reset();
     console.log("Device lost.");
-    this.dispatch("devicelost", this);
+    this.dispatch(EngineEventType.DeviceLost, this);
   }
 
   private _onDeviceRestored(): void {
@@ -692,7 +697,7 @@ export class Engine extends EventDispatcher {
       ._restoreResourcesContent()
       .then(() => {
         console.log("Graphic resource content restored.\n\n" + "Device restored.");
-        this.dispatch("devicerestored", this);
+        this.dispatch(EngineEventType.DeviceRestored, this);
       })
       .catch((error) => {
         console.error(error);
