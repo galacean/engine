@@ -1,0 +1,40 @@
+{
+  "name": "@galacean/engine-spine-core-3.8",
+  "version": "0.0.0-experimental-2.0-spine.0",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
+  "repository": {
+    "url": "https://github.com/galacean/engine.git"
+  },
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "browser": "dist/browser.js",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "umd": {
+    "name": "Galacean.SpineCore38",
+    "globals": {
+      "@galacean/engine": "Galacean",
+      "@galacean/engine-spine": "Galacean.Spine"
+    }
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@galacean/engine-spine": "workspace:*"
+  },
+  "devDependencies": {
+    "@galacean/engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@galacean/engine": "workspace:*"
+  }
+}

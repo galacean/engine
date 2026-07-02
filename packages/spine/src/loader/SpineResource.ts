@@ -84,7 +84,7 @@ export class SpineResource extends ReferResource {
       for (let j = 0, m = slots.length; j < m; j++) {
         const slot = slots[j];
         const attachment = skins[i].getAttachment(slot.index, slot.name);
-        const texture = <Texture2D>(<RegionAttachment | MeshAttachment>attachment)?.region?.texture.texture;
+        const texture = <Texture2D>(<RegionAttachment | MeshAttachment>attachment)?.region?.texture.getImage();
         if (texture) {
           if (!textures.includes(texture)) {
             textures.push(texture);
