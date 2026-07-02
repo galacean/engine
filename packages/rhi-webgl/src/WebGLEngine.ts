@@ -16,10 +16,7 @@ export class WebGLEngine extends Engine {
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
-    // Release the canvas resize observer when the engine shuts down.
     engine.once(EngineEventType.Shutdown, WebGLEngine._releaseCanvas);
-    // Follow the display size by default; the first resize is deferred to update() and skipped while
-    // the canvas has no layout size, so an unmounted canvas never gets a 0x0 buffer.
     if (configuration.autoResize ?? true) {
       webCanvas.setAutoResolution();
     }
@@ -45,11 +42,10 @@ export class WebGLEngine extends Engine {
 
   /**
    * Enable automatic canvas resizing.
-   * @deprecated Use `engine.canvas.setAutoResolution()` instead. Auto-resolution is a canvas capability.
+   * @deprecated Use `engine.canvas.setAutoResolution()` instead.
    * @param pixelRatio - Deprecated; the device pixel ratio is applied automatically
    */
   enableAutoResize(pixelRatio?: number): void {
-    // The old pixelRatio replaced dpr; the new model applies dpr automatically, so drop the argument.
     this.canvas.setAutoResolution();
   }
 
@@ -63,7 +59,6 @@ export class WebGLEngine extends Engine {
   }
 
   override update(): void {
-    // Apply pending resize before rendering so both land in the same frame (no white flash).
     this.canvas._pumpPendingResize();
     super.update();
   }

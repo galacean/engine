@@ -47,13 +47,17 @@ export class WebCanvas extends Canvas {
   }
 
   override setAutoResolution(scale: number = 1): void {
+    if (!Number.isFinite(scale) || scale <= 0) {
+      throw new Error(`WebCanvas.setAutoResolution: invalid scale ${scale}`);
+    }
+
     // TODO: OffscreenCanvas has no display size; warn once.
     if (this.isOffscreenCanvas()) return;
 
     this._autoResolutionScale = scale;
 
     if (!this._resizeObserver) {
-      // Flag only; the resize is applied in `_pumpPendingResize` so it lands in the render frame.
+      // Flag only; applied in `_pumpPendingResize`.
       this._resizeObserver = new ResizeObserver(() => (this._pendingResize = true));
       this._resizeObserver.observe(this._webCanvas);
     }
@@ -86,7 +90,7 @@ export class WebCanvas extends Canvas {
 
     const webCanvas = this._webCanvas;
     // Skip while the canvas has no layout size yet (e.g. not mounted); keep the flag so a later
-    // observe with a real size applies the resize, never setting a 0x0 buffer.
+    // frame's pump retries once layout exists — an unmounted canvas never becomes a 0x0 buffer.
     if (webCanvas.clientWidth === 0 || webCanvas.clientHeight === 0) return;
 
     this._pendingResize = false;

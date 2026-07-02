@@ -1,7 +1,7 @@
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
- * Canvas.
+ * Platform-neutral render surface; subclasses bind it to a concrete backing (HTMLCanvasElement, OffscreenCanvas, ...).
  */
 export abstract class Canvas {
   /* @internal */
@@ -40,11 +40,11 @@ export abstract class Canvas {
 
   /**
    * Make the render buffer automatically follow the canvas display size.
-   * @param scale - Performance multiplier on the device pixel ratio (1 = clear, 0.7 = save GPU, 2 = supersample), defaults to `1`
+   * @param scale - Multiplier applied to the device pixel ratio (1 = native sharpness, 0.7 = save GPU, 2 = supersample), defaults to `1`
    */
   abstract setAutoResolution(scale?: number): void;
 
-  // Sole atomic entry for render-buffer size: width and height change together in one dispatch.
+  // Sole mutation path for render-buffer size — one dispatch, so listeners never observe a half-updated size.
   protected _setSize(width: number, height: number): void {
     if (this._width !== width || this._height !== height) {
       this._width = width;
@@ -54,7 +54,7 @@ export abstract class Canvas {
     }
   }
 
-  // Applied by the engine each frame, before rendering, so resize lands in the render frame.
+  // Called by the platform engine each frame, before rendering, so resize and render land in the same frame (no white flash).
   abstract _pumpPendingResize(): void;
 
   abstract _destroy(): void;

@@ -138,9 +138,11 @@ describe("webgl engine test", () => {
     expect(webCanvas.width).toBe(320);
     expect(webCanvas.height).toBe(240);
 
-    // setResolution rejects invalid sizes.
+    // setResolution rejects invalid sizes; setAutoResolution rejects invalid scales.
     expect(() => webCanvas.setResolution(0, 100)).to.throw();
     expect(() => webCanvas.setResolution(-1, 100)).to.throw();
+    expect(() => webCanvas.setAutoResolution(0)).to.throw();
+    expect(() => webCanvas.setAutoResolution(-1)).to.throw();
 
     // destroy releases the observer.
     webCanvas.setAutoResolution();
