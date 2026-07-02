@@ -1,7 +1,7 @@
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
- * Canvas.
+ * The canvas the engine renders to; owns the render-buffer resolution.
  */
 export abstract class Canvas {
   /* @internal */
