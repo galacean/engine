@@ -48,3 +48,6 @@ CLAUDE.md
 # For bison generated files used by ShaderLab
 *.tab.c
 *.output
+
+# Local-only test assets (third-party game art, not for redistribution)
+examples/public/spine/

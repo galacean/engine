@@ -185,6 +185,15 @@ importers:
       '@galacean/engine-shader-compiler':
         specifier: workspace:*
         version: link:../packages/shader-compiler
+      '@galacean/engine-spine':
+        specifier: workspace:*
+        version: link:../packages/spine
+      '@galacean/engine-spine-core-3.8':
+        specifier: workspace:*
+        version: link:../packages/spine-core-3.8
+      '@galacean/engine-spine-core-4.2':
+        specifier: workspace:*
+        version: link:../packages/spine-core-4.2
       '@galacean/engine-toolkit':
         specifier: latest
         version: 1.6.0(@galacean/engine-ui@packages+ui)(@galacean/engine@packages+galacean)
@@ -299,6 +308,16 @@ importers:
       '@esotericsoftware/spine-core':
         specifier: ~4.2.66
         version: 4.2.119
+      '@galacean/engine':
+        specifier: workspace:*
+        version: link:../galacean
+
+  packages/spine-core-3.8:
+    dependencies:
+      '@galacean/engine-spine':
+        specifier: workspace:*
+        version: link:../spine
+    devDependencies:
       '@galacean/engine':
         specifier: workspace:*
         version: link:../galacean
