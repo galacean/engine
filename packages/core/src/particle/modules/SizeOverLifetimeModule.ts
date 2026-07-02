@@ -1,9 +1,11 @@
+import { Rand } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderMacro } from "../../shader/ShaderMacro";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
+import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
@@ -22,6 +24,10 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxCurveXProperty = ShaderProperty.getByName("renderer_SOLMaxCurveX");
   static readonly _maxCurveYProperty = ShaderProperty.getByName("renderer_SOLMaxCurveY");
   static readonly _maxCurveZProperty = ShaderProperty.getByName("renderer_SOLMaxCurveZ");
+
+  /** @internal */
+  @ignoreClone
+  _sizeRand = new Rand(0, ParticleRandomSubSeeds.SizeOverLifetime);
 
   private _separateAxes = false;
   @deepClone
@@ -130,18 +136,15 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
       const sizeZ = this.sizeZ;
 
       const separateAxes = this.separateAxes;
-      const isRandomCurveMode = separateAxes
-        ? sizeX.mode === ParticleCurveMode.TwoCurves &&
-          sizeY.mode === ParticleCurveMode.TwoCurves &&
-          sizeZ.mode === ParticleCurveMode.TwoCurves
-        : sizeX.mode === ParticleCurveMode.TwoCurves;
+      const isRandomCurveMode = this._isRandomMode();
 
       const isCurveMode =
-        isRandomCurveMode || separateAxes
+        isRandomCurveMode ||
+        (separateAxes
           ? sizeX.mode === ParticleCurveMode.Curve &&
             sizeY.mode === ParticleCurveMode.Curve &&
             sizeZ.mode === ParticleCurveMode.Curve
-          : sizeX.mode === ParticleCurveMode.Curve;
+          : sizeX.mode === ParticleCurveMode.Curve);
 
       if (isCurveMode) {
         shaderData.setFloatArray(SizeOverLifetimeModule._maxCurveXProperty, sizeX.curveMax._getTypeArray());
@@ -168,5 +171,24 @@ export class SizeOverLifetimeModule extends ParticleGeneratorModule {
     this._enableSeparateMacro = this._enableMacro(shaderData, this._enableSeparateMacro, enableSeparateMacro);
     this._isCurveMacro = this._enableMacro(shaderData, this._isCurveMacro, isCurveMacro);
     this._isRandomTwoMacro = this._enableMacro(shaderData, this._isRandomTwoMacro, isRandomTwoMacro);
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomMode(): boolean {
+    const { sizeX, sizeY, sizeZ, separateAxes } = this;
+    return separateAxes
+      ? sizeX.mode === ParticleCurveMode.TwoCurves &&
+          sizeY.mode === ParticleCurveMode.TwoCurves &&
+          sizeZ.mode === ParticleCurveMode.TwoCurves
+      : sizeX.mode === ParticleCurveMode.TwoCurves;
+  }
+
+  /**
+   * @internal
+   */
+  _resetRandomSeed(seed: number): void {
+    this._sizeRand.reset(seed, ParticleRandomSubSeeds.SizeOverLifetime);
   }
 }

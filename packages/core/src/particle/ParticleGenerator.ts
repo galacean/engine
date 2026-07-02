@@ -670,6 +670,7 @@ export class ParticleGenerator {
     this.velocityOverLifetime._resetRandomSeed(seed);
     this.forceOverLifetime._resetRandomSeed(seed);
     this.limitVelocityOverLifetime._resetRandomSeed(seed);
+    this.sizeOverLifetime._resetRandomSeed(seed);
     this.rotationOverLifetime._resetRandomSeed(seed);
     this.colorOverLifetime._resetRandomSeed(seed);
     this.noise._resetRandomSeed(seed);
@@ -1001,8 +1002,13 @@ export class ParticleGenerator {
       instanceVertices[offset + 20] = colorOverLifetime._colorGradientRand.random();
     }
 
+    // Slot 21 (a_Random0.z) is shared by noise strength random and size-over-lifetime
+    // curve random in the shaders; noise takes precedence when both are enabled.
+    const sizeOverLifetime = this.sizeOverLifetime;
     if (this.noise.enabled) {
       instanceVertices[offset + 21] = this.noise._noiseRand.random();
+    } else if (sizeOverLifetime.enabled && sizeOverLifetime._isRandomMode()) {
+      instanceVertices[offset + 21] = sizeOverLifetime._sizeRand.random();
     }
 
     const rotationOverLifetime = this.rotationOverLifetime;
