@@ -130,7 +130,7 @@ describe("webgl engine test", () => {
     Object.defineProperty(canvas, "clientWidth", { value: 0, configurable: true });
     (webCanvas as any)._pendingResize = true;
     webCanvas._pumpPendingResize();
-    expect((webCanvas as any)._pendingResize).toBe(true); // kept for a later valid observe
+    expect((webCanvas as any)._pendingResize).toBe(true); // kept so a later frame's pump retries
 
     // setResolution locks a fixed size and exits auto mode (observer released).
     webCanvas.setResolution(320, 240);

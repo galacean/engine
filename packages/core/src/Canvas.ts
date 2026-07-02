@@ -1,7 +1,7 @@
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
- * Platform-neutral render surface; subclasses bind it to a concrete backing (HTMLCanvasElement, OffscreenCanvas, ...).
+ * Canvas.
  */
 export abstract class Canvas {
   /* @internal */
