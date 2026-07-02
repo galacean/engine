@@ -12,7 +12,7 @@ export abstract class Canvas {
 
   /**
    * The render buffer width of the canvas, in pixels.
-   * @remarks Read-only. Use `setResolution` or `setAutoResolution` to change the render resolution.
+   * @remarks Use `setResolution` or `setAutoResolution` to change the render resolution.
    */
   get width(): number {
     return this._width;
@@ -20,7 +20,7 @@ export abstract class Canvas {
 
   /**
    * The render buffer height of the canvas, in pixels.
-   * @remarks Read-only. Use `setResolution` or `setAutoResolution` to change the render resolution.
+   * @remarks Use `setResolution` or `setAutoResolution` to change the render resolution.
    */
   get height(): number {
     return this._height;
