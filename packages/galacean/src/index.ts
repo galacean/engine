@@ -1,7 +1,7 @@
 import * as CoreObjects from "@galacean/engine-core";
 import { Loader, Polyfill, SystemInfo } from "@galacean/engine-core";
 import { ShaderPool } from "./ShaderPool";
-//@ts-ignore
+
 export const version = `__buildVersion`;
 
 console.log(`Galacean Engine Version: ${version}`);
@@ -11,8 +11,8 @@ export * from "@galacean/engine-loader";
 export * from "@galacean/engine-math";
 export * from "@galacean/engine-rhi-webgl";
 
-for (let key in CoreObjects) {
-  Loader.registerClass(key, CoreObjects[key]);
+for (const [key, value] of Object.entries(CoreObjects)) {
+  Loader.registerClass(key, value);
 }
 
 // Bootstrap the Galacean engine flavor: browser polyfills first (must
@@ -26,7 +26,7 @@ for (let key in CoreObjects) {
 // shader bundle dependency), which in turn lets the offline shader
 // compiler import core's enums without dragging the full runtime closure.
 Polyfill.registerPolyfill();
-// @ts-ignore — `_initialize` is `SystemInfo` @internal.
+// @ts-expect-error — `_initialize` is `SystemInfo` @internal.
 SystemInfo._initialize();
 ShaderPool.init();
 ShaderPool.registerShaders();
