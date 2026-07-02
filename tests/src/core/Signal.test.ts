@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 class TestHandler extends Script {
   callCount = 0;
   lastPrefix = "";
+  lastArgs: any[] = [];
 
   handleClick() {
     this.callCount++;
@@ -13,6 +14,11 @@ class TestHandler extends Script {
   handleClickWithPrefix(prefix: string) {
     this.callCount++;
     this.lastPrefix = prefix;
+  }
+
+  handleWithArgs(...args: any[]) {
+    this.callCount++;
+    this.lastArgs = args;
   }
 }
 
@@ -272,6 +278,56 @@ describe("Signal", async () => {
     signal.invoke();
     // fn2 fires, but destroyed handler's binding should not cause errors
     expect(fn2).toHaveBeenCalledOnce();
+  });
+
+  // ---- Structured binding arg order (runtime first, bound last) ----
+
+  it("structured binding: runtime args precede bound args", () => {
+    const signal = new Signal<[string, number]>();
+    const entity = root.createChild("sb-order");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.on(handler, "handleWithArgs", "boundA", "boundB");
+    signal.invoke("event", 42);
+    expect(handler.lastArgs).toEqual(["event", 42, "boundA", "boundB"]);
+
+    entity.destroy();
+  });
+
+  it("structured binding: event object stays at index 0 regardless of bound args count", () => {
+    const event = { type: "click", x: 10, y: 20 };
+    const signal = new Signal<[typeof event]>();
+    const e1 = root.createChild("sb-evt-1");
+    const e2 = root.createChild("sb-evt-2");
+    const h1 = e1.addComponent(TestHandler);
+    const h2 = e2.addComponent(TestHandler);
+
+    signal.on(h1, "handleWithArgs");
+    signal.on(h2, "handleWithArgs", "ctx", 1, true);
+
+    signal.invoke(event);
+
+    expect(h1.lastArgs[0]).toBe(event);
+    expect(h2.lastArgs[0]).toBe(event);
+    expect(h2.lastArgs).toEqual([event, "ctx", 1, true]);
+
+    e1.destroy();
+    e2.destroy();
+  });
+
+  it("structured binding once: runtime + bound args order preserved", () => {
+    const signal = new Signal<[number]>();
+    const entity = root.createChild("sb-once-args");
+    const handler = entity.addComponent(TestHandler);
+
+    signal.once(handler, "handleWithArgs", "bound");
+    signal.invoke(99);
+    signal.invoke(100);
+
+    expect(handler.callCount).toBe(1);
+    expect(handler.lastArgs).toEqual([99, "bound"]);
+
+    entity.destroy();
   });
 
   // ---- Clone ----

@@ -20,9 +20,11 @@ export class Signal<T extends any[] = []> {
   on(fn: (...args: T) => void, target?: any): void;
   /**
    * Add a structured binding listener. Structured bindings support clone remapping.
+   * The target method will be invoked as `method(...signalArgs, ...args)` —
+   * runtime signal arguments come first, bound arguments are appended.
    * @param target - The target component
    * @param methodName - The method name to invoke on the target
-   * @param args - Pre-resolved arguments
+   * @param args - Pre-resolved arguments appended after the runtime signal arguments
    */
   on(target: Component, methodName: string, ...args: any[]): void;
   on(fnOrTarget: ((...args: T) => void) | Component, targetOrMethodName?: any, ...args: any[]): void {
@@ -37,9 +39,11 @@ export class Signal<T extends any[] = []> {
   once(fn: (...args: T) => void, target?: any): void;
   /**
    * Add a one-time structured binding listener.
+   * The target method will be invoked as `method(...signalArgs, ...args)` —
+   * runtime signal arguments come first, bound arguments are appended.
    * @param target - The target component
    * @param methodName - The method name to invoke on the target
-   * @param args - Pre-resolved arguments
+   * @param args - Pre-resolved arguments appended after the runtime signal arguments
    */
   once(target: Component, methodName: string, ...args: any[]): void;
   once(fnOrTarget: ((...args: T) => void) | Component, targetOrMethodName?: any, ...args: any[]): void {
@@ -167,7 +171,7 @@ export class Signal<T extends any[] = []> {
       const methodName = targetOrMethodName as string;
       const fn =
         args.length > 0
-          ? (...signalArgs: any[]) => (target as any)[methodName](...args, ...signalArgs)
+          ? (...signalArgs: any[]) => (target as any)[methodName](...signalArgs, ...args)
           : (...signalArgs: any[]) => (target as any)[methodName](...signalArgs);
       this._listeners.push({
         fn: fn as (...args: T) => void,
