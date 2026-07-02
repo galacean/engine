@@ -1,5 +1,4 @@
 import { Component } from "../Component";
-import { Entity } from "../Entity";
 import { CloneManager } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
 
@@ -15,12 +14,10 @@ export interface ICustomClone {
   readonly _defaultCloneMode?: CloneMode;
   /**
    * @internal
+   * Post-clone hook. `cloneMap` maps every source entity/component (and deep-cloned object)
+   * in the cloned subtree to its clone, for remapping references.
    */
-  _remap?(srcRoot: Entity, targetRoot: Entity): Object;
-  /**
-   * @internal
-   */
-  _cloneTo?(target: ICustomClone, srcRoot?: Entity, targetRoot?: Entity): void;
+  _cloneTo?(target: ICustomClone, cloneMap?: Map<Object, Object>): void;
   /**
    * @internal
    */
@@ -32,27 +29,16 @@ export class ComponentCloner {
    * Clone component (opt-out: all fields cloned except @ignoreClone).
    * @param source - Clone source
    * @param target - Clone target
+   * @param cloneMap - Identity map of the cloned subtree (source entity/component → clone)
    */
-  static cloneComponent(
-    source: Component,
-    target: Component,
-    srcRoot: Entity,
-    targetRoot: Entity,
-    deepInstanceMap: Map<Object, Object>
-  ): void {
+  static cloneComponent(source: Component, target: Component, cloneMap: Map<Object, Object>): void {
     const fieldModes = CloneManager.getFieldModes(source.constructor);
     for (const k in source) {
-      const sourceProperty = source[k];
-      // Entity/Component references are always remapped (reference correctness, above field ignore).
-      if (sourceProperty instanceof Object && (<ICustomClone>sourceProperty)._remap) {
-        target[k] = (<ICustomClone>sourceProperty)._remap(srcRoot, targetRoot);
-        continue;
-      }
       const fieldMode = fieldModes.get(k);
       if (fieldMode === CloneMode.Ignore) continue;
-      // Field decorator (highest) → value-shape / type default.
-      target[k] = CloneManager._cloneValue(sourceProperty, target[k], deepInstanceMap, fieldMode, srcRoot, targetRoot);
+      // Field decorator (highest) → value-shape / type default (Entity/Component remap via the map).
+      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode);
     }
-    (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, srcRoot, targetRoot);
+    (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }
 }

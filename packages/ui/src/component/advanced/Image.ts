@@ -12,7 +12,6 @@ import {
   SpriteModifyFlags,
   SpriteTileMode,
   TiledSpriteAssembler,
-  assignmentClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";

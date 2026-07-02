@@ -14,8 +14,6 @@ import {
   RenderElement,
   Vector2,
   Vector3,
-  assignmentClone,
-  deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";

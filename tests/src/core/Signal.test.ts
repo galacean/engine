@@ -1,4 +1,4 @@
-import { Script, Signal } from "@galacean/engine-core";
+import { Entity, Script, Signal } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 
@@ -276,6 +276,17 @@ describe("Signal", async () => {
 
   // ---- Clone ----
 
+  /** Build the identity map (source entity/component -> clone) the engine passes to `_cloneTo`. */
+  function buildCloneMap(src: Entity, target: Entity, map = new Map<Object, Object>()): Map<Object, Object> {
+    map.set(src, target);
+    // @ts-ignore
+    const srcComponents = src._components,
+      targetComponents = target._components;
+    for (let i = 0; i < srcComponents.length; i++) map.set(srcComponents[i], targetComponents[i]);
+    for (let i = 0; i < src.children.length; i++) buildCloneMap(src.children[i], target.children[i], map);
+    return map;
+  }
+
   it("clone: closure-based listeners are not cloned", () => {
     const signal = new Signal<[number]>();
     const targetSignal = new Signal<[number]>();
@@ -285,7 +296,7 @@ describe("Signal", async () => {
     const srcRoot = root.createChild("clSrc1");
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     // Closure listeners should NOT be copied to clone
     targetSignal.invoke(42);
@@ -306,7 +317,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();
@@ -329,7 +340,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     targetSignal.invoke();
     expect(externalHandler.callCount).toBe(1);
@@ -352,7 +363,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();
@@ -375,7 +386,7 @@ describe("Signal", async () => {
 
     const targetRoot = srcRoot.clone();
     // @ts-ignore
-    signal._cloneTo(targetSignal, srcRoot, targetRoot);
+    signal._cloneTo(targetSignal, buildCloneMap(srcRoot, targetRoot));
 
     const clonedHandler = targetRoot.findByName("handler").getComponent(TestHandler);
     targetSignal.invoke();

@@ -13,8 +13,6 @@ import {
   ShaderProperty,
   Vector3,
   Vector4,
-  assignmentClone,
-  deepClone,
   dependentComponents,
   ignoreClone
 } from "@galacean/engine";

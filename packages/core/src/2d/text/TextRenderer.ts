@@ -46,6 +46,7 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   private _height = 0;
   @ignoreClone
   private _localBounds = new BoundingBox();
+  @ignoreClone
   private _font: Font = null;
   private _fontSize = 24;
   private _fontStyle = FontStyle.None;

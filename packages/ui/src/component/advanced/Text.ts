@@ -17,7 +17,6 @@ import {
   TextVerticalAlignment,
   Texture2D,
   Vector3,
-  assignmentClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
@@ -40,6 +39,7 @@ export class Text extends UIRenderer implements ITextRenderer {
   private _text: string = "";
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
+  @ignoreClone
   private _font: Font = null;
   private _fontSize: number = 24;
   private _fontStyle: FontStyle = FontStyle.None;

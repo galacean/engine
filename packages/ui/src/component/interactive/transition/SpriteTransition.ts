@@ -8,6 +8,21 @@ import { Transition } from "./Transition";
 export class SpriteTransition extends Transition<Sprite, Image> {
   /**
    * @internal
+   * The clone gate shares the state sprites by reference; acquire the counts that `destroy` releases.
+   */
+  _cloneTo(target: SpriteTransition): void {
+    // @ts-ignore
+    target._normal?._addReferCount(1);
+    // @ts-ignore
+    target._hover?._addReferCount(1);
+    // @ts-ignore
+    target._pressed?._addReferCount(1);
+    // @ts-ignore
+    target._disabled?._addReferCount(1);
+  }
+
+  /**
+   * @internal
    */
   override destroy(): void {
     super.destroy();

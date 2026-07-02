@@ -2,14 +2,16 @@ import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { ignoreClone } from "../../clone/CloneManager";
+import { defaultCloneMode, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
+import { CloneMode } from "../../clone/enums/CloneMode";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
  */
+@defaultCloneMode(CloneMode.Deep)
 export abstract class ColliderShape implements ICustomClone {
   private static _idGenerator: number = 0;
 

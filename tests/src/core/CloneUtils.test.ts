@@ -1,4 +1,13 @@
-import { Entity, MeshRenderer, Script, Signal, assignmentClone, deepClone, ignoreClone } from "@galacean/engine-core";
+import {
+  Entity,
+  MeshRenderer,
+  Script,
+  Signal,
+  Texture2D,
+  assignmentClone,
+  deepClone,
+  ignoreClone
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
@@ -45,14 +54,14 @@ class SiblingRefScript extends Script {
 
 /** Script with a mix of decorated and undecorated entity refs */
 class DecoratedRefScript extends Script {
-  // Undecorated — should auto-remap via _remap
+  // Undecorated — Entity type default (Remap) applies
   autoRemapEntity: Entity;
 
-  // @assignmentClone — should still auto-remap since _remap takes priority
+  // @assignmentClone — field decorator wins over the type default: shares the source reference
   @assignmentClone
   assignedEntity: Entity;
 
-  // @ignoreClone — should still auto-remap since _remap takes priority
+  // @ignoreClone — field decorator wins over the type default: keeps the clone's own value
   @ignoreClone
   ignoredEntity: Entity;
 }
@@ -110,6 +119,49 @@ class ClickHandler extends Script {
 class SignalScript extends Script {
   @deepClone
   readonly onFire = new Signal<[number]>();
+}
+
+/** Script with function-valued fields, standalone and inside containers */
+class HandlerScript extends Script {
+  onTick: () => void;
+  handlers: Array<() => void> = [];
+  handlerSet: Set<() => void> = new Set();
+  config: { onDone: (() => void) | null; x: number } = { onDone: null, x: 0 };
+}
+
+/** Script whose constructor establishes its own bound handler */
+class BoundHandlerScript extends Script {
+  tickCount = 0;
+  boundTick = this._tick.bind(this);
+
+  private _tick(): void {
+    this.tickCount++;
+  }
+}
+
+/** Script holding binary data views */
+class BinaryScript extends Script {
+  view: DataView;
+  bytes: Float32Array;
+}
+
+/** Script holding a shared ReferResource */
+class ResourceRefScript extends Script {
+  texture: Texture2D;
+}
+
+/** Script misusing @deepClone on an Entity ref (must fall back to remap, never construct) */
+class DeepEntityRefScript extends Script {
+  @deepClone
+  target: Entity;
+}
+
+/** Script with an @assignmentClone function field preset by the constructor */
+class AssignedHandlerScript extends Script {
+  @assignmentClone
+  handler: () => void = this._noop.bind(this);
+
+  private _noop(): void {}
 }
 
 describe("Clone remap", async () => {
@@ -334,8 +386,8 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Clone decorator interaction with _remap", () => {
-    it("@assignmentClone entity ref still gets remapped via _remap priority", () => {
+  describe("Field decorators take priority over Entity/Component remap", () => {
+    it("@assignmentClone entity ref shares the source reference (decorator wins)", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
@@ -345,13 +397,12 @@ describe("Clone remap", async () => {
       const cloned = parent.clone();
       const cs = cloned.getComponent(DecoratedRefScript);
 
-      expect(cs.assignedEntity).not.eq(child);
-      expect(cs.assignedEntity).eq(cloned.children[0]);
+      expect(cs.assignedEntity).eq(child);
 
       rootEntity.destroy();
     });
 
-    it("@ignoreClone entity ref still gets remapped via _remap priority", () => {
+    it("@ignoreClone entity ref keeps the clone's own value (decorator wins)", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
@@ -361,8 +412,7 @@ describe("Clone remap", async () => {
       const cloned = parent.clone();
       const cs = cloned.getComponent(DecoratedRefScript);
 
-      expect(cs.ignoredEntity).not.eq(child);
-      expect(cs.ignoredEntity).eq(cloned.children[0]);
+      expect(cs.ignoredEntity).eq(undefined);
 
       rootEntity.destroy();
     });
@@ -383,7 +433,7 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("@ignoreClone entity ref outside hierarchy stays original", () => {
+    it("@ignoreClone entity ref outside hierarchy is ignored the same way", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const external = rootEntity.createChild("external");
@@ -393,7 +443,43 @@ describe("Clone remap", async () => {
       const cloned = parent.clone();
       const cs = cloned.getComponent(DecoratedRefScript);
 
-      expect(cs.ignoredEntity).eq(external);
+      expect(cs.ignoredEntity).eq(undefined);
+
+      rootEntity.destroy();
+    });
+
+    it("@deepClone entity ref falls back to remap instead of constructing a broken entity", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const external = rootEntity.createChild("external");
+      const script = parent.addComponent(DeepEntityRefScript);
+
+      // In-subtree ref remaps to the clone's entity.
+      script.target = child;
+      let cloned = parent.clone();
+      expect(cloned.getComponent(DeepEntityRefScript).target).eq(cloned.children[0]);
+
+      // Out-of-subtree ref keeps the original reference (never `new Entity()` without engine).
+      script.target = external;
+      cloned = parent.clone();
+      expect(cloned.getComponent(DeepEntityRefScript).target).eq(external);
+      expect(cloned.getComponent(DeepEntityRefScript).target.engine).eq(engine);
+
+      rootEntity.destroy();
+    });
+
+    it("@assignmentClone function field shares the source function (decorator wins over reuse)", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(AssignedHandlerScript);
+      const custom = () => {};
+      script.handler = custom;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(AssignedHandlerScript);
+
+      expect(cs.handler).eq(custom);
 
       rootEntity.destroy();
     });
@@ -617,6 +703,26 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
+    it("@deepClone Signal shares non-entity object args deterministically", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const handlerEntity = parent.createChild("handler");
+      const handler = handlerEntity.addComponent(ClickHandler);
+      const script = parent.addComponent(SignalScript);
+      const payload = { hp: 5 };
+      script.onFire.on(handler, "handleClickWithPrefix", payload);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(SignalScript);
+      const clonedHandler = cloned.findByName("handler").getComponent(ClickHandler);
+
+      cs.onFire.invoke(1);
+      // Non-entity object args are shared with the source, independent of field-walk order.
+      expect(clonedHandler.lastPrefix).eq(payload);
+
+      rootEntity.destroy();
+    });
+
     it("@deepClone Signal should preserve once flag on structured binding", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
@@ -709,6 +815,128 @@ describe("Clone remap", async () => {
       expect(csB.targetEntity).eq(clonedA);
 
       rootEntity.destroy();
+    });
+  });
+
+  describe("Function fields", () => {
+    it("plain function field is shared, not lost", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const fn = () => {};
+      script.onTick = fn;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript);
+
+      expect(cs.onTick).eq(fn);
+
+      rootEntity.destroy();
+    });
+
+    it("functions inside arrays / sets / plain objects survive cloning", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const fn = () => {};
+      script.handlers = [fn];
+      script.handlerSet = new Set([fn]);
+      script.config = { onDone: fn, x: 1 };
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript);
+
+      expect(cs.handlers).not.eq(script.handlers);
+      expect(cs.handlers.length).eq(1);
+      expect(cs.handlers[0]).eq(fn);
+      expect(cs.handlerSet).not.eq(script.handlerSet);
+      expect(cs.handlerSet.has(fn)).eq(true);
+      expect(cs.config).not.eq(script.config);
+      expect(cs.config.onDone).eq(fn);
+      expect(cs.config.x).eq(1);
+
+      rootEntity.destroy();
+    });
+
+    it("constructor-bound function field keeps the clone's own binding", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(BoundHandlerScript);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(BoundHandlerScript);
+
+      expect(cs.boundTick).not.eq(script.boundTick);
+      cs.boundTick();
+      expect(cs.tickCount).eq(1);
+      expect(script.tickCount).eq(0);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Binary data fields", () => {
+    it("DataView field clones by bytes without crashing", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(BinaryScript);
+      const buffer = new ArrayBuffer(8);
+      const view = new DataView(buffer);
+      view.setFloat32(0, 3.5);
+      view.setUint16(4, 42);
+      script.view = view;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(BinaryScript);
+
+      expect(cs.view).not.eq(view);
+      expect(cs.view.buffer).not.eq(buffer);
+      expect(cs.view.getFloat32(0)).eq(3.5);
+      expect(cs.view.getUint16(4)).eq(42);
+      cs.view.setUint16(4, 7);
+      expect(view.getUint16(4)).eq(42);
+
+      rootEntity.destroy();
+    });
+
+    it("typed array field clones into an independent copy", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(BinaryScript);
+      script.bytes = new Float32Array([1, 2, 3]);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(BinaryScript);
+
+      expect(cs.bytes).not.eq(script.bytes);
+      expect(Array.from(cs.bytes)).deep.eq([1, 2, 3]);
+      cs.bytes[0] = 9;
+      expect(script.bytes[0]).eq(1);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Script-held ReferResource", () => {
+    it("is shared by reference without touching refCount, and destroy stays balanced", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(ResourceRefScript);
+      const texture = new Texture2D(engine, 4, 4);
+      const baseline = texture.refCount;
+      script.texture = texture;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(ResourceRefScript);
+
+      expect(cs.texture).eq(texture);
+      expect(texture.refCount).eq(baseline);
+
+      cloned.destroy();
+      expect(texture.refCount).eq(baseline);
+
+      rootEntity.destroy();
+      texture.destroy();
     });
   });
 

@@ -1,10 +1,11 @@
-import { Color, ReferResource, Sprite } from "@galacean/engine";
+import { CloneMode, Color, ReferResource, Sprite, defaultCloneMode } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 
 /**
  * The transition behavior of UIInteractive.
  */
+@defaultCloneMode(CloneMode.Deep)
 export abstract class Transition<
   T extends TransitionValueType = TransitionValueType,
   K extends UIRenderer = UIRenderer

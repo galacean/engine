@@ -1,6 +1,4 @@
 import { Component } from "./Component";
-import { Entity } from "./Entity";
-import { CloneUtils } from "./clone/CloneUtils";
 import { defaultCloneMode, ignoreClone } from "./clone/CloneManager";
 import { CloneMode } from "./clone/enums/CloneMode";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
@@ -124,38 +122,34 @@ export class Signal<T extends any[] = []> {
 
   /**
    * @internal
-   * Clone listeners to target signal, remapping entity/component references.
+   * Clone listeners to target signal, remapping entity/component references through the
+   * cloned subtree's identity map (references outside the subtree are kept as-is).
    */
-  _cloneTo(target: Signal<T>, srcRoot: Entity, targetRoot: Entity): void {
+  _cloneTo(target: Signal<T>, cloneMap: Map<Object, Object>): void {
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
       if (listener.destroyed || !listener.methodName) continue;
-      const clonedTarget = CloneUtils.remapComponent(srcRoot, targetRoot, listener.target);
-      if (clonedTarget) {
-        const clonedArgs = this._cloneArguments(listener.arguments, srcRoot, targetRoot);
-        if (listener.once) {
-          target.once(clonedTarget, listener.methodName, ...clonedArgs);
-        } else {
-          target.on(clonedTarget, listener.methodName, ...clonedArgs);
-        }
+      const clonedTarget = <Component>(cloneMap.get(listener.target) ?? listener.target);
+      const clonedArgs = this._cloneArguments(listener.arguments, cloneMap);
+      if (listener.once) {
+        target.once(clonedTarget, listener.methodName, ...clonedArgs);
+      } else {
+        target.on(clonedTarget, listener.methodName, ...clonedArgs);
       }
     }
   }
 
-  private _cloneArguments(args: any[], srcRoot: Entity, targetRoot: Entity): any[] {
+  private _cloneArguments(args: any[], cloneMap: Map<Object, Object>): any[] {
     if (!args || args.length === 0) return [];
     const len = args.length;
     const clonedArgs = new Array(len);
     for (let i = 0; i < len; i++) {
       const arg = args[i];
-      if (arg instanceof Entity) {
-        clonedArgs[i] = CloneUtils.remapEntity(srcRoot, targetRoot, arg);
-      } else if (arg instanceof Component) {
-        clonedArgs[i] = CloneUtils.remapComponent(srcRoot, targetRoot, arg);
-      } else {
-        clonedArgs[i] = arg;
-      }
+      // Only Entity/Component references (Remap types) are remapped; other objects are shared
+      // deterministically (looking them up in the identity map would depend on field-walk order).
+      clonedArgs[i] =
+        arg instanceof Object && (<any>arg)._defaultCloneMode === CloneMode.Remap ? (cloneMap.get(arg) ?? arg) : arg;
     }
     return clonedArgs;
   }

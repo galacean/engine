@@ -1,4 +1,14 @@
-import { MeshRenderer, Entity, Texture2D } from "@galacean/engine-core";
+import {
+  Animator,
+  AnimatorController,
+  Camera,
+  Entity,
+  Font,
+  MeshRenderer,
+  RenderTarget,
+  TextRenderer,
+  Texture2D
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, beforeAll, expect, it } from "vitest";
 
@@ -26,6 +36,58 @@ describe("Clone resource refCount", async function () {
     clone.destroy();
     // Destroying the clone releases that reference → back to baseline, no leak.
     expect(texture.refCount).eq(1);
+
+    entity.destroy();
+  });
+
+  it("camera renderTarget refCount stays balanced across clone/destroy", () => {
+    const rt = new RenderTarget(engine, 4, 4, new Texture2D(engine, 4, 4));
+    const entity = rootEntity.createChild("cameraSrc");
+    entity.addComponent(Camera).renderTarget = rt;
+    expect(rt.refCount).eq(1);
+
+    const clone = entity.clone();
+    rootEntity.addChild(clone);
+    // The clone holds exactly one additional reference (acquired in Camera._cloneTo).
+    expect(rt.refCount).eq(2);
+
+    clone.destroy();
+    expect(rt.refCount).eq(1);
+
+    entity.destroy();
+    expect(rt.refCount).eq(0);
+  });
+
+  it("text renderer font refCount stays balanced across clone/destroy", () => {
+    const font = Font.createFromOS(engine, "Arial-CloneTest");
+    const entity = rootEntity.createChild("textSrc");
+    entity.addComponent(TextRenderer).font = font;
+    const baseline = font.refCount;
+
+    const clone = entity.clone();
+    rootEntity.addChild(clone);
+    // The clone holds exactly one additional reference (acquired via the font setter in _cloneTo).
+    expect(font.refCount).eq(baseline + 1);
+
+    clone.destroy();
+    expect(font.refCount).eq(baseline);
+
+    entity.destroy();
+  });
+
+  it("animator controller refCount stays balanced across clone/destroy", () => {
+    const controller = new AnimatorController(engine);
+    const entity = rootEntity.createChild("animatorSrc");
+    entity.addComponent(Animator).animatorController = controller;
+    const baseline = controller.refCount;
+
+    const clone = entity.clone();
+    rootEntity.addChild(clone);
+    // The clone holds exactly one additional reference (acquired in Animator._cloneTo).
+    expect(controller.refCount).eq(baseline + 1);
+
+    clone.destroy();
+    expect(controller.refCount).eq(baseline);
 
     entity.destroy();
   });

@@ -1,13 +1,4 @@
-import {
-  Entity,
-  MathUtil,
-  Rect,
-  Transform,
-  TransformModifyFlags,
-  Vector2,
-  deepClone,
-  ignoreClone
-} from "@galacean/engine";
+import { Entity, MathUtil, Rect, Transform, TransformModifyFlags, Vector2, ignoreClone } from "@galacean/engine";
 import { HorizontalAlignmentMode } from "../enums/HorizontalAlignmentMode";
 import { VerticalAlignmentMode } from "../enums/VerticalAlignmentMode";
 
