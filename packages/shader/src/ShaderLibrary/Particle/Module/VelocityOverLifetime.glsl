@@ -129,6 +129,7 @@
         #endif
     #endif
 
+    // Orbital/radial random modes share linear VOL random channels to keep the particle instance layout unchanged.
     #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
         vec3 evaluateVOLOrbital(Attributes attributes, float normalizedAge) {
             #ifdef RENDERER_VOL_ORBITAL_CONSTANT_MODE

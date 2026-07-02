@@ -314,6 +314,26 @@ describe("LimitVelocityOverLifetimeModule", function () {
     expect(vol._isRadialActive()).to.eq(false);
   });
 
+  it("velocity over lifetime unauthored orbital/radial curves stay inactive", function () {
+    const generator = particleRenderer.generator;
+    const vol = generator.velocityOverLifetime;
+
+    vol.enabled = true;
+    vol.radial.mode = ParticleCurveMode.Curve;
+    expect(vol.radial.curveMax).to.eq(undefined);
+    expect((vol.radial as any)._isZero()).to.eq(true);
+    expect(vol._isRadialActive()).to.eq(false);
+    expect(vol._needTransformFeedback()).to.eq(false);
+    expect(() => generator._updateShaderData(particleRenderer.shaderData)).to.not.throw();
+
+    vol.orbitalX.mode = ParticleCurveMode.Curve;
+    vol.orbitalY.mode = ParticleCurveMode.Curve;
+    vol.orbitalZ.mode = ParticleCurveMode.Curve;
+    expect(vol._isOrbitalActive()).to.eq(false);
+    expect(vol._needTransformFeedback()).to.eq(false);
+    expect(() => generator._updateShaderData(particleRenderer.shaderData)).to.not.throw();
+  });
+
   it("velocity over lifetime orbital/radial pull in transform feedback when active", function () {
     const generator = particleRenderer.generator;
     const vol = generator.velocityOverLifetime;

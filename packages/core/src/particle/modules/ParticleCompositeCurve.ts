@@ -307,7 +307,7 @@ export class ParticleCompositeCurve {
         max = Math.max(max, value);
       }
     }
-    out.set(min, max);
+    out.set(min ?? 0, max ?? 0);
   }
 
   private _onCurveChange(lastValue: ParticleCurve, value: ParticleCurve) {

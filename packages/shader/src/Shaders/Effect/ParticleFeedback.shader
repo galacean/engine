@@ -50,35 +50,6 @@ Shader "Effect/ParticleFeedback" {
       #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/NoiseModule.glsl"
 
-      // Get VOL instantaneous velocity at normalizedAge
-      vec3 getVOLVelocity(Attributes attributes, float normalizedAge) {
-          vec3 vel = vec3(0.0);
-          #ifdef _VOL_LINEAR_MODULE_ENABLED
-              #ifdef RENDERER_VOL_CONSTANT_MODE
-                  vel = renderer_VOLMaxConst;
-                  #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                      vel = mix(renderer_VOLMinConst, vel, attributes.a_Random1.yzw);
-                  #endif
-              #endif
-              #ifdef RENDERER_VOL_CURVE_MODE
-                  vel = vec3(
-                      evaluateParticleCurve(renderer_VOLMaxGradientX, normalizedAge),
-                      evaluateParticleCurve(renderer_VOLMaxGradientY, normalizedAge),
-                      evaluateParticleCurve(renderer_VOLMaxGradientZ, normalizedAge)
-                  );
-                  #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                      vec3 minVel = vec3(
-                          evaluateParticleCurve(renderer_VOLMinGradientX, normalizedAge),
-                          evaluateParticleCurve(renderer_VOLMinGradientY, normalizedAge),
-                          evaluateParticleCurve(renderer_VOLMinGradientZ, normalizedAge)
-                      );
-                      vel = mix(minVel, vel, attributes.a_Random1.yzw);
-                  #endif
-              #endif
-          #endif
-          return vel;
-      }
-
       // Get FOL instantaneous acceleration at normalizedAge
       vec3 getFOLAcceleration(Attributes attributes, float normalizedAge) {
           vec3 acc = vec3(0.0);
@@ -139,7 +110,7 @@ Shader "Effect/ParticleFeedback" {
           vec3 volLocal = vec3(0.0);
           vec3 volWorld = vec3(0.0);
           #ifdef _VOL_LINEAR_MODULE_ENABLED
-              vec3 vol = getVOLVelocity(attr, normalizedAge);
+              vec3 vol = evaluateVOLVelocity(attr, normalizedAge);
               if (renderer_VOLSpace == 0) {
                   volLocal = vol;
               } else {

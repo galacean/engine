@@ -49,6 +49,7 @@ export class ParticleGenerator {
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
   private static _tempVector32 = new Vector3();
+  private static _tempVector33 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor = new Color();
   private static _tempQuat0 = new Quaternion();
@@ -1786,7 +1787,7 @@ export class ParticleGenerator {
     const maxGravityEffect = modifierMinMax.y * coefficient;
     const { x, y, z } = this._renderer.scene.physics.gravity;
 
-    const gravityBoundsExtents = ParticleGenerator._tempVector32;
+    const gravityBoundsExtents = ParticleGenerator._tempVector33;
     gravityBoundsExtents.set(
       Math.max(Math.abs(x * minGravityEffect), Math.abs(x * maxGravityEffect)),
       Math.max(Math.abs(y * minGravityEffect), Math.abs(y * maxGravityEffect)),
