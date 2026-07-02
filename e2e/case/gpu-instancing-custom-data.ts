@@ -61,7 +61,7 @@ const customInstanceShaderSource = `Shader "CustomInstanceShader" {
 
 WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
   Shader.create(customInstanceShaderSource);
-  engine.canvas.setResolution(2400, 1600);
+  engine.canvas.setAutoResolution(2);
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("Root");

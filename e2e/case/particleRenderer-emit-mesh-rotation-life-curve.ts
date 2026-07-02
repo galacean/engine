@@ -32,8 +32,6 @@ type Mode = "constant" | "curve";
 Logger.enable();
 
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.setResolution(1200, 800);
-
   const scene = engine.sceneManager.activeScene;
   scene.background.mode = BackgroundMode.SolidColor;
   scene.background.solidColor.set(0.15, 0.15, 0.18, 1);

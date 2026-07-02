@@ -85,8 +85,6 @@ const shaderSource = `Shader "Test RenderState" {
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
-  engine.canvas.setResolution(1200, 800);
-
   const shader = Shader.create(shaderSource);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();

@@ -109,8 +109,6 @@ const customStencilShaderSource = `Shader "CustomStencilSprite" {
 
 // Create engine
 WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).then((engine) => {
-  engine.canvas.setResolution(1200, 800);
-
   // Register the custom stencil shader once.
   const customStencilShader = Shader.create(customStencilShaderSource);
 

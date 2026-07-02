@@ -20,8 +20,6 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.setResolution(1200, 800);
-
   const firstCamera = initFirstScene(engine);
   const secondCamera = initSecondScene(engine);
 

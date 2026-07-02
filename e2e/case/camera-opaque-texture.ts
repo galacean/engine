@@ -111,7 +111,7 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
       }
     }
   `);
-  engine.canvas.setResolution(2400, 1600);
+  engine.canvas.setAutoResolution(2);
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 

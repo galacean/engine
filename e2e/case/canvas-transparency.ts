@@ -28,7 +28,7 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas", graphicDeviceOptions: { alpha: false } }).then((engine) => {
-  engine.canvas.setResolution(2400, 1600);
+  engine.canvas.setAutoResolution(2);
 
   engine.resourceManager
     .load([

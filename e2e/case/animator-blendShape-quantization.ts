@@ -19,7 +19,6 @@ WebGLEngine.create({
   canvas: "canvas",
   glTF: { meshOpt: { workerCount: 0 } }
 }).then(async (engine) => {
-  engine.canvas.setResolution(1200, 800);
   const scene = engine.sceneManager.activeScene;
   const rootNode = scene.createRootEntity();
   scene.ambientLight.diffuseSolidColor.set(1, 1, 1, 1);
