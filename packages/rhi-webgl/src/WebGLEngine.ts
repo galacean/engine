@@ -3,7 +3,7 @@ import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
 
 /**
- * WebGL platform engine,support includes WebGL1.0 and WebGL2.0.
+ * WebGL platform engine, supports WebGL 1.0 and WebGL 2.0.
  */
 export class WebGLEngine extends Engine {
   /**
@@ -28,12 +28,14 @@ export class WebGLEngine extends Engine {
     });
   }
 
+  // Core Engine never destroys the canvas; the platform engine owns teardown.
   private static _releaseCanvas(engine: WebGLEngine): void {
     engine.canvas._destroy();
   }
 
   /**
-   * Web canvas.
+   * The canvas the engine renders to; call `setResolution()` or `setAutoResolution()` on it to control
+   * the render-buffer resolution.
    */
   override get canvas(): WebCanvas {
     // @ts-ignore
@@ -43,14 +45,15 @@ export class WebGLEngine extends Engine {
   /**
    * Enable automatic canvas resizing.
    * @deprecated Use `engine.canvas.setAutoResolution()` instead.
-   * @param pixelRatio - Deprecated; the device pixel ratio is applied automatically
+   * @param pixelRatio - Ignored; the device pixel ratio is applied automatically. For a custom multiplier
+   * on top of it, use `engine.canvas.setAutoResolution(scale)`
    */
   enableAutoResize(pixelRatio?: number): void {
     this.canvas.setAutoResolution();
   }
 
   /**
-   * Disable automatic canvas resizing.
+   * Lock the render buffer at its current size; it stops following the display size.
    * @deprecated Use `engine.canvas.setResolution(width, height)` to lock a fixed resolution instead.
    */
   disableAutoResize(): void {
@@ -59,13 +62,14 @@ export class WebGLEngine extends Engine {
   }
 
   override update(): void {
+    // Must run before super.update() — see Canvas._pumpPendingResize for why.
     this.canvas._pumpPendingResize();
     super.update();
   }
 }
 
 /**
- * WebGL engine configuration.
+ * Options for `WebGLEngine.create()`.
  */
 export interface WebGLEngineConfiguration extends EngineConfiguration {
   /** Canvas element or canvas id. */
