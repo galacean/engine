@@ -64,31 +64,14 @@ export function defaultCloneMode(mode: CloneMode) {
  * @internal
  * Clone manager.
  *
- * Opt-out model: all enumerable fields of an object are cloned unless marked `@ignoreClone`.
- * HOW each field value is cloned depends on the value's runtime type (`@defaultCloneMode`):
- *   - primitive / null / undefined → assign by value.
- *   - function → keep the clone's own binding when its slot already holds one (constructor-rebound
- *     handlers), otherwise share the reference (container elements have no own slot value).
- *   - Remap (Entity / Component) → resolve to the clone via the identity map.
- *   - Assignment (ReferResource / unknown types without @defaultCloneMode) → share the reference.
- *   - Deep (@defaultCloneMode(Deep) / copyFrom types / containers) → recursively deep clone.
+ * Opt-out model: every enumerable field is cloned unless `@ignoreClone`. How a value clones is
+ * decided by the gate (`_cloneValue`): field decorator → container deep → the value type's
+ * `@defaultCloneMode` → Assignment (share) fallback.
  *
- * Ref-count (slot-ownership contract): every COMPONENT top-level field holding an explicitly
- * registered ref-counted resource (ReferResource family) owns one reference. The gate acquires
- * it when cloning the slot (+1, and -1 on a replaced preset); releasing it on destroy is the
- * component class's responsibility — engine components do it in their destroy paths, script
- * authors in `onDestroy`. A class that doesn't release is a bug in that class. Everything below
- * the top level owns nothing at the gate: container elements and plain-object fields are plain
- * shares, and a nested class that ref-counts its resources pairs the acquisition itself
- * (`_cloneTo` +1 / destroy -1 in the same class). Slots rebuilt through setters must be
- * `@ignoreClone` so the setter is the single +1 source (e.g. `MeshRenderer.mesh`).
- *
- * Deep clone lifecycle (3-stage):
- *   1. Construct — reuse the clone's existing slot value if same type, else `new ctor()`.
- *   2. Populate — `copyFrom` (value-type fast path) OR recurse all fields (opt-out).
- *   3. Finalize — `_cloneTo` post-clone hook for native sync / derived state rebuild.
- *
- * Cycles / shared sub-graphs dedup through the identity map.
+ * Ref count: a component top-level slot sharing a registered resource owns one reference
+ * (`_acquireSlotOwnership`); releasing it on destroy is the owning class's contract. Below the
+ * top level the gate never counts — a nested class pairs its own acquisition, and setter-rebuilt
+ * slots stay `@ignoreClone` so the setter is the single +1 source.
  */
 export class CloneManager {
   /** @internal Own field-level clone modes per class (excluding inherited), from `@deepClone`/`@assignmentClone`/`@ignoreClone`. */
