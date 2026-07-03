@@ -99,20 +99,6 @@ export class CloneManager {
   private static _objectType = Object.getPrototypeOf(Object);
 
   /**
-   * @internal
-   * Register a field-level clone mode (highest priority — overrides the value type's `@defaultCloneMode`).
-   */
-  static _registerFieldMode(target: object, propertyKey: string, mode: CloneMode): void {
-    let fields = CloneManager._subFieldModeMap.get(target.constructor);
-    if (!fields) {
-      fields = new Map<string, CloneMode>();
-      CloneManager._subFieldModeMap.set(target.constructor, fields);
-    }
-    fields.set(propertyKey, mode);
-    CloneManager._fieldModeMap.clear();
-  }
-
-  /**
    * Get the field-level clone modes of a type, flattened across its prototype chain.
    */
   static getFieldModes(type: Function): Map<string, CloneMode> {
@@ -134,6 +120,29 @@ export class CloneManager {
       }
     }
     return modes;
+  }
+
+  /**
+   * Deep clone all enumerable fields of source into target through the clone gate.
+   */
+  static deepCloneObject(source: object, target: object, cloneMap: Map<object, object>): void {
+    for (const k in source) {
+      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap);
+    }
+  }
+
+  /**
+   * @internal
+   * Register a field-level clone mode (highest priority — overrides the value type's `@defaultCloneMode`).
+   */
+  static _registerFieldMode(target: object, propertyKey: string, mode: CloneMode): void {
+    let fields = CloneManager._subFieldModeMap.get(target.constructor);
+    if (!fields) {
+      fields = new Map<string, CloneMode>();
+      CloneManager._subFieldModeMap.set(target.constructor, fields);
+    }
+    fields.set(propertyKey, mode);
+    CloneManager._fieldModeMap.clear();
   }
 
   /**
@@ -306,15 +315,6 @@ export class CloneManager {
     }
     (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, cloneMap);
     return dst;
-  }
-
-  /**
-   * Deep clone all enumerable fields of source into target through the clone gate.
-   */
-  static deepCloneObject(source: object, target: object, cloneMap: Map<object, object>): void {
-    for (const k in source) {
-      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap);
-    }
   }
 }
 
