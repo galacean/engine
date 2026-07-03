@@ -43,16 +43,8 @@ export function ignoreClone(target: object, propertyKey: string): void {
 }
 
 /**
- * Class decorator that sets the default clone mode for instances of the decorated type.
- *
- * When a field holds an instance of a type decorated with `@defaultCloneMode`, the clone system
- * uses the specified mode instead of the default Assignment behavior.
- *
- * Built-in defaults:
- * - Entity / Component → `CloneMode.Remap`
- * - ReferResource (Texture, Mesh, Material, etc.) → `CloneMode.Assignment`
- * - Value-semantic config objects (RenderState, ParticleModule, ColliderShape, etc.) → `CloneMode.Deep`
- *
+ * Class decorator — the default clone mode for instances of the decorated type
+ * (unregistered types fall back to Assignment).
  * @param mode - The clone mode applied to instances of the decorated type
  */
 export function defaultCloneMode(mode: CloneMode) {
@@ -63,16 +55,12 @@ export function defaultCloneMode(mode: CloneMode) {
 
 /**
  * @internal
- * Clone manager.
+ * Clone manager. Opt-out model: every enumerable field is cloned unless `@ignoreClone`,
+ * with the mode resolved by `_cloneValue`.
  *
- * Opt-out model: every enumerable field is cloned unless `@ignoreClone`. How a value clones is
- * decided by the gate (`_cloneValue`): field decorator → container deep → the value type's
- * `@defaultCloneMode` → Assignment (share) fallback.
- *
- * Ref count: a component top-level slot sharing a registered resource owns one reference
- * (`_acquireSlotOwnership`); releasing it on destroy is the owning class's contract. Below the
- * top level the gate never counts — a nested class pairs its own acquisition, and setter-rebuilt
- * slots stay `@ignoreClone` so the setter is the single +1 source.
+ * Ref count: a component top-level slot sharing a registered resource owns one reference;
+ * releasing it on destroy is the owning class's contract. Nested levels never count at the
+ * gate — a nested class pairs its own acquisition (`_cloneTo` +1 / destroy -1).
  */
 export class CloneManager {
   /** @internal Own field-level clone modes per class (excluding inherited), from `@deepClone`/`@assignmentClone`/`@ignoreClone`. */
@@ -107,8 +95,7 @@ export class CloneManager {
   }
 
   /**
-   * Deep clone all enumerable fields of source into target through the clone gate,
-   * respecting the source type's `@ignoreClone` field decorators.
+   * Deep clone all enumerable fields of source into target, respecting `@ignoreClone`.
    */
   static deepCloneObject(source: object, target: object, cloneMap: Map<object, object>): void {
     const ctor = (<{ constructor?: Function }>source).constructor;
@@ -139,14 +126,11 @@ export class CloneManager {
    * Clone gate — decides how to clone one value based on its type.
    */
   static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
-    // Functions: an explicit field decorator (@assignmentClone/@deepClone) shares the reference;
-    // by default keep the clone's own binding when its slot already holds one (constructor-rebound
-    // handlers), otherwise share (container elements / null-preset slots have none).
+    // Explicit decorator shares the function; default keeps the clone's own rebound binding.
     if (typeof value === "function") {
       return fieldMode !== undefined ? value : typeof reuse === "function" ? reuse : value;
     }
-    // Primitives copy by value. `typeof`, not `instanceof Object` — null-prototype objects
-    // (`Object.create(null)`) and cross-realm objects have no local Object.prototype in their chain.
+    // `typeof`, not `instanceof` — null-prototype / cross-realm objects lack local Object.prototype.
     if (value === null || typeof value !== "object") return value;
 
     // Mode priority: field decorator (highest) → container default deep → type's `@defaultCloneMode` → Assignment.
@@ -156,12 +140,8 @@ export class CloneManager {
         ? CloneMode.Deep
         : ((<ICustomClone>value)._defaultCloneMode ?? CloneMode.Assignment);
     } else if (cloneMode === CloneMode.Deep) {
-      // Error recovery, NOT a priority rule: `@deepClone` on an engine-bound instance is an
-      // unexecutable directive — the generic deep path would `new ctor()` without an engine and
-      // produce a corrupt detached object. Recover to the type's executable semantics and warn:
-      // Entity/Component → remap; registered assets (ReferResource) → share (copy an asset
-      // through its own clone() API instead). Every executable decorator still wins over the
-      // type default at all depths.
+      // Error recovery (not a priority rule): engine-bound instances can't be deep cloned —
+      // recover to the type's executable mode (remap / share) and warn.
       const typeDefault = (<ICustomClone>value)._defaultCloneMode;
       if (typeDefault === CloneMode.Remap) {
         Logger.warn(
@@ -185,10 +165,8 @@ export class CloneManager {
 
   /**
    * @internal
-   * Slot-ownership acquisition for a component top-level slot that shared a ref-counted resource
-   * (only types explicitly registered `@defaultCloneMode(Assignment)`, i.e. the ReferResource
-   * family — excludes duck-typed counters like Shader): +1 on the shared value, -1 on a replaced
-   * owned preset. Releasing the acquired count on destroy is the owning class's contract.
+   * A component top-level slot that shared a counted resource owns one reference:
+   * +1 on the shared value, -1 on a replaced owned preset; destroy releases it (class contract).
    */
   static _acquireSlotOwnership(value: any, preset: any): void {
     if (!CloneManager._isCountedResource(value)) return;
@@ -206,19 +184,16 @@ export class CloneManager {
   }
 
   /**
-   * Whether the value participates in the slot-ownership ref-count contract: only types
-   * explicitly registered `@defaultCloneMode(Assignment)` (the ReferResource family) do.
+   * Only explicitly registered Assignment types (ReferResource family) participate in
+   * ref counting — excludes duck-typed counters like Shader.
    */
   private static _isCountedResource(value: any): boolean {
     return value instanceof Object && (<ICustomClone>value)._defaultCloneMode === CloneMode.Assignment;
   }
 
   /**
-   * Container-shape test — the single classification point shared by the gate and `_deepClone`.
-   * Invariant: every shape this returns true for MUST have a dedicated branch in `_deepClone`
-   * (ArrayBuffer view → byte copy, Array/Map/Set → per-element, plain object → field walk).
-   * `constructor === undefined` catches null-prototype objects (`Object.create(null)`) — data
-   * containers just like plain objects.
+   * The single container classification point. Invariant: every shape returning true MUST have
+   * a dedicated `_deepClone` branch. `constructor === undefined` = null-prototype objects.
    */
   private static _isContainer(value: object): boolean {
     return (
@@ -297,15 +272,12 @@ export class CloneManager {
       return dst;
     }
 
-    // Object — reuse or construct, then populate all fields (opt-out) + finalize.
-    // A null-prototype object (`Object.create(null)`) has no constructor: rebuild it as such.
+    // Object — reuse or construct (null-prototype objects have no ctor: rebuild as such),
+    // then populate all fields (opt-out) + finalize.
     const ctor = <new () => object>value.constructor;
     const dst =
       reuse && reuse !== value && reuse.constructor === ctor ? reuse : ctor ? new ctor() : Object.create(null);
     cloneMap.set(value, dst);
-    // Nested objects own no gate-acquired references: the slot-ownership contract covers
-    // component top-level fields only. A nested class that ref-counts its resources pairs the
-    // acquisition itself (`_cloneTo` +1 / destroy -1 in the same class, e.g. SpriteTransition).
     const fieldModes = ctor ? CloneManager.getFieldModes(ctor) : null;
     for (const key in value) {
       const fieldMode = fieldModes?.get(key);
@@ -317,9 +289,7 @@ export class CloneManager {
   }
 }
 
-// Built-in default clone mode for math value types. The math package cannot depend on core's
-// `@defaultCloneMode`, so they are registered here instead (core → math is the normal dependency
-// direction). All are value-semantic and always deep cloned.
+// Math value types are always deep cloned; registered here because math cannot depend on core.
 const _markDeep = defaultCloneMode(CloneMode.Deep);
 [
   Ray,
