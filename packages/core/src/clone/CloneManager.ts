@@ -148,13 +148,8 @@ export class CloneManager {
   /**
    * @internal
    * Clone gate — decides how to clone one value based on its type.
-   *
-   * `refs` controls the ref-count contract for THIS slot:
-   * - `undefined` — the slot owns no count (container elements, plain-object fields).
-   * - `null` — a component top-level field: an Assignment-shared ref-counted resource gains +1
-   *   here, and the owning class's destroy path releases it (implementation contract).
    */
-  static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode, refs?: null): any {
+  static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
     if (!(value instanceof Object)) return value;
     // Functions: an explicit field decorator (@assignmentClone/@deepClone) shares the reference;
     // by default keep the clone's own binding when its slot already holds one (constructor-rebound
@@ -179,27 +174,31 @@ export class CloneManager {
     }
 
     if (cloneMode === CloneMode.Ignore) return reuse;
-    if (cloneMode === CloneMode.Assignment) {
-      // Slot-ownership contract: an engine-component field sharing an explicitly-registered
-      // ref-counted resource (ReferResource family — excludes duck-typed counters like Shader)
-      // owns one reference; the owning component's destroy path releases it.
-      if (refs !== undefined && CloneManager._isCountedResource(value)) {
-        if (CloneManager._isCountedResource(reuse)) {
-          const presetRefCount = (<{ refCount?: number }>reuse).refCount;
-          presetRefCount !== undefined &&
-            presetRefCount <= 0 &&
-            Logger.error(
-              `CloneManager: the clone's preset ${reuse.constructor.name} holds no owned reference; ` +
-                `a constructor presetting a ref-counted resource must acquire it (assign via its setter or an explicit +1).`
-            );
-          (<IReferable>reuse)._addReferCount(-1);
-        }
-        (<IReferable>value)._addReferCount(1);
-      }
-      return value;
-    }
+    if (cloneMode === CloneMode.Assignment) return value;
     if (cloneMode === CloneMode.Remap) return cloneMap.get(value) ?? value;
     return CloneManager._deepClone(value, reuse, cloneMap);
+  }
+
+  /**
+   * @internal
+   * Slot-ownership acquisition for a component top-level slot that shared a ref-counted resource
+   * (only types explicitly registered `@defaultCloneMode(Assignment)`, i.e. the ReferResource
+   * family — excludes duck-typed counters like Shader): +1 on the shared value, -1 on a replaced
+   * owned preset. Releasing the acquired count on destroy is the owning class's contract.
+   */
+  static _acquireSlotOwnership(value: any, preset: any): void {
+    if (!CloneManager._isCountedResource(value)) return;
+    if (CloneManager._isCountedResource(preset)) {
+      const presetRefCount = (<{ refCount?: number }>preset).refCount;
+      presetRefCount !== undefined &&
+        presetRefCount <= 0 &&
+        Logger.error(
+          `CloneManager: the clone's preset ${preset.constructor.name} holds no owned reference; ` +
+            `a constructor presetting a ref-counted resource must acquire it (assign via its setter or an explicit +1).`
+        );
+      (<IReferable>preset)._addReferCount(-1);
+    }
+    (<IReferable>value)._addReferCount(1);
   }
 
   /**

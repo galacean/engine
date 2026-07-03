@@ -36,9 +36,13 @@ export class ComponentCloner {
     for (const k in source) {
       const fieldMode = fieldModes.get(k);
       if (fieldMode === CloneMode.Ignore) continue;
+      const sourceValue = source[k];
+      const preset = target[k];
       // Field decorator (highest) → value-shape / type default (Entity/Component remap via the map).
-      // Component top-level slots own their shared ref-counted resources (`refs: null`).
-      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode, null);
+      const cloned = (target[k] = CloneManager._cloneValue(sourceValue, preset, cloneMap, fieldMode));
+      // A slot that shared the source's ref-counted resource owns one reference (returned as-is
+      // only by the Assignment path for registered resources; remapped/deep values never match).
+      cloned === sourceValue && CloneManager._acquireSlotOwnership(cloned, preset);
     }
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }
