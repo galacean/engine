@@ -127,19 +127,20 @@ export abstract class Transition<
 
   destroy(): void {
     this._interactive?.removeTransition(this);
-    // Release the ref-counted state values (paired with the setter's +1 and, for clones,
-    // `_cloneTo`'s +1) — implemented here so every subclass with ReferResource states is covered.
-    const releaseState = (state: T): void => {
-      // @ts-ignore
-      state instanceof ReferResource && state._addReferCount(-1);
-    };
-    releaseState(this._normal);
-    releaseState(this._pressed);
-    releaseState(this._hover);
-    releaseState(this._disabled);
+    // Release the state values (paired with the setter's +1 and, for clones, `_cloneTo`'s +1).
+    this._addStateValuesReferCount(-1);
     this._normal = this._pressed = this._hover = this._disabled = null;
     this._initialValue = this._currentValue = this._finalValue = null;
     this._target = null;
+  }
+
+  /**
+   * @internal
+   * The clone gate shares the state values without counting (nested level); the clone owns
+   * one reference per ref-counted state — released in `destroy`.
+   */
+  _cloneTo(target: Transition<T, K>): void {
+    target._addStateValuesReferCount(1);
   }
 
   /**
@@ -188,6 +189,18 @@ export abstract class Transition<
     const weight = this._duration ? 1 - this._countDown / this._duration : 1;
     this._updateCurrentValue(this._initialValue, this._finalValue, weight);
     this._target?.enabled && this._applyValue(this._currentValue);
+  }
+
+  private _addStateValuesReferCount(count: number): void {
+    const { _normal, _pressed, _hover, _disabled } = this;
+    // @ts-ignore
+    _normal instanceof ReferResource && _normal._addReferCount(count);
+    // @ts-ignore
+    _pressed instanceof ReferResource && _pressed._addReferCount(count);
+    // @ts-ignore
+    _hover instanceof ReferResource && _hover._addReferCount(count);
+    // @ts-ignore
+    _disabled instanceof ReferResource && _disabled._addReferCount(count);
   }
 
   private _getValueByState(state: InteractiveState): T {
