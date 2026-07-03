@@ -251,7 +251,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   @ignoreClone
-  private _onSkinUpdated(type: SkinUpdateFlag, value: object): void {
+  private _onSkinUpdated(type: SkinUpdateFlag, value: number | Entity): void {
     switch (type) {
       case SkinUpdateFlag.BoneCountChanged:
         const shaderData = this.shaderData;
