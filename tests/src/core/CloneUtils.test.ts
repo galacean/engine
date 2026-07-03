@@ -172,6 +172,21 @@ class ResourceRefScript extends Script {
   }
 }
 
+/** Script whose constructor presets an owned counted resource into a clonable slot. */
+class PresetTextureScript extends Script {
+  static created: Texture2D[] = [];
+
+  texture: Texture2D;
+
+  constructor(entity: Entity) {
+    super(entity);
+    const texture = new Texture2D(entity.engine, 1, 1);
+    (texture as any)._addReferCount(1);
+    PresetTextureScript.created.push(texture);
+    this.texture = texture;
+  }
+}
+
 /** Script misusing @deepClone on an Entity ref (must fall back to remap, never construct) */
 class DeepEntityRefScript extends Script {
   @deepClone
@@ -1100,6 +1115,27 @@ describe("Clone remap", async () => {
 
       rootEntity.destroy();
       texture.destroy();
+    });
+
+    it("a replaced owned preset releases its count even when the source slot is empty", () => {
+      PresetTextureScript.created.length = 0;
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(PresetTextureScript);
+      // The source empties the slot, releasing its own preset ownership first.
+      (script.texture as any)._addReferCount(-1);
+      script.texture = null;
+
+      const cloned = parent.clone();
+      expect(PresetTextureScript.created.length).eq(2);
+      const [sourcePreset, clonePreset] = PresetTextureScript.created;
+
+      // The clone's constructor preset was displaced by the empty slot — its owned count returns.
+      expect(cloned.getComponent(PresetTextureScript).texture).eq(null);
+      expect(clonePreset.refCount).eq(0);
+      expect(sourcePreset.refCount).eq(0);
+
+      rootEntity.destroy();
     });
   });
 

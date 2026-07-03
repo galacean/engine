@@ -167,11 +167,11 @@ export class CloneManager {
 
   /**
    * @internal
-   * A component top-level slot that shared a counted resource owns one reference:
-   * +1 on the shared value, -1 on a replaced owned preset; destroy releases it (class contract).
+   * A component top-level slot owns its counted content: a shared counted value gains one
+   * reference, and a replaced owned counted preset releases one — even when the incoming
+   * value is uncounted. Destroy releases the slot (class contract).
    */
   static _acquireSlotOwnership(value: any, preset: any): void {
-    if (!CloneManager._isCountedResource(value)) return;
     if (CloneManager._isCountedResource(preset)) {
       const presetRefCount = (<{ refCount?: number }>preset).refCount;
       presetRefCount !== undefined &&
@@ -182,7 +182,9 @@ export class CloneManager {
         );
       (<IReferable>preset)._addReferCount(-1);
     }
-    (<IReferable>value)._addReferCount(1);
+    if (CloneManager._isCountedResource(value)) {
+      (<IReferable>value)._addReferCount(1);
+    }
   }
 
   /**
