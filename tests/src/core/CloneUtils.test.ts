@@ -178,6 +178,12 @@ class DeepEntityRefScript extends Script {
   target: Entity;
 }
 
+/** Script misusing @deepClone on an engine-bound asset (must fall back to sharing, never construct) */
+class DeepAssetRefScript extends Script {
+  @deepClone
+  texture: Texture2D;
+}
+
 /** Script with an @assignmentClone function field preset by the constructor */
 class AssignedHandlerScript extends Script {
   @assignmentClone
@@ -489,6 +495,26 @@ describe("Clone remap", async () => {
       expect(cloned.getComponent(DeepEntityRefScript).target.engine).eq(engine);
 
       rootEntity.destroy();
+    });
+
+    it("@deepClone asset ref falls back to sharing instead of constructing a broken asset", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepAssetRefScript);
+      const texture = new Texture2D(engine, 4, 4);
+      const baseline = texture.refCount;
+      script.texture = texture;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepAssetRefScript);
+
+      // Shared, never `new Texture2D()` without an engine; the slot behaves like an
+      // undecorated asset slot (owns one reference under the slot contract).
+      expect(cs.texture).eq(texture);
+      expect(texture.refCount).eq(baseline + 1);
+
+      rootEntity.destroy();
+      texture.destroy(true);
     });
 
     it("@assignmentClone function field shares the source function (decorator wins over reuse)", () => {

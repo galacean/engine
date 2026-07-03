@@ -155,16 +155,26 @@ export class CloneManager {
       cloneMode = CloneManager._isContainer(value)
         ? CloneMode.Deep
         : ((<ICustomClone>value)._defaultCloneMode ?? CloneMode.Assignment);
-    } else if (cloneMode === CloneMode.Deep && (<ICustomClone>value)._defaultCloneMode === CloneMode.Remap) {
-      // Error recovery, NOT a priority rule: `@deepClone` on an Entity/Component reference is an
-      // unexecutable directive — deep-copying one would `new Entity()` without an engine and
-      // field-walk live scene state into a corrupt detached object. Recover to the closest
-      // executable semantics (remap) and warn. Every executable decorator still wins over the
+    } else if (cloneMode === CloneMode.Deep) {
+      // Error recovery, NOT a priority rule: `@deepClone` on an engine-bound instance is an
+      // unexecutable directive — the generic deep path would `new ctor()` without an engine and
+      // produce a corrupt detached object. Recover to the type's executable semantics and warn:
+      // Entity/Component → remap; registered assets (ReferResource) → share (copy an asset
+      // through its own clone() API instead). Every executable decorator still wins over the
       // type default at all depths.
-      Logger.warn(
-        `CloneManager: "${value.constructor.name}" cannot be deep cloned; @deepClone on this field falls back to remap.`
-      );
-      cloneMode = CloneMode.Remap;
+      const typeDefault = (<ICustomClone>value)._defaultCloneMode;
+      if (typeDefault === CloneMode.Remap) {
+        Logger.warn(
+          `CloneManager: "${value.constructor.name}" cannot be deep cloned; @deepClone on this field falls back to remap.`
+        );
+        cloneMode = CloneMode.Remap;
+      } else if (typeDefault === CloneMode.Assignment) {
+        Logger.warn(
+          `CloneManager: "${value.constructor.name}" is an engine-bound asset and cannot be deep cloned; ` +
+            `@deepClone on this field falls back to sharing (use the asset's own clone() API to copy it).`
+        );
+        cloneMode = CloneMode.Assignment;
+      }
     }
 
     if (cloneMode === CloneMode.Ignore) return reuse;
