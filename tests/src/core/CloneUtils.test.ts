@@ -8,6 +8,7 @@ import {
   deepClone,
   ignoreClone
 } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it } from "vitest";
 
@@ -890,6 +891,32 @@ describe("Clone remap", async () => {
       cs.boundTick();
       expect(cs.tickCount).eq(1);
       expect(script.tickCount).eq(0);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Aliasing topology", () => {
+    it("one instance referenced three times clones into one instance referenced three times", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const vec = new Vector3(1, 2, 3);
+      (script as any).points = [vec, vec, vec];
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      // One NEW instance, shared by all three slots — the reference topology is preserved.
+      expect(cs.points[0]).not.eq(vec);
+      expect(cs.points[0]).eq(cs.points[1]);
+      expect(cs.points[1]).eq(cs.points[2]);
+      expect(cs.points[0].x).eq(1);
+
+      // Mutating through one slot is visible through the others, matching the source's behavior.
+      cs.points[0].x = 9;
+      expect(cs.points[2].x).eq(9);
+      expect(vec.x).eq(1);
 
       rootEntity.destroy();
     });
