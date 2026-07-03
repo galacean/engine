@@ -42,18 +42,6 @@ export function ignoreClone(target: object, propertyKey: string): void {
 }
 
 /**
- * @deprecated Shallow clone is no longer a distinct mode; treated as deep clone.
- * Use `@deepClone`, or `@assignmentClone` to share the reference.
- */
-export function shallowClone(target: object, propertyKey: string): void {
-  Logger.warn(
-    `@shallowClone is deprecated and now behaves as @deepClone ` +
-      `(field "${propertyKey}" of ${target.constructor?.name}); use @deepClone or @assignmentClone instead.`
-  );
-  CloneManager._registerFieldMode(target, propertyKey, CloneMode.Deep);
-}
-
-/**
  * Class decorator that sets the default clone mode for instances of the decorated type.
  *
  * When a field holds an instance of a type decorated with `@defaultCloneMode`, the clone system
