@@ -319,36 +319,37 @@ export class ShaderValidator {
   }
 
   /**
-   * Function-level return checks (read off the node — the parser recorded `returnStatement` during
-   * parsing): a `void` function that returns a value is `InvalidReturnType`, a non-void function with
-   * no return statement is `MissingReturn`. Mutually exclusive — mirrors the parser's if/else.
+   * Function-level MissingReturn: a non-void function with no return statement. The void-with-value
+   * case is reported per-jump in `_checkJump` (the parser no longer records `returnStatement` for
+   * void functions — it's a codegen invariant, see AST.ts FunctionDefinition.semanticAnalyze).
    */
   private _checkFunctionReturn(node: ASTNode.FunctionDefinition): void {
     const returnType = node.protoType.returnType;
-    if (returnType.type === Keyword.VOID) {
-      if (node.returnStatement) {
-        this._push("Return in void function.", returnType.location, DiagnosticType.InvalidReturnType);
-      }
-    } else if (!node.returnStatement) {
+    if (returnType.type !== Keyword.VOID && !node.returnStatement) {
       this._push(`No return statement found.`, returnType.location, DiagnosticType.MissingReturn);
     }
   }
 
   /**
-   * Jump-statement checks needing walk-local context: a `return value;` whose value isn't assignable
-   * to the enclosing function's declared (non-void) return type is `InvalidReturnType`; a
-   * `break`/`continue` at loop depth 0 (outside any loop) is `MisplacedControlFlow`.
+   * Jump-statement checks needing walk-local context: `InvalidReturnType` fires per-jump — a value
+   * return in a `void` function, or a `return value;` whose value isn't assignable to the declared
+   * non-void return type. A `break`/`continue` at loop depth 0 (outside any loop) is
+   * `MisplacedControlFlow`.
    */
   private _checkJump(node: ASTNode.JumpStatement, ctx: WalkContext): void {
     const children = node.children;
     const keyword = ASTNode._unwrapToken(children[0]).type;
     if (keyword === Keyword.RETURN) {
-      // The void-return case is reported once per function in _checkFunctionReturn; here only the
-      // value-vs-declared-type mismatch, matching the parser's `declared !== VOID` guard.
-      if (children.length === 3 && ctx.currentFunction) {
-        const declared = ctx.currentFunction.protoType.returnType.type;
+      if (!ctx.currentFunction) return;
+      const declared = ctx.currentFunction.protoType.returnType.type;
+      if (declared === Keyword.VOID) {
+        // `void f() { return value; }` — the value at children[1] is illegal.
+        if (children.length === 3) {
+          this._push("Return in void function.", children[1].location, DiagnosticType.InvalidReturnType);
+        }
+      } else if (children.length === 3) {
         const returned = (children[1] as ASTNode.ExpressionAstNode).type;
-        if (declared != undefined && declared !== Keyword.VOID && !TypeSystem.isAssignable(declared, returned)) {
+        if (declared != undefined && !TypeSystem.isAssignable(declared, returned)) {
           this._push(
             `Cannot return a value of type '${TypeSystem.typeName(returned)}' from a function returning '${TypeSystem.typeName(declared)}'.`,
             children[1].location,

@@ -734,7 +734,12 @@ export namespace ASTNode {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
-      this.returnStatement = curFunctionInfo.returnStatement ?? undefined;
+      // Codegen invariant: `returnStatement` is set ONLY for non-void functions with a value return.
+      // The fragment-entry rewrite (GLES100/300 visitJumpStatement) reads it as an Expression at
+      // children[1] — a bare `return;` in a void function has no expression there and would emit
+      // malformed GLSL if recorded.
+      this.returnStatement =
+        this.protoType.returnType.type === Keyword.VOID ? undefined : (curFunctionInfo.returnStatement ?? undefined);
       curFunctionInfo.header = undefined;
       curFunctionInfo.returnStatement = undefined;
     }
