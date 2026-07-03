@@ -1,3 +1,4 @@
+import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
@@ -5,7 +6,7 @@ import { Vector3 } from "./Vector3";
 /**
  * Represents a plane in three-dimensional space.
  */
-export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
+export class Plane extends MathValue implements IClone<Plane>, ICopy<Plane, Plane> {
   /**
    * Normalize the normal vector of the specified plane.
    * @param p - The specified plane
@@ -64,6 +65,7 @@ export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
    * @param distance - The distance of the plane along its normal to the origin
    */
   constructor(normal: Vector3 = null, distance: number = 0) {
+    super();
     normal && this.normal.copyFrom(normal);
     this.distance = distance;
   }

@@ -1,3 +1,4 @@
+import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
@@ -8,7 +9,7 @@ import { Vector4 } from "./Vector4";
 /**
  * Describes a 3D-vector.
  */
-export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
+export class Vector3 extends MathValue implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
   /** @internal */
   static readonly _zero = new Vector3(0.0, 0.0, 0.0);
   /** @internal */
@@ -364,6 +365,7 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
    * @param z - The z component of the vector, default 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0) {
+    super();
     this._x = x;
     this._y = y;
     this._z = z;

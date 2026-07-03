@@ -1,3 +1,4 @@
+import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
@@ -7,7 +8,7 @@ import { Vector3 } from "./Vector3";
 /**
  * Represents a four dimensional mathematical quaternion.
  */
-export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Quaternion> {
+export class Quaternion extends MathValue implements IClone<Quaternion>, ICopy<QuaternionLike, Quaternion> {
   /** @internal */
   static readonly _tempVector3 = new Vector3();
   /** @internal */
@@ -490,6 +491,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
    * @param w - The w component of the quaternion, default 1
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
+    super();
     this._x = x;
     this._y = y;
     this._z = z;

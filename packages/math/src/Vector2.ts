@@ -1,3 +1,4 @@
+import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
@@ -5,7 +6,7 @@ import { MathUtil } from "./MathUtil";
 /**
  * Describes a 2D-vector.
  */
-export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
+export class Vector2 extends MathValue implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   /** @internal */
   static readonly _zero = new Vector2(0.0, 0.0);
   /** @internal */
@@ -217,6 +218,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
    * @param y - The y component of the vector, default 0
    */
   constructor(x: number = 0, y: number = 0) {
+    super();
     this._x = x;
     this._y = y;
   }

@@ -278,7 +278,7 @@ export class CollisionUtil {
       return -1;
     }
 
-    let discriminant = b * b - c;
+    const discriminant = b * b - c;
     if (discriminant < 0) {
       return -1;
     }

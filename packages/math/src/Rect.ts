@@ -1,8 +1,9 @@
+import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 
 // A 2d rectangle defined by x and y position, width and height.
-export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
+export class Rect extends MathValue implements IClone<Rect>, ICopy<Rect, Rect> {
   /** @internal */
   _x: number;
   /** @internal */
@@ -70,6 +71,7 @@ export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
    * @param height - The height of the rectangle, measured from the y position, default 0
    */
   constructor(x: number = 0, y: number = 0, width: number = 0, height: number = 0) {
+    super();
     this._x = x;
     this._y = y;
     this._width = width;

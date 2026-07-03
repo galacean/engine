@@ -1,3 +1,4 @@
+import { MathValue } from "./MathValue";
 import { BoundingBox } from "./BoundingBox";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
@@ -6,7 +7,7 @@ import { Vector3 } from "./Vector3";
 /**
  * A bounding sphere.
  * */
-export class BoundingSphere implements IClone<BoundingSphere>, ICopy<BoundingSphere, BoundingSphere> {
+export class BoundingSphere extends MathValue implements IClone<BoundingSphere>, ICopy<BoundingSphere, BoundingSphere> {
   private static _tempVec30: Vector3 = new Vector3();
 
   /**
@@ -67,6 +68,7 @@ export class BoundingSphere implements IClone<BoundingSphere>, ICopy<BoundingSph
    * @param radius - The radius of the sphere
    */
   constructor(center: Vector3 = null, radius: number = 0) {
+    super();
     center && this.center.copyFrom(center);
     this.radius = radius;
   }

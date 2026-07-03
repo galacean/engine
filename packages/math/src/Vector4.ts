@@ -1,3 +1,4 @@
+import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
@@ -7,7 +8,7 @@ import { Quaternion } from "./Quaternion";
 /**
  * Describes a 4D-vector.
  */
-export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
+export class Vector4 extends MathValue implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
   /** @internal */
   static readonly _zero = new Vector4(0.0, 0.0, 0.0, 0.0);
   /** @internal */
@@ -321,6 +322,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
    * @param w - The w component of the vector, default 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 0) {
+    super();
     this._x = x;
     this._y = y;
     this._z = z;
@@ -459,7 +461,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
    * @returns A clone of this vector
    */
   clone(): Vector4 {
-    let ret = new Vector4(this._x, this._y, this._z, this._w);
+    const ret = new Vector4(this._x, this._y, this._z, this._w);
     return ret;
   }
 

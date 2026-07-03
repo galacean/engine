@@ -1,6 +1,7 @@
 import { Color } from "./Color";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
+import { MathValue } from "./MathValue";
 import { Vector3 } from "./Vector3";
 
 /**
@@ -11,6 +12,7 @@ import { Vector3 } from "./Vector3";
  * https://google.github.io/filament/Filament.md.html#annex/sphericalharmonics
  */
 export class SphericalHarmonics3
+  extends MathValue
   implements IClone<SphericalHarmonics3>, ICopy<SphericalHarmonics3, SphericalHarmonics3>
 {
   /** The coefficients of SphericalHarmonics3. */
