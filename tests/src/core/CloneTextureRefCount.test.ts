@@ -6,6 +6,7 @@ import {
   Font,
   MeshRenderer,
   RenderTarget,
+  SkinnedMeshRenderer,
   TextRenderer,
   Texture2D
 } from "@galacean/engine-core";
@@ -20,6 +21,31 @@ describe("Clone resource refCount", async function () {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
     rootEntity = engine.sceneManager.activeScene.createRootEntity();
     engine.run();
+  });
+
+  it("renderer-private joint texture is not propagated into clones", () => {
+    const entity = rootEntity.createChild("skinnedSrc");
+    const smr = entity.addComponent(SkinnedMeshRenderer);
+    // Simulate the state _update builds when the bone count exceeds the uniform budget.
+    const jointTexture = new Texture2D(engine, 4, 4);
+    jointTexture.isGCIgnored = true;
+    // @ts-ignore
+    smr._jointTexture = jointTexture;
+    smr.shaderData.setTexture("renderer_JointSampler", jointTexture);
+    expect(jointTexture.refCount).eq(1);
+
+    const clone = entity.clone();
+    rootEntity.addChild(clone);
+    const clonedSmr = clone.getComponent(SkinnedMeshRenderer);
+    // The clone must not hold the source's private texture; it rebuilds its own on first update.
+    expect(clonedSmr.shaderData.getTexture("renderer_JointSampler") ?? null).eq(null);
+    expect(jointTexture.refCount).eq(1);
+
+    // With no stray reference, the source's one-shot destroy() in _onDestroy now succeeds.
+    entity.destroy();
+    expect(jointTexture.refCount).eq(0);
+
+    clone.destroy();
   });
 
   it("clone shares texture with balanced refCount (no leak)", () => {

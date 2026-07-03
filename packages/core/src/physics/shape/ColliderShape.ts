@@ -20,6 +20,9 @@ export abstract class ColliderShape implements ICustomClone {
   /** @internal */
   @ignoreClone
   _nativeShape: IColliderShape;
+  /** @internal Whether the native shape is currently attached to a collider's native actor. */
+  @ignoreClone
+  _isShapeAttached: boolean = false;
 
   @ignoreClone
   protected _id: number;

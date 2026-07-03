@@ -231,22 +231,12 @@ export class CloneManager {
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
-    // Value type (Vector3, Color, Matrix, ...) — copyFrom, reusing the preset when compatible.
-    if ((<ICustomClone>value).copyFrom) {
-      const dst =
-        reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
-      cloneMap.set(value, dst);
-      (<ICustomClone>dst).copyFrom(<ICustomClone>value);
-      (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, cloneMap);
-      return dst;
-    }
-
     // ArrayBuffer views — byte copy (covers every view `_isContainer` routes here, incl. DataView).
     if (ArrayBuffer.isView(value)) {
       let dst: ArrayBufferView;
       if (value instanceof DataView) {
         const src = <DataView>value;
-        if (reuse instanceof DataView && reuse.byteLength === src.byteLength) {
+        if (reuse instanceof DataView && reuse !== value && reuse.byteLength === src.byteLength) {
           new Uint8Array(reuse.buffer, reuse.byteOffset, reuse.byteLength).set(
             new Uint8Array(src.buffer, src.byteOffset, src.byteLength)
           );
@@ -256,7 +246,12 @@ export class CloneManager {
         }
       } else {
         const src = <TypedArray>value;
-        if (reuse && reuse.constructor === src.constructor && (<TypedArray>reuse).length === src.length) {
+        if (
+          reuse &&
+          reuse !== value &&
+          reuse.constructor === src.constructor &&
+          (<TypedArray>reuse).length === src.length
+        ) {
           (<TypedArray>reuse).set(src);
           dst = reuse;
         } else {
@@ -295,9 +290,19 @@ export class CloneManager {
       return dst;
     }
 
+    // Value type (Vector3, Color, Matrix, ...) — a class instance carrying a callable copyFrom.
+    // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in the data.
+    const ctor = <any>value.constructor;
+    if (ctor && ctor !== Object && typeof (<ICustomClone>value).copyFrom === "function") {
+      const dst = <ICustomClone>(reuse && reuse !== value && reuse.constructor === ctor ? reuse : new ctor());
+      cloneMap.set(value, dst);
+      dst.copyFrom(<ICustomClone>value);
+      (<ICustomClone>value)._cloneTo?.(dst, cloneMap);
+      return dst;
+    }
+
     // Object — reuse or construct (null-prototype objects have no ctor: rebuild as such),
     // then populate all fields (opt-out) and run its `_cloneTo` hook.
-    const ctor = <new () => object>value.constructor;
     const dst =
       reuse && reuse !== value && reuse.constructor === ctor ? reuse : ctor ? new ctor() : Object.create(null);
     cloneMap.set(value, dst);

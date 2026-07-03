@@ -1,6 +1,7 @@
 import {
   CloneMode,
   Entity,
+  Logger,
   MeshRenderer,
   Script,
   Signal,
@@ -12,7 +13,7 @@ import {
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 class TestScript extends Script {
   targetEntity: Entity;
@@ -203,6 +204,33 @@ class SharedConfig {
 /** Script holding a user Assignment-registered object. */
 class SharedConfigScript extends Script {
   config: SharedConfig = null;
+}
+
+/** Script whose constructor presets a counted resource WITHOUT acquiring it (contract violation). */
+class UnownedPresetScript extends Script {
+  static created: Texture2D[] = [];
+
+  tex: Texture2D;
+
+  constructor(entity: Entity) {
+    super(entity);
+    const texture = new Texture2D(entity.engine, 1, 1);
+    UnownedPresetScript.created.push(texture);
+    this.tex = texture;
+  }
+}
+
+/** Script holding plain data whose payload happens to carry a `copyFrom` key. */
+class CopyFromDataScript extends Script {
+  config: any = null;
+}
+
+/** Script whose binary fields alias class-level shared default tables (preset === source). */
+class SharedDefaultTableScript extends Script {
+  static DEFAULT_WEIGHTS = new Float32Array([1, 2, 3]);
+  static DEFAULT_VIEW = new DataView(new ArrayBuffer(4));
+  weights: Float32Array = SharedDefaultTableScript.DEFAULT_WEIGHTS;
+  view: DataView = SharedDefaultTableScript.DEFAULT_VIEW;
 }
 
 /** Script misusing @deepClone on an Entity ref (must fall back to remap, never construct) */
@@ -1124,6 +1152,76 @@ describe("Clone remap", async () => {
 
       rootEntity.destroy();
     });
+
+    it("typed-array preset aliasing the source value still yields a fresh copy", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(SharedDefaultTableScript);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(SharedDefaultTableScript);
+
+      expect(cs.weights).not.eq(SharedDefaultTableScript.DEFAULT_WEIGHTS);
+      expect(Array.from(cs.weights)).deep.eq([1, 2, 3]);
+      cs.weights[0] = 9;
+      expect(SharedDefaultTableScript.DEFAULT_WEIGHTS[0]).eq(1);
+      expect(script.weights[0]).eq(1);
+      expect(cs.view).not.eq(SharedDefaultTableScript.DEFAULT_VIEW);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Plain data carrying copyFrom-shaped keys", () => {
+    it("plain object with a string copyFrom key deep-clones without crashing", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      script.config = { copyFrom: "nodeA", other: 1 };
+
+      const cloned = parent.clone();
+      const cc = cloned.getComponent(CopyFromDataScript).config;
+      expect(cc).not.eq(script.config);
+      expect(cc.copyFrom).eq("nodeA");
+      expect(cc.other).eq(1);
+
+      rootEntity.destroy();
+    });
+
+    it("plain object with a function copyFrom key shares the function and clones the rest", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      const fn = () => 42;
+      script.config = { copyFrom: fn, n: 2 };
+
+      const cloned = parent.clone();
+      const cc = cloned.getComponent(CopyFromDataScript).config;
+      expect(cc).not.eq(script.config);
+      expect(cc.copyFrom).eq(fn);
+      expect(cc.n).eq(2);
+
+      rootEntity.destroy();
+    });
+
+    it("null-prototype object with a copyFrom key deep-clones as null-prototype", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      const data = Object.create(null);
+      data.copyFrom = "x";
+      data.v = 2;
+      script.config = data;
+
+      const cloned = parent.clone();
+      const cc = cloned.getComponent(CopyFromDataScript).config;
+      expect(cc).not.eq(data);
+      expect(Object.getPrototypeOf(cc)).eq(null);
+      expect(cc.copyFrom).eq("x");
+      expect(cc.v).eq(2);
+
+      rootEntity.destroy();
+    });
   });
 
   describe("Script-held ReferResource", () => {
@@ -1171,6 +1269,25 @@ describe("Clone remap", async () => {
       expect(clonePreset.refCount).eq(0);
       expect(sourcePreset.refCount).eq(0);
 
+      rootEntity.destroy();
+    });
+
+    it("an unowned counted preset triggers the contract diagnostic and still releases", () => {
+      UnownedPresetScript.created.length = 0;
+      const errorSpy = vi.spyOn(Logger, "error");
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(UnownedPresetScript);
+      script.tex = null;
+
+      const cloned = parent.clone();
+      expect(cloned.getComponent(UnownedPresetScript).tex).eq(null);
+      const diagnostics = errorSpy.mock.calls.filter((c) => String(c[0]).includes("holds no owned reference"));
+      expect(diagnostics.length).eq(1);
+      // Pins the current semantics: the unconditional -1 drives the unowned preset negative.
+      expect(UnownedPresetScript.created[1].refCount).eq(-1);
+
+      errorSpy.mockRestore();
       rootEntity.destroy();
     });
 

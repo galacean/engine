@@ -782,6 +782,8 @@ describe("MeshColliderShape PhysX", () => {
 
       const clonedShape = clone.getComponent(StaticCollider).shapes[0] as MeshColliderShape;
       expect(clonedShape).not.toBe(shape);
+      // The rebuilt native shape must be attached exactly once (setter attaches; _syncNative skips).
+      expect((clone.getComponent(StaticCollider) as any)._nativeCollider._shapes.length).toBe(1);
       clonedShape.mesh = meshB;
       expect(meshA.refCount).toBe(1);
       expect(meshB.refCount).toBe(1);

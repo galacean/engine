@@ -181,16 +181,20 @@ export class Collider extends Component implements ICustomClone {
 
   protected _addNativeShape(shape: ColliderShape): void {
     shape._collider = this;
-    if (shape._nativeShape) {
+    // A shape may already be attached by its own rebuild path (MeshColliderShape's mesh setter
+    // during clone) — attaching twice would duplicate it on the native actor.
+    if (shape._nativeShape && !shape._isShapeAttached) {
       shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
       this._nativeCollider.addShape(shape._nativeShape);
+      shape._isShapeAttached = true;
     }
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {
     shape._collider = null;
-    if (shape._nativeShape) {
+    if (shape._nativeShape && shape._isShapeAttached) {
       this._nativeCollider.removeShape(shape._nativeShape);
+      shape._isShapeAttached = false;
     }
   }
 

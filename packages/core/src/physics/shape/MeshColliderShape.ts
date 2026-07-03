@@ -19,8 +19,6 @@ export class MeshColliderShape extends ColliderShape {
   @ignoreClone
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
-  @ignoreClone
-  private _isShapeAttached = false;
 
   /**
    * Cooking flags for this mesh collider shape.
