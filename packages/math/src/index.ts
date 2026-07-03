@@ -5,7 +5,6 @@ export { BoundingSphere } from "./BoundingSphere";
 export { BoundingBox } from "./BoundingBox";
 export { BoundingFrustum } from "./BoundingFrustum";
 export { MathUtil } from "./MathUtil";
-export { MathValue } from "./MathValue";
 export { CollisionUtil } from "./CollisionUtil";
 export { Matrix } from "./Matrix";
 export { Matrix3x3 } from "./Matrix3x3";

@@ -1,4 +1,3 @@
-import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
@@ -6,7 +5,7 @@ import { MathUtil } from "./MathUtil";
 /**
  * Describes a color in the from of RGBA (in order: R, G, B, A).
  */
-export class Color extends MathValue implements IClone<Color>, ICopy<ColorLike, Color> {
+export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /**
    * Modify a value from the sRGB space to the linear space.
    * @param value - The value in sRGB space
@@ -185,7 +184,6 @@ export class Color extends MathValue implements IClone<Color>, ICopy<ColorLike, 
    * @param a - The alpha component of the color
    */
   constructor(r: number = 1, g: number = 1, b: number = 1, a: number = 1) {
-    super();
     this._r = r;
     this._g = g;
     this._b = b;

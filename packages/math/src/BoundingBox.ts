@@ -1,4 +1,3 @@
-import { MathValue } from "./MathValue";
 import { BoundingSphere } from "./BoundingSphere";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
@@ -8,7 +7,7 @@ import { Vector3, Vector3Like } from "./Vector3";
 /**
  * Axis Aligned Bound Box (AABB).
  */
-export class BoundingBox extends MathValue implements IClone<BoundingBox>, ICopy<BoundingBox, BoundingBox> {
+export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, BoundingBox> {
   /**
    * Calculate a bounding box from the center point and the extent of the bounding box.
    * @param center - The center point
@@ -131,7 +130,6 @@ export class BoundingBox extends MathValue implements IClone<BoundingBox>, ICopy
    * @param max - The maximum point of the box
    */
   constructor(min: Vector3 = null, max: Vector3 = null) {
-    super();
     min && this.min.copyFrom(min);
     max && this.max.copyFrom(max);
   }

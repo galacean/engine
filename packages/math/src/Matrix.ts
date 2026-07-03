@@ -1,4 +1,3 @@
-import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
@@ -9,7 +8,7 @@ import { Vector3 } from "./Vector3";
 /**
  * Represents a 4x4 mathematical matrix.
  */
-export class Matrix extends MathValue implements IClone<Matrix>, ICopy<Matrix, Matrix> {
+export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
   private static readonly _tempVec30: Vector3 = new Vector3();
   private static readonly _tempVec31: Vector3 = new Vector3();
   private static readonly _tempVec32: Vector3 = new Vector3();
@@ -207,19 +206,19 @@ export class Matrix extends MathValue implements IClone<Matrix>, ICopy<Matrix, M
   static rotationQuaternion(quaternion: Quaternion, out: Matrix): void {
     const oe = out.elements;
     const { _x: x, _y: y, _z: z, _w: w } = quaternion;
-    const x2 = x + x;
-    const y2 = y + y;
-    const z2 = z + z;
+    let x2 = x + x;
+    let y2 = y + y;
+    let z2 = z + z;
 
-    const xx = x * x2;
-    const yx = y * x2;
-    const yy = y * y2;
-    const zx = z * x2;
-    const zy = z * y2;
-    const zz = z * z2;
-    const wx = w * x2;
-    const wy = w * y2;
-    const wz = w * z2;
+    let xx = x * x2;
+    let yx = y * x2;
+    let yy = y * y2;
+    let zx = z * x2;
+    let zy = z * y2;
+    let zz = z * z2;
+    let wx = w * x2;
+    let wy = w * y2;
+    let wz = w * z2;
 
     oe[0] = 1 - yy - zz;
     oe[1] = yx + wz;
@@ -314,22 +313,22 @@ export class Matrix extends MathValue implements IClone<Matrix>, ICopy<Matrix, M
   static affineTransformation(scale: Vector3, rotation: Quaternion, translation: Vector3, out: Matrix): void {
     const oe = out.elements;
     const { _x: x, _y: y, _z: z, _w: w } = rotation;
-    const x2 = x + x;
-    const y2 = y + y;
-    const z2 = z + z;
+    let x2 = x + x;
+    let y2 = y + y;
+    let z2 = z + z;
 
-    const xx = x * x2;
-    const xy = x * y2;
-    const xz = x * z2;
-    const yy = y * y2;
-    const yz = y * z2;
-    const zz = z * z2;
-    const wx = w * x2;
-    const wy = w * y2;
-    const wz = w * z2;
-    const sx = scale._x;
-    const sy = scale._y;
-    const sz = scale._z;
+    let xx = x * x2;
+    let xy = x * y2;
+    let xz = x * z2;
+    let yy = y * y2;
+    let yz = y * z2;
+    let zz = z * z2;
+    let wx = w * x2;
+    let wy = w * y2;
+    let wz = w * z2;
+    let sx = scale._x;
+    let sy = scale._y;
+    let sz = scale._z;
 
     oe[0] = (1 - (yy + zz)) * sx;
     oe[1] = (xy + wz) * sx;
@@ -613,29 +612,29 @@ export class Matrix extends MathValue implements IClone<Matrix>, ICopy<Matrix, M
     c = Math.cos(r);
     t = 1 - c;
 
-    const a11 = me[0],
+    let a11 = me[0],
       a12 = me[1],
       a13 = me[2],
       a14 = me[3];
-    const a21 = me[4],
+    let a21 = me[4],
       a22 = me[5],
       a23 = me[6],
       a24 = me[7];
-    const a31 = me[8],
+    let a31 = me[8],
       a32 = me[9],
       a33 = me[10],
       a34 = me[11];
 
     // Construct the elements of the rotation matrix
-    const b11 = x * x * t + c;
-    const b12 = y * x * t + z * s;
-    const b13 = z * x * t - y * s;
-    const b21 = x * y * t - z * s;
-    const b22 = y * y * t + c;
-    const b23 = z * y * t + x * s;
-    const b31 = x * z * t + y * s;
-    const b32 = y * z * t - x * s;
-    const b33 = z * z * t + c;
+    let b11 = x * x * t + c;
+    let b12 = y * x * t + z * s;
+    let b13 = z * x * t - y * s;
+    let b21 = x * y * t - z * s;
+    let b22 = y * y * t + c;
+    let b23 = z * y * t + x * s;
+    let b31 = x * z * t + y * s;
+    let b32 = y * z * t - x * s;
+    let b33 = z * z * t + c;
 
     // Perform rotation-specific matrix multiplication
     oe[0] = a11 * b11 + a21 * b12 + a31 * b13;
@@ -839,7 +838,6 @@ export class Matrix extends MathValue implements IClone<Matrix>, ICopy<Matrix, M
     m43: number = 0,
     m44: number = 1
   ) {
-    super();
     const e: Float32Array = this.elements;
 
     e[0] = m11;
@@ -1040,28 +1038,28 @@ export class Matrix extends MathValue implements IClone<Matrix>, ICopy<Matrix, M
    */
   getRotation(out: Quaternion): Quaternion {
     const e = this.elements;
-    const trace = e[0] + e[5] + e[10];
+    let trace = e[0] + e[5] + e[10];
 
     if (trace > MathUtil.zeroTolerance) {
-      const s = Math.sqrt(trace + 1.0) * 2;
+      let s = Math.sqrt(trace + 1.0) * 2;
       out._w = 0.25 * s;
       out._x = (e[6] - e[9]) / s;
       out._y = (e[8] - e[2]) / s;
       out._z = (e[1] - e[4]) / s;
     } else if (e[0] > e[5] && e[0] > e[10]) {
-      const s = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
+      let s = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
       out._w = (e[6] - e[9]) / s;
       out._x = 0.25 * s;
       out._y = (e[1] + e[4]) / s;
       out._z = (e[8] + e[2]) / s;
     } else if (e[5] > e[10]) {
-      const s = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
+      let s = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
       out._w = (e[8] - e[2]) / s;
       out._x = (e[1] + e[4]) / s;
       out._y = 0.25 * s;
       out._z = (e[6] + e[9]) / s;
     } else {
-      const s = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
+      let s = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
       out._w = (e[1] - e[4]) / s;
       out._x = (e[8] + e[2]) / s;
       out._y = (e[6] + e[9]) / s;
@@ -1195,7 +1193,7 @@ export class Matrix extends MathValue implements IClone<Matrix>, ICopy<Matrix, M
    */
   clone(): Matrix {
     const e = this.elements;
-    const ret = new Matrix(
+    let ret = new Matrix(
       e[0],
       e[1],
       e[2],

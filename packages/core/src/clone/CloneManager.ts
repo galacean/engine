@@ -1,4 +1,18 @@
-import { MathValue } from "@galacean/engine-math";
+import {
+  BoundingBox,
+  BoundingFrustum,
+  BoundingSphere,
+  Color,
+  Matrix,
+  Matrix3x3,
+  Plane,
+  Quaternion,
+  Rect,
+  SphericalHarmonics3,
+  Vector2,
+  Vector3,
+  Vector4
+} from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
 import { TypedArray } from "../base/Constant";
 import { Logger } from "../base/Logger";
@@ -280,8 +294,22 @@ export class CloneManager {
   }
 }
 
-// Built-in default clone mode for the whole math value-type family (Vector*, Matrix*, Color,
-// bounds, ...): every math value type extends `MathValue`, so one registration on the base class
-// covers them all via the prototype chain. Registered here because the math package cannot
-// depend on core's `@defaultCloneMode` (core → math is the normal dependency direction).
-defaultCloneMode(CloneMode.Deep)(MathValue);
+// Built-in default clone mode for math value types. The math package cannot depend on core's
+// `@defaultCloneMode`, so they are registered here instead (core → math is the normal dependency
+// direction). All are value-semantic and always deep cloned.
+const _markDeep = defaultCloneMode(CloneMode.Deep);
+[
+  Vector2,
+  Vector3,
+  Vector4,
+  Quaternion,
+  Matrix,
+  Matrix3x3,
+  Color,
+  Rect,
+  BoundingBox,
+  BoundingFrustum,
+  BoundingSphere,
+  Plane,
+  SphericalHarmonics3
+].forEach((type) => _markDeep(type));

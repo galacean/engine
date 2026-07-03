@@ -1,4 +1,3 @@
-import { MathValue } from "./MathValue";
 import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
@@ -9,7 +8,7 @@ import { Vector2 } from "./Vector2";
 /**
  * Represents a 3x3 mathematical matrix.
  */
-export class Matrix3x3 extends MathValue implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3> {
+export class Matrix3x3 implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3> {
   /**
    * Determines the sum of two matrices.
    * @param left - The first matrix to add
@@ -489,7 +488,6 @@ export class Matrix3x3 extends MathValue implements IClone<Matrix3x3>, ICopy<Mat
     m32: number = 0,
     m33: number = 1
   ) {
-    super();
     const e: Float32Array = this.elements;
 
     e[0] = m11;
@@ -676,7 +674,7 @@ export class Matrix3x3 extends MathValue implements IClone<Matrix3x3>, ICopy<Mat
    */
   clone(): Matrix3x3 {
     const e = this.elements;
-    const ret = new Matrix3x3(e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8]);
+    let ret = new Matrix3x3(e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8]);
     return ret;
   }
 

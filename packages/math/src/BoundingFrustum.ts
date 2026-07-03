@@ -1,4 +1,3 @@
-import { MathValue } from "./MathValue";
 import { BoundingBox } from "./BoundingBox";
 import { BoundingSphere } from "./BoundingSphere";
 import { CollisionUtil } from "./CollisionUtil";
@@ -12,10 +11,7 @@ import { Plane } from "./Plane";
 /**
  * A bounding frustum.
  */
-export class BoundingFrustum
-  extends MathValue
-  implements IClone<BoundingFrustum>, ICopy<BoundingFrustum, BoundingFrustum>
-{
+export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingFrustum, BoundingFrustum> {
   /** The near plane of this frustum. */
   public near: Plane;
   /** The far plane of this frustum. */
@@ -34,7 +30,6 @@ export class BoundingFrustum
    * @param matrix - The view-projection matrix
    */
   constructor(matrix: Matrix = null) {
-    super();
     this.near = new Plane();
     this.far = new Plane();
     this.left = new Plane();
