@@ -1,4 +1,4 @@
-import { CloneMode, Color, ReferResource, Sprite, defaultCloneMode } from "@galacean/engine";
+import { CloneMode, Color, ReferResource, Sprite, defaultCloneMode, ignoreClone } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 
@@ -19,10 +19,17 @@ export abstract class Transition<
   protected _hover: T;
   protected _disabled: T;
   protected _duration: number = 0;
+  // Transient run state — rebuilt by `_setState` when the cloned interactive activates; the
+  // slots own no resource reference (destroy only releases the four state values).
+  @ignoreClone
   protected _countDown: number = 0;
+  @ignoreClone
   protected _initialValue: T;
+  @ignoreClone
   protected _finalValue: T;
+  @ignoreClone
   protected _currentValue: T;
+  @ignoreClone
   protected _finalState: InteractiveState = InteractiveState.Normal;
 
   /**
@@ -120,6 +127,18 @@ export abstract class Transition<
 
   destroy(): void {
     this._interactive?.removeTransition(this);
+    // Release the ref-counted state values (paired with the setter's +1 and, for clones,
+    // `_cloneTo`'s +1) — implemented here so every subclass with ReferResource states is covered.
+    const releaseState = (state: T): void => {
+      // @ts-ignore
+      state instanceof ReferResource && state._addReferCount(-1);
+    };
+    releaseState(this._normal);
+    releaseState(this._pressed);
+    releaseState(this._hover);
+    releaseState(this._disabled);
+    this._normal = this._pressed = this._hover = this._disabled = null;
+    this._initialValue = this._currentValue = this._finalValue = null;
     this._target = null;
   }
 

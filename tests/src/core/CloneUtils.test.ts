@@ -918,7 +918,7 @@ describe("Clone remap", async () => {
   });
 
   describe("Script-held ReferResource", () => {
-    it("is shared by reference without touching refCount, and destroy stays balanced", () => {
+    it("clone acquires one reference (ledger) and destroy releases it", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(ResourceRefScript);
@@ -929,10 +929,31 @@ describe("Clone remap", async () => {
       const cloned = parent.clone();
       const cs = cloned.getComponent(ResourceRefScript);
 
+      // Shared by reference; the cloned slot owns exactly one count, recorded in the ledger.
       expect(cs.texture).eq(texture);
-      expect(texture.refCount).eq(baseline);
+      expect(texture.refCount).eq(baseline + 1);
 
       cloned.destroy();
+      expect(texture.refCount).eq(baseline);
+
+      rootEntity.destroy();
+      texture.destroy();
+    });
+
+    it("re-cloning a clone stays balanced (ledger per clone)", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(ResourceRefScript);
+      const texture = new Texture2D(engine, 4, 4);
+      const baseline = texture.refCount;
+      script.texture = texture;
+
+      const cloneA = parent.clone();
+      const cloneB = cloneA.clone();
+      expect(texture.refCount).eq(baseline + 2);
+
+      cloneA.destroy();
+      cloneB.destroy();
       expect(texture.refCount).eq(baseline);
 
       rootEntity.destroy();

@@ -46,7 +46,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
   private _height = 0;
   @ignoreClone
   private _localBounds = new BoundingBox();
-  @ignoreClone
   private _font: Font = null;
   private _fontSize = 24;
   private _fontStyle = FontStyle.None;
@@ -315,15 +314,6 @@ export class TextRenderer extends Renderer implements ITextRenderer {
     this._textChunks = null;
 
     this._subFont && (this._subFont = null);
-  }
-
-  /**
-   * @internal
-   */
-  override _cloneTo(target: TextRenderer): void {
-    super._cloneTo(target);
-    target.font = this._font;
-    target._subFont = this._subFont;
   }
 
   /**

@@ -218,14 +218,6 @@ export class AudioSource extends Component {
   /**
    * @internal
    */
-  _cloneTo(target: AudioSource): void {
-    target._clip?._addReferCount(1);
-    // _volume is field-cloned; its gain node is applied lazily on first play
-  }
-
-  /**
-   * @internal
-   */
   override _onEnable(): void {
     this.playOnEnabled && this.play();
   }

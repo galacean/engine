@@ -39,7 +39,6 @@ export class Text extends UIRenderer implements ITextRenderer {
   private _text: string = "";
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
-  @ignoreClone
   private _font: Font = null;
   private _fontSize: number = 24;
   private _fontStyle: FontStyle = FontStyle.None;
@@ -253,14 +252,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     this._textChunks = null;
 
     this._subFont && (this._subFont = null);
-  }
-
-  // @ts-ignore
-  override _cloneTo(target: Text): void {
-    // @ts-ignore
-    super._cloneTo(target);
-    target.font = this._font;
-    target._subFont = this._subFont;
   }
 
   /**

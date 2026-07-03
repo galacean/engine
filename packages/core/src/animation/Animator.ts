@@ -315,9 +315,9 @@ export class Animator extends Component {
    */
   _reset(): void {
     const { _curveOwnerPool: animationCurveOwners } = this;
-    for (let instanceId in animationCurveOwners) {
+    for (const instanceId in animationCurveOwners) {
       const propertyOwners = animationCurveOwners[instanceId];
-      for (let property in propertyOwners) {
+      for (const property in propertyOwners) {
         const owner = propertyOwners[property];
         owner.revertDefaultValue();
       }
@@ -342,9 +342,9 @@ export class Animator extends Component {
    * @internal
    */
   _cloneTo(target: Animator): void {
+    // The clone gate already acquired the controller reference for the copied field slot.
     const animatorController = target._animatorController;
     if (animatorController) {
-      target._addResourceReferCount(animatorController, 1);
       target._controllerUpdateFlag = animatorController._registerChangeFlag();
     }
   }
@@ -430,7 +430,7 @@ export class Animator extends Component {
     layerIndex: number
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
-    let { mask } = this._animatorController.layers[layerIndex];
+    const { mask } = this._animatorController.layers[layerIndex];
     const { curveLayerOwner } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
 

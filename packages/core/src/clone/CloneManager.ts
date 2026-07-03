@@ -13,6 +13,7 @@ import {
   Vector3,
   Vector4
 } from "@galacean/engine-math";
+import { IReferable } from "../asset/IReferable";
 import { TypedArray } from "../base/Constant";
 import { Logger } from "../base/Logger";
 import { ICustomClone } from "./ComponentCloner";
@@ -22,21 +23,21 @@ import { CloneMode } from "./enums/CloneMode";
  * Property decorator — deep clone this field, overriding the value type's default clone mode.
  * Field-level decorators have the highest priority.
  */
-export function deepClone(target: Object, propertyKey: string): void {
+export function deepClone(target: object, propertyKey: string): void {
   CloneManager._registerFieldMode(target, propertyKey, CloneMode.Deep);
 }
 
 /**
  * Property decorator — assign (share the reference) this field, overriding the value type's default clone mode.
  */
-export function assignmentClone(target: Object, propertyKey: string): void {
+export function assignmentClone(target: object, propertyKey: string): void {
   CloneManager._registerFieldMode(target, propertyKey, CloneMode.Assignment);
 }
 
 /**
  * Property decorator — ignore this field when cloning; keep the clone's own constructor-built value.
  */
-export function ignoreClone(target: Object, propertyKey: string): void {
+export function ignoreClone(target: object, propertyKey: string): void {
   CloneManager._registerFieldMode(target, propertyKey, CloneMode.Ignore);
 }
 
@@ -44,7 +45,7 @@ export function ignoreClone(target: Object, propertyKey: string): void {
  * @deprecated Shallow clone is no longer a distinct mode; treated as deep clone.
  * Use `@deepClone`, or `@assignmentClone` to share the reference.
  */
-export function shallowClone(target: Object, propertyKey: string): void {
+export function shallowClone(target: object, propertyKey: string): void {
   Logger.warn(
     `@shallowClone is deprecated and now behaves as @deepClone ` +
       `(field "${propertyKey}" of ${target.constructor?.name}); use @deepClone or @assignmentClone instead.`
@@ -84,10 +85,15 @@ export function defaultCloneMode(mode: CloneMode) {
  *   - Assignment (ReferResource / unknown types without @defaultCloneMode) → share the reference.
  *   - Deep (@defaultCloneMode(Deep) / copyFrom types / containers) → recursively deep clone.
  *
- * The gate never touches reference counting: `Assignment` is a plain reference share. Ref-count
- * ownership acquired by a clone belongs to the owner class's own logic (`_cloneTo` hooks and
- * setters, balanced by that class's destroy path), e.g. `Camera._cloneTo`, `Renderer._cloneTo`,
- * `ShaderData.cloneTo`.
+ * Ref-count (slot-ownership contract): every COMPONENT top-level field holding an explicitly
+ * registered ref-counted resource (ReferResource family) owns one reference. The gate acquires
+ * it when cloning the slot (+1, and -1 on a replaced preset); the owning component's destroy
+ * path MUST release it — a component that doesn't is a bug in that component. Components without
+ * per-field destroy logic (Script) record acquisitions and release them on destroy. Everything
+ * below the top level owns nothing at the gate: container elements and plain-object fields are
+ * plain shares, and a nested class that ref-counts its resources pairs the acquisition itself
+ * (`_cloneTo` +1 / destroy -1 in the same class). Slots rebuilt through setters must be
+ * `@ignoreClone` so the setter is the single +1 source (e.g. `MeshRenderer.mesh`).
  *
  * Deep clone lifecycle (3-stage):
  *   1. Construct — reuse the clone's existing slot value if same type, else `new ctor()`.
@@ -98,9 +104,9 @@ export function defaultCloneMode(mode: CloneMode) {
  */
 export class CloneManager {
   /** @internal Own field-level clone modes per class (excluding inherited), from `@deepClone`/`@assignmentClone`/`@ignoreClone`. */
-  static _subFieldModeMap = new Map<Object, Map<string, CloneMode>>();
+  static _subFieldModeMap = new Map<object, Map<string, CloneMode>>();
   /** @internal Flattened field-level clone modes per class (across the prototype chain), cached. */
-  static _fieldModeMap = new Map<Object, Map<string, CloneMode>>();
+  static _fieldModeMap = new Map<object, Map<string, CloneMode>>();
 
   private static _objectType = Object.getPrototypeOf(Object);
 
@@ -108,7 +114,7 @@ export class CloneManager {
    * @internal
    * Register a field-level clone mode (highest priority — overrides the value type's `@defaultCloneMode`).
    */
-  static _registerFieldMode(target: Object, propertyKey: string, mode: CloneMode): void {
+  static _registerFieldMode(target: object, propertyKey: string, mode: CloneMode): void {
     let fields = CloneManager._subFieldModeMap.get(target.constructor);
     if (!fields) {
       fields = new Map<string, CloneMode>();
@@ -145,8 +151,21 @@ export class CloneManager {
   /**
    * @internal
    * Clone gate — decides how to clone one value based on its type.
+   *
+   * `refs` controls the ref-count contract for THIS slot:
+   * - `undefined` — the slot does not own a count (container elements, plain-object fields).
+   * - `null` — a class-instance field: an Assignment-shared ref-counted resource gains +1 here,
+   *   and the owning class's destroy path releases it (implementation contract).
+   * - array — same as `null`, but the acquisition is also recorded (hosts with no per-field
+   *   destroy logic, i.e. Script, release the recorded refs on destroy).
    */
-  static _cloneValue(value: any, reuse: any, cloneMap: Map<Object, Object>, fieldMode?: CloneMode): any {
+  static _cloneValue(
+    value: any,
+    reuse: any,
+    cloneMap: Map<object, object>,
+    fieldMode?: CloneMode,
+    refs?: IReferable[] | null
+  ): any {
     if (!(value instanceof Object)) return value;
     // Functions: an explicit field decorator (@assignmentClone/@deepClone) shares the reference;
     // by default keep the clone's own binding when its slot already holds one (constructor-rebound
@@ -171,9 +190,36 @@ export class CloneManager {
     }
 
     if (cloneMode === CloneMode.Ignore) return reuse;
-    if (cloneMode === CloneMode.Assignment) return value;
+    if (cloneMode === CloneMode.Assignment) {
+      // Slot-ownership contract: a class-instance field sharing an explicitly-registered
+      // ref-counted resource (ReferResource family — excludes duck-typed counters like Shader)
+      // owns one reference; the owning class's destroy path (or the recorded ledger) releases it.
+      if (refs !== undefined && CloneManager._isCountedResource(value)) {
+        if (CloneManager._isCountedResource(reuse)) {
+          const presetRefCount = (<{ refCount?: number }>reuse).refCount;
+          presetRefCount !== undefined &&
+            presetRefCount <= 0 &&
+            Logger.error(
+              `CloneManager: the clone's preset ${reuse.constructor.name} holds no owned reference; ` +
+                `a constructor presetting a ref-counted resource must acquire it (assign via its setter or an explicit +1).`
+            );
+          (<IReferable>reuse)._addReferCount(-1);
+        }
+        (<IReferable>value)._addReferCount(1);
+        refs?.push(<IReferable>value);
+      }
+      return value;
+    }
     if (cloneMode === CloneMode.Remap) return cloneMap.get(value) ?? value;
     return CloneManager._deepClone(value, reuse, cloneMap);
+  }
+
+  /**
+   * Whether the value participates in the slot-ownership ref-count contract: only types
+   * explicitly registered `@defaultCloneMode(Assignment)` (the ReferResource family) do.
+   */
+  private static _isCountedResource(value: any): boolean {
+    return value instanceof Object && (<ICustomClone>value)._defaultCloneMode === CloneMode.Assignment;
   }
 
   /**
@@ -181,7 +227,7 @@ export class CloneManager {
    * Invariant: every shape this returns true for MUST have a dedicated branch in `_deepClone`
    * (ArrayBuffer view → byte copy, Array/Map/Set → per-element, plain object → field walk).
    */
-  private static _isContainer(value: Object): boolean {
+  private static _isContainer(value: object): boolean {
     return (
       Array.isArray(value) ||
       value instanceof Map ||
@@ -195,7 +241,7 @@ export class CloneManager {
    * Deep-clone one object graph. Cycles / shared sub-graphs dedup through the identity map,
    * which also remaps Entity/Component references nested anywhere in the graph.
    */
-  private static _deepClone(value: any, reuse: any, cloneMap: Map<Object, Object>): any {
+  private static _deepClone(value: any, reuse: any, cloneMap: Map<object, object>): any {
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
@@ -261,6 +307,9 @@ export class CloneManager {
     const dst =
       reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
     cloneMap.set(value, dst);
+    // Nested objects own no gate-acquired references: the slot-ownership contract covers
+    // component top-level fields only. A nested class that ref-counts its resources pairs the
+    // acquisition itself (`_cloneTo` +1 / destroy -1 in the same class, e.g. SpriteTransition).
     const fieldModes = CloneManager.getFieldModes(value.constructor);
     for (const key in value) {
       const fieldMode = fieldModes.get(key);
@@ -274,8 +323,8 @@ export class CloneManager {
   /**
    * Deep clone all enumerable fields of source into target through the clone gate.
    */
-  static deepCloneObject(source: Object, target: Object, cloneMap: Map<Object, Object>): void {
-    for (let k in source) {
+  static deepCloneObject(source: object, target: object, cloneMap: Map<object, object>): void {
+    for (const k in source) {
       target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap);
     }
   }

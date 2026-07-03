@@ -821,13 +821,6 @@ export class Camera extends Component {
 
   /**
    * @internal
-   */
-  _cloneTo(target: Camera): void {
-    this._renderTarget?._addReferCount(1);
-  }
-
-  /**
-   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {

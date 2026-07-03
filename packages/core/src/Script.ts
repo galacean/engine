@@ -1,3 +1,4 @@
+import { IReferable } from "./asset/IReferable";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { ignoreClone } from "./clone/CloneManager";
@@ -33,6 +34,13 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _entityScriptsIndex: number = -1;
+  /**
+   * @internal
+   * Ref-counted resources acquired when this script was created by cloning (slot-ownership
+   * contract). Scripts have no per-field destroy logic, so the recorded refs are released here.
+   */
+  @ignoreClone
+  _cloneAcquiredRefs: IReferable[] = null;
 
   /**
    * Called when be enabled first time, only once.
@@ -259,9 +267,19 @@ export class Script extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
+    const cloneAcquiredRefs = this._cloneAcquiredRefs;
+    if (cloneAcquiredRefs) {
+      for (let i = 0, n = cloneAcquiredRefs.length; i < n; i++) {
+        cloneAcquiredRefs[i]._addReferCount(-1);
+      }
+      this._cloneAcquiredRefs = null;
+    }
     this.onDestroy();
   }
 }
+
+// Scripts opt into the clone-acquisition ledger (non-enumerable so the clone field walk skips it).
+Object.defineProperty(Script.prototype, "_useCloneRefLedger", { value: true });
 
 export enum PointerMethods {
   onPointerDown = "onPointerDown",

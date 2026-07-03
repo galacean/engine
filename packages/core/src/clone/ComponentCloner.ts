@@ -1,3 +1,4 @@
+import { IReferable } from "../asset/IReferable";
 import { Component } from "../Component";
 import { CloneManager } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
@@ -17,7 +18,7 @@ export interface ICustomClone {
    * Post-clone hook. `cloneMap` maps every source entity/component (and deep-cloned object)
    * in the cloned subtree to its clone, for remapping references.
    */
-  _cloneTo?(target: ICustomClone, cloneMap?: Map<Object, Object>): void;
+  _cloneTo?(target: ICustomClone, cloneMap?: Map<object, object>): void;
   /**
    * @internal
    */
@@ -31,13 +32,18 @@ export class ComponentCloner {
    * @param target - Clone target
    * @param cloneMap - Identity map of the cloned subtree (source entity/component → clone)
    */
-  static cloneComponent(source: Component, target: Component, cloneMap: Map<Object, Object>): void {
+  static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
+    // Component fields own their shared ref-counted resources (slot-ownership contract). Hosts
+    // without per-field destroy logic (Script) record the acquisitions and release them on destroy.
+    const refs: IReferable[] | null = (<any>target)._useCloneRefLedger
+      ? ((<any>target)._cloneAcquiredRefs ||= [])
+      : null;
     const fieldModes = CloneManager.getFieldModes(source.constructor);
     for (const k in source) {
       const fieldMode = fieldModes.get(k);
       if (fieldMode === CloneMode.Ignore) continue;
       // Field decorator (highest) → value-shape / type default (Entity/Component remap via the map).
-      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode);
+      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode, refs);
     }
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }
