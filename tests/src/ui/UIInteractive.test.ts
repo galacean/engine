@@ -314,4 +314,36 @@ describe("Button", async () => {
     testEntity.destroy();
     expect(sprite.refCount).to.eq(baseline - 2);
   });
+
+  it("cloned sprite transition setter churn transfers sprite counts", () => {
+    const testEntity = canvasEntity.createChild("spriteTransitionChurn");
+    const testImage = testEntity.addComponent(Image);
+    const testButton = testEntity.addComponent(Button);
+
+    const spriteA = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const spriteB = new Sprite(engine, new Texture2D(engine, 1, 1));
+    const transition = new SpriteTransition();
+    transition.target = testImage;
+    transition.normal = spriteA;
+    testButton.addTransition(transition);
+    const baselineA = spriteA.refCount;
+
+    const cloneEntity = testEntity.clone();
+    canvasEntity.addChild(cloneEntity);
+    // +1 cloned transition (_cloneTo) + 1 cloned Image (applied through its sprite setter).
+    expect(spriteA.refCount).to.eq(baselineA + 2);
+
+    const cloneTransition = cloneEntity.getComponent(Button).transitions[0] as SpriteTransition;
+    cloneTransition.normal = spriteB;
+    // Churn releases A from the cloned transition AND from the cloned Image (re-applied), B gains both.
+    expect(spriteA.refCount).to.eq(baselineA);
+    expect(spriteB.refCount).to.eq(2);
+
+    cloneEntity.destroy();
+    expect(spriteB.refCount).to.eq(0);
+    expect(spriteA.refCount).to.eq(baselineA);
+
+    testEntity.destroy();
+    expect(spriteA.refCount).to.eq(baselineA - 2);
+  });
 });

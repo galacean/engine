@@ -168,7 +168,11 @@ export class EmissionModule extends ParticleGeneratorModule {
    * @internal
    */
   _destroy(): void {
-    this._shape?._unRegisterOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
+    const shape = this._shape;
+    if (shape) {
+      shape._unRegisterOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
+      shape._destroy();
+    }
   }
 
   private _emitByRateOverTime(playTime: number): void {

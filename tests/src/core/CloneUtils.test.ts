@@ -940,6 +940,33 @@ describe("Clone remap", async () => {
       texture.destroy();
     });
 
+    it("ledger releases the originally acquired resource even after the field is reassigned", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(ResourceRefScript);
+      const texture = new Texture2D(engine, 4, 4);
+      const other = new Texture2D(engine, 4, 4);
+      const baseline = texture.refCount;
+      script.texture = texture;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(ResourceRefScript);
+      expect(texture.refCount).eq(baseline + 1);
+
+      // Plain field write on a script does no accounting; the ledger still tracks the original.
+      cs.texture = other;
+      expect(texture.refCount).eq(baseline + 1);
+      expect(other.refCount).eq(0);
+
+      cloned.destroy();
+      expect(texture.refCount).eq(baseline);
+      expect(other.refCount).eq(0);
+
+      rootEntity.destroy();
+      texture.destroy();
+      other.destroy();
+    });
+
     it("re-cloning a clone stays balanced (ledger per clone)", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

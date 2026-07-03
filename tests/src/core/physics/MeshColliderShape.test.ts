@@ -764,4 +764,34 @@ describe("MeshColliderShape PhysX", () => {
       entity.destroy();
     });
   });
+
+  describe("mesh refCount (slot-ownership contract)", () => {
+    it("clone acquires via the setter, churn transfers, destroy releases", () => {
+      const meshA = createModelMesh(engine, [-1, 0, -1, 1, 0, -1, 0, 0, 1], [0, 1, 2]);
+      const meshB = createModelMesh(engine, [-2, 0, -2, 2, 0, -2, 0, 0, 2], [0, 1, 2]);
+      const entity = root.createChild("meshRefSlot");
+      const collider = entity.addComponent(StaticCollider);
+      const shape = new MeshColliderShape();
+      shape.mesh = meshA;
+      collider.addShape(shape);
+      expect(meshA.refCount).toBe(1);
+
+      const clone = entity.clone();
+      root.addChild(clone);
+      expect(meshA.refCount).toBe(2);
+
+      const clonedShape = clone.getComponent(StaticCollider).shapes[0] as MeshColliderShape;
+      expect(clonedShape).not.toBe(shape);
+      clonedShape.mesh = meshB;
+      expect(meshA.refCount).toBe(1);
+      expect(meshB.refCount).toBe(1);
+
+      clone.destroy();
+      expect(meshB.refCount).toBe(0);
+      expect(meshA.refCount).toBe(1);
+
+      entity.destroy();
+      expect(meshA.refCount).toBe(0);
+    });
+  });
 });

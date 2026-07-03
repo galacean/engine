@@ -53,6 +53,14 @@ export class MeshShape extends BaseShape {
 
   /**
    * @internal
+   * Release the mesh reference through the setter (pairs its +1; also detaches the listener).
+   */
+  override _destroy(): void {
+    this.mesh = null;
+  }
+
+  /**
+   * @internal
    */
   _generateLocalPositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     const {

@@ -129,6 +129,13 @@ export abstract class BaseShape {
 
   /**
    * @internal
+   * Called when the hosting generator is destroyed; shapes holding ref-counted resources
+   * release them here (slot-ownership contract).
+   */
+  _destroy(): void {}
+
+  /**
+   * @internal
    */
   _generatePositionAndDirection(rand: Rand, emitTime: number, position: Vector3, direction: Vector3): void {
     this._generateLocalPositionAndDirection(rand, emitTime, position, direction);
