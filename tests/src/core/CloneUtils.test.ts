@@ -912,6 +912,52 @@ describe("Clone remap", async () => {
     });
   });
 
+  describe("Null-prototype containers", () => {
+    it("Object.create(null) fields deep-clone as data containers, not shared references", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const script = parent.addComponent(HandlerScript);
+      const bag = Object.create(null);
+      bag.hp = 5;
+      bag.target = child;
+      (script as any).bag = bag;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      expect(cs.bag).not.eq(bag);
+      expect(Object.getPrototypeOf(cs.bag)).eq(null);
+      expect(cs.bag.hp).eq(5);
+      // Entity refs nested in the bag remap like in any other container.
+      expect(cs.bag.target).eq(cloned.children[0]);
+      cs.bag.hp = 9;
+      expect(bag.hp).eq(5);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("deepCloneObject decorator awareness", () => {
+    it("respects @ignoreClone on the source type's fields", async () => {
+      const { CloneManager } = await import("@galacean/engine-core");
+
+      class Bag {
+        kept = 1;
+        @ignoreClone
+        runtime = 1;
+      }
+      const source = new Bag();
+      source.kept = 42;
+      source.runtime = 42;
+      const target = new Bag();
+
+      CloneManager.deepCloneObject(source, target, new Map());
+      expect(target.kept).eq(42);
+      expect(target.runtime).eq(1);
+    });
+  });
+
   describe("Aliasing topology", () => {
     it("one instance referenced three times clones into one instance referenced three times", () => {
       const rootEntity = scene.createRootEntity("root");

@@ -107,11 +107,16 @@ export class CloneManager {
   }
 
   /**
-   * Deep clone all enumerable fields of source into target through the clone gate.
+   * Deep clone all enumerable fields of source into target through the clone gate,
+   * respecting the source type's `@ignoreClone` field decorators.
    */
   static deepCloneObject(source: object, target: object, cloneMap: Map<object, object>): void {
+    const ctor = (<{ constructor?: Function }>source).constructor;
+    const fieldModes = ctor ? CloneManager.getFieldModes(ctor) : null;
     for (const k in source) {
-      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap);
+      const fieldMode = fieldModes?.get(k);
+      if (fieldMode === CloneMode.Ignore) continue;
+      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode);
     }
   }
 
@@ -134,13 +139,15 @@ export class CloneManager {
    * Clone gate — decides how to clone one value based on its type.
    */
   static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
-    if (!(value instanceof Object)) return value;
     // Functions: an explicit field decorator (@assignmentClone/@deepClone) shares the reference;
     // by default keep the clone's own binding when its slot already holds one (constructor-rebound
     // handlers), otherwise share (container elements / null-preset slots have none).
     if (typeof value === "function") {
       return fieldMode !== undefined ? value : typeof reuse === "function" ? reuse : value;
     }
+    // Primitives copy by value. `typeof`, not `instanceof Object` — null-prototype objects
+    // (`Object.create(null)`) and cross-realm objects have no local Object.prototype in their chain.
+    if (value === null || typeof value !== "object") return value;
 
     // Mode priority: field decorator (highest) → container default deep → type's `@defaultCloneMode` → Assignment.
     let cloneMode = fieldMode;
@@ -200,6 +207,8 @@ export class CloneManager {
    * Container-shape test — the single classification point shared by the gate and `_deepClone`.
    * Invariant: every shape this returns true for MUST have a dedicated branch in `_deepClone`
    * (ArrayBuffer view → byte copy, Array/Map/Set → per-element, plain object → field walk).
+   * `constructor === undefined` catches null-prototype objects (`Object.create(null)`) — data
+   * containers just like plain objects.
    */
   private static _isContainer(value: object): boolean {
     return (
@@ -207,7 +216,8 @@ export class CloneManager {
       value instanceof Map ||
       value instanceof Set ||
       ArrayBuffer.isView(value) ||
-      value.constructor === Object
+      value.constructor === Object ||
+      value.constructor === undefined
     );
   }
 
@@ -278,15 +288,17 @@ export class CloneManager {
     }
 
     // Object — reuse or construct, then populate all fields (opt-out) + finalize.
+    // A null-prototype object (`Object.create(null)`) has no constructor: rebuild it as such.
+    const ctor = <new () => object>value.constructor;
     const dst =
-      reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
+      reuse && reuse !== value && reuse.constructor === ctor ? reuse : ctor ? new ctor() : Object.create(null);
     cloneMap.set(value, dst);
     // Nested objects own no gate-acquired references: the slot-ownership contract covers
     // component top-level fields only. A nested class that ref-counts its resources pairs the
     // acquisition itself (`_cloneTo` +1 / destroy -1 in the same class, e.g. SpriteTransition).
-    const fieldModes = CloneManager.getFieldModes(value.constructor);
+    const fieldModes = ctor ? CloneManager.getFieldModes(ctor) : null;
     for (const key in value) {
-      const fieldMode = fieldModes.get(key);
+      const fieldMode = fieldModes?.get(key);
       if (fieldMode === CloneMode.Ignore) continue;
       dst[key] = CloneManager._cloneValue(value[key], dst[key], cloneMap, fieldMode);
     }
