@@ -342,7 +342,6 @@ export class Animator extends Component {
    * @internal
    */
   _cloneTo(target: Animator): void {
-    // The clone gate already acquired the controller reference for the copied field slot.
     const animatorController = target._animatorController;
     if (animatorController) {
       target._controllerUpdateFlag = animatorController._registerChangeFlag();

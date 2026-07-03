@@ -918,7 +918,7 @@ describe("Clone remap", async () => {
   });
 
   describe("Script-held ReferResource", () => {
-    it("clone acquires one reference (ledger) and destroy releases it", () => {
+    it("is shared with no engine accounting — script fields are user-managed", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(ResourceRefScript);
@@ -929,58 +929,15 @@ describe("Clone remap", async () => {
       const cloned = parent.clone();
       const cs = cloned.getComponent(ResourceRefScript);
 
-      // Shared by reference; the cloned slot owns exactly one count, recorded in the ledger.
+      // Shared by reference; the gate does no counting for user-script slots.
       expect(cs.texture).eq(texture);
-      expect(texture.refCount).eq(baseline + 1);
-
-      cloned.destroy();
       expect(texture.refCount).eq(baseline);
 
-      rootEntity.destroy();
-      texture.destroy();
-    });
-
-    it("ledger releases the originally acquired resource even after the field is reassigned", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const script = parent.addComponent(ResourceRefScript);
-      const texture = new Texture2D(engine, 4, 4);
-      const other = new Texture2D(engine, 4, 4);
-      const baseline = texture.refCount;
-      script.texture = texture;
-
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(ResourceRefScript);
-      expect(texture.refCount).eq(baseline + 1);
-
-      // Plain field write on a script does no accounting; the ledger still tracks the original.
-      cs.texture = other;
-      expect(texture.refCount).eq(baseline + 1);
-      expect(other.refCount).eq(0);
+      const recloned = cloned.clone();
+      expect(texture.refCount).eq(baseline);
 
       cloned.destroy();
-      expect(texture.refCount).eq(baseline);
-      expect(other.refCount).eq(0);
-
-      rootEntity.destroy();
-      texture.destroy();
-      other.destroy();
-    });
-
-    it("re-cloning a clone stays balanced (ledger per clone)", () => {
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const script = parent.addComponent(ResourceRefScript);
-      const texture = new Texture2D(engine, 4, 4);
-      const baseline = texture.refCount;
-      script.texture = texture;
-
-      const cloneA = parent.clone();
-      const cloneB = cloneA.clone();
-      expect(texture.refCount).eq(baseline + 2);
-
-      cloneA.destroy();
-      cloneB.destroy();
+      recloned.destroy();
       expect(texture.refCount).eq(baseline);
 
       rootEntity.destroy();

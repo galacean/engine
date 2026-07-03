@@ -1,4 +1,3 @@
-import { IReferable } from "../asset/IReferable";
 import { Component } from "../Component";
 import { CloneManager } from "./CloneManager";
 import { CloneMode } from "./enums/CloneMode";
@@ -33,11 +32,10 @@ export class ComponentCloner {
    * @param cloneMap - Identity map of the cloned subtree (source entity/component → clone)
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
-    // Component fields own their shared ref-counted resources (slot-ownership contract). Hosts
-    // without per-field destroy logic (Script) record the acquisitions and release them on destroy.
-    const refs: IReferable[] | null = (<any>target)._useCloneRefLedger
-      ? ((<any>target)._cloneAcquiredRefs ||= [])
-      : null;
+    // Engine-component fields own their shared ref-counted resources (slot-ownership contract:
+    // gate +1, the component's destroy path releases). User scripts are exempt — their fields are
+    // user-managed, so the gate does no counting for them.
+    const refs: null | undefined = (<any>target)._skipCloneRefCounting ? undefined : null;
     const fieldModes = CloneManager.getFieldModes(source.constructor);
     for (const k in source) {
       const fieldMode = fieldModes.get(k);
