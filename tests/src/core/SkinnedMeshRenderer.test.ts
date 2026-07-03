@@ -128,4 +128,57 @@ describe("SkinnedMeshRenderer", async () => {
       skinnedMeshRenderer.blendShapeWeights
     );
   });
+
+  it("clone skin", () => {
+    const entity = rootEntity.createChild("SkinCloneRoot");
+    const bone0 = entity.createChild("Bone0");
+    const bone1 = entity.createChild("Bone1");
+
+    const modelMesh = new ModelMesh(engine);
+    modelMesh.setPositions([new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)]);
+
+    const skinnedMeshRenderer = entity.addComponent(SkinnedMeshRenderer);
+    skinnedMeshRenderer.mesh = modelMesh;
+
+    const skin = new Skin("CloneSkin");
+    skin.rootBone = bone0;
+    skin.bones = [bone0, bone1];
+    skin.inverseBindMatrices = [
+      new Matrix(),
+      new Matrix(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 1, 2, 3, 1)
+    ];
+    skinnedMeshRenderer.skin = skin;
+
+    const cloneEntity = entity.clone();
+    const cloneSkin = cloneEntity.getComponent(SkinnedMeshRenderer).skin;
+
+    // The skin itself is deep cloned.
+    expect(cloneSkin).to.be.not.equal(skin);
+
+    // Entity references are remapped into the cloned subtree, not shared with the source.
+    const cloneBone0 = cloneEntity.findByName("Bone0");
+    const cloneBone1 = cloneEntity.findByName("Bone1");
+    expect(cloneSkin.rootBone).to.be.equal(cloneBone0);
+    expect(cloneSkin.rootBone).to.be.not.equal(bone0);
+    expect(cloneSkin.bones.length).to.be.equal(2);
+    expect(cloneSkin.bones[0]).to.be.equal(cloneBone0);
+    expect(cloneSkin.bones[1]).to.be.equal(cloneBone1);
+    expect(cloneSkin.bones[0]).to.be.not.equal(bone0);
+    expect(cloneSkin.bones[1]).to.be.not.equal(bone1);
+
+    // Inverse bind matrices are independent deep copies with equal values.
+    expect(cloneSkin.inverseBindMatrices).to.be.not.equal(skin.inverseBindMatrices);
+    expect(cloneSkin.inverseBindMatrices.length).to.be.equal(2);
+    expect(cloneSkin.inverseBindMatrices[0]).to.be.not.equal(skin.inverseBindMatrices[0]);
+    expect(cloneSkin.inverseBindMatrices[1]).to.be.not.equal(skin.inverseBindMatrices[1]);
+    expect(cloneSkin.inverseBindMatrices[0].elements).to.be.deep.equal(skin.inverseBindMatrices[0].elements);
+    expect(cloneSkin.inverseBindMatrices[1].elements).to.be.deep.equal(skin.inverseBindMatrices[1].elements);
+
+    // The clone keeps its own update flag manager.
+    // @ts-ignore
+    expect(cloneSkin._updatedManager).to.be.not.equal(skin._updatedManager);
+
+    entity.destroy();
+    cloneEntity.destroy();
+  });
 });
