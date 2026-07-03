@@ -1,4 +1,5 @@
 import {
+  CloneMode,
   Entity,
   MeshRenderer,
   Script,
@@ -893,6 +894,21 @@ describe("Clone remap", async () => {
       expect(script.tickCount).eq(0);
 
       rootEntity.destroy();
+    });
+  });
+
+  describe("Math value-type registration completeness", () => {
+    it("every math export with copyFrom is registered @defaultCloneMode(Deep)", async () => {
+      const mathExports = await import("@galacean/engine-math");
+      const unregistered: string[] = [];
+      for (const [name, exported] of Object.entries(mathExports)) {
+        if (typeof exported !== "function" || !(exported as any).prototype) continue;
+        if (typeof (exported as any).prototype.copyFrom !== "function") continue;
+        if ((exported as any).prototype._defaultCloneMode !== CloneMode.Deep) unregistered.push(name);
+      }
+      // A math value type missing from CloneManager's registration list falls back to
+      // Assignment sharing — mutable state silently shared between source and clone.
+      expect(unregistered).deep.eq([]);
     });
   });
 
