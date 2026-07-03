@@ -207,8 +207,8 @@ export class CloneManager {
   }
 
   /**
-   * Deep-clone one object graph. Cycles / shared sub-graphs dedup through the identity map,
-   * which also remaps Entity/Component references nested anywhere in the graph.
+   * Clone one object graph: the structure is fresh, while every member re-enters the gate and
+   * follows its own semantics. Cycles / shared sub-graphs dedup through the identity map.
    */
   private static _deepClone(value: any, reuse: any, cloneMap: Map<object, object>): any {
     const existing = cloneMap.get(value);

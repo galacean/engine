@@ -8,6 +8,9 @@ export enum CloneMode {
   Assignment,
   /** Remap an Entity / Component reference to its clone within the cloned subtree. */
   Remap,
-  /** Recursively deep clone the value, producing an independent copy. */
+  /**
+   * Recursively clone the graph structure (fresh containers/instances); each member follows its
+   * own clone semantics — assets stay shared, entity refs remap, runtime state is ignored.
+   */
   Deep
 }
