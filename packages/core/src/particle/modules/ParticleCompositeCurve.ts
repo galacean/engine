@@ -10,7 +10,6 @@ import { CurveKey, ParticleCurve } from "./ParticleCurve";
  */
 @defaultCloneMode(CloneMode.Deep)
 export class ParticleCompositeCurve {
-  @ignoreClone
   private _updateManager = new UpdateFlagManager();
   private _mode = ParticleCurveMode.Constant;
   private _constantMin = 0;

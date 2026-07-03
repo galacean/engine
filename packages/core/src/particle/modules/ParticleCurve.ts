@@ -7,7 +7,6 @@ import { ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
  */
 @defaultCloneMode(CloneMode.Deep)
 export class ParticleCurve {
-  @ignoreClone
   private _updateManager = new UpdateFlagManager();
   private _keys = new Array<CurveKey>();
   @ignoreClone
@@ -198,7 +197,6 @@ export class ParticleCurve {
  */
 @defaultCloneMode(CloneMode.Deep)
 export class CurveKey {
-  @ignoreClone
   private _updateManager = new UpdateFlagManager();
   private _time: number;
   private _value: number;

@@ -146,13 +146,9 @@ export class Camera extends Component {
   private _msaaSamples: MSAASamples;
 
   private _renderTarget: RenderTarget = null;
-  @ignoreClone
   private _updateFlagManager: UpdateFlagManager;
-  @ignoreClone
   private _frustumChangeFlag: BoolUpdateFlag;
-  @ignoreClone
   private _isViewMatrixDirty: BoolUpdateFlag;
-  @ignoreClone
   private _isInvViewProjDirty: BoolUpdateFlag;
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   @ignoreClone

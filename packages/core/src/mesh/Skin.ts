@@ -18,7 +18,6 @@ export class Skin extends EngineObject {
   /** @internal */
   _skinMatrices: Float32Array;
   /** @internal */
-  @ignoreClone
   _updatedManager = new UpdateFlagManager();
 
   private _rootBone: Entity;

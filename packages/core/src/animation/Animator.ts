@@ -44,7 +44,6 @@ export class Animator extends Component {
   _onUpdateIndex = -1;
 
   protected _animatorController: AnimatorController;
-  @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
   @ignoreClone
   protected _updateMark = 0;

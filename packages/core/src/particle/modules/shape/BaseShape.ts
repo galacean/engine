@@ -20,8 +20,6 @@ export abstract class BaseShape {
   private static _tempQuaternion = new Quaternion();
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
-
-  @ignoreClone
   protected _updateManager = new UpdateFlagManager();
 
   private _enabled = true;

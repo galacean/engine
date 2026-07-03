@@ -75,7 +75,6 @@ export class UICanvas extends Component implements IElement {
   @ignoreClone
   _realRenderMode: number = CanvasRealRenderMode.None;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IElement> = new DisorderedArray<IElement>();
 
   @ignoreClone
@@ -91,7 +90,6 @@ export class UICanvas extends Component implements IElement {
   private _hierarchyVersion: number = -1;
   @ignoreClone
   private _center: Vector3 = new Vector3();
-  @ignoreClone
   private _centerDirtyFlag: BoolUpdateFlag;
 
   /**

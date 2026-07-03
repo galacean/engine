@@ -9,7 +9,6 @@ import { SafeLoopArray } from "./utils/SafeLoopArray";
  */
 @defaultCloneMode(CloneMode.Deep)
 export class Signal<T extends any[] = []> {
-  @ignoreClone
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();
 
   /**
@@ -129,7 +128,7 @@ export class Signal<T extends any[] = []> {
    * Clone listeners to target signal, remapping entity/component references through the
    * cloned subtree's identity map (references outside the subtree are kept as-is).
    */
-  _cloneTo(target: Signal<T>, cloneMap: Map<Object, Object>): void {
+  _cloneTo(target: Signal<T>, cloneMap: Map<object, object>): void {
     const listeners = this._listeners.getLoopArray();
     for (let i = 0, n = listeners.length; i < n; i++) {
       const listener = listeners[i];
@@ -144,7 +143,7 @@ export class Signal<T extends any[] = []> {
     }
   }
 
-  private _cloneArguments(args: any[], cloneMap: Map<Object, Object>): any[] {
+  private _cloneArguments(args: any[], cloneMap: Map<object, object>): any[] {
     if (!args || args.length === 0) return [];
     const len = args.length;
     const clonedArgs = new Array(len);

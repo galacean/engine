@@ -15,7 +15,6 @@ export class UIGroup extends Component implements IGroupAble {
   /** @internal */
   _rootCanvas: UICanvas;
   /** @internal */
-  @ignoreClone
   _disorderedElements: DisorderedArray<IGroupAble> = new DisorderedArray<IGroupAble>();
 
   /** @internal */

@@ -22,7 +22,6 @@ export class Collider extends Component implements ICustomClone {
   /** @internal */
   @ignoreClone
   _nativeCollider: ICollider;
-  @ignoreClone
   protected _updateFlag: BoolUpdateFlag;
   protected _shapes: ColliderShape[] = [];
   protected _collisionLayerIndex: number = 0;
