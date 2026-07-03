@@ -20,8 +20,7 @@ export class SubEmitter {
   /** Number of sub particles emitted per parent event. */
   emitCount: number = 1;
 
-  /** @internal */
-  @ignoreClone
+  /** @internal Back-link; the clone gate remaps it through the identity map (the owning module is registered before its sub-emitters deep-clone). */
   _module: SubEmittersModule = null;
 
   private _emitter: ParticleRenderer = null;

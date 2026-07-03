@@ -170,17 +170,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   /**
    * @internal
    */
-  _cloneTo(target: SubEmittersModule): void {
-    // _module is @ignoreClone, so re-link each cloned slot back to its new module
-    const subEmitters = target._subEmitters;
-    for (let i = 0, n = subEmitters.length; i < n; i++) {
-      subEmitters[i]._module = target;
-    }
-  }
-
-  /**
-   * @internal
-   */
   _validateEmitter(emitter: ParticleRenderer): void {
     if (emitter && SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
       throw new Error("Sub-emitter would create a cycle");

@@ -33,7 +33,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
-  @ignoreClone
   private _blendShapeWeights: Float32Array;
   @ignoreClone
   private _maxVertexUniformVectors: number;
@@ -148,8 +147,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (this.skin) {
       target._applySkin(null, target.skin);
     }
-
-    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
   protected override _update(context: RenderContext): void {
@@ -254,7 +251,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   @ignoreClone
-  private _onSkinUpdated(type: SkinUpdateFlag, value: Object): void {
+  private _onSkinUpdated(type: SkinUpdateFlag, value: object): void {
     switch (type) {
       case SkinUpdateFlag.BoneCountChanged:
         const shaderData = this.shaderData;

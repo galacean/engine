@@ -56,7 +56,6 @@ export class MainModule implements ICustomClone {
   playOnEnabled = true;
 
   /** @internal */
-  @ignoreClone
   _maxParticleBuffer = 1000;
   /** @internal */
   @ignoreClone
@@ -323,8 +322,6 @@ export class MainModule implements ICustomClone {
    * @internal
    */
   _cloneTo(target: MainModule): void {
-    target.maxParticles = this.maxParticles;
-
     if (target._simulationSpace === ParticleSimulationSpace.World) {
       target._generator._generateTransformedBounds();
     }
