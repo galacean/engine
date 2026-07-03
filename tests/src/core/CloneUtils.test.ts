@@ -938,6 +938,29 @@ describe("Clone remap", async () => {
     });
   });
 
+  describe("Runtime-container type defaults (Ignore)", () => {
+    it("an undecorated DisorderedArray slot keeps the clone's own instance", async () => {
+      const { DisorderedArray } = await import("@galacean/engine-core");
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const runtimeList = new DisorderedArray<number>();
+      runtimeList.add(1);
+      (script as any).runtimeList = runtimeList;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      // Type-level Ignore: the slot is neither shared nor deep-cloned — the clone keeps its
+      // own (absent) value instead of aliasing the source's runtime container.
+      expect(cs.runtimeList).not.eq(runtimeList);
+      expect(cs.runtimeList).eq(undefined);
+      expect(runtimeList.length).eq(1);
+
+      rootEntity.destroy();
+    });
+  });
+
   describe("Null-prototype containers", () => {
     it("Object.create(null) fields deep-clone as data containers, not shared references", () => {
       const rootEntity = scene.createRootEntity("root");

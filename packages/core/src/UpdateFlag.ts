@@ -1,9 +1,12 @@
+import { defaultCloneMode } from "./clone/CloneManager";
+import { CloneMode } from "./clone/enums/CloneMode";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { Utils } from "./Utils";
 
 /**
  * Used to update tags.
  */
+@defaultCloneMode(CloneMode.Ignore)
 export abstract class UpdateFlag {
   /** @internal */
   _flagManagers: UpdateFlagManager[] = [];
@@ -13,7 +16,7 @@ export abstract class UpdateFlag {
    * @param bit - Bit
    * @param param - Parameter
    */
-  abstract dispatch(bit?: number, param?: Object): void;
+  abstract dispatch(bit?: number, param?: object): void;
 
   /**
    * Clear.
