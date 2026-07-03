@@ -165,8 +165,11 @@ export class CloneManager {
         ? CloneMode.Deep
         : ((<ICustomClone>value)._defaultCloneMode ?? CloneMode.Assignment);
     } else if (cloneMode === CloneMode.Deep && (<ICustomClone>value)._defaultCloneMode === CloneMode.Remap) {
-      // Entity/Component instances cannot be deep cloned (engine-bound constructors, live scene
-      // state); a @deepClone-decorated reference falls back to remap for reference correctness.
+      // Error recovery, NOT a priority rule: `@deepClone` on an Entity/Component reference is an
+      // unexecutable directive — deep-copying one would `new Entity()` without an engine and
+      // field-walk live scene state into a corrupt detached object. Recover to the closest
+      // executable semantics (remap) and warn. Every executable decorator still wins over the
+      // type default at all depths.
       Logger.warn(
         `CloneManager: "${value.constructor.name}" cannot be deep cloned; @deepClone on this field falls back to remap.`
       );
