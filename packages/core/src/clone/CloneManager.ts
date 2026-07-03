@@ -21,8 +21,9 @@ import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
- * Property decorator — deep clone this field, overriding the value type's default clone mode.
- * Field-level decorators have the highest priority.
+ * Property decorator — deep clone this field, overriding the value type's default clone mode
+ * (field-level decorators have the highest priority). Engine-bound values (entities / assets)
+ * cannot be deep cloned — they fall back to remap / share with a warning.
  */
 export function deepClone(target: object, propertyKey: string): void {
   CloneManager._registerFieldMode(target, propertyKey, CloneMode.Deep);
@@ -44,7 +45,7 @@ export function ignoreClone(target: object, propertyKey: string): void {
 
 /**
  * Class decorator — the default clone mode for instances of the decorated type
- * (unregistered types fall back to Assignment).
+ * (unregistered non-container types fall back to Assignment).
  * @param mode - The clone mode applied to instances of the decorated type
  */
 export function defaultCloneMode(mode: CloneMode) {
@@ -95,7 +96,8 @@ export class CloneManager {
   }
 
   /**
-   * Deep clone all enumerable fields of source into target, respecting `@ignoreClone`.
+   * Clone all enumerable fields of source into target; each field goes through the clone gate,
+   * honoring field-level decorators.
    */
   static deepCloneObject(source: object, target: object, cloneMap: Map<object, object>): void {
     const ctor = (<{ constructor?: Function }>source).constructor;
@@ -123,7 +125,7 @@ export class CloneManager {
 
   /**
    * @internal
-   * Clone gate — decides how to clone one value based on its type.
+   * Clone gate — resolves the effective clone mode for one value and executes it.
    */
   static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
     // Explicit decorator shares the function; default keeps the clone's own rebound binding.
@@ -214,7 +216,7 @@ export class CloneManager {
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
-    // Value type (Vector3, Color, Matrix, ...) — copy in place.
+    // Value type (Vector3, Color, Matrix, ...) — copyFrom, reusing the preset when compatible.
     if ((<ICustomClone>value).copyFrom) {
       const dst =
         reuse && reuse !== value && reuse.constructor === value.constructor ? reuse : new (<any>value.constructor)();
@@ -273,7 +275,7 @@ export class CloneManager {
     }
 
     // Object — reuse or construct (null-prototype objects have no ctor: rebuild as such),
-    // then populate all fields (opt-out) + finalize.
+    // then populate all fields (opt-out) and run its `_cloneTo` hook.
     const ctor = <new () => object>value.constructor;
     const dst =
       reuse && reuse !== value && reuse.constructor === ctor ? reuse : ctor ? new ctor() : Object.create(null);
