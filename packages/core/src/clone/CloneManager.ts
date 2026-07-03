@@ -188,11 +188,24 @@ export class CloneManager {
   }
 
   /**
-   * Only explicitly registered Assignment types (ReferResource family) participate in
-   * ref counting — excludes duck-typed counters like Shader.
+   * @internal
+   * Whether the value is an engine-bound Remap type (Entity / Component).
+   */
+  static _isRemapType(value: any): boolean {
+    return value instanceof Object && (<ICustomClone>value)._defaultCloneMode === CloneMode.Remap;
+  }
+
+  /**
+   * Counted = registered Assignment (the ReferResource family) AND implementing the counting
+   * API — a user type registered Assignment without `_addReferCount` is a plain share;
+   * duck-typed counters that never registered (Shader) stay excluded.
    */
   private static _isCountedResource(value: any): boolean {
-    return value instanceof Object && (<ICustomClone>value)._defaultCloneMode === CloneMode.Assignment;
+    return (
+      value instanceof Object &&
+      (<ICustomClone>value)._defaultCloneMode === CloneMode.Assignment &&
+      typeof (<IReferable>value)._addReferCount === "function"
+    );
   }
 
   /**
@@ -230,22 +243,28 @@ export class CloneManager {
 
     // ArrayBuffer views — byte copy (covers every view `_isContainer` routes here, incl. DataView).
     if (ArrayBuffer.isView(value)) {
+      let dst: ArrayBufferView;
       if (value instanceof DataView) {
         const src = <DataView>value;
         if (reuse instanceof DataView && reuse.byteLength === src.byteLength) {
           new Uint8Array(reuse.buffer, reuse.byteOffset, reuse.byteLength).set(
             new Uint8Array(src.buffer, src.byteOffset, src.byteLength)
           );
-          return reuse;
+          dst = reuse;
+        } else {
+          dst = new DataView(src.buffer.slice(src.byteOffset, src.byteOffset + src.byteLength));
         }
-        return new DataView(src.buffer.slice(src.byteOffset, src.byteOffset + src.byteLength));
+      } else {
+        const src = <TypedArray>value;
+        if (reuse && reuse.constructor === src.constructor && (<TypedArray>reuse).length === src.length) {
+          (<TypedArray>reuse).set(src);
+          dst = reuse;
+        } else {
+          dst = src.slice();
+        }
       }
-      const src = <TypedArray>value;
-      if (reuse && reuse.constructor === src.constructor && (<TypedArray>reuse).length === src.length) {
-        (<TypedArray>reuse).set(src);
-        return reuse;
-      }
-      return src.slice();
+      cloneMap.set(value, dst);
+      return dst;
     }
 
     // Array — fresh instance, each member through the gate.

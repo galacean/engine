@@ -1,5 +1,5 @@
 import { Component } from "./Component";
-import { defaultCloneMode, ignoreClone } from "./clone/CloneManager";
+import { CloneManager, defaultCloneMode } from "./clone/CloneManager";
 import { CloneMode } from "./clone/enums/CloneMode";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
@@ -151,8 +151,7 @@ export class Signal<T extends any[] = []> {
       const arg = args[i];
       // Only Entity/Component references (Remap types) are remapped; other objects are shared
       // deterministically (looking them up in the identity map would depend on field-walk order).
-      clonedArgs[i] =
-        arg instanceof Object && (<any>arg)._defaultCloneMode === CloneMode.Remap ? (cloneMap.get(arg) ?? arg) : arg;
+      clonedArgs[i] = CloneManager._isRemapType(arg) ? (cloneMap.get(arg) ?? arg) : arg;
     }
     return clonedArgs;
   }

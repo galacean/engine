@@ -7,6 +7,7 @@ import {
   Texture2D,
   assignmentClone,
   deepClone,
+  defaultCloneMode,
   ignoreClone
 } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
@@ -185,6 +186,23 @@ class PresetTextureScript extends Script {
     PresetTextureScript.created.push(texture);
     this.texture = texture;
   }
+}
+
+/** Script with two fields aliasing one typed array (identity must survive the clone). */
+class AliasedBinaryScript extends Script {
+  a: Float32Array;
+  b: Float32Array;
+}
+
+/** User value type registered Assignment without any counting API — must share, never count. */
+@defaultCloneMode(CloneMode.Assignment)
+class SharedConfig {
+  value = 1;
+}
+
+/** Script holding a user Assignment-registered object. */
+class SharedConfigScript extends Script {
+  config: SharedConfig = null;
 }
 
 /** Script misusing @deepClone on an Entity ref (must fall back to remap, never construct) */
@@ -1088,6 +1106,24 @@ describe("Clone remap", async () => {
 
       rootEntity.destroy();
     });
+
+    it("aliased typed arrays keep identity through the clone", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(AliasedBinaryScript);
+      const shared = new Float32Array([1, 2, 3]);
+      script.a = shared;
+      script.b = shared;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(AliasedBinaryScript);
+
+      expect(cs.a).not.eq(shared);
+      expect(cs.a).eq(cs.b);
+      expect(Array.from(cs.a)).deep.eq([1, 2, 3]);
+
+      rootEntity.destroy();
+    });
   });
 
   describe("Script-held ReferResource", () => {
@@ -1134,6 +1170,18 @@ describe("Clone remap", async () => {
       expect(cloned.getComponent(PresetTextureScript).texture).eq(null);
       expect(clonePreset.refCount).eq(0);
       expect(sourcePreset.refCount).eq(0);
+
+      rootEntity.destroy();
+    });
+
+    it("a user type registered Assignment without counting API shares safely", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(SharedConfigScript);
+      script.config = new SharedConfig();
+
+      const cloned = parent.clone();
+      expect(cloned.getComponent(SharedConfigScript).config).eq(script.config);
 
       rootEntity.destroy();
     });
