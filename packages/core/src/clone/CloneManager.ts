@@ -7,6 +7,7 @@ import {
   Matrix3x3,
   Plane,
   Quaternion,
+  Ray,
   Rect,
   SphericalHarmonics3,
   Vector2,
@@ -299,6 +300,7 @@ export class CloneManager {
 // direction). All are value-semantic and always deep cloned.
 const _markDeep = defaultCloneMode(CloneMode.Deep);
 [
+  Ray,
   Vector2,
   Vector3,
   Vector4,
