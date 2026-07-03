@@ -263,11 +263,6 @@ export class Script extends Component {
   }
 }
 
-// User-script fields are user-managed: the clone gate does no ref counting for them (the engine
-// cannot pair a release, and users can't know which slots were acquired). Users who want gc
-// protection manage counts themselves. Non-enumerable so the clone field walk skips it.
-Object.defineProperty(Script.prototype, "_skipCloneRefCounting", { value: true });
-
 export enum PointerMethods {
   onPointerDown = "onPointerDown",
   onPointerUp = "onPointerUp",

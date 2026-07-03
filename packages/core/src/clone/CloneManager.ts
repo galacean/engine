@@ -73,16 +73,15 @@ export function defaultCloneMode(mode: CloneMode) {
  *   - Assignment (ReferResource / unknown types without @defaultCloneMode) → share the reference.
  *   - Deep (@defaultCloneMode(Deep) / copyFrom types / containers) → recursively deep clone.
  *
- * Ref-count (slot-ownership contract): every ENGINE-COMPONENT top-level field holding an
- * explicitly registered ref-counted resource (ReferResource family) owns one reference. The gate
- * acquires it when cloning the slot (+1, and -1 on a replaced preset); the owning component's
- * destroy path MUST release it — a component that doesn't is a bug in that component. User
- * scripts are exempt (`Script.prototype._skipCloneRefCounting`): their fields are user-managed
- * and the gate does no counting for them. Everything below the top level owns nothing at the
- * gate: container elements and plain-object fields are plain shares, and a nested class that
- * ref-counts its resources pairs the acquisition itself (`_cloneTo` +1 / destroy -1 in the same
- * class). Slots rebuilt through setters must be `@ignoreClone` so the setter is the single +1
- * source (e.g. `MeshRenderer.mesh`).
+ * Ref-count (slot-ownership contract): every COMPONENT top-level field holding an explicitly
+ * registered ref-counted resource (ReferResource family) owns one reference. The gate acquires
+ * it when cloning the slot (+1, and -1 on a replaced preset); releasing it on destroy is the
+ * component class's responsibility — engine components do it in their destroy paths, script
+ * authors in `onDestroy`. A class that doesn't release is a bug in that class. Everything below
+ * the top level owns nothing at the gate: container elements and plain-object fields are plain
+ * shares, and a nested class that ref-counts its resources pairs the acquisition itself
+ * (`_cloneTo` +1 / destroy -1 in the same class). Slots rebuilt through setters must be
+ * `@ignoreClone` so the setter is the single +1 source (e.g. `MeshRenderer.mesh`).
  *
  * Deep clone lifecycle (3-stage):
  *   1. Construct — reuse the clone's existing slot value if same type, else `new ctor()`.
@@ -151,10 +150,9 @@ export class CloneManager {
    * Clone gate — decides how to clone one value based on its type.
    *
    * `refs` controls the ref-count contract for THIS slot:
-   * - `undefined` — the slot owns no count (container elements, plain-object fields,
-   *   user-script fields).
-   * - `null` — an engine-component field: an Assignment-shared ref-counted resource gains +1
-   *   here, and the owning component's destroy path releases it (implementation contract).
+   * - `undefined` — the slot owns no count (container elements, plain-object fields).
+   * - `null` — a component top-level field: an Assignment-shared ref-counted resource gains +1
+   *   here, and the owning class's destroy path releases it (implementation contract).
    */
   static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode, refs?: null): any {
     if (!(value instanceof Object)) return value;

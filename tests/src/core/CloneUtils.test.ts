@@ -145,9 +145,29 @@ class BinaryScript extends Script {
   bytes: Float32Array;
 }
 
-/** Script holding a shared ReferResource */
+/**
+ * Script holding a shared ReferResource, honoring the slot-ownership contract the same way
+ * engine components do: acquire on assignment, release on destroy. The clone gate adds +1 for
+ * the cloned backing slot, which the same onDestroy release balances.
+ */
 class ResourceRefScript extends Script {
-  texture: Texture2D;
+  private _texture: Texture2D;
+
+  get texture(): Texture2D {
+    return this._texture;
+  }
+
+  set texture(value: Texture2D) {
+    if (this._texture !== value) {
+      (this._texture as any)?._addReferCount(-1);
+      (value as any)?._addReferCount(1);
+      this._texture = value;
+    }
+  }
+
+  override onDestroy(): void {
+    this.texture = null;
+  }
 }
 
 /** Script misusing @deepClone on an Entity ref (must fall back to remap, never construct) */
@@ -918,27 +938,27 @@ describe("Clone remap", async () => {
   });
 
   describe("Script-held ReferResource", () => {
-    it("is shared with no engine accounting — script fields are user-managed", () => {
+    it("cloned slot owns one reference; the script's own contract releases it", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(ResourceRefScript);
       const texture = new Texture2D(engine, 4, 4);
-      const baseline = texture.refCount;
       script.texture = texture;
+      expect(texture.refCount).eq(1);
 
       const cloned = parent.clone();
       const cs = cloned.getComponent(ResourceRefScript);
 
-      // Shared by reference; the gate does no counting for user-script slots.
+      // Shared by reference; the cloned slot owns one count — same contract as engine components.
       expect(cs.texture).eq(texture);
-      expect(texture.refCount).eq(baseline);
+      expect(texture.refCount).eq(2);
 
-      const recloned = cloned.clone();
-      expect(texture.refCount).eq(baseline);
-
+      // Releasing on destroy is the script class's responsibility (onDestroy → setter -1).
       cloned.destroy();
-      recloned.destroy();
-      expect(texture.refCount).eq(baseline);
+      expect(texture.refCount).eq(1);
+
+      parent.destroy();
+      expect(texture.refCount).eq(0);
 
       rootEntity.destroy();
       texture.destroy();

@@ -32,16 +32,13 @@ export class ComponentCloner {
    * @param cloneMap - Identity map of the cloned subtree (source entity/component → clone)
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
-    // Engine-component fields own their shared ref-counted resources (slot-ownership contract:
-    // gate +1, the component's destroy path releases). User scripts are exempt — their fields are
-    // user-managed, so the gate does no counting for them.
-    const refs: null | undefined = (<any>target)._skipCloneRefCounting ? undefined : null;
     const fieldModes = CloneManager.getFieldModes(source.constructor);
     for (const k in source) {
       const fieldMode = fieldModes.get(k);
       if (fieldMode === CloneMode.Ignore) continue;
       // Field decorator (highest) → value-shape / type default (Entity/Component remap via the map).
-      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode, refs);
+      // Component top-level slots own their shared ref-counted resources (`refs: null`).
+      target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode, null);
     }
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }
