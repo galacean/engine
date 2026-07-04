@@ -563,7 +563,7 @@ export class ShaderData implements IReferable, IClone {
     if (out) {
       const macroMap = this._macroMap;
       out.length = 0;
-      for (var key in macroMap) {
+      for (const key in macroMap) {
         out.push(macroMap[key]);
       }
     } else {
@@ -594,7 +594,7 @@ export class ShaderData implements IReferable, IClone {
 
     const propertyValueMap = this._propertyValueMap;
     const propertyIdMap = ShaderProperty._propertyIdMap;
-    for (let key in propertyValueMap) {
+    for (const key in propertyValueMap) {
       properties.push(propertyIdMap[key]);
     }
 
@@ -610,7 +610,7 @@ export class ShaderData implements IReferable, IClone {
   }
 
   cloneTo(target: ShaderData): void {
-    CloneManager.deepCloneObject(this._macroCollection, target._macroCollection, new Map<Object, Object>());
+    CloneManager.deepCloneObject(this._macroCollection, target._macroCollection, new Map<object, object>());
     Object.assign(target._macroMap, this._macroMap);
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
@@ -626,7 +626,9 @@ export class ShaderData implements IReferable, IClone {
           targetPropertyValueMap[k] = property;
           referCount > 0 && property._addReferCount(referCount);
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
-          targetPropertyValueMap[k] = property.slice();
+          const cloned = property.slice();
+          targetPropertyValueMap[k] = cloned;
+          referCount > 0 && ShaderData._addTexturesReferCount(<ShaderPropertyValueType>cloned, referCount);
         } else {
           const targetProperty = targetPropertyValueMap[k];
           if (targetProperty) {
@@ -719,8 +721,20 @@ export class ShaderData implements IReferable, IClone {
     for (const k in properties) {
       const property = properties[k];
       // @todo: Separate array to speed performance.
-      if (property && property instanceof Texture) {
-        property._addReferCount(value);
+      property && ShaderData._addTexturesReferCount(property, value);
+    }
+  }
+
+  /**
+   * Counted texture content may be a single texture or a texture array; both cascade alike.
+   */
+  private static _addTexturesReferCount(property: ShaderPropertyValueType, count: number): void {
+    if (property instanceof Texture) {
+      property._addReferCount(count);
+    } else if (property instanceof Array) {
+      for (let i = 0, n = property.length; i < n; i++) {
+        const element = property[i];
+        element instanceof Texture && element._addReferCount(count);
       }
     }
   }

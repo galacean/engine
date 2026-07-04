@@ -110,4 +110,51 @@ describe("ShaderData / Material refCount cascade", () => {
     entity.destroy();
     expect(instanced.refCount).eq(0);
   });
+
+  it("texture-array entries cascade with the host's refCount like single textures", () => {
+    const material = new BlinnPhongMaterial(engine);
+    const entityA = rootEntity.createChild("texArrHostA");
+    entityA.addComponent(MeshRenderer).setMaterial(material);
+    expect(material.refCount).eq(1);
+
+    const texA = new Texture2D(engine, 1, 1);
+    const texB = new Texture2D(engine, 1, 1);
+    material.shaderData.setTextureArray("u_texArr", [texA, texB]);
+    expect(texA.refCount).eq(1);
+    expect(texB.refCount).eq(1);
+
+    // A second owner of the material cascades +1 through the array entries.
+    const entityB = rootEntity.createChild("texArrHostB");
+    entityB.addComponent(MeshRenderer).setMaterial(material);
+    expect(texA.refCount).eq(2);
+    expect(texB.refCount).eq(2);
+
+    entityB.destroy();
+    expect(texA.refCount).eq(1);
+
+    entityA.destroy();
+    expect(texA.refCount).eq(0);
+    expect(texB.refCount).eq(0);
+  });
+
+  it("cloning a shaderData counts the shared entries of a texture array", () => {
+    const texA = new Texture2D(engine, 1, 1);
+    const texB = new Texture2D(engine, 1, 1);
+    const entity = rootEntity.createChild("texArrCloneSrc");
+    entity.addComponent(MeshRenderer).shaderData.setTextureArray("u_rendererTexArr", [texA, texB]);
+    expect(texA.refCount).eq(1);
+
+    const clone = entity.clone();
+    rootEntity.addChild(clone);
+    // The cloned array is a fresh container sharing the same counted entries.
+    expect(texA.refCount).eq(2);
+    expect(texB.refCount).eq(2);
+
+    clone.destroy();
+    expect(texA.refCount).eq(1);
+
+    entity.destroy();
+    expect(texA.refCount).eq(0);
+    expect(texB.refCount).eq(0);
+  });
 });
