@@ -63,7 +63,6 @@ export abstract class Canvas {
 
   abstract _destroy(): void;
 
-  // Default no-op; overridden by platforms that have an auto-resize mode to tear down.
   protected _exitAutoResize(): void {}
 
   protected abstract _onSizeChanged(width: number, height: number): void;
