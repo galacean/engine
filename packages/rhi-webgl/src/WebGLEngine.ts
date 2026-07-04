@@ -29,8 +29,7 @@ export class WebGLEngine extends Engine {
   }
 
   /**
-   * The canvas the engine renders to; call `setResolution()` or `setAutoResolution()` on it to control
-   * the render-buffer resolution.
+   * The web canvas the engine renders to.
    */
   override get canvas(): WebCanvas {
     // @ts-ignore
