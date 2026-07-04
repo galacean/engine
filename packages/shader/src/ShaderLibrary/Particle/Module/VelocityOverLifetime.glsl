@@ -5,7 +5,11 @@
     #define _VOL_LINEAR_MODULE_ENABLED
 #endif
 
-#if defined(_VOL_LINEAR_MODULE_ENABLED) || defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+#if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+    #define _VOL_ORBITAL_RADIAL_MODULE_ENABLED
+#endif
+
+#if defined(_VOL_LINEAR_MODULE_ENABLED) || defined(_VOL_ORBITAL_RADIAL_MODULE_ENABLED)
     #define _VOL_MODULE_ENABLED
 #endif
 
@@ -96,7 +100,7 @@
     #endif
 
     // Orbital / Radial (transform-feedback only). Center of orbit in system-local space.
-    #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+    #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
         vec3 renderer_VOLOffset;
     #endif
 

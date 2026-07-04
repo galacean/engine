@@ -194,7 +194,7 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             }
         #endif
 
-        #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+        #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
             vec3 visualSimulationVelocity = renderer_SimulationSpace == 0
                 ? attr.a_FeedbackVelocity
                 : rotationByQuaternions(attr.a_FeedbackVelocity, worldRotation);

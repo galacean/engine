@@ -207,7 +207,7 @@ Shader "Effect/ParticleFeedback" {
               baseVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
           #endif
 
-          #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE) || defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+          #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
           vec3 linearVelocity = vec3(0.0);
           #ifdef _VOL_LINEAR_MODULE_ENABLED
               if (renderer_SimulationSpace == 0) {
