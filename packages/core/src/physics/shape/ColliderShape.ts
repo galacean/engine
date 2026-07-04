@@ -182,6 +182,24 @@ export abstract class ColliderShape implements ICustomClone {
     delete Engine._physicalObjectsMap[this._id];
   }
 
+  /**
+   * @internal
+   * Attach the native shape to the owning collider's native actor.
+   */
+  _attachToCollider(): void {
+    this._collider._nativeCollider.addShape(this._nativeShape);
+    this._isShapeAttached = true;
+  }
+
+  /**
+   * @internal
+   * Detach the native shape from the owning collider's native actor.
+   */
+  _detachFromCollider(): void {
+    this._collider._nativeCollider.removeShape(this._nativeShape);
+    this._isShapeAttached = false;
+  }
+
   protected _syncNative(): void {
     if (!this._nativeShape) return;
     this._nativeShape.setPosition(this._position);

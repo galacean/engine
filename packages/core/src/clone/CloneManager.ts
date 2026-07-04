@@ -130,7 +130,7 @@ export class CloneManager {
   static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
     // Explicit decorator shares the function; default keeps the clone's own rebound binding.
     if (typeof value === "function") {
-      return fieldMode !== undefined ? value : typeof reuse === "function" ? reuse : value;
+      return fieldMode === undefined && typeof reuse === "function" ? reuse : value;
     }
     // `typeof`, not `instanceof` — null-prototype / cross-realm objects lack local Object.prototype.
     if (value === null || typeof value !== "object") return value;
@@ -167,11 +167,13 @@ export class CloneManager {
 
   /**
    * @internal
-   * A component top-level slot owns its counted content: a shared counted value gains one
-   * reference, and a replaced owned counted preset releases one — even when the incoming
-   * value is uncounted. Destroy releases the slot (class contract).
+   * Settle a slot's counted ownership after the gate wrote it: an unchanged slot keeps its
+   * account, a displaced owned counted preset releases one reference, and a slot sharing the
+   * source's counted value acquires one. Destroy releases the slot (class contract).
    */
-  static _acquireSlotOwnership(value: any, preset: any): void {
+  static _transferSlotOwnership(cloned: any, sourceValue: any, preset: any): void {
+    // Slot content unchanged (Ignore kept / value type copied in place / function reused).
+    if (cloned === preset) return;
     if (CloneManager._isCountedResource(preset)) {
       const presetRefCount = (<{ refCount?: number }>preset).refCount;
       presetRefCount !== undefined &&
@@ -182,8 +184,10 @@ export class CloneManager {
         );
       (<IReferable>preset)._addReferCount(-1);
     }
-    if (CloneManager._isCountedResource(value)) {
-      (<IReferable>value)._addReferCount(1);
+    // `cloned === sourceValue` ⇔ the slot shared the source value (only the Assignment path
+    // returns a registered resource as-is), so it owns one reference.
+    if (cloned === sourceValue && CloneManager._isCountedResource(cloned)) {
+      (<IReferable>cloned)._addReferCount(1);
     }
   }
 
@@ -290,11 +294,14 @@ export class CloneManager {
       return dst;
     }
 
+    const ctor = <any>value.constructor;
+    // Compatible reuse: a distinct instance of the exact same type (null-prototype matches null-prototype).
+    const reusable = reuse && reuse !== value && reuse.constructor === ctor ? reuse : null;
+
     // Value type (Vector3, Color, Matrix, ...) — a class instance carrying a callable copyFrom.
     // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in the data.
-    const ctor = <any>value.constructor;
     if (ctor && ctor !== Object && typeof (<ICustomClone>value).copyFrom === "function") {
-      const dst = <ICustomClone>(reuse && reuse !== value && reuse.constructor === ctor ? reuse : new ctor());
+      const dst = <ICustomClone>(reusable ?? new ctor());
       cloneMap.set(value, dst);
       dst.copyFrom(<ICustomClone>value);
       (<ICustomClone>value)._cloneTo?.(dst, cloneMap);
@@ -303,15 +310,9 @@ export class CloneManager {
 
     // Object — reuse or construct (null-prototype objects have no ctor: rebuild as such),
     // then populate all fields (opt-out) and run its `_cloneTo` hook.
-    const dst =
-      reuse && reuse !== value && reuse.constructor === ctor ? reuse : ctor ? new ctor() : Object.create(null);
+    const dst = reusable ?? (ctor ? new ctor() : Object.create(null));
     cloneMap.set(value, dst);
-    const fieldModes = ctor ? CloneManager.getFieldModes(ctor) : null;
-    for (const key in value) {
-      const fieldMode = fieldModes?.get(key);
-      if (fieldMode === CloneMode.Ignore) continue;
-      dst[key] = CloneManager._cloneValue(value[key], dst[key], cloneMap, fieldMode);
-    }
+    CloneManager.deepCloneObject(value, dst, cloneMap);
     (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, cloneMap);
     return dst;
   }

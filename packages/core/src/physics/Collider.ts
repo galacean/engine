@@ -185,17 +185,15 @@ export class Collider extends Component implements ICustomClone {
     // during clone) — attaching twice would duplicate it on the native actor.
     if (shape._nativeShape && !shape._isShapeAttached) {
       shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-      this._nativeCollider.addShape(shape._nativeShape);
-      shape._isShapeAttached = true;
+      shape._attachToCollider();
     }
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {
-    shape._collider = null;
     if (shape._nativeShape && shape._isShapeAttached) {
-      this._nativeCollider.removeShape(shape._nativeShape);
-      shape._isShapeAttached = false;
+      shape._detachFromCollider();
     }
+    shape._collider = null;
   }
 
   private _setCollisionLayer(): void {

@@ -38,9 +38,7 @@ export class ComponentCloner {
       const sourceValue = source[k];
       const preset = target[k];
       const cloned = (target[k] = CloneManager._cloneValue(sourceValue, preset, cloneMap, fieldMode));
-      // `cloned === sourceValue` ⇔ the slot shared the source value (only the Assignment path
-      // returns a registered resource as-is), so it owns one reference.
-      cloned === sourceValue && CloneManager._acquireSlotOwnership(cloned, preset);
+      CloneManager._transferSlotOwnership(cloned, sourceValue, preset);
     }
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }

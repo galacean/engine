@@ -183,16 +183,6 @@ export class MeshColliderShape extends ColliderShape {
     }
   }
 
-  private _detachFromCollider(): void {
-    this._collider._nativeCollider.removeShape(this._nativeShape);
-    this._isShapeAttached = false;
-  }
-
-  private _attachToCollider(): void {
-    this._collider._nativeCollider.addShape(this._nativeShape);
-    this._isShapeAttached = true;
-  }
-
   private _createNativeShape(): void {
     // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
     if (!this._isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
