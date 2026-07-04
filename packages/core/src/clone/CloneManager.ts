@@ -276,7 +276,7 @@ export class CloneManager {
       return dst;
     }
 
-    // Map — `for-of` instead of `forEach`: no per-clone closure allocation.
+    // Map
     if (value instanceof Map) {
       const dst = new Map<any, any>();
       cloneMap.set(value, dst);
