@@ -87,7 +87,6 @@ export class WebCanvas extends Canvas {
     if (!this._pendingResize) return;
 
     const webCanvas = this._webCanvas;
-    // An unmounted canvas has no layout size yet; retry on a later pump instead of setting a 0x0 buffer
     if (webCanvas.clientWidth === 0 || webCanvas.clientHeight === 0) return;
 
     this._pendingResize = false;
