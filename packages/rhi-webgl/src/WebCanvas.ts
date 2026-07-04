@@ -87,15 +87,12 @@ export class WebCanvas extends Canvas {
     if (!this._pendingResize) return;
 
     const webCanvas = this._webCanvas;
-    // Skip while the canvas has no layout size yet (e.g. not mounted); keep the flag so a later
-    // frame's pump retries once layout exists — an unmounted canvas never becomes a 0x0 buffer
+    // An unmounted canvas has no layout size yet; retry on a later pump instead of setting a 0x0 buffer
     if (webCanvas.clientWidth === 0 || webCanvas.clientHeight === 0) return;
 
     this._pendingResize = false;
     const pixelRatio = window.devicePixelRatio * this._autoResolutionScale;
-    // Round so the cached size matches the integer buffer. TODO: `devicePixelContentBoxSize` would give
-    // exact device pixels (no dpr rounding error), but it arrives on observer entries — requires moving
-    // size capture into the callback
+    // TODO: use `devicePixelContentBoxSize` from the observer entry to avoid fractional-dpr rounding error
     this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
   }
 
