@@ -1272,6 +1272,20 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
+    it("a host-bound structural instance in a user container fails with the named error", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const renderer = parent.addComponent(ParticleRenderer);
+      const script = parent.addComponent(CopyFromDataScript);
+      script.config = { modules: [renderer.generator.main] };
+
+      // A host-bound structure cannot exist without its host, so a preset-less deep clone is
+      // rejected with the contract named — sharing must be declared via @assignmentClone.
+      expect(() => parent.clone()).toThrowError(/bare-construct "MainModule"/);
+
+      rootEntity.destroy();
+    });
+
     it("every exported Deep-registered type constructs bare (gate contract)", () => {
       // The gate creates container elements and preset-less slots with `new Type()` and then
       // populates every field, so a Deep-registered type MUST construct without arguments.
@@ -1286,8 +1300,10 @@ describe("Clone remap", async () => {
         "CapsuleColliderShape",
         "PlaneColliderShape",
         "MeshColliderShape",
-        // Engine-bound structural types wired to their host at construction — the gate always
-        // clones them against the component's same-type constructor preset, never bare.
+        // Host-bound structural types wired to their host at construction — in their engine
+        // slots the gate clones them against the component's same-type constructor preset; a
+        // preset-less occurrence (e.g. a user container) fails with the named bare-construction
+        // error by design (share explicitly via @assignmentClone instead).
         "ParticleGenerator",
         "MainModule",
         "VelocityOverLifetimeModule",
