@@ -41,7 +41,7 @@ describe("Clone resource refCount", async function () {
     expect(clonedSmr.shaderData.getTexture("renderer_JointSampler") ?? null).eq(null);
     expect(jointTexture.refCount).eq(1);
 
-    // With no stray reference, the source's one-shot destroy() in _onDestroy now succeeds.
+    // With no stray reference, the source's one-shot destroy() in _onDestroy succeeds (refCount is zero).
     entity.destroy();
     expect(jointTexture.refCount).eq(0);
 
