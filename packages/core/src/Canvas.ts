@@ -11,14 +11,14 @@ export abstract class Canvas {
   private _height: number = 0;
 
   /**
-   * The render buffer width of the canvas, in pixels.
+   * The width component of the canvas resolution, in pixels.
    */
   get width(): number {
     return this._width;
   }
 
   /**
-   * The render buffer height of the canvas, in pixels.
+   * The height component of the canvas resolution, in pixels.
    */
   get height(): number {
     return this._height;
