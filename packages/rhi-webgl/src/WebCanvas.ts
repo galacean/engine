@@ -14,7 +14,6 @@ export class WebCanvas extends Canvas {
   private _resizeObserver?: ResizeObserver;
   private _autoResolutionScale: number = 1;
   private _pendingResize: boolean = false;
-  // Exact device-pixel content box from the latest observer entry, when the browser supports it (not Safari)
   private _pendingDevicePixelWidth: number = 0;
   private _pendingDevicePixelHeight: number = 0;
 
