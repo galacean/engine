@@ -14,6 +14,9 @@ export class WebCanvas extends Canvas {
   private _resizeObserver?: ResizeObserver;
   private _autoResolutionScale: number = 1;
   private _pendingResize: boolean = false;
+  // Exact device-pixel content box from the latest observer entry, when the browser supports it (not Safari)
+  private _pendingDevicePixelWidth: number = 0;
+  private _pendingDevicePixelHeight: number = 0;
 
   /**
    * The scale of canvas, the value is visible width/height divide the render width/height.
@@ -56,7 +59,13 @@ export class WebCanvas extends Canvas {
     this._autoResolutionScale = scale;
 
     if (!this._resizeObserver) {
-      this._resizeObserver = new ResizeObserver(() => (this._pendingResize = true));
+      this._resizeObserver = new ResizeObserver((entries) => {
+        // `devicePixelContentBoxSize` gives exact device pixels; it is only readable here, on the entry
+        const box = entries[entries.length - 1].devicePixelContentBoxSize?.[0];
+        this._pendingDevicePixelWidth = box ? box.inlineSize : 0;
+        this._pendingDevicePixelHeight = box ? box.blockSize : 0;
+        this._pendingResize = true;
+      });
       this._resizeObserver.observe(this._webCanvas);
     }
 
@@ -90,10 +99,18 @@ export class WebCanvas extends Canvas {
     if (webCanvas.clientWidth === 0 || webCanvas.clientHeight === 0) return;
 
     this._pendingResize = false;
-    const pixelRatio = window.devicePixelRatio * this._autoResolutionScale;
-    // TODO: add a `devicePixelContentBoxSize` path for exact device pixels where supported (not Safari),
-    // keeping this clientWidth-based rounding as the fallback
-    this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
+    const scale = this._autoResolutionScale;
+    if (this._pendingDevicePixelWidth > 0 && this._pendingDevicePixelHeight > 0) {
+      // Exact device pixels already include the device pixel ratio, so only apply the scale
+      this._setSize(
+        Math.round(this._pendingDevicePixelWidth * scale),
+        Math.round(this._pendingDevicePixelHeight * scale)
+      );
+    } else {
+      // Fallback where `devicePixelContentBoxSize` is unavailable (Safari): clientWidth is CSS pixels
+      const pixelRatio = window.devicePixelRatio * scale;
+      this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
+    }
   }
 
   override _destroy(): void {
@@ -106,6 +123,8 @@ export class WebCanvas extends Canvas {
       this._resizeObserver = undefined;
     }
     this._pendingResize = false;
+    this._pendingDevicePixelWidth = 0;
+    this._pendingDevicePixelHeight = 0;
   }
 
   protected override _onSizeChanged(width: number, height: number): void {
