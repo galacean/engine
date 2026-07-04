@@ -59,7 +59,7 @@ export abstract class Canvas {
     }
   }
 
-  abstract _pumpPendingResize(): void;
+  _pumpPendingResize(): void {}
 
   abstract _destroy(): void;
 
