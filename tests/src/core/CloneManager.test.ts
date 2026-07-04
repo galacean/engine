@@ -1272,15 +1272,33 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("a host-bound structural instance in a user container fails with the named error", () => {
+    it("a host-bound instance in a container remaps when its engine slot clones first", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
+      // Renderer added first: its generator/module tree enters the identity map before the
+      // script's fields walk, so the container reference dedups onto the cloned module.
       const renderer = parent.addComponent(ParticleRenderer);
       const script = parent.addComponent(CopyFromDataScript);
       script.config = { modules: [renderer.generator.main] };
 
-      // A host-bound structure cannot exist without its host, so a preset-less deep clone is
-      // rejected with the contract named — sharing must be declared via @assignmentClone.
+      const cloned = parent.clone();
+      const clonedModule = cloned.getComponent(CopyFromDataScript).config.modules[0];
+      expect(clonedModule).eq(cloned.getComponent(ParticleRenderer).generator.main);
+      expect(clonedModule).not.eq(renderer.generator.main);
+
+      rootEntity.destroy();
+    });
+
+    it("a host-bound instance in a container fails with the named error when no host precedes", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      // Script added first: the container walks before any engine slot registers the module,
+      // so the gate must bare-construct a host-bound structure — rejected with the contract
+      // named (sharing must be declared via @assignmentClone).
+      const script = parent.addComponent(CopyFromDataScript);
+      const renderer = parent.addComponent(ParticleRenderer);
+      script.config = { modules: [renderer.generator.main] };
+
       expect(() => parent.clone()).toThrowError(/bare-construct "MainModule"/);
 
       rootEntity.destroy();
