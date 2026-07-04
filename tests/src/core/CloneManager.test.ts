@@ -227,6 +227,16 @@ class UnownedPresetScript extends Script {
   }
 }
 
+/** User type registered Deep whose constructor dereferences a required argument (contract violation). */
+@defaultCloneMode(CloneMode.Deep)
+class ParamDeepConfig {
+  target: string;
+
+  constructor(source: { id: string }) {
+    this.target = source.id;
+  }
+}
+
 /** Script holding plain data whose payload happens to carry a `copyFrom` key. */
 class CopyFromDataScript extends Script {
   config: any = null;
@@ -1247,6 +1257,17 @@ describe("Clone remap", async () => {
       expect(cc.gradients[0].constant.r).eq(1);
       expect(cc.curves.get("a")).not.eq(curve);
       expect(cc.curves.get("a").constant).eq(0.5);
+
+      rootEntity.destroy();
+    });
+
+    it("a Deep type that cannot construct bare fails with the contract named", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      script.config = { items: [new ParamDeepConfig({ id: "a" })] };
+
+      expect(() => parent.clone()).toThrowError(/bare-construct "ParamDeepConfig"/);
 
       rootEntity.destroy();
     });

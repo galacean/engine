@@ -308,7 +308,7 @@ export class CloneManager {
     // Value type (Vector3, Color, Matrix, ...) — a class instance carrying a callable copyFrom.
     // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in the data.
     if (ctor && ctor !== Object && typeof (<ICustomClone>value).copyFrom === "function") {
-      const dst = <ICustomClone>(reusable ?? new ctor());
+      const dst = <ICustomClone>(reusable ?? CloneManager._bareConstruct(ctor));
       cloneMap.set(value, dst);
       dst.copyFrom(<ICustomClone>value);
       (<ICustomClone>value)._cloneTo?.(dst, cloneMap);
@@ -317,11 +317,27 @@ export class CloneManager {
 
     // Object — reuse or construct (null-prototype objects have no ctor: rebuild as such),
     // then populate all fields (opt-out) and run its `_cloneTo` hook.
-    const dst = reusable ?? (ctor ? new ctor() : Object.create(null));
+    const dst = reusable ?? (ctor ? CloneManager._bareConstruct(ctor) : Object.create(null));
     cloneMap.set(value, dst);
     CloneManager.deepCloneObject(value, dst, cloneMap);
     (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, cloneMap);
     return dst;
+  }
+
+  /**
+   * A deep-cloned instance without a compatible preset is constructed bare; name the contract
+   * when that fails instead of surfacing the constructor's raw error.
+   */
+  private static _bareConstruct(ctor: new () => any): any {
+    try {
+      return new ctor();
+    } catch (e) {
+      throw new Error(
+        `CloneManager: failed to bare-construct "${ctor.name}" — a type cloned deep must support ` +
+          `argument-less construction (the gate creates preset-less instances bare, then populates fields). ` +
+          `Cause: ${e}`
+      );
+    }
   }
 }
 
