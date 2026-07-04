@@ -15,6 +15,9 @@ import {
   defaultCloneMode,
   ignoreClone
 } from "@galacean/engine-core";
+import * as EngineCore from "@galacean/engine-core";
+import * as EngineMath from "@galacean/engine-math";
+import * as EngineUI from "@galacean/engine-ui";
 import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
@@ -1246,6 +1249,50 @@ describe("Clone remap", async () => {
       expect(cc.curves.get("a").constant).eq(0.5);
 
       rootEntity.destroy();
+    });
+
+    it("every exported Deep-registered type constructs bare (gate contract)", () => {
+      // The gate creates container elements and preset-less slots with `new Type()` and then
+      // populates every field, so a Deep-registered type MUST construct without arguments.
+      // Exemptions are engine-bound structural types the gate only ever clones against a
+      // same-type constructor preset (`reusable`) — each entry states why it cannot be bare.
+      const exempt = new Set<string>([
+        // Physics shapes construct a PhysicsMaterial and need an initialized physics backend —
+        // bare-constructible in a real runtime, just not in this physics-less test engine.
+        "ColliderShape",
+        "BoxColliderShape",
+        "SphereColliderShape",
+        "CapsuleColliderShape",
+        "PlaneColliderShape",
+        "MeshColliderShape",
+        // Engine-bound structural types wired to their host at construction — the gate always
+        // clones them against the component's same-type constructor preset, never bare.
+        "ParticleGenerator",
+        "MainModule",
+        "VelocityOverLifetimeModule",
+        "SizeOverLifetimeModule",
+        "LimitVelocityOverLifetimeModule",
+        "NoiseModule"
+      ]);
+      const failures: string[] = [];
+      const packages: [string, Record<string, any>][] = [
+        ["core", EngineCore],
+        ["math", EngineMath],
+        ["ui", EngineUI]
+      ];
+      for (const [pkg, ns] of packages) {
+        for (const [name, exported] of Object.entries(ns)) {
+          if (typeof exported !== "function" || !exported.prototype) continue;
+          if (exported.prototype._defaultCloneMode !== CloneMode.Deep) continue;
+          if (exempt.has(name)) continue;
+          try {
+            new exported();
+          } catch (e) {
+            failures.push(`${pkg}/${name}: ${(e as Error).message}`);
+          }
+        }
+      }
+      expect(failures).deep.eq([]);
     });
 
     it("clones the emission bursts array through the engine path", () => {

@@ -46,6 +46,8 @@ export function ignoreClone(target: object, propertyKey: string): void {
 /**
  * Class decorator — the default clone mode for instances of the decorated type
  * (unregistered non-container types fall back to Assignment).
+ * A type registered `Deep` must construct without arguments: the gate creates preset-less
+ * instances bare and then populates every field.
  * @param mode - The clone mode applied to instances of the decorated type
  */
 export function defaultCloneMode(mode: CloneMode) {
