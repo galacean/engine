@@ -28,7 +28,9 @@ export abstract class Canvas {
    * Lock the render buffer to an explicit resolution and stop following the display size.
    * @param width - Render buffer width in pixels
    * @param height - Render buffer height in pixels
-   * @throws Error if width or height is not a positive finite number
+   *
+   * @throws
+   * Throw an error if width or height is not a positive finite number.
    */
   setResolution(width: number, height: number): void {
     if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
@@ -42,7 +44,9 @@ export abstract class Canvas {
   /**
    * Make the render buffer automatically follow the canvas display size.
    * @param scale - Multiplier applied to the device pixel ratio (1 = native sharpness, 0.7 = save GPU, 2 = supersample), defaults to `1`
-   * @throws Error if scale is not a positive finite number
+   *
+   * @throws
+   * Throw an error if scale is not a positive finite number.
    */
   abstract setAutoResolution(scale?: number): void;
 
