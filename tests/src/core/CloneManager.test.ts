@@ -1291,6 +1291,23 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
+    it("a replaced owned preset releases its count when displaced by a deep-cloned value", () => {
+      PresetTextureScript.created.length = 0;
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(PresetTextureScript);
+      (script.texture as any)._addReferCount(-1);
+      // The source slot holds a container: the gate deep-clones it, displacing the clone's preset.
+      (script as any).texture = [1, 2, 3];
+
+      const cloned = parent.clone();
+      const [, clonePreset] = PresetTextureScript.created;
+      expect(cloned.getComponent(PresetTextureScript).texture as any).deep.eq([1, 2, 3]);
+      expect(clonePreset.refCount).eq(0);
+
+      rootEntity.destroy();
+    });
+
     it("a user type registered Assignment without counting API shares safely", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

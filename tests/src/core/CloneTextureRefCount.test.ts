@@ -74,7 +74,7 @@ describe("Clone resource refCount", async function () {
 
     const clone = entity.clone();
     rootEntity.addChild(clone);
-    // The clone holds exactly one additional reference (acquired in Camera._cloneTo).
+    // The clone holds exactly one additional reference (acquired by the clone gate on the shared `_renderTarget` slot).
     expect(rt.refCount).eq(2);
 
     clone.destroy();
@@ -92,7 +92,7 @@ describe("Clone resource refCount", async function () {
 
     const clone = entity.clone();
     rootEntity.addChild(clone);
-    // The clone holds exactly one additional reference (acquired via the font setter in _cloneTo).
+    // The clone holds exactly one additional reference (acquired by the clone gate on the shared `_font` slot).
     expect(font.refCount).eq(baseline + 1);
 
     clone.destroy();
@@ -109,7 +109,7 @@ describe("Clone resource refCount", async function () {
 
     const clone = entity.clone();
     rootEntity.addChild(clone);
-    // The clone holds exactly one additional reference (acquired in Animator._cloneTo).
+    // The clone holds one additional reference (clone gate on the shared `_animatorController` slot; _cloneTo only re-registers the change flag).
     expect(controller.refCount).eq(baseline + 1);
 
     clone.destroy();
