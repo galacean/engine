@@ -50,7 +50,6 @@ export abstract class Canvas {
    */
   abstract setAutoResolution(scale?: number): void;
 
-  // Sole mutation path for render-buffer size — one dispatch, so listeners never observe a half-updated size.
   protected _setSize(width: number, height: number): void {
     if (this._width !== width || this._height !== height) {
       this._width = width;
@@ -60,15 +59,12 @@ export abstract class Canvas {
     }
   }
 
-  // Called by the platform engine each frame, before rendering, so resize and render land in the same frame (no white flash).
   abstract _pumpPendingResize(): void;
 
-  // Called by the platform engine on shutdown; release any subscriptions (e.g. auto-resize).
   abstract _destroy(): void;
 
-  // Tear down the auto-resize subscription; no-op for platforms without an auto mode.
+  // Default no-op; overridden by platforms that have an auto-resize mode to tear down.
   protected _exitAutoResize(): void {}
 
-  // Invoked by _setSize after the cached size changes; apply the new size to the native surface.
   protected abstract _onSizeChanged(width: number, height: number): void;
 }
