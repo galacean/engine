@@ -42,25 +42,6 @@ export class WebGLEngine extends Engine {
     return this._canvas as WebCanvas;
   }
 
-  /**
-   * Enable automatic canvas resizing.
-   * @deprecated Use `engine.canvas.setAutoResolution()` instead.
-   * @param pixelRatio - Ignored; the device pixel ratio is applied automatically. For a custom multiplier
-   * on top of it, use `engine.canvas.setAutoResolution(scale)`
-   */
-  enableAutoResize(pixelRatio?: number): void {
-    this.canvas.setAutoResolution();
-  }
-
-  /**
-   * Lock the render buffer at its current size; it stops following the display size.
-   * @deprecated Use `engine.canvas.setResolution(width, height)` to lock a fixed resolution instead.
-   */
-  disableAutoResize(): void {
-    const canvas = this.canvas;
-    canvas.setResolution(canvas.width, canvas.height);
-  }
-
   override update(): void {
     // Must run before super.update() — see Canvas._pumpPendingResize for why
     this.canvas._pumpPendingResize();

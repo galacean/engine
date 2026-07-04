@@ -158,22 +158,4 @@ describe("webgl engine test", () => {
     expect((engine.canvas as any)._resizeObserver).toBeUndefined();
     engine.destroy();
   });
-
-  it("deprecated enableAutoResize / disableAutoResize forward to the canvas", async () => {
-    const canvas = document.createElement("canvas");
-    const engine = await WebGLEngine.create({ canvas, autoResize: false });
-    const webCanvas = engine.canvas;
-
-    // enableAutoResize forwards to setAutoResolution (enters auto mode, attaches observer).
-    engine.enableAutoResize();
-    expect((webCanvas as any)._resizeObserver).toBeDefined();
-
-    // disableAutoResize forwards to setResolution(current size) (exits auto, releases observer).
-    engine.disableAutoResize();
-    expect((webCanvas as any)._resizeObserver).toBeUndefined();
-    expect(webCanvas.width).toBeGreaterThan(0);
-    expect(webCanvas.height).toBeGreaterThan(0);
-
-    engine.destroy();
-  });
 });
