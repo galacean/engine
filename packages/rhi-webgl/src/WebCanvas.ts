@@ -21,7 +21,7 @@ export class WebCanvas extends Canvas {
    */
   get scale(): Vector2 {
     const webCanvas = this._webCanvas;
-    if (!this.isOffscreenCanvas()) {
+    if (!this._isOffscreenCanvas()) {
       this._scale.set(
         (webCanvas.clientWidth * devicePixelRatio) / webCanvas.width,
         (webCanvas.clientHeight * devicePixelRatio) / webCanvas.height
@@ -32,17 +32,16 @@ export class WebCanvas extends Canvas {
 
   set scale(value: Vector2) {
     const webCanvas = this._webCanvas;
-    if (!this.isOffscreenCanvas()) {
+    if (!this._isOffscreenCanvas()) {
       webCanvas.style.transformOrigin = `left top`;
       webCanvas.style.transform = `scale(${value.x}, ${value.y})`;
     }
   }
 
   /**
-   * Whether the underlying canvas is an OffscreenCanvas.
-   * @returns Whether it is an OffscreenCanvas
+   * @internal
    */
-  isOffscreenCanvas(): boolean {
+  _isOffscreenCanvas(): boolean {
     return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
   }
 
@@ -52,7 +51,7 @@ export class WebCanvas extends Canvas {
     }
 
     // OffscreenCanvas has no display size to follow — auto mode is a silent no-op. TODO: warn once.
-    if (this.isOffscreenCanvas()) return;
+    if (this._isOffscreenCanvas()) return;
 
     this._autoResolutionScale = scale;
 
