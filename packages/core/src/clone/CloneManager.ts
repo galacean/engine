@@ -276,13 +276,16 @@ export class CloneManager {
       return dst;
     }
 
-    // Map
+    // Map — `for-of` instead of `forEach`: no per-clone closure allocation.
     if (value instanceof Map) {
       const dst = new Map<any, any>();
       cloneMap.set(value, dst);
-      value.forEach((v, key) => {
-        dst.set(CloneManager._cloneValue(key, undefined, cloneMap), CloneManager._cloneValue(v, undefined, cloneMap));
-      });
+      for (const entry of value) {
+        dst.set(
+          CloneManager._cloneValue(entry[0], undefined, cloneMap),
+          CloneManager._cloneValue(entry[1], undefined, cloneMap)
+        );
+      }
       return dst;
     }
 
@@ -290,7 +293,9 @@ export class CloneManager {
     if (value instanceof Set) {
       const dst = new Set<any>();
       cloneMap.set(value, dst);
-      value.forEach((v) => dst.add(CloneManager._cloneValue(v, undefined, cloneMap)));
+      for (const v of value) {
+        dst.add(CloneManager._cloneValue(v, undefined, cloneMap));
+      }
       return dst;
     }
 
