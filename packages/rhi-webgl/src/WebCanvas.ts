@@ -41,13 +41,6 @@ export class WebCanvas extends Canvas {
     }
   }
 
-  /**
-   * @internal
-   */
-  _isOffscreenCanvas(): boolean {
-    return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
-  }
-
   override setAutoResolution(scale: number = 1): void {
     if (!Number.isFinite(scale) || scale <= 0) {
       throw new Error(`WebCanvas.setAutoResolution: invalid scale ${scale}`);
@@ -90,6 +83,13 @@ export class WebCanvas extends Canvas {
   setScale(x: number, y: number): void {
     this._scale.set(x, y);
     this.scale = this._scale;
+  }
+
+  /**
+   * @internal
+   */
+  _isOffscreenCanvas(): boolean {
+    return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
   }
 
   override _pumpPendingResize(): void {
