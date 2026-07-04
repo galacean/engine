@@ -17,9 +17,7 @@ export class WebGLEngine extends Engine {
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
     engine.once(EngineEventType.Shutdown, WebGLEngine._releaseCanvas);
-    if (configuration.autoResize ?? true) {
-      webCanvas.setAutoResolution();
-    }
+    webCanvas.setAutoResolution();
     // @ts-ignore
     const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
     return promise.then(() => {
@@ -49,6 +47,4 @@ export interface WebGLEngineConfiguration extends EngineConfiguration {
   canvas: HTMLCanvasElement | OffscreenCanvas | string;
   /** Graphic device options. */
   graphicDeviceOptions?: WebGLGraphicDeviceOptions;
-  /** Whether the render buffer automatically follows the canvas display size. Defaults to `true`. */
-  autoResize?: boolean;
 }

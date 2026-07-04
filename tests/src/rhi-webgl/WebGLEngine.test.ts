@@ -104,7 +104,7 @@ describe("webgl engine test", () => {
   });
 
   it("canvas auto resize", async () => {
-    // autoResize defaults to true: create enters auto mode and attaches an observer.
+    // create enters auto mode by default and attaches an observer.
     const canvas = document.createElement("canvas");
     const engine = await WebGLEngine.create({ canvas });
     engine.run();
@@ -149,13 +149,5 @@ describe("webgl engine test", () => {
     expect((webCanvas as any)._resizeObserver).toBeDefined();
     engine.destroy();
     expect((webCanvas as any)._resizeObserver).toBeUndefined();
-  });
-
-  it("autoResize false disables the default follow", async () => {
-    const canvas = document.createElement("canvas");
-    const engine = await WebGLEngine.create({ canvas, autoResize: false });
-    // No observer attached when auto-resize is opted out.
-    expect((engine.canvas as any)._resizeObserver).toBeUndefined();
-    engine.destroy();
   });
 });
