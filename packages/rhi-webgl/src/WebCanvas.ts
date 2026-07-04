@@ -50,9 +50,12 @@ export class WebCanvas extends Canvas {
 
     this._autoResolutionScale = scale;
 
-    if (!this._resizeObserver) {
+    if (this._resizeObserver) {
+      // Already observing: reapply the new scale to the last measured size
+      this._pendingResize = true;
+    } else {
+      // observe() fires an initial entry, which sets the pending size (with exact device pixels when supported)
       this._resizeObserver = new ResizeObserver((entries) => {
-        // `devicePixelContentBoxSize` gives exact device pixels; it is only readable here, on the entry
         const box = entries[entries.length - 1].devicePixelContentBoxSize?.[0];
         this._pendingDevicePixelWidth = box ? box.inlineSize : 0;
         this._pendingDevicePixelHeight = box ? box.blockSize : 0;
@@ -60,8 +63,6 @@ export class WebCanvas extends Canvas {
       });
       this._resizeObserver.observe(this._webCanvas);
     }
-
-    this._pendingResize = true;
   }
 
   /**
