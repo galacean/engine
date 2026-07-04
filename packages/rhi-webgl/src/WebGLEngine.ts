@@ -28,11 +28,6 @@ export class WebGLEngine extends Engine {
     });
   }
 
-  // Core Engine never destroys the canvas; the platform engine owns teardown
-  private static _releaseCanvas(engine: WebGLEngine): void {
-    engine.canvas._destroy();
-  }
-
   /**
    * The canvas the engine renders to; call `setResolution()` or `setAutoResolution()` on it to control
    * the render-buffer resolution.
@@ -46,6 +41,10 @@ export class WebGLEngine extends Engine {
     // Must run before super.update() — see Canvas._pumpPendingResize for why
     this.canvas._pumpPendingResize();
     super.update();
+  }
+
+  private static _releaseCanvas(engine: WebGLEngine): void {
+    engine.canvas._destroy();
   }
 }
 
