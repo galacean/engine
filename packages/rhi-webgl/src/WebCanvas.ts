@@ -91,7 +91,8 @@ export class WebCanvas extends Canvas {
 
     this._pendingResize = false;
     const pixelRatio = window.devicePixelRatio * this._autoResolutionScale;
-    // TODO: `devicePixelContentBoxSize` would avoid fractional-dpr rounding, but needs feature detection (no Safari)
+    // TODO: add a `devicePixelContentBoxSize` path for exact device pixels where supported (not Safari),
+    // keeping this clientWidth-based rounding as the fallback
     this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
   }
 
