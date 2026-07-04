@@ -322,7 +322,6 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
-    // Apply any pending canvas resize before the frame so resize and render land together
     this._canvas._pumpPendingResize();
 
     const time = this._time;
