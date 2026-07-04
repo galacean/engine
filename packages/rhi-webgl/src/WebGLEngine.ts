@@ -28,7 +28,7 @@ export class WebGLEngine extends Engine {
     });
   }
 
-  // Core Engine never destroys the canvas; the platform engine owns teardown.
+  // Core Engine never destroys the canvas; the platform engine owns teardown
   private static _releaseCanvas(engine: WebGLEngine): void {
     engine.canvas._destroy();
   }
@@ -62,7 +62,7 @@ export class WebGLEngine extends Engine {
   }
 
   override update(): void {
-    // Must run before super.update() — see Canvas._pumpPendingResize for why.
+    // Must run before super.update() — see Canvas._pumpPendingResize for why
     this.canvas._pumpPendingResize();
     super.update();
   }

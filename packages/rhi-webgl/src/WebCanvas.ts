@@ -50,13 +50,13 @@ export class WebCanvas extends Canvas {
       throw new Error(`WebCanvas.setAutoResolution: invalid scale ${scale}`);
     }
 
-    // OffscreenCanvas has no display size to follow — auto mode is a silent no-op. TODO: warn once.
+    // OffscreenCanvas has no display size to follow
     if (this._isOffscreenCanvas()) return;
 
     this._autoResolutionScale = scale;
 
     if (!this._resizeObserver) {
-      // Flag only; applied in `_pumpPendingResize`.
+      // Flag only; applied in `_pumpPendingResize`
       this._resizeObserver = new ResizeObserver(() => (this._pendingResize = true));
       this._resizeObserver.observe(this._webCanvas);
     }
@@ -89,14 +89,14 @@ export class WebCanvas extends Canvas {
 
     const webCanvas = this._webCanvas;
     // Skip while the canvas has no layout size yet (e.g. not mounted); keep the flag so a later
-    // frame's pump retries once layout exists — an unmounted canvas never becomes a 0x0 buffer.
+    // frame's pump retries once layout exists — an unmounted canvas never becomes a 0x0 buffer
     if (webCanvas.clientWidth === 0 || webCanvas.clientHeight === 0) return;
 
     this._pendingResize = false;
     const pixelRatio = window.devicePixelRatio * this._autoResolutionScale;
     // Round so the cached size matches the integer buffer. TODO: `devicePixelContentBoxSize` would give
     // exact device pixels (no dpr rounding error), but it arrives on observer entries — requires moving
-    // size capture into the callback.
+    // size capture into the callback
     this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
   }
 
