@@ -45,6 +45,11 @@ export class ParticleCompositeGradient {
   }
 
   /**
+   * Create a particle gradient in constant mode with the default color.
+   */
+  constructor();
+
+  /**
    * Create a particle gradient that generates a constant color.
    * @param constant - The constant color
    */
@@ -70,7 +75,10 @@ export class ParticleCompositeGradient {
    */
   constructor(gradientMin: ParticleGradient, gradientMax: ParticleGradient);
 
-  constructor(constantOrGradient: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+  constructor(constantOrGradient?: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+    // No argument: the field defaults already form a valid constant-mode state (clone gate
+    // constructs container elements bare, then populates every field).
+    if (!constantOrGradient) return;
     if (constantOrGradient.constructor === Color) {
       if (constantMaxOrGradientMax) {
         this.constantMin.copyFrom(<Color>constantOrGradient);

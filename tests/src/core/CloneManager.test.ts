@@ -1,8 +1,12 @@
 import {
+  Burst,
   CloneMode,
   Entity,
   Logger,
   MeshRenderer,
+  ParticleCompositeCurve,
+  ParticleCompositeGradient,
+  ParticleRenderer,
   Script,
   Signal,
   Texture2D,
@@ -11,7 +15,7 @@ import {
   defaultCloneMode,
   ignoreClone
 } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Color, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 
@@ -1219,6 +1223,43 @@ describe("Clone remap", async () => {
       expect(Object.getPrototypeOf(cc)).eq(null);
       expect(cc.copyFrom).eq("x");
       expect(cc.v).eq(2);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Parameter-constructed Deep values as container elements", () => {
+    it("clones gradients and curves held in arrays / maps without a reusable preset", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      const gradient = new ParticleCompositeGradient(new Color(1, 0, 0, 1));
+      const curve = new ParticleCompositeCurve(0.5);
+      script.config = { gradients: [gradient], curves: new Map([["a", curve]]) };
+
+      const cloned = parent.clone();
+      const cc = cloned.getComponent(CopyFromDataScript).config;
+      expect(cc.gradients[0]).not.eq(gradient);
+      expect(cc.gradients[0].mode).eq(gradient.mode);
+      expect(cc.gradients[0].constant.r).eq(1);
+      expect(cc.curves.get("a")).not.eq(curve);
+      expect(cc.curves.get("a").constant).eq(0.5);
+
+      rootEntity.destroy();
+    });
+
+    it("clones the emission bursts array through the engine path", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const renderer = parent.addComponent(ParticleRenderer);
+      renderer.generator.emission.addBurst(new Burst(0.5, new ParticleCompositeCurve(30)));
+
+      const cloned = parent.clone();
+      const clonedBursts = cloned.getComponent(ParticleRenderer).generator.emission.bursts;
+      expect(clonedBursts.length).eq(1);
+      expect(clonedBursts[0]).not.eq(renderer.generator.emission.bursts[0]);
+      expect(clonedBursts[0].time).eq(0.5);
+      expect(clonedBursts[0].count.constant).eq(30);
 
       rootEntity.destroy();
     });
