@@ -56,7 +56,6 @@ export class WebCanvas extends Canvas {
     this._autoResolutionScale = scale;
 
     if (!this._resizeObserver) {
-      // Flag only; applied in `_pumpPendingResize`
       this._resizeObserver = new ResizeObserver(() => (this._pendingResize = true));
       this._resizeObserver.observe(this._webCanvas);
     }
