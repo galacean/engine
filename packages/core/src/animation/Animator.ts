@@ -1122,10 +1122,7 @@ export class Animator extends Component {
     aniUpdate: boolean
   ): AnimatorStateTransition {
     const { state } = playData;
-    const clipDuration = state.clip.length;
     let targetTransition: AnimatorStateTransition = null;
-    const startTime = state.clipStartTime * clipDuration;
-    const endTime = state.clipEndTime * clipDuration;
 
     if (transitionCollection.noExitTimeCount) {
       targetTransition = this._checkNoExitTimeTransitions(layerData, transitionCollection, aniUpdate);
@@ -1133,6 +1130,10 @@ export class Animator extends Component {
         return targetTransition;
       }
     }
+
+    const clipDuration = state.clip.length;
+    const startTime = state.clipStartTime * clipDuration;
+    const endTime = state.clipEndTime * clipDuration;
 
     if (isForward) {
       if (lastClipTime + deltaTime >= endTime) {
