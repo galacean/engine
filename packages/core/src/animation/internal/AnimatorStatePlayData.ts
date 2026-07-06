@@ -29,16 +29,8 @@ export class AnimatorStatePlayData {
     return this.instance.speed;
   }
 
-  set speed(value: number) {
-    this.instance.speed = value;
-  }
-
   get wrapMode(): WrapMode {
     return this.instance.wrapMode;
-  }
-
-  set wrapMode(value: WrapMode) {
-    this.instance.wrapMode = value;
   }
 
   reset(stateData: AnimatorStateData, offsetFrameTime: number): void {

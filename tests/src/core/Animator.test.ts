@@ -363,8 +363,8 @@ describe("Animator test", function () {
       animator.crossFade("Run", 1.0, 0);
 
       const layerData = animator["_animatorLayersData"][0];
-      layerData.srcPlayData.speed = 0.25;
-      layerData.destPlayData.speed = 0.25;
+      layerData.srcPlayData.instance.speed = 0.25;
+      layerData.destPlayData.instance.speed = 0.25;
       sharedWalkState.speed = 10;
       sharedRunState.speed = 10;
 
@@ -394,7 +394,7 @@ describe("Animator test", function () {
 
       const layerData = animator["_animatorLayersData"][0];
       const playData = layerData.srcPlayData;
-      playData.wrapMode = WrapMode.Once;
+      playData.instance.wrapMode = WrapMode.Once;
 
       expect(sharedWalkState.wrapMode).to.eq(WrapMode.Loop);
 
@@ -424,7 +424,7 @@ describe("Animator test", function () {
 
       const playData = animator["_animatorLayersData"][0].srcPlayData;
       const otherPlayData = otherAnimator["_animatorLayersData"][0].srcPlayData;
-      playData.wrapMode = WrapMode.Once;
+      playData.instance.wrapMode = WrapMode.Once;
 
       expect(otherPlayData.wrapMode).to.eq(WrapMode.Loop);
       expect(sharedWalkState.wrapMode).to.eq(WrapMode.Loop);
