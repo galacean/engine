@@ -2,7 +2,13 @@
  * @title Shader Playground - 实时诊断
  * @category Shader 教程
  */
-import { ShaderAnalyzer, formatDiagnostic } from "@galacean/engine-shader-analyzer";
+import {
+  ShaderAnalyzer,
+  formatDiagnostic,
+  DiagnosticType,
+  DiagnosticCategory,
+  DIAGNOSTIC_CATEGORY
+} from "@galacean/engine-shader-analyzer";
 import * as dat from "dat.gui";
 
 // Wrap a Pass body in the minimal Shader/SubShader/Pass envelope, mirroring the
@@ -13,11 +19,13 @@ function pass(body: string): string {
 
 // One triggering shader per DiagnosticType, lifted verbatim from the three tested
 // suites (DiagnosticCoverage / ShaderAnalyzer / ShaderIOAnalyzer) so each is guaranteed
-// to fire its intended code. Keys are the DiagnosticType codes; grouped by category and
-// sorted within a group for a readable dropdown.
+// to fire its intended code. Keys are the DiagnosticType codes; dropdown labels are
+// derived at render time as `<category> / <code>` from DIAGNOSTIC_CATEGORY.
+const MULTI_KEY = "Multiple errors";
+
 const SAMPLES: Record<string, string> = {
-  // ── A couple of errors at once (default) ──
-  "Multiple errors": pass(`      mat4 renderer_MVPMat;
+  // A couple of errors at once (default) — preset, not a DiagnosticType.
+  [MULTI_KEY]: pass(`      mat4 renderer_MVPMat;
       vec2 u_uv;
       float u_a;
       float u_a;                                          // Redefinition
@@ -32,23 +40,21 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  // ── 语法 ──
-  "语法 / SyntaxError": pass(`      void frag() { vec3 = ; }
+  [DiagnosticType.SyntaxError]: pass(`      void frag() { vec3 = ; }
       FragmentShader = frag;`),
 
-  // ── 符号 ──
-  "符号 / NoMatchingOverload": pass(`      float f(float a) { return a; }
+  [DiagnosticType.NoMatchingOverload]: pass(`      float f(float a) { return a; }
       void frag() { gl_FragColor = vec4(f(vec3(0.0))); }
       FragmentShader = frag;`),
 
-  "符号 / RecursiveFunction": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.RecursiveFunction]: pass(`      struct Attributes { vec3 POSITION; };
       float fib(float x) { return fib(x); }
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "符号 / Redefinition": pass(`      float u_a;
+  [DiagnosticType.Redefinition]: pass(`      float u_a;
       float u_a;                                          // Redefinition
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
@@ -56,20 +62,19 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "符号 / UndefinedFunction": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.UndefinedFunction]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = doesNotExist(1.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "符号 / UseBeforeDeclaration": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.UseBeforeDeclaration]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(undeclared_color, 1.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  // ── 类型 ──
-  "类型 / AssignTypeMismatch": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.AssignTypeMismatch]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() {
         float a = 1.0;
@@ -80,92 +85,105 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "类型 / ConstDivideByZero": pass(`      void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); }
+  [DiagnosticType.ConstDivideByZero]: pass(`      void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); }
       FragmentShader = frag;`),
 
-  "类型 / ConstructorArgCount": pass(`      void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); }
-      FragmentShader = frag;`),
+  [DiagnosticType.ConstructorArgCount]: pass(
+    `      void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); }
+      FragmentShader = frag;`
+  ),
 
-  "类型 / ConstructorArgType": pass(`      mediump sampler2D u_tex;
+  [DiagnosticType.ConstructorArgType]: pass(`      mediump sampler2D u_tex;
       void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); }
       FragmentShader = frag;`),
 
-  "类型 / ExpectedSampler": pass(`      void frag() { vec2 uv = vec2(0.0); vec4 c = texture(uv, uv); gl_FragColor = c; }
-      FragmentShader = frag;`),
+  [DiagnosticType.ExpectedSampler]: pass(
+    `      void frag() { vec2 uv = vec2(0.0); vec4 c = texture(uv, uv); gl_FragColor = c; }
+      FragmentShader = frag;`
+  ),
 
-  "类型 / IndexOutOfBounds": pass(`      void frag() { vec3 v = vec3(0.0); float y = v[5]; gl_FragColor = vec4(y); }
-      FragmentShader = frag;`),
+  [DiagnosticType.IndexOutOfBounds]: pass(
+    `      void frag() { vec3 v = vec3(0.0); float y = v[5]; gl_FragColor = vec4(y); }
+      FragmentShader = frag;`
+  ),
 
-  "类型 / InvalidBinaryOperands": pass(`      void frag() { bool b = true; float x = b + 1.0; gl_FragColor = vec4(x); }
-      FragmentShader = frag;`),
+  [DiagnosticType.InvalidBinaryOperands]: pass(
+    `      void frag() { bool b = true; float x = b + 1.0; gl_FragColor = vec4(x); }
+      FragmentShader = frag;`
+  ),
 
-  "类型 / InvalidSwizzle": pass(`      vec2 u_uv;
+  [DiagnosticType.InvalidSwizzle]: pass(`      vec2 u_uv;
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(u_uv.z, 0.0, 0.0, 1.0); }   // vec2 has no .z
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "类型 / InvalidUnaryOperand": pass(`      void frag() { float u_f = 1.0; bool ok = !u_f; gl_FragColor = vec4(0.0); }
+  [DiagnosticType.InvalidUnaryOperand]: pass(
+    `      void frag() { float u_f = 1.0; bool ok = !u_f; gl_FragColor = vec4(0.0); }
+      FragmentShader = frag;`
+  ),
+
+  [DiagnosticType.NonIndexableType]: pass(
+    `      void frag() { float f = 1.0; float y = f[0]; gl_FragColor = vec4(y); }
+      FragmentShader = frag;`
+  ),
+
+  [DiagnosticType.NonIntegerIndex]: pass(
+    `      void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); }
+      FragmentShader = frag;`
+  ),
+
+  [DiagnosticType.ShiftOutOfRange]: pass(`      void frag() { int x = 1 << 40; gl_FragColor = vec4(float(x)); }
       FragmentShader = frag;`),
 
-  "类型 / NonIndexableType": pass(`      void frag() { float f = 1.0; float y = f[0]; gl_FragColor = vec4(y); }
-      FragmentShader = frag;`),
-
-  "类型 / NonIntegerIndex": pass(`      void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); }
-      FragmentShader = frag;`),
-
-  "类型 / ShiftOutOfRange": pass(`      void frag() { int x = 1 << 40; gl_FragColor = vec4(float(x)); }
-      FragmentShader = frag;`),
-
-  "类型 / UndeclaredStructMember": pass(`      struct Varyings { vec4 v; };
+  [DiagnosticType.UndeclaredStructMember]: pass(`      struct Varyings { vec4 v; };
       Varyings vert() { Varyings o; o.v = vec4(0.0); return o; }
       void frag(Varyings i) { gl_FragColor = i.notAField; }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  // ── 常量 ──
-  "常量 / NonConstArraySize": pass(`      void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); }
-      FragmentShader = frag;`),
+  [DiagnosticType.NonConstArraySize]: pass(
+    `      void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); }
+      FragmentShader = frag;`
+  ),
 
-  "常量 / NonConstInitializer": pass(`      float u_scale;
+  [DiagnosticType.NonConstInitializer]: pass(`      float u_scale;
       void frag() { const float c = u_scale; gl_FragColor = vec4(c); }
       FragmentShader = frag;`),
 
-  "常量 / NonConstructibleReturnType": pass(`      mediump sampler2D u_tex;
+  [DiagnosticType.NonConstructibleReturnType]: pass(`      mediump sampler2D u_tex;
       sampler2D getTex() { return u_tex; }
       void frag() { gl_FragColor = vec4(0.0); }
       FragmentShader = frag;`),
 
-  // ── 控制流 ──
-  "控制流 / InvalidEntryReturnType": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.InvalidEntryReturnType]: pass(`      struct Attributes { vec3 POSITION; };
       float vert(Attributes attr) { gl_Position = vec4(0.0); return 1.0; }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "控制流 / InvalidReturnType": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.InvalidReturnType]: pass(`      struct Attributes { vec3 POSITION; };
       vec3 getColor() { return 1.0; }                     // float vs vec3
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(getColor(), 1.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "控制流 / MisplacedControlFlow": pass(`      void frag() { gl_FragColor = vec4(0.0); break; }
+  [DiagnosticType.MisplacedControlFlow]: pass(`      void frag() { gl_FragColor = vec4(0.0); break; }
       FragmentShader = frag;`),
 
-  "控制流 / MissingReturn": pass(`      float getX() { float a = 1.0; }
+  [DiagnosticType.MissingReturn]: pass(`      float getX() { float a = 1.0; }
       void frag() { gl_FragColor = vec4(getX()); }
       FragmentShader = frag;`),
 
-  "控制流 / NonBoolCondition": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.NonBoolCondition]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { float a = 1.0; if (a) { gl_FragColor = vec4(0.0); } }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  // ── 管线 IO ──
-  "管线 IO / DuplicateEntryAssignment": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.DuplicateEntryAssignment]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void vert2(Attributes attr) { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(0.0); }
@@ -173,42 +191,42 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert2;                               // assigned twice
       FragmentShader = frag;`),
 
-  "管线 IO / EntryNotFound": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.EntryNotFound]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vrt;                                 // 'vrt' is not a function
       FragmentShader = frag;`),
 
-  "管线 IO / GlFragColorWithMrt": pass(`      struct MRT { vec4 c0; };
+  [DiagnosticType.GlFragColorWithMrt]: pass(`      struct MRT { vec4 c0; };
       void vert() { gl_Position = vec4(0.0); }
       MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "管线 IO / GlFragData": pass(`      void vert() { gl_Position = vec4(0.0); }
+  [DiagnosticType.GlFragData]: pass(`      void vert() { gl_Position = vec4(0.0); }
       void frag() { gl_FragData[0] = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "管线 IO / InvalidIOStruct": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.InvalidIOStruct]: pass(`      struct Attributes { vec3 POSITION; };
       Varyings vert(Attributes attr) { Varyings o; gl_Position = vec4(0.0); return o; }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "管线 IO / MissingEntry": pass(`      mat4 renderer_MVPMat;
+  [DiagnosticType.MissingEntry]: pass(`      mat4 renderer_MVPMat;
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;`),
 
-  "管线 IO / MissingVertexPosition": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.MissingVertexPosition]: pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "管线 IO / NestedIOStruct": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.NestedIOStruct]: pass(`      struct Attributes { vec3 POSITION; };
       struct Inner { vec4 v; };
       struct Varyings { Inner nested; };
       Varyings vert(Attributes attr) { Varyings o; o.nested.v = vec4(attr.POSITION, 1.0); return o; }
@@ -216,36 +234,48 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "管线 IO / NonFlatIntegerVarying": pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.NonFlatIntegerVarying]: pass(`      struct Attributes { vec3 POSITION; };
       struct Varyings { vec4 pos; int id; };
       Varyings vert(Attributes attr) { Varyings o; o.pos = vec4(attr.POSITION, 1.0); o.id = 0; gl_Position = o.pos; return o; }
       void frag(Varyings i) { gl_FragColor = vec4(float(i.id)); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  "管线 IO / StructRoleConflict": pass(`      struct IO { vec4 v; };
+  [DiagnosticType.StructRoleConflict]: pass(`      struct IO { vec4 v; };
       IO vert(IO attr) { IO o; gl_Position = vec4(0.0); return o; }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  // ── RenderState ──
-  "RenderState / BitwiseOrOnNonBitmask": pass(
+  [DiagnosticType.BitwiseOrOnNonBitmask]: pass(
     `      BlendState bs { SourceColorBlendFactor = BlendFactor.One | BlendFactor.Zero; }`
   ),
 
-  "RenderState / InvalidEnumValue": pass(`      BlendState bs { SourceColorBlendFactor = BlendFactor.NotReal; }`),
+  [DiagnosticType.InvalidEnumValue]: pass(`      BlendState bs { SourceColorBlendFactor = BlendFactor.NotReal; }`),
 
-  "RenderState / InvalidRenderQueueVariable": pass(`      RenderQueueType = undefinedQueueVar;`),
+  [DiagnosticType.InvalidRenderQueueVariable]: pass(`      RenderQueueType = undefinedQueueVar;`),
 
-  "RenderState / InvalidRenderStateProperty": pass(`      BlendState bs { NotARealProperty = true; }`),
+  [DiagnosticType.InvalidRenderStateProperty]: pass(`      BlendState bs { NotARealProperty = true; }`),
 
-  "RenderState / InvalidRenderStateVariable": pass(`      DepthState = undefinedDepthVar;`),
+  [DiagnosticType.InvalidRenderStateVariable]: pass(`      DepthState = undefinedDepthVar;`),
 
-  "RenderState / MixedEnumTypes": pass(`      BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`)
+  [DiagnosticType.MixedEnumTypes]: pass(`      BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`)
 };
 
-const DEFAULT_KEY = "Multiple errors";
+// Dropdown labels: `<category> / <code>` for DiagnosticTypes, plain `Multiple errors` for the preset.
+// Order: Multiple errors first, then grouped by DiagnosticCategory declaration order, alphabetical
+// within each group. label→code map so onChange can look the SAMPLES entry up by raw code.
+const CATEGORY_ORDER = Object.values(DiagnosticCategory);
+const LABEL_TO_KEY: Record<string, string> = { [MULTI_KEY]: MULTI_KEY };
+const codeKeys = Object.keys(SAMPLES).filter((k) => k !== MULTI_KEY) as DiagnosticType[];
+codeKeys.sort((a, b) => {
+  const ca = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[a]);
+  const cb = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[b]);
+  return ca !== cb ? ca - cb : a.localeCompare(b);
+});
+for (const code of codeKeys) LABEL_TO_KEY[`${DIAGNOSTIC_CATEGORY[code]} / ${code}`] = code;
+
+const DEFAULT_KEY = MULTI_KEY;
 
 const ERROR_COLOR = "#f14c4c";
 const WARNING_COLOR = "#cca700";
@@ -366,10 +396,10 @@ editor.addEventListener("input", () => {
 
 const gui = new dat.GUI();
 gui
-  .add(config, "diagnostic", Object.keys(SAMPLES))
+  .add(config, "diagnostic", Object.keys(LABEL_TO_KEY))
   .name("Diagnostic")
-  .onChange((code: string) => {
-    editor.value = SAMPLES[code];
+  .onChange((label: string) => {
+    editor.value = SAMPLES[LABEL_TO_KEY[label]];
     editor.scrollTop = 0;
     editor.scrollLeft = 0;
     syncScroll();

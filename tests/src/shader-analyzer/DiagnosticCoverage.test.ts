@@ -1,4 +1,4 @@
-import { ShaderAnalyzer, DiagnosticType } from "@galacean/engine-shader-analyzer";
+import { ShaderAnalyzer, DiagnosticType, DIAGNOSTIC_CATEGORY } from "@galacean/engine-shader-analyzer";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -199,6 +199,14 @@ describe("diagnostic coverage map", () => {
       expect(codes, `expected ${c.code}, got [${[...new Set(codes)].join(", ")}]`).to.include(c.code);
     });
   }
+
+  // Every DiagnosticType must have a category entry in DIAGNOSTIC_CATEGORY — same
+  // exhaustiveness contract the Record<DiagnosticType, ...> type gives at compile time,
+  // asserted at runtime so a bogus `undefined` from a stale build still fails loudly.
+  it("every DiagnosticType has a DIAGNOSTIC_CATEGORY entry", () => {
+    const missing = Object.values(DiagnosticType).filter((t) => DIAGNOSTIC_CATEGORY[t] === undefined);
+    expect(missing, `DiagnosticTypes with no category mapping: ${missing.join(", ")}`).to.be.empty;
+  });
 
   // Completeness gate: every DiagnosticType must have a triggering AB test. The richer per-rule tests
   // live in ShaderAnalyzer.test.ts / ShaderIOAnalyzer.test.ts; those codes are registered here so a
