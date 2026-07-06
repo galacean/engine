@@ -383,11 +383,6 @@ export class Animator extends Component {
     }
 
     const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
-    const { srcPlayData, destPlayData } = animatorLayerData;
-    if ((!destPlayData && srcPlayData?.state === state) || destPlayData?.state === state) {
-      return;
-    }
-
     const { manuallyTransition } = animatorLayerData;
     manuallyTransition.duration = duration;
 
