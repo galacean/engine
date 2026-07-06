@@ -6,13 +6,13 @@ import { DiagnosticType } from "@galacean/engine-shader-parser";
  * flattened to one enum because our checks are per-node rather than per-IR-item.
  */
 export enum DiagnosticCategory {
-  Syntax = "语法",
-  Symbol = "符号",
-  Type = "类型",
-  Constant = "常量",
-  ControlFlow = "控制流",
-  PipelineIO = "管线 IO",
-  RenderState = "RenderState"
+  Syntax = "syntax",
+  Symbol = "symbol",
+  Type = "type",
+  Constant = "constant",
+  ControlFlow = "controlFlow",
+  PipelineIO = "pipelineIO",
+  RenderState = "renderState"
 }
 
 /**

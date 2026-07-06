@@ -262,7 +262,19 @@ const SAMPLES: Record<string, string> = {
   [DiagnosticType.MixedEnumTypes]: pass(`      BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`)
 };
 
-// Dropdown labels: `<category> / <code>` for DiagnosticTypes, plain `Multiple errors` for the preset.
+// Localized display label for each category — UI concern, kept out of the enum values (which stay
+// programmatic English for serialization / cross-tool consumption).
+const CATEGORY_LABEL: Record<DiagnosticCategory, string> = {
+  [DiagnosticCategory.Syntax]: "语法",
+  [DiagnosticCategory.Symbol]: "符号",
+  [DiagnosticCategory.Type]: "类型",
+  [DiagnosticCategory.Constant]: "常量",
+  [DiagnosticCategory.ControlFlow]: "控制流",
+  [DiagnosticCategory.PipelineIO]: "管线 IO",
+  [DiagnosticCategory.RenderState]: "RenderState"
+};
+
+// Dropdown labels: `<category-label> / <code>` for DiagnosticTypes, plain `Multiple errors` for the preset.
 // Order: Multiple errors first, then grouped by DiagnosticCategory declaration order, alphabetical
 // within each group. label→code map so onChange can look the SAMPLES entry up by raw code.
 const CATEGORY_ORDER = Object.values(DiagnosticCategory);
@@ -273,7 +285,7 @@ codeKeys.sort((a, b) => {
   const cb = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[b]);
   return ca !== cb ? ca - cb : a.localeCompare(b);
 });
-for (const code of codeKeys) LABEL_TO_KEY[`${DIAGNOSTIC_CATEGORY[code]} / ${code}`] = code;
+for (const code of codeKeys) LABEL_TO_KEY[`${CATEGORY_LABEL[DIAGNOSTIC_CATEGORY[code]]} / ${code}`] = code;
 
 const DEFAULT_KEY = MULTI_KEY;
 
