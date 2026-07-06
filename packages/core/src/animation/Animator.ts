@@ -1006,7 +1006,7 @@ export class Animator extends Component {
 
         this._checkRevertOwner(owner, additive);
 
-        const value = layerOwner.curveOwner.crossFadeFromPoseAndApplyValue(
+        const value = owner.crossFadeFromPoseAndApplyValue(
           curveIndex >= 0 ? curveBindings[curveIndex].curve : null,
           destClipTime,
           crossWeight,
