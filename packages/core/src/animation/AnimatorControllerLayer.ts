@@ -16,7 +16,7 @@ export class AnimatorControllerLayer {
 
   private _stateMachine: AnimatorStateMachine;
   private _engine: Engine;
-  private _onStateMachineChanged: (() => void) | null = null;
+  private _onStatesInvalidate: (() => void) | null = null;
 
   /**
    * The state machine for the layer.
@@ -31,11 +31,11 @@ export class AnimatorControllerLayer {
       return;
     }
 
-    lastStateMachine._setChangeCallback(null);
+    lastStateMachine._setStatesInvalidateCallback(null);
     this._stateMachine = value;
-    value._setChangeCallback(this._onStateMachineChanged);
+    value._setStatesInvalidateCallback(this._onStatesInvalidate);
     this._engine && value._setEngine(this._engine);
-    this._onStateMachineChanged?.();
+    this._onStatesInvalidate?.();
   }
 
   /**
@@ -56,8 +56,8 @@ export class AnimatorControllerLayer {
   /**
    * @internal
    */
-  _setStateMachineChangeCallback(onChanged: (() => void) | null): void {
-    this._onStateMachineChanged = onChanged;
-    this._stateMachine._setChangeCallback(onChanged);
+  _setStatesInvalidateCallback(onStatesInvalidate: (() => void) | null): void {
+    this._onStatesInvalidate = onStatesInvalidate;
+    this._stateMachine._setStatesInvalidateCallback(onStatesInvalidate);
   }
 }

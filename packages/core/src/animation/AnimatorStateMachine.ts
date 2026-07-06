@@ -14,7 +14,7 @@ export class AnimatorStateMachine {
   readonly states: AnimatorState[] = [];
 
   private _engine: Engine;
-  private _onChanged: (() => void) | null = null;
+  private _onStatesInvalidate: (() => void) | null = null;
 
   /**
    * The state will be played automatically.
@@ -73,7 +73,7 @@ export class AnimatorStateMachine {
       if (this.defaultState === state) {
         this.defaultState = null;
       }
-      this._onChanged?.();
+      this._onStatesInvalidate?.();
     }
   }
 
@@ -176,7 +176,7 @@ export class AnimatorStateMachine {
   /**
    * @internal
    */
-  _setChangeCallback(onChanged: (() => void) | null): void {
-    this._onChanged = onChanged;
+  _setStatesInvalidateCallback(onStatesInvalidate: (() => void) | null): void {
+    this._onStatesInvalidate = onStatesInvalidate;
   }
 }
