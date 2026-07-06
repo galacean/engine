@@ -20,6 +20,7 @@ const itemListDOM = document.getElementById("itemList")!;
 const searchBarDOM = document.getElementById("searchBar") as HTMLInputElement;
 const iframe = document.getElementById("iframe") as HTMLIFrameElement;
 const fullScreenDOM = document.getElementById("fullScreen")!;
+const DEFAULT_DEMO_PATH = "gaussian-splat";
 
 const items: { el: HTMLElement; demo: Demo }[] = [];
 
@@ -83,7 +84,8 @@ function onHashChange(): void {
   if (!items.length) return;
   const path = decodeURIComponent(window.location.hash.slice(1));
   if (!path) {
-    window.location.hash = `#${items[0].demo.path}`;
+    const defaultDemo = items.find(({ demo }) => demo.path === DEFAULT_DEMO_PATH)?.demo ?? items[0].demo;
+    window.location.hash = `#${defaultDemo.path}`;
     return;
   }
   iframe.src = `./demos/${path}/index.html`;

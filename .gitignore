@@ -40,6 +40,10 @@ playwright-report/
 .claude/
 CLAUDE.md
 
+# Local AI context files
+AGENTS.md
+docs/ai/
+
 .husky/post-checkout
 .husky/post-commit
 .husky/pre-push
