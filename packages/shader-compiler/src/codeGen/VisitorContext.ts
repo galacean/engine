@@ -36,12 +36,12 @@ export class VisitorContext {
   _referencedGlobals: Record<string, SymbolInfo[]>;
   _referencedGlobalMacroASTs: TreeNode[] = [];
   /**
-   * Maps variable names (function params, locals, and globals whose type is a
-   * varying/attribute/mrt struct) to their role. Populated during stage setup and
-   * used by macro-value rewriting to recognize `varName.prop` patterns that should
-   * be flattened against the IO lists.
+   * Per-stage variable-to-role maps. Split so a same-named param/local in both entries
+   * (e.g. `input`) resolves to the correct role for the current stage; module-level
+   * globals populate both maps. Codegen picks the map via `getStructVarRole(varName)`.
    */
-  _structVarMap: Record<string, StructRole>;
+  _vertexStructVarMap: Record<string, StructRole>;
+  _fragmentStructVarMap: Record<string, StructRole>;
 
   _passSymbolTable: SymbolTable<SymbolInfo>;
 
@@ -61,10 +61,10 @@ export class VisitorContext {
     this._referencedGlobals = Object.create(null);
     this._referencedGlobalMacroASTs.length = 0;
     if (resetAll) {
-      // Struct-var bindings are pass-scoped, not stage-scoped — global `#define`
-      // values must see the same bindings in both the vertex and fragment outputs,
-      // so we keep the map across the vertex→fragment stage transition.
-      this._structVarMap = Object.create(null);
+      // Struct-var bindings are pass-scoped; both stage maps are cleared here and
+      // repopulated by `visitShaderProgram` from `ShaderIOAnalyzer` before codegen.
+      this._vertexStructVarMap = Object.create(null);
+      this._fragmentStructVarMap = Object.create(null);
     }
   }
 
@@ -87,9 +87,25 @@ export class VisitorContext {
     if (this.isMRTStruct(typeLexeme)) return StructRole.Mrt;
   }
 
-  /** Register a variable as holding a value of a varying/attribute/mrt struct type. */
-  registerStructVar(varName: string, role: StructRole): void {
-    this._structVarMap[varName] = role;
+  /** Register a variable in a specific stage as holding a varying/attribute/mrt struct value. */
+  registerStructVar(stage: EShaderStage, varName: string, role: StructRole): void {
+    const map = stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap;
+    map[varName] = role;
+  }
+
+  /**
+   * Look up the role of a struct-typed variable, preferring the current stage's binding.
+   * Falls back to the other stage so global `#define` values referencing the opposite stage's
+   * struct-typed variables (e.g. `#define FRAG_UV v.v_uv` where `v` is a fragment param) still
+   * flatten correctly when emitted in either stage's output. Stage priority disambiguates
+   * same-named params (e.g. `input` in both entries) — see `_vertexStructVarMap` doc.
+   */
+  getStructVarRole(varName: string): StructRole | undefined {
+    const [primary, secondary] =
+      this.stage === EShaderStage.VERTEX
+        ? [this._vertexStructVarMap, this._fragmentStructVarMap]
+        : [this._fragmentStructVarMap, this._vertexStructVarMap];
+    return primary[varName] ?? secondary[varName];
   }
 
   referenceAttribute(ident: BaseToken): void {

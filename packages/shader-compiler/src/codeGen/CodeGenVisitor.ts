@@ -49,11 +49,13 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       const prop = children[2];
 
       if (prop instanceof BaseToken) {
-        // Struct role priority: `_structVarMap` by bare root ident (covers forward-declared types like `Varyings o;`),
-        // then AST static type (normal path when `semanticAnalyze` resolved `postExpr.type`).
+        // Struct role priority: the current stage's var map by bare root ident (covers forward-declared
+        // types like `Varyings o;`), then AST static type (normal path when `semanticAnalyze` resolved
+        // `postExpr.type`). Splitting the map per stage prevents a same-named param/local (e.g. `input`
+        // in both `mainVert(a2v input)` and `mainFrag(v2f input)`) from collapsing into one role.
         let role: StructRole | undefined;
         const directRoot = ParserUtils.extractDirectIdentLexeme(postExpr);
-        if (directRoot) role = context._structVarMap[directRoot];
+        if (directRoot) role = context.getStructVarRole(directRoot);
         if (!role) role = context.getStructRole(<string>postExpr.type);
 
         if (role) {
@@ -210,8 +212,8 @@ export abstract class CodeGenVisitor implements ICodeGenVisitor {
       const context = VisitorContext.context;
       // Global variables whose declared type is a varying/attribute/mrt struct
       // (e.g. `Varyings o;`) are not emitted as `uniform`. The variable's role comes
-      // from `ShaderIOAnalyzer`'s `structVarMap`, so `visitPostfixExpression` can
-      // flatten `o.field` at macro-value codegen time.
+      // from `ShaderIOAnalyzer`'s per-stage struct-var maps (module globals populate both),
+      // so `visitPostfixExpression` can flatten `o.field` at macro-value codegen time.
       if (context.getStructRole(fullType.typeSpecifier.lexeme)) {
         return "";
       }

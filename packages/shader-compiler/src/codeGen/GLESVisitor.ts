@@ -54,8 +54,11 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     context.varyingList.push(...io.varyingList);
     context.mrtStructs.push(...io.mrtStructs);
     context.mrtList.push(...io.mrtList);
-    for (const varName in io.structVarMap) {
-      context.registerStructVar(varName, io.structVarMap[varName]);
+    for (const varName in io.vertexStructVarMap) {
+      context.registerStructVar(EShaderStage.VERTEX, varName, io.vertexStructVarMap[varName]);
+    }
+    for (const varName in io.fragmentStructVarMap) {
+      context.registerStructVar(EShaderStage.FRAGMENT, varName, io.fragmentStructVarMap[varName]);
     }
 
     return {
@@ -127,8 +130,8 @@ export abstract class GLESVisitor extends CodeGenVisitor {
       }
     });
 
-    // `_structVarMap` is already populated in `visitShaderProgram` with both stages'
-    // variables; just pre-walk macro refs so struct codegen sees the references.
+    // Both stage struct-var maps are already populated in `visitShaderProgram`; just
+    // pre-walk macro refs so struct codegen sees the references.
     this._preRegisterGlobalMacroRefs(outerGlobalMacroStatements);
 
     const globalCodeArray = this._globalCodeArray;

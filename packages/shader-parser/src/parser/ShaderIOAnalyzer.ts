@@ -29,8 +29,13 @@ export interface ShaderIOInfo {
   varyingList: StructProp[];
   mrtStructs: ASTNode.StructSpecifier[];
   mrtList: StructProp[];
-  /** Variable names (entry params, locals, module globals) whose type carries an IO role. */
-  structVarMap: Record<string, StructRole>;
+  /**
+   * Per-stage variable-to-role maps. Same-named params/locals in both entries (e.g. `input`)
+   * are disambiguated by stage; module-level globals populate both maps so a global
+   * `Varyings o;` reads consistently across vertex/fragment `#define` expansions.
+   */
+  vertexStructVarMap: Record<string, StructRole>;
+  fragmentStructVarMap: Record<string, StructRole>;
 }
 
 /**
@@ -56,7 +61,8 @@ export class ShaderIOAnalyzer {
       varyingList: [],
       mrtStructs: [],
       mrtList: [],
-      structVarMap: Object.create(null)
+      vertexStructVarMap: Object.create(null),
+      fragmentStructVarMap: Object.create(null)
     };
     const errors: GSError[] = [];
     const symbolTable = shaderData.symbolTable;
@@ -73,7 +79,7 @@ export class ShaderIOAnalyzer {
     this._analyzeVertex(symbolTable, vertexEntry, io, errors, source);
     this._analyzeFragment(symbolTable, fragmentEntry, io, errors, source);
     this._checkRoleConflicts(io, errors, source);
-    this._deriveStructVarMap(symbolTable, vertexEntry, fragmentEntry, io.structVarMap);
+    this._deriveStructVarMap(symbolTable, vertexEntry, fragmentEntry, io);
 
     // MRT and gl_FragColor are mutually exclusive fragment outputs (clue collected at parse time).
     if (io.mrtStructs.length) {
@@ -305,15 +311,15 @@ export class ShaderIOAnalyzer {
   }
 
   /**
-   * Map variable names (entry params, locals, module globals) to their IO role. Roles come from
-   * the entry signatures; a body walk picks up locals like `Varyings o;`. Codegen reads this to
-   * rewrite struct-prop references consistently across vertex/fragment `#define` expansions.
+   * Build per-stage variable-to-role maps. Params/locals populate only their entry's stage
+   * (so a shared name like `input` doesn't collide across stages); module-level globals
+   * populate both (a `Varyings o;` reads consistently in both vertex and fragment).
    */
   private static _deriveStructVarMap(
     symbolTable: SymbolTable<SymbolInfo>,
     vertexEntry: string,
     fragmentEntry: string,
-    structVarMap: Record<string, StructRole>
+    io: ShaderIOInfo
   ): void {
     // Roles from entry signatures: vertex param[0]=attribute, return=varying; fragment param[0]=varying, return=mrt.
     const structRoles: Record<string, StructRole> = Object.create(null);
@@ -333,56 +339,70 @@ export class ShaderIOAnalyzer {
       return fns;
     };
 
-    const entryFns = addEntryRoles(vertexEntry, StructRole.Attribute, StructRole.Varying).concat(
-      addEntryRoles(fragmentEntry, StructRole.Varying, StructRole.Mrt)
-    );
+    const vertexFns = addEntryRoles(vertexEntry, StructRole.Attribute, StructRole.Varying);
+    const fragmentFns = addEntryRoles(fragmentEntry, StructRole.Varying, StructRole.Mrt);
 
-    const registerByType = (typeLexeme: string | undefined, varName: string): void => {
+    const registerByType = (
+      target: Record<string, StructRole>,
+      typeLexeme: string | undefined,
+      varName: string
+    ): void => {
       if (!typeLexeme) return;
       const role = structRoles[typeLexeme];
-      if (role) structVarMap[varName] = role;
+      if (role) target[varName] = role;
     };
 
-    const extractLocalVarNames = (node: ASTNode.InitDeclaratorList, role: StructRole): void => {
+    const extractLocalVarNames = (
+      target: Record<string, StructRole>,
+      node: ASTNode.InitDeclaratorList,
+      role: StructRole
+    ): void => {
       const children = node.children;
       if (children.length === 1) {
         const identChildren = (children[0] as ASTNode.SingleDeclaration).children;
         if (identChildren.length >= 2 && identChildren[1] instanceof BaseToken) {
-          structVarMap[identChildren[1].lexeme] = role;
+          target[identChildren[1].lexeme] = role;
         }
       } else if (children.length >= 3) {
         const initDeclList = children[0];
-        if (initDeclList instanceof ASTNode.InitDeclaratorList) extractLocalVarNames(initDeclList, role);
-        if (children[2] instanceof BaseToken) structVarMap[(children[2] as BaseToken).lexeme] = role;
+        if (initDeclList instanceof ASTNode.InitDeclaratorList) extractLocalVarNames(target, initDeclList, role);
+        if (children[2] instanceof BaseToken) target[(children[2] as BaseToken).lexeme] = role;
       }
     };
 
-    const walkLocals = (node: TreeNode): void => {
+    const walkLocals = (target: Record<string, StructRole>, node: TreeNode): void => {
       for (const child of node.children) {
         if (child instanceof ASTNode.InitDeclaratorList) {
           const typeLexeme = child.typeInfo?.typeLexeme;
-          if (typeLexeme && structRoles[typeLexeme]) extractLocalVarNames(child, structRoles[typeLexeme]);
+          if (typeLexeme && structRoles[typeLexeme]) extractLocalVarNames(target, child, structRoles[typeLexeme]);
         } else if (child instanceof TreeNode) {
-          walkLocals(child);
+          walkLocals(target, child);
         }
       }
     };
 
-    for (const fn of entryFns) {
-      const proto = fn.astNode.protoType;
-      if (proto.parameterList) {
-        for (const param of proto.parameterList) {
-          if (param.ident && typeof param.typeInfo?.type === "string") {
-            registerByType(param.typeInfo.typeLexeme, param.ident.lexeme);
+    const populateStageFromEntry = (target: Record<string, StructRole>, fns: FnSymbol[]): void => {
+      for (const fn of fns) {
+        const proto = fn.astNode.protoType;
+        if (proto.parameterList) {
+          for (const param of proto.parameterList) {
+            if (param.ident && typeof param.typeInfo?.type === "string") {
+              registerByType(target, param.typeInfo.typeLexeme, param.ident.lexeme);
+            }
           }
         }
+        walkLocals(target, fn.astNode.statements);
       }
-      walkLocals(fn.astNode.statements);
-    }
+    };
 
-    // Register module-level globals whose type carries a role (e.g. `Varyings o;`).
+    populateStageFromEntry(io.vertexStructVarMap, vertexFns);
+    populateStageFromEntry(io.fragmentStructVarMap, fragmentFns);
+
+    // Module-level globals (e.g. `Varyings o;`) apply to both stages.
     symbolTable.forEach((sym) => {
-      if (sym.type === ESymbolType.VAR) registerByType(sym.dataType?.typeLexeme, sym.ident);
+      if (sym.type !== ESymbolType.VAR) return;
+      registerByType(io.vertexStructVarMap, sym.dataType?.typeLexeme, sym.ident);
+      registerByType(io.fragmentStructVarMap, sym.dataType?.typeLexeme, sym.ident);
     });
   }
 }

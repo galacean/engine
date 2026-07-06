@@ -271,6 +271,28 @@ describe("ShaderCompiler", async () => {
     glslValidate(engine, shaderSource, shaderCompilerRelease);
   });
 
+  // Regression: when vertex and fragment entries share a param name (e.g. `input`),
+  // routing must resolve per stage — `input.POSITION` in vertex → attribute (emit
+  // `attribute vec4 POSITION;`), not varying. Pre-fix, a single stage-oblivious
+  // struct-var map let the fragment binding overwrite the vertex one, and the
+  // attribute decls were dropped from the emitted GLSL.
+  it("struct-based-attribute (same-named params across stages routes per stage)", async () => {
+    const shaderSource = await readFile("src/shader-compiler/shaders/struct-based-attribute.shader");
+    glslValidate(engine, shaderSource, shaderCompilerRelease);
+
+    const shader = shaderCompilerRelease._parseShaderSource(shaderSource);
+    const passSource = shader.subShaders[0].passes[0];
+    const { vertex } = shaderCompilerRelease._parseShaderPass(
+      passSource.contents,
+      passSource.vertexEntry,
+      passSource.fragmentEntry,
+      0
+    )!;
+
+    expect(vertex).to.match(/attribute\s+vec4\s+POSITION\s*;/);
+    expect(vertex).to.match(/attribute\s+vec3\s+NORMAL\s*;/);
+  });
+
   it("define-struct-access-global (global #define with struct member access)", async () => {
     const shaderSource = await readFile("src/shader-compiler/shaders/define-struct-access-global.shader");
     glslValidate(engine, shaderSource, shaderCompilerRelease);
