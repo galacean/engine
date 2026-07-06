@@ -19,9 +19,7 @@ export class AnimatorController extends ReferResource {
   _layersMap: Record<string, AnimatorControllerLayer> = {};
 
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
-  private _onStateMachineChanged = (): void => {
-    this._updateFlagManager.dispatch();
-  };
+  private _onStateMachineChanged = (): void => this._updateFlagManager.dispatch();
 
   /**
    * The layers in the controller.
@@ -140,7 +138,8 @@ export class AnimatorController extends ReferResource {
     for (let i = 0, n = layers.length; i < n; i++) {
       layers[i]._setStateMachineChangeCallback(null);
     }
-    this._layers.length = 0;
+    layers.length = 0;
+
     for (let name in this._layersMap) {
       delete this._layersMap[name];
     }
@@ -160,8 +159,9 @@ export class AnimatorController extends ReferResource {
   _setEngine(engine: Engine): void {
     const { _layers: layers } = this;
     for (let i = 0, n = layers.length; i < n; i++) {
-      layers[i]._setStateMachineChangeCallback(this._onStateMachineChanged);
-      layers[i]._setEngine(engine);
+      const layer = layers[i];
+      layer._setStateMachineChangeCallback(this._onStateMachineChanged);
+      layer._setEngine(engine);
     }
   }
 

@@ -18,7 +18,9 @@ export class AnimatorControllerLayer {
   private _engine: Engine;
   private _onStateMachineChanged: (() => void) | null = null;
 
-  /** The state machine for the layer. */
+  /**
+   * The state machine for the layer.
+   */
   get stateMachine(): AnimatorStateMachine {
     return this._stateMachine;
   }
