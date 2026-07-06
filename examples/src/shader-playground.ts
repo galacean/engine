@@ -32,22 +32,23 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  // ── Syntax ──
-  SyntaxError: pass(`      void frag() { vec3 = ; }
+  // ── 语法 ──
+  "语法 / SyntaxError": pass(`      void frag() { vec3 = ; }
       FragmentShader = frag;`),
 
-  // ── Symbol ──
-  UndefinedFunction: pass(`      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = doesNotExist(1.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  NoMatchingOverload: pass(`      float f(float a) { return a; }
+  // ── 符号 ──
+  "符号 / NoMatchingOverload": pass(`      float f(float a) { return a; }
       void frag() { gl_FragColor = vec4(f(vec3(0.0))); }
       FragmentShader = frag;`),
 
-  Redefinition: pass(`      float u_a;
+  "符号 / RecursiveFunction": pass(`      struct Attributes { vec3 POSITION; };
+      float fib(float x) { return fib(x); }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "符号 / Redefinition": pass(`      float u_a;
       float u_a;                                          // Redefinition
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
@@ -55,27 +56,20 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  UseBeforeDeclaration: pass(`      struct Attributes { vec3 POSITION; };
+  "符号 / UndefinedFunction": pass(`      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = doesNotExist(1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "符号 / UseBeforeDeclaration": pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(undeclared_color, 1.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  // ── Type ──
-  InvalidSwizzle: pass(`      vec2 u_uv;
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(u_uv.z, 0.0, 0.0, 1.0); }   // vec2 has no .z
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  UndeclaredStructMember: pass(`      struct Varyings { vec4 v; };
-      Varyings vert() { Varyings o; o.v = vec4(0.0); return o; }
-      void frag(Varyings i) { gl_FragColor = i.notAField; }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  AssignTypeMismatch: pass(`      struct Attributes { vec3 POSITION; };
+  // ── 类型 ──
+  "类型 / AssignTypeMismatch": pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() {
         float a = 1.0;
@@ -86,97 +80,92 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  InvalidReturnType: pass(`      struct Attributes { vec3 POSITION; };
+  "类型 / ConstDivideByZero": pass(`      void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); }
+      FragmentShader = frag;`),
+
+  "类型 / ConstructorArgCount": pass(`      void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); }
+      FragmentShader = frag;`),
+
+  "类型 / ConstructorArgType": pass(`      mediump sampler2D u_tex;
+      void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); }
+      FragmentShader = frag;`),
+
+  "类型 / ExpectedSampler": pass(`      void frag() { vec2 uv = vec2(0.0); vec4 c = texture(uv, uv); gl_FragColor = c; }
+      FragmentShader = frag;`),
+
+  "类型 / IndexOutOfBounds": pass(`      void frag() { vec3 v = vec3(0.0); float y = v[5]; gl_FragColor = vec4(y); }
+      FragmentShader = frag;`),
+
+  "类型 / InvalidBinaryOperands": pass(`      void frag() { bool b = true; float x = b + 1.0; gl_FragColor = vec4(x); }
+      FragmentShader = frag;`),
+
+  "类型 / InvalidSwizzle": pass(`      vec2 u_uv;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(u_uv.z, 0.0, 0.0, 1.0); }   // vec2 has no .z
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "类型 / InvalidUnaryOperand": pass(`      void frag() { float u_f = 1.0; bool ok = !u_f; gl_FragColor = vec4(0.0); }
+      FragmentShader = frag;`),
+
+  "类型 / NonIndexableType": pass(`      void frag() { float f = 1.0; float y = f[0]; gl_FragColor = vec4(y); }
+      FragmentShader = frag;`),
+
+  "类型 / NonIntegerIndex": pass(`      void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); }
+      FragmentShader = frag;`),
+
+  "类型 / ShiftOutOfRange": pass(`      void frag() { int x = 1 << 40; gl_FragColor = vec4(float(x)); }
+      FragmentShader = frag;`),
+
+  "类型 / UndeclaredStructMember": pass(`      struct Varyings { vec4 v; };
+      Varyings vert() { Varyings o; o.v = vec4(0.0); return o; }
+      void frag(Varyings i) { gl_FragColor = i.notAField; }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  // ── 常量 ──
+  "常量 / NonConstArraySize": pass(`      void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); }
+      FragmentShader = frag;`),
+
+  "常量 / NonConstInitializer": pass(`      float u_scale;
+      void frag() { const float c = u_scale; gl_FragColor = vec4(c); }
+      FragmentShader = frag;`),
+
+  "常量 / NonConstructibleReturnType": pass(`      mediump sampler2D u_tex;
+      sampler2D getTex() { return u_tex; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      FragmentShader = frag;`),
+
+  // ── 控制流 ──
+  "控制流 / InvalidEntryReturnType": pass(`      struct Attributes { vec3 POSITION; };
+      float vert(Attributes attr) { gl_Position = vec4(0.0); return 1.0; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "控制流 / InvalidReturnType": pass(`      struct Attributes { vec3 POSITION; };
       vec3 getColor() { return 1.0; }                     // float vs vec3
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(getColor(), 1.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  ConstDivideByZero: pass(`      void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); }
+  "控制流 / MisplacedControlFlow": pass(`      void frag() { gl_FragColor = vec4(0.0); break; }
       FragmentShader = frag;`),
 
-  ShiftOutOfRange: pass(`      void frag() { int x = 1 << 40; gl_FragColor = vec4(float(x)); }
-      FragmentShader = frag;`),
-
-  IndexOutOfBounds: pass(`      void frag() { vec3 v = vec3(0.0); float y = v[5]; gl_FragColor = vec4(y); }
-      FragmentShader = frag;`),
-
-  NonIntegerIndex: pass(`      void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); }
-      FragmentShader = frag;`),
-
-  NonIndexableType: pass(`      void frag() { float f = 1.0; float y = f[0]; gl_FragColor = vec4(y); }
-      FragmentShader = frag;`),
-
-  ExpectedSampler: pass(`      void frag() { vec2 uv = vec2(0.0); vec4 c = texture(uv, uv); gl_FragColor = c; }
-      FragmentShader = frag;`),
-
-  InvalidUnaryOperand: pass(`      void frag() { float u_f = 1.0; bool ok = !u_f; gl_FragColor = vec4(0.0); }
-      FragmentShader = frag;`),
-
-  InvalidBinaryOperands: pass(`      void frag() { bool b = true; float x = b + 1.0; gl_FragColor = vec4(x); }
-      FragmentShader = frag;`),
-
-  ConstructorArgType: pass(`      mediump sampler2D u_tex;
-      void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); }
-      FragmentShader = frag;`),
-
-  ConstructorArgCount: pass(`      void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); }
-      FragmentShader = frag;`),
-
-  NonConstInitializer: pass(`      float u_scale;
-      void frag() { const float c = u_scale; gl_FragColor = vec4(c); }
-      FragmentShader = frag;`),
-
-  NonConstArraySize: pass(`      void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); }
-      FragmentShader = frag;`),
-
-  // ── Function / control flow ──
-  MissingReturn: pass(`      float getX() { float a = 1.0; }
+  "控制流 / MissingReturn": pass(`      float getX() { float a = 1.0; }
       void frag() { gl_FragColor = vec4(getX()); }
       FragmentShader = frag;`),
 
-  NonBoolCondition: pass(`      struct Attributes { vec3 POSITION; };
+  "控制流 / NonBoolCondition": pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { float a = 1.0; if (a) { gl_FragColor = vec4(0.0); } }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  RecursiveFunction: pass(`      struct Attributes { vec3 POSITION; };
-      float fib(float x) { return fib(x); }
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  NonConstructibleReturnType: pass(`      mediump sampler2D u_tex;
-      sampler2D getTex() { return u_tex; }
-      void frag() { gl_FragColor = vec4(0.0); }
-      FragmentShader = frag;`),
-
-  MisplacedControlFlow: pass(`      void frag() { gl_FragColor = vec4(0.0); break; }
-      FragmentShader = frag;`),
-
-  // ── Pipeline (vertex/fragment IO) ──
-  InvalidIOStruct: pass(`      struct Attributes { vec3 POSITION; };
-      Varyings vert(Attributes attr) { Varyings o; gl_Position = vec4(0.0); return o; }
-      void frag() { gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  InvalidEntryReturnType: pass(`      struct Attributes { vec3 POSITION; };
-      float vert(Attributes attr) { gl_Position = vec4(0.0); return 1.0; }
-      void frag() { gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  StructRoleConflict: pass(`      struct IO { vec4 v; };
-      IO vert(IO attr) { IO o; gl_Position = vec4(0.0); return o; }
-      void frag() { gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  DuplicateEntryAssignment: pass(`      struct Attributes { vec3 POSITION; };
+  // ── 管线 IO ──
+  "管线 IO / DuplicateEntryAssignment": pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void vert2(Attributes attr) { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(0.0); }
@@ -184,30 +173,42 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert2;                               // assigned twice
       FragmentShader = frag;`),
 
-  MissingEntry: pass(`      mat4 renderer_MVPMat;
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(0.0); }
-      VertexShader = vert;`),
-
-  EntryNotFound: pass(`      struct Attributes { vec3 POSITION; };
+  "管线 IO / EntryNotFound": pass(`      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vrt;                                 // 'vrt' is not a function
       FragmentShader = frag;`),
 
-  GlFragColorWithMrt: pass(`      struct MRT { vec4 c0; };
+  "管线 IO / GlFragColorWithMrt": pass(`      struct MRT { vec4 c0; };
       void vert() { gl_Position = vec4(0.0); }
       MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  GlFragData: pass(`      void vert() { gl_Position = vec4(0.0); }
+  "管线 IO / GlFragData": pass(`      void vert() { gl_Position = vec4(0.0); }
       void frag() { gl_FragData[0] = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  NestedIOStruct: pass(`      struct Attributes { vec3 POSITION; };
+  "管线 IO / InvalidIOStruct": pass(`      struct Attributes { vec3 POSITION; };
+      Varyings vert(Attributes attr) { Varyings o; gl_Position = vec4(0.0); return o; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "管线 IO / MissingEntry": pass(`      mat4 renderer_MVPMat;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;`),
+
+  "管线 IO / MissingVertexPosition": pass(`      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "管线 IO / NestedIOStruct": pass(`      struct Attributes { vec3 POSITION; };
       struct Inner { vec4 v; };
       struct Varyings { Inner nested; };
       Varyings vert(Attributes attr) { Varyings o; o.nested.v = vec4(attr.POSITION, 1.0); return o; }
@@ -215,31 +216,33 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  MissingVertexPosition: pass(`      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { }
-      void frag() { gl_FragColor = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
-  NonFlatIntegerVarying: pass(`      struct Attributes { vec3 POSITION; };
+  "管线 IO / NonFlatIntegerVarying": pass(`      struct Attributes { vec3 POSITION; };
       struct Varyings { vec4 pos; int id; };
       Varyings vert(Attributes attr) { Varyings o; o.pos = vec4(attr.POSITION, 1.0); o.id = 0; gl_Position = o.pos; return o; }
       void frag(Varyings i) { gl_FragColor = vec4(float(i.id)); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
+  "管线 IO / StructRoleConflict": pass(`      struct IO { vec4 v; };
+      IO vert(IO attr) { IO o; gl_Position = vec4(0.0); return o; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
   // ── RenderState ──
-  InvalidRenderStateProperty: pass(`      BlendState bs { NotARealProperty = true; }`),
+  "RenderState / BitwiseOrOnNonBitmask": pass(
+    `      BlendState bs { SourceColorBlendFactor = BlendFactor.One | BlendFactor.Zero; }`
+  ),
 
-  InvalidEnumValue: pass(`      BlendState bs { SourceColorBlendFactor = BlendFactor.NotReal; }`),
+  "RenderState / InvalidEnumValue": pass(`      BlendState bs { SourceColorBlendFactor = BlendFactor.NotReal; }`),
 
-  BitwiseOrOnNonBitmask: pass(`      BlendState bs { SourceColorBlendFactor = BlendFactor.One | BlendFactor.Zero; }`),
+  "RenderState / InvalidRenderQueueVariable": pass(`      RenderQueueType = undefinedQueueVar;`),
 
-  MixedEnumTypes: pass(`      BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`),
+  "RenderState / InvalidRenderStateProperty": pass(`      BlendState bs { NotARealProperty = true; }`),
 
-  InvalidRenderStateVariable: pass(`      DepthState = undefinedDepthVar;`),
+  "RenderState / InvalidRenderStateVariable": pass(`      DepthState = undefinedDepthVar;`),
 
-  InvalidRenderQueueVariable: pass(`      RenderQueueType = undefinedQueueVar;`)
+  "RenderState / MixedEnumTypes": pass(`      BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`)
 };
 
 const DEFAULT_KEY = "Multiple errors";
