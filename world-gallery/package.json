@@ -13,6 +13,7 @@
     "@galacean/engine-toolkit-controls": "latest"
   },
   "devDependencies": {
+    "@types/dat.gui": "^0.7.13",
     "dat.gui": "^0.7.9",
     "vite": "^4.4.4"
   }

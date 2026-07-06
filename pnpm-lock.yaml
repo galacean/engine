@@ -371,6 +371,9 @@ importers:
         specifier: latest
         version: 1.6.0(@galacean/engine@packages+galacean)
     devDependencies:
+      '@types/dat.gui':
+        specifier: ^0.7.13
+        version: 0.7.13
       dat.gui:
         specifier: ^0.7.9
         version: 0.7.9
@@ -1441,6 +1444,9 @@ packages:
 
   '@types/cookie@0.6.0':
     resolution: {integrity: sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA==}
+
+  '@types/dat.gui@0.7.13':
+    resolution: {integrity: sha512-LmG4Pr0mbsB/1WVttf8xaHx45BvSBDGY5D9+0/9AZCbI4vvOguwBHZdKyJMxt5Yst8+icRSHKmr7ClV2u5ZtDA==}
 
   '@types/deep-eql@4.0.2':
     resolution: {integrity: sha512-c9h9dVVMigMPc4bwTvC5dxqtqJZwQPePsWjPlpSOnojbor6pGqdk541lfA7AqFQr5pB1BRdq0juY9db81BwyFw==}
@@ -4987,6 +4993,8 @@ snapshots:
 
   '@types/cookie@0.6.0':
     optional: true
+
+  '@types/dat.gui@0.7.13': {}
 
   '@types/deep-eql@4.0.2': {}
 
