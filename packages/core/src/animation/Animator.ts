@@ -475,7 +475,6 @@ export class Animator extends Component {
           propertyOwners[property] = owner;
         }
 
-        // Keep layer owner lookup on the same Component identity path.
         let layerPropertyOwners = layerCurveOwnerPool.get(component);
         if (!layerPropertyOwners) {
           layerPropertyOwners = <Record<string, AnimationCurveLayerOwner>>Object.create(null);
