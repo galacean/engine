@@ -1,29 +1,35 @@
 // Gaussian Splatting — one renderer ingests Marble SPZ, Inria .ply and .splat. The .ply and .spz carry
 // view-dependent spherical-harmonic color; drag to orbit and watch reflections shift.
-import { AssetType, Camera, Entity, GaussianSplat, GaussianSplatRenderer, WebGLEngine } from "@galacean/engine";
-import { OrbitControl } from "@galacean/engine-toolkit-controls";
+import {
+  AssetType,
+  Camera,
+  Entity,
+  GaussianSplat,
+  GaussianSplatMaterial,
+  GaussianSplatRenderer,
+  MSAASamples,
+  WebGLEngine
+} from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
+import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import * as dat from "dat.gui";
 
-// skull is the light default; .ply/.spz carry higher-order SH and are much heavier — switch to them to see
-// view-dependent color. `yDown` is the source axis convention: Inria .splat/.ply are Y-down, SPZ defaults to
-// Y-up (RUB), so only the former are flipped into Galacean's Y-up world.
-const FORMATS: Record<string, { url: string; yDown: boolean }> = {
-  "raccoons (.spz)": {
-    url: "https://mdn.alipayobjects.com/rms/afts/file/A*2H-wSIMS8MsAAAAAgXAAAAgAehQnAQ/racoonfamily.spz",
-    yDown: false
-  },
-  "skull (.splat)": {
-    url: "https://mdn.alipayobjects.com/rms/afts/file/A*59VdRpKYJ7gAAAAAgFAAAAgAehQnAQ/gs_Skull.splat",
-    yDown: true
+type FormatConfig = {
+  url: string;
+  cameraPosition: [number, number, number];
+  cameraTarget: [number, number, number];
+};
+
+const FORMATS: Record<string, FormatConfig> = {
+  "skull (.spz)": {
+    url: "https://mdn.alipayobjects.com/rms/afts/file/A*Y2wZTYtEbP0AAAAAgCAAAAgAehQnAQ/gs_Skull.spz",
+    cameraPosition: [-2.751, 1.661, 4.156],
+    cameraTarget: [0.045, 0.098, 0.004]
   },
   "halo (.ply)": {
     url: "https://mdn.alipayobjects.com/rms/afts/file/A*o8-hTq3fs7wAAAAAgSAAAAgAehQnAQ/Halo_Believe.ply",
-    yDown: true
-  },
-  "lizard (.spz)": {
-    url: "https://mdn.alipayobjects.com/rms/afts/file/A*XCefRbxaXQ0AAAAAgRAAAAgAehQnAQ/hornedlizard.spz",
-    yDown: false
+    cameraPosition: [0.164, 2.323, 5.582],
+    cameraTarget: [0.18, -0.275, 0]
   }
 };
 
@@ -35,39 +41,77 @@ WebGLEngine.create({ canvas: "canvas", shaderCompiler: new ShaderCompiler() }).t
 
   const cameraEntity = rootEntity.createChild("camera");
   const camera = cameraEntity.addComponent(Camera);
+  camera.msaaSamples = MSAASamples.None;
   const control = cameraEntity.addComponent(OrbitControl);
 
   let splatEntity: Entity | null = null;
   let currentSplat: GaussianSplat | null = null;
+  let currentRenderer: GaussianSplatRenderer | null = null;
 
-  const loadFormat = async (format: { url: string; yDown: boolean }): Promise<void> => {
+  const stats = { splats: 0, shDegree: 0, fps: 0, sortMs: 0 };
+  const controls = { magic: true };
+
+  const loadFormat = async (config: FormatConfig): Promise<void> => {
+    currentRenderer = null;
     splatEntity?.destroy();
     currentSplat?.destroy();
-    const splat = await engine.resourceManager.load<GaussianSplat>({ url: format.url, type: AssetType.GaussianSplat });
+    splatEntity = null;
+    currentSplat = null;
+
+    const splat = await engine.resourceManager.load<GaussianSplat>({
+      url: config.url,
+      type: AssetType.GaussianSplat
+    });
     currentSplat = splat;
 
-    const yScale = format.yDown ? -1 : 1;
     splatEntity = rootEntity.createChild("splat");
-    splatEntity.transform.setScale(1, yScale, 1);
     const renderer = splatEntity.addComponent(GaussianSplatRenderer);
     renderer.splat = splat;
+    stats.splats = splat.splatCount;
+    stats.shDegree = splat.shDegree;
 
-    // Frame to the renderer's world-space bounds (already reflects the entity's y-flip): look at its center and
-    // pull back ~2.2x the bounding-sphere radius. The bounds encloses every splat, floaters included, so a
-    // floater-heavy scan still frames far until those get filtered out at load.
+    const material = renderer.getMaterial() as GaussianSplatMaterial;
+    if (controls.magic) material.playMagic();
+
     const { min, max } = renderer.bounds;
-    const cx = (min.x + max.x) / 2;
-    const cy = (min.y + max.y) / 2;
-    const cz = (min.z + max.z) / 2;
     const radius = Math.hypot(max.x - min.x, max.y - min.y, max.z - min.z) / 2;
-    control.target.set(cx, cy, cz);
-    cameraEntity.transform.setPosition(cx, cy, cz + radius * 2.2);
     camera.farClipPlane = radius * 8;
+    cameraEntity.transform.setPosition(...config.cameraPosition);
+    control.target.set(...config.cameraTarget);
+    currentRenderer = renderer;
   };
 
-  const state = { format: "raccoons (.spz)" };
+  const state = { format: "skull (.spz)" };
   const gui = new dat.GUI();
   gui.add(state, "format", Object.keys(FORMATS)).onChange((key: string) => loadFormat(FORMATS[key]));
+
+  const info = gui.addFolder("Scene Info");
+  const readonly = (ctrl: dat.GUIController) => {
+    ctrl.domElement.style.pointerEvents = "none";
+    ctrl.domElement.style.opacity = "0.8";
+    return ctrl.listen();
+  };
+  readonly(info.add(stats, "splats"));
+  readonly(info.add(stats, "shDegree"));
+  readonly(info.add(stats, "fps"));
+  readonly(info.add(stats, "sortMs"));
+  info.open();
+
+  gui.add(controls, "magic").onChange((on: boolean) => {
+    const material = currentRenderer?.getMaterial() as GaussianSplatMaterial | undefined;
+    if (!material) return;
+    on ? material.playMagic() : material.stopMagic();
+  });
+
+  let lastFrame = performance.now();
+  const tick = (): void => {
+    const now = performance.now();
+    stats.fps = +(0.9 * stats.fps + 0.1 * (1000 / Math.max(now - lastFrame, 1))).toFixed(1);
+    lastFrame = now;
+    stats.sortMs = currentRenderer ? +currentRenderer.lastSortTime.toFixed(2) : 0;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
 
   await loadFormat(FORMATS[state.format]);
   engine.run();
