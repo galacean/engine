@@ -29,6 +29,8 @@ export enum DiagnosticType {
   ConstructorArgCount = "ConstructorArgCount",
   NonConstInitializer = "NonConstInitializer",
   NonConstArraySize = "NonConstArraySize",
+  EmptyStruct = "EmptyStruct",
+  NonFloatDerivativeArg = "NonFloatDerivativeArg",
 
   // Function / control flow
   InvalidReturnType = "InvalidReturnType",
@@ -37,6 +39,7 @@ export enum DiagnosticType {
   RecursiveFunction = "RecursiveFunction",
   NonConstructibleReturnType = "NonConstructibleReturnType",
   MisplacedControlFlow = "MisplacedControlFlow",
+  DerivativeInVertexShader = "DerivativeInVertexShader",
 
   // Pipeline (vertex/fragment IO)
   InvalidIOStruct = "InvalidIOStruct",

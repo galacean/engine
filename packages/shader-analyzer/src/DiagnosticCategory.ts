@@ -2,7 +2,7 @@ import { DiagnosticType } from "@galacean/engine-shader-parser";
 
 /**
  * Coarse-grained category a `DiagnosticType` belongs to — the top-level bucket the diagnostic reports
- * against. Mirrors the tiered structure of Naga's `ValidationError` (outer variant = category), but
+ * against. Mirrors a tiered error taxonomy (outer category = bucket, inner detail = specific rule), but
  * flattened to one enum because our checks are per-node rather than per-IR-item.
  */
 export enum DiagnosticCategory {
@@ -41,6 +41,8 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.InvalidBinaryOperands]: DiagnosticCategory.Type,
   [DiagnosticType.ConstructorArgType]: DiagnosticCategory.Type,
   [DiagnosticType.ConstructorArgCount]: DiagnosticCategory.Type,
+  [DiagnosticType.EmptyStruct]: DiagnosticCategory.Type,
+  [DiagnosticType.NonFloatDerivativeArg]: DiagnosticCategory.Type,
 
   [DiagnosticType.NonConstInitializer]: DiagnosticCategory.Constant,
   [DiagnosticType.NonConstArraySize]: DiagnosticCategory.Constant,
@@ -51,6 +53,7 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.NonBoolCondition]: DiagnosticCategory.ControlFlow,
   [DiagnosticType.MisplacedControlFlow]: DiagnosticCategory.ControlFlow,
   [DiagnosticType.InvalidEntryReturnType]: DiagnosticCategory.ControlFlow,
+  [DiagnosticType.DerivativeInVertexShader]: DiagnosticCategory.ControlFlow,
 
   [DiagnosticType.InvalidIOStruct]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.StructRoleConflict]: DiagnosticCategory.PipelineIO,

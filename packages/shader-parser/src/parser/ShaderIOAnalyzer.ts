@@ -277,6 +277,11 @@ export class ShaderIOAnalyzer {
   }
 
   private static _checkRoleConflicts(io: ShaderIOInfo, errors: GSError[], source: string): void {
+    // Collect conflicting struct nodes before mutating the arrays so codegen
+    // sees at most one role per struct — otherwise the same name lands in both
+    // `attributeStructs` and `varyingStructs`, and the emitted GLSL contains
+    // ambiguous `in`/`out` declarations that no driver accepts.
+    const conflicting = new Set<ASTNode.StructSpecifier>();
     for (const node of io.varyingStructs) {
       if (io.attributeStructs.indexOf(node) !== -1) {
         this._error(
@@ -286,6 +291,7 @@ export class ShaderIOAnalyzer {
           node.location,
           source
         );
+        conflicting.add(node);
       }
       if (io.mrtStructs.indexOf(node) !== -1) {
         this._error(
@@ -295,6 +301,7 @@ export class ShaderIOAnalyzer {
           node.location,
           source
         );
+        conflicting.add(node);
       }
     }
     for (const node of io.attributeStructs) {
@@ -306,8 +313,37 @@ export class ShaderIOAnalyzer {
           node.location,
           source
         );
+        conflicting.add(node);
       }
     }
+    if (conflicting.size) this._dropConflictingStructs(io, conflicting);
+  }
+
+  /**
+   * Remove struct nodes with role conflicts (and their flattened props) from every role array,
+   * so codegen doesn't emit contradictory `in`/`out` declarations for the same struct name.
+   */
+  private static _dropConflictingStructs(io: ShaderIOInfo, conflicting: Set<ASTNode.StructSpecifier>): void {
+    const dropped = new Set<StructProp>();
+    const filterStructs = (arr: ASTNode.StructSpecifier[]): void => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (conflicting.has(arr[i])) {
+          for (const prop of arr[i].propList) dropped.add(prop);
+          arr.splice(i, 1);
+        }
+      }
+    };
+    filterStructs(io.attributeStructs);
+    filterStructs(io.varyingStructs);
+    filterStructs(io.mrtStructs);
+    const filterProps = (arr: StructProp[]): void => {
+      for (let i = arr.length - 1; i >= 0; i--) {
+        if (dropped.has(arr[i])) arr.splice(i, 1);
+      }
+    };
+    filterProps(io.attributeList);
+    filterProps(io.varyingList);
+    filterProps(io.mrtList);
   }
 
   /**

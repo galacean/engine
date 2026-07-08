@@ -16,6 +16,9 @@ import { VisitorContext } from "./VisitorContext";
  */
 export abstract class GLESVisitor extends CodeGenVisitor {
   private _globalCodeArray: ICodeSegment[] = [];
+  // Entry names already warned about in the current compile — cleared in `visitShaderProgram`
+  // so a missing entry surfaces once per compile, not once per stage.
+  private _missingEntryWarned = new Set<string>();
   private static _lookupSymbol: SymbolInfo = new SymbolInfo("", null);
   private static _serializedGlobalKey = new Set();
 
@@ -34,6 +37,7 @@ export abstract class GLESVisitor extends CodeGenVisitor {
   visitShaderProgram(node: ASTNode.GLShaderProgram, vertexEntry: string, fragmentEntry: string): IShaderInfo {
     VisitorContext.reset();
     this.reset();
+    this._missingEntryWarned.clear();
 
     const shaderData = node.shaderData;
     const context = VisitorContext.context;
@@ -80,7 +84,10 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const symbolTable = data.symbolTable;
     lookupSymbol.set(entry, ESymbolType.FN);
     const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    if (!fnSymbols.length) throw `no entry function found: ${entry}`;
+    // Entry-not-found is the analyzer's `EntryNotFound` diagnostic — codegen doesn't re-validate;
+    // it degrades to an empty stage source (invalid GLSL) rather than throwing, keeping validator
+    // and emitter concerns separated. Deduped so a missing entry warns once per compile.
+    if (!fnSymbols.length) return this._softMissEntry(entry, false);
 
     // attribute/varying structs were collected in visitShaderProgram (ShaderIOAnalyzer).
 
@@ -120,7 +127,9 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     const { symbolTable } = data;
     lookupSymbol.set(entry, ESymbolType.FN);
     const fnSymbols = <FnSymbol[]>symbolTable.getSymbols(lookupSymbol, true, []);
-    if (!fnSymbols?.length) throw `no entry function found: ${entry}`;
+    // See vertex counterpart — analyzer's `EntryNotFound` covers the user-facing error;
+    // codegen soft-returns to keep the pipeline shape (`{ vertex, fragment }`) intact.
+    if (!fnSymbols?.length) return this._softMissEntry(entry, true);
 
     // MRT structs were collected in visitShaderProgram; here only mark the fragment return statements.
     fnSymbols.forEach((fnSymbol) => {
@@ -152,6 +161,23 @@ export abstract class GLESVisitor extends CodeGenVisitor {
     this.reset();
 
     return globalCode;
+  }
+
+  /**
+   * Soft path for a missing entry function: reset the per-stage visitor state (matching
+   * the throw-avoided branch's cleanup) and return an empty stage source with a
+   * deduped `console.warn`. Analyzer's `EntryNotFound` remains the source of truth
+   * for the user-facing error — this only keeps codegen from crashing.
+   * `fullReset` mirrors the fragment path (final pass tear-down); vertex uses `reset(false)`.
+   */
+  private _softMissEntry(entry: string, fullReset: boolean): string {
+    if (!this._missingEntryWarned.has(entry)) {
+      this._missingEntryWarned.add(entry);
+      console.warn(`Shader entry function '${entry}' not found — stage source will be empty.`);
+    }
+    VisitorContext.context.reset(fullReset);
+    this.reset();
+    return "";
   }
 
   /**

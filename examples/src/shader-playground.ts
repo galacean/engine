@@ -259,7 +259,30 @@ const SAMPLES: Record<string, string> = {
 
   [DiagnosticType.InvalidRenderStateVariable]: pass(`      DepthState = undefinedDepthVar;`),
 
-  [DiagnosticType.MixedEnumTypes]: pass(`      BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`)
+  [DiagnosticType.MixedEnumTypes]: pass(
+    `      BlendState bs { ColorWriteMask = ColorWriteMask.Red | CullMode.Front; }`
+  ),
+
+  [DiagnosticType.DerivativeInVertexShader]: pass(`      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) {
+        float d = dFdx(attr.POSITION.x);
+        gl_Position = vec4(attr.POSITION, d);
+      }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`),
+
+  [DiagnosticType.NonFloatDerivativeArg]: pass(`      void frag() {
+        int x = 3;
+        float d = dFdx(x);
+        gl_FragColor = vec4(d);
+      }
+      FragmentShader = frag;`),
+
+  [DiagnosticType.EmptyStruct]: pass(`      struct Empty { };
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`)
 };
 
 // Localized display label for each category — UI concern, kept out of the enum values (which stay

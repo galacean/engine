@@ -184,6 +184,27 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       void vert(IO attr) { gl_Position = vec4(0.0); }
       IO frag() { IO o; return o; }
       VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    code: "DerivativeInVertexShader",
+    source: pass(`
+      void vert() { float d = dFdx(1.0); gl_Position = vec4(d); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    code: "NonFloatDerivativeArg",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { int i = 1; float d = dFdx(i); gl_FragColor = vec4(d); }
+      VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    // `struct Foo {};` fails at the grammar (`struct_declaration_list` requires ≥1 decl → SyntaxError),
+    // so no reachable shape produces a StructSpecifier with an empty propList. The check remains as a
+    // defensive guard for a future macro-branch edge case; no triggering shader today.
+    code: "EmptyStruct",
+    gap: "unreachable via grammar — struct_declaration_list requires ≥1 declaration"
   }
 ];
 

@@ -45,4 +45,41 @@ describe("analyzer injection: diagnostics ride along with compilation", () => {
       spy.mockRestore();
     }
   });
+
+  // Regression: wrong-entry-name binding (`VertexShader = notReal;`) must (i) surface
+  // `EntryNotFound` via the injected analyzer and (ii) NOT throw at codegen — codegen
+  // degrades to an empty stage source; the analyzer owns the user-facing error.
+  it("EntryNotFound: analyzer diagnoses AND codegen does not throw for a mistyped entry", () => {
+    const compiler = new ShaderCompiler();
+    const analyzer = new ShaderAnalyzer();
+    compiler._setAnalyzer(analyzer);
+
+    const missingEntry = `
+struct Attributes { vec3 POSITION; };
+void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+void frag() { gl_FragColor = vec4(0.0); }`;
+
+    const errSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
+    // Codegen soft-return also emits a `console.warn` (deduped per compile) — silence it here so it
+    // doesn't fail unrelated `no unexpected warns` assertions in other tests running in the same process.
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      let threw: unknown = null;
+      let out: any;
+      try {
+        out = compiler._parseShaderPass(missingEntry, "notReal", "frag", ShaderLanguage.GLSLES300, "");
+      } catch (e) {
+        threw = e;
+      }
+      expect(threw, "codegen must not throw for a mistyped entry").to.be.null;
+      expect(out, "codegen still returns pipeline shape").to.not.be.undefined;
+      expect(out.vertex, "missing vertex entry → empty vertex source").to.equal("");
+
+      const logged = errSpy.mock.calls.map((c) => String(c[0])).join("\n");
+      expect(logged, "analyzer surfaces `EntryNotFound` via Logger").to.include("EntryNotFound");
+    } finally {
+      errSpy.mockRestore();
+      warnSpy.mockRestore();
+    }
+  });
 });

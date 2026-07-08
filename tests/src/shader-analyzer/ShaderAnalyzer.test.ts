@@ -99,7 +99,7 @@ describe("ShaderAnalyzer", () => {
     expect(undef!.message).to.include("doesNotExist");
   });
 
-  it("warns on a variable redeclared in the same scope", () => {
+  it("rejects a variable redeclared in the same scope (first-wins, spec alignment)", () => {
     const source = `Shader "c0-10" {
   SubShader "Default" {
     Pass "test" {
@@ -116,9 +116,41 @@ describe("ShaderAnalyzer", () => {
 }`;
     const { diagnostics } = analyzer.analyze(source);
     const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
-    expect(redef, "expected a C0-10 redefinition warning").to.be.ok;
-    expect(redef!.severity).to.equal("warning");
+    expect(redef, "expected a C0-10 redefinition error").to.be.ok;
+    expect(redef!.severity).to.equal("error");
     expect(redef!.message).to.include("u_a");
+  });
+
+  it("keeps the first binding on redefinition (first-wins)", () => {
+    // First `float u_a;` is retained; second is rejected. The symbol table must expose only ONE
+    // entry for `u_a`; its astNode must precede the redefinition token in source order.
+    const source = `Shader "first-wins" {
+  SubShader "Default" {
+    Pass "test" {
+      mat4 renderer_MVPMat;
+      float u_a;
+      float u_a;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(u_a); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const { diagnostics, passes } = analyzer.analyze(source);
+    expect(passes.length).to.equal(1);
+    const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
+    expect(redef).to.be.ok;
+    const symbolTable = passes[0].program.shaderData.symbolTable;
+    const symbols: any[] = [];
+    symbolTable.forEach((s: any) => {
+      if (s.ident === "u_a") symbols.push(s);
+    });
+    expect(symbols.length, "duplicate must not create two entries").to.equal(1);
+    const retainedStart = symbols[0].astNode.location.start.index;
+    const rejectedOffset = redef!.range.start.offset;
+    expect(retainedStart).to.be.lessThan(rejectedOffset);
   });
 
   it("does not flag the same name across exclusive macro branches", () => {
@@ -1196,5 +1228,336 @@ describe("ShaderAnalyzer", () => {
 }`;
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "EntryNotFound");
     expect(diag, "valid bound entries must not report EntryNotFound").to.be.undefined;
+  });
+
+  it("flags dFdx used in a vertex shader (DerivativeInVertexShader)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { float d = dFdx(1.0); gl_Position = vec4(attr.POSITION * d, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "DerivativeInVertexShader");
+    expect(diag, "dFdx in a vertex entry must report DerivativeInVertexShader").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+    expect(diag!.message).to.include("dFdx");
+  });
+
+  it("does not flag dFdx used in a fragment shader", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float d = dFdx(1.0); gl_FragColor = vec4(d); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "DerivativeInVertexShader");
+    expect(diag, "dFdx in the fragment stage must not report DerivativeInVertexShader").to.be.undefined;
+  });
+
+  it("flags a non-float argument to dFdx (NonFloatDerivativeArg)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int i = 1; float d = dFdx(i); gl_FragColor = vec4(d); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFloatDerivativeArg");
+    expect(diag, "dFdx(int) must report NonFloatDerivativeArg").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+  });
+
+  it("does not flag a float argument to dFdx", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec2 v = vec2(0.5); vec2 d = dFdx(v); gl_FragColor = vec4(d, 0.0, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonFloatDerivativeArg");
+    expect(diag, "dFdx(vec2) must not report NonFloatDerivativeArg").to.be.undefined;
+  });
+
+  it("flags too many constructor components (ConstructorArgCount)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(1.0, 2.0, 3.0, 4.0); gl_FragColor = vec4(v, 1.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    expect(diag, "vec3(1.0, 2.0, 3.0, 4.0) must report ConstructorArgCount").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+    expect(diag!.message).to.include("3 components");
+    expect(diag!.message).to.include("provide 4");
+  });
+
+  it("does not flag a single-scalar splat vec4(1.0)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec4 v = vec4(1.0); gl_FragColor = v; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "ConstructorArgCount");
+    expect(diag, "single-scalar splat must not report ConstructorArgCount").to.be.undefined;
+  });
+
+  it("warns on a function redefined in the same scope (Redefinition)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float dbl(float x) { return x + x; }
+      float dbl(float x) { return x * 2.0; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(dbl(0.5)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
+    expect(diag, "a function redeclared with the same signature must report Redefinition").to.be.ok;
+    expect(diag!.message).to.include("dbl");
+  });
+
+  it("does not flag a function overload with a different signature", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float pick(float x) { return x; }
+      float pick(vec2 v) { return v.x; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(pick(0.5)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
+    expect(diag, "a different-signature overload must not report Redefinition").to.be.undefined;
+  });
+
+  it("flags a bare gl_FragData reference (GlFragData)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec4 c = gl_FragData; gl_FragColor = c; }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "GlFragData");
+    expect(diag, "a bare gl_FragData reference must report GlFragData").to.be.ok;
+    expect(diag!.severity).to.equal("error");
+    expect(diag!.message).to.include("gl_FragData");
+  });
+
+  it("flags a non-bool 'while' condition (NonBoolCondition)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a = 1.0; while (a) { break; } gl_FragColor = vec4(a); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    expect(diag, "while (float) must report NonBoolCondition").to.be.ok;
+  });
+
+  it("flags a non-bool 'for' condition (NonBoolCondition)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { for (int i = 0; i; i++) { break; } gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    expect(diag, "for (…; int; …) must report NonBoolCondition").to.be.ok;
+  });
+
+  it("flags a non-bool ternary condition (NonBoolCondition)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a = 1.0; float b = a ? 1.0 : 0.0; gl_FragColor = vec4(b); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    expect(diag, "float ? … : … must report NonBoolCondition").to.be.ok;
+  });
+
+  it("does not flag a bool 'while' / 'for' / ternary condition", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() {
+        int j = 0;
+        while (j < 3) { j++; }
+        for (int i = 0; i < 3; i++) { j++; }
+        float b = (j > 0) ? 1.0 : 0.0;
+        gl_FragColor = vec4(b);
+      }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "NonBoolCondition");
+    expect(diag, "bool conditions must not report NonBoolCondition").to.be.undefined;
+  });
+
+  it("flags MissingReturn when only one branch of an if returns", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float pickIf(float x) { if (x > 0.0) return 1.0; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(pickIf(1.0)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
+    expect(diag, "an if without else must not guarantee return").to.be.ok;
+  });
+
+  it("flags MissingReturn when if/else's else branch is missing return", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float pickIfElse(float x) { if (x > 0.0) return 1.0; else { float y = x; } }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(pickIfElse(1.0)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
+    expect(diag, "an if/else missing a return in one arm must report MissingReturn").to.be.ok;
+  });
+
+  it("does not flag MissingReturn when both if/else arms return", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      float pickBoth(float x) { if (x > 0.0) return 1.0; else return 0.0; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(pickBoth(1.0)); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingReturn");
+    expect(diag, "both arms returning must not report MissingReturn").to.be.undefined;
+  });
+
+  it("flags a vertex shader that only reads gl_Position (MissingVertexPosition)", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { vec4 x = gl_Position; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    expect(diag, "a vertex that only reads gl_Position must report MissingVertexPosition").to.be.ok;
+  });
+
+  it("does not flag a vertex that writes gl_Position.xyz component-wise", () => {
+    const source = `Shader "x" {
+  SubShader "Default" {
+    Pass "test" {
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position.xyz = attr.POSITION; gl_Position.w = 1.0; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    }
+  }
+}`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "MissingVertexPosition");
+    expect(diag, "component-wise writes to gl_Position must count as a write").to.be.undefined;
+  });
+
+  // RenderState errors take an early return in ShaderSourceParser, so the property never reaches
+  // constantMap/variableMap. The message must state "will not be applied" so a user reading only
+  // the diagnostic can tell the engine did not receive their intended state.
+  it("InvalidRenderStateProperty message states the property will not be applied", () => {
+    const source = `Shader "rs-drop" { SubShader "s" { Pass "p" {
+      BlendState bs { NotARealProperty = true; }
+    } } }`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidRenderStateProperty");
+    expect(diag, "invalid render state property must report").to.be.ok;
+    expect(diag!.message, "message must warn the user the property is dropped").to.include("not be applied");
+  });
+
+  it("InvalidRenderStateVariable message states the property will not be applied", () => {
+    const source = `Shader "rs-drop-var" { SubShader "s" { Pass "p" {
+      DepthState = undefinedDepthVar;
+    } } }`;
+    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "InvalidRenderStateVariable");
+    expect(diag, "invalid render state variable must report").to.be.ok;
+    expect(diag!.message, "message must warn the user the property is dropped").to.include("not be applied");
   });
 });

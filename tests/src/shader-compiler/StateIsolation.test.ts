@@ -21,7 +21,9 @@ struct V2 { vec4 a; vec4 b; };
 V2 vert(Attr2 attr) { V2 o; o.a = vec4(attr.POSITION, 1.0); o.b = vec4(attr.UV, 0.0, 1.0); return o; }
 void frag(V2 i) { gl_FragColor = i.a + i.b; }`;
 
-// Parses fine but has no `vert`/`frag` entry → codegen throws, exercising the error reset path.
+// Parses fine but has no `vert`/`frag` entry — codegen soft-returns empty stage sources
+// (analyzer's `EntryNotFound` covers the user-facing error). Exercises the same reset path
+// as the previous throw did — cross-shader state must not leak.
 const broken = `struct Attributes { vec3 POSITION; }; void notAnEntry() {}`;
 
 function compile(c: ShaderCompiler, src: string) {
@@ -38,10 +40,14 @@ describe("compiler state isolation (no cross-shader leak)", () => {
     expect(a2!.fragment).to.equal(a1!.fragment);
   });
 
-  it("a throwing compile does not corrupt the next valid compile", () => {
+  it("a degraded compile (missing entries) does not corrupt the next valid compile", () => {
     const c = new ShaderCompiler();
     const clean = compile(c, shaderA);
-    expect(() => compile(c, broken)).to.throw(); // no entry function → throws
+    const brokenOut = compile(c, broken);
+    // No throw — analyzer's `EntryNotFound` is the user-facing error; codegen degrades to
+    // empty stage sources but still returns the pipeline shape.
+    expect(brokenOut!.vertex).to.equal("");
+    expect(brokenOut!.fragment).to.equal("");
     const after = compile(c, shaderA);
     expect(after!.vertex).to.equal(clean!.vertex);
     expect(after!.fragment).to.equal(clean!.fragment);

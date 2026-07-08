@@ -266,8 +266,11 @@ export namespace ASTNode {
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       }
+      // First-wins + error severity: aligns with GLSL ES §4.2.7. SymbolTable.insert now
+      // keeps the original binding on collision (drops the overwrite) and returns true — so this fires
+      // an error AND the retained binding is the first declaration, matching the spec semantic.
       if (sa.symbolTableStack.insert(sm)) {
-        sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
+        sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
       }
       // A `const`-qualified variable's initializer must be a compile-time constant.
       if (isConst && initializer && !ParserUtils.isConstExpr(initializer, sa)) {
@@ -489,7 +492,7 @@ export namespace ASTNode {
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
         if (sa.symbolTableStack.insert(sm)) {
-          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
+          sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
         }
       } else if (childrenLength === 4 || childrenLength === 6) {
         // Array-of-array is target-divergent — left to codegen/driver, not flagged here (see SingleDeclaration).
@@ -499,7 +502,7 @@ export namespace ASTNode {
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
         if (sa.symbolTableStack.insert(sm)) {
-          sa.reportWarning(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
+          sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
         }
       }
     }
@@ -730,7 +733,15 @@ export namespace ASTNode {
 
       sa.popScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
-      sa.symbolTableStack.insert(sm);
+      // Function-level Redefinition — mirrors the variable-side pattern. `insert()` returns true
+      // when a matching non-macro symbol already existed in this scope and was replaced.
+      if (sa.symbolTableStack.insert(sm)) {
+        sa.reportWarning(
+          this.protoType.ident.location,
+          `Redefinition of '${this.protoType.ident.lexeme}'.`,
+          DiagnosticType.Redefinition
+        );
+      }
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
       const { curFunctionInfo } = sa;
@@ -924,6 +935,43 @@ export namespace ASTNode {
             DiagnosticType.AssignTypeMismatch
           );
         }
+        // MissingVertexPosition uses `glPositionReferences` as the "did the vertex shader write
+        // gl_Position?" clue — only assignment targets count. `gl_Position = ...` and
+        // `gl_Position.xyz = ...` (write to a component) both qualify; `vec4 x = gl_Position;`
+        // (a read) does not. Match on the leftmost identifier in the LHS chain.
+        if (AssignmentExpression._leftmostIdentLexeme(lhs) === "gl_Position") {
+          sa.shaderData.glPositionReferences.push(lhs.location);
+        }
+      }
+    }
+
+    /**
+     * Walk the LHS of an assignment down to the leftmost `VariableIdentifier` and return its
+     * lexeme (e.g. `gl_Position.xyz` → `gl_Position`). Returns `undefined` for compound LHS
+     * shapes that aren't a base name (parenthesised, indexed, etc.).
+     */
+    private static _leftmostIdentLexeme(node: TreeNode): string | undefined {
+      let cur: TreeNode = node;
+      while (true) {
+        if (cur instanceof VariableIdentifier) {
+          const child = cur.children[0];
+          return child instanceof BaseToken ? child.lexeme : undefined;
+        }
+        // Postfix `.field` / `[index]` — the base is at children[0]; keep descending.
+        if (cur instanceof PostfixExpression && cur.children.length >= 1) {
+          const base = cur.children[0];
+          if (!(base instanceof TreeNode)) return undefined;
+          cur = base;
+          continue;
+        }
+        // Single-child expression wrappers collapse to their child; walk down.
+        if (cur instanceof ExpressionAstNode && cur.children.length === 1) {
+          const child = cur.children[0];
+          if (!(child instanceof TreeNode)) return undefined;
+          cur = child;
+          continue;
+        }
+        return undefined;
       }
     }
   }
@@ -1410,7 +1458,7 @@ export namespace ASTNode {
       const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
 
       if (sa.symbolTableStack.insert(sm)) {
-        sa.reportWarning(ident.location, `Redefinition of '${ident.lexeme}'.`, DiagnosticType.Redefinition);
+        sa.reportError(ident.location, `Redefinition of '${ident.lexeme}'.`, DiagnosticType.Redefinition);
       }
 
       if (children.length === 4) {
@@ -1506,7 +1554,8 @@ export namespace ASTNode {
         if (builtinVar) {
           this.typeInfo = builtinVar.type;
           if (name === "gl_FragColor") sa.shaderData.glFragColorReferences.push(this.location);
-          else if (name === "gl_Position") sa.shaderData.glPositionReferences.push(this.location);
+          // `gl_Position` writes are collected in `AssignmentExpression.semanticAnalyze` — reads
+          // (`vec4 x = gl_Position;`) don't count toward MissingVertexPosition.
           continue;
         }
 

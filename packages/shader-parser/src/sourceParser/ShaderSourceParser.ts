@@ -158,8 +158,10 @@ export class ShaderSourceParser {
         lookupSymbol.set(nextToken.lexeme, stateToken.type);
         const sm = this._symbolTableStack.lookup(lookupSymbol);
         if (!sm?.value) {
+          // Partial-application: the syntax-sugar assignment path takes an early return here — the
+          // outRenderStates never sees the intended merge, so the runtime silently gets nothing.
           this._createCompileError(
-            `Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme}`,
+            `Invalid "${stateToken.lexeme}" variable: ${nextToken.lexeme} — property will not be applied.`,
             nextToken.location,
             DiagnosticType.InvalidRenderStateVariable
           );
@@ -230,8 +232,10 @@ export class ShaderSourceParser {
     const constValueToken = lexer.scanToken();
     const value = this._renderStateConstMap[enumName]?.[constValueToken.lexeme] as number;
     if (value == undefined) {
+      // Partial-application: the enclosing property is skipped after this error, so the render state
+      // never receives it — say so explicitly instead of silently dropping the write.
       this._createCompileError(
-        `Invalid engine constant: ${enumName}.${constValueToken.lexeme}`,
+        `Invalid engine constant: ${enumName}.${constValueToken.lexeme} — property will not be applied.`,
         constValueToken.location,
         DiagnosticType.InvalidEnumValue
       );
@@ -268,8 +272,10 @@ export class ShaderSourceParser {
 
     const renderStateElementKey = RenderStateElementKey[stateLexeme + stateElementKey];
     if (renderStateElementKey === undefined) {
+      // Partial-application: unknown property → skip the write entirely and tell the user, so no
+      // silent difference between "user typo" and "engine forgot to plumb the state".
       this._createCompileError(
-        `Invalid render state property ${propertyLexeme}`,
+        `Invalid render state property ${propertyLexeme} — property will not be applied.`,
         undefined,
         DiagnosticType.InvalidRenderStateProperty
       );
@@ -301,8 +307,9 @@ export class ShaderSourceParser {
         lexer.skipCommentsAndSpace();
         if (lexer.getCurChar() === "|") {
           if (valueToken.lexeme !== "ColorWriteMask") {
+            // Partial-application: the whole property is dropped after this error.
             this._createCompileError(
-              `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this`,
+              `Bitwise OR '|' is not supported for '${valueToken.lexeme}', only bitmask enums like 'ColorWriteMask' support this — property will not be applied.`,
               valueToken.location,
               DiagnosticType.BitwiseOrOnNonBitmask
             );
@@ -322,8 +329,9 @@ export class ShaderSourceParser {
               return;
             }
             if (nextEnumToken.lexeme !== valueToken.lexeme) {
+              // Partial-application: the whole property is dropped after this error.
               this._createCompileError(
-                `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}'`,
+                `Cannot mix enum types in bitwise OR: expected '${valueToken.lexeme}' but got '${nextEnumToken.lexeme}' — property will not be applied.`,
                 nextEnumToken.location,
                 DiagnosticType.MixedEnumTypes
               );
@@ -341,8 +349,9 @@ export class ShaderSourceParser {
         const lookupSymbol = this._lookupSymbol;
         lookupSymbol.set(valueToken.lexeme, ETokenType.ID);
         if (!this._symbolTableStack.lookup(lookupSymbol)) {
+          // Partial-application: unknown variable binding → skip the write; the runtime never sees this state.
           this._createCompileError(
-            `Invalid ${stateLexeme} variable: ${valueToken.lexeme}`,
+            `Invalid ${stateLexeme} variable: ${valueToken.lexeme} — property will not be applied.`,
             valueToken.location,
             DiagnosticType.InvalidRenderStateVariable
           );
@@ -388,8 +397,11 @@ export class ShaderSourceParser {
       lookupSymbol.set(word.lexeme, Keyword.GSRenderQueueType);
       const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm) {
+        // Partial-application: the variable binding to RenderQueueType is missing, so the runtime
+        // won't resolve this write — an early return also leaves variableMap holding the token text.
+        // Callers must treat this as "state left unspecified" rather than assume the value took effect.
         this._createCompileError(
-          `Invalid RenderQueueType variable: ${word.lexeme}`,
+          `Invalid RenderQueueType variable: ${word.lexeme} — property will not be applied at runtime.`,
           word.location,
           DiagnosticType.InvalidRenderQueueVariable
         );

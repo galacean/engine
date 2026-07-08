@@ -1,0 +1,157 @@
+/**
+ * Smoke test — one run confirms each diagnostic fires (or omits on the negative case).
+ * Complements the fine-grained per-rule tests in ShaderAnalyzer.test.ts.
+ */
+import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
+import { describe, expect, it } from "vitest";
+
+const analyzer = new ShaderAnalyzer();
+
+function pass(body: string): string {
+  return `Shader "s" { SubShader "s" { Pass "p" {\n${body}\n} } }`;
+}
+function codes(src: string): string[] {
+  return analyzer.analyze(src).diagnostics.map((d) => d.code);
+}
+
+describe("diagnostic smoke", () => {
+  it("function redefinition fires", () => {
+    const src = pass(`
+      void foo() { }
+      void foo() { }
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("Redefinition");
+  });
+
+  it("ConstructorArgCount fires on too-many components", () => {
+    const src = pass(`
+      void frag() { gl_FragColor = vec4(1.0, 2.0, 3.0, 4.0, 5.0); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("ConstructorArgCount");
+  });
+
+  it("ConstructorArgCount fires on too-few components", () => {
+    const src = pass(`
+      void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("ConstructorArgCount");
+  });
+
+  it("bare gl_FragData reference fires GlFragData", () => {
+    const src = pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { vec4 c = gl_FragData[0]; gl_FragColor = c; }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("GlFragData");
+  });
+
+  it("NonBoolCondition fires on while", () => {
+    const src = pass(`
+      void frag() { float x = 1.0; while (x) { break; } gl_FragColor = vec4(0.0); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonBoolCondition");
+  });
+
+  it("NonBoolCondition fires on for", () => {
+    const src = pass(`
+      void frag() { for (float i = 1.0; i;) {} gl_FragColor = vec4(0.0); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonBoolCondition");
+  });
+
+  it("NonBoolCondition fires on ternary", () => {
+    const src = pass(`
+      void frag() { float x = 1.0; float y = x ? 1.0 : 2.0; gl_FragColor = vec4(y); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonBoolCondition");
+  });
+
+  it("MissingReturn fires when one branch omits return", () => {
+    const src = pass(`
+      float f() { if (1 == 1) return 1.0; }
+      void frag() { gl_FragColor = vec4(f()); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("MissingReturn");
+  });
+
+  it("MissingVertexPosition fires when vertex only reads gl_Position", () => {
+    const src = pass(`
+      void vert() { vec4 x = gl_Position; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("MissingVertexPosition");
+  });
+
+  it("Redefinition severity is error", () => {
+    const src = pass(`
+      float u_a; float u_a;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(u_a); }
+      VertexShader = vert; FragmentShader = frag;`);
+    const d = analyzer.analyze(src).diagnostics.find((x) => x.code === "Redefinition");
+    expect(d).toBeDefined();
+    expect(d!.severity).to.equal("error");
+  });
+
+  it("RenderState error message states property will not be applied", () => {
+    const src = pass(`BlendState bs { NotARealProperty = true; }`);
+    const d = analyzer.analyze(src).diagnostics.find((x) => x.code === "InvalidRenderStateProperty");
+    expect(d).toBeDefined();
+    expect(d!.message).toMatch(/not\s+be\s+applied|will\s+not/i);
+  });
+
+  it("DerivativeInVertexShader fires", () => {
+    const src = pass(`
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { float d = dFdx(a.POSITION.x); gl_Position = vec4(a.POSITION, d); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("DerivativeInVertexShader");
+  });
+
+  it("NonFloatDerivativeArg fires", () => {
+    const src = pass(`
+      void frag() { int x = 3; float d = dFdx(x); gl_FragColor = vec4(d); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonFloatDerivativeArg");
+  });
+
+  it("valid vec4 splat vec4(1.0) does NOT flag ConstructorArgCount", () => {
+    const src = pass(`
+      void frag() { gl_FragColor = vec4(1.0); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("ConstructorArgCount");
+  });
+
+  it("valid vertex writing gl_Position does NOT flag MissingVertexPosition", () => {
+    const src = pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("MissingVertexPosition");
+  });
+
+  it("function overload with different signature does NOT flag Redefinition", () => {
+    const src = pass(`
+      float f(float a) { return a; }
+      float f(vec2 a) { return a.x; }
+      void frag() { gl_FragColor = vec4(f(1.0) + f(vec2(0.0))); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("Redefinition");
+  });
+
+  it("sampler as struct member is legal per GLSL ES 3.00 §4.1.7", () => {
+    const src = pass(`
+      struct Material { mediump sampler2D tex; };
+      struct Attributes { vec3 POSITION; };
+      Material mat;
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { gl_FragColor = texture2D(mat.tex, vec2(0.0)); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("SamplerInStruct");
+  });
+});

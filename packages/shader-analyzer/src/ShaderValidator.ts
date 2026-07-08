@@ -16,14 +16,24 @@ import {
 
 /**
  * Walk-local context threaded down the recursion: the enclosing function (for the declared return
- * type and the recursion self-call check) and the current loop nesting depth (for break/continue).
- * These can't be read off a node post-parse — the parser carried them as transient SA state — so the
- * walk reconstructs them as it descends.
+ * type and the recursion self-call check), the current loop nesting depth (for break/continue), and
+ * the pipeline stage of the enclosing entry function (for derivative-in-vertex-shader). These can't
+ * be read off a node post-parse — the parser carried them as transient SA state — so the walk
+ * reconstructs them as it descends.
  */
 interface WalkContext {
   currentFunction: ASTNode.FunctionDefinition | null;
   loopDepth: number;
+  /**
+   * Pipeline stage of the enclosing entry function, or `null` when outside an entry (top-level
+   * declarations, helper functions). Set in the FunctionDefinition branch by matching the function
+   * name against the pass's vertex / fragment entry names.
+   */
+  currentStage: "vertex" | "fragment" | null;
 }
+
+/** Fragment-only derivative builtins (GLSL ES 3.00 §8.9) — illegal in the vertex stage. */
+const DERIVATIVE_BUILTINS = new Set(["dFdx", "dFdy", "fwidth"]);
 
 /**
  * Post-parse validation pass. Walks the already-typed AST (the parser built the symbol table and
@@ -32,15 +42,32 @@ interface WalkContext {
  * caller supplies the same source context the inline check carried.
  */
 export class ShaderValidator {
-  static validate(program: ASTNode.GLShaderProgram, source: string): GSError[] {
-    const v = new ShaderValidator(source);
-    v._walk(program, { currentFunction: null, loopDepth: 0 });
+  /**
+   * Validate an already-parsed program and return collected diagnostics.
+   * @param program parsed AST
+   * @param source pass source text used for diagnostic ranges
+   * @param vertexEntry vertex entry name; forwarded to walk context for stage-conditional checks
+   * @param fragmentEntry fragment entry name; forwarded to walk context for stage-conditional checks
+   * @returns diagnostics as `GSError[]`
+   */
+  static validate(
+    program: ASTNode.GLShaderProgram,
+    source: string,
+    vertexEntry: string = "",
+    fragmentEntry: string = ""
+  ): GSError[] {
+    const v = new ShaderValidator(source, vertexEntry, fragmentEntry);
+    v._walk(program, { currentFunction: null, loopDepth: 0, currentStage: null });
     return v._errors;
   }
 
   private _errors: GSError[] = [];
 
-  private constructor(private _source: string) {}
+  private constructor(
+    private _source: string,
+    private _vertexEntry: string,
+    private _fragmentEntry: string
+  ) {}
 
   private _walk(node: TreeNode, ctx: WalkContext): void {
     // A FunctionDefinition becomes the enclosing function for its subtree (GLSL has no nested
@@ -49,16 +76,33 @@ export class ShaderValidator {
     let childCtx = ctx;
     if (node instanceof ASTNode.FunctionDefinition) {
       this._checkFunctionReturn(node);
-      childCtx = { currentFunction: node, loopDepth: ctx.loopDepth };
+      // Enter the entry function's stage for its subtree so derivative-in-vertex-shader can fire.
+      // A helper called by both entries stays `null` — only calls inside the vertex entry itself flag.
+      const name = node.protoType.ident.lexeme;
+      const stage: WalkContext["currentStage"] =
+        name === this._vertexEntry && this._vertexEntry
+          ? "vertex"
+          : name === this._fragmentEntry && this._fragmentEntry
+            ? "fragment"
+            : null;
+      childCtx = { currentFunction: node, loopDepth: ctx.loopDepth, currentStage: stage };
     } else if (node instanceof ASTNode.IterationStatement) {
-      childCtx = { currentFunction: ctx.currentFunction, loopDepth: ctx.loopDepth + 1 };
+      this._checkIterationCondition(node);
+      childCtx = {
+        currentFunction: ctx.currentFunction,
+        loopDepth: ctx.loopDepth + 1,
+        currentStage: ctx.currentStage
+      };
     } else if (node instanceof ASTNode.SelectionStatement) {
       this._checkNonBoolCondition(node);
+    } else if (node instanceof ASTNode.ConditionalExpression) {
+      this._checkTernaryCondition(node);
     } else if (node instanceof ASTNode.JumpStatement) {
       this._checkJump(node, ctx);
     } else if (node instanceof ASTNode.FunctionCallGeneric) {
       this._checkConstructorArgs(node);
       this._checkRecursiveCall(node, ctx);
+      this._checkDerivativeCall(node, ctx);
     } else if (node instanceof ASTNode.UnaryExpression) {
       this._checkUnaryOperand(node);
     } else if (node instanceof ASTNode.MultiplicativeExpression) {
@@ -73,6 +117,10 @@ export class ShaderValidator {
       this._checkPostfix(node);
     } else if (node instanceof ASTNode.FunctionDeclarator) {
       this._checkReturnType(node);
+    } else if (node instanceof ASTNode.VariableIdentifier) {
+      this._checkGlFragDataReference(node);
+    } else if (node instanceof ASTNode.StructSpecifier) {
+      this._checkStructSpecifier(node);
     }
     const children = node.children;
     if (children) {
@@ -97,10 +145,67 @@ export class ShaderValidator {
       | ASTNode.ExpressionAstNode
       | undefined;
     if (!condition) return;
+    this._reportNonBoolCondition(condition, "'if' condition");
+  }
+
+  /**
+   * `while (cond)` / `for (init; cond; step)` — cond must be a bool. Same rule as `if`; the
+   * grammar wraps it in `Condition` (WHILE) or `ForRestStatement > ConditionOpt > Condition` (FOR).
+   * A `Condition` in `type id = init` form uses the initializer's type.
+   */
+  private _checkIterationCondition(node: ASTNode.IterationStatement): void {
+    const children = node.children;
+    const kw = children[0];
+    if (!(kw instanceof BaseToken)) return;
+    if (kw.type === Keyword.WHILE) {
+      const cond = children[2];
+      if (cond instanceof ASTNode.Condition) this._checkConditionNode(cond, "'while' condition");
+    } else if (kw.type === Keyword.FOR) {
+      const rest = children[3];
+      if (rest instanceof ASTNode.ForRestStatement) {
+        const opt = rest.children[0];
+        if (opt instanceof ASTNode.ConditionOpt && opt.children.length === 1) {
+          const inner = opt.children[0];
+          if (inner instanceof ASTNode.Condition) this._checkConditionNode(inner, "'for' condition");
+        }
+      }
+    }
+  }
+
+  /**
+   * Resolve a `Condition` node (either `expression` or `type id = initializer` form) to its
+   * expression-typed slot and delegate to the shared non-bool reporter.
+   */
+  private _checkConditionNode(cond: ASTNode.Condition, label: string): void {
+    const c = cond.children;
+    // `condition: expression`
+    if (c.length === 1 && c[0] instanceof ASTNode.ExpressionAstNode) {
+      this._reportNonBoolCondition(c[0] as ASTNode.ExpressionAstNode, label);
+      return;
+    }
+    // `condition: fully_specified_type id '=' initializer` — the initializer at children[3] carries the type.
+    if (c.length === 4 && c[3] instanceof ASTNode.ExpressionAstNode) {
+      this._reportNonBoolCondition(c[3] as ASTNode.ExpressionAstNode, label);
+    }
+  }
+
+  /**
+   * `cond ? a : b` — cond must be a bool. children[0] is the condition (LogicalOrExpression);
+   * the 1-child collapse form is not a ternary and is skipped.
+   */
+  private _checkTernaryCondition(node: ASTNode.ConditionalExpression): void {
+    if (node.children.length !== 5) return;
+    const condition = node.children[0];
+    if (!(condition instanceof ASTNode.ExpressionAstNode)) return;
+    this._reportNonBoolCondition(condition, "ternary condition");
+  }
+
+  /** Emit NonBoolCondition when `condition.type` is known and not bool. Skips TypeAny. */
+  private _reportNonBoolCondition(condition: ASTNode.ExpressionAstNode, label: string): void {
     const t = condition.type;
     if (t !== TypeAny && t !== Keyword.BOOL) {
       this._push(
-        `Condition of 'if' must be a bool, got '${TypeSystem.typeName(t)}'.`,
+        `${label[0].toUpperCase()}${label.slice(1)} must be a bool, got '${TypeSystem.typeName(t)}'.`,
         condition.location,
         DiagnosticType.NonBoolCondition
       );
@@ -109,7 +214,8 @@ export class ShaderValidator {
 
   /**
    * A builtin numeric constructor (`vecN(...)` etc.) cannot take a sampler/struct argument
-   * (ConstructorArgType), and a vecN needs exactly N components — too few is ConstructorArgCount.
+   * (ConstructorArgType), and a vecN needs exactly N components — too few OR too many is
+   * ConstructorArgCount. A single scalar is a valid splat (short-circuit).
    */
   private _checkConstructorArgs(node: ASTNode.FunctionCallGeneric): void {
     const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
@@ -128,8 +234,9 @@ export class ShaderValidator {
       );
       return;
     }
-    // A vecN constructor needs exactly N components from its arguments — too few is an error.
-    // A single scalar is a valid splat; matrices/unknown args can't be counted, so skip those.
+    // A vecN constructor needs exactly N components from its arguments. Matrices / unknown args
+    // can't be counted so we skip those; a single scalar is a valid splat and short-circuits before
+    // the exact-count check. Mismatch (either direction) is ConstructorArgCount.
     const need = TypeSystem.vectorComponentCount(functionIdentifier.ident);
     if (need <= 0) return;
     let total = 0;
@@ -143,7 +250,7 @@ export class ShaderValidator {
       total += c;
     }
     const singleScalar = list.paramSig.length === 1 && TypeSystem.isScalarType(list.paramSig[0]);
-    if (countable && !singleScalar && total < need) {
+    if (countable && !singleScalar && total !== need) {
       this._push(
         `Constructor '${TypeSystem.typeName(functionIdentifier.ident)}' needs ${need} components but the arguments provide ${total}.`,
         list.location,
@@ -291,8 +398,9 @@ export class ShaderValidator {
           this._push(m, index.location, DiagnosticType.IndexOutOfBounds);
         }
       } else {
-        // A constant index past a fixed-size array's bounds is out of bounds (Naga bounds-checks
-        // fixed-size arrays, not just vectors). Unsized / non-array bases keep arraySize undefined.
+        // A constant index past a fixed-size array's bounds is out of bounds — the spec
+        // requires bounds-checking fixed-size arrays as well as vectors. Unsized / non-array
+        // bases keep arraySize undefined.
         const baseIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
         const arraySize = baseIdent?.arraySize;
         if (arraySize !== undefined) {
@@ -306,7 +414,36 @@ export class ShaderValidator {
     }
   }
 
-  /** A sampler (opaque) type cannot be returned by value — GLSL forbids it. */
+  /**
+   * `gl_FragData` referenced by name (bare, `.x` swizzle, non-index postfix) is removed in the IO
+   * model; the postfix check already handles `gl_FragData[i]`. Skip when this identifier is the base
+   * of an indexed PostfixExpression to avoid double-firing.
+   */
+  private _checkGlFragDataReference(node: ASTNode.VariableIdentifier): void {
+    const child = node.children[0];
+    if (!(child instanceof BaseToken) || child.lexeme !== "gl_FragData") return;
+    // In `gl_FragData[i]` the identifier lives inside PrimaryExpression → PostfixExpression[len=4]
+    // as `children[0]`. `_checkPostfix` reports that shape; skip here so we don't duplicate.
+    const primary = node.parent;
+    if (primary instanceof ASTNode.PrimaryExpression) {
+      const postfix = primary.parent;
+      if (
+        postfix instanceof ASTNode.PostfixExpression &&
+        postfix.children.length === 4 &&
+        postfix.children[0] === primary
+      ) {
+        return;
+      }
+    }
+    this._push("Please use MRT struct instead of gl_FragData.", node.location, DiagnosticType.GlFragData);
+  }
+
+  /**
+   * A sampler (opaque) type or a struct containing a sampler cannot be returned by value — GLSL
+   * forbids returning opaque types (spec §6.1). Struct returns look up the members via the symbol
+   * table; recursion through nested structs is bounded by declaration order (a struct can only name
+   * an already-declared struct).
+   */
   private _checkReturnType(node: ASTNode.FunctionDeclarator): void {
     const returnType = node.returnType;
     if (TypeSystem.isSamplerType(returnType.type)) {
@@ -319,15 +456,85 @@ export class ShaderValidator {
   }
 
   /**
-   * Function-level MissingReturn: a non-void function with no return statement. The void-with-value
-   * case is reported per-jump in `_checkJump` (the parser no longer records `returnStatement` for
-   * void functions — it's a codegen invariant, see AST.ts FunctionDefinition.semanticAnalyze).
+   * Function-level MissingReturn: a non-void function whose body does not guarantee a return on
+   * every control-flow path. A simple per-path CFG: a block guarantees return if its last executed
+   * statement is either a `return value;` or an `if/else` where both arms guarantee. Loops / macros
+   * / switch are conservatively treated as "may not return" — a `for {…return…}` doesn't count
+   * because the loop might not execute. The void-with-value case is reported per-jump in
+   * `_checkJump` (the parser no longer records `returnStatement` for void functions — codegen
+   * invariant, see AST.ts FunctionDefinition.semanticAnalyze).
    */
   private _checkFunctionReturn(node: ASTNode.FunctionDefinition): void {
     const returnType = node.protoType.returnType;
-    if (returnType.type !== Keyword.VOID && !node.returnStatement) {
+    if (returnType.type === Keyword.VOID) return;
+    if (!ShaderValidator._blockGuaranteesReturn(node.statements)) {
       this._push(`No return statement found.`, returnType.location, DiagnosticType.MissingReturn);
     }
+  }
+
+  /** True if `node` (a block-like or statement wrapper) definitely returns on every path. */
+  private static _blockGuaranteesReturn(node: TreeNode | undefined): boolean {
+    if (!node) return false;
+    // A JumpStatement whose keyword is RETURN — `return value;` (children.length === 3) or
+    // `return;` (children.length === 2). Only valid in void, but still terminates the path.
+    if (node instanceof ASTNode.JumpStatement) {
+      const kw = node.children[0];
+      return kw instanceof BaseToken && kw.type === Keyword.RETURN;
+    }
+    // If/else — both arms must guarantee. `if` alone (no else) doesn't guarantee: the else path
+    // falls through.
+    if (node instanceof ASTNode.SelectionStatement) {
+      // Grammar: IF '(' expression ')' statement (ELSE statement)?
+      const children = node.children;
+      if (children.length !== 7) return false;
+      return (
+        ShaderValidator._blockGuaranteesReturn(children[4] as TreeNode) &&
+        ShaderValidator._blockGuaranteesReturn(children[6] as TreeNode)
+      );
+    }
+    // A block/statement wrapper: walk to the last real statement of a block and recurse.
+    const last = ShaderValidator._lastStatementOf(node);
+    if (last && last !== node) return ShaderValidator._blockGuaranteesReturn(last);
+    return false;
+  }
+
+  /**
+   * Descend through the block/statement wrappers used by the grammar (Statement, SimpleStatement,
+   * CompoundStatement, CompoundStatementNoScope, StatementList) to the last real statement of a
+   * block. Returns `undefined` for empty blocks; returns the input for a non-block leaf.
+   */
+  private static _lastStatementOf(node: TreeNode): TreeNode | undefined {
+    if (
+      node instanceof ASTNode.Statement ||
+      node instanceof ASTNode.SimpleStatement ||
+      node instanceof ASTNode.CompoundStatement ||
+      node instanceof ASTNode.CompoundStatementNoScope
+    ) {
+      const children = node.children;
+      // `{}` — empty block.
+      if (children.length === 2) return undefined;
+      // Walk into the non-brace children (a Statement / StatementList) and take the last real leaf.
+      for (const child of children) {
+        if (child instanceof TreeNode) {
+          const inner = ShaderValidator._lastStatementOf(child);
+          if (inner) return inner;
+        }
+      }
+      return undefined;
+    }
+    if (node instanceof ASTNode.StatementList) {
+      // Left-recursive: the last child is always the newest Statement.
+      const children = node.children;
+      for (let i = children.length - 1; i >= 0; i--) {
+        const c = children[i];
+        if (c instanceof TreeNode) {
+          const inner = ShaderValidator._lastStatementOf(c);
+          if (inner) return inner;
+        }
+      }
+      return undefined;
+    }
+    return node;
   }
 
   /**
@@ -394,5 +601,62 @@ export class ShaderValidator {
         DiagnosticType.RecursiveFunction
       );
     }
+  }
+
+  /**
+   * Fragment-only derivative builtins (`dFdx`/`dFdy`/`fwidth`) — illegal in the vertex shader
+   * (`DerivativeInVertexShader`) and require a float/floatN argument (`NonFloatDerivativeArg`).
+   * Only user-callable functions reach here (isBuiltin=false, since the identifier is a string name,
+   * not a type keyword); constructors like `vec3(...)` never match a derivative name.
+   */
+  private _checkDerivativeCall(node: ASTNode.FunctionCallGeneric, ctx: WalkContext): void {
+    const functionIdentifier = node.children[0] as ASTNode.FunctionIdentifier;
+    if (functionIdentifier.isBuiltin) return;
+    const name = functionIdentifier.lexeme;
+    if (!DERIVATIVE_BUILTINS.has(name)) return;
+
+    if (ctx.currentStage === "vertex") {
+      this._push(
+        `Derivative function '${name}' is not allowed in the vertex shader (fragment-only).`,
+        node.location,
+        DiagnosticType.DerivativeInVertexShader
+      );
+    }
+
+    // Spec: derivative builtins take `genType` (float/vec2/vec3/vec4); anything else is a type error.
+    if (node.children.length === 4 && node.children[2] instanceof ASTNode.FunctionCallParameterList) {
+      const list = node.children[2] as ASTNode.FunctionCallParameterList;
+      const paramSig = list.paramSig;
+      if (paramSig.length === 1) {
+        const t = paramSig[0];
+        if (t !== TypeAny && !ShaderValidator._isFloatOrFloatVector(t)) {
+          const argNode = list.paramNodes[0] as TreeNode | undefined;
+          this._push(
+            `'${name}' expects a float or floatN argument, got '${TypeSystem.typeName(t)}'.`,
+            argNode?.location ?? list.location,
+            DiagnosticType.NonFloatDerivativeArg
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * `struct Foo { ... }` — flags an empty body (`EmptyStruct`). An empty body is unreachable via
+   * the plain grammar (`struct_declaration_list` requires ≥1 declaration → SyntaxError first), but a
+   * fully-macro-guarded body can reduce to zero collected props; the check catches that shape rather
+   * than the surface form.
+   */
+  private _checkStructSpecifier(node: ASTNode.StructSpecifier): void {
+    const propList = node.propList;
+    if (!propList || propList.length === 0) {
+      const location = node.ident?.location ?? node.location;
+      this._push("Struct declaration must contain at least one member.", location, DiagnosticType.EmptyStruct);
+    }
+  }
+
+  /** float / vec2 / vec3 / vec4 — the `genType` family derivative builtins accept. */
+  private static _isFloatOrFloatVector(t: unknown): boolean {
+    return t === Keyword.FLOAT || t === Keyword.VEC2 || t === Keyword.VEC3 || t === Keyword.VEC4;
   }
 }

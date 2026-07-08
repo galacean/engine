@@ -622,4 +622,58 @@ describe("ShaderCompiler", async () => {
     expect(fragment).to.contain("u_globalLightDir");
     expect(fragment).to.contain("normalize");
   });
+
+  // Regression: a struct used as BOTH varying and attribute must NOT land in codegen's
+  // in/out lists — analyzer drops it from every role array so no duplicate `in IO`/`out IO`
+  // for the same name ever leaves the compiler. Diagnosed by ShaderIOAnalyzer; codegen just
+  // has to produce non-duplicated declarations.
+  it("struct-role-conflict codegen: no duplicate in/out declarations for the same struct name", () => {
+    const conflict = `Shader "conf" { SubShader "s" { Pass "p" {
+      struct IO { vec4 v; };
+      IO vert(IO attr) { IO o; gl_Position = vec4(0.0); return o; }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;
+    } } }`;
+    const parsed = shaderCompilerRelease._parseShaderSource(conflict);
+    const pass = parsed.subShaders[0].passes[0];
+    const out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
+    expect(out, "codegen still returns a result").not.to.be.undefined;
+    // Neither stage may declare `IO` as `in` and `out` in the same source; the strong statement
+    // is that neither declaration appears at all — the struct's role is ambiguous, so the analyzer
+    // has surfaced `StructRoleConflict` and codegen has emitted nothing for it.
+    const combined = out!.vertex + "\n" + out!.fragment;
+    expect(combined).not.to.match(/^\s*in\s+IO\b/m);
+    expect(combined).not.to.match(/^\s*out\s+IO\b/m);
+    // `attribute IO` / `varying IO` cover the GLSL ES 1.00 codegen path (same rationale).
+    expect(combined).not.to.match(/^\s*attribute\s+IO\b/m);
+    expect(combined).not.to.match(/^\s*varying\s+IO\b/m);
+  });
+
+  // Regression: wrong entry-name binding (`VertexShader = notReal;`) — analyzer's
+  // `EntryNotFound` covers the user-facing error; codegen must degrade to an empty
+  // stage source instead of throwing (keeps validator and emitter concerns separated).
+  it("missing entry codegen: soft-returns empty stage source instead of throwing", () => {
+    const missingEntry = `Shader "miss" { SubShader "s" { Pass "p" {
+      struct Attributes { vec3 POSITION; };
+      void realVert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = notReal;
+      FragmentShader = frag;
+    } } }`;
+    const parsed = shaderCompilerRelease._parseShaderSource(missingEntry);
+    const pass = parsed.subShaders[0].passes[0];
+    let threw: unknown = null;
+    let out: any;
+    try {
+      out = shaderCompilerRelease._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, 0);
+    } catch (e) {
+      threw = e;
+    }
+    expect(threw, "codegen must not throw for a missing entry").to.be.null;
+    expect(out, "codegen returns pipeline shape even for a missing entry").not.to.be.undefined;
+    expect(out.vertex, "missing vertex entry → empty vertex source").to.equal("");
+    // Fragment entry is valid — still compiles.
+    expect(out.fragment).to.be.a("string").and.not.empty;
+  });
 });
