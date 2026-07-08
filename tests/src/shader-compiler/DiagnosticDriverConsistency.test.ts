@@ -711,6 +711,124 @@ const cases: Case[] = [
     fragEntry: "frag",
     driverExpects: "reject",
     reason: "§5.8 assignment operands must have the same type — no implicit conversion"
+  },
+  // ─────────── Gaps found by glslang-corpus scan (2026-07-08 diagnostic-gap round) ───────────
+  {
+    name: "InvalidBinaryOperands — `%` on floats",
+    code: "InvalidBinaryOperands",
+    severity: "error",
+    passBody: `
+      float u_f;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float x = u_f % u_f; gl_FragColor = vec4(x); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §5.9: modulo requires integer operands"
+  },
+  {
+    name: "InvalidAssignmentTarget — `u_i++` on a uniform (`u_i` global, no initializer)",
+    code: "InvalidAssignmentTarget",
+    severity: "error",
+    passBody: `
+      int u_i;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { u_i++; gl_FragColor = vec4(float(u_i)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    // Codegen still emits GLSL; the driver rejects with "l-value required (can't modify a uniform)".
+    driverExpects: "reject",
+    reason: "GLSL ES §5.9: a uniform is not an l-value"
+  },
+  {
+    name: "InvalidSwizzle — `.rr` on a sampler receiver",
+    code: "InvalidSwizzle",
+    severity: "error",
+    passBody: `
+      sampler2D s;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { vec2 v = s.rr; gl_FragColor = vec4(v, 0.0, 1.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §5.5: field selection requires structure / vector / scalar receiver"
+  },
+  {
+    name: "InvalidSwizzle — `.xx` on a void function-call result",
+    code: "InvalidSwizzle",
+    severity: "error",
+    // Codegen may return undefined for this shape; the analyzer still fires and that's the
+    // consistency claim we're checking here.
+    passBody: `
+      void f() {}
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { f().xx; gl_FragColor = vec4(0.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "§5.5 — same rule as G3, void return has no fields"
+  },
+  {
+    name: "InvalidBinaryOperands — `&&` between two int values (not bool)",
+    code: "InvalidBinaryOperands",
+    severity: "error",
+    passBody: `
+      int u_i;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { int x = int(u_i && u_i); gl_FragColor = vec4(float(x)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §5.9: `&&` requires scalar bool operands"
+  },
+  {
+    name: "InvalidBinaryOperands — `int + float` mix",
+    code: "InvalidBinaryOperands",
+    severity: "error",
+    passBody: `
+      int u_i;
+      float u_f;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float x = float(u_i + u_f > 0 ? 1 : 0); gl_FragColor = vec4(x); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    // The `u_i + u_f` sub-expression is the target — driver rejects the whole shader.
+    driverExpects: "reject",
+    reason: "GLSL ES §4: no implicit conversion between int and float in arithmetic"
+  },
+  {
+    name: "InvalidBinaryOperands — `ivec3 + uvec3` mix",
+    code: "InvalidBinaryOperands",
+    severity: "error",
+    passBody: `
+      ivec3 u_iv3;
+      uvec3 u_uv3;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { ivec3 x = u_iv3 + u_uv3; gl_FragColor = vec4(float(x.x)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §5.9: int and uint families are distinct — no auto-conversion"
+  },
+  {
+    name: "LocalFunctionPrototype — `int g();` inside a function body",
+    code: "LocalFunctionPrototype",
+    severity: "error",
+    passBody: `
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { int g(); gl_FragColor = vec4(0.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §6: function prototypes only at global scope"
   }
 ];
 

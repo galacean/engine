@@ -1504,12 +1504,17 @@ export namespace ASTNode {
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as BaseToken;
       this.type = type;
+      // A global variable without an initializer is Galacean's implicit uniform (bound at runtime
+      // by the material system). With an initializer, `this.isStatic` becomes true — it's a
+      // compile-time value, not a uniform. `const`-qualified is a separate read-only path.
+      const hasInitializer = children.length === 4;
       const sm = new VarSymbol(
         ident.lexeme,
         new SymbolType(type.type, type.typeSpecifier.lexeme),
         true,
         this,
-        type.isConst
+        type.isConst,
+        !hasInitializer && !type.isConst
       );
 
       if (sa.symbolTableStack.insert(sm)) {

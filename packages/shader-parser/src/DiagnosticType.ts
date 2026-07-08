@@ -12,6 +12,7 @@ export enum DiagnosticType {
   NoMatchingOverload = "NoMatchingOverload",
   Redefinition = "Redefinition",
   UseBeforeDeclaration = "UseBeforeDeclaration",
+  LocalFunctionPrototype = "LocalFunctionPrototype",
 
   // Type
   InvalidSwizzle = "InvalidSwizzle",

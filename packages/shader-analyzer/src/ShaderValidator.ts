@@ -4,9 +4,11 @@ import {
   DiagnosticType,
   ESymbolType,
   ETokenType,
+  GalaceanDataType,
   GSError,
   GSErrorName,
   Keyword,
+  NodeChild,
   ParserUtils,
   ShaderCompilerUtils,
   ShaderRange,
@@ -133,15 +135,36 @@ export class ShaderValidator {
     } else if (node instanceof ASTNode.MultiplicativeExpression) {
       // A bad operand reports InvalidBinaryOperands and suppresses the divide-by-zero check on the
       // same node — clean operands are the only case the const-zero check needs to consider.
-      if (!this._checkArithmeticOperands(node)) this._checkConstDivideByZero(node);
+      if (!this._checkArithmeticOperands(node)) {
+        this._checkConstDivideByZero(node);
+        // `%` additionally requires integer operands per §5.9. Floats slip past _checkArithmetic-
+        // Operands because they're a valid arithmetic type, but the driver rejects `float % float`.
+        this._checkModuloOperandsInteger(node);
+        this._checkArithmeticFamilyMatch(node);
+      }
     } else if (node instanceof ASTNode.AdditiveExpression) {
-      this._checkArithmeticOperands(node);
+      if (!this._checkArithmeticOperands(node)) this._checkArithmeticFamilyMatch(node);
     } else if (node instanceof ASTNode.ShiftExpression) {
       this._checkShiftRange(node);
+      this._checkIntegerBinaryOperands(node);
+    } else if (
+      node instanceof ASTNode.AndExpression ||
+      node instanceof ASTNode.ExclusiveOrExpression ||
+      node instanceof ASTNode.InclusiveOrExpression
+    ) {
+      this._checkIntegerBinaryOperands(node);
+    } else if (
+      node instanceof ASTNode.LogicalAndExpression ||
+      node instanceof ASTNode.LogicalXorExpression ||
+      node instanceof ASTNode.LogicalOrExpression
+    ) {
+      this._checkScalarBoolBinaryOperands(node);
     } else if (node instanceof ASTNode.PostfixExpression) {
       this._checkPostfix(node);
     } else if (node instanceof ASTNode.FunctionDeclarator) {
       this._checkReturnType(node);
+    } else if (node instanceof ASTNode.FunctionProtoType) {
+      this._checkLocalFunctionPrototype(node, ctx);
     } else if (node instanceof ASTNode.StructSpecifier) {
       this._checkStructSpecifier(node);
     } else if (node instanceof ASTNode.AssignmentExpression) {
@@ -268,7 +291,14 @@ export class ShaderValidator {
         const lookup = ShaderValidator._varLookup;
         lookup.set(child.lexeme, ESymbolType.VAR);
         const symbol = this._shaderData.symbolTable.getSymbol(lookup);
-        if (symbol instanceof VarSymbol && symbol.isConst) return "a const-qualified variable";
+        if (symbol instanceof VarSymbol) {
+          if (symbol.isConst) return "a const-qualified variable";
+          // GLSL ES §5.9: uniforms, inputs, and samplers are not l-values. Galacean models
+          // uniform via `VarSymbol.isUniform` (global, no initializer). The driver rejects
+          // `u_i++` with `l-value required (can't modify a uniform "u_i")`.
+          if (symbol.isUniform) return "a uniform variable";
+          if (TypeSystem.isSamplerType(symbol.dataType?.type)) return "a sampler";
+        }
       }
       return undefined;
     }
@@ -414,8 +444,29 @@ export class ShaderValidator {
    * TypeAny (continue-with-unknown); `++`/`--` reduce with a raw token child and are not handled here.
    */
   private _checkUnaryOperand(node: ASTNode.UnaryExpression): void {
-    if (node.children.length !== 2 || !(node.children[0] instanceof ASTNode.UnaryOperator)) return;
-    const opToken = (node.children[0] as ASTNode.UnaryOperator).children[0];
+    if (node.children.length !== 2) return;
+    // Prefix `++`/`--` — first child is the raw INC_OP/DEC_OP token (not wrapped in UnaryOperator).
+    // The operand must be an l-value per §5.9, same rule as postfix `++`/`--`.
+    const firstChild = node.children[0];
+    if (
+      firstChild instanceof BaseToken &&
+      (firstChild.type === ETokenType.INC_OP || firstChild.type === ETokenType.DEC_OP)
+    ) {
+      const operand = node.children[1];
+      if (operand instanceof TreeNode) {
+        const reason = this._nonAssignableReason(operand);
+        if (reason) {
+          this._push(
+            `Cannot apply '${firstChild.lexeme}' to ${reason} — the operand of '${firstChild.lexeme}' must be a modifiable l-value.`,
+            operand.location,
+            DiagnosticType.InvalidAssignmentTarget
+          );
+        }
+      }
+      return;
+    }
+    if (!(firstChild instanceof ASTNode.UnaryOperator)) return;
+    const opToken = firstChild.children[0];
     const operand = node.children[1] as ASTNode.ExpressionAstNode;
     const t = operand.type;
     if (!(opToken instanceof BaseToken) || t === TypeAny) return;
@@ -458,6 +509,149 @@ export class ShaderValidator {
       return true;
     }
     return false;
+  }
+
+  /**
+   * GLSL ES §6.1: function declarations (prototypes) may only appear at global scope. The grammar
+   * accepts `int g();` inside a function body, so without this check the parser cascades into a
+   * misleading `EntryNotFound`. A `FunctionProtoType` wrapped in a `FunctionDefinition` is the
+   * body path — that's a legal definition, not a prototype declaration.
+   */
+  private _checkLocalFunctionPrototype(node: ASTNode.FunctionProtoType, ctx: WalkContext): void {
+    if (!ctx.currentFunction) return;
+    if (node.parent instanceof ASTNode.FunctionDefinition) return;
+    this._push(
+      `Function prototype '${node.ident.lexeme}' cannot be declared inside a function body — declare it at global scope.`,
+      node.location,
+      DiagnosticType.LocalFunctionPrototype
+    );
+  }
+
+  /**
+   * `%` requires integer operands per §5.9. `_checkArithmeticOperands` accepts floats (they're a
+   * valid *arithmetic* type), so this is an additional pass that only fires for the `%` operator.
+   * Direct-operand check only — compound expressions resolve to TypeAny per Phase-2 constraint.
+   */
+  private _checkModuloOperandsInteger(node: ASTNode.MultiplicativeExpression): void {
+    if (node.children.length !== 3) return;
+    const op = node.children[1];
+    if (!(op instanceof BaseToken) || op.type !== ETokenType.PERCENT) return;
+    const bad = this._firstNonIntegerOperand(node.children[0], node.children[2]);
+    if (bad) {
+      this._push(
+        `Operator '%' requires integer operands, got '${TypeSystem.typeName(bad.type)}'.`,
+        bad.location,
+        DiagnosticType.InvalidBinaryOperands
+      );
+    }
+  }
+
+  /**
+   * `<<` `>>` `&` `|` `^` — all take integer scalar-or-vector operands per §5.9. Same
+   * direct-operand contract as `_checkModuloOperandsInteger`.
+   */
+  private _checkIntegerBinaryOperands(
+    node:
+      | ASTNode.ShiftExpression
+      | ASTNode.AndExpression
+      | ASTNode.ExclusiveOrExpression
+      | ASTNode.InclusiveOrExpression
+  ): void {
+    if (node.children.length !== 3) return;
+    const op = node.children[1];
+    const opLexeme = op instanceof BaseToken ? op.lexeme : "op";
+    const bad = this._firstNonIntegerOperand(node.children[0], node.children[2]);
+    if (bad) {
+      this._push(
+        `Operator '${opLexeme}' requires integer operands, got '${TypeSystem.typeName(bad.type)}'.`,
+        bad.location,
+        DiagnosticType.InvalidBinaryOperands
+      );
+    }
+  }
+
+  /**
+   * `&&` `||` `^^` — each operand must be `bool` scalar per §5.9. GLSL ES rejects `bvecN` operands
+   * (desktop-GL 4.x does allow it; ES 3.00 does not).
+   */
+  private _checkScalarBoolBinaryOperands(
+    node: ASTNode.LogicalAndExpression | ASTNode.LogicalXorExpression | ASTNode.LogicalOrExpression
+  ): void {
+    if (node.children.length !== 3) return;
+    const op = node.children[1];
+    const opLexeme = op instanceof BaseToken ? op.lexeme : "op";
+    const bad = this._firstNonScalarBoolOperand(node.children[0], node.children[2]);
+    if (bad) {
+      this._push(
+        `Operator '${opLexeme}' requires scalar bool operands, got '${TypeSystem.typeName(bad.type)}'.`,
+        bad.location,
+        DiagnosticType.InvalidBinaryOperands
+      );
+    }
+  }
+
+  /**
+   * GLSL ES §4: no implicit conversions between types. §5.9 arithmetic operators require the two
+   * operands to share a primitive family — `float + vec3` is OK (float scalar-broadcasts into
+   * float vector), `int + float` is not; `ivec3 + uvec3` is not. Fires only when both operands
+   * have a concrete numeric family — TypeAny / struct / bool / sampler stay to the earlier
+   * `_checkArithmeticOperands` pass.
+   */
+  private _checkArithmeticFamilyMatch(node: ASTNode.MultiplicativeExpression | ASTNode.AdditiveExpression): void {
+    if (node.children.length !== 3) return;
+    const left = node.children[0];
+    const right = node.children[2];
+    if (!(left instanceof ASTNode.ExpressionAstNode) || !(right instanceof ASTNode.ExpressionAstNode)) return;
+    const lf = ShaderValidator._arithmeticFamily(left.type);
+    const rf = ShaderValidator._arithmeticFamily(right.type);
+    if (lf === undefined || rf === undefined || lf === rf) return;
+    const op = node.children[1];
+    const opLexeme = op instanceof BaseToken ? op.lexeme : "op";
+    this._push(
+      `Operator '${opLexeme}' cannot mix '${TypeSystem.typeName(left.type)}' and '${TypeSystem.typeName(right.type)}' — GLSL ES has no implicit conversion.`,
+      node.location,
+      DiagnosticType.InvalidBinaryOperands
+    );
+  }
+
+  /** Primitive family of a numeric scalar / vector / matrix, or undefined if unknown or non-numeric. */
+  private static _arithmeticFamily(t: GalaceanDataType | undefined): "float" | "int" | "uint" | undefined {
+    if (t === undefined || t === TypeAny || typeof t === "string") return undefined;
+    if (TypeSystem.isBoolType(t) || TypeSystem.isSamplerType(t)) return undefined;
+    if (TypeSystem.matrixComponentCount(t) > 0) return "float";
+    switch (t) {
+      case Keyword.FLOAT:
+      case Keyword.VEC2:
+      case Keyword.VEC3:
+      case Keyword.VEC4:
+        return "float";
+      case Keyword.INT:
+      case Keyword.IVEC2:
+      case Keyword.IVEC3:
+      case Keyword.IVEC4:
+        return "int";
+      case Keyword.UINT:
+      case Keyword.UVEC2:
+      case Keyword.UVEC3:
+      case Keyword.UVEC4:
+        return "uint";
+      default:
+        return undefined;
+    }
+  }
+
+  /** First operand whose direct type is neither integer nor `TypeAny`. */
+  private _firstNonIntegerOperand(a: NodeChild, b: NodeChild): ASTNode.ExpressionAstNode | undefined {
+    if (a instanceof ASTNode.ExpressionAstNode && a.type !== TypeAny && !TypeSystem.isIntegerType(a.type)) return a;
+    if (b instanceof ASTNode.ExpressionAstNode && b.type !== TypeAny && !TypeSystem.isIntegerType(b.type)) return b;
+    return undefined;
+  }
+
+  /** First operand whose direct type is neither `bool` nor `TypeAny`. */
+  private _firstNonScalarBoolOperand(a: NodeChild, b: NodeChild): ASTNode.ExpressionAstNode | undefined {
+    if (a instanceof ASTNode.ExpressionAstNode && a.type !== TypeAny && a.type !== Keyword.BOOL) return a;
+    if (b instanceof ASTNode.ExpressionAstNode && b.type !== TypeAny && b.type !== Keyword.BOOL) return b;
+    return undefined;
   }
 
   /**
@@ -506,9 +700,45 @@ export class ShaderValidator {
    */
   private _checkPostfix(node: ASTNode.PostfixExpression): void {
     const children = node.children;
+    // `postfix ++` / `postfix --` — the operand must be an l-value per §5.9.
+    if (children.length === 2 && children[1] instanceof BaseToken) {
+      const op = children[1];
+      const operand = children[0];
+      if ((op.type === ETokenType.INC_OP || op.type === ETokenType.DEC_OP) && operand instanceof TreeNode) {
+        const reason = this._nonAssignableReason(operand);
+        if (reason) {
+          this._push(
+            `Cannot apply '${op.lexeme}' to ${reason} — the operand of '${op.lexeme}' must be a modifiable l-value.`,
+            operand.location,
+            DiagnosticType.InvalidAssignmentTarget
+          );
+        }
+      }
+      return;
+    }
     if (children.length === 3 && children[2] instanceof BaseToken) {
       const base = children[0] as ASTNode.ExpressionAstNode;
       const field = children[2];
+      // GLSL ES §5.5: `.field` on a receiver that is not a struct, scalar, or vector is invalid.
+      // The driver rejects `s.rr` (sampler) or `f().xx` (void return) with "field selection requires
+      // structure, vector, or interface block on left hand side". Skip TypeAny — unknown types keep
+      // the wiggle room. Struct types are strings; `ParserUtils.swizzleError` already returns null
+      // for them and the parser's inline UndeclaredStructMember path takes over.
+      const baseType = base.type;
+      if (
+        baseType !== undefined &&
+        baseType !== TypeAny &&
+        typeof baseType !== "string" &&
+        TypeSystem.vectorComponentCount(baseType) === 0 &&
+        !TypeSystem.isScalarType(baseType)
+      ) {
+        this._push(
+          `Field selection '.${field.lexeme}' requires a structure, vector, or scalar receiver — got '${TypeSystem.typeName(baseType)}'.`,
+          field.location,
+          DiagnosticType.InvalidSwizzle
+        );
+        return;
+      }
       const swizzleError = ParserUtils.swizzleError(base.type, field.lexeme);
       if (swizzleError) {
         this._push(swizzleError, field.location, DiagnosticType.InvalidSwizzle);

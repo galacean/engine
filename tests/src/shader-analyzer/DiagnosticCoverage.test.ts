@@ -220,6 +220,13 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       void vert() { gl_Position = vec4(0.0); }
       void frag() { A = 2; gl_FragColor = vec4(1.0); }
       VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    code: "LocalFunctionPrototype",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { int g(); gl_FragColor = vec4(1.0); }
+      VertexShader = vert; FragmentShader = frag;`)
   }
 ];
 
