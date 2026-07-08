@@ -280,6 +280,21 @@ export namespace ASTNode {
           DiagnosticType.NonConstInitializer
         );
       }
+      // GLSL ES §5.8 — declared type and initializer type must match exactly; explicit constructors
+      // are the only conversion mechanism (§5.4.1). Real drivers reject `float b = 1;` as a
+      // "cannot convert" error. Array initializers require component-level checking, skip those.
+      if (initializer && !this.arraySpecifier) {
+        const initType = initializer.type;
+        if (!TypeSystem.isAssignable(fullyType.type, initType)) {
+          sa.reportError(
+            initializer.location,
+            `Cannot initialize '${id.lexeme}' of type '${TypeSystem.typeName(
+              fullyType.type
+            )}' from '${TypeSystem.typeName(initType)}'.`,
+            DiagnosticType.AssignTypeMismatch
+          );
+        }
+      }
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -1503,6 +1518,19 @@ export namespace ASTNode {
 
       if (children.length === 4) {
         this.isStatic = true;
+        // GLSL ES §5.8 — declared type and initializer type must match exactly. Same rule the
+        // local `SingleDeclaration` path enforces; global scope was previously missing this check.
+        const initializer = children[3] as Initializer;
+        const initType = initializer.type;
+        if (!TypeSystem.isAssignable(type.type, initType)) {
+          sa.reportError(
+            initializer.location,
+            `Cannot initialize '${ident.lexeme}' of type '${TypeSystem.typeName(
+              type.type
+            )}' from '${TypeSystem.typeName(initType)}'.`,
+            DiagnosticType.AssignTypeMismatch
+          );
+        }
       }
     }
 

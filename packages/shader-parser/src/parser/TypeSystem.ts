@@ -5,37 +5,24 @@ export type { GalaceanDataType } from "../common/types";
 
 export class TypeSystem {
   /**
-   * GLSL ES 3.00 assignability with implicit scalar/vector conversions (spec 4.1.10):
-   * `int → uint, float`; `uint → float`; `ivecN → uvecN, vecN`; `uvecN → vecN`. Returns `true`
-   * when `source` may be assigned to `target`. Struct types (string) compare by name — same name
-   * means same struct type; different names are a hard conflict.
+   * GLSL ES §4 states the language is type-safe with **no implicit conversions between types**;
+   * §5.8 (assignment) and §5.9 (binary expressions) both require the operand types to match, and
+   * §5.4.1 lists explicit scalar constructors (`float(int)`, `int(float)`, …) as the only conversion
+   * mechanism. Constructor argument coercion (e.g. `vec2(1, 2)` accepting ints) is a separate
+   * constructor-argument rule handled by `ShaderValidator._checkConstructorArgs`, not here.
+   *
+   * Real WebGL 1 and WebGL 2 drivers enforce this strictly — `float b = 1;` is rejected. Naga's
+   * `implicit_conversion` (int→float scalar promotion) violates the spec; do not mirror it.
+   *
+   * Returns `true` when `source` may be assigned to `target`. Struct types (string) compare by
+   * name — same name means the same struct; different names are a hard conflict.
    */
   static isAssignable(target: GalaceanDataType | undefined, source: GalaceanDataType | undefined): boolean {
     if (target == undefined || source == undefined || target === TypeAny || source === TypeAny) return true;
-    // Struct types compare by name (spec 4.1.8: types are equal only if they are the same struct).
+    // Struct types compare by name (§4.1.8: types are equal only if they are the same struct).
     // Mixed struct-vs-primitive is a conflict; struct-vs-struct with different names is a conflict.
     if (typeof target === "string" || typeof source === "string") return target === source;
-    if (target === source) return true;
-    switch (source) {
-      case Keyword.INT:
-        return target === Keyword.UINT || target === Keyword.FLOAT;
-      case Keyword.UINT:
-        return target === Keyword.FLOAT;
-      case Keyword.IVEC2:
-        return target === Keyword.UVEC2 || target === Keyword.VEC2;
-      case Keyword.IVEC3:
-        return target === Keyword.UVEC3 || target === Keyword.VEC3;
-      case Keyword.IVEC4:
-        return target === Keyword.UVEC4 || target === Keyword.VEC4;
-      case Keyword.UVEC2:
-        return target === Keyword.VEC2;
-      case Keyword.UVEC3:
-        return target === Keyword.VEC3;
-      case Keyword.UVEC4:
-        return target === Keyword.VEC4;
-      default:
-        return false;
-    }
+    return target === source;
   }
 
   /** Human-readable GLSL name of a resolved type, for diagnostic messages. */

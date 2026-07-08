@@ -206,7 +206,10 @@ describe("ShaderAnalyzer", () => {
     expect(mismatch!.message).to.include("float");
   });
 
-  it("does not flag a valid implicit conversion (int -> float)", () => {
+  it("flags an int-to-float assignment as AssignTypeMismatch (§4 no implicit conversions)", () => {
+    // GLSL ES §4 states the language has no implicit type conversions; §5.8 requires assignment
+    // operands to have the same type. A real driver rejects `a = i;` where a:float, i:int with
+    // "cannot convert from 'const int' to 'mediump float'". The analyzer must match.
     const source = `Shader "implicit" {
   SubShader "Default" {
     Pass "test" {
@@ -226,7 +229,7 @@ describe("ShaderAnalyzer", () => {
 }`;
     const { diagnostics } = analyzer.analyze(source);
     const mismatch = diagnostics.find((d: Diagnostic) => d.code === "AssignTypeMismatch");
-    expect(mismatch, "int -> float is a valid implicit conversion, must not flag").to.be.undefined;
+    expect(mismatch, "int -> float has no implicit conversion — must flag AssignTypeMismatch").to.be.ok;
   });
 
   it("reports a return type that does not match the function (C1-03)", () => {
@@ -249,7 +252,9 @@ describe("ShaderAnalyzer", () => {
     expect(ret!.message).to.include("vec3");
   });
 
-  it("does not flag a return value that implicitly converts (int -> float)", () => {
+  it("flags an int-returning literal from a float-returning function (§4 no implicit conversions)", () => {
+    // Same rationale as the int→float assignment check: no implicit conversion in return
+    // statements either. `return 1;` from a `float`-returning function is an InvalidReturnType.
     const source = `Shader "ret-implicit" {
   SubShader "Default" {
     Pass "test" {
@@ -265,7 +270,7 @@ describe("ShaderAnalyzer", () => {
 }`;
     const { diagnostics } = analyzer.analyze(source);
     const ret = diagnostics.find((d: Diagnostic) => d.code === "InvalidReturnType");
-    expect(ret, "int -> float return is a valid implicit conversion").to.be.undefined;
+    expect(ret, "int -> float return is not a valid implicit conversion — must flag").to.be.ok;
   });
 
   it("isolates analyze() calls — a prior parse failure must not corrupt the next", () => {

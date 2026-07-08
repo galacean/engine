@@ -671,6 +671,46 @@ const cases: Case[] = [
     fragEntry: "frag",
     driverExpects: "reject",
     reason: "the result of an arithmetic operator is an r-value"
+  },
+  // ─────── AssignTypeMismatch — GLSL ES §5.8 / §5.4.1 no implicit conversions ───────
+  {
+    name: "AssignTypeMismatch — float initializer takes an int literal",
+    code: "AssignTypeMismatch",
+    severity: "error",
+    passBody: `
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float b = 1; gl_FragColor = vec4(b); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §4 has no implicit int→float; driver rejects with 'cannot convert from const int to float'"
+  },
+  {
+    name: "AssignTypeMismatch — int initializer takes a float literal",
+    code: "AssignTypeMismatch",
+    severity: "error",
+    passBody: `
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { int a = 1.0; gl_FragColor = vec4(float(a)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §4 has no implicit float→int; driver rejects at initializer"
+  },
+  {
+    name: "AssignTypeMismatch — assignment `float b; b = 1;` (later write)",
+    code: "AssignTypeMismatch",
+    severity: "error",
+    passBody: `
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float b = 0.0; b = 1; gl_FragColor = vec4(b); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "§5.8 assignment operands must have the same type — no implicit conversion"
   }
 ];
 
