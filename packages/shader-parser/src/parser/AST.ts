@@ -1489,7 +1489,13 @@ export namespace ASTNode {
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as BaseToken;
       this.type = type;
-      const sm = new VarSymbol(ident.lexeme, new SymbolType(type.type, type.typeSpecifier.lexeme), true, this);
+      const sm = new VarSymbol(
+        ident.lexeme,
+        new SymbolType(type.type, type.typeSpecifier.lexeme),
+        true,
+        this,
+        type.isConst
+      );
 
       if (sa.symbolTableStack.insert(sm)) {
         sa.reportError(ident.location, `Redefinition of '${ident.lexeme}'.`, DiagnosticType.Redefinition);
