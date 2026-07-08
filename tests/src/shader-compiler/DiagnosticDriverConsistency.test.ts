@@ -215,6 +215,389 @@ const cases: Case[] = [
     fragEntry: "frag",
     driverExpects: "reject",
     reason: "`break` outside any loop or switch is a driver-level parse error"
+  },
+  // ─────────────────────────── Type diagnostics ───────────────────────────
+  {
+    name: "InvalidSwizzle (out-of-set letters)",
+    code: "InvalidSwizzle",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(0.0); float x = v.abc; gl_FragColor = vec4(x); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "swizzle chars must be from one set only (xyzw / rgba / stpq)"
+  },
+  {
+    name: "UndeclaredStructMember",
+    code: "UndeclaredStructMember",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      struct S { float f; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { S s; float y = s.notAField; gl_FragColor = vec4(y); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "accessing a non-existent struct field is rejected by any driver"
+  },
+  {
+    name: "ConstDivideByZero (integer 1/0)",
+    code: "ConstDivideByZero",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    // A driver may fold this constant and accept the shader (behavior is
+    // implementation-defined per GLSL ES §4.3.3). Analyzer is stricter.
+    driverExpects: "either",
+    reason: "constant integer division by zero — spec undefined; driver may fold"
+  },
+  {
+    name: "ShiftOutOfRange (1 << 40)",
+    code: "ShiftOutOfRange",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int x = 1 << 40; gl_FragColor = vec4(float(x)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    // Overflow behavior is implementation-defined; drivers vary.
+    driverExpects: "either",
+    reason: "shift by 40 exceeds int width — GLSL ES leaves behavior implementation-defined"
+  },
+  {
+    name: "NonIntegerIndex (v[1.5])",
+    code: "NonIntegerIndex",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec3 v = vec3(0.0); float y = v[1.5]; gl_FragColor = vec4(y); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "vector index must be an integer expression"
+  },
+  {
+    name: "NonIndexableType (float[0])",
+    code: "NonIndexableType",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float f = 1.0; float y = f[0]; gl_FragColor = vec4(y); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "scalar float is not indexable"
+  },
+  {
+    name: "ExpectedSampler (first arg to texture() is not a sampler)",
+    code: "ExpectedSampler",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec2 uv = vec2(0.0); vec4 c = texture(uv, uv); gl_FragColor = c; }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "texture() requires a sampler as its first argument"
+  },
+  {
+    name: "InvalidUnaryOperand (!float)",
+    code: "InvalidUnaryOperand",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float f = 1.0; bool ok = !f; gl_FragColor = vec4(0.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "logical NOT is defined only for bool"
+  },
+  {
+    name: "InvalidBinaryOperands (bool + float)",
+    code: "InvalidBinaryOperands",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { bool b = true; float x = b + 1.0; gl_FragColor = vec4(x); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "no arithmetic operator accepts a bool + float pair"
+  },
+  {
+    name: "ConstructorArgType (sampler2D as vec2 component)",
+    code: "ConstructorArgType",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      mediump sampler2D u_tex;
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "a sampler type can never appear as a constructor arg"
+  },
+  {
+    name: "NonConstInitializer (const initialized from uniform)",
+    code: "NonConstInitializer",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      float u_scale;
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { const float c = u_scale; gl_FragColor = vec4(c); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "a const initializer must be a compile-time constant"
+  },
+  {
+    name: "NonConstArraySize (array sized by non-const var)",
+    code: "NonConstArraySize",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int n = 3; float a[n]; gl_FragColor = vec4(a[0]); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §4.1.9 array size must be a constant expression"
+  },
+  {
+    name: "InvalidArraySize (float a[0])",
+    code: "InvalidArraySize",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a[0]; gl_FragColor = vec4(a[0]); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §4.1.9 array size must be > 0"
+  },
+  {
+    name: "NonFloatDerivativeArg (dFdx on int)",
+    code: "NonFloatDerivativeArg",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { int i = 1; float d = dFdx(i); gl_FragColor = vec4(d); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "derivatives accept only float/vec* — integer arg has no overload"
+  },
+  // ─────────────────── Function / control-flow diagnostics ───────────────────
+  {
+    name: "MissingReturn (non-void function without return)",
+    code: "MissingReturn",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      float getX() { float a = 1.0; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(getX()); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "non-void function must return on every path"
+  },
+  {
+    name: "Redefinition (variable redeclared in same scope)",
+    code: "Redefinition",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      float u_a;
+      float u_a;
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(u_a); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "redeclaring an identifier in the same scope is rejected"
+  },
+  {
+    name: "RecursiveFunction (direct recursion)",
+    code: "RecursiveFunction",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      float f(float x) { return f(x); }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(f(1.0)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "GLSL ES §6.1 forbids recursion (direct or indirect)"
+  },
+  {
+    name: "NonConstructibleReturnType (function returns sampler)",
+    code: "NonConstructibleReturnType",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      mediump sampler2D u_tex;
+      sampler2D getTex() { return u_tex; }
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    // Codegen may drop an unreferenced function; when it does, the driver never sees it and
+    // accepts the shader. The analyzer's authoring-time check still stands — it fires as
+    // soon as the type appears in a `return`, not only when the function is reached.
+    driverExpects: "either",
+    reason: "sampler is opaque; analyzer catches at authoring; driver only sees emitted code"
+  },
+  {
+    name: "DerivativeInVertexShader (dFdx in vert)",
+    code: "DerivativeInVertexShader",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { float d = dFdx(1.0); gl_Position = vec4(d); }
+      void frag() { gl_FragColor = vec4(0.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "derivative built-ins are fragment-stage-only"
+  },
+  // ─────────────────────── Pipeline / IO diagnostics ───────────────────────
+  {
+    name: "InvalidEntryReturnType (int return from vert)",
+    code: "InvalidEntryReturnType",
+    severity: "error",
+    passBody: `
+      struct Attributes { vec3 POSITION; };
+      int vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); return 1; }
+      void frag() { gl_FragColor = vec4(0.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "entry function must return void or an IO struct"
+  },
+  {
+    name: "StructRoleConflict (same struct used as vert-out AND frag-out)",
+    code: "StructRoleConflict",
+    severity: "error",
+    passBody: `
+      struct IO { vec4 v; };
+      IO vert() { IO o; o.v = vec4(0.0); gl_Position = vec4(0.0); return o; }
+      IO frag(IO i) { IO o; o.v = i.v; return o; }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    // Codegen may reject entirely; if it produces GLSL, driver typically rejects too.
+    driverExpects: "either",
+    reason: "a struct can play at most one IO role — attributes / varyings / MRT"
+  },
+  {
+    name: "GlFragColorWithMrt (MRT struct + gl_FragColor write)",
+    code: "GlFragColorWithMrt",
+    severity: "error",
+    passBody: `
+      struct MRT { vec4 c0; };
+      void vert() { gl_Position = vec4(0.0); }
+      MRT frag() { MRT o; o.c0 = vec4(0.0); gl_FragColor = vec4(0.0); return o; }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "either",
+    reason: "an MRT-returning fragment must not also write gl_FragColor"
+  },
+  {
+    name: "NestedIOStruct (varying struct contains a nested struct)",
+    code: "NestedIOStruct",
+    severity: "error",
+    passBody: `
+      struct Inner { vec4 v; };
+      struct Varyings { Inner nested; };
+      Varyings vert() { Varyings o; gl_Position = vec4(0.0); return o; }
+      void frag(Varyings i) { gl_FragColor = i.nested.v; }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "either",
+    reason: "GLSL ES varyings must be flat structs of scalars/vecs, not nested"
+  },
+  {
+    name: "MissingVertexPosition (vert never writes gl_Position)",
+    code: "MissingVertexPosition",
+    severity: "error",
+    passBody: `
+      void vert() { }
+      void frag() { gl_FragColor = vec4(0.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "either",
+    reason: "vertex stage must write gl_Position for the pipeline to run"
+  },
+  {
+    name: "NonFlatIntegerVarying (int in varyings without flat)",
+    code: "NonFlatIntegerVarying",
+    severity: "error",
+    passBody: `
+      struct Varyings { vec4 pos; int id; };
+      Varyings vert() { Varyings o; gl_Position = vec4(0.0); return o; }
+      void frag(Varyings i) { gl_FragColor = vec4(float(i.id)); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "either",
+    reason: "GLSL ES 3.00 §4.3.4 integer varyings must be flat"
+  },
+  {
+    name: "EntryNotFound (compiler passed an entry name that doesn't exist)",
+    code: "EntryNotFound",
+    severity: "error",
+    passBody: `
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+    `,
+    // Deliberately mis-spelled to trip EntryNotFound.
+    vertEntry: "vrt",
+    fragEntry: "frag",
+    driverExpects: "either",
+    reason: "compile-time entry lookup miss — codegen has nothing to emit"
   }
 ];
 
@@ -258,13 +641,19 @@ describe("analyzer/codegen/driver consistency", () => {
         compiler._parseShaderPass(c.passBody, c.vertEntry, c.fragEntry, ShaderLanguage.GLSLES100, "")
       );
 
-      // The compiler is intentionally lenient — even for error-severity diagnostics it should still
-      // return GLSL so an editor / IDE can show the surrounding structure. This is the "codegen
-      // doesn't gate on severity" contract.
-      expect(compiled.result, `${c.name}: codegen must return GLSL regardless of severity`).to.not.be.undefined;
+      // Codegen contract: either returns GLSL (best-effort — the editor / IDE keeps the surrounding
+      // structure visible), OR returns undefined AND the analyzer flagged an error. It must not
+      // silently drop the shader when nothing is wrong.
+      if (compiled.result === undefined) {
+        expect(
+          analyzed.diagnostics.some((d) => d.severity === "error"),
+          `${c.name}: codegen returned undefined but analyzer produced no error — silent drop`
+        ).to.be.true;
+        return; // No GLSL to hand the driver.
+      }
 
-      // 3) Driver view — try to compile the emitted GLSL on a real WebGL2 context.
-      const driver = driveWebGL(compiled.result!.vertex, compiled.result!.fragment);
+      // 3) Driver view — try to compile the emitted GLSL on a real WebGL context.
+      const driver = driveWebGL(compiled.result.vertex, compiled.result.fragment);
       if (driver === "no-webgl") {
         console.warn(`[${c.name}] WebGL unavailable — driver check skipped`);
         return;
@@ -280,9 +669,9 @@ describe("analyzer/codegen/driver consistency", () => {
         expect(bothCompiled, `${c.name}: expected driver to reject — vertex/fragment both compiled unexpectedly`).to.be
           .false;
       }
-      // For "either" (warning-severity cases where a runtime macro could rescue the shader), we make
-      // no claim about the driver result — only that the analyzer surfaced a warning. See the file
-      // header for why this is intentional.
+      // For "either" (warning-severity cases where a runtime macro could rescue the shader, or
+      // spec-undefined behavior a driver may still fold), we make no claim about the driver result —
+      // only that the analyzer surfaced a diagnostic. See the file header for why.
     });
   }
 });
