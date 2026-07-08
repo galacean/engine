@@ -1,6 +1,7 @@
 import { ETokenType, GalaceanDataType } from "./common";
 import { BaseToken as Token } from "./common/BaseToken";
 import { ASTNode, TreeNode } from "./parser/AST";
+import { BuiltinFunction } from "./parser/builtin";
 import { GrammarSymbol, NoneTerminal } from "./parser/GrammarSymbol";
 import { Keyword } from "./common/enums/Keyword";
 import SemanticAnalyzer from "./parser/SemanticAnalyzer";
@@ -158,25 +159,58 @@ export class ParserUtils {
   }
 
   /**
-   * Whether an expression is a compile-time constant: a numeric literal, or a bare identifier whose
-   * symbol is `const` (so `const float A = 1.0; const float B = A;` resolves). Compound arithmetic and
-   * non-const references return `false`; callers report only a definite non-constant, never on unknown.
+   * Whether an expression is a compile-time constant per GLSL ES §4.3.3. Covers numeric literals,
+   * bare identifiers whose symbol is `const`, `#define`d names, built-in function calls whose
+   * arguments are themselves constant (e.g. `sin(0.5)`, `vec3(1.0, 2.0, 3.0)`), and any compound
+   * expression (binary / unary / ternary) whose sub-expressions are all constant.
+   * Non-constant references (uniforms, non-const locals) return false. Called only by diagnostics
+   * (NonConstInitializer / NonConstArraySize) — codegen doesn't consult it.
    */
   static isConstExpr(node: TreeNode, sa: SemanticAnalyzer): boolean {
     if (ParserUtils.constNumericValue(node) !== undefined) return true;
     const ident = ParserUtils.unwrapBareIdentifier(node, { allowParens: true });
-    if (!ident) return false;
-    const child = ident.children[0];
-    // A `#define`'d name used at a site is lexed as a MACRO_CALL (only registered macros become one),
-    // so it's a compile-time constant — its replacement is fixed before the compiler runs.
-    if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return true;
-    if (!(child instanceof Token)) return false;
-    // A `#define`'d name that survived as a plain token (no macro substitution) is likewise constant.
-    if (sa.macroDefineList[child.lexeme]) return true;
-    const lookup = SemanticAnalyzer._lookupSymbol;
-    lookup.set(child.lexeme, ESymbolType.VAR);
-    const symbol = sa.symbolTableStack.lookup(lookup, true);
-    return symbol instanceof VarSymbol && symbol.isConst;
+    if (ident) {
+      const child = ident.children[0];
+      // A `#define`'d name at use is lexed as a MACRO_CALL (only registered macros become one), so
+      // it's a compile-time constant — its replacement is fixed before the compiler runs.
+      if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return true;
+      if (!(child instanceof Token)) return false;
+      if (sa.macroDefineList[child.lexeme]) return true;
+      const lookup = SemanticAnalyzer._lookupSymbol;
+      lookup.set(child.lexeme, ESymbolType.VAR);
+      const symbol = sa.symbolTableStack.lookup(lookup, true);
+      return symbol instanceof VarSymbol && symbol.isConst;
+    }
+    // Built-in function call: constant iff every argument is constant. `FunctionIdentifier.isBuiltin`
+    // covers keyword constructors (vec3/mat3/...); regular built-in functions (sin/cos/sqrt/...)
+    // are identified via `BuiltinFunction.isExist`. User-defined calls stay non-constant since a
+    // user function body may reach uniforms transitively.
+    if (node instanceof ASTNode.FunctionCallGeneric) {
+      const fnIdent = node.children[0] as ASTNode.FunctionIdentifier;
+      const isConstructor = fnIdent.isBuiltin;
+      const isBuiltinFn = typeof fnIdent.ident === "string" && BuiltinFunction.isExist(fnIdent.ident);
+      if (!isConstructor && !isBuiltinFn) return false;
+      const list = node.children[2];
+      if (!(list instanceof ASTNode.FunctionCallParameterList)) return true;
+      for (const arg of list.paramNodes) {
+        if (arg instanceof TreeNode && !ParserUtils.isConstExpr(arg, sa)) return false;
+      }
+      return true;
+    }
+    // Compound expression (binary / unary / ternary / shift / additive / multiplicative): constant
+    // iff every sub-expression is constant. A non-const operand short-circuits — this is how
+    // `u_uniform + sin(0.5)` correctly reports non-const even though `sin(0.5)` is const.
+    if (node instanceof ASTNode.ExpressionAstNode) {
+      let sawSubExpr = false;
+      for (const c of node.children) {
+        if (c instanceof ASTNode.ExpressionAstNode) {
+          sawSubExpr = true;
+          if (!ParserUtils.isConstExpr(c, sa)) return false;
+        }
+      }
+      return sawSubExpr;
+    }
+    return false;
   }
 
   /** The first arithmetic-binary operand whose type can't be an operand (bool/sampler/struct), else undefined. */

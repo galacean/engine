@@ -159,7 +159,12 @@ const SAMPLES: Record<string, string> = {
   ),
 
   [DiagnosticType.NonConstInitializer]: pass(`      float u_scale;
-      void frag() { const float c = u_scale; gl_FragColor = vec4(c); }
+      void frag() {
+        const float ok1 = 1.0 + 2.0;                        // OK — literal fold
+        const float ok2 = sin(0.5);                         // OK — builtin on const
+        const float bad = u_scale + sin(0.5);               // NonConstInitializer (uniform mixed in)
+        gl_FragColor = vec4(ok1 + ok2 + bad);
+      }
       FragmentShader = frag;`),
 
   [DiagnosticType.NonConstructibleReturnType]: pass(`      mediump sampler2D u_tex;

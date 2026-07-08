@@ -157,6 +157,28 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("Redefinition");
   });
 
+  it("NonConstInitializer: `1.0 + 2.0` literal-only compound is NOT flagged", () => {
+    const src = pass(`
+      void frag() { const float c = 1.0 + 2.0; gl_FragColor = vec4(c); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("NonConstInitializer");
+  });
+
+  it("NonConstInitializer: `sin(0.5)` builtin-on-const is NOT flagged", () => {
+    const src = pass(`
+      void frag() { const float c = sin(0.5); gl_FragColor = vec4(c); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("NonConstInitializer");
+  });
+
+  it("NonConstInitializer: `u_uniform + sin(0.5)` (uniform mixed in) IS flagged", () => {
+    const src = pass(`
+      float u_scale;
+      void frag() { const float c = u_scale + sin(0.5); gl_FragColor = vec4(c); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonConstInitializer");
+  });
+
   it("struct-with-sampler return fires NonConstructibleReturnType", () => {
     const src = pass(`
       struct Material { mediump sampler2D tex; };
