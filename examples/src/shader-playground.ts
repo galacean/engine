@@ -186,12 +186,14 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  [DiagnosticType.DuplicateEntryAssignment]: pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.DuplicateEntryAssignment]: pass(`      float u_a;
+      float u_a;                                          // Redefinition — should surface too
+      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void vert2(Attributes attr) { gl_Position = vec4(0.0); }
-      void frag() { gl_FragColor = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_a); }
       VertexShader = vert;
-      VertexShader = vert2;                               // assigned twice
+      VertexShader = vert2;                               // DuplicateEntryAssignment (first wins)
       FragmentShader = frag;`),
 
   [DiagnosticType.EntryNotFound]: pass(`      struct Attributes { vec3 POSITION; };

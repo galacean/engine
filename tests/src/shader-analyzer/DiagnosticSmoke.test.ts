@@ -157,6 +157,24 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("Redefinition");
   });
 
+  it("DuplicateEntryAssignment collects and lets siblings surface in the same pass", () => {
+    const src = pass(`
+      float u_a;
+      float u_a;
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void vert2(Attributes attr) { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_a); }
+      VertexShader = vert;
+      VertexShader = vert2;
+      FragmentShader = frag;`);
+    const c = codes(src);
+    expect(c).to.include("DuplicateEntryAssignment");
+    // A parser that threw on duplicate-assign would abort here; Redefinition for `u_a`
+    // must still be reported to prove parse continued past the duplicate site.
+    expect(c).to.include("Redefinition");
+  });
+
   it("sampler as struct member is legal per GLSL ES 3.00 §4.1.7", () => {
     const src = pass(`
       struct Material { mediump sampler2D tex; };

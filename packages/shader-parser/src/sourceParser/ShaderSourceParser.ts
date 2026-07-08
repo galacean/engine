@@ -521,15 +521,18 @@ export class ShaderSourceParser {
           const key = isVertex ? "vertexEntry" : "fragmentEntry";
           passSource[isVertex ? "vertexEntryLocation" : "fragmentEntryLocation"] = entry.location;
           if (passSource[key]) {
-            const error = ShaderCompilerUtils.createGSError(
-              "Reassign main entry",
-              GSErrorName.CompilationError,
-              lexer.source,
-              lexer.getShaderPosition(0),
+            // Collect + continue (sibling MissingEntry uses the same collect flow). Keeps the first
+            // binding — codegen sees the same entry the driver would if this diagnostic were
+            // absent. Skips the reassignment so subsequent shader-body issues remain reachable in
+            // the same parse.
+            this._createCompileError(
+              `Reassignment of ${isVertex ? "VertexShader" : "FragmentShader"} entry — the first binding is kept.`,
+              entry.location,
               DiagnosticType.DuplicateEntryAssignment
             );
-            Logger.error(error.toString());
-            throw error;
+            lexer.scanLexeme(";");
+            start = lexer.getShaderPosition(0);
+            break;
           }
           passSource[key] = entry.lexeme;
           lexer.scanLexeme(";");
