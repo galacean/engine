@@ -157,6 +157,29 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("Redefinition");
   });
 
+  it("struct-with-sampler return fires NonConstructibleReturnType", () => {
+    const src = pass(`
+      struct Material { mediump sampler2D tex; };
+      Material u_m;
+      Material getIt() { return u_m; }
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { gl_FragColor = texture2D(getIt().tex, vec2(0.0)); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("NonConstructibleReturnType");
+  });
+
+  it("struct-without-sampler return does NOT fire NonConstructibleReturnType", () => {
+    const src = pass(`
+      struct Plain { vec3 v; };
+      Plain make() { Plain p; p.v = vec3(0.0); return p; }
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(make().v, 1.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("NonConstructibleReturnType");
+  });
+
   it("mat3 constructor with too-few floats fires ConstructorArgCount", () => {
     const src = pass(`
       void frag() { mat3 m = mat3(1.0, 2.0, 3.0, 4.0, 5.0); gl_FragColor = vec4(m[0], 1.0); }

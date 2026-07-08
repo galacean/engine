@@ -2,6 +2,7 @@ import {
   ASTNode,
   BaseToken,
   DiagnosticType,
+  ESymbolType,
   ETokenType,
   GSError,
   GSErrorName,
@@ -9,6 +10,8 @@ import {
   ParserUtils,
   ShaderCompilerUtils,
   ShaderRange,
+  StructSymbol,
+  SymbolInfo,
   TreeNode,
   TypeAny,
   TypeSystem
@@ -56,7 +59,7 @@ export class ShaderValidator {
     vertexEntry: string = "",
     fragmentEntry: string = ""
   ): GSError[] {
-    const v = new ShaderValidator(source, vertexEntry, fragmentEntry);
+    const v = new ShaderValidator(source, vertexEntry, fragmentEntry, program.shaderData);
     v._walk(program, { currentFunction: null, loopDepth: 0, currentStage: null });
     return v._errors;
   }
@@ -66,7 +69,8 @@ export class ShaderValidator {
   private constructor(
     private _source: string,
     private _vertexEntry: string,
-    private _fragmentEntry: string
+    private _fragmentEntry: string,
+    private _shaderData: ASTNode.GLShaderProgram["shaderData"]
   ) {}
 
   private _walk(node: TreeNode, ctx: WalkContext): void {
@@ -450,13 +454,52 @@ export class ShaderValidator {
    */
   private _checkReturnType(node: ASTNode.FunctionDeclarator): void {
     const returnType = node.returnType;
-    if (TypeSystem.isSamplerType(returnType.type)) {
+    const t = returnType.type;
+    if (TypeSystem.isSamplerType(t)) {
       this._push(
-        `Function return type '${TypeSystem.typeName(returnType.type)}' is not constructible; samplers cannot be returned.`,
+        `Function return type '${TypeSystem.typeName(t)}' is not constructible; samplers cannot be returned.`,
+        returnType.location,
+        DiagnosticType.NonConstructibleReturnType
+      );
+      return;
+    }
+    if (typeof t === "string" && this._structContainsSampler(t, new Set())) {
+      this._push(
+        `Function return type '${t}' is not constructible; structs containing samplers cannot be returned.`,
         returnType.location,
         DiagnosticType.NonConstructibleReturnType
       );
     }
+  }
+
+  private static _structLookup = new SymbolInfo("", null);
+  private static _structScratch: StructSymbol[] = [];
+
+  /**
+   * Recursively check whether a struct (by name) contains a sampler member at any nesting depth.
+   * `visited` breaks cycles that could arise via mutually-referenced typedefs / macros.
+   */
+  private _structContainsSampler(structName: string, visited: Set<string>): boolean {
+    if (visited.has(structName)) return false;
+    visited.add(structName);
+    const lookup = ShaderValidator._structLookup;
+    lookup.set(structName, ESymbolType.STRUCT);
+    const structs = this._shaderData.symbolTable.getSymbols(
+      lookup as unknown as StructSymbol,
+      false,
+      ShaderValidator._structScratch
+    );
+    for (const s of structs) {
+      const astNode = s.astNode as ASTNode.StructSpecifier | undefined;
+      const propList = astNode?.propList;
+      if (!propList) continue;
+      for (const prop of propList) {
+        const pt = prop.typeInfo.type;
+        if (TypeSystem.isSamplerType(pt)) return true;
+        if (typeof pt === "string" && this._structContainsSampler(pt, visited)) return true;
+      }
+    }
+    return false;
   }
 
   /**

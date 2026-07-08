@@ -163,8 +163,14 @@ const SAMPLES: Record<string, string> = {
       FragmentShader = frag;`),
 
   [DiagnosticType.NonConstructibleReturnType]: pass(`      mediump sampler2D u_tex;
-      sampler2D getTex() { return u_tex; }
-      void frag() { gl_FragColor = vec4(0.0); }
+      sampler2D getTex() { return u_tex; }                  // sampler return — illegal
+      struct Material { mediump sampler2D tex; };
+      Material u_m;
+      Material getMat() { return u_m; }                     // struct containing sampler — illegal
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { gl_FragColor = texture2D(getMat().tex, vec2(0.0)); }
+      VertexShader = vert;
       FragmentShader = frag;`),
 
   [DiagnosticType.InvalidEntryReturnType]: pass(`      struct Attributes { vec3 POSITION; };
