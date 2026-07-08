@@ -81,15 +81,17 @@ export class ShaderIOAnalyzer {
     this._checkRoleConflicts(io, errors, source);
     this._deriveStructVarMap(symbolTable, vertexEntry, fragmentEntry, io);
 
-    // MRT and gl_FragColor are mutually exclusive fragment outputs (clue collected at parse time).
+    // MRT and gl_FragColor are mutually exclusive fragment outputs. The clue is collected once per
+    // parse-time reference, but the semantic error is per-shader — report at the first reference and
+    // stop, so users don't see one identical diagnostic per gl_FragColor use.
     if (io.mrtStructs.length) {
       const refs = shaderData.glFragColorReferences;
-      for (let i = 0; i < refs.length; i++) {
+      if (refs.length) {
         this._error(
           errors,
           DiagnosticType.GlFragColorWithMrt,
           "gl_FragColor cannot be used with MRT (Multiple Render Targets).",
-          refs[i],
+          refs[0],
           source
         );
       }

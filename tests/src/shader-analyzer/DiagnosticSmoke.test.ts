@@ -179,6 +179,15 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.include("NonConstInitializer");
   });
 
+  it("multiple gl_FragData[i] uses report GlFragData only once", () => {
+    const src = pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = gl_FragData[0] + gl_FragData[1] + gl_FragData[2]; }
+      VertexShader = vert; FragmentShader = frag;`);
+    const glFrags = analyzer.analyze(src).diagnostics.filter((d) => d.code === "GlFragData");
+    expect(glFrags.length).to.equal(1);
+  });
+
   it("helper called from vertex containing dFdx fires DerivativeInVertexShader", () => {
     const src = pass(`
       float helper(float x) { return dFdx(x); }

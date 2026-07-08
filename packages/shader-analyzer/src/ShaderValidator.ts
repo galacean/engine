@@ -71,6 +71,8 @@ export class ShaderValidator {
   private _callGraph = new Map<string, Set<string>>();
   /** name → declaration ident location (for reporting on the outermost cycle participant). */
   private _fnLocations = new Map<string, ShaderRange>();
+  /** Per-shader dedup for GlFragData / gl_FragData[i] — the semantic error is per-shader, not per use. */
+  private _glFragDataReported = false;
   /** fn name → list of derivative call sites inside its body. Post-walk pass reports the ones
    *  reachable from the vertex entry via the call graph. */
   private _derivativeSites = new Map<string, { name: string; location: ShaderRange }[]>();
@@ -385,7 +387,10 @@ export class ShaderValidator {
       // `base [ index ]`.
       if (ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData") {
         // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
-        this._push("Please use MRT struct instead of gl_FragData.", children[0].location, DiagnosticType.GlFragData);
+        if (!this._glFragDataReported) {
+          this._glFragDataReported = true;
+          this._push("Please use MRT struct instead of gl_FragData.", children[0].location, DiagnosticType.GlFragData);
+        }
         return;
       }
       const base = children[0] as ASTNode.ExpressionAstNode;
@@ -452,6 +457,8 @@ export class ShaderValidator {
         return;
       }
     }
+    if (this._glFragDataReported) return;
+    this._glFragDataReported = true;
     this._push("Please use MRT struct instead of gl_FragData.", node.location, DiagnosticType.GlFragData);
   }
 

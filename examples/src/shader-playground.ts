@@ -227,7 +227,7 @@ const SAMPLES: Record<string, string> = {
       FragmentShader = frag;`),
 
   [DiagnosticType.GlFragData]: pass(`      void vert() { gl_Position = vec4(0.0); }
-      void frag() { gl_FragData[0] = vec4(0.0); }
+      void frag() { gl_FragColor = gl_FragData[0] + gl_FragData[1] + gl_FragData[2]; }  // one report for all uses
       VertexShader = vert;
       FragmentShader = frag;`),
 
