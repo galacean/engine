@@ -31,6 +31,7 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.InvalidSwizzle]: DiagnosticCategory.Type,
   [DiagnosticType.UndeclaredStructMember]: DiagnosticCategory.Type,
   [DiagnosticType.AssignTypeMismatch]: DiagnosticCategory.Type,
+  [DiagnosticType.InvalidAssignmentTarget]: DiagnosticCategory.Type,
   [DiagnosticType.ConstDivideByZero]: DiagnosticCategory.Type,
   [DiagnosticType.ShiftOutOfRange]: DiagnosticCategory.Type,
   [DiagnosticType.IndexOutOfBounds]: DiagnosticCategory.Type,

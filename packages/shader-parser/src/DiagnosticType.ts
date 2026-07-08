@@ -17,6 +17,7 @@ export enum DiagnosticType {
   InvalidSwizzle = "InvalidSwizzle",
   UndeclaredStructMember = "UndeclaredStructMember",
   AssignTypeMismatch = "AssignTypeMismatch",
+  InvalidAssignmentTarget = "InvalidAssignmentTarget",
   ConstDivideByZero = "ConstDivideByZero",
   ShiftOutOfRange = "ShiftOutOfRange",
   IndexOutOfBounds = "IndexOutOfBounds",

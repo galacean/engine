@@ -602,6 +602,75 @@ const cases: Case[] = [
     fragEntry: "frag",
     driverExpects: "either",
     reason: "compile-time entry lookup miss — codegen has nothing to emit"
+  },
+  // ─────────── InvalidAssignmentTarget — GLSL ES §5.8 l-value rule ───────────
+  {
+    name: "InvalidAssignmentTarget — assign to a #define macro",
+    code: "InvalidAssignmentTarget",
+    severity: "error",
+    passBody: `
+      #define A 1
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { A = 2; gl_FragColor = vec4(1.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "a macro name is not an l-value — after expansion it's an integer literal"
+  },
+  {
+    name: "InvalidAssignmentTarget — assign to a numeric literal",
+    code: "InvalidAssignmentTarget",
+    severity: "error",
+    passBody: `
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { 1 = 2; gl_FragColor = vec4(1.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "an integer literal cannot be an l-value"
+  },
+  {
+    name: "InvalidAssignmentTarget — assign to a function-call result",
+    code: "InvalidAssignmentTarget",
+    severity: "error",
+    passBody: `
+      float f() { return 1.0; }
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { f() = 2.0; gl_FragColor = vec4(1.0); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "a function-call result is a temporary — never an l-value"
+  },
+  {
+    name: "InvalidAssignmentTarget — assign to a const-qualified variable",
+    code: "InvalidAssignmentTarget",
+    severity: "error",
+    passBody: `
+      const float C = 1.0;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { C = 2.0; gl_FragColor = vec4(C); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "a const-qualified variable is read-only per §4.3.2"
+  },
+  {
+    name: "InvalidAssignmentTarget — assign to a compound arithmetic expression",
+    code: "InvalidAssignmentTarget",
+    severity: "error",
+    passBody: `
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float a = 1.0; float b = 2.0; (a + b) = 3.0; gl_FragColor = vec4(a); }
+    `,
+    vertEntry: "vert",
+    fragEntry: "frag",
+    driverExpects: "reject",
+    reason: "the result of an arithmetic operator is an r-value"
   }
 ];
 

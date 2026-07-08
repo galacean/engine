@@ -14,7 +14,8 @@ import {
   SymbolInfo,
   TreeNode,
   TypeAny,
-  TypeSystem
+  TypeSystem,
+  VarSymbol
 } from "@galacean/engine-shader-parser";
 
 /**
@@ -66,6 +67,9 @@ export class ShaderValidator {
     v._reportBareGlFragData();
     return v._errors;
   }
+
+  /** Scratch SymbolInfo reused by `_nonAssignableReason` for VAR lookups — avoids per-call allocation. */
+  private static _varLookup = new SymbolInfo("", ESymbolType.VAR);
 
   private _errors: GSError[] = [];
   /**
@@ -140,6 +144,8 @@ export class ShaderValidator {
       this._checkReturnType(node);
     } else if (node instanceof ASTNode.StructSpecifier) {
       this._checkStructSpecifier(node);
+    } else if (node instanceof ASTNode.AssignmentExpression) {
+      this._checkAssignmentTarget(node);
     }
     const children = node.children;
     if (children) {
@@ -172,6 +178,107 @@ export class ShaderValidator {
     this._errors.push(
       ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code)
     );
+  }
+
+  /**
+   * GLSL ES §5.8: "the left operand of the assignment operator must be an l-value". The parser only
+   * checks type compatibility on assignment; this catches the shapes that couldn't ever be written
+   * to — macros, function returns, constant literals, `const`-qualified variables, and compound
+   * expressions (r-values by construction). Descend through wrapper nodes (single-child expression
+   * chains, parenthesised primaries, postfix `.field` / `[i]` peeling) and report the first shape
+   * that isn't assignable. `naga`'s GLSL frontend follows the same "single error kind, message
+   * describes the cause" convention.
+   */
+  private _checkAssignmentTarget(node: ASTNode.AssignmentExpression): void {
+    // Only the ternary `lhs op rhs` shape has an LHS to inspect; the single-child form is a pure
+    // r-value chain that reaches AssignmentExpression only because of the grammar's precedence tree.
+    if (node.children.length !== 3) return;
+    const lhs = node.children[0] as ASTNode.ExpressionAstNode;
+    const reason = this._nonAssignableReason(lhs);
+    if (reason) {
+      this._push(
+        `Cannot assign to ${reason} — the left operand of '=' must be a modifiable l-value.`,
+        lhs.location,
+        DiagnosticType.InvalidAssignmentTarget
+      );
+    }
+  }
+
+  /**
+   * Describe why `node` is not an l-value, or return undefined if it is one. The descent mirrors
+   * the grammar's operator-precedence chain — single-child wrappers pass through, r-value-only
+   * constructs (function calls, compound arithmetic, ternary) terminate with a specific reason.
+   */
+  private _nonAssignableReason(node: TreeNode): string | undefined {
+    // Compound / arithmetic / logical / relational shapes produce r-values; the grammar wraps them
+    // in AssignmentExpression → ConditionalExpression → ... → PrimaryExpression when only a
+    // single-child pass-through fires, so a >1-child form of any of these terminates as non-lvalue.
+    if (node instanceof ASTNode.ConditionalExpression && node.children.length > 1) {
+      return "a ternary expression result";
+    }
+    if (
+      (node instanceof ASTNode.LogicalOrExpression ||
+        node instanceof ASTNode.LogicalXorExpression ||
+        node instanceof ASTNode.LogicalAndExpression ||
+        node instanceof ASTNode.InclusiveOrExpression ||
+        node instanceof ASTNode.ExclusiveOrExpression ||
+        node instanceof ASTNode.AndExpression ||
+        node instanceof ASTNode.EqualityExpression ||
+        node instanceof ASTNode.RelationalExpression ||
+        node instanceof ASTNode.ShiftExpression ||
+        node instanceof ASTNode.AdditiveExpression ||
+        node instanceof ASTNode.MultiplicativeExpression) &&
+      node.children.length > 1
+    ) {
+      return "a compound expression";
+    }
+    if (node instanceof ASTNode.UnaryExpression && node.children.length > 1) {
+      return "a unary-operator result";
+    }
+    if (node instanceof ASTNode.FunctionCallGeneric) {
+      return "a function call result";
+    }
+    if (node instanceof ASTNode.PostfixExpression) {
+      const base = node.children[0];
+      if (!(base instanceof TreeNode)) return "an unassignable postfix expression";
+      return this._nonAssignableReason(base);
+    }
+    if (node instanceof ASTNode.PrimaryExpression) {
+      if (node.children.length === 1) {
+        const child = node.children[0];
+        if (child instanceof ASTNode.VariableIdentifier) return this._nonAssignableReason(child);
+        if (child instanceof BaseToken) {
+          if (child.type === ETokenType.INT_CONSTANT || child.type === ETokenType.FLOAT_CONSTANT) {
+            return "a numeric literal";
+          }
+          if (child.type === Keyword.True || child.type === Keyword.False) return "a boolean literal";
+        }
+        return undefined;
+      }
+      // Parenthesised: `( expr )` — l-value-ness passes through the wrapped expression.
+      const inner = node.children[1];
+      if (inner instanceof TreeNode) return this._nonAssignableReason(inner);
+      return undefined;
+    }
+    if (node instanceof ASTNode.VariableIdentifier) {
+      const child = node.children[0];
+      if (child instanceof ASTNode.MacroCallSymbol) return "a macro";
+      if (child instanceof ASTNode.MacroCallFunction) return "a macro function";
+      if (child instanceof BaseToken) {
+        const lookup = ShaderValidator._varLookup;
+        lookup.set(child.lexeme, ESymbolType.VAR);
+        const symbol = this._shaderData.symbolTable.getSymbol(lookup);
+        if (symbol instanceof VarSymbol && symbol.isConst) return "a const-qualified variable";
+      }
+      return undefined;
+    }
+    // Single-child expression wrappers (Expression, ConditionalExpression when children.length===1,
+    // etc.) don't add semantics — descend into the child.
+    if (node.children.length === 1) {
+      const child = node.children[0];
+      if (child instanceof TreeNode) return this._nonAssignableReason(child);
+    }
+    return undefined;
   }
 
   /**
