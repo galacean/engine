@@ -733,14 +733,19 @@ export namespace ASTNode {
 
       sa.popScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
-      // Function-level Redefinition — mirrors the variable-side pattern. `insert()` returns true
-      // when a matching non-macro symbol already existed in this scope and was replaced.
-      if (sa.symbolTableStack.insert(sm)) {
-        sa.reportWarning(
+      // Same identifier + same paramSig (via `SymbolInfo.equal`) is a redefinition — illegal per
+      // GLSL ES 3.00 §6.1. Different paramSig is a legal overload (SymbolInfo.equal returns false
+      // → lookup returns undefined). Keep-first: don't `insert()`, so codegen resolves to the
+      // original body and analyzer / codegen / driver all reject the duplicate consistently.
+      const duplicate = sa.symbolTableStack.lookup(sm);
+      if (duplicate) {
+        sa.reportError(
           this.protoType.ident.location,
-          `Redefinition of '${this.protoType.ident.lexeme}'.`,
+          `Redefinition of '${this.protoType.ident.lexeme}' with the same signature.`,
           DiagnosticType.Redefinition
         );
+      } else {
+        sa.symbolTableStack.insert(sm);
       }
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 

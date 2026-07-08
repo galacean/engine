@@ -55,10 +55,13 @@ const SAMPLES: Record<string, string> = {
       FragmentShader = frag;`),
 
   [DiagnosticType.Redefinition]: pass(`      float u_a;
-      float u_a;                                          // Redefinition
+      float u_a;                                          // Redefinition (variable, same scope)
+      float f(float x) { return x; }
+      float f(float x) { return x * 2.0; }                // Redefinition (function, same signature)
+      float f(vec2 x) { return x.x; }                     // OK — overload (different signature)
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(u_a); }
+      void frag() { gl_FragColor = vec4(u_a + f(1.0) + f(vec2(0.0))); }
       VertexShader = vert;
       FragmentShader = frag;`),
 

@@ -15,7 +15,7 @@ function codes(src: string): string[] {
 }
 
 describe("diagnostic smoke", () => {
-  it("function redefinition fires", () => {
+  it("function redefinition same signature fires with severity=error", () => {
     const src = pass(`
       void foo() { }
       void foo() { }
@@ -23,7 +23,20 @@ describe("diagnostic smoke", () => {
       void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert; FragmentShader = frag;`);
-    expect(codes(src)).to.include("Redefinition");
+    const d = analyzer.analyze(src).diagnostics.find((x) => x.code === "Redefinition");
+    expect(d).toBeDefined();
+    expect(d!.severity).to.equal("error");
+  });
+
+  it("function overload with different signature does NOT flag Redefinition", () => {
+    const src = pass(`
+      float f(float a) { return a; }
+      float f(vec2 a) { return a.x; }
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { gl_FragColor = vec4(f(1.0) + f(vec2(0.0))); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("Redefinition");
   });
 
   it("ConstructorArgCount fires on too-many components", () => {
