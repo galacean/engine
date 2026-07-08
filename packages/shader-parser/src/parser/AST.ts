@@ -386,17 +386,23 @@ export namespace ASTNode {
           DiagnosticType.InvalidArraySize
         );
       }
-      // A non-literal size must be a constant. Only a single bare `variable_identifier` is checked: a
-      // const symbol is valid GLSL, a non-const isn't. Literals (value set) and compound arithmetic
-      // expressions (operands left to the type system) are not flagged — no false positive on macros.
+      // A non-literal size must be a constant. Only a single bare `variable_identifier` is checked, and
+      // only when it resolves to a known non-const var. Unknown identifiers fall through to the
+      // UseBeforeDeclaration warning (they may be a runtime macro / conditional #include) — no error here.
       const exprChildren = integerConstantExpr.children;
       if (this.size === undefined && exprChildren.length === 1 && exprChildren[0] instanceof VariableIdentifier) {
-        if (!ParserUtils.isConstExpr(exprChildren[0], sa)) {
-          sa.reportError(
-            exprChildren[0].location,
-            "Array size must be a constant expression.",
-            DiagnosticType.NonConstArraySize
-          );
+        const bare = exprChildren[0].children[0];
+        if (bare instanceof BaseToken && !sa.macroDefineList[bare.lexeme]) {
+          const lookup = SemanticAnalyzer._lookupSymbol;
+          lookup.set(bare.lexeme, ESymbolType.VAR);
+          const symbol = sa.symbolTableStack.lookup(lookup, true);
+          if (symbol instanceof VarSymbol && !symbol.isConst) {
+            sa.reportError(
+              exprChildren[0].location,
+              "Array size must be a constant expression.",
+              DiagnosticType.NonConstArraySize
+            );
+          }
         }
       }
     }
@@ -854,11 +860,18 @@ export namespace ASTNode {
           // alone (and the builtin registry) to report whichever it actually is.
           lookupSymbol.set(fnIdent, ESymbolType.FN);
           const nameDeclared = !!sa.symbolTableStack.lookup(lookupSymbol, true) || BuiltinFunction.isExist(fnIdent);
-          sa.reportError(
-            this.location,
-            nameDeclared ? `No overload function type found: ${fnIdent}` : `Undefined function: ${fnIdent}`,
-            nameDeclared ? DiagnosticType.NoMatchingOverload : DiagnosticType.UndefinedFunction
-          );
+          // NoMatchingOverload = name is known, arg types are wrong → real type error.
+          // UndefinedFunction = name is unknown → may be defined by a runtime macro / conditional
+          // `#include`, so report as warning to avoid false positives at precompile time.
+          if (nameDeclared) {
+            sa.reportError(
+              this.location,
+              `No overload function type found: ${fnIdent}`,
+              DiagnosticType.NoMatchingOverload
+            );
+          } else {
+            sa.reportWarning(this.location, `Undefined function: ${fnIdent}`, DiagnosticType.UndefinedFunction);
+          }
           return;
         }
         this.type = fnSymbol?.dataType?.type;
@@ -1642,7 +1655,9 @@ export namespace ASTNode {
 
       if (!symbols.length) {
         if (missErrorLoc) {
-          sa.reportError(missErrorLoc, `'${name}' : undeclared identifier`, DiagnosticType.UseBeforeDeclaration);
+          // The symbol may be defined by a runtime macro or a conditional `#include` that
+          // the precompile phase doesn't see — report as warning to avoid false positives.
+          sa.reportWarning(missErrorLoc, `'${name}' : undeclared identifier`, DiagnosticType.UseBeforeDeclaration);
         }
         return false;
       }

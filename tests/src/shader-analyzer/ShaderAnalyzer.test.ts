@@ -53,8 +53,10 @@ describe("ShaderAnalyzer", () => {
 }`;
     const { diagnostics } = analyzer.analyze(source);
     const err = diagnostics.find((d: Diagnostic) => d.code === "UseBeforeDeclaration");
-    expect(err, "expected a C0-07 error for the undeclared identifier").to.be.ok;
-    expect(err!.severity).to.equal("error");
+    expect(err, "expected a C0-07 warning for the undeclared identifier").to.be.ok;
+    // Warning — a bare identifier may be defined by a runtime macro or a conditional #include
+    // that precompile doesn't see. See AST.ts VariableIdentifier.semanticAnalyze.
+    expect(err!.severity).to.equal("warning");
     expect(err!.message).to.include("undeclared_color");
     expect(err!.range.start.line).to.be.greaterThan(0);
   });
@@ -75,7 +77,9 @@ describe("ShaderAnalyzer", () => {
     const { diagnostics } = analyzer.analyze(source);
     const undef = diagnostics.find((d: Diagnostic) => d.code === "UndefinedFunction");
     expect(undef, "expected a C0-09 undefined-function diagnostic").to.be.ok;
-    expect(undef!.severity).to.equal("error");
+    // Warning — an unknown function name may resolve to a builtin from a runtime macro / conditional
+    // #include that precompile doesn't see. Overload mismatch on a known name is still an error.
+    expect(undef!.severity).to.equal("warning");
     expect(undef!.message).to.include("doesNotExist");
   });
 
@@ -300,9 +304,12 @@ describe("ShaderAnalyzer", () => {
     const ra = new ShaderAnalyzer();
     const logged: string[] = [];
     const origError = Logger.error;
-    Logger.error = (...args: unknown[]) => {
+    const origWarn = Logger.warn;
+    const capture = (...args: unknown[]): void => {
       logged.push(args.join(" "));
     };
+    Logger.error = capture;
+    Logger.warn = capture;
     try {
       ra.analyze(`Shader "log" {
   SubShader "Default" {
@@ -318,6 +325,7 @@ describe("ShaderAnalyzer", () => {
 }`);
     } finally {
       Logger.error = origError;
+      Logger.warn = origWarn;
     }
     expect(
       logged.some((l) => l.includes("doesNotExist")),
