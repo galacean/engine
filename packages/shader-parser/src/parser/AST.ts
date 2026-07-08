@@ -861,8 +861,10 @@ export namespace ASTNode {
           lookupSymbol.set(fnIdent, ESymbolType.FN);
           const nameDeclared = !!sa.symbolTableStack.lookup(lookupSymbol, true) || BuiltinFunction.isExist(fnIdent);
           // NoMatchingOverload = name is known, arg types are wrong → real type error.
-          // UndefinedFunction = name is unknown → may be defined by a runtime macro / conditional
-          // `#include`, so report as warning to avoid false positives at precompile time.
+          // UndefinedFunction = name is unknown at precompile. The analyzer is decoupled from the
+          // engine runtime by design, so it can't see macros / `#include` bodies that the material
+          // system feeds in at bind time — report as a warning telling the author the runtime
+          // path is responsible.
           if (nameDeclared) {
             sa.reportError(
               this.location,
@@ -870,7 +872,11 @@ export namespace ASTNode {
               DiagnosticType.NoMatchingOverload
             );
           } else {
-            sa.reportWarning(this.location, `Undefined function: ${fnIdent}`, DiagnosticType.UndefinedFunction);
+            sa.reportWarning(
+              this.location,
+              `Undefined function '${fnIdent}' — ensure it is provided at runtime (macro / #include).`,
+              DiagnosticType.UndefinedFunction
+            );
           }
           return;
         }
@@ -1659,9 +1665,15 @@ export namespace ASTNode {
 
       if (!symbols.length) {
         if (missErrorLoc) {
-          // The symbol may be defined by a runtime macro or a conditional `#include` that
-          // the precompile phase doesn't see — report as warning to avoid false positives.
-          sa.reportWarning(missErrorLoc, `'${name}' : undeclared identifier`, DiagnosticType.UseBeforeDeclaration);
+          // The analyzer is decoupled from the engine runtime by design, so it can't see macros
+          // that the material system feeds in at bind time (`RENDERER_JOINTS_NUM` etc.). Report
+          // as a warning — the author is responsible for confirming the runtime path supplies
+          // this identifier.
+          sa.reportWarning(
+            missErrorLoc,
+            `Undeclared identifier '${name}' — ensure it is provided at runtime (macro / #include).`,
+            DiagnosticType.UseBeforeDeclaration
+          );
         }
         return false;
       }
