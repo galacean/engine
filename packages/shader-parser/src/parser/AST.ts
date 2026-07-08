@@ -376,6 +376,16 @@ export namespace ASTNode {
       const integerConstantExpr = this.children[1];
       if (!(integerConstantExpr instanceof IntegerConstantExpression)) return; // `[ ]` — unsized
       this.size = integerConstantExpr.value;
+      // GLSL ES §4.1.9: array size must be an integer > 0. Driver rejects size <= 0 as
+      // "array size must be greater than zero". Only flag when the literal folded to a concrete
+      // number — a `undefined` size still falls through to the const-expression check below.
+      if (typeof this.size === "number" && this.size <= 0) {
+        sa.reportError(
+          integerConstantExpr.location,
+          `Array size ${this.size} must be greater than zero.`,
+          DiagnosticType.InvalidArraySize
+        );
+      }
       // A non-literal size must be a constant. Only a single bare `variable_identifier` is checked: a
       // const symbol is valid GLSL, a non-const isn't. Literals (value set) and compound arithmetic
       // expressions (operands left to the type system) are not flagged — no false positive on macros.

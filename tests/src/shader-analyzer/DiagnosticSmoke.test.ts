@@ -179,6 +179,22 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.include("NonConstInitializer");
   });
 
+  it("array size 0 fires InvalidArraySize", () => {
+    const src = pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float a[0]; gl_FragColor = vec4(a[0]); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("InvalidArraySize");
+  });
+
+  it("array size 4 does NOT fire InvalidArraySize", () => {
+    const src = pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float a[4]; gl_FragColor = vec4(a[0]); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("InvalidArraySize");
+  });
+
   it("struct-with-sampler return fires NonConstructibleReturnType", () => {
     const src = pass(`
       struct Material { mediump sampler2D tex; };

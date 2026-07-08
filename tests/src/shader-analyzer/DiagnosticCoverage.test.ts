@@ -205,6 +205,13 @@ const cases: { code: string; source?: string; gap?: string }[] = [
     // defensive guard for a future macro-branch edge case; no triggering shader today.
     code: "EmptyStruct",
     gap: "unreachable via grammar — struct_declaration_list requires ≥1 declaration"
+  },
+  {
+    code: "InvalidArraySize",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { float a[0]; gl_FragColor = vec4(a[0]); }
+      VertexShader = vert; FragmentShader = frag;`)
   }
 ];
 

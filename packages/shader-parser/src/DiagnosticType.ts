@@ -30,6 +30,7 @@ export enum DiagnosticType {
   NonConstInitializer = "NonConstInitializer",
   NonConstArraySize = "NonConstArraySize",
   EmptyStruct = "EmptyStruct",
+  InvalidArraySize = "InvalidArraySize",
   NonFloatDerivativeArg = "NonFloatDerivativeArg",
 
   // Function / control flow

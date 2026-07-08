@@ -301,6 +301,12 @@ const SAMPLES: Record<string, string> = {
       }
       FragmentShader = frag;`),
 
+  [DiagnosticType.InvalidArraySize]: pass(`      struct Attributes { vec3 POSITION; };
+      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
+      void frag() { float a[0]; float b[4]; gl_FragColor = vec4(a[0] + b[0]); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
   [DiagnosticType.EmptyStruct]: pass(`      struct Empty { };
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
