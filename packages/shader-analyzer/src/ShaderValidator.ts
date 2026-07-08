@@ -285,8 +285,11 @@ export class ShaderValidator {
     }
     if (node instanceof ASTNode.VariableIdentifier) {
       const child = node.children[0];
-      if (child instanceof ASTNode.MacroCallSymbol) return "a macro";
-      if (child instanceof ASTNode.MacroCallFunction) return "a macro function";
+      // A macro's l-value-ness depends on its EXPANSION, not on the fact that it's a macro.
+      // FXAA3_11.glsl:698-700 `#define lumaN luma4B.z` etc. expand to a legal swizzle l-value,
+      // and driver accepts `lumaN = lumaW`. Rejecting every macro-as-LHS produced false positives
+      // on the shipping FXAA post-processing shader. Runtime driver catches genuine `#define K 3; K = 5;`.
+      if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return undefined;
       if (child instanceof BaseToken) {
         const lookup = ShaderValidator._varLookup;
         lookup.set(child.lexeme, ESymbolType.VAR);

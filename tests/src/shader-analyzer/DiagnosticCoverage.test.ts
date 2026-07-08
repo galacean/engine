@@ -215,10 +215,12 @@ const cases: { code: string; source?: string; gap?: string }[] = [
   },
   {
     code: "InvalidAssignmentTarget",
+    // Macro-as-LHS is now handled by the runtime driver — the analyzer no longer flags it
+    // because a macro's l-value-ness depends on its expansion (`#define X vec.z` is a legal
+    // swizzle l-value, e.g. FXAA `lumaN = lumaW;`). Trigger via a numeric literal instead.
     source: pass(`
-      #define A 1
       void vert() { gl_Position = vec4(0.0); }
-      void frag() { A = 2; gl_FragColor = vec4(1.0); }
+      void frag() { 1 = 2; gl_FragColor = vec4(1.0); }
       VertexShader = vert; FragmentShader = frag;`)
   },
   {
