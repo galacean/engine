@@ -71,8 +71,6 @@ export class ShaderValidator {
   private _callGraph = new Map<string, Set<string>>();
   /** name → declaration ident location (for reporting on the outermost cycle participant). */
   private _fnLocations = new Map<string, ShaderRange>();
-  /** Per-shader dedup for GlFragData / gl_FragData[i] — the semantic error is per-shader, not per use. */
-  private _glFragDataReported = false;
   /** fn name → list of derivative call sites inside its body. Post-walk pass reports the ones
    *  reachable from the vertex entry via the call graph. */
   private _derivativeSites = new Map<string, { name: string; location: ShaderRange }[]>();
@@ -132,8 +130,6 @@ export class ShaderValidator {
       this._checkPostfix(node);
     } else if (node instanceof ASTNode.FunctionDeclarator) {
       this._checkReturnType(node);
-    } else if (node instanceof ASTNode.VariableIdentifier) {
-      this._checkGlFragDataReference(node);
     } else if (node instanceof ASTNode.StructSpecifier) {
       this._checkStructSpecifier(node);
     }
@@ -385,14 +381,6 @@ export class ShaderValidator {
       }
     } else if (children.length === 4) {
       // `base [ index ]`.
-      if (ParserUtils.extractDirectIdentLexeme(children[0] as TreeNode) === "gl_FragData") {
-        // `gl_FragData[i]` is removed in the IO model — flag regardless of stage, independent of struct roles.
-        if (!this._glFragDataReported) {
-          this._glFragDataReported = true;
-          this._push("Please use MRT struct instead of gl_FragData.", children[0].location, DiagnosticType.GlFragData);
-        }
-        return;
-      }
       const base = children[0] as ASTNode.ExpressionAstNode;
       const index = children[2];
       // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
@@ -434,32 +422,6 @@ export class ShaderValidator {
         }
       }
     }
-  }
-
-  /**
-   * `gl_FragData` referenced by name (bare, `.x` swizzle, non-index postfix) is removed in the IO
-   * model; the postfix check already handles `gl_FragData[i]`. Skip when this identifier is the base
-   * of an indexed PostfixExpression to avoid double-firing.
-   */
-  private _checkGlFragDataReference(node: ASTNode.VariableIdentifier): void {
-    const child = node.children[0];
-    if (!(child instanceof BaseToken) || child.lexeme !== "gl_FragData") return;
-    // In `gl_FragData[i]` the identifier lives inside PrimaryExpression → PostfixExpression[len=4]
-    // as `children[0]`. `_checkPostfix` reports that shape; skip here so we don't duplicate.
-    const primary = node.parent;
-    if (primary instanceof ASTNode.PrimaryExpression) {
-      const postfix = primary.parent;
-      if (
-        postfix instanceof ASTNode.PostfixExpression &&
-        postfix.children.length === 4 &&
-        postfix.children[0] === primary
-      ) {
-        return;
-      }
-    }
-    if (this._glFragDataReported) return;
-    this._glFragDataReported = true;
-    this._push("Please use MRT struct instead of gl_FragData.", node.location, DiagnosticType.GlFragData);
   }
 
   /**

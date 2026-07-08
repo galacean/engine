@@ -62,7 +62,6 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.MissingEntry]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.EntryNotFound]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.GlFragColorWithMrt]: DiagnosticCategory.PipelineIO,
-  [DiagnosticType.GlFragData]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.NestedIOStruct]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.MissingVertexPosition]: DiagnosticCategory.PipelineIO,
   [DiagnosticType.NonFlatIntegerVarying]: DiagnosticCategory.PipelineIO,

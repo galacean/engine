@@ -226,11 +226,6 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  [DiagnosticType.GlFragData]: pass(`      void vert() { gl_Position = vec4(0.0); }
-      void frag() { gl_FragColor = gl_FragData[0] + gl_FragData[1] + gl_FragData[2]; }  // one report for all uses
-      VertexShader = vert;
-      FragmentShader = frag;`),
-
   [DiagnosticType.InvalidIOStruct]: pass(`      struct Attributes { vec3 POSITION; };
       Varyings vert(Attributes attr) { Varyings o; gl_Position = vec4(0.0); return o; }
       void frag() { gl_FragColor = vec4(0.0); }

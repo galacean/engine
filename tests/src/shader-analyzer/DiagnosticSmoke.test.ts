@@ -53,12 +53,12 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.include("ConstructorArgCount");
   });
 
-  it("bare gl_FragData reference fires GlFragData", () => {
+  it("gl_FragData[i] is a legal author-side output (no GlFragData diagnostic)", () => {
     const src = pass(`
       void vert() { gl_Position = vec4(0.0); }
-      void frag() { vec4 c = gl_FragData[0]; gl_FragColor = c; }
+      void frag() { gl_FragData[0] = vec4(1.0); }
       VertexShader = vert; FragmentShader = frag;`);
-    expect(codes(src)).to.include("GlFragData");
+    expect(codes(src)).to.not.include("GlFragData");
   });
 
   it("NonBoolCondition fires on while", () => {
@@ -177,15 +177,6 @@ describe("diagnostic smoke", () => {
       void frag() { const float c = u_scale + sin(0.5); gl_FragColor = vec4(c); }
       FragmentShader = frag;`);
     expect(codes(src)).to.include("NonConstInitializer");
-  });
-
-  it("multiple gl_FragData[i] uses report GlFragData only once", () => {
-    const src = pass(`
-      void vert() { gl_Position = vec4(0.0); }
-      void frag() { gl_FragColor = gl_FragData[0] + gl_FragData[1] + gl_FragData[2]; }
-      VertexShader = vert; FragmentShader = frag;`);
-    const glFrags = analyzer.analyze(src).diagnostics.filter((d) => d.code === "GlFragData");
-    expect(glFrags.length).to.equal(1);
   });
 
   it("helper called from vertex containing dFdx fires DerivativeInVertexShader", () => {

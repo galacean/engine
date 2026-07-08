@@ -38,26 +38,6 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostics).to.be.empty;
   });
 
-  it("surfaces a codegen-level diagnostic (gl_FragData) with structured code", () => {
-    const source = `Shader "codegen" {
-  SubShader "Default" {
-    Pass "test" {
-      mat4 renderer_MVPMat;
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = renderer_MVPMat * vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragData[0] = vec4(0.0); }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`;
-    const { diagnostics } = analyzer.analyze(source);
-    expect(diagnostics.length).to.be.greaterThan(0);
-    const fragDataDiag = diagnostics.find((d: Diagnostic) => d.message.includes("gl_FragData"));
-    expect(fragDataDiag).to.be.ok;
-    expect(fragDataDiag!.code).to.equal("GlFragData");
-  });
-
   it("surfaces an undeclared identifier as an error diagnostic", () => {
     const source = `Shader "c2" {
   SubShader "Default" {
@@ -1367,24 +1347,6 @@ describe("ShaderAnalyzer", () => {
 }`;
     const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(diag, "a different-signature overload must not report Redefinition").to.be.undefined;
-  });
-
-  it("flags a bare gl_FragData reference (GlFragData)", () => {
-    const source = `Shader "x" {
-  SubShader "Default" {
-    Pass "test" {
-      struct Attributes { vec3 POSITION; };
-      void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { vec4 c = gl_FragData; gl_FragColor = c; }
-      VertexShader = vert;
-      FragmentShader = frag;
-    }
-  }
-}`;
-    const diag = analyzer.analyze(source).diagnostics.find((d: Diagnostic) => d.code === "GlFragData");
-    expect(diag, "a bare gl_FragData reference must report GlFragData").to.be.ok;
-    expect(diag!.severity).to.equal("error");
-    expect(diag!.message).to.include("gl_FragData");
   });
 
   it("flags a non-bool 'while' condition (NonBoolCondition)", () => {

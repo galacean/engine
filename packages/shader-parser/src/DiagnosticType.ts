@@ -50,7 +50,6 @@ export enum DiagnosticType {
   MissingEntry = "MissingEntry",
   EntryNotFound = "EntryNotFound",
   GlFragColorWithMrt = "GlFragColorWithMrt",
-  GlFragData = "GlFragData",
   NestedIOStruct = "NestedIOStruct",
   MissingVertexPosition = "MissingVertexPosition",
   NonFlatIntegerVarying = "NonFlatIntegerVarying",
