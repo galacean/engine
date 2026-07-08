@@ -7,12 +7,14 @@ export class TypeSystem {
   /**
    * GLSL ES 3.00 assignability with implicit scalar/vector conversions (spec 4.1.10):
    * `int → uint, float`; `uint → float`; `ivecN → uvecN, vecN`; `uvecN → vecN`. Returns `true`
-   * when `source` may be assigned to `target`, or when either side is unknown / a struct (those
-   * are skipped — not modeled here). Returns `false` only for a definite type conflict.
+   * when `source` may be assigned to `target`. Struct types (string) compare by name — same name
+   * means same struct type; different names are a hard conflict.
    */
   static isAssignable(target: GalaceanDataType | undefined, source: GalaceanDataType | undefined): boolean {
     if (target == undefined || source == undefined || target === TypeAny || source === TypeAny) return true;
-    if (typeof target === "string" || typeof source === "string") return true;
+    // Struct types compare by name (spec 4.1.8: types are equal only if they are the same struct).
+    // Mixed struct-vs-primitive is a conflict; struct-vs-struct with different names is a conflict.
+    if (typeof target === "string" || typeof source === "string") return target === source;
     if (target === source) return true;
     switch (source) {
       case Keyword.INT:

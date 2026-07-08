@@ -157,6 +157,27 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("Redefinition");
   });
 
+  it("struct A = struct B (different names) reports AssignTypeMismatch", () => {
+    const src = pass(`
+      struct A { vec3 v; };
+      struct B { vec3 v; };
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { A x; B y; x = y; gl_FragColor = vec4(x.v, 1.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("AssignTypeMismatch");
+  });
+
+  it("struct A = struct A (same name) does NOT flag AssignTypeMismatch", () => {
+    const src = pass(`
+      struct A { vec3 v; };
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(a.POSITION, 1.0); }
+      void frag() { A x; A y; x = y; gl_FragColor = vec4(x.v, 1.0); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("AssignTypeMismatch");
+  });
+
   it("DuplicateEntryAssignment collects and lets siblings surface in the same pass", () => {
     const src = pass(`
       float u_a;

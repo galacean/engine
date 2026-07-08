@@ -77,12 +77,16 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
-  [DiagnosticType.AssignTypeMismatch]: pass(`      struct Attributes { vec3 POSITION; };
+  [DiagnosticType.AssignTypeMismatch]: pass(`      struct A { vec3 v; };
+      struct B { vec3 v; };
+      struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() {
         float a = 1.0;
-        vec3 b = vec3(0.0, 0.0, 0.0);
+        vec3 b = vec3(0.0);
         a = b;                                            // vec3 -> float
+        A x; B y;
+        x = y;                                            // struct A -> struct B
         gl_FragColor = vec4(a, a, a, 1.0);
       }
       VertexShader = vert;
