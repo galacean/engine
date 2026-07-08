@@ -75,6 +75,14 @@ export class ShaderValidator {
 
   private _errors: GSError[] = [];
   /**
+   * Depth of the current `#if/#else` region during the walk. `_push` uses this to downgrade
+   * error-severity diagnostics reported inside a macro branch to warnings — the analyzer walks
+   * every arm at once, so conflicts observed across arms may be spurious for whatever specific
+   * macro combination the material system picks at bind time. Top-level (depth 0) diagnostics
+   * stay as errors.
+   */
+  private _macroBranchDepth = 0;
+  /**
    * Start indices of `gl_FragData` reference locations that appear as the base of a
    * `PostfixExpression[base [ index ]]` — the legal `gl_FragData[i]` shape. Collected by
    * `_checkPostfix` during the walk, then used by `_reportBareGlFragData` to strike these off the
@@ -97,6 +105,11 @@ export class ShaderValidator {
   ) {}
 
   private _walk(node: TreeNode, ctx: WalkContext): void {
+    // Track entry into a `#if/#ifdef/#else` region — every AST node inherits its branch signature
+    // from the first child that has one (see `TreeNode.set`). While inside a non-empty branch,
+    // reports get downgraded to warnings by `_push`.
+    const enteredBranch = node._branch.length > 0 ? 1 : 0;
+    this._macroBranchDepth += enteredBranch;
     // A FunctionDefinition becomes the enclosing function for its subtree (GLSL has no nested
     // functions, so it always replaces rather than nests); an iteration statement (for/while/do)
     // raises the loop depth for its subtree.
@@ -176,6 +189,7 @@ export class ShaderValidator {
         if (child instanceof TreeNode) this._walk(child, childCtx);
       }
     }
+    this._macroBranchDepth -= enteredBranch;
   }
 
   /**
@@ -198,9 +212,13 @@ export class ShaderValidator {
   }
 
   private _push(message: string, location: ShaderRange, code: DiagnosticType): void {
-    this._errors.push(
-      ShaderCompilerUtils.createGSError(message, GSErrorName.CompilationError, this._source, location, code)
-    );
+    // Downgrade to warning if the walk is currently inside a `#if/#else` region — the analyzer
+    // walks every arm at once, so cross-arm inferences (`float` in one arm, `vec3` in another)
+    // may not apply to any specific macro combination. Warning preserves the diagnostic signal
+    // without hard-failing shaders that are correct once the material picks a combination.
+    // Top-level (depth 0) diagnostics remain errors — they're unconditional.
+    const name = this._macroBranchDepth > 0 ? GSErrorName.CompilationWarn : GSErrorName.CompilationError;
+    this._errors.push(ShaderCompilerUtils.createGSError(message, name, this._source, location, code));
   }
 
   /**

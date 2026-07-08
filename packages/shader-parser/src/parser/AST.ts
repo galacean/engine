@@ -1,7 +1,7 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
-import { BaseToken } from "../common/BaseToken";
+import { BaseToken, BranchSignature, EMPTY_BRANCH } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { TypeSystem } from "./TypeSystem";
@@ -50,6 +50,12 @@ export abstract class TreeNode implements IPoolElement {
   private _parent: TreeNode;
   private _location: ShaderRange;
   private _codeCache: string;
+  /**
+   * Branch signature inherited from the first child (token or subtree) that carries one — used by
+   * downstream validators to know whether this node lives inside a `#if/#ifdef/#else` region.
+   * Empty signature means top-level / unconditional. Filled by `set()` — no analyzer input needed.
+   */
+  _branch: BranchSignature = EMPTY_BRANCH;
 
   /**
    * Parent pointer for AST traversal.
@@ -73,9 +79,13 @@ export abstract class TreeNode implements IPoolElement {
   set(loc: ShaderRange, children: NodeChild[]): void {
     this._location = loc;
     this._children = children;
+    this._branch = EMPTY_BRANCH;
     for (const child of children) {
       if (child instanceof TreeNode) {
         child._parent = this;
+        if (this._branch.length === 0 && child._branch.length > 0) this._branch = child._branch;
+      } else if (child instanceof BaseToken) {
+        if (this._branch.length === 0 && child.branch.length > 0) this._branch = child.branch;
       }
     }
 

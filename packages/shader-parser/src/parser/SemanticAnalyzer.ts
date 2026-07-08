@@ -76,7 +76,22 @@ export default class SemanticAnalyzer {
     return this._translationRuleTable.get(pid);
   }
 
+  /**
+   * Report a semantic error at `loc`. Automatically downgrades to a warning when the current walk
+   * position is inside a `#if/#else/#ifdef/#ifndef` branch — the analyzer cannot know which arm
+   * the material system will activate at runtime, so a "conflict" observed by walking every arm
+   * as if simultaneously active is unreliable as a hard failure. Preserving the diagnostic (as a
+   * warning) surfaces the signal without hard-blocking shaders that are correct once a specific
+   * macro combination is picked. Top-level positions (`EMPTY_BRANCH`) stay as errors — those are
+   * unconditional and reliable.
+   *
+   * Grammar-level `SyntaxError`s bypass this by pushing directly into `errors` from the parser
+   * (see `ShaderTargetParser`), so syntax remains a hard error regardless of branch.
+   */
   reportError(loc: ShaderRange, message: string, code?: DiagnosticType): void {
+    if (this.symbolTableStack.isInMacroBranch) {
+      return this.reportWarning(loc, message, code);
+    }
     this.errors.push(
       new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
     );
