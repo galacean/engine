@@ -1582,6 +1582,10 @@ export namespace ASTNode {
         if (builtinVar) {
           this.typeInfo = builtinVar.type;
           if (name === "gl_FragColor") sa.shaderData.glFragColorReferences.push(this.location);
+          // Every `gl_FragData` reference is captured here; ShaderValidator later strikes the ones
+          // that were actually indexed (`gl_FragData[i]`) — the residue is bare use, which the
+          // driver rejects.
+          if (name === "gl_FragData") sa.shaderData.glFragDataReferences.push(this.location);
           // `gl_Position` writes are collected in `AssignmentExpression.semanticAnalyze` — reads
           // (`vec4 x = gl_Position;`) don't count toward MissingVertexPosition.
           continue;

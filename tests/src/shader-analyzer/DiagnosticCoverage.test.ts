@@ -205,6 +205,13 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       void vert() { gl_Position = vec4(0.0); }
       void frag() { float a[0]; gl_FragColor = vec4(a[0]); }
       VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    code: "BareGlFragData",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { vec4 c = gl_FragData; gl_FragColor = c; }
+      VertexShader = vert; FragmentShader = frag;`)
   }
 ];
 

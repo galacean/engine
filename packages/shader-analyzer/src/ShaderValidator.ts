@@ -63,10 +63,18 @@ export class ShaderValidator {
     v._walk(program, { currentFunction: null, loopDepth: 0, currentStage: null });
     v._reportMutualRecursion();
     v._reportDerivativeReachableFromVertex();
+    v._reportBareGlFragData();
     return v._errors;
   }
 
   private _errors: GSError[] = [];
+  /**
+   * Start indices of `gl_FragData` reference locations that appear as the base of a
+   * `PostfixExpression[base [ index ]]` — the legal `gl_FragData[i]` shape. Collected by
+   * `_checkPostfix` during the walk, then used by `_reportBareGlFragData` to strike these off the
+   * `shaderData.glFragDataReferences` list; the residue is bare use.
+   */
+  private _indexedGlFragDataStarts = new Set<number>();
   /** name → set of names it directly calls. Populated during walk, used by mutual-recursion pass. */
   private _callGraph = new Map<string, Set<string>>();
   /** name → declaration ident location (for reporting on the outermost cycle participant). */
@@ -138,6 +146,25 @@ export class ShaderValidator {
       for (const child of children) {
         if (child instanceof TreeNode) this._walk(child, childCtx);
       }
+    }
+  }
+
+  /**
+   * `gl_FragData` is a fragment-output *array* — legal only when indexed (`gl_FragData[i] = ...`).
+   * A bare reference (r-value, l-value, swizzle, function arg) is invalid GLSL. The parser
+   * collects every `gl_FragData` location into `shaderData.glFragDataReferences`; `_checkPostfix`
+   * records the base of every `gl_FragData[i]` shape in `_indexedGlFragDataStarts`. Anything left
+   * over — first occurrence only — is reported here.
+   */
+  private _reportBareGlFragData(): void {
+    for (const loc of this._shaderData.glFragDataReferences) {
+      if (this._indexedGlFragDataStarts.has(loc.start.index)) continue;
+      this._push(
+        "'gl_FragData' must be indexed — write to `gl_FragData[i]` or return an MRT struct.",
+        loc,
+        DiagnosticType.BareGlFragData
+      );
+      return;
     }
   }
 
@@ -383,6 +410,11 @@ export class ShaderValidator {
       // `base [ index ]`.
       const base = children[0] as ASTNode.ExpressionAstNode;
       const index = children[2];
+      // `gl_FragData[i]` — record the base's location so `_reportBareGlFragData` treats this
+      // occurrence as legal rather than reporting it as a bare use.
+      if (ParserUtils.extractDirectIdentLexeme(base) === "gl_FragData") {
+        this._indexedGlFragDataStarts.add(base.location.start.index);
+      }
       // A scalar (non-array) base can't be indexed at all. Resolve the base to a bare variable so an
       // array (`a[3]`) or a vector (`v[0]`) is excluded; non-variable/compound bases stay unknown.
       if (TypeSystem.isScalarType(base.type)) {
