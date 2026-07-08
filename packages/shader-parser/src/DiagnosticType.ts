@@ -13,6 +13,7 @@ export enum DiagnosticType {
   Redefinition = "Redefinition",
   UseBeforeDeclaration = "UseBeforeDeclaration",
   LocalFunctionPrototype = "LocalFunctionPrototype",
+  MacroBranchConflict = "MacroBranchConflict",
 
   // Type
   InvalidSwizzle = "InvalidSwizzle",
