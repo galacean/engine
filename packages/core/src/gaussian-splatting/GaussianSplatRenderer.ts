@@ -125,13 +125,20 @@ export class GaussianSplatRenderer extends Renderer {
   }
 
   private _bindSplat(splat: GaussianSplat): void {
-    const shaderData = this.getMaterial().shaderData;
+    const material = this.getMaterial() as GaussianSplatMaterial;
+    const shaderData = material.shaderData;
     shaderData.setTexture(_centerTextureProp, splat.centerTexture);
     shaderData.setTexture(_covATextureProp, splat.covATexture);
     shaderData.setTexture(_covBTextureProp, splat.covBTexture);
     shaderData.setTexture(_colorTextureProp, splat.colorTexture);
     this._dataTextureSize.set(splat.textureWidth, splat.textureHeight);
     shaderData.setVector2(_dataTextureSizeProp, this._dataTextureSize);
+
+    // Point the Magic reveal at the asset's bounds so demos never have to compute this themselves — the ring
+    // always emanates from the visible model and scales to cover it whatever the source coordinate range.
+    const { min, max } = splat.bounds;
+    material.magicCenter.set((min.x + max.x) * 0.5, (min.y + max.y) * 0.5, (min.z + max.z) * 0.5);
+    material.magicRadius = Math.hypot(max.x - min.x, max.y - min.y, max.z - min.z) * 0.5;
 
     // View-dependent color from spherical harmonics, compiled in only when the splat carries them.
     if (splat.shDegree > 0) {

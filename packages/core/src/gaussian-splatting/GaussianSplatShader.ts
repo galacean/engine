@@ -62,6 +62,19 @@ const source = `Shader "${name}" {
         vec3 material_CameraPosition;
       #endif
 
+      #ifdef RENDERER_GS_MAGIC
+        // Engine-global elapsed-time uniform (x = seconds since engine.run()). Set automatically each frame
+        // by the built-in Time system; we snapshot our own start into material_MagicStartTime so the effect
+        // can run without any per-frame CPU work.
+        vec4 scene_ElapsedTime;
+        float material_MagicStartTime;
+        // Splat-space center the radial reveal emanates from — the bounds midpoint of the asset.
+        vec3 material_MagicCenter;
+        // World-unit radius the ring should sweep across; also the scale for border/gate widths so the effect
+        // reads the same on tiny and huge scenes.
+        float material_MagicRadius;
+      #endif
+
       VertexShader = vert;
       FragmentShader = frag;
 
@@ -172,6 +185,31 @@ const source = `Shader "${name}" {
           v.color.rgb = vec3(gsSRGBToLinear(shColor.r), gsSRGBToLinear(shColor.g), gsSRGBToLinear(shColor.b));
         #endif
 
+        // magicShrink stays 0 (no shrink) when the macro is off, so native rendering is untouched.
+        float magicShrink = 0.0;
+        #ifdef RENDERER_GS_MAGIC
+          // Spark's radial reveal, verbatim except the ring delay: Spark starts the ring at t=4.5 and finishes
+          // at t=14.5, so under compressed timelines the smoothstep ramp leaves a perceptible dead zone right
+          // after the sweep. Shifting delay to 3.0 keeps the "ring appears late in the sweep" feel while making
+          // the ring visibly grow AS the sweep is completing — no perceived gap at 5s wall clock.
+          // Work in normalized coordinates so all Spark constants (0.5 border, 20/50 glow steepness) keep
+          // their pixel-scale meaning regardless of asset size. l is [0, ~1], s is [0, ~1], t stays in
+          // seconds. Time comes from engine's built-in scene_ElapsedTime — no per-frame CPU tick required.
+          // 2.6 compresses Spark's 13s original into ~5s wall clock while preserving phase proportions.
+          float t = (scene_ElapsedTime.x - material_MagicStartTime) * 2.6;
+          vec3 localPos = center.xyz - material_MagicCenter;
+          float l = length(localPos.xz) / material_MagicRadius;
+          float s = smoothstep(0.0, 1.0, (t - 3.0) * 0.1);
+          float border = abs(s - l - 0.05);
+          float gate = smoothstep(s - 0.05, s, l + 0.05); // 1 = still a point, 0 = expanded
+          float at = atan(localPos.x, localPos.z) / 3.14159;
+          v.color.a *= step(at, t - 3.14159);
+          float glow = exp(-200.0 * border) + exp(-50.0 * abs(t - at - 3.14159)) * 0.5;
+          v.color.rgb += vec3(glow);
+          v.color.a += glow;
+          magicShrink = gate;
+        #endif
+
         mat4 modelView = camera_ViewMat * renderer_ModelMat;
         vec4 camspace = modelView * vec4(center.xyz, 1.0);
         vec4 pos2d = camera_ProjMat * camspace;
@@ -200,8 +238,26 @@ const source = `Shader "${name}" {
         mat3 T = gsTranspose(mat3(modelView)) * J;
         mat3 cov2d = gsTranspose(T) * Vrk * T;
 
+        // Anti-aliasing compensation (Yu et al., "Mip-Splatting", 2024): kernel dilation of the projected
+        // covariance inflates the integrated energy of near-degenerate splats, which is what makes extreme-
+        // aspect gaussians (aspect > 100:1 is the norm in trainer output) blow up into visible streaks.
+        // Compensating alpha by sqrt(detOrig / detBlur) restores the pre-dilation integral and drives those
+        // splats toward zero opacity — the fix Spark ships by default.
+        float detOrig = cov2d[0][0] * cov2d[1][1] - cov2d[0][1] * cov2d[0][1];
         cov2d[0][0] += material_KernelSize;
         cov2d[1][1] += material_KernelSize;
+        float detBlur = cov2d[0][0] * cov2d[1][1] - cov2d[0][1] * cov2d[0][1];
+        float ratio = max(0.0, detOrig / detBlur);
+        v.color.a *= sqrt(ratio);
+
+        // Hard-cull post-compensation transparent splats. Trainers emit >1e6:1 aspect gaussians; compensation
+        // drives their alpha near zero but even 0.02 * hundreds-of-overlaps still stacks up to visible streaks
+        // in the linear HDR framebuffer. Threshold is deliberately tighter than Spark's ~0.002 because we
+        // blend in linear space where dim overlaps accumulate without sRGB perceptual softening.
+        if (v.color.a < 0.02) {
+          gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+          return v;
+        }
 
         float mid = 0.5 * (cov2d[0][0] + cov2d[1][1]);
         float radius = length(vec2(0.5 * (cov2d[0][0] - cov2d[1][1]), cov2d[0][1]));
@@ -211,10 +267,21 @@ const source = `Shader "${name}" {
           gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
           return v;
         }
-
         vec2 diag = normalize(vec2(cov2d[0][1], lambda1 - cov2d[0][0]));
-        vec2 majorAxis = min(sqrt(2.0 * lambda1), 1024.0) * diag;
-        vec2 minorAxis = min(sqrt(2.0 * lambda2), 1024.0) * vec2(diag.y, -diag.x);
+        float maj = min(sqrt(2.0 * lambda1), 512.0);
+        float min_ = min(sqrt(2.0 * lambda2), 512.0);
+        // Magic reveal collapses off-ring splats into ~2.5-pixel isotropic dots — same idiom as Spark's
+        // mix(scales, 0.002, gate), just applied post-projection instead of on the source scales.
+        maj = mix(maj, 2.5, magicShrink);
+        min_ = mix(min_, 2.5, magicShrink);
+        // Drop splats whose entire projection is sub-pixel — a cheap cull that shaves the fill cost dominated
+        // by dense far-away splats, mirroring Spark's minPixelRadius gate.
+        if (maj < 1.0 && min_ < 1.0) {
+          gl_Position = vec4(0.0, 0.0, 2.0, 1.0);
+          return v;
+        }
+        vec2 majorAxis = maj * diag;
+        vec2 minorAxis = min_ * vec2(diag.y, -diag.x);
 
         vec2 offset = (attr.CORNER.x * majorAxis + attr.CORNER.y * minorAxis) * material_InvViewport * pos2d.w;
         // Reflect the offset's Y to match the already-flipped center in Galacean's Y-flipped offscreen target.
@@ -233,7 +300,9 @@ const source = `Shader "${name}" {
         #ifdef ENGINE_OUTPUT_SRGB_CORRECT
           rgb = vec3(gsLinearToSRGB(rgb.r), gsLinearToSRGB(rgb.g), gsLinearToSRGB(rgb.b));
         #endif
-        gl_FragColor = vec4(rgb, B);
+        // Premultiplied output: the material blends (ONE, 1-SRC_ALPHA), so pre-multiplying rgb here makes
+        // accumulation order-agnostic in dense overlaps and stops trainer-noise streaks from summing up.
+        gl_FragColor = vec4(rgb * B, B);
       }
     }
   }

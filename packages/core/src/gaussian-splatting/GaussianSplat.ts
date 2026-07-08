@@ -158,8 +158,11 @@ export class GaussianSplat extends ReferResource {
     const texelCount = width * height;
 
     const centers = new Float32Array(texelCount * 4);
-    const covA = new Uint16Array(texelCount * 4);
-    const covB = new Uint16Array(texelCount * 4);
+    // Cov storage upgraded to fp32 (RGBA32F). The old fp16 path suffered precision loss on medium/high
+    // aspect gaussians — small covariance components would underflow after the per-splat max-normalization,
+    // producing spurious 2D projections that Compensation could not fully soften.
+    const covA = new Float32Array(texelCount * 4);
+    const covB = new Float32Array(texelCount * 4);
     const colors = new Uint8ClampedArray(texelCount * 4);
     const positions = (this._positions = new Float32Array(count * 4));
 
@@ -219,22 +222,19 @@ export class GaussianSplat extends ReferResource {
       const s12 = r01 * r02 * ax + r11 * r12 * ay + r21 * r22 * az;
       const s22 = r02 * r02 * ax + r12 * r12 * ay + r22 * r22 * az;
 
-      // Normalize the covariance by its largest magnitude so it survives half-float precision; the shader
-      // restores it from center.w.
-      const factor =
-        Math.max(Math.abs(s00), Math.abs(s01), Math.abs(s02), Math.abs(s11), Math.abs(s12), Math.abs(s22)) || 1;
-      const inv = 1 / factor;
+      // With fp32 covariance textures there is no need to per-splat normalize against the max magnitude;
+      // center.w falls back to 1.0 so the shader multiplier stays a no-op.
       const o = i * 4;
       centers[o + 0] = x;
       centers[o + 1] = y;
       centers[o + 2] = z;
-      centers[o + 3] = factor;
-      covA[o + 0] = toHalf(s00 * inv);
-      covA[o + 1] = toHalf(s01 * inv);
-      covA[o + 2] = toHalf(s02 * inv);
-      covA[o + 3] = toHalf(s11 * inv);
-      covB[o + 0] = toHalf(s12 * inv);
-      covB[o + 1] = toHalf(s22 * inv);
+      centers[o + 3] = 1.0;
+      covA[o + 0] = s00;
+      covA[o + 1] = s01;
+      covA[o + 2] = s02;
+      covA[o + 3] = s11;
+      covB[o + 0] = s12;
+      covB[o + 1] = s22;
       // DC spherical-harmonic coefficient -> sRGB base color; opacity is already 0..1.
       colors[o + 0] = (0.5 + SH_C0 * srcColors[i * 3 + 0]) * 255;
       colors[o + 1] = (0.5 + SH_C0 * srcColors[i * 3 + 1]) * 255;
@@ -249,8 +249,8 @@ export class GaussianSplat extends ReferResource {
     // read, so blending is correct. Reading sRGB color as linear over-brightens it and makes the soft tails of
     // near-edge-on splats read as bright streaks instead of fading out.
     this._centerTexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, centers);
-    this._covATexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covA);
-    this._covBTexture = this._createDataTexture(width, height, TextureFormat.R16G16B16A16, covB);
+    this._covATexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, covA);
+    this._covBTexture = this._createDataTexture(width, height, TextureFormat.R32G32B32A32, covB);
     this._colorTexture = this._createDataTexture(
       width,
       height,
