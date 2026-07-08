@@ -62,6 +62,7 @@ export class ShaderValidator {
     const v = new ShaderValidator(source, vertexEntry, fragmentEntry, program.shaderData);
     v._walk(program, { currentFunction: null, loopDepth: 0, currentStage: null });
     v._reportMutualRecursion();
+    v._reportDerivativeReachableFromVertex();
     return v._errors;
   }
 
@@ -70,6 +71,9 @@ export class ShaderValidator {
   private _callGraph = new Map<string, Set<string>>();
   /** name → declaration ident location (for reporting on the outermost cycle participant). */
   private _fnLocations = new Map<string, ShaderRange>();
+  /** fn name → list of derivative call sites inside its body. Post-walk pass reports the ones
+   *  reachable from the vertex entry via the call graph. */
+  private _derivativeSites = new Map<string, { name: string; location: ShaderRange }[]>();
 
   private constructor(
     private _source: string,
@@ -719,6 +723,37 @@ export class ShaderValidator {
   }
 
   /**
+   * Post-walk pass: transitively reach from the vertex entry via the call graph, and report any
+   * derivative call site inside a reachable helper. Helpers called only from the fragment entry
+   * are silent; helpers on both paths get flagged (the vertex path evaluates them illegally).
+   */
+  private _reportDerivativeReachableFromVertex(): void {
+    if (!this._vertexEntry) return;
+    const reachable = new Set<string>();
+    const stack: string[] = [this._vertexEntry];
+    while (stack.length) {
+      const cur = stack.pop()!;
+      if (reachable.has(cur)) continue;
+      reachable.add(cur);
+      const callees = this._callGraph.get(cur);
+      if (callees) for (const c of callees) stack.push(c);
+    }
+    // Vertex entry itself is handled inline in `_checkDerivativeCall`; skip it here.
+    reachable.delete(this._vertexEntry);
+    for (const fn of reachable) {
+      const sites = this._derivativeSites.get(fn);
+      if (!sites) continue;
+      for (const s of sites) {
+        this._push(
+          `Derivative function '${s.name}' is reached from the vertex entry via '${fn}' — derivatives are fragment-only.`,
+          s.location,
+          DiagnosticType.DerivativeInVertexShader
+        );
+      }
+    }
+  }
+
+  /**
    * Fragment-only derivative builtins (`dFdx`/`dFdy`/`fwidth`) — illegal in the vertex shader
    * (`DerivativeInVertexShader`) and require a float/floatN argument (`NonFloatDerivativeArg`).
    * Only user-callable functions reach here (isBuiltin=false, since the identifier is a string name,
@@ -736,6 +771,16 @@ export class ShaderValidator {
         node.location,
         DiagnosticType.DerivativeInVertexShader
       );
+    } else if (ctx.currentFunction) {
+      // Record for the post-walk reachability pass: a helper that calls dFdx is illegal when the
+      // vertex entry transitively reaches it, even if the helper itself is `currentStage === null`.
+      const enclosing = ctx.currentFunction.protoType.ident.lexeme;
+      let sites = this._derivativeSites.get(enclosing);
+      if (!sites) {
+        sites = [];
+        this._derivativeSites.set(enclosing, sites);
+      }
+      sites.push({ name, location: node.location });
     }
 
     // Spec: derivative builtins take `genType` (float/vec2/vec3/vec4); anything else is a type error.

@@ -179,6 +179,25 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.include("NonConstInitializer");
   });
 
+  it("helper called from vertex containing dFdx fires DerivativeInVertexShader", () => {
+    const src = pass(`
+      float helper(float x) { return dFdx(x); }
+      struct Attributes { vec3 POSITION; };
+      void vert(Attributes a) { gl_Position = vec4(helper(a.POSITION.x), 0.0, 0.0, 1.0); }
+      void frag() { gl_FragColor = vec4(helper(1.0)); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.include("DerivativeInVertexShader");
+  });
+
+  it("helper called only from fragment does NOT flag DerivativeInVertexShader", () => {
+    const src = pass(`
+      float helper(float x) { return dFdx(x); }
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(helper(1.0)); }
+      VertexShader = vert; FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("DerivativeInVertexShader");
+  });
+
   it("mutual recursion (f ↔ g) fires RecursiveFunction", () => {
     // Forward declarations aren't accepted by our grammar; author both bodies. `g` references `f`
     // which is defined later — that identifier resolution is deferred until walk-time, so the SCC

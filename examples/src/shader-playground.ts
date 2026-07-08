@@ -287,9 +287,10 @@ const SAMPLES: Record<string, string> = {
   ),
 
   [DiagnosticType.DerivativeInVertexShader]: pass(`      struct Attributes { vec3 POSITION; };
+      float helper(float x) { return dFdx(x); }           // called from vert transitively — illegal
       void vert(Attributes attr) {
-        float d = dFdx(attr.POSITION.x);
-        gl_Position = vec4(attr.POSITION, d);
+        float d = dFdx(attr.POSITION.x);                  // direct dFdx in vertex — illegal
+        gl_Position = vec4(attr.POSITION, d + helper(attr.POSITION.y));
       }
       void frag() { gl_FragColor = vec4(0.0); }
       VertexShader = vert; FragmentShader = frag;`),
