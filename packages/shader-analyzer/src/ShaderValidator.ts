@@ -234,15 +234,19 @@ export class ShaderValidator {
       );
       return;
     }
-    // A vecN constructor needs exactly N components from its arguments. Matrices / unknown args
-    // can't be counted so we skip those; a single scalar is a valid splat and short-circuits before
-    // the exact-count check. Mismatch (either direction) is ConstructorArgCount.
-    const need = TypeSystem.vectorComponentCount(functionIdentifier.ident);
+    // A vecN / matN constructor needs exactly N components (or N×M for matrices) from its args.
+    // Skip when we can't count any side. A single scalar is a valid splat and short-circuits before
+    // the exact-count check. Mismatch either direction is ConstructorArgCount.
+    const need =
+      TypeSystem.vectorComponentCount(functionIdentifier.ident) ||
+      TypeSystem.matrixComponentCount(functionIdentifier.ident);
     if (need <= 0) return;
     let total = 0;
     let countable = list.paramSig.length > 0;
     for (const t of list.paramSig) {
-      const c = TypeSystem.isScalarType(t) ? 1 : TypeSystem.vectorComponentCount(t);
+      const c = TypeSystem.isScalarType(t)
+        ? 1
+        : TypeSystem.vectorComponentCount(t) || TypeSystem.matrixComponentCount(t);
       if (c === 0) {
         countable = false;
         break;

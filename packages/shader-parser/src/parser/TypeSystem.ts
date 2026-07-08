@@ -153,4 +153,30 @@ export class TypeSystem {
         return 0;
     }
   }
+
+  /**
+   * Total component count of a matrix constructor: rows × cols. `mat3 = 9`, `mat2x3 = 6`, etc.
+   * Returns 0 for non-matrix types so callers can chain with `vectorComponentCount` fallthrough.
+   */
+  static matrixComponentCount(type: GalaceanDataType | undefined): number {
+    switch (type) {
+      case Keyword.MAT2:
+        return 4;
+      case Keyword.MAT3:
+        return 9;
+      case Keyword.MAT4:
+        return 16;
+      case Keyword.MAT2X3:
+      case Keyword.MAT3X2:
+        return 6;
+      case Keyword.MAT2X4:
+      case Keyword.MAT4X2:
+        return 8;
+      case Keyword.MAT3X4:
+      case Keyword.MAT4X3:
+        return 12;
+      default:
+        return 0;
+    }
+  }
 }

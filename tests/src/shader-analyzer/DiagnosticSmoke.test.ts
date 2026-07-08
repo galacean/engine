@@ -157,6 +157,20 @@ describe("diagnostic smoke", () => {
     expect(codes(src)).to.not.include("Redefinition");
   });
 
+  it("mat3 constructor with too-few floats fires ConstructorArgCount", () => {
+    const src = pass(`
+      void frag() { mat3 m = mat3(1.0, 2.0, 3.0, 4.0, 5.0); gl_FragColor = vec4(m[0], 1.0); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.include("ConstructorArgCount");
+  });
+
+  it("mat3 constructor with exactly 9 floats does NOT fire ConstructorArgCount", () => {
+    const src = pass(`
+      void frag() { mat3 m = mat3(1.0,2.0,3.0,4.0,5.0,6.0,7.0,8.0,9.0); gl_FragColor = vec4(m[0], 1.0); }
+      FragmentShader = frag;`);
+    expect(codes(src)).to.not.include("ConstructorArgCount");
+  });
+
   it("struct A = struct B (different names) reports AssignTypeMismatch", () => {
     const src = pass(`
       struct A { vec3 v; };

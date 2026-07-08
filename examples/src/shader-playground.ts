@@ -95,10 +95,13 @@ const SAMPLES: Record<string, string> = {
   [DiagnosticType.ConstDivideByZero]: pass(`      void frag() { int x = 1 / 0; gl_FragColor = vec4(float(x)); }
       FragmentShader = frag;`),
 
-  [DiagnosticType.ConstructorArgCount]: pass(
-    `      void frag() { vec3 v = vec3(1.0, 2.0); gl_FragColor = vec4(v, 1.0); }
-      FragmentShader = frag;`
-  ),
+  [DiagnosticType.ConstructorArgCount]: pass(`      void frag() {
+        vec3 v = vec3(1.0, 2.0);                          // too few (need 3, got 2)
+        vec4 w = vec4(1.0, 2.0, 3.0, 4.0, 5.0);           // too many (need 4, got 5)
+        mat3 m = mat3(1.0, 2.0, 3.0, 4.0, 5.0);           // matrix too few (need 9, got 5)
+        gl_FragColor = vec4(v, 1.0) + w + vec4(m[0], 1.0);
+      }
+      FragmentShader = frag;`),
 
   [DiagnosticType.ConstructorArgType]: pass(`      mediump sampler2D u_tex;
       void frag() { vec2 v = vec2(u_tex, 1.0); gl_FragColor = vec4(v, 0.0, 1.0); }
