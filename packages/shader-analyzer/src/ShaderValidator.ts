@@ -61,10 +61,15 @@ export class ShaderValidator {
   ): GSError[] {
     const v = new ShaderValidator(source, vertexEntry, fragmentEntry, program.shaderData);
     v._walk(program, { currentFunction: null, loopDepth: 0, currentStage: null });
+    v._reportMutualRecursion();
     return v._errors;
   }
 
   private _errors: GSError[] = [];
+  /** name → set of names it directly calls. Populated during walk, used by mutual-recursion pass. */
+  private _callGraph = new Map<string, Set<string>>();
+  /** name → declaration ident location (for reporting on the outermost cycle participant). */
+  private _fnLocations = new Map<string, ShaderRange>();
 
   private constructor(
     private _source: string,
@@ -633,6 +638,15 @@ export class ShaderValidator {
     if (functionIdentifier.isBuiltin) return;
     const fnIdent = functionIdentifier.ident as string;
     const proto = currentFunction.protoType;
+    // Record the call edge for the mutual-recursion post-pass (regardless of whether it's self-recursion).
+    const caller = proto.ident.lexeme;
+    let out = this._callGraph.get(caller);
+    if (!out) {
+      out = new Set();
+      this._callGraph.set(caller, out);
+    }
+    out.add(fnIdent);
+    if (!this._fnLocations.has(caller)) this._fnLocations.set(caller, proto.ident.location);
     if (proto.ident.lexeme !== fnIdent) return;
 
     let callSig: ASTNode.FunctionCallParameterList["paramSig"] | undefined;
@@ -647,6 +661,60 @@ export class ShaderValidator {
         node.location,
         DiagnosticType.RecursiveFunction
       );
+    }
+  }
+
+  /**
+   * After the walk, find call-graph cycles of length ≥ 2 (mutual recursion) and report each cycle
+   * on its lexicographically-first participant. Direct self-recursion is already reported at the
+   * call site by `_checkRecursiveCall`, so ignore length-1 cycles here.
+   */
+  private _reportMutualRecursion(): void {
+    // Iterative DFS with a recursion stack — for each starting fn, look for a back-edge to something
+    // already on the stack that isn't the immediate self edge.
+    const seen = new Set<string>();
+    const reported = new Set<string>();
+    for (const start of this._callGraph.keys()) {
+      if (seen.has(start)) continue;
+      const stack: string[] = [start];
+      const onStack = new Set<string>([start]);
+      const iters: Array<Iterator<string>> = [(this._callGraph.get(start) ?? new Set()).values()];
+      while (stack.length) {
+        const it = iters[iters.length - 1];
+        const step = it.next();
+        if (step.done) {
+          const done = stack.pop()!;
+          onStack.delete(done);
+          seen.add(done);
+          iters.pop();
+          continue;
+        }
+        const next = step.value;
+        if (onStack.has(next)) {
+          // cycle detected — extract the participants from the stack
+          const cycleStart = stack.indexOf(next);
+          const cycle = stack.slice(cycleStart);
+          if (cycle.length >= 2) {
+            const marker = [...cycle].sort()[0];
+            if (!reported.has(marker)) {
+              reported.add(marker);
+              const loc = this._fnLocations.get(marker);
+              if (loc) {
+                this._push(
+                  `Mutual recursion detected in call chain: ${cycle.join(" → ")} → ${next} (GLSL forbids recursion).`,
+                  loc,
+                  DiagnosticType.RecursiveFunction
+                );
+              }
+            }
+          }
+          continue;
+        }
+        if (seen.has(next)) continue;
+        stack.push(next);
+        onStack.add(next);
+        iters.push((this._callGraph.get(next) ?? new Set()).values());
+      }
     }
   }
 

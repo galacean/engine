@@ -48,9 +48,9 @@ const SAMPLES: Record<string, string> = {
       FragmentShader = frag;`),
 
   [DiagnosticType.RecursiveFunction]: pass(`      struct Attributes { vec3 POSITION; };
-      float fib(float x) { return fib(x); }
+      float fib(float x) { return fib(x); }                 // direct recursion
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
-      void frag() { gl_FragColor = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(fib(1.0)); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
