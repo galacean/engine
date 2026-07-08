@@ -861,10 +861,10 @@ export namespace ASTNode {
           lookupSymbol.set(fnIdent, ESymbolType.FN);
           const nameDeclared = !!sa.symbolTableStack.lookup(lookupSymbol, true) || BuiltinFunction.isExist(fnIdent);
           // NoMatchingOverload = name is known, arg types are wrong → real type error.
-          // UndefinedFunction = name is unknown at precompile. The analyzer is decoupled from the
-          // engine runtime by design, so it can't see macros / `#include` bodies that the material
-          // system feeds in at bind time — report as a warning telling the author the runtime
-          // path is responsible.
+          // UndefinedFunction = name is unknown at precompile. `#include` is already expanded by
+          // the time the AST is built, so the only remaining "provided later" path is a runtime
+          // macro that the material system supplies at bind time — hand responsibility back to the
+          // author instead of hard-failing.
           if (nameDeclared) {
             sa.reportError(
               this.location,
@@ -874,7 +874,7 @@ export namespace ASTNode {
           } else {
             sa.reportWarning(
               this.location,
-              `Undefined function '${fnIdent}' — ensure it is provided at runtime (macro / #include).`,
+              `Undefined function '${fnIdent}' — ensure it is provided at runtime as a macro.`,
               DiagnosticType.UndefinedFunction
             );
           }
@@ -1665,13 +1665,13 @@ export namespace ASTNode {
 
       if (!symbols.length) {
         if (missErrorLoc) {
-          // The analyzer is decoupled from the engine runtime by design, so it can't see macros
-          // that the material system feeds in at bind time (`RENDERER_JOINTS_NUM` etc.). Report
-          // as a warning — the author is responsible for confirming the runtime path supplies
-          // this identifier.
+          // `#include` is already expanded by the time the AST is built, so the only remaining
+          // "provided later" path is a runtime macro that the material system supplies at bind
+          // time (`RENDERER_JOINTS_NUM` etc.). Report as a warning — the author is responsible for
+          // confirming the runtime path supplies this identifier.
           sa.reportWarning(
             missErrorLoc,
-            `Undeclared identifier '${name}' — ensure it is provided at runtime (macro / #include).`,
+            `Undeclared identifier '${name}' — ensure it is provided at runtime as a macro.`,
             DiagnosticType.UseBeforeDeclaration
           );
         }
