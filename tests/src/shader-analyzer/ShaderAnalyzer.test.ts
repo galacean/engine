@@ -38,7 +38,7 @@ describe("ShaderAnalyzer", () => {
     expect(diagnostics).to.be.empty;
   });
 
-  it("surfaces an undeclared identifier as an error diagnostic", () => {
+  it("surfaces an undeclared identifier as a warning diagnostic", () => {
     const source = `Shader "c2" {
   SubShader "Default" {
     Pass "test" {

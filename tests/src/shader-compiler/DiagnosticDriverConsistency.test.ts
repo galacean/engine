@@ -15,8 +15,11 @@
  *   - feed the emitted GLSL to a real WebGL2 context
  *   - assert the driver outcome matches the severity contract we set:
  *       severity=error   → driver must reject (analyzer's judgment is authoritative)
- *       severity=warning → driver behavior is not asserted (may compile if a runtime macro
- *                          fills in the missing identifier; may fail otherwise)
+ *       severity=warning → the precompile GLSL alone still fails the driver; the warning
+ *                          severity encodes intent ("a runtime macro may rescue this at bind
+ *                          time"), NOT a claim that the driver would accept the GLSL as-is.
+ *                          If a case genuinely leaves driver behavior open (e.g. spec-undefined
+ *                          folding), it is marked `driverExpects: "either"` and documented.
  *       no diagnostic    → driver must accept (clean shader stays clean)
  */
 
@@ -143,7 +146,7 @@ const cases: Case[] = [
     reason: "constant OOB index on a vec3 is rejected by GLSL ES §5.5 spec-conforming drivers"
   },
   {
-    name: "UseBeforeDeclaration — analyzer warns, driver may reject (macro-defined)",
+    name: "UseBeforeDeclaration — analyzer warns, driver rejects the precompile GLSL",
     code: "UseBeforeDeclaration",
     severity: "warning",
     passBody: `
@@ -153,14 +156,15 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    // Without the (missing) macro definition, the driver rejects; the warning severity reflects
-    // that a runtime macro / conditional include could supply it, not that the driver would ever
-    // accept the same GLSL as-is.
-    driverExpects: "either",
-    reason: "identifier may be filled by a runtime macro; precompile GLSL alone is rejected"
+    // The warning severity models the *intent* (a runtime macro or conditional `#include` could
+    // supply the identifier at material bind time), but the *precompile GLSL* the driver receives
+    // here is not rescued — no macro is set — so it must reject. The severity gap is intentional
+    // under-report; it's not license for the driver to accept broken code.
+    driverExpects: "reject",
+    reason: "warning is an under-report by design; the precompile GLSL itself is not runnable"
   },
   {
-    name: "UndefinedFunction — analyzer warns, driver may reject",
+    name: "UndefinedFunction — analyzer warns, driver rejects the precompile GLSL",
     code: "UndefinedFunction",
     severity: "warning",
     passBody: `
@@ -170,8 +174,8 @@ const cases: Case[] = [
     `,
     vertEntry: "vert",
     fragEntry: "frag",
-    driverExpects: "either",
-    reason: "name may be a runtime-defined helper; precompile GLSL alone will not link"
+    driverExpects: "reject",
+    reason: "same rationale as UseBeforeDeclaration — warning is intent, driver still rejects"
   },
   {
     name: "NoMatchingOverload (known name, wrong args) — analyzer errors, driver rejects",
@@ -669,9 +673,10 @@ describe("analyzer/codegen/driver consistency", () => {
         expect(bothCompiled, `${c.name}: expected driver to reject — vertex/fragment both compiled unexpectedly`).to.be
           .false;
       }
-      // For "either" (warning-severity cases where a runtime macro could rescue the shader, or
-      // spec-undefined behavior a driver may still fold), we make no claim about the driver result —
-      // only that the analyzer surfaced a diagnostic. See the file header for why.
+      // "either" is reserved for cases where the driver's outcome is genuinely spec-undefined
+      // (e.g. constant integer division by zero, shift-overflow), NOT for warning-severity cases —
+      // those must still declare `"reject"` on the precompile GLSL and rely on the file header to
+      // explain that warning severity encodes intent, not driver acceptance.
     });
   }
 });
