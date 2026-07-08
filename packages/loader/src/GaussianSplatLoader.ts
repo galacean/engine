@@ -71,16 +71,17 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
     for (let i = 0; i < count; i++) {
       const f = i * 8;
       const u = i * 32;
+      // 3DGS trainer output is COLMAP-space (Y-down). Reflect Y to engine world by negating y on the
+      // position and the qx/qz components of the rotation (equivalent to R := diag(1,-1,1) R diag(1,-1,1)).
       positions[i * 3 + 0] = f32[f + 0];
-      positions[i * 3 + 1] = f32[f + 1];
+      positions[i * 3 + 1] = -f32[f + 1];
       positions[i * 3 + 2] = f32[f + 2];
       scales[i * 3 + 0] = f32[f + 3];
       scales[i * 3 + 1] = f32[f + 4];
       scales[i * 3 + 2] = f32[f + 5];
-      // Trainer-space quaternion (x, y, z, w); the packed bytes store w at offset 28.
-      rotations[i * 4 + 0] = (u8[u + 29] - 127.5) / 127.5;
+      rotations[i * 4 + 0] = -(u8[u + 29] - 127.5) / 127.5;
       rotations[i * 4 + 1] = (u8[u + 30] - 127.5) / 127.5;
-      rotations[i * 4 + 2] = (u8[u + 31] - 127.5) / 127.5;
+      rotations[i * 4 + 2] = -(u8[u + 31] - 127.5) / 127.5;
       rotations[i * 4 + 3] = (u8[u + 28] - 127.5) / 127.5;
       opacities[i] = u8[u + 27] / 255;
       // sRGB base color byte -> DC spherical-harmonic coefficient.
@@ -137,8 +138,12 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
     const sh = new Float32Array(count * restCoeffs * 3);
 
     for (let i = 0; i < count; i++) {
+      // 3DGS trainer output is COLMAP-space (Y-down). Reflect Y to engine world by negating y on the
+      // position and the qx/qz components of the rotation (equivalent to R := diag(1,-1,1) R diag(1,-1,1)).
+      // Higher-order SH bands are left as-is; PLY splats with SH will show a slight per-view color error
+      // until the Y-flip is composed with a Wigner-D rotation of the coefficients.
       positions[i * 3 + 0] = get(i, "x");
-      positions[i * 3 + 1] = get(i, "y");
+      positions[i * 3 + 1] = -get(i, "y");
       positions[i * 3 + 2] = get(i, "z");
       scales[i * 3 + 0] = Math.exp(get(i, "scale_0"));
       scales[i * 3 + 1] = Math.exp(get(i, "scale_1"));
@@ -154,9 +159,9 @@ class GaussianSplatLoader extends Loader<GaussianSplat> {
       const r2 = get(i, "rot_2");
       const r3 = get(i, "rot_3");
       const len = Math.hypot(r0, r1, r2, r3) || 1;
-      rotations[i * 4 + 0] = r1 / len;
+      rotations[i * 4 + 0] = -r1 / len;
       rotations[i * 4 + 1] = r2 / len;
-      rotations[i * 4 + 2] = r3 / len;
+      rotations[i * 4 + 2] = -r3 / len;
       rotations[i * 4 + 3] = r0 / len;
 
       // f_rest is channel-major (all R coefficients, then G, then B); transpose to coefficient-major.

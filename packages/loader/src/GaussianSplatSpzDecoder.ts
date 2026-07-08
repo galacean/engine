@@ -44,12 +44,21 @@ export class GaussianSplatSpzDecoder {
     for (let i = 0; i < count; i++) {
       opacities[i] = 1 / (1 + Math.exp(-cloud.alphas[i]));
     }
+    // Match the other loaders: reflect Y (negate position.y and qx/qz) so every splat asset lives in
+    // engine-native Y-up world regardless of the file's source axis.
+    const positions = cloud.positions.slice();
+    const rotations = cloud.rotations.slice();
+    for (let i = 0; i < count; i++) {
+      positions[i * 3 + 1] = -positions[i * 3 + 1];
+      rotations[i * 4 + 0] = -rotations[i * 4 + 0];
+      rotations[i * 4 + 2] = -rotations[i * 4 + 2];
+    }
     return {
       count,
       shDegree: cloud.shDegree,
-      positions: cloud.positions.slice(),
+      positions,
       scales,
-      rotations: cloud.rotations.slice(),
+      rotations,
       opacities,
       colors: cloud.colors.slice(),
       sh: cloud.sh.slice()
