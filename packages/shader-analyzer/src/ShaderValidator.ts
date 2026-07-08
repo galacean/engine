@@ -296,11 +296,13 @@ export class ShaderValidator {
         const symbol = this._shaderData.symbolTable.getSymbol(lookup);
         if (symbol instanceof VarSymbol) {
           if (symbol.isConst) return "a const-qualified variable";
-          // GLSL ES §5.9: uniforms, inputs, and samplers are not l-values. Galacean models
-          // uniform via `VarSymbol.isUniform` (global, no initializer). The driver rejects
-          // `u_i++` with `l-value required (can't modify a uniform "u_i")`.
-          if (symbol.isUniform) return "a uniform variable";
+          // GLSL ES §5.9: uniforms, inputs, and samplers are not l-values. Check sampler before
+          // uniform — a sampler is *always* uniform in ES (§4.1.7), so both branches would fire,
+          // but "a sampler" is a more actionable diagnostic than the generic uniform text.
           if (TypeSystem.isSamplerType(symbol.dataType?.type)) return "a sampler";
+          // Galacean's implicit uniform (global, no initializer). Driver rejects `u_i++` as
+          // "l-value required (can't modify a uniform "u_i")".
+          if (symbol.isUniform) return "a uniform variable";
         }
       }
       return undefined;

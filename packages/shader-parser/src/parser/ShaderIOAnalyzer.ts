@@ -1,6 +1,6 @@
 import { ASTNode, TreeNode } from "./AST";
 import { ShaderData } from "./ShaderInfo";
-import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, SymbolTable } from "./symbolTable";
+import { ESymbolType, FnSymbol, StructSymbol, SymbolInfo, SymbolTable, VarSymbol } from "./symbolTable";
 import { StructProp } from "./types";
 import { BaseToken } from "../common/BaseToken";
 import { GSError, GSErrorName } from "../GSError";
@@ -436,9 +436,12 @@ export class ShaderIOAnalyzer {
     populateStageFromEntry(io.vertexStructVarMap, vertexFns);
     populateStageFromEntry(io.fragmentStructVarMap, fragmentFns);
 
-    // Module-level globals (e.g. `Varyings o;`) apply to both stages.
+    // Module-level globals (e.g. `Varyings o;`) apply to both stages. Gate on
+    // `isGlobalVariable` — if error recovery ever leaks a local (leftover scope on parser bail),
+    // it must not be treated as a global here.
     symbolTable.forEach((sym) => {
       if (sym.type !== ESymbolType.VAR) return;
+      if (!(sym instanceof VarSymbol) || !sym.isGlobalVariable) return;
       registerByType(io.vertexStructVarMap, sym.dataType?.typeLexeme, sym.ident);
       registerByType(io.fragmentStructVarMap, sym.dataType?.typeLexeme, sym.ident);
     });

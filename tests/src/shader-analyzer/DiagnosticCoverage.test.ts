@@ -229,6 +229,13 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       void vert() { gl_Position = vec4(0.0); }
       void frag() { int g(); gl_FragColor = vec4(1.0); }
       VertexShader = vert; FragmentShader = frag;`)
+  },
+  {
+    code: "InvalidVoidVariable",
+    source: pass(`
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { void x; gl_FragColor = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`)
   }
 ];
 

@@ -248,6 +248,16 @@ export namespace ASTNode {
       const id = children[1] as BaseToken;
       const isConst = fullyType.isConst;
 
+      // GLSL ES §4.1.1 — `void` may only appear as a function return type or an empty parameter
+      // list. `void x;` is a hard driver error.
+      if (fullyType.type === Keyword.VOID) {
+        sa.reportError(
+          id.location,
+          `Illegal use of type 'void' — '${id.lexeme}' cannot be declared as void.`,
+          DiagnosticType.InvalidVoidVariable
+        );
+      }
+
       let sm: VarSymbol;
       let initializer: Initializer | undefined;
       if (childrenLen === 2 || childrenLen === 4) {
@@ -1504,6 +1514,14 @@ export namespace ASTNode {
       const type = children[0] as FullySpecifiedType;
       const ident = children[1] as BaseToken;
       this.type = type;
+      // GLSL ES §4.1.1 — `void` may only appear as a function return type or empty parameter list.
+      if (type.type === Keyword.VOID) {
+        sa.reportError(
+          ident.location,
+          `Illegal use of type 'void' — '${ident.lexeme}' cannot be declared as void.`,
+          DiagnosticType.InvalidVoidVariable
+        );
+      }
       // A global variable without an initializer is Galacean's implicit uniform (bound at runtime
       // by the material system). With an initializer, `this.isStatic` becomes true — it's a
       // compile-time value, not a uniform. `const`-qualified is a separate read-only path.

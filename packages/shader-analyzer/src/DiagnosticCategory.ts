@@ -45,6 +45,7 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.ConstructorArgCount]: DiagnosticCategory.Type,
   [DiagnosticType.EmptyStruct]: DiagnosticCategory.Type,
   [DiagnosticType.InvalidArraySize]: DiagnosticCategory.Type,
+  [DiagnosticType.InvalidVoidVariable]: DiagnosticCategory.Type,
   [DiagnosticType.NonFloatDerivativeArg]: DiagnosticCategory.Type,
 
   [DiagnosticType.NonConstInitializer]: DiagnosticCategory.Constant,
