@@ -8,7 +8,7 @@
  * path data, fills minimum viable defaults, and reports suspicious authoring
  * choices before downstream systems build render or query data.
  */
-import { RIVER_LIMITS } from "./constants";
+import { RIVER_LIMITS, RIVER_MATERIAL_PRESET_CONFIG, RiverMaterialPreset } from "./constants";
 import { RiverConfig, RiverPathControlPoint, Vector3Tuple } from "./types";
 
 function clamp(value: number, min: number, max: number): number {
@@ -131,8 +131,12 @@ export function normalizeRiverConfig(config: RiverConfig): RiverConfig {
     },
     material: {
       ...config.material,
-      baseColor: isHexColor(config.material.baseColor) ? config.material.baseColor : "#34a9c9",
-      foamColor: isHexColor(config.material.foamColor) ? config.material.foamColor : "#d8f7ff",
+      baseColor: isHexColor(config.material.baseColor)
+        ? config.material.baseColor
+        : RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream].baseColor,
+      foamColor: isHexColor(config.material.foamColor)
+        ? config.material.foamColor
+        : RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream].foamColor,
       foamIntensity: clamp(config.material.foamIntensity, RIVER_LIMITS.minFoamIntensity, RIVER_LIMITS.maxFoamIntensity),
       clarity: clamp(config.material.clarity, RIVER_LIMITS.minClarity, RIVER_LIMITS.maxClarity)
     },

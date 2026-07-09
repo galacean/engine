@@ -25,6 +25,27 @@ export enum RiverMaterialPreset {
   MountainCreek = "mountainCreek"
 }
 
+export const RIVER_MATERIAL_PRESET_CONFIG = {
+  [RiverMaterialPreset.ClearStream]: {
+    baseColor: "#123aa6",
+    foamColor: "#d6edf3",
+    foamIntensity: 0.86,
+    clarity: 0.54
+  },
+  [RiverMaterialPreset.MuddyRiver]: {
+    baseColor: "#526b5a",
+    foamColor: "#d8d3bd",
+    foamIntensity: 0.55,
+    clarity: 0.2
+  },
+  [RiverMaterialPreset.MountainCreek]: {
+    baseColor: "#006bd8",
+    foamColor: "#e8fbff",
+    foamIntensity: 0.92,
+    clarity: 0.82
+  }
+} as const;
+
 export enum RiverQualityLevel {
   Low = "low",
   Medium = "medium",

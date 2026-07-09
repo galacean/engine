@@ -32,13 +32,20 @@ import {
   RiverMaterialPreset,
   RiverPathMode,
   RiverPreviewStage,
+  RIVER_MATERIAL_PRESET_CONFIG,
   RIVER_PREVIEW_STAGE_COLOR,
   RiverQualityLevel
 } from "./river/constants";
 import { getRiverConfigWarnings, normalizeRiverConfig } from "./river/RiverConfigValidator";
 import { RiverDebugView } from "./river/RiverDebugView";
 import { buildRiverMeshes, updateMeshBounds } from "./river/RiverMeshBuilder";
-import { createRiverMaterial, hexToColor, updateRiverMaterial } from "./river/RiverMaterialFactory";
+import {
+  createRiverFoamMaterial,
+  createRiverMaterial,
+  hexToColor,
+  updateRiverFoamMaterial,
+  updateRiverMaterial
+} from "./river/RiverMaterialFactory";
 import { createRiverConfigsFromNetwork } from "./river/RiverNetworkAdapter";
 import { sampleRiverPath } from "./river/RiverPathSampler";
 import { RiverConfig, RiverQueryResult, RiverSampleResult } from "./river/types";
@@ -113,7 +120,7 @@ interface RiverSegmentRuntime {
   surfaceRenderer: MeshRenderer;
   foamRenderer: MeshRenderer;
   material: Material;
-  foamMaterial: UnlitMaterial;
+  foamMaterial: Material;
   debugView: RiverDebugView;
 }
 
@@ -241,28 +248,16 @@ function updateWaterMaterial(material: UnlitMaterial, baseColor: string, alpha: 
 
 function applyRiverPreset(preset: RiverMaterialPreset): void {
   updateAllRiverConfigs((config) => {
+    const materialPreset = RIVER_MATERIAL_PRESET_CONFIG[preset];
     config.material.preset = preset;
-    if (preset === RiverMaterialPreset.MuddyRiver) {
-      config.material.baseColor = "#5b8f7a";
-      config.material.foamColor = "#e1e6cc";
-      config.material.foamIntensity = 0.42;
-      config.material.clarity = 0.28;
-      return;
-    }
+    config.material.baseColor = materialPreset.baseColor;
+    config.material.foamColor = materialPreset.foamColor;
+    config.material.foamIntensity = materialPreset.foamIntensity;
+    config.material.clarity = materialPreset.clarity;
 
     if (preset === RiverMaterialPreset.MountainCreek) {
-      config.material.baseColor = "#5cc7d8";
-      config.material.foamColor = "#f2fdff";
-      config.material.foamIntensity = 0.78;
-      config.material.clarity = 0.9;
       config.flow.speed = Math.max(config.flow.speed, 1.9);
-      return;
     }
-
-    config.material.baseColor = "#34a9c9";
-    config.material.foamColor = "#d8f7ff";
-    config.material.foamIntensity = 0.62;
-    config.material.clarity = 0.72;
   });
 }
 
@@ -404,8 +399,6 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       Math.min(1, oceanConfig.alpha + oceanConfig.foamIntensity * 0.02)
     );
   };
-  const getFoamAlpha = (config: RiverConfig): number =>
-    Math.min(0.5, 0.18 + config.shape.bankFeather * 0.06 + config.material.foamIntensity * 0.18);
   const createRiverSegmentRuntime = (config: RiverConfig): RiverSegmentRuntime => {
     const segmentRoot = riverSegmentsRoot.createChild(`river-segment-${config.id}`);
     const foamRenderer = segmentRoot.createChild(`${config.id}-bank`).addComponent(MeshRenderer);
@@ -413,11 +406,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     const normalizedConfig = normalizeRiverConfig(config);
     const sampleResult = sampleRiverPath(normalizedConfig);
     const material = createRiverMaterial(engine, normalizedConfig.material, normalizedConfig.flow.speed);
-    const foamMaterial = createWaterMaterial(
-      engine,
-      normalizedConfig.material.foamColor,
-      getFoamAlpha(normalizedConfig)
-    );
+    const foamMaterial = createRiverFoamMaterial(engine, normalizedConfig.material, normalizedConfig.flow.speed);
     const debugView = new RiverDebugView(engine, segmentRoot);
     foamRenderer.setMaterial(foamMaterial);
     surfaceRenderer.setMaterial(material);
@@ -465,11 +454,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       const meshes = buildRiverMeshes(engine, runtime.sampleResult.points);
       runtime.foamRenderer.mesh = meshes.bankFoamMesh;
       runtime.surfaceRenderer.mesh = meshes.surfaceMesh;
-      updateWaterMaterial(
-        runtime.foamMaterial,
-        runtime.normalizedConfig.material.foamColor,
-        getFoamAlpha(runtime.normalizedConfig)
-      );
+      updateRiverFoamMaterial(runtime.foamMaterial, runtime.normalizedConfig.material, runtime.normalizedConfig.flow.speed, 0);
       applyRiverPreviewStage(runtime);
       const queryResult = runtime.debugView.update(
         engine,
@@ -499,10 +484,11 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         runtime.normalizedConfig.flow.speed,
         time
       );
-      updateWaterMaterial(
+      updateRiverFoamMaterial(
         runtime.foamMaterial,
-        runtime.normalizedConfig.material.foamColor,
-        getFoamAlpha(runtime.normalizedConfig)
+        runtime.normalizedConfig.material,
+        runtime.normalizedConfig.flow.speed,
+        time
       );
     }
   };

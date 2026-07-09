@@ -12,6 +12,7 @@ import {
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
+  RIVER_MATERIAL_PRESET_CONFIG,
   RiverQualityLevel
 } from "../river/constants";
 import { WaterPreviewMode } from "./constants";
@@ -142,10 +143,7 @@ export const curvedMainRiverExample: WaterPcgExample = {
       },
       material: {
         preset: RiverMaterialPreset.ClearStream,
-        baseColor: "#34a9c9",
-        foamColor: "#d8f7ff",
-        foamIntensity: 0.62,
-        clarity: 0.72
+        ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream]
       },
       quality: {
         level: RiverQualityLevel.Medium,

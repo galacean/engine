@@ -13,6 +13,7 @@ import {
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
+  RIVER_MATERIAL_PRESET_CONFIG,
   RiverQualityLevel
 } from "../river/constants";
 import { WaterPreviewMode } from "./constants";
@@ -278,10 +279,7 @@ export const multiTributaryRiverExample: WaterPcgExample = {
         },
         material: {
           preset: RiverMaterialPreset.MountainCreek,
-          baseColor: "#49bfd2",
-          foamColor: "#f2fdff",
-          foamIntensity: 0.7,
-          clarity: 0.88
+          ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MountainCreek]
         },
         curve: {
           mode: RiverPathMode.Bezier,
@@ -371,10 +369,7 @@ export const multiTributaryRiverExample: WaterPcgExample = {
       },
       material: {
         preset: RiverMaterialPreset.ClearStream,
-        baseColor: "#2f9fb4",
-        foamColor: "#d9fbff",
-        foamIntensity: 0.66,
-        clarity: 0.74
+        ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream]
       },
       quality: {
         level: RiverQualityLevel.Medium,
