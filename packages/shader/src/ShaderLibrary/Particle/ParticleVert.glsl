@@ -194,43 +194,42 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
             }
         #endif
 
-        #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
-            vec3 visualSimulationVelocity = renderer_SimulationSpace == 0
-                ? attr.a_FeedbackVelocity
-                : rotationByQuaternions(attr.a_FeedbackVelocity, worldRotation);
-            visualSimulationVelocity += currentLinearVelocity;
+        #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
+            #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
+                vec3 visualSimulationVelocity = renderer_SimulationSpace == 0
+                    ? attr.a_FeedbackVelocity
+                    : rotationByQuaternions(attr.a_FeedbackVelocity, worldRotation);
+                visualSimulationVelocity += currentLinearVelocity;
 
-            vec3 rel;
-            if (renderer_SimulationSpace == 0) {
-                rel = attr.a_FeedbackPosition - renderer_VOLOffset;
-            } else {
-                rel = rotationByQuaternions(
-                    attr.a_FeedbackPosition - attr.a_SimulationWorldPosition,
-                    invWorldRotation) - renderer_VOLOffset;
-            }
+                vec3 rel;
+                if (renderer_SimulationSpace == 0) {
+                    rel = attr.a_FeedbackPosition - renderer_VOLOffset;
+                } else {
+                    rel = rotationByQuaternions(
+                        attr.a_FeedbackPosition - attr.a_SimulationWorldPosition,
+                        invWorldRotation) - renderer_VOLOffset;
+                }
 
-            vec3 orbitalRadialVelocity = vec3(0.0);
-            #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
-                float relLen = length(rel);
-                if (relLen > 1e-5) {
-                    orbitalRadialVelocity += (rel / relLen) * evaluateVOLRadial(attr, normalizedAge);
+                vec3 orbitalRadialVelocity = vec3(0.0);
+                #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+                    float relLen = length(rel);
+                    if (relLen > 1e-5) {
+                        orbitalRadialVelocity += (rel / relLen) * evaluateVOLRadial(attr, normalizedAge);
+                    }
+                #endif
+
+                #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
+                    orbitalRadialVelocity += cross(evaluateVOLOrbital(attr, normalizedAge), rel);
+                #endif
+
+                if (renderer_SimulationSpace == 0) {
+                    visualLocalVelocity = visualSimulationVelocity + orbitalRadialVelocity;
+                    visualWorldVelocity = vec3(0.0);
+                } else {
+                    visualLocalVelocity = vec3(0.0);
+                    visualWorldVelocity = visualSimulationVelocity + rotationByQuaternions(orbitalRadialVelocity, worldRotation);
                 }
             #endif
-
-            #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
-                orbitalRadialVelocity += cross(evaluateVOLOrbital(attr, normalizedAge), rel);
-            #endif
-
-            if (renderer_SimulationSpace == 0) {
-                visualLocalVelocity = visualSimulationVelocity + orbitalRadialVelocity;
-                visualWorldVelocity = vec3(0.0);
-            } else {
-                visualLocalVelocity = vec3(0.0);
-                visualWorldVelocity = visualSimulationVelocity + rotationByQuaternions(orbitalRadialVelocity, worldRotation);
-            }
-        #else
-            visualLocalVelocity = localVelocity;
-            visualWorldVelocity = worldVelocity;
         #endif
     #else
         vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;

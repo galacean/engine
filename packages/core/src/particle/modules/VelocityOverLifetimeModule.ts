@@ -325,8 +325,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
 
-      const orbitalActive = this._isOrbitalActive();
-      const radialActive = this._isRadialActive();
+      const needTransformFeedback = this._needTransformFeedback();
+      const orbitalActive = needTransformFeedback && this._isOrbitalActive();
+      const radialActive = needTransformFeedback && this._isRadialActive();
 
       if (orbitalActive) {
         const orbitalX = this._orbitalX;
@@ -460,9 +461,6 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     const velocityX = this.velocityX;
     const velocityY = this.velocityY;
     const velocityZ = this.velocityZ;
-    const orbitalX = this._orbitalX;
-    const orbitalY = this._orbitalY;
-    const orbitalZ = this._orbitalZ;
     const isLinearRandomMode =
       (velocityX.mode === ParticleCurveMode.TwoConstants &&
         velocityY.mode === ParticleCurveMode.TwoConstants &&
@@ -470,6 +468,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
       (velocityX.mode === ParticleCurveMode.TwoCurves &&
         velocityY.mode === ParticleCurveMode.TwoCurves &&
         velocityZ.mode === ParticleCurveMode.TwoCurves);
+    if (!this._needTransformFeedback()) {
+      return isLinearRandomMode;
+    }
+
+    const orbitalX = this._orbitalX;
+    const orbitalY = this._orbitalY;
+    const orbitalZ = this._orbitalZ;
     const isOrbitalRandomMode =
       (orbitalX.mode === ParticleCurveMode.TwoConstants &&
         orbitalY.mode === ParticleCurveMode.TwoConstants &&
