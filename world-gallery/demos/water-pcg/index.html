@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -20,12 +20,55 @@
         display: block;
       }
 
+      #example-bar {
+        position: fixed;
+        top: 14px;
+        left: 50%;
+        z-index: 3;
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        padding: 5px;
+        background: rgb(8 18 22 / 76%);
+        border: 1px solid rgb(134 220 235 / 34%);
+        border-radius: 8px;
+        transform: translateX(-50%);
+        backdrop-filter: blur(8px);
+      }
+
+      .example-tab {
+        min-width: 108px;
+        height: 30px;
+        padding: 0 12px;
+        border: 0;
+        border-radius: 6px;
+        color: #c7e7ee;
+        background: transparent;
+        font:
+          13px/30px -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          sans-serif;
+        cursor: pointer;
+      }
+
+      .example-tab:hover {
+        color: #ffffff;
+        background: rgb(120 214 231 / 18%);
+      }
+
+      .example-tab.is-active {
+        color: #061015;
+        background: #8eeaff;
+      }
+
       .dg.ac {
         z-index: 2 !important;
       }
     </style>
   </head>
   <body>
+    <div id="example-bar" role="tablist" aria-label="Water PCG examples"></div>
     <canvas id="canvas"></canvas>
     <script type="module" src="./main.ts"></script>
   </body>
