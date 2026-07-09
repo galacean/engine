@@ -222,13 +222,13 @@ export class GaussianSplat extends ReferResource {
       const s12 = r01 * r02 * ax + r11 * r12 * ay + r21 * r22 * az;
       const s22 = r02 * r02 * ax + r12 * r12 * ay + r22 * r22 * az;
 
-      // With fp32 covariance textures there is no need to per-splat normalize against the max magnitude;
-      // center.w falls back to 1.0 so the shader multiplier stays a no-op.
+      // Fp32 covariance carries full precision without normalization — no per-splat factor stored in
+      // center.w. The 4th channel is left at zero (RGBA32F needs all four for GPU upload but the shader
+      // ignores it).
       const o = i * 4;
       centers[o + 0] = x;
       centers[o + 1] = y;
       centers[o + 2] = z;
-      centers[o + 3] = 1.0;
       covA[o + 0] = s00;
       covA[o + 1] = s01;
       covA[o + 2] = s02;

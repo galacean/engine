@@ -51,9 +51,30 @@ export class GaussianSplatRenderer extends Renderer {
   private _invViewport = new Vector2();
   private _dataTextureSize = new Vector2();
   private _shTextureSize = new Vector2();
+  private _lastSortTime = 0;
+  private _useSH = true;
 
   /** Wall-clock duration (ms) of the most recent CPU depth sort, for profiling. */
-  lastSortTime = 0;
+  get lastSortTime(): number {
+    return this._lastSortTime;
+  }
+
+  /**
+   * Enables view-dependent color from stored spherical-harmonic bands when the splat carries them
+   * (`splat.shDegree > 0`). Set to `false` to fall back to DC-only color even for SH-carrying assets —
+   * useful for isolating the visual contribution of the higher-order bands or skipping their per-vertex
+   * evaluation cost.
+   * @defaultValue true
+   */
+  get useSH(): boolean {
+    return this._useSH;
+  }
+
+  set useSH(value: boolean) {
+    if (this._useSH === value) return;
+    this._useSH = value;
+    if (this._splat) this._syncShMacro();
+  }
 
   /**
    * The gaussian splatting scene to render.
@@ -134,14 +155,16 @@ export class GaussianSplatRenderer extends Renderer {
     this._dataTextureSize.set(splat.textureWidth, splat.textureHeight);
     shaderData.setVector2(_dataTextureSizeProp, this._dataTextureSize);
 
-    // Point the Magic reveal at the asset's bounds so demos never have to compute this themselves — the ring
-    // always emanates from the visible model and scales to cover it whatever the source coordinate range.
-    const { min, max } = splat.bounds;
-    material.magicCenter.set((min.x + max.x) * 0.5, (min.y + max.y) * 0.5, (min.z + max.z) * 0.5);
-    material.magicRadius = Math.hypot(max.x - min.x, max.y - min.y, max.z - min.z) * 0.5;
+    // Auto-wire the Magic reveal to the asset bounds so demos never have to.
+    material._setMagicBounds(splat.bounds);
 
-    // View-dependent color from spherical harmonics, compiled in only when the splat carries them.
-    if (splat.shDegree > 0) {
+    this._syncShMacro();
+  }
+
+  private _syncShMacro(): void {
+    const shaderData = this.getMaterial().shaderData;
+    const splat = this._splat;
+    if (this._useSH && splat && splat.shDegree > 0) {
       shaderData.setTexture(_shTextureProp, splat.shTexture);
       this._shTextureSize.set(splat.shTextureWidth, splat.shTextureHeight);
       shaderData.setVector2(_shTextureSizeProp, this._shTextureSize);
@@ -178,26 +201,22 @@ export class GaussianSplatRenderer extends Renderer {
     const last = this._lastSortMatrix.elements;
     let delta = 0;
     for (let i = 0; i < 16; i++) delta += Math.abs(cur[i] - last[i]);
+    this._lastSortTime = 0;
     if (this._needsSort || delta > 1e-4) {
       if (this._sortWorker) {
         // Off-thread sort: dispatch only when the worker is idle and the index buffer is on our side.
         if (!this._sortWorker.busy && this._instanceData) {
           this._sortWorker.requestSort(-cur[2], -cur[6], -cur[10], -cur[14], count, this._instanceData);
           this._instanceData = null; // transferred to the worker until it posts back
-          this._lastSortMatrix.copyFrom(this._sortMatrix);
-          this._needsSort = false;
+          this._finishSort();
         }
-        this.lastSortTime = 0;
       } else {
         const t0 = performance.now();
         this._sorter.sort(splat.positions, count, cur, this._instanceData);
         this._instanceBuffer.setData(this._instanceData);
-        this.lastSortTime = performance.now() - t0;
-        this._lastSortMatrix.copyFrom(this._sortMatrix);
-        this._needsSort = false;
+        this._lastSortTime = performance.now() - t0;
+        this._finishSort();
       }
-    } else {
-      this.lastSortTime = 0;
     }
 
     // Inverse viewport drives the covariance-to-screen projection; the shader derives focal from the
@@ -218,6 +237,11 @@ export class GaussianSplatRenderer extends Renderer {
     renderElement.priority = this.priority;
     renderElement.distanceForSort = this._distanceForSort;
     context.camera._renderPipeline.pushRenderElement(context, renderElement);
+  }
+
+  private _finishSort(): void {
+    this._lastSortMatrix.copyFrom(this._sortMatrix);
+    this._needsSort = false;
   }
 
   protected override _onDestroy(): void {

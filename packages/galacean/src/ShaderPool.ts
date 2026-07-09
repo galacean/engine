@@ -22,7 +22,8 @@ import {
   FinalSRGBSource,
   FinalAntiAliasingSource,
   BloomSource,
-  ScalableAmbientOcclusionSource
+  ScalableAmbientOcclusionSource,
+  GaussianSplatSource
 } from "@galacean/engine-shader";
 
 /**
@@ -75,7 +76,9 @@ export class ShaderPool {
       FinalAntiAliasingSource,
       BloomSource,
       // AO shader
-      ScalableAmbientOcclusionSource
+      ScalableAmbientOcclusionSource,
+      // Gaussian Splatting shader
+      GaussianSplatSource
     ];
 
     for (const source of sources) {
