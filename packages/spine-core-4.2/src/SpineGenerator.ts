@@ -9,7 +9,7 @@ import {
   Skeleton,
   SkeletonClipping
 } from "@esotericsoftware/spine-core";
-import { BoundingBox, SubPrimitive, Texture2D } from "@galacean/engine";
+import { BoundingBox, SubPrimitive } from "@galacean/engine";
 import { SpineTexture } from "./SpineTexture";
 import { ClearablePool } from "./util/ClearablePool";
 import { ReturnablePool } from "./util/ReturnablePool";
@@ -20,7 +20,6 @@ class SubRenderItem {
   subPrimitive: SubPrimitive;
   blendMode: BlendMode;
   texture: any;
-  slotName?: string;
 }
 
 /**
@@ -34,10 +33,8 @@ export class SpineGenerator {
   static subPrimitivePool = new ReturnablePool(SubPrimitive);
   static subRenderItemPool = new ClearablePool(SubRenderItem);
 
-  private _separateSlots = new Map();
   private _subRenderItems: SubRenderItem[] = [];
   private _clipper: SkeletonClipping = new SkeletonClipping();
-  private _separateSlotTextureMap: Map<string, Texture2D> = new Map();
 
   buildPrimitive(skeleton: Skeleton, renderer: ISpineRenderTarget) {
     const { _indices, _vertices, _localBounds, _vertexCount, _subPrimitives, zSpacing, premultipliedAlpha, tintBlack } =
@@ -46,7 +43,7 @@ export class SpineGenerator {
     _localBounds.min.set(Infinity, Infinity, Infinity);
     _localBounds.max.set(-Infinity, -Infinity, -Infinity);
 
-    const { _clipper, _separateSlots, _subRenderItems, _separateSlotTextureMap } = this;
+    const { _clipper, _subRenderItems } = this;
 
     const { tempVerts, subRenderItemPool, subPrimitivePool } = SpineGenerator;
     const { withTint: vertexStrideWithTint, withoutTint: vertexStrideWithoutTint } = SpineVertexStride;
@@ -244,14 +241,11 @@ export class SpineGenerator {
         }
         indicesLength += finalIndicesLength;
 
-        const slotData = slot.data;
-        const slotName = slotData.name;
         const textureChanged = tempTexture !== null && tempTexture !== texture;
-        const slotNeedSeparate = _separateSlots.get(slotName);
-        blend = slotData.blendMode;
+        blend = slot.data.blendMode;
         const blendModeChanged = tempBlendMode !== null && tempBlendMode !== blend;
 
-        if (slotNeedSeparate || blendModeChanged || textureChanged) {
+        if (blendModeChanged || textureChanged) {
           // Finish accumulated count first
           if (count > 0) {
             primitiveIndex = this._createRenderItem(
@@ -265,32 +259,8 @@ export class SpineGenerator {
             start += count;
             count = 0;
           }
-          if (slotNeedSeparate) {
-            // If separatedTexture exist, set texture params
-            const separateTexture = _separateSlotTextureMap.get(slotName);
-            if (separateTexture) {
-              const oldTexture = texture.getImage();
-              separateTexture.filterMode = oldTexture.filterMode;
-              separateTexture.wrapModeU = oldTexture.wrapModeU;
-              separateTexture.wrapModeV = oldTexture.wrapModeV;
-            }
-            primitiveIndex = this._createRenderItem(
-              _subPrimitives,
-              primitiveIndex,
-              start,
-              finalIndicesLength,
-              texture,
-              blend,
-              slotName
-            );
-            start += finalIndicesLength;
-            count = 0;
-          } else {
-            count += finalIndicesLength;
-          }
-        } else {
-          count += finalIndicesLength;
         }
+        count += finalIndicesLength;
         tempTexture = texture;
         tempBlendMode = blend;
       }
@@ -316,10 +286,9 @@ export class SpineGenerator {
     renderer._clearSubPrimitives();
     for (let i = 0, l = curLen; i < l; ++i) {
       const item = _subRenderItems[i];
-      const { slotName, blendMode, texture } = item;
+      const { blendMode, texture } = item;
       renderer._addSubPrimitive(item.subPrimitive);
-      const subTexture = _separateSlotTextureMap.get(slotName) || texture.getImage();
-      const material = renderer._getMaterial(subTexture, blendMode as unknown as SpineBlendMode);
+      const material = renderer._getMaterial(texture.getImage(), blendMode as unknown as SpineBlendMode);
       renderer.setMaterial(i, material);
     }
 
@@ -336,22 +305,13 @@ export class SpineGenerator {
     }
   }
 
-  addSeparateSlot(slotName: string) {
-    this._separateSlots.set(slotName, slotName);
-  }
-
-  addSeparateSlotTexture(slotName: string, texture: Texture2D) {
-    this._separateSlotTextureMap.set(slotName, texture);
-  }
-
   private _createRenderItem(
     subPrimitives: SubPrimitive[],
     primitiveIndex: number,
     start: number,
     count: number,
     texture: SpineTexture,
-    blend: BlendMode,
-    slotName?: string
+    blend: BlendMode
   ): number {
     const { subPrimitivePool, subRenderItemPool } = SpineGenerator;
     const origin = subPrimitives[primitiveIndex];
@@ -368,7 +328,6 @@ export class SpineGenerator {
     renderItem.blendMode = blend;
     renderItem.subPrimitive = subPrimitive;
     renderItem.texture = texture;
-    renderItem.slotName = slotName;
 
     this._subRenderItems.push(renderItem);
 

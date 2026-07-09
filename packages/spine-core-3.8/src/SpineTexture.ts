@@ -19,10 +19,12 @@ export class SpineTexture extends Texture {
   setFilters(minFilter: TextureFilter, magFilter: TextureFilter) {
     if (minFilter === TextureFilter.Nearest) {
       this._texture.filterMode = TextureFilterMode.Point;
-    } else if (magFilter === TextureFilter.MipMapLinearLinear) {
-      this._texture.filterMode = TextureFilterMode.Trilinear;
-    } else {
+    } else if (minFilter === TextureFilter.Linear) {
       this._texture.filterMode = TextureFilterMode.Bilinear;
+    } else {
+      // The remaining min filters are the MipMap* family (mag filters are never MipMap*);
+      // mipmaps are generated in the constructor.
+      this._texture.filterMode = TextureFilterMode.Trilinear;
     }
   }
 

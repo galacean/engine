@@ -20,6 +20,10 @@ export type SpineLoaderParams = {
   fileExtensions?: string | string[];
 };
 
+// Registering "json" makes this loader the default for bare `.json` urls (extension mappings are
+// last-registration-wins, overriding the core JSONLoader) — matches the historical engine-spine
+// behavior. Pass an explicit `type` (e.g. AssetType.JSON) to load plain JSON once this package
+// is imported.
 @resourceLoader("Spine", ["json", "bin", "skel"])
 export class SpineLoader extends Loader<SpineResource> {
   private static _decoder = new TextDecoder("utf-8");
