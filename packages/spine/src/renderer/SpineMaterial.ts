@@ -19,6 +19,12 @@ export class SpineMaterial extends Material {
   private static _sourceAlphaBlendFactorProp = ShaderProperty.getByName("sourceAlphaBlendFactor");
   private static _destinationAlphaBlendFactorProp = ShaderProperty.getByName("destinationAlphaBlendFactor");
 
+  /**
+   * @internal
+   * The key this material is registered under in `SpineAnimationRenderer._materialCacheMap`.
+   */
+  _cacheKey: string;
+
   private _blendMode: SpineBlendMode = SpineBlendMode.Normal;
 
   /**

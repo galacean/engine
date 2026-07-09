@@ -226,6 +226,8 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   // @ts-ignore
   override _cloneTo(target: SpineAnimationRenderer): void {
+    // A renderer added manually and never bound to a resource has no skeleton/state to clone.
+    if (!this._skeleton || !this._state) return;
     const runtime = getSpineRuntime();
     // Clones share the source's immutable SkeletonData and AnimationStateData (mix config),
     // so mix times configured on the resource propagate to every instance; only the
@@ -248,6 +250,11 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
       primitive.destroy();
       this._primitive = null;
     }
+    // destroy() is refCount-guarded; the primitive released its buffer references above.
+    this._vertexBuffer?.destroy();
+    this._indexBuffer?.destroy();
+    this._vertexBuffer = null;
+    this._indexBuffer = null;
     this._resource = null;
     this._skeleton = null;
     this._state = null;
@@ -259,6 +266,8 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   _createAndBindBuffer(vertexCount: number): void {
     const { engine: _engine, _primitive } = this;
+    const oldVertexBuffer = this._vertexBuffer;
+    const oldIndexBuffer = this._indexBuffer;
     this._vertexCount = vertexCount;
     const stride = this.tintBlack ? SpineVertexStride.withTint : SpineVertexStride.withoutTint;
     this._vertices = new Float32Array(vertexCount * stride);
@@ -272,6 +281,10 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     this._primitive.setVertexBufferBinding(0, vertexBufferBinding);
     const indexBufferBinding = new IndexBufferBinding(indexBuffer, IndexFormat.UInt16);
     _primitive.setIndexBufferBinding(indexBufferBinding);
+    // Rebinding released the primitive's references to the old buffers; destroy() is
+    // refCount-guarded, so this frees their GPU resources without waiting for gc().
+    oldVertexBuffer?.destroy();
+    oldIndexBuffer?.destroy();
   }
 
   /**
@@ -296,11 +309,14 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     const premultipliedAlpha = this.premultipliedAlpha;
     const tintBlack = this.tintBlack;
 
-    const key = `${texture.instanceId}_${blendMode}_${premultipliedAlpha ? 1 : 0}`;
+    // tintBlack must be part of the key: it toggles a per-material macro, so renderers that
+    // differ only in tintBlack cannot share a material.
+    const key = `${texture.instanceId}_${blendMode}_${premultipliedAlpha ? 1 : 0}_${tintBlack ? 1 : 0}`;
     let cached = SpineAnimationRenderer._materialCacheMap.get(key);
     if (!cached) {
       cached = new SpineMaterial(engine);
       cached.isGCIgnored = true;
+      cached._cacheKey = key;
       SpineAnimationRenderer._materialCacheMap.set(key, cached);
     }
     cached._setBlendMode(blendMode, premultipliedAlpha);
@@ -312,14 +328,15 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
 
   private _clearMaterialCache(): void {
     const materialCache = SpineAnimationRenderer._materialCacheMap;
-    const premultipliedAlpha = this.premultipliedAlpha;
     const materials = this._materials;
     for (let i = 0, len = materials.length; i < len; i += 1) {
-      const material = materials[i] as SpineMaterial;
-      const texture = material.shaderData.getTexture("material_SpineTexture");
-      const blendMode = material._getBlendMode();
-      const key = `${texture.instanceId}_${blendMode}_${premultipliedAlpha ? 1 : 0}`;
-      materialCache.delete(key);
+      const material = materials[i];
+      // `setMaterial` is public API, so entries may be user materials or null holes; a cached
+      // SpineMaterial is removed by the exact key it was registered under (recomputing the key
+      // from the renderer's current state would miss materials cached under older settings).
+      if (material instanceof SpineMaterial) {
+        materialCache.delete(material._cacheKey);
+      }
     }
   }
 
@@ -367,14 +384,6 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     this._setState(state);
     this._applyDefaultConfig();
   }
-}
-
-/**
- * @internal
- */
-export enum SpineAnimationUpdateFlags {
-  /** On Animation change */
-  Animation = 0x2
 }
 
 /**

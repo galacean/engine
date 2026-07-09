@@ -67,7 +67,7 @@ export class SpineAtlasLoader extends Loader<TextureAtlas> {
 
       const imagePaths = spineAtlasAsset.imagePaths;
       if (imagePaths.length === 0) {
-        const atlasPath = item.url;
+        // Use the parsed atlas path: `item.url` is undefined when the asset came in via `item.urls`.
         LoaderUtils.loadTextureAtlas(atlasPath, engine, reject)
           .then((textureAtlas) => {
             resolve(textureAtlas);
