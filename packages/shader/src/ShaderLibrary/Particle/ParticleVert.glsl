@@ -174,8 +174,6 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
         }
         localVelocity = attr.a_FeedbackVelocity;
         worldVelocity = vec3(0.0);
-        vec3 visualLocalVelocity = localVelocity;
-        vec3 visualWorldVelocity = worldVelocity;
         vec4 invWorldRotation = quaternionConjugate(worldRotation);
         vec3 currentLinearVelocity = vec3(0.0);
 
@@ -193,6 +191,9 @@ vec3 computeParticleCenter(Attributes attr, float age, float normalizedAge, inou
                     : instantVOLVelocity;
             }
         #endif
+
+        vec3 visualLocalVelocity = localVelocity;
+        vec3 visualWorldVelocity = worldVelocity;
 
         #ifdef RENDERER_MODE_STRETCHED_BILLBOARD
             #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
