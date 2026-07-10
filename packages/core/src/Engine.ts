@@ -661,7 +661,7 @@ export class Engine extends EventDispatcher {
     }
 
     const loaders = ResourceManager._loaders;
-    for (let key in loaders) {
+    for (const key in loaders) {
       const loader = loaders[key];
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }

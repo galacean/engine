@@ -28,6 +28,27 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   static readonly _maxGradientZProperty = ShaderProperty.getByName("renderer_VOLMaxGradientZ");
   static readonly _spaceProperty = ShaderProperty.getByName("renderer_VOLSpace");
 
+  static readonly _orbitalConstantModeMacro = ShaderMacro.getByName("RENDERER_VOL_ORBITAL_CONSTANT_MODE");
+  static readonly _orbitalCurveModeMacro = ShaderMacro.getByName("RENDERER_VOL_ORBITAL_CURVE_MODE");
+  static readonly _orbitalRandomModeMacro = ShaderMacro.getByName("RENDERER_VOL_ORBITAL_IS_RANDOM_TWO");
+  static readonly _radialConstantModeMacro = ShaderMacro.getByName("RENDERER_VOL_RADIAL_CONSTANT_MODE");
+  static readonly _radialCurveModeMacro = ShaderMacro.getByName("RENDERER_VOL_RADIAL_CURVE_MODE");
+  static readonly _radialRandomModeMacro = ShaderMacro.getByName("RENDERER_VOL_RADIAL_IS_RANDOM_TWO");
+
+  static readonly _orbitalMinConstantProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinConst");
+  static readonly _orbitalMaxConstantProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxConst");
+  static readonly _orbitalMinCurveXProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveX");
+  static readonly _orbitalMinCurveYProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveY");
+  static readonly _orbitalMinCurveZProperty = ShaderProperty.getByName("renderer_VOLOrbitalMinCurveZ");
+  static readonly _orbitalMaxCurveXProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveX");
+  static readonly _orbitalMaxCurveYProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveY");
+  static readonly _orbitalMaxCurveZProperty = ShaderProperty.getByName("renderer_VOLOrbitalMaxCurveZ");
+  static readonly _radialMinConstantProperty = ShaderProperty.getByName("renderer_VOLRadialMinConst");
+  static readonly _radialMaxConstantProperty = ShaderProperty.getByName("renderer_VOLRadialMaxConst");
+  static readonly _radialMinCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMinCurve");
+  static readonly _radialMaxCurveProperty = ShaderProperty.getByName("renderer_VOLRadialMaxCurve");
+  static readonly _offsetProperty = ShaderProperty.getByName("renderer_VOLOffset");
+
   /** @internal */
   @ignoreClone
   _velocityRand = new Rand(0, ParticleRandomSubSeeds.VelocityOverLifetime);
@@ -40,11 +61,31 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   private _velocityMacro: ShaderMacro;
   @ignoreClone
   private _randomModeMacro: ShaderMacro;
+  @ignoreClone
+  private _orbitalMinConstant = new Vector3();
+  @ignoreClone
+  private _orbitalConstant = new Vector3();
+  @ignoreClone
+  private _orbitalMacro: ShaderMacro;
+  @ignoreClone
+  private _orbitalRandomModeMacro: ShaderMacro;
+  @ignoreClone
+  private _radialMacro: ShaderMacro;
+  @ignoreClone
+  private _radialRandomModeMacro: ShaderMacro;
 
   private _velocityX: ParticleCompositeCurve;
   private _velocityY: ParticleCompositeCurve;
   private _velocityZ: ParticleCompositeCurve;
+  private _orbitalX: ParticleCompositeCurve;
+  private _orbitalY: ParticleCompositeCurve;
+  private _orbitalZ: ParticleCompositeCurve;
+  private _radial: ParticleCompositeCurve;
+  private _offset = new Vector3();
   private _space = ParticleSimulationSpace.Local;
+
+  @ignoreClone
+  private readonly _onTransformFeedbackDirty = (): void => this._generator._setTransformFeedback();
 
   /**
    * Velocity over lifetime for x axis.
@@ -92,6 +133,84 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   /**
+   * Orbital velocity (radians/second) around the x axis of the system.
+   * @remarks Requires WebGL2.
+   */
+  get orbitalX(): ParticleCompositeCurve {
+    return this._orbitalX;
+  }
+
+  set orbitalX(value: ParticleCompositeCurve) {
+    const lastValue = this._orbitalX;
+    if (value !== lastValue) {
+      this._orbitalX = value;
+      this._onOrbitalRadialChange(lastValue, value);
+    }
+  }
+
+  /**
+   * Orbital velocity (radians/second) around the y axis of the system.
+   * @remarks Requires WebGL2.
+   */
+  get orbitalY(): ParticleCompositeCurve {
+    return this._orbitalY;
+  }
+
+  set orbitalY(value: ParticleCompositeCurve) {
+    const lastValue = this._orbitalY;
+    if (value !== lastValue) {
+      this._orbitalY = value;
+      this._onOrbitalRadialChange(lastValue, value);
+    }
+  }
+
+  /**
+   * Orbital velocity (radians/second) around the z axis of the system.
+   * @remarks Requires WebGL2.
+   */
+  get orbitalZ(): ParticleCompositeCurve {
+    return this._orbitalZ;
+  }
+
+  set orbitalZ(value: ParticleCompositeCurve) {
+    const lastValue = this._orbitalZ;
+    if (value !== lastValue) {
+      this._orbitalZ = value;
+      this._onOrbitalRadialChange(lastValue, value);
+    }
+  }
+
+  /**
+   * Radial velocity moving particles away from (or towards) the center.
+   * @remarks Requires WebGL2.
+   */
+  get radial(): ParticleCompositeCurve {
+    return this._radial;
+  }
+
+  set radial(value: ParticleCompositeCurve) {
+    const lastValue = this._radial;
+    if (value !== lastValue) {
+      this._radial = value;
+      this._onOrbitalRadialChange(lastValue, value);
+    }
+  }
+
+  /**
+   * The center offset of orbital/radial motion from the particle system origin.
+   */
+  get centerOffset(): Vector3 {
+    return this._offset;
+  }
+
+  set centerOffset(value: Vector3) {
+    const offset = this._offset;
+    if (value !== offset) {
+      offset.copyFrom(value);
+    }
+  }
+
+  /**
    * Velocity space.
    */
   get space(): ParticleSimulationSpace {
@@ -112,6 +231,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   override set enabled(value: boolean) {
     if (value !== this._enabled) {
       this._enabled = value;
+      this._generator._setTransformFeedback();
       this._generator._renderer._onGeneratorParamsChanged();
     }
   }
@@ -122,6 +242,13 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
     this.velocityX = new ParticleCompositeCurve(0);
     this.velocityY = new ParticleCompositeCurve(0);
     this.velocityZ = new ParticleCompositeCurve(0);
+
+    this.orbitalX = new ParticleCompositeCurve(0);
+    this.orbitalY = new ParticleCompositeCurve(0);
+    this.orbitalZ = new ParticleCompositeCurve(0);
+    this.radial = new ParticleCompositeCurve(0);
+    // @ts-ignore
+    this._offset._onValueChanged = () => this._generator._renderer._onGeneratorParamsChanged();
   }
 
   /**
@@ -130,6 +257,10 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   _updateShaderData(shaderData: ShaderData): void {
     let velocityMacro = <ShaderMacro>null;
     let isRandomModeMacro = <ShaderMacro>null;
+    let orbitalMacro = <ShaderMacro>null;
+    let orbitalRandomModeMacro = <ShaderMacro>null;
+    let radialMacro = <ShaderMacro>null;
+    let radialRandomModeMacro = <ShaderMacro>null;
 
     if (this.enabled) {
       const velocityX = this.velocityX;
@@ -184,9 +315,103 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
       }
 
       shaderData.setInt(VelocityOverLifetimeModule._spaceProperty, this.space);
+
+      const needTransformFeedback = this._needTransformFeedback();
+      const orbitalActive = needTransformFeedback && this._isOrbitalActive();
+      const radialActive = needTransformFeedback && this._isRadialActive();
+
+      if (orbitalActive) {
+        const orbitalX = this._orbitalX;
+        const orbitalY = this._orbitalY;
+        const orbitalZ = this._orbitalZ;
+        const isOrbitalRandomCurveMode =
+          orbitalX.mode === ParticleCurveMode.TwoCurves &&
+          orbitalY.mode === ParticleCurveMode.TwoCurves &&
+          orbitalZ.mode === ParticleCurveMode.TwoCurves;
+
+        if (
+          isOrbitalRandomCurveMode ||
+          (orbitalX.mode === ParticleCurveMode.Curve &&
+            orbitalY.mode === ParticleCurveMode.Curve &&
+            orbitalZ.mode === ParticleCurveMode.Curve)
+        ) {
+          shaderData.setFloatArray(
+            VelocityOverLifetimeModule._orbitalMaxCurveXProperty,
+            orbitalX.curveMax._getTypeArray()
+          );
+          shaderData.setFloatArray(
+            VelocityOverLifetimeModule._orbitalMaxCurveYProperty,
+            orbitalY.curveMax._getTypeArray()
+          );
+          shaderData.setFloatArray(
+            VelocityOverLifetimeModule._orbitalMaxCurveZProperty,
+            orbitalZ.curveMax._getTypeArray()
+          );
+          orbitalMacro = VelocityOverLifetimeModule._orbitalCurveModeMacro;
+          if (isOrbitalRandomCurveMode) {
+            shaderData.setFloatArray(
+              VelocityOverLifetimeModule._orbitalMinCurveXProperty,
+              orbitalX.curveMin._getTypeArray()
+            );
+            shaderData.setFloatArray(
+              VelocityOverLifetimeModule._orbitalMinCurveYProperty,
+              orbitalY.curveMin._getTypeArray()
+            );
+            shaderData.setFloatArray(
+              VelocityOverLifetimeModule._orbitalMinCurveZProperty,
+              orbitalZ.curveMin._getTypeArray()
+            );
+            orbitalRandomModeMacro = VelocityOverLifetimeModule._orbitalRandomModeMacro;
+          }
+        } else {
+          this._orbitalConstant.set(orbitalX.constantMax, orbitalY.constantMax, orbitalZ.constantMax);
+          shaderData.setVector3(VelocityOverLifetimeModule._orbitalMaxConstantProperty, this._orbitalConstant);
+          orbitalMacro = VelocityOverLifetimeModule._orbitalConstantModeMacro;
+          if (
+            orbitalX.mode === ParticleCurveMode.TwoConstants &&
+            orbitalY.mode === ParticleCurveMode.TwoConstants &&
+            orbitalZ.mode === ParticleCurveMode.TwoConstants
+          ) {
+            this._orbitalMinConstant.set(orbitalX.constantMin, orbitalY.constantMin, orbitalZ.constantMin);
+            shaderData.setVector3(VelocityOverLifetimeModule._orbitalMinConstantProperty, this._orbitalMinConstant);
+            orbitalRandomModeMacro = VelocityOverLifetimeModule._orbitalRandomModeMacro;
+          }
+        }
+      }
+
+      if (radialActive) {
+        const radial = this._radial;
+        const isRadialRandomMode = radial._isRandomMode();
+        if (radial._isCurveMode()) {
+          shaderData.setFloatArray(VelocityOverLifetimeModule._radialMaxCurveProperty, radial.curveMax._getTypeArray());
+          radialMacro = VelocityOverLifetimeModule._radialCurveModeMacro;
+          if (isRadialRandomMode) {
+            shaderData.setFloatArray(
+              VelocityOverLifetimeModule._radialMinCurveProperty,
+              radial.curveMin._getTypeArray()
+            );
+            radialRandomModeMacro = VelocityOverLifetimeModule._radialRandomModeMacro;
+          }
+        } else {
+          shaderData.setFloat(VelocityOverLifetimeModule._radialMaxConstantProperty, radial.constantMax);
+          radialMacro = VelocityOverLifetimeModule._radialConstantModeMacro;
+          if (isRadialRandomMode) {
+            shaderData.setFloat(VelocityOverLifetimeModule._radialMinConstantProperty, radial.constantMin);
+            radialRandomModeMacro = VelocityOverLifetimeModule._radialRandomModeMacro;
+          }
+        }
+      }
+
+      if (orbitalActive || radialActive) {
+        shaderData.setVector3(VelocityOverLifetimeModule._offsetProperty, this._offset);
+      }
     }
     this._velocityMacro = this._enableMacro(shaderData, this._velocityMacro, velocityMacro);
     this._randomModeMacro = this._enableMacro(shaderData, this._randomModeMacro, isRandomModeMacro);
+    this._orbitalMacro = this._enableMacro(shaderData, this._orbitalMacro, orbitalMacro);
+    this._orbitalRandomModeMacro = this._enableMacro(shaderData, this._orbitalRandomModeMacro, orbitalRandomModeMacro);
+    this._radialMacro = this._enableMacro(shaderData, this._radialMacro, radialMacro);
+    this._radialRandomModeMacro = this._enableMacro(shaderData, this._radialRandomModeMacro, radialRandomModeMacro);
   }
 
   /**
@@ -194,5 +419,68 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
    */
   _resetRandomSeed(seed: number): void {
     this._velocityRand.reset(seed, ParticleRandomSubSeeds.VelocityOverLifetime);
+  }
+
+  /**
+   * @internal
+   */
+  _needTransformFeedback(): boolean {
+    if (!this._enabled || !this._generator._renderer.engine._hardwareRenderer.isWebGL2) {
+      return false;
+    }
+    return this._isOrbitalActive() || this._isRadialActive();
+  }
+
+  /**
+   * @internal
+   */
+  _isOrbitalActive(): boolean {
+    return !(this._orbitalX._isZero() && this._orbitalY._isZero() && this._orbitalZ._isZero());
+  }
+
+  /**
+   * @internal
+   */
+  _isRadialActive(): boolean {
+    return !this._radial._isZero();
+  }
+
+  /**
+   * @internal
+   */
+  _isRandomMode(): boolean {
+    const velocityX = this.velocityX;
+    const velocityY = this.velocityY;
+    const velocityZ = this.velocityZ;
+    const isLinearRandomMode =
+      (velocityX.mode === ParticleCurveMode.TwoConstants &&
+        velocityY.mode === ParticleCurveMode.TwoConstants &&
+        velocityZ.mode === ParticleCurveMode.TwoConstants) ||
+      (velocityX.mode === ParticleCurveMode.TwoCurves &&
+        velocityY.mode === ParticleCurveMode.TwoCurves &&
+        velocityZ.mode === ParticleCurveMode.TwoCurves);
+    if (!this._needTransformFeedback()) {
+      return isLinearRandomMode;
+    }
+
+    const orbitalX = this._orbitalX;
+    const orbitalY = this._orbitalY;
+    const orbitalZ = this._orbitalZ;
+    const isOrbitalRandomMode =
+      (orbitalX.mode === ParticleCurveMode.TwoConstants &&
+        orbitalY.mode === ParticleCurveMode.TwoConstants &&
+        orbitalZ.mode === ParticleCurveMode.TwoConstants) ||
+      (orbitalX.mode === ParticleCurveMode.TwoCurves &&
+        orbitalY.mode === ParticleCurveMode.TwoCurves &&
+        orbitalZ.mode === ParticleCurveMode.TwoCurves);
+
+    return isLinearRandomMode || isOrbitalRandomMode || this._radial._isRandomMode();
+  }
+
+  private _onOrbitalRadialChange(lastValue: ParticleCompositeCurve, value: ParticleCompositeCurve): void {
+    this._onCompositeCurveChange(lastValue, value);
+    lastValue?._unRegisterOnValueChanged(this._onTransformFeedbackDirty);
+    value?._registerOnValueChanged(this._onTransformFeedbackDirty);
+    this._generator._setTransformFeedback();
   }
 }
