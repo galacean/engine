@@ -417,10 +417,15 @@ export class ShaderValidator {
     // A vecN / matN constructor needs exactly N components (or N×M for matrices) from its args.
     // Skip when we can't count any side. A single scalar is a valid splat and short-circuits before
     // the exact-count check. Mismatch either direction is ConstructorArgCount.
-    const need =
-      TypeSystem.vectorComponentCount(functionIdentifier.ident) ||
-      TypeSystem.matrixComponentCount(functionIdentifier.ident);
+    const matrixNeed = TypeSystem.matrixComponentCount(functionIdentifier.ident);
+    const need = TypeSystem.vectorComponentCount(functionIdentifier.ident) || matrixNeed;
     if (need <= 0) return;
+    // GLSL ES §5.4.3: `matN(matM)` — a matrix constructor with a single matrix argument. Always
+    // legal regardless of M vs N (source is truncated / padded diagonally). Short-circuit before
+    // the component-count check, which would otherwise fire on the source's total component count.
+    if (matrixNeed > 0 && list.paramSig.length === 1 && TypeSystem.matrixComponentCount(list.paramSig[0]) > 0) {
+      return;
+    }
     let total = 0;
     let countable = list.paramSig.length > 0;
     for (const t of list.paramSig) {
@@ -774,7 +779,12 @@ export class ShaderValidator {
         this._push(m, index.location, DiagnosticType.NonIntegerIndex);
         return;
       }
-      const size = TypeSystem.vectorComponentCount(base.type);
+      // Array-of-vector base like `ivec2 arr[N]` — a[i] indexes the outer array, not the inner
+      // vec2. Skip the vector-bounds check when the base is an array; the array-size check
+      // still runs below when the array size is known at compile time.
+      const baseArrayIdent = ParserUtils.unwrapBareIdentifier(base, { allowParens: true });
+      const baseIsArray = !!baseArrayIdent?.isArray;
+      const size = baseIsArray ? 0 : TypeSystem.vectorComponentCount(base.type);
       if (size > 0) {
         const n = ParserUtils.constNumericValue(index);
         if (n !== undefined && (n < 0 || n >= size)) {

@@ -1006,9 +1006,24 @@ export namespace ASTNode {
         this.type = expr.type ?? TypeAny;
       } else {
         const lhs = this.children[0] as ExpressionAstNode;
+        // Grammar: `unary_expression assignment_operator assignment_expression`. `assignment_operator`
+        // reduces from a single ETokenType — inspect its first child token to distinguish `=` from
+        // the compound-op variants.
+        const opNode = this.children[1] as AssignmentOperator;
+        const opToken = opNode?.children?.[0] as BaseToken | undefined;
         const rhs = this.children[2] as AssignmentExpression;
         this.type = rhs.type ?? TypeAny;
-        if (!TypeSystem.isAssignable(lhs.type, rhs.type)) {
+        // Compound-op assign (`+=` `-=` `*=` `/=`): GLSL treats `L op= R` as `L = L op R`, then
+        // assigns. Scalar⊙vector broadcasts under arithmetic (`vec3 *= float` is legal); use
+        // arithmeticResultType and check whether that composite is assignable back to L.
+        const opType = opToken?.type;
+        const isCompoundArith =
+          opType === ETokenType.MUL_ASSIGN ||
+          opType === ETokenType.DIV_ASSIGN ||
+          opType === ETokenType.ADD_ASSIGN ||
+          opType === ETokenType.SUB_ASSIGN;
+        const effectiveRhsType = isCompoundArith ? TypeSystem.arithmeticResultType(lhs.type, rhs.type) : rhs.type;
+        if (!TypeSystem.isAssignable(lhs.type, effectiveRhsType)) {
           sa.reportError(
             this.location,
             `Cannot assign a value of type '${TypeSystem.typeName(rhs.type)}' to '${TypeSystem.typeName(lhs.type)}'.`,
