@@ -39,6 +39,15 @@ export default class SemanticAnalyzer {
 
   readonly errors: Error[] = [];
 
+  /**
+   * Names for which an `AmbiguousMacroBranchType` warning has already been emitted this pass.
+   * A single symbol declared with divergent types (e.g. `renderer_BlendShapeWeights` with 4 array
+   * sizes) has dozens of reference sites in shipping code; without dedupe the editor UI would
+   * flood with identical warnings. Report-once-per-pass keeps the signal at one row per divergent
+   * symbol. Reset in `reset()`.
+   */
+  readonly _ambiguousReported = new Set<string>();
+
   get shaderData() {
     return this._shaderData;
   }
@@ -58,6 +67,7 @@ export default class SemanticAnalyzer {
     this.symbolTableStack.clear();
     this.pushScope();
     this.errors.length = 0;
+    this._ambiguousReported.clear();
   }
 
   pushScope() {

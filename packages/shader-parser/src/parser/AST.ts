@@ -1731,9 +1731,49 @@ export namespace ASTNode {
         // is a `Varyings` struct but the macro call site's type should be the
         // member type). Skip type inference for those and keep TypeAny.
         if (hit && (child instanceof BaseToken || !child.hasAstValue)) {
-          this.typeInfo = symbols[0].dataType?.type;
-          this.isArray = !!symbols[0].dataType?.arraySpecifier;
-          this.arraySize = symbols[0].dataType?.arraySpecifier?.size;
+          // Divergence guard: lookupAll returns every branch-visible decl; if their type identity
+          // (base type + isArray + arraySize) diverges, we can't confidently pick one — commit to
+          // TypeAny + isArray=false + arraySize=undefined so downstream checks self-disable rather
+          // than acting on an arbitrary last-inserted decl. Symmetric with FunctionCallGeneric's
+          // `overloadTypeAmbiguous` guard.
+          const first = symbols[0];
+          const firstType = first.dataType?.type;
+          const firstIsArray = !!first.dataType?.arraySpecifier;
+          const firstArraySize = first.dataType?.arraySpecifier?.size;
+          let divergent = false;
+          if (symbols.length > 1) {
+            for (let s = 1; s < symbols.length; s++) {
+              const d = symbols[s].dataType;
+              if (
+                d?.type !== firstType ||
+                !!d?.arraySpecifier !== firstIsArray ||
+                d?.arraySpecifier?.size !== firstArraySize
+              ) {
+                divergent = true;
+                break;
+              }
+            }
+          }
+          if (divergent) {
+            this.typeInfo = TypeAny;
+            this.isArray = false;
+            this.arraySize = undefined;
+            // Report once per (pass, symbol name) — a single divergent symbol may be referenced
+            // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
+            // with identical warnings buries the signal.
+            if (!sa._ambiguousReported.has(name)) {
+              sa._ambiguousReported.add(name);
+              sa.reportWarning(
+                this.location,
+                `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
+                DiagnosticType.AmbiguousMacroBranchType
+              );
+            }
+          } else {
+            this.typeInfo = firstType;
+            this.isArray = firstIsArray;
+            this.arraySize = firstArraySize;
+          }
         }
       }
 

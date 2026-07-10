@@ -35,6 +35,21 @@ const cases: { code: string; source?: string; gap?: string }[] = [
       VertexShader = vert; FragmentShader = frag;`)
   },
   // ── B: RenderState ──
+  {
+    code: "AmbiguousMacroBranchType",
+    source: pass(
+      `void frag() {
+        #ifdef X
+          vec3 v;
+        #else
+          vec4 v;
+        #endif
+        gl_FragColor = vec4(v.x);
+      }
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`
+    )
+  },
   { code: "InvalidRenderStateProperty", source: pass(`BlendState bs { NotARealProperty = true; }`) },
   { code: "InvalidEnumValue", source: pass(`BlendState bs { SourceColorBlendFactor = BlendFactor.NotReal; }`) },
   {
