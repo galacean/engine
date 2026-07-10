@@ -1,4 +1,5 @@
 import { IBaseSymbol } from "../../common/IBaseSymbol";
+import { BranchSignature, EMPTY_BRANCH } from "../../common/BaseToken";
 import { GalaceanDataType, TypeAny } from "../../common/types";
 import { ASTNode } from "../AST";
 import { SymbolDataType } from "./SymbolDataType";
@@ -19,6 +20,16 @@ export type SymbolAstNode =
   | ASTNode.VariableDeclaration;
 
 export class SymbolInfo implements IBaseSymbol {
+  /**
+   * Snapshot of the `#ifdef` stack at the declaration site. Empty means the declaration is
+   * unconditional (top-level). Non-empty means the declaration is only active when every
+   * constraint holds. `SymbolTable.getSymbol` filters candidates by
+   * `Lexer.isVisibleFrom(this.branchSignature, callsiteBranch)` — a reference inside a mutually
+   * exclusive branch never sees this symbol; a reference inside the same or a nested branch
+   * does. Mirrors `codegen`'s per-branch symbol visibility.
+   */
+  branchSignature: BranchSignature = EMPTY_BRANCH;
+
   constructor(
     public ident: string,
     public type: ESymbolType,

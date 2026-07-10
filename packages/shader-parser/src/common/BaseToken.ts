@@ -27,6 +27,23 @@ export type BranchSignature = readonly BranchConstraint[];
 // for tokens that are inside an `#ifdef`.
 export const EMPTY_BRANCH: BranchSignature = [];
 
+/**
+ * `defBranch` is visible from `callSiteBranch` when there is no mutually-exclusive constraint
+ * between them — i.e. no shared name whose `defined` flags differ. Same or nested branch is
+ * always visible; unconditional (empty) `defBranch` is visible everywhere. Extracted from Lexer
+ * so common/SymbolTable can consume it without pulling the whole lexer in as a dependency.
+ */
+export function isBranchVisibleFrom(defBranch: BranchSignature, callSiteBranch: BranchSignature): boolean {
+  for (let i = 0, n = defBranch.length; i < n; i++) {
+    const d = defBranch[i];
+    for (let j = 0, m = callSiteBranch.length; j < m; j++) {
+      const c = callSiteBranch[j];
+      if (d.name === c.name && d.defined !== c.defined) return false;
+    }
+  }
+  return true;
+}
+
 export class BaseToken<T extends number = number> implements IPoolElement {
   static pool = ShaderCompilerUtils.createObjectPool(BaseToken);
 

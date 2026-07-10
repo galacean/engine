@@ -1,7 +1,9 @@
+import { BranchSignature, EMPTY_BRANCH } from "../common/BaseToken";
 import { IBaseSymbol } from "../common/IBaseSymbol";
 
 export class ShaderSourceSymbol implements IBaseSymbol {
   public isInMacroBranch: boolean = false;
+  public branchSignature: BranchSignature = EMPTY_BRANCH;
 
   constructor(
     public ident: string,

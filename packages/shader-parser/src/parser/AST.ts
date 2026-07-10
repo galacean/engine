@@ -1,7 +1,7 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
-import { BaseToken } from "../common/BaseToken";
+import { BaseToken, BranchSignature, EMPTY_BRANCH } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { TypeSystem } from "./TypeSystem";
@@ -52,6 +52,15 @@ export abstract class TreeNode implements IPoolElement {
   private _codeCache: string;
 
   /**
+   * Snapshot of the `#ifdef` stack at this node's source position, inherited from its first
+   * terminal descendant (tokens carry `.branch` from the Lexer). Empty = unconditional. Used as
+   * the callsite branch for `symbolTableStack.lookup/insert` so a reference inside `#ifdef X`
+   * resolves against declarations visible from that branch, and a declaration inside `#ifdef X`
+   * is stamped with that branch. Mirrors codegen's per-branch visibility model.
+   */
+  _branch: BranchSignature = EMPTY_BRANCH;
+
+  /**
    * Parent pointer for AST traversal.
    * @remarks
    * The parent pointer is only reliable after the entire AST has been constructed.
@@ -73,11 +82,16 @@ export abstract class TreeNode implements IPoolElement {
   set(loc: ShaderRange, children: NodeChild[]): void {
     this._location = loc;
     this._children = children;
+    let branch: BranchSignature = EMPTY_BRANCH;
     for (const child of children) {
       if (child instanceof TreeNode) {
         child._parent = this;
+        if (branch === EMPTY_BRANCH && child._branch !== EMPTY_BRANCH) branch = child._branch;
+      } else if (branch === EMPTY_BRANCH && child instanceof BaseToken && child.branch !== EMPTY_BRANCH) {
+        branch = child.branch;
       }
     }
+    this._branch = branch;
 
     this.init();
   }
@@ -132,7 +146,10 @@ export namespace ASTNode {
   export function get(pool: ASTNodePool, sa: SemanticAnalyzer, loc: ShaderRange, children: NodeChild[]) {
     const node = pool.get();
     node.set(loc, children);
+    const prev = sa.symbolTableStack._currentBranch;
+    sa.symbolTableStack._currentBranch = node._branch;
     node.semanticAnalyze(sa);
+    sa.symbolTableStack._currentBranch = prev;
     sa.semanticStack.push(node);
   }
 
@@ -420,7 +437,8 @@ export namespace ASTNode {
         if (bare instanceof BaseToken && !sa.macroDefineList[bare.lexeme]) {
           const lookup = SemanticAnalyzer._lookupSymbol;
           lookup.set(bare.lexeme, ESymbolType.VAR);
-          const symbol = sa.symbolTableStack.lookup(lookup, true);
+          // Branch-aware: same-branch decls resolve to their concrete const-ness.
+          const symbol = sa.symbolTableStack.lookup(lookup, true, this._branch);
           if (symbol instanceof VarSymbol && !symbol.isConst) {
             sa.reportError(
               exprChildren[0].location,
@@ -877,14 +895,17 @@ export namespace ASTNode {
         const lookupSymbol = SemanticAnalyzer._lookupSymbol;
         lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
 
-        const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true) as FnSymbol;
+        // Branch-aware function call resolution: a helper defined in `#ifdef X` is visible from
+        // callers in the same branch or a nested one, invisible from `#else`.
+        const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true, this._branch) as FnSymbol;
 
         if (!fnSymbol) {
           // The lookup above is keyed by argument signature, so a miss conflates an unknown
           // name with a known function called with the wrong arguments; re-probe by name
           // alone (and the builtin registry) to report whichever it actually is.
           lookupSymbol.set(fnIdent, ESymbolType.FN);
-          const nameDeclared = !!sa.symbolTableStack.lookup(lookupSymbol, true) || BuiltinFunction.isExist(fnIdent);
+          const nameDeclared =
+            !!sa.symbolTableStack.lookup(lookupSymbol, true, this._branch) || BuiltinFunction.isExist(fnIdent);
           // NoMatchingOverload = name is known, arg types are wrong → real type error.
           // UndefinedFunction = name is unknown at precompile. `#include` is already expanded by
           // the time the AST is built, so the only remaining "provided later" path is a runtime
@@ -1098,16 +1119,21 @@ export namespace ASTNode {
       if (children.length === 3 && children[2] instanceof BaseToken) {
         const base = children[0] as ExpressionAstNode;
         if (typeof base.type === "string") {
-          PostfixExpression._checkStructField(sa, base.type, children[2]);
+          PostfixExpression._checkStructField(sa, base.type, children[2], this._branch);
         }
       }
     }
 
     /** A `struct.field` access where the struct type is resolvable: the field must be a declared member. */
-    private static _checkStructField(sa: SemanticAnalyzer, structName: string, field: BaseToken): void {
+    private static _checkStructField(
+      sa: SemanticAnalyzer,
+      structName: string,
+      field: BaseToken,
+      callsiteBranch: BranchSignature
+    ): void {
       const lookup = SemanticAnalyzer._lookupSymbol;
       lookup.set(structName, ESymbolType.STRUCT);
-      const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch);
+      const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch, callsiteBranch);
       // Unresolved struct (e.g. a built-in or out-of-scope type) — skip rather than risk a false positive.
       if (!structs.length) return;
       for (let i = 0; i < structs.length; i++) {
@@ -1659,7 +1685,8 @@ export namespace ASTNode {
           name,
           symbols,
           referenceGlobalSymbolNames,
-          this.location
+          this.location,
+          this._branch
         );
         // Expression-style macros have their own value AST; its real type isn't
         // the type of any single `referenceSymbolNames` entry (`v` in `v.v_uv`
@@ -1697,7 +1724,16 @@ export namespace ASTNode {
       if (!macroName) return;
       if (needFindNames.indexOf(macroName) !== -1) return; // already looked up as a real reference
       if (BuiltinFunction.isExist(macroName) || BuiltinVariable.getVar(macroName)) return; // builtins can't be shadowed
-      VariableIdentifier._lookupAndMarkGlobalReference(sa, macroName, symbols, referenceGlobalSymbolNames, null);
+      // Cross-arm probe intentionally sees every branch; EMPTY_BRANCH as callsite makes
+      // `isBranchVisibleFrom` return true for any candidate.
+      VariableIdentifier._lookupAndMarkGlobalReference(
+        sa,
+        macroName,
+        symbols,
+        referenceGlobalSymbolNames,
+        null,
+        EMPTY_BRANCH
+      );
     }
 
     /** Look up `name` in the symbol stack and, if a global var/fn declaration
@@ -1714,11 +1750,15 @@ export namespace ASTNode {
       name: string,
       symbols: (VarSymbol | FnSymbol)[],
       referenceGlobalSymbolNames: string[],
-      missErrorLoc: ShaderRange | null
+      missErrorLoc: ShaderRange | null,
+      callsiteBranch: BranchSignature
     ): boolean {
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
-      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols);
+      // Branch-aware: filter to declarations visible from the reference's own `#ifdef` branch.
+      // A `float u_a` inside `#ifdef X` is invisible to a reference in `#else` (as it should be)
+      // and visible to a reference in the same branch (so type inference recovers).
+      sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols, callsiteBranch);
 
       if (!symbols.length) {
         if (missErrorLoc) {
@@ -1734,7 +1774,9 @@ export namespace ASTNode {
         }
         return false;
       }
-      const currentScopeSymbol = <VarSymbol | FnSymbol>sa.symbolTableStack.scope.getSymbol(lookupSymbol, true);
+      const currentScopeSymbol = <VarSymbol | FnSymbol>(
+        sa.symbolTableStack.scope.getSymbol(lookupSymbol, true, callsiteBranch)
+      );
       const isGlobal = currentScopeSymbol
         ? currentScopeSymbol instanceof FnSymbol || currentScopeSymbol.isGlobalVariable
         : symbols.some((s) => s instanceof FnSymbol || s.isGlobalVariable);
