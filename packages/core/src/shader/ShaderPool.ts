@@ -24,6 +24,8 @@ import spriteMaskFs from "../shaderlib/extra/sprite-mask.fs.glsl";
 import spriteMaskVs from "../shaderlib/extra/sprite-mask.vs.glsl";
 import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
 import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
+import spineFs from "../shaderlib/extra/spine.fs.glsl";
+import spineVs from "../shaderlib/extra/spine.vs.glsl";
 import textFs from "../shaderlib/extra/text.fs.glsl";
 import textVs from "../shaderlib/extra/text.vs.glsl";
 import trailFs from "../shaderlib/extra/trail.fs.glsl";
@@ -33,7 +35,10 @@ import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { TransformFeedbackShader } from "../graphic/TransformFeedbackShader";
 import { Shader } from "./Shader";
 import { ShaderPass } from "./ShaderPass";
+import { ShaderProperty } from "./ShaderProperty";
+import { CullMode } from "./enums/CullMode";
 import { RenderStateElementKey } from "./enums/RenderStateElementKey";
+import { RenderQueueType } from "./enums/RenderQueueType";
 import { RenderState } from "./state";
 
 /**
@@ -87,8 +92,32 @@ export class ShaderPool {
     Shader.create("SpriteMask", [new ShaderPass("Forward", spriteMaskVs, spriteMaskFs, forwardPassTags)]);
     Shader.create("Sprite", [new ShaderPass("Forward", spriteVs, spriteFs, forwardPassTags)]);
     Shader.create("Text", [new ShaderPass("Forward", textVs, textFs, forwardPassTags)]);
+    Shader.create("2D/Spine", [ShaderPool._createSpinePass(forwardPassTags)]);
     Shader.create("background-texture", [
       new ShaderPass("Forward", backgroundTextureVs, backgroundTextureFs, forwardPassTags)
     ]);
+  }
+
+  private static _createSpinePass(tags: Record<string, number | string | boolean>): ShaderPass {
+    const pass = new ShaderPass("Forward", spineVs, spineFs, tags);
+    const renderState = (pass._renderState = new RenderState());
+    const blendState = renderState.blendState.targetBlendState;
+
+    blendState.enabled = true;
+    renderState.depthState.writeEnabled = false;
+    renderState.rasterState.cullMode = CullMode.Off;
+    renderState.renderQueueType = RenderQueueType.Transparent;
+
+    const renderStateDataMap = pass._renderStateDataMap;
+    renderStateDataMap[RenderStateElementKey.BlendStateSourceColorBlendFactor0] =
+      ShaderProperty.getByName("sourceColorBlendFactor");
+    renderStateDataMap[RenderStateElementKey.BlendStateDestinationColorBlendFactor0] =
+      ShaderProperty.getByName("destinationColorBlendFactor");
+    renderStateDataMap[RenderStateElementKey.BlendStateSourceAlphaBlendFactor0] =
+      ShaderProperty.getByName("sourceAlphaBlendFactor");
+    renderStateDataMap[RenderStateElementKey.BlendStateDestinationAlphaBlendFactor0] =
+      ShaderProperty.getByName("destinationAlphaBlendFactor");
+
+    return pass;
   }
 }
