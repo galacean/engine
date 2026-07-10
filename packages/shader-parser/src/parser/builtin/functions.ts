@@ -156,13 +156,27 @@ export class BuiltinFunction {
       let sizeLock = -1;
       let scalarTypeLock = -1;
       let matched = true;
+      // Track whether any Size- / ScalarType-family arg was TypeAny: those positions could match
+      // *any* member of the family, so we can't fully commit the family index. Later, if the
+      // return family shares the ambiguous dimension, we fall through to TypeAny rather than
+      // guessing from the other arg. Example: `max(TypeAny, 0.0)` — locking Size to 0.0's `float`
+      // makes the whole call look scalar, but the TypeAny could be a `vec3` matching the
+      // `max(vec3, vec3)` overload.
+      let sizeAmbiguous = false;
+      let scalarTypeAmbiguous = false;
 
       for (let j = 0; j < n; j++) {
         const declaredType = declaredArgs[j];
         const actualType = callArgTypes![j];
-        if (actualType === TypeAny) continue;
-
         const paramFamily = FamilyMembers[declaredType];
+        if (actualType === TypeAny) {
+          if (paramFamily) {
+            if (paramFamily.dimension === GenericDimension.Size) sizeAmbiguous = true;
+            else scalarTypeAmbiguous = true;
+          }
+          continue;
+        }
+
         if (paramFamily) {
           // Families have at most 4 members; linear indexOf beats Map.get on this size
           const memberIdx = paramFamily.members.indexOf(actualType);
@@ -196,11 +210,13 @@ export class BuiltinFunction {
         candidate._realReturnType = candidate._returnType as NonGenericGalaceanType;
         return candidate;
       }
-      const returnIdx = returnFamily.dimension === GenericDimension.Size ? sizeLock : scalarTypeLock;
-      // No argument locked the dimension (all relevant args were TypeAny): fall
-      // through as TypeAny so downstream overload resolution treats the result
-      // as a wildcard rather than a specific guess
-      candidate._realReturnType = returnIdx === -1 ? TypeAny : returnFamily.members[returnIdx];
+      const returnIsSize = returnFamily.dimension === GenericDimension.Size;
+      const ambiguous = returnIsSize ? sizeAmbiguous : scalarTypeAmbiguous;
+      const returnIdx = returnIsSize ? sizeLock : scalarTypeLock;
+      // Two paths to TypeAny: (1) no arg locked the dimension (all relevant args were TypeAny);
+      // (2) at least one arg in the return's dimension was TypeAny, so committing to the
+      // other-arg lock would over-specialise the result.
+      candidate._realReturnType = returnIdx === -1 || ambiguous ? TypeAny : returnFamily.members[returnIdx];
       return candidate;
     }
 

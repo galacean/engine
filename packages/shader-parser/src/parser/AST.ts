@@ -838,6 +838,8 @@ export namespace ASTNode {
   @ASTNodeDecorator(NoneTerminal.function_call_generic)
   export class FunctionCallGeneric extends ExpressionAstNode {
     fnSymbol: FnSymbol | StructSymbol | undefined;
+    /** Scratch storage for the ambiguity-guard overload probe. */
+    private static _overloadScratch: SymbolInfo[] = [];
 
     override init(): void {
       super.init();
@@ -899,6 +901,23 @@ export namespace ASTNode {
         // callers in the same branch or a nested one, invisible from `#else`.
         const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true, this._branch) as FnSymbol;
 
+        // Ambiguity guard: when the call has TypeAny args, `SymbolInfo.equal` treats them as
+        // wildcards, so the first overload in reverse-insertion order wins and fixes a specific
+        // return type from what may be several equally-valid candidates (e.g. `permute` ships as
+        // `float`/`vec3`/`vec4` overloads; a TypeAny-typed arg matched all three but committed
+        // to the last-inserted return type). If multiple overloads match and their return types
+        // diverge, keep the reference resolved (`fnSymbol` stays set) but drop the call's type
+        // to TypeAny — the caller's downstream inference stays open instead of committing.
+        let overloadTypeAmbiguous = false;
+        if (fnSymbol && paramSig?.some((t) => t === TypeAny)) {
+          const allMatches = FunctionCallGeneric._overloadScratch;
+          sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch);
+          if (allMatches.length > 1) {
+            const firstType = (allMatches[0] as FnSymbol).dataType?.type;
+            overloadTypeAmbiguous = allMatches.some((s) => (s as FnSymbol).dataType?.type !== firstType);
+          }
+        }
+
         if (!fnSymbol) {
           // The lookup above is keyed by argument signature, so a miss conflates an unknown
           // name with a known function called with the wrong arguments; re-probe by name
@@ -926,7 +945,7 @@ export namespace ASTNode {
           }
           return;
         }
-        this.type = fnSymbol?.dataType?.type;
+        this.type = overloadTypeAmbiguous ? TypeAny : fnSymbol?.dataType?.type;
         this.fnSymbol = fnSymbol;
       }
     }
