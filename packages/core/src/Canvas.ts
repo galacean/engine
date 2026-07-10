@@ -4,7 +4,7 @@ import { UpdateFlagManager } from "./UpdateFlagManager";
  * The canvas the engine renders to; owns the render-buffer resolution.
  */
 export abstract class Canvas {
-  /* @internal */
+  /** @internal */
   _sizeUpdateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _width: number = 0;
@@ -59,8 +59,10 @@ export abstract class Canvas {
     }
   }
 
+  /** @internal */
   _pumpPendingResize(): void {}
 
+  /** @internal */
   abstract _destroy(): void;
 
   protected _exitAutoResize(): void {}

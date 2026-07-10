@@ -85,14 +85,13 @@ export class WebCanvas extends Canvas {
     this.scale = this._scale;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   _isOffscreenCanvas(): boolean {
     return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
   }
 
-  override _pumpPendingResize(): void {
+  /** @internal */
+  _pumpPendingResize(): void {
     if (!this._pendingResize) return;
 
     const webCanvas = this._webCanvas;
@@ -113,7 +112,8 @@ export class WebCanvas extends Canvas {
     }
   }
 
-  override _destroy(): void {
+  /** @internal */
+  _destroy(): void {
     this._exitAutoResize();
   }
 

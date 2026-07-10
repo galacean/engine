@@ -81,33 +81,33 @@ export class Engine extends EventDispatcher {
   _physicsInitialized: boolean = false;
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
-  /* @internal */
+  /** @internal */
   _hardwareRenderer: IHardwareRenderer;
-  /* @internal */
+  /** @internal */
   _renderTargetPool: RenderTargetPool;
-  /* @internal */
+  /** @internal */
   _lastRenderState: RenderState = new RenderState();
 
-  /* @internal */
+  /** @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
+  /** @internal */
   _textRenderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
+  /** @internal */
   _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
-  /* @internal */
+  /** @internal */
   _basicResources: BasicResources;
-  /* @internal */
+  /** @internal */
   _textDefaultFont: Font;
-  /* @internal */
+  /** @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
+  /** @internal */
   _depthTexture2D: Texture2D;
 
-  /* @internal */
+  /** @internal */
   _renderCount: number = 0;
-  /* @internal */
+  /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
@@ -663,7 +663,7 @@ export class Engine extends EventDispatcher {
     }
 
     const loaders = ResourceManager._loaders;
-    for (let key in loaders) {
+    for (const key in loaders) {
       const loader = loaders[key];
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }
