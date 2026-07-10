@@ -61,7 +61,11 @@ export class WebCanvas extends Canvas {
         this._pendingDevicePixelHeight = box ? box.blockSize : 0;
         this._pendingResize = true;
       });
-      this._resizeObserver.observe(this._webCanvas);
+      try {
+        this._resizeObserver.observe(this._webCanvas, { box: "device-pixel-content-box" });
+      } catch {
+        this._resizeObserver.observe(this._webCanvas);
+      }
     }
   }
 
