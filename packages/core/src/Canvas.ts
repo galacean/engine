@@ -38,7 +38,7 @@ export abstract class Canvas {
     }
 
     this._exitAutoResize();
-    this._setSize(width, height);
+    this._setSize(Math.round(width), Math.round(height));
   }
 
   /**
