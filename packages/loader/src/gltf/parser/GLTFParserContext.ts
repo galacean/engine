@@ -194,16 +194,22 @@ export class GLTFParserContext {
               this.resourceManager._onSubAssetSuccess<ModelMesh>(url, `${glTFResourceKey}[${index}][${i}]`, mesh);
             }
           } else {
+            const subAssetResourceKey = type === GLTFParserType.Scene ? "scenes" : glTFResourceKey;
             // @ts-ignore
             this.resourceManager._onSubAssetSuccess<T>(
               url,
-              `${glTFResourceKey}${index === undefined ? "" : `[${index}]`}`,
+              `${subAssetResourceKey}${index === undefined ? "" : `[${index}]`}`,
               item
             );
 
-            if (type === GLTFParserType.Scene && (this.glTF.scene ?? 0) === index) {
+            if (type === GLTFParserType.Scene) {
+              // Keep the historical internal query key while exposing the canonical glTF schema key above.
               // @ts-ignore
-              this.resourceManager._onSubAssetSuccess<Entity>(url, `defaultSceneRoot`, item as Entity);
+              this.resourceManager._onSubAssetSuccess<Entity>(url, `_sceneRoots[${index}]`, item as Entity);
+              if ((this.glTF.scene ?? 0) === index) {
+                // @ts-ignore
+                this.resourceManager._onSubAssetSuccess<Entity>(url, `defaultSceneRoot`, item as Entity);
+              }
             }
           }
         })

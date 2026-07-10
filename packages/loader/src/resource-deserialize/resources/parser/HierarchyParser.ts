@@ -17,6 +17,31 @@ import type { HierarchyFile } from "../../../schema/HierarchySchema";
 import { ParserContext, ParserType } from "./ParserContext";
 import { ReflectionParser } from "./ReflectionParser";
 
+interface GLTFSceneSelection {
+  sceneIndex?: number;
+}
+
+function parseGLTFSceneSelection(key: string | undefined): GLTFSceneSelection | undefined {
+  if (key === "defaultSceneRoot") {
+    return {};
+  }
+
+  const prefix = "scenes[";
+  if (!key?.startsWith(prefix)) {
+    return undefined;
+  }
+  if (!key.endsWith("]")) {
+    throw new Error(`HierarchyParser: invalid glTF scene key "${key}". Expected "scenes[n]".`);
+  }
+
+  const indexText = key.slice(prefix.length, -1);
+  const sceneIndex = Number(indexText);
+  if (!Number.isSafeInteger(sceneIndex) || sceneIndex < 0 || String(sceneIndex) !== indexText) {
+    throw new Error(`HierarchyParser: invalid glTF scene key "${key}". Expected "scenes[n]".`);
+  }
+  return { sceneIndex };
+}
+
 /** @Internal */
 export abstract class HierarchyParser<T extends Scene | PrefabResource, V extends ParserContext> {
   readonly promise: Promise<T>;
@@ -265,21 +290,31 @@ export abstract class HierarchyParser<T extends Scene | PrefabResource, V extend
   private _loadPrefabInstance(entityConfig: PrefabInstanceEntitySchema, engine: Engine): Promise<Entity> {
     const instance = entityConfig.instance;
     let refItem: RefItem;
+    let glTFSceneSelection: GLTFSceneSelection | undefined;
     try {
       refItem = resolveRefItem(this.data.refs, instance.asset, "HierarchyParser", "instance.asset");
+      glTFSceneSelection = parseGLTFSceneSelection(refItem.key);
     } catch (error) {
       return Promise.reject(error);
     }
 
+    const resourceRef = glTFSceneSelection ? { url: refItem.url } : refItem;
     return (
       engine.resourceManager
         // @ts-ignore
-        .getResourceByRef<Entity>(refItem)
-        .then((prefabResource: PrefabResource | GLTFResource) => {
-          const entity =
-            prefabResource instanceof PrefabResource
-              ? prefabResource.instantiate()
-              : prefabResource.instantiateSceneRoot();
+        .getResourceByRef<PrefabResource | GLTFResource>(resourceRef)
+        .then((resource: PrefabResource | GLTFResource) => {
+          let entity: Entity;
+          if (resource instanceof PrefabResource) {
+            if (glTFSceneSelection) {
+              throw new Error(`HierarchyParser: glTF scene key "${refItem.key}" resolved to a prefab resource.`);
+            }
+            entity = resource.instantiate();
+          } else if (resource instanceof GLTFResource) {
+            entity = resource.instantiateSceneRoot(glTFSceneSelection?.sceneIndex);
+          } else {
+            throw new Error(`HierarchyParser: instance asset "${refItem.url}" is not a prefab or glTF resource.`);
+          }
           this._onEntityCreated(entity);
           return entity;
         })

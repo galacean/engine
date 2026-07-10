@@ -23,7 +23,9 @@ import {
 } from "../../../packages/loader/src/resource-deserialize/resources/parser/ParserContext";
 import { ReflectionParser } from "../../../packages/loader/src/resource-deserialize/resources/parser/ReflectionParser";
 import { SceneParser } from "../../../packages/loader/src/resource-deserialize/resources/scene/SceneParser";
+import { GLTFResource } from "../../../packages/loader/src/gltf/GLTFResource";
 import { WebGLEngine } from "@galacean/engine";
+import { Vector2 } from "@galacean/engine-math";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 Loader.registerClass("Transform", Transform);
@@ -386,6 +388,31 @@ describe("SceneParser v2 entity tree", () => {
       }
     };
   }
+
+  it("loads the main glTF resource and instantiates the selected scene", async () => {
+    const data = createSceneData([{ instance: { asset: 0 } }], [], [0], [{ url: "model.glb", key: "scenes[1]" }]);
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const glTFResource = new GLTFResource(engine, "model.glb");
+    const instanceRoot = new Entity(engine, "Scene 1");
+    const instantiateSceneRoot = vi.spyOn(glTFResource, "instantiateSceneRoot").mockReturnValue(instanceRoot);
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
+      .mockResolvedValue(glTFResource);
+
+    try {
+      const parser = new SceneParser(data, context, scene);
+      parser.start();
+      await parser.promise;
+
+      expect(getResourceByRef).toHaveBeenCalledWith({ url: "model.glb" });
+      expect(instantiateSceneRoot).toHaveBeenCalledWith(1);
+      expect(scene.rootEntities[0]).to.equal(instanceRoot);
+    } finally {
+      getResourceByRef.mockRestore();
+      instantiateSceneRoot.mockRestore();
+    }
+  });
 
   it("should reject scene data without the v2 version marker", () => {
     const data = {
@@ -773,6 +800,21 @@ describe("ReflectionParser $signal resolution", () => {
 // ---------------------------------------------------------------------------
 
 describe("ReflectionParser $type resolution", () => {
+  it("should construct built-in math types registered by the engine package", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+
+    await parser.parseProps(target, {
+      value: { $type: "Vector2", x: 10, y: 20 }
+    });
+
+    expect(target.value).to.be.instanceOf(Vector2);
+    expect(target.value.x).to.equal(10);
+    expect(target.value.y).to.equal(20);
+  });
+
   it("should construct $type instance and apply remaining props", async () => {
     const scene = new Scene(engine);
     const context = new ParserContext(engine, ParserType.Scene, scene);

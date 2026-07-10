@@ -602,6 +602,19 @@ afterAll(() => {
 });
 
 describe("glTF Loader test", function () {
+  it("resolves scene sub-assets by the canonical glTF schema key", async () => {
+    const glTFResource = await engine.resourceManager.load<GLTFResource>({
+      type: AssetType.GLTF,
+      url: "mock/path/testRoot.gltf"
+    });
+    const sceneRoot = await engine.resourceManager.load<Entity>({
+      type: AssetType.GLTF,
+      url: "mock/path/testRoot.gltf?q=scenes[0]"
+    });
+
+    expect(sceneRoot).to.equal(glTFResource.scenes[0]);
+  });
+
   it("Pipeline Parser", async () => {
     const glTFResource: GLTFResource = await engine.resourceManager.load({
       type: AssetType.GLTF,

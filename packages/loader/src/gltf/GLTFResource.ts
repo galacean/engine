@@ -63,6 +63,14 @@ export class GLTFResource extends ReferResource {
     return sceneRoot.clone();
   }
 
+  /**
+   * Scene root templates indexed by the glTF `scenes` array.
+   * @remarks This is also the canonical sub-asset query surface, for example `?q=scenes[0]`.
+   */
+  get scenes(): ReadonlyArray<Entity> {
+    return this._sceneRoots;
+  }
+
   protected override _onDestroy(): void {
     super._onDestroy();
 
