@@ -205,9 +205,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   /**
-   * The center offset of orbital/radial velocity from the particle system origin, in the system's local space.
-   * @remarks In world simulation space, this local offset is transformed by the simulation transform captured when
-   * each particle is born, so particles emitted from a moving emitter keep orbiting their own birth-frame center.
+   * The center offset of orbital/radial motion from the particle system origin.
    */
   get centerOffset(): Vector3 {
     return this._offset;
