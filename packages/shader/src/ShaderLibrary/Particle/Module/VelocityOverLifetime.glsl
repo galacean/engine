@@ -99,7 +99,7 @@
 
     #endif
 
-    // Orbital / Radial (transform-feedback only). Center of orbit in system-local space.
+    // Center of orbital/radial motion in system-local space.
     #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
         vec3 renderer_VOLOffset;
     #endif
