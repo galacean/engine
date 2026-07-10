@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
+import { BoundingBox, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
@@ -12,7 +12,6 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { GaussianSplat } from "./GaussianSplat";
-import { GaussianSplatMaterial } from "./GaussianSplatMaterial";
 import { GaussianSplatSorter } from "./GaussianSplatSorter";
 import { GaussianSplatSortWorker } from "./GaussianSplatSortWorker";
 
@@ -20,22 +19,25 @@ import { GaussianSplatSortWorker } from "./GaussianSplatSortWorker";
 const _quadCorners = new Float32Array([-2, -2, 2, -2, 2, 2, -2, 2]);
 const _quadIndices = new Uint16Array([0, 1, 2, 0, 2, 3]);
 
-const _centerTextureProp = ShaderProperty.getByName("material_CenterTexture");
-const _covATextureProp = ShaderProperty.getByName("material_CovATexture");
-const _covBTextureProp = ShaderProperty.getByName("material_CovBTexture");
-const _colorTextureProp = ShaderProperty.getByName("material_ColorTexture");
-const _dataTextureSizeProp = ShaderProperty.getByName("material_DataTextureSize");
-const _invViewportProp = ShaderProperty.getByName("material_InvViewport");
-const _shTextureProp = ShaderProperty.getByName("material_ShTexture");
-const _shTextureSizeProp = ShaderProperty.getByName("material_ShTextureSize");
-const _shTexelsPerSplatProp = ShaderProperty.getByName("material_ShTexelsPerSplat");
-const _cameraPositionProp = ShaderProperty.getByName("material_CameraPosition");
+const _centerTextureProp = ShaderProperty.getByName("renderer_CenterTexture");
+const _covATextureProp = ShaderProperty.getByName("renderer_CovATexture");
+const _covBTextureProp = ShaderProperty.getByName("renderer_CovBTexture");
+const _colorTextureProp = ShaderProperty.getByName("renderer_ColorTexture");
+const _dataTextureSizeProp = ShaderProperty.getByName("renderer_DataTextureSize");
+const _invViewportProp = ShaderProperty.getByName("renderer_InvViewport");
+const _shTextureProp = ShaderProperty.getByName("renderer_ShTexture");
+const _shTextureSizeProp = ShaderProperty.getByName("renderer_ShTextureSize");
+const _shTexelsPerSplatProp = ShaderProperty.getByName("renderer_ShTexelsPerSplat");
+const _magicStartTimeProp = ShaderProperty.getByName("renderer_MagicStartTime");
+const _magicCenterProp = ShaderProperty.getByName("renderer_MagicCenter");
+const _magicRadiusProp = ShaderProperty.getByName("renderer_MagicRadius");
 const _shMacro = ShaderMacro.getByName("RENDERER_GS_SH");
+const _magicMacro = ShaderMacro.getByName("RENDERER_GS_MAGIC");
 
 /**
- * Renders a {@link GaussianSplat} as instanced, depth-sorted, alpha-blended quads. When the view changes the
- * splats are re-sorted back-to-front for the active camera — on a Web Worker when available, otherwise on the
- * main thread — and the resulting index order is uploaded to a dynamic per-instance buffer.
+ * Renders a {@link GaussianSplat} as instanced, depth-sorted, alpha-blended quads. Sorting runs on a Web
+ * Worker when available, otherwise on the main thread. The caller must assign a material (typically a
+ * shared {@link GaussianSplatMaterial}) — renderers with no material are skipped.
  */
 export class GaussianSplatRenderer extends Renderer {
   private _splat: GaussianSplat = null;
@@ -51,8 +53,10 @@ export class GaussianSplatRenderer extends Renderer {
   private _invViewport = new Vector2();
   private _dataTextureSize = new Vector2();
   private _shTextureSize = new Vector2();
+  private _magicCenter = new Vector3();
   private _lastSortTime = 0;
   private _useSH = true;
+  private _isMagicPlaying = false;
 
   /** Wall-clock duration (ms) of the most recent CPU depth sort, for profiling. */
   get lastSortTime(): number {
@@ -60,10 +64,8 @@ export class GaussianSplatRenderer extends Renderer {
   }
 
   /**
-   * Enables view-dependent color from stored spherical-harmonic bands when the splat carries them
-   * (`splat.shDegree > 0`). Set to `false` to fall back to DC-only color even for SH-carrying assets —
-   * useful for isolating the visual contribution of the higher-order bands or skipping their per-vertex
-   * evaluation cost.
+   * Evaluate view-dependent color from stored spherical-harmonic bands when the splat carries them
+   * (`splat.shDegree > 0`). Set to `false` to fall back to DC-only color even for SH-carrying assets.
    * @defaultValue true
    */
   get useSH(): boolean {
@@ -76,9 +78,12 @@ export class GaussianSplatRenderer extends Renderer {
     if (this._splat) this._syncShMacro();
   }
 
-  /**
-   * The gaussian splatting scene to render.
-   */
+  /** Whether the Magic radial-reveal animation is currently playing. */
+  get isMagicPlaying(): boolean {
+    return this._isMagicPlaying;
+  }
+
+  /** The gaussian splatting scene to render. */
   get splat(): GaussianSplat {
     return this._splat;
   }
@@ -102,18 +107,30 @@ export class GaussianSplatRenderer extends Renderer {
 
   constructor(entity: Entity) {
     super(entity);
-    this.setMaterial(new GaussianSplatMaterial(this.engine));
     try {
       this._sortWorker = new GaussianSplatSortWorker((indices) => {
-        // Drop a result that belongs to a previous scene (different splat count after a switch).
+        // Drop stale results whose splat count no longer matches the current asset.
         if (this._splat && indices.length === this._splat.splatCount) {
           this._instanceData = indices;
           this._instanceBuffer?.setData(indices);
         }
       });
     } catch {
-      this._sortWorker = null; // Workers unavailable: fall back to the main-thread sort.
+      this._sortWorker = null;
     }
+  }
+
+  /** Start the Magic radial-reveal animation from now. */
+  playMagic(): void {
+    this._isMagicPlaying = true;
+    this.shaderData.setFloat(_magicStartTimeProp, this.engine.time.elapsedTime);
+    this.shaderData.enableMacro(_magicMacro);
+  }
+
+  /** Halt the Magic reveal and return to the plain splat render. */
+  stopMagic(): void {
+    this._isMagicPlaying = false;
+    this.shaderData.disableMacro(_magicMacro);
   }
 
   private _buildMesh(splat: GaussianSplat): void {
@@ -125,7 +142,7 @@ export class GaussianSplatRenderer extends Renderer {
 
     const cornerBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, _quadCorners, BufferUsage.Static);
     const instanceData = (this._instanceData = new Float32Array(count));
-    for (let i = 0; i < count; i++) instanceData[i] = i; // identity order until the first sort lands
+    for (let i = 0; i < count; i++) instanceData[i] = i;
     const instanceBuffer = (this._instanceBuffer = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
@@ -146,8 +163,7 @@ export class GaussianSplatRenderer extends Renderer {
   }
 
   private _bindSplat(splat: GaussianSplat): void {
-    const material = this.getMaterial() as GaussianSplatMaterial;
-    const shaderData = material.shaderData;
+    const shaderData = this.shaderData;
     shaderData.setTexture(_centerTextureProp, splat.centerTexture);
     shaderData.setTexture(_covATextureProp, splat.covATexture);
     shaderData.setTexture(_covBTextureProp, splat.covBTexture);
@@ -155,14 +171,17 @@ export class GaussianSplatRenderer extends Renderer {
     this._dataTextureSize.set(splat.textureWidth, splat.textureHeight);
     shaderData.setVector2(_dataTextureSizeProp, this._dataTextureSize);
 
-    // Auto-wire the Magic reveal to the asset bounds so demos never have to.
-    material._setMagicBounds(splat.bounds);
+    // Magic reveal reads its center/radius from asset bounds.
+    const { min, max } = splat.bounds;
+    this._magicCenter.set((min.x + max.x) * 0.5, (min.y + max.y) * 0.5, (min.z + max.z) * 0.5);
+    shaderData.setVector3(_magicCenterProp, this._magicCenter);
+    shaderData.setFloat(_magicRadiusProp, Math.hypot(max.x - min.x, max.y - min.y, max.z - min.z) * 0.5);
 
     this._syncShMacro();
   }
 
   private _syncShMacro(): void {
-    const shaderData = this.getMaterial().shaderData;
+    const shaderData = this.shaderData;
     const splat = this._splat;
     if (this._useSH && splat && splat.shDegree > 0) {
       shaderData.setTexture(_shTextureProp, splat.shTexture);
@@ -188,14 +207,15 @@ export class GaussianSplatRenderer extends Renderer {
   protected override _render(context: RenderContext): void {
     const splat = this._splat;
     const mesh = this._mesh;
-    if (!splat || !mesh) {
+    const material = this.getMaterial();
+    if (!splat || !mesh || !material) {
       return;
     }
 
     const camera = context.camera;
     const count = splat.splatCount;
 
-    // Re-sort only when the view relative to the splats actually changed; a static view reuses the last order.
+    // Skip sorting when the view relative to the splats hasn't changed.
     Matrix.multiply(camera.viewMatrix, this._transformEntity.transform.worldMatrix, this._sortMatrix);
     const cur = this._sortMatrix.elements;
     const last = this._lastSortMatrix.elements;
@@ -204,10 +224,9 @@ export class GaussianSplatRenderer extends Renderer {
     this._lastSortTime = 0;
     if (this._needsSort || delta > 1e-4) {
       if (this._sortWorker) {
-        // Off-thread sort: dispatch only when the worker is idle and the index buffer is on our side.
         if (!this._sortWorker.busy && this._instanceData) {
           this._sortWorker.requestSort(-cur[2], -cur[6], -cur[10], -cur[14], count, this._instanceData);
-          this._instanceData = null; // transferred to the worker until it posts back
+          this._instanceData = null;
           this._finishSort();
         }
       } else {
@@ -219,17 +238,9 @@ export class GaussianSplatRenderer extends Renderer {
       }
     }
 
-    // Inverse viewport drives the covariance-to-screen projection; the shader derives focal from the
-    // projection matrix itself so its Y sign stays consistent with the framebuffer's flipped projection.
     const viewport = camera.pixelViewport;
-    const material = this.getMaterial();
-    const shaderData = material.shaderData;
     this._invViewport.set(1 / viewport.width, 1 / viewport.height);
-    shaderData.setVector2(_invViewportProp, this._invViewport);
-
-    if (splat.shDegree > 0) {
-      shaderData.setVector3(_cameraPositionProp, camera.entity.transform.worldPosition);
-    }
+    this.shaderData.setVector2(_invViewportProp, this._invViewport);
 
     const engine = this._engine;
     const renderElement = engine._renderElementPool.get();

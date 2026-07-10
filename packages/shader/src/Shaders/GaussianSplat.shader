@@ -35,26 +35,26 @@ Shader "GaussianSplat" {
       mat4 camera_ViewMat;
       mat4 camera_ProjMat;
 
-      sampler2D material_CenterTexture;
-      sampler2D material_CovATexture;
-      sampler2D material_CovBTexture;
-      sampler2D material_ColorTexture;
-      vec2 material_DataTextureSize;
-      vec2 material_InvViewport;
+      sampler2D renderer_CenterTexture;
+      sampler2D renderer_CovATexture;
+      sampler2D renderer_CovBTexture;
+      sampler2D renderer_ColorTexture;
+      vec2 renderer_DataTextureSize;
+      vec2 renderer_InvViewport;
       float material_KernelSize;
 
       #ifdef RENDERER_GS_SH
-        sampler2D material_ShTexture;
-        vec2 material_ShTextureSize;
-        float material_ShTexelsPerSplat;
-        vec3 material_CameraPosition;
+        sampler2D renderer_ShTexture;
+        vec2 renderer_ShTextureSize;
+        float renderer_ShTexelsPerSplat;
+        vec3 camera_Position;
       #endif
 
       #ifdef RENDERER_GS_MAGIC
         vec4 scene_ElapsedTime;
-        float material_MagicStartTime;
-        vec3 material_MagicCenter;
-        float material_MagicRadius;
+        float renderer_MagicStartTime;
+        vec3 renderer_MagicCenter;
+        float renderer_MagicRadius;
       #endif
 
       VertexShader = vert;
@@ -65,10 +65,10 @@ Shader "GaussianSplat" {
       }
 
       vec2 getDataUV(float index) {
-        float w = material_DataTextureSize.x;
+        float w = renderer_DataTextureSize.x;
         float y = floor(index / w);
         float x = index - y * w;
-        return vec2((x + 0.5) / w, (y + 0.5) / material_DataTextureSize.y);
+        return vec2((x + 0.5) / w, (y + 0.5) / renderer_DataTextureSize.y);
       }
 
       #ifdef RENDERER_GS_MAGIC
@@ -78,7 +78,6 @@ Shader "GaussianSplat" {
           return fract(vec3(p.x * p.y * p.z, p.x + p.y * p.z, p.x * p.y + p.z));
         }
 
-        // 3D value noise; per-splat continuous field used to add point-cloud wave motion during the reveal.
         vec3 gsNoise(vec3 p) {
           vec3 i = floor(p);
           vec3 f = fract(p);
@@ -133,17 +132,16 @@ Shader "GaussianSplat" {
         }
 
         vec3 gsShCoeff(float splatIndex, float k) {
-          float index = splatIndex * material_ShTexelsPerSplat + k;
-          float w = material_ShTextureSize.x;
+          float index = splatIndex * renderer_ShTexelsPerSplat + k;
+          float w = renderer_ShTextureSize.x;
           float y = floor(index / w);
           float x = index - y * w;
-          return texture2D(material_ShTexture, vec2((x + 0.5) / w, (y + 0.5) / material_ShTextureSize.y)).rgb;
+          return texture2D(renderer_ShTexture, vec2((x + 0.5) / w, (y + 0.5) / renderer_ShTextureSize.y)).rgb;
         }
 
-        // Rebuild full 3DGS color from raw SH (coefficient 0 = DC) evaluated at a splat-local view direction.
         vec3 gsEvalSH(float splatIndex, vec3 dir) {
           vec3 sh[16];
-          int n = int(material_ShTexelsPerSplat);
+          int n = int(renderer_ShTexelsPerSplat);
           for (int k = 0; k < 16; k++) {
             sh[k] = k < n ? gsShCoeff(splatIndex, float(k)) : vec3(0.0);
           }
@@ -167,48 +165,37 @@ Shader "GaussianSplat" {
         v.position = attr.CORNER;
 
         vec2 uv = getDataUV(attr.SPLAT_INDEX);
-        vec4 center = texture2D(material_CenterTexture, uv);
-        vec4 covA = texture2D(material_CovATexture, uv);
-        vec4 covB = texture2D(material_CovBTexture, uv);
-        v.color = texture2DSRGB(material_ColorTexture, uv);
+        vec4 center = texture2D(renderer_CenterTexture, uv);
+        vec4 covA = texture2D(renderer_CovATexture, uv);
+        vec4 covB = texture2D(renderer_CovBTexture, uv);
+        v.color = texture2DSRGB(renderer_ColorTexture, uv);
         #ifdef RENDERER_GS_SH
           // dir in splat-local space so SH stays correct under node rotation.
           vec3 worldCenter = (renderer_ModelMat * vec4(center.xyz, 1.0)).xyz;
-          vec3 dir = normalize(gsInverse(mat3(renderer_ModelMat)) * (worldCenter - material_CameraPosition));
+          vec3 dir = normalize(gsInverse(mat3(renderer_ModelMat)) * (worldCenter - camera_Position));
           vec3 shColor = min(gsEvalSH(attr.SPLAT_INDEX, dir), 1.0);
           v.color.rgb = sRGBToLinear(vec4(shColor, 1.0)).rgb;
         #endif
 
         float magicShrink = 0.0;
         #ifdef RENDERER_GS_MAGIC
-          // Spark's radial reveal — ported from Spark's shader capture. Sweep hand completes at t=2s
-          // (revealFactor 0→1 over t ∈ [at, at+1] for each splat's angle); ring grows via smoothstep from 0
-          // over animDuration=5s, then a 0.5s tail lets the ring pinch/glow fade. Constants that Spark hard-
-          // codes for its 5-unit models (0.5 world border, 20/50 exp steepness) are re-expressed in radius-
-          // normalized form so any asset scale gets the same look. Spark disables the whole reveal block by
-          // regenerating its shader when the JS animation controller stops; our shader is static, so we
-          // skip the block under a uniform-branch time gate for the same effect at ~zero GPU cost.
-          float t = scene_ElapsedTime.x - material_MagicStartTime;
+          // Spark's radial reveal, ported from its shader capture. Sweep hand at t=2s, ring at t=5s + 0.5s
+          // fade tail. Ring is multiplied by 1.2 so it visibly overshoots normalized distance and outer
+          // splats leave the point-cloud state; noise is centered so wobble is zero-mean.
+          float t = scene_ElapsedTime.x - renderer_MagicStartTime;
           float animDuration = 5.0;
           if (t < animDuration + 0.5) {
-            vec3 localPos = center.xyz - material_MagicCenter;
-            float distNorm = length(localPos.xz) / material_MagicRadius;
-            // Spark hard-codes modelRad ≥ 5 so its ring (max = 5) always overshoots real splat distances.
-            // Our modelRad = actual asset half-diagonal, so `l` can reach ~1 in normalized units. Multiply
-            // by 1.2 so ring visibly overshoots by borderOffset+extra — otherwise outer splats keep gate
-            // ~1 after animation ends and never stop rippling.
+            vec3 localPos = center.xyz - renderer_MagicCenter;
+            float distNorm = length(localPos.xz) / renderer_MagicRadius;
             float ring = smoothstep(0.0, animDuration, t) * 1.2;
-            float borderOffset = 0.1;                                  // Spark 0.5 world at modelRad=5
+            float borderOffset = 0.1;
             float b = abs(ring - distNorm - borderOffset);
             float sweep = atan(localPos.x, localPos.z) / 3.14159;
-            float sweepAlpha = smoothstep(-0.5, 0.5, t - sweep - 0.5); // clockwise sweep hand
+            float sweepAlpha = smoothstep(-0.5, 0.5, t - sweep - 0.5);
             float gate = smoothstep(ring - borderOffset, ring, distNorm + borderOffset);
-            localPos *= 1.0 - 0.2 * exp(-100.0 * b);                   // Spark's ring-front pinch
-            // gsNoise returns [0,1] (fract-based), which biases wave in +xyz and drifts the model centroid.
-            // Spark's simpleNoise3 is Perlin-signed; centering by -0.5 restores zero-mean so displacements
-            // cancel and the model stays put — only individual splats wobble.
-            vec3 wave = gsNoise(localPos * (2.0 / material_MagicRadius) + t * 0.5) - vec3(0.5);
-            center.xyz = material_MagicCenter + localPos + (0.2 * material_MagicRadius) * wave * gate;
+            localPos *= 1.0 - 0.2 * exp(-100.0 * b);
+            vec3 wave = gsNoise(localPos * (2.0 / renderer_MagicRadius) + t * 0.5) - vec3(0.5);
+            center.xyz = renderer_MagicCenter + localPos + (0.2 * renderer_MagicRadius) * wave * gate;
             v.color.a *= sweepAlpha;
             float glow = exp(-100.0 * b) + exp(-50.0 * abs(t - sweep - 0.5)) * 0.5;
             v.color.rgb += vec3(glow);
@@ -234,7 +221,7 @@ Shader "GaussianSplat" {
         );
 
         // Positive focal on our side; the projection matrix flips Y and we mirror the offset later.
-        vec2 focal = 0.5 * abs(vec2(camera_ProjMat[0][0], camera_ProjMat[1][1])) / material_InvViewport;
+        vec2 focal = 0.5 * abs(vec2(camera_ProjMat[0][0], camera_ProjMat[1][1])) / renderer_InvViewport;
         mat3 J = mat3(
           focal.x / camspace.z, 0.0, -(focal.x * camspace.x) / (camspace.z * camspace.z),
           0.0, focal.y / camspace.z, -(focal.y * camspace.y) / (camspace.z * camspace.z),
@@ -278,7 +265,7 @@ Shader "GaussianSplat" {
         vec2 majorAxis = majorLen * diag;
         vec2 minorAxis = minorLen * vec2(diag.y, -diag.x);
 
-        vec2 offset = (attr.CORNER.x * majorAxis + attr.CORNER.y * minorAxis) * material_InvViewport * pos2d.w;
+        vec2 offset = (attr.CORNER.x * majorAxis + attr.CORNER.y * minorAxis) * renderer_InvViewport * pos2d.w;
         float ySign = camera_ProjMat[1][1] < 0.0 ? -1.0 : 1.0;
         gl_Position = vec4(pos2d.x + offset.x, pos2d.y + ySign * offset.y, pos2d.zw);
         return v;
