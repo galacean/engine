@@ -142,9 +142,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Orbital velocity (radians/second) around the x axis of the system.
-   * @remarks Requires WebGL2 and transform feedback. Changing orbital/radial values may clear active particles when
-   * the change toggles the generator between transform-feedback and non-transform-feedback modes.
-   * LimitVelocityOverLifetime does not clamp orbital/radial motion.
+   * @remarks Requires WebGL2.
    */
   get orbitalX(): ParticleCompositeCurve {
     return this._orbitalX;
@@ -160,9 +158,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Orbital velocity (radians/second) around the y axis of the system.
-   * @remarks Requires WebGL2 and transform feedback. Changing orbital/radial values may clear active particles when
-   * the change toggles the generator between transform-feedback and non-transform-feedback modes.
-   * LimitVelocityOverLifetime does not clamp orbital/radial motion.
+   * @remarks Requires WebGL2.
    */
   get orbitalY(): ParticleCompositeCurve {
     return this._orbitalY;
@@ -178,9 +174,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Orbital velocity (radians/second) around the z axis of the system.
-   * @remarks Requires WebGL2 and transform feedback. Changing orbital/radial values may clear active particles when
-   * the change toggles the generator between transform-feedback and non-transform-feedback modes.
-   * LimitVelocityOverLifetime does not clamp orbital/radial motion.
+   * @remarks Requires WebGL2.
    */
   get orbitalZ(): ParticleCompositeCurve {
     return this._orbitalZ;
@@ -196,10 +190,7 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Radial velocity moving particles away from (or towards) the center.
-   * @remarks Requires WebGL2 and transform feedback. The center is given by `centerOffset`.
-   * Changing orbital/radial values may clear active particles when the change toggles the generator between
-   * transform-feedback and non-transform-feedback modes.
-   * LimitVelocityOverLifetime does not clamp orbital/radial motion.
+   * @remarks Requires WebGL2.
    */
   get radial(): ParticleCompositeCurve {
     return this._radial;
