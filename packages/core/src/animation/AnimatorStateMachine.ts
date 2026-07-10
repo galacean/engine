@@ -14,6 +14,7 @@ export class AnimatorStateMachine {
   readonly states: AnimatorState[] = [];
 
   private _engine: Engine;
+  private _onStatesInvalidate: (() => void) | null = null;
 
   /**
    * The state will be played automatically.
@@ -72,6 +73,7 @@ export class AnimatorStateMachine {
       if (this.defaultState === state) {
         this.defaultState = null;
       }
+      this._onStatesInvalidate?.();
     }
   }
 
@@ -169,5 +171,12 @@ export class AnimatorStateMachine {
     for (let i = 0, n = states.length; i < n; i++) {
       states[i]._setEngine(engine);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _setStatesInvalidateCallback(onStatesInvalidate: (() => void) | null): void {
+    this._onStatesInvalidate = onStatesInvalidate;
   }
 }
