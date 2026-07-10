@@ -40,13 +40,21 @@ export class ReflectionParser {
     for (let i = 0, n = calls.length; i < n; i++) {
       const call = calls[i];
       chain = chain.then(() => {
-        const method = instance?.[call.method];
+        let target = instance;
+        if (call.target !== undefined) {
+          if (!Array.isArray(call.target) || call.target.some((key) => typeof key !== "string" || key.length === 0)) {
+            return Promise.reject(new Error(`Call "${call.method}" target must be an array of non-empty strings`));
+          }
+          for (const key of call.target) target = target?.[key];
+        }
+        const method = target?.[call.method];
         if (typeof method !== "function") {
-          return Promise.reject(new Error(`Call target does not have method "${call.method}"`));
+          const path = call.target?.length ? `${call.target.join(".")}.` : "";
+          return Promise.reject(new Error(`Call target does not have method "${path}${call.method}"`));
         }
 
         return Promise.all((call.args ?? []).map((arg) => this._resolveValue(arg)))
-          .then((resolvedArgs) => Promise.resolve(method.apply(instance, resolvedArgs)))
+          .then((resolvedArgs) => Promise.resolve(method.apply(target, resolvedArgs)))
           .then((result) => {
             if (!call.result) return result;
             if (result == null || (typeof result !== "object" && typeof result !== "function")) {
@@ -63,11 +71,13 @@ export class ReflectionParser {
   }
 
   /**
-   * Apply props and calls from the same mutation block without imposing ordering between them.
+   * Apply props before executing calls from the same mutation block.
    */
   parseMutationBlock(target: any, block?: MutationBlock): Promise<any> {
     if (!block) return Promise.resolve(target);
-    return Promise.all([this.parseProps(target, block.props), this.parseCalls(target, block.calls)]).then(() => target);
+    return this.parseProps(target, block.props)
+      .then(() => this.parseCalls(target, block.calls))
+      .then(() => target);
   }
 
   /**
@@ -77,12 +87,13 @@ export class ReflectionParser {
    * 1. null/undefined/primitive → passthrough
    * 2. Array → recurse each element
    * 3. { $ref }       → asset reference
-   * 4. { $type }      → polymorphic type construct
-   * 5. { $class }     → registered class constructor
-   * 6. { $entity }    → entity reference by path (flat index + optional children descent)
-   * 7. { $component } → component reference
-   * 8. { $signal }    → signal binding
-   * 9. plain object   → recurse values (modify originValue in place if exists)
+   * 4. { $number }    → JSON-safe special number
+   * 5. { $type, $args? } → polymorphic type construct
+   * 6. { $class }     → registered class constructor
+   * 7. { $entity }    → entity reference by path (flat index + optional children descent)
+   * 8. { $component } → component reference
+   * 9. { $signal }    → signal binding
+   * 10. plain object  → recurse values (modify originValue in place if exists)
    */
   private _resolveValue(value: unknown, originValue?: any): Promise<any> {
     if (value == null || typeof value !== "object") return Promise.resolve(value);
@@ -109,12 +120,25 @@ export class ReflectionParser {
       });
     }
 
-    // $type — polymorphic type: construct instance and apply remaining props
+    if ("$number" in obj) {
+      if (Object.keys(obj).length !== 1 || obj.$number !== "Infinity") {
+        return Promise.reject(new Error('$number must be exactly "Infinity"'));
+      }
+      return Promise.resolve(Infinity);
+    }
+
+    // $type — polymorphic type: resolve constructor args, construct instance, then apply remaining props
     if ("$type" in obj) {
-      const { $type, ...rest } = obj;
+      const { $type, $args, ...rest } = obj;
+      if ($args !== undefined && !Array.isArray($args)) {
+        return Promise.reject(new Error("$args must be an array when used with $type"));
+      }
+      const constructorArgs = Array.isArray($args) ? $args : [];
       return this._resolveRegisteredClass($type, "$type").then((Class) => {
-        const instance = new Class();
-        return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
+        return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg))).then((args) => {
+          const instance = new Class(...args);
+          return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
+        });
       });
     }
 
@@ -136,6 +160,10 @@ export class ReflectionParser {
     // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
       return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
+    }
+
+    if ("$args" in obj) {
+      return Promise.reject(new Error("$args requires $type"));
     }
 
     // Plain object — recurse each value, modifying originValue in place or building a new object

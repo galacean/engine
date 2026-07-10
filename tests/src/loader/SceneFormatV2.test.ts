@@ -8,6 +8,9 @@ import {
   Entity,
   FogMode,
   Loader,
+  ParticleCurve,
+  ParticleCurveMode,
+  ParticleRenderer,
   PostProcess,
   Scene,
   Script,
@@ -37,10 +40,26 @@ class TestValueType {
 }
 Loader.registerClass("TestValueType", TestValueType);
 
+class ConstructorValueType {
+  label = "";
+
+  constructor(
+    readonly seed: unknown,
+    readonly child: TestValueType
+  ) {}
+}
+Loader.registerClass("ConstructorValueType", ConstructorValueType);
+
 class CallOrderComponent extends Script {
   value = "";
   receivedArgs: any[] = [];
   lastResult: any = null;
+  nested = {
+    value: "",
+    setValue(value: string) {
+      this.value = value;
+    }
+  };
 
   appendSuffix(suffix: string): void {
     this.value += suffix;
@@ -48,6 +67,10 @@ class CallOrderComponent extends Script {
 
   captureResolvedArgs(...args: any[]): void {
     this.receivedArgs = args;
+  }
+
+  captureCurrentValue(): void {
+    this.receivedArgs = [this.value];
   }
 
   setBaseDelayed(base: string): Promise<void> {
@@ -329,6 +352,96 @@ describe("ReflectionParser calls resolution", () => {
 
     expect(target.lastResult.x).to.equal(1);
     expect(target.lastResult.y).to.equal(2);
+  });
+
+  it("should invoke methods on a nested target path", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target = new CallOrderComponent(new Entity(engine, "host"));
+
+    await parser.parseCalls(target, [{ target: ["nested"], method: "setValue", args: ["ready"] }]);
+
+    expect(target.nested.value).to.equal("ready");
+  });
+
+  it("should finish resolving props before executing calls", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    let resolveValue: (value: string) => void;
+    const valuePromise = new Promise<string>((resolve) => {
+      resolveValue = resolve;
+    });
+    const getResourceByRef = vi
+      .spyOn(engine.resourceManager as any, "getResourceByRef")
+      .mockReturnValue(valuePromise as any);
+    const parser = new ReflectionParser(context, [{ url: "delayed-value" }]);
+    const target = new CallOrderComponent(new Entity(engine, "host"));
+
+    try {
+      const parsing = parser.parseMutationBlock(target, {
+        props: { value: { $ref: 0 } },
+        calls: [{ method: "captureCurrentValue" }]
+      });
+      await Promise.resolve();
+      resolveValue!("ready");
+      await parsing;
+    } finally {
+      getResourceByRef.mockRestore();
+    }
+
+    expect(target.receivedArgs).to.deep.equal(["ready"]);
+  });
+
+  it("should restore particle curves and bursts through existing public APIs", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const entity = new Entity(engine, "particle");
+    const renderer = entity.addComponent(ParticleRenderer);
+
+    await parser.parseMutationBlock(renderer, {
+      props: {
+        generator: {
+          main: {
+            startDelay: {
+              mode: ParticleCurveMode.Curve,
+              curveMax: {
+                $type: "ParticleCurve",
+                $args: [
+                  { $type: "CurveKey", $args: [0, 1] },
+                  { $type: "CurveKey", $args: [1, 2] }
+                ]
+              }
+            }
+          }
+        }
+      },
+      calls: [
+        { target: ["generator", "emission"], method: "clearBurst" },
+        {
+          target: ["generator", "emission"],
+          method: "addBurst",
+          args: [
+            {
+              $type: "Burst",
+              $args: [0.5, { $type: "ParticleCompositeCurve", $args: [8] }, 2, 0.1]
+            }
+          ]
+        }
+      ]
+    });
+
+    const curve = renderer.generator.main.startDelay.curve;
+    expect(curve).to.be.instanceOf(ParticleCurve);
+    expect(curve.keys.map(({ time, value }) => [time, value])).to.deep.equal([
+      [0, 1],
+      [1, 2]
+    ]);
+    expect(renderer.generator.emission.bursts).to.have.length(1);
+    expect(renderer.generator.emission.bursts[0].time).to.equal(0.5);
+    expect(renderer.generator.emission.bursts[0].count.constant).to.equal(8);
+    entity.destroy();
   });
 
   it("should await each call before executing the next one", async () => {
@@ -797,6 +910,58 @@ describe("ReflectionParser $type resolution", () => {
     expect(target.value).to.be.instanceOf(TestValueType);
     expect(target.value.x).to.equal(0);
     expect(target.value.y).to.equal(0);
+  });
+
+  it("should recursively resolve $args before construction and then apply props", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await parser.parseProps(target, {
+      value: {
+        $type: "ConstructorValueType",
+        $args: ["seed", { $type: "TestValueType", x: 3, y: 4 }],
+        label: "ready"
+      }
+    });
+    expect(target.value).to.be.instanceOf(ConstructorValueType);
+    expect(target.value.seed).to.equal("seed");
+    expect(target.value.child).to.be.instanceOf(TestValueType);
+    expect(target.value.child).to.deep.include({ x: 3, y: 4 });
+    expect(target.value.label).to.equal("ready");
+  });
+
+  it("should resolve JSON-safe positive infinity values", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+
+    await parser.parseProps(target, {
+      value: {
+        $type: "ConstructorValueType",
+        $args: [{ $number: "Infinity" }, { $type: "TestValueType" }]
+      }
+    });
+
+    expect(target.value.seed).to.equal(Infinity);
+    await expect(parser.parseProps({}, { value: { $number: "NaN" } })).rejects.toThrow(
+      '$number must be exactly "Infinity"'
+    );
+  });
+
+  it("should reject $args without an array-valued $type constructor contract", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+
+    await expect(
+      parser.parseProps(target, {
+        value: { $type: "TestValueType", $args: "invalid" } as any
+      })
+    ).rejects.toThrow("$args must be an array when used with $type");
+    await expect(parser.parseProps(target, { value: { $args: [] } })).rejects.toThrow("$args requires $type");
   });
 
   it("should throw a clear error when $type references an unregistered class", async () => {
