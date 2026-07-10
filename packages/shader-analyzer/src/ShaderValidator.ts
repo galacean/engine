@@ -891,9 +891,53 @@ export class ShaderValidator {
         ShaderValidator._blockGuaranteesReturn(children[6] as TreeNode)
       );
     }
+    // `#ifdef … #else … #endif` inside a function body. Analyzer must model the same visibility
+    // that codegen does — if every reachable branch (including `#else`) terminates in a return,
+    // the whole `#if` block is a return-guarantee. Without an `#else`, the runtime-preprocessor
+    // may see zero arms match, so we conservatively say no.
+    if (node instanceof ASTNode.MacroIfStatement) {
+      return ShaderValidator._macroIfGuaranteesReturn(node);
+    }
     // A block/statement wrapper: walk to the last real statement of a block and recurse.
     const last = ShaderValidator._lastStatementOf(node);
     if (last && last !== node) return ShaderValidator._blockGuaranteesReturn(last);
+    return false;
+  }
+
+  /**
+   * `macro_if_statement → macro_push_context statement_list macro_branch`. A `macro_branch` is
+   * either `[macro_pop_context]` (bare `#endif`, no `#else`, so at runtime the untaken side
+   * falls through), `[macro_else_expression, statement_list, macro_pop_context]`, or
+   * `[macro_elif_expression, statement_list, macro_branch]`. For the whole `#if` to guarantee a
+   * return, the leading arm's `statement_list` must return AND the tail must terminate on all
+   * remaining arms — the recursion also rejects the bare-endif case.
+   */
+  private static _macroIfGuaranteesReturn(node: ASTNode.MacroIfStatement): boolean {
+    const c = node.children;
+    if (c.length !== 3) return false;
+    const leadStatements = c[1] as TreeNode;
+    const tailBranch = c[2] as ASTNode.MacroBranch;
+    if (!ShaderValidator._blockGuaranteesReturn(leadStatements)) return false;
+    return ShaderValidator._macroBranchGuaranteesReturn(tailBranch);
+  }
+
+  private static _macroBranchGuaranteesReturn(node: ASTNode.MacroBranch): boolean {
+    const c = node.children;
+    // Bare `#endif` — no `#else`, runtime side may fall through. Reject.
+    if (c.length === 1) return false;
+    if (c.length === 3) {
+      // `#else <stmts> #endif` — one final arm, must return.
+      if (c[0] instanceof ASTNode.MacroElseExpression) {
+        return ShaderValidator._blockGuaranteesReturn(c[1] as TreeNode);
+      }
+      // `#elif <stmts> <next-branch>` — this arm returns AND the tail terminates on all remaining.
+      if (c[0] instanceof ASTNode.MacroElifExpression) {
+        return (
+          ShaderValidator._blockGuaranteesReturn(c[1] as TreeNode) &&
+          ShaderValidator._macroBranchGuaranteesReturn(c[2] as ASTNode.MacroBranch)
+        );
+      }
+    }
     return false;
   }
 
