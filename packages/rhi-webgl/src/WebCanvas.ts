@@ -73,8 +73,10 @@ export class WebCanvas extends Canvas {
         "ResizeObserver is not supported in this environment. Falling back to one-time clientWidth × devicePixelRatio × scale sizing"
       );
       const webCanvas = this._webCanvas;
-      const pixelRatio = window.devicePixelRatio * scale;
-      this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
+      if (webCanvas.clientWidth > 0 && webCanvas.clientHeight > 0) {
+        const pixelRatio = window.devicePixelRatio * scale;
+        this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
+      }
     }
   }
 
@@ -112,6 +114,12 @@ export class WebCanvas extends Canvas {
 
     this._pendingResize = false;
     const scale = this._autoResolutionScale;
+    // Record display size before applying buffer size to detect layout feedback loop.
+    // When the canvas has no CSS width/height, setting the width attribute changes
+    // its intrinsic layout size, which causes the buffer size to inflate endlessly.
+    const prevClientWidth = webCanvas.clientWidth;
+    const prevClientHeight = webCanvas.clientHeight;
+
     if (this._pendingDevicePixelWidth > 0 && this._pendingDevicePixelHeight > 0) {
       // Exact device pixels already include the device pixel ratio, so only apply the scale
       this._setSize(
@@ -122,6 +130,19 @@ export class WebCanvas extends Canvas {
       // Fallback where `devicePixelContentBoxSize` is unavailable (Safari): clientWidth is CSS pixels
       const pixelRatio = window.devicePixelRatio * scale;
       this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
+    }
+
+    // Detect layout feedback loop: if setting the buffer size changed the display size,
+    // the canvas has no CSS constraints and layout is following the buffer attributes.
+    // Exit auto-resize and keep the current size to prevent unbounded growth.
+    if (webCanvas.clientWidth !== prevClientWidth || webCanvas.clientHeight !== prevClientHeight) {
+      console.warn(
+        "Canvas layout feedback loop detected: the canvas element has no CSS width/height set, " +
+          "so changing the buffer size affects the display size. " +
+          "Please set CSS width/height on the canvas element to constrain its display size. " +
+          "Auto-resolution has been disabled; call setResolution() or setAutoResolution() after applying CSS dimensions."
+      );
+      this._exitAutoResize();
     }
   }
 
