@@ -132,7 +132,8 @@ Shader "Effect/ParticleFeedback" {
           vec3 gravityLocal = rotationByQuaternions(gravityDelta, invWorldRotation);
           localVelocity += folDeltaLocal + gravityLocal;
 
-          // Step 2 & 3: Dampen + Drag
+          // Step 2 & 3: Dampen + Drag. LimitVelocityOverLifetime applies to base and linear VOL velocity;
+          // orbital/radial motion is applied below as positional orbit integration.
           #ifdef RENDERER_LVL_MODULE_ENABLED
               vec3 volAsLocal = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
               vec3 volAsWorld = rotationByQuaternions(volLocal, worldRotation) + volWorld;

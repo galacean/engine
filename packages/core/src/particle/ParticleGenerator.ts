@@ -1710,29 +1710,29 @@ export class ParticleGenerator {
     const needTransformFeedback = velocityOverLifetime._needTransformFeedback();
     const orbitalActive = needTransformFeedback && velocityOverLifetime._isOrbitalActive();
     if (needTransformFeedback) {
-      const offset = velocityOverLifetime.offset;
+      const centerOffset = velocityOverLifetime.centerOffset;
       let radialReach = 0;
       if (velocityOverLifetime._isRadialActive()) {
         this._getExtremeValueFromZero(velocityOverLifetime.radial, velMinMaxX);
         radialReach = Math.max(Math.abs(velMinMaxX.x), Math.abs(velMinMaxX.y)) * maxLifetime;
       }
       if (orbitalActive) {
-        const dx = Math.max(Math.abs(min.x - offset.x), Math.abs(max.x - offset.x));
-        const dy = Math.max(Math.abs(min.y - offset.y), Math.abs(max.y - offset.y));
-        const dz = Math.max(Math.abs(min.z - offset.z), Math.abs(max.z - offset.z));
+        const dx = Math.max(Math.abs(min.x - centerOffset.x), Math.abs(max.x - centerOffset.x));
+        const dy = Math.max(Math.abs(min.y - centerOffset.y), Math.abs(max.y - centerOffset.y));
+        const dz = Math.max(Math.abs(min.z - centerOffset.z), Math.abs(max.z - centerOffset.z));
         const worldReach = this._getRangeReach(worldOffsetMin, worldOffsetMax);
         const noiseReach = this._getVectorReach(noiseBoundsExtents);
         const gravityReach = this._getGravityBoundsReach(maxLifetime);
         const reach = Math.sqrt(dx * dx + dy * dy + dz * dz) + worldReach + noiseReach + gravityReach + radialReach;
         min.set(
-          Math.min(min.x, offset.x - reach),
-          Math.min(min.y, offset.y - reach),
-          Math.min(min.z, offset.z - reach)
+          Math.min(min.x, centerOffset.x - reach),
+          Math.min(min.y, centerOffset.y - reach),
+          Math.min(min.z, centerOffset.z - reach)
         );
         max.set(
-          Math.max(max.x, offset.x + reach),
-          Math.max(max.y, offset.y + reach),
-          Math.max(max.z, offset.z + reach)
+          Math.max(max.x, centerOffset.x + reach),
+          Math.max(max.y, centerOffset.y + reach),
+          Math.max(max.z, centerOffset.z + reach)
         );
       } else if (radialReach > 0) {
         min.set(min.x - radialReach, min.y - radialReach, min.z - radialReach);

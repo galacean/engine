@@ -90,7 +90,7 @@ function createOrbitalConstantParticle(engine: Engine, rootEntity: Entity, textu
   velocityOverLifetime.orbitalX = new ParticleCompositeCurve(1);
   velocityOverLifetime.orbitalY = new ParticleCompositeCurve(1);
   velocityOverLifetime.orbitalZ = new ParticleCompositeCurve(1);
-  velocityOverLifetime.offset = new Vector3(2, 0, 0);
+  velocityOverLifetime.centerOffset = new Vector3(2, 0, 0);
   velocityOverLifetime.radial = new ParticleCompositeCurve(5);
 
   rootEntity.addChild(particleEntity);

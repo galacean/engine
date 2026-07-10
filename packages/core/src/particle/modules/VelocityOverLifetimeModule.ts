@@ -142,7 +142,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Orbital velocity (radians/second) around the x axis of the system.
-   * @remarks Requires WebGL2; takes effect together with `offset` as the center of orbit.
+   * @remarks Requires WebGL2 and transform feedback. Switching orbital/radial values between zero and non-zero
+   * restarts the simulation. LimitVelocityOverLifetime does not clamp orbital/radial motion.
    */
   get orbitalX(): ParticleCompositeCurve {
     return this._orbitalX;
@@ -158,7 +159,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Orbital velocity (radians/second) around the y axis of the system.
-   * @remarks Requires WebGL2; takes effect together with `offset` as the center of orbit.
+   * @remarks Requires WebGL2 and transform feedback. Switching orbital/radial values between zero and non-zero
+   * restarts the simulation. LimitVelocityOverLifetime does not clamp orbital/radial motion.
    */
   get orbitalY(): ParticleCompositeCurve {
     return this._orbitalY;
@@ -174,7 +176,8 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Orbital velocity (radians/second) around the z axis of the system.
-   * @remarks Requires WebGL2; takes effect together with `offset` as the center of orbit.
+   * @remarks Requires WebGL2 and transform feedback. Switching orbital/radial values between zero and non-zero
+   * restarts the simulation. LimitVelocityOverLifetime does not clamp orbital/radial motion.
    */
   get orbitalZ(): ParticleCompositeCurve {
     return this._orbitalZ;
@@ -190,7 +193,9 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
 
   /**
    * Radial velocity moving particles away from (or towards) the center.
-   * @remarks Requires WebGL2; the center is given by `offset`.
+   * @remarks Requires WebGL2 and transform feedback. The center is given by `centerOffset`.
+   * Switching orbital/radial values between zero and non-zero restarts the simulation.
+   * LimitVelocityOverLifetime does not clamp orbital/radial motion.
    */
   get radial(): ParticleCompositeCurve {
     return this._radial;
@@ -205,18 +210,19 @@ export class VelocityOverLifetimeModule extends ParticleGeneratorModule {
   }
 
   /**
-   * The center of orbit for orbital/radial velocity, in the system's local space.
+   * The center offset of orbital/radial velocity from the particle system origin, in the system's local space.
+   * @remarks In world simulation space, this local offset is transformed by the simulation transform captured when
+   * each particle is born, so particles emitted from a moving emitter keep orbiting their own birth-frame center.
    */
-  get offset(): Vector3 {
+  get centerOffset(): Vector3 {
     return this._offset;
   }
 
-  set offset(value: Vector3) {
+  set centerOffset(value: Vector3) {
     const offset = this._offset;
     if (value !== offset) {
       offset.copyFrom(value);
     }
-    this._generator._renderer._onGeneratorParamsChanged();
   }
 
   /**

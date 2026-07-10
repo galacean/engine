@@ -109,7 +109,7 @@ describe("ParticleBoundingBox", function () {
     velocityOverLifetime.orbitalZ.constant = 0;
     velocityOverLifetime.radial.mode = ParticleCurveMode.Constant;
     velocityOverLifetime.radial.constant = 0;
-    velocityOverLifetime.offset.set(0, 0, 0);
+    velocityOverLifetime.centerOffset.set(0, 0, 0);
     particleRenderer.generator.forceOverLifetime.enabled = false;
     particleRenderer.generator.noise.enabled = false;
 
