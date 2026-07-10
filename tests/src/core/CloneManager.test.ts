@@ -1350,6 +1350,25 @@ describe("Clone remap", async () => {
       expect(failures).deep.eq([]);
     });
 
+    it("orbital velocity fields deep-clone through the type default", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const renderer = parent.addComponent(ParticleRenderer);
+      const vol = renderer.generator.velocityOverLifetime;
+      vol.orbitalX = new ParticleCompositeCurve(1, 2);
+      vol.offset.set(3, 4, 5);
+
+      const cloned = parent.clone();
+      const clonedVol = cloned.getComponent(ParticleRenderer).generator.velocityOverLifetime;
+      expect(clonedVol.orbitalX).not.eq(vol.orbitalX);
+      expect(clonedVol.orbitalX.constantMin).eq(1);
+      expect(clonedVol.orbitalX.constantMax).eq(2);
+      expect(clonedVol.offset).not.eq(vol.offset);
+      expect(clonedVol.offset.z).eq(5);
+
+      rootEntity.destroy();
+    });
+
     it("clones the emission bursts array through the engine path", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
