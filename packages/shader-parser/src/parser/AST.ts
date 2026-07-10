@@ -1552,9 +1552,13 @@ export namespace ASTNode {
       // by the material system). With an initializer, `this.isStatic` becomes true — it's a
       // compile-time value, not a uniform. `const`-qualified is a separate read-only path.
       const hasInitializer = children.length === 4;
+      // Grammar `fully_specified_type ID array_specifier` — children[2] is the array specifier.
+      // Without it, `float arr[3]` at global scope stored as scalar `float`, then every `arr[i]`
+      // ref misfires `NonIndexableType`. Recover the array-ness at symbol level.
+      const arraySpecifier = children.length === 3 ? (children[2] as ArraySpecifier) : undefined;
       const sm = new VarSymbol(
         ident.lexeme,
-        new SymbolType(type.type, type.typeSpecifier.lexeme),
+        new SymbolType(type.type, type.typeSpecifier.lexeme, arraySpecifier),
         true,
         this,
         type.isConst,
