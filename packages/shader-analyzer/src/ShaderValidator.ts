@@ -67,7 +67,6 @@ export class ShaderValidator {
     v._reportMutualRecursion();
     v._reportDerivativeReachableFromVertex();
     v._reportBareGlFragData();
-    v._reportMacroBranchConflicts();
     return v._errors;
   }
 
@@ -195,51 +194,6 @@ export class ShaderValidator {
         DiagnosticType.BareGlFragData
       );
       return;
-    }
-  }
-
-  /**
-   * `MacroBranchConflict` — a scope's rule is "one type per name", regardless of `#if/#else`.
-   * When a symbol is declared with different data types across mutually-exclusive macro branches
-   * (e.g. `#if X / vec3 a; / #else / float a; / #endif`), analysis cannot pick a single type and
-   * downstream checks (`AssignTypeMismatch`, `NonIndexableType`, ...) fire on whichever type won.
-   * Report a single, targeted conflict listing every conflicting site so the shader author can
-   * unify the type — the fix is always in the shader.
-   *
-   * Only variables are checked; functions live in the same overload space regardless of branch
-   * and never conflict on name alone (they conflict on signature, already caught by Redefinition).
-   */
-  private _reportMacroBranchConflicts(): void {
-    const byName = new Map<string, VarSymbol[]>();
-    this._shaderData.symbolTable.forEach((sym) => {
-      if (!(sym instanceof VarSymbol)) return;
-      const arr = byName.get(sym.ident);
-      if (arr) arr.push(sym);
-      else byName.set(sym.ident, [sym]);
-    });
-    for (const [name, syms] of byName) {
-      if (syms.length < 2) continue;
-      // Only report conflicts where at least one entry lives in a macro branch — same-scope
-      // redeclarations without any macro involvement are Redefinition errors, not conflicts.
-      if (!syms.some((s) => s.isInMacroBranch)) continue;
-      const distinctTypes = new Set<string>();
-      const detail: string[] = [];
-      for (const s of syms) {
-        const t = TypeSystem.typeName(s.dataType?.type);
-        distinctTypes.add(t);
-        const loc = (s.astNode as { location?: ShaderRange } | undefined)?.location;
-        const where = loc ? `line ${loc.start.line + 1}, col ${loc.start.column + 1}` : "?";
-        const branch = s.isInMacroBranch ? "macro branch" : "unconditional";
-        detail.push(`  · ${branch} — ${t} at ${where}`);
-      }
-      if (distinctTypes.size < 2) continue;
-      const firstLoc = (syms[0].astNode as { location?: ShaderRange } | undefined)?.location;
-      if (!firstLoc) continue;
-      this._push(
-        `Macro branch conflict: '${name}' is declared with ${distinctTypes.size} different types across mutually-exclusive #if/#else branches. Every branch in the same scope must agree on the type:\n${detail.join("\n")}`,
-        firstLoc,
-        DiagnosticType.MacroBranchConflict
-      );
     }
   }
 
