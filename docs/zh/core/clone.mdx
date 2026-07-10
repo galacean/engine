@@ -146,5 +146,25 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
   - `deepClone` 无法深克隆引擎绑定的对象：`Entity` / `Component` 引用会回退为重映射，资产会回退为共享，二者都会打印告警。如果需要真正复制一份资产，请使用资产自身的克隆 API。
   - 如果克隆装饰器不能满足诉求，可以通过实现 [_cloneTo()](/apis/design/#IClone-cloneTo) 方法追加自定义克隆。
 
+### 为自定义类型注册克隆语义
+
+上面的装饰器作用于字段。如果你定义了一个可复用的值类型 —— 配置对象、曲线、伤害档案等，可以用 `@defaultCloneMode` 在类型上注册克隆语义，这样持有它的任何字段、数组或 Map 都能正确克隆，无需逐字段标注：
+
+```typescript
+import { CloneMode, defaultCloneMode, Vector3 } from "@galacean/engine";
+
+@defaultCloneMode(CloneMode.Deep)
+class DamageProfile {
+  base = 10;
+  falloff = new Vector3(1, 0.5, 0.25);
+}
+```
+
+未注册的类实例默认共享引用（`Assignment`）—— 注册正是让它在每次克隆时变成独立拷贝的开关。字段装饰器依然可以在具体字段上覆盖注册的默认值。
+
+<Callout type="warning">
+注册为 `Deep` 的类型必须支持无参构造：克隆系统在容器（数组、`Map`、普通对象）里遇到这类值时，会先 `new Type()` 创建实例再逐字段填充。构造函数带必需参数会在克隆时报错，错误信息会指明这条契约。
+</Callout>
+
 ## 克隆与资产引用计数
 克隆时，如果组件的顶层字段共享了一个引用计数资产（`ReferResource`，如 `Texture`、`Mesh`、`Material`），引擎会自动为克隆体增加一次引用计数。持有该字段的类负责在销毁时释放这次引用 —— 内置组件已由引擎处理；自定义脚本请在 `onDestroy` 中释放自己持有的资源。
