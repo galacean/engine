@@ -1356,15 +1356,15 @@ describe("Clone remap", async () => {
       const renderer = parent.addComponent(ParticleRenderer);
       const vol = renderer.generator.velocityOverLifetime;
       vol.orbitalX = new ParticleCompositeCurve(1, 2);
-      vol.offset.set(3, 4, 5);
+      vol.centerOffset.set(3, 4, 5);
 
       const cloned = parent.clone();
       const clonedVol = cloned.getComponent(ParticleRenderer).generator.velocityOverLifetime;
       expect(clonedVol.orbitalX).not.eq(vol.orbitalX);
       expect(clonedVol.orbitalX.constantMin).eq(1);
       expect(clonedVol.orbitalX.constantMax).eq(2);
-      expect(clonedVol.offset).not.eq(vol.offset);
-      expect(clonedVol.offset.z).eq(5);
+      expect(clonedVol.centerOffset).not.eq(vol.centerOffset);
+      expect(clonedVol.centerOffset.z).eq(5);
 
       rootEntity.destroy();
     });
