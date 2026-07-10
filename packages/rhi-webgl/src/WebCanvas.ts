@@ -53,7 +53,7 @@ export class WebCanvas extends Canvas {
     if (this._resizeObserver) {
       // Already observing: reapply the new scale to the last measured size
       this._pendingResize = true;
-    } else {
+    } else if (typeof ResizeObserver !== "undefined") {
       // observe() fires an initial entry, which sets the pending size (with exact device pixels when supported)
       this._resizeObserver = new ResizeObserver((entries) => {
         const box = entries[entries.length - 1].devicePixelContentBoxSize?.[0];
@@ -66,6 +66,15 @@ export class WebCanvas extends Canvas {
       } catch {
         this._resizeObserver.observe(this._webCanvas);
       }
+    } else {
+      // Fallback: ResizeObserver is not available (e.g. mini-programs, iOS Safari < 13.4).
+      // Use a one-time clientWidth × devicePixelRatio × scale sizing instead.
+      console.warn(
+        "ResizeObserver is not supported in this environment. Falling back to one-time clientWidth × devicePixelRatio × scale sizing"
+      );
+      const webCanvas = this._webCanvas;
+      const pixelRatio = window.devicePixelRatio * scale;
+      this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
     }
   }
 
