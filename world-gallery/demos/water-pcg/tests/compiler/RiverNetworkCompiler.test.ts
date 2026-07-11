@@ -72,6 +72,34 @@ describe("RiverNetworkCompiler", () => {
         )
       ).toBe(true);
     }
+    const connectedSurfaceUv1s = [...incoming, ...outgoing].flatMap(
+      (reachIndex) => result.data!.reaches[reachIndex].artifact.surfaceGeometry.uv1s
+    );
+    for (const boundaryUv1 of junction.surfaceGeometry.uv1s.slice(1)) {
+      expect(
+        connectedSurfaceUv1s.some(
+          (uv1) => Math.abs(uv1[0] - boundaryUv1[0]) < 1e-6 && Math.abs(uv1[1] - boundaryUv1[1]) < 1e-6
+        )
+      ).toBe(true);
+    }
+    const outgoingTangent = result.data!.reaches[outgoing[0]].artifact.samples[0].tangent;
+    expect(
+      junction.flowDirection[0] * outgoingTangent[0] + junction.flowDirection[2] * outgoingTangent[2]
+    ).toBeGreaterThan(0.99);
+  });
+
+  it("rejects a confluence radius that cannot contain connected surface boundaries", () => {
+    const source = multiTributaryRiverExample.riverDescriptor;
+    const descriptor: RiverNetworkDescriptor = {
+      ...source,
+      nodes: source.nodes.map((node) => (node.id === "upper-confluence" ? { ...node, mergeRadius: 1 } : node))
+    };
+    const result = RiverNetworkCompiler.compile(descriptor);
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      RiverDiagnosticCode.JunctionRadiusTooSmall
+    );
   });
 
   it("snaps curve endpoints to compiler-resolved node positions with a diagnostic", () => {

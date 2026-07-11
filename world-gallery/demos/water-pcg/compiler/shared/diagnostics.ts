@@ -34,7 +34,8 @@ export enum RiverDiagnosticCode {
   BankSelfIntersection = "RIVER_BANK_SELF_INTERSECTION",
   DegenerateTriangle = "RIVER_DEGENERATE_TRIANGLE",
   JunctionTrimClamped = "RIVER_JUNCTION_TRIM_CLAMPED",
-  JunctionBoundaryInvalid = "RIVER_JUNCTION_BOUNDARY_INVALID"
+  JunctionBoundaryInvalid = "RIVER_JUNCTION_BOUNDARY_INVALID",
+  JunctionRadiusTooSmall = "RIVER_JUNCTION_RADIUS_TOO_SMALL"
 }
 
 export interface RiverDiagnosticRepair {

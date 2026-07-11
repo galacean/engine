@@ -9,6 +9,7 @@ import {
   RIVER_JUNCTION_MIN_REACH_LENGTH
 } from "./constants";
 import { createRiverGeometryData } from "./RiverGeometryCompiler";
+import { countDegenerateTriangles } from "./RiverGeometryAnalysis";
 import { resolveRiverRibbonJoinFrame } from "./RiverRibbonJoinResolver";
 import type {
   ReadonlyVector3Tuple,
@@ -246,6 +247,16 @@ export function compileRiverJunctions(
       });
       continue;
     }
+    const maximumHalfWidth = Math.max(...endpoints.map((endpoint) => endpoint.sample.width * 0.5));
+    if ((node.mergeRadius ?? 0) + RIVER_GEOMETRY_EPSILON < maximumHalfWidth) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.JunctionRadiusTooSmall,
+        severity: RiverDiagnosticSeverity.Error,
+        path: `nodes[${nodeIndex}].mergeRadius`,
+        message: `Junction radius ${node.mergeRadius ?? 0} is smaller than the connected half-width ${maximumHalfWidth}.`
+      });
+      continue;
+    }
     const materialSourceReachIndex =
       outgoingReachIndices[0] ??
       incomingReachIndices.reduce(
@@ -253,6 +264,25 @@ export function compileRiverJunctions(
         incomingReachIndices[0]
       );
     const materialLevel = reaches[materialSourceReachIndex].materialLevel;
+    const surfaceGeometry =
+      materialLevel === RiverQualityLevel.Low
+        ? createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface, true)
+        : createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface);
+    const bankFoamGeometry =
+      materialLevel === RiverQualityLevel.Low
+        ? undefined
+        : createPatchGeometry(node, endpoints, true, RIVER_GEOMETRY_Y_OFFSET.bankFoam);
+    const degenerateTriangleCount =
+      countDegenerateTriangles(surfaceGeometry) + (bankFoamGeometry ? countDegenerateTriangles(bankFoamGeometry) : 0);
+    if (degenerateTriangleCount > 0) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.DegenerateTriangle,
+        severity: RiverDiagnosticSeverity.Error,
+        path: `nodes[${nodeIndex}].junctionGeometry`,
+        message: `${degenerateTriangleCount} degenerate junction triangles were generated.`
+      });
+      continue;
+    }
     junctions.push(
       Object.freeze({
         id: node.id,
@@ -263,14 +293,8 @@ export function compileRiverJunctions(
         outgoingReachIndices: new RiverReadonlyUint32Buffer(outgoingReachIndices),
         materialSourceReachIndex,
         flowDirection: resolveFlowDirection(endpoints),
-        surfaceGeometry:
-          materialLevel === RiverQualityLevel.Low
-            ? createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface, true)
-            : createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface),
-        bankFoamGeometry:
-          materialLevel === RiverQualityLevel.Low
-            ? undefined
-            : createPatchGeometry(node, endpoints, true, RIVER_GEOMETRY_Y_OFFSET.bankFoam)
+        surfaceGeometry,
+        bankFoamGeometry
       })
     );
   }

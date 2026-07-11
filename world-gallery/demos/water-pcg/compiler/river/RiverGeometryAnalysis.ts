@@ -33,7 +33,7 @@ function countPolylineSelfIntersections(points: readonly ReadonlyVector3Tuple[])
   return count;
 }
 
-function countDegenerateTriangles(geometry: RiverGeometryData): number {
+export function countDegenerateTriangles(geometry: RiverGeometryData): number {
   const indices = Array.from(geometry.indices);
   let count = 0;
   for (let index = 0; index + 2 < indices.length; index += 3) {
