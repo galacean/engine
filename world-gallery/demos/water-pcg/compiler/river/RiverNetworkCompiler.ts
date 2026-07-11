@@ -17,14 +17,11 @@ import type {
   Vector3Tuple
 } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkDescriptor, RiverSegmentConfig } from "../../authoring/river/RiverDescriptor";
-import {
-  decodeRiverNetworkDescriptor,
-  resolveRiverNetworkBudget,
-  validateRiverConfig
-} from "../../authoring/river/RiverSchemaDecoder";
+import { decodeRiverNetworkDescriptor, validateRiverConfig } from "../../authoring/river/RiverSchemaDecoder";
 import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
+import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
 import { sampleRiverPath } from "./RiverPathSampler";
 import {
   DeepReadonly,
@@ -484,11 +481,22 @@ export class RiverNetworkCompiler {
   private constructor() {}
 
   static compile(source: unknown): RiverCompileResult {
-    const validation = decodeRiverNetworkDescriptor(source);
-    const diagnostics = validation.diagnostics.map((diagnostic) => ({
+    const decoding = decodeRiverNetworkDescriptor(source);
+    const diagnostics = decoding.diagnostics.map((diagnostic) => ({
       ...diagnostic,
       repair: diagnostic.repair ? { ...diagnostic.repair } : undefined
     }));
+    if (!decoding.value) {
+      const frozenDiagnostics = deepFreezePlainData(diagnostics);
+      return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });
+    }
+    const validation = validateRiverNetworkDescriptor(decoding.value);
+    diagnostics.push(
+      ...validation.diagnostics.map((diagnostic) => ({
+        ...diagnostic,
+        repair: diagnostic.repair ? { ...diagnostic.repair } : undefined
+      }))
+    );
     if (!validation.value) {
       const frozenDiagnostics = deepFreezePlainData(diagnostics);
       return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });
