@@ -14,6 +14,7 @@ describe("RiverResource", () => {
     const loaded = RiverResource.deserialize(resource.serialize());
 
     expect(loaded.metadata).toEqual(resource.metadata);
+    expect(loaded.metadata.compiledHash).toMatch(/^[0-9a-f]{16}$/);
     expect(loaded.data.sourceId).toBe(compiled.sourceId);
     expect(loaded.data.stats).toEqual(compiled.stats);
     expect(loaded.data.chunks).toHaveLength(compiled.chunks.length);

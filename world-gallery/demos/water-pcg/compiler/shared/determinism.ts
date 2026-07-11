@@ -17,15 +17,20 @@ function toHex(hash: number): string {
 }
 
 export function hashRiverString(value: string): string {
-  let hash = 0x811c9dc5;
+  let low = 0x811c9dc5;
+  let high = 0x9e3779b9;
   for (let index = 0; index < value.length; index++) {
     const code = value.charCodeAt(index);
-    hash ^= code & 0xff;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
-    hash ^= code >>> 8;
-    hash = Math.imul(hash, 0x01000193) >>> 0;
+    const lowByte = code & 0xff;
+    const highByte = code >>> 8;
+    low = Math.imul(low ^ lowByte, 0x01000193) >>> 0;
+    low = Math.imul(low ^ highByte, 0x01000193) >>> 0;
+    high = Math.imul(high ^ lowByte, 0x5bd1e995) >>> 0;
+    high ^= high >>> 15;
+    high = Math.imul(high ^ highByte, 0x5bd1e995) >>> 0;
+    high ^= high >>> 15;
   }
-  return toHex(hash);
+  return `${toHex(high)}${toHex(low)}`;
 }
 
 function stableStringifyInternal(value: unknown): string {
