@@ -12,7 +12,6 @@ import {
   Camera,
   Color,
   Engine,
-  Material,
   MeshRenderer,
   ModelMesh,
   RenderFace,
@@ -39,18 +38,15 @@ import type { RiverDemoConfig as RiverConfig } from "./demo/types";
 import { getRiverConfigWarnings } from "./authoring/river/RiverSchemaDecoder";
 import { RiverDebugView } from "./demo/debug/RiverDebugView";
 import { normalizeRiverDemoConfig } from "./demo/normalizeRiverDemoConfig";
-import { uploadRiverMeshes } from "./runtime/river/RiverMeshUploader";
+import { hexToColor } from "./runtime/river/RiverMaterialFactory";
 import {
-  createLowRiverMaterial,
-  createRiverFoamMaterial,
-  createRiverMaterial,
-  hexToColor,
-  updateRiverFoamMaterial,
-  updateRiverMaterial
-} from "./runtime/river/RiverMaterialFactory";
+  RiverRuntimeController,
+  type RiverRuntimeReach,
+  type RiverRuntimeReachSource
+} from "./runtime/river/RiverRuntimeController";
 import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "./compiler/river/RiverNetworkCompiler";
 import { sampleRiverPath } from "./compiler/river/RiverPathSampler";
-import type { RiverMeshBuildResult, RiverQueryResult } from "./runtime/river/types";
+import type { RiverQueryResult } from "./runtime/river/types";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -117,17 +113,11 @@ interface QueryPanelState {
 }
 
 interface RiverSegmentRuntime {
-  root: import("@galacean/engine").Entity;
+  runtimeReach: RiverRuntimeReach;
   config: RiverConfig;
   normalizedConfig: RiverConfig;
   sampleResult: RiverSampleResult;
   artifact: RiverReachArtifact;
-  meshes?: RiverMeshBuildResult;
-  surfaceRenderer: MeshRenderer;
-  foamRenderer: MeshRenderer;
-  material: Material;
-  lowMaterial: Material;
-  foamMaterial: Material;
   debugView: RiverDebugView;
   geometryBuildCount: number;
   networkDistanceOffset: number;
@@ -483,12 +473,12 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
 
   const riverGroup = rootEntity.createChild("river-preview");
   const riverSegmentsRoot = riverGroup.createChild("river-segments");
+  const riverRuntimeController = new RiverRuntimeController(engine, riverSegmentsRoot);
   const riverMeshPreviewMaterial = createWaterMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
   const riverBankPreviewMaterial = createWaterMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
   let riverRuntimes: RiverSegmentRuntime[] = [];
-  const riverRuntimeSets = new Map<string, RiverSegmentRuntime[]>();
+  const riverDemoRuntimeSets = new Map<string, RiverSegmentRuntime[]>();
   let pendingRuntimeStatsRefresh = false;
-  let pendingResourceGc = false;
   let topologyRevision = 0;
 
   const rebuildOceanMesh = (): void => {
@@ -506,36 +496,26 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       Math.min(1, oceanConfig.alpha + oceanConfig.foamIntensity * 0.02)
     );
   };
-  const createRiverSegmentRuntime = (config: RiverConfig, reachIndex: number): RiverSegmentRuntime => {
-    const segmentRoot = riverSegmentsRoot.createChild(`river-segment-${config.id}`);
-    const foamRenderer = segmentRoot.createChild(`${config.id}-bank`).addComponent(MeshRenderer);
-    const surfaceRenderer = segmentRoot.createChild(`${config.id}-water`).addComponent(MeshRenderer);
+  const createRiverSegmentRuntime = (
+    config: RiverConfig,
+    reachIndex: number,
+    runtimeReach: RiverRuntimeReach
+  ): RiverSegmentRuntime => {
     const normalizedConfig = normalizeRiverDemoConfig(config);
-    const compiledReach = activeRiverCompiledData.reaches[reachIndex];
-    const artifact = compiledReach.artifact;
+    const artifact = runtimeReach.artifact;
     const sampleResult: RiverSampleResult = {
       points: decodeRiverSamplePoints(artifact.samples),
       totalLength: artifact.totalLength,
       diagnostics: artifact.diagnostics.map((diagnostic) => ({ ...diagnostic }))
     };
-    const material = createRiverMaterial(engine, normalizedConfig.material, 1);
-    const lowMaterial = createLowRiverMaterial(engine, normalizedConfig.material, 1);
-    const foamMaterial = createRiverFoamMaterial(engine, normalizedConfig.material, 1);
-    const debugView = new RiverDebugView(engine, segmentRoot);
-    foamRenderer.setMaterial(foamMaterial);
-    surfaceRenderer.setMaterial(material);
+    const debugView = new RiverDebugView(engine, runtimeReach.root);
 
     return {
-      root: segmentRoot,
+      runtimeReach,
       config,
       normalizedConfig,
       sampleResult,
       artifact,
-      surfaceRenderer,
-      foamRenderer,
-      material,
-      lowMaterial,
-      foamMaterial,
       debugView,
       geometryBuildCount: 0,
       networkDistanceOffset: activeRiverCompiledData.reaches[reachIndex]?.networkDistanceOffset ?? 0
@@ -543,44 +523,45 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   };
   const destroyRiverSegmentRuntime = (runtime: RiverSegmentRuntime): void => {
     runtime.debugView.destroy();
-    runtime.root.destroy();
-    runtime.meshes?.surfaceMesh.destroy(true);
-    runtime.meshes?.bankFoamMesh?.destroy(true);
-    runtime.material.destroy(true);
-    runtime.lowMaterial.destroy(true);
-    runtime.foamMaterial.destroy(true);
   };
+  const createRuntimeReachSources = (): RiverRuntimeReachSource[] =>
+    riverConfigs.map((config, reachIndex) => {
+      const normalizedConfig = normalizeRiverDemoConfig(config);
+      const sampleResult = sampleRiverPath(normalizedConfig);
+      return {
+        config: normalizedConfig,
+        artifact: RiverGeometryCompiler.compile(
+          sampleResult,
+          normalizedConfig.quality.material.level,
+          activeRiverCompiledData.reaches[reachIndex]?.networkDistanceOffset ?? 0
+        )
+      };
+    });
   const rebuildRiverSegmentRuntimes = (): boolean => {
-    for (const runtimes of riverRuntimeSets.values()) {
-      for (const runtime of runtimes) runtime.root.isActive = false;
-    }
     const exampleId = waterPcgExamples[activeExampleIndex].id;
-    const cached = riverRuntimeSets.get(exampleId);
+    const activation = riverRuntimeController.activate(exampleId, activeRiverCompiledData, createRuntimeReachSources());
+    const cached = riverDemoRuntimeSets.get(exampleId);
     if (cached) {
       riverRuntimes = cached;
-      for (const runtime of riverRuntimes) runtime.root.isActive = true;
       return false;
     }
-    riverRuntimes = riverConfigs.map(createRiverSegmentRuntime);
-    riverRuntimeSets.set(exampleId, riverRuntimes);
+    riverRuntimes = riverConfigs.map((config, index) =>
+      createRiverSegmentRuntime(config, index, activation.reaches[index])
+    );
+    riverDemoRuntimeSets.set(exampleId, riverRuntimes);
     return true;
   };
-  const applyRiverPreviewStage = (runtime: RiverSegmentRuntime): void => {
+  const applyRiverPreviewStage = (runtime: RiverSegmentRuntime, reachIndex: number): void => {
     const stage = runtime.normalizedConfig.debug.previewStage;
     const showRiverMesh =
       stage === RiverPreviewStage.Mesh || stage === RiverPreviewStage.Material || stage === RiverPreviewStage.Full;
-    runtime.surfaceRenderer.entity.isActive = showRiverMesh;
     const isLow = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low;
-    runtime.foamRenderer.entity.isActive = showRiverMesh && !isLow && Boolean(runtime.meshes?.bankFoamMesh);
-
-    if (stage === RiverPreviewStage.Mesh) {
-      runtime.surfaceRenderer.setMaterial(riverMeshPreviewMaterial);
-      if (!isLow) runtime.foamRenderer.setMaterial(riverBankPreviewMaterial);
-      return;
-    }
-
-    runtime.surfaceRenderer.setMaterial(isLow ? runtime.lowMaterial : runtime.material);
-    runtime.foamRenderer.setMaterial(runtime.foamMaterial);
+    riverRuntimeController.applyPresentation(reachIndex, {
+      surfaceVisible: showRiverMesh,
+      foamVisible: showRiverMesh && !isLow && Boolean(runtime.artifact.bankFoamGeometry),
+      surfaceMaterial: stage === RiverPreviewStage.Mesh ? riverMeshPreviewMaterial : undefined,
+      foamMaterial: stage === RiverPreviewStage.Mesh && !isLow ? riverBankPreviewMaterial : undefined
+    });
   };
   const hasDirty = (flags: RiverDirtyFlag, flag: RiverDirtyFlag): boolean => (flags & flag) !== 0;
   const recompileActiveNetwork = (): boolean => {
@@ -596,7 +577,8 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     }
 
     const exampleId = waterPcgExamples[activeExampleIndex].id;
-    const previousRuntimes = riverRuntimeSets.get(exampleId) ?? [];
+    const previousRuntimes = riverDemoRuntimeSets.get(exampleId) ?? [];
+    previousRuntimes.forEach(destroyRiverSegmentRuntime);
     activeRiverCompiledData = result.data;
     riverCompiledDataSets[activeExampleIndex] = result.data;
     riverConfigs = result.data.reaches.map((reach) => ({
@@ -610,10 +592,11 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         config.debug = { ...previousDebug };
       });
     }
-    riverRuntimes = riverConfigs.map(createRiverSegmentRuntime);
-    riverRuntimeSets.set(exampleId, riverRuntimes);
-    previousRuntimes.forEach(destroyRiverSegmentRuntime);
-    pendingResourceGc ||= previousRuntimes.length > 0;
+    const runtimeReaches = riverRuntimeController.replaceActive(exampleId, result.data, createRuntimeReachSources());
+    riverRuntimes = riverConfigs.map((config, index) =>
+      createRiverSegmentRuntime(config, index, runtimeReaches[index])
+    );
+    riverDemoRuntimeSets.set(exampleId, riverRuntimes);
     topologyRevision++;
     exampleBarElement.dataset.topologyRevision = String(topologyRevision);
     exampleBarElement.dataset.compiledNodeCount = String(result.data.stats.nodeCount);
@@ -645,6 +628,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     const warnings: string[] = [];
     let primaryQueryResult: RiverQueryResult | undefined;
     const geometryDirty = hasDirty(flags, RiverDirtyFlag.Geometry);
+    const materialDirty = hasDirty(flags, RiverDirtyFlag.Material);
 
     for (const runtime of riverRuntimes) {
       runtime.normalizedConfig = normalizeRiverDemoConfig(runtime.config);
@@ -658,29 +642,14 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     for (let i = 0; i < riverRuntimes.length; i++) {
       const runtime = riverRuntimes[i];
       if (geometryDirty) {
-        const previousBankFoamMesh = runtime.meshes?.bankFoamMesh;
         runtime.artifact = RiverGeometryCompiler.compile(
           runtime.sampleResult,
           runtime.normalizedConfig.quality.material.level,
           runtime.networkDistanceOffset
         );
-        runtime.meshes = uploadRiverMeshes(engine, runtime.artifact, {
-          existing: runtime.meshes
-        });
-        runtime.surfaceRenderer.mesh = runtime.meshes.surfaceMesh;
-        if (runtime.meshes.bankFoamMesh) {
-          runtime.foamRenderer.mesh = runtime.meshes.bankFoamMesh;
-        } else if (previousBankFoamMesh) {
-          runtime.foamRenderer.mesh = runtime.meshes.surfaceMesh;
-          previousBankFoamMesh.destroy(true);
-        }
       }
-      if (hasDirty(flags, RiverDirtyFlag.Material)) {
-        updateRiverMaterial(runtime.material, runtime.normalizedConfig.material, 1);
-        updateRiverMaterial(runtime.lowMaterial, runtime.normalizedConfig.material, 1);
-        updateRiverFoamMaterial(runtime.foamMaterial, runtime.normalizedConfig.material, 1);
-      }
-      applyRiverPreviewStage(runtime);
+      riverRuntimeController.updateReach(i, runtime.normalizedConfig, runtime.artifact, geometryDirty, materialDirty);
+      applyRiverPreviewStage(runtime, i);
       const queryResult = runtime.debugView.update(
         engine,
         createDebugRiverConfig(runtime.normalizedConfig),
@@ -1001,10 +970,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
 
     onUpdate(deltaTime: number): void {
       const updateStart = profilingEnabled ? performance.now() : 0;
-      if (pendingResourceGc) {
-        engine.resourceManager.gc();
-        pendingResourceGc = false;
-      }
+      riverRuntimeController.flushDeferredResources();
       if (pendingRuntimeStatsRefresh && riverRuntimes.length > 0) {
         const runtime = riverRuntimes[0];
         const drawCalls = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low ? 1 : 2;
@@ -1031,7 +997,8 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   }
   rootEntity.addComponent(WaterPcgUpdateScript);
   window.addEventListener("beforeunload", () => {
-    for (const runtimes of riverRuntimeSets.values()) runtimes.forEach(destroyRiverSegmentRuntime);
+    for (const runtimes of riverDemoRuntimeSets.values()) runtimes.forEach(destroyRiverSegmentRuntime);
+    riverRuntimeController.destroy();
     oceanMesh.destroy(true);
   });
   engine.run();
