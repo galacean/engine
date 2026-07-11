@@ -10,6 +10,7 @@ import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
 import { AmbientOcclusion, DirectLight } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
+import { EnvironmentLighting } from "./lighting/environment";
 import { LightManager } from "./lighting/LightManager";
 import { PhysicsScene } from "./physics/PhysicsScene";
 import { PostProcessManager } from "./postProcess";
@@ -60,6 +61,9 @@ export class Scene extends EngineObject {
    * such as corners, crevices, and contact points between surfaces.
    */
   readonly ambientOcclusion = new AmbientOcclusion(this);
+
+  /** Environment lighting controller. */
+  readonly environmentLighting: EnvironmentLighting;
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
@@ -285,6 +289,7 @@ export class Scene extends EngineObject {
     const shaderData = this.shaderData;
     shaderData._addReferCount(1);
     this.ambientLight = new AmbientLight(engine);
+    this.environmentLighting = new EnvironmentLighting(this);
     engine.sceneManager._allCreatedScenes.push(this);
 
     shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
@@ -470,6 +475,7 @@ export class Scene extends EngineObject {
     const engine = this._engine;
     const lightManager = this._lightManager;
 
+    this.environmentLighting.update(engine.time.deltaTime);
     engine.time._updateSceneShaderData(shaderData);
     lightManager._updateShaderData(this.shaderData);
 
