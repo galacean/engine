@@ -115,4 +115,29 @@ describe("RiverPathSampler", () => {
       expect(distanceToPolyline(point, result.points)).toBeLessThanOrEqual(0.04);
     }
   });
+
+  it("keeps an uneven centripetal Catmull-Rom path finite and forward-moving", () => {
+    const config: RiverConfig = {
+      ...longOverBudgetFixture,
+      path: {
+        ...longOverBudgetFixture.path,
+        points: [
+          { id: "start", position: [0, 0, 0] },
+          { id: "near", position: [1, 0, 3] },
+          { id: "far", position: [80, 0, -2] },
+          { id: "end", position: [120, 0, 0] }
+        ]
+      },
+      quality: {
+        ...longOverBudgetFixture.quality,
+        geometry: { ...longOverBudgetFixture.quality.geometry, maxSegmentCount: 256 }
+      }
+    };
+    const samples = sampleRiverPath(config).points;
+
+    expect(samples.every((sample) => Number.isFinite(sample.position.x + sample.position.z))).toBe(true);
+    for (let index = 1; index < samples.length; index++) {
+      expect(samples[index].position.x).toBeGreaterThanOrEqual(samples[index - 1].position.x - 1e-6);
+    }
+  });
 });

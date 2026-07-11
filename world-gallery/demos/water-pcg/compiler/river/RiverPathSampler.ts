@@ -10,6 +10,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { RiverPathMode } from "../../authoring/river/RiverAuthoringEnums";
 import { RiverAuthoringConfig, RiverPathControlPoint, Vector3Tuple } from "../../authoring/river/RiverAuthoringTypes";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
+import { RIVER_CATMULL_ROM_ALPHA } from "./constants";
 import type { RiverSamplePoint, RiverSampleResult, TerrainHeightSampler } from "./types";
 
 interface ResolvedPathPoint {
@@ -58,22 +59,35 @@ function lerpVector3(a: Vector3, b: Vector3, t: number): Vector3 {
   return new Vector3(lerp(a.x, b.x, t), lerp(a.y, b.y, t), lerp(a.z, b.z, t));
 }
 
-function catmullRom(a: number, b: number, c: number, d: number, t: number): number {
-  const t2 = t * t;
-  const t3 = t2 * t;
-  return 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+function extrapolate(a: Vector3, b: Vector3): Vector3 {
+  return new Vector3(a.x * 2 - b.x, a.y * 2 - b.y, a.z * 2 - b.z);
+}
+
+function catmullTime(a: Vector3, b: Vector3, time: number): number {
+  return time + Math.pow(distance(a, b), RIVER_CATMULL_ROM_ALPHA);
+}
+
+function interpolateCatmullTime(a: Vector3, b: Vector3, start: number, end: number, time: number): Vector3 {
+  const span = end - start;
+  return span <= POSITION_EPSILON ? cloneVector3(a) : lerpVector3(a, b, (time - start) / span);
 }
 
 function sampleCatmullRom(points: ResolvedPathPoint[], index: number, t: number): Vector3 {
-  const p0 = points[Math.max(index - 1, 0)];
-  const p1 = points[index];
-  const p2 = points[Math.min(index + 1, points.length - 1)];
-  const p3 = points[Math.min(index + 2, points.length - 1)];
-  return new Vector3(
-    catmullRom(p0.position.x, p1.position.x, p2.position.x, p3.position.x, t),
-    catmullRom(p0.position.y, p1.position.y, p2.position.y, p3.position.y, t),
-    catmullRom(p0.position.z, p1.position.z, p2.position.z, p3.position.z, t)
-  );
+  const p1 = points[index].position;
+  const p2 = points[index + 1].position;
+  const p0 = index > 0 ? points[index - 1].position : extrapolate(p1, p2);
+  const p3 = index + 2 < points.length ? points[index + 2].position : extrapolate(p2, p1);
+  const t0 = 0;
+  const t1 = catmullTime(p0, p1, t0);
+  const t2 = catmullTime(p1, p2, t1);
+  const t3 = catmullTime(p2, p3, t2);
+  const time = lerp(t1, t2, t);
+  const a1 = interpolateCatmullTime(p0, p1, t0, t1, time);
+  const a2 = interpolateCatmullTime(p1, p2, t1, t2, time);
+  const a3 = interpolateCatmullTime(p2, p3, t2, t3, time);
+  const b1 = interpolateCatmullTime(a1, a2, t0, t2, time);
+  const b2 = interpolateCatmullTime(a2, a3, t1, t3, time);
+  return interpolateCatmullTime(b1, b2, t1, t2, time);
 }
 
 function sampleCubicBezier(a: Vector3, b: Vector3, c: Vector3, d: Vector3, t: number): Vector3 {

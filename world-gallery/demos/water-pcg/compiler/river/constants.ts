@@ -12,3 +12,4 @@ export const RIVER_RIBBON_MITER_LIMIT = 2.5;
 export const RIVER_GEOMETRY_EPSILON = 1e-6;
 export const RIVER_JUNCTION_MIN_REACH_LENGTH = 0.25;
 export const RIVER_CHUNK_WORLD_SIZE = 128;
+export const RIVER_CATMULL_ROM_ALPHA = 0.5;
