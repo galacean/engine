@@ -152,6 +152,25 @@ describe("RiverNetworkQueryService", () => {
     expect(batch.sourceIndices[0]).toBe(0);
     expect(batch.sourceKinds[1]).toBe(RiverQueryPrimitiveKind.Junction);
 
+    const bruteForce = createRiverNetworkQueryResult();
+    for (let index = 0; index < 3; index++) {
+      const offset = index * 3;
+      service.sampleSurfaceBruteForce(
+        new Vector3(positions[offset], positions[offset + 1], positions[offset + 2]),
+        bruteForce
+      );
+      expect(batch.hits[index]).toBe(bruteForce.hit ? 1 : 0);
+      expect(batch.insideFootprints[index]).toBe(bruteForce.insideFootprint ? 1 : 0);
+      expect(batch.insideVolumes[index]).toBe(bruteForce.insideVolume ? 1 : 0);
+      expect(batch.sourceIndices[index]).toBe(bruteForce.sourceIndex);
+      if (bruteForce.hit) {
+        expect(batch.surfaceHeights[index]).toBeCloseTo(bruteForce.surfaceHeight, 5);
+        expect(batch.distancesToBank[index]).toBeCloseTo(bruteForce.distanceToBank, 5);
+        expect(batch.flowVectors[offset]).toBeCloseTo(bruteForce.flowVector.x, 5);
+        expect(batch.flowVectors[offset + 2]).toBeCloseTo(bruteForce.flowVector.z, 5);
+      }
+    }
+
     const scalarPosition = new Vector3(firstSample.position[0], firstSample.position[1], firstSample.position[2]);
     for (let index = 0; index < 100; index++) {
       service.sampleSurface(scalarPosition, scalar);
