@@ -9,7 +9,8 @@
  * mesh vertices or material state directly.
  */
 import { Vector3 } from "@galacean/engine-math";
-import { RiverQueryResult, RiverSamplePoint } from "./types";
+import type { RiverSamplePoint } from "../../compiler/river/types";
+import type { RiverQueryResult } from "./types";
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));

@@ -1,4 +1,4 @@
-import type { WorldAxisSpec, WorldAxisVectorTuple } from "./types";
+import type { WorldAxisSpec, WorldAxisVectorTuple } from "./worldAxesTypes";
 
 export enum WorldAxisName {
   X = "x",

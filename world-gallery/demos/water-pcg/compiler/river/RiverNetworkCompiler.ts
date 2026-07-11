@@ -7,17 +7,23 @@
  * endpoints to compiler-owned node positions, and emits immutable plain data
  * plus typed arrays that can run in a Worker or Node pipeline.
  */
+import { RiverNetworkSchemaVersion, RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
+import { RIVER_LIMITS } from "../../authoring/river/RiverAuthoringLimits";
+import type {
+  RiverAuthoringConfig,
+  RiverNetworkBudgetConfig,
+  RiverPathControlPoint,
+  RiverQualityConfig,
+  Vector3Tuple
+} from "../../authoring/river/RiverAuthoringTypes";
+import type { RiverNetworkDescriptor, RiverSegmentConfig } from "../../authoring/river/RiverDescriptor";
 import {
-  RIVER_LIMITS,
-  RiverDebugMode,
-  RiverDiagnosticCode,
-  RiverDiagnosticSeverity,
-  RiverNetworkSchemaVersion,
-  RiverNodeKind,
-  RiverPreviewStage
-} from "./constants";
-import { decodeRiverNetworkDescriptor, resolveRiverNetworkBudget, validateRiverConfig } from "./RiverConfigValidator";
-import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "./ReadonlyNumericBuffer";
+  decodeRiverNetworkDescriptor,
+  resolveRiverNetworkBudget,
+  validateRiverConfig
+} from "../../authoring/river/RiverSchemaDecoder";
+import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
+import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { sampleRiverPath } from "./RiverPathSampler";
 import {
   DeepReadonly,
@@ -25,16 +31,7 @@ import {
   RiverCompiledData,
   RiverCompiledNode,
   RiverCompiledReach,
-  RiverConfig,
-  RiverDebugConfig,
-  RiverDiagnostic,
-  RiverNetworkBudgetConfig,
-  RiverNetworkDescriptor,
-  RiverPathControlPoint,
-  RiverQualityConfig,
-  RiverSegmentConfig,
-  RiverSampleResult,
-  Vector3Tuple
+  RiverSampleResult
 } from "./types";
 
 interface RiverCompiledReachDraft {
@@ -43,7 +40,7 @@ interface RiverCompiledReachDraft {
   toNodeIndex: number;
   order: number;
   elevationDrop: number;
-  config: RiverConfig;
+  config: RiverAuthoringConfig;
 }
 
 interface RiverBudgetedReachResult {
@@ -74,18 +71,6 @@ function cloneQualityConfig(config: DeepReadonly<RiverQualityConfig>): RiverQual
     material: { ...config.material },
     maps: { ...config.maps },
     query: { ...config.query }
-  };
-}
-
-function cloneDebugConfig(config: DeepReadonly<RiverDebugConfig>): RiverDebugConfig {
-  return { ...config };
-}
-
-function getDefaultDebugConfig(): RiverDebugConfig {
-  return {
-    previewStage: RiverPreviewStage.Full,
-    mode: RiverDebugMode.Full,
-    queryT: 0.5
   };
 }
 
@@ -216,7 +201,7 @@ function createResolvedRiverConfig(
   segment: RiverSegmentConfig,
   fromPosition: readonly [number, number, number],
   toPosition: readonly [number, number, number]
-): RiverConfig {
+): RiverAuthoringConfig {
   const points = segment.curve.points.map(cloneControlPoint);
   if (points.length > 0) points[0].position = cloneVector3Tuple(fromPosition);
   if (points.length > 1) points[points.length - 1].position = cloneVector3Tuple(toPosition);
@@ -230,8 +215,7 @@ function createResolvedRiverConfig(
     shape: { ...descriptor.defaults.shape, ...segment.shape },
     flow: { ...descriptor.defaults.flow, ...segment.flow },
     material: { ...descriptor.defaults.material, ...segment.material },
-    quality: cloneQualityConfig(descriptor.defaults.quality),
-    debug: descriptor.debug ? cloneDebugConfig(descriptor.debug) : getDefaultDebugConfig()
+    quality: cloneQualityConfig(descriptor.defaults.quality)
   };
 }
 
@@ -307,7 +291,7 @@ function allocateReachSegmentBudgets(
   return result;
 }
 
-function cloneConfigWithSegmentBudget(config: RiverConfig, maxSegmentCount: number): RiverConfig {
+function cloneConfigWithSegmentBudget(config: RiverAuthoringConfig, maxSegmentCount: number): RiverAuthoringConfig {
   const cloned = cloneCompiledRiverConfig(config);
   cloned.quality.geometry.maxSegmentCount = maxSegmentCount;
   return cloned;
@@ -474,7 +458,7 @@ function createStats(
   });
 }
 
-export function cloneCompiledRiverConfig(config: DeepReadonly<RiverConfig>): RiverConfig {
+export function cloneCompiledRiverConfig(config: DeepReadonly<RiverAuthoringConfig>): RiverAuthoringConfig {
   return {
     id: config.id,
     path: {
@@ -485,8 +469,7 @@ export function cloneCompiledRiverConfig(config: DeepReadonly<RiverConfig>): Riv
     shape: { ...config.shape },
     flow: { ...config.flow },
     material: { ...config.material },
-    quality: cloneQualityConfig(config.quality),
-    debug: cloneDebugConfig(config.debug)
+    quality: cloneQualityConfig(config.quality)
   };
 }
 

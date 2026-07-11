@@ -1,9 +1,9 @@
 import { Vector3 } from "@galacean/engine-math";
 import { describe, expect, it } from "vitest";
-import { sampleRiverPath } from "../river/RiverPathSampler";
-import { queryRiver } from "../river/WaterQuery";
-import type { RiverConfig } from "../river/types";
-import { straightFixture, variableProfileFixture } from "./fixtures/riverFixtures";
+import { sampleRiverPath } from "../../compiler/river/RiverPathSampler";
+import { queryRiver } from "../../runtime/river/RiverQueryService";
+import type { RiverDemoConfig as RiverConfig } from "../../demo/types";
+import { straightFixture, variableProfileFixture } from "../fixtures/riverFixtures";
 
 describe("WaterQuery flow contract", () => {
   it("preserves zero flow as a true stopped-water value", () => {

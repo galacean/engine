@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lowRiverShaderSource } from "../river/RiverMaterialFactory";
+import { lowRiverShaderSource } from "../../runtime/river/RiverMaterialFactory";
 
 describe("RiverMaterialFactory Low shader", () => {
   it("uses one pass, one texture sample, and no FBM loop", () => {

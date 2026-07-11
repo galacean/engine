@@ -1,15 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { curvedMainRiverExample } from "../example/curvedMainRiver";
-import { multiTributaryRiverExample } from "../example/multiTributaryRiver";
-import { RiverDiagnosticCode, RiverNodeKind, RiverValidationMode } from "../river/constants";
+import { curvedMainRiverExample } from "../../example/curvedMainRiver";
+import { multiTributaryRiverExample } from "../../example/multiTributaryRiver";
+import { RiverNodeKind, RiverValidationMode } from "../../authoring/river/RiverAuthoringEnums";
+import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import {
   decodeRiverConfig,
   decodeRiverNetworkDescriptor,
   validateRiverConfig,
   validateRiverNetworkDescriptor
-} from "../river/RiverConfigValidator";
-import { RiverConfig } from "../river/types";
-import { invalidNetworkFixture, straightFixture } from "./fixtures/riverFixtures";
+} from "../../authoring/river/RiverSchemaDecoder";
+import type { RiverDemoConfig as RiverConfig } from "../../demo/types";
+import { invalidNetworkFixture, straightFixture } from "../fixtures/riverFixtures";
 
 describe("RiverConfigValidator", () => {
   it.each([curvedMainRiverExample.riverDescriptor, multiTributaryRiverExample.riverDescriptor])(

@@ -10,8 +10,8 @@
  */
 import { Engine, Material, Shader, Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
+import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
 import { RIVER_SHADER_PROPERTY } from "./constants";
-import { RiverMaterialConfig } from "./types";
 
 export const lowRiverShaderSource = `
 Shader "AIWorld/RiverLow" {

@@ -5,7 +5,7 @@
  * guide stays lightweight and independent from the generated water meshes.
  */
 import { Color, Engine, Entity, Material, MeshRenderer, Shader, Vector3 } from "@galacean/engine";
-import { buildLineSegmentsMesh } from "../river/RiverMeshBuilder";
+import { buildLineSegmentsMesh } from "./RiverDebugMeshBuilder";
 import {
   WORLD_AXIS_HALF_LENGTH,
   WORLD_AXIS_ORIGIN,
@@ -13,8 +13,8 @@ import {
   WORLD_AXIS_SHADER_NAME,
   WORLD_AXIS_SHADER_PROPERTY,
   WORLD_AXIS_SPECS
-} from "./constants";
-import type { WorldAxisColorTuple, WorldAxisSpec } from "./types";
+} from "./worldAxesConstants";
+import type { WorldAxisColorTuple, WorldAxisSpec } from "./worldAxesTypes";
 
 const axisLineShaderSource = `
 Shader "${WORLD_AXIS_SHADER_NAME}" {

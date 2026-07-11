@@ -7,16 +7,10 @@
  * segmentLength is a world-space contract instead of a parametric-t estimate.
  */
 import { Vector3 } from "@galacean/engine-math";
-import { RiverDiagnosticCode, RiverDiagnosticSeverity, RiverPathMode } from "./constants";
-import {
-  RiverConfig,
-  RiverDiagnostic,
-  RiverPathControlPoint,
-  RiverSamplePoint,
-  RiverSampleResult,
-  TerrainHeightSampler,
-  Vector3Tuple
-} from "./types";
+import { RiverPathMode } from "../../authoring/river/RiverAuthoringEnums";
+import { RiverAuthoringConfig, RiverPathControlPoint, Vector3Tuple } from "../../authoring/river/RiverAuthoringTypes";
+import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
+import type { RiverSamplePoint, RiverSampleResult, TerrainHeightSampler } from "./types";
 
 interface ResolvedPathPoint {
   source: RiverPathControlPoint;
@@ -124,7 +118,7 @@ function resolveNumber(value: number | undefined, fallback: number): number {
   return value !== undefined && Number.isFinite(value) ? value : fallback;
 }
 
-function resolvePathPoint(point: RiverPathControlPoint, config: RiverConfig): ResolvedPathPoint {
+function resolvePathPoint(point: RiverPathControlPoint, config: RiverAuthoringConfig): ResolvedPathPoint {
   return {
     source: point,
     position: tupleToVector3(point.position),
@@ -318,7 +312,7 @@ function createSamplePoint(
   };
 }
 
-export function sampleRiverPath(config: RiverConfig, heightSampler?: TerrainHeightSampler): RiverSampleResult {
+export function sampleRiverPath(config: RiverAuthoringConfig, heightSampler?: TerrainHeightSampler): RiverSampleResult {
   const diagnostics: RiverDiagnostic[] = [];
   const controlPoints = config.path.points.map((point) => resolvePathPoint(point, config));
   if (controlPoints.length < 2) {

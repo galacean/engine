@@ -10,10 +10,12 @@
  */
 import { Engine, Entity, MeshRenderer, ModelMesh, UnlitMaterial } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
-import { RiverDebugMode, RIVER_MESH_OFFSET } from "./constants";
-import { buildFlowArrowMesh, buildLineMesh, buildLineSegmentsMesh } from "./RiverMeshBuilder";
-import { getPointAtRiverT, queryRiver } from "./WaterQuery";
-import { RiverConfig, RiverQueryResult, RiverSamplePoint } from "./types";
+import type { RiverSamplePoint } from "../../compiler/river/types";
+import type { RiverQueryResult } from "../../runtime/river/types";
+import type { RiverDemoConfig } from "../types";
+import { RiverDebugMode, RIVER_DEBUG_OFFSET } from "./constants";
+import { buildFlowArrowMesh, buildLineMesh, buildLineSegmentsMesh } from "./RiverDebugMeshBuilder";
+import { getPointAtRiverT, queryRiver } from "../../runtime/river/RiverQueryService";
 
 function createDebugMaterial(engine: Engine, color: Color): UnlitMaterial {
   const material = new UnlitMaterial(engine);
@@ -69,7 +71,7 @@ export class RiverDebugView {
 
   update(
     engine: Engine,
-    config: RiverConfig,
+    config: RiverDemoConfig,
     samples: RiverSamplePoint[],
     dirty: { geometry: boolean; query: boolean } = { geometry: true, query: true }
   ): RiverQueryResult {
@@ -87,7 +89,7 @@ export class RiverDebugView {
 
     if (dirty.geometry || modeChanged || !this._centerLineMesh) {
       const centerLine = samples.map(
-        (sample) => new Vector3(sample.position.x, sample.position.y + RIVER_MESH_OFFSET.debug, sample.position.z)
+        (sample) => new Vector3(sample.position.x, sample.position.y + RIVER_DEBUG_OFFSET, sample.position.z)
       );
       this._centerLineMesh = buildLineMesh(engine, centerLine, new Color(1, 0.92, 0.36, 1), this._centerLineMesh);
       this._centerLineRenderer.mesh = this._centerLineMesh;
@@ -143,14 +145,14 @@ export class RiverDebugView {
     this._queryMesh?.destroy(true);
   }
 
-  private _buildControlPointMarkers(config: RiverConfig): Vector3[] {
+  private _buildControlPointMarkers(config: RiverDemoConfig): Vector3[] {
     const points: Vector3[] = [];
     const size = 0.9;
 
     for (let i = 0; i < config.path.points.length; i++) {
       const point = config.path.points[i];
       const x = point.position[0];
-      const y = point.position[1] + RIVER_MESH_OFFSET.debug + 0.12;
+      const y = point.position[1] + RIVER_DEBUG_OFFSET + 0.12;
       const z = point.position[2];
 
       points.push(
@@ -186,14 +188,14 @@ export class RiverDebugView {
       left.push(
         new Vector3(
           sample.position.x + normal.x * halfWidth,
-          sample.position.y + RIVER_MESH_OFFSET.debug,
+          sample.position.y + RIVER_DEBUG_OFFSET,
           sample.position.z + normal.z * halfWidth
         )
       );
       right.push(
         new Vector3(
           sample.position.x - normal.x * halfWidth,
-          sample.position.y + RIVER_MESH_OFFSET.debug,
+          sample.position.y + RIVER_DEBUG_OFFSET,
           sample.position.z - normal.z * halfWidth
         )
       );
@@ -207,7 +209,7 @@ export class RiverDebugView {
   }
 
   private _buildQueryMarker(position: Vector3): Vector3[] {
-    const y = position.y + RIVER_MESH_OFFSET.debug + 0.08;
+    const y = position.y + RIVER_DEBUG_OFFSET + 0.08;
     const size = 1.15;
     return [
       new Vector3(position.x - size, y, position.z),

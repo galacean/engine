@@ -7,30 +7,25 @@
  * point as a stable diagnostic.
  */
 import {
-  RIVER_LIMITS,
-  RIVER_MATERIAL_PRESET_CONFIG,
-  RiverDebugMode,
-  RiverDiagnosticCode,
-  RiverDiagnosticSeverity,
   RiverDirectionMode,
   RiverMaterialPreset,
   RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
-  RiverPreviewStage,
   RiverQualityLevel,
   RiverValidationMode
-} from "./constants";
+} from "./RiverAuthoringEnums";
+import { RIVER_LIMITS, RIVER_MATERIAL_PRESET_CONFIG } from "./RiverAuthoringLimits";
 import {
-  RiverConfig,
-  RiverDiagnostic,
+  RiverAuthoringConfig,
   RiverNetworkBudgetConfig,
-  RiverNetworkDescriptor,
   RiverPathControlPoint,
   RiverValidationOptions,
   RiverValidationResult,
   Vector3Tuple
-} from "./types";
+} from "./RiverAuthoringTypes";
+import type { RiverNetworkDescriptor } from "./RiverDescriptor";
+import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../../compiler/shared/diagnostics";
 
 type UnknownRecord = Record<string, unknown>;
 
@@ -239,12 +234,6 @@ function validateRiverConfigShape(input: unknown, path: string, diagnostics: Riv
     validateNumber(material.clarity, `${path}.material.clarity`, diagnostics);
   }
   validateQualityShape(requireField(input, "quality", path, diagnostics), `${path}.quality`, diagnostics);
-  const debug = requireField(input, "debug", path, diagnostics);
-  if (requireRecord(debug, `${path}.debug`, diagnostics)) {
-    validateEnum(debug.previewStage, Object.values(RiverPreviewStage), `${path}.debug.previewStage`, diagnostics);
-    validateEnum(debug.mode, Object.values(RiverDebugMode), `${path}.debug.mode`, diagnostics);
-    validateNumber(debug.queryT, `${path}.debug.queryT`, diagnostics);
-  }
 }
 
 function validateNetworkShape(input: unknown, diagnostics: RiverDiagnostic[]): void {
@@ -364,8 +353,7 @@ function validateNetworkShape(input: unknown, diagnostics: RiverDiagnostic[]): v
       shape: defaults.shape,
       flow: defaults.flow,
       material: defaults.material,
-      quality: defaults.quality,
-      debug: input.debug ?? { previewStage: RiverPreviewStage.Full, mode: RiverDebugMode.Off, queryT: 0.5 }
+      quality: defaults.quality
     };
     validateRiverConfigShape(synthetic, "$.defaults", diagnostics);
   }
@@ -473,10 +461,10 @@ function isHexColor(value: string): boolean {
 }
 
 function normalizeTypedRiverConfig(
-  config: RiverConfig,
+  config: RiverAuthoringConfig,
   mode: RiverValidationMode,
   diagnostics: RiverDiagnostic[]
-): RiverConfig {
+): RiverAuthoringConfig {
   let points: RiverPathControlPoint[] = config.path.points.map((point, index) => ({
     ...point,
     position: normalizeTuple(point.position, `path.points[${index}].position`, diagnostics, mode),
@@ -720,10 +708,6 @@ function normalizeTypedRiverConfig(
           mode
         )
       }
-    },
-    debug: {
-      ...config.debug,
-      queryT: repairNumber(config.debug.queryT, 0, 1, "debug.queryT", diagnostics, mode)
     }
   };
 }
@@ -735,9 +719,9 @@ export function estimateRiverLength(points: RiverPathControlPoint[]): number {
 }
 
 export function validateRiverConfig(
-  config: RiverConfig,
+  config: RiverAuthoringConfig,
   options: RiverValidationOptions = {}
-): RiverValidationResult<RiverConfig> {
+): RiverValidationResult<RiverAuthoringConfig> {
   const mode = options.mode ?? RiverValidationMode.Strict;
   const diagnostics: RiverDiagnostic[] = [];
   const value = normalizeTypedRiverConfig(config, mode, diagnostics);
@@ -759,7 +743,7 @@ export function validateRiverConfig(
 }
 
 /** Explicit preview-only repair retained for GUI authoring. Runtime ingestion should use validateRiverConfig. */
-export function normalizeRiverConfig(config: RiverConfig): RiverConfig {
+export function normalizeRiverConfig(config: RiverAuthoringConfig): RiverAuthoringConfig {
   const result = validateRiverConfig(config, { mode: RiverValidationMode.PreviewRepair });
   if (!result.value) throw new Error("Preview repair could not produce a river config.");
   return result.value;
@@ -768,11 +752,11 @@ export function normalizeRiverConfig(config: RiverConfig): RiverConfig {
 export function decodeRiverConfig(
   input: unknown,
   options: RiverValidationOptions = {}
-): RiverValidationResult<RiverConfig> {
+): RiverValidationResult<RiverAuthoringConfig> {
   const diagnostics: RiverDiagnostic[] = [];
   validateRiverConfigShape(input, "$", diagnostics);
   if (hasErrors(diagnostics)) return { diagnostics, valid: false };
-  const typedResult = validateRiverConfig(input as RiverConfig, options);
+  const typedResult = validateRiverConfig(input as RiverAuthoringConfig, options);
   return {
     value: typedResult.value,
     diagnostics: [...diagnostics, ...typedResult.diagnostics],
@@ -1018,7 +1002,7 @@ export const validateRiverNetworkConfig = validateRiverNetworkDescriptor;
 /** @deprecated Use decodeRiverNetworkDescriptor. */
 export const decodeRiverNetworkConfig = decodeRiverNetworkDescriptor;
 
-export function getRiverConfigWarnings(config: RiverConfig): string[] {
+export function getRiverConfigWarnings(config: RiverAuthoringConfig): string[] {
   return validateRiverConfig(config)
     .diagnostics.filter((diagnostic) => diagnostic.severity !== RiverDiagnosticSeverity.Info)
     .map((diagnostic) => `${diagnostic.code}: ${diagnostic.message}`);

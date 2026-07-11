@@ -7,16 +7,15 @@
  * this data model later without changing the authoring format.
  */
 import {
-  RiverDebugMode,
   RiverDirectionMode,
   RiverMaterialPreset,
   RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
-  RiverPreviewStage,
-  RIVER_MATERIAL_PRESET_CONFIG,
   RiverQualityLevel
-} from "../river/constants";
+} from "../authoring/river/RiverAuthoringEnums";
+import { RIVER_MATERIAL_PRESET_CONFIG } from "../authoring/river/RiverAuthoringLimits";
+import { RiverDebugMode, RiverPreviewStage } from "../demo/debug/constants";
 import { WaterPreviewMode } from "./constants";
 import { WaterPcgExample } from "./types";
 
@@ -379,11 +378,11 @@ export const multiTributaryRiverExample: WaterPcgExample = {
         maps: { level: RiverQualityLevel.Low },
         query: { level: RiverQualityLevel.Medium }
       }
-    },
-    debug: {
-      previewStage: RiverPreviewStage.Full,
-      mode: RiverDebugMode.Full,
-      queryT: 0.52
     }
+  },
+  riverDebug: {
+    previewStage: RiverPreviewStage.Full,
+    mode: RiverDebugMode.Full,
+    queryT: 0.52
   }
 };

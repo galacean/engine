@@ -1,9 +1,11 @@
 import { Vector3 } from "@galacean/engine-math";
 import { describe, expect, it } from "vitest";
-import { RiverDiagnosticCode, RiverPathMode } from "../river/constants";
-import { sampleRiverPath } from "../river/RiverPathSampler";
-import { RiverConfig, RiverSamplePoint } from "../river/types";
-import { longOverBudgetFixture, sharpBendFixture, variableProfileFixture } from "./fixtures/riverFixtures";
+import { RiverPathMode } from "../../authoring/river/RiverAuthoringEnums";
+import { sampleRiverPath } from "../../compiler/river/RiverPathSampler";
+import type { RiverSamplePoint } from "../../compiler/river/types";
+import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
+import type { RiverDemoConfig as RiverConfig } from "../../demo/types";
+import { longOverBudgetFixture, sharpBendFixture, variableProfileFixture } from "../fixtures/riverFixtures";
 
 function expectPoint(sample: RiverSamplePoint, expected: [number, number, number]): void {
   expect([sample.position.x, sample.position.y, sample.position.z]).toEqual(expected);

@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { RIVER_FLOW_UV_SCALE } from "../river/constants";
-import { hashRiverMeshData, hashRiverSamples } from "../river/RiverDeterminism";
-import { createLowRiverMeshData } from "../river/RiverMeshBuilder";
-import { sampleRiverPath } from "../river/RiverPathSampler";
-import { sharpBendFixture, straightFixture, variableProfileFixture, webGL1LowFixture } from "./fixtures/riverFixtures";
+import { RIVER_FLOW_UV_SCALE } from "../../compiler/river/constants";
+import { hashRiverSamples } from "../../compiler/shared/determinism";
+import { sampleRiverPath } from "../../compiler/river/RiverPathSampler";
+import { createLowRiverMeshData } from "../../runtime/river/RiverMeshBuilder";
+import { hashRiverMeshData } from "../../runtime/river/determinism";
+import { sharpBendFixture, straightFixture, variableProfileFixture, webGL1LowFixture } from "../fixtures/riverFixtures";
 
 describe("RiverMeshBuilder", () => {
   it.each([straightFixture, sharpBendFixture, webGL1LowFixture])(

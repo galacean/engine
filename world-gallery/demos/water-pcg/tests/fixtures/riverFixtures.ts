@@ -1,15 +1,16 @@
 import {
-  RIVER_MATERIAL_PRESET_CONFIG,
-  RiverDebugMode,
   RiverDirectionMode,
   RiverMaterialPreset,
   RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
-  RiverPreviewStage,
   RiverQualityLevel
-} from "../../river/constants";
-import { RiverConfig, RiverNetworkDescriptor, RiverPathControlPoint } from "../../river/types";
+} from "../../authoring/river/RiverAuthoringEnums";
+import { RIVER_MATERIAL_PRESET_CONFIG } from "../../authoring/river/RiverAuthoringLimits";
+import type { RiverPathControlPoint } from "../../authoring/river/RiverAuthoringTypes";
+import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
+import { RiverDebugMode, RiverPreviewStage } from "../../demo/debug/constants";
+import type { RiverDemoConfig as RiverConfig } from "../../demo/types";
 
 function makeConfig(id: string, points: RiverPathControlPoint[], mode: RiverPathMode): RiverConfig {
   return {

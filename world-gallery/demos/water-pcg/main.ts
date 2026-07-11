@@ -26,23 +26,19 @@ import {
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import * as dat from "dat.gui";
-import { WorldAxesView } from "./debug/WorldAxesView";
+import { WorldAxesView } from "./demo/debug/WorldAxesView";
 import { WaterPreviewMode } from "./example/constants";
 import { cloneOceanConfig, OceanConfig, waterPcgExamples } from "./example";
-import {
-  RiverDebugMode,
-  RiverDirtyFlag,
-  RiverMaterialPreset,
-  RiverPathMode,
-  RiverPreviewStage,
-  RIVER_MATERIAL_PRESET_CONFIG,
-  RIVER_PREVIEW_STAGE_COLOR,
-  RIVER_QUALITY_PRESET,
-  RiverQualityLevel
-} from "./river/constants";
-import { getRiverConfigWarnings, normalizeRiverConfig } from "./river/RiverConfigValidator";
-import { RiverDebugView } from "./river/RiverDebugView";
-import { buildRiverMeshes, createRiverQueryData, updateMeshBounds } from "./river/RiverMeshBuilder";
+import { RiverMaterialPreset, RiverPathMode, RiverQualityLevel } from "./authoring/river/RiverAuthoringEnums";
+import { RIVER_MATERIAL_PRESET_CONFIG, RIVER_QUALITY_PRESET } from "./authoring/river/RiverAuthoringLimits";
+import type { RiverCompiledData, RiverSampleResult } from "./compiler/river/types";
+import { RiverDirtyFlag } from "./demo/constants";
+import { RiverDebugMode, RiverPreviewStage, RIVER_PREVIEW_STAGE_COLOR } from "./demo/debug/constants";
+import type { RiverDemoConfig as RiverConfig } from "./demo/types";
+import { getRiverConfigWarnings } from "./authoring/river/RiverSchemaDecoder";
+import { RiverDebugView } from "./demo/debug/RiverDebugView";
+import { normalizeRiverDemoConfig } from "./demo/normalizeRiverDemoConfig";
+import { buildRiverMeshes, createRiverQueryData, updateMeshBounds } from "./runtime/river/RiverMeshBuilder";
 import {
   createLowRiverMaterial,
   createRiverFoamMaterial,
@@ -50,17 +46,10 @@ import {
   hexToColor,
   updateRiverFoamMaterial,
   updateRiverMaterial
-} from "./river/RiverMaterialFactory";
-import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "./river/RiverNetworkCompiler";
-import { sampleRiverPath } from "./river/RiverPathSampler";
-import {
-  RiverCompiledData,
-  RiverConfig,
-  RiverMeshBuildResult,
-  RiverQueryData,
-  RiverQueryResult,
-  RiverSampleResult
-} from "./river/types";
+} from "./runtime/river/RiverMaterialFactory";
+import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "./compiler/river/RiverNetworkCompiler";
+import { sampleRiverPath } from "./compiler/river/RiverPathSampler";
+import type { RiverMeshBuildResult, RiverQueryData, RiverQueryResult } from "./runtime/river/types";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -166,8 +155,11 @@ function compileRiverDescriptor(source: unknown): RiverCompiledData {
 const riverCompiledDataSets: RiverCompiledData[] = waterPcgExamples.map((example) =>
   compileRiverDescriptor(example.riverDescriptor)
 );
-const riverConfigSets = riverCompiledDataSets.map((compiledData) =>
-  compiledData.reaches.map((reach) => cloneCompiledRiverConfig(reach.config))
+const riverConfigSets = riverCompiledDataSets.map((compiledData, exampleIndex) =>
+  compiledData.reaches.map((reach) => ({
+    ...cloneCompiledRiverConfig(reach.config),
+    debug: { ...waterPcgExamples[exampleIndex].riverDebug }
+  }))
 );
 let activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
 let riverConfigs: RiverConfig[] = riverConfigSets[activeExampleIndex];
@@ -497,7 +489,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     const segmentRoot = riverSegmentsRoot.createChild(`river-segment-${config.id}`);
     const foamRenderer = segmentRoot.createChild(`${config.id}-bank`).addComponent(MeshRenderer);
     const surfaceRenderer = segmentRoot.createChild(`${config.id}-water`).addComponent(MeshRenderer);
-    const normalizedConfig = normalizeRiverConfig(config);
+    const normalizedConfig = normalizeRiverDemoConfig(config);
     const sampleResult = sampleRiverPath(normalizedConfig);
     const material = createRiverMaterial(engine, normalizedConfig.material, 1);
     const lowMaterial = createLowRiverMaterial(engine, normalizedConfig.material, 1);
@@ -580,7 +572,10 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     const previousRuntimes = riverRuntimeSets.get(exampleId) ?? [];
     activeRiverCompiledData = result.data;
     riverCompiledDataSets[activeExampleIndex] = result.data;
-    riverConfigs = result.data.reaches.map((reach) => cloneCompiledRiverConfig(reach.config));
+    riverConfigs = result.data.reaches.map((reach) => ({
+      ...cloneCompiledRiverConfig(reach.config),
+      debug: { ...waterPcgExamples[activeExampleIndex].riverDebug }
+    }));
     riverConfigSets[activeExampleIndex] = riverConfigs;
     if (previousQuality) applyQuality(previousQuality);
     if (previousDebug) {
@@ -625,7 +620,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     const geometryDirty = hasDirty(flags, RiverDirtyFlag.Geometry);
 
     for (const runtime of riverRuntimes) {
-      runtime.normalizedConfig = normalizeRiverConfig(runtime.config);
+      runtime.normalizedConfig = normalizeRiverDemoConfig(runtime.config);
       if (geometryDirty) {
         runtime.geometryBuildCount++;
         runtime.sampleResult = sampleRiverPath(runtime.normalizedConfig);

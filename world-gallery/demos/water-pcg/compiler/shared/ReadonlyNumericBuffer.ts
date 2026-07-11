@@ -1,5 +1,5 @@
 /** Immutable public views over compiler-owned numeric buffers. */
-import type { ReadonlyFloat32Buffer, ReadonlyUint32Buffer } from "./types";
+import type { ReadonlyFloat32Buffer, ReadonlyUint32Buffer } from "../river/types";
 
 export class RiverReadonlyUint32Buffer implements ReadonlyUint32Buffer {
   readonly #data: Uint32Array;

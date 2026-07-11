@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { curvedMainRiverExample } from "../example/curvedMainRiver";
-import { multiTributaryRiverExample } from "../example/multiTributaryRiver";
-import { RiverDiagnosticCode } from "../river/constants";
-import { RiverNetworkCompiler } from "../river/RiverNetworkCompiler";
-import { RiverNetworkDescriptor } from "../river/types";
-import { invalidNetworkFixture } from "./fixtures/riverFixtures";
+import { curvedMainRiverExample } from "../../example/curvedMainRiver";
+import { multiTributaryRiverExample } from "../../example/multiTributaryRiver";
+import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
+import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
+import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
+import { invalidNetworkFixture } from "../fixtures/riverFixtures";
 
 describe("RiverNetworkCompiler", () => {
   it("retains topology and emits deterministic typed runtime data", () => {

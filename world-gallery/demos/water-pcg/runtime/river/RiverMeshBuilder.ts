@@ -1,8 +1,11 @@
 /** River mesh data generation, GPU upload, and in-place mesh reuse. */
 import { Engine, MeshTopology, ModelMesh } from "@galacean/engine-core";
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { RIVER_FLOW_UV_SCALE, RIVER_MESH_OFFSET, RiverQualityLevel } from "./constants";
-import { RiverMeshBuildResult, RiverMeshData, RiverQueryData, RiverSamplePoint } from "./types";
+import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
+import { RIVER_FLOW_UV_SCALE } from "../../compiler/river/constants";
+import type { RiverSamplePoint } from "../../compiler/river/types";
+import { RIVER_RENDER_OFFSET } from "./constants";
+import type { RiverMeshBuildResult, RiverMeshData, RiverQueryData } from "./types";
 
 interface RiverMeshBuildOptions {
   materialLevel: RiverQualityLevel;
@@ -122,7 +125,7 @@ export function createLowRiverMeshData(
     const normal = getNormal(sample.tangent);
     const halfWidth = sample.width * 0.5;
     const outerWidth = halfWidth + sample.bankFeather;
-    const y = sample.position.y + RIVER_MESH_OFFSET.surface;
+    const y = sample.position.y + RIVER_RENDER_OFFSET.surface;
     const widths = [outerWidth, halfWidth, -halfWidth, -outerWidth];
     const across = [0, 0.25, 0.75, 1];
     for (let i = 0; i < widths.length; i++) {
@@ -190,7 +193,7 @@ export function buildRiverMeshes(
       createHighRibbonData(
         samples,
         () => 0,
-        RIVER_MESH_OFFSET.surface,
+        RIVER_RENDER_OFFSET.surface,
         options.networkDistanceOffset ?? 0,
         options.capacitySegmentCount
       ),
@@ -204,7 +207,7 @@ export function buildRiverMeshes(
       createHighRibbonData(
         samples,
         (sample) => sample.bankFeather,
-        RIVER_MESH_OFFSET.bankFoam,
+        RIVER_RENDER_OFFSET.bankFoam,
         options.networkDistanceOffset ?? 0,
         options.capacitySegmentCount
       ),
@@ -214,78 +217,4 @@ export function buildRiverMeshes(
       options.releaseCpuData
     )
   };
-}
-
-function createLineData(points: Vector3[], segmented: boolean): RiverMeshData {
-  const uvs = points.map(() => new Vector2(0, 0));
-  const indices: number[] = [];
-  for (let i = 0; i < points.length - 1; i++) {
-    if (!segmented || i % 2 === 0) indices.push(i, i + 1);
-  }
-  return { positions: points, uvs, indices };
-}
-
-export function buildLineMesh(engine: Engine, points: Vector3[], color: Color, existing?: ModelMesh): ModelMesh {
-  return createOrUpdateModelMesh(
-    engine,
-    createLineData(points, false),
-    MeshTopology.Lines,
-    points.map(() => color),
-    existing
-  );
-}
-
-export function buildLineSegmentsMesh(
-  engine: Engine,
-  points: Vector3[],
-  color: Color,
-  existing?: ModelMesh
-): ModelMesh {
-  return createOrUpdateModelMesh(
-    engine,
-    createLineData(points, true),
-    MeshTopology.Lines,
-    points.map(() => color),
-    existing
-  );
-}
-
-export function buildFlowArrowMesh(
-  engine: Engine,
-  samples: RiverSamplePoint[],
-  spacing: number,
-  scale: number,
-  color: Color,
-  existing?: ModelMesh
-): ModelMesh {
-  const points: Vector3[] = [];
-  let nextDistance = spacing;
-  for (const sample of samples) {
-    if (sample.distance < nextDistance) continue;
-    const start = new Vector3(sample.position.x, sample.position.y + RIVER_MESH_OFFSET.debug, sample.position.z);
-    const end = new Vector3(
-      sample.position.x + sample.tangent.x * scale,
-      sample.position.y + RIVER_MESH_OFFSET.debug,
-      sample.position.z + sample.tangent.z * scale
-    );
-    const normal = getNormal(sample.tangent);
-    points.push(
-      start,
-      end,
-      end,
-      new Vector3(
-        end.x - sample.tangent.x * scale * 0.35 + normal.x * scale * 0.16,
-        end.y,
-        end.z - sample.tangent.z * scale * 0.35 + normal.z * scale * 0.16
-      ),
-      end,
-      new Vector3(
-        end.x - sample.tangent.x * scale * 0.35 - normal.x * scale * 0.16,
-        end.y,
-        end.z - sample.tangent.z * scale * 0.35 - normal.z * scale * 0.16
-      )
-    );
-    nextDistance += spacing;
-  }
-  return buildLineSegmentsMesh(engine, points, color, existing);
 }
