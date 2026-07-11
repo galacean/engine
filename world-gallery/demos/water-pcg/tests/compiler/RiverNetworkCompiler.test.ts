@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { curvedMainRiverExample } from "../../example/curvedMainRiver";
-import { multiTributaryRiverExample } from "../../example/multiTributaryRiver";
+import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
+import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";

@@ -8,45 +8,33 @@
  * animation, water queries, and debug rendering can evolve toward engine-level
  * APIs without being coupled to dat.gui or gallery state.
  */
-import {
-  Camera,
-  Color,
-  Engine,
-  MeshRenderer,
-  ModelMesh,
-  RenderFace,
-  Script,
-  UnlitMaterial,
-  Vector2,
-  Vector3,
-  WebGLMode,
-  WebGLEngine
-} from "@galacean/engine";
+import { Camera, Color, Script, Vector3, WebGLMode, WebGLEngine } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import * as dat from "dat.gui";
-import { WorldAxesView } from "./demo/debug/WorldAxesView";
-import { WaterPreviewMode } from "./example/constants";
-import { cloneOceanConfig, OceanConfig, waterPcgExamples } from "./example";
-import { RiverMaterialPreset, RiverPathMode, RiverQualityLevel } from "./authoring/river/RiverAuthoringEnums";
-import { RIVER_MATERIAL_PRESET_CONFIG, RIVER_QUALITY_PRESET } from "./authoring/river/RiverAuthoringLimits";
-import { decodeRiverSamplePoints, RiverGeometryCompiler } from "./compiler/river/RiverGeometryCompiler";
-import type { RiverCompiledData, RiverReachArtifact, RiverSampleResult } from "./compiler/river/types";
-import { RiverDirtyFlag } from "./demo/constants";
-import { RiverDebugMode, RiverPreviewStage, RIVER_PREVIEW_STAGE_COLOR } from "./demo/debug/constants";
-import type { RiverDemoConfig as RiverConfig } from "./demo/types";
-import { getRiverConfigWarnings } from "./authoring/river/RiverSchemaDecoder";
-import { RiverDebugView } from "./demo/debug/RiverDebugView";
-import { normalizeRiverDemoConfig } from "./demo/normalizeRiverDemoConfig";
-import { hexToColor } from "./runtime/river/RiverMaterialFactory";
+import { WorldAxesView } from "./debug/WorldAxesView";
+import { WaterPreviewMode } from "./examples/constants";
+import { cloneOceanConfig, OceanConfig, waterPcgExamples } from "./examples";
+import { RiverMaterialPreset, RiverPathMode, RiverQualityLevel } from "../authoring/river/RiverAuthoringEnums";
+import { RIVER_MATERIAL_PRESET_CONFIG, RIVER_QUALITY_PRESET } from "../authoring/river/RiverAuthoringLimits";
+import { decodeRiverSamplePoints, RiverGeometryCompiler } from "../compiler/river/RiverGeometryCompiler";
+import type { RiverCompiledData, RiverReachArtifact, RiverSampleResult } from "../compiler/river/types";
+import { RiverDirtyFlag } from "./constants";
+import { RiverDebugMode, RiverPreviewStage, RIVER_PREVIEW_STAGE_COLOR } from "./debug/constants";
+import type { RiverDemoConfig as RiverConfig } from "./types";
+import { getRiverConfigWarnings } from "../authoring/river/RiverSchemaDecoder";
+import { RiverDebugController } from "./debug/RiverDebugController";
+import { normalizeRiverDemoConfig } from "./normalizeRiverDemoConfig";
+import { OceanPreviewController } from "./examples/ocean-preview/OceanPreviewController";
+import { createWaterPreviewMaterial } from "./WaterPreviewMaterial";
 import {
   RiverRuntimeController,
   type RiverRuntimeReach,
   type RiverRuntimeReachSource
-} from "./runtime/river/RiverRuntimeController";
-import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "./compiler/river/RiverNetworkCompiler";
-import { sampleRiverPath } from "./compiler/river/RiverPathSampler";
-import type { RiverQueryResult } from "./runtime/river/types";
+} from "../runtime/river/RiverRuntimeController";
+import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "../compiler/river/RiverNetworkCompiler";
+import { sampleRiverPath } from "../compiler/river/RiverPathSampler";
+import type { RiverQueryResult } from "../runtime/river/types";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -113,12 +101,10 @@ interface QueryPanelState {
 }
 
 interface RiverSegmentRuntime {
-  runtimeReach: RiverRuntimeReach;
   config: RiverConfig;
   normalizedConfig: RiverConfig;
   sampleResult: RiverSampleResult;
   artifact: RiverReachArtifact;
-  debugView: RiverDebugView;
   geometryBuildCount: number;
   networkDistanceOffset: number;
 }
@@ -192,142 +178,6 @@ function updateAllRiverConfigs(callback: (config: RiverConfig) => void): void {
   for (let i = 0; i < riverConfigs.length; i++) {
     callback(riverConfigs[i]);
   }
-}
-
-function calculateWaveHeight(x: number, z: number, waterLevel: number, time: number): number {
-  const frequency = (Math.PI * 2) / Math.max(oceanConfig.waveLength, 0.001);
-  const waveTime = time * oceanConfig.waveSpeed;
-  const waveA = Math.sin((x + z) * frequency + waveTime);
-  const waveB = Math.sin((x * 0.45 - z * 0.8) * frequency * 1.7 + waveTime * 1.35);
-  return waterLevel + (waveA * 0.65 + waveB * 0.35) * oceanConfig.waveAmplitude;
-}
-
-function createGridPositions(size: number, resolution: number, waterLevel: number, time: number): Vector3[] {
-  const segmentCount = Math.max(1, Math.floor(resolution));
-  const halfSize = size * 0.5;
-  const positions: Vector3[] = [];
-
-  for (let z = 0; z <= segmentCount; z++) {
-    for (let x = 0; x <= segmentCount; x++) {
-      const u = x / segmentCount;
-      const v = z / segmentCount;
-      const localX = u * size - halfSize;
-      const localZ = v * size - halfSize;
-      positions.push(new Vector3(localX, calculateWaveHeight(localX, localZ, waterLevel, time), localZ));
-    }
-  }
-
-  return positions;
-}
-
-function createGridMesh(engine: Engine, size: number, resolution: number, waterLevel: number, time: number): ModelMesh {
-  const segmentCount = Math.max(1, Math.floor(resolution));
-  const vertexSide = segmentCount + 1;
-  const uvs: Vector2[] = [];
-  const indices: number[] = [];
-
-  for (let z = 0; z <= segmentCount; z++) {
-    for (let x = 0; x <= segmentCount; x++) {
-      uvs.push(new Vector2(x / segmentCount, z / segmentCount));
-    }
-  }
-
-  for (let z = 0; z < segmentCount; z++) {
-    for (let x = 0; x < segmentCount; x++) {
-      const a = z * vertexSide + x;
-      const b = a + 1;
-      const c = a + vertexSide;
-      const d = c + 1;
-      indices.push(a, c, b, b, c, d);
-    }
-  }
-
-  return createModelMesh(engine, createGridPositions(size, resolution, waterLevel, time), uvs, indices);
-}
-
-function updateModelMeshBounds(mesh: ModelMesh, positions: readonly Vector3[]): void {
-  const boundsPadding = 3;
-  const { min, max } = mesh.bounds;
-  if (positions.length === 0) {
-    min.set(0, 0, 0);
-    max.set(0, 0, 0);
-    return;
-  }
-  min.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-  max.set(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
-  for (const position of positions) {
-    min.x = Math.min(min.x, position.x);
-    min.y = Math.min(min.y, position.y - boundsPadding);
-    min.z = Math.min(min.z, position.z);
-    max.x = Math.max(max.x, position.x);
-    max.y = Math.max(max.y, position.y + boundsPadding);
-    max.z = Math.max(max.z, position.z);
-  }
-}
-
-function updateGridMesh(mesh: ModelMesh, size: number, resolution: number, waterLevel: number, time: number): void {
-  const positions = createGridPositions(size, resolution, waterLevel, time);
-  updateModelMeshBounds(mesh, positions);
-  mesh.setPositions(positions);
-  mesh.uploadData(false);
-}
-
-function updateGridMeshTopology(
-  mesh: ModelMesh,
-  size: number,
-  resolution: number,
-  waterLevel: number,
-  time: number
-): void {
-  const segmentCount = Math.max(1, Math.floor(resolution));
-  const vertexSide = segmentCount + 1;
-  const positions = createGridPositions(size, resolution, waterLevel, time);
-  const uvs: Vector2[] = [];
-  const indexValues: number[] = [];
-  for (let z = 0; z <= segmentCount; z++) {
-    for (let x = 0; x <= segmentCount; x++) uvs.push(new Vector2(x / segmentCount, z / segmentCount));
-  }
-  for (let z = 0; z < segmentCount; z++) {
-    for (let x = 0; x < segmentCount; x++) {
-      const a = z * vertexSide + x;
-      const b = a + 1;
-      const c = a + vertexSide;
-      const d = c + 1;
-      indexValues.push(a, c, b, b, c, d);
-    }
-  }
-  const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
-  updateModelMeshBounds(mesh, positions);
-  mesh.setPositions(positions);
-  mesh.setUVs(uvs);
-  mesh.setIndices(indices);
-  mesh.clearSubMesh();
-  mesh.addSubMesh(0, indices.length);
-  mesh.uploadData(false);
-}
-
-function createModelMesh(engine: Engine, positions: Vector3[], uvs: Vector2[], indexValues: number[]): ModelMesh {
-  const mesh = new ModelMesh(engine);
-  const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
-  updateModelMeshBounds(mesh, positions);
-  mesh.setPositions(positions);
-  mesh.setUVs(uvs);
-  mesh.setIndices(indices);
-  mesh.uploadData(false);
-  mesh.addSubMesh(0, indices.length);
-  return mesh;
-}
-
-function createWaterMaterial(engine: Engine, baseColor: string, alpha: number): UnlitMaterial {
-  const material = new UnlitMaterial(engine);
-  material.isTransparent = true;
-  material.renderFace = RenderFace.Double;
-  material.baseColor = hexToColor(baseColor, alpha);
-  return material;
-}
-
-function updateWaterMaterial(material: UnlitMaterial, baseColor: string, alpha: number): void {
-  material.baseColor = hexToColor(baseColor, alpha);
 }
 
 function applyRiverPreset(preset: RiverMaterialPreset): void {
@@ -463,39 +313,22 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   camera.farClipPlane = 300;
   const control = cameraEntity.addComponent(OrbitControl);
 
-  const oceanGroup = rootEntity.createChild("ocean-preview");
-  const oceanRenderer = oceanGroup.createChild("ocean-surface").addComponent(MeshRenderer);
-  const oceanMaterial = createWaterMaterial(engine, oceanConfig.oceanColor, oceanConfig.alpha);
-  let oceanMesh = createGridMesh(engine, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
-  let oceanMeshResolution = oceanConfig.resolution;
-  oceanRenderer.mesh = oceanMesh;
-  oceanRenderer.setMaterial(oceanMaterial);
+  const oceanPreview = new OceanPreviewController(engine, rootEntity, oceanConfig);
+  const oceanGroup = oceanPreview.root;
 
   const riverGroup = rootEntity.createChild("river-preview");
   const riverSegmentsRoot = riverGroup.createChild("river-segments");
   const riverRuntimeController = new RiverRuntimeController(engine, riverSegmentsRoot);
-  const riverMeshPreviewMaterial = createWaterMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
-  const riverBankPreviewMaterial = createWaterMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
+  const riverDebugController = new RiverDebugController(engine);
+  const riverMeshPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
+  const riverBankPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
   let riverRuntimes: RiverSegmentRuntime[] = [];
   const riverDemoRuntimeSets = new Map<string, RiverSegmentRuntime[]>();
   let pendingRuntimeStatsRefresh = false;
   let topologyRevision = 0;
 
-  const rebuildOceanMesh = (): void => {
-    if (oceanMeshResolution === oceanConfig.resolution) {
-      updateGridMesh(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
-    } else {
-      updateGridMeshTopology(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
-      oceanMeshResolution = oceanConfig.resolution;
-    }
-  };
-  const updateOceanMaterial = (): void => {
-    updateWaterMaterial(
-      oceanMaterial,
-      oceanConfig.oceanColor,
-      Math.min(1, oceanConfig.alpha + oceanConfig.foamIntensity * 0.02)
-    );
-  };
+  const rebuildOceanMesh = (): void => oceanPreview.rebuildMesh();
+  const updateOceanMaterial = (): void => oceanPreview.updateMaterial();
   const createRiverSegmentRuntime = (
     config: RiverConfig,
     reachIndex: number,
@@ -508,21 +341,15 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       totalLength: artifact.totalLength,
       diagnostics: artifact.diagnostics.map((diagnostic) => ({ ...diagnostic }))
     };
-    const debugView = new RiverDebugView(engine, runtimeReach.root);
 
     return {
-      runtimeReach,
       config,
       normalizedConfig,
       sampleResult,
       artifact,
-      debugView,
       geometryBuildCount: 0,
       networkDistanceOffset: activeRiverCompiledData.reaches[reachIndex]?.networkDistanceOffset ?? 0
     };
-  };
-  const destroyRiverSegmentRuntime = (runtime: RiverSegmentRuntime): void => {
-    runtime.debugView.destroy();
   };
   const createRuntimeReachSources = (): RiverRuntimeReachSource[] =>
     riverConfigs.map((config, reachIndex) => {
@@ -540,6 +367,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   const rebuildRiverSegmentRuntimes = (): boolean => {
     const exampleId = waterPcgExamples[activeExampleIndex].id;
     const activation = riverRuntimeController.activate(exampleId, activeRiverCompiledData, createRuntimeReachSources());
+    riverDebugController.activate(exampleId, activation.reaches);
     const cached = riverDemoRuntimeSets.get(exampleId);
     if (cached) {
       riverRuntimes = cached;
@@ -577,8 +405,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     }
 
     const exampleId = waterPcgExamples[activeExampleIndex].id;
-    const previousRuntimes = riverDemoRuntimeSets.get(exampleId) ?? [];
-    previousRuntimes.forEach(destroyRiverSegmentRuntime);
+    riverDebugController.remove(exampleId);
     activeRiverCompiledData = result.data;
     riverCompiledDataSets[activeExampleIndex] = result.data;
     riverConfigs = result.data.reaches.map((reach) => ({
@@ -593,6 +420,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       });
     }
     const runtimeReaches = riverRuntimeController.replaceActive(exampleId, result.data, createRuntimeReachSources());
+    riverDebugController.activate(exampleId, runtimeReaches);
     riverRuntimes = riverConfigs.map((config, index) =>
       createRiverSegmentRuntime(config, index, runtimeReaches[index])
     );
@@ -650,8 +478,8 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       }
       riverRuntimeController.updateReach(i, runtime.normalizedConfig, runtime.artifact, geometryDirty, materialDirty);
       applyRiverPreviewStage(runtime, i);
-      const queryResult = runtime.debugView.update(
-        engine,
+      const queryResult = riverDebugController.update(
+        i,
         createDebugRiverConfig(runtime.normalizedConfig),
         runtime.sampleResult.points,
         runtime.artifact.querySource,
@@ -661,7 +489,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         }
       );
 
-      if (i === 0) {
+      if (i === 0 && queryResult) {
         primaryQueryResult = queryResult;
         exampleBarElement.dataset.materialQuality = runtime.normalizedConfig.quality.material.level;
         exampleBarElement.dataset.sampleCount = String(runtime.sampleResult.points.length);
@@ -729,14 +557,13 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   function loadExample(index: number): void {
     activeExampleIndex = index;
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
+    oceanPreview.setConfig(oceanConfig);
     activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
     riverConfigs = riverConfigSets[activeExampleIndex];
     if (startupQuality === RiverQualityLevel.Low) applyQuality(RiverQualityLevel.Low);
     rebuildExampleState();
   }
   function rebuildExampleState(): void {
-    rebuildOceanMesh();
-    updateOceanMaterial();
     const createdRuntimeSet = rebuildRiverSegmentRuntimes();
     applyRiverChanges(
       createdRuntimeSet
@@ -769,7 +596,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         .add(oceanConfig, "waterLevel", -2, 3, 0.05)
         .name("Water Level")
         .onChange(() => {
-          updateGridMesh(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
+          oceanPreview.rebuildMesh();
         });
       oceanFolder.add(oceanConfig, "waveAmplitude", 0, 2, 0.01).name("Amplitude");
       oceanFolder.add(oceanConfig, "waveLength", 2, 40, 0.1).name("Wave Length");
@@ -965,7 +792,6 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
 
   rebuildExampleState();
   class WaterPcgUpdateScript extends Script {
-    private _time = 0;
     private readonly _profileSamples: number[] = [];
 
     onUpdate(deltaTime: number): void {
@@ -978,11 +804,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         queryPanelState.runtime = `${runtime.normalizedConfig.quality.material.level} | ${drawCalls} draw | ${runtime.sampleResult.points.length} samples | ${(engine.renderingStatistics.bufferMemory / 1024).toFixed(1)} KiB buffers`;
         pendingRuntimeStatsRefresh = false;
       }
-      if (activeMode === WaterPreviewMode.Ocean) {
-        this._time += deltaTime;
-        updateGridMesh(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, this._time);
-        updateOceanMaterial();
-      }
+      if (activeMode === WaterPreviewMode.Ocean) oceanPreview.update(deltaTime);
       if (profilingEnabled && this._profileSamples.length < 300) {
         this._profileSamples.push(performance.now() - updateStart);
         if (this._profileSamples.length === 300) {
@@ -997,9 +819,9 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   }
   rootEntity.addComponent(WaterPcgUpdateScript);
   window.addEventListener("beforeunload", () => {
-    for (const runtimes of riverDemoRuntimeSets.values()) runtimes.forEach(destroyRiverSegmentRuntime);
+    riverDebugController.destroy();
     riverRuntimeController.destroy();
-    oceanMesh.destroy(true);
+    oceanPreview.destroy();
   });
   engine.run();
 });

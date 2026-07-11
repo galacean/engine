@@ -12,27 +12,16 @@ import {
   RiverNodeKind,
   RiverPathMode,
   RiverQualityLevel
-} from "../authoring/river/RiverAuthoringEnums";
-import { RIVER_MATERIAL_PRESET_CONFIG } from "../authoring/river/RiverAuthoringLimits";
-import { RiverDebugMode, RiverPreviewStage } from "../demo/debug/constants";
-import { WaterPreviewMode } from "./constants";
-import { WaterPcgExample } from "./types";
+} from "../../../authoring/river/RiverAuthoringEnums";
+import { RIVER_MATERIAL_PRESET_CONFIG } from "../../../authoring/river/RiverAuthoringLimits";
+import { RiverDebugMode, RiverPreviewStage } from "../../debug/constants";
+import { WaterPreviewMode } from "../constants";
+import type { RiverPcgExample } from "../types";
 
-export const curvedMainRiverExample: WaterPcgExample = {
+export const curvedMainRiverExample: RiverPcgExample = {
   id: "curved-main-river",
   label: "曲线主河",
   initialMode: WaterPreviewMode.River,
-  ocean: {
-    size: 90,
-    resolution: 72,
-    waterLevel: 0,
-    waveAmplitude: 0.45,
-    waveLength: 12,
-    waveSpeed: 0.85,
-    alpha: 0.72,
-    foamIntensity: 1.1,
-    oceanColor: "#1c8fc7"
-  },
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V1,
     id: "demo-river-network",

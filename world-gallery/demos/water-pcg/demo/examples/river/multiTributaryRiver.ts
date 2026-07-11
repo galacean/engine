@@ -13,27 +13,16 @@ import {
   RiverNodeKind,
   RiverPathMode,
   RiverQualityLevel
-} from "../authoring/river/RiverAuthoringEnums";
-import { RIVER_MATERIAL_PRESET_CONFIG } from "../authoring/river/RiverAuthoringLimits";
-import { RiverDebugMode, RiverPreviewStage } from "../demo/debug/constants";
-import { WaterPreviewMode } from "./constants";
-import { WaterPcgExample } from "./types";
+} from "../../../authoring/river/RiverAuthoringEnums";
+import { RIVER_MATERIAL_PRESET_CONFIG } from "../../../authoring/river/RiverAuthoringLimits";
+import { RiverDebugMode, RiverPreviewStage } from "../../debug/constants";
+import { WaterPreviewMode } from "../constants";
+import type { RiverPcgExample } from "../types";
 
-export const multiTributaryRiverExample: WaterPcgExample = {
+export const multiTributaryRiverExample: RiverPcgExample = {
   id: "multi-tributary-river",
   label: "多支流河网",
   initialMode: WaterPreviewMode.River,
-  ocean: {
-    size: 96,
-    resolution: 72,
-    waterLevel: -0.05,
-    waveAmplitude: 0.36,
-    waveLength: 14,
-    waveSpeed: 0.72,
-    alpha: 0.68,
-    foamIntensity: 1.25,
-    oceanColor: "#207f9b"
-  },
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V1,
     id: "multi-tributary-network",

@@ -6,26 +6,20 @@
  * allowing the gallery to switch between multiple stable water-system scenarios.
  */
 import { WaterPreviewMode } from "./constants";
-import type { RiverNetworkDescriptor } from "../authoring/river/RiverDescriptor";
-import type { RiverDebugConfig } from "../demo/types";
+import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
+import type { RiverDebugConfig } from "../types";
+import type { OceanPreviewConfig } from "./ocean-preview/types";
 
-export interface OceanConfig {
-  size: number;
-  resolution: number;
-  waterLevel: number;
-  waveAmplitude: number;
-  waveLength: number;
-  waveSpeed: number;
-  alpha: number;
-  foamIntensity: number;
-  oceanColor: string;
-}
-
-export interface WaterPcgExample {
+export interface RiverPcgExample {
   id: string;
   label: string;
   initialMode: WaterPreviewMode;
-  ocean: OceanConfig;
   riverDescriptor: RiverNetworkDescriptor;
   riverDebug: RiverDebugConfig;
 }
+
+export interface WaterPcgExample extends RiverPcgExample {
+  ocean: OceanPreviewConfig;
+}
+
+export type OceanConfig = OceanPreviewConfig;
