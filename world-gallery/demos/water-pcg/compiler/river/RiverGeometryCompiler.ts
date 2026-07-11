@@ -48,7 +48,7 @@ function createBounds(positions: readonly ReadonlyVector3Tuple[]): RiverGeometry
   return Object.freeze({ min: vector3Tuple(minX, minY, minZ), max: vector3Tuple(maxX, maxY, maxZ) });
 }
 
-function freezeGeometry(
+export function createRiverGeometryData(
   positions: ReadonlyVector3Tuple[],
   uvs: Vector2Tuple[],
   uv1s: Vector2Tuple[],
@@ -97,7 +97,7 @@ function createHighRibbonData(
     const a = i * 2;
     indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
   }
-  return freezeGeometry(positions, uvs, uv1s, indices, Math.max(0, samples.length - 1) * 6);
+  return createRiverGeometryData(positions, uvs, uv1s, indices, Math.max(0, samples.length - 1) * 6);
 }
 
 export function createLowRiverGeometryData(
@@ -140,7 +140,7 @@ export function createLowRiverGeometryData(
       indices.push(a, c, b, b, c, d);
     }
   }
-  return freezeGeometry(positions, uvs, uv1s, indices, Math.max(0, samples.length - 1) * 18);
+  return createRiverGeometryData(positions, uvs, uv1s, indices, Math.max(0, samples.length - 1) * 18);
 }
 
 function createQuerySource(samples: readonly RiverSamplePoint[]): RiverQuerySourceData {

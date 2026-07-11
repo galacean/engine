@@ -1,7 +1,7 @@
 /** Converts compiler-owned CPU geometry into reusable Galacean ModelMesh resources. */
 import { Engine, MeshTopology, ModelMesh } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
-import type { RiverGeometryData, RiverReachArtifact } from "../../compiler/river/types";
+import type { RiverGeometryData, RiverRenderableArtifact } from "../../compiler/river/types";
 import type { RiverMeshBuildResult } from "./types";
 
 export interface RiverMeshUploadOptions {
@@ -37,7 +37,7 @@ function uploadGeometry(
 
 export function uploadRiverMeshes(
   engine: Engine,
-  artifact: RiverReachArtifact,
+  artifact: RiverRenderableArtifact,
   options: RiverMeshUploadOptions = {}
 ): RiverMeshBuildResult {
   return {

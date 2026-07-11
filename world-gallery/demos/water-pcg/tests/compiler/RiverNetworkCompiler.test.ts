@@ -34,6 +34,43 @@ describe("RiverNetworkCompiler", () => {
       toNodeIndex: 5,
       order: 4
     });
+    expect(first.data?.junctions).toHaveLength(2);
+    expect(first.data?.stats.chunkCount).toBe(8);
+    expect(first.data?.junctions.map((junction) => junction.surfaceGeometry.positions)).toEqual(
+      second.data?.junctions.map((junction) => junction.surfaceGeometry.positions)
+    );
+  });
+
+  it("trims connected reaches and stitches confluence patch boundaries to reach ribbons", () => {
+    const result = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
+    const junction = result.data!.junctions.find((candidate) => candidate.id === "upper-confluence")!;
+    const incoming = Array.from(junction.incomingReachIndices);
+    const outgoing = Array.from(junction.outgoingReachIndices);
+
+    expect(incoming).toEqual([0, 1]);
+    expect(outgoing).toEqual([2]);
+    expect(junction.materialSourceReachIndex).toBe(2);
+    expect(junction.surfaceGeometry.positions).toHaveLength(7);
+    expect(junction.bankFoamGeometry?.positions).toHaveLength(7);
+    for (const reachIndex of incoming) {
+      const reach = result.data!.reaches[reachIndex];
+      expect(reach.artifact.samples.at(-1)!.distance).toBeCloseTo(reach.length - junction.mergeRadius, 4);
+    }
+    expect(result.data!.reaches[outgoing[0]].artifact.samples[0].distance).toBeCloseTo(junction.mergeRadius, 4);
+
+    const connectedSurfacePositions = [...incoming, ...outgoing].flatMap(
+      (reachIndex) => result.data!.reaches[reachIndex].artifact.surfaceGeometry.positions
+    );
+    for (const boundary of junction.surfaceGeometry.positions.slice(1)) {
+      expect(
+        connectedSurfacePositions.some(
+          (position) =>
+            Math.abs(position[0] - boundary[0]) < 1e-6 &&
+            Math.abs(position[1] - boundary[1]) < 1e-6 &&
+            Math.abs(position[2] - boundary[2]) < 1e-6
+        )
+      ).toBe(true);
+    }
   });
 
   it("snaps curve endpoints to compiler-resolved node positions with a diagnostic", () => {

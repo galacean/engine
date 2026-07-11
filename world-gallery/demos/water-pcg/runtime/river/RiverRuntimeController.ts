@@ -2,7 +2,7 @@
 import { Engine, Entity, Material, MeshRenderer } from "@galacean/engine-core";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverAuthoringConfig } from "../../authoring/river/RiverAuthoringTypes";
-import type { RiverCompiledData, RiverReachArtifact } from "../../compiler/river/types";
+import type { RiverCompiledData, RiverJunctionArtifact, RiverReachArtifact } from "../../compiler/river/types";
 import { cloneCompiledRiverConfig } from "../../compiler/river/RiverNetworkCompiler";
 import {
   createLowRiverMaterial,
@@ -43,15 +43,33 @@ interface MutableRiverRuntimeReach extends RiverRuntimeReach {
   foamMaterial: Material;
 }
 
+interface MutableRiverRuntimeJunction {
+  readonly root: Entity;
+  readonly surfaceRenderer: MeshRenderer;
+  readonly foamRenderer: MeshRenderer;
+  readonly artifact: RiverJunctionArtifact;
+  readonly materialSourceReachIndex: number;
+  readonly meshes: RiverMeshBuildResult;
+  readonly surfaceMaterial: Material;
+  readonly lowMaterial: Material;
+  readonly foamMaterial: Material;
+}
+
+interface MutableRiverRuntimeSet {
+  readonly reaches: MutableRiverRuntimeReach[];
+  readonly junctions: MutableRiverRuntimeJunction[];
+}
+
 export interface RiverRuntimeActivation {
   created: boolean;
   reaches: readonly RiverRuntimeReach[];
 }
 
 export class RiverRuntimeController {
-  private readonly _runtimeSets = new Map<string, MutableRiverRuntimeReach[]>();
+  private readonly _runtimeSets = new Map<string, MutableRiverRuntimeSet>();
   private _activeId?: string;
   private _activeReaches: MutableRiverRuntimeReach[] = [];
+  private _activeJunctions: MutableRiverRuntimeJunction[] = [];
   private _pendingResourceGc = false;
 
   constructor(
@@ -72,15 +90,18 @@ export class RiverRuntimeController {
     const cached = this._runtimeSets.get(networkId);
     if (cached) {
       this._activeId = networkId;
-      this._activeReaches = cached;
-      for (const reach of cached) reach.root.isActive = true;
-      return { created: false, reaches: cached };
+      this._activeReaches = cached.reaches;
+      this._activeJunctions = cached.junctions;
+      for (const reach of cached.reaches) reach.root.isActive = true;
+      for (const junction of cached.junctions) junction.root.isActive = true;
+      return { created: false, reaches: cached.reaches };
     }
-    const reaches = this._createReachSet(compiledData, sources);
-    this._runtimeSets.set(networkId, reaches);
+    const runtimeSet = this._createRuntimeSet(compiledData, sources);
+    this._runtimeSets.set(networkId, runtimeSet);
     this._activeId = networkId;
-    this._activeReaches = reaches;
-    return { created: true, reaches };
+    this._activeReaches = runtimeSet.reaches;
+    this._activeJunctions = runtimeSet.junctions;
+    return { created: true, reaches: runtimeSet.reaches };
   }
 
   replaceActive(
@@ -89,15 +110,16 @@ export class RiverRuntimeController {
     sources?: readonly RiverRuntimeReachSource[]
   ): readonly RiverRuntimeReach[] {
     const previous = this._runtimeSets.get(networkId);
-    const reaches = this._createReachSet(compiledData, sources);
-    this._runtimeSets.set(networkId, reaches);
+    const runtimeSet = this._createRuntimeSet(compiledData, sources);
+    this._runtimeSets.set(networkId, runtimeSet);
     this._activeId = networkId;
-    this._activeReaches = reaches;
+    this._activeReaches = runtimeSet.reaches;
+    this._activeJunctions = runtimeSet.junctions;
     if (previous) {
-      for (const reach of previous) this._destroyReach(reach);
+      this._destroyRuntimeSet(previous);
       this._pendingResourceGc = true;
     }
-    return reaches;
+    return runtimeSet.reaches;
   }
 
   updateReach(
@@ -141,6 +163,18 @@ export class RiverRuntimeController {
         (reach.config.quality.material.level === RiverQualityLevel.Low ? reach.lowMaterial : reach.surfaceMaterial)
     );
     reach.foamRenderer.setMaterial(presentation.foamMaterial ?? reach.foamMaterial);
+    for (const junction of this._activeJunctions) {
+      if (junction.materialSourceReachIndex !== reachIndex) continue;
+      junction.surfaceRenderer.entity.isActive = presentation.surfaceVisible;
+      junction.foamRenderer.entity.isActive = presentation.foamVisible && Boolean(junction.meshes.bankFoamMesh);
+      junction.surfaceRenderer.setMaterial(
+        presentation.surfaceMaterial ??
+          (reach.config.quality.material.level === RiverQualityLevel.Low
+            ? junction.lowMaterial
+            : junction.surfaceMaterial)
+      );
+      junction.foamRenderer.setMaterial(presentation.foamMaterial ?? junction.foamMaterial);
+    }
   }
 
   flushDeferredResources(): void {
@@ -150,20 +184,19 @@ export class RiverRuntimeController {
   }
 
   destroy(): void {
-    for (const reaches of this._runtimeSets.values()) {
-      for (const reach of reaches) this._destroyReach(reach);
-    }
+    for (const runtimeSet of this._runtimeSets.values()) this._destroyRuntimeSet(runtimeSet);
     this._runtimeSets.clear();
     this._activeReaches = [];
+    this._activeJunctions = [];
     this._activeId = undefined;
     this._pendingResourceGc = true;
   }
 
-  private _createReachSet(
+  private _createRuntimeSet(
     compiledData: RiverCompiledData,
     sources?: readonly RiverRuntimeReachSource[]
-  ): MutableRiverRuntimeReach[] {
-    return compiledData.reaches.map((reach, reachIndex) => {
+  ): MutableRiverRuntimeSet {
+    const reaches = compiledData.reaches.map((reach, reachIndex) => {
       const root = this._root.createChild(`river-segment-${reach.id}`);
       const foamRenderer = root.createChild(`${reach.id}-bank`).addComponent(MeshRenderer);
       const surfaceRenderer = root.createChild(`${reach.id}-water`).addComponent(MeshRenderer);
@@ -197,11 +230,47 @@ export class RiverRuntimeController {
         foamMaterial
       };
     });
+    const junctions = compiledData.junctions.map((junction) => {
+      const root = this._root.createChild(`river-junction-${junction.id}`);
+      const foamRenderer = root.createChild(`${junction.id}-bank`).addComponent(MeshRenderer);
+      const surfaceRenderer = root.createChild(`${junction.id}-water`).addComponent(MeshRenderer);
+      const sourceReach = reaches[junction.materialSourceReachIndex];
+      const config = sourceReach.config;
+      const meshes = uploadRiverMeshes(this._engine, junction);
+      const surfaceMaterial = createRiverMaterial(this._engine, config.material, 1);
+      const lowMaterial = createLowRiverMaterial(this._engine, config.material, 1);
+      const foamMaterial = createRiverFoamMaterial(this._engine, config.material, 1);
+      meshes.surfaceMesh.isGCIgnored = true;
+      if (meshes.bankFoamMesh) meshes.bankFoamMesh.isGCIgnored = true;
+      surfaceMaterial.isGCIgnored = true;
+      lowMaterial.isGCIgnored = true;
+      foamMaterial.isGCIgnored = true;
+      surfaceRenderer.mesh = meshes.surfaceMesh;
+      foamRenderer.mesh = meshes.bankFoamMesh ?? meshes.surfaceMesh;
+      surfaceRenderer.setMaterial(
+        config.quality.material.level === RiverQualityLevel.Low ? lowMaterial : surfaceMaterial
+      );
+      foamRenderer.setMaterial(foamMaterial);
+      foamRenderer.entity.isActive = Boolean(meshes.bankFoamMesh);
+      return {
+        root,
+        surfaceRenderer,
+        foamRenderer,
+        artifact: junction,
+        materialSourceReachIndex: junction.materialSourceReachIndex,
+        meshes,
+        surfaceMaterial,
+        lowMaterial,
+        foamMaterial
+      };
+    });
+    return { reaches, junctions };
   }
 
   private _deactivateAll(): void {
-    for (const reaches of this._runtimeSets.values()) {
-      for (const reach of reaches) reach.root.isActive = false;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      for (const reach of runtimeSet.reaches) reach.root.isActive = false;
+      for (const junction of runtimeSet.junctions) junction.root.isActive = false;
     }
   }
 
@@ -212,5 +281,19 @@ export class RiverRuntimeController {
     reach.surfaceMaterial.destroy(true);
     reach.lowMaterial.destroy(true);
     reach.foamMaterial.destroy(true);
+  }
+
+  private _destroyJunction(junction: MutableRiverRuntimeJunction): void {
+    junction.root.destroy();
+    junction.meshes.surfaceMesh.destroy(true);
+    junction.meshes.bankFoamMesh?.destroy(true);
+    junction.surfaceMaterial.destroy(true);
+    junction.lowMaterial.destroy(true);
+    junction.foamMaterial.destroy(true);
+  }
+
+  private _destroyRuntimeSet(runtimeSet: MutableRiverRuntimeSet): void {
+    for (const reach of runtimeSet.reaches) this._destroyReach(reach);
+    for (const junction of runtimeSet.junctions) this._destroyJunction(junction);
   }
 }

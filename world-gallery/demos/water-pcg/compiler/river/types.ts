@@ -72,6 +72,7 @@ export interface RiverCompiledData {
   readonly sourceId: string;
   readonly nodes: readonly RiverCompiledNode[];
   readonly reaches: readonly RiverCompiledReach[];
+  readonly junctions: readonly RiverJunctionArtifact[];
   readonly topologicalNodeIndices: ReadonlyUint32Buffer;
   readonly waterSurfaceElevations: ReadonlyFloat32Buffer;
   readonly diagnostics: readonly RiverDiagnostic[];
@@ -149,6 +150,24 @@ export interface RiverReachArtifact {
   readonly surfaceGeometry: RiverGeometryData;
   readonly bankFoamGeometry?: RiverGeometryData;
   readonly querySource: RiverQuerySourceData;
+}
+
+export interface RiverRenderableArtifact {
+  readonly surfaceGeometry: RiverGeometryData;
+  readonly bankFoamGeometry?: RiverGeometryData;
+}
+
+export interface RiverJunctionArtifact {
+  readonly id: string;
+  readonly nodeIndex: number;
+  readonly position: ReadonlyVector3Tuple;
+  readonly mergeRadius: number;
+  readonly incomingReachIndices: ReadonlyUint32Buffer;
+  readonly outgoingReachIndices: ReadonlyUint32Buffer;
+  readonly materialSourceReachIndex: number;
+  readonly flowDirection: ReadonlyVector3Tuple;
+  readonly surfaceGeometry: RiverGeometryData;
+  readonly bankFoamGeometry?: RiverGeometryData;
 }
 
 export interface TerrainHeightSampler {

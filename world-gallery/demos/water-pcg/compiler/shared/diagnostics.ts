@@ -32,7 +32,9 @@ export enum RiverDiagnosticCode {
   NetworkBudgetRedistributed = "RIVER_NETWORK_BUDGET_REDISTRIBUTED",
   SharpBendFallback = "RIVER_SHARP_BEND_FALLBACK",
   BankSelfIntersection = "RIVER_BANK_SELF_INTERSECTION",
-  DegenerateTriangle = "RIVER_DEGENERATE_TRIANGLE"
+  DegenerateTriangle = "RIVER_DEGENERATE_TRIANGLE",
+  JunctionTrimClamped = "RIVER_JUNCTION_TRIM_CLAMPED",
+  JunctionBoundaryInvalid = "RIVER_JUNCTION_BOUNDARY_INVALID"
 }
 
 export interface RiverDiagnosticRepair {

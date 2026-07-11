@@ -21,12 +21,14 @@ import { decodeRiverNetworkDescriptor, validateRiverConfig } from "../../authori
 import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
+import { compileRiverJunctions } from "./RiverJunctionCompiler";
 import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
 import { sampleRiverPath } from "./RiverPathSampler";
 import {
   DeepReadonly,
   RiverCompileResult,
   RiverCompiledData,
+  RiverJunctionArtifact,
   RiverCompiledNode,
   RiverCompiledReach,
   RiverSampleResult
@@ -43,11 +45,20 @@ interface RiverCompiledReachDraft {
 
 interface RiverBudgetedReachResult {
   reaches: readonly RiverCompiledReach[];
+  junctions: readonly RiverJunctionArtifact[];
   sampleCount: number;
   vertexCount: number;
   chunkCount: number;
   mapPixelCount: number;
   budgetRedistributed: boolean;
+}
+
+interface RiverFinalizedGeometry {
+  readonly reaches: readonly RiverCompiledReach[];
+  readonly junctions: readonly RiverJunctionArtifact[];
+  readonly sampleCount: number;
+  readonly vertexCount: number;
+  readonly chunkCount: number;
 }
 
 function cloneVector3Tuple(tuple: readonly [number, number, number]): Vector3Tuple {
@@ -299,10 +310,11 @@ function finalizeReachDistances(
   drafts: readonly RiverCompiledReachDraft[],
   sampleResults: readonly RiverSampleResult[],
   descriptor: RiverNetworkDescriptor,
+  nodes: readonly RiverCompiledNode[],
   nodeIndexById: ReadonlyMap<string, number>,
   topologicalNodeIndices: Uint32Array,
   diagnostics: RiverDiagnostic[]
-): readonly RiverCompiledReach[] {
+): RiverFinalizedGeometry {
   const nodeDistances = new Float64Array(descriptor.nodes.length);
   const outgoingReachIndices: number[][] = descriptor.nodes.map(() => []);
   for (let reachIndex = 0; reachIndex < descriptor.segments.length; reachIndex++) {
@@ -321,9 +333,23 @@ function finalizeReachDistances(
     }
   }
 
-  return drafts.map((draft, reachIndex) => {
+  const junctionResult = compileRiverJunctions(
+    nodes,
+    drafts.map((draft, reachIndex) => ({
+      reachIndex,
+      fromNodeIndex: draft.fromNodeIndex,
+      toNodeIndex: draft.toNodeIndex,
+      order: draft.order,
+      materialLevel: draft.config.quality.material.level,
+      networkDistanceOffset: offsets[reachIndex],
+      sampleResult: sampleResults[reachIndex]
+    }))
+  );
+  diagnostics.push(...junctionResult.diagnostics);
+  const reaches = drafts.map((draft, reachIndex) => {
+    const sampleResult = junctionResult.sampleResults[reachIndex];
     const artifact = RiverGeometryCompiler.compile(
-      sampleResults[reachIndex],
+      sampleResult,
       draft.config.quality.material.level,
       offsets[reachIndex]
     );
@@ -339,17 +365,35 @@ function finalizeReachDistances(
     );
     return deepFreezePlainData({
       ...draft,
-      length: sampleResults[reachIndex].totalLength,
+      length: sampleResult.totalLength,
       networkDistanceOffset: offsets[reachIndex],
-      sampleCount: sampleResults[reachIndex].points.length,
+      sampleCount: sampleResult.points.length,
       config: deepFreezePlainData(draft.config),
       artifact
     });
   });
+  const reachVertexCount = reaches.reduce(
+    (sum, reach) =>
+      sum + reach.artifact.surfaceGeometry.positions.length + (reach.artifact.bankFoamGeometry?.positions.length ?? 0),
+    0
+  );
+  const junctionVertexCount = junctionResult.junctions.reduce(
+    (sum, junction) =>
+      sum + junction.surfaceGeometry.positions.length + (junction.bankFoamGeometry?.positions.length ?? 0),
+    0
+  );
+  return {
+    reaches,
+    junctions: junctionResult.junctions,
+    sampleCount: junctionResult.sampleResults.reduce((sum, result) => sum + result.points.length, 0),
+    vertexCount: reachVertexCount + junctionVertexCount,
+    chunkCount: reaches.length + junctionResult.junctions.length
+  };
 }
 
 function applyNetworkRuntimeBudget(
   descriptor: RiverNetworkDescriptor,
+  nodes: readonly RiverCompiledNode[],
   drafts: RiverCompiledReachDraft[],
   nodeIndexById: ReadonlyMap<string, number>,
   topologicalNodeIndices: Uint32Array,
@@ -402,12 +446,18 @@ function applyNetworkRuntimeBudget(
     );
   }
 
-  const sampleCount = sampleResults.reduce((sum, result) => sum + result.points.length, 0);
-  const vertexCount = sampleCount * 4;
-  const chunkCount = sampleResults.reduce(
-    (sum, result) => sum + Math.max(1, Math.ceil((result.points.length * 4) / RIVER_LIMITS.maxChunkVertexCount)),
-    0
+  const finalized = finalizeReachDistances(
+    drafts,
+    sampleResults,
+    descriptor,
+    nodes,
+    nodeIndexById,
+    topologicalNodeIndices,
+    diagnostics
   );
+  const sampleCount = finalized.sampleCount;
+  const vertexCount = finalized.vertexCount;
+  const chunkCount = finalized.chunkCount;
   const mapPixelCount = 0;
   const checks: Array<[number, number, string]> = [
     [drafts.length, budget.maxSegmentCount, "budget.maxSegmentCount"],
@@ -429,14 +479,8 @@ function applyNetworkRuntimeBudget(
   if (hasErrors(diagnostics)) return undefined;
 
   return {
-    reaches: finalizeReachDistances(
-      drafts,
-      sampleResults,
-      descriptor,
-      nodeIndexById,
-      topologicalNodeIndices,
-      diagnostics
-    ),
+    reaches: finalized.reaches,
+    junctions: finalized.junctions,
     sampleCount,
     vertexCount,
     chunkCount,
@@ -537,6 +581,7 @@ export class RiverNetworkCompiler {
     }
     const budgeted = applyNetworkRuntimeBudget(
       descriptor,
+      nodes,
       reachDrafts,
       nodeIndexById,
       topologicalNodeIndices,
@@ -553,6 +598,7 @@ export class RiverNetworkCompiler {
       sourceId: descriptor.id,
       nodes,
       reaches: budgeted.reaches,
+      junctions: budgeted.junctions,
       topologicalNodeIndices: new RiverReadonlyUint32Buffer(topologicalNodeIndices),
       waterSurfaceElevations: new RiverReadonlyFloat32Buffer(waterSurfaceElevations),
       diagnostics: frozenDiagnostics,
