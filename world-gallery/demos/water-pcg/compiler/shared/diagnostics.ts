@@ -29,7 +29,10 @@ export enum RiverDiagnosticCode {
   WaterProfileAdjusted = "RIVER_WATER_PROFILE_ADJUSTED",
   InvalidMergeRadius = "RIVER_INVALID_MERGE_RADIUS",
   NetworkBudgetExceeded = "RIVER_NETWORK_BUDGET_EXCEEDED",
-  NetworkBudgetRedistributed = "RIVER_NETWORK_BUDGET_REDISTRIBUTED"
+  NetworkBudgetRedistributed = "RIVER_NETWORK_BUDGET_REDISTRIBUTED",
+  SharpBendFallback = "RIVER_SHARP_BEND_FALLBACK",
+  BankSelfIntersection = "RIVER_BANK_SELF_INTERSECTION",
+  DegenerateTriangle = "RIVER_DEGENERATE_TRIANGLE"
 }
 
 export interface RiverDiagnosticRepair {

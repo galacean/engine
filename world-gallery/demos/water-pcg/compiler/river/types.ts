@@ -135,10 +135,17 @@ export interface RiverQuerySourceData {
   readonly sampleCount: number;
 }
 
+export interface RiverGeometryAnalysis {
+  readonly sharpBendFallbackCount: number;
+  readonly bankSelfIntersectionCount: number;
+  readonly degenerateTriangleCount: number;
+}
+
 export interface RiverReachArtifact {
   readonly samples: readonly RiverCompiledSample[];
   readonly totalLength: number;
   readonly diagnostics: readonly RiverDiagnostic[];
+  readonly geometryAnalysis: RiverGeometryAnalysis;
   readonly surfaceGeometry: RiverGeometryData;
   readonly bankFoamGeometry?: RiverGeometryData;
   readonly querySource: RiverQuerySourceData;

@@ -300,7 +300,8 @@ function finalizeReachDistances(
   sampleResults: readonly RiverSampleResult[],
   descriptor: RiverNetworkDescriptor,
   nodeIndexById: ReadonlyMap<string, number>,
-  topologicalNodeIndices: Uint32Array
+  topologicalNodeIndices: Uint32Array,
+  diagnostics: RiverDiagnostic[]
 ): readonly RiverCompiledReach[] {
   const nodeDistances = new Float64Array(descriptor.nodes.length);
   const outgoingReachIndices: number[][] = descriptor.nodes.map(() => []);
@@ -325,6 +326,16 @@ function finalizeReachDistances(
       sampleResults[reachIndex],
       draft.config.quality.material.level,
       offsets[reachIndex]
+    );
+    diagnostics.push(
+      ...artifact.diagnostics
+        .filter(
+          (diagnostic) =>
+            diagnostic.code === RiverDiagnosticCode.SharpBendFallback ||
+            diagnostic.code === RiverDiagnosticCode.BankSelfIntersection ||
+            diagnostic.code === RiverDiagnosticCode.DegenerateTriangle
+        )
+        .map((diagnostic) => prefixDiagnostic(diagnostic, `segments[${reachIndex}]`))
     );
     return deepFreezePlainData({
       ...draft,
@@ -418,7 +429,14 @@ function applyNetworkRuntimeBudget(
   if (hasErrors(diagnostics)) return undefined;
 
   return {
-    reaches: finalizeReachDistances(drafts, sampleResults, descriptor, nodeIndexById, topologicalNodeIndices),
+    reaches: finalizeReachDistances(
+      drafts,
+      sampleResults,
+      descriptor,
+      nodeIndexById,
+      topologicalNodeIndices,
+      diagnostics
+    ),
     sampleCount,
     vertexCount,
     chunkCount,

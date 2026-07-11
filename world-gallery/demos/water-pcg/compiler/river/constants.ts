@@ -7,3 +7,6 @@ export const RIVER_GEOMETRY_Y_OFFSET = {
 } as const;
 
 export const RIVER_QUERY_SAMPLE_STRIDE = 9;
+
+export const RIVER_RIBBON_MITER_LIMIT = 2.5;
+export const RIVER_GEOMETRY_EPSILON = 1e-6;

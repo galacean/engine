@@ -2,7 +2,10 @@
 import { Vector3 } from "@galacean/engine-math";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
+import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RIVER_FLOW_UV_SCALE, RIVER_GEOMETRY_Y_OFFSET, RIVER_QUERY_SAMPLE_STRIDE } from "./constants";
+import { analyzeRiverGeometry } from "./RiverGeometryAnalysis";
+import { resolveRiverRibbonJoinFrame } from "./RiverRibbonJoinResolver";
 import type {
   ReadonlyVector3Tuple,
   RiverCompiledSample,
@@ -63,10 +66,6 @@ function freezeGeometry(
   });
 }
 
-function getNormal(sample: RiverSamplePoint): readonly [number, number] {
-  return [-sample.tangent.z, sample.tangent.x] as const;
-}
-
 function createHighRibbonData(
   samples: readonly RiverSamplePoint[],
   getWidthOffset: (sample: RiverSamplePoint) => number,
@@ -77,13 +76,15 @@ function createHighRibbonData(
   const uvs: Vector2Tuple[] = [];
   const uv1s: Vector2Tuple[] = [];
   const indices: number[] = [];
-  for (const sample of samples) {
-    const normal = getNormal(sample);
+  for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex++) {
+    const sample = samples[sampleIndex];
+    const join = resolveRiverRibbonJoinFrame(samples, sampleIndex);
     const halfWidth = sample.width * 0.5 + getWidthOffset(sample);
+    const offset = halfWidth * join.widthScale;
     const y = sample.position.y + yOffset;
     positions.push(
-      vector3Tuple(sample.position.x + normal[0] * halfWidth, y, sample.position.z + normal[1] * halfWidth),
-      vector3Tuple(sample.position.x - normal[0] * halfWidth, y, sample.position.z - normal[1] * halfWidth)
+      vector3Tuple(sample.position.x + join.normalX * offset, y, sample.position.z + join.normalZ * offset),
+      vector3Tuple(sample.position.x - join.normalX * offset, y, sample.position.z - join.normalZ * offset)
     );
     const networkDistance = networkDistanceOffset + sample.distance;
     uvs.push(
@@ -107,8 +108,9 @@ export function createLowRiverGeometryData(
   const uvs: Vector2Tuple[] = [];
   const uv1s: Vector2Tuple[] = [];
   const indices: number[] = [];
-  for (const sample of samples) {
-    const normal = getNormal(sample);
+  for (let sampleIndex = 0; sampleIndex < samples.length; sampleIndex++) {
+    const sample = samples[sampleIndex];
+    const join = resolveRiverRibbonJoinFrame(samples, sampleIndex);
     const halfWidth = sample.width * 0.5;
     const outerWidth = halfWidth + sample.bankFeather;
     const y = sample.position.y + RIVER_GEOMETRY_Y_OFFSET.surface;
@@ -116,7 +118,11 @@ export function createLowRiverGeometryData(
     const across = [0, 0.25, 0.75, 1];
     for (let i = 0; i < widths.length; i++) {
       positions.push(
-        vector3Tuple(sample.position.x + normal[0] * widths[i], y, sample.position.z + normal[1] * widths[i])
+        vector3Tuple(
+          sample.position.x + join.normalX * widths[i] * join.widthScale,
+          y,
+          sample.position.z + join.normalZ * widths[i] * join.widthScale
+        )
       );
       const networkDistance = networkDistanceOffset + sample.distance;
       uvs.push(vector2Tuple(across[i], networkDistance * RIVER_FLOW_UV_SCALE));
@@ -209,10 +215,41 @@ export class RiverGeometryCompiler {
             RIVER_GEOMETRY_Y_OFFSET.bankFoam,
             networkDistanceOffset
           );
+    const geometryAnalysis = analyzeRiverGeometry(
+      samples,
+      surfaceGeometry,
+      materialLevel === RiverQualityLevel.Low ? 4 : 2
+    );
+    const diagnostics: RiverDiagnostic[] = [...sampleResult.diagnostics];
+    if (geometryAnalysis.sharpBendFallbackCount > 0) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.SharpBendFallback,
+        severity: RiverDiagnosticSeverity.Warning,
+        path: "geometry.joins",
+        message: `${geometryAnalysis.sharpBendFallbackCount} ribbon joins exceeded the miter limit and used the bounded fallback.`
+      });
+    }
+    if (geometryAnalysis.bankSelfIntersectionCount > 0) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.BankSelfIntersection,
+        severity: RiverDiagnosticSeverity.Warning,
+        path: "geometry.banks",
+        message: `${geometryAnalysis.bankSelfIntersectionCount} bank self-intersections remain after join resolution.`
+      });
+    }
+    if (geometryAnalysis.degenerateTriangleCount > 0) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.DegenerateTriangle,
+        severity: RiverDiagnosticSeverity.Error,
+        path: "geometry.indices",
+        message: `${geometryAnalysis.degenerateTriangleCount} degenerate triangles were generated.`
+      });
+    }
     return Object.freeze({
       samples: compileSamples(samples),
       totalLength: sampleResult.totalLength,
-      diagnostics: Object.freeze(sampleResult.diagnostics.map((diagnostic) => Object.freeze({ ...diagnostic }))),
+      diagnostics: Object.freeze(diagnostics.map((diagnostic) => Object.freeze({ ...diagnostic }))),
+      geometryAnalysis,
       surfaceGeometry,
       bankFoamGeometry,
       querySource: createQuerySource(samples)
