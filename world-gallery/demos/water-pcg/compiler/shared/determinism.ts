@@ -16,6 +16,39 @@ function toHex(hash: number): string {
   return hash.toString(16).padStart(8, "0");
 }
 
+export function hashRiverString(value: string): string {
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < value.length; index++) {
+    const code = value.charCodeAt(index);
+    hash ^= code & 0xff;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+    hash ^= code >>> 8;
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return toHex(hash);
+}
+
+function stableStringifyInternal(value: unknown): string {
+  if (value === null) return "null";
+  if (typeof value === "number" || typeof value === "boolean" || typeof value === "string") {
+    return JSON.stringify(value);
+  }
+  if (Array.isArray(value)) return `[${value.map(stableStringifyInternal).join(",")}]`;
+  if (typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    const entries = Object.keys(record)
+      .filter((key) => record[key] !== undefined)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${stableStringifyInternal(record[key])}`);
+    return `{${entries.join(",")}}`;
+  }
+  return "null";
+}
+
+export function hashRiverStableValue(value: unknown): string {
+  return hashRiverString(stableStringifyInternal(value));
+}
+
 export function hashRiverSamples(samples: RiverSamplePoint[]): string {
   let hash = 0x811c9dc5;
   for (const sample of samples) {
