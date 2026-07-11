@@ -1,7 +1,7 @@
 /** River mesh data generation, GPU upload, and in-place mesh reuse. */
 import { Engine, MeshTopology, ModelMesh } from "@galacean/engine-core";
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { RIVER_MESH_OFFSET, RiverQualityLevel } from "./constants";
+import { RIVER_FLOW_UV_SCALE, RIVER_MESH_OFFSET, RiverQualityLevel } from "./constants";
 import { RiverMeshBuildResult, RiverMeshData, RiverQueryData, RiverSamplePoint } from "./types";
 
 interface RiverMeshBuildOptions {
@@ -9,6 +9,7 @@ interface RiverMeshBuildOptions {
   existing?: RiverMeshBuildResult;
   releaseCpuData?: boolean;
   capacitySegmentCount?: number;
+  networkDistanceOffset?: number;
 }
 
 function toIndexArray(vertexCount: number, values: number[]): Uint16Array | Uint32Array {
@@ -26,6 +27,7 @@ function uploadMeshData(
   updateMeshBounds(mesh, data.positions);
   mesh.setPositions(data.positions);
   mesh.setUVs(data.uvs);
+  mesh.setUVs(data.uv1s ?? null, 1);
   mesh.setColors(colors ?? null);
   mesh.setIndices(indices);
   mesh.clearSubMesh();
@@ -73,10 +75,12 @@ function createHighRibbonData(
   samples: RiverSamplePoint[],
   getWidthOffset: (sample: RiverSamplePoint) => number,
   yOffset: number,
+  networkDistanceOffset: number,
   capacitySegmentCount?: number
 ): RiverMeshData {
   const positions: Vector3[] = [];
   const uvs: Vector2[] = [];
+  const uv1s: Vector2[] = [];
   const indices: number[] = [];
   const sampleCapacity = Math.max(samples.length, (capacitySegmentCount ?? samples.length - 1) + 1);
   for (let sampleIndex = 0; sampleIndex < sampleCapacity; sampleIndex++) {
@@ -88,19 +92,29 @@ function createHighRibbonData(
       new Vector3(sample.position.x + normal.x * halfWidth, y, sample.position.z + normal.z * halfWidth),
       new Vector3(sample.position.x - normal.x * halfWidth, y, sample.position.z - normal.z * halfWidth)
     );
-    uvs.push(new Vector2(0, sample.distance * 0.08), new Vector2(1, sample.distance * 0.08));
+    const networkDistance = networkDistanceOffset + sample.distance;
+    uvs.push(
+      new Vector2(0, networkDistance * RIVER_FLOW_UV_SCALE),
+      new Vector2(1, networkDistance * RIVER_FLOW_UV_SCALE)
+    );
+    uv1s.push(new Vector2(sample.flowSpeed, networkDistance), new Vector2(sample.flowSpeed, networkDistance));
   }
   for (let i = 0; i < sampleCapacity - 1; i++) {
     const a = i * 2;
     indices.push(a, a + 2, a + 1, a + 1, a + 2, a + 3);
   }
-  return { positions, uvs, indices, drawIndexCount: Math.max(0, samples.length - 1) * 6 };
+  return { positions, uvs, uv1s, indices, drawIndexCount: Math.max(0, samples.length - 1) * 6 };
 }
 
 /** Low uses four cross-river vertices so surface, bank foam, and feather share one pass. */
-export function createLowRiverMeshData(samples: RiverSamplePoint[], capacitySegmentCount?: number): RiverMeshData {
+export function createLowRiverMeshData(
+  samples: RiverSamplePoint[],
+  capacitySegmentCount?: number,
+  networkDistanceOffset = 0
+): RiverMeshData {
   const positions: Vector3[] = [];
   const uvs: Vector2[] = [];
+  const uv1s: Vector2[] = [];
   const indices: number[] = [];
   const sampleCapacity = Math.max(samples.length, (capacitySegmentCount ?? samples.length - 1) + 1);
   for (let sampleIndex = 0; sampleIndex < sampleCapacity; sampleIndex++) {
@@ -115,7 +129,9 @@ export function createLowRiverMeshData(samples: RiverSamplePoint[], capacitySegm
       positions.push(
         new Vector3(sample.position.x + normal.x * widths[i], y, sample.position.z + normal.z * widths[i])
       );
-      uvs.push(new Vector2(across[i], sample.distance * 0.08));
+      const networkDistance = networkDistanceOffset + sample.distance;
+      uvs.push(new Vector2(across[i], networkDistance * RIVER_FLOW_UV_SCALE));
+      uv1s.push(new Vector2(sample.flowSpeed, networkDistance));
     }
   }
   for (let i = 0; i < sampleCapacity - 1; i++) {
@@ -129,7 +145,7 @@ export function createLowRiverMeshData(samples: RiverSamplePoint[], capacitySegm
       indices.push(a, c, b, b, c, d);
     }
   }
-  return { positions, uvs, indices, drawIndexCount: Math.max(0, samples.length - 1) * 18 };
+  return { positions, uvs, uv1s, indices, drawIndexCount: Math.max(0, samples.length - 1) * 18 };
 }
 
 export function createRiverQueryData(samples: RiverSamplePoint[]): RiverQueryData {
@@ -160,7 +176,7 @@ export function buildRiverMeshes(
     return {
       surfaceMesh: createOrUpdateModelMesh(
         engine,
-        createLowRiverMeshData(samples, options.capacitySegmentCount),
+        createLowRiverMeshData(samples, options.capacitySegmentCount, options.networkDistanceOffset),
         MeshTopology.Triangles,
         undefined,
         options.existing?.surfaceMesh,
@@ -171,7 +187,13 @@ export function buildRiverMeshes(
   return {
     surfaceMesh: createOrUpdateModelMesh(
       engine,
-      createHighRibbonData(samples, () => 0, RIVER_MESH_OFFSET.surface, options.capacitySegmentCount),
+      createHighRibbonData(
+        samples,
+        () => 0,
+        RIVER_MESH_OFFSET.surface,
+        options.networkDistanceOffset ?? 0,
+        options.capacitySegmentCount
+      ),
       MeshTopology.Triangles,
       undefined,
       options.existing?.surfaceMesh,
@@ -183,6 +205,7 @@ export function buildRiverMeshes(
         samples,
         (sample) => sample.bankFeather,
         RIVER_MESH_OFFSET.bankFoam,
+        options.networkDistanceOffset ?? 0,
         options.capacitySegmentCount
       ),
       MeshTopology.Triangles,

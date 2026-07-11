@@ -43,14 +43,15 @@ Shader "AIWorld/RiverLow" {
       float material_Clarity;
       sampler2D material_NoiseTexture;
 
-      struct Attributes { vec4 POSITION; vec2 TEXCOORD_0; };
-      struct Varyings { vec2 uv; };
+      struct Attributes { vec4 POSITION; vec2 TEXCOORD_0; vec2 TEXCOORD_1; };
+      struct Varyings { vec2 uv; float localFlowSpeed; };
       VertexShader = vert;
       FragmentShader = frag;
       Varyings vert(Attributes attr) {
         Varyings output;
         gl_Position = renderer_MVPMat * attr.POSITION;
         output.uv = attr.TEXCOORD_0;
+        output.localFlowSpeed = attr.TEXCOORD_1.x;
         return output;
       }
       void frag(Varyings input) {
@@ -58,7 +59,7 @@ Shader "AIWorld/RiverLow" {
         float water = 1.0 - smoothstep(0.48, 0.54, across);
         float feather = 1.0 - smoothstep(0.54, 1.0, across);
         float edge = smoothstep(0.38, 0.58, across) * feather;
-        float time = scene_ElapsedTime.x * max(material_FlowSpeed, 0.08);
+        float time = scene_ElapsedTime.x * max(input.localFlowSpeed * material_FlowSpeed, 0.0);
         float noise = texture2D(material_NoiseTexture, vec2(input.uv.x * 2.0, input.uv.y * 0.28 - time * 0.08)).r;
         float foam = edge * smoothstep(0.28, 0.82, noise + material_FoamIntensity * 0.34);
         float center = 1.0 - across;
@@ -133,10 +134,12 @@ Shader "AIWorld/RiverSurface" {
       struct Attributes {
         vec4 POSITION;
         vec2 TEXCOORD_0;
+        vec2 TEXCOORD_1;
       };
 
       struct Varyings {
         vec2 uv;
+        float localFlowSpeed;
       };
 
       VertexShader = vert;
@@ -146,6 +149,7 @@ Shader "AIWorld/RiverSurface" {
         Varyings output;
         gl_Position = renderer_MVPMat * attr.POSITION;
         output.uv = attr.TEXCOORD_0;
+        output.localFlowSpeed = attr.TEXCOORD_1.x;
         return output;
       }
 
@@ -193,7 +197,7 @@ Shader "AIWorld/RiverSurface" {
 
       void frag(Varyings input) {
         float clarity = saturate(material_Clarity);
-        float time = scene_ElapsedTime.x * max(material_FlowSpeed, 0.08);
+        float time = scene_ElapsedTime.x * max(input.localFlowSpeed * material_FlowSpeed, 0.0);
         float center = saturate(1.0 - abs(input.uv.x - 0.5) * 2.0);
         float innerWater = smoothstep(0.12, 0.92, center);
         float bank = 1.0 - smoothstep(0.06, 0.42, center);
@@ -288,10 +292,12 @@ Shader "AIWorld/RiverBankFoam" {
       struct Attributes {
         vec4 POSITION;
         vec2 TEXCOORD_0;
+        vec2 TEXCOORD_1;
       };
 
       struct Varyings {
         vec2 uv;
+        float localFlowSpeed;
       };
 
       VertexShader = vert;
@@ -301,6 +307,7 @@ Shader "AIWorld/RiverBankFoam" {
         Varyings output;
         gl_Position = renderer_MVPMat * attr.POSITION;
         output.uv = attr.TEXCOORD_0;
+        output.localFlowSpeed = attr.TEXCOORD_1.x;
         return output;
       }
 
@@ -347,7 +354,7 @@ Shader "AIWorld/RiverBankFoam" {
       }
 
       void frag(Varyings input) {
-        float time = scene_ElapsedTime.x * max(material_FlowSpeed, 0.08);
+        float time = scene_ElapsedTime.x * max(input.localFlowSpeed * material_FlowSpeed, 0.0);
         float center = saturate(1.0 - abs(input.uv.x - 0.5) * 2.0);
         float outerBank = 1.0 - smoothstep(0.26, 0.74, center);
         float feather = 1.0 - smoothstep(0.64, 0.98, center);
@@ -377,41 +384,61 @@ export function hexToColor(hex: string, alpha: number): Color {
   return new Color(red, green, blue, alpha);
 }
 
-export function createRiverMaterial(engine: Engine, config: RiverMaterialConfig, flowSpeed: number): Material {
+export function createRiverMaterial(
+  engine: Engine,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number
+): Material {
   const shader = Shader.find("AIWorld/RiverSurface") ?? Shader.create(riverSurfaceShaderSource);
   const material = new Material(engine, shader);
-  updateRiverMaterial(material, config, flowSpeed);
+  updateRiverMaterial(material, config, flowSpeedMultiplier);
   return material;
 }
 
-export function createRiverFoamMaterial(engine: Engine, config: RiverMaterialConfig, flowSpeed: number): Material {
+export function createRiverFoamMaterial(
+  engine: Engine,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number
+): Material {
   const shader = Shader.find("AIWorld/RiverBankFoam") ?? Shader.create(riverBankFoamShaderSource);
   const material = new Material(engine, shader);
-  updateRiverFoamMaterial(material, config, flowSpeed);
+  updateRiverFoamMaterial(material, config, flowSpeedMultiplier);
   return material;
 }
 
-export function createLowRiverMaterial(engine: Engine, config: RiverMaterialConfig, flowSpeed: number): Material {
+export function createLowRiverMaterial(
+  engine: Engine,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number
+): Material {
   const shader = Shader.find("AIWorld/RiverLow") ?? Shader.create(lowRiverShaderSource);
   const material = new Material(engine, shader);
   material.shaderData.setTexture(RIVER_SHADER_PROPERTY.noiseTexture, getLowNoiseTexture(engine));
-  updateRiverMaterial(material, config, flowSpeed);
+  updateRiverMaterial(material, config, flowSpeedMultiplier);
   return material;
 }
 
-export function updateRiverMaterial(material: Material, config: RiverMaterialConfig, flowSpeed: number): void {
+export function updateRiverMaterial(
+  material: Material,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number
+): void {
   material.shaderData.setColor(
     RIVER_SHADER_PROPERTY.baseColor,
     hexToColor(config.baseColor, 0.88 + (1 - config.clarity) * 0.08)
   );
   material.shaderData.setColor(RIVER_SHADER_PROPERTY.foamColor, hexToColor(config.foamColor, 1));
-  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.flowSpeed, flowSpeed);
+  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.flowSpeedMultiplier, flowSpeedMultiplier);
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.foamIntensity, config.foamIntensity);
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.clarity, config.clarity);
 }
 
-export function updateRiverFoamMaterial(material: Material, config: RiverMaterialConfig, flowSpeed: number): void {
+export function updateRiverFoamMaterial(
+  material: Material,
+  config: RiverMaterialConfig,
+  flowSpeedMultiplier: number
+): void {
   material.shaderData.setColor(RIVER_SHADER_PROPERTY.foamColor, hexToColor(config.foamColor, 1));
-  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.flowSpeed, flowSpeed);
+  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.flowSpeedMultiplier, flowSpeedMultiplier);
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.foamIntensity, config.foamIntensity);
 }

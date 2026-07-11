@@ -47,6 +47,10 @@ export function hashRiverMeshData(data: RiverMeshData): string {
     hash = hashNumber(hash, uv.x);
     hash = hashNumber(hash, uv.y);
   }
+  for (const uv of data.uv1s ?? []) {
+    hash = hashNumber(hash, uv.x);
+    hash = hashNumber(hash, uv.y);
+  }
   for (const index of data.indices) hash = hashNumber(hash, index);
   return toHex(hash);
 }

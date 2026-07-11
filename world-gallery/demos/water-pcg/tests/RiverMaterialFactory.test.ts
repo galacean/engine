@@ -7,5 +7,8 @@ describe("RiverMaterialFactory Low shader", () => {
     expect(lowRiverShaderSource.match(/texture2D\(/g) ?? []).toHaveLength(1);
     expect(lowRiverShaderSource).not.toMatch(/fbm|for\s*\(/i);
     expect(lowRiverShaderSource).toContain("scene_ElapsedTime.x");
+    expect(lowRiverShaderSource).toContain("TEXCOORD_1");
+    expect(lowRiverShaderSource).toContain("input.localFlowSpeed * material_FlowSpeed");
+    expect(lowRiverShaderSource).not.toContain("max(material_FlowSpeed, 0.08)");
   });
 });

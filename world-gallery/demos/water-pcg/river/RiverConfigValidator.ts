@@ -784,7 +784,7 @@ function positionsMatch(a: Vector3Tuple, b: Vector3Tuple): boolean {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) <= 0.01;
 }
 
-function resolveNetworkBudget(network: RiverNetworkDescriptor): RiverNetworkBudgetConfig {
+export function resolveRiverNetworkBudget(network: RiverNetworkDescriptor): RiverNetworkBudgetConfig {
   return { ...DEFAULT_NETWORK_BUDGET, ...network.budget };
 }
 
@@ -834,7 +834,7 @@ export function validateRiverNetworkDescriptor(
       );
     }
   }
-  let estimatedSamples = 0;
+  let minimumSamples = 0;
   for (let i = 0; i < network.segments.length; i++) {
     const segment = network.segments[i];
     if (segmentIds.has(segment.id))
@@ -900,11 +900,7 @@ export function validateRiverNetworkDescriptor(
           "Segment rises in its declared downstream direction."
         );
     }
-    const length = estimateRiverLength(segment.curve.points);
-    estimatedSamples += Math.max(
-      segment.curve.points.length,
-      Math.ceil(length / Math.max(segment.curve.segmentLength, RIVER_LIMITS.minSegmentLength)) + 1
-    );
+    minimumSamples += segment.curve.points.length;
   }
   for (let i = 0; i < network.nodes.length; i++) {
     const node = network.nodes[i];
@@ -964,14 +960,32 @@ export function validateRiverNetworkDescriptor(
       "segments",
       "Directed river graph contains a cycle."
     );
-  const budget = resolveNetworkBudget(network);
-  const estimatedVertices = estimatedSamples * 4;
-  const estimatedChunks = Math.max(1, Math.ceil(estimatedVertices / RIVER_LIMITS.maxChunkVertexCount));
+  const budget = resolveRiverNetworkBudget(network);
+  for (const key of [
+    "maxSegmentCount",
+    "maxSampleCount",
+    "maxVertexCount",
+    "maxChunkCount",
+    "maxMapPixelCount"
+  ] as const) {
+    const minimum = key === "maxMapPixelCount" ? 0 : 1;
+    if (!Number.isFinite(budget[key]) || budget[key] < minimum) {
+      pushDiagnostic(
+        diagnostics,
+        RiverDiagnosticCode.ValueOutOfRange,
+        RiverDiagnosticSeverity.Error,
+        `budget.${key}`,
+        `Expected a finite budget greater than or equal to ${minimum}.`
+      );
+    }
+  }
+  const minimumVertices = minimumSamples * 4;
+  const minimumChunks = network.segments.length;
   const budgetChecks: Array<[number, number, string]> = [
     [network.segments.length, budget.maxSegmentCount, "budget.maxSegmentCount"],
-    [estimatedSamples, budget.maxSampleCount, "budget.maxSampleCount"],
-    [estimatedVertices, budget.maxVertexCount, "budget.maxVertexCount"],
-    [estimatedChunks, budget.maxChunkCount, "budget.maxChunkCount"],
+    [minimumSamples, budget.maxSampleCount, "budget.maxSampleCount"],
+    [minimumVertices, budget.maxVertexCount, "budget.maxVertexCount"],
+    [minimumChunks, budget.maxChunkCount, "budget.maxChunkCount"],
     [0, budget.maxMapPixelCount, "budget.maxMapPixelCount"]
   ];
   for (const [actual, limit, path] of budgetChecks)
@@ -981,7 +995,7 @@ export function validateRiverNetworkDescriptor(
         RiverDiagnosticCode.NetworkBudgetExceeded,
         RiverDiagnosticSeverity.Error,
         path,
-        `Estimated value ${actual} exceeds budget ${limit}.`
+        `Minimum required value ${actual} exceeds budget ${limit}.`
       );
   return { value: hasErrors(diagnostics) ? undefined : network, diagnostics, valid: !hasErrors(diagnostics) };
 }

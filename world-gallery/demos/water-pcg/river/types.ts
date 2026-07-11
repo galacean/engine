@@ -27,6 +27,20 @@ import {
 /** World-space position tuple in Galacean coordinates: [x, y, z]. */
 export type Vector3Tuple = [number, number, number];
 
+/** Read-only public view over compiler-owned Uint32 data. `toTypedArray` always returns a copy. */
+export interface ReadonlyUint32Buffer extends Iterable<number> {
+  readonly length: number;
+  at(index: number): number | undefined;
+  toTypedArray(): Uint32Array;
+}
+
+/** Read-only public view over compiler-owned Float32 data. `toTypedArray` always returns a copy. */
+export interface ReadonlyFloat32Buffer extends Iterable<number> {
+  readonly length: number;
+  at(index: number): number | undefined;
+  toTypedArray(): Float32Array;
+}
+
 /** Recursively read-only view used by immutable compiler-owned plain data. */
 export type DeepReadonly<T> = T extends readonly [infer A, infer B, infer C]
   ? readonly [DeepReadonly<A>, DeepReadonly<B>, DeepReadonly<C>]
@@ -277,9 +291,8 @@ export interface RiverCompiledNode {
   readonly mergeRadius?: number;
   readonly authoredElevation: number;
   readonly waterSurfaceElevation: number;
-  /** Compiler-owned typed arrays. Consumers must treat their contents as read-only. */
-  readonly incomingReachIndices: Uint32Array;
-  readonly outgoingReachIndices: Uint32Array;
+  readonly incomingReachIndices: ReadonlyUint32Buffer;
+  readonly outgoingReachIndices: ReadonlyUint32Buffer;
 }
 
 export interface RiverCompiledReach {
@@ -288,6 +301,12 @@ export interface RiverCompiledReach {
   readonly toNodeIndex: number;
   readonly order: number;
   readonly elevationDrop: number;
+  /** Final centerline length after adaptive sampling and network-budget redistribution. */
+  readonly length: number;
+  /** Longest-upstream-path distance offset used by downstream reaches and mesh UV generation. */
+  readonly networkDistanceOffset: number;
+  /** Final sample count used by runtime geometry and budget statistics. */
+  readonly sampleCount: number;
   /** Immutable, fully inherited single-reach config consumed by the existing render prototype. */
   readonly config: DeepReadonly<RiverConfig>;
 }
@@ -302,6 +321,11 @@ export interface RiverCompileStats {
   readonly endpointSnapCount: number;
   readonly reversedElevationCount: number;
   readonly waterProfileAdjustmentCount: number;
+  readonly sampleCount: number;
+  readonly vertexCount: number;
+  readonly chunkCount: number;
+  readonly mapPixelCount: number;
+  readonly budgetRedistributed: boolean;
   readonly minWaterSurfaceElevation: number;
   readonly maxWaterSurfaceElevation: number;
 }
@@ -312,9 +336,9 @@ export interface RiverCompiledData {
   readonly nodes: readonly RiverCompiledNode[];
   readonly reaches: readonly RiverCompiledReach[];
   /** Deterministic upstream-to-downstream order into nodes. */
-  readonly topologicalNodeIndices: Uint32Array;
+  readonly topologicalNodeIndices: ReadonlyUint32Buffer;
   /** Dense node-indexed water surface profile for Worker transfer and downstream systems. */
-  readonly waterSurfaceElevations: Float32Array;
+  readonly waterSurfaceElevations: ReadonlyFloat32Buffer;
   readonly diagnostics: readonly RiverDiagnostic[];
   readonly stats: RiverCompileStats;
 }
@@ -384,6 +408,8 @@ export interface RiverMeshBuildResult {
 export interface RiverMeshData {
   positions: Vector3[];
   uvs: Vector2[];
+  /** UV1.x stores local flow speed; UV1.y stores unscaled network distance. */
+  uv1s?: Vector2[];
   indices: number[];
   /** Active index count when GPU buffers are padded to a stable capacity. */
   drawIndexCount?: number;

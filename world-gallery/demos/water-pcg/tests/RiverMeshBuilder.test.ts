@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { RIVER_FLOW_UV_SCALE } from "../river/constants";
 import { hashRiverMeshData, hashRiverSamples } from "../river/RiverDeterminism";
 import { createLowRiverMeshData } from "../river/RiverMeshBuilder";
 import { sampleRiverPath } from "../river/RiverPathSampler";
@@ -30,6 +31,17 @@ describe("RiverMeshBuilder", () => {
     const meshHash = hashRiverMeshData(createLowRiverMeshData(first));
     expect(sampleHash).toBe(hashRiverSamples(second));
     expect(meshHash).toBe(hashRiverMeshData(createLowRiverMeshData(second)));
-    expect({ sampleHash, meshHash }).toEqual({ sampleHash: "28752218", meshHash: "08618389" });
+    expect({ sampleHash, meshHash }).toEqual({ sampleHash: "28752218", meshHash: "dcddaa19" });
+  });
+
+  it("encodes local flow speed and continuous network distance in UV1", () => {
+    const samples = sampleRiverPath(variableProfileFixture).points;
+    const networkDistanceOffset = 10;
+    const mesh = createLowRiverMeshData(samples, undefined, networkDistanceOffset);
+
+    expect(mesh.uvs[0].y).toBeCloseTo(networkDistanceOffset * RIVER_FLOW_UV_SCALE);
+    expect(mesh.uv1s?.[0].x).toBeCloseTo(samples[0].flowSpeed);
+    expect(mesh.uv1s?.[0].y).toBeCloseTo(networkDistanceOffset);
+    expect(mesh.uv1s?.at(-1)?.y).toBeCloseTo(networkDistanceOffset + samples.at(-1)!.distance);
   });
 });

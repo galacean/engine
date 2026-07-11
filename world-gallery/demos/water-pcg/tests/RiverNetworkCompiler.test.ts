@@ -81,7 +81,7 @@ describe("RiverNetworkCompiler", () => {
         })
       ])
     );
-    expect(result.data?.waterSurfaceElevations[1]).toBeCloseTo(0.2);
+    expect(result.data?.waterSurfaceElevations.at(1)).toBeCloseTo(0.2);
     expect(result.data?.reaches[0].elevationDrop).toBeCloseTo(0);
     expect(result.data?.reaches[0].config.path.points.at(-1)?.position[1]).toBeCloseTo(0.2);
   });
@@ -104,5 +104,70 @@ describe("RiverNetworkCompiler", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(
       expect.arrayContaining([RiverDiagnosticCode.DuplicateId, RiverDiagnosticCode.MissingNodeReference])
     );
+  });
+
+  it("accepts unknown input and rejects malformed runtime values without throwing", () => {
+    expect(() => RiverNetworkCompiler.compile({ id: "broken" })).not.toThrow();
+    const result = RiverNetworkCompiler.compile({ id: "broken" });
+    expect(result.valid).toBe(false);
+    expect(result.data).toBeUndefined();
+    expect(result.diagnostics.length).toBeGreaterThan(0);
+  });
+
+  it("isolates compiler-owned numeric buffers from caller mutation", () => {
+    const result = RiverNetworkCompiler.compile(curvedMainRiverExample.riverDescriptor);
+    const originalElevation = result.data?.waterSurfaceElevations.at(0);
+    const copiedElevations = result.data?.waterSurfaceElevations.toTypedArray();
+    const copiedTopology = result.data?.topologicalNodeIndices.toTypedArray();
+    if (!copiedElevations || !copiedTopology) throw new Error("Expected compiled buffers.");
+
+    copiedElevations[0] = 999;
+    copiedTopology[0] = 999;
+
+    expect(result.data?.waterSurfaceElevations.at(0)).toBe(originalElevation);
+    expect(result.data?.topologicalNodeIndices.at(0)).not.toBe(999);
+  });
+
+  it("redistributes the real adaptive sample count within whole-network budgets", () => {
+    const source = curvedMainRiverExample.riverDescriptor;
+    const descriptor: RiverNetworkDescriptor = {
+      ...source,
+      budget: {
+        maxSegmentCount: 1,
+        maxSampleCount: 12,
+        maxVertexCount: 48,
+        maxChunkCount: 1,
+        maxMapPixelCount: 0
+      }
+    };
+    const result = RiverNetworkCompiler.compile(descriptor);
+
+    expect(result.valid).toBe(true);
+    expect(result.data?.stats).toMatchObject({
+      sampleCount: 12,
+      vertexCount: 48,
+      chunkCount: 1,
+      mapPixelCount: 0,
+      budgetRedistributed: true
+    });
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: RiverDiagnosticCode.NetworkBudgetRedistributed })])
+    );
+  });
+
+  it("assigns deterministic network-distance offsets to downstream reaches", () => {
+    const result = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
+    const middle = result.data?.reaches.find((reach) => reach.id === "main-middle");
+    const lowerConfluence = result.data?.nodes.find((node) => node.id === "lower-confluence");
+    const downstream = result.data?.reaches.find((reach) => reach.id === "main-lower");
+    const expectedOffset = Math.max(
+      ...Array.from(lowerConfluence?.incomingReachIndices ?? []).map((reachIndex) => {
+        const reach = result.data!.reaches[reachIndex];
+        return reach.networkDistanceOffset + reach.length;
+      })
+    );
+
+    expect(middle?.networkDistanceOffset).toBeGreaterThan(0);
+    expect(downstream?.networkDistanceOffset).toBeCloseTo(expectedOffset, 4);
   });
 });

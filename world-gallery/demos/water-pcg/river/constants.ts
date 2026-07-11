@@ -90,7 +90,8 @@ export enum RiverDiagnosticCode {
   ReversedElevation = "RIVER_REVERSED_ELEVATION",
   WaterProfileAdjusted = "RIVER_WATER_PROFILE_ADJUSTED",
   InvalidMergeRadius = "RIVER_INVALID_MERGE_RADIUS",
-  NetworkBudgetExceeded = "RIVER_NETWORK_BUDGET_EXCEEDED"
+  NetworkBudgetExceeded = "RIVER_NETWORK_BUDGET_EXCEEDED",
+  NetworkBudgetRedistributed = "RIVER_NETWORK_BUDGET_REDISTRIBUTED"
 }
 
 export enum RiverDirtyFlag {
@@ -157,7 +158,7 @@ export const RIVER_LIMITS = {
 export const RIVER_SHADER_PROPERTY = {
   baseColor: "material_BaseColor",
   foamColor: "material_FoamColor",
-  flowSpeed: "material_FlowSpeed",
+  flowSpeedMultiplier: "material_FlowSpeed",
   foamIntensity: "material_FoamIntensity",
   clarity: "material_Clarity",
   noiseTexture: "material_NoiseTexture"
@@ -186,6 +187,9 @@ export const RIVER_MESH_OFFSET = {
   bankFoam: 0.02,
   debug: 0.16
 } as const;
+
+/** World-distance to longitudinal UV scale shared by every reach in a compiled network. */
+export const RIVER_FLOW_UV_SCALE = 0.08;
 
 export const RIVER_PREVIEW_STAGE_COLOR = {
   meshSurface: "#6bc6ff",

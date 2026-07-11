@@ -8,6 +8,7 @@
  * plus typed arrays that can run in a Worker or Node pipeline.
  */
 import {
+  RIVER_LIMITS,
   RiverDebugMode,
   RiverDiagnosticCode,
   RiverDiagnosticSeverity,
@@ -15,7 +16,9 @@ import {
   RiverNodeKind,
   RiverPreviewStage
 } from "./constants";
-import { validateRiverConfig, validateRiverNetworkDescriptor } from "./RiverConfigValidator";
+import { decodeRiverNetworkDescriptor, resolveRiverNetworkBudget, validateRiverConfig } from "./RiverConfigValidator";
+import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "./ReadonlyNumericBuffer";
+import { sampleRiverPath } from "./RiverPathSampler";
 import {
   DeepReadonly,
   RiverCompileResult,
@@ -25,12 +28,32 @@ import {
   RiverConfig,
   RiverDebugConfig,
   RiverDiagnostic,
+  RiverNetworkBudgetConfig,
   RiverNetworkDescriptor,
   RiverPathControlPoint,
   RiverQualityConfig,
   RiverSegmentConfig,
+  RiverSampleResult,
   Vector3Tuple
 } from "./types";
+
+interface RiverCompiledReachDraft {
+  id: string;
+  fromNodeIndex: number;
+  toNodeIndex: number;
+  order: number;
+  elevationDrop: number;
+  config: RiverConfig;
+}
+
+interface RiverBudgetedReachResult {
+  reaches: readonly RiverCompiledReach[];
+  sampleCount: number;
+  vertexCount: number;
+  chunkCount: number;
+  mapPixelCount: number;
+  budgetRedistributed: boolean;
+}
 
 function cloneVector3Tuple(tuple: readonly [number, number, number]): Vector3Tuple {
   return [tuple[0], tuple[1], tuple[2]];
@@ -182,8 +205,8 @@ function createCompiledNodes(
       mergeRadius: node.mergeRadius,
       authoredElevation: node.elevation ?? node.position[1],
       waterSurfaceElevation: waterSurfaceElevations[nodeIndex],
-      incomingReachIndices: new Uint32Array(incomingReachIndices[nodeIndex]),
-      outgoingReachIndices: new Uint32Array(outgoingReachIndices[nodeIndex])
+      incomingReachIndices: new RiverReadonlyUint32Buffer(incomingReachIndices[nodeIndex]),
+      outgoingReachIndices: new RiverReadonlyUint32Buffer(outgoingReachIndices[nodeIndex])
     })
   );
 }
@@ -212,13 +235,13 @@ function createResolvedRiverConfig(
   };
 }
 
-function createCompiledReaches(
+function createCompiledReachDrafts(
   descriptor: RiverNetworkDescriptor,
   nodes: readonly RiverCompiledNode[],
   nodeIndexById: ReadonlyMap<string, number>,
   diagnostics: RiverDiagnostic[]
-): readonly RiverCompiledReach[] {
-  const reaches: RiverCompiledReach[] = [];
+): RiverCompiledReachDraft[] {
+  const reaches: RiverCompiledReachDraft[] = [];
   for (let reachIndex = 0; reachIndex < descriptor.segments.length; reachIndex++) {
     const segment = descriptor.segments[reachIndex];
     const fromNodeIndex = nodeIndexById.get(segment.from);
@@ -231,27 +254,196 @@ function createCompiledReaches(
       ...configResult.diagnostics.map((diagnostic) => prefixDiagnostic(diagnostic, `segments[${reachIndex}]`))
     );
     if (!configResult.value) continue;
-    reaches.push(
-      deepFreezePlainData({
-        id: segment.id,
-        fromNodeIndex,
-        toNodeIndex,
-        order: segment.order ?? 0,
-        elevationDrop: Math.max(
-          0,
-          nodes[fromNodeIndex].waterSurfaceElevation - nodes[toNodeIndex].waterSurfaceElevation
-        ),
-        config: configResult.value
-      })
-    );
+    reaches.push({
+      id: segment.id,
+      fromNodeIndex,
+      toNodeIndex,
+      order: segment.order ?? 0,
+      elevationDrop: Math.max(0, nodes[fromNodeIndex].waterSurfaceElevation - nodes[toNodeIndex].waterSurfaceElevation),
+      config: configResult.value
+    });
   }
   return reaches;
+}
+
+function allocateReachSegmentBudgets(
+  sampleResults: readonly RiverSampleResult[],
+  drafts: readonly RiverCompiledReachDraft[],
+  totalSegmentBudget: number
+): number[] {
+  const minimum = drafts.map((draft) => Math.max(1, draft.config.path.points.length - 1));
+  const desired = sampleResults.map((result, index) =>
+    Math.max(minimum[index], Math.min(drafts[index].config.quality.geometry.maxSegmentCount, result.points.length - 1))
+  );
+  const minimumTotal = minimum.reduce((sum, count) => sum + count, 0);
+  const result = [...minimum];
+  let remaining = Math.max(0, totalSegmentBudget - minimumTotal);
+  const desiredExtraTotal = desired.reduce((sum, count, index) => sum + count - minimum[index], 0);
+  const fractions: Array<{ index: number; fraction: number }> = [];
+
+  for (let index = 0; index < drafts.length; index++) {
+    const desiredExtra = desired[index] - minimum[index];
+    const exact = desiredExtraTotal > 0 ? (remaining * desiredExtra) / desiredExtraTotal : 0;
+    const extra = Math.min(desiredExtra, Math.floor(exact));
+    result[index] += extra;
+    remaining -= extra;
+    fractions.push({ index, fraction: exact - Math.floor(exact) });
+  }
+
+  fractions.sort((a, b) => b.fraction - a.fraction || a.index - b.index);
+  while (remaining > 0) {
+    let allocated = false;
+    for (const { index } of fractions) {
+      if (remaining <= 0) break;
+      if (result[index] < desired[index]) {
+        result[index]++;
+        remaining--;
+        allocated = true;
+      }
+    }
+    if (!allocated) break;
+  }
+
+  return result;
+}
+
+function cloneConfigWithSegmentBudget(config: RiverConfig, maxSegmentCount: number): RiverConfig {
+  const cloned = cloneCompiledRiverConfig(config);
+  cloned.quality.geometry.maxSegmentCount = maxSegmentCount;
+  return cloned;
+}
+
+function finalizeReachDistances(
+  drafts: readonly RiverCompiledReachDraft[],
+  sampleResults: readonly RiverSampleResult[],
+  descriptor: RiverNetworkDescriptor,
+  nodeIndexById: ReadonlyMap<string, number>,
+  topologicalNodeIndices: Uint32Array
+): readonly RiverCompiledReach[] {
+  const nodeDistances = new Float64Array(descriptor.nodes.length);
+  const outgoingReachIndices: number[][] = descriptor.nodes.map(() => []);
+  for (let reachIndex = 0; reachIndex < descriptor.segments.length; reachIndex++) {
+    const fromNodeIndex = nodeIndexById.get(descriptor.segments[reachIndex].from);
+    if (fromNodeIndex !== undefined) outgoingReachIndices[fromNodeIndex].push(reachIndex);
+  }
+
+  const offsets = new Float64Array(drafts.length);
+  for (const nodeIndex of topologicalNodeIndices) {
+    for (const reachIndex of outgoingReachIndices[nodeIndex]) {
+      const draft = drafts[reachIndex];
+      if (!draft) continue;
+      offsets[reachIndex] = nodeDistances[nodeIndex];
+      const downstreamDistance = nodeDistances[nodeIndex] + sampleResults[reachIndex].totalLength;
+      nodeDistances[draft.toNodeIndex] = Math.max(nodeDistances[draft.toNodeIndex], downstreamDistance);
+    }
+  }
+
+  return drafts.map((draft, reachIndex) =>
+    deepFreezePlainData({
+      ...draft,
+      length: sampleResults[reachIndex].totalLength,
+      networkDistanceOffset: offsets[reachIndex],
+      sampleCount: sampleResults[reachIndex].points.length,
+      config: deepFreezePlainData(draft.config)
+    })
+  );
+}
+
+function applyNetworkRuntimeBudget(
+  descriptor: RiverNetworkDescriptor,
+  drafts: RiverCompiledReachDraft[],
+  nodeIndexById: ReadonlyMap<string, number>,
+  topologicalNodeIndices: Uint32Array,
+  diagnostics: RiverDiagnostic[]
+): RiverBudgetedReachResult | undefined {
+  const budget = resolveRiverNetworkBudget(descriptor);
+  let sampleResults = drafts.map((draft) => sampleRiverPath(draft.config));
+  const initialSampleCount = sampleResults.reduce((sum, result) => sum + result.points.length, 0);
+  const maximumSampleCount = Math.min(budget.maxSampleCount, Math.floor(budget.maxVertexCount / 4));
+  const minimumSampleCount = drafts.reduce((sum, draft) => sum + draft.config.path.points.length, 0);
+  let budgetRedistributed = false;
+
+  if (maximumSampleCount < minimumSampleCount) {
+    diagnostics.push({
+      code: RiverDiagnosticCode.NetworkBudgetExceeded,
+      severity: RiverDiagnosticSeverity.Error,
+      path: "budget.maxSampleCount",
+      message: `Network requires at least ${minimumSampleCount} anchor samples but budget allows ${maximumSampleCount}.`
+    });
+    return undefined;
+  }
+
+  if (initialSampleCount > maximumSampleCount) {
+    const totalSegmentBudget = maximumSampleCount - drafts.length;
+    const originalReachBudgets = drafts.map((draft) => draft.config.quality.geometry.maxSegmentCount);
+    const reachBudgets = allocateReachSegmentBudgets(sampleResults, drafts, totalSegmentBudget);
+    drafts = drafts.map((draft, index) => ({
+      ...draft,
+      config: cloneConfigWithSegmentBudget(draft.config, reachBudgets[index])
+    }));
+    sampleResults = drafts.map((draft) => sampleRiverPath(draft.config));
+    budgetRedistributed = true;
+    diagnostics.push({
+      code: RiverDiagnosticCode.NetworkBudgetRedistributed,
+      severity: RiverDiagnosticSeverity.Warning,
+      path: "budget",
+      message: `Redistributed the network from ${initialSampleCount} to ${sampleResults.reduce((sum, result) => sum + result.points.length, 0)} samples.`,
+      repair: {
+        originalValue: originalReachBudgets,
+        repairedValue: reachBudgets
+      }
+    });
+  }
+
+  for (let reachIndex = 0; reachIndex < sampleResults.length; reachIndex++) {
+    diagnostics.push(
+      ...sampleResults[reachIndex].diagnostics.map((diagnostic) =>
+        prefixDiagnostic(diagnostic, `segments[${reachIndex}].sampling`)
+      )
+    );
+  }
+
+  const sampleCount = sampleResults.reduce((sum, result) => sum + result.points.length, 0);
+  const vertexCount = sampleCount * 4;
+  const chunkCount = sampleResults.reduce(
+    (sum, result) => sum + Math.max(1, Math.ceil((result.points.length * 4) / RIVER_LIMITS.maxChunkVertexCount)),
+    0
+  );
+  const mapPixelCount = 0;
+  const checks: Array<[number, number, string]> = [
+    [drafts.length, budget.maxSegmentCount, "budget.maxSegmentCount"],
+    [sampleCount, budget.maxSampleCount, "budget.maxSampleCount"],
+    [vertexCount, budget.maxVertexCount, "budget.maxVertexCount"],
+    [chunkCount, budget.maxChunkCount, "budget.maxChunkCount"],
+    [mapPixelCount, budget.maxMapPixelCount, "budget.maxMapPixelCount"]
+  ];
+  for (const [actual, limit, path] of checks) {
+    if (actual > limit) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.NetworkBudgetExceeded,
+        severity: RiverDiagnosticSeverity.Error,
+        path,
+        message: `Compiled value ${actual} exceeds budget ${limit}.`
+      });
+    }
+  }
+  if (hasErrors(diagnostics)) return undefined;
+
+  return {
+    reaches: finalizeReachDistances(drafts, sampleResults, descriptor, nodeIndexById, topologicalNodeIndices),
+    sampleCount,
+    vertexCount,
+    chunkCount,
+    mapPixelCount,
+    budgetRedistributed
+  };
 }
 
 function createStats(
   descriptor: RiverNetworkDescriptor,
   waterSurfaceElevations: Float32Array,
-  diagnostics: readonly RiverDiagnostic[]
+  diagnostics: readonly RiverDiagnostic[],
+  budgeted: RiverBudgetedReachResult
 ) {
   const elevationValues = Array.from(waterSurfaceElevations);
   return deepFreezePlainData({
@@ -272,6 +464,11 @@ function createStats(
     waterProfileAdjustmentCount: diagnostics.filter(
       (diagnostic) => diagnostic.code === RiverDiagnosticCode.WaterProfileAdjusted
     ).length,
+    sampleCount: budgeted.sampleCount,
+    vertexCount: budgeted.vertexCount,
+    chunkCount: budgeted.chunkCount,
+    mapPixelCount: budgeted.mapPixelCount,
+    budgetRedistributed: budgeted.budgetRedistributed,
     minWaterSurfaceElevation: elevationValues.length > 0 ? Math.min(...elevationValues) : 0,
     maxWaterSurfaceElevation: elevationValues.length > 0 ? Math.max(...elevationValues) : 0
   });
@@ -296,8 +493,8 @@ export function cloneCompiledRiverConfig(config: DeepReadonly<RiverConfig>): Riv
 export class RiverNetworkCompiler {
   private constructor() {}
 
-  static compile(descriptor: RiverNetworkDescriptor): RiverCompileResult {
-    const validation = validateRiverNetworkDescriptor(descriptor);
+  static compile(source: unknown): RiverCompileResult {
+    const validation = decodeRiverNetworkDescriptor(source);
     const diagnostics = validation.diagnostics.map((diagnostic) => ({
       ...diagnostic,
       repair: diagnostic.repair ? { ...diagnostic.repair } : undefined
@@ -306,6 +503,7 @@ export class RiverNetworkCompiler {
       const frozenDiagnostics = deepFreezePlainData(diagnostics);
       return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });
     }
+    const descriptor = validation.value;
 
     const nodeIndexById = new Map(descriptor.nodes.map((node, nodeIndex) => [node.id, nodeIndex]));
     const topologicalNodeIndices = createTopologicalNodeIndices(descriptor, nodeIndexById);
@@ -316,8 +514,19 @@ export class RiverNetworkCompiler {
       diagnostics
     );
     const nodes = createCompiledNodes(descriptor, nodeIndexById, waterSurfaceElevations);
-    const reaches = createCompiledReaches(descriptor, nodes, nodeIndexById, diagnostics);
-    if (hasErrors(diagnostics) || reaches.length !== descriptor.segments.length) {
+    const reachDrafts = createCompiledReachDrafts(descriptor, nodes, nodeIndexById, diagnostics);
+    if (hasErrors(diagnostics) || reachDrafts.length !== descriptor.segments.length) {
+      const frozenDiagnostics = deepFreezePlainData(diagnostics);
+      return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });
+    }
+    const budgeted = applyNetworkRuntimeBudget(
+      descriptor,
+      reachDrafts,
+      nodeIndexById,
+      topologicalNodeIndices,
+      diagnostics
+    );
+    if (!budgeted || hasErrors(diagnostics)) {
       const frozenDiagnostics = deepFreezePlainData(diagnostics);
       return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });
     }
@@ -327,11 +536,11 @@ export class RiverNetworkCompiler {
       schemaVersion: RiverNetworkSchemaVersion.V1,
       sourceId: descriptor.id,
       nodes,
-      reaches,
-      topologicalNodeIndices,
-      waterSurfaceElevations,
+      reaches: budgeted.reaches,
+      topologicalNodeIndices: new RiverReadonlyUint32Buffer(topologicalNodeIndices),
+      waterSurfaceElevations: new RiverReadonlyFloat32Buffer(waterSurfaceElevations),
       diagnostics: frozenDiagnostics,
-      stats: createStats(descriptor, waterSurfaceElevations, frozenDiagnostics)
+      stats: createStats(descriptor, waterSurfaceElevations, frozenDiagnostics, budgeted)
     });
     return deepFreezePlainData({ data, diagnostics: frozenDiagnostics, valid: true });
   }
