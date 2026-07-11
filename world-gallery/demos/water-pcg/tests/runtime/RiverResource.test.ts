@@ -20,11 +20,12 @@ describe("RiverResource", () => {
     expect(loaded.data.chunks).toHaveLength(compiled.chunks.length);
     expect(loaded.data.queryIndex.primitiveCount).toBe(compiled.queryIndex.primitiveCount);
     expect(loaded.data.terrainInteraction).toEqual(compiled.terrainInteraction);
-    expect(Array.from(loaded.data.queryIndex.cellCoordinates)).toEqual(
-      Array.from(compiled.queryIndex.cellCoordinates)
-    );
+    expect(Array.from(loaded.data.queryIndex.cellCoordinates)).toEqual(Array.from(compiled.queryIndex.cellCoordinates));
     expect(loaded.data.chunks.map((chunk) => hashRiverGeometryData(chunk.surfaceGeometry))).toEqual(
       compiled.chunks.map((chunk) => hashRiverGeometryData(chunk.surfaceGeometry))
+    );
+    expect(loaded.data.junctions.map((junction) => junction.surfaceGeometry.colors)).toEqual(
+      compiled.junctions.map((junction) => junction.surfaceGeometry.colors)
     );
 
     const originalQuery = new RiverNetworkQueryService(compiled);

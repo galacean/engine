@@ -1,6 +1,6 @@
 /** Converts compiler-owned CPU geometry into reusable Galacean ModelMesh resources. */
 import { Engine, MeshTopology, ModelMesh } from "@galacean/engine-core";
-import { Vector2, Vector3 } from "@galacean/engine-math";
+import { Color, Vector2, Vector3 } from "@galacean/engine-math";
 import type { RiverGeometryData, RiverRenderableArtifact } from "../../compiler/river/types";
 import type { RiverMeshBuildResult } from "./types";
 
@@ -27,7 +27,9 @@ function uploadGeometry(
   mesh.setPositions(positions);
   mesh.setUVs(uvs);
   mesh.setUVs(uv1s, 1);
-  mesh.setColors(null);
+  mesh.setColors(
+    geometry.colors ? geometry.colors.map((value) => new Color(value[0], value[1], value[2], value[3])) : null
+  );
   mesh.setIndices(indices);
   mesh.clearSubMesh();
   mesh.addSubMesh(geometry.drawStart, geometry.drawCount, MeshTopology.Triangles);

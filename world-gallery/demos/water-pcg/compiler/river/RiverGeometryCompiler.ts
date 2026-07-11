@@ -15,6 +15,7 @@ import type {
   RiverReachArtifact,
   RiverSamplePoint,
   RiverSampleResult,
+  RiverVertexColorTuple,
   Vector2Tuple
 } from "./types";
 
@@ -53,12 +54,14 @@ export function createRiverGeometryData(
   uvs: Vector2Tuple[],
   uv1s: Vector2Tuple[],
   indices: number[],
-  drawCount: number
+  drawCount: number,
+  colors?: RiverVertexColorTuple[]
 ): RiverGeometryData {
   return Object.freeze({
     positions: Object.freeze(positions),
     uvs: Object.freeze(uvs),
     uv1s: Object.freeze(uv1s),
+    colors: colors ? Object.freeze(colors) : undefined,
     indices: new RiverReadonlyUint32Buffer(indices),
     bounds: createBounds(positions),
     drawStart: 0,

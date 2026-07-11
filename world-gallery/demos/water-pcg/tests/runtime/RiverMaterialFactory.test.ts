@@ -8,15 +8,22 @@ describe("RiverMaterialFactory Low shader", () => {
     expect(lowRiverShaderSource).not.toMatch(/fbm|for\s*\(/i);
     expect(lowRiverShaderSource).toContain("scene_ElapsedTime.x");
     expect(lowRiverShaderSource).toContain("TEXCOORD_1");
+    expect(lowRiverShaderSource).toContain("COLOR_0");
+    expect(lowRiverShaderSource).toContain("input.color.b");
     expect(lowRiverShaderSource).toContain("input.uv.y - flowTime");
     expect(lowRiverShaderSource).not.toContain("input.localFlowSpeed * material_FlowSpeed");
     expect(lowRiverShaderSource).not.toContain("max(material_FlowSpeed, 0.08)");
   });
 
   it("uses one downstream phase for every procedural surface layer", () => {
-    expect(riverSurfaceShaderSource).toContain("float downstream = input.uv.y - flowTime");
+    expect(riverSurfaceShaderSource).toContain("float branchDownstream = input.uv.y - flowTime");
+    expect(riverSurfaceShaderSource).toContain("float junctionDownstream = input.color.g - flowTime");
+    expect(riverSurfaceShaderSource).toContain("mix(branchDownstream, junctionDownstream, junctionInterior)");
+    expect(riverSurfaceShaderSource).toContain("vec2 worldUv = input.worldXZ");
+    expect(riverSurfaceShaderSource).toContain("renderer_ModelMat * attr.POSITION");
     expect(riverSurfaceShaderSource).not.toContain("input.uv.y * 1.35 + time");
     expect(riverSurfaceShaderSource).not.toContain("dualPhaseFbm");
     expect(riverSurfaceShaderSource).not.toContain("flowUVW");
+    expect(riverSurfaceShaderSource).toContain("input.color.b");
   });
 });

@@ -36,6 +36,14 @@ describe("RiverChunkCompiler", () => {
       expect(
         Array.from(chunk.surfaceGeometry.indices).every((index) => index < chunk.surfaceGeometry.positions.length)
       ).toBe(true);
+      if (chunk.sourceKind === RiverChunkSourceKind.Junction) {
+        expect(chunk.surfaceGeometry.colors).toHaveLength(chunk.surfaceGeometry.positions.length);
+      }
+      if (chunk.bankFoamGeometry) {
+        expect(
+          Array.from(chunk.bankFoamGeometry.indices).every((index) => index < chunk.bankFoamGeometry!.positions.length)
+        ).toBe(true);
+      }
       const source = getSourceGeometry(chunk.sourceKind, chunk.sourceIndex, first);
       for (const localPosition of chunk.surfaceGeometry.positions) {
         const worldPosition = [

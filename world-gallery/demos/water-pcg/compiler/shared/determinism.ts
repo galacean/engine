@@ -90,6 +90,12 @@ export function hashRiverGeometryData(data: RiverGeometryData): string {
     hash = hashNumber(hash, uv[0]);
     hash = hashNumber(hash, uv[1]);
   }
+  for (const color of data.colors ?? []) {
+    hash = hashNumber(hash, color[0]);
+    hash = hashNumber(hash, color[1]);
+    hash = hashNumber(hash, color[2]);
+    hash = hashNumber(hash, color[3]);
+  }
   for (const index of data.indices) hash = hashNumber(hash, index);
   return toHex(hash);
 }

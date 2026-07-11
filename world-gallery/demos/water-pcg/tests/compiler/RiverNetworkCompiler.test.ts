@@ -6,6 +6,20 @@ import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler"
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
 import { invalidNetworkFixture } from "../fixtures/riverFixtures";
 
+function containsTrianglePoint(
+  point: readonly [number, number],
+  a: readonly [number, number, number],
+  b: readonly [number, number, number],
+  c: readonly [number, number, number]
+): boolean {
+  const sign = (p1: readonly [number, number], p2: readonly [number, number], p3: readonly [number, number]) =>
+    (p1[0] - p3[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p3[1]);
+  const pointA = sign(point, [a[0], a[2]], [b[0], b[2]]);
+  const pointB = sign(point, [b[0], b[2]], [c[0], c[2]]);
+  const pointC = sign(point, [c[0], c[2]], [a[0], a[2]]);
+  return !((pointA < -1e-6 || pointB < -1e-6 || pointC < -1e-6) && (pointA > 1e-6 || pointB > 1e-6 || pointC > 1e-6));
+}
+
 describe("RiverNetworkCompiler", () => {
   it("retains topology and emits deterministic typed runtime data", () => {
     const descriptor = multiTributaryRiverExample.riverDescriptor;
@@ -54,8 +68,12 @@ describe("RiverNetworkCompiler", () => {
     expect(incoming).toEqual([0, 1]);
     expect(outgoing).toEqual([2]);
     expect(junction.materialSourceReachIndex).toBe(2);
-    expect(junction.surfaceGeometry.positions).toHaveLength(7);
-    expect(junction.bankFoamGeometry?.positions).toHaveLength(7);
+    const boundaryVertexCount = junction.queryBoundary.length;
+    expect(junction.surfaceGeometry.positions.length).toBeGreaterThan(boundaryVertexCount + 1);
+    expect(junction.surfaceGeometry.uvs).toHaveLength(junction.surfaceGeometry.positions.length);
+    expect(junction.surfaceGeometry.uv1s).toHaveLength(junction.surfaceGeometry.positions.length);
+    expect(junction.surfaceGeometry.colors).toHaveLength(junction.surfaceGeometry.positions.length);
+    expect(junction.bankFoamGeometry?.positions).toHaveLength(boundaryVertexCount * 2);
     for (const reachIndex of incoming) {
       const reach = result.data!.reaches[reachIndex];
       expect(reach.artifact.samples.at(-1)!.distance).toBeCloseTo(reach.length - junction.mergeRadius, 4);
@@ -65,7 +83,7 @@ describe("RiverNetworkCompiler", () => {
     const connectedSurfacePositions = [...incoming, ...outgoing].flatMap(
       (reachIndex) => result.data!.reaches[reachIndex].artifact.surfaceGeometry.positions
     );
-    for (const boundary of junction.surfaceGeometry.positions.slice(1)) {
+    for (const boundary of junction.surfaceGeometry.positions.slice(1, boundaryVertexCount + 1)) {
       expect(
         connectedSurfacePositions.some(
           (position) =>
@@ -75,10 +93,25 @@ describe("RiverNetworkCompiler", () => {
         )
       ).toBe(true);
     }
+    const connectedSurfaceVertices = [...incoming, ...outgoing].flatMap((reachIndex) => {
+      const geometry = result.data!.reaches[reachIndex].artifact.surfaceGeometry;
+      return geometry.positions.map((position, vertexIndex) => ({ position, uv: geometry.uvs[vertexIndex] }));
+    });
+    for (let vertexIndex = 0; vertexIndex < boundaryVertexCount; vertexIndex++) {
+      const boundaryPosition = junction.surfaceGeometry.positions[vertexIndex + 1];
+      const connected = connectedSurfaceVertices.find(
+        ({ position }) =>
+          Math.abs(position[0] - boundaryPosition[0]) < 1e-6 &&
+          Math.abs(position[1] - boundaryPosition[1]) < 1e-6 &&
+          Math.abs(position[2] - boundaryPosition[2]) < 1e-6
+      );
+      expect(connected).toBeDefined();
+      expect(junction.surfaceGeometry.uvs[vertexIndex + 1]).toEqual(connected?.uv);
+    }
     const connectedSurfaceUv1s = [...incoming, ...outgoing].flatMap(
       (reachIndex) => result.data!.reaches[reachIndex].artifact.surfaceGeometry.uv1s
     );
-    for (const boundaryUv1 of junction.surfaceGeometry.uv1s.slice(1)) {
+    for (const boundaryUv1 of junction.surfaceGeometry.uv1s.slice(1, boundaryVertexCount + 1)) {
       expect(
         connectedSurfaceUv1s.some(
           (uv1) => Math.abs(uv1[0] - boundaryUv1[0]) < 1e-6 && Math.abs(uv1[1] - boundaryUv1[1]) < 1e-6
@@ -103,6 +136,37 @@ describe("RiverNetworkCompiler", () => {
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
       RiverDiagnosticCode.JunctionRadiusTooSmall
     );
+  });
+
+  it("does not generate overlapping junction triangles", () => {
+    const data = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor).data!;
+    for (const junction of data.junctions) {
+      const geometry = junction.surfaceGeometry;
+      const indices = Array.from(geometry.indices);
+      for (let triangleIndex = 0; triangleIndex < indices.length; triangleIndex += 3) {
+        const a = geometry.positions[indices[triangleIndex]];
+        const b = geometry.positions[indices[triangleIndex + 1]];
+        const c = geometry.positions[indices[triangleIndex + 2]];
+        const centroid = [(a[0] + b[0] + c[0]) / 3, (a[2] + b[2] + c[2]) / 3] as const;
+        const coveringTriangleIndices: number[] = [];
+        for (let candidateIndex = 0; candidateIndex < indices.length; candidateIndex += 3) {
+          if (
+            containsTrianglePoint(
+              centroid,
+              geometry.positions[indices[candidateIndex]],
+              geometry.positions[indices[candidateIndex + 1]],
+              geometry.positions[indices[candidateIndex + 2]]
+            )
+          ) {
+            coveringTriangleIndices.push(candidateIndex / 3);
+          }
+        }
+        expect(
+          coveringTriangleIndices,
+          `${junction.id} triangle ${triangleIndex / 3} covered by ${coveringTriangleIndices.join(",")}`
+        ).toEqual([triangleIndex / 3]);
+      }
+    }
   });
 
   it("snaps curve endpoints to compiler-resolved node positions with a diagnostic", () => {

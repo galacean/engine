@@ -46,8 +46,8 @@ Shader "AIWorld/RiverLow" {
       float material_Clarity;
       sampler2D material_NoiseTexture;
 
-      struct Attributes { vec4 POSITION; vec2 TEXCOORD_0; vec2 TEXCOORD_1; };
-      struct Varyings { vec2 uv; float localFlowSpeed; };
+      struct Attributes { vec4 POSITION; vec4 COLOR_0; vec2 TEXCOORD_0; vec2 TEXCOORD_1; };
+      struct Varyings { vec2 uv; float localFlowSpeed; vec4 color; };
       VertexShader = vert;
       FragmentShader = frag;
       Varyings vert(Attributes attr) {
@@ -55,10 +55,14 @@ Shader "AIWorld/RiverLow" {
         gl_Position = renderer_MVPMat * attr.POSITION;
         output.uv = attr.TEXCOORD_0;
         output.localFlowSpeed = attr.TEXCOORD_1.x;
+        output.color = attr.COLOR_0;
         return output;
       }
       void frag(Varyings input) {
+        float junctionData = step(1.5, input.color.a);
+        float junctionInterior = clamp(input.color.b, 0.0, 1.0) * junctionData;
         float across = abs(input.uv.x - 0.5) * 2.0;
+        across = mix(across, 1.0 - junctionInterior, junctionData);
         float water = 1.0 - smoothstep(0.48, 0.54, across);
         float feather = 1.0 - smoothstep(0.54, 1.0, across);
         float edge = smoothstep(0.38, 0.58, across) * feather;
@@ -128,6 +132,7 @@ Shader "AIWorld/RiverSurface" {
       RenderQueueType = Transparent;
 
       mat4 renderer_MVPMat;
+      mat4 renderer_ModelMat;
       vec4 scene_ElapsedTime;
 
       vec4 material_BaseColor;
@@ -138,13 +143,16 @@ Shader "AIWorld/RiverSurface" {
 
       struct Attributes {
         vec4 POSITION;
+        vec4 COLOR_0;
         vec2 TEXCOORD_0;
         vec2 TEXCOORD_1;
       };
 
       struct Varyings {
         vec2 uv;
+        vec2 worldXZ;
         float localFlowSpeed;
+        vec4 color;
       };
 
       VertexShader = vert;
@@ -154,7 +162,9 @@ Shader "AIWorld/RiverSurface" {
         Varyings output;
         gl_Position = renderer_MVPMat * attr.POSITION;
         output.uv = attr.TEXCOORD_0;
+        output.worldXZ = (renderer_ModelMat * attr.POSITION).xz;
         output.localFlowSpeed = attr.TEXCOORD_1.x;
+        output.color = attr.COLOR_0;
         return output;
       }
 
@@ -185,50 +195,44 @@ Shader "AIWorld/RiverSurface" {
 
       void frag(Varyings input) {
         float clarity = saturate(material_Clarity);
+        float junctionData = step(1.5, input.color.a);
+        float junctionInterior = smoothstep(0.0, 1.0, saturate(input.color.b)) * junctionData;
         float flowEnabled = step(0.0001, input.localFlowSpeed);
         float flowTime = scene_ElapsedTime.x * max(material_FlowSpeed, 0.0) * ${RIVER_FLOW_UV_SCALE_GLSL} * flowEnabled;
-        float downstream = input.uv.y - flowTime;
-        float center = saturate(1.0 - abs(input.uv.x - 0.5) * 2.0);
-        float innerWater = smoothstep(0.12, 0.92, center);
-        float bank = 1.0 - smoothstep(0.06, 0.42, center);
-        float depth = pow(smoothstep(0.05, 1.0, center), mix(0.58, 1.18, clarity));
+        float branchDownstream = input.uv.y - flowTime;
+        float junctionDownstream = input.color.g - flowTime;
+        float downstream = mix(branchDownstream, junctionDownstream, junctionInterior);
+        float across = mix(input.uv.x, input.color.r, junctionInterior);
 
-        float meander = sin(downstream * 1.35) * 0.11 + (input.uv.x - 0.5) * 0.16;
-        vec2 flowUv = vec2(input.uv.x + meander * 0.18, downstream);
-        float broadWater = fbm(flowUv * vec2(2.4, 8.0));
-        float fineWater = fbm((flowUv + vec2(4.6, 1.7)) * vec2(6.6, 19.0));
-        float foamNoise = fbm((flowUv + vec2(11.3, 6.1)) * vec2(7.5, 15.0));
+        vec2 worldUv = input.worldXZ * ${RIVER_FLOW_UV_SCALE_GLSL};
+        float broadWater = fbm(worldUv * 2.4);
+        float fineWater = fbm((worldUv + vec2(4.6, 1.7)) * 6.6);
+        float foamNoise = fbm((worldUv + vec2(11.3, 6.1)) * 7.5);
         float waveField = broadWater * 0.62 + fineWater * 0.38;
 
         float detailPhase = downstream + broadWater * 0.09;
-        float streak = sin(detailPhase * 42.0 + input.uv.x * 7.4) * 0.5 + 0.5;
-        float streakCrest = smoothstep(0.72, 1.0, streak) * innerWater;
-        float shoreFoam = smoothstep(0.28, 0.92, bank * (0.72 + foamNoise * 0.72));
-        float brokenFoam = smoothstep(0.72, 1.06, waveField + streakCrest * 0.34 + bank * 0.12);
-        float foamSmooth = saturate((shoreFoam * 0.64 + brokenFoam * 0.28) * material_FoamIntensity);
+        float streak = sin(detailPhase * 42.0 + across * 7.4) * 0.5 + 0.5;
+        float streakCrest = smoothstep(0.72, 1.0, streak);
+        float brokenFoam = smoothstep(0.76, 1.08, waveField + streakCrest * 0.08);
+        float foamSmooth = saturate(brokenFoam * 0.3 * material_FoamIntensity);
         float foamSharp = smoothstep(0.48, 0.92, foamSmooth + foamNoise * 0.14);
         float foam = mix(foamSharp, foamSmooth, 0.32);
 
-        float heightCenter = waveField * 0.72 + streakCrest * 0.28;
-        float heightRight = fbm((flowUv + vec2(0.018, 0.0)) * vec2(2.4, 8.0));
-        float heightForward = fbm((flowUv + vec2(0.0, 0.018)) * vec2(2.4, 8.0));
+        float heightCenter = waveField * 0.9 + streakCrest * 0.1;
+        float heightRight = fbm((worldUv + vec2(0.018, 0.0)) * 2.4);
+        float heightForward = fbm((worldUv + vec2(0.0, 0.018)) * 2.4);
         vec2 normalSlope = vec2(heightCenter - heightRight, heightCenter - heightForward);
-        float glint = smoothstep(0.018, 0.125, length(normalSlope)) * innerWater * (0.08 + clarity * 0.14);
-        float caustic = smoothstep(0.68, 1.0, sin(detailPhase * 31.0 - input.uv.x * 11.0 + fineWater * 5.2) * 0.5 + 0.5);
-        float lightScatter = (caustic * 0.12 + glint) * clarity * innerWater;
+        float glint = smoothstep(0.018, 0.125, length(normalSlope)) * (0.08 + clarity * 0.14);
+        float caustic = smoothstep(0.68, 1.0, sin(detailPhase * 31.0 - across * 11.0 + fineWater * 5.2) * 0.5 + 0.5);
+        float lightScatter = (caustic * 0.04 + glint) * clarity;
 
-        vec3 shallowColor = mix(material_BaseColor.rgb * 1.08, material_FoamColor.rgb * 0.22, 0.12);
-        vec3 midColor = material_BaseColor.rgb * (0.92 + clarity * 0.12) + vec3(0.0, 0.04, 0.08) * clarity;
-        vec3 deepColor = material_BaseColor.rgb * vec3(0.42, 0.50, 0.82);
-        vec3 color = mix(shallowColor, midColor, depth);
-        color = mix(color, deepColor, innerWater * (1.0 - clarity) * 0.42);
+        vec3 color = material_BaseColor.rgb * (0.84 + clarity * 0.13 + (waveField - 0.5) * 0.1);
+        color += vec3(0.0, 0.035, 0.07) * clarity;
         color += material_FoamColor.rgb * lightScatter;
         color = mix(color, material_FoamColor.rgb * (0.86 + foamNoise * 0.18), foam);
 
-        float alpha = mix(0.62 + clarity * 0.08, material_BaseColor.a, innerWater);
-        alpha += foam * 0.18 + lightScatter * 0.08;
-        alpha *= 0.86 + smoothstep(0.04, 0.28, center) * 0.14;
-        gl_FragColor = vec4(color, clamp(alpha, 0.45, 0.97));
+        float alpha = material_BaseColor.a * 0.94 + foam * 0.08 + lightScatter * 0.05;
+        gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.97));
       }
     }
   }

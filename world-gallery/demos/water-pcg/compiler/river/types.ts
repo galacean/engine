@@ -126,6 +126,8 @@ export interface RiverSampleResult {
 
 export type Vector2Tuple = readonly [number, number];
 export type ReadonlyVector3Tuple = readonly [number, number, number];
+/** RG stores projected junction flow UV, B the interior blend weight, and A=2 marks junction data. */
+export type RiverVertexColorTuple = readonly [number, number, number, number];
 
 export interface RiverCompiledSample {
   readonly position: ReadonlyVector3Tuple;
@@ -148,6 +150,7 @@ export interface RiverGeometryData {
   readonly positions: readonly ReadonlyVector3Tuple[];
   readonly uvs: readonly Vector2Tuple[];
   readonly uv1s: readonly Vector2Tuple[];
+  readonly colors?: readonly RiverVertexColorTuple[];
   readonly indices: ReadonlyUint32Buffer;
   readonly bounds: RiverGeometryBounds;
   readonly drawStart: number;

@@ -8,6 +8,7 @@ import type {
   RiverCompiledReach,
   RiverGeometryData,
   RiverJunctionArtifact,
+  RiverVertexColorTuple,
   Vector2Tuple
 } from "./types";
 
@@ -77,6 +78,9 @@ function sliceGeometry(
   });
   const uvs: Vector2Tuple[] = sourceVertexIndices.map((sourceIndex) => geometry.uvs[sourceIndex]);
   const uv1s: Vector2Tuple[] = sourceVertexIndices.map((sourceIndex) => geometry.uv1s[sourceIndex]);
+  const colors: RiverVertexColorTuple[] | undefined = geometry.colors
+    ? sourceVertexIndices.map((sourceIndex) => geometry.colors![sourceIndex])
+    : undefined;
   const indices = bucket.triangles.flatMap((triangle) =>
     triangle.map((sourceIndex) => {
       const localIndex = localIndexBySource.get(sourceIndex);
@@ -84,12 +88,20 @@ function sliceGeometry(
       return localIndex;
     })
   );
-  return createRiverGeometryData(positions, uvs, uv1s, indices, indices.length);
+  return createRiverGeometryData(positions, uvs, uv1s, indices, indices.length, colors);
 }
 
 function compileSourceChunks(source: ChunkSource): RiverCompiledChunk[] {
-  return collectTriangleBuckets(source.surfaceGeometry).map((bucket) => {
+  const surfaceBuckets = collectTriangleBuckets(source.surfaceGeometry);
+  const foamBucketsByKey = new Map(
+    (source.bankFoamGeometry ? collectTriangleBuckets(source.bankFoamGeometry) : []).map((bucket) => [
+      `${bucket.tileX}:${bucket.tileZ}:${bucket.part}`,
+      bucket
+    ])
+  );
+  return surfaceBuckets.map((bucket) => {
     const localOrigin = tuple3(bucket.tileX * RIVER_CHUNK_WORLD_SIZE, 0, bucket.tileZ * RIVER_CHUNK_WORLD_SIZE);
+    const foamBucket = foamBucketsByKey.get(`${bucket.tileX}:${bucket.tileZ}:${bucket.part}`);
     return Object.freeze({
       id: `${source.sourceKind}-${source.id}-${bucket.tileX}-${bucket.tileZ}-${bucket.part}`,
       sourceKind: source.sourceKind,
@@ -99,9 +111,10 @@ function compileSourceChunks(source: ChunkSource): RiverCompiledChunk[] {
       tileZ: bucket.tileZ,
       localOrigin,
       surfaceGeometry: sliceGeometry(source.surfaceGeometry, bucket, localOrigin),
-      bankFoamGeometry: source.bankFoamGeometry
-        ? sliceGeometry(source.bankFoamGeometry, bucket, localOrigin)
-        : undefined
+      bankFoamGeometry:
+        source.bankFoamGeometry && foamBucket
+          ? sliceGeometry(source.bankFoamGeometry, foamBucket, localOrigin)
+          : undefined
     });
   });
 }

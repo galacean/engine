@@ -10,6 +10,7 @@ import {
   RIVER_CHUNK_WORLD_SIZE,
   RIVER_FLOW_TRAVEL_MIN_SPEED,
   RIVER_FLOW_UV_SCALE,
+  RIVER_JUNCTION_INNER_RING_SCALE,
   RIVER_MAX_WATER_SURFACE_SLOPE,
   RIVER_QUERY_CELL_SIZE_BY_QUALITY,
   RIVER_TERRAIN_CORRIDOR_STRIDE
@@ -18,7 +19,7 @@ import { RiverResourceAssetVersion, RiverSerializedBufferKind } from "./RiverRes
 import type { RiverCompiledData } from "./types";
 
 const RIVER_RESOURCE_BUFFER_TAG = "__riverNumericBuffer";
-const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 3;
+const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 4;
 
 interface SerializedNumericBuffer {
   readonly [RIVER_RESOURCE_BUFFER_TAG]: RiverSerializedBufferKind;
@@ -86,14 +87,21 @@ function reviveNumericBuffer(value: unknown): unknown {
   if (kind === RiverSerializedBufferKind.Int32 && value.values.every(Number.isInteger)) {
     return new RiverReadonlyInt32Buffer(value.values);
   }
-  if (kind === RiverSerializedBufferKind.Uint32 && value.values.every((entry) => Number.isInteger(entry) && entry >= 0)) {
+  if (
+    kind === RiverSerializedBufferKind.Uint32 &&
+    value.values.every((entry) => Number.isInteger(entry) && entry >= 0)
+  ) {
     return new RiverReadonlyUint32Buffer(value.values);
   }
   return value;
 }
 
 function isFiniteTuple(value: unknown, length: number): boolean {
-  return Array.isArray(value) && value.length === length && value.every((entry) => typeof entry === "number" && Number.isFinite(entry));
+  return (
+    Array.isArray(value) &&
+    value.length === length &&
+    value.every((entry) => typeof entry === "number" && Number.isFinite(entry))
+  );
 }
 
 function isGeometryData(value: unknown): boolean {
@@ -104,6 +112,10 @@ function isGeometryData(value: unknown): boolean {
     value.positions.every((position) => isFiniteTuple(position, 3)) &&
     value.uvs.every((uv) => isFiniteTuple(uv, 2)) &&
     value.uv1s.every((uv) => isFiniteTuple(uv, 2)) &&
+    (value.colors === undefined ||
+      (Array.isArray(value.colors) &&
+        value.colors.length === value.positions.length &&
+        value.colors.every((color) => isFiniteTuple(color, 4)))) &&
     value.indices instanceof RiverReadonlyUint32Buffer &&
     isRecord(value.bounds) &&
     isFiniteTuple(value.bounds.min, 3) &&
@@ -195,9 +207,7 @@ function isCompiledData(value: unknown): value is RiverCompiledData {
         Array.isArray(reach.artifact.samples) &&
         reach.artifact.samples.every(
           (sample) =>
-            isRecord(sample) &&
-            typeof sample.flowTravelTime === "number" &&
-            Number.isFinite(sample.flowTravelTime)
+            isRecord(sample) && typeof sample.flowTravelTime === "number" && Number.isFinite(sample.flowTravelTime)
         ) &&
         isGeometryData(reach.artifact.surfaceGeometry) &&
         (reach.artifact.bankFoamGeometry === undefined || isGeometryData(reach.artifact.bankFoamGeometry)) &&
@@ -244,6 +254,7 @@ function createBakeOptionsHash(descriptor: RiverNetworkDescriptor): string {
     catmullRomAlpha: RIVER_CATMULL_ROM_ALPHA,
     flowUvScale: RIVER_FLOW_UV_SCALE,
     flowTravelMinSpeed: RIVER_FLOW_TRAVEL_MIN_SPEED,
+    junctionInnerRingScale: RIVER_JUNCTION_INNER_RING_SCALE,
     maxWaterSurfaceSlope: RIVER_MAX_WATER_SURFACE_SLOPE,
     terrainCorridorStride: RIVER_TERRAIN_CORRIDOR_STRIDE
   });

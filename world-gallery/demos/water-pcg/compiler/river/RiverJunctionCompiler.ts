@@ -4,8 +4,10 @@ import { RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import {
   RIVER_FLOW_UV_SCALE,
+  RIVER_FLOW_TRAVEL_MIN_SPEED,
   RIVER_GEOMETRY_EPSILON,
   RIVER_GEOMETRY_Y_OFFSET,
+  RIVER_JUNCTION_INNER_RING_SCALE,
   RIVER_JUNCTION_MIN_REACH_LENGTH
 } from "./constants";
 import { createRiverGeometryData } from "./RiverGeometryCompiler";
@@ -17,6 +19,7 @@ import type {
   RiverJunctionArtifact,
   RiverSamplePoint,
   RiverSampleResult,
+  RiverVertexColorTuple,
   Vector2Tuple
 } from "./types";
 
@@ -48,8 +51,20 @@ interface JunctionEndpoint {
 }
 
 interface JunctionVertex {
+  readonly endpointIndex: number;
   readonly position: ReadonlyVector3Tuple;
   readonly uv: Vector2Tuple;
+  readonly uv1: Vector2Tuple;
+  readonly tangent: ReadonlyVector3Tuple;
+  readonly angle: number;
+}
+
+interface JunctionBankVertex {
+  readonly endpointIndex: number;
+  readonly outerPosition: ReadonlyVector3Tuple;
+  readonly innerPosition: ReadonlyVector3Tuple;
+  readonly outerUv: Vector2Tuple;
+  readonly innerUv: Vector2Tuple;
   readonly uv1: Vector2Tuple;
   readonly angle: number;
 }
@@ -60,6 +75,14 @@ function tuple3(x: number, y: number, z: number): ReadonlyVector3Tuple {
 
 function tuple2(x: number, y: number): Vector2Tuple {
   return Object.freeze([x, y] as const);
+}
+
+function encodeJunctionProjection(
+  projectedAcross: number,
+  projectedDownstream: number,
+  interiorWeight: number
+): RiverVertexColorTuple {
+  return Object.freeze([projectedAcross, projectedDownstream, interiorWeight, 2] as const);
 }
 
 function interpolateSample(a: RiverSamplePoint, b: RiverSamplePoint, distance: number): RiverSamplePoint {
@@ -108,25 +131,28 @@ function createBoundaryVertices(
   endpoints: readonly JunctionEndpoint[],
   includeBankFeather: boolean,
   yOffset: number,
-  forceWater = false
+  acrossInset: number
 ): JunctionVertex[] {
   const vertices: JunctionVertex[] = [];
-  for (const endpoint of endpoints) {
+  for (let endpointIndex = 0; endpointIndex < endpoints.length; endpointIndex++) {
+    const endpoint = endpoints[endpointIndex];
     const join = resolveRiverRibbonJoinFrame(endpoint.samples, endpoint.sampleIndex);
     const width = endpoint.sample.width * 0.5 + (includeBankFeather ? endpoint.sample.bankFeather : 0);
     const offset = width * join.widthScale;
     const y = endpoint.sample.position.y + yOffset;
     const sides = [
-      { sign: 1, across: includeBankFeather ? 0 : 0.25 },
-      { sign: -1, across: includeBankFeather ? 1 : 0.75 }
+      { sign: 1, across: acrossInset },
+      { sign: -1, across: 1 - acrossInset }
     ];
     for (const side of sides) {
       const x = endpoint.sample.position.x + join.normalX * offset * side.sign;
       const z = endpoint.sample.position.z + join.normalZ * offset * side.sign;
       vertices.push({
+        endpointIndex,
         position: tuple3(x, y, z),
-        uv: tuple2(forceWater ? 0.5 : side.across, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
+        uv: tuple2(side.across, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
         uv1: tuple2(endpoint.sample.flowSpeed, endpoint.networkDistance),
+        tangent: tuple3(endpoint.sample.tangent.x, endpoint.sample.tangent.y, endpoint.sample.tangent.z),
         angle: Math.atan2(z - node.position[2], x - node.position[0])
       });
     }
@@ -139,9 +165,10 @@ function createPatchGeometry(
   endpoints: readonly JunctionEndpoint[],
   includeBankFeather: boolean,
   yOffset: number,
-  forceWater = false
+  acrossInset: number
 ) {
-  const boundary = createBoundaryVertices(node, endpoints, includeBankFeather, yOffset, forceWater);
+  const flowDirection = resolveFlowDirection(endpoints);
+  const boundary = createBoundaryVertices(node, endpoints, includeBankFeather, yOffset, acrossInset);
   const incomingDistances = endpoints
     .filter((endpoint) => endpoint.incoming)
     .map((endpoint) => endpoint.networkDistance);
@@ -158,17 +185,117 @@ function createPatchGeometry(
       : Math.min(...endpoints.map((endpoint) => endpoint.networkFlowTime));
   const averageFlowSpeed =
     endpoints.reduce((sum, endpoint) => sum + endpoint.sample.flowSpeed, 0) / Math.max(1, endpoints.length);
+  const flowNormalX = -flowDirection[2];
+  const flowNormalZ = flowDirection[0];
+  const phaseSpeed = Math.max(averageFlowSpeed, RIVER_FLOW_TRAVEL_MIN_SPEED);
+  const phaseHalfWidth = Math.max(node.mergeRadius ?? 0, RIVER_GEOMETRY_EPSILON);
+  const projectFlowUv = (position: ReadonlyVector3Tuple, interiorWeight: number): RiverVertexColorTuple => {
+    const localX = position[0] - node.position[0];
+    const localZ = position[2] - node.position[2];
+    const projectedAcross = 0.5 + (localX * flowNormalX + localZ * flowNormalZ) / (phaseHalfWidth * 2);
+    const projectedDistance = localX * flowDirection[0] + localZ * flowDirection[2];
+    const projectedDownstream = (nodeFlowTime + projectedDistance / phaseSpeed) * RIVER_FLOW_UV_SCALE;
+    return encodeJunctionProjection(projectedAcross, projectedDownstream, interiorWeight);
+  };
   const positions: ReadonlyVector3Tuple[] = [tuple3(node.position[0], node.position[1] + yOffset, node.position[2])];
   const uvs: Vector2Tuple[] = [tuple2(0.5, nodeFlowTime * RIVER_FLOW_UV_SCALE)];
   const uv1s: Vector2Tuple[] = [tuple2(averageFlowSpeed, nodeDistance)];
+  const centerColor = encodeJunctionProjection(0.5, nodeFlowTime * RIVER_FLOW_UV_SCALE, 1);
+  const colors: RiverVertexColorTuple[] = [centerColor];
   for (const vertex of boundary) {
     positions.push(vertex.position);
     uvs.push(vertex.uv);
     uv1s.push(vertex.uv1);
+    colors.push(projectFlowUv(vertex.position, 0));
+  }
+  const transition = 1 - RIVER_JUNCTION_INNER_RING_SCALE;
+  for (const vertex of boundary) {
+    const innerX = node.position[0] + (vertex.position[0] - node.position[0]) * RIVER_JUNCTION_INNER_RING_SCALE;
+    const innerY =
+      node.position[1] +
+      yOffset +
+      (vertex.position[1] - (node.position[1] + yOffset)) * RIVER_JUNCTION_INNER_RING_SCALE;
+    const innerZ = node.position[2] + (vertex.position[2] - node.position[2]) * RIVER_JUNCTION_INNER_RING_SCALE;
+    const deltaX = innerX - vertex.position[0];
+    const deltaZ = innerZ - vertex.position[2];
+    const branchDistance = deltaX * vertex.tangent[0] + deltaZ * vertex.tangent[2];
+    const branchFlowTime =
+      vertex.uv[1] + (branchDistance / Math.max(vertex.uv1[0], RIVER_FLOW_TRAVEL_MIN_SPEED)) * RIVER_FLOW_UV_SCALE;
+    const localX = innerX - node.position[0];
+    const localZ = innerZ - node.position[2];
+    const projectedDistance = localX * flowDirection[0] + localZ * flowDirection[2];
+    positions.push(tuple3(innerX, innerY, innerZ));
+    uvs.push(tuple2(vertex.uv[0] + (0.5 - vertex.uv[0]) * transition, branchFlowTime));
+    uv1s.push(
+      tuple2(vertex.uv1[0] + (averageFlowSpeed - vertex.uv1[0]) * transition, nodeDistance + projectedDistance)
+    );
+    colors.push(projectFlowUv(tuple3(innerX, innerY, innerZ), 1));
   }
   const indices: number[] = [];
   for (let index = 0; index < boundary.length; index++) {
-    indices.push(0, index + 1, ((index + 1) % boundary.length) + 1);
+    const nextIndex = (index + 1) % boundary.length;
+    const trim = index + 1;
+    const nextTrim = nextIndex + 1;
+    const inner = boundary.length + index + 1;
+    const nextInner = boundary.length + nextIndex + 1;
+    indices.push(trim, nextTrim, inner, inner, nextTrim, nextInner, 0, inner, nextInner);
+  }
+  return createRiverGeometryData(positions, uvs, uv1s, indices, indices.length, colors);
+}
+
+function createBankRingGeometry(node: RiverCompiledNode, endpoints: readonly JunctionEndpoint[], yOffset: number) {
+  const boundary: JunctionBankVertex[] = [];
+  for (let endpointIndex = 0; endpointIndex < endpoints.length; endpointIndex++) {
+    const endpoint = endpoints[endpointIndex];
+    const join = resolveRiverRibbonJoinFrame(endpoint.samples, endpoint.sampleIndex);
+    const halfWidth = endpoint.sample.width * 0.5;
+    const outerWidth = halfWidth + endpoint.sample.bankFeather;
+    const featherAcross =
+      endpoint.sample.bankFeather /
+      Math.max(endpoint.sample.width + endpoint.sample.bankFeather * 2, RIVER_GEOMETRY_EPSILON);
+    const y = endpoint.sample.position.y + yOffset;
+    for (const side of [
+      { sign: 1, outerAcross: 0, innerAcross: featherAcross },
+      { sign: -1, outerAcross: 1, innerAcross: 1 - featherAcross }
+    ]) {
+      const outerX = endpoint.sample.position.x + join.normalX * outerWidth * join.widthScale * side.sign;
+      const outerZ = endpoint.sample.position.z + join.normalZ * outerWidth * join.widthScale * side.sign;
+      boundary.push({
+        endpointIndex,
+        outerPosition: tuple3(outerX, y, outerZ),
+        innerPosition: tuple3(
+          endpoint.sample.position.x + join.normalX * halfWidth * join.widthScale * side.sign,
+          y,
+          endpoint.sample.position.z + join.normalZ * halfWidth * join.widthScale * side.sign
+        ),
+        outerUv: tuple2(side.outerAcross, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
+        innerUv: tuple2(side.innerAcross, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
+        uv1: tuple2(endpoint.sample.flowSpeed, endpoint.networkDistance),
+        angle: Math.atan2(outerZ - node.position[2], outerX - node.position[0])
+      });
+    }
+  }
+  boundary.sort((a, b) => a.angle - b.angle);
+  const positions: ReadonlyVector3Tuple[] = [];
+  const uvs: Vector2Tuple[] = [];
+  const uv1s: Vector2Tuple[] = [];
+  for (const vertex of boundary) {
+    positions.push(vertex.outerPosition);
+    uvs.push(vertex.outerUv);
+    uv1s.push(vertex.uv1);
+  }
+  for (const vertex of boundary) {
+    positions.push(vertex.innerPosition);
+    uvs.push(vertex.innerUv);
+    uv1s.push(vertex.uv1);
+  }
+  const indices: number[] = [];
+  for (let index = 0; index < boundary.length; index++) {
+    const nextIndex = (index + 1) % boundary.length;
+    if (boundary[index].endpointIndex === boundary[nextIndex].endpointIndex) continue;
+    const inner = boundary.length + index;
+    const nextInner = boundary.length + nextIndex;
+    indices.push(index, nextIndex, inner, inner, nextIndex, nextInner);
   }
   return createRiverGeometryData(positions, uvs, uv1s, indices, indices.length);
 }
@@ -283,16 +410,18 @@ export function compileRiverJunctions(
       );
     const materialLevel = reaches[materialSourceReachIndex].materialLevel;
     const queryBoundary = Object.freeze(
-      createBoundaryVertices(node, endpoints, false, 0).map((vertex) => vertex.position)
+      createBoundaryVertices(node, endpoints, false, 0, 0).map((vertex) => vertex.position)
     );
     const surfaceGeometry =
       materialLevel === RiverQualityLevel.Low
-        ? createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface, true)
-        : createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface);
+        ? createPatchGeometry(node, endpoints, true, RIVER_GEOMETRY_Y_OFFSET.surface, 0)
+        : createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface, 0);
+    // Foam is an annulus around the junction domain, never another center fan. This preserves the
+    // reach bank UV at the cut boundary without drawing transparent triangle spokes over the water.
     const bankFoamGeometry =
       materialLevel === RiverQualityLevel.Low
         ? undefined
-        : createPatchGeometry(node, endpoints, true, RIVER_GEOMETRY_Y_OFFSET.bankFoam);
+        : createBankRingGeometry(node, endpoints, RIVER_GEOMETRY_Y_OFFSET.bankFoam);
     const degenerateTriangleCount =
       countDegenerateTriangles(surfaceGeometry) + (bankFoamGeometry ? countDegenerateTriangles(bankFoamGeometry) : 0);
     if (degenerateTriangleCount > 0) {
