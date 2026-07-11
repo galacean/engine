@@ -57,6 +57,10 @@ export enum RiverValidationMode {
   PreviewRepair = "previewRepair"
 }
 
+export enum RiverNetworkSchemaVersion {
+  V1 = 1
+}
+
 export enum RiverDiagnosticSeverity {
   Info = "info",
   Warning = "warning",
@@ -65,6 +69,7 @@ export enum RiverDiagnosticSeverity {
 
 export enum RiverDiagnosticCode {
   InvalidRootType = "RIVER_INVALID_ROOT_TYPE",
+  UnsupportedSchemaVersion = "RIVER_UNSUPPORTED_SCHEMA_VERSION",
   MissingField = "RIVER_MISSING_FIELD",
   InvalidType = "RIVER_INVALID_TYPE",
   InvalidNumber = "RIVER_INVALID_NUMBER",
@@ -83,6 +88,7 @@ export enum RiverDiagnosticCode {
   DisconnectedNetwork = "RIVER_DISCONNECTED_NETWORK",
   InvalidNodeDegree = "RIVER_INVALID_NODE_DEGREE",
   ReversedElevation = "RIVER_REVERSED_ELEVATION",
+  WaterProfileAdjusted = "RIVER_WATER_PROFILE_ADJUSTED",
   InvalidMergeRadius = "RIVER_INVALID_MERGE_RADIUS",
   NetworkBudgetExceeded = "RIVER_NETWORK_BUDGET_EXCEEDED"
 }

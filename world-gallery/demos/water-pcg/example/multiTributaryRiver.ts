@@ -1,7 +1,7 @@
 /**
  * Multi-tributary river-network example.
  *
- * This fixture demonstrates the new RiverNetworkConfig shape with several
+ * This fixture demonstrates the versioned RiverNetworkDescriptor shape with several
  * directed river segments feeding two confluence nodes. The current renderer draws
  * each segment independently; junction patch generation can be layered on top of
  * this data model later without changing the authoring format.
@@ -10,6 +10,7 @@ import {
   RiverDebugMode,
   RiverDirectionMode,
   RiverMaterialPreset,
+  RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
@@ -34,7 +35,8 @@ export const multiTributaryRiverExample: WaterPcgExample = {
     foamIntensity: 1.25,
     oceanColor: "#207f9b"
   },
-  riverNetwork: {
+  riverDescriptor: {
+    schemaVersion: RiverNetworkSchemaVersion.V1,
     id: "multi-tributary-network",
     nodes: [
       {

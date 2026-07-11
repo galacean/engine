@@ -9,6 +9,7 @@ import {
   RiverDebugMode,
   RiverDirectionMode,
   RiverMaterialPreset,
+  RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
@@ -33,7 +34,8 @@ export const curvedMainRiverExample: WaterPcgExample = {
     foamIntensity: 1.1,
     oceanColor: "#1c8fc7"
   },
-  riverNetwork: {
+  riverDescriptor: {
+    schemaVersion: RiverNetworkSchemaVersion.V1,
     id: "demo-river-network",
     nodes: [
       {

@@ -3,12 +3,13 @@ import {
   RiverDebugMode,
   RiverDirectionMode,
   RiverMaterialPreset,
+  RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
   RiverQualityLevel
 } from "../../river/constants";
-import { RiverConfig, RiverNetworkConfig, RiverPathControlPoint } from "../../river/types";
+import { RiverConfig, RiverNetworkDescriptor, RiverPathControlPoint } from "../../river/types";
 
 function makeConfig(id: string, points: RiverPathControlPoint[], mode: RiverPathMode): RiverConfig {
   return {
@@ -98,7 +99,8 @@ export const webGL1LowFixture: RiverConfig = {
   }
 };
 
-export const invalidNetworkFixture: RiverNetworkConfig = {
+export const invalidNetworkFixture: RiverNetworkDescriptor = {
+  schemaVersion: RiverNetworkSchemaVersion.V1,
   id: "invalid-network",
   nodes: [
     { id: "duplicate", kind: RiverNodeKind.Source, position: [0, 0, 0] },

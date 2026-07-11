@@ -6,7 +6,7 @@
  * allowing the gallery to switch between multiple stable water-system scenarios.
  */
 import { WaterPreviewMode } from "./constants";
-import { RiverNetworkConfig } from "../river/types";
+import { RiverNetworkDescriptor } from "../river/types";
 
 export interface OceanConfig {
   size: number;
@@ -25,5 +25,5 @@ export interface WaterPcgExample {
   label: string;
   initialMode: WaterPreviewMode;
   ocean: OceanConfig;
-  riverNetwork: RiverNetworkConfig;
+  riverDescriptor: RiverNetworkDescriptor;
 }

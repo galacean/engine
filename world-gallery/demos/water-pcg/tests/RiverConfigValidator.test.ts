@@ -2,14 +2,19 @@ import { describe, expect, it } from "vitest";
 import { curvedMainRiverExample } from "../example/curvedMainRiver";
 import { multiTributaryRiverExample } from "../example/multiTributaryRiver";
 import { RiverDiagnosticCode, RiverNodeKind, RiverValidationMode } from "../river/constants";
-import { decodeRiverConfig, validateRiverConfig, validateRiverNetworkConfig } from "../river/RiverConfigValidator";
+import {
+  decodeRiverConfig,
+  decodeRiverNetworkDescriptor,
+  validateRiverConfig,
+  validateRiverNetworkDescriptor
+} from "../river/RiverConfigValidator";
 import { RiverConfig } from "../river/types";
 import { invalidNetworkFixture, straightFixture } from "./fixtures/riverFixtures";
 
 describe("RiverConfigValidator", () => {
-  it.each([curvedMainRiverExample.riverNetwork, multiTributaryRiverExample.riverNetwork])(
+  it.each([curvedMainRiverExample.riverDescriptor, multiTributaryRiverExample.riverDescriptor])(
     "accepts the valid example network $id",
-    (network) => expect(validateRiverNetworkConfig(network)).toMatchObject({ valid: true, diagnostics: [] })
+    (network) => expect(validateRiverNetworkDescriptor(network)).toMatchObject({ valid: true, diagnostics: [] })
   );
 
   it("rejects malformed external JSON without runtime data", () => {
@@ -18,6 +23,17 @@ describe("RiverConfigValidator", () => {
     expect(result.value).toBeUndefined();
     expect(result.diagnostics.every((diagnostic) => diagnostic.code && diagnostic.path && diagnostic.severity)).toBe(
       true
+    );
+  });
+
+  it("rejects unsupported river network schema versions", () => {
+    const result = decodeRiverNetworkDescriptor({
+      ...curvedMainRiverExample.riverDescriptor,
+      schemaVersion: 999
+    });
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      RiverDiagnosticCode.UnsupportedSchemaVersion
     );
   });
 
@@ -39,8 +55,8 @@ describe("RiverConfigValidator", () => {
   });
 
   it("returns stable diagnostics for invalid references and duplicate ids", () => {
-    const first = validateRiverNetworkConfig(invalidNetworkFixture);
-    const second = validateRiverNetworkConfig(invalidNetworkFixture);
+    const first = validateRiverNetworkDescriptor(invalidNetworkFixture);
+    const second = validateRiverNetworkDescriptor(invalidNetworkFixture);
     expect(first.valid).toBe(false);
     expect(first.diagnostics).toEqual(second.diagnostics);
     expect(first.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(
@@ -65,7 +81,7 @@ describe("RiverConfigValidator", () => {
 
   it("detects cycles, merge radius, reversed flow, and network budget overflow", () => {
     const network = {
-      ...curvedMainRiverExample.riverNetwork,
+      ...curvedMainRiverExample.riverDescriptor,
       nodes: [
         { id: "a", kind: RiverNodeKind.Source, position: [0, 0, 0] as [number, number, number], elevation: 0 },
         {
@@ -117,7 +133,7 @@ describe("RiverConfigValidator", () => {
       ],
       budget: { maxSampleCount: 1 }
     };
-    const codes = validateRiverNetworkConfig(network).diagnostics.map((diagnostic) => diagnostic.code);
+    const codes = validateRiverNetworkDescriptor(network).diagnostics.map((diagnostic) => diagnostic.code);
     expect(codes).toEqual(
       expect.arrayContaining([
         RiverDiagnosticCode.NetworkCycle,

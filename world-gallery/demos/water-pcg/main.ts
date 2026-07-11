@@ -51,9 +51,16 @@ import {
   updateRiverFoamMaterial,
   updateRiverMaterial
 } from "./river/RiverMaterialFactory";
-import { createRiverConfigsFromNetwork } from "./river/RiverNetworkAdapter";
+import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "./river/RiverNetworkCompiler";
 import { sampleRiverPath } from "./river/RiverPathSampler";
-import { RiverConfig, RiverMeshBuildResult, RiverQueryData, RiverQueryResult, RiverSampleResult } from "./river/types";
+import {
+  RiverCompiledData,
+  RiverConfig,
+  RiverMeshBuildResult,
+  RiverQueryData,
+  RiverQueryResult,
+  RiverSampleResult
+} from "./river/types";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -148,7 +155,17 @@ declare global {
 
 let activeExampleIndex = 0;
 let oceanConfig: OceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
-const riverConfigSets = waterPcgExamples.map((example) => createRiverConfigsFromNetwork(example.riverNetwork));
+const riverCompiledDataSets: RiverCompiledData[] = waterPcgExamples.map((example) => {
+  const result = RiverNetworkCompiler.compile(example.riverDescriptor);
+  if (!result.data) {
+    throw new Error(result.diagnostics.map((diagnostic) => `${diagnostic.code}@${diagnostic.path}`).join(", "));
+  }
+  return result.data;
+});
+const riverConfigSets = riverCompiledDataSets.map((compiledData) =>
+  compiledData.reaches.map((reach) => cloneCompiledRiverConfig(reach.config))
+);
+let activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
 let riverConfigs: RiverConfig[] = riverConfigSets[activeExampleIndex];
 
 const guiState: GuiState = {
@@ -634,6 +651,9 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     exampleBarElement.innerHTML = "";
     exampleBarElement.dataset.activeExample = waterPcgExamples[activeExampleIndex].id;
     exampleBarElement.dataset.segmentCount = String(riverConfigs.length);
+    exampleBarElement.dataset.compiledNetworkId = activeRiverCompiledData.sourceId;
+    exampleBarElement.dataset.compiledNodeCount = String(activeRiverCompiledData.stats.nodeCount);
+    exampleBarElement.dataset.compiledReachCount = String(activeRiverCompiledData.stats.reachCount);
 
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
@@ -655,6 +675,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   function loadExample(index: number): void {
     activeExampleIndex = index;
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
+    activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
     riverConfigs = riverConfigSets[activeExampleIndex];
     if (startupQuality === RiverQualityLevel.Low) applyQuality(RiverQualityLevel.Low);
     rebuildExampleState();

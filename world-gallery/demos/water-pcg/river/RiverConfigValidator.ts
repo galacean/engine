@@ -14,6 +14,7 @@ import {
   RiverDiagnosticSeverity,
   RiverDirectionMode,
   RiverMaterialPreset,
+  RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
@@ -24,7 +25,7 @@ import {
   RiverConfig,
   RiverDiagnostic,
   RiverNetworkBudgetConfig,
-  RiverNetworkConfig,
+  RiverNetworkDescriptor,
   RiverPathControlPoint,
   RiverValidationOptions,
   RiverValidationResult,
@@ -249,6 +250,16 @@ function validateRiverConfigShape(input: unknown, path: string, diagnostics: Riv
 function validateNetworkShape(input: unknown, diagnostics: RiverDiagnostic[]): void {
   if (!requireRecord(input, "$", diagnostics)) {
     return;
+  }
+  const schemaVersion = requireField(input, "schemaVersion", "$", diagnostics);
+  if (schemaVersion !== RiverNetworkSchemaVersion.V1) {
+    pushDiagnostic(
+      diagnostics,
+      RiverDiagnosticCode.UnsupportedSchemaVersion,
+      RiverDiagnosticSeverity.Error,
+      "$.schemaVersion",
+      `Expected river network schema version ${RiverNetworkSchemaVersion.V1}.`
+    );
   }
   validateString(requireField(input, "id", "$", diagnostics), "$.id", diagnostics);
   const nodes = requireField(input, "nodes", "$", diagnostics);
@@ -773,12 +784,23 @@ function positionsMatch(a: Vector3Tuple, b: Vector3Tuple): boolean {
   return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]) <= 0.01;
 }
 
-function resolveNetworkBudget(network: RiverNetworkConfig): RiverNetworkBudgetConfig {
+function resolveNetworkBudget(network: RiverNetworkDescriptor): RiverNetworkBudgetConfig {
   return { ...DEFAULT_NETWORK_BUDGET, ...network.budget };
 }
 
-export function validateRiverNetworkConfig(network: RiverNetworkConfig): RiverValidationResult<RiverNetworkConfig> {
+export function validateRiverNetworkDescriptor(
+  network: RiverNetworkDescriptor
+): RiverValidationResult<RiverNetworkDescriptor> {
   const diagnostics: RiverDiagnostic[] = [];
+  if (network.schemaVersion !== RiverNetworkSchemaVersion.V1) {
+    pushDiagnostic(
+      diagnostics,
+      RiverDiagnosticCode.UnsupportedSchemaVersion,
+      RiverDiagnosticSeverity.Error,
+      "schemaVersion",
+      `Expected river network schema version ${RiverNetworkSchemaVersion.V1}.`
+    );
+  }
   const nodeIds = new Set<string>();
   const segmentIds = new Set<string>();
   const nodeById = new Map(network.nodes.map((node) => [node.id, node]));
@@ -853,17 +875,21 @@ export function validateRiverNetworkConfig(network: RiverNetworkConfig): RiverVa
         pushDiagnostic(
           diagnostics,
           RiverDiagnosticCode.SegmentEndpointMismatch,
-          RiverDiagnosticSeverity.Error,
+          RiverDiagnosticSeverity.Warning,
           `segments[${i}].curve.points[0]`,
-          "Curve start does not match its from node."
+          "Curve start does not match its from node and will be snapped by the compiler.",
+          first?.position,
+          from.position
         );
       if (!last || !positionsMatch(last.position, to.position))
         pushDiagnostic(
           diagnostics,
           RiverDiagnosticCode.SegmentEndpointMismatch,
-          RiverDiagnosticSeverity.Error,
+          RiverDiagnosticSeverity.Warning,
           `segments[${i}].curve.points[-1]`,
-          "Curve end does not match its to node."
+          "Curve end does not match its to node and will be snapped by the compiler.",
+          last?.position,
+          to.position
         );
       if (isFiniteNumber(from.elevation) && isFiniteNumber(to.elevation) && to.elevation > from.elevation + 0.001)
         pushDiagnostic(
@@ -960,17 +986,23 @@ export function validateRiverNetworkConfig(network: RiverNetworkConfig): RiverVa
   return { value: hasErrors(diagnostics) ? undefined : network, diagnostics, valid: !hasErrors(diagnostics) };
 }
 
-export function decodeRiverNetworkConfig(input: unknown): RiverValidationResult<RiverNetworkConfig> {
+export function decodeRiverNetworkDescriptor(input: unknown): RiverValidationResult<RiverNetworkDescriptor> {
   const diagnostics: RiverDiagnostic[] = [];
   validateNetworkShape(input, diagnostics);
   if (hasErrors(diagnostics)) return { diagnostics, valid: false };
-  const typedResult = validateRiverNetworkConfig(input as RiverNetworkConfig);
+  const typedResult = validateRiverNetworkDescriptor(input as RiverNetworkDescriptor);
   return {
     value: typedResult.value,
     diagnostics: [...diagnostics, ...typedResult.diagnostics],
     valid: typedResult.valid
   };
 }
+
+/** @deprecated Use validateRiverNetworkDescriptor. */
+export const validateRiverNetworkConfig = validateRiverNetworkDescriptor;
+
+/** @deprecated Use decodeRiverNetworkDescriptor. */
+export const decodeRiverNetworkConfig = decodeRiverNetworkDescriptor;
 
 export function getRiverConfigWarnings(config: RiverConfig): string[] {
   return validateRiverConfig(config)

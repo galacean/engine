@@ -16,6 +16,7 @@ import {
   RiverDiagnosticSeverity,
   RiverDirectionMode,
   RiverMaterialPreset,
+  RiverNetworkSchemaVersion,
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
@@ -25,6 +26,15 @@ import {
 
 /** World-space position tuple in Galacean coordinates: [x, y, z]. */
 export type Vector3Tuple = [number, number, number];
+
+/** Recursively read-only view used by immutable compiler-owned plain data. */
+export type DeepReadonly<T> = T extends readonly [infer A, infer B, infer C]
+  ? readonly [DeepReadonly<A>, DeepReadonly<B>, DeepReadonly<C>]
+  : T extends readonly (infer U)[]
+    ? readonly DeepReadonly<U>[]
+    : T extends object
+      ? { readonly [K in keyof T]: DeepReadonly<T[K]> }
+      : T;
 
 export interface RiverPathControlPoint {
   /** Stable point identifier used by PCG, editor tooling, debug views, and future diff/patch workflows. */
@@ -234,7 +244,9 @@ export interface RiverSegmentConfig {
   order?: number;
 }
 
-export interface RiverNetworkConfig {
+export interface RiverNetworkDescriptor {
+  /** Versioned authoring contract so serialized PCG inputs can be migrated deterministically. */
+  schemaVersion: RiverNetworkSchemaVersion;
   /** Stable identifier for a connected water network. */
   id: string;
   /** Directed graph nodes: sources, confluences, mouths, and bifurcations. */
@@ -252,6 +264,65 @@ export interface RiverNetworkConfig {
   debug?: RiverDebugConfig;
   /** Whole-network safety budget applied before runtime resources are allocated. */
   budget?: Partial<RiverNetworkBudgetConfig>;
+}
+
+/** @deprecated Use RiverNetworkDescriptor for new authoring and PCG integrations. */
+export type RiverNetworkConfig = RiverNetworkDescriptor;
+
+export interface RiverCompiledNode {
+  readonly id: string;
+  readonly kind: RiverNodeKind;
+  /** Compiler-resolved connection position. Its height follows the monotonic water profile. */
+  readonly position: readonly [number, number, number];
+  readonly mergeRadius?: number;
+  readonly authoredElevation: number;
+  readonly waterSurfaceElevation: number;
+  /** Compiler-owned typed arrays. Consumers must treat their contents as read-only. */
+  readonly incomingReachIndices: Uint32Array;
+  readonly outgoingReachIndices: Uint32Array;
+}
+
+export interface RiverCompiledReach {
+  readonly id: string;
+  readonly fromNodeIndex: number;
+  readonly toNodeIndex: number;
+  readonly order: number;
+  readonly elevationDrop: number;
+  /** Immutable, fully inherited single-reach config consumed by the existing render prototype. */
+  readonly config: DeepReadonly<RiverConfig>;
+}
+
+export interface RiverCompileStats {
+  readonly nodeCount: number;
+  readonly reachCount: number;
+  readonly sourceCount: number;
+  readonly mouthCount: number;
+  readonly junctionCount: number;
+  readonly maxReachOrder: number;
+  readonly endpointSnapCount: number;
+  readonly reversedElevationCount: number;
+  readonly waterProfileAdjustmentCount: number;
+  readonly minWaterSurfaceElevation: number;
+  readonly maxWaterSurfaceElevation: number;
+}
+
+export interface RiverCompiledData {
+  readonly schemaVersion: RiverNetworkSchemaVersion;
+  readonly sourceId: string;
+  readonly nodes: readonly RiverCompiledNode[];
+  readonly reaches: readonly RiverCompiledReach[];
+  /** Deterministic upstream-to-downstream order into nodes. */
+  readonly topologicalNodeIndices: Uint32Array;
+  /** Dense node-indexed water surface profile for Worker transfer and downstream systems. */
+  readonly waterSurfaceElevations: Float32Array;
+  readonly diagnostics: readonly RiverDiagnostic[];
+  readonly stats: RiverCompileStats;
+}
+
+export interface RiverCompileResult {
+  readonly data?: RiverCompiledData;
+  readonly diagnostics: readonly RiverDiagnostic[];
+  readonly valid: boolean;
 }
 
 export interface RiverDiagnosticRepair {
