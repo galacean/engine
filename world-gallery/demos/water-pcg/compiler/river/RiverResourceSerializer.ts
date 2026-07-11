@@ -5,12 +5,18 @@ import {
   RiverReadonlyUint32Buffer
 } from "../shared/ReadonlyNumericBuffer";
 import { hashRiverStableValue, hashRiverString } from "../shared/determinism";
-import { RIVER_CATMULL_ROM_ALPHA, RIVER_CHUNK_WORLD_SIZE, RIVER_QUERY_CELL_SIZE_BY_QUALITY } from "./constants";
+import {
+  RIVER_CATMULL_ROM_ALPHA,
+  RIVER_CHUNK_WORLD_SIZE,
+  RIVER_MAX_WATER_SURFACE_SLOPE,
+  RIVER_QUERY_CELL_SIZE_BY_QUALITY,
+  RIVER_TERRAIN_CORRIDOR_STRIDE
+} from "./constants";
 import { RiverResourceAssetVersion, RiverSerializedBufferKind } from "./RiverResourceEnums";
 import type { RiverCompiledData } from "./types";
 
 const RIVER_RESOURCE_BUFFER_TAG = "__riverNumericBuffer";
-const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 1;
+const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 2;
 
 interface SerializedNumericBuffer {
   readonly [RIVER_RESOURCE_BUFFER_TAG]: RiverSerializedBufferKind;
@@ -222,7 +228,9 @@ function createBakeOptionsHash(descriptor: RiverNetworkDescriptor): string {
     budget: descriptor.budget ?? null,
     chunkWorldSize: RIVER_CHUNK_WORLD_SIZE,
     queryCellSizes: RIVER_QUERY_CELL_SIZE_BY_QUALITY,
-    catmullRomAlpha: RIVER_CATMULL_ROM_ALPHA
+    catmullRomAlpha: RIVER_CATMULL_ROM_ALPHA,
+    maxWaterSurfaceSlope: RIVER_MAX_WATER_SURFACE_SLOPE,
+    terrainCorridorStride: RIVER_TERRAIN_CORRIDOR_STRIDE
   });
 }
 

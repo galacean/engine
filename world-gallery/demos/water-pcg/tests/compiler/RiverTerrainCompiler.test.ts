@@ -52,6 +52,26 @@ describe("River terrain and water-profile compilation", () => {
     expect(reach.elevationDrop / reach.length).toBeLessThanOrEqual(RIVER_MAX_WATER_SURFACE_SLOPE);
   });
 
+  it("rejects an infeasible confluence slope interval instead of hiding a rising branch", () => {
+    const source = multiTributaryRiverExample.riverDescriptor;
+    const descriptor: RiverNetworkDescriptor = {
+      ...source,
+      nodes: source.nodes.map((node) =>
+        node.id === "main-source"
+          ? { ...node, elevation: 20 }
+          : node.id === "north-tributary-source"
+            ? { ...node, elevation: 0 }
+            : node
+      )
+    };
+    const result = RiverNetworkCompiler.compile(descriptor);
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: RiverDiagnosticCode.WaterProfileSlopeConflict })])
+    );
+  });
+
   it("emits vector terrain corridors and restricts local map regions to confluences", () => {
     const data = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor).data!;
     const terrain = data.terrainInteraction;

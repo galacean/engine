@@ -229,10 +229,18 @@ function resolveReachWaterProfile(
   downstreamElevation: number
 ): RiverSampleResult {
   if (result.points.length === 0) return result;
-  const originalLength = Math.max(result.totalLength, RIVER_GEOMETRY_EPSILON);
-  for (const point of result.points) {
-    const progress = Math.min(1, Math.max(0, point.distance / originalLength));
-    point.position.y = upstreamElevation + (downstreamElevation - upstreamElevation) * progress;
+  const horizontalDistances = new Float64Array(result.points.length);
+  let horizontalLength = 0;
+  for (let index = 1; index < result.points.length; index++) {
+    const previous = result.points[index - 1].position;
+    const current = result.points[index].position;
+    horizontalLength += Math.hypot(current.x - previous.x, current.z - previous.z);
+    horizontalDistances[index] = horizontalLength;
+  }
+  const safeHorizontalLength = Math.max(horizontalLength, RIVER_GEOMETRY_EPSILON);
+  for (let index = 0; index < result.points.length; index++) {
+    const progress = Math.min(1, Math.max(0, horizontalDistances[index] / safeHorizontalLength));
+    result.points[index].position.y = upstreamElevation + (downstreamElevation - upstreamElevation) * progress;
   }
   let totalLength = 0;
   result.points[0].distance = 0;
