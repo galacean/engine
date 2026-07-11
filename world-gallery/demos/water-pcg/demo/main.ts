@@ -39,6 +39,7 @@ import { createRiverNetworkQueryResult, getPointAtRiverT } from "../runtime/rive
 import type { RiverNetworkQueryResult } from "../runtime/river/types";
 import { RiverCompileWorkerClient, RiverCompileWorkerError } from "../runtime/river/RiverCompileWorkerClient";
 import type { RiverResource } from "../runtime/river/RiverResource";
+import { RiverSurveyConsole, RiverSurveyStatus } from "./console/RiverSurveyConsole";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -118,6 +119,10 @@ interface WaterPcgProfileMetrics {
   jsUpdateP95Ms: number;
 }
 
+interface DatGuiDomHost {
+  readonly domElement: HTMLElement;
+}
+
 declare global {
   interface Window {
     waterPcgProfileMetrics?: WaterPcgProfileMetrics;
@@ -175,6 +180,22 @@ if (!(exampleBar instanceof HTMLDivElement)) {
   throw new Error("Water PCG example bar is missing.");
 }
 const exampleBarElement: HTMLDivElement = exampleBar;
+const surveyConsole = new RiverSurveyConsole();
+
+function updateSurveyCompiledSnapshot(): void {
+  const compiledStats = activeRiverCompiledData.stats;
+  surveyConsole.updateCompiled({
+    exampleLabel: waterPcgExamples[activeExampleIndex].label,
+    networkId: activeRiverCompiledData.sourceId,
+    nodeCount: compiledStats.nodeCount,
+    reachCount: compiledStats.reachCount,
+    chunkCount: compiledStats.chunkCount,
+    queryCellCount: compiledStats.queryCellCount,
+    localMapRegionCount: compiledStats.localMapRegionCount,
+    resourceByteLength: activeRiverResource.byteLength,
+    workerDeserializeMs: riverCompileWorker.lastDeserializeMs
+  });
+}
 
 function getPrimaryRiverConfig(): RiverConfig {
   return riverConfigs[0];
@@ -348,6 +369,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
   const riverDemoRuntimeSets = new Map<string, RiverSegmentRuntime[]>();
   let pendingRuntimeStatsRefresh = false;
   let topologyRevision = 0;
+  let lastSubmissionMaxSliceMs = 0;
 
   const rebuildOceanMesh = (): void => oceanPreview.rebuildMesh();
   const updateOceanMaterial = (): void => oceanPreview.updateMaterial();
@@ -415,6 +437,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
   const networkQueryResult = createRiverNetworkQueryResult();
   let compileRequestRevision = 0;
   const recompileActiveNetwork = async (): Promise<boolean> => {
+    surveyConsole.setStatus(RiverSurveyStatus.Compiling);
     const requestRevision = ++compileRequestRevision;
     const requestExampleIndex = activeExampleIndex;
     const descriptor = createRiverDemoDescriptor(waterPcgExamples[activeExampleIndex].riverDescriptor, riverConfigs);
@@ -424,6 +447,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
     } catch (error) {
       queryPanelState.warnings =
         error instanceof RiverCompileWorkerError ? error.message : "River Worker compilation failed.";
+      surveyConsole.setStatus(RiverSurveyStatus.Warning);
       return false;
     }
     if (requestRevision !== compileRequestRevision || requestExampleIndex !== activeExampleIndex) {
@@ -456,6 +480,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
       nextResource.dispose();
       if (error instanceof RiverRuntimeSubmissionCancelledError) return false;
       queryPanelState.warnings = error instanceof Error ? error.message : "River Runtime submission failed.";
+      surveyConsole.setStatus(RiverSurveyStatus.Warning);
       return false;
     }
     riverDebugController.remove(exampleId);
@@ -485,6 +510,12 @@ const engine = await WebGLEngine.create(engineConfiguration);
     exampleBarElement.dataset.submissionYieldCount = String(activation.yieldCount);
     exampleBarElement.dataset.submissionMaxSliceMs = activation.maxSliceMs.toFixed(3);
     exampleBarElement.dataset.workerDeserializeMs = riverCompileWorker.lastDeserializeMs.toFixed(3);
+    exampleBarElement.dataset.terrainCorridorCount = String(nextData.terrainInteraction.reachCorridors.length);
+    exampleBarElement.dataset.localMapRegionCount = String(nextData.stats.localMapRegionCount);
+    exampleBarElement.dataset.waterSlopeAdjustmentCount = String(nextData.stats.waterSlopeAdjustmentCount);
+    lastSubmissionMaxSliceMs = activation.maxSliceMs;
+    updateSurveyCompiledSnapshot();
+    surveyConsole.setStatus(RiverSurveyStatus.Live);
     return true;
   };
   const applyRiverChangesAsync = async (requestedFlags: RiverDirtyFlag): Promise<void> => {
@@ -541,6 +572,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
       queryService.sampleSurface(queryPosition, networkQueryResult);
       updateQueryPanel(networkQueryResult, warnings);
       exampleBarElement.dataset.querySourceKind = networkQueryResult.sourceKind ?? "none";
+      surveyConsole.setStatus(warnings.length > 0 ? RiverSurveyStatus.Warning : RiverSurveyStatus.Live);
     }
     pendingRuntimeStatsRefresh = true;
     if (networkRecompiled) rebuildGui();
@@ -557,6 +589,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
     riverGroup.isActive = mode === WaterPreviewMode.River;
     scene.background.solidColor =
       mode === WaterPreviewMode.Ocean ? new Color(0.06, 0.1, 0.12, 1) : new Color(0.05, 0.08, 0.08, 1);
+    surveyConsole.setMode(mode);
 
     if (mode === WaterPreviewMode.Ocean) {
       control.target.set(0, 0, 0);
@@ -585,6 +618,14 @@ const engine = await WebGLEngine.create(engineConfiguration);
     exampleBarElement.dataset.workerCompile = "true";
     exampleBarElement.dataset.workerDeserializeMs = riverCompileWorker.lastDeserializeMs.toFixed(3);
     exampleBarElement.dataset.submissionBudgetMs = String(startupSubmissionBudgetMs ?? 4);
+    exampleBarElement.dataset.terrainCorridorCount = String(
+      activeRiverCompiledData.terrainInteraction.reachCorridors.length
+    );
+    exampleBarElement.dataset.localMapRegionCount = String(activeRiverCompiledData.stats.localMapRegionCount);
+    exampleBarElement.dataset.waterSlopeAdjustmentCount = String(
+      activeRiverCompiledData.stats.waterSlopeAdjustmentCount
+    );
+    updateSurveyCompiledSnapshot();
 
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
@@ -626,7 +667,8 @@ const engine = await WebGLEngine.create(engineConfiguration);
   function rebuildGui(): void {
     gui?.destroy();
     syncGuiStateFromRiverConfig();
-    gui = new dat.GUI({ name: "Water PCG", width: 340 });
+    gui = new dat.GUI({ autoPlace: false, hideable: false, name: "River Survey Console", width: 340 });
+    surveyConsole.mountControls((gui as unknown as DatGuiDomHost).domElement);
     gui
       .add(guiState, "mode", Object.keys(PREVIEW_MODE_OPTIONS) as PreviewModeLabel[])
       .name("Preview")
@@ -636,7 +678,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
       });
 
     if (activeMode === WaterPreviewMode.Ocean) {
-      const oceanFolder = gui.addFolder("Ocean");
+      const oceanFolder = gui.addFolder("Ocean Preview");
       oceanFolder.add(oceanConfig, "size", 20, 180, 1).name("Size").onFinishChange(rebuildOceanMesh);
       oceanFolder.add(oceanConfig, "resolution", 4, 128, 1).name("Resolution").onFinishChange(rebuildOceanMesh);
       oceanFolder
@@ -654,7 +696,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
       oceanFolder.open();
     } else {
       const riverConfig = getPrimaryRiverConfig();
-      const pathFolder = gui.addFolder("River Path");
+      const pathFolder = gui.addFolder("Network / Path");
       pathFolder
         .add(guiState, "pathMode", Object.keys(RIVER_PATH_MODE_OPTIONS) as RiverPathModeLabel[])
         .name("Mode")
@@ -675,7 +717,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
         });
       pathFolder.open();
 
-      const shapeFolder = gui.addFolder("River Shape");
+      const shapeFolder = gui.addFolder("Channel Geometry");
       shapeFolder
         .add(riverConfig.shape, "width", 1, 18, 0.1)
         .name("Width")
@@ -705,7 +747,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
         });
       shapeFolder.open();
 
-      const flowFolder = gui.addFolder("River Flow");
+      const flowFolder = gui.addFolder("Hydraulics");
       flowFolder
         .add(riverConfig.flow, "speed", 0, 4, 0.01)
         .name("Speed")
@@ -719,7 +761,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
         });
       flowFolder.open();
 
-      const materialFolder = gui.addFolder("River Material");
+      const materialFolder = gui.addFolder("Surface Preview");
       materialFolder
         .add(guiState, "materialPreset", Object.keys(RIVER_MATERIAL_OPTIONS) as RiverMaterialLabel[])
         .name("Preset")
@@ -766,7 +808,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
         });
       materialFolder.open();
 
-      const qualityFolder = gui.addFolder("Quality");
+      const qualityFolder = gui.addFolder("Performance Budget");
       qualityFolder
         .add(guiState, "quality", Object.keys(RIVER_QUALITY_OPTIONS) as RiverQualityLabel[])
         .name("Level")
@@ -787,7 +829,7 @@ const engine = await WebGLEngine.create(engineConfiguration);
           applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
 
-      const debugFolder = gui.addFolder("Debug");
+      const debugFolder = gui.addFolder("Probe & Diagnostics");
       debugFolder
         .add(guiState, "previewStage", Object.keys(RIVER_PREVIEW_STAGE_OPTIONS) as RiverPreviewStageLabel[])
         .name("Stage")
@@ -850,6 +892,11 @@ const engine = await WebGLEngine.create(engineConfiguration);
         const drawCalls = activeRiverCompiledData.chunks.length * passesPerChunk;
         exampleBarElement.dataset.bufferMemory = String(engine.renderingStatistics.bufferMemory);
         exampleBarElement.dataset.estimatedRiverDrawCalls = String(drawCalls);
+        surveyConsole.updateRuntime({
+          drawCallCount: drawCalls,
+          bufferMemoryBytes: engine.renderingStatistics.bufferMemory,
+          submissionMaxSliceMs: lastSubmissionMaxSliceMs
+        });
         queryPanelState.runtime = `${runtime.normalizedConfig.quality.material.level} | ${drawCalls} draw / ${activeRiverCompiledData.chunks.length} chunks | ${activeRiverCompiledData.stats.sampleCount} samples | ${(engine.renderingStatistics.bufferMemory / 1024).toFixed(1)} KiB buffers`;
         pendingRuntimeStatsRefresh = false;
       }
