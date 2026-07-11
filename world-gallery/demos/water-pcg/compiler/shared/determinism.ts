@@ -13,7 +13,7 @@ function hashNumber(hash: number, value: number): number {
 }
 
 function toHex(hash: number): string {
-  return hash.toString(16).padStart(8, "0");
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
 export function hashRiverString(value: string): string {

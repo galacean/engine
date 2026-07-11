@@ -19,6 +19,7 @@ describe("RiverResource", () => {
     expect(loaded.data.stats).toEqual(compiled.stats);
     expect(loaded.data.chunks).toHaveLength(compiled.chunks.length);
     expect(loaded.data.queryIndex.primitiveCount).toBe(compiled.queryIndex.primitiveCount);
+    expect(loaded.data.terrainInteraction).toEqual(compiled.terrainInteraction);
     expect(Array.from(loaded.data.queryIndex.cellCoordinates)).toEqual(
       Array.from(compiled.queryIndex.cellCoordinates)
     );

@@ -3,7 +3,13 @@ import type { Vector3 } from "@galacean/engine-math";
 import type { RiverAuthoringConfig } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkSchemaVersion, RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverDiagnostic } from "../shared/diagnostics";
-import type { RiverChunkSourceKind } from "./RiverGeometryEnums";
+import type {
+  RiverChunkSourceKind,
+  RiverLocalMapRegionKind,
+  RiverPackedLocalMapChannel,
+  RiverTerrainMaskChannel,
+  RiverTerrainSurfaceOwnership
+} from "./RiverGeometryEnums";
 
 export interface ReadonlyUint32Buffer extends Iterable<number> {
   readonly length: number;
@@ -65,12 +71,14 @@ export interface RiverCompileStats {
   readonly endpointSnapCount: number;
   readonly reversedElevationCount: number;
   readonly waterProfileAdjustmentCount: number;
+  readonly waterSlopeAdjustmentCount: number;
   readonly sampleCount: number;
   readonly vertexCount: number;
   readonly chunkCount: number;
   readonly mapPixelCount: number;
   readonly queryPrimitiveCount: number;
   readonly queryCellCount: number;
+  readonly localMapRegionCount: number;
   readonly budgetRedistributed: boolean;
   readonly minWaterSurfaceElevation: number;
   readonly maxWaterSurfaceElevation: number;
@@ -84,6 +92,7 @@ export interface RiverCompiledData {
   readonly junctions: readonly RiverJunctionArtifact[];
   readonly chunks: readonly RiverCompiledChunk[];
   readonly queryIndex: RiverQueryIndexData;
+  readonly terrainInteraction: RiverTerrainInteractionData;
   readonly topologicalNodeIndices: ReadonlyUint32Buffer;
   readonly waterSurfaceElevations: ReadonlyFloat32Buffer;
   readonly diagnostics: readonly RiverDiagnostic[];
@@ -210,6 +219,36 @@ export interface RiverCompiledChunk {
   readonly bankFoamGeometry?: RiverGeometryData;
 }
 
-export interface TerrainHeightSampler {
-  getHeight(x: number, z: number): number;
+export interface RiverTerrainReachCorridorData {
+  readonly id: string;
+  readonly reachIndex: number;
+  readonly samples: ReadonlyFloat32Buffer;
+  readonly stride: number;
+  readonly sampleCount: number;
+}
+
+export interface RiverTerrainJunctionCorridorData {
+  readonly id: string;
+  readonly junctionIndex: number;
+  readonly boundary: readonly ReadonlyVector3Tuple[];
+  readonly waterSurfaceElevation: number;
+  readonly riverBedElevation: number;
+}
+
+export interface RiverLocalMapBakeRegion {
+  readonly id: string;
+  readonly kind: RiverLocalMapRegionKind;
+  readonly sourceIndex: number;
+  readonly min: Vector2Tuple;
+  readonly max: Vector2Tuple;
+  readonly packedChannels: readonly RiverPackedLocalMapChannel[];
+}
+
+/** Vector sources consumed by Terrain/editor bakers; no world-sized raster is allocated here. */
+export interface RiverTerrainInteractionData {
+  readonly terrainSurfaceOwnership: RiverTerrainSurfaceOwnership;
+  readonly maskChannels: readonly RiverTerrainMaskChannel[];
+  readonly reachCorridors: readonly RiverTerrainReachCorridorData[];
+  readonly junctionCorridors: readonly RiverTerrainJunctionCorridorData[];
+  readonly localMapBakeRegions: readonly RiverLocalMapBakeRegion[];
 }

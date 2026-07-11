@@ -24,6 +24,8 @@ import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
 import { compileRiverChunks } from "./RiverChunkCompiler";
 import { compileRiverJunctions } from "./RiverJunctionCompiler";
 import { compileRiverQueryIndex } from "./RiverQueryIndexCompiler";
+import { compileRiverTerrainInteraction } from "./RiverTerrainCompiler";
+import { RIVER_GEOMETRY_EPSILON, RIVER_MAX_WATER_SURFACE_SLOPE } from "./constants";
 import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
 import { sampleRiverPath } from "./RiverPathSampler";
 import {
@@ -35,6 +37,7 @@ import {
   RiverCompiledNode,
   RiverCompiledReach,
   RiverQueryIndexData,
+  RiverTerrainInteractionData,
   RiverSampleResult
 } from "./types";
 
@@ -52,6 +55,7 @@ interface RiverBudgetedReachResult {
   junctions: readonly RiverJunctionArtifact[];
   chunks: readonly RiverCompiledChunk[];
   queryIndex: RiverQueryIndexData;
+  terrainInteraction: RiverTerrainInteractionData;
   sampleCount: number;
   vertexCount: number;
   chunkCount: number;
@@ -64,6 +68,7 @@ interface RiverFinalizedGeometry {
   readonly junctions: readonly RiverJunctionArtifact[];
   readonly chunks: readonly RiverCompiledChunk[];
   readonly queryIndex: RiverQueryIndexData;
+  readonly terrainInteraction: RiverTerrainInteractionData;
   readonly sampleCount: number;
   readonly vertexCount: number;
   readonly chunkCount: number;
@@ -151,26 +156,50 @@ function resolveWaterSurfaceElevations(
   topologicalNodeIndices: Uint32Array,
   diagnostics: RiverDiagnostic[]
 ): Float32Array {
-  const incomingNodeIndices: number[][] = descriptor.nodes.map(() => []);
+  const incomingEdges: Array<Array<{ upstreamNodeIndex: number; horizontalLength: number }>> = descriptor.nodes.map(
+    () => []
+  );
   for (const segment of descriptor.segments) {
     const fromNodeIndex = nodeIndexById.get(segment.from);
     const toNodeIndex = nodeIndexById.get(segment.to);
-    if (fromNodeIndex !== undefined && toNodeIndex !== undefined) incomingNodeIndices[toNodeIndex].push(fromNodeIndex);
+    if (fromNodeIndex !== undefined && toNodeIndex !== undefined) {
+      const from = descriptor.nodes[fromNodeIndex].position;
+      const to = descriptor.nodes[toNodeIndex].position;
+      incomingEdges[toNodeIndex].push({
+        upstreamNodeIndex: fromNodeIndex,
+        horizontalLength: Math.max(RIVER_GEOMETRY_EPSILON, Math.hypot(to[0] - from[0], to[2] - from[2]))
+      });
+    }
   }
   const elevations = new Float32Array(descriptor.nodes.length);
   for (const nodeIndex of topologicalNodeIndices) {
     const node = descriptor.nodes[nodeIndex];
     const authoredElevation = node.elevation ?? node.position[1];
-    const upstreamNodeIndices = incomingNodeIndices[nodeIndex];
-    if (upstreamNodeIndices.length === 0) {
+    const edges = incomingEdges[nodeIndex];
+    if (edges.length === 0) {
       elevations[nodeIndex] = authoredElevation;
       continue;
     }
     let upstreamMinimum = Number.POSITIVE_INFINITY;
-    for (const upstreamNodeIndex of upstreamNodeIndices) {
-      upstreamMinimum = Math.min(upstreamMinimum, elevations[upstreamNodeIndex]);
+    let minimumSlopeElevation = Number.NEGATIVE_INFINITY;
+    for (const edge of edges) {
+      const upstreamElevation = elevations[edge.upstreamNodeIndex];
+      upstreamMinimum = Math.min(upstreamMinimum, upstreamElevation);
+      minimumSlopeElevation = Math.max(
+        minimumSlopeElevation,
+        upstreamElevation - edge.horizontalLength * RIVER_MAX_WATER_SURFACE_SLOPE
+      );
     }
-    const resolvedElevation = Math.min(authoredElevation, upstreamMinimum);
+    if (minimumSlopeElevation > upstreamMinimum + RIVER_GEOMETRY_EPSILON) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.WaterProfileSlopeConflict,
+        severity: RiverDiagnosticSeverity.Error,
+        path: `nodes[${nodeIndex}].elevation`,
+        message: "Incoming reaches cannot share a continuous downstream-nonrising water level within the slope limit."
+      });
+    }
+    const monotonicElevation = Math.min(authoredElevation, upstreamMinimum);
+    const resolvedElevation = Math.min(upstreamMinimum, Math.max(monotonicElevation, minimumSlopeElevation));
     elevations[nodeIndex] = resolvedElevation;
     if (resolvedElevation < authoredElevation) {
       diagnostics.push({
@@ -181,8 +210,39 @@ function resolveWaterSurfaceElevations(
         repair: { originalValue: authoredElevation, repairedValue: resolvedElevation }
       });
     }
+    if (resolvedElevation > monotonicElevation + RIVER_GEOMETRY_EPSILON) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.WaterProfileSlopeAdjusted,
+        severity: RiverDiagnosticSeverity.Warning,
+        path: `nodes[${nodeIndex}].elevation`,
+        message: "Water surface elevation was raised to stay within the maximum downstream slope.",
+        repair: { originalValue: monotonicElevation, repairedValue: resolvedElevation }
+      });
+    }
   }
   return elevations;
+}
+
+function resolveReachWaterProfile(
+  result: RiverSampleResult,
+  upstreamElevation: number,
+  downstreamElevation: number
+): RiverSampleResult {
+  if (result.points.length === 0) return result;
+  const originalLength = Math.max(result.totalLength, RIVER_GEOMETRY_EPSILON);
+  for (const point of result.points) {
+    const progress = Math.min(1, Math.max(0, point.distance / originalLength));
+    point.position.y = upstreamElevation + (downstreamElevation - upstreamElevation) * progress;
+  }
+  let totalLength = 0;
+  result.points[0].distance = 0;
+  for (let index = 1; index < result.points.length; index++) {
+    const previous = result.points[index - 1].position;
+    const current = result.points[index].position;
+    totalLength += Math.hypot(current.x - previous.x, current.y - previous.y, current.z - previous.z);
+    result.points[index].distance = totalLength;
+  }
+  return { points: result.points, totalLength, diagnostics: result.diagnostics };
 }
 
 function createCompiledNodes(
@@ -382,6 +442,7 @@ function finalizeReachDistances(
   });
   const chunks = compileRiverChunks(reaches, junctionResult.junctions);
   const queryIndex = compileRiverQueryIndex(reaches, junctionResult.junctions, descriptor.defaults.quality.query.level);
+  const terrainInteraction = compileRiverTerrainInteraction(reaches, junctionResult.junctions);
   const vertexCount = chunks.reduce(
     (sum, chunk) => sum + chunk.surfaceGeometry.positions.length + (chunk.bankFoamGeometry?.positions.length ?? 0),
     0
@@ -391,6 +452,7 @@ function finalizeReachDistances(
     junctions: junctionResult.junctions,
     chunks,
     queryIndex,
+    terrainInteraction,
     sampleCount: junctionResult.sampleResults.reduce((sum, result) => sum + result.points.length, 0),
     vertexCount,
     chunkCount: chunks.length
@@ -444,6 +506,14 @@ function applyNetworkRuntimeBudget(
     });
   }
 
+  sampleResults = sampleResults.map((result, reachIndex) =>
+    resolveReachWaterProfile(
+      result,
+      nodes[drafts[reachIndex].fromNodeIndex].waterSurfaceElevation,
+      nodes[drafts[reachIndex].toNodeIndex].waterSurfaceElevation
+    )
+  );
+
   for (let reachIndex = 0; reachIndex < sampleResults.length; reachIndex++) {
     diagnostics.push(
       ...sampleResults[reachIndex].diagnostics.map((diagnostic) =>
@@ -489,6 +559,7 @@ function applyNetworkRuntimeBudget(
     junctions: finalized.junctions,
     chunks: finalized.chunks,
     queryIndex: finalized.queryIndex,
+    terrainInteraction: finalized.terrainInteraction,
     sampleCount,
     vertexCount,
     chunkCount,
@@ -522,12 +593,16 @@ function createStats(
     waterProfileAdjustmentCount: diagnostics.filter(
       (diagnostic) => diagnostic.code === RiverDiagnosticCode.WaterProfileAdjusted
     ).length,
+    waterSlopeAdjustmentCount: diagnostics.filter(
+      (diagnostic) => diagnostic.code === RiverDiagnosticCode.WaterProfileSlopeAdjusted
+    ).length,
     sampleCount: budgeted.sampleCount,
     vertexCount: budgeted.vertexCount,
     chunkCount: budgeted.chunkCount,
     mapPixelCount: budgeted.mapPixelCount,
     queryPrimitiveCount: budgeted.queryIndex.primitiveCount,
     queryCellCount: budgeted.queryIndex.cellCount,
+    localMapRegionCount: budgeted.terrainInteraction.localMapBakeRegions.length,
     budgetRedistributed: budgeted.budgetRedistributed,
     minWaterSurfaceElevation: elevationValues.length > 0 ? Math.min(...elevationValues) : 0,
     maxWaterSurfaceElevation: elevationValues.length > 0 ? Math.max(...elevationValues) : 0
@@ -611,6 +686,7 @@ export class RiverNetworkCompiler {
       junctions: budgeted.junctions,
       chunks: budgeted.chunks,
       queryIndex: budgeted.queryIndex,
+      terrainInteraction: budgeted.terrainInteraction,
       topologicalNodeIndices: new RiverReadonlyUint32Buffer(topologicalNodeIndices),
       waterSurfaceElevations: new RiverReadonlyFloat32Buffer(waterSurfaceElevations),
       diagnostics: frozenDiagnostics,

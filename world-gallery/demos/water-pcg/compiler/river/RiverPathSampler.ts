@@ -11,7 +11,7 @@ import { RiverPathMode } from "../../authoring/river/RiverAuthoringEnums";
 import { RiverAuthoringConfig, RiverPathControlPoint, Vector3Tuple } from "../../authoring/river/RiverAuthoringTypes";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RIVER_CATMULL_ROM_ALPHA } from "./constants";
-import type { RiverSamplePoint, RiverSampleResult, TerrainHeightSampler } from "./types";
+import type { RiverSamplePoint, RiverSampleResult } from "./types";
 
 interface ResolvedPathPoint {
   source: RiverPathControlPoint;
@@ -308,13 +308,9 @@ function allocateIntervals(spans: ArcSpan[], segmentLength: number, maxSegmentCo
 function createSamplePoint(
   point: CurvePoint,
   tangent: Vector3,
-  cumulativeDistance: number,
-  heightSampler?: TerrainHeightSampler
+  cumulativeDistance: number
 ): RiverSamplePoint {
   const position = cloneVector3(point.position);
-  if (heightSampler) {
-    position.y = heightSampler.getHeight(position.x, position.z);
-  }
   return {
     position,
     tangent: normalizeXZ(tangent),
@@ -326,7 +322,7 @@ function createSamplePoint(
   };
 }
 
-export function sampleRiverPath(config: RiverAuthoringConfig, heightSampler?: TerrainHeightSampler): RiverSampleResult {
+export function sampleRiverPath(config: RiverAuthoringConfig): RiverSampleResult {
   const diagnostics: RiverDiagnostic[] = [];
   const controlPoints = config.path.points.map((point) => resolvePathPoint(point, config));
   if (controlPoints.length < 2) {
@@ -382,8 +378,7 @@ export function sampleRiverPath(config: RiverAuthoringConfig, heightSampler?: Te
       createSamplePoint(
         current,
         new Vector3(next.position.x - previous.position.x, 0, next.position.z - previous.position.z),
-        totalLength,
-        heightSampler
+        totalLength
       )
     );
   }

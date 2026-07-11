@@ -21,3 +21,16 @@ export const RIVER_GEOMETRY_EPSILON = 1e-6;
 export const RIVER_JUNCTION_MIN_REACH_LENGTH = 0.25;
 export const RIVER_CHUNK_WORLD_SIZE = 128;
 export const RIVER_CATMULL_ROM_ALPHA = 0.5;
+export const RIVER_MAX_WATER_SURFACE_SLOPE = 0.2;
+
+export const RIVER_TERRAIN_CORRIDOR_COMPONENT = {
+  x: 0,
+  z: 1,
+  waterSurfaceY: 2,
+  riverBedY: 3,
+  channelHalfWidth: 4,
+  bankWetnessWidth: 5,
+  vegetationExclusionRadius: 6,
+  buildingExclusionRadius: 7
+} as const;
+export const RIVER_TERRAIN_CORRIDOR_STRIDE = 8;

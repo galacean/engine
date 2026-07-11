@@ -27,6 +27,8 @@ export enum RiverDiagnosticCode {
   InvalidNodeDegree = "RIVER_INVALID_NODE_DEGREE",
   ReversedElevation = "RIVER_REVERSED_ELEVATION",
   WaterProfileAdjusted = "RIVER_WATER_PROFILE_ADJUSTED",
+  WaterProfileSlopeAdjusted = "RIVER_WATER_PROFILE_SLOPE_ADJUSTED",
+  WaterProfileSlopeConflict = "RIVER_WATER_PROFILE_SLOPE_CONFLICT",
   InvalidMergeRadius = "RIVER_INVALID_MERGE_RADIUS",
   NetworkBudgetExceeded = "RIVER_NETWORK_BUDGET_EXCEEDED",
   NetworkBudgetRedistributed = "RIVER_NETWORK_BUDGET_REDISTRIBUTED",

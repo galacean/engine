@@ -121,6 +121,46 @@ function isQueryIndex(value: unknown): boolean {
   );
 }
 
+function isTerrainInteraction(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.terrainSurfaceOwnership === "string" &&
+    Array.isArray(value.maskChannels) &&
+    value.maskChannels.every((channel) => typeof channel === "string") &&
+    Array.isArray(value.reachCorridors) &&
+    value.reachCorridors.every(
+      (corridor) =>
+        isRecord(corridor) &&
+        typeof corridor.id === "string" &&
+        typeof corridor.reachIndex === "number" &&
+        typeof corridor.stride === "number" &&
+        typeof corridor.sampleCount === "number" &&
+        corridor.samples instanceof RiverReadonlyFloat32Buffer
+    ) &&
+    Array.isArray(value.junctionCorridors) &&
+    value.junctionCorridors.every(
+      (corridor) =>
+        isRecord(corridor) &&
+        typeof corridor.id === "string" &&
+        Array.isArray(corridor.boundary) &&
+        corridor.boundary.every((position) => isFiniteTuple(position, 3)) &&
+        typeof corridor.waterSurfaceElevation === "number" &&
+        typeof corridor.riverBedElevation === "number"
+    ) &&
+    Array.isArray(value.localMapBakeRegions) &&
+    value.localMapBakeRegions.every(
+      (region) =>
+        isRecord(region) &&
+        typeof region.id === "string" &&
+        typeof region.kind === "string" &&
+        isFiniteTuple(region.min, 2) &&
+        isFiniteTuple(region.max, 2) &&
+        Array.isArray(region.packedChannels) &&
+        region.packedChannels.every((channel) => typeof channel === "string")
+    )
+  );
+}
+
 function isCompiledData(value: unknown): value is RiverCompiledData {
   if (!isRecord(value)) return false;
   return (
@@ -167,6 +207,7 @@ function isCompiledData(value: unknown): value is RiverCompiledData {
         (chunk.bankFoamGeometry === undefined || isGeometryData(chunk.bankFoamGeometry))
     ) &&
     isQueryIndex(value.queryIndex) &&
+    isTerrainInteraction(value.terrainInteraction) &&
     isRecord(value.stats) &&
     Array.isArray(value.diagnostics) &&
     value.topologicalNodeIndices instanceof RiverReadonlyUint32Buffer &&
