@@ -16,9 +16,11 @@ import {
   MeshRenderer,
   ModelMesh,
   RenderFace,
+  Script,
   UnlitMaterial,
   Vector2,
   Vector3,
+  WebGLMode,
   WebGLEngine
 } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
@@ -29,17 +31,20 @@ import { WaterPreviewMode } from "./example/constants";
 import { cloneOceanConfig, OceanConfig, waterPcgExamples } from "./example";
 import {
   RiverDebugMode,
+  RiverDirtyFlag,
   RiverMaterialPreset,
   RiverPathMode,
   RiverPreviewStage,
   RIVER_MATERIAL_PRESET_CONFIG,
   RIVER_PREVIEW_STAGE_COLOR,
+  RIVER_QUALITY_PRESET,
   RiverQualityLevel
 } from "./river/constants";
 import { getRiverConfigWarnings, normalizeRiverConfig } from "./river/RiverConfigValidator";
 import { RiverDebugView } from "./river/RiverDebugView";
-import { buildRiverMeshes, updateMeshBounds } from "./river/RiverMeshBuilder";
+import { buildRiverMeshes, createRiverQueryData, updateMeshBounds } from "./river/RiverMeshBuilder";
 import {
+  createLowRiverMaterial,
   createRiverFoamMaterial,
   createRiverMaterial,
   hexToColor,
@@ -48,7 +53,7 @@ import {
 } from "./river/RiverMaterialFactory";
 import { createRiverConfigsFromNetwork } from "./river/RiverNetworkAdapter";
 import { sampleRiverPath } from "./river/RiverPathSampler";
-import { RiverConfig, RiverQueryResult, RiverSampleResult } from "./river/types";
+import { RiverConfig, RiverMeshBuildResult, RiverQueryData, RiverQueryResult, RiverSampleResult } from "./river/types";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -111,22 +116,40 @@ interface QueryPanelState {
   flow: string;
   distanceToBank: string;
   warnings: string;
+  runtime: string;
 }
 
 interface RiverSegmentRuntime {
+  root: import("@galacean/engine").Entity;
   config: RiverConfig;
   normalizedConfig: RiverConfig;
   sampleResult: RiverSampleResult;
+  queryData: RiverQueryData;
+  meshes?: RiverMeshBuildResult;
   surfaceRenderer: MeshRenderer;
   foamRenderer: MeshRenderer;
   material: Material;
+  lowMaterial: Material;
   foamMaterial: Material;
   debugView: RiverDebugView;
+  geometryBuildCount: number;
+}
+
+interface WaterPcgProfileMetrics {
+  sampleCount: number;
+  jsUpdateP95Ms: number;
+}
+
+declare global {
+  interface Window {
+    waterPcgProfileMetrics?: WaterPcgProfileMetrics;
+  }
 }
 
 let activeExampleIndex = 0;
 let oceanConfig: OceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
-let riverConfigs: RiverConfig[] = createRiverConfigsFromNetwork(waterPcgExamples[activeExampleIndex].riverNetwork);
+const riverConfigSets = waterPcgExamples.map((example) => createRiverConfigsFromNetwork(example.riverNetwork));
+let riverConfigs: RiverConfig[] = riverConfigSets[activeExampleIndex];
 
 const guiState: GuiState = {
   mode: "River",
@@ -143,10 +166,13 @@ const queryPanelState: QueryPanelState = {
   depth: "0.00",
   flow: "0.00, 0.00",
   distanceToBank: "0.00",
-  warnings: "None"
+  warnings: "None",
+  runtime: "pending"
 };
 
 let activeMode = waterPcgExamples[activeExampleIndex].initialMode;
+const startupQuality = new URLSearchParams(window.location.search).get("quality");
+const profilingEnabled = new URLSearchParams(window.location.search).get("profile") === "1";
 const exampleBar = document.getElementById("example-bar");
 
 if (!(exampleBar instanceof HTMLDivElement)) {
@@ -222,6 +248,40 @@ function updateGridMesh(mesh: ModelMesh, size: number, resolution: number, water
   mesh.uploadData(false);
 }
 
+function updateGridMeshTopology(
+  mesh: ModelMesh,
+  size: number,
+  resolution: number,
+  waterLevel: number,
+  time: number
+): void {
+  const segmentCount = Math.max(1, Math.floor(resolution));
+  const vertexSide = segmentCount + 1;
+  const positions = createGridPositions(size, resolution, waterLevel, time);
+  const uvs: Vector2[] = [];
+  const indexValues: number[] = [];
+  for (let z = 0; z <= segmentCount; z++) {
+    for (let x = 0; x <= segmentCount; x++) uvs.push(new Vector2(x / segmentCount, z / segmentCount));
+  }
+  for (let z = 0; z < segmentCount; z++) {
+    for (let x = 0; x < segmentCount; x++) {
+      const a = z * vertexSide + x;
+      const b = a + 1;
+      const c = a + vertexSide;
+      const d = c + 1;
+      indexValues.push(a, c, b, b, c, d);
+    }
+  }
+  const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
+  updateMeshBounds(mesh, positions);
+  mesh.setPositions(positions);
+  mesh.setUVs(uvs);
+  mesh.setIndices(indices);
+  mesh.clearSubMesh();
+  mesh.addSubMesh(0, indices.length);
+  mesh.uploadData(false);
+}
+
 function createModelMesh(engine: Engine, positions: Vector3[], uvs: Vector2[], indexValues: number[]): ModelMesh {
   const mesh = new ModelMesh(engine);
   const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
@@ -263,21 +323,17 @@ function applyRiverPreset(preset: RiverMaterialPreset): void {
 
 function applyQuality(level: RiverQualityLevel): void {
   updateAllRiverConfigs((config) => {
-    config.quality.level = level;
-    if (level === RiverQualityLevel.Low) {
-      config.path.segmentLength = 3.5;
-      config.quality.maxSegmentCount = 180;
-      return;
-    }
-
-    if (level === RiverQualityLevel.High) {
-      config.path.segmentLength = 1.0;
-      config.quality.maxSegmentCount = 1024;
-      return;
-    }
-
-    config.path.segmentLength = 1.8;
-    config.quality.maxSegmentCount = 512;
+    const preset = RIVER_QUALITY_PRESET[level];
+    config.path.segmentLength = preset.segmentLength;
+    config.quality.geometry = {
+      level,
+      maxSegmentCount: preset.maxSegmentCount,
+      maxChordError: preset.maxChordError
+    };
+    config.quality.material.level = level;
+    config.quality.maps.level = level === RiverQualityLevel.Low ? RiverQualityLevel.Low : level;
+    config.quality.query.level = level;
+    if (level === RiverQualityLevel.Low) config.debug.mode = RiverDebugMode.Off;
   });
 }
 
@@ -308,9 +364,9 @@ function syncGuiStateFromRiverConfig(): void {
           ? "Path"
           : "Off";
   guiState.quality =
-    riverConfig.quality.level === RiverQualityLevel.High
+    riverConfig.quality.material.level === RiverQualityLevel.High
       ? "High"
-      : riverConfig.quality.level === RiverQualityLevel.Low
+      : riverConfig.quality.material.level === RiverQualityLevel.Low
         ? "Low"
         : "Medium";
   guiState.materialPreset =
@@ -358,8 +414,16 @@ function createDebugRiverConfig(config: RiverConfig): RiverConfig {
 
 const engineConfiguration = {
   canvas: "canvas",
-  shaderCompiler: new ShaderCompiler()
+  shaderCompiler: new ShaderCompiler(),
+  graphicDeviceOptions: {
+    webGLMode: new URLSearchParams(window.location.search).get("webgl") === "1" ? WebGLMode.WebGL1 : WebGLMode.Auto
+  }
 } as unknown as Parameters<typeof WebGLEngine.create>[0];
+
+if (startupQuality === RiverQualityLevel.Low) {
+  applyQuality(RiverQualityLevel.Low);
+  guiState.quality = "Low";
+}
 
 WebGLEngine.create(engineConfiguration).then((engine) => {
   engine.canvas.resizeByClientSize();
@@ -379,18 +443,25 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   const oceanRenderer = oceanGroup.createChild("ocean-surface").addComponent(MeshRenderer);
   const oceanMaterial = createWaterMaterial(engine, oceanConfig.oceanColor, oceanConfig.alpha);
   let oceanMesh = createGridMesh(engine, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
+  let oceanMeshResolution = oceanConfig.resolution;
   oceanRenderer.mesh = oceanMesh;
   oceanRenderer.setMaterial(oceanMaterial);
 
   const riverGroup = rootEntity.createChild("river-preview");
-  let riverSegmentsRoot = riverGroup.createChild("river-segments");
+  const riverSegmentsRoot = riverGroup.createChild("river-segments");
   const riverMeshPreviewMaterial = createWaterMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
   const riverBankPreviewMaterial = createWaterMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
   let riverRuntimes: RiverSegmentRuntime[] = [];
+  const riverRuntimeSets = new Map<string, RiverSegmentRuntime[]>();
+  let pendingRuntimeStatsRefresh = false;
 
   const rebuildOceanMesh = (): void => {
-    oceanMesh = createGridMesh(engine, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
-    oceanRenderer.mesh = oceanMesh;
+    if (oceanMeshResolution === oceanConfig.resolution) {
+      updateGridMesh(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
+    } else {
+      updateGridMeshTopology(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, 0);
+      oceanMeshResolution = oceanConfig.resolution;
+    }
   };
   const updateOceanMaterial = (): void => {
     updateWaterMaterial(
@@ -406,91 +477,140 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     const normalizedConfig = normalizeRiverConfig(config);
     const sampleResult = sampleRiverPath(normalizedConfig);
     const material = createRiverMaterial(engine, normalizedConfig.material, normalizedConfig.flow.speed);
+    const lowMaterial = createLowRiverMaterial(engine, normalizedConfig.material, normalizedConfig.flow.speed);
     const foamMaterial = createRiverFoamMaterial(engine, normalizedConfig.material, normalizedConfig.flow.speed);
     const debugView = new RiverDebugView(engine, segmentRoot);
     foamRenderer.setMaterial(foamMaterial);
     surfaceRenderer.setMaterial(material);
 
     return {
+      root: segmentRoot,
       config,
       normalizedConfig,
       sampleResult,
+      queryData: createRiverQueryData(sampleResult.points),
       surfaceRenderer,
       foamRenderer,
       material,
+      lowMaterial,
       foamMaterial,
-      debugView
+      debugView,
+      geometryBuildCount: 0
     };
   };
-  const rebuildRiverSegmentRuntimes = (): void => {
-    riverSegmentsRoot.destroy();
-    riverSegmentsRoot = riverGroup.createChild("river-segments");
+  const destroyRiverSegmentRuntime = (runtime: RiverSegmentRuntime): void => {
+    runtime.debugView.destroy();
+    runtime.root.destroy();
+    runtime.meshes?.surfaceMesh.destroy(true);
+    runtime.meshes?.bankFoamMesh?.destroy(true);
+    runtime.material.destroy(true);
+    runtime.lowMaterial.destroy(true);
+    runtime.foamMaterial.destroy(true);
+  };
+  const rebuildRiverSegmentRuntimes = (): boolean => {
+    for (const runtimes of riverRuntimeSets.values()) {
+      for (const runtime of runtimes) runtime.root.isActive = false;
+    }
+    const exampleId = waterPcgExamples[activeExampleIndex].id;
+    const cached = riverRuntimeSets.get(exampleId);
+    if (cached) {
+      riverRuntimes = cached;
+      for (const runtime of riverRuntimes) runtime.root.isActive = true;
+      return false;
+    }
     riverRuntimes = riverConfigs.map(createRiverSegmentRuntime);
+    riverRuntimeSets.set(exampleId, riverRuntimes);
+    return true;
   };
   const applyRiverPreviewStage = (runtime: RiverSegmentRuntime): void => {
     const stage = runtime.normalizedConfig.debug.previewStage;
     const showRiverMesh =
       stage === RiverPreviewStage.Mesh || stage === RiverPreviewStage.Material || stage === RiverPreviewStage.Full;
     runtime.surfaceRenderer.entity.isActive = showRiverMesh;
-    runtime.foamRenderer.entity.isActive = showRiverMesh;
+    const isLow = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low;
+    runtime.foamRenderer.entity.isActive = showRiverMesh && !isLow && Boolean(runtime.meshes?.bankFoamMesh);
 
     if (stage === RiverPreviewStage.Mesh) {
       runtime.surfaceRenderer.setMaterial(riverMeshPreviewMaterial);
-      runtime.foamRenderer.setMaterial(riverBankPreviewMaterial);
+      if (!isLow) runtime.foamRenderer.setMaterial(riverBankPreviewMaterial);
       return;
     }
 
-    runtime.surfaceRenderer.setMaterial(runtime.material);
+    runtime.surfaceRenderer.setMaterial(isLow ? runtime.lowMaterial : runtime.material);
     runtime.foamRenderer.setMaterial(runtime.foamMaterial);
   };
-  const rebuildRiver = (): void => {
+  const hasDirty = (flags: RiverDirtyFlag, flag: RiverDirtyFlag): boolean => (flags & flag) !== 0;
+  const applyRiverChanges = (flags: RiverDirtyFlag): void => {
     const warnings: string[] = [];
     let primaryQueryResult: RiverQueryResult | undefined;
 
     for (let i = 0; i < riverRuntimes.length; i++) {
       const runtime = riverRuntimes[i];
       runtime.normalizedConfig = normalizeRiverConfig(runtime.config);
-      runtime.sampleResult = sampleRiverPath(runtime.normalizedConfig);
-      const meshes = buildRiverMeshes(engine, runtime.sampleResult.points);
-      runtime.foamRenderer.mesh = meshes.bankFoamMesh;
-      runtime.surfaceRenderer.mesh = meshes.surfaceMesh;
-      updateRiverFoamMaterial(runtime.foamMaterial, runtime.normalizedConfig.material, runtime.normalizedConfig.flow.speed, 0);
+      const geometryDirty = hasDirty(flags, RiverDirtyFlag.Geometry);
+      if (geometryDirty) {
+        runtime.geometryBuildCount++;
+        runtime.sampleResult = sampleRiverPath(runtime.normalizedConfig);
+        runtime.queryData = createRiverQueryData(runtime.sampleResult.points);
+        const previousBankFoamMesh = runtime.meshes?.bankFoamMesh;
+        runtime.meshes = buildRiverMeshes(engine, runtime.sampleResult.points, {
+          materialLevel: runtime.normalizedConfig.quality.material.level,
+          capacitySegmentCount: runtime.normalizedConfig.quality.geometry.maxSegmentCount,
+          existing: runtime.meshes
+        });
+        runtime.surfaceRenderer.mesh = runtime.meshes.surfaceMesh;
+        if (runtime.meshes.bankFoamMesh) {
+          runtime.foamRenderer.mesh = runtime.meshes.bankFoamMesh;
+        } else if (previousBankFoamMesh) {
+          runtime.foamRenderer.mesh = runtime.meshes.surfaceMesh;
+          previousBankFoamMesh.destroy(true);
+        }
+      }
+      if (hasDirty(flags, RiverDirtyFlag.Material)) {
+        updateRiverMaterial(runtime.material, runtime.normalizedConfig.material, runtime.normalizedConfig.flow.speed);
+        updateRiverMaterial(
+          runtime.lowMaterial,
+          runtime.normalizedConfig.material,
+          runtime.normalizedConfig.flow.speed
+        );
+        updateRiverFoamMaterial(
+          runtime.foamMaterial,
+          runtime.normalizedConfig.material,
+          runtime.normalizedConfig.flow.speed
+        );
+      }
       applyRiverPreviewStage(runtime);
       const queryResult = runtime.debugView.update(
         engine,
         createDebugRiverConfig(runtime.normalizedConfig),
-        runtime.sampleResult.points
+        runtime.sampleResult.points,
+        {
+          geometry: geometryDirty || hasDirty(flags, RiverDirtyFlag.Debug),
+          query: geometryDirty || hasDirty(flags, RiverDirtyFlag.Query)
+        }
       );
 
       if (i === 0) {
         primaryQueryResult = queryResult;
+        exampleBarElement.dataset.materialQuality = runtime.normalizedConfig.quality.material.level;
+        exampleBarElement.dataset.sampleCount = String(runtime.sampleResult.points.length);
+        exampleBarElement.dataset.geometryBuildCount = String(runtime.geometryBuildCount);
+        exampleBarElement.dataset.lowDrawCallsPerChunk =
+          runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low ? "1" : "2";
       }
 
       warnings.push(
-        ...getRiverConfigWarnings(runtime.normalizedConfig).map((warning) => `${runtime.config.id}: ${warning}`)
+        ...getRiverConfigWarnings(runtime.normalizedConfig).map((warning) => `${runtime.config.id}: ${warning}`),
+        ...runtime.sampleResult.diagnostics.map(
+          (diagnostic) => `${runtime.config.id}: ${diagnostic.code}: ${diagnostic.message}`
+        )
       );
     }
 
     if (primaryQueryResult) {
       updateQueryPanel(primaryQueryResult, warnings);
     }
-  };
-  const updateRiverVisuals = (time: number): void => {
-    for (let i = 0; i < riverRuntimes.length; i++) {
-      const runtime = riverRuntimes[i];
-      updateRiverMaterial(
-        runtime.material,
-        runtime.normalizedConfig.material,
-        runtime.normalizedConfig.flow.speed,
-        time
-      );
-      updateRiverFoamMaterial(
-        runtime.foamMaterial,
-        runtime.normalizedConfig.material,
-        runtime.normalizedConfig.flow.speed,
-        time
-      );
-    }
+    pendingRuntimeStatsRefresh = true;
   };
   const setPreviewMode = (mode: WaterPreviewMode): void => {
     activeMode = mode;
@@ -535,14 +655,17 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   function loadExample(index: number): void {
     activeExampleIndex = index;
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
-    riverConfigs = createRiverConfigsFromNetwork(waterPcgExamples[activeExampleIndex].riverNetwork);
+    riverConfigs = riverConfigSets[activeExampleIndex];
+    if (startupQuality === RiverQualityLevel.Low) applyQuality(RiverQualityLevel.Low);
     rebuildExampleState();
   }
   function rebuildExampleState(): void {
     rebuildOceanMesh();
     updateOceanMaterial();
-    rebuildRiverSegmentRuntimes();
-    rebuildRiver();
+    const createdRuntimeSet = rebuildRiverSegmentRuntimes();
+    applyRiverChanges(
+      createdRuntimeSet ? RiverDirtyFlag.All : RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug
+    );
     setPreviewMode(waterPcgExamples[activeExampleIndex].initialMode);
     renderExampleTabs();
     rebuildGui();
@@ -588,16 +711,16 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.path.mode = RIVER_PATH_MODE_OPTIONS[label];
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       pathFolder
         .add(riverConfig.path, "segmentLength", 0.5, 8, 0.1)
         .name("Segment")
-        .onChange((value: number) => {
+        .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
             config.path.segmentLength = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       pathFolder.open();
 
@@ -605,29 +728,29 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       shapeFolder
         .add(riverConfig.shape, "width", 1, 18, 0.1)
         .name("Width")
-        .onChange((value: number) => {
+        .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
             config.shape.width = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       shapeFolder
         .add(riverConfig.shape, "depth", 0, 5, 0.1)
         .name("Depth")
-        .onChange((value: number) => {
+        .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
             config.shape.depth = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       shapeFolder
         .add(riverConfig.shape, "bankFeather", 0, 5, 0.1)
         .name("Bank")
-        .onChange((value: number) => {
+        .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
             config.shape.bankFeather = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       shapeFolder.open();
 
@@ -639,7 +762,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.flow.speed = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Material | RiverDirtyFlag.Query);
         });
       flowFolder.open();
 
@@ -649,7 +772,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         .name("Preset")
         .onChange((label: RiverMaterialLabel) => {
           applyRiverPreset(RIVER_MATERIAL_OPTIONS[label]);
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Material | RiverDirtyFlag.Query);
           rebuildGui();
         });
       materialFolder
@@ -659,7 +782,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.material.baseColor = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Material);
         });
       materialFolder
         .addColor(riverConfig.material, "foamColor")
@@ -668,7 +791,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.material.foamColor = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Material);
         });
       materialFolder
         .add(riverConfig.material, "foamIntensity", 0, 1, 0.01)
@@ -677,7 +800,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.material.foamIntensity = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Material);
         });
       materialFolder
         .add(riverConfig.material, "clarity", 0, 1, 0.01)
@@ -686,7 +809,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.material.clarity = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Material);
         });
       materialFolder.open();
 
@@ -696,17 +819,19 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         .name("Level")
         .onChange((label: RiverQualityLabel) => {
           applyQuality(RIVER_QUALITY_OPTIONS[label]);
-          rebuildRiver();
+          applyRiverChanges(
+            RiverDirtyFlag.Geometry | RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug
+          );
           rebuildGui();
         });
       qualityFolder
-        .add(riverConfig.quality, "maxSegmentCount", 32, 2048, 1)
+        .add(riverConfig.quality.geometry, "maxSegmentCount", 32, 2048, 1)
         .name("Max Segments")
-        .onChange((value: number) => {
+        .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
-            config.quality.maxSegmentCount = value;
+            config.quality.geometry.maxSegmentCount = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
 
       const debugFolder = gui.addFolder("Debug");
@@ -717,7 +842,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.debug.previewStage = RIVER_PREVIEW_STAGE_OPTIONS[label];
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Material | RiverDirtyFlag.Debug);
         });
       debugFolder
         .add(guiState, "debugMode", Object.keys(RIVER_DEBUG_MODE_OPTIONS) as RiverDebugModeLabel[])
@@ -726,7 +851,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.debug.mode = RIVER_DEBUG_MODE_OPTIONS[label];
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Debug);
         });
       debugFolder
         .add(riverConfig.debug, "queryT", 0, 1, 0.01)
@@ -735,7 +860,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
           updateAllRiverConfigs((config) => {
             config.debug.queryT = value;
           });
-          rebuildRiver();
+          applyRiverChanges(RiverDirtyFlag.Query);
         });
       debugFolder.add(queryPanelState, "inWater").name("In Water").listen();
       debugFolder.add(queryPanelState, "surfaceHeight").name("Height").listen();
@@ -743,23 +868,46 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       debugFolder.add(queryPanelState, "flow").name("Flow").listen();
       debugFolder.add(queryPanelState, "distanceToBank").name("Bank Dist").listen();
       debugFolder.add(queryPanelState, "warnings").name("Warnings").listen();
+      debugFolder.add(queryPanelState, "runtime").name("Runtime").listen();
       debugFolder.open();
     }
   }
 
   rebuildExampleState();
-  engine.run();
+  class WaterPcgUpdateScript extends Script {
+    private _time = 0;
+    private readonly _profileSamples: number[] = [];
 
-  const startTime = performance.now();
-  const update = (): void => {
-    const time = (performance.now() - startTime) / 1000;
-    if (activeMode === WaterPreviewMode.Ocean) {
-      updateGridMesh(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, time);
-      updateOceanMaterial();
-    } else {
-      updateRiverVisuals(time);
+    onUpdate(deltaTime: number): void {
+      const updateStart = profilingEnabled ? performance.now() : 0;
+      if (pendingRuntimeStatsRefresh && riverRuntimes.length > 0) {
+        const runtime = riverRuntimes[0];
+        const drawCalls = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low ? 1 : 2;
+        exampleBarElement.dataset.bufferMemory = String(engine.renderingStatistics.bufferMemory);
+        queryPanelState.runtime = `${runtime.normalizedConfig.quality.material.level} | ${drawCalls} draw | ${runtime.sampleResult.points.length} samples | ${(engine.renderingStatistics.bufferMemory / 1024).toFixed(1)} KiB buffers`;
+        pendingRuntimeStatsRefresh = false;
+      }
+      if (activeMode === WaterPreviewMode.Ocean) {
+        this._time += deltaTime;
+        updateGridMesh(oceanMesh, oceanConfig.size, oceanConfig.resolution, oceanConfig.waterLevel, this._time);
+        updateOceanMaterial();
+      }
+      if (profilingEnabled && this._profileSamples.length < 300) {
+        this._profileSamples.push(performance.now() - updateStart);
+        if (this._profileSamples.length === 300) {
+          const sorted = [...this._profileSamples].sort((a, b) => a - b);
+          window.waterPcgProfileMetrics = {
+            sampleCount: sorted.length,
+            jsUpdateP95Ms: sorted[Math.floor(sorted.length * 0.95)]
+          };
+        }
+      }
     }
-    requestAnimationFrame(update);
-  };
-  update();
+  }
+  rootEntity.addComponent(WaterPcgUpdateScript);
+  window.addEventListener("beforeunload", () => {
+    for (const runtimes of riverRuntimeSets.values()) runtimes.forEach(destroyRiverSegmentRuntime);
+    oceanMesh.destroy(true);
+  });
+  engine.run();
 });

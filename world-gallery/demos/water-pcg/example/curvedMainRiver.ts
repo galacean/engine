@@ -146,8 +146,10 @@ export const curvedMainRiverExample: WaterPcgExample = {
         ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream]
       },
       quality: {
-        level: RiverQualityLevel.Medium,
-        maxSegmentCount: 512
+        geometry: { level: RiverQualityLevel.Medium, maxSegmentCount: 512, maxChordError: 0.25 },
+        material: { level: RiverQualityLevel.Medium },
+        maps: { level: RiverQualityLevel.Low },
+        query: { level: RiverQualityLevel.Medium }
       }
     },
     debug: {

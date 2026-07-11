@@ -8,15 +8,19 @@
  * configs, editor controls, render generation, and gameplay queries can stay
  * compatible as the prototype moves toward an engine-level module.
  */
-import { ModelMesh, Vector3 } from "@galacean/engine";
+import type { ModelMesh } from "@galacean/engine-core";
+import type { Vector2, Vector3 } from "@galacean/engine-math";
 import {
   RiverDebugMode,
+  RiverDiagnosticCode,
+  RiverDiagnosticSeverity,
   RiverDirectionMode,
   RiverMaterialPreset,
   RiverNodeKind,
   RiverPathMode,
   RiverPreviewStage,
-  RiverQualityLevel
+  RiverQualityLevel,
+  RiverValidationMode
 } from "./constants";
 
 /** World-space position tuple in Galacean coordinates: [x, y, z]. */
@@ -138,12 +142,27 @@ export interface RiverQualityConfig {
    * Semantic quality tier used by UI presets and future device policies.
    * It maps to sampling density and effect budgets rather than changing river shape directly.
    */
-  level: RiverQualityLevel;
-  /**
-   * Hard cap for generated path samples and mesh segments.
-   * This protects PCG-authored rivers from creating unbounded geometry on Web/mobile targets.
-   */
+  geometry: {
+    level: RiverQualityLevel;
+    /** Hard cap for generated path segments. Anchors are never removed to satisfy this value. */
+    maxSegmentCount: number;
+    /** Maximum world-space deviation between the source curve and its adaptive polyline. */
+    maxChordError: number;
+  };
+  /** Shader and draw-pass tier, independent from geometry density. */
+  material: { level: RiverQualityLevel };
+  /** Optional baked-map tier. Low currently uses no per-river map. */
+  maps: { level: RiverQualityLevel };
+  /** Gameplay query tier, independent from render quality. */
+  query: { level: RiverQualityLevel };
+}
+
+export interface RiverNetworkBudgetConfig {
   maxSegmentCount: number;
+  maxSampleCount: number;
+  maxVertexCount: number;
+  maxChunkCount: number;
+  maxMapPixelCount: number;
 }
 
 export interface RiverDebugConfig {
@@ -231,6 +250,31 @@ export interface RiverNetworkConfig {
   };
   /** Preview/debug-only controls for inspecting the full network. */
   debug?: RiverDebugConfig;
+  /** Whole-network safety budget applied before runtime resources are allocated. */
+  budget?: Partial<RiverNetworkBudgetConfig>;
+}
+
+export interface RiverDiagnosticRepair {
+  originalValue: unknown;
+  repairedValue: unknown;
+}
+
+export interface RiverDiagnostic {
+  code: RiverDiagnosticCode;
+  severity: RiverDiagnosticSeverity;
+  path: string;
+  message: string;
+  repair?: RiverDiagnosticRepair;
+}
+
+export interface RiverValidationOptions {
+  mode?: RiverValidationMode;
+}
+
+export interface RiverValidationResult<T> {
+  value?: T;
+  diagnostics: RiverDiagnostic[];
+  valid: boolean;
 }
 
 export interface RiverSamplePoint {
@@ -255,13 +299,29 @@ export interface RiverSampleResult {
   points: RiverSamplePoint[];
   /** Total sampled centerline length in world units. */
   totalLength: number;
+  /** Stable sampling diagnostics, including budget redistribution. */
+  diagnostics: RiverDiagnostic[];
 }
 
 export interface RiverMeshBuildResult {
-  /** Main transparent ribbon rendered as the river water surface. */
+  /** Main transparent ribbon. Low includes bank feather in this single mesh. */
   surfaceMesh: ModelMesh;
-  /** Wider strip rendered below/around the surface to express bank foam and blending. */
-  bankFoamMesh: ModelMesh;
+  /** High/experimental bank foam pass. Undefined for the mobile Low tier. */
+  bankFoamMesh?: ModelMesh;
+}
+
+export interface RiverMeshData {
+  positions: Vector3[];
+  uvs: Vector2[];
+  indices: number[];
+  /** Active index count when GPU buffers are padded to a stable capacity. */
+  drawIndexCount?: number;
+}
+
+export interface RiverQueryData {
+  /** x, y, z, distance, width, depth, flowSpeed, tangentX, tangentZ per sample. */
+  samples: Float32Array;
+  stride: number;
 }
 
 export interface RiverQueryResult {

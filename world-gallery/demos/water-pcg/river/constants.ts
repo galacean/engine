@@ -52,6 +52,51 @@ export enum RiverQualityLevel {
   High = "high"
 }
 
+export enum RiverValidationMode {
+  Strict = "strict",
+  PreviewRepair = "previewRepair"
+}
+
+export enum RiverDiagnosticSeverity {
+  Info = "info",
+  Warning = "warning",
+  Error = "error"
+}
+
+export enum RiverDiagnosticCode {
+  InvalidRootType = "RIVER_INVALID_ROOT_TYPE",
+  MissingField = "RIVER_MISSING_FIELD",
+  InvalidType = "RIVER_INVALID_TYPE",
+  InvalidNumber = "RIVER_INVALID_NUMBER",
+  InvalidEnum = "RIVER_INVALID_ENUM",
+  DuplicateId = "RIVER_DUPLICATE_ID",
+  ValueOutOfRange = "RIVER_VALUE_OUT_OF_RANGE",
+  ControlPointLimitExceeded = "RIVER_CONTROL_POINT_LIMIT_EXCEEDED",
+  ControlPointRepaired = "RIVER_CONTROL_POINT_REPAIRED",
+  DegenerateControlPoint = "RIVER_DEGENERATE_CONTROL_POINT",
+  SamplingBudgetRedistributed = "RIVER_SAMPLING_BUDGET_REDISTRIBUTED",
+  SamplingBudgetBelowAnchorCount = "RIVER_SAMPLING_BUDGET_BELOW_ANCHOR_COUNT",
+  ShortRiver = "RIVER_SHORT_LENGTH",
+  MissingNodeReference = "RIVER_MISSING_NODE_REFERENCE",
+  SegmentEndpointMismatch = "RIVER_SEGMENT_ENDPOINT_MISMATCH",
+  NetworkCycle = "RIVER_NETWORK_CYCLE",
+  DisconnectedNetwork = "RIVER_DISCONNECTED_NETWORK",
+  InvalidNodeDegree = "RIVER_INVALID_NODE_DEGREE",
+  ReversedElevation = "RIVER_REVERSED_ELEVATION",
+  InvalidMergeRadius = "RIVER_INVALID_MERGE_RADIUS",
+  NetworkBudgetExceeded = "RIVER_NETWORK_BUDGET_EXCEEDED"
+}
+
+export enum RiverDirtyFlag {
+  None = 0,
+  Topology = 1 << 0,
+  Geometry = 1 << 1,
+  Material = 1 << 2,
+  Query = 1 << 3,
+  Debug = 1 << 4,
+  All = Topology | Geometry | Material | Query | Debug
+}
+
 export enum RiverDebugMode {
   Off = "off",
   Path = "path",
@@ -92,6 +137,14 @@ export const RIVER_LIMITS = {
   minClarity: 0,
   maxClarity: 1,
   maxSegmentCount: 2048,
+  minChordError: 0.01,
+  maxChordError: 2,
+  maxNetworkSegmentCount: 256,
+  maxNetworkSampleCount: 32768,
+  maxNetworkVertexCount: 131072,
+  maxNetworkChunkCount: 256,
+  maxNetworkMapPixelCount: 4194304,
+  maxChunkVertexCount: 65535,
   minRiverLengthFactor: 2
 } as const;
 
@@ -101,7 +154,25 @@ export const RIVER_SHADER_PROPERTY = {
   flowSpeed: "material_FlowSpeed",
   foamIntensity: "material_FoamIntensity",
   clarity: "material_Clarity",
-  time: "material_Time"
+  noiseTexture: "material_NoiseTexture"
+} as const;
+
+export const RIVER_QUALITY_PRESET = {
+  [RiverQualityLevel.Low]: {
+    segmentLength: 3.5,
+    maxSegmentCount: 180,
+    maxChordError: 0.6
+  },
+  [RiverQualityLevel.Medium]: {
+    segmentLength: 1.8,
+    maxSegmentCount: 512,
+    maxChordError: 0.25
+  },
+  [RiverQualityLevel.High]: {
+    segmentLength: 1,
+    maxSegmentCount: 1024,
+    maxChordError: 0.1
+  }
 } as const;
 
 export const RIVER_MESH_OFFSET = {

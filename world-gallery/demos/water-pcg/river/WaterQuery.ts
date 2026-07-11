@@ -8,7 +8,7 @@
  * particles, audio, physics, or AI systems can consume river data without reading
  * mesh vertices or material state directly.
  */
-import { Vector3 } from "@galacean/engine";
+import { Vector3 } from "@galacean/engine-math";
 import { RiverQueryResult, RiverSamplePoint } from "./types";
 
 function clamp01(value: number): number {

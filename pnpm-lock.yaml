@@ -361,6 +361,12 @@ importers:
       '@galacean/engine':
         specifier: workspace:*
         version: link:../packages/galacean
+      '@galacean/engine-core':
+        specifier: workspace:*
+        version: link:../packages/core
+      '@galacean/engine-math':
+        specifier: workspace:*
+        version: link:../packages/math
       '@galacean/engine-shader':
         specifier: workspace:*
         version: link:../packages/shader

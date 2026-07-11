@@ -4,10 +4,14 @@
   "private": true,
   "description": "World Engine preview gallery — each feature is a demos/<feature> directory; run `pnpm world-gallery`.",
   "scripts": {
-    "dev": "vite serve . --config vite.config.js"
+    "dev": "vite serve . --config vite.config.js",
+    "test:water-pcg": "vitest run --config vitest.config.ts",
+    "typecheck:water-pcg": "tsc -p tsconfig.water-pcg.json --noEmit"
   },
   "dependencies": {
     "@galacean/engine": "workspace:*",
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
     "@galacean/engine-toolkit-controls": "latest"

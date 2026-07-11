@@ -20,6 +20,7 @@ import {
   RiverShapeConfig,
   Vector3Tuple
 } from "./types";
+import { validateRiverNetworkConfig } from "./RiverConfigValidator";
 
 function cloneVector3Tuple(tuple: Vector3Tuple): Vector3Tuple {
   return [tuple[0], tuple[1], tuple[2]];
@@ -92,6 +93,10 @@ function resolveSegmentMaterial(network: RiverNetworkConfig, segment: RiverSegme
 }
 
 export function createRiverConfigsFromNetwork(network: RiverNetworkConfig): RiverConfig[] {
+  const validation = validateRiverNetworkConfig(network);
+  if (!validation.valid) {
+    throw new Error(validation.diagnostics.map((diagnostic) => `${diagnostic.code}@${diagnostic.path}`).join(", "));
+  }
   const debug = network.debug ? cloneDebugConfig(network.debug) : getDefaultDebugConfig();
   return network.segments.map((segment) => ({
     id: segment.id,

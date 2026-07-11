@@ -8,7 +8,8 @@
  * and future editor tooling a way to inspect the river pipeline without mixing
  * debug drawing into mesh generation, material code, or gameplay query logic.
  */
-import { Color, Engine, Entity, MeshRenderer, UnlitMaterial, Vector3 } from "@galacean/engine";
+import { Engine, Entity, MeshRenderer, ModelMesh, UnlitMaterial } from "@galacean/engine-core";
+import { Color, Vector3 } from "@galacean/engine-math";
 import { RiverDebugMode, RIVER_MESH_OFFSET } from "./constants";
 import { buildFlowArrowMesh, buildLineMesh, buildLineSegmentsMesh } from "./RiverMeshBuilder";
 import { getPointAtRiverT, queryRiver } from "./WaterQuery";
@@ -34,6 +35,12 @@ export class RiverDebugView {
   private readonly _bankLineRenderer: MeshRenderer;
   private readonly _arrowRenderer: MeshRenderer;
   private readonly _queryRenderer: MeshRenderer;
+  private _controlPointMesh?: ModelMesh;
+  private _centerLineMesh?: ModelMesh;
+  private _bankLineMesh?: ModelMesh;
+  private _arrowMesh?: ModelMesh;
+  private _queryMesh?: ModelMesh;
+  private _lastMode?: RiverDebugMode;
 
   constructor(engine: Engine, parent: Entity) {
     this._root = parent.createChild("river-debug-view");
@@ -60,47 +67,80 @@ export class RiverDebugView {
     );
   }
 
-  update(engine: Engine, config: RiverConfig, samples: RiverSamplePoint[]): RiverQueryResult {
+  update(
+    engine: Engine,
+    config: RiverConfig,
+    samples: RiverSamplePoint[],
+    dirty: { geometry: boolean; query: boolean } = { geometry: true, query: true }
+  ): RiverQueryResult {
     this._root.isActive = config.debug.mode !== RiverDebugMode.Off;
 
     const queryPosition = getPointAtRiverT(samples, config.debug.queryT);
     const queryResult = queryRiver(samples, queryPosition);
     if (config.debug.mode === RiverDebugMode.Off) {
+      this._lastMode = config.debug.mode;
       return queryResult;
     }
 
-    const centerLine = samples.map(
-      (sample) => new Vector3(sample.position.x, sample.position.y + RIVER_MESH_OFFSET.debug, sample.position.z)
-    );
-    this._centerLineRenderer.mesh = buildLineMesh(engine, centerLine, new Color(1, 0.92, 0.36, 1));
-    this._controlPointRenderer.mesh = buildLineSegmentsMesh(
-      engine,
-      this._buildControlPointMarkers(config),
-      new Color(1, 0.54, 0.12, 1)
-    );
+    const modeChanged = this._lastMode !== config.debug.mode;
+    this._lastMode = config.debug.mode;
 
-    if (config.debug.mode === RiverDebugMode.Banks || config.debug.mode === RiverDebugMode.Full) {
-      this._bankLineRenderer.mesh = buildLineSegmentsMesh(
-        engine,
-        this._buildBankLineSegments(samples),
-        new Color(0.68, 1, 0.78, 1)
+    if (dirty.geometry || modeChanged || !this._centerLineMesh) {
+      const centerLine = samples.map(
+        (sample) => new Vector3(sample.position.x, sample.position.y + RIVER_MESH_OFFSET.debug, sample.position.z)
       );
+      this._centerLineMesh = buildLineMesh(engine, centerLine, new Color(1, 0.92, 0.36, 1), this._centerLineMesh);
+      this._centerLineRenderer.mesh = this._centerLineMesh;
+      this._controlPointMesh = buildLineSegmentsMesh(
+        engine,
+        this._buildControlPointMarkers(config),
+        new Color(1, 0.54, 0.12, 1),
+        this._controlPointMesh
+      );
+      this._controlPointRenderer.mesh = this._controlPointMesh;
     }
 
-    if (config.debug.mode === RiverDebugMode.Full) {
-      this._arrowRenderer.mesh = buildFlowArrowMesh(engine, samples, 8, 2.2, new Color(1, 1, 1, 1));
+    if (
+      (dirty.geometry || modeChanged || !this._bankLineMesh) &&
+      (config.debug.mode === RiverDebugMode.Banks || config.debug.mode === RiverDebugMode.Full)
+    ) {
+      this._bankLineMesh = buildLineSegmentsMesh(
+        engine,
+        this._buildBankLineSegments(samples),
+        new Color(0.68, 1, 0.78, 1),
+        this._bankLineMesh
+      );
+      this._bankLineRenderer.mesh = this._bankLineMesh;
+    }
+
+    if ((dirty.geometry || modeChanged || !this._arrowMesh) && config.debug.mode === RiverDebugMode.Full) {
+      this._arrowMesh = buildFlowArrowMesh(engine, samples, 8, 2.2, new Color(1, 1, 1, 1), this._arrowMesh);
+      this._arrowRenderer.mesh = this._arrowMesh;
     }
 
     this._bankLineRenderer.entity.isActive =
       config.debug.mode === RiverDebugMode.Banks || config.debug.mode === RiverDebugMode.Full;
     this._arrowRenderer.entity.isActive = config.debug.mode === RiverDebugMode.Full;
-    this._queryRenderer.mesh = buildLineSegmentsMesh(
-      engine,
-      this._buildQueryMarker(queryPosition),
-      new Color(1, 0.38, 0.22, 1)
-    );
+    if (dirty.query || dirty.geometry || modeChanged || !this._queryMesh) {
+      this._queryMesh = buildLineSegmentsMesh(
+        engine,
+        this._buildQueryMarker(queryPosition),
+        new Color(1, 0.38, 0.22, 1),
+        this._queryMesh
+      );
+      this._queryRenderer.mesh = this._queryMesh;
+    }
 
     return queryResult;
+  }
+
+  destroy(): void {
+    this._root.destroy();
+    this._controlPointMesh?.destroy(true);
+    this._centerLineMesh?.destroy(true);
+    this._bankLineMesh?.destroy(true);
+    this._arrowMesh?.destroy(true);
+    this._queryMesh?.destroy(true);
   }
 
   private _buildControlPointMarkers(config: RiverConfig): Vector3[] {

@@ -1,0 +1,7 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "vitest/globals"]
+  },
+  "include": ["demos/water-pcg/**/*.ts", "types/**/*.d.ts", "vite.config.js"]
+}
