@@ -17,6 +17,12 @@ export interface ReadonlyFloat32Buffer extends Iterable<number> {
   toTypedArray(): Float32Array;
 }
 
+export interface ReadonlyInt32Buffer extends Iterable<number> {
+  readonly length: number;
+  at(index: number): number | undefined;
+  toTypedArray(): Int32Array;
+}
+
 export type DeepReadonly<T> = T extends readonly [infer A, infer B, infer C]
   ? readonly [DeepReadonly<A>, DeepReadonly<B>, DeepReadonly<C>]
   : T extends readonly (infer U)[]
@@ -63,6 +69,8 @@ export interface RiverCompileStats {
   readonly vertexCount: number;
   readonly chunkCount: number;
   readonly mapPixelCount: number;
+  readonly queryPrimitiveCount: number;
+  readonly queryCellCount: number;
   readonly budgetRedistributed: boolean;
   readonly minWaterSurfaceElevation: number;
   readonly maxWaterSurfaceElevation: number;
@@ -75,6 +83,7 @@ export interface RiverCompiledData {
   readonly reaches: readonly RiverCompiledReach[];
   readonly junctions: readonly RiverJunctionArtifact[];
   readonly chunks: readonly RiverCompiledChunk[];
+  readonly queryIndex: RiverQueryIndexData;
   readonly topologicalNodeIndices: ReadonlyUint32Buffer;
   readonly waterSurfaceElevations: ReadonlyFloat32Buffer;
   readonly diagnostics: readonly RiverDiagnostic[];
@@ -168,8 +177,25 @@ export interface RiverJunctionArtifact {
   readonly outgoingReachIndices: ReadonlyUint32Buffer;
   readonly materialSourceReachIndex: number;
   readonly flowDirection: ReadonlyVector3Tuple;
+  readonly flowSpeed: number;
+  readonly depth: number;
+  readonly queryBoundary: readonly ReadonlyVector3Tuple[];
   readonly surfaceGeometry: RiverGeometryData;
   readonly bankFoamGeometry?: RiverGeometryData;
+}
+
+/** Sparse uniform-grid index over reach spans and junction footprints. */
+export interface RiverQueryIndexData {
+  readonly cellSize: number;
+  readonly primitiveCount: number;
+  readonly cellCount: number;
+  readonly primitiveKinds: ReadonlyUint32Buffer;
+  readonly primitiveSourceIndices: ReadonlyUint32Buffer;
+  readonly primitiveLocalIndices: ReadonlyUint32Buffer;
+  readonly primitiveBounds: ReadonlyFloat32Buffer;
+  readonly cellCoordinates: ReadonlyInt32Buffer;
+  readonly cellOffsets: ReadonlyUint32Buffer;
+  readonly cellPrimitiveIndices: ReadonlyUint32Buffer;
 }
 
 export interface RiverCompiledChunk {

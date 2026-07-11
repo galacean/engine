@@ -23,6 +23,7 @@ import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } fr
 import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
 import { compileRiverChunks } from "./RiverChunkCompiler";
 import { compileRiverJunctions } from "./RiverJunctionCompiler";
+import { compileRiverQueryIndex } from "./RiverQueryIndexCompiler";
 import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
 import { sampleRiverPath } from "./RiverPathSampler";
 import {
@@ -33,6 +34,7 @@ import {
   RiverJunctionArtifact,
   RiverCompiledNode,
   RiverCompiledReach,
+  RiverQueryIndexData,
   RiverSampleResult
 } from "./types";
 
@@ -49,6 +51,7 @@ interface RiverBudgetedReachResult {
   reaches: readonly RiverCompiledReach[];
   junctions: readonly RiverJunctionArtifact[];
   chunks: readonly RiverCompiledChunk[];
+  queryIndex: RiverQueryIndexData;
   sampleCount: number;
   vertexCount: number;
   chunkCount: number;
@@ -60,6 +63,7 @@ interface RiverFinalizedGeometry {
   readonly reaches: readonly RiverCompiledReach[];
   readonly junctions: readonly RiverJunctionArtifact[];
   readonly chunks: readonly RiverCompiledChunk[];
+  readonly queryIndex: RiverQueryIndexData;
   readonly sampleCount: number;
   readonly vertexCount: number;
   readonly chunkCount: number;
@@ -377,6 +381,7 @@ function finalizeReachDistances(
     });
   });
   const chunks = compileRiverChunks(reaches, junctionResult.junctions);
+  const queryIndex = compileRiverQueryIndex(reaches, junctionResult.junctions, descriptor.defaults.quality.query.level);
   const vertexCount = chunks.reduce(
     (sum, chunk) => sum + chunk.surfaceGeometry.positions.length + (chunk.bankFoamGeometry?.positions.length ?? 0),
     0
@@ -385,6 +390,7 @@ function finalizeReachDistances(
     reaches,
     junctions: junctionResult.junctions,
     chunks,
+    queryIndex,
     sampleCount: junctionResult.sampleResults.reduce((sum, result) => sum + result.points.length, 0),
     vertexCount,
     chunkCount: chunks.length
@@ -482,6 +488,7 @@ function applyNetworkRuntimeBudget(
     reaches: finalized.reaches,
     junctions: finalized.junctions,
     chunks: finalized.chunks,
+    queryIndex: finalized.queryIndex,
     sampleCount,
     vertexCount,
     chunkCount,
@@ -519,6 +526,8 @@ function createStats(
     vertexCount: budgeted.vertexCount,
     chunkCount: budgeted.chunkCount,
     mapPixelCount: budgeted.mapPixelCount,
+    queryPrimitiveCount: budgeted.queryIndex.primitiveCount,
+    queryCellCount: budgeted.queryIndex.cellCount,
     budgetRedistributed: budgeted.budgetRedistributed,
     minWaterSurfaceElevation: elevationValues.length > 0 ? Math.min(...elevationValues) : 0,
     maxWaterSurfaceElevation: elevationValues.length > 0 ? Math.max(...elevationValues) : 0
@@ -601,6 +610,7 @@ export class RiverNetworkCompiler {
       reaches: budgeted.reaches,
       junctions: budgeted.junctions,
       chunks: budgeted.chunks,
+      queryIndex: budgeted.queryIndex,
       topologicalNodeIndices: new RiverReadonlyUint32Buffer(topologicalNodeIndices),
       waterSurfaceElevations: new RiverReadonlyFloat32Buffer(waterSurfaceElevations),
       diagnostics: frozenDiagnostics,

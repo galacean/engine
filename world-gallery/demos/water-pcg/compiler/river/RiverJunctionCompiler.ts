@@ -176,6 +176,13 @@ function resolveFlowDirection(endpoints: readonly JunctionEndpoint[]): ReadonlyV
   return tuple3(x / length, 0, z / length);
 }
 
+function averageEndpointValue(
+  endpoints: readonly JunctionEndpoint[],
+  select: (endpoint: JunctionEndpoint) => number
+): number {
+  return endpoints.reduce((sum, endpoint) => sum + select(endpoint), 0) / Math.max(1, endpoints.length);
+}
+
 export function compileRiverJunctions(
   nodes: readonly RiverCompiledNode[],
   reaches: readonly RiverJunctionReachInput[]
@@ -264,6 +271,9 @@ export function compileRiverJunctions(
         incomingReachIndices[0]
       );
     const materialLevel = reaches[materialSourceReachIndex].materialLevel;
+    const queryBoundary = Object.freeze(
+      createBoundaryVertices(node, endpoints, false, 0).map((vertex) => vertex.position)
+    );
     const surfaceGeometry =
       materialLevel === RiverQualityLevel.Low
         ? createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface, true)
@@ -293,6 +303,9 @@ export function compileRiverJunctions(
         outgoingReachIndices: new RiverReadonlyUint32Buffer(outgoingReachIndices),
         materialSourceReachIndex,
         flowDirection: resolveFlowDirection(endpoints),
+        flowSpeed: averageEndpointValue(endpoints, (endpoint) => endpoint.sample.flowSpeed),
+        depth: averageEndpointValue(endpoints, (endpoint) => endpoint.sample.depth),
+        queryBoundary,
         surfaceGeometry,
         bankFoamGeometry
       })

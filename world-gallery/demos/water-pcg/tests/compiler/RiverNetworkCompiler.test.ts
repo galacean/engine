@@ -37,6 +37,8 @@ describe("RiverNetworkCompiler", () => {
     expect(first.data?.junctions).toHaveLength(2);
     expect(first.data?.stats.chunkCount).toBe(first.data?.chunks.length);
     expect(first.data?.chunks.length).toBeGreaterThanOrEqual(first.data!.reaches.length + first.data!.junctions.length);
+    expect(first.data?.stats.queryPrimitiveCount).toBe(first.data?.queryIndex.primitiveCount);
+    expect(first.data?.stats.queryCellCount).toBe(first.data?.queryIndex.cellCount);
     expect(first.data?.junctions.map((junction) => junction.surfaceGeometry.positions)).toEqual(
       second.data?.junctions.map((junction) => junction.surfaceGeometry.positions)
     );
