@@ -59,16 +59,6 @@ interface JunctionVertex {
   readonly angle: number;
 }
 
-interface JunctionBankVertex {
-  readonly endpointIndex: number;
-  readonly outerPosition: ReadonlyVector3Tuple;
-  readonly innerPosition: ReadonlyVector3Tuple;
-  readonly outerUv: Vector2Tuple;
-  readonly innerUv: Vector2Tuple;
-  readonly uv1: Vector2Tuple;
-  readonly angle: number;
-}
-
 function tuple3(x: number, y: number, z: number): ReadonlyVector3Tuple {
   return Object.freeze([x, y, z] as const);
 }
@@ -243,63 +233,6 @@ function createPatchGeometry(
   return createRiverGeometryData(positions, uvs, uv1s, indices, indices.length, colors);
 }
 
-function createBankRingGeometry(node: RiverCompiledNode, endpoints: readonly JunctionEndpoint[], yOffset: number) {
-  const boundary: JunctionBankVertex[] = [];
-  for (let endpointIndex = 0; endpointIndex < endpoints.length; endpointIndex++) {
-    const endpoint = endpoints[endpointIndex];
-    const join = resolveRiverRibbonJoinFrame(endpoint.samples, endpoint.sampleIndex);
-    const halfWidth = endpoint.sample.width * 0.5;
-    const outerWidth = halfWidth + endpoint.sample.bankFeather;
-    const featherAcross =
-      endpoint.sample.bankFeather /
-      Math.max(endpoint.sample.width + endpoint.sample.bankFeather * 2, RIVER_GEOMETRY_EPSILON);
-    const y = endpoint.sample.position.y + yOffset;
-    for (const side of [
-      { sign: 1, outerAcross: 0, innerAcross: featherAcross },
-      { sign: -1, outerAcross: 1, innerAcross: 1 - featherAcross }
-    ]) {
-      const outerX = endpoint.sample.position.x + join.normalX * outerWidth * join.widthScale * side.sign;
-      const outerZ = endpoint.sample.position.z + join.normalZ * outerWidth * join.widthScale * side.sign;
-      boundary.push({
-        endpointIndex,
-        outerPosition: tuple3(outerX, y, outerZ),
-        innerPosition: tuple3(
-          endpoint.sample.position.x + join.normalX * halfWidth * join.widthScale * side.sign,
-          y,
-          endpoint.sample.position.z + join.normalZ * halfWidth * join.widthScale * side.sign
-        ),
-        outerUv: tuple2(side.outerAcross, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
-        innerUv: tuple2(side.innerAcross, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
-        uv1: tuple2(endpoint.sample.flowSpeed, endpoint.networkDistance),
-        angle: Math.atan2(outerZ - node.position[2], outerX - node.position[0])
-      });
-    }
-  }
-  boundary.sort((a, b) => a.angle - b.angle);
-  const positions: ReadonlyVector3Tuple[] = [];
-  const uvs: Vector2Tuple[] = [];
-  const uv1s: Vector2Tuple[] = [];
-  for (const vertex of boundary) {
-    positions.push(vertex.outerPosition);
-    uvs.push(vertex.outerUv);
-    uv1s.push(vertex.uv1);
-  }
-  for (const vertex of boundary) {
-    positions.push(vertex.innerPosition);
-    uvs.push(vertex.innerUv);
-    uv1s.push(vertex.uv1);
-  }
-  const indices: number[] = [];
-  for (let index = 0; index < boundary.length; index++) {
-    const nextIndex = (index + 1) % boundary.length;
-    if (boundary[index].endpointIndex === boundary[nextIndex].endpointIndex) continue;
-    const inner = boundary.length + index;
-    const nextInner = boundary.length + nextIndex;
-    indices.push(index, nextIndex, inner, inner, nextIndex, nextInner);
-  }
-  return createRiverGeometryData(positions, uvs, uv1s, indices, indices.length);
-}
-
 function resolveFlowDirection(endpoints: readonly JunctionEndpoint[]): ReadonlyVector3Tuple {
   const outgoing = endpoints.filter((endpoint) => !endpoint.incoming);
   const sources = outgoing.length > 0 ? outgoing : endpoints;
@@ -416,12 +349,9 @@ export function compileRiverJunctions(
       materialLevel === RiverQualityLevel.Low
         ? createPatchGeometry(node, endpoints, true, RIVER_GEOMETRY_Y_OFFSET.surface, 0)
         : createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface, 0);
-    // Foam is an annulus around the junction domain, never another center fan. This preserves the
-    // reach bank UV at the cut boundary without drawing transparent triangle spokes over the water.
-    const bankFoamGeometry =
-      materialLevel === RiverQualityLevel.Low
-        ? undefined
-        : createBankRingGeometry(node, endpoints, RIVER_GEOMETRY_Y_OFFSET.bankFoam);
+    // Junction shore foam is derived from the surface UV inside the same pass. A separate
+    // transparent annulus still overlaps connected reach banks at oblique camera angles.
+    const bankFoamGeometry = undefined;
     const degenerateTriangleCount =
       countDegenerateTriangles(surfaceGeometry) + (bankFoamGeometry ? countDegenerateTriangles(bankFoamGeometry) : 0);
     if (degenerateTriangleCount > 0) {

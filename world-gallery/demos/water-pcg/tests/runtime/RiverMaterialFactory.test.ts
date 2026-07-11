@@ -26,4 +26,11 @@ describe("RiverMaterialFactory Low shader", () => {
     expect(riverSurfaceShaderSource).not.toContain("flowUVW");
     expect(riverSurfaceShaderSource).toContain("input.color.b");
   });
+
+  it("renders soft broken shoreline foam inside the surface pass", () => {
+    expect(riverSurfaceShaderSource).toContain("float shoreEnvelope");
+    expect(riverSurfaceShaderSource).toContain("float shoreFoam");
+    expect(riverSurfaceShaderSource).toContain("vec3 softFoamColor");
+    expect(riverSurfaceShaderSource).toContain("1.0 - smoothstep(0.96, 1.0, bankDistance)");
+  });
 });

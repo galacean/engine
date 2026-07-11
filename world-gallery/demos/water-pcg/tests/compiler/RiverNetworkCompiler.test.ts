@@ -73,7 +73,6 @@ describe("RiverNetworkCompiler", () => {
     expect(junction.surfaceGeometry.uvs).toHaveLength(junction.surfaceGeometry.positions.length);
     expect(junction.surfaceGeometry.uv1s).toHaveLength(junction.surfaceGeometry.positions.length);
     expect(junction.surfaceGeometry.colors).toHaveLength(junction.surfaceGeometry.positions.length);
-    expect(junction.bankFoamGeometry?.positions).toHaveLength(boundaryVertexCount * 2);
     for (const reachIndex of incoming) {
       const reach = result.data!.reaches[reachIndex];
       expect(reach.artifact.samples.at(-1)!.distance).toBeCloseTo(reach.length - junction.mergeRadius, 4);
@@ -167,6 +166,14 @@ describe("RiverNetworkCompiler", () => {
         ).toEqual([triangleIndex / 3]);
       }
     }
+  });
+
+  it("keeps bank foam in the single water-surface pass", () => {
+    const data = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor).data!;
+
+    expect(data.reaches.every((reach) => reach.artifact.bankFoamGeometry === undefined)).toBe(true);
+    expect(data.junctions.every((junction) => junction.bankFoamGeometry === undefined)).toBe(true);
+    expect(data.chunks.every((chunk) => chunk.bankFoamGeometry === undefined)).toBe(true);
   });
 
   it("snaps curve endpoints to compiler-resolved node positions with a diagnostic", () => {
@@ -278,7 +285,7 @@ describe("RiverNetworkCompiler", () => {
     expect(result.valid).toBe(true);
     expect(result.data?.stats).toMatchObject({
       sampleCount: 12,
-      vertexCount: 48,
+      vertexCount: 24,
       chunkCount: 1,
       mapPixelCount: 0,
       budgetRedistributed: true

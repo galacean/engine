@@ -70,11 +70,12 @@ Shader "AIWorld/RiverLow" {
         float flowTime = scene_ElapsedTime.x * max(material_FlowSpeed, 0.0) * ${RIVER_FLOW_UV_SCALE_GLSL} * flowEnabled;
         float downstream = input.uv.y - flowTime;
         float noise = texture2D(material_NoiseTexture, vec2(input.uv.x * 2.0, downstream * 0.28)).r;
-        float foam = edge * smoothstep(0.28, 0.82, noise + material_FoamIntensity * 0.34);
+        float foam = edge * smoothstep(0.38, 0.86, noise + material_FoamIntensity * 0.24) * 0.32;
         float center = 1.0 - across;
         vec3 waterColor = material_BaseColor.rgb * (0.72 + center * (0.18 + material_Clarity * 0.12));
-        vec3 color = mix(waterColor, material_FoamColor.rgb, foam);
-        float alpha = (water * material_BaseColor.a + foam * 0.72) * feather;
+        vec3 softFoamColor = mix(material_BaseColor.rgb * 1.2, material_FoamColor.rgb, 0.58);
+        vec3 color = mix(waterColor, softFoamColor, foam);
+        float alpha = (water * material_BaseColor.a + foam * 0.24) * feather;
         gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.94));
       }
     }
@@ -216,7 +217,13 @@ Shader "AIWorld/RiverSurface" {
         float brokenFoam = smoothstep(0.76, 1.08, waveField + streakCrest * 0.08);
         float foamSmooth = saturate(brokenFoam * 0.3 * material_FoamIntensity);
         float foamSharp = smoothstep(0.48, 0.92, foamSmooth + foamNoise * 0.14);
-        float foam = mix(foamSharp, foamSmooth, 0.32);
+        float surfaceFoam = mix(foamSharp, foamSmooth, 0.32);
+        float bankDistance = abs(input.uv.x - 0.5) * 2.0;
+        float shoreEnvelope = smoothstep(0.48, 0.72, bankDistance)
+          * (1.0 - smoothstep(0.96, 1.0, bankDistance));
+        float shorePattern = smoothstep(0.4, 0.58, broadWater * 0.66 + foamNoise * 0.34);
+        float shoreFoam = shoreEnvelope * (0.18 + shorePattern * 0.82) * material_FoamIntensity * 0.8;
+        float foam = min(max(surfaceFoam, shoreFoam), 0.65);
 
         float heightCenter = waveField * 0.9 + streakCrest * 0.1;
         float heightRight = fbm((worldUv + vec2(0.018, 0.0)) * 2.4);
@@ -228,10 +235,11 @@ Shader "AIWorld/RiverSurface" {
 
         vec3 color = material_BaseColor.rgb * (0.84 + clarity * 0.13 + (waveField - 0.5) * 0.1);
         color += vec3(0.0, 0.035, 0.07) * clarity;
-        color += material_FoamColor.rgb * lightScatter;
-        color = mix(color, material_FoamColor.rgb * (0.86 + foamNoise * 0.18), foam);
+        vec3 softFoamColor = mix(material_BaseColor.rgb * 1.2, material_FoamColor.rgb, 0.75);
+        color += softFoamColor * lightScatter;
+        color = mix(color, softFoamColor * (0.9 + foamNoise * 0.12), foam);
 
-        float alpha = material_BaseColor.a * 0.94 + foam * 0.08 + lightScatter * 0.05;
+        float alpha = material_BaseColor.a * 0.94 + foam * 0.03 + lightScatter * 0.04;
         gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.97));
       }
     }

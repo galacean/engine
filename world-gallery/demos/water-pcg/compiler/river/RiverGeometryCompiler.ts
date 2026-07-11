@@ -222,16 +222,9 @@ export class RiverGeometryCompiler {
             networkDistanceOffset,
             networkFlowTimeOffset
           );
-    const bankFoamGeometry =
-      materialLevel === RiverQualityLevel.Low
-        ? undefined
-        : createHighRibbonData(
-            samples,
-            (sample) => sample.bankFeather,
-            RIVER_GEOMETRY_Y_OFFSET.bankFoam,
-            networkDistanceOffset,
-            networkFlowTimeOffset
-          );
+    // Shore foam is evaluated inside the water-surface shader. Keeping a second transparent
+    // ribbon here caused branch banks to overlap and reorder as the camera moved.
+    const bankFoamGeometry = undefined;
     const geometryAnalysis = analyzeRiverGeometry(
       samples,
       surfaceGeometry,

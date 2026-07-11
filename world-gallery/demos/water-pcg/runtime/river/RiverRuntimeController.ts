@@ -51,7 +51,7 @@ interface MutableRiverRuntimeReach extends RiverRuntimeReach {
 interface MutableRiverRuntimeChunk {
   readonly root: Entity;
   readonly surfaceRenderer: MeshRenderer;
-  readonly foamRenderer: MeshRenderer;
+  readonly foamRenderer?: MeshRenderer;
   readonly compiled: RiverCompiledChunk;
   readonly meshes: RiverMeshBuildResult;
 }
@@ -190,7 +190,7 @@ export class RiverRuntimeController {
     root.isActive = false;
     resource.retain();
     let reaches: MutableRiverRuntimeReach[] = [];
-      const chunks: MutableRiverRuntimeChunk[] = [];
+    const chunks: MutableRiverRuntimeChunk[] = [];
     let yieldCount = 0;
     let maxSliceMs = 0;
     try {
@@ -268,14 +268,16 @@ export class RiverRuntimeController {
     for (const chunk of this._activeChunks) {
       if (chunk.compiled.materialSourceReachIndex !== reachIndex) continue;
       chunk.surfaceRenderer.entity.isActive = presentation.surfaceVisible;
-      chunk.foamRenderer.entity.isActive = presentation.foamVisible && Boolean(chunk.meshes.bankFoamMesh);
+      if (chunk.foamRenderer) {
+        chunk.foamRenderer.entity.isActive = presentation.foamVisible;
+      }
       chunk.surfaceRenderer.setMaterial(
         presentation.surfaceMaterial ??
           (reach.config.quality.material.level === RiverQualityLevel.Low
             ? reach.materials.low
             : reach.materials.surface)
       );
-      chunk.foamRenderer.setMaterial(presentation.foamMaterial ?? reach.materials.foam);
+      chunk.foamRenderer?.setMaterial(presentation.foamMaterial ?? reach.materials.foam);
     }
   }
 
@@ -354,21 +356,24 @@ export class RiverRuntimeController {
     const parent = chunk.sourceKind === RiverChunkSourceKind.Reach ? reaches[chunk.sourceIndex].root : runtimeRoot;
     const root = parent.createChild(`river-chunk-${chunk.id}`);
     root.transform.setPosition(chunk.localOrigin[0], chunk.localOrigin[1], chunk.localOrigin[2]);
-    const foamRenderer = root.createChild(`${chunk.id}-bank`).addComponent(MeshRenderer);
     const surfaceRenderer = root.createChild(`${chunk.id}-water`).addComponent(MeshRenderer);
     const meshes = uploadRiverMeshes(this._engine, chunk);
     const materialReach = reaches[chunk.materialSourceReachIndex];
     meshes.surfaceMesh.isGCIgnored = true;
     if (meshes.bankFoamMesh) meshes.bankFoamMesh.isGCIgnored = true;
     surfaceRenderer.mesh = meshes.surfaceMesh;
-    foamRenderer.mesh = meshes.bankFoamMesh ?? meshes.surfaceMesh;
     surfaceRenderer.setMaterial(
       materialReach.config.quality.material.level === RiverQualityLevel.Low
         ? materialReach.materials.low
         : materialReach.materials.surface
     );
-    foamRenderer.setMaterial(materialReach.materials.foam);
-    foamRenderer.entity.isActive = Boolean(meshes.bankFoamMesh);
+    const foamRenderer = meshes.bankFoamMesh
+      ? root.createChild(`${chunk.id}-bank`).addComponent(MeshRenderer)
+      : undefined;
+    if (foamRenderer && meshes.bankFoamMesh) {
+      foamRenderer.mesh = meshes.bankFoamMesh;
+      foamRenderer.setMaterial(materialReach.materials.foam);
+    }
     return { root, surfaceRenderer, foamRenderer, compiled: chunk, meshes };
   }
 

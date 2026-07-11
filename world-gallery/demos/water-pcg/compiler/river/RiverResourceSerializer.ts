@@ -19,7 +19,7 @@ import { RiverResourceAssetVersion, RiverSerializedBufferKind } from "./RiverRes
 import type { RiverCompiledData } from "./types";
 
 const RIVER_RESOURCE_BUFFER_TAG = "__riverNumericBuffer";
-const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 4;
+const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 5;
 
 interface SerializedNumericBuffer {
   readonly [RIVER_RESOURCE_BUFFER_TAG]: RiverSerializedBufferKind;

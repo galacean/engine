@@ -888,8 +888,11 @@ const engine = await WebGLEngine.create(engineConfiguration);
       riverRuntimeController.flushDeferredResources();
       if (pendingRuntimeStatsRefresh && riverRuntimes.length > 0) {
         const runtime = riverRuntimes[0];
-        const passesPerChunk = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low ? 1 : 2;
-        const drawCalls = activeRiverCompiledData.chunks.length * passesPerChunk;
+        const foamDrawCalls = activeRiverCompiledData.chunks.reduce(
+          (count, chunk) => count + (chunk.bankFoamGeometry ? 1 : 0),
+          0
+        );
+        const drawCalls = activeRiverCompiledData.chunks.length + foamDrawCalls;
         exampleBarElement.dataset.bufferMemory = String(engine.renderingStatistics.bufferMemory);
         exampleBarElement.dataset.estimatedRiverDrawCalls = String(drawCalls);
         surveyConsole.updateRuntime({
