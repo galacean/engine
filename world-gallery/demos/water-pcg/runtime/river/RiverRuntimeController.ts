@@ -13,6 +13,7 @@ import {
   updateRiverMaterial
 } from "./RiverMaterialFactory";
 import { uploadRiverMeshes } from "./RiverMeshUploader";
+import { RiverNetworkQueryService } from "./RiverQueryService";
 import type { RiverMeshBuildResult } from "./types";
 
 export interface RiverRuntimeReach {
@@ -56,11 +57,13 @@ interface MutableRiverRuntimeChunk {
 interface MutableRiverRuntimeSet {
   readonly reaches: MutableRiverRuntimeReach[];
   readonly chunks: MutableRiverRuntimeChunk[];
+  readonly queryService: RiverNetworkQueryService;
 }
 
 export interface RiverRuntimeActivation {
   created: boolean;
   reaches: readonly RiverRuntimeReach[];
+  queryService: RiverNetworkQueryService;
 }
 
 function pinMaterialSet(materials: RiverRuntimeMaterialSet): void {
@@ -74,6 +77,7 @@ export class RiverRuntimeController {
   private _activeId?: string;
   private _activeReaches: MutableRiverRuntimeReach[] = [];
   private _activeChunks: MutableRiverRuntimeChunk[] = [];
+  private _activeQueryService?: RiverNetworkQueryService;
   private _pendingResourceGc = false;
 
   constructor(
@@ -83,6 +87,10 @@ export class RiverRuntimeController {
 
   get activeReaches(): readonly RiverRuntimeReach[] {
     return this._activeReaches;
+  }
+
+  get activeQueryService(): RiverNetworkQueryService | undefined {
+    return this._activeQueryService;
   }
 
   activate(
@@ -96,16 +104,18 @@ export class RiverRuntimeController {
       this._activeId = networkId;
       this._activeReaches = cached.reaches;
       this._activeChunks = cached.chunks;
+      this._activeQueryService = cached.queryService;
       for (const reach of cached.reaches) reach.root.isActive = true;
       for (const chunk of cached.chunks) chunk.root.isActive = true;
-      return { created: false, reaches: cached.reaches };
+      return { created: false, reaches: cached.reaches, queryService: cached.queryService };
     }
     const runtimeSet = this._createRuntimeSet(compiledData, sources);
     this._runtimeSets.set(networkId, runtimeSet);
     this._activeId = networkId;
     this._activeReaches = runtimeSet.reaches;
     this._activeChunks = runtimeSet.chunks;
-    return { created: true, reaches: runtimeSet.reaches };
+    this._activeQueryService = runtimeSet.queryService;
+    return { created: true, reaches: runtimeSet.reaches, queryService: runtimeSet.queryService };
   }
 
   replaceActive(
@@ -119,6 +129,7 @@ export class RiverRuntimeController {
     this._activeId = networkId;
     this._activeReaches = runtimeSet.reaches;
     this._activeChunks = runtimeSet.chunks;
+    this._activeQueryService = runtimeSet.queryService;
     if (previous) {
       this._destroyRuntimeSet(previous);
       this._pendingResourceGc = true;
@@ -172,6 +183,7 @@ export class RiverRuntimeController {
     this._runtimeSets.clear();
     this._activeReaches = [];
     this._activeChunks = [];
+    this._activeQueryService = undefined;
     this._activeId = undefined;
     this._pendingResourceGc = true;
   }
@@ -197,7 +209,7 @@ export class RiverRuntimeController {
       };
     });
     const chunks = compiledData.chunks.map((chunk) => this._createChunk(chunk, reaches));
-    return { reaches, chunks };
+    return { reaches, chunks, queryService: new RiverNetworkQueryService(compiledData) };
   }
 
   private _createChunk(

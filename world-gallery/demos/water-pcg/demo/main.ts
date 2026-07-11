@@ -33,7 +33,8 @@ import {
   type RiverRuntimeReachSource
 } from "../runtime/river/RiverRuntimeController";
 import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "../compiler/river/RiverNetworkCompiler";
-import type { RiverQueryResult } from "../runtime/river/types";
+import { createRiverNetworkQueryResult, getPointAtRiverT } from "../runtime/river/RiverQueryService";
+import type { RiverNetworkQueryResult } from "../runtime/river/types";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -250,11 +251,11 @@ function syncGuiStateFromRiverConfig(): void {
         : "ClearStream";
 }
 
-function updateQueryPanel(queryResult: RiverQueryResult, warnings: string[]): void {
-  queryPanelState.inWater = queryResult.inWater ? "true" : "false";
+function updateQueryPanel(queryResult: RiverNetworkQueryResult, warnings: string[]): void {
+  queryPanelState.inWater = queryResult.insideVolume ? "true" : "false";
   queryPanelState.surfaceHeight = queryResult.surfaceHeight.toFixed(2);
-  queryPanelState.depth = queryResult.depth.toFixed(2);
-  queryPanelState.flow = `${queryResult.flowDirection.x.toFixed(2)}, ${queryResult.flowDirection.z.toFixed(2)} @ ${queryResult.flowSpeed.toFixed(2)}`;
+  queryPanelState.depth = queryResult.waterDepth.toFixed(2);
+  queryPanelState.flow = `${queryResult.flowVector.x.toFixed(2)}, ${queryResult.flowVector.z.toFixed(2)}`;
   queryPanelState.distanceToBank = queryResult.distanceToBank.toFixed(2);
   queryPanelState.warnings = warnings.length > 0 ? warnings.join(" | ") : "None";
 }
@@ -393,6 +394,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     });
   };
   const hasDirty = (flags: RiverDirtyFlag, flag: RiverDirtyFlag): boolean => (flags & flag) !== 0;
+  const networkQueryResult = createRiverNetworkQueryResult();
   const recompileActiveNetwork = (): boolean => {
     const previousPrimaryConfig = riverConfigs[0];
     const previousQuality = previousPrimaryConfig?.quality.material.level;
@@ -434,6 +436,8 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     exampleBarElement.dataset.compiledReachCount = String(result.data.stats.reachCount);
     exampleBarElement.dataset.compiledJunctionCount = String(result.data.junctions.length);
     exampleBarElement.dataset.compiledChunkCount = String(result.data.chunks.length);
+    exampleBarElement.dataset.queryPrimitiveCount = String(result.data.queryIndex.primitiveCount);
+    exampleBarElement.dataset.queryCellCount = String(result.data.queryIndex.cellCount);
     return true;
   };
   const applyRiverChanges = (requestedFlags: RiverDirtyFlag): void => {
@@ -443,7 +447,6 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       flags = RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug;
     }
     const warnings: string[] = [];
-    let primaryQueryResult: RiverQueryResult | undefined;
     const geometryDirty = hasDirty(flags, RiverDirtyFlag.Geometry);
     const materialDirty = hasDirty(flags, RiverDirtyFlag.Material);
 
@@ -455,7 +458,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       const runtime = riverRuntimes[i];
       riverRuntimeController.updateReach(i, runtime.normalizedConfig, runtime.artifact, materialDirty);
       applyRiverPreviewStage(runtime, i);
-      const queryResult = riverDebugController.update(
+      riverDebugController.update(
         i,
         createDebugRiverConfig(runtime.normalizedConfig),
         runtime.sampleResult.points,
@@ -466,8 +469,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         }
       );
 
-      if (i === 0 && queryResult) {
-        primaryQueryResult = queryResult;
+      if (i === 0) {
         exampleBarElement.dataset.materialQuality = runtime.normalizedConfig.quality.material.level;
         exampleBarElement.dataset.sampleCount = String(runtime.sampleResult.points.length);
         exampleBarElement.dataset.geometryBuildCount = String(runtime.geometryBuildCount);
@@ -483,8 +485,13 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       );
     }
 
-    if (primaryQueryResult) {
-      updateQueryPanel(primaryQueryResult, warnings);
+    const primaryRuntime = riverRuntimes[0];
+    const queryService = riverRuntimeController.activeQueryService;
+    if (primaryRuntime && queryService) {
+      const queryPosition = getPointAtRiverT(primaryRuntime.sampleResult.points, primaryRuntime.config.debug.queryT);
+      queryService.sampleSurface(queryPosition, networkQueryResult);
+      updateQueryPanel(networkQueryResult, warnings);
+      exampleBarElement.dataset.querySourceKind = networkQueryResult.sourceKind ?? "none";
     }
     pendingRuntimeStatsRefresh = true;
   };
@@ -515,6 +522,8 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     exampleBarElement.dataset.compiledReachCount = String(activeRiverCompiledData.stats.reachCount);
     exampleBarElement.dataset.compiledJunctionCount = String(activeRiverCompiledData.junctions.length);
     exampleBarElement.dataset.compiledChunkCount = String(activeRiverCompiledData.chunks.length);
+    exampleBarElement.dataset.queryPrimitiveCount = String(activeRiverCompiledData.queryIndex.primitiveCount);
+    exampleBarElement.dataset.queryCellCount = String(activeRiverCompiledData.queryIndex.cellCount);
 
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
