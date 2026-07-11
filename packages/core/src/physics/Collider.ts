@@ -183,16 +183,28 @@ export class Collider extends Component implements ICustomClone {
 
   protected _addNativeShape(shape: ColliderShape): void {
     shape._collider = this;
-    if (shape._nativeShape) {
-      shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-      this._nativeCollider.addShape(shape._nativeShape);
-    }
+    this._attachNativeShape(shape);
   }
 
   protected _removeNativeShape(shape: ColliderShape): void {
+    this._detachNativeShape(shape);
     shape._collider = null;
-    if (shape._nativeShape) {
+  }
+
+  /** @internal */
+  _attachNativeShape(shape: ColliderShape): void {
+    if (shape._nativeShape && !shape._isShapeAttached) {
+      shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
+      this._nativeCollider.addShape(shape._nativeShape);
+      shape._isShapeAttached = true;
+    }
+  }
+
+  /** @internal */
+  _detachNativeShape(shape: ColliderShape): void {
+    if (shape._nativeShape && shape._isShapeAttached) {
       this._nativeCollider.removeShape(shape._nativeShape);
+      shape._isShapeAttached = false;
     }
   }
 

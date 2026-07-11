@@ -15,7 +15,6 @@ export class MeshColliderShape extends ColliderShape {
   private _positions: Vector3[] = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
-  private _isShapeAttached = false;
 
   /**
    * Cooking flags for this mesh collider shape.
@@ -135,9 +134,7 @@ export class MeshColliderShape extends ColliderShape {
 
   private _destroyNativeShape(): void {
     if (this._nativeShape) {
-      if (this._isShapeAttached) {
-        this._detachFromCollider();
-      }
+      this._collider?._detachNativeShape(this);
       this._nativeShape.destroy();
       this._nativeShape = null;
     }
@@ -179,27 +176,20 @@ export class MeshColliderShape extends ColliderShape {
         this._cookingFlags
       )
     ) {
-      if (this._collider && !this._isShapeAttached) {
-        this._attachToCollider();
-      }
+      this._collider?._attachNativeShape(this);
       return true;
     }
     return false;
   }
 
-  private _detachFromCollider(): void {
-    this._collider._nativeCollider.removeShape(this._nativeShape);
-    this._isShapeAttached = false;
-  }
-
-  private _attachToCollider(): void {
-    this._collider._nativeCollider.addShape(this._nativeShape);
-    this._isShapeAttached = true;
-  }
-
-  private _createNativeShape(): boolean {
+  private _createNativeShape(attachToCollider = true): boolean {
     // Non-convex MeshColliderShape is only supported on StaticCollider or kinematic DynamicCollider
-    if (!this._isConvex && this._collider instanceof DynamicCollider && !this._collider.isKinematic) {
+    if (
+      attachToCollider &&
+      !this._isConvex &&
+      this._collider instanceof DynamicCollider &&
+      !this._collider.isKinematic
+    ) {
       console.error("MeshColliderShape: Non-convex mesh is not supported on non-kinematic DynamicCollider.");
       return false;
     }
@@ -223,9 +213,8 @@ export class MeshColliderShape extends ColliderShape {
     super._syncNative();
 
     // If already attached to a collider, add the newly created native shape to it
-    if (this._collider) {
-      nativeShape.setWorldScale(this._collider.entity.transform.lossyWorldScale);
-      this._attachToCollider();
+    if (attachToCollider && this._collider) {
+      this._collider._attachNativeShape(this);
     }
     return true;
   }
@@ -237,9 +226,10 @@ export class MeshColliderShape extends ColliderShape {
    * Cook a fresh native shape now using the already-cloned vertex/index buffers.
    */
   override _cloneTo(target: MeshColliderShape): void {
+    target._mesh?._addReferCount(1);
     super._cloneTo(target);
-    if (target._positions) {
-      target._createNativeShape();
+    if (this._nativeShape) {
+      target._createNativeShape(false);
     }
   }
 }

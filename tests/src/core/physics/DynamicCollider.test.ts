@@ -12,7 +12,7 @@ import {
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
 import { Vector3 } from "@galacean/engine-math";
-import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
+import { vi, describe, beforeAll, beforeEach, afterEach, expect, it } from "vitest";
 
 const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
 const physXWasmSIMDModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.simd.js", import.meta.url)
@@ -52,6 +52,16 @@ describe("DynamicCollider", function () {
     return boxEntity;
   }
 
+  function addOffsetBoxCollider(name: string) {
+    const entity = rootEntity.createChild(name);
+    const collider = entity.addComponent(DynamicCollider);
+    const shape = new BoxColliderShape();
+    shape.size = new Vector3(2, 4, 6);
+    shape.position = new Vector3(1, 2, 3);
+    collider.addShape(shape);
+    return { entity, collider };
+  }
+
   function formatValue(value: number) {
     return Math.round(value * 100000) / 100000;
   }
@@ -70,6 +80,10 @@ describe("DynamicCollider", function () {
 
   beforeEach(function () {
     rootEntity.clearChildren();
+  });
+
+  afterEach(function () {
+    vi.restoreAllMocks();
   });
 
   it("tolerancesScale drives PhysX default contact offset and sleep threshold", function () {
@@ -430,6 +444,65 @@ describe("DynamicCollider", function () {
 
     // Normal collision
     expect(Math.abs(formatValue(boxCollider2.linearVelocity.x))).lessThan(4);
+  });
+
+  it("clone keeps automatic mass properties without warnings", function () {
+    const { entity } = addOffsetBoxCollider("AutomaticCollider");
+    const consoleWarnSpy = vi.spyOn(console, "warn");
+
+    const clone = entity.clone().getComponent(DynamicCollider);
+
+    expect(clone.automaticCenterOfMass).toBe(true);
+    expect(clone.automaticInertiaTensor).toBe(true);
+    expect(clone.centerOfMass).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(formatValue(clone.inertiaTensor.x)).eq(4.33333);
+    expect(formatValue(clone.inertiaTensor.y)).eq(3.33333);
+    expect(formatValue(clone.inertiaTensor.z)).eq(1.66667);
+    expect(consoleWarnSpy).toHaveBeenCalledTimes(0);
+  });
+
+  it("clone keeps manual mass properties", function () {
+    const { entity, collider } = addOffsetBoxCollider("ManualCollider");
+    collider.automaticCenterOfMass = false;
+    collider.automaticInertiaTensor = false;
+    collider.centerOfMass = new Vector3(1, 2, 3);
+    collider.inertiaTensor = new Vector3(4, 5, 6);
+
+    const clone = entity.clone().getComponent(DynamicCollider);
+
+    expect(clone.automaticCenterOfMass).toBe(false);
+    expect(clone.automaticInertiaTensor).toBe(false);
+    expect(clone.centerOfMass).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(clone.inertiaTensor).to.deep.include({ x: 4, y: 5, z: 6 });
+  });
+
+  it("clone keeps mixed automatic mass properties", function () {
+    const { entity: manualCenterEntity, collider: manualCenterCollider } = addOffsetBoxCollider("ManualCenterCollider");
+    manualCenterCollider.automaticCenterOfMass = false;
+    manualCenterCollider.centerOfMass = new Vector3(7, 8, 9);
+
+    const manualCenterClone = manualCenterEntity.clone().getComponent(DynamicCollider);
+
+    expect(manualCenterClone.automaticCenterOfMass).toBe(false);
+    expect(manualCenterClone.automaticInertiaTensor).toBe(true);
+    expect(manualCenterClone.centerOfMass).to.deep.include({ x: 7, y: 8, z: 9 });
+    expect(formatValue(manualCenterClone.inertiaTensor.x)).eq(4.33333);
+    expect(formatValue(manualCenterClone.inertiaTensor.y)).eq(3.33333);
+    expect(formatValue(manualCenterClone.inertiaTensor.z)).eq(1.66667);
+
+    const { entity: manualInertiaEntity, collider: manualInertiaCollider } =
+      addOffsetBoxCollider("ManualInertiaCollider");
+    manualInertiaCollider.automaticInertiaTensor = false;
+    manualInertiaCollider.inertiaTensor = new Vector3(7, 8, 9);
+
+    const manualInertiaClone = manualInertiaEntity.clone().getComponent(DynamicCollider);
+
+    expect(manualInertiaClone.automaticCenterOfMass).toBe(true);
+    expect(manualInertiaClone.automaticInertiaTensor).toBe(false);
+    expect(manualInertiaClone.centerOfMass).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(formatValue(manualInertiaClone.inertiaTensor.x)).eq(7);
+    expect(formatValue(manualInertiaClone.inertiaTensor.y)).eq(8);
+    expect(formatValue(manualInertiaClone.inertiaTensor.z)).eq(9);
   });
 
   it("useGravity", function () {

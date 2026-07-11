@@ -28,6 +28,28 @@ describe("ResourceManager", () => {
       getResource = engine.resourceManager.getFromCache(wrongUrl);
       expect(getResource).equal(null);
     });
+
+    it("resolves virtual paths to physical cache keys", () => {
+      const resourceManager = engine.resourceManager;
+      const virtualPath = "Prefab/Character.prefab";
+      const physicalPath = "/Prefab/Character.prefab";
+      const remoteUrl = "https://cdn.ali.com/Prefab/Remote.prefab";
+      const physicalResource = {};
+      const remoteResource = {};
+
+      resourceManager.initVirtualResources([
+        { virtualPath, path: physicalPath, type: AssetType.Prefab, params: { keep: true } }
+      ]);
+      // @ts-ignore
+      resourceManager._assetUrlPool[physicalPath] = physicalResource;
+      // @ts-ignore
+      resourceManager._assetUrlPool[remoteUrl] = remoteResource;
+
+      expect(resourceManager.getFromCache(virtualPath)).equal(physicalResource);
+      expect(resourceManager.getFromCache(physicalPath)).equal(physicalResource);
+      expect(resourceManager.getFromCache(remoteUrl)).equal(remoteResource);
+      expect(resourceManager.getFromCache("Prefab/Missing.prefab")).equal(null);
+    });
   });
 
   describe("findResourcesByType", () => {

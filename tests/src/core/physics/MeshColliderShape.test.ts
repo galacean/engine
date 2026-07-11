@@ -46,6 +46,10 @@ function createModelMesh(engine: WebGLEngine, positions: number[], indices?: num
   return mesh;
 }
 
+function getNativeShapeCount(collider: DynamicCollider): number {
+  return (collider as any)._nativeCollider._shapes.length;
+}
+
 describe("MeshColliderShape PhysX", () => {
   let engine: WebGLEngine;
   let root: Entity;
@@ -280,6 +284,106 @@ describe("MeshColliderShape PhysX", () => {
         entity.destroy();
         meshMaterial?.destroy();
       }
+    });
+
+    it("should clone convex mesh with exactly one native shape", () => {
+      const entity = root.createChild("cloneConvexMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      meshShape.isConvex = true;
+      dynamicCollider.addShape(meshShape);
+
+      const mesh = createModelMesh(engine, [-1, -1, -1, 1, -1, -1, 0, 1, -1, -1, -1, 1, 1, -1, 1, 0, 1, 1]);
+      meshShape.mesh = mesh;
+
+      expect(dynamicCollider.shapes).toHaveLength(1);
+      expect(getNativeShapeCount(dynamicCollider)).toBe(1);
+      expect(mesh._getReferCount()).toBe(1);
+
+      const clonedEntity = entity.clone();
+      const clonedCollider = clonedEntity.getComponent(DynamicCollider);
+      const clonedShape = clonedCollider.shapes[0] as MeshColliderShape;
+
+      expect(clonedCollider.shapes).toHaveLength(1);
+      expect(clonedShape.mesh).toBe(mesh);
+      expect((clonedShape as any)._nativeShape).toBeTruthy();
+      expect((clonedShape as any)._isShapeAttached).toBe(true);
+      expect(getNativeShapeCount(clonedCollider)).toBe(1);
+      expect(mesh._getReferCount()).toBe(2);
+
+      clonedEntity.destroy();
+      expect(mesh._getReferCount()).toBe(1);
+      entity.destroy();
+      expect(mesh._getReferCount()).toBe(0);
+      defaultMaterial?.destroy();
+    });
+
+    it("should create a cloned native shape when mesh data becomes available later", () => {
+      const entity = root.createChild("cloneDelayedConvexMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      meshShape.isConvex = true;
+      dynamicCollider.addShape(meshShape);
+
+      const clonedEntity = entity.clone();
+      const clonedCollider = clonedEntity.getComponent(DynamicCollider);
+      const clonedShape = clonedCollider.shapes[0] as MeshColliderShape;
+
+      expect(clonedCollider.shapes).toHaveLength(1);
+      expect((clonedShape as any)._nativeShape).toBeFalsy();
+      expect((clonedShape as any)._isShapeAttached).toBe(false);
+      expect(getNativeShapeCount(clonedCollider)).toBe(0);
+
+      const mesh = createModelMesh(engine, [-1, -1, -1, 1, -1, -1, 0, 1, -1, -1, -1, 1, 1, -1, 1, 0, 1, 1]);
+      clonedShape.mesh = mesh;
+
+      expect((clonedShape as any)._nativeShape).toBeTruthy();
+      expect((clonedShape as any)._isShapeAttached).toBe(true);
+      expect(getNativeShapeCount(clonedCollider)).toBe(1);
+      expect(mesh._getReferCount()).toBe(1);
+
+      clonedEntity.destroy();
+      expect(mesh._getReferCount()).toBe(0);
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
+    it("should keep an inaccessible mesh native-less when cloned", () => {
+      const warnSpy = vi.spyOn(console, "warn");
+      const entity = root.createChild("cloneInaccessibleConvexMesh");
+      const dynamicCollider = entity.addComponent(DynamicCollider);
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      meshShape.isConvex = true;
+      dynamicCollider.addShape(meshShape);
+
+      const mesh = new ModelMesh(engine);
+      mesh.setPositions([new Vector3(-1, 0, 0), new Vector3(1, 0, 0), new Vector3(0, 1, 0)]);
+      mesh.uploadData(true);
+      meshShape.mesh = mesh;
+
+      expect((meshShape as any)._nativeShape).toBeFalsy();
+      expect(getNativeShapeCount(dynamicCollider)).toBe(0);
+      expect(mesh._getReferCount()).toBe(1);
+
+      const clonedEntity = entity.clone();
+      const clonedCollider = clonedEntity.getComponent(DynamicCollider);
+      const clonedShape = clonedCollider.shapes[0] as MeshColliderShape;
+
+      expect(clonedShape.mesh).toBe(mesh);
+      expect((clonedShape as any)._nativeShape).toBeFalsy();
+      expect((clonedShape as any)._isShapeAttached).toBe(false);
+      expect(getNativeShapeCount(clonedCollider)).toBe(0);
+      expect(mesh._getReferCount()).toBe(2);
+
+      clonedEntity.destroy();
+      expect(mesh._getReferCount()).toBe(1);
+      entity.destroy();
+      expect(mesh._getReferCount()).toBe(0);
+      defaultMaterial?.destroy();
+      warnSpy.mockRestore();
     });
 
     it("should allow convex mesh on dynamic collider", async () => {

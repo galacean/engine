@@ -17,6 +17,9 @@ export abstract class ColliderShape implements ICustomClone {
   _collider: Collider;
   /** @internal */
   @ignoreClone
+  _isShapeAttached = false;
+  /** @internal */
+  @ignoreClone
   _nativeShape: IColliderShape;
 
   @ignoreClone

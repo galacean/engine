@@ -104,7 +104,7 @@ export class ResourceManager {
    * @returns Resource object
    */
   getFromCache<T>(url: string): T {
-    return (this._assetUrlPool[url] as T) ?? null;
+    return (this._assetUrlPool[this._getRemoteUrl(url)] as T) ?? null;
   }
 
   /**
