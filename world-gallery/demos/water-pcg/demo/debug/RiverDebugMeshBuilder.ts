@@ -2,8 +2,27 @@
 import { Engine, MeshTopology, ModelMesh } from "@galacean/engine-core";
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
 import type { RiverSamplePoint } from "../../compiler/river/types";
-import { updateMeshBounds } from "../../runtime/river/RiverMeshBuilder";
 import { RIVER_DEBUG_OFFSET } from "./constants";
+
+function updateMeshBounds(mesh: ModelMesh, positions: readonly Vector3[]): void {
+  const boundsPadding = 3;
+  const { min, max } = mesh.bounds;
+  if (positions.length === 0) {
+    min.set(0, 0, 0);
+    max.set(0, 0, 0);
+    return;
+  }
+  min.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+  max.set(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+  for (const position of positions) {
+    min.x = Math.min(min.x, position.x);
+    min.y = Math.min(min.y, position.y - boundsPadding);
+    min.z = Math.min(min.z, position.z);
+    max.x = Math.max(max.x, position.x);
+    max.y = Math.max(max.y, position.y + boundsPadding);
+    max.z = Math.max(max.z, position.z);
+  }
+}
 
 function createLineMesh(
   engine: Engine,

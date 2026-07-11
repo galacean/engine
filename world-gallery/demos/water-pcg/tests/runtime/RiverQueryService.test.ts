@@ -1,5 +1,6 @@
 import { Vector3 } from "@galacean/engine-math";
 import { describe, expect, it } from "vitest";
+import { RiverGeometryCompiler } from "../../compiler/river/RiverGeometryCompiler";
 import { sampleRiverPath } from "../../compiler/river/RiverPathSampler";
 import { queryRiver } from "../../runtime/river/RiverQueryService";
 import type { RiverDemoConfig as RiverConfig } from "../../demo/types";
@@ -15,8 +16,9 @@ describe("WaterQuery flow contract", () => {
         points: straightFixture.path.points.map((point) => ({ ...point, flowSpeed: undefined }))
       }
     };
-    const samples = sampleRiverPath(config).points;
-    const result = queryRiver(samples, new Vector3(5, 0, 0));
+    const sampleResult = sampleRiverPath(config);
+    const source = RiverGeometryCompiler.compile(sampleResult, config.quality.material.level).querySource;
+    const result = queryRiver(source, new Vector3(5, 0, 0));
 
     expect(result.inWater).toBe(true);
     expect(result.flowSpeed).toBe(0);
@@ -32,8 +34,12 @@ describe("WaterQuery flow contract", () => {
         sample.position.z === anchor.position[2]
     );
     if (!anchorSample) throw new Error("Expected preserved anchor sample.");
-    const result = queryRiver(samples, anchorSample.position);
+    const source = RiverGeometryCompiler.compile(
+      { points: samples, totalLength: samples.at(-1)?.distance ?? 0, diagnostics: [] },
+      variableProfileFixture.quality.material.level
+    ).querySource;
+    const result = queryRiver(source, anchorSample.position);
 
-    expect(result.flowSpeed).toBe(anchor.flowSpeed);
+    expect(result.flowSpeed).toBeCloseTo(anchor.flowSpeed!);
   });
 });

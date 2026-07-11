@@ -10,7 +10,7 @@
  */
 import { Engine, Entity, MeshRenderer, ModelMesh, UnlitMaterial } from "@galacean/engine-core";
 import { Color, Vector3 } from "@galacean/engine-math";
-import type { RiverSamplePoint } from "../../compiler/river/types";
+import type { RiverQuerySourceData, RiverSamplePoint } from "../../compiler/river/types";
 import type { RiverQueryResult } from "../../runtime/river/types";
 import type { RiverDemoConfig } from "../types";
 import { RiverDebugMode, RIVER_DEBUG_OFFSET } from "./constants";
@@ -73,12 +73,13 @@ export class RiverDebugView {
     engine: Engine,
     config: RiverDemoConfig,
     samples: RiverSamplePoint[],
+    querySource: RiverQuerySourceData,
     dirty: { geometry: boolean; query: boolean } = { geometry: true, query: true }
   ): RiverQueryResult {
     this._root.isActive = config.debug.mode !== RiverDebugMode.Off;
 
     const queryPosition = getPointAtRiverT(samples, config.debug.queryT);
-    const queryResult = queryRiver(samples, queryPosition);
+    const queryResult = queryRiver(querySource, queryPosition);
     if (config.debug.mode === RiverDebugMode.Off) {
       this._lastMode = config.debug.mode;
       return queryResult;

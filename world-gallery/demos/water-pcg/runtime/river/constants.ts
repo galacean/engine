@@ -7,8 +7,3 @@ export const RIVER_SHADER_PROPERTY = {
   clarity: "material_Clarity",
   noiseTexture: "material_NoiseTexture"
 } as const;
-
-export const RIVER_RENDER_OFFSET = {
-  surface: 0.04,
-  bankFoam: 0.02
-} as const;

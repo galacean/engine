@@ -1,5 +1,5 @@
 /** Deterministic hashes used by fixtures, caches, and regression tests. */
-import type { RiverSamplePoint } from "../river/types";
+import type { RiverGeometryData, RiverSamplePoint } from "../river/types";
 
 function hashNumber(hash: number, value: number): number {
   const normalized = Number.isFinite(value) ? Math.round(value * 100000) : 0x7fffffff;
@@ -33,5 +33,24 @@ export function hashRiverSamples(samples: RiverSamplePoint[]): string {
     ];
     for (const value of values) hash = hashNumber(hash, value);
   }
+  return toHex(hash);
+}
+
+export function hashRiverGeometryData(data: RiverGeometryData): string {
+  let hash = 0x811c9dc5;
+  for (const position of data.positions) {
+    hash = hashNumber(hash, position[0]);
+    hash = hashNumber(hash, position[1]);
+    hash = hashNumber(hash, position[2]);
+  }
+  for (const uv of data.uvs) {
+    hash = hashNumber(hash, uv[0]);
+    hash = hashNumber(hash, uv[1]);
+  }
+  for (const uv of data.uv1s) {
+    hash = hashNumber(hash, uv[0]);
+    hash = hashNumber(hash, uv[1]);
+  }
+  for (const index of data.indices) hash = hashNumber(hash, index);
   return toHex(hash);
 }

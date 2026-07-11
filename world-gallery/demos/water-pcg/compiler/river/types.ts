@@ -45,6 +45,7 @@ export interface RiverCompiledReach {
   readonly networkDistanceOffset: number;
   readonly sampleCount: number;
   readonly config: DeepReadonly<RiverAuthoringConfig>;
+  readonly artifact: RiverReachArtifact;
 }
 
 export interface RiverCompileStats {
@@ -97,6 +98,50 @@ export interface RiverSampleResult {
   points: RiverSamplePoint[];
   totalLength: number;
   diagnostics: RiverDiagnostic[];
+}
+
+export type Vector2Tuple = readonly [number, number];
+export type ReadonlyVector3Tuple = readonly [number, number, number];
+
+export interface RiverCompiledSample {
+  readonly position: ReadonlyVector3Tuple;
+  readonly tangent: ReadonlyVector3Tuple;
+  readonly distance: number;
+  readonly width: number;
+  readonly depth: number;
+  readonly flowSpeed: number;
+  readonly bankFeather: number;
+}
+
+export interface RiverGeometryBounds {
+  readonly min: ReadonlyVector3Tuple;
+  readonly max: ReadonlyVector3Tuple;
+}
+
+/** Plain CPU geometry. Runtime owns conversion and GPU upload. */
+export interface RiverGeometryData {
+  readonly positions: readonly ReadonlyVector3Tuple[];
+  readonly uvs: readonly Vector2Tuple[];
+  readonly uv1s: readonly Vector2Tuple[];
+  readonly indices: ReadonlyUint32Buffer;
+  readonly bounds: RiverGeometryBounds;
+  readonly drawStart: number;
+  readonly drawCount: number;
+}
+
+export interface RiverQuerySourceData {
+  readonly samples: ReadonlyFloat32Buffer;
+  readonly stride: number;
+  readonly sampleCount: number;
+}
+
+export interface RiverReachArtifact {
+  readonly samples: readonly RiverCompiledSample[];
+  readonly totalLength: number;
+  readonly diagnostics: readonly RiverDiagnostic[];
+  readonly surfaceGeometry: RiverGeometryData;
+  readonly bankFoamGeometry?: RiverGeometryData;
+  readonly querySource: RiverQuerySourceData;
 }
 
 export interface TerrainHeightSampler {

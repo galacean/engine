@@ -24,6 +24,7 @@ import {
 } from "../../authoring/river/RiverSchemaDecoder";
 import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
+import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
 import { sampleRiverPath } from "./RiverPathSampler";
 import {
   DeepReadonly,
@@ -322,15 +323,21 @@ function finalizeReachDistances(
     }
   }
 
-  return drafts.map((draft, reachIndex) =>
-    deepFreezePlainData({
+  return drafts.map((draft, reachIndex) => {
+    const artifact = RiverGeometryCompiler.compile(
+      sampleResults[reachIndex],
+      draft.config.quality.material.level,
+      offsets[reachIndex]
+    );
+    return deepFreezePlainData({
       ...draft,
       length: sampleResults[reachIndex].totalLength,
       networkDistanceOffset: offsets[reachIndex],
       sampleCount: sampleResults[reachIndex].points.length,
-      config: deepFreezePlainData(draft.config)
-    })
-  );
+      config: deepFreezePlainData(draft.config),
+      artifact
+    });
+  });
 }
 
 function applyNetworkRuntimeBudget(

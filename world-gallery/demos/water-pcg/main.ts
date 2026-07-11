@@ -31,14 +31,15 @@ import { WaterPreviewMode } from "./example/constants";
 import { cloneOceanConfig, OceanConfig, waterPcgExamples } from "./example";
 import { RiverMaterialPreset, RiverPathMode, RiverQualityLevel } from "./authoring/river/RiverAuthoringEnums";
 import { RIVER_MATERIAL_PRESET_CONFIG, RIVER_QUALITY_PRESET } from "./authoring/river/RiverAuthoringLimits";
-import type { RiverCompiledData, RiverSampleResult } from "./compiler/river/types";
+import { decodeRiverSamplePoints, RiverGeometryCompiler } from "./compiler/river/RiverGeometryCompiler";
+import type { RiverCompiledData, RiverReachArtifact, RiverSampleResult } from "./compiler/river/types";
 import { RiverDirtyFlag } from "./demo/constants";
 import { RiverDebugMode, RiverPreviewStage, RIVER_PREVIEW_STAGE_COLOR } from "./demo/debug/constants";
 import type { RiverDemoConfig as RiverConfig } from "./demo/types";
 import { getRiverConfigWarnings } from "./authoring/river/RiverSchemaDecoder";
 import { RiverDebugView } from "./demo/debug/RiverDebugView";
 import { normalizeRiverDemoConfig } from "./demo/normalizeRiverDemoConfig";
-import { buildRiverMeshes, createRiverQueryData, updateMeshBounds } from "./runtime/river/RiverMeshBuilder";
+import { uploadRiverMeshes } from "./runtime/river/RiverMeshUploader";
 import {
   createLowRiverMaterial,
   createRiverFoamMaterial,
@@ -49,7 +50,7 @@ import {
 } from "./runtime/river/RiverMaterialFactory";
 import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "./compiler/river/RiverNetworkCompiler";
 import { sampleRiverPath } from "./compiler/river/RiverPathSampler";
-import type { RiverMeshBuildResult, RiverQueryData, RiverQueryResult } from "./runtime/river/types";
+import type { RiverMeshBuildResult, RiverQueryResult } from "./runtime/river/types";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -120,7 +121,7 @@ interface RiverSegmentRuntime {
   config: RiverConfig;
   normalizedConfig: RiverConfig;
   sampleResult: RiverSampleResult;
-  queryData: RiverQueryData;
+  artifact: RiverReachArtifact;
   meshes?: RiverMeshBuildResult;
   surfaceRenderer: MeshRenderer;
   foamRenderer: MeshRenderer;
@@ -254,9 +255,29 @@ function createGridMesh(engine: Engine, size: number, resolution: number, waterL
   return createModelMesh(engine, createGridPositions(size, resolution, waterLevel, time), uvs, indices);
 }
 
+function updateModelMeshBounds(mesh: ModelMesh, positions: readonly Vector3[]): void {
+  const boundsPadding = 3;
+  const { min, max } = mesh.bounds;
+  if (positions.length === 0) {
+    min.set(0, 0, 0);
+    max.set(0, 0, 0);
+    return;
+  }
+  min.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
+  max.set(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
+  for (const position of positions) {
+    min.x = Math.min(min.x, position.x);
+    min.y = Math.min(min.y, position.y - boundsPadding);
+    min.z = Math.min(min.z, position.z);
+    max.x = Math.max(max.x, position.x);
+    max.y = Math.max(max.y, position.y + boundsPadding);
+    max.z = Math.max(max.z, position.z);
+  }
+}
+
 function updateGridMesh(mesh: ModelMesh, size: number, resolution: number, waterLevel: number, time: number): void {
   const positions = createGridPositions(size, resolution, waterLevel, time);
-  updateMeshBounds(mesh, positions);
+  updateModelMeshBounds(mesh, positions);
   mesh.setPositions(positions);
   mesh.uploadData(false);
 }
@@ -286,7 +307,7 @@ function updateGridMeshTopology(
     }
   }
   const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
-  updateMeshBounds(mesh, positions);
+  updateModelMeshBounds(mesh, positions);
   mesh.setPositions(positions);
   mesh.setUVs(uvs);
   mesh.setIndices(indices);
@@ -298,7 +319,7 @@ function updateGridMeshTopology(
 function createModelMesh(engine: Engine, positions: Vector3[], uvs: Vector2[], indexValues: number[]): ModelMesh {
   const mesh = new ModelMesh(engine);
   const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
-  updateMeshBounds(mesh, positions);
+  updateModelMeshBounds(mesh, positions);
   mesh.setPositions(positions);
   mesh.setUVs(uvs);
   mesh.setIndices(indices);
@@ -490,7 +511,13 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     const foamRenderer = segmentRoot.createChild(`${config.id}-bank`).addComponent(MeshRenderer);
     const surfaceRenderer = segmentRoot.createChild(`${config.id}-water`).addComponent(MeshRenderer);
     const normalizedConfig = normalizeRiverDemoConfig(config);
-    const sampleResult = sampleRiverPath(normalizedConfig);
+    const compiledReach = activeRiverCompiledData.reaches[reachIndex];
+    const artifact = compiledReach.artifact;
+    const sampleResult: RiverSampleResult = {
+      points: decodeRiverSamplePoints(artifact.samples),
+      totalLength: artifact.totalLength,
+      diagnostics: artifact.diagnostics.map((diagnostic) => ({ ...diagnostic }))
+    };
     const material = createRiverMaterial(engine, normalizedConfig.material, 1);
     const lowMaterial = createLowRiverMaterial(engine, normalizedConfig.material, 1);
     const foamMaterial = createRiverFoamMaterial(engine, normalizedConfig.material, 1);
@@ -503,7 +530,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       config,
       normalizedConfig,
       sampleResult,
-      queryData: createRiverQueryData(sampleResult.points),
+      artifact,
       surfaceRenderer,
       foamRenderer,
       material,
@@ -624,7 +651,6 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       if (geometryDirty) {
         runtime.geometryBuildCount++;
         runtime.sampleResult = sampleRiverPath(runtime.normalizedConfig);
-        runtime.queryData = createRiverQueryData(runtime.sampleResult.points);
       }
     }
     if (geometryDirty) updateRuntimeNetworkDistanceOffsets();
@@ -633,10 +659,12 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       const runtime = riverRuntimes[i];
       if (geometryDirty) {
         const previousBankFoamMesh = runtime.meshes?.bankFoamMesh;
-        runtime.meshes = buildRiverMeshes(engine, runtime.sampleResult.points, {
-          materialLevel: runtime.normalizedConfig.quality.material.level,
-          capacitySegmentCount: runtime.normalizedConfig.quality.geometry.maxSegmentCount,
-          networkDistanceOffset: runtime.networkDistanceOffset,
+        runtime.artifact = RiverGeometryCompiler.compile(
+          runtime.sampleResult,
+          runtime.normalizedConfig.quality.material.level,
+          runtime.networkDistanceOffset
+        );
+        runtime.meshes = uploadRiverMeshes(engine, runtime.artifact, {
           existing: runtime.meshes
         });
         runtime.surfaceRenderer.mesh = runtime.meshes.surfaceMesh;
@@ -657,6 +685,7 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
         engine,
         createDebugRiverConfig(runtime.normalizedConfig),
         runtime.sampleResult.points,
+        runtime.artifact.querySource,
         {
           geometry: geometryDirty || hasDirty(flags, RiverDirtyFlag.Debug),
           query: geometryDirty || hasDirty(flags, RiverDirtyFlag.Query)

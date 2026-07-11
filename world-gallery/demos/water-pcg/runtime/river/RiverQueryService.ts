@@ -9,19 +9,23 @@
  * mesh vertices or material state directly.
  */
 import { Vector3 } from "@galacean/engine-math";
-import type { RiverSamplePoint } from "../../compiler/river/types";
+import type { RiverQuerySourceData, RiverSamplePoint } from "../../compiler/river/types";
 import type { RiverQueryResult } from "./types";
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function makeFlowDirection(a: RiverSamplePoint, b: RiverSamplePoint): Vector3 {
-  const dx = b.position.x - a.position.x;
-  const dz = b.position.z - a.position.z;
+function read(source: RiverQuerySourceData, sampleIndex: number, componentIndex: number): number {
+  return source.samples.at(sampleIndex * source.stride + componentIndex) ?? 0;
+}
+
+function makeFlowDirection(source: RiverQuerySourceData, aIndex: number, bIndex: number): Vector3 {
+  const dx = read(source, bIndex, 0) - read(source, aIndex, 0);
+  const dz = read(source, bIndex, 2) - read(source, aIndex, 2);
   const length = Math.sqrt(dx * dx + dz * dz);
   if (length < 0.0001) {
-    return new Vector3(a.tangent.x, 0, a.tangent.z);
+    return new Vector3(read(source, aIndex, 7), 0, read(source, aIndex, 8));
   }
   return new Vector3(dx / length, 0, dz / length);
 }
@@ -30,22 +34,24 @@ function interpolateSampleValue(a: number, b: number, t: number): number {
   return a + (b - a) * t;
 }
 
-export function queryRiver(samples: RiverSamplePoint[], worldPosition: Vector3): RiverQueryResult {
+export function queryRiver(source: RiverQuerySourceData, worldPosition: Vector3): RiverQueryResult {
   let bestDistance = Number.POSITIVE_INFINITY;
   let bestT = 0;
   let bestIndex = 0;
 
-  for (let i = 0; i < samples.length - 1; i++) {
-    const a = samples[i].position;
-    const b = samples[i + 1].position;
-    const abx = b.x - a.x;
-    const abz = b.z - a.z;
-    const apx = worldPosition.x - a.x;
-    const apz = worldPosition.z - a.z;
+  for (let i = 0; i < source.sampleCount - 1; i++) {
+    const ax = read(source, i, 0);
+    const az = read(source, i, 2);
+    const bx = read(source, i + 1, 0);
+    const bz = read(source, i + 1, 2);
+    const abx = bx - ax;
+    const abz = bz - az;
+    const apx = worldPosition.x - ax;
+    const apz = worldPosition.z - az;
     const abLengthSq = abx * abx + abz * abz;
     const t = abLengthSq > 0.0001 ? clamp01((apx * abx + apz * abz) / abLengthSq) : 0;
-    const closestX = a.x + abx * t;
-    const closestZ = a.z + abz * t;
+    const closestX = ax + abx * t;
+    const closestZ = az + abz * t;
     const dx = worldPosition.x - closestX;
     const dz = worldPosition.z - closestZ;
     const distance = Math.sqrt(dx * dx + dz * dz);
@@ -57,13 +63,12 @@ export function queryRiver(samples: RiverSamplePoint[], worldPosition: Vector3):
     }
   }
 
-  const a = samples[bestIndex];
-  const b = samples[Math.min(bestIndex + 1, samples.length - 1)];
-  const surfaceHeight = a.position.y + (b.position.y - a.position.y) * bestT;
-  const flowDirection = makeFlowDirection(a, b);
-  const width = interpolateSampleValue(a.width, b.width, bestT);
-  const depth = interpolateSampleValue(a.depth, b.depth, bestT);
-  const flowSpeed = interpolateSampleValue(a.flowSpeed, b.flowSpeed, bestT);
+  const nextIndex = Math.min(bestIndex + 1, source.sampleCount - 1);
+  const surfaceHeight = interpolateSampleValue(read(source, bestIndex, 1), read(source, nextIndex, 1), bestT);
+  const flowDirection = makeFlowDirection(source, bestIndex, nextIndex);
+  const width = interpolateSampleValue(read(source, bestIndex, 4), read(source, nextIndex, 4), bestT);
+  const depth = interpolateSampleValue(read(source, bestIndex, 5), read(source, nextIndex, 5), bestT);
+  const flowSpeed = interpolateSampleValue(read(source, bestIndex, 6), read(source, nextIndex, 6), bestT);
   const halfWidth = width * 0.5;
   const distanceToBank = halfWidth - bestDistance;
 
