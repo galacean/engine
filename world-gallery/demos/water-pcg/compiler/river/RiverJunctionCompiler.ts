@@ -27,6 +27,7 @@ export interface RiverJunctionReachInput {
   readonly order: number;
   readonly materialLevel: RiverQualityLevel;
   readonly networkDistanceOffset: number;
+  readonly networkFlowTimeOffset: number;
   readonly sampleResult: RiverSampleResult;
 }
 
@@ -43,6 +44,7 @@ interface JunctionEndpoint {
   readonly samples: readonly RiverSamplePoint[];
   readonly sampleIndex: number;
   readonly networkDistance: number;
+  readonly networkFlowTime: number;
 }
 
 interface JunctionVertex {
@@ -75,6 +77,7 @@ function interpolateSample(a: RiverSamplePoint, b: RiverSamplePoint, distance: n
     ),
     tangent: new Vector3(tangentX / tangentLength, tangentY / tangentLength, tangentZ / tangentLength),
     distance,
+    flowTravelTime: a.flowTravelTime + (b.flowTravelTime - a.flowTravelTime) * t,
     width: a.width + (b.width - a.width) * t,
     depth: a.depth + (b.depth - a.depth) * t,
     flowSpeed: a.flowSpeed + (b.flowSpeed - a.flowSpeed) * t,
@@ -122,7 +125,7 @@ function createBoundaryVertices(
       const z = endpoint.sample.position.z + join.normalZ * offset * side.sign;
       vertices.push({
         position: tuple3(x, y, z),
-        uv: tuple2(forceWater ? 0.5 : side.across, endpoint.networkDistance * RIVER_FLOW_UV_SCALE),
+        uv: tuple2(forceWater ? 0.5 : side.across, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
         uv1: tuple2(endpoint.sample.flowSpeed, endpoint.networkDistance),
         angle: Math.atan2(z - node.position[2], x - node.position[0])
       });
@@ -146,10 +149,17 @@ function createPatchGeometry(
     incomingDistances.length > 0
       ? Math.max(...incomingDistances)
       : Math.min(...endpoints.map((endpoint) => endpoint.networkDistance));
+  const incomingFlowTimes = endpoints
+    .filter((endpoint) => endpoint.incoming)
+    .map((endpoint) => endpoint.networkFlowTime);
+  const nodeFlowTime =
+    incomingFlowTimes.length > 0
+      ? Math.max(...incomingFlowTimes)
+      : Math.min(...endpoints.map((endpoint) => endpoint.networkFlowTime));
   const averageFlowSpeed =
     endpoints.reduce((sum, endpoint) => sum + endpoint.sample.flowSpeed, 0) / Math.max(1, endpoints.length);
   const positions: ReadonlyVector3Tuple[] = [tuple3(node.position[0], node.position[1] + yOffset, node.position[2])];
-  const uvs: Vector2Tuple[] = [tuple2(0.5, nodeDistance * RIVER_FLOW_UV_SCALE)];
+  const uvs: Vector2Tuple[] = [tuple2(0.5, nodeFlowTime * RIVER_FLOW_UV_SCALE)];
   const uv1s: Vector2Tuple[] = [tuple2(averageFlowSpeed, nodeDistance)];
   for (const vertex of boundary) {
     positions.push(vertex.position);
@@ -242,7 +252,8 @@ export function compileRiverJunctions(
         samples,
         sampleIndex,
         sample: samples[sampleIndex],
-        networkDistance: reaches[reachIndex].networkDistanceOffset + samples[sampleIndex].distance
+        networkDistance: reaches[reachIndex].networkDistanceOffset + samples[sampleIndex].distance,
+        networkFlowTime: reaches[reachIndex].networkFlowTimeOffset + samples[sampleIndex].flowTravelTime
       };
     });
     if (endpoints.length < 3) {

@@ -55,7 +55,9 @@ export interface RiverCompiledReach {
   readonly order: number;
   readonly elevationDrop: number;
   readonly length: number;
+  readonly flowTravelDuration: number;
   readonly networkDistanceOffset: number;
+  readonly networkFlowTimeOffset: number;
   readonly sampleCount: number;
   readonly config: DeepReadonly<RiverAuthoringConfig>;
   readonly artifact: RiverReachArtifact;
@@ -109,6 +111,7 @@ export interface RiverSamplePoint {
   position: Vector3;
   tangent: Vector3;
   distance: number;
+  flowTravelTime: number;
   width: number;
   depth: number;
   flowSpeed: number;
@@ -128,6 +131,7 @@ export interface RiverCompiledSample {
   readonly position: ReadonlyVector3Tuple;
   readonly tangent: ReadonlyVector3Tuple;
   readonly distance: number;
+  readonly flowTravelTime: number;
   readonly width: number;
   readonly depth: number;
   readonly flowSpeed: number;

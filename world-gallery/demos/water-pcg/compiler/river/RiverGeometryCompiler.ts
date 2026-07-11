@@ -70,7 +70,8 @@ function createHighRibbonData(
   samples: readonly RiverSamplePoint[],
   getWidthOffset: (sample: RiverSamplePoint) => number,
   yOffset: number,
-  networkDistanceOffset: number
+  networkDistanceOffset: number,
+  networkFlowTimeOffset: number
 ): RiverGeometryData {
   const positions: ReadonlyVector3Tuple[] = [];
   const uvs: Vector2Tuple[] = [];
@@ -87,9 +88,10 @@ function createHighRibbonData(
       vector3Tuple(sample.position.x - join.normalX * offset, y, sample.position.z - join.normalZ * offset)
     );
     const networkDistance = networkDistanceOffset + sample.distance;
+    const networkFlowTime = networkFlowTimeOffset + sample.flowTravelTime;
     uvs.push(
-      vector2Tuple(0, networkDistance * RIVER_FLOW_UV_SCALE),
-      vector2Tuple(1, networkDistance * RIVER_FLOW_UV_SCALE)
+      vector2Tuple(0, networkFlowTime * RIVER_FLOW_UV_SCALE),
+      vector2Tuple(1, networkFlowTime * RIVER_FLOW_UV_SCALE)
     );
     uv1s.push(vector2Tuple(sample.flowSpeed, networkDistance), vector2Tuple(sample.flowSpeed, networkDistance));
   }
@@ -102,7 +104,8 @@ function createHighRibbonData(
 
 export function createLowRiverGeometryData(
   samples: readonly RiverSamplePoint[],
-  networkDistanceOffset = 0
+  networkDistanceOffset = 0,
+  networkFlowTimeOffset = 0
 ): RiverGeometryData {
   const positions: ReadonlyVector3Tuple[] = [];
   const uvs: Vector2Tuple[] = [];
@@ -125,7 +128,8 @@ export function createLowRiverGeometryData(
         )
       );
       const networkDistance = networkDistanceOffset + sample.distance;
-      uvs.push(vector2Tuple(across[i], networkDistance * RIVER_FLOW_UV_SCALE));
+      const networkFlowTime = networkFlowTimeOffset + sample.flowTravelTime;
+      uvs.push(vector2Tuple(across[i], networkFlowTime * RIVER_FLOW_UV_SCALE));
       uv1s.push(vector2Tuple(sample.flowSpeed, networkDistance));
     }
   }
@@ -172,6 +176,7 @@ function compileSamples(samples: readonly RiverSamplePoint[]): readonly RiverCom
         position: vector3Tuple(sample.position.x, sample.position.y, sample.position.z),
         tangent: vector3Tuple(sample.tangent.x, sample.tangent.y, sample.tangent.z),
         distance: sample.distance,
+        flowTravelTime: sample.flowTravelTime,
         width: sample.width,
         depth: sample.depth,
         flowSpeed: sample.flowSpeed,
@@ -186,6 +191,7 @@ export function decodeRiverSamplePoints(samples: readonly RiverCompiledSample[])
     position: new Vector3(sample.position[0], sample.position[1], sample.position[2]),
     tangent: new Vector3(sample.tangent[0], sample.tangent[1], sample.tangent[2]),
     distance: sample.distance,
+    flowTravelTime: sample.flowTravelTime,
     width: sample.width,
     depth: sample.depth,
     flowSpeed: sample.flowSpeed,
@@ -199,13 +205,20 @@ export class RiverGeometryCompiler {
   static compile(
     sampleResult: RiverSampleResult,
     materialLevel: RiverQualityLevel,
-    networkDistanceOffset = 0
+    networkDistanceOffset = 0,
+    networkFlowTimeOffset = 0
   ): RiverReachArtifact {
     const samples = sampleResult.points;
     const surfaceGeometry =
       materialLevel === RiverQualityLevel.Low
-        ? createLowRiverGeometryData(samples, networkDistanceOffset)
-        : createHighRibbonData(samples, () => 0, RIVER_GEOMETRY_Y_OFFSET.surface, networkDistanceOffset);
+        ? createLowRiverGeometryData(samples, networkDistanceOffset, networkFlowTimeOffset)
+        : createHighRibbonData(
+            samples,
+            () => 0,
+            RIVER_GEOMETRY_Y_OFFSET.surface,
+            networkDistanceOffset,
+            networkFlowTimeOffset
+          );
     const bankFoamGeometry =
       materialLevel === RiverQualityLevel.Low
         ? undefined
@@ -213,7 +226,8 @@ export class RiverGeometryCompiler {
             samples,
             (sample) => sample.bankFeather,
             RIVER_GEOMETRY_Y_OFFSET.bankFoam,
-            networkDistanceOffset
+            networkDistanceOffset,
+            networkFlowTimeOffset
           );
     const geometryAnalysis = analyzeRiverGeometry(
       samples,

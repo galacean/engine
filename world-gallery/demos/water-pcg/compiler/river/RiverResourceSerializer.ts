@@ -8,6 +8,8 @@ import { hashRiverStableValue, hashRiverString } from "../shared/determinism";
 import {
   RIVER_CATMULL_ROM_ALPHA,
   RIVER_CHUNK_WORLD_SIZE,
+  RIVER_FLOW_TRAVEL_MIN_SPEED,
+  RIVER_FLOW_UV_SCALE,
   RIVER_MAX_WATER_SURFACE_SLOPE,
   RIVER_QUERY_CELL_SIZE_BY_QUALITY,
   RIVER_TERRAIN_CORRIDOR_STRIDE
@@ -16,7 +18,7 @@ import { RiverResourceAssetVersion, RiverSerializedBufferKind } from "./RiverRes
 import type { RiverCompiledData } from "./types";
 
 const RIVER_RESOURCE_BUFFER_TAG = "__riverNumericBuffer";
-const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 2;
+const RIVER_RESOURCE_BAKE_FORMAT_VERSION = 3;
 
 interface SerializedNumericBuffer {
   readonly [RIVER_RESOURCE_BUFFER_TAG]: RiverSerializedBufferKind;
@@ -185,7 +187,18 @@ function isCompiledData(value: unknown): value is RiverCompiledData {
       (reach) =>
         isRecord(reach) &&
         typeof reach.id === "string" &&
+        typeof reach.flowTravelDuration === "number" &&
+        Number.isFinite(reach.flowTravelDuration) &&
+        typeof reach.networkFlowTimeOffset === "number" &&
+        Number.isFinite(reach.networkFlowTimeOffset) &&
         isRecord(reach.artifact) &&
+        Array.isArray(reach.artifact.samples) &&
+        reach.artifact.samples.every(
+          (sample) =>
+            isRecord(sample) &&
+            typeof sample.flowTravelTime === "number" &&
+            Number.isFinite(sample.flowTravelTime)
+        ) &&
         isGeometryData(reach.artifact.surfaceGeometry) &&
         (reach.artifact.bankFoamGeometry === undefined || isGeometryData(reach.artifact.bankFoamGeometry)) &&
         isRecord(reach.artifact.querySource) &&
@@ -229,6 +242,8 @@ function createBakeOptionsHash(descriptor: RiverNetworkDescriptor): string {
     chunkWorldSize: RIVER_CHUNK_WORLD_SIZE,
     queryCellSizes: RIVER_QUERY_CELL_SIZE_BY_QUALITY,
     catmullRomAlpha: RIVER_CATMULL_ROM_ALPHA,
+    flowUvScale: RIVER_FLOW_UV_SCALE,
+    flowTravelMinSpeed: RIVER_FLOW_TRAVEL_MIN_SPEED,
     maxWaterSurfaceSlope: RIVER_MAX_WATER_SURFACE_SLOPE,
     terrainCorridorStride: RIVER_TERRAIN_CORRIDOR_STRIDE
   });

@@ -10,7 +10,7 @@ import { Vector3 } from "@galacean/engine-math";
 import { RiverPathMode } from "../../authoring/river/RiverAuthoringEnums";
 import { RiverAuthoringConfig, RiverPathControlPoint, Vector3Tuple } from "../../authoring/river/RiverAuthoringTypes";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
-import { RIVER_CATMULL_ROM_ALPHA } from "./constants";
+import { RIVER_CATMULL_ROM_ALPHA, RIVER_FLOW_TRAVEL_MIN_SPEED } from "./constants";
 import type { RiverSamplePoint, RiverSampleResult } from "./types";
 
 interface ResolvedPathPoint {
@@ -308,18 +308,30 @@ function allocateIntervals(spans: ArcSpan[], segmentLength: number, maxSegmentCo
 function createSamplePoint(
   point: CurvePoint,
   tangent: Vector3,
-  cumulativeDistance: number
+  cumulativeDistance: number,
+  flowTravelTime: number
 ): RiverSamplePoint {
   const position = cloneVector3(point.position);
   return {
     position,
     tangent: normalizeXZ(tangent),
     distance: cumulativeDistance,
+    flowTravelTime,
     width: point.width,
     depth: point.depth,
     flowSpeed: point.flowSpeed,
     bankFeather: point.bankFeather
   };
+}
+
+export function calculateRiverFlowTravelDuration(
+  segmentLength: number,
+  startFlowSpeed: number,
+  endFlowSpeed: number
+): number {
+  const startReciprocal = 1 / Math.max(startFlowSpeed, RIVER_FLOW_TRAVEL_MIN_SPEED);
+  const endReciprocal = 1 / Math.max(endFlowSpeed, RIVER_FLOW_TRAVEL_MIN_SPEED);
+  return segmentLength * (startReciprocal + endReciprocal) * 0.5;
 }
 
 export function sampleRiverPath(config: RiverAuthoringConfig): RiverSampleResult {
@@ -367,18 +379,22 @@ export function sampleRiverPath(config: RiverAuthoringConfig): RiverSampleResult
   }
   const samples: RiverSamplePoint[] = [];
   let totalLength = 0;
+  let flowTravelTime = 0;
   for (let i = 0; i < curveSamples.length; i++) {
     const current = curveSamples[i];
     const previous = curveSamples[Math.max(0, i - 1)];
     const next = curveSamples[Math.min(curveSamples.length - 1, i + 1)];
     if (i > 0) {
-      totalLength += distance(previous.position, current.position);
+      const segmentLength = distance(previous.position, current.position);
+      totalLength += segmentLength;
+      flowTravelTime += calculateRiverFlowTravelDuration(segmentLength, previous.flowSpeed, current.flowSpeed);
     }
     samples.push(
       createSamplePoint(
         current,
         new Vector3(next.position.x - previous.position.x, 0, next.position.z - previous.position.z),
-        totalLength
+        totalLength,
+        flowTravelTime
       )
     );
   }

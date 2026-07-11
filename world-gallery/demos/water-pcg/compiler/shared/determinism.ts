@@ -64,6 +64,7 @@ export function hashRiverSamples(samples: RiverSamplePoint[]): string {
       sample.tangent.x,
       sample.tangent.z,
       sample.distance,
+      sample.flowTravelTime,
       sample.width,
       sample.depth,
       sample.flowSpeed,

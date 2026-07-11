@@ -27,7 +27,7 @@ import { compileRiverQueryIndex } from "./RiverQueryIndexCompiler";
 import { compileRiverTerrainInteraction } from "./RiverTerrainCompiler";
 import { RIVER_GEOMETRY_EPSILON, RIVER_MAX_WATER_SURFACE_SLOPE } from "./constants";
 import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
-import { sampleRiverPath } from "./RiverPathSampler";
+import { calculateRiverFlowTravelDuration, sampleRiverPath } from "./RiverPathSampler";
 import {
   DeepReadonly,
   RiverCompileResult,
@@ -243,12 +243,21 @@ function resolveReachWaterProfile(
     result.points[index].position.y = upstreamElevation + (downstreamElevation - upstreamElevation) * progress;
   }
   let totalLength = 0;
+  let flowTravelTime = 0;
   result.points[0].distance = 0;
+  result.points[0].flowTravelTime = 0;
   for (let index = 1; index < result.points.length; index++) {
     const previous = result.points[index - 1].position;
     const current = result.points[index].position;
-    totalLength += Math.hypot(current.x - previous.x, current.y - previous.y, current.z - previous.z);
+    const segmentLength = Math.hypot(current.x - previous.x, current.y - previous.y, current.z - previous.z);
+    totalLength += segmentLength;
+    flowTravelTime += calculateRiverFlowTravelDuration(
+      segmentLength,
+      result.points[index - 1].flowSpeed,
+      result.points[index].flowSpeed
+    );
     result.points[index].distance = totalLength;
+    result.points[index].flowTravelTime = flowTravelTime;
   }
   return { points: result.points, totalLength, diagnostics: result.diagnostics };
 }
@@ -392,6 +401,7 @@ function finalizeReachDistances(
   diagnostics: RiverDiagnostic[]
 ): RiverFinalizedGeometry {
   const nodeDistances = new Float64Array(descriptor.nodes.length);
+  const nodeFlowTimes = new Float64Array(descriptor.nodes.length);
   const outgoingReachIndices: number[][] = descriptor.nodes.map(() => []);
   for (let reachIndex = 0; reachIndex < descriptor.segments.length; reachIndex++) {
     const fromNodeIndex = nodeIndexById.get(descriptor.segments[reachIndex].from);
@@ -399,13 +409,18 @@ function finalizeReachDistances(
   }
 
   const offsets = new Float64Array(drafts.length);
+  const flowTimeOffsets = new Float64Array(drafts.length);
   for (const nodeIndex of topologicalNodeIndices) {
     for (const reachIndex of outgoingReachIndices[nodeIndex]) {
       const draft = drafts[reachIndex];
       if (!draft) continue;
       offsets[reachIndex] = nodeDistances[nodeIndex];
+      flowTimeOffsets[reachIndex] = nodeFlowTimes[nodeIndex];
       const downstreamDistance = nodeDistances[nodeIndex] + sampleResults[reachIndex].totalLength;
+      const downstreamFlowTime =
+        nodeFlowTimes[nodeIndex] + (sampleResults[reachIndex].points.at(-1)?.flowTravelTime ?? 0);
       nodeDistances[draft.toNodeIndex] = Math.max(nodeDistances[draft.toNodeIndex], downstreamDistance);
+      nodeFlowTimes[draft.toNodeIndex] = Math.max(nodeFlowTimes[draft.toNodeIndex], downstreamFlowTime);
     }
   }
 
@@ -418,6 +433,7 @@ function finalizeReachDistances(
       order: draft.order,
       materialLevel: draft.config.quality.material.level,
       networkDistanceOffset: offsets[reachIndex],
+      networkFlowTimeOffset: flowTimeOffsets[reachIndex],
       sampleResult: sampleResults[reachIndex]
     }))
   );
@@ -427,7 +443,8 @@ function finalizeReachDistances(
     const artifact = RiverGeometryCompiler.compile(
       sampleResult,
       draft.config.quality.material.level,
-      offsets[reachIndex]
+      offsets[reachIndex],
+      flowTimeOffsets[reachIndex]
     );
     diagnostics.push(
       ...artifact.diagnostics
@@ -442,7 +459,9 @@ function finalizeReachDistances(
     return deepFreezePlainData({
       ...draft,
       length: sampleResult.totalLength,
+      flowTravelDuration: sampleResults[reachIndex].points.at(-1)?.flowTravelTime ?? 0,
       networkDistanceOffset: offsets[reachIndex],
+      networkFlowTimeOffset: flowTimeOffsets[reachIndex],
       sampleCount: sampleResult.points.length,
       config: deepFreezePlainData(draft.config),
       artifact

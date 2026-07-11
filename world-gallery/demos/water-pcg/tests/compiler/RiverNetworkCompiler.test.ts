@@ -239,4 +239,24 @@ describe("RiverNetworkCompiler", () => {
     expect(middle?.networkDistanceOffset).toBeGreaterThan(0);
     expect(downstream?.networkDistanceOffset).toBeCloseTo(expectedOffset, 4);
   });
+
+  it("assigns continuous network flow-time offsets without reversing local phase", () => {
+    const result = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
+    const lowerConfluence = result.data?.nodes.find((node) => node.id === "lower-confluence");
+    const downstream = result.data?.reaches.find((reach) => reach.id === "main-lower");
+    const expectedOffset = Math.max(
+      ...Array.from(lowerConfluence?.incomingReachIndices ?? []).map((reachIndex) => {
+        const reach = result.data!.reaches[reachIndex];
+        return reach.networkFlowTimeOffset + reach.flowTravelDuration;
+      })
+    );
+
+    expect(downstream?.networkFlowTimeOffset).toBeCloseTo(expectedOffset, 4);
+    for (const reach of result.data?.reaches ?? []) {
+      const flowCoordinates = reach.artifact.surfaceGeometry.uvs.map((uv) => uv[1]);
+      for (let index = 1; index < flowCoordinates.length; index++) {
+        expect(flowCoordinates[index]).toBeGreaterThanOrEqual(flowCoordinates[index - 1]);
+      }
+    }
+  });
 });

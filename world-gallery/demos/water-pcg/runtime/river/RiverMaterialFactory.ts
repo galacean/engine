@@ -11,7 +11,10 @@
 import { Engine, Material, Shader, Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
 import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
+import { RIVER_FLOW_UV_SCALE } from "../../compiler/river/constants";
 import { RIVER_SHADER_PROPERTY } from "./constants";
+
+const RIVER_FLOW_UV_SCALE_GLSL = RIVER_FLOW_UV_SCALE.toFixed(8);
 
 export const lowRiverShaderSource = `
 Shader "AIWorld/RiverLow" {
@@ -59,8 +62,10 @@ Shader "AIWorld/RiverLow" {
         float water = 1.0 - smoothstep(0.48, 0.54, across);
         float feather = 1.0 - smoothstep(0.54, 1.0, across);
         float edge = smoothstep(0.38, 0.58, across) * feather;
-        float time = scene_ElapsedTime.x * max(input.localFlowSpeed * material_FlowSpeed, 0.0);
-        float noise = texture2D(material_NoiseTexture, vec2(input.uv.x * 2.0, input.uv.y * 0.28 - time * 0.08)).r;
+        float flowEnabled = step(0.0001, input.localFlowSpeed);
+        float flowTime = scene_ElapsedTime.x * max(material_FlowSpeed, 0.0) * ${RIVER_FLOW_UV_SCALE_GLSL} * flowEnabled;
+        float downstream = input.uv.y - flowTime;
+        float noise = texture2D(material_NoiseTexture, vec2(input.uv.x * 2.0, downstream * 0.28)).r;
         float foam = edge * smoothstep(0.28, 0.82, noise + material_FoamIntensity * 0.34);
         float center = 1.0 - across;
         vec3 waterColor = material_BaseColor.rgb * (0.72 + center * (0.18 + material_Clarity * 0.12));
@@ -96,7 +101,7 @@ function getLowNoiseTexture(engine: Engine): Texture2D {
   return texture;
 }
 
-const riverSurfaceShaderSource = `
+export const riverSurfaceShaderSource = `
 Shader "AIWorld/RiverSurface" {
   SubShader "Default" {
     Pass "Forward" {
@@ -178,52 +183,25 @@ Shader "AIWorld/RiverSurface" {
         return value;
       }
 
-      vec3 flowUVW(vec2 uv, vec2 flowVector, vec2 jump, vec2 tiling, float time, float phaseOffset) {
-        float progress = fract(time + phaseOffset);
-        vec3 uvw;
-        uvw.xy = uv - flowVector * (progress - 0.5);
-        uvw.xy *= tiling;
-        uvw.xy += phaseOffset;
-        uvw.xy += (time - progress) * jump;
-        uvw.z = 1.0 - abs(1.0 - 2.0 * progress);
-        return uvw;
-      }
-
-      float dualPhaseFbm(vec2 uv, vec2 flowVector, vec2 jump, vec2 tiling, float time) {
-        vec3 flowA = flowUVW(uv, flowVector, jump, tiling, time, 0.0);
-        vec3 flowB = flowUVW(uv, flowVector, jump, tiling, time, 0.5);
-        return fbm(flowA.xy) * flowA.z + fbm(flowB.xy) * flowB.z;
-      }
-
       void frag(Varyings input) {
         float clarity = saturate(material_Clarity);
-        float time = scene_ElapsedTime.x * max(input.localFlowSpeed * material_FlowSpeed, 0.0);
+        float flowEnabled = step(0.0001, input.localFlowSpeed);
+        float flowTime = scene_ElapsedTime.x * max(material_FlowSpeed, 0.0) * ${RIVER_FLOW_UV_SCALE_GLSL} * flowEnabled;
+        float downstream = input.uv.y - flowTime;
         float center = saturate(1.0 - abs(input.uv.x - 0.5) * 2.0);
         float innerWater = smoothstep(0.12, 0.92, center);
         float bank = 1.0 - smoothstep(0.06, 0.42, center);
         float depth = pow(smoothstep(0.05, 1.0, center), mix(0.58, 1.18, clarity));
 
-        float meander = sin(input.uv.y * 1.35 + time * 0.12) * 0.11 + (input.uv.x - 0.5) * 0.16;
-        vec2 flowVector = normalize(vec2(meander, 1.0)) * (0.24 + innerWater * 0.56 + material_FlowSpeed * 0.035);
-        float broadWater = dualPhaseFbm(input.uv, flowVector, vec2(0.24, 0.2083333), vec2(2.4, 8.0), time * 0.31);
-        float fineWater = dualPhaseFbm(
-          input.uv + vec2(4.6, 1.7),
-          flowVector * 1.7,
-          vec2(0.20, 0.25),
-          vec2(6.6, 19.0),
-          time * 0.43
-        );
-        float foamNoise = dualPhaseFbm(
-          input.uv + vec2(11.3, 6.1),
-          flowVector * 0.82,
-          vec2(0.22, 0.27),
-          vec2(7.5, 15.0),
-          time * 0.58
-        );
+        float meander = sin(downstream * 1.35) * 0.11 + (input.uv.x - 0.5) * 0.16;
+        vec2 flowUv = vec2(input.uv.x + meander * 0.18, downstream);
+        float broadWater = fbm(flowUv * vec2(2.4, 8.0));
+        float fineWater = fbm((flowUv + vec2(4.6, 1.7)) * vec2(6.6, 19.0));
+        float foamNoise = fbm((flowUv + vec2(11.3, 6.1)) * vec2(7.5, 15.0));
         float waveField = broadWater * 0.62 + fineWater * 0.38;
 
-        float downstream = input.uv.y - time * 0.38 + broadWater * 0.09;
-        float streak = sin(downstream * 42.0 + input.uv.x * 7.4) * 0.5 + 0.5;
+        float detailPhase = downstream + broadWater * 0.09;
+        float streak = sin(detailPhase * 42.0 + input.uv.x * 7.4) * 0.5 + 0.5;
         float streakCrest = smoothstep(0.72, 1.0, streak) * innerWater;
         float shoreFoam = smoothstep(0.28, 0.92, bank * (0.72 + foamNoise * 0.72));
         float brokenFoam = smoothstep(0.72, 1.06, waveField + streakCrest * 0.34 + bank * 0.12);
@@ -232,11 +210,11 @@ Shader "AIWorld/RiverSurface" {
         float foam = mix(foamSharp, foamSmooth, 0.32);
 
         float heightCenter = waveField * 0.72 + streakCrest * 0.28;
-        float heightRight = dualPhaseFbm(input.uv + vec2(0.018, 0.0), flowVector, vec2(0.24, 0.2083333), vec2(2.4, 8.0), time * 0.31);
-        float heightForward = dualPhaseFbm(input.uv + vec2(0.0, 0.018), flowVector, vec2(0.24, 0.2083333), vec2(2.4, 8.0), time * 0.31);
+        float heightRight = fbm((flowUv + vec2(0.018, 0.0)) * vec2(2.4, 8.0));
+        float heightForward = fbm((flowUv + vec2(0.0, 0.018)) * vec2(2.4, 8.0));
         vec2 normalSlope = vec2(heightCenter - heightRight, heightCenter - heightForward);
         float glint = smoothstep(0.018, 0.125, length(normalSlope)) * innerWater * (0.08 + clarity * 0.14);
-        float caustic = smoothstep(0.68, 1.0, sin(downstream * 31.0 - input.uv.x * 11.0 + fineWater * 5.2) * 0.5 + 0.5);
+        float caustic = smoothstep(0.68, 1.0, sin(detailPhase * 31.0 - input.uv.x * 11.0 + fineWater * 5.2) * 0.5 + 0.5);
         float lightScatter = (caustic * 0.12 + glint) * clarity * innerWater;
 
         vec3 shallowColor = mix(material_BaseColor.rgb * 1.08, material_FoamColor.rgb * 0.22, 0.12);
@@ -336,33 +314,18 @@ Shader "AIWorld/RiverBankFoam" {
         return value;
       }
 
-      vec3 flowUVW(vec2 uv, vec2 flowVector, vec2 jump, vec2 tiling, float time, float phaseOffset) {
-        float progress = fract(time + phaseOffset);
-        vec3 uvw;
-        uvw.xy = uv - flowVector * (progress - 0.5);
-        uvw.xy *= tiling;
-        uvw.xy += phaseOffset;
-        uvw.xy += (time - progress) * jump;
-        uvw.z = 1.0 - abs(1.0 - 2.0 * progress);
-        return uvw;
-      }
-
-      float dualPhaseFbm(vec2 uv, vec2 flowVector, vec2 jump, vec2 tiling, float time) {
-        vec3 flowA = flowUVW(uv, flowVector, jump, tiling, time, 0.0);
-        vec3 flowB = flowUVW(uv, flowVector, jump, tiling, time, 0.5);
-        return fbm(flowA.xy) * flowA.z + fbm(flowB.xy) * flowB.z;
-      }
-
       void frag(Varyings input) {
-        float time = scene_ElapsedTime.x * max(input.localFlowSpeed * material_FlowSpeed, 0.0);
+        float flowEnabled = step(0.0001, input.localFlowSpeed);
+        float flowTime = scene_ElapsedTime.x * max(material_FlowSpeed, 0.0) * ${RIVER_FLOW_UV_SCALE_GLSL} * flowEnabled;
+        float downstream = input.uv.y - flowTime;
         float center = saturate(1.0 - abs(input.uv.x - 0.5) * 2.0);
         float outerBank = 1.0 - smoothstep(0.26, 0.74, center);
         float feather = 1.0 - smoothstep(0.64, 0.98, center);
-        vec2 flowVector = normalize(vec2((input.uv.x - 0.5) * 0.55, 1.0)) * (0.32 + material_FlowSpeed * 0.045);
-        float broadFoam = dualPhaseFbm(input.uv + vec2(3.2, 1.7), flowVector, vec2(0.24, 0.2083333), vec2(3.2, 8.4), time * 0.42);
-        float fineFoam = dualPhaseFbm(input.uv + vec2(12.8, 6.9), flowVector * 1.45, vec2(0.20, 0.25), vec2(9.5, 21.0), time * 0.56);
-        float downstream = input.uv.y - time * 0.36 + broadFoam * 0.12;
-        float streak = sin(downstream * 34.0 + input.uv.x * 12.0) * 0.5 + 0.5;
+        vec2 flowUv = vec2(input.uv.x + (input.uv.x - 0.5) * 0.08, downstream);
+        float broadFoam = fbm((flowUv + vec2(3.2, 1.7)) * vec2(3.2, 8.4));
+        float fineFoam = fbm((flowUv + vec2(12.8, 6.9)) * vec2(9.5, 21.0));
+        float detailPhase = downstream + broadFoam * 0.12;
+        float streak = sin(detailPhase * 34.0 + input.uv.x * 12.0) * 0.5 + 0.5;
         float foamField = broadFoam * 0.64 + fineFoam * 0.36 + streak * 0.16;
         float brokenMask = smoothstep(0.48, 0.88, foamField + outerBank * 0.28);
         float holes = smoothstep(0.22, 0.74, fineFoam);

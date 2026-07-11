@@ -35,18 +35,32 @@ describe("RiverGeometryCompiler", () => {
     const meshHash = hashRiverGeometryData(createLowRiverGeometryData(first));
     expect(sampleHash).toBe(hashRiverSamples(second));
     expect(meshHash).toBe(hashRiverGeometryData(createLowRiverGeometryData(second)));
-    expect({ sampleHash, meshHash }).toEqual({ sampleHash: "28752218", meshHash: "3b5685c5" });
+    expect({ sampleHash, meshHash }).toEqual({ sampleHash: "0e2403b2", meshHash: "4b31507d" });
   });
 
-  it("encodes local flow speed and continuous network distance in UV1", () => {
+  it("encodes continuous advective phase in UV0 and preserves network distance in UV1", () => {
     const samples = sampleRiverPath(variableProfileFixture).points;
     const networkDistanceOffset = 10;
-    const mesh = createLowRiverGeometryData(samples, networkDistanceOffset);
+    const networkFlowTimeOffset = 3;
+    const mesh = createLowRiverGeometryData(samples, networkDistanceOffset, networkFlowTimeOffset);
 
-    expect(mesh.uvs[0][1]).toBeCloseTo(networkDistanceOffset * RIVER_FLOW_UV_SCALE);
+    expect(mesh.uvs[0][1]).toBeCloseTo(networkFlowTimeOffset * RIVER_FLOW_UV_SCALE);
+    expect(mesh.uvs.at(-1)?.[1]).toBeCloseTo(
+      (networkFlowTimeOffset + samples.at(-1)!.flowTravelTime) * RIVER_FLOW_UV_SCALE
+    );
     expect(mesh.uv1s[0][0]).toBeCloseTo(samples[0].flowSpeed);
     expect(mesh.uv1s[0][1]).toBeCloseTo(networkDistanceOffset);
     expect(mesh.uv1s.at(-1)?.[1]).toBeCloseTo(networkDistanceOffset + samples.at(-1)!.distance);
+  });
+
+  it("keeps variable-speed flow travel time monotonic from source to mouth", () => {
+    const samples = sampleRiverPath(variableProfileFixture).points;
+
+    expect(samples[0].flowTravelTime).toBe(0);
+    for (let index = 1; index < samples.length; index++) {
+      expect(samples[index].flowTravelTime).toBeGreaterThan(samples[index - 1].flowTravelTime);
+      expect(samples[index].distance).toBeGreaterThan(samples[index - 1].distance);
+    }
   });
 
   it("bounds acute-turn ribbon expansion with the compiler miter limit", () => {
