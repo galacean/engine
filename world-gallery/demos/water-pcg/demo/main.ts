@@ -17,7 +17,7 @@ import { WaterPreviewMode } from "./examples/constants";
 import { cloneOceanConfig, OceanConfig, waterPcgExamples } from "./examples";
 import { RiverMaterialPreset, RiverPathMode, RiverQualityLevel } from "../authoring/river/RiverAuthoringEnums";
 import { RIVER_MATERIAL_PRESET_CONFIG, RIVER_QUALITY_PRESET } from "../authoring/river/RiverAuthoringLimits";
-import { decodeRiverSamplePoints, RiverGeometryCompiler } from "../compiler/river/RiverGeometryCompiler";
+import { decodeRiverSamplePoints } from "../compiler/river/RiverGeometryCompiler";
 import type { RiverCompiledData, RiverReachArtifact, RiverSampleResult } from "../compiler/river/types";
 import { RiverDirtyFlag } from "./constants";
 import { RiverDebugMode, RiverPreviewStage, RIVER_PREVIEW_STAGE_COLOR } from "./debug/constants";
@@ -33,7 +33,6 @@ import {
   type RiverRuntimeReachSource
 } from "../runtime/river/RiverRuntimeController";
 import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "../compiler/river/RiverNetworkCompiler";
-import { sampleRiverPath } from "../compiler/river/RiverPathSampler";
 import type { RiverQueryResult } from "../runtime/river/types";
 
 const PREVIEW_MODE_OPTIONS = {
@@ -298,6 +297,13 @@ if (startupQuality === RiverQualityLevel.Low) {
   applyQuality(RiverQualityLevel.Low);
   guiState.quality = "Low";
 }
+const initialCompiledPreview = RiverNetworkCompiler.compile(
+  createRiverDemoDescriptor(waterPcgExamples[activeExampleIndex].riverDescriptor, riverConfigs)
+);
+if (initialCompiledPreview.data) {
+  activeRiverCompiledData = initialCompiledPreview.data;
+  riverCompiledDataSets[activeExampleIndex] = initialCompiledPreview.data;
+}
 
 WebGLEngine.create(engineConfiguration).then((engine) => {
   engine.canvas.resizeByClientSize();
@@ -426,37 +432,15 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     exampleBarElement.dataset.topologyRevision = String(topologyRevision);
     exampleBarElement.dataset.compiledNodeCount = String(result.data.stats.nodeCount);
     exampleBarElement.dataset.compiledReachCount = String(result.data.stats.reachCount);
+    exampleBarElement.dataset.compiledJunctionCount = String(result.data.junctions.length);
+    exampleBarElement.dataset.compiledChunkCount = String(result.data.chunks.length);
     return true;
-  };
-  const updateRuntimeNetworkDistanceOffsets = (): void => {
-    const nodeDistances = new Float64Array(activeRiverCompiledData.nodes.length);
-    for (const nodeIndex of activeRiverCompiledData.topologicalNodeIndices) {
-      const node = activeRiverCompiledData.nodes[nodeIndex];
-      for (const reachIndex of node.outgoingReachIndices) {
-        const runtime = riverRuntimes[reachIndex];
-        const reach = activeRiverCompiledData.reaches[reachIndex];
-        if (!runtime || !reach) continue;
-        runtime.networkDistanceOffset = nodeDistances[nodeIndex];
-        nodeDistances[reach.toNodeIndex] = Math.max(
-          nodeDistances[reach.toNodeIndex],
-          runtime.networkDistanceOffset + runtime.sampleResult.totalLength
-        );
-      }
-    }
   };
   const applyRiverChanges = (requestedFlags: RiverDirtyFlag): void => {
     let flags = requestedFlags;
-    if (
-      hasDirty(flags, RiverDirtyFlag.Geometry) &&
-      !hasDirty(flags, RiverDirtyFlag.Topology) &&
-      activeRiverCompiledData.junctions.length > 0
-    ) {
+    if (hasDirty(flags, RiverDirtyFlag.Topology) || hasDirty(flags, RiverDirtyFlag.Geometry)) {
       if (!recompileActiveNetwork()) return;
       flags = RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug;
-    }
-    if (hasDirty(flags, RiverDirtyFlag.Topology)) {
-      if (!recompileActiveNetwork()) return;
-      flags |= RiverDirtyFlag.Geometry | RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug;
     }
     const warnings: string[] = [];
     let primaryQueryResult: RiverQueryResult | undefined;
@@ -465,23 +449,11 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
 
     for (const runtime of riverRuntimes) {
       runtime.normalizedConfig = normalizeRiverDemoConfig(runtime.config);
-      if (geometryDirty) {
-        runtime.geometryBuildCount++;
-        runtime.sampleResult = sampleRiverPath(runtime.normalizedConfig);
-      }
     }
-    if (geometryDirty) updateRuntimeNetworkDistanceOffsets();
 
     for (let i = 0; i < riverRuntimes.length; i++) {
       const runtime = riverRuntimes[i];
-      if (geometryDirty) {
-        runtime.artifact = RiverGeometryCompiler.compile(
-          runtime.sampleResult,
-          runtime.normalizedConfig.quality.material.level,
-          runtime.networkDistanceOffset
-        );
-      }
-      riverRuntimeController.updateReach(i, runtime.normalizedConfig, runtime.artifact, geometryDirty, materialDirty);
+      riverRuntimeController.updateReach(i, runtime.normalizedConfig, runtime.artifact, materialDirty);
       applyRiverPreviewStage(runtime, i);
       const queryResult = riverDebugController.update(
         i,
@@ -541,6 +513,8 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     exampleBarElement.dataset.compiledNetworkId = activeRiverCompiledData.sourceId;
     exampleBarElement.dataset.compiledNodeCount = String(activeRiverCompiledData.stats.nodeCount);
     exampleBarElement.dataset.compiledReachCount = String(activeRiverCompiledData.stats.reachCount);
+    exampleBarElement.dataset.compiledJunctionCount = String(activeRiverCompiledData.junctions.length);
+    exampleBarElement.dataset.compiledChunkCount = String(activeRiverCompiledData.chunks.length);
 
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
@@ -576,12 +550,8 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     rebuildExampleState();
   }
   function rebuildExampleState(): void {
-    const createdRuntimeSet = rebuildRiverSegmentRuntimes();
-    applyRiverChanges(
-      createdRuntimeSet
-        ? RiverDirtyFlag.Geometry | RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug
-        : RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug
-    );
+    rebuildRiverSegmentRuntimes();
+    applyRiverChanges(RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
     setPreviewMode(waterPcgExamples[activeExampleIndex].initialMode);
     renderExampleTabs();
     rebuildGui();
@@ -811,9 +781,11 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       riverRuntimeController.flushDeferredResources();
       if (pendingRuntimeStatsRefresh && riverRuntimes.length > 0) {
         const runtime = riverRuntimes[0];
-        const drawCalls = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low ? 1 : 2;
+        const passesPerChunk = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low ? 1 : 2;
+        const drawCalls = activeRiverCompiledData.chunks.length * passesPerChunk;
         exampleBarElement.dataset.bufferMemory = String(engine.renderingStatistics.bufferMemory);
-        queryPanelState.runtime = `${runtime.normalizedConfig.quality.material.level} | ${drawCalls} draw | ${runtime.sampleResult.points.length} samples | ${(engine.renderingStatistics.bufferMemory / 1024).toFixed(1)} KiB buffers`;
+        exampleBarElement.dataset.estimatedRiverDrawCalls = String(drawCalls);
+        queryPanelState.runtime = `${runtime.normalizedConfig.quality.material.level} | ${drawCalls} draw / ${activeRiverCompiledData.chunks.length} chunks | ${activeRiverCompiledData.stats.sampleCount} samples | ${(engine.renderingStatistics.bufferMemory / 1024).toFixed(1)} KiB buffers`;
         pendingRuntimeStatsRefresh = false;
       }
       if (activeMode === WaterPreviewMode.Ocean) oceanPreview.update(deltaTime);

@@ -21,6 +21,7 @@ import { decodeRiverNetworkDescriptor, validateRiverConfig } from "../../authori
 import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
+import { compileRiverChunks } from "./RiverChunkCompiler";
 import { compileRiverJunctions } from "./RiverJunctionCompiler";
 import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
 import { sampleRiverPath } from "./RiverPathSampler";
@@ -28,6 +29,7 @@ import {
   DeepReadonly,
   RiverCompileResult,
   RiverCompiledData,
+  RiverCompiledChunk,
   RiverJunctionArtifact,
   RiverCompiledNode,
   RiverCompiledReach,
@@ -46,6 +48,7 @@ interface RiverCompiledReachDraft {
 interface RiverBudgetedReachResult {
   reaches: readonly RiverCompiledReach[];
   junctions: readonly RiverJunctionArtifact[];
+  chunks: readonly RiverCompiledChunk[];
   sampleCount: number;
   vertexCount: number;
   chunkCount: number;
@@ -56,6 +59,7 @@ interface RiverBudgetedReachResult {
 interface RiverFinalizedGeometry {
   readonly reaches: readonly RiverCompiledReach[];
   readonly junctions: readonly RiverJunctionArtifact[];
+  readonly chunks: readonly RiverCompiledChunk[];
   readonly sampleCount: number;
   readonly vertexCount: number;
   readonly chunkCount: number;
@@ -372,22 +376,18 @@ function finalizeReachDistances(
       artifact
     });
   });
-  const reachVertexCount = reaches.reduce(
-    (sum, reach) =>
-      sum + reach.artifact.surfaceGeometry.positions.length + (reach.artifact.bankFoamGeometry?.positions.length ?? 0),
-    0
-  );
-  const junctionVertexCount = junctionResult.junctions.reduce(
-    (sum, junction) =>
-      sum + junction.surfaceGeometry.positions.length + (junction.bankFoamGeometry?.positions.length ?? 0),
+  const chunks = compileRiverChunks(reaches, junctionResult.junctions);
+  const vertexCount = chunks.reduce(
+    (sum, chunk) => sum + chunk.surfaceGeometry.positions.length + (chunk.bankFoamGeometry?.positions.length ?? 0),
     0
   );
   return {
     reaches,
     junctions: junctionResult.junctions,
+    chunks,
     sampleCount: junctionResult.sampleResults.reduce((sum, result) => sum + result.points.length, 0),
-    vertexCount: reachVertexCount + junctionVertexCount,
-    chunkCount: reaches.length + junctionResult.junctions.length
+    vertexCount,
+    chunkCount: chunks.length
   };
 }
 
@@ -481,6 +481,7 @@ function applyNetworkRuntimeBudget(
   return {
     reaches: finalized.reaches,
     junctions: finalized.junctions,
+    chunks: finalized.chunks,
     sampleCount,
     vertexCount,
     chunkCount,
@@ -599,6 +600,7 @@ export class RiverNetworkCompiler {
       nodes,
       reaches: budgeted.reaches,
       junctions: budgeted.junctions,
+      chunks: budgeted.chunks,
       topologicalNodeIndices: new RiverReadonlyUint32Buffer(topologicalNodeIndices),
       waterSurfaceElevations: new RiverReadonlyFloat32Buffer(waterSurfaceElevations),
       diagnostics: frozenDiagnostics,

@@ -3,6 +3,7 @@ import type { Vector3 } from "@galacean/engine-math";
 import type { RiverAuthoringConfig } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkSchemaVersion, RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverDiagnostic } from "../shared/diagnostics";
+import type { RiverChunkSourceKind } from "./RiverGeometryEnums";
 
 export interface ReadonlyUint32Buffer extends Iterable<number> {
   readonly length: number;
@@ -73,6 +74,7 @@ export interface RiverCompiledData {
   readonly nodes: readonly RiverCompiledNode[];
   readonly reaches: readonly RiverCompiledReach[];
   readonly junctions: readonly RiverJunctionArtifact[];
+  readonly chunks: readonly RiverCompiledChunk[];
   readonly topologicalNodeIndices: ReadonlyUint32Buffer;
   readonly waterSurfaceElevations: ReadonlyFloat32Buffer;
   readonly diagnostics: readonly RiverDiagnostic[];
@@ -166,6 +168,18 @@ export interface RiverJunctionArtifact {
   readonly outgoingReachIndices: ReadonlyUint32Buffer;
   readonly materialSourceReachIndex: number;
   readonly flowDirection: ReadonlyVector3Tuple;
+  readonly surfaceGeometry: RiverGeometryData;
+  readonly bankFoamGeometry?: RiverGeometryData;
+}
+
+export interface RiverCompiledChunk {
+  readonly id: string;
+  readonly sourceKind: RiverChunkSourceKind;
+  readonly sourceIndex: number;
+  readonly materialSourceReachIndex: number;
+  readonly tileX: number;
+  readonly tileZ: number;
+  readonly localOrigin: ReadonlyVector3Tuple;
   readonly surfaceGeometry: RiverGeometryData;
   readonly bankFoamGeometry?: RiverGeometryData;
 }
