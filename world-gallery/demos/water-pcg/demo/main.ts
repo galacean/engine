@@ -29,12 +29,16 @@ import { OceanPreviewController } from "./examples/ocean-preview/OceanPreviewCon
 import { createWaterPreviewMaterial } from "./WaterPreviewMaterial";
 import {
   RiverRuntimeController,
+  RiverRuntimeSubmissionCancelledError,
+  type RiverRuntimeActivation,
   type RiverRuntimeReach,
   type RiverRuntimeReachSource
 } from "../runtime/river/RiverRuntimeController";
-import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "../compiler/river/RiverNetworkCompiler";
+import { cloneCompiledRiverConfig } from "../compiler/river/RiverNetworkCompiler";
 import { createRiverNetworkQueryResult, getPointAtRiverT } from "../runtime/river/RiverQueryService";
 import type { RiverNetworkQueryResult } from "../runtime/river/types";
+import { RiverCompileWorkerClient, RiverCompileWorkerError } from "../runtime/river/RiverCompileWorkerClient";
+import type { RiverResource } from "../runtime/river/RiverResource";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -120,18 +124,14 @@ declare global {
   }
 }
 
+async function bootstrapWaterPcg(): Promise<void> {
+const riverCompileWorker = new RiverCompileWorkerClient();
 let activeExampleIndex = 0;
 let oceanConfig: OceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
-function compileRiverDescriptor(source: unknown): RiverCompiledData {
-  const result = RiverNetworkCompiler.compile(source);
-  if (!result.data) {
-    throw new Error(result.diagnostics.map((diagnostic) => `${diagnostic.code}@${diagnostic.path}`).join(", "));
-  }
-  return result.data;
-}
-const riverCompiledDataSets: RiverCompiledData[] = waterPcgExamples.map((example) =>
-  compileRiverDescriptor(example.riverDescriptor)
+const riverResourceSets = await Promise.all(
+  waterPcgExamples.map((example) => riverCompileWorker.compile(example.riverDescriptor))
 );
+const riverCompiledDataSets: RiverCompiledData[] = riverResourceSets.map((resource) => resource.data);
 const riverConfigSets = riverCompiledDataSets.map((compiledData, exampleIndex) =>
   compiledData.reaches.map((reach) => ({
     ...cloneCompiledRiverConfig(reach.config),
@@ -139,6 +139,7 @@ const riverConfigSets = riverCompiledDataSets.map((compiledData, exampleIndex) =
   }))
 );
 let activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
+let activeRiverResource = riverResourceSets[activeExampleIndex];
 let riverConfigs: RiverConfig[] = riverConfigSets[activeExampleIndex];
 
 const guiState: GuiState = {
@@ -163,6 +164,11 @@ const queryPanelState: QueryPanelState = {
 let activeMode = waterPcgExamples[activeExampleIndex].initialMode;
 const startupQuality = new URLSearchParams(window.location.search).get("quality");
 const profilingEnabled = new URLSearchParams(window.location.search).get("profile") === "1";
+const requestedSubmissionBudgetMs = Number(new URLSearchParams(window.location.search).get("submissionBudgetMs"));
+const startupSubmissionBudgetMs =
+  Number.isFinite(requestedSubmissionBudgetMs) && requestedSubmissionBudgetMs > 0
+    ? requestedSubmissionBudgetMs
+    : undefined;
 const exampleBar = document.getElementById("example-bar");
 
 if (!(exampleBar instanceof HTMLDivElement)) {
@@ -195,8 +201,8 @@ function applyRiverPreset(preset: RiverMaterialPreset): void {
   });
 }
 
-function applyQuality(level: RiverQualityLevel): void {
-  updateAllRiverConfigs((config) => {
+function applyQualityToConfigs(configs: readonly RiverConfig[], level: RiverQualityLevel): void {
+  for (const config of configs) {
     const preset = RIVER_QUALITY_PRESET[level];
     config.path.segmentLength = preset.segmentLength;
     config.quality.geometry = {
@@ -208,7 +214,11 @@ function applyQuality(level: RiverQualityLevel): void {
     config.quality.maps.level = level === RiverQualityLevel.Low ? RiverQualityLevel.Low : level;
     config.quality.query.level = level;
     if (level === RiverQualityLevel.Low) config.debug.mode = RiverDebugMode.Off;
-  });
+  }
+}
+
+function applyQuality(level: RiverQualityLevel): void {
+  applyQualityToConfigs(riverConfigs, level);
 }
 
 function syncGuiStateFromRiverConfig(): void {
@@ -295,18 +305,23 @@ const engineConfiguration = {
 } as unknown as Parameters<typeof WebGLEngine.create>[0];
 
 if (startupQuality === RiverQualityLevel.Low) {
-  applyQuality(RiverQualityLevel.Low);
+  for (const configs of riverConfigSets) applyQualityToConfigs(configs, RiverQualityLevel.Low);
   guiState.quality = "Low";
-}
-const initialCompiledPreview = RiverNetworkCompiler.compile(
-  createRiverDemoDescriptor(waterPcgExamples[activeExampleIndex].riverDescriptor, riverConfigs)
-);
-if (initialCompiledPreview.data) {
-  activeRiverCompiledData = initialCompiledPreview.data;
-  riverCompiledDataSets[activeExampleIndex] = initialCompiledPreview.data;
+  const lowResources = await Promise.all(
+    waterPcgExamples.map((example, exampleIndex) =>
+      riverCompileWorker.compile(createRiverDemoDescriptor(example.riverDescriptor, riverConfigSets[exampleIndex]))
+    )
+  );
+  for (let index = 0; index < lowResources.length; index++) {
+    riverResourceSets[index].dispose();
+    riverResourceSets[index] = lowResources[index];
+    riverCompiledDataSets[index] = lowResources[index].data;
+  }
+  activeRiverResource = riverResourceSets[activeExampleIndex];
+  activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
 }
 
-WebGLEngine.create(engineConfiguration).then((engine) => {
+const engine = await WebGLEngine.create(engineConfiguration);
   engine.canvas.resizeByClientSize();
   window.addEventListener("resize", () => engine.canvas.resizeByClientSize());
 
@@ -358,17 +373,20 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       networkDistanceOffset: activeRiverCompiledData.reaches[reachIndex]?.networkDistanceOffset ?? 0
     };
   };
-  const createRuntimeReachSources = (): RiverRuntimeReachSource[] =>
-    riverConfigs.map((config, reachIndex) => {
+  const createRuntimeReachSources = (
+    compiledData: RiverCompiledData = activeRiverCompiledData,
+    configs: readonly RiverConfig[] = riverConfigs
+  ): RiverRuntimeReachSource[] =>
+    configs.map((config, reachIndex) => {
       const normalizedConfig = normalizeRiverDemoConfig(config);
       return {
         config: normalizedConfig,
-        artifact: activeRiverCompiledData.reaches[reachIndex].artifact
+        artifact: compiledData.reaches[reachIndex].artifact
       };
     });
   const rebuildRiverSegmentRuntimes = (): boolean => {
     const exampleId = waterPcgExamples[activeExampleIndex].id;
-    const activation = riverRuntimeController.activate(exampleId, activeRiverCompiledData, createRuntimeReachSources());
+    const activation = riverRuntimeController.activate(exampleId, activeRiverResource, createRuntimeReachSources());
     riverDebugController.activate(exampleId, activation.reaches);
     const cached = riverDemoRuntimeSets.get(exampleId);
     if (cached) {
@@ -395,55 +413,86 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   };
   const hasDirty = (flags: RiverDirtyFlag, flag: RiverDirtyFlag): boolean => (flags & flag) !== 0;
   const networkQueryResult = createRiverNetworkQueryResult();
-  const recompileActiveNetwork = (): boolean => {
-    const previousPrimaryConfig = riverConfigs[0];
-    const previousQuality = previousPrimaryConfig?.quality.material.level;
-    const previousDebug = previousPrimaryConfig ? { ...previousPrimaryConfig.debug } : undefined;
-    const result = RiverNetworkCompiler.compile(
-      createRiverDemoDescriptor(waterPcgExamples[activeExampleIndex].riverDescriptor, riverConfigs)
-    );
-    if (!result.data) {
-      queryPanelState.warnings = result.diagnostics
-        .map((diagnostic) => `${diagnostic.code}@${diagnostic.path}`)
-        .join(" | ");
+  let compileRequestRevision = 0;
+  const recompileActiveNetwork = async (): Promise<boolean> => {
+    const requestRevision = ++compileRequestRevision;
+    const requestExampleIndex = activeExampleIndex;
+    const descriptor = createRiverDemoDescriptor(waterPcgExamples[activeExampleIndex].riverDescriptor, riverConfigs);
+    let nextResource: RiverResource;
+    try {
+      nextResource = await riverCompileWorker.compile(descriptor);
+    } catch (error) {
+      queryPanelState.warnings =
+        error instanceof RiverCompileWorkerError ? error.message : "River Worker compilation failed.";
+      return false;
+    }
+    if (requestRevision !== compileRequestRevision || requestExampleIndex !== activeExampleIndex) {
+      nextResource.dispose();
       return false;
     }
 
     const exampleId = waterPcgExamples[activeExampleIndex].id;
-    riverDebugController.remove(exampleId);
-    activeRiverCompiledData = result.data;
-    riverCompiledDataSets[activeExampleIndex] = result.data;
-    riverConfigs = result.data.reaches.map((reach) => ({
+    const previousResource = activeRiverResource;
+    const nextData = nextResource.data;
+    const currentDebug = riverConfigs[0]
+      ? { ...riverConfigs[0].debug }
+      : { ...waterPcgExamples[activeExampleIndex].riverDebug };
+    const nextConfigs = nextData.reaches.map((reach) => ({
       ...cloneCompiledRiverConfig(reach.config),
-      debug: { ...waterPcgExamples[activeExampleIndex].riverDebug }
+      debug: { ...currentDebug }
     }));
-    riverConfigSets[activeExampleIndex] = riverConfigs;
-    if (previousQuality) applyQuality(previousQuality);
-    if (previousDebug) {
-      updateAllRiverConfigs((config) => {
-        config.debug = { ...previousDebug };
-      });
+    let activation: RiverRuntimeActivation;
+    try {
+      activation = await riverRuntimeController.replaceActiveIncremental(
+        exampleId,
+        nextResource,
+        createRuntimeReachSources(nextData, nextConfigs),
+        {
+          frameBudgetMs: startupSubmissionBudgetMs,
+          shouldCancel: () => requestRevision !== compileRequestRevision || requestExampleIndex !== activeExampleIndex
+        }
+      );
+    } catch (error) {
+      nextResource.dispose();
+      if (error instanceof RiverRuntimeSubmissionCancelledError) return false;
+      queryPanelState.warnings = error instanceof Error ? error.message : "River Runtime submission failed.";
+      return false;
     }
-    const runtimeReaches = riverRuntimeController.replaceActive(exampleId, result.data, createRuntimeReachSources());
-    riverDebugController.activate(exampleId, runtimeReaches);
+    riverDebugController.remove(exampleId);
+    activeRiverResource = nextResource;
+    riverResourceSets[activeExampleIndex] = nextResource;
+    activeRiverCompiledData = nextData;
+    riverCompiledDataSets[activeExampleIndex] = nextData;
+    riverConfigs = nextConfigs;
+    riverConfigSets[activeExampleIndex] = riverConfigs;
+    previousResource.dispose();
+    riverDebugController.activate(exampleId, activation.reaches);
     riverRuntimes = riverConfigs.map((config, index) =>
-      createRiverSegmentRuntime(config, index, runtimeReaches[index])
+      createRiverSegmentRuntime(config, index, activation.reaches[index])
     );
     riverDemoRuntimeSets.set(exampleId, riverRuntimes);
     topologyRevision++;
     exampleBarElement.dataset.topologyRevision = String(topologyRevision);
-    exampleBarElement.dataset.compiledNodeCount = String(result.data.stats.nodeCount);
-    exampleBarElement.dataset.compiledReachCount = String(result.data.stats.reachCount);
-    exampleBarElement.dataset.compiledJunctionCount = String(result.data.junctions.length);
-    exampleBarElement.dataset.compiledChunkCount = String(result.data.chunks.length);
-    exampleBarElement.dataset.queryPrimitiveCount = String(result.data.queryIndex.primitiveCount);
-    exampleBarElement.dataset.queryCellCount = String(result.data.queryIndex.cellCount);
+    exampleBarElement.dataset.compiledNodeCount = String(nextData.stats.nodeCount);
+    exampleBarElement.dataset.compiledReachCount = String(nextData.stats.reachCount);
+    exampleBarElement.dataset.compiledJunctionCount = String(nextData.junctions.length);
+    exampleBarElement.dataset.compiledChunkCount = String(nextData.chunks.length);
+    exampleBarElement.dataset.queryPrimitiveCount = String(nextData.queryIndex.primitiveCount);
+    exampleBarElement.dataset.queryCellCount = String(nextData.queryIndex.cellCount);
+    exampleBarElement.dataset.resourceAssetVersion = String(nextResource.metadata.assetVersion);
+    exampleBarElement.dataset.resourceHash = nextResource.metadata.compiledHash;
+    exampleBarElement.dataset.resourceByteLength = String(nextResource.byteLength);
+    exampleBarElement.dataset.submissionYieldCount = String(activation.yieldCount);
+    exampleBarElement.dataset.submissionMaxSliceMs = activation.maxSliceMs.toFixed(3);
+    exampleBarElement.dataset.workerDeserializeMs = riverCompileWorker.lastDeserializeMs.toFixed(3);
     return true;
   };
-  const applyRiverChanges = (requestedFlags: RiverDirtyFlag): void => {
+  const applyRiverChangesAsync = async (requestedFlags: RiverDirtyFlag): Promise<void> => {
     let flags = requestedFlags;
+    let networkRecompiled = false;
     if (hasDirty(flags, RiverDirtyFlag.Topology) || hasDirty(flags, RiverDirtyFlag.Geometry)) {
-      if (!recompileActiveNetwork()) return;
+      if (!(await recompileActiveNetwork())) return;
+      networkRecompiled = true;
       flags = RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug;
     }
     const warnings: string[] = [];
@@ -494,6 +543,12 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
       exampleBarElement.dataset.querySourceKind = networkQueryResult.sourceKind ?? "none";
     }
     pendingRuntimeStatsRefresh = true;
+    if (networkRecompiled) rebuildGui();
+  };
+  const applyRiverChanges = (requestedFlags: RiverDirtyFlag): void => {
+    void applyRiverChangesAsync(requestedFlags).catch((error: unknown) => {
+      queryPanelState.warnings = error instanceof Error ? error.message : "River update failed.";
+    });
   };
   const setPreviewMode = (mode: WaterPreviewMode): void => {
     activeMode = mode;
@@ -524,6 +579,12 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     exampleBarElement.dataset.compiledChunkCount = String(activeRiverCompiledData.chunks.length);
     exampleBarElement.dataset.queryPrimitiveCount = String(activeRiverCompiledData.queryIndex.primitiveCount);
     exampleBarElement.dataset.queryCellCount = String(activeRiverCompiledData.queryIndex.cellCount);
+    exampleBarElement.dataset.resourceAssetVersion = String(activeRiverResource.metadata.assetVersion);
+    exampleBarElement.dataset.resourceHash = activeRiverResource.metadata.compiledHash;
+    exampleBarElement.dataset.resourceByteLength = String(activeRiverResource.byteLength);
+    exampleBarElement.dataset.workerCompile = "true";
+    exampleBarElement.dataset.workerDeserializeMs = riverCompileWorker.lastDeserializeMs.toFixed(3);
+    exampleBarElement.dataset.submissionBudgetMs = String(startupSubmissionBudgetMs ?? 4);
 
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
@@ -543,19 +604,14 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
     }
   }
   function loadExample(index: number): void {
+    compileRequestRevision++;
     activeExampleIndex = index;
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
     oceanPreview.setConfig(oceanConfig);
     activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
+    activeRiverResource = riverResourceSets[activeExampleIndex];
     riverConfigs = riverConfigSets[activeExampleIndex];
     if (startupQuality === RiverQualityLevel.Low) applyQuality(RiverQualityLevel.Low);
-    const compiledPreview = RiverNetworkCompiler.compile(
-      createRiverDemoDescriptor(waterPcgExamples[activeExampleIndex].riverDescriptor, riverConfigs)
-    );
-    if (compiledPreview.data) {
-      activeRiverCompiledData = compiledPreview.data;
-      riverCompiledDataSets[activeExampleIndex] = compiledPreview.data;
-    }
     rebuildExampleState();
   }
   function rebuildExampleState(): void {
@@ -814,7 +870,13 @@ WebGLEngine.create(engineConfiguration).then((engine) => {
   window.addEventListener("beforeunload", () => {
     riverDebugController.destroy();
     riverRuntimeController.destroy();
+    for (const resource of riverResourceSets) resource.dispose();
+    riverCompileWorker.dispose();
     oceanPreview.destroy();
   });
   engine.run();
+}
+
+void bootstrapWaterPcg().catch((error: unknown) => {
+  console.error(error instanceof Error ? error : new Error("Water PCG bootstrap failed."));
 });

@@ -14,6 +14,8 @@ import {
 } from "./RiverMaterialFactory";
 import { uploadRiverMeshes } from "./RiverMeshUploader";
 import { RiverNetworkQueryService } from "./RiverQueryService";
+import { RiverResource } from "./RiverResource";
+import { RIVER_RESOURCE_SUBMISSION_BUDGET_MS } from "./constants";
 import type { RiverMeshBuildResult } from "./types";
 
 export interface RiverRuntimeReach {
@@ -55,6 +57,8 @@ interface MutableRiverRuntimeChunk {
 }
 
 interface MutableRiverRuntimeSet {
+  readonly root: Entity;
+  readonly resource: RiverResource;
   readonly reaches: MutableRiverRuntimeReach[];
   readonly chunks: MutableRiverRuntimeChunk[];
   readonly queryService: RiverNetworkQueryService;
@@ -64,6 +68,23 @@ export interface RiverRuntimeActivation {
   created: boolean;
   reaches: readonly RiverRuntimeReach[];
   queryService: RiverNetworkQueryService;
+  submittedChunkCount: number;
+  yieldCount: number;
+  maxSliceMs: number;
+}
+
+export interface RiverRuntimeSubmissionOptions {
+  frameBudgetMs?: number;
+  now?: () => number;
+  yieldToMainThread?: () => Promise<void>;
+  shouldCancel?: () => boolean;
+}
+
+export class RiverRuntimeSubmissionCancelledError extends Error {
+  constructor() {
+    super("River runtime submission was superseded by a newer request.");
+    this.name = "RiverRuntimeSubmissionCancelledError";
+  }
 }
 
 function pinMaterialSet(materials: RiverRuntimeMaterialSet): void {
@@ -95,36 +116,52 @@ export class RiverRuntimeController {
 
   activate(
     networkId: string,
-    compiledData: RiverCompiledData,
+    resource: RiverResource,
     sources?: readonly RiverRuntimeReachSource[]
   ): RiverRuntimeActivation {
     this._deactivateAll();
     const cached = this._runtimeSets.get(networkId);
     if (cached) {
+      if (cached.resource.metadata.compiledHash !== resource.metadata.compiledHash) {
+        throw new Error("Cached river runtime hash differs; use replaceActive for changed resources.");
+      }
       this._activeId = networkId;
       this._activeReaches = cached.reaches;
       this._activeChunks = cached.chunks;
       this._activeQueryService = cached.queryService;
-      for (const reach of cached.reaches) reach.root.isActive = true;
-      for (const chunk of cached.chunks) chunk.root.isActive = true;
-      return { created: false, reaches: cached.reaches, queryService: cached.queryService };
+      cached.root.isActive = true;
+      return {
+        created: false,
+        reaches: cached.reaches,
+        queryService: cached.queryService,
+        submittedChunkCount: 0,
+        yieldCount: 0,
+        maxSliceMs: 0
+      };
     }
-    const runtimeSet = this._createRuntimeSet(compiledData, sources);
+    const runtimeSet = this._createRuntimeSet(resource, sources);
     this._runtimeSets.set(networkId, runtimeSet);
     this._activeId = networkId;
     this._activeReaches = runtimeSet.reaches;
     this._activeChunks = runtimeSet.chunks;
     this._activeQueryService = runtimeSet.queryService;
-    return { created: true, reaches: runtimeSet.reaches, queryService: runtimeSet.queryService };
+    return {
+      created: true,
+      reaches: runtimeSet.reaches,
+      queryService: runtimeSet.queryService,
+      submittedChunkCount: runtimeSet.chunks.length,
+      yieldCount: 0,
+      maxSliceMs: 0
+    };
   }
 
   replaceActive(
     networkId: string,
-    compiledData: RiverCompiledData,
+    resource: RiverResource,
     sources?: readonly RiverRuntimeReachSource[]
   ): readonly RiverRuntimeReach[] {
     const previous = this._runtimeSets.get(networkId);
-    const runtimeSet = this._createRuntimeSet(compiledData, sources);
+    const runtimeSet = this._createRuntimeSet(resource, sources);
     this._runtimeSets.set(networkId, runtimeSet);
     this._activeId = networkId;
     this._activeReaches = runtimeSet.reaches;
@@ -135,6 +172,76 @@ export class RiverRuntimeController {
       this._pendingResourceGc = true;
     }
     return runtimeSet.reaches;
+  }
+
+  async replaceActiveIncremental(
+    networkId: string,
+    resource: RiverResource,
+    sources?: readonly RiverRuntimeReachSource[],
+    options: RiverRuntimeSubmissionOptions = {}
+  ): Promise<RiverRuntimeActivation> {
+    const previous = this._runtimeSets.get(networkId);
+    const now = options.now ?? (() => performance.now());
+    const yieldToMainThread =
+      options.yieldToMainThread ?? (() => new Promise<void>((resolve) => requestAnimationFrame(() => resolve())));
+    const frameBudgetMs = options.frameBudgetMs ?? RIVER_RESOURCE_SUBMISSION_BUDGET_MS;
+    const data = resource.data;
+    const root = this._root.createChild(`river-runtime-${data.sourceId}`);
+    root.isActive = false;
+    resource.retain();
+    let reaches: MutableRiverRuntimeReach[] = [];
+      const chunks: MutableRiverRuntimeChunk[] = [];
+    let yieldCount = 0;
+    let maxSliceMs = 0;
+    try {
+      reaches = this._createReaches(data, root, sources);
+      let sliceStart = now();
+      for (const chunk of data.chunks) {
+        if (options.shouldCancel?.()) throw new RiverRuntimeSubmissionCancelledError();
+        chunks.push(this._createChunk(chunk, reaches, root));
+        const sliceDuration = now() - sliceStart;
+        maxSliceMs = Math.max(maxSliceMs, sliceDuration);
+        if (sliceDuration >= frameBudgetMs && chunks.length < data.chunks.length) {
+          yieldCount++;
+          await yieldToMainThread();
+          if (options.shouldCancel?.()) throw new RiverRuntimeSubmissionCancelledError();
+          sliceStart = now();
+        }
+      }
+      const runtimeSet: MutableRiverRuntimeSet = {
+        root,
+        resource,
+        reaches,
+        chunks,
+        queryService: new RiverNetworkQueryService(data)
+      };
+      if (options.shouldCancel?.()) throw new RiverRuntimeSubmissionCancelledError();
+      this._deactivateAll();
+      runtimeSet.root.isActive = true;
+      this._runtimeSets.set(networkId, runtimeSet);
+      this._activeId = networkId;
+      this._activeReaches = runtimeSet.reaches;
+      this._activeChunks = runtimeSet.chunks;
+      this._activeQueryService = runtimeSet.queryService;
+      if (previous) {
+        this._destroyRuntimeSet(previous);
+        this._pendingResourceGc = true;
+      }
+      return {
+        created: true,
+        reaches: runtimeSet.reaches,
+        queryService: runtimeSet.queryService,
+        submittedChunkCount: runtimeSet.chunks.length,
+        yieldCount,
+        maxSliceMs
+      };
+    } catch (error) {
+      for (const chunk of chunks) this._destroyChunk(chunk);
+      for (const reach of reaches) this._destroyReach(reach);
+      root.destroy();
+      resource.release();
+      throw error;
+    }
   }
 
   updateReach(
@@ -189,10 +296,39 @@ export class RiverRuntimeController {
   }
 
   private _createRuntimeSet(
-    compiledData: RiverCompiledData,
+    resource: RiverResource,
     sources?: readonly RiverRuntimeReachSource[]
   ): MutableRiverRuntimeSet {
-    const reaches = compiledData.reaches.map((reach, reachIndex) => {
+    const compiledData = resource.data;
+    const root = this._root.createChild(`river-runtime-${compiledData.sourceId}`);
+    resource.retain();
+    let reaches: MutableRiverRuntimeReach[] = [];
+    let chunks: MutableRiverRuntimeChunk[] = [];
+    try {
+      reaches = this._createReaches(compiledData, root, sources);
+      chunks = compiledData.chunks.map((chunk) => this._createChunk(chunk, reaches, root));
+      return {
+        root,
+        resource,
+        reaches,
+        chunks,
+        queryService: new RiverNetworkQueryService(compiledData)
+      };
+    } catch (error) {
+      for (const chunk of chunks) this._destroyChunk(chunk);
+      for (const reach of reaches) this._destroyReach(reach);
+      root.destroy();
+      resource.release();
+      throw error;
+    }
+  }
+
+  private _createReaches(
+    compiledData: RiverCompiledData,
+    root: Entity,
+    sources?: readonly RiverRuntimeReachSource[]
+  ): MutableRiverRuntimeReach[] {
+    return compiledData.reaches.map((reach, reachIndex) => {
       const source = sources?.[reachIndex];
       const config = source?.config ?? cloneCompiledRiverConfig(reach.config);
       const materials = {
@@ -202,21 +338,20 @@ export class RiverRuntimeController {
       };
       pinMaterialSet(materials);
       return {
-        root: this._root.createChild(`river-reach-${reach.id}`),
+        root: root.createChild(`river-reach-${reach.id}`),
         config,
         artifact: source?.artifact ?? reach.artifact,
         materials
       };
     });
-    const chunks = compiledData.chunks.map((chunk) => this._createChunk(chunk, reaches));
-    return { reaches, chunks, queryService: new RiverNetworkQueryService(compiledData) };
   }
 
   private _createChunk(
     chunk: RiverCompiledChunk,
-    reaches: readonly MutableRiverRuntimeReach[]
+    reaches: readonly MutableRiverRuntimeReach[],
+    runtimeRoot: Entity
   ): MutableRiverRuntimeChunk {
-    const parent = chunk.sourceKind === RiverChunkSourceKind.Reach ? reaches[chunk.sourceIndex].root : this._root;
+    const parent = chunk.sourceKind === RiverChunkSourceKind.Reach ? reaches[chunk.sourceIndex].root : runtimeRoot;
     const root = parent.createChild(`river-chunk-${chunk.id}`);
     root.transform.setPosition(chunk.localOrigin[0], chunk.localOrigin[1], chunk.localOrigin[2]);
     const foamRenderer = root.createChild(`${chunk.id}-bank`).addComponent(MeshRenderer);
@@ -239,8 +374,7 @@ export class RiverRuntimeController {
 
   private _deactivateAll(): void {
     for (const runtimeSet of this._runtimeSets.values()) {
-      for (const reach of runtimeSet.reaches) reach.root.isActive = false;
-      for (const chunk of runtimeSet.chunks) chunk.root.isActive = false;
+      runtimeSet.root.isActive = false;
     }
   }
 
@@ -260,5 +394,7 @@ export class RiverRuntimeController {
   private _destroyRuntimeSet(runtimeSet: MutableRiverRuntimeSet): void {
     for (const chunk of runtimeSet.chunks) this._destroyChunk(chunk);
     for (const reach of runtimeSet.reaches) this._destroyReach(reach);
+    runtimeSet.root.destroy();
+    runtimeSet.resource.release();
   }
 }
