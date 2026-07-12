@@ -1,5 +1,6 @@
 import { Vector3 } from "@galacean/engine-math";
 import { RiverNodeKind, RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
+import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
 import { RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import {
@@ -24,11 +25,13 @@ import type {
 } from "./types";
 
 export interface RiverJunctionReachInput {
+  readonly id: string;
   readonly reachIndex: number;
   readonly fromNodeIndex: number;
   readonly toNodeIndex: number;
   readonly order: number;
   readonly materialLevel: RiverQualityLevel;
+  readonly material: Readonly<RiverMaterialConfig>;
   readonly networkDistanceOffset: number;
   readonly networkFlowTimeOffset: number;
   readonly sampleResult: RiverSampleResult;
@@ -253,6 +256,16 @@ function averageEndpointValue(
   return endpoints.reduce((sum, endpoint) => sum + select(endpoint), 0) / Math.max(1, endpoints.length);
 }
 
+function hasCompatibleMaterial(a: Readonly<RiverMaterialConfig>, b: Readonly<RiverMaterialConfig>): boolean {
+  return (
+    a.preset === b.preset &&
+    a.baseColor === b.baseColor &&
+    a.foamColor === b.foamColor &&
+    a.foamIntensity === b.foamIntensity &&
+    a.clarity === b.clarity
+  );
+}
+
 export function compileRiverJunctions(
   nodes: readonly RiverCompiledNode[],
   reaches: readonly RiverJunctionReachInput[]
@@ -342,6 +355,20 @@ export function compileRiverJunctions(
         incomingReachIndices[0]
       );
     const materialLevel = reaches[materialSourceReachIndex].materialLevel;
+    const materialSource = reaches[materialSourceReachIndex].material;
+    const incompatibleReachIndices = connectedReachIndices.filter(
+      (reachIndex) => !hasCompatibleMaterial(reaches[reachIndex].material, materialSource)
+    );
+    if (incompatibleReachIndices.length > 0) {
+      diagnostics.push({
+        code: RiverDiagnosticCode.IncompatibleJunctionMaterial,
+        severity: RiverDiagnosticSeverity.Warning,
+        path: `nodes[${nodeIndex}].material`,
+        message: `Junction uses reach "${reaches[materialSourceReachIndex].id}" as its material source; incompatible connected reaches ${incompatibleReachIndices
+          .map((reachIndex) => `"${reaches[reachIndex].id}"`)
+          .join(", ")} require an explicit style transition.`
+      });
+    }
     const queryBoundary = Object.freeze(
       createBoundaryVertices(node, endpoints, false, 0, 0).map((vertex) => vertex.position)
     );

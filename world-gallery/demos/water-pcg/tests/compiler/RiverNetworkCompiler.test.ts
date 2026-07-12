@@ -190,6 +190,29 @@ describe("RiverNetworkCompiler", () => {
     expect(data.chunks.every((chunk) => chunk.bankFoamGeometry === undefined)).toBe(true);
   });
 
+  it("reports incompatible material styles at confluence boundaries", () => {
+    const mixedResult = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
+    expect(mixedResult.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: RiverDiagnosticCode.IncompatibleJunctionMaterial,
+          path: "nodes[5].material"
+        })
+      ])
+    );
+
+    const source = multiTributaryRiverExample.riverDescriptor;
+    const unifiedDescriptor: RiverNetworkDescriptor = {
+      ...source,
+      segments: source.segments.map((segment) => ({ ...segment, material: undefined }))
+    };
+    const unifiedResult = RiverNetworkCompiler.compile(unifiedDescriptor);
+    expect(unifiedResult.valid).toBe(true);
+    expect(unifiedResult.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
+      RiverDiagnosticCode.IncompatibleJunctionMaterial
+    );
+  });
+
   it("snaps curve endpoints to compiler-resolved node positions with a diagnostic", () => {
     const source = curvedMainRiverExample.riverDescriptor;
     const descriptor: RiverNetworkDescriptor = {

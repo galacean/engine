@@ -427,11 +427,13 @@ function finalizeReachDistances(
   const junctionResult = compileRiverJunctions(
     nodes,
     drafts.map((draft, reachIndex) => ({
+      id: draft.id,
       reachIndex,
       fromNodeIndex: draft.fromNodeIndex,
       toNodeIndex: draft.toNodeIndex,
       order: draft.order,
       materialLevel: draft.config.quality.material.level,
+      material: draft.config.material,
       networkDistanceOffset: offsets[reachIndex],
       networkFlowTimeOffset: flowTimeOffsets[reachIndex],
       sampleResult: sampleResults[reachIndex]
