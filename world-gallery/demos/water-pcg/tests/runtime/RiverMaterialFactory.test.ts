@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { lowRiverShaderSource, riverSurfaceShaderSource } from "../../runtime/river/RiverMaterialFactory";
 
-describe("RiverMaterialFactory Low shader", () => {
+describe("RiverMaterialFactory shaders", () => {
   it("uses one pass, one texture sample, and no FBM loop", () => {
     expect(lowRiverShaderSource.match(/Pass \"/g) ?? []).toHaveLength(1);
     expect(lowRiverShaderSource.match(/texture2D\(/g) ?? []).toHaveLength(1);
@@ -33,10 +33,17 @@ describe("RiverMaterialFactory Low shader", () => {
     expect(riverSurfaceShaderSource).not.toContain("texture2D(");
     expect(riverSurfaceShaderSource).toContain("float streak = sin(detailPhase");
     expect(riverSurfaceShaderSource).toContain("float shoreEnvelope");
-    expect(riverSurfaceShaderSource).toMatch(/streak \* 0\.68\s+\+ foamNoise \* 0\.32/);
+    expect(riverSurfaceShaderSource).toContain("float shoreNoiseMask");
+    expect(riverSurfaceShaderSource).toContain("float shoreDetail");
+    expect(riverSurfaceShaderSource).toContain("float shoreSmooth");
+    expect(riverSurfaceShaderSource).toContain("float shoreSharp");
+    expect(riverSurfaceShaderSource).toMatch(/mix\(\s+shoreSharp,\s+shoreSmooth/);
     expect(riverSurfaceShaderSource).toContain("float shoreFoam");
+    expect(riverSurfaceShaderSource).toContain("float foamTint");
     expect(riverSurfaceShaderSource).toContain("vec3 softFoamColor");
     expect(riverSurfaceShaderSource).toContain("1.0 - smoothstep(0.96, 1.0, bankDistance)");
     expect(riverSurfaceShaderSource).not.toContain("broadWater * 0.66 + foamNoise * 0.34");
+    expect(riverSurfaceShaderSource).not.toContain("0.18 + shorePattern * 0.82");
+    expect(riverSurfaceShaderSource).not.toMatch(/mix\(color, softFoamColor[^;]+, foam\)/);
   });
 });

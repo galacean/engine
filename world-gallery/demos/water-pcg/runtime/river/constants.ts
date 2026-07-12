@@ -10,10 +10,24 @@ export const RIVER_SHADER_PROPERTY = {
 
 /** Medium/high single-pass shoreline foam animation tuning. */
 export const RIVER_SHORE_FOAM_SHADER_TUNING = {
-  travelWeight: 0.68,
-  staticBreakupWeight: 0.32,
-  patternStart: 0.38,
-  patternEnd: 0.72
+  noiseCutoffStart: 0.38,
+  noiseCutoffEnd: 0.68,
+  detailBase: 0.02,
+  detailNoiseWeight: 0.98,
+  detailCutoffStart: 0.08,
+  detailCutoffEnd: 0.44,
+  maskSmoothness: 0.58,
+  surfaceFoamWeight: 0.45,
+  maxCoverage: 0.58,
+  foamColorMix: 0.68,
+  waterColorBrightness: 1.12,
+  foamBrightness: 0.9,
+  foamNoiseBrightness: 0.08,
+  tintBase: 0.52,
+  tintClarityWeight: 0.16,
+  waterAlphaWeight: 0.9,
+  foamAlphaWeight: 0.015,
+  scatterAlphaWeight: 0.03
 } as const;
 
 export const RIVER_QUERY_NO_SOURCE_INDEX = -1;

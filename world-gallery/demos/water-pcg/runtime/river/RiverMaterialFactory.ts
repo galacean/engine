@@ -221,14 +221,31 @@ Shader "AIWorld/RiverSurface" {
         float bankDistance = abs(input.uv.x - 0.5) * 2.0;
         float shoreEnvelope = smoothstep(0.48, 0.72, bankDistance)
           * (1.0 - smoothstep(0.96, 1.0, bankDistance));
-        float shorePattern = smoothstep(
-          ${RIVER_SHORE_FOAM_SHADER_TUNING.patternStart},
-          ${RIVER_SHORE_FOAM_SHADER_TUNING.patternEnd},
-          streak * ${RIVER_SHORE_FOAM_SHADER_TUNING.travelWeight}
-            + foamNoise * ${RIVER_SHORE_FOAM_SHADER_TUNING.staticBreakupWeight}
+        float shoreNoiseMask = smoothstep(
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.noiseCutoffStart},
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.noiseCutoffEnd},
+          foamNoise
         );
-        float shoreFoam = shoreEnvelope * (0.18 + shorePattern * 0.82) * material_FoamIntensity * 0.8;
-        float foam = min(max(surfaceFoam, shoreFoam), 0.65);
+        float shoreDetail = streakCrest * (
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.detailBase}
+          + shoreNoiseMask * ${RIVER_SHORE_FOAM_SHADER_TUNING.detailNoiseWeight}
+        );
+        shoreDetail = smoothstep(
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.detailCutoffStart},
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.detailCutoffEnd},
+          shoreDetail * material_FoamIntensity
+        );
+        float shoreSmooth = shoreDetail * shoreEnvelope;
+        float shoreSharp = saturate(shoreDetail - (1.0 - shoreEnvelope));
+        float shoreFoam = mix(
+          shoreSharp,
+          shoreSmooth,
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.maskSmoothness}
+        );
+        float foam = min(
+          max(surfaceFoam * ${RIVER_SHORE_FOAM_SHADER_TUNING.surfaceFoamWeight}, shoreFoam),
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.maxCoverage}
+        );
 
         float heightCenter = waveField * 0.9 + streakCrest * 0.1;
         float heightRight = fbm((worldUv + vec2(0.018, 0.0)) * 2.4);
@@ -240,11 +257,28 @@ Shader "AIWorld/RiverSurface" {
 
         vec3 color = material_BaseColor.rgb * (0.84 + clarity * 0.13 + (waveField - 0.5) * 0.1);
         color += vec3(0.0, 0.035, 0.07) * clarity;
-        vec3 softFoamColor = mix(material_BaseColor.rgb * 1.2, material_FoamColor.rgb, 0.75);
+        vec3 softFoamColor = mix(
+          material_BaseColor.rgb * ${RIVER_SHORE_FOAM_SHADER_TUNING.waterColorBrightness},
+          material_FoamColor.rgb,
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.foamColorMix}
+        );
         color += softFoamColor * lightScatter;
-        color = mix(color, softFoamColor * (0.9 + foamNoise * 0.12), foam);
+        float foamTint = foam * (
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.tintBase}
+          + clarity * ${RIVER_SHORE_FOAM_SHADER_TUNING.tintClarityWeight}
+        );
+        color = mix(
+          color,
+          softFoamColor * (
+            ${RIVER_SHORE_FOAM_SHADER_TUNING.foamBrightness}
+            + foamNoise * ${RIVER_SHORE_FOAM_SHADER_TUNING.foamNoiseBrightness}
+          ),
+          foamTint
+        );
 
-        float alpha = material_BaseColor.a * 0.94 + foam * 0.03 + lightScatter * 0.04;
+        float alpha = material_BaseColor.a * ${RIVER_SHORE_FOAM_SHADER_TUNING.waterAlphaWeight}
+          + foamTint * ${RIVER_SHORE_FOAM_SHADER_TUNING.foamAlphaWeight}
+          + lightScatter * ${RIVER_SHORE_FOAM_SHADER_TUNING.scatterAlphaWeight};
         gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.97));
       }
     }
