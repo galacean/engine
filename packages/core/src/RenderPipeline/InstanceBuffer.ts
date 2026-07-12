@@ -39,6 +39,9 @@ export class InstanceBuffer {
       this._intView = new Int32Array(this._data);
       this.buffer?.destroy();
       this.buffer = new Buffer(this._engine, BufferBindFlag.ConstantBuffer, totalBytes, BufferUsage.Dynamic);
+      // This buffer is owned by BatcherManager rather than a component reference.
+      // ResourceManager.gc() must not reclaim it while the render pipeline is active.
+      this.buffer.isGCIgnored = true;
     }
   }
 
