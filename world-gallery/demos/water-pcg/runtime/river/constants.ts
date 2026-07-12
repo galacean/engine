@@ -8,6 +8,17 @@ export const RIVER_SHADER_PROPERTY = {
   noiseTexture: "material_NoiseTexture"
 } as const;
 
+/** Medium/high single-pass shoreline foam animation tuning. */
+export const RIVER_SHORE_FOAM_SHADER_TUNING = {
+  phaseFrequency: 18,
+  worldWarp: 5.2,
+  acrossWarp: 2.8,
+  travelWeight: 0.68,
+  staticBreakupWeight: 0.32,
+  patternStart: 0.38,
+  patternEnd: 0.72
+} as const;
+
 export const RIVER_QUERY_NO_SOURCE_INDEX = -1;
 export const RIVER_QUERY_NO_SOURCE_KIND = 255;
 export const RIVER_QUERY_EPSILON = 1e-6;

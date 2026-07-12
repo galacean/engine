@@ -12,9 +12,10 @@ import { Engine, Material, Shader, Texture2D, TextureFilterMode, TextureWrapMode
 import { Color } from "@galacean/engine-math";
 import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
 import { RIVER_FLOW_UV_SCALE } from "../../compiler/river/constants";
-import { RIVER_SHADER_PROPERTY } from "./constants";
+import { RIVER_SHADER_PROPERTY, RIVER_SHORE_FOAM_SHADER_TUNING } from "./constants";
 
 const RIVER_FLOW_UV_SCALE_GLSL = RIVER_FLOW_UV_SCALE.toFixed(8);
+const RIVER_SHORE_FOAM_PHASE_FREQUENCY_GLSL = RIVER_SHORE_FOAM_SHADER_TUNING.phaseFrequency.toFixed(1);
 
 export const lowRiverShaderSource = `
 Shader "AIWorld/RiverLow" {
@@ -221,7 +222,16 @@ Shader "AIWorld/RiverSurface" {
         float bankDistance = abs(input.uv.x - 0.5) * 2.0;
         float shoreEnvelope = smoothstep(0.48, 0.72, bankDistance)
           * (1.0 - smoothstep(0.96, 1.0, bankDistance));
-        float shorePattern = smoothstep(0.4, 0.58, broadWater * 0.66 + foamNoise * 0.34);
+        float shoreTravel = sin(detailPhase * ${RIVER_SHORE_FOAM_PHASE_FREQUENCY_GLSL}
+          + broadWater * ${RIVER_SHORE_FOAM_SHADER_TUNING.worldWarp}
+          + across * ${RIVER_SHORE_FOAM_SHADER_TUNING.acrossWarp}
+        ) * 0.5 + 0.5;
+        float shorePattern = smoothstep(
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.patternStart},
+          ${RIVER_SHORE_FOAM_SHADER_TUNING.patternEnd},
+          shoreTravel * ${RIVER_SHORE_FOAM_SHADER_TUNING.travelWeight}
+            + foamNoise * ${RIVER_SHORE_FOAM_SHADER_TUNING.staticBreakupWeight}
+        );
         float shoreFoam = shoreEnvelope * (0.18 + shorePattern * 0.82) * material_FoamIntensity * 0.8;
         float foam = min(max(surfaceFoam, shoreFoam), 0.65);
 
