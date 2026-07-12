@@ -83,7 +83,7 @@ export const multiTributaryRiverExample: RiverPcgExample = {
         to: "upper-confluence",
         order: 3,
         curve: {
-          mode: RiverPathMode.Bezier,
+          mode: RiverPathMode.CatmullRom,
           segmentLength: 1.7,
           points: [
             {
@@ -132,7 +132,7 @@ export const multiTributaryRiverExample: RiverPcgExample = {
           directionMode: RiverDirectionMode.PathOrder
         },
         curve: {
-          mode: RiverPathMode.Bezier,
+          mode: RiverPathMode.CatmullRom,
           segmentLength: 1.6,
           points: [
             {
@@ -172,7 +172,7 @@ export const multiTributaryRiverExample: RiverPcgExample = {
         to: "lower-confluence",
         order: 4,
         curve: {
-          mode: RiverPathMode.Bezier,
+          mode: RiverPathMode.CatmullRom,
           segmentLength: 1.7,
           points: [
             {
@@ -217,7 +217,7 @@ export const multiTributaryRiverExample: RiverPcgExample = {
           bankFeather: 1.15
         },
         curve: {
-          mode: RiverPathMode.Bezier,
+          mode: RiverPathMode.CatmullRom,
           segmentLength: 1.8,
           points: [
             {
@@ -276,7 +276,7 @@ export const multiTributaryRiverExample: RiverPcgExample = {
           ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MountainCreek]
         },
         curve: {
-          mode: RiverPathMode.Bezier,
+          mode: RiverPathMode.CatmullRom,
           segmentLength: 1.5,
           points: [
             {
@@ -316,7 +316,7 @@ export const multiTributaryRiverExample: RiverPcgExample = {
         to: "main-mouth",
         order: 4,
         curve: {
-          mode: RiverPathMode.Bezier,
+          mode: RiverPathMode.CatmullRom,
           segmentLength: 1.7,
           points: [
             {

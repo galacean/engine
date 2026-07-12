@@ -2,7 +2,7 @@
  * Curved main-river example.
  *
  * This preserves the current water-pcg river scene as a standalone example file:
- * one visibly downhill Bezier-authored mountain channel, local width/depth/flow
+ * one visibly downhill Catmull-Rom-authored mountain channel, local width/depth/flow
  * overrides on control points, and an oblique survey view that exposes the
  * source-to-mouth elevation profile instead of flattening it in plan view.
  */
@@ -51,7 +51,7 @@ export const curvedMainRiverExample: RiverPcgExample = {
         to: "main-mouth",
         order: 3,
         curve: {
-          mode: RiverPathMode.Bezier,
+          mode: RiverPathMode.CatmullRom,
           segmentLength: 1.8,
           points: [
             {
