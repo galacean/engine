@@ -9,7 +9,9 @@ import {
   ParticleCurveMode,
   ParticleMaterial,
   ParticleRenderer,
+  ParticleRenderMode,
   ParticleStopMode,
+  PrimitiveMesh,
   ShaderMacro,
   WebGLEngine
 } from "@galacean/engine";
@@ -17,6 +19,7 @@ import { beforeAll, describe, expect, it } from "vitest";
 
 const SOL_CURVE_MODE_MACRO = ShaderMacro.getByName("RENDERER_SOL_CURVE_MODE");
 const SOL_RANDOM_TWO_MACRO = ShaderMacro.getByName("RENDERER_SOL_IS_RANDOM_TWO");
+const SOL_SEPARATE_MACRO = ShaderMacro.getByName("RENDERER_SOL_IS_SEPARATE");
 // ParticleBufferUtils.instanceVertexFloatStride
 const FLOAT_STRIDE = 42;
 
@@ -185,5 +188,39 @@ describe("SizeOverLifetime", () => {
 
     rendererNoiseOnly.entity.destroy();
     rendererBoth.entity.destroy();
+  });
+
+  it("mesh render mode with separateAxes TwoCurves enables macros, uploads all axis curves and writes the random slot", () => {
+    const renderer = createParticleRenderer(engine, "SOL_MeshSeparate");
+    renderer.renderMode = ParticleRenderMode.Mesh;
+    renderer.mesh = PrimitiveMesh.createCuboid(engine);
+
+    const generator = renderer.generator;
+    const sol = generator.sizeOverLifetime;
+    sol.enabled = true;
+    sol.separateAxes = true;
+    sol.sizeX = createTwoCurves();
+    sol.sizeY = createTwoCurves();
+    sol.sizeZ = createTwoCurves();
+
+    generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    generator.play();
+    updateEngine(engine, 3);
+
+    const macros = renderer.shaderData["_macroCollection"];
+    expect(macros.isEnable(SOL_CURVE_MODE_MACRO)).to.eq(true);
+    expect(macros.isEnable(SOL_RANDOM_TWO_MACRO)).to.eq(true);
+    expect(macros.isEnable(SOL_SEPARATE_MACRO)).to.eq(true);
+    for (const axis of ["X", "Y", "Z"]) {
+      expect(renderer.shaderData.getFloatArray(`renderer_SOLMaxCurve${axis}`)).to.not.be.undefined;
+      expect(renderer.shaderData.getFloatArray(`renderer_SOLMinCurve${axis}`)).to.not.be.undefined;
+    }
+
+    const verts = (generator as any)._instanceVertices as Float32Array;
+    expect(verts[21]).to.be.greaterThan(0);
+    expect(verts[21]).to.be.lessThan(1);
+
+    renderer.entity.destroy();
   });
 });
