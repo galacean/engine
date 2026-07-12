@@ -206,6 +206,8 @@ export class Entity extends EngineObject {
 
   /**
    * The sibling index.
+   * @remarks Assigning it on an entity that is not in the hierarchy (no parent and not a scene root)
+   * is a no-op and logs a warning.
    */
   get siblingIndex(): number {
     return this._siblingIndex;
@@ -398,6 +400,13 @@ export class Entity extends EngineObject {
    */
   clearChildren(): void {
     const children = this._children;
+    if (children.length === 0) {
+      return;
+    }
+    // Dispatch a single `Child` modify event for the whole clear before detaching:
+    // `_processInActive` unregisters the removed subtrees' listeners (e.g. UIRenderer's
+    // root-canvas listener), so a later dispatch could no longer reach them.
+    this._dispatchModify(EntityModifyFlags.Child, this);
     for (let i = children.length - 1; i >= 0; i--) {
       const child = children[i];
       child._parent = null;
@@ -413,9 +422,6 @@ export class Entity extends EngineObject {
       child._setParentChange();
     }
     children.length = 0;
-    // Dispatch a single `Child` modify event for the whole clear so subscribers
-    // (e.g. UICanvas) can invalidate their cached hierarchy state once.
-    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   /**

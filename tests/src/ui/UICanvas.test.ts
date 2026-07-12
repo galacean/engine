@@ -1,7 +1,7 @@
 import { Camera } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { CanvasRenderMode, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
+import { CanvasRenderMode, Image, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("UICanvas", async () => {
@@ -351,5 +351,27 @@ describe("UICanvas", async () => {
     camera.enabled = true;
     // @ts-ignore
     expect(rootCanvas._canDispatchEvent(camera2)).to.be.false;
+  });
+
+  it("clearChildren on a plain container invalidates the ordered renderer cache", () => {
+    // The container itself has no UI component, so after its children are detached
+    // the only chance to reach the root canvas is the `Child` modify event of the clear.
+    const container = canvasEntity.createChild("container");
+    const image1 = container.createChild("image1").addComponent(Image);
+    const image2 = container.createChild("image2").addComponent(Image);
+
+    // @ts-ignore
+    let renderers = rootCanvas._getRenderers();
+    expect(renderers).to.include(image1);
+    expect(renderers).to.include(image2);
+
+    container.clearChildren();
+
+    // @ts-ignore
+    renderers = rootCanvas._getRenderers();
+    expect(renderers).to.not.include(image1);
+    expect(renderers).to.not.include(image2);
+
+    container.destroy();
   });
 });
