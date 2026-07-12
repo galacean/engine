@@ -13,7 +13,7 @@ export class WebCanvas extends Canvas {
 
   private _resizeObserver?: ResizeObserver;
   private _autoResolutionScale: number = 1;
-  private _pendingResize: boolean = false;
+  private _resolutionDirty: boolean = false;
   private _pendingDevicePixelWidth: number = 0;
   private _pendingDevicePixelHeight: number = 0;
 
@@ -53,14 +53,14 @@ export class WebCanvas extends Canvas {
 
     if (this._resizeObserver) {
       // Already observing: reapply the new scale to the last measured size
-      this._pendingResize = true;
+      this._resolutionDirty = true;
     } else if (typeof ResizeObserver !== "undefined") {
       // observe() fires an initial entry, which sets the pending size (with exact device pixels when supported)
       this._resizeObserver = new ResizeObserver((entries) => {
         const box = entries[entries.length - 1].devicePixelContentBoxSize?.[0];
         this._pendingDevicePixelWidth = box ? box.inlineSize : 0;
         this._pendingDevicePixelHeight = box ? box.blockSize : 0;
-        this._pendingResize = true;
+        this._resolutionDirty = true;
       });
       try {
         this._resizeObserver.observe(this._webCanvas, { box: "device-pixel-content-box" });
@@ -107,13 +107,13 @@ export class WebCanvas extends Canvas {
   }
 
   /** @internal */
-  _pumpPendingResize(): void {
-    if (!this._pendingResize) return;
+  _pumpPendingResolution(): void {
+    if (!this._resolutionDirty) return;
 
     const webCanvas = this._webCanvas;
     if (webCanvas.clientWidth === 0 || webCanvas.clientHeight === 0) return;
 
-    this._pendingResize = false;
+    this._resolutionDirty = false;
     const scale = this._autoResolutionScale;
     // Record display size before applying buffer size to detect layout feedback loop.
     // When the canvas has no CSS width/height, setting the width attribute changes
@@ -143,21 +143,21 @@ export class WebCanvas extends Canvas {
           "Please set CSS width/height on the canvas element to constrain its display size. " +
           "Auto-resolution has been disabled; call setResolution() or setAutoResolution() after applying CSS dimensions."
       );
-      this._exitAutoResize();
+      this._exitAutoResolution();
     }
   }
 
   /** @internal */
   _destroy(): void {
-    this._exitAutoResize();
+    this._exitAutoResolution();
   }
 
-  protected override _exitAutoResize(): void {
+  protected override _exitAutoResolution(): void {
     if (this._resizeObserver) {
       this._resizeObserver.disconnect();
       this._resizeObserver = undefined;
     }
-    this._pendingResize = false;
+    this._resolutionDirty = false;
     this._pendingDevicePixelWidth = 0;
     this._pendingDevicePixelHeight = 0;
   }

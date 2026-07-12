@@ -117,20 +117,20 @@ describe("webgl engine test", () => {
     expect((webCanvas as any)._resizeObserver).toBe(observer);
     expect((webCanvas as any)._autoResolutionScale).toBe(0.5);
 
-    // A pending resize is applied on the next frame pump. jsdom has no layout, so stub clientWidth/Height.
+    // A pending resolution change is applied on the next frame pump. jsdom has no layout, so stub clientWidth/Height.
     Object.defineProperty(canvas, "clientWidth", { value: 800, configurable: true });
     Object.defineProperty(canvas, "clientHeight", { value: 600, configurable: true });
-    (webCanvas as any)._pendingResize = true;
-    webCanvas._pumpPendingResize();
-    expect((webCanvas as any)._pendingResize).toBe(false);
+    (webCanvas as any)._resolutionDirty = true;
+    (webCanvas as any)._pumpPendingResolution();
+    expect((webCanvas as any)._resolutionDirty).toBe(false);
     expect(webCanvas.width).toBe(Math.round(800 * window.devicePixelRatio * 0.5));
     expect(webCanvas.height).toBe(Math.round(600 * window.devicePixelRatio * 0.5));
 
-    // A pending resize is skipped while the canvas has no layout size (never a 0x0 buffer).
+    // A pending resolution change is skipped while the canvas has no layout size (never a 0x0 buffer).
     Object.defineProperty(canvas, "clientWidth", { value: 0, configurable: true });
-    (webCanvas as any)._pendingResize = true;
-    webCanvas._pumpPendingResize();
-    expect((webCanvas as any)._pendingResize).toBe(true); // kept so a later frame's pump retries
+    (webCanvas as any)._resolutionDirty = true;
+    (webCanvas as any)._pumpPendingResolution();
+    expect((webCanvas as any)._resolutionDirty).toBe(true); // kept so a later frame's pump retries
 
     // setResolution locks a fixed size and exits auto mode (observer released).
     webCanvas.setResolution(320, 240);

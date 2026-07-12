@@ -37,7 +37,7 @@ export abstract class Canvas {
       throw new Error(`Canvas.setResolution: invalid size ${width}x${height}`);
     }
 
-    this._exitAutoResize();
+    this._exitAutoResolution();
     this._setSize(Math.round(width), Math.round(height));
   }
 
@@ -60,12 +60,12 @@ export abstract class Canvas {
   }
 
   /** @internal */
-  _pumpPendingResize(): void {}
+  _pumpPendingResolution(): void {}
 
   /** @internal */
   abstract _destroy(): void;
 
-  protected _exitAutoResize(): void {}
+  protected _exitAutoResolution(): void {}
 
   protected abstract _onSizeChanged(width: number, height: number): void;
 }

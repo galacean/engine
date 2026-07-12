@@ -322,7 +322,7 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
-    this._canvas._pumpPendingResize();
+    this._canvas._pumpPendingResolution();
 
     const time = this._time;
     time._update();
