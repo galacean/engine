@@ -1,4 +1,4 @@
-import { Engine, EngineConfiguration, EngineEventType, Scene } from "@galacean/engine-core";
+import { Engine, EngineConfiguration, Scene } from "@galacean/engine-core";
 import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
 
@@ -16,7 +16,6 @@ export class WebGLEngine extends Engine {
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
     const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
-    engine.once(EngineEventType.Shutdown, WebGLEngine._releaseCanvas);
     webCanvas.setAutoResolution();
     // @ts-ignore
     const promise = engine._initialize(configuration) as Promise<WebGLEngine>;
@@ -32,10 +31,6 @@ export class WebGLEngine extends Engine {
   override get canvas(): WebCanvas {
     // @ts-ignore
     return this._canvas as WebCanvas;
-  }
-
-  private static _releaseCanvas(engine: WebGLEngine): void {
-    engine.canvas._destroy();
   }
 }
 

@@ -505,6 +505,7 @@ export class Engine extends EventDispatcher {
     this._waitingDestroy = false;
 
     this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
+    this._canvas._destroy();
 
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
