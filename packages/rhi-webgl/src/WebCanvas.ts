@@ -40,6 +40,7 @@ export class WebCanvas extends Canvas {
     }
   }
 
+  /** @inheritdoc */
   override setAutoResolution(scale: number = 1): void {
     if (!Number.isFinite(scale) || scale <= 0) {
       throw new Error(`WebCanvas.setAutoResolution: invalid scale ${scale}`);
