@@ -31,10 +31,9 @@ describe("RiverMaterialFactory Low shader", () => {
     expect(riverSurfaceShaderSource.match(/Pass \"/g) ?? []).toHaveLength(1);
     expect(riverSurfaceShaderSource.match(/fbm\(/g) ?? []).toHaveLength(6);
     expect(riverSurfaceShaderSource).not.toContain("texture2D(");
+    expect(riverSurfaceShaderSource).toContain("float streak = sin(detailPhase");
     expect(riverSurfaceShaderSource).toContain("float shoreEnvelope");
-    expect(riverSurfaceShaderSource).toContain("float shoreTravel = sin(detailPhase");
-    expect(riverSurfaceShaderSource).toContain("detailPhase * 18.0");
-    expect(riverSurfaceShaderSource).toMatch(/shoreTravel \* 0\.68\s+\+ foamNoise \* 0\.32/);
+    expect(riverSurfaceShaderSource).toMatch(/streak \* 0\.68\s+\+ foamNoise \* 0\.32/);
     expect(riverSurfaceShaderSource).toContain("float shoreFoam");
     expect(riverSurfaceShaderSource).toContain("vec3 softFoamColor");
     expect(riverSurfaceShaderSource).toContain("1.0 - smoothstep(0.96, 1.0, bankDistance)");

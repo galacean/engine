@@ -10,9 +10,6 @@ export const RIVER_SHADER_PROPERTY = {
 
 /** Medium/high single-pass shoreline foam animation tuning. */
 export const RIVER_SHORE_FOAM_SHADER_TUNING = {
-  phaseFrequency: 18,
-  worldWarp: 5.2,
-  acrossWarp: 2.8,
   travelWeight: 0.68,
   staticBreakupWeight: 0.32,
   patternStart: 0.38,
