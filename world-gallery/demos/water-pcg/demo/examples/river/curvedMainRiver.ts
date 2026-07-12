@@ -2,8 +2,9 @@
  * Curved main-river example.
  *
  * This preserves the current water-pcg river scene as a standalone example file:
- * one Bezier-authored main channel, local width/depth/flow overrides on control
- * points, and the same ocean settings used by the original demo.
+ * one visibly downhill Bezier-authored mountain channel, local width/depth/flow
+ * overrides on control points, and an oblique survey view that exposes the
+ * source-to-mouth elevation profile instead of flattening it in plan view.
  */
 import {
   RiverDirectionMode,
@@ -20,8 +21,12 @@ import type { RiverPcgExample } from "../types";
 
 export const curvedMainRiverExample: RiverPcgExample = {
   id: "curved-main-river",
-  label: "曲线主河",
+  label: "高差主河",
   initialMode: WaterPreviewMode.River,
+  view: {
+    cameraPosition: [-48, 64, 82],
+    cameraTarget: [0, 4.5, 0]
+  },
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V1,
     id: "demo-river-network",
@@ -29,14 +34,14 @@ export const curvedMainRiverExample: RiverPcgExample = {
       {
         id: "main-source",
         kind: RiverNodeKind.Source,
-        position: [-42, 0.2, -24],
-        elevation: 0.2
+        position: [-42, 10, -24],
+        elevation: 10
       },
       {
         id: "main-mouth",
         kind: RiverNodeKind.Mouth,
-        position: [42, -0.06, 26],
-        elevation: -0.06
+        position: [42, 0, 26],
+        elevation: 0
       }
     ],
     segments: [
@@ -51,58 +56,58 @@ export const curvedMainRiverExample: RiverPcgExample = {
           points: [
             {
               id: "main-source-point",
-              position: [-42, 0.2, -24],
-              out: [5.4, -0.08, 5.6],
+              position: [-42, 10, -24],
+              out: [5.4, -0.6, 5.6],
               width: 5.6,
               depth: 1.0,
-              flowSpeed: 1.8,
+              flowSpeed: 2.2,
               bankFeather: 1.2
             },
             {
               id: "main-upper-bend",
-              position: [-32, 0.05, -12],
-              in: [-4.8, 0.08, -5.0],
-              out: [5.8, 0.05, 4.4],
+              position: [-32, 8.5, -12],
+              in: [-4.8, 0.6, -5.0],
+              out: [5.8, -0.6, 4.4],
               width: 6.5,
               depth: 1.2,
-              flowSpeed: 1.55,
+              flowSpeed: 2.0,
               bankFeather: 1.55
             },
             {
               id: "main-mid-bend-a",
-              position: [-18, 0.16, -3],
-              in: [-5.8, -0.04, -3.4],
-              out: [6.2, -0.05, 3.8],
+              position: [-18, 7.0, -3],
+              in: [-5.8, 0.6, -3.4],
+              out: [6.2, -0.6, 3.8],
               width: 7.2,
               depth: 1.4,
-              flowSpeed: 1.35,
+              flowSpeed: 1.8,
               bankFeather: 1.8
             },
             {
               id: "main-mid-bend-b",
-              position: [-4, 0.02, 6],
-              in: [-5.6, 0.04, -3.8],
-              out: [6.4, 0.02, 1.8],
+              position: [-4, 5.5, 6],
+              in: [-5.6, 0.6, -3.8],
+              out: [6.4, -0.6, 1.8],
               width: 7.8,
               depth: 1.6,
-              flowSpeed: 1.25,
+              flowSpeed: 1.65,
               bankFeather: 2.0
             },
             {
               id: "main-lower-bend-a",
-              position: [12, 0.1, 2],
-              in: [-6.2, -0.02, 2.4],
-              out: [6.0, -0.05, 3.6],
+              position: [12, 4.0, 2],
+              in: [-6.2, 0.6, 2.4],
+              out: [6.0, -0.6, 3.6],
               width: 7.1,
               depth: 1.5,
-              flowSpeed: 1.35,
+              flowSpeed: 1.55,
               bankFeather: 1.85
             },
             {
               id: "main-lower-bend-b",
-              position: [28, 0.0, 14],
-              in: [-6.0, 0.04, -4.2],
-              out: [5.2, -0.02, 5.0],
+              position: [28, 2.0, 14],
+              in: [-6.0, 0.6, -4.2],
+              out: [5.2, -0.6, 5.0],
               width: 6.7,
               depth: 1.35,
               flowSpeed: 1.45,
@@ -110,11 +115,11 @@ export const curvedMainRiverExample: RiverPcgExample = {
             },
             {
               id: "main-mouth-point",
-              position: [42, -0.06, 26],
-              in: [-5.2, 0.02, -5.0],
+              position: [42, 0, 26],
+              in: [-5.2, 0.6, -5.0],
               width: 8.4,
               depth: 1.8,
-              flowSpeed: 1.15,
+              flowSpeed: 1.35,
               bankFeather: 2.2
             }
           ]
@@ -128,12 +133,12 @@ export const curvedMainRiverExample: RiverPcgExample = {
         bankFeather: 1.8
       },
       flow: {
-        speed: 1.4,
+        speed: 1.7,
         directionMode: RiverDirectionMode.PathOrder
       },
       material: {
-        preset: RiverMaterialPreset.ClearStream,
-        ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream]
+        preset: RiverMaterialPreset.MountainCreek,
+        ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MountainCreek]
       },
       quality: {
         geometry: { level: RiverQualityLevel.Medium, maxSegmentCount: 512, maxChordError: 0.25 },

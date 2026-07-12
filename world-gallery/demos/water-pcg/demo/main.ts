@@ -596,9 +596,10 @@ const engine = await WebGLEngine.create(engineConfiguration);
       cameraEntity.transform.setPosition(0, 34, 54);
       cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
     } else {
-      control.target.set(4, 0, 4);
-      cameraEntity.transform.setPosition(0, 30, 52);
-      cameraEntity.transform.lookAt(new Vector3(4, 0, 4));
+      const view = waterPcgExamples[activeExampleIndex].view;
+      control.target.set(view.cameraTarget[0], view.cameraTarget[1], view.cameraTarget[2]);
+      cameraEntity.transform.setPosition(view.cameraPosition[0], view.cameraPosition[1], view.cameraPosition[2]);
+      cameraEntity.transform.lookAt(new Vector3(view.cameraTarget[0], view.cameraTarget[1], view.cameraTarget[2]));
     }
   };
   function renderExampleTabs(): void {

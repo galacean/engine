@@ -21,6 +21,20 @@ function containsTrianglePoint(
 }
 
 describe("RiverNetworkCompiler", () => {
+  it("keeps the single-river example visibly downhill from source to mouth", () => {
+    const result = RiverNetworkCompiler.compile(curvedMainRiverExample.riverDescriptor);
+    const reach = result.data?.reaches[0];
+
+    expect(result.valid).toBe(true);
+    expect(reach).toBeDefined();
+    expect(reach!.elevationDrop).toBeGreaterThan(reach!.config.shape.width);
+    const samples = reach!.artifact.samples;
+    expect(samples.at(-1)?.flowTravelTime).toBeGreaterThan(samples[0].flowTravelTime);
+    for (let sampleIndex = 1; sampleIndex < samples.length; sampleIndex++) {
+      expect(samples[sampleIndex].position[1]).toBeLessThanOrEqual(samples[sampleIndex - 1].position[1] + 1e-6);
+    }
+  });
+
   it("retains topology and emits deterministic typed runtime data", () => {
     const descriptor = multiTributaryRiverExample.riverDescriptor;
     const first = RiverNetworkCompiler.compile(descriptor);
@@ -202,10 +216,14 @@ describe("RiverNetworkCompiler", () => {
 
   it("resolves a monotonic downstream water profile from authored elevations", () => {
     const source = curvedMainRiverExample.riverDescriptor;
+    const sourceElevation = source.nodes.find((node) => node.id === "main-source")!.elevation!;
+    const reversedMouthElevation = sourceElevation + 2;
     const descriptor: RiverNetworkDescriptor = {
       ...source,
       nodes: source.nodes.map((node) =>
-        node.id === "main-mouth" ? { ...node, position: [42, 2, 26], elevation: 2 } : node
+        node.id === "main-mouth"
+          ? { ...node, position: [42, reversedMouthElevation, 26], elevation: reversedMouthElevation }
+          : node
       )
     };
     const result = RiverNetworkCompiler.compile(descriptor);
@@ -217,13 +235,13 @@ describe("RiverNetworkCompiler", () => {
       expect.arrayContaining([
         expect.objectContaining({
           code: RiverDiagnosticCode.WaterProfileAdjusted,
-          repair: { originalValue: 2, repairedValue: expect.closeTo(0.2) }
+          repair: { originalValue: reversedMouthElevation, repairedValue: expect.closeTo(sourceElevation) }
         })
       ])
     );
-    expect(result.data?.waterSurfaceElevations.at(1)).toBeCloseTo(0.2);
+    expect(result.data?.waterSurfaceElevations.at(1)).toBeCloseTo(sourceElevation);
     expect(result.data?.reaches[0].elevationDrop).toBeCloseTo(0);
-    expect(result.data?.reaches[0].config.path.points.at(-1)?.position[1]).toBeCloseTo(0.2);
+    expect(result.data?.reaches[0].config.path.points.at(-1)?.position[1]).toBeCloseTo(sourceElevation);
   });
 
   it("freezes compiler-owned containers and reach configs", () => {

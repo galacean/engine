@@ -23,6 +23,10 @@ export const multiTributaryRiverExample: RiverPcgExample = {
   id: "multi-tributary-river",
   label: "多支流河网",
   initialMode: WaterPreviewMode.River,
+  view: {
+    cameraPosition: [0, 30, 52],
+    cameraTarget: [4, 0, 4]
+  },
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V1,
     id: "multi-tributary-network",

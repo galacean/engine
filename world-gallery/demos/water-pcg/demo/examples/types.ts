@@ -10,10 +10,16 @@ import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescript
 import type { RiverDebugConfig } from "../types";
 import type { OceanPreviewConfig } from "./ocean-preview/types";
 
+export interface RiverExampleView {
+  readonly cameraPosition: readonly [number, number, number];
+  readonly cameraTarget: readonly [number, number, number];
+}
+
 export interface RiverPcgExample {
   id: string;
   label: string;
   initialMode: WaterPreviewMode;
+  view: RiverExampleView;
   riverDescriptor: RiverNetworkDescriptor;
   riverDebug: RiverDebugConfig;
 }
