@@ -116,12 +116,18 @@ describe("Transform test", function () {
     expect(preTransform0.destroyed).to.equal(true);
     expect(entity0.transform instanceof Transform).to.equal(true);
     expect(entity0.transform instanceof SubClassOfTransform).to.equal(true);
+    expect(entity0.transform.position).to.deep.include({ x: 1, y: 2, z: 3 });
+    expect(entity0.transform.rotation).to.deep.include({ x: 0, y: 45, z: 0 });
+    expect(entity0.transform.scale).to.deep.include({ x: 1, y: 2, z: 3 });
 
     const preTransform1 = entity1.transform;
     entity1.addComponent(Transform);
     expect(preTransform1.destroyed).to.equal(true);
     expect(entity1.transform instanceof Transform).to.equal(true);
     expect(entity1.transform instanceof SubClassOfTransform).to.equal(false);
+    expect(entity1.transform.position).to.deep.include({ x: 4, y: 5, z: 6 });
+    expect(entity1.transform.rotation).to.deep.include({ x: 0, y: 90, z: 0 });
+    expect(entity1.transform.scale).to.deep.include({ x: 4, y: 5, z: 6 });
   });
 
   it("clone with worldMatrix listener should not produce stale parent cache after reparent", () => {

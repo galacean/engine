@@ -25,7 +25,7 @@ import { ReflectionParser } from "../../../packages/loader/src/resource-deserial
 import { SceneParser } from "../../../packages/loader/src/resource-deserialize/resources/scene/SceneParser";
 import { GLTFResource } from "../../../packages/loader/src/gltf/GLTFResource";
 import { WebGLEngine } from "@galacean/engine";
-import { Vector2 } from "@galacean/engine-math";
+import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 Loader.registerClass("Transform", Transform);
@@ -78,6 +78,14 @@ describe("SceneFile v2 schema enums", () => {
   it("uses numeric enum values for ambient specularMode", () => {
     expect(SpecularMode.Sky).to.equal(0);
     expect(SpecularMode.Custom).to.equal(1);
+  });
+});
+
+describe("Galacean flavor class registration", () => {
+  it("registers public math value types for source-v2 $type values", () => {
+    for (const [name, Class] of Object.entries({ Color, Quaternion, Vector2, Vector3, Vector4 })) {
+      expect(Loader.getClass(name)).to.equal(Class);
+    }
   });
 });
 

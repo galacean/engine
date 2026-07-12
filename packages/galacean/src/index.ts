@@ -12,8 +12,11 @@ export * from "@galacean/engine-loader";
 export * from "@galacean/engine-math";
 export * from "@galacean/engine-rhi-webgl";
 
-for (let key in CoreObjects) {
+for (const key in CoreObjects) {
   Loader.registerClass(key, CoreObjects[key]);
+}
+for (const key in MathObjects) {
+  Loader.registerClass(key, MathObjects[key]);
 }
 
 for (let key in MathObjects) {

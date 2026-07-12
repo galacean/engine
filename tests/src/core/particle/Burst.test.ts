@@ -67,6 +67,21 @@ describe("Burst", () => {
     expect(burst.repeatInterval).to.equal(0.1);
   });
 
+  it("Replace bursts through the serializable property contract", () => {
+    const scene = engine.sceneManager.activeScene;
+    const entity = scene.createRootEntity("ReplaceBursts");
+    const emission = entity.addComponent(ParticleRenderer).generator.emission;
+    const existing = new Burst(1, new ParticleCompositeCurve(1));
+    const early = new Burst(0.25, new ParticleCompositeCurve(2));
+    const late = new Burst(0.75, new ParticleCompositeCurve(3));
+    emission.addBurst(existing);
+
+    emission.bursts = [late, early];
+
+    expect(emission.bursts).to.deep.equal([early, late]);
+    entity.destroy();
+  });
+
   it("Single cycle backward compatible", () => {
     const scene = engine.sceneManager.activeScene;
     const entity = scene.createRootEntity("SingleCycle");

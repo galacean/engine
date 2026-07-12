@@ -23,6 +23,14 @@ export class ParticleCurve {
   }
 
   /**
+   * Replaces the keys of the curve.
+   */
+  set keys(value: ReadonlyArray<CurveKey>) {
+    if (value === this._keys) return;
+    this.setKeys(value);
+  }
+
+  /**
    * Create a new particle curve.
    * @param keys - The keys of the curve
    */
@@ -79,7 +87,7 @@ export class ParticleCurve {
    * Set the keys of the curve.
    * @param keys - The keys
    */
-  setKeys(keys: CurveKey[]): void {
+  setKeys(keys: ReadonlyArray<CurveKey>): void {
     this._keys.length = 0;
     for (let i = 0, n = keys.length; i < n; i++) {
       this.addKey(keys[i]);

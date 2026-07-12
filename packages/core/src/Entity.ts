@@ -422,7 +422,7 @@ export class Entity extends EngineObject {
    */
   clone(): Entity {
     const cloneEntity = this._createCloneEntity();
-    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<Object, Object>());
+    this._parseCloneEntity(this, cloneEntity, this, cloneEntity, new Map<object, object>());
     return cloneEntity;
   }
 
@@ -477,7 +477,7 @@ export class Entity extends EngineObject {
     target: Entity,
     srcRoot: Entity,
     targetRoot: Entity,
-    deepInstanceMap: Map<Object, Object>
+    deepInstanceMap: Map<object, object>
   ): void {
     const srcChildren = src._children;
     const targetChildren = target._children;
@@ -763,7 +763,13 @@ export class Entity extends EngineObject {
   }
 
   private _setTransform(value: Transform): void {
-    this._transform?.destroy();
+    const previous = this._transform;
+    if (previous) {
+      value.position.copyFrom(previous.position);
+      value.rotationQuaternion.copyFrom(previous.rotationQuaternion);
+      value.scale.copyFrom(previous.scale);
+      previous.destroy();
+    }
     this._transform = value;
     const children = this._children;
     for (let i = 0, n = children.length; i < n; i++) {
