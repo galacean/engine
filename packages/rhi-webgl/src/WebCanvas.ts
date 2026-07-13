@@ -52,10 +52,9 @@ export class WebCanvas extends Canvas {
     this._autoResolutionScale = scale;
 
     if (this._resizeObserver) {
-      // Already observing: reapply the new scale to the last measured size
       this._resolutionDirty = true;
     } else if (typeof ResizeObserver !== "undefined") {
-      // observe() fires an initial entry, which sets the pending size (with exact device pixels when supported)
+      // observe() fires an initial entry, which sets the pending device pixel size
       this._resizeObserver = new ResizeObserver((entries) => {
         const box = entries[entries.length - 1].devicePixelContentBoxSize?.[0];
         this._pendingDevicePixelWidth = box ? box.inlineSize : 0;
@@ -68,8 +67,7 @@ export class WebCanvas extends Canvas {
         this._resizeObserver.observe(this._webCanvas);
       }
     } else {
-      // Fallback: ResizeObserver is not available (e.g. mini-programs, iOS Safari < 13.4).
-      // Use a one-time clientWidth × devicePixelRatio × scale sizing instead.
+      // ResizeObserver is unavailable (e.g. mini-programs, iOS Safari < 13.4): size once from the client size
       console.warn(
         "ResizeObserver is not supported in this environment. Falling back to one-time clientWidth × devicePixelRatio × scale sizing"
       );
@@ -97,12 +95,16 @@ export class WebCanvas extends Canvas {
     this.scale = this._scale;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _isOffscreenCanvas(): boolean {
     return typeof OffscreenCanvas !== "undefined" && this._webCanvas instanceof OffscreenCanvas;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _pumpPendingResolution(): void {
     if (!this._resolutionDirty) return;
 
@@ -111,26 +113,22 @@ export class WebCanvas extends Canvas {
 
     this._resolutionDirty = false;
     const scale = this._autoResolutionScale;
-    // Record display size before applying buffer size to detect layout feedback loop.
-    // When the canvas has no CSS width/height, setting the width attribute changes
-    // its intrinsic layout size, which causes the buffer size to inflate endlessly.
+    // Snapshot the display size to detect a layout feedback loop after applying the buffer size below
     const prevClientWidth = webCanvas.clientWidth;
     const prevClientHeight = webCanvas.clientHeight;
 
     if (this._pendingDevicePixelWidth > 0 && this._pendingDevicePixelHeight > 0) {
-      // Exact device pixels already include the device pixel ratio, so only apply the scale
+      // Device pixels already fold in the device pixel ratio, so only the scale is applied
       this._setSize(
         Math.round(this._pendingDevicePixelWidth * scale),
         Math.round(this._pendingDevicePixelHeight * scale)
       );
     } else {
-      // Fallback where `devicePixelContentBoxSize` is unavailable (Safari): clientWidth is CSS pixels
       this._setSizeByClientSizeFallback(scale);
     }
 
-    // Detect layout feedback loop: if setting the buffer size changed the display size,
-    // the canvas has no CSS constraints and layout is following the buffer attributes.
-    // Exit auto-resize and keep the current size to prevent unbounded growth.
+    // A canvas without CSS width/height grows its display size when the buffer size changes.
+    // If that happened, exit auto-resolution and keep the current size to prevent unbounded growth
     if (webCanvas.clientWidth !== prevClientWidth || webCanvas.clientHeight !== prevClientHeight) {
       console.warn(
         "Canvas layout feedback loop detected: the canvas element has no CSS width/height set, " +
@@ -142,10 +140,6 @@ export class WebCanvas extends Canvas {
     }
   }
 
-  /**
-   * Size the render buffer from the CSS display size when exact device pixels are unavailable.
-   * `clientWidth`/`clientHeight` are CSS pixels, so the device pixel ratio is applied here.
-   */
   private _setSizeByClientSizeFallback(scale: number): void {
     const webCanvas = this._webCanvas;
     if (webCanvas.clientWidth <= 0 || webCanvas.clientHeight <= 0) return;
@@ -153,7 +147,9 @@ export class WebCanvas extends Canvas {
     this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _destroy(): void {
     this._exitAutoResolution();
   }
