@@ -77,27 +77,7 @@ function updatePhysics(physics) {
 }
 
 function watchNativeContactEventDemand(physicsScene: PhysicsScene) {
-  const nativeScene = (physicsScene as any)._nativePhysicsScene;
-  const original = nativeScene.setContactEventEnabled;
-  const calls: boolean[] = [];
-  nativeScene.setContactEventEnabled = (enabled: boolean) => {
-    calls.push(enabled);
-    original?.call(nativeScene, enabled);
-  };
-  return {
-    calls,
-    restore() {
-      if (original) {
-        nativeScene.setContactEventEnabled = original;
-      } else {
-        delete nativeScene.setContactEventEnabled;
-      }
-    }
-  };
-}
-
-function getLastContactEventDemandCall(calls: boolean[]): boolean {
-  return calls[calls.length - 1] ?? false;
+  return vi.spyOn((physicsScene as any)._nativePhysicsScene, "setContactEventEnabled");
 }
 
 function resetSpy() {
@@ -181,13 +161,14 @@ describe("Physics Test", () => {
       const entity = root.createChild("body");
       const collider = entity.addComponent(StaticCollider);
       collider.addShape(new BoxColliderShape());
+      root.createChild("script-only").addComponent(CollisionDemandScript);
       const contactEventDemand = watchNativeContactEventDemand(physicsScene);
 
       try {
         physicsScene._update(physicsScene.fixedTimeStep);
-        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(false);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
       } finally {
-        contactEventDemand.restore();
+        contactEventDemand.mockRestore();
         root.destroy();
       }
     });
@@ -204,13 +185,21 @@ describe("Physics Test", () => {
 
       try {
         physicsScene._update(physicsScene.fixedTimeStep);
-        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(true);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
+
+        collider.enabled = false;
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
+
+        collider.enabled = true;
+        physicsScene._update(physicsScene.fixedTimeStep);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
 
         script.enabled = false;
         physicsScene._update(physicsScene.fixedTimeStep);
-        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(false);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
       } finally {
-        contactEventDemand.restore();
+        contactEventDemand.mockRestore();
         root.destroy();
       }
     });
@@ -229,10 +218,11 @@ describe("Physics Test", () => {
       try {
         physicsScene.fixedTimeStep = 1 / 480;
         physicsScene._update(1 / 60);
-        expect(contactEventDemand.calls).to.deep.eq([true]);
+        expect(contactEventDemand).toHaveBeenCalledTimes(1);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(true);
       } finally {
         physicsScene.fixedTimeStep = fixedTimeStep;
-        contactEventDemand.restore();
+        contactEventDemand.mockRestore();
         root.destroy();
       }
     });
@@ -249,9 +239,9 @@ describe("Physics Test", () => {
 
       try {
         physicsScene._update(physicsScene.fixedTimeStep);
-        expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(false);
+        expect(contactEventDemand).toHaveBeenLastCalledWith(false);
       } finally {
-        contactEventDemand.restore();
+        contactEventDemand.mockRestore();
         root.destroy();
       }
     });

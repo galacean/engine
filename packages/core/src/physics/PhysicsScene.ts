@@ -30,8 +30,6 @@ export class PhysicsScene {
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
   private _collisionEventConsumersDirty = true;
-  private _hasCollisionEventConsumersCache = false;
-  private _contactEventEnabled: boolean | undefined;
 
   /**
    * The gravity of physics scene.
@@ -840,42 +838,23 @@ export class PhysicsScene {
     }
   }
 
-  private _hasCollisionEventConsumers(): boolean {
-    if (!this._collisionEventConsumersDirty) {
-      return this._hasCollisionEventConsumersCache;
-    }
-
+  private _syncContactEventDemand(): void {
+    if (!this._collisionEventConsumersDirty) return;
+    this._collisionEventConsumersDirty = false;
     const { _elements: colliders } = this._colliders;
-    const { onCollisionEnter, onCollisionExit, onCollisionStay } = Script.prototype;
 
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       const scripts = colliders[i].entity._scripts;
       const scriptElements = scripts._elements;
       for (let j = scripts.length - 1; j >= 0; --j) {
-        const script = scriptElements[j];
-        if (
-          script.onCollisionEnter !== onCollisionEnter ||
-          script.onCollisionExit !== onCollisionExit ||
-          script.onCollisionStay !== onCollisionStay
-        ) {
-          this._collisionEventConsumersDirty = false;
-          this._hasCollisionEventConsumersCache = true;
-          return true;
+        if (scriptElements[j]._hasCollisionEventCallbacks()) {
+          this._nativePhysicsScene.setContactEventEnabled?.(true);
+          return;
         }
       }
     }
 
-    this._collisionEventConsumersDirty = false;
-    this._hasCollisionEventConsumersCache = false;
-    return this._hasCollisionEventConsumersCache;
-  }
-
-  private _syncContactEventDemand(): void {
-    const enabled = this._hasCollisionEventConsumers();
-    if (this._contactEventEnabled !== enabled) {
-      this._nativePhysicsScene.setContactEventEnabled?.(enabled);
-      this._contactEventEnabled = enabled;
-    }
+    this._nativePhysicsScene.setContactEventEnabled?.(false);
   }
 
   private _setGravity(): void {

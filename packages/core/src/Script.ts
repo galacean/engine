@@ -260,7 +260,10 @@ export class Script extends Component {
     }
   }
 
-  private _hasCollisionEventCallbacks(): boolean {
+  /**
+   * @internal
+   */
+  _hasCollisionEventCallbacks(): boolean {
     const { prototype } = Script;
     return (
       this.onCollisionEnter !== prototype.onCollisionEnter ||
