@@ -182,7 +182,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   setIsKinematic(value: boolean): void {
     if (this._isKinematic === value) return;
     const physX = this._physXPhysics._physX;
-    // PhysX rejects swept CCD when eKINEMATIC is raised.
+    // PhysX rejects swept CCD when eKINEMATIC is raised
     if (value && this._pxActor.getRigidBodyFlags(physX.PxRigidBodyFlag.eENABLE_CCD)) {
       this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
       this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
@@ -262,7 +262,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   private _applyCollisionDetectionFlags(value: number): void {
     const physX = this._physXPhysics._physX;
     const enableCCD = value === CollisionDetectionMode.Continuous || value === CollisionDetectionMode.ContinuousDynamic;
-    // PhysX rejects enabling swept and speculative CCD at the same time.
+    // PhysX rejects enabling swept and speculative CCD at the same time
     if (enableCCD) {
       this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
     }
