@@ -178,15 +178,15 @@ describe("webgl engine test", () => {
     expect((webCanvas as any)._resizeObserver).toBeDefined();
 
     // A canvas with no CSS size grows its display size when the buffer is set. Stub clientWidth/Height to
-    // report a larger value after _setSize runs, so the pump detects the feedback loop and exits auto mode.
+    // report a larger value after _setResolution runs, so the pump detects the feedback loop and exits auto mode.
     let reportBig = false;
     Object.defineProperty(canvas, "clientWidth", { configurable: true, get: () => (reportBig ? 600 : 300) });
     Object.defineProperty(canvas, "clientHeight", { configurable: true, get: () => (reportBig ? 600 : 300) });
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const originalSetSize = (webCanvas as any)._setSize.bind(webCanvas);
-    (webCanvas as any)._setSize = (w: number, h: number) => {
+    const originalSetResolution = (webCanvas as any)._setResolution.bind(webCanvas);
+    (webCanvas as any)._setResolution = (w: number, h: number) => {
       reportBig = true; // setting the buffer inflated the display size
-      originalSetSize(w, h);
+      originalSetResolution(w, h);
     };
 
     (webCanvas as any)._resolutionDirty = true;
@@ -230,7 +230,7 @@ describe("webgl engine test", () => {
     Object.defineProperty(canvas, "clientWidth", { value: 0, configurable: true });
     Object.defineProperty(canvas, "clientHeight", { value: 0, configurable: true });
     const before = webCanvas.width;
-    (webCanvas as any)._setSizeByClientSizeFallback(1);
+    (webCanvas as any)._setResolutionByClientSizeFallback(1);
     expect(webCanvas.width).toBe(before); // unchanged, no 0x0 buffer
 
     engine.destroy();
