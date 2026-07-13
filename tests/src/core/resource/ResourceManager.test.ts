@@ -1,4 +1,4 @@
-import { AssetType, ResourceManager, Texture2D } from "@galacean/engine";
+import { AssetPromise, AssetType, ResourceManager, Texture2D } from "@galacean/engine";
 import "@galacean/engine-loader";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
@@ -85,6 +85,158 @@ describe("ResourceManager", () => {
       } catch (e) {
         expect(e).to.be.an.instanceOf(Error);
       }
+    });
+  });
+
+  describe("virtualPath loading", () => {
+    it("infers loader type from virtualPathResourceMap when type is omitted", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/extensionless", path: "https://cdn.ali.com/a.json", type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load({ url: "Assets/extensionless" });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+      loaderSpy.mockRestore();
+    });
+
+    it("fills params from virtualPathResourceMap when params is omitted", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        {
+          virtualPath: "Assets/withParams",
+          path: "https://cdn.ali.com/p.json",
+          type: AssetType.Texture,
+          params: { mipmap: false }
+        } as any
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load({ url: "Assets/withParams" });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].params).deep.equal({ mipmap: false });
+      loaderSpy.mockRestore();
+    });
+
+    it("prefers explicit params over the virtualPath map params", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        {
+          virtualPath: "Assets/overrideParams",
+          path: "https://cdn.ali.com/o.json",
+          type: AssetType.Texture,
+          params: { mipmap: false }
+        } as any
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      // Explicit params overrides the map params (overwrite, not merge), mirroring type precedence
+      resourceManager.load({ url: "Assets/overrideParams", params: { mipmap: true } });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].params).deep.equal({ mipmap: true });
+      loaderSpy.mockRestore();
+    });
+
+    it("shares the main asset across sub-asset queries", () => {
+      const resourceManager = engine.resourceManager;
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load("https://cdn.ali.com/shared.glb?q=materials[0]");
+      resourceManager.load("https://cdn.ali.com/shared.glb?q=materials[1]");
+
+      expect(loaderSpy).toHaveBeenCalledTimes(1);
+      loaderSpy.mockRestore();
+    });
+
+    it("prefers the virtualPath map type over an explicit type", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/explicit", path: "https://cdn.ali.com/x.json", type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      // A registered virtualPath is the single source of truth for its type;
+      // an explicit type cannot override the type the editor recorded for it.
+      resourceManager.load({ url: "Assets/explicit", type: AssetType.GLTF });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+      loaderSpy.mockRestore();
+    });
+
+    it("getResourceByRef resolves the type from the map without passing it explicitly", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/byRef", path: "https://cdn.ali.com/r.json", type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      // @ts-ignore — getResourceByRef no longer forwards a type; the map must drive loader selection
+      resourceManager.getResourceByRef({ url: "Assets/byRef" });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+      loaderSpy.mockRestore();
+    });
+
+    it("resolves virtualPath via map even when baseUrl is set", () => {
+      const resourceManager = engine.resourceManager;
+      resourceManager.initVirtualResources([
+        { virtualPath: "Assets/withBaseUrl", path: "https://cdn.ali.com/real.json", type: AssetType.Texture }
+      ]);
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.Texture], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+      resourceManager.baseUrl = "https://base.com/app/";
+
+      try {
+        resourceManager.load({ url: "Assets/withBaseUrl" });
+        expect(loaderSpy).toHaveBeenCalled();
+        expect(loaderSpy.mock.calls[0][0].type).equal(AssetType.Texture);
+      } finally {
+        resourceManager.baseUrl = null;
+        loaderSpy.mockRestore();
+      }
+    });
+
+    it("merges urls into a single url before parsing", () => {
+      const resourceManager = engine.resourceManager;
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.KTXCube], "load")
+        .mockReturnValue(new AssetPromise(() => {}));
+
+      resourceManager.load({
+        type: AssetType.KTXCube,
+        urls: ["px.ktx", "nx.ktx", "py.ktx", "ny.ktx", "pz.ktx", "nz.ktx"]
+      });
+
+      expect(loaderSpy).toHaveBeenCalled();
+      loaderSpy.mockRestore();
     });
   });
 });

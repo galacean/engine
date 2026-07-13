@@ -7,6 +7,8 @@ import { ParticleGradient } from "./ParticleGradient";
  * Particle composite gradient.
  */
 export class ParticleCompositeGradient {
+  private static _tempColor = new Color();
+
   /** The gradient mode. */
   mode: ParticleGradientMode = ParticleGradientMode.Constant;
   /* The min constant color used by the gradient if mode is set to `TwoConstants`. */
@@ -107,6 +109,16 @@ export class ParticleCompositeGradient {
       case ParticleGradientMode.TwoConstants:
         Color.lerp(this.constantMin, this.constantMax, lerpFactor, out);
         break;
+      case ParticleGradientMode.Gradient:
+        this.gradientMax._evaluate(time, out);
+        break;
+      case ParticleGradientMode.TwoGradients: {
+        const tmp = ParticleCompositeGradient._tempColor;
+        this.gradientMin._evaluate(time, tmp);
+        this.gradientMax._evaluate(time, out);
+        Color.lerp(tmp, out, lerpFactor, out);
+        break;
+      }
       default:
         break;
     }

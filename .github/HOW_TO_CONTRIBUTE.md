@@ -31,9 +31,9 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 
 <br />To set up for contributing code, you will take a few steps:<br />
 
-1. Ensure you have node.js installed. You can download Node.js from [nodejs.org](https://nodejs.org/en/) and make sure your Node.js is later than `12`. Use `node -v` to check your Node.js version.
+1. Ensure you have node.js installed. You can download Node.js from [nodejs.org](https://nodejs.org/en/) and make sure your Node.js is later than `20.19`. Use `node -v` to check your Node.js version.
 1. Fork the Galacean repository.
-1. Run `npm run bootstrap` in your cloned folder to install all the dependencies for Galacean.
+1. Run `pnpm install` and `pnpm build` in your cloned folder to install all the dependencies for Galacean.
 
 
 
@@ -46,9 +46,9 @@ The following is a set of guidelines for contributing to Galacean. Please spend 
 <br />You can test your change by the following ways:<br />
 
 - Clone the Galacean playground repository and write a demo for your change.
-- Write an uint test in the Galacean repository and run `npm run test` to execute the uint test.
+- Write an unit test in the Galacean repository and run `pnpm test` to execute the unit test.
 
-- [Write an e2e test](https://github.com/galacean/runtime/wiki/How-to-write-an-e2e-Test-for-runtime) in the Galacean repository and run `npm run e2e` to execute the e2e test.
+- [Write an e2e test](https://github.com/galacean/engine/wiki/How-to-write-an-e2e-Test-for-runtime) in the Galacean repository and run `pnpm e2e` to execute the e2e test.
 
 
 
@@ -137,7 +137,7 @@ git pull --ff upstream master
 
 - All features or bug fixes **must be tested** by one or more specs (unit-tests).
 - All public API methods **must be documented**.
-- We use Prettier as an automatic code formatter. Run `npm run prettier` after making any changes to the code.
+- We use Prettier as an automatic code formatter. Run `pnpm format` to format your code, and `pnpm lint` to check code quality, after making any changes to the code.
 
 
 

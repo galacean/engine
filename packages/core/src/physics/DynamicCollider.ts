@@ -360,6 +360,15 @@ export class DynamicCollider extends Collider {
   }
 
   /**
+   * Apply a force to the DynamicCollider at a given position in world space.
+   * @param force - The force to apply, in world space
+   * @param position - The position where the force is applied, in world space
+   */
+  applyForceAtPosition(force: Vector3, position: Vector3): void {
+    this._phasedActiveInScene && (<IDynamicCollider>this._nativeCollider).addForceAtPosition(force, position);
+  }
+
+  /**
    * Apply a torque to the DynamicCollider.
    * @param torque - The force make the collider rotate
    */

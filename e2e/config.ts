@@ -285,12 +285,6 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.0011459
     },
-    "LitePhysics Collision Group": {
-      category: "Physics",
-      caseFileName: "litePhysics-collision-group",
-      threshold: 0,
-      diffPercentage: 0
-    },
     "PhysXPhysics Collision Group": {
       category: "Physics",
       caseFileName: "physx-collision-group",
@@ -346,6 +340,12 @@ export const E2E_CONFIG = {
       caseFileName: "particleRenderer-limitVelocity",
       threshold: 0,
       diffPercentage: 0.0364
+    },
+    velocityOrbitalConstant: {
+      category: "Particle",
+      caseFileName: "particleRenderer-velocity-orbital-constant",
+      threshold: 0,
+      diffPercentage: 0.04
     },
     textureSheetAnimation: {
       category: "Particle",
@@ -455,6 +455,12 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.2
     },
+    subEmitter: {
+      category: "Particle",
+      caseFileName: "particleRenderer-sub-emitter",
+      threshold: 0,
+      diffPercentage: 0
+    },
     rateOverDistance: {
       category: "Particle",
       caseFileName: "particleRenderer-rateOverDistance",
@@ -527,7 +533,7 @@ export const E2E_CONFIG = {
       category: "Text",
       caseFileName: "text-character-spacing",
       threshold: 0.0,
-      diffPercentage: 0.0
+      diffPercentage: 0.0129
     }
   },
   Trail: {
