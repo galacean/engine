@@ -154,7 +154,7 @@ describe("Physics Test", () => {
       expect(enginePhysX.sceneManager.scenes[0].physics.fixedTimeStep).to.eq(fixedTimeStep);
     });
 
-    it("auto-disables native contact events when no active collision callback exists", () => {
+    it("auto-disables native contact events when no active collider has a collision callback", () => {
       const scene = enginePhysX.sceneManager.activeScene;
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("contact-demand-disabled");
