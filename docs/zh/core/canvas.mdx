@@ -105,7 +105,7 @@ engine.canvas.setAutoResolution(2 / 3);
 
 ### 固定宽度模式
 
-某些情况下，比如设计稿固定 750 宽度的情况，开发者有可能会写死画布宽度来降低适配成本：
+某些情况下，比如设计稿固定 750 宽度的情况，开发者有可能会写死画布的渲染分辨率来降低适配成本。渲染分辨率由 `setResolution` 固定，显示尺寸则交给 CSS 控制：
 
 ```typescript
 import { WebCanvas } from "@galacean/engine";
@@ -114,7 +114,15 @@ const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const webCanvas = new WebCanvas(canvas);
 const fixedWidth = 750;
 
-const scale = window.innerWidth / fixedWidth;
-webCanvas.setResolution(fixedWidth, Math.round(window.innerHeight / scale));
-webCanvas.setScale(scale, scale);
+// 固定渲染分辨率，高度按视口比例换算，保持画面不变形
+const fixedHeight = Math.round((fixedWidth * window.innerHeight) / window.innerWidth);
+webCanvas.setResolution(fixedWidth, fixedHeight);
+```
+
+```css
+/* 显示尺寸由 CSS 决定，让画布铺满视口 */
+#canvas {
+  width: 100vw;
+  height: 100vh;
+}
 ```

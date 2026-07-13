@@ -1,5 +1,4 @@
 import { Canvas } from "@galacean/engine-core";
-import { Vector2 } from "@galacean/engine-math";
 
 type OffscreenCanvas = any;
 
@@ -9,36 +8,11 @@ type OffscreenCanvas = any;
 export class WebCanvas extends Canvas {
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
-  private _scale: Vector2 = new Vector2();
-
   private _resizeObserver?: ResizeObserver;
   private _autoResolutionScale: number = 1;
   private _resolutionDirty: boolean = false;
   private _pendingDevicePixelWidth: number = 0;
   private _pendingDevicePixelHeight: number = 0;
-
-  /**
-   * The scale of canvas, the value is visible width/height divide the render width/height.
-   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
-   */
-  get scale(): Vector2 {
-    const webCanvas = this._webCanvas;
-    if (!this._isOffscreenCanvas()) {
-      this._scale.set(
-        (webCanvas.clientWidth * devicePixelRatio) / webCanvas.width,
-        (webCanvas.clientHeight * devicePixelRatio) / webCanvas.height
-      );
-    }
-    return this._scale;
-  }
-
-  set scale(value: Vector2) {
-    const webCanvas = this._webCanvas;
-    if (!this._isOffscreenCanvas()) {
-      webCanvas.style.transformOrigin = `left top`;
-      webCanvas.style.transform = `scale(${value.x}, ${value.y})`;
-    }
-  }
 
   /**
    * @inheritdoc
@@ -86,16 +60,6 @@ export class WebCanvas extends Canvas {
     super();
     this._webCanvas = webCanvas;
     this._setSize(webCanvas.width, webCanvas.height);
-  }
-
-  /**
-   * Set scale.
-   * @param x - Scale along the X axis
-   * @param y - Scale along the Y axis
-   */
-  setScale(x: number, y: number): void {
-    this._scale.set(x, y);
-    this.scale = this._scale;
   }
 
   /**

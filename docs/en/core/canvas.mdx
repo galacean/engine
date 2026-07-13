@@ -105,7 +105,7 @@ engine.canvas.setAutoResolution(2 / 3);
 
 ### Fixed Width Mode
 
-In certain situations, such as when a design draft has a fixed width of 750, developers might hard-code the canvas width to reduce adaptation costs:
+In certain situations, such as when a design draft has a fixed width of 750, developers might hard-code the render resolution to reduce adaptation costs. The render resolution is fixed via `setResolution`, while the display size is left to CSS:
 
 ```typescript
 import { WebCanvas } from "@galacean/engine";
@@ -114,7 +114,15 @@ const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const webCanvas = new WebCanvas(canvas);
 const fixedWidth = 750;
 
-const scale = window.innerWidth / fixedWidth;
-webCanvas.setResolution(fixedWidth, Math.round(window.innerHeight / scale));
-webCanvas.setScale(scale, scale);
+// Fix the render resolution; derive the height from the viewport ratio to avoid distortion
+const fixedHeight = Math.round((fixedWidth * window.innerHeight) / window.innerWidth);
+webCanvas.setResolution(fixedWidth, fixedHeight);
+```
+
+```css
+/* The display size is controlled by CSS, filling the viewport */
+#canvas {
+  width: 100vw;
+  height: 100vh;
+}
 ```
