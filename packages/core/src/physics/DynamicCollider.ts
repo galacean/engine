@@ -286,10 +286,9 @@ export class DynamicCollider extends Collider {
 
       this._isKinematic = value;
       (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+      (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
 
-      // Resync properties that PhysX ignores/resets during kinematic mode
       if (!value) {
-        (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(this._collisionDetectionMode);
         if (this._automaticCenterOfMass || this._automaticInertiaTensor) {
           this._setMassAndUpdateInertia();
         }
@@ -440,6 +439,19 @@ export class DynamicCollider extends Collider {
       return;
     }
     super.addShape(shape);
+  }
+
+  /**
+   * Synchronize kinematic transform changes through setKinematicTarget so PhysX
+   * generates contacts along the movement path.
+   * @internal
+   */
+  protected override _syncEntityTransformToNative(worldPosition: Vector3, worldRotation: Quaternion): void {
+    if (this._isKinematic) {
+      (<IDynamicCollider>this._nativeCollider).move(worldPosition, worldRotation);
+    } else {
+      super._syncEntityTransformToNative(worldPosition, worldRotation);
+    }
   }
 
   /**

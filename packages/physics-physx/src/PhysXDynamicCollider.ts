@@ -24,6 +24,8 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   private static _tempTranslation = new Vector3();
   private static _tempRotation = new Quaternion();
 
+  private _isKinematic: boolean = false;
+
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
     super(physXPhysics);
     const transform = this._transform(position, rotation);
@@ -160,8 +162,37 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setCollisionDetectionMode }
    */
   setCollisionDetectionMode(value: number): void {
-    const physX = this._physXPhysics._physX;
+    const effectiveMode =
+      this._isKinematic && value !== CollisionDetectionMode.ContinuousSpeculative
+        ? CollisionDetectionMode.Discrete
+        : value;
+    this._applyCollisionDetectionFlags(effectiveMode);
+  }
 
+  /**
+   * {@inheritDoc IDynamicCollider.setUseGravity }
+   */
+  setUseGravity(value: boolean): void {
+    this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
+  }
+
+  /**
+   * {@inheritDoc IDynamicCollider.setIsKinematic }
+   */
+  setIsKinematic(value: boolean): void {
+    if (this._isKinematic === value) return;
+    const physX = this._physXPhysics._physX;
+    if (value) {
+      this._applyCollisionDetectionFlags(CollisionDetectionMode.Discrete);
+      this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eKINEMATIC, true);
+    } else {
+      this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eKINEMATIC, false);
+    }
+    this._isKinematic = value;
+  }
+
+  private _applyCollisionDetectionFlags(value: number): void {
+    const physX = this._physXPhysics._physX;
     switch (value) {
       case CollisionDetectionMode.Continuous:
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, true);
@@ -183,24 +214,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
         this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
         break;
-    }
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.setUseGravity }
-   */
-  setUseGravity(value: boolean): void {
-    this._pxActor.setActorFlag(this._physXPhysics._physX.PxActorFlag.eDISABLE_GRAVITY, !value);
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.setIsKinematic }
-   */
-  setIsKinematic(value: boolean): void {
-    if (value) {
-      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, true);
-    } else {
-      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, false);
     }
   }
 
@@ -234,20 +247,27 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
 
   /**
    * {@inheritDoc IDynamicCollider.move }
+   *
+   * PhysX requires a normalized target rotation.
    */
   move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    const tempTranslation = PhysXDynamicCollider._tempTranslation;
+    const tempRotation = PhysXDynamicCollider._tempRotation;
+
     if (rotation) {
-      this._pxActor.setKinematicTarget(positionOrRotation, rotation);
+      tempRotation.copyFrom(rotation).normalize();
+      this._pxActor.setKinematicTarget(positionOrRotation, tempRotation);
       return;
     }
 
-    const tempTranslation = PhysXDynamicCollider._tempTranslation;
-    const tempRotation = PhysXDynamicCollider._tempRotation;
-    this.getWorldTransform(tempTranslation, tempRotation);
     if (positionOrRotation instanceof Vector3) {
+      this.getWorldTransform(tempTranslation, tempRotation);
+      // Rotations read from PhysX are already normalized.
       this._pxActor.setKinematicTarget(positionOrRotation, tempRotation);
     } else {
-      this._pxActor.setKinematicTarget(tempTranslation, positionOrRotation);
+      this.getWorldTransform(tempTranslation, tempRotation);
+      tempRotation.copyFrom(positionOrRotation).normalize();
+      this._pxActor.setKinematicTarget(tempTranslation, tempRotation);
     }
   }
 

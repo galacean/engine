@@ -1488,15 +1488,15 @@ describe("Physics Test", () => {
         const entity2 = raycastTestRoot.createChild("entity2");
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
-        // Test that collision works correctly, A is dynamic and kinematic, B is static.
+        // Kinematic targets generate contact events for static-kinematic pairs.
         resetSpy();
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, false, false, false);
         updatePhysics(physicsMgr);
 
-        expect(collisionTestScript.onCollisionEnter).not.toHaveBeenCalled();
-        expect(collisionTestScript.onCollisionStay).not.toHaveBeenCalled();
-        expect(collisionTestScript.onCollisionExit).not.toHaveBeenCalled();
+        expect(collisionTestScript.onCollisionEnter).toHaveBeenCalled();
+        expect(collisionTestScript.onCollisionStay).toHaveBeenCalled();
+        expect(collisionTestScript.onCollisionExit).toHaveBeenCalled();
         expect(collisionTestScript.onTriggerEnter).not.toHaveBeenCalled();
         expect(collisionTestScript.onTriggerStay).not.toHaveBeenCalled();
         expect(collisionTestScript.onTriggerExit).not.toHaveBeenCalled();
@@ -1603,15 +1603,15 @@ describe("Physics Test", () => {
         const entity2 = raycastTestRoot.createChild("entity2");
         const collisionTestScript = entity1.addComponent(CollisionTestScript);
 
-        // Test that collision works correctly, both A,B are dynamic, kinematic.
+        // Kinematic targets generate contact events for kinematic pairs.
         resetSpy();
         setColliderProps(entity1, true, false, true);
         setColliderProps(entity2, true, false, true);
         updatePhysics(physicsMgr);
 
-        expect(collisionTestScript.onCollisionEnter).not.toHaveBeenCalled();
-        expect(collisionTestScript.onCollisionStay).not.toHaveBeenCalled();
-        expect(collisionTestScript.onCollisionExit).not.toHaveBeenCalled();
+        expect(collisionTestScript.onCollisionEnter).toHaveBeenCalled();
+        expect(collisionTestScript.onCollisionStay).toHaveBeenCalled();
+        expect(collisionTestScript.onCollisionExit).toHaveBeenCalled();
         expect(collisionTestScript.onTriggerEnter).not.toHaveBeenCalled();
         expect(collisionTestScript.onTriggerStay).not.toHaveBeenCalled();
         expect(collisionTestScript.onTriggerExit).not.toHaveBeenCalled();

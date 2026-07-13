@@ -28,6 +28,9 @@ export class Collider extends Component implements ICustomClone {
   protected _shapes: ColliderShape[] = [];
   protected _collisionLayerIndex: number = 0;
 
+  @ignoreClone
+  private _pendingTeleport: boolean = false;
+
   /**
    * The shapes of this collider.
    */
@@ -108,12 +111,14 @@ export class Collider extends Component implements ICustomClone {
    * @internal
    */
   _onUpdate(): void {
-    if (this._updateFlag.flag) {
+    if (this._pendingTeleport || this._updateFlag.flag) {
       const { transform } = this.entity;
-      (<IStaticCollider>this._nativeCollider).setWorldTransform(
-        transform.worldPosition,
-        transform.worldRotationQuaternion
-      );
+      if (this._pendingTeleport) {
+        this._teleportToEntityTransform(transform.worldPosition, transform.worldRotationQuaternion);
+        this._pendingTeleport = false;
+      } else {
+        this._syncEntityTransformToNative(transform.worldPosition, transform.worldRotationQuaternion);
+      }
 
       const worldScale = transform.lossyWorldScale;
       const shapes = this._shapes;
@@ -141,6 +146,7 @@ export class Collider extends Component implements ICustomClone {
    */
   override _onDisableInScene(): void {
     this.scene.physics._removeCollider(this);
+    this._pendingTeleport = true;
   }
 
   /**
@@ -164,6 +170,28 @@ export class Collider extends Component implements ICustomClone {
       this._addNativeShape(this.shapes[i]);
     }
     this._setCollisionLayer();
+    // Parent transforms may not be cloned yet, so defer world-pose synchronization until the hierarchy is complete.
+    this._pendingTeleport = true;
+  }
+
+  /**
+   * Teleport the native actor without implied velocity.
+   */
+  protected _teleportToEntityTransform(
+    worldPosition: Transform["worldPosition"],
+    worldRotation: Transform["worldRotationQuaternion"]
+  ): void {
+    (<IStaticCollider>this._nativeCollider).setWorldTransform(worldPosition, worldRotation);
+  }
+
+  /**
+   * Synchronize the entity transform to the native actor.
+   */
+  protected _syncEntityTransformToNative(
+    worldPosition: Transform["worldPosition"],
+    worldRotation: Transform["worldRotationQuaternion"]
+  ): void {
+    (<IStaticCollider>this._nativeCollider).setWorldTransform(worldPosition, worldRotation);
   }
 
   /**
