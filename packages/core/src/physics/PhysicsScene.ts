@@ -29,6 +29,12 @@ export class PhysicsScene {
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsScene: IPhysicsScene;
+
+  /**
+   * Whether contact-event demand must be rescanned after collider or script lifecycle changes.
+   * @remarks Callback methods are treated as stable while a script remains active in the scene;
+   * runtime method replacement does not invalidate this cache.
+   */
   private _collisionEventConsumersDirty = true;
 
   /**
