@@ -19,6 +19,7 @@ export class AnimatorController extends ReferResource {
   _layersMap: Record<string, AnimatorControllerLayer> = {};
 
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  private _onStatesInvalidate = (): void => this._updateFlagManager.dispatch();
 
   /**
    * The layers in the controller.
@@ -112,6 +113,7 @@ export class AnimatorController extends ReferResource {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
+    layer._setStatesInvalidateCallback(this._onStatesInvalidate);
     layer._setEngine(this._engine);
     this._updateFlagManager.dispatch();
   }
@@ -123,6 +125,7 @@ export class AnimatorController extends ReferResource {
   removeLayer(layerIndex: number): void {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
+    theLayer._setStatesInvalidateCallback(null);
     delete this._layersMap[theLayer.name];
     this._updateFlagManager.dispatch();
   }
@@ -131,7 +134,12 @@ export class AnimatorController extends ReferResource {
    * Clear layers.
    */
   clearLayers(): void {
-    this._layers.length = 0;
+    const { _layers: layers } = this;
+    for (let i = 0, n = layers.length; i < n; i++) {
+      layers[i]._setStatesInvalidateCallback(null);
+    }
+    layers.length = 0;
+
     for (let name in this._layersMap) {
       delete this._layersMap[name];
     }
@@ -151,7 +159,9 @@ export class AnimatorController extends ReferResource {
   _setEngine(engine: Engine): void {
     const { _layers: layers } = this;
     for (let i = 0, n = layers.length; i < n; i++) {
-      layers[i]._setEngine(engine);
+      const layer = layers[i];
+      layer._setStatesInvalidateCallback(this._onStatesInvalidate);
+      layer._setEngine(engine);
     }
   }
 

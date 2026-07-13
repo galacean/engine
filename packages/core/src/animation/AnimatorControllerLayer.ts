@@ -11,22 +11,53 @@ export class AnimatorControllerLayer {
   weight: number = 1.0;
   /** The blending mode used by the layer. It is not taken into account for the first layer. */
   blendingMode: AnimatorLayerBlendingMode = AnimatorLayerBlendingMode.Override;
-  /** The state machine for the layer. */
-  stateMachine: AnimatorStateMachine;
   /** The AnimatorLayerMask is used to mask out certain entities from being animated by an AnimatorLayer. */
   mask: AnimatorLayerMask;
+
+  private _stateMachine: AnimatorStateMachine;
+  private _engine: Engine;
+  private _onStatesInvalidate: (() => void) | null = null;
+
+  /**
+   * The state machine for the layer.
+   */
+  get stateMachine(): AnimatorStateMachine {
+    return this._stateMachine;
+  }
+
+  set stateMachine(value: AnimatorStateMachine) {
+    const lastStateMachine = this._stateMachine;
+    if (lastStateMachine === value) {
+      return;
+    }
+
+    lastStateMachine._setStatesInvalidateCallback(null);
+    this._stateMachine = value;
+    value._setStatesInvalidateCallback(this._onStatesInvalidate);
+    this._engine && value._setEngine(this._engine);
+    this._onStatesInvalidate?.();
+  }
 
   /**
    * @param name - The layer's name
    */
   constructor(public readonly name: string) {
-    this.stateMachine = new AnimatorStateMachine();
+    this._stateMachine = new AnimatorStateMachine();
   }
 
   /**
    * @internal
    */
   _setEngine(engine: Engine): void {
-    this.stateMachine._setEngine(engine);
+    this._engine = engine;
+    this._stateMachine._setEngine(engine);
+  }
+
+  /**
+   * @internal
+   */
+  _setStatesInvalidateCallback(onStatesInvalidate: (() => void) | null): void {
+    this._onStatesInvalidate = onStatesInvalidate;
+    this._stateMachine._setStatesInvalidateCallback(onStatesInvalidate);
   }
 }
