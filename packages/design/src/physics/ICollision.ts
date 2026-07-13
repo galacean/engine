@@ -8,7 +8,7 @@ export interface ICollision {
   shape1Id: number;
   /** Count of contact points. */
   contactCount: number;
-  /** Get contact points. */
+  /** Get contact points. Contact normals and impulses must point from shape1 to shape0. */
   getContacts(): VectorContactPairPoint;
 }
 
