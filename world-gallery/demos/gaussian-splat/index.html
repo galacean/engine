@@ -5,12 +5,55 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Gaussian Splatting</title>
     <style>
-      html, body { margin: 0; height: 100%; overflow: hidden; background: #404040; }
-      #canvas { width: 100vw; height: 100vh; display: block; }
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #404040;
+      }
+      #canvas {
+        width: 100vw;
+        height: 100vh;
+        display: block;
+      }
+      #overlay {
+        position: fixed;
+        bottom: 20px;
+        left: 0;
+        right: 0;
+        display: flex;
+        pointer-events: none;
+        color: #fff;
+        font-family: monospace;
+        font-size: 13px;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+      }
+      #overlay > div {
+        flex: 1;
+        text-align: center;
+        line-height: 1.5;
+      }
+      @keyframes gsBlink {
+        50% {
+          opacity: 0.15;
+        }
+      }
+      .gs-dots span {
+        animation: gsBlink 1.2s infinite;
+        display: inline-block;
+      }
+      .gs-dots span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .gs-dots span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
+    <div id="overlay"></div>
     <script type="module" src="./main.ts"></script>
   </body>
 </html>
