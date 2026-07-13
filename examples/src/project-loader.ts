@@ -13,8 +13,6 @@ WebGLEngine.create({
   canvas: document.getElementById("canvas") as HTMLCanvasElement,
   shaderCompiler
 }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   engine.resourceManager
     .load({
       url: "https://mdn.alipayobjects.com/oasis_be/afts/file/A*aE8_QotPNL4AAAAAQNAAAAgAekp5AQ/project.json",
