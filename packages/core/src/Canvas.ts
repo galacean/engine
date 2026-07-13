@@ -40,7 +40,7 @@ export abstract class Canvas {
     }
 
     this._exitAutoResolution();
-    this._setSize(Math.round(width), Math.round(height));
+    this._setResolution(Math.round(width), Math.round(height));
   }
 
   /**
@@ -52,11 +52,11 @@ export abstract class Canvas {
    */
   abstract setAutoResolution(scale?: number): void;
 
-  protected _setSize(width: number, height: number): void {
+  protected _setResolution(width: number, height: number): void {
     if (this._width !== width || this._height !== height) {
       this._width = width;
       this._height = height;
-      this._onSizeChanged(width, height);
+      this._onResolutionChanged(width, height);
       this._sizeUpdateFlagManager.dispatch();
     }
   }
@@ -73,5 +73,5 @@ export abstract class Canvas {
 
   protected _exitAutoResolution(): void {}
 
-  protected abstract _onSizeChanged(width: number, height: number): void;
+  protected abstract _onResolutionChanged(width: number, height: number): void;
 }

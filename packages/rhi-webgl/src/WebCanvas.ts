@@ -48,7 +48,7 @@ export class WebCanvas extends Canvas {
       console.warn(
         "ResizeObserver is not supported in this environment. Falling back to one-time clientWidth × devicePixelRatio × scale sizing"
       );
-      this._setSizeByClientSizeFallback(scale);
+      this._setResolutionByClientSizeFallback(scale);
     }
   }
 
@@ -59,7 +59,7 @@ export class WebCanvas extends Canvas {
   constructor(webCanvas: HTMLCanvasElement | OffscreenCanvas) {
     super();
     this._webCanvas = webCanvas;
-    this._setSize(webCanvas.width, webCanvas.height);
+    this._setResolution(webCanvas.width, webCanvas.height);
   }
 
   /**
@@ -86,12 +86,12 @@ export class WebCanvas extends Canvas {
 
     if (this._pendingDevicePixelWidth > 0 && this._pendingDevicePixelHeight > 0) {
       // Device pixels already fold in the device pixel ratio, so only the scale is applied
-      this._setSize(
+      this._setResolution(
         Math.round(this._pendingDevicePixelWidth * scale),
         Math.round(this._pendingDevicePixelHeight * scale)
       );
     } else {
-      this._setSizeByClientSizeFallback(scale);
+      this._setResolutionByClientSizeFallback(scale);
     }
 
     // If setting the buffer moved the display size, the canvas has no CSS size constraint and would grow
@@ -105,11 +105,14 @@ export class WebCanvas extends Canvas {
     }
   }
 
-  private _setSizeByClientSizeFallback(scale: number): void {
+  private _setResolutionByClientSizeFallback(scale: number): void {
     const webCanvas = this._webCanvas;
     if (webCanvas.clientWidth <= 0 || webCanvas.clientHeight <= 0) return;
     const pixelRatio = window.devicePixelRatio * scale;
-    this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
+    this._setResolution(
+      Math.round(webCanvas.clientWidth * pixelRatio),
+      Math.round(webCanvas.clientHeight * pixelRatio)
+    );
   }
 
   /**
@@ -129,7 +132,7 @@ export class WebCanvas extends Canvas {
     this._pendingDevicePixelHeight = 0;
   }
 
-  protected override _onSizeChanged(width: number, height: number): void {
+  protected override _onResolutionChanged(width: number, height: number): void {
     const webCanvas = this._webCanvas;
     webCanvas.width = width;
     webCanvas.height = height;
