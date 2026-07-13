@@ -27,6 +27,7 @@ tsconfig.tsbuildinfo
 api
 docs/api
 docs/plans
+/notes/
 yarn.lock
 e2e/videos/*
 e2e/screenshots/*
