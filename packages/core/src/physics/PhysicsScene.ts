@@ -35,7 +35,7 @@ export class PhysicsScene {
    * @remarks Callback methods are treated as stable while a script remains active in the scene;
    * runtime method replacement does not invalidate this cache.
    */
-  private _collisionEventConsumersDirty = true;
+  private _contactEventDemandDirty = true;
 
   /**
    * The gravity of physics scene.
@@ -669,7 +669,7 @@ export class PhysicsScene {
     if (collider._index === -1) {
       collider._index = this._colliders.length;
       this._colliders.add(collider);
-      this._markCollisionEventConsumersDirty();
+      this._markContactEventDemandDirty();
     }
     this._nativePhysicsScene.addCollider(<ICollider>collider._nativeCollider);
   }
@@ -683,7 +683,7 @@ export class PhysicsScene {
     if (controller._index === -1) {
       controller._index = this._colliders.length;
       this._colliders.add(controller);
-      this._markCollisionEventConsumersDirty();
+      this._markContactEventDemandDirty();
     }
     this._nativePhysicsScene.addCharacterController(<ICharacterController>controller._nativeCollider);
   }
@@ -697,7 +697,7 @@ export class PhysicsScene {
     const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;
-    this._markCollisionEventConsumersDirty();
+    this._markContactEventDemandDirty();
     this._nativePhysicsScene.removeCollider(<ICollider>collider._nativeCollider);
   }
 
@@ -710,15 +710,15 @@ export class PhysicsScene {
     const replaced = this._colliders.deleteByIndex(controller._index);
     replaced && (replaced._index = controller._index);
     controller._index = -1;
-    this._markCollisionEventConsumersDirty();
+    this._markContactEventDemandDirty();
     this._nativePhysicsScene.removeCharacterController(<ICharacterController>controller._nativeCollider);
   }
 
   /**
    * @internal
    */
-  _markCollisionEventConsumersDirty(): void {
-    this._collisionEventConsumersDirty = true;
+  _markContactEventDemandDirty(): void {
+    this._contactEventDemandDirty = true;
   }
 
   /**
@@ -845,8 +845,8 @@ export class PhysicsScene {
   }
 
   private _syncContactEventDemand(): void {
-    if (!this._collisionEventConsumersDirty) return;
-    this._collisionEventConsumersDirty = false;
+    if (!this._contactEventDemandDirty) return;
+    this._contactEventDemandDirty = false;
     const { _elements: colliders } = this._colliders;
 
     // Scan backward so newly appended colliders and scripts are checked first, increasing the chance of an early exit.

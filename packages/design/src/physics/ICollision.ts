@@ -2,13 +2,16 @@
  * Interface of collision.
  */
 export interface ICollision {
-  /** The unique id of the first collider. */
+  /** The unique ID of the first shape in the contact pair. */
   shape0Id: number;
-  /** The unique id of the second collider. */
+  /** The unique ID of the second shape in the contact pair. */
   shape1Id: number;
   /** Count of contact points. */
   contactCount: number;
-  /** Get contact points. Contact normals and impulses must point from shape1 to shape0. */
+  /**
+   * Get contact points.
+   * @remarks Contact normals and impulses must point from the second shape in the pair to the first.
+   */
   getContacts(): VectorContactPairPoint;
 }
 

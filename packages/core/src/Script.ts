@@ -230,7 +230,7 @@ export class Script extends Component {
 
     this._entity._addScript(this);
     if (this._hasCollisionEventCallbacks()) {
-      this.scene.physics._markCollisionEventConsumersDirty();
+      this.scene.physics._markContactEventDemandDirty();
     }
   }
 
@@ -256,7 +256,7 @@ export class Script extends Component {
 
     this._entity._removeScript(this);
     if (this._hasCollisionEventCallbacks()) {
-      this.scene.physics._markCollisionEventConsumersDirty();
+      this.scene.physics._markContactEventDemandDirty();
     }
   }
 

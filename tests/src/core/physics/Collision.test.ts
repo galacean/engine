@@ -1,7 +1,7 @@
 import { BoxColliderShape, DynamicCollider, Entity, Engine, Script, StaticCollider } from "@galacean/engine-core";
 import { Vector3 } from "@galacean/engine-math";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { WebGLEngine } from "@galacean/engine";
 import { Collision } from "packages/core/types/physics/Collision";
 import { describe, beforeAll, beforeEach, expect, it } from "vitest";
 
