@@ -130,14 +130,12 @@ export class WebCanvas extends Canvas {
       this._setSizeByClientSizeFallback(scale);
     }
 
-    // A canvas without CSS width/height grows its display size when the buffer size changes.
-    // If that happened, exit auto-resolution and keep the current size to prevent unbounded growth
+    // If setting the buffer moved the display size, the canvas has no CSS size constraint and would grow
+    // unboundedly; exit auto-resolution instead
     if (webCanvas.clientWidth !== prevClientWidth || webCanvas.clientHeight !== prevClientHeight) {
       console.warn(
-        "Canvas layout feedback loop detected: the canvas element has no CSS width/height set, " +
-          "so changing the buffer size affects the display size. " +
-          "Please set CSS width/height on the canvas element to constrain its display size. " +
-          "Auto-resolution has been disabled; call setResolution() or setAutoResolution() after applying CSS dimensions."
+        "Auto-resolution disabled: the canvas has no CSS width/height, so sizing the buffer grows its display size. " +
+          "Set a CSS width/height on the canvas, then call setResolution() or setAutoResolution()."
       );
       this._exitAutoResolution();
     }
