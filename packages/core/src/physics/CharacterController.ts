@@ -2,7 +2,6 @@ import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
-import { Transform } from "../Transform";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
@@ -119,6 +118,23 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
+  override _onUpdate() {
+    if (this._updateFlag.flag) {
+      const { transform } = this.entity;
+      const shapes = this.shapes;
+      (<ICharacterController>this._nativeCollider).setWorldPosition(transform.worldPosition);
+
+      const worldScale = transform.lossyWorldScale;
+      for (let i = 0, n = shapes.length; i < n; i++) {
+        shapes[i]._nativeShape.setWorldScale(worldScale);
+      }
+      this._updateFlag.flag = false;
+    }
+  }
+
+  /**
+   * @internal
+   */
   override _onLateUpdate() {
     this._syncWorldPositionFromPhysicalSpace();
     this._updateFlag.flag = false;
@@ -144,13 +160,6 @@ export class CharacterController extends Collider {
     (<ICharacterController>this._nativeCollider).setNonWalkableMode(this._nonWalkableMode);
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
     (<ICharacterController>this._nativeCollider).setSlopeLimit(this._slopeLimit);
-  }
-
-  protected override _teleportToEntityTransform(
-    worldPosition: Transform["worldPosition"],
-    _worldRotation: Transform["worldRotationQuaternion"]
-  ): void {
-    (<ICharacterController>this._nativeCollider).setWorldPosition(worldPosition);
   }
 
   private _syncWorldPositionFromPhysicalSpace(): void {
