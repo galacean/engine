@@ -35,7 +35,7 @@ export class EnvironmentLighting {
     this.state = cloneState(state);
   }
 
-  /** Adaptive probe volume used for per-fragment baked diffuse lighting. */
+  /** Probe volume used for per-fragment baked diffuse lighting. */
   get probeVolume(): ProbeVolume | undefined {
     return this._probeVolume;
   }

@@ -17,25 +17,16 @@
 
 #include "ShaderLibrary/PBR/LightIndirectFunctions.glsl"
 
-#ifdef SCENE_USE_APV
-    sampler2D scene_APVIndexTexture;
-    sampler2D scene_APVBrickTexture;
-    highp sampler2DArray scene_APVSHRTexture;
-    highp sampler2DArray scene_APVSHGTexture;
-    highp sampler2DArray scene_APVSHBTexture;
-    highp sampler2DArray scene_APVSHL2RTexture;
-    highp sampler2DArray scene_APVSHL2GTexture;
-    highp sampler2DArray scene_APVSHL2BTexture;
-    highp sampler2DArray scene_APVSHL2CTexture;
-    vec3 scene_APVIndexOrigin;
-    vec3 scene_APVIndexDimensions;
-    vec2 scene_APVIndexTextureSize;
-    vec2 scene_APVBrickTextureSize;
-    vec2 scene_APVPoolTextureSize;
-    float scene_APVTilesPerRow;
-    float scene_APVInvMinBrickSize;
-    float scene_APVNormalBias;
-    float scene_APVViewBias;
+#ifdef SCENE_USE_PROBE_VOLUME
+    highp sampler2DArray scene_ProbeVolumeSHRTexture;
+    highp sampler2DArray scene_ProbeVolumeSHGTexture;
+    highp sampler2DArray scene_ProbeVolumeSHBTexture;
+    vec3 scene_ProbeVolumeOrigin;
+    vec3 scene_ProbeVolumeDimensions;
+    float scene_ProbeVolumeInverseSpacing;
+    float scene_ProbeVolumeNormalBias;
+    float scene_ProbeVolumeViewBias;
+    mat4 scene_ProbeVolumeWorldToLocal;
 #endif
 
 // ------------------------Diffuse------------------------
@@ -58,80 +49,49 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 
 }
 
-#ifdef SCENE_USE_APV
-vec4 sampleAPVPool(highp sampler2DArray poolTexture, vec2 uv, float probeZ){
+#ifdef SCENE_USE_PROBE_VOLUME
+vec4 sampleProbeVolumeTexture(highp sampler2DArray probeTexture, vec2 uv, float probeZ){
     float z0 = floor(probeZ);
-    float z1 = min(z0 + 1.0, 3.0);
-    float zWeight = probeZ - z0;
-    vec4 sample0 = textureLod(poolTexture, vec3(uv, z0), 0.0);
-    vec4 sample1 = textureLod(poolTexture, vec3(uv, z1), 0.0);
-    return mix(sample0, sample1, zWeight);
+    float z1 = min(z0 + 1.0, scene_ProbeVolumeDimensions.z - 1.0);
+    vec4 sample0 = textureLod(probeTexture, vec3(uv, z0), 0.0);
+    vec4 sample1 = textureLod(probeTexture, vec3(uv, z1), 0.0);
+    return mix(sample0, sample1, probeZ - z0);
 }
 
-bool sampleAdaptiveProbeVolume(vec3 positionWS, vec3 normalWS, vec3 viewDirWS, out vec3 irradiance){
-    vec3 samplePosition = positionWS + normalWS * scene_APVNormalBias + viewDirWS * scene_APVViewBias;
-    ivec3 cell = ivec3(floor((samplePosition - scene_APVIndexOrigin) * scene_APVInvMinBrickSize));
-    ivec3 indexDimensions = ivec3(scene_APVIndexDimensions);
-    if (any(lessThan(cell, ivec3(0))) || any(greaterThanEqual(cell, indexDimensions))) {
+bool sampleProbeVolume(vec3 positionWS, vec3 normalWS, vec3 viewDirWS, out vec3 irradiance){
+    vec3 biasedPositionWS = positionWS + normalWS * scene_ProbeVolumeNormalBias + viewDirWS * scene_ProbeVolumeViewBias;
+    vec3 samplePosition = (scene_ProbeVolumeWorldToLocal * vec4(biasedPositionWS, 1.0)).xyz;
+    vec3 probeCoord = (samplePosition - scene_ProbeVolumeOrigin) * scene_ProbeVolumeInverseSpacing;
+    vec3 maxProbeCoord = scene_ProbeVolumeDimensions - 1.0;
+    if (any(lessThan(probeCoord, vec3(0.0))) || any(greaterThan(probeCoord, maxProbeCoord))) {
         irradiance = vec3(0.0);
         return false;
     }
 
-    int flatCell = cell.x + indexDimensions.x * (cell.y + indexDimensions.y * cell.z);
-    int indexWidth = int(scene_APVIndexTextureSize.x);
-    ivec2 indexCoord = ivec2(flatCell % indexWidth, flatCell / indexWidth);
-    float encodedBrickIndex = texelFetch(scene_APVIndexTexture, indexCoord, 0).r;
-    if (encodedBrickIndex < 0.5) {
-        irradiance = vec3(0.0);
-        return false;
-    }
-
-    int brickIndex = int(encodedBrickIndex - 0.5);
-    int brickWidth = int(scene_APVBrickTextureSize.x);
-    ivec2 brickCoord = ivec2(brickIndex % brickWidth, brickIndex / brickWidth);
-    vec4 brickData = texelFetch(scene_APVBrickTexture, brickCoord, 0);
-    vec3 probeCoord = clamp((samplePosition - brickData.xyz) * brickData.w, vec3(0.0), vec3(3.0));
-
-    float brickIndexF = float(brickIndex);
-    float tileX = mod(brickIndexF, scene_APVTilesPerRow) * 4.0;
-    float tileY = floor(brickIndexF / scene_APVTilesPerRow) * 4.0;
-    vec2 poolUV = (vec2(tileX, tileY) + probeCoord.xy + 0.5) / scene_APVPoolTextureSize;
-
-    vec4 shR = sampleAPVPool(scene_APVSHRTexture, poolUV, probeCoord.z);
-    vec4 shG = sampleAPVPool(scene_APVSHGTexture, poolUV, probeCoord.z);
-    vec4 shB = sampleAPVPool(scene_APVSHBTexture, poolUV, probeCoord.z);
-    vec4 shL2R = sampleAPVPool(scene_APVSHL2RTexture, poolUV, probeCoord.z);
-    vec4 shL2G = sampleAPVPool(scene_APVSHL2GTexture, poolUV, probeCoord.z);
-    vec4 shL2B = sampleAPVPool(scene_APVSHL2BTexture, poolUV, probeCoord.z);
-    vec3 shL2C = sampleAPVPool(scene_APVSHL2CTexture, poolUV, probeCoord.z).rgb;
-    vec3 l0 = vec3(shR.x, shG.x, shB.x);
+    vec2 uv = (probeCoord.xy + 0.5) / scene_ProbeVolumeDimensions.xy;
+    vec4 shR = sampleProbeVolumeTexture(scene_ProbeVolumeSHRTexture, uv, probeCoord.z);
+    vec4 shG = sampleProbeVolumeTexture(scene_ProbeVolumeSHGTexture, uv, probeCoord.z);
+    vec4 shB = sampleProbeVolumeTexture(scene_ProbeVolumeSHBTexture, uv, probeCoord.z);
+    vec3 l0 = max(vec3(shR.x, shG.x, shB.x), vec3(0.0));
     vec3 l1Y = vec3(shR.y, shG.y, shB.y);
     vec3 l1Z = vec3(shR.z, shG.z, shB.z);
     vec3 l1X = vec3(shR.w, shG.w, shB.w);
-    vec3 l2YX = vec3(shL2R.x, shL2G.x, shL2B.x);
-    vec3 l2YZ = vec3(shL2R.y, shL2G.y, shL2B.y);
-    vec3 l2Z2 = vec3(shL2R.z, shL2G.z, shL2B.z);
-    vec3 l2ZX = vec3(shL2R.w, shL2G.w, shL2B.w);
-    irradiance = max(
-        l0 +
-        l1Y * normalWS.y + l1Z * normalWS.z + l1X * normalWS.x +
-        l2YX * (normalWS.y * normalWS.x) +
-        l2YZ * (normalWS.y * normalWS.z) +
-        l2Z2 * (3.0 * normalWS.z * normalWS.z - 1.0) +
-        l2ZX * (normalWS.z * normalWS.x) +
-        shL2C * (normalWS.x * normalWS.x - normalWS.y * normalWS.y),
-        vec3(0.0)
-    );
+    vec3 l1Length = sqrt(l1X * l1X + l1Y * l1Y + l1Z * l1Z);
+    vec3 l1Scale = min(vec3(1.0), l0 / max(l1Length, vec3(1e-4)));
+    irradiance = l0 +
+        l1Y * l1Scale * normalWS.y +
+        l1Z * l1Scale * normalWS.z +
+        l1X * l1Scale * normalWS.x;
     return true;
 }
 #endif
 
 
 void evaluateDiffuseIBL(Varyings varyings, SurfaceData surfaceData, BSDFData bsdfData, inout vec3 diffuseColor){
-    #if defined(SCENE_USE_APV) && !defined(MATERIAL_DISABLE_APV)
-    vec3 apvIrradiance;
-    if (sampleAdaptiveProbeVolume(surfaceData.position, surfaceData.normal, surfaceData.viewDir, apvIrradiance)) {
-        vec3 irradiance = apvIrradiance;
+    #if defined(SCENE_USE_PROBE_VOLUME) && !defined(MATERIAL_DISABLE_PROBE_VOLUME)
+    vec3 probeIrradiance;
+    if (sampleProbeVolume(surfaceData.position, surfaceData.normal, surfaceData.viewDir, probeIrradiance)) {
+        vec3 irradiance = probeIrradiance;
         irradiance *= scene_EnvMapLight.diffuseIntensity;
         diffuseColor += bsdfData.diffuseAO * irradiance * BRDF_Diffuse_Lambert( bsdfData.diffuseColor );
         return;

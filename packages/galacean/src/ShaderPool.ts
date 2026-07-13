@@ -22,6 +22,7 @@ import {
   FinalSRGBSource,
   FinalAntiAliasingSource,
   BloomSource,
+  ProbeDepthCaptureSource,
   ScalableAmbientOcclusionSource,
   GaussianSplatSource
 } from "@galacean/engine-shader";
@@ -75,6 +76,8 @@ export class ShaderPool {
       FinalSRGBSource,
       FinalAntiAliasingSource,
       BloomSource,
+      // Probe baking shader
+      ProbeDepthCaptureSource,
       // AO shader
       ScalableAmbientOcclusionSource,
       // Gaussian Splatting shader

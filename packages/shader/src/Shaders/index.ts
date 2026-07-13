@@ -11,6 +11,7 @@ import Effect_Particle from "./Effect/Particle.shader";
 import Effect_ParticleFeedback from "./Effect/ParticleFeedback.shader";
 import Effect_Trail from "./Effect/Trail.shader";
 import GaussianSplat from "./GaussianSplat.shader";
+import Lighting_ProbeDepthCapture from "./Lighting/ProbeDepthCapture.shader";
 import Lighting_ScalableAmbientOcclusion from "./Lighting/ScalableAmbientOcclusion.shader";
 import PBR from "./PBR.shader";
 import Pipeline_DepthOnly from "./Pipeline/DepthOnly.shader";
@@ -42,6 +43,7 @@ export const shaders: IShaderSource[] = [
   { source: Effect_ParticleFeedback, path: "Shaders/Effect/ParticleFeedback.shader" },
   { source: Effect_Trail, path: "Shaders/Effect/Trail.shader" },
   { source: GaussianSplat, path: "Shaders/GaussianSplat.shader" },
+  { source: Lighting_ProbeDepthCapture, path: "Shaders/Lighting/ProbeDepthCapture.shader" },
   { source: Lighting_ScalableAmbientOcclusion, path: "Shaders/Lighting/ScalableAmbientOcclusion.shader" },
   { source: PBR, path: "Shaders/PBR.shader" },
   { source: Pipeline_DepthOnly, path: "Shaders/Pipeline/DepthOnly.shader" },
