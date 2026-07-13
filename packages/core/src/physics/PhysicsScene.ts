@@ -849,7 +849,7 @@ export class PhysicsScene {
     this._contactEventDemandDirty = false;
     const { _elements: colliders } = this._colliders;
 
-    // Scan backward so newly appended colliders and scripts are checked first, increasing the chance of an early exit.
+    // Scan backward so newly appended colliders and scripts are checked first, increasing the chance of an early exit
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       const scripts = colliders[i].entity._scripts;
       const scriptElements = scripts._elements;
