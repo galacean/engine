@@ -11,7 +11,7 @@ import {
 } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine";
 import { PhysXPhysics, PhysXRuntimeMode } from "@galacean/engine-physics-physx";
-import { Quaternion, Vector3 } from "@galacean/engine-math";
+import { Vector3 } from "@galacean/engine-math";
 import { vi, describe, beforeAll, beforeEach, expect, it } from "vitest";
 
 const physXWasmModeUrl = new URL("../../../../packages/physics-physx/libs/physx.release.js", import.meta.url).href;
@@ -625,34 +625,6 @@ describe("DynamicCollider", function () {
     // @ts-ignore
     engine.sceneManager.activeScene.physics._update(1);
     expect(formatValue(box.transform.position.x)).eq(1);
-  });
-
-  it("normalizes non-unit kinematic targets without copying unit rotations", function () {
-    const box = addBox(new Vector3(2, 2, 2), DynamicCollider, new Vector3(0, 0, 0));
-    const boxCollider = box.getComponent(DynamicCollider);
-    boxCollider.isKinematic = true;
-    // @ts-ignore - observe the value crossing the PhysX boundary.
-    const setKinematicTarget = vi.spyOn(boxCollider._nativeCollider._pxActor, "setKinematicTarget");
-    const normalizedRotation = new Quaternion();
-    const targetRotation = new Quaternion(0, Math.SQRT2, 0, Math.SQRT2);
-    const expectNormalizedRotation = (rotation: Quaternion) => {
-      expect(formatValue(rotation.length())).eq(1);
-      expect(formatValue(Math.abs(rotation.y))).eq(formatValue(Math.SQRT1_2));
-      expect(formatValue(Math.abs(rotation.w))).eq(formatValue(Math.SQRT1_2));
-    };
-
-    boxCollider.move(normalizedRotation);
-    expect(setKinematicTarget.mock.calls[0][1]).toBe(normalizedRotation);
-
-    setKinematicTarget.mockClear();
-    boxCollider.move(targetRotation);
-    expectNormalizedRotation(setKinematicTarget.mock.calls[0][1]);
-
-    boxCollider.move(new Vector3(1, 2, 3), targetRotation);
-    expectNormalizedRotation(setKinematicTarget.mock.calls[1][1]);
-
-    expect(setKinematicTarget).toHaveBeenCalledTimes(2);
-    expect(formatValue(targetRotation.length())).eq(2);
   });
 
   it("destroy", function () {
