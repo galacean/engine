@@ -442,7 +442,7 @@ export class Animator extends Component {
     layerIndex: number
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
-    let { mask } = this._animatorController.layers[layerIndex];
+    const { mask } = this._animatorController.layers[layerIndex];
     const { curveLayerOwner } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
 

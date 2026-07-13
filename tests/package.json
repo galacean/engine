@@ -24,7 +24,9 @@
     "@galacean/engine-shader-compiler": "workspace:*",
     "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-ui": "workspace:*",
-    "@galacean/engine-shader": "workspace:*"
+    "@galacean/engine-shader": "workspace:*",
+    "@galacean/engine-spine": "workspace:*",
+    "@galacean/engine-spine-core-4.2": "workspace:*"
   },
   "devDependencies": {
     "@vitest/browser": "3.2.6"

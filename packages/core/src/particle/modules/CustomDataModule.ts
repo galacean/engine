@@ -191,7 +191,7 @@ export class CustomDataModule extends ParticleGeneratorModule {
    */
   _cloneTo(target: CustomDataModule): void {
     // Shared across both loops so cross-entry sub-object references stay shared in the clone.
-    const deepInstanceMap = new Map<Object, Object>();
+    const deepInstanceMap = new Map<object, object>();
     for (const [name, curve] of this._curves) {
       const clonedCurve = new ParticleCompositeCurve(0);
       CloneManager.deepCloneObject(curve, clonedCurve, deepInstanceMap);
