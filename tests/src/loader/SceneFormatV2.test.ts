@@ -39,10 +39,26 @@ class TestValueType {
 }
 Loader.registerClass("TestValueType", TestValueType);
 
+class ConstructorValueType {
+  label = "";
+
+  constructor(
+    readonly seed: string,
+    readonly child: TestValueType
+  ) {}
+}
+Loader.registerClass("ConstructorValueType", ConstructorValueType);
+
 class CallOrderComponent extends Script {
   value = "";
   receivedArgs: any[] = [];
   lastResult: any = null;
+  nested = {
+    value: "",
+    setValue(value: string) {
+      this.value = value;
+    }
+  };
 
   appendSuffix(suffix: string): void {
     this.value += suffix;
@@ -339,6 +355,17 @@ describe("ReflectionParser calls resolution", () => {
 
     expect(target.lastResult.x).to.equal(1);
     expect(target.lastResult.y).to.equal(2);
+  });
+
+  it("should invoke methods on a nested target path", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target = new CallOrderComponent(new Entity(engine, "host"));
+
+    await parser.parseCalls(target, [{ target: ["nested"], method: "setValue", args: ["ready"] }]);
+
+    expect(target.nested.value).to.equal("ready");
   });
 
   it("should await each call before executing the next one", async () => {
@@ -847,6 +874,39 @@ describe("ReflectionParser $type resolution", () => {
     expect(target.value).to.be.instanceOf(TestValueType);
     expect(target.value.x).to.equal(0);
     expect(target.value.y).to.equal(0);
+  });
+
+  it("should recursively resolve $args before construction and then apply props", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+    await parser.parseProps(target, {
+      value: {
+        $type: "ConstructorValueType",
+        $args: ["seed", { $type: "TestValueType", x: 3, y: 4 }],
+        label: "ready"
+      }
+    });
+    expect(target.value).to.be.instanceOf(ConstructorValueType);
+    expect(target.value.seed).to.equal("seed");
+    expect(target.value.child).to.be.instanceOf(TestValueType);
+    expect(target.value.child).to.deep.include({ x: 3, y: 4 });
+    expect(target.value.label).to.equal("ready");
+  });
+
+  it("should reject $args without an array-valued $type constructor contract", async () => {
+    const scene = new Scene(engine);
+    const context = new ParserContext(engine, ParserType.Scene, scene);
+    const parser = new ReflectionParser(context, []);
+    const target: any = {};
+
+    await expect(
+      parser.parseProps(target, {
+        value: { $type: "TestValueType", $args: "invalid" } as any
+      })
+    ).rejects.toThrow("$args must be an array when used with $type");
+    await expect(parser.parseProps(target, { value: { $args: [] } })).rejects.toThrow("$args requires $type");
   });
 
   it("should throw a clear error when $type references an unregistered class", async () => {

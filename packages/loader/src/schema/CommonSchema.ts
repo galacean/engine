@@ -20,6 +20,13 @@ export interface ClassRef {
   $class: string;
 }
 
+/** Registered runtime value with optional recursively-resolved constructor arguments. */
+export interface TypeValue {
+  $type: string;
+  $args?: unknown[];
+  [key: string]: unknown;
+}
+
 export interface SignalListener {
   target: { $component: ComponentRef };
   methodName: string;
@@ -27,6 +34,8 @@ export interface SignalListener {
 }
 
 export interface CallSpec {
+  /** Optional property path from the mutation root to the method owner. */
+  target?: string[];
   method: string;
   args?: unknown[];
   result?: MutationBlock;
