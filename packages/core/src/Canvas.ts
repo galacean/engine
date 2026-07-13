@@ -4,7 +4,9 @@ import { UpdateFlagManager } from "./UpdateFlagManager";
  * The canvas the engine renders to; owns the render-buffer resolution.
  */
 export abstract class Canvas {
-  /** @internal */
+  /**
+   * @internal
+   */
   _sizeUpdateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _width: number = 0;
@@ -45,9 +47,6 @@ export abstract class Canvas {
    * Make the render buffer automatically follow the canvas display size.
    * @param scale - Multiplier applied to the device pixel ratio (1 = native sharpness, 0.7 = save GPU, 2 = supersample), defaults to `1`
    *
-   * @remarks
-   * The canvas must have a CSS-constrained display size; otherwise auto-resolution disables itself.
-   *
    * @throws
    * Throw an error if scale is not a positive finite number.
    */
@@ -62,10 +61,14 @@ export abstract class Canvas {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _pumpPendingResolution(): void {}
 
-  /** @internal */
+  /**
+   * @internal
+   */
   abstract _destroy(): void;
 
   protected _exitAutoResolution(): void {}

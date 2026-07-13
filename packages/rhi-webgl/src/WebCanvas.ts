@@ -42,6 +42,9 @@ export class WebCanvas extends Canvas {
 
   /**
    * @inheritdoc
+   *
+   * @remarks
+   * The canvas must have a CSS-constrained display size; otherwise auto-resolution disables itself.
    */
   override setAutoResolution(scale: number = 1): void {
     if (!Number.isFinite(scale) || scale <= 0) {
