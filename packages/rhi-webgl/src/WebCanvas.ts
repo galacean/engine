@@ -73,11 +73,7 @@ export class WebCanvas extends Canvas {
       console.warn(
         "ResizeObserver is not supported in this environment. Falling back to one-time clientWidth × devicePixelRatio × scale sizing"
       );
-      const webCanvas = this._webCanvas;
-      if (webCanvas.clientWidth > 0 && webCanvas.clientHeight > 0) {
-        const pixelRatio = window.devicePixelRatio * scale;
-        this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
-      }
+      this._setSizeByClientSizeFallback(scale);
     }
   }
 
@@ -129,8 +125,7 @@ export class WebCanvas extends Canvas {
       );
     } else {
       // Fallback where `devicePixelContentBoxSize` is unavailable (Safari): clientWidth is CSS pixels
-      const pixelRatio = window.devicePixelRatio * scale;
-      this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
+      this._setSizeByClientSizeFallback(scale);
     }
 
     // Detect layout feedback loop: if setting the buffer size changed the display size,
@@ -145,6 +140,17 @@ export class WebCanvas extends Canvas {
       );
       this._exitAutoResolution();
     }
+  }
+
+  /**
+   * Size the render buffer from the CSS display size when exact device pixels are unavailable.
+   * `clientWidth`/`clientHeight` are CSS pixels, so the device pixel ratio is applied here.
+   */
+  private _setSizeByClientSizeFallback(scale: number): void {
+    const webCanvas = this._webCanvas;
+    if (webCanvas.clientWidth <= 0 || webCanvas.clientHeight <= 0) return;
+    const pixelRatio = window.devicePixelRatio * scale;
+    this._setSize(Math.round(webCanvas.clientWidth * pixelRatio), Math.round(webCanvas.clientHeight * pixelRatio));
   }
 
   /** @internal */
