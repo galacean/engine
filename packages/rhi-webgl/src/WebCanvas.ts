@@ -61,11 +61,9 @@ export class WebCanvas extends Canvas {
         this._pendingDevicePixelHeight = box ? box.blockSize : 0;
         this._resolutionDirty = true;
       });
-      try {
-        this._resizeObserver.observe(this._webCanvas, { box: "device-pixel-content-box" });
-      } catch {
-        this._resizeObserver.observe(this._webCanvas);
-      }
+      // Browsers without device-pixel-content-box ignore the box option and fall back to content-box,
+      // in which case devicePixelContentBoxSize is absent and the pump sizes from the client size instead
+      this._resizeObserver.observe(this._webCanvas, { box: "device-pixel-content-box" });
     } else {
       // ResizeObserver is unavailable (e.g. mini-programs, iOS Safari < 13.4): size once from the client size
       console.warn(
