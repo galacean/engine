@@ -191,7 +191,7 @@ export class Collider extends Component implements ICustomClone {
     worldPosition: Transform["worldPosition"],
     worldRotation: Transform["worldRotationQuaternion"]
   ): void {
-    (<IStaticCollider>this._nativeCollider).setWorldTransform(worldPosition, worldRotation);
+    this._teleportToEntityTransform(worldPosition, worldRotation);
   }
 
   /**

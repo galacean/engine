@@ -119,23 +119,6 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
-  override _onUpdate() {
-    if (this._updateFlag.flag) {
-      const { transform } = this.entity;
-      const shapes = this.shapes;
-      (<ICharacterController>this._nativeCollider).setWorldPosition(transform.worldPosition);
-
-      const worldScale = transform.lossyWorldScale;
-      for (let i = 0, n = shapes.length; i < n; i++) {
-        shapes[i]._nativeShape.setWorldScale(worldScale);
-      }
-      this._updateFlag.flag = false;
-    }
-  }
-
-  /**
-   * @internal
-   */
   override _onLateUpdate() {
     this._syncWorldPositionFromPhysicalSpace();
     this._updateFlag.flag = false;
