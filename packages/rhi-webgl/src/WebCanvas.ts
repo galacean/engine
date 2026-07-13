@@ -6,6 +6,15 @@ type OffscreenCanvas = any;
  * The canvas used on the web, which can support HTMLCanvasElement and OffscreenCanvas.
  */
 export class WebCanvas extends Canvas {
+  private static _devicePixelContentBoxSupported?: boolean;
+
+  private static _supportsDevicePixelContentBox(): boolean {
+    // Passing { box: "device-pixel-content-box" } to observe() throws on browsers whose
+    // ResizeObserverBoxOptions enum lacks that value (Safari, Firefox < 93), so callers must gate on this
+    return (this._devicePixelContentBoxSupported ??=
+      typeof ResizeObserverEntry !== "undefined" && "devicePixelContentBoxSize" in ResizeObserverEntry.prototype);
+  }
+
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
   private _resizeObserver?: ResizeObserver;
@@ -40,9 +49,12 @@ export class WebCanvas extends Canvas {
         this._pendingDevicePixelHeight = box ? box.blockSize : 0;
         this._resolutionDirty = true;
       });
-      // Browsers without device-pixel-content-box ignore the box option and fall back to content-box,
-      // in which case devicePixelContentBoxSize is absent and the pump sizes from the client size instead
-      this._resizeObserver.observe(this._webCanvas, { box: "device-pixel-content-box" });
+      // Observe exact device pixels where supported, otherwise the content-box and size from the client size
+      if (WebCanvas._supportsDevicePixelContentBox()) {
+        this._resizeObserver.observe(this._webCanvas, { box: "device-pixel-content-box" });
+      } else {
+        this._resizeObserver.observe(this._webCanvas);
+      }
     } else {
       // ResizeObserver is unavailable (e.g. mini-programs, iOS Safari < 13.4): size once from the client size
       console.warn(
