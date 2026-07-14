@@ -1,5 +1,4 @@
 import * as CoreObjects from "@galacean/engine-core";
-import * as MathObjects from "@galacean/engine-math";
 import { Loader, Polyfill, SystemInfo } from "@galacean/engine-core";
 import { ShaderPool } from "./ShaderPool";
 //@ts-ignore
@@ -12,11 +11,8 @@ export * from "@galacean/engine-loader";
 export * from "@galacean/engine-math";
 export * from "@galacean/engine-rhi-webgl";
 
-for (const key in CoreObjects) {
+for (let key in CoreObjects) {
   Loader.registerClass(key, CoreObjects[key]);
-}
-for (const key in MathObjects) {
-  Loader.registerClass(key, MathObjects[key]);
 }
 
 // Bootstrap the Galacean engine flavor: browser polyfills first (must

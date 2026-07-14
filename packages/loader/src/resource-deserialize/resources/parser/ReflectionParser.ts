@@ -40,21 +40,13 @@ export class ReflectionParser {
     for (let i = 0, n = calls.length; i < n; i++) {
       const call = calls[i];
       chain = chain.then(() => {
-        let target = instance;
-        if (call.target !== undefined) {
-          if (!Array.isArray(call.target) || call.target.some((key) => typeof key !== "string" || key.length === 0)) {
-            return Promise.reject(new Error(`Call "${call.method}" target must be an array of non-empty strings`));
-          }
-          for (const key of call.target) target = target?.[key];
-        }
-        const method = target?.[call.method];
+        const method = instance?.[call.method];
         if (typeof method !== "function") {
-          const path = call.target?.length ? `${call.target.join(".")}.` : "";
-          return Promise.reject(new Error(`Call target does not have method "${path}${call.method}"`));
+          return Promise.reject(new Error(`Call target does not have method "${call.method}"`));
         }
 
         return Promise.all((call.args ?? []).map((arg) => this._resolveValue(arg)))
-          .then((resolvedArgs) => Promise.resolve(method.apply(target, resolvedArgs)))
+          .then((resolvedArgs) => Promise.resolve(method.apply(instance, resolvedArgs)))
           .then((result) => {
             if (!call.result) return result;
             if (result == null || (typeof result !== "object" && typeof result !== "function")) {
@@ -85,7 +77,7 @@ export class ReflectionParser {
    * 1. null/undefined/primitive → passthrough
    * 2. Array → recurse each element
    * 3. { $ref }       → asset reference
-   * 4. { $type, $args? } → polymorphic type construct
+   * 4. { $type }      → polymorphic type construct
    * 5. { $class }     → registered class constructor
    * 6. { $entity }    → entity reference by path (flat index + optional children descent)
    * 7. { $component } → component reference
@@ -117,18 +109,12 @@ export class ReflectionParser {
       });
     }
 
-    // $type — polymorphic type: resolve constructor args, construct instance, then apply remaining props
+    // $type — polymorphic type: construct instance and apply remaining props
     if ("$type" in obj) {
-      const { $type, $args, ...rest } = obj;
-      const constructorArgs = $args === undefined ? [] : $args;
-      if (!Array.isArray(constructorArgs)) {
-        return Promise.reject(new Error("$args must be an array when used with $type"));
-      }
+      const { $type, ...rest } = obj;
       return this._resolveRegisteredClass($type, "$type").then((Class) => {
-        return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg))).then((args) => {
-          const instance = new Class(...args);
-          return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
-        });
+        const instance = new Class();
+        return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
       });
     }
 
@@ -150,10 +136,6 @@ export class ReflectionParser {
     // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
       return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
-    }
-
-    if ("$args" in obj) {
-      return Promise.reject(new Error("$args requires $type"));
     }
 
     // Plain object — recurse each value, modifying originValue in place or building a new object

@@ -24,23 +24,11 @@ export class ParticleGradient {
     return this._colorKeys;
   }
 
-  /** Replaces the color keys while preserving the alpha keys. */
-  set colorKeys(value: ReadonlyArray<GradientColorKey>) {
-    if (value === this._colorKeys) return;
-    this.setKeys(value, [...this._alphaKeys]);
-  }
-
   /**
    * The alpha keys of the gradient.
    */
   get alphaKeys(): ReadonlyArray<GradientAlphaKey> {
     return this._alphaKeys;
-  }
-
-  /** Replaces the alpha keys while preserving the color keys. */
-  set alphaKeys(value: ReadonlyArray<GradientAlphaKey>) {
-    if (value === this._alphaKeys) return;
-    this.setKeys([...this._colorKeys], value);
   }
 
   /**
@@ -140,7 +128,7 @@ export class ParticleGradient {
    * @param colorKeys - The color keys
    * @param alphaKeys - The alpha keys
    */
-  setKeys(colorKeys: ReadonlyArray<GradientColorKey>, alphaKeys: ReadonlyArray<GradientAlphaKey>): void {
+  setKeys(colorKeys: GradientColorKey[], alphaKeys: GradientAlphaKey[]): void {
     if (colorKeys.length > 4) {
       throw new Error("Gradient can only have 4 color keys");
     }
@@ -148,8 +136,6 @@ export class ParticleGradient {
       throw new Error("Gradient can only have 4 alpha keys");
     }
 
-    const nextColorKeys = [...colorKeys];
-    const nextAlphaKeys = [...alphaKeys];
     const currentColorKeys = this._colorKeys;
     const currentAlphaKeys = this._alphaKeys;
     for (let i = 0, n = currentColorKeys.length; i < n; i++) {
@@ -161,8 +147,14 @@ export class ParticleGradient {
     currentColorKeys.length = 0;
     currentAlphaKeys.length = 0;
 
-    for (let i = 0, n = nextColorKeys.length; i < n; i++) this.addColorKey(nextColorKeys[i]);
-    for (let i = 0, n = nextAlphaKeys.length; i < n; i++) this.addAlphaKey(nextAlphaKeys[i]);
+    for (let i = 0, n = colorKeys.length; i < n; i++) {
+      this._addKey(currentColorKeys, colorKeys[i]);
+    }
+    for (let i = 0, n = alphaKeys.length; i < n; i++) {
+      this._addKey(currentAlphaKeys, alphaKeys[i]);
+    }
+    this._alphaTypeArrayDirty = true;
+    this._colorTypeArrayDirty = true;
   }
 
   /**

@@ -98,20 +98,6 @@ export class EmissionModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Replaces the burst array, sorted by emission time.
-   */
-  set bursts(value: ReadonlyArray<Burst>) {
-    const bursts = this._bursts;
-    if (value === bursts) return;
-
-    bursts.length = 0;
-    for (let i = 0, n = value.length; i < n; i++) {
-      this.addBurst(value[i]);
-    }
-    this._resyncCursors(this._generator._playTime);
-  }
-
-  /**
    * Add a single burst.
    * @param burst - The burst
    */
