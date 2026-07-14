@@ -39,6 +39,7 @@ import { createRiverNetworkQueryResult, getPointAtRiverT } from "../runtime/rive
 import { RiverCompileWorkerClient, RiverCompileWorkerError } from "../runtime/river/RiverCompileWorkerClient";
 import type { RiverResource } from "../runtime/river/RiverResource";
 import { RiverDiagnosticSeverity } from "../compiler/shared/diagnostics";
+import { RiverBedController } from "./decoration/RiverBedController";
 import { RiverRockController } from "./decoration/RiverRockController";
 import { RiverCameraFeatureController } from "./RiverCameraFeatureController";
 
@@ -295,6 +296,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverSegmentsRoot = riverGroup.createChild("river-segments");
   const riverRuntimeController = new RiverRuntimeController(engine, riverSegmentsRoot);
   const riverDebugController = new RiverDebugController(engine);
+  const riverBedController = new RiverBedController(engine, riverGroup);
   const riverRockController = new RiverRockController(engine, riverGroup);
   const riverMeshPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
   const riverBankPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
@@ -353,7 +355,10 @@ async function bootstrapWaterPcg(): Promise<void> {
     const activation = riverRuntimeController.activate(exampleId, activeRiverResource, createRuntimeReachSources());
     riverDebugController.activate(exampleId, activation.reaches);
     const queryService = riverRuntimeController.activeQueryService;
-    if (queryService) riverRockController.rebuild(activeRiverCompiledData, queryService);
+    if (queryService) {
+      riverBedController.rebuild(activeRiverCompiledData);
+      riverRockController.rebuild(activeRiverCompiledData, queryService);
+    }
     const cached = riverDemoRuntimeSets.get(exampleId);
     if (cached) {
       riverRuntimes = cached;
@@ -440,7 +445,11 @@ async function bootstrapWaterPcg(): Promise<void> {
     );
     riverDemoRuntimeSets.set(exampleId, riverRuntimes);
     const queryService = riverRuntimeController.activeQueryService;
-    if (queryService) riverRockController.rebuild(nextData, queryService);
+    if (queryService) {
+      riverBedController.rebuild(nextData);
+      riverRockController.rebuild(nextData, queryService);
+    }
+    exampleBarElement.dataset.riverBedChunkCount = String(riverBedController.chunkCount);
     exampleBarElement.dataset.rockCount = String(riverRockController.rockCount);
     topologyRevision++;
     exampleBarElement.dataset.topologyRevision = String(topologyRevision);
@@ -570,6 +579,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.waterSlopeAdjustmentCount = String(
       activeRiverCompiledData.stats.waterSlopeAdjustmentCount
     );
+    exampleBarElement.dataset.riverBedChunkCount = String(riverBedController.chunkCount);
     exampleBarElement.dataset.rockCount = String(riverRockController.rockCount);
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
@@ -752,6 +762,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   window.addEventListener("beforeunload", () => {
     riverCameraFeatureController.destroy();
     riverDebugController.destroy();
+    riverBedController.destroy();
     riverRockController.destroy();
     riverRuntimeController.destroy();
     for (const resource of riverResourceSets) resource.dispose();

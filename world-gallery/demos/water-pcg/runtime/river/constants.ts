@@ -18,13 +18,13 @@ export const RIVER_LOW_OPTICAL_SHADER_TUNING = {
 
 /** Medium-tier depth absorption; this tier is opt-in because it requires a camera depth pre-pass. */
 export const RIVER_MEDIUM_OPTICAL_SHADER_TUNING = {
-  opaqueAbsorption: 0.72,
-  clearAbsorption: 0.18,
+  opaqueAbsorption: 0.52,
+  clearAbsorption: 0.08,
   maxOpticalDepth: 4,
-  minimumAlpha: 0.08,
-  maximumAlpha: 0.92,
-  foamAlphaWeight: 0.22,
-  scatterAlphaWeight: 0.03
+  minimumAlpha: 0.05,
+  maximumAlpha: 0.82,
+  foamAlphaWeight: 0.16,
+  scatterAlphaWeight: 0.02
 } as const;
 
 /** Medium/high single-pass shoreline foam animation tuning. */
