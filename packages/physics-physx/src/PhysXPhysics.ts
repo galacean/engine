@@ -85,7 +85,10 @@ export class PhysXPhysics implements IPhysics {
       runtimeUrls?.wasmModeUrl ??
       "https://mdn.alipayobjects.com/rms/uri/file/as/apwallet/1781696156399/suyi/physx.release.js";
     this._tolerancesScaleOptions = resolvedOptions?.tolerancesScale;
-    this._updateScaledDefaults(this._tolerancesScaleOptions?.length ?? 1, this._tolerancesScaleOptions?.speed ?? 10);
+    const length = this._tolerancesScaleOptions?.length ?? 1;
+    const speed = this._tolerancesScaleOptions?.speed ?? 10;
+    this._validateTolerancesScale(length, speed);
+    this._updateScaledDefaults(length, speed);
   }
 
   /**
@@ -337,8 +340,7 @@ export class PhysXPhysics implements IPhysics {
     const length = this._tolerancesScaleOptions?.length ?? tolerancesScale.length;
     const speed = this._tolerancesScaleOptions?.speed ?? tolerancesScale.speed;
 
-    this._assertPositiveFinite(length, "tolerancesScale.length");
-    this._assertPositiveFinite(speed, "tolerancesScale.speed");
+    this._validateTolerancesScale(length, speed);
 
     tolerancesScale.length = length;
     tolerancesScale.speed = speed;
@@ -349,6 +351,11 @@ export class PhysXPhysics implements IPhysics {
     if (!Number.isFinite(value) || value <= 0) {
       throw new Error(`PhysXPhysics ${name} must be a positive finite number.`);
     }
+  }
+
+  private _validateTolerancesScale(length: number, speed: number): void {
+    this._assertPositiveFinite(length, "tolerancesScale.length");
+    this._assertPositiveFinite(speed, "tolerancesScale.speed");
   }
 
   private _updateScaledDefaults(length: number, speed: number): void {

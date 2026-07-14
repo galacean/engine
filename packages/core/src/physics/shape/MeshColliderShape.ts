@@ -28,8 +28,13 @@ export class MeshColliderShape extends ColliderShape {
       const previousValue = this._cookingFlags;
       this._cookingFlags = value;
       if (this._nativeShape) {
-        if (!this._updateNativeShapeData()) {
-          this._cookingFlags = previousValue;
+        let updated = false;
+        try {
+          updated = this._updateNativeShapeData();
+        } finally {
+          if (!updated) {
+            this._cookingFlags = previousValue;
+          }
         }
       } else if (this._mesh && this._extractMeshData(this._mesh)) {
         this._createNativeShape();
@@ -82,12 +87,17 @@ export class MeshColliderShape extends ColliderShape {
       if (value) {
         if (this._extractMeshData(value)) {
           if (this._nativeShape) {
-            if (!this._updateNativeShapeData()) {
-              value?._addReferCount(-1);
-              previousMesh?._addReferCount(1);
-              this._mesh = previousMesh;
-              this._positions = previousPositions;
-              this._indices = previousIndices;
+            let updated = false;
+            try {
+              updated = this._updateNativeShapeData();
+            } finally {
+              if (!updated) {
+                value?._addReferCount(-1);
+                previousMesh?._addReferCount(1);
+                this._mesh = previousMesh;
+                this._positions = previousPositions;
+                this._indices = previousIndices;
+              }
             }
           } else {
             this._createNativeShape();

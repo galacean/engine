@@ -7,37 +7,18 @@
         sampler2D renderer_JointSampler;
         float renderer_JointCount;
 
-        #ifdef RENDERER_USE_BAKED_SKINNING
-            float renderer_BakedFrame;
-            float renderer_BoneCount;
+        mat4 getJointMatrix(sampler2D smp, float index){
+            float base = index / renderer_JointCount;
+            float hf = 0.5 / renderer_JointCount;
+            float v = base + hf;
 
-            mat4 getJointMatrix(sampler2D smp, float index){
-                float frameCount = renderer_JointCount / renderer_BoneCount;
-                float texel = 1.0 / (frameCount * 4.0);
-                float u = (renderer_BakedFrame * 4.0 + 0.5) * texel;
-                float v = (index + 0.5) / renderer_BoneCount;
+            vec4 m0 = texture2D(smp, vec2(0.125, v ));
+            vec4 m1 = texture2D(smp, vec2(0.375, v ));
+            vec4 m2 = texture2D(smp, vec2(0.625, v ));
+            vec4 m3 = texture2D(smp, vec2(0.875, v ));
 
-                vec4 m0 = texture2D(smp, vec2(u, v));
-                vec4 m1 = texture2D(smp, vec2(u + texel, v));
-                vec4 m2 = texture2D(smp, vec2(u + texel * 2.0, v));
-                vec4 m3 = texture2D(smp, vec2(u + texel * 3.0, v));
-
-                return mat4(m0, m1, m2, m3);
-            }
-        #else
-            mat4 getJointMatrix(sampler2D smp, float index){
-                float base = index / renderer_JointCount;
-                float hf = 0.5 / renderer_JointCount;
-                float v = base + hf;
-
-                vec4 m0 = texture2D(smp, vec2(0.125, v ));
-                vec4 m1 = texture2D(smp, vec2(0.375, v ));
-                vec4 m2 = texture2D(smp, vec2(0.625, v ));
-                vec4 m3 = texture2D(smp, vec2(0.875, v ));
-
-                return mat4(m0, m1, m2, m3);
-            }
-        #endif
+            return mat4(m0, m1, m2, m3);
+        }
     #else
         mat4 renderer_JointMatrix[ RENDERER_JOINTS_NUM ];
     #endif

@@ -19,10 +19,6 @@ for (const key in MathObjects) {
   Loader.registerClass(key, MathObjects[key]);
 }
 
-for (let key in MathObjects) {
-  Loader.registerClass(key, MathObjects[key]);
-}
-
 // Bootstrap the Galacean engine flavor: browser polyfills first (must
 // patch globals before anything else runs), then platform detection
 // (other modules may read `SystemInfo.platform`), then built-in shader

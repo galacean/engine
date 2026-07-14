@@ -148,6 +148,8 @@ export class ParticleGradient {
       throw new Error("Gradient can only have 4 alpha keys");
     }
 
+    const nextColorKeys = [...colorKeys];
+    const nextAlphaKeys = [...alphaKeys];
     const currentColorKeys = this._colorKeys;
     const currentAlphaKeys = this._alphaKeys;
     for (let i = 0, n = currentColorKeys.length; i < n; i++) {
@@ -159,8 +161,8 @@ export class ParticleGradient {
     currentColorKeys.length = 0;
     currentAlphaKeys.length = 0;
 
-    for (let i = 0, n = colorKeys.length; i < n; i++) this.addColorKey(colorKeys[i]);
-    for (let i = 0, n = alphaKeys.length; i < n; i++) this.addAlphaKey(alphaKeys[i]);
+    for (let i = 0, n = nextColorKeys.length; i < n; i++) this.addColorKey(nextColorKeys[i]);
+    for (let i = 0, n = nextAlphaKeys.length; i < n; i++) this.addAlphaKey(nextAlphaKeys[i]);
   }
 
   /**

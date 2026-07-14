@@ -96,8 +96,8 @@ function watchNativeContactEventDemand(physicsScene: PhysicsScene) {
   };
 }
 
-function getLastContactEventDemandCall(calls: boolean[]): boolean {
-  return calls[calls.length - 1] ?? false;
+function getLastContactEventDemandCall(calls: boolean[]): boolean | undefined {
+  return calls[calls.length - 1];
 }
 
 function resetSpy() {
@@ -199,7 +199,8 @@ describe("Physics Test", () => {
     });
 
     it("auto-disables native contact events when no active collision callback exists", () => {
-      const scene = enginePhysX.sceneManager.activeScene;
+      const scene = new Scene(enginePhysX);
+      enginePhysX.sceneManager.addScene(scene);
       const physicsScene = scene.physics;
       const root = scene.createRootEntity("contact-demand-disabled");
       const entity = root.createChild("body");
@@ -212,7 +213,7 @@ describe("Physics Test", () => {
         expect(getLastContactEventDemandCall(contactEventDemand.calls)).to.eq(false);
       } finally {
         contactEventDemand.restore();
-        root.destroy();
+        scene.destroy();
       }
     });
 

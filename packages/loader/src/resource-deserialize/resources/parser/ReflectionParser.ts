@@ -120,11 +120,12 @@ export class ReflectionParser {
     // $type — polymorphic type: resolve constructor args, construct instance, then apply remaining props
     if ("$type" in obj) {
       const { $type, $args, ...rest } = obj;
-      if ($args !== undefined && !Array.isArray($args)) {
+      const constructorArgs = $args === undefined ? [] : $args;
+      if (!Array.isArray(constructorArgs)) {
         return Promise.reject(new Error("$args must be an array when used with $type"));
       }
       return this._resolveRegisteredClass($type, "$type").then((Class) => {
-        return Promise.all(($args ?? []).map((arg) => this._resolveValue(arg))).then((args) => {
+        return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg))).then((args) => {
           const instance = new Class(...args);
           return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
         });

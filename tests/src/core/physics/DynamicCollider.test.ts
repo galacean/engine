@@ -94,6 +94,15 @@ describe("DynamicCollider", function () {
     expect(physics.getDefaultSleepThreshold()).to.closeTo(0.02, 1e-6);
   });
 
+  it("rejects invalid tolerancesScale before initialization", function () {
+    expect(() => new PhysXPhysics({ tolerancesScale: { length: 0 } })).to.throw(
+      "tolerancesScale.length must be a positive finite number"
+    );
+    expect(() => new PhysXPhysics({ tolerancesScale: { speed: Number.NaN } })).to.throw(
+      "tolerancesScale.speed must be a positive finite number"
+    );
+  });
+
   it("addShape and removeShape", function () {
     const collider = rootEntity.createChild("entity").addComponent(DynamicCollider);
     const boxCollider = new BoxColliderShape();

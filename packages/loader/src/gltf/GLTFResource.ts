@@ -59,7 +59,18 @@ export class GLTFResource extends ReferResource {
    * @returns Root entity
    */
   instantiateSceneRoot(sceneIndex?: number): Entity {
+    if (
+      sceneIndex !== undefined &&
+      (!Number.isSafeInteger(sceneIndex) || sceneIndex < 0 || sceneIndex >= this._sceneRoots.length)
+    ) {
+      throw new RangeError(
+        `GLTFResource: scene index ${sceneIndex} is out of range for "${this.url}" (${this._sceneRoots.length} scenes).`
+      );
+    }
     const sceneRoot = sceneIndex === undefined ? this._defaultSceneRoot : this._sceneRoots[sceneIndex];
+    if (!sceneRoot) {
+      throw new Error(`GLTFResource: no default scene is available for "${this.url}".`);
+    }
     return sceneRoot.clone();
   }
 

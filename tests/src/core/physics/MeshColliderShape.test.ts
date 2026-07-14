@@ -977,6 +977,38 @@ describe("MeshColliderShape PhysX", () => {
       defaultMaterial?.destroy();
     });
 
+    it("rolls back cached state when native recooking throws", () => {
+      const entity = root.createChild("recookingRollback");
+      const staticCollider = entity.addComponent(StaticCollider);
+      const meshShape = new MeshColliderShape();
+      const defaultMaterial = meshShape.material;
+      const originalMesh = createModelMesh(engine, [0, 0, 0, 1, 0, 0, 0, 1, 0], [0, 1, 2]);
+      const replacementMesh = createModelMesh(engine, [0, 0, 0, 2, 0, 0, 0, 2, 0], [0, 1, 2]);
+      meshShape.mesh = originalMesh;
+      staticCollider.addShape(meshShape);
+
+      const originalFlags = meshShape.cookingFlags;
+      const nativeShape = (meshShape as any)._nativeShape;
+      vi.spyOn(nativeShape, "setMeshData").mockImplementation(() => {
+        throw new Error("recook failed");
+      });
+
+      expect(() => {
+        meshShape.cookingFlags = MeshColliderShapeCookingFlag.Cleaning;
+      }).toThrow("recook failed");
+      expect(meshShape.cookingFlags).toBe(originalFlags);
+
+      expect(() => {
+        meshShape.mesh = replacementMesh;
+      }).toThrow("recook failed");
+      expect(meshShape.mesh).toBe(originalMesh);
+      expect(originalMesh._getReferCount()).toBe(1);
+      expect(replacementMesh._getReferCount()).toBe(0);
+
+      entity.destroy();
+      defaultMaterial?.destroy();
+    });
+
     it("should not update when no mesh is set", () => {
       const meshShape = new MeshColliderShape();
       const defaultMaterial = meshShape.material;

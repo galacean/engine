@@ -88,11 +88,23 @@ export class ParticleCurve {
    * @param keys - The keys
    */
   setKeys(keys: ReadonlyArray<CurveKey>): void {
-    this._keys.length = 0;
-    for (let i = 0, n = keys.length; i < n; i++) {
-      this.addKey(keys[i]);
+    if (keys.length > 4) {
+      throw new Error("Curve can only have 4 keys");
+    }
+
+    const nextKeys = [...keys];
+    const currentKeys = this._keys;
+    for (let i = 0, n = currentKeys.length; i < n; i++) {
+      currentKeys[i]._unRegisterOnValueChanged(this._updateDispatch);
+    }
+    currentKeys.length = 0;
+    for (let i = 0, n = nextKeys.length; i < n; i++) {
+      const key = nextKeys[i];
+      this._addKey(currentKeys, key);
+      key._registerOnValueChanged(this._updateDispatch);
     }
     this._typeArrayDirty = true;
+    this._updateDispatch();
   }
 
   /**
