@@ -16,6 +16,17 @@ export const RIVER_LOW_OPTICAL_SHADER_TUNING = {
   maxAlpha: 0.8
 } as const;
 
+/** Medium-tier depth absorption; this tier is opt-in because it requires a camera depth pre-pass. */
+export const RIVER_MEDIUM_OPTICAL_SHADER_TUNING = {
+  opaqueAbsorption: 0.72,
+  clearAbsorption: 0.18,
+  maxOpticalDepth: 4,
+  minimumAlpha: 0.08,
+  maximumAlpha: 0.92,
+  foamAlphaWeight: 0.22,
+  scatterAlphaWeight: 0.03
+} as const;
+
 /** Medium/high single-pass shoreline foam animation tuning. */
 export const RIVER_SHORE_FOAM_SHADER_TUNING = {
   noiseCutoffStart: 0.38,
@@ -32,10 +43,7 @@ export const RIVER_SHORE_FOAM_SHADER_TUNING = {
   foamBrightness: 0.9,
   foamNoiseBrightness: 0.08,
   tintBase: 0.52,
-  tintClarityWeight: 0.16,
-  waterAlphaWeight: 0.9,
-  foamAlphaWeight: 0.015,
-  scatterAlphaWeight: 0.03
+  tintClarityWeight: 0.16
 } as const;
 
 export const RIVER_QUERY_NO_SOURCE_INDEX = -1;

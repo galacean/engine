@@ -8,7 +8,7 @@
  * animation, water queries, and debug rendering can evolve toward engine-level
  * APIs without being coupled to dat.gui or gallery state.
  */
-import { Camera, Color, Script, Vector3, WebGLMode, WebGLEngine } from "@galacean/engine";
+import { Camera, Color, DepthTextureMode, Script, Vector3, WebGLMode, WebGLEngine } from "@galacean/engine";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import * as dat from "dat.gui";
@@ -40,6 +40,7 @@ import { RiverCompileWorkerClient, RiverCompileWorkerError } from "../runtime/ri
 import type { RiverResource } from "../runtime/river/RiverResource";
 import { RiverDiagnosticSeverity } from "../compiler/shared/diagnostics";
 import { RiverRockController } from "./decoration/RiverRockController";
+import { RiverCameraFeatureController } from "./RiverCameraFeatureController";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -285,6 +286,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   const camera = cameraEntity.addComponent(Camera);
   camera.farClipPlane = 300;
   const control = cameraEntity.addComponent(OrbitControl);
+  const riverCameraFeatureController = new RiverCameraFeatureController(camera);
 
   const oceanPreview = new OceanPreviewController(engine, rootEntity, oceanConfig);
   const oceanGroup = oceanPreview.root;
@@ -300,6 +302,16 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverDemoRuntimeSets = new Map<string, RiverSegmentRuntime[]>();
   let pendingRuntimeStatsRefresh = false;
   let topologyRevision = 0;
+
+  const updateRiverCameraFeatures = (): void => {
+    riverCameraFeatureController.apply(
+      activeMode === WaterPreviewMode.River,
+      getPrimaryRiverConfig().quality.material.level
+    );
+    exampleBarElement.dataset.riverDepthTextureRequested = String(riverCameraFeatureController.depthTextureRequested);
+    exampleBarElement.dataset.cameraDepthTextureMode =
+      camera.depthTextureMode === DepthTextureMode.PrePass ? "prepass" : "none";
+  };
 
   const rebuildOceanMesh = (): void => oceanPreview.rebuildMesh();
   const updateOceanMaterial = (): void => oceanPreview.updateMaterial();
@@ -521,6 +533,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     riverGroup.isActive = mode === WaterPreviewMode.River;
     scene.background.solidColor =
       mode === WaterPreviewMode.Ocean ? new Color(0.06, 0.1, 0.12, 1) : new Color(0.05, 0.08, 0.08, 1);
+    updateRiverCameraFeatures();
 
     if (mode === WaterPreviewMode.Ocean) {
       control.target.set(0, 0, 0);
@@ -619,7 +632,9 @@ async function bootstrapWaterPcg(): Promise<void> {
         .add(guiState, "quality", Object.keys(RIVER_QUALITY_OPTIONS) as RiverQualityLabel[])
         .name("Quality")
         .onChange((label: RiverQualityLabel) => {
-          applyQuality(RIVER_QUALITY_OPTIONS[label]);
+          const quality = RIVER_QUALITY_OPTIONS[label];
+          applyQuality(quality);
+          updateRiverCameraFeatures();
           applyRiverChanges(
             RiverDirtyFlag.Geometry | RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug
           );
@@ -715,6 +730,8 @@ async function bootstrapWaterPcg(): Promise<void> {
         );
         const drawCalls = activeRiverCompiledData.chunks.length + foamDrawCalls;
         exampleBarElement.dataset.bufferMemory = String(engine.renderingStatistics.bufferMemory);
+        exampleBarElement.dataset.textureMemory = String(engine.renderingStatistics.textureMemory);
+        exampleBarElement.dataset.totalMemory = String(engine.renderingStatistics.totalMemory);
         exampleBarElement.dataset.estimatedRiverDrawCalls = String(drawCalls);
         pendingRuntimeStatsRefresh = false;
       }
@@ -733,6 +750,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   }
   rootEntity.addComponent(WaterPcgUpdateScript);
   window.addEventListener("beforeunload", () => {
+    riverCameraFeatureController.destroy();
     riverDebugController.destroy();
     riverRockController.destroy();
     riverRuntimeController.destroy();

@@ -14,11 +14,13 @@ import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTy
 import { RIVER_FLOW_UV_SCALE } from "../../compiler/river/constants";
 import {
   RIVER_LOW_OPTICAL_SHADER_TUNING,
+  RIVER_MEDIUM_OPTICAL_SHADER_TUNING,
   RIVER_SHADER_PROPERTY,
   RIVER_SHORE_FOAM_SHADER_TUNING
 } from "./constants";
 
 const RIVER_FLOW_UV_SCALE_GLSL = RIVER_FLOW_UV_SCALE.toFixed(8);
+const RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL = RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maxOpticalDepth.toFixed(1);
 
 export const lowRiverShaderSource = `
 Shader "AIWorld/RiverLow" {
@@ -143,7 +145,11 @@ Shader "AIWorld/RiverSurface" {
 
       mat4 renderer_MVPMat;
       mat4 renderer_ModelMat;
+      mat4 camera_ViewMat;
       vec4 scene_ElapsedTime;
+      vec4 camera_DepthBufferParams;
+      vec4 camera_ProjectionParams;
+      sampler2D camera_DepthTexture;
 
       vec4 material_BaseColor;
       vec4 material_FoamColor;
@@ -163,6 +169,8 @@ Shader "AIWorld/RiverSurface" {
         vec2 worldXZ;
         float localFlowSpeed;
         vec4 color;
+        vec4 clipPosition;
+        float surfaceEyeDepth;
       };
 
       VertexShader = vert;
@@ -170,16 +178,28 @@ Shader "AIWorld/RiverSurface" {
 
       Varyings vert(Attributes attr) {
         Varyings output;
-        gl_Position = renderer_MVPMat * attr.POSITION;
+        vec4 worldPosition = renderer_ModelMat * attr.POSITION;
+        vec4 clipPosition = renderer_MVPMat * attr.POSITION;
+        gl_Position = clipPosition;
         output.uv = attr.TEXCOORD_0;
-        output.worldXZ = (renderer_ModelMat * attr.POSITION).xz;
+        output.worldXZ = worldPosition.xz;
         output.localFlowSpeed = attr.TEXCOORD_1.x;
         output.color = attr.COLOR_0;
+        output.clipPosition = clipPosition;
+        output.surfaceEyeDepth = -(camera_ViewMat * worldPosition).z;
         return output;
       }
 
       float saturate(float value) {
         return clamp(value, 0.0, 1.0);
+      }
+
+      float remapDepthBufferEyeDepth(float depth) {
+        #ifdef CAMERA_ORTHOGRAPHIC
+          return camera_ProjectionParams.y + (camera_ProjectionParams.z - camera_ProjectionParams.y) * depth;
+        #else
+          return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
+        #endif
       }
 
       float hash21(vec2 point) {
@@ -205,6 +225,24 @@ Shader "AIWorld/RiverSurface" {
 
       void frag(Varyings input) {
         float clarity = saturate(material_Clarity);
+        vec2 screenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
+        float sceneEyeDepth = remapDepthBufferEyeDepth(texture2D(camera_DepthTexture, screenUv).r);
+        float opticalDepth = clamp(
+          sceneEyeDepth - input.surfaceEyeDepth,
+          0.0,
+          ${RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL}
+        );
+        float absorption = mix(
+          ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption},
+          ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption},
+          clarity
+        );
+        float transmittance = exp(-absorption * opticalDepth);
+        float waterAlpha = clamp(
+          1.0 - transmittance,
+          ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.minimumAlpha},
+          ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maximumAlpha}
+        );
         float junctionData = step(1.5, input.color.a);
         float junctionInterior = smoothstep(0.0, 1.0, saturate(input.color.b)) * junctionData;
         float flowEnabled = step(0.0001, input.localFlowSpeed);
@@ -285,10 +323,10 @@ Shader "AIWorld/RiverSurface" {
           foamTint
         );
 
-        float alpha = material_BaseColor.a * ${RIVER_SHORE_FOAM_SHADER_TUNING.waterAlphaWeight}
-          + foamTint * ${RIVER_SHORE_FOAM_SHADER_TUNING.foamAlphaWeight}
-          + lightScatter * ${RIVER_SHORE_FOAM_SHADER_TUNING.scatterAlphaWeight};
-        gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.97));
+        float alpha = waterAlpha
+          + foamTint * ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.foamAlphaWeight}
+          + lightScatter * ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.scatterAlphaWeight};
+        gl_FragColor = vec4(color, clamp(alpha, 0.0, ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maximumAlpha}));
       }
     }
   }

@@ -38,7 +38,7 @@ describe("RiverMaterialFactory shaders", () => {
   it("renders soft broken shoreline foam inside the surface pass", () => {
     expect(riverSurfaceShaderSource.match(/Pass \"/g) ?? []).toHaveLength(1);
     expect(riverSurfaceShaderSource.match(/fbm\(/g) ?? []).toHaveLength(6);
-    expect(riverSurfaceShaderSource).not.toContain("texture2D(");
+    expect(riverSurfaceShaderSource.match(/texture2D\(/g) ?? []).toHaveLength(1);
     expect(riverSurfaceShaderSource).toContain("float streak = sin(detailPhase");
     expect(riverSurfaceShaderSource).toContain("float shoreEnvelope");
     expect(riverSurfaceShaderSource).toContain("float shoreNoiseMask");
@@ -53,5 +53,15 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceShaderSource).not.toContain("broadWater * 0.66 + foamNoise * 0.34");
     expect(riverSurfaceShaderSource).not.toContain("0.18 + shorePattern * 0.82");
     expect(riverSurfaceShaderSource).not.toMatch(/mix\(color, softFoamColor[^;]+, foam\)/);
+  });
+
+  it("uses scene depth for Medium optical thickness without opaque-color sampling", () => {
+    expect(riverSurfaceShaderSource).toContain("sampler2D camera_DepthTexture");
+    expect(riverSurfaceShaderSource).toContain("remapDepthBufferEyeDepth");
+    expect(riverSurfaceShaderSource).toContain("sceneEyeDepth - input.surfaceEyeDepth");
+    expect(riverSurfaceShaderSource).toContain("float transmittance = exp(-absorption * opticalDepth)");
+    expect(riverSurfaceShaderSource).toContain("float waterAlpha = clamp(");
+    expect(riverSurfaceShaderSource).not.toContain("camera_OpaqueTexture");
+    expect(riverSurfaceShaderSource).not.toContain("material_BaseColor.a *");
   });
 });
