@@ -28,7 +28,8 @@ export enum RiverValidationMode {
 }
 
 export enum RiverNetworkSchemaVersion {
-  V1 = 1
+  V1 = 1,
+  V2 = 2
 }
 
 export enum RiverNodeKind {
@@ -36,4 +37,8 @@ export enum RiverNodeKind {
   Confluence = "confluence",
   Mouth = "mouth",
   Bifurcation = "bifurcation"
+}
+
+export enum RiverDisturbanceKind {
+  Obstacle = "obstacle"
 }

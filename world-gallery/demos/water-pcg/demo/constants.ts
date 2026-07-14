@@ -8,3 +8,10 @@ export enum RiverDirtyFlag {
   Debug = 1 << 4,
   All = Topology | Geometry | Material | Query | Debug
 }
+
+export const RIVER_REBUILD_STRESS = {
+  defaultIterations: 100,
+  maxIterations: 1000
+} as const;
+
+export const RIVER_PROFILE_SAMPLE_COUNT = 300;

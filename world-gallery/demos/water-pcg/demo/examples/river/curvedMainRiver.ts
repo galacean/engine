@@ -8,6 +8,7 @@
  */
 import {
   RiverDirectionMode,
+  RiverDisturbanceKind,
   RiverMaterialPreset,
   RiverNetworkSchemaVersion,
   RiverNodeKind,
@@ -28,7 +29,7 @@ export const curvedMainRiverExample: RiverPcgExample = {
     cameraTarget: [0, 4.5, 0]
   },
   riverDescriptor: {
-    schemaVersion: RiverNetworkSchemaVersion.V1,
+    schemaVersion: RiverNetworkSchemaVersion.V2,
     id: "demo-river-network",
     nodes: [
       {
@@ -126,6 +127,29 @@ export const curvedMainRiverExample: RiverPcgExample = {
         }
       }
     ],
+    disturbances: [
+      {
+        id: "upper-bend-boulder",
+        kind: RiverDisturbanceKind.Obstacle,
+        position: [-25, 7.7, -8],
+        radius: 1.05,
+        strength: 1.1
+      },
+      {
+        id: "middle-channel-boulder",
+        kind: RiverDisturbanceKind.Obstacle,
+        position: [-1, 5.2, 4.8],
+        radius: 0.9,
+        strength: 0.95
+      },
+      {
+        id: "lower-bend-boulder",
+        kind: RiverDisturbanceKind.Obstacle,
+        position: [20, 3.0, 7.5],
+        radius: 1.15,
+        strength: 1.05
+      }
+    ],
     defaults: {
       shape: {
         width: 7,
@@ -140,10 +164,19 @@ export const curvedMainRiverExample: RiverPcgExample = {
         preset: RiverMaterialPreset.MountainCreek,
         ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MountainCreek]
       },
+      surfaceMotion: {
+        seed: 27491,
+        displacementAmplitude: 0.23,
+        displacementLengthScale: 3.6,
+        shoreDampingWidth: 0.9,
+        turbulence: 0.96,
+        crestIntensity: 1.08,
+        microNormalStrength: 0.46
+      },
       quality: {
         geometry: { level: RiverQualityLevel.Medium, maxSegmentCount: 512, maxChordError: 0.25 },
         material: { level: RiverQualityLevel.Medium },
-        maps: { level: RiverQualityLevel.Low },
+        maps: { level: RiverQualityLevel.Medium },
         query: { level: RiverQualityLevel.Medium }
       }
     }

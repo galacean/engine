@@ -25,7 +25,12 @@ import { compileRiverChunks } from "./RiverChunkCompiler";
 import { compileRiverJunctions } from "./RiverJunctionCompiler";
 import { compileRiverQueryIndex } from "./RiverQueryIndexCompiler";
 import { compileRiverTerrainInteraction } from "./RiverTerrainCompiler";
-import { RIVER_GEOMETRY_EPSILON, RIVER_MAX_WATER_SURFACE_SLOPE } from "./constants";
+import {
+  RIVER_GEOMETRY_EPSILON,
+  RIVER_MAX_WATER_SURFACE_SLOPE,
+  RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY
+} from "./constants";
+import { resolveRiverSurfaceMotion } from "./RiverSurfaceMotion";
 import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
 import { calculateRiverFlowTravelDuration, sampleRiverPath } from "./RiverPathSampler";
 import {
@@ -36,6 +41,8 @@ import {
   RiverJunctionArtifact,
   RiverCompiledNode,
   RiverCompiledReach,
+  RiverCompiledDisturbanceSource,
+  RiverCompiledSurfaceMotionData,
   RiverQueryIndexData,
   RiverTerrainInteractionData,
   RiverSampleResult
@@ -398,6 +405,8 @@ function finalizeReachDistances(
   nodes: readonly RiverCompiledNode[],
   nodeIndexById: ReadonlyMap<string, number>,
   topologicalNodeIndices: Uint32Array,
+  surfaceMotion: RiverCompiledSurfaceMotionData,
+  disturbances: readonly RiverCompiledDisturbanceSource[],
   diagnostics: RiverDiagnostic[]
 ): RiverFinalizedGeometry {
   const nodeDistances = new Float64Array(descriptor.nodes.length);
@@ -433,6 +442,8 @@ function finalizeReachDistances(
       toNodeIndex: draft.toNodeIndex,
       order: draft.order,
       materialLevel: draft.config.quality.material.level,
+      geometryLevel: draft.config.quality.geometry.level,
+      maxDisplacement: surfaceMotion.maxDisplacement,
       material: draft.config.material,
       networkDistanceOffset: offsets[reachIndex],
       networkFlowTimeOffset: flowTimeOffsets[reachIndex],
@@ -444,9 +455,13 @@ function finalizeReachDistances(
     const sampleResult = junctionResult.sampleResults[reachIndex];
     const artifact = RiverGeometryCompiler.compile(
       sampleResult,
-      draft.config.quality.material.level,
+      draft.config.quality.geometry.level,
       offsets[reachIndex],
-      flowTimeOffsets[reachIndex]
+      flowTimeOffsets[reachIndex],
+      {
+        materialLevel: draft.config.quality.material.level,
+        maxDisplacement: surfaceMotion.maxDisplacement
+      }
     );
     diagnostics.push(
       ...artifact.diagnostics
@@ -469,9 +484,9 @@ function finalizeReachDistances(
       artifact
     });
   });
-  const chunks = compileRiverChunks(reaches, junctionResult.junctions);
   const queryIndex = compileRiverQueryIndex(reaches, junctionResult.junctions, descriptor.defaults.quality.query.level);
-  const terrainInteraction = compileRiverTerrainInteraction(reaches, junctionResult.junctions);
+  const terrainInteraction = compileRiverTerrainInteraction(reaches, junctionResult.junctions, disturbances);
+  const chunks = compileRiverChunks(reaches, junctionResult.junctions, terrainInteraction.localMapAtlas?.tiles);
   const vertexCount = chunks.reduce(
     (sum, chunk) => sum + chunk.surfaceGeometry.positions.length + (chunk.bankFoamGeometry?.positions.length ?? 0),
     0
@@ -494,12 +509,20 @@ function applyNetworkRuntimeBudget(
   drafts: RiverCompiledReachDraft[],
   nodeIndexById: ReadonlyMap<string, number>,
   topologicalNodeIndices: Uint32Array,
+  surfaceMotion: RiverCompiledSurfaceMotionData,
+  disturbances: readonly RiverCompiledDisturbanceSource[],
   diagnostics: RiverDiagnostic[]
 ): RiverBudgetedReachResult | undefined {
   const budget = resolveRiverNetworkBudget(descriptor);
   let sampleResults = drafts.map((draft) => sampleRiverPath(draft.config));
   const initialSampleCount = sampleResults.reduce((sum, result) => sum + result.points.length, 0);
-  const maximumSampleCount = Math.min(budget.maxSampleCount, Math.floor(budget.maxVertexCount / 4));
+  const maximumCrossVertexCount = Math.max(
+    ...drafts.map((draft) => RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY[draft.config.quality.geometry.level] + 1)
+  );
+  const maximumSampleCount = Math.min(
+    budget.maxSampleCount,
+    Math.floor(budget.maxVertexCount / maximumCrossVertexCount)
+  );
   const minimumSampleCount = drafts.reduce((sum, draft) => sum + draft.config.path.points.length, 0);
   let budgetRedistributed = false;
 
@@ -558,12 +581,16 @@ function applyNetworkRuntimeBudget(
     nodes,
     nodeIndexById,
     topologicalNodeIndices,
+    surfaceMotion,
+    disturbances,
     diagnostics
   );
   const sampleCount = finalized.sampleCount;
   const vertexCount = finalized.vertexCount;
   const chunkCount = finalized.chunkCount;
-  const mapPixelCount = 0;
+  const mapPixelCount = finalized.terrainInteraction.localMapAtlas
+    ? finalized.terrainInteraction.localMapAtlas.width * finalized.terrainInteraction.localMapAtlas.height
+    : 0;
   const checks: Array<[number, number, string]> = [
     [drafts.length, budget.maxSegmentCount, "budget.maxSegmentCount"],
     [sampleCount, budget.maxSampleCount, "budget.maxSampleCount"],
@@ -678,6 +705,20 @@ export class RiverNetworkCompiler {
       return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });
     }
     const descriptor = validation.value;
+    const surfaceMotion = resolveRiverSurfaceMotion(descriptor);
+    const disturbances: readonly RiverCompiledDisturbanceSource[] = Object.freeze(
+      descriptor.schemaVersion === RiverNetworkSchemaVersion.V2
+        ? (descriptor.disturbances ?? []).map((disturbance) =>
+            deepFreezePlainData({
+              id: disturbance.id,
+              kind: disturbance.kind,
+              position: cloneVector3Tuple(disturbance.position) as readonly [number, number, number],
+              radius: disturbance.radius,
+              strength: disturbance.strength
+            })
+          )
+        : []
+    );
 
     const nodeIndexById = new Map(descriptor.nodes.map((node, nodeIndex) => [node.id, nodeIndex]));
     const topologicalNodeIndices = createTopologicalNodeIndices(descriptor, nodeIndexById);
@@ -699,6 +740,8 @@ export class RiverNetworkCompiler {
       reachDrafts,
       nodeIndexById,
       topologicalNodeIndices,
+      surfaceMotion,
+      disturbances,
       diagnostics
     );
     if (!budgeted || hasErrors(diagnostics)) {
@@ -708,7 +751,7 @@ export class RiverNetworkCompiler {
 
     const frozenDiagnostics = deepFreezePlainData(diagnostics);
     const data: RiverCompiledData = deepFreezePlainData({
-      schemaVersion: RiverNetworkSchemaVersion.V1,
+      schemaVersion: descriptor.schemaVersion,
       sourceId: descriptor.id,
       nodes,
       reaches: budgeted.reaches,
@@ -716,6 +759,8 @@ export class RiverNetworkCompiler {
       chunks: budgeted.chunks,
       queryIndex: budgeted.queryIndex,
       terrainInteraction: budgeted.terrainInteraction,
+      surfaceMotion,
+      disturbances,
       topologicalNodeIndices: new RiverReadonlyUint32Buffer(topologicalNodeIndices),
       waterSurfaceElevations: new RiverReadonlyFloat32Buffer(waterSurfaceElevations),
       diagnostics: frozenDiagnostics,

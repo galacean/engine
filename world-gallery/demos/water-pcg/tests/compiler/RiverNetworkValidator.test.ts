@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
+import { RiverNetworkSchemaVersion, RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
 import { validateRiverNetworkDescriptor } from "../../compiler/river/RiverNetworkValidator";
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
@@ -83,6 +83,35 @@ describe("RiverNetworkValidator", () => {
         RiverDiagnosticCode.InvalidMergeRadius,
         RiverDiagnosticCode.ReversedElevation,
         RiverDiagnosticCode.NetworkBudgetExceeded
+      ])
+    );
+  });
+
+  it("rejects invalid V2 seeds, disturbance ids, positions, and ranges", () => {
+    const source = curvedMainRiverExample.riverDescriptor;
+    if (source.schemaVersion !== RiverNetworkSchemaVersion.V2) throw new Error("Expected a V2 fixture.");
+    const result = validateRiverNetworkDescriptor({
+      ...source,
+      defaults: {
+        ...source.defaults,
+        surfaceMotion: { ...source.defaults.surfaceMotion, seed: 1.5 }
+      },
+      disturbances: [
+        {
+          ...source.disturbances![0],
+          id: "",
+          position: [Number.NaN, 0, 0],
+          radius: 0
+        }
+      ]
+    });
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(
+      expect.arrayContaining([
+        RiverDiagnosticCode.ValueOutOfRange,
+        RiverDiagnosticCode.InvalidType,
+        RiverDiagnosticCode.InvalidNumber
       ])
     );
   });

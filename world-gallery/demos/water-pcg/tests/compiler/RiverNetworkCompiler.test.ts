@@ -4,6 +4,7 @@ import { multiTributaryRiverExample } from "../../demo/examples/river/multiTribu
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
+import { RiverNetworkSchemaVersion, RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import { invalidNetworkFixture } from "../fixtures/riverFixtures";
 
 function containsTrianglePoint(
@@ -108,7 +109,15 @@ describe("RiverNetworkCompiler", () => {
     }
     const connectedSurfaceVertices = [...incoming, ...outgoing].flatMap((reachIndex) => {
       const geometry = result.data!.reaches[reachIndex].artifact.surfaceGeometry;
-      return geometry.positions.map((position, vertexIndex) => ({ position, uv: geometry.uvs[vertexIndex] }));
+      return geometry.positions.map((position, vertexIndex) => ({
+        position,
+        normal: geometry.normals?.[vertexIndex],
+        tangent: geometry.tangents?.[vertexIndex],
+        uv: geometry.uvs[vertexIndex],
+        uv1: geometry.uv1s[vertexIndex],
+        uv2: geometry.uv2s?.[vertexIndex],
+        uv3: geometry.uv3s?.[vertexIndex]
+      }));
     });
     for (let vertexIndex = 0; vertexIndex < boundaryVertexCount; vertexIndex++) {
       const boundaryPosition = junction.surfaceGeometry.positions[vertexIndex + 1];
@@ -119,7 +128,12 @@ describe("RiverNetworkCompiler", () => {
           Math.abs(position[2] - boundaryPosition[2]) < 1e-6
       );
       expect(connected).toBeDefined();
+      expect(junction.surfaceGeometry.normals?.[vertexIndex + 1]).toEqual(connected?.normal);
+      expect(junction.surfaceGeometry.tangents?.[vertexIndex + 1]).toEqual(connected?.tangent);
       expect(junction.surfaceGeometry.uvs[vertexIndex + 1]).toEqual(connected?.uv);
+      expect(junction.surfaceGeometry.uv1s[vertexIndex + 1]).toEqual(connected?.uv1);
+      expect(junction.surfaceGeometry.uv2s?.[vertexIndex + 1]).toEqual(connected?.uv2);
+      expect(junction.surfaceGeometry.uv3s?.[vertexIndex + 1]).toEqual(connected?.uv3);
     }
     const connectedSurfaceUv1s = [...incoming, ...outgoing].flatMap(
       (reachIndex) => result.data!.reaches[reachIndex].artifact.surfaceGeometry.uv1s
@@ -311,12 +325,21 @@ describe("RiverNetworkCompiler", () => {
 
   it("redistributes the real adaptive sample count within whole-network budgets", () => {
     const source = curvedMainRiverExample.riverDescriptor;
+    if (source.schemaVersion !== RiverNetworkSchemaVersion.V2) throw new Error("Expected a V2 fixture.");
     const descriptor: RiverNetworkDescriptor = {
       ...source,
+      disturbances: [],
+      defaults: {
+        ...source.defaults,
+        quality: {
+          ...source.defaults.quality,
+          maps: { level: RiverQualityLevel.Low }
+        }
+      },
       budget: {
         maxSegmentCount: 1,
         maxSampleCount: 12,
-        maxVertexCount: 48,
+        maxVertexCount: 108,
         maxChunkCount: 1,
         maxMapPixelCount: 0
       }
@@ -326,7 +349,7 @@ describe("RiverNetworkCompiler", () => {
     expect(result.valid).toBe(true);
     expect(result.data?.stats).toMatchObject({
       sampleCount: 12,
-      vertexCount: 24,
+      vertexCount: 108,
       chunkCount: 1,
       mapPixelCount: 0,
       budgetRedistributed: true

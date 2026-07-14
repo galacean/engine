@@ -48,7 +48,26 @@ export const RIVER_LIMITS = {
   maxNetworkChunkCount: 256,
   maxNetworkMapPixelCount: 4194304,
   maxChunkVertexCount: 65535,
-  minRiverLengthFactor: 2
+  minRiverLengthFactor: 2,
+  minSurfaceSeed: 0,
+  maxSurfaceSeed: 65535,
+  minDisplacementAmplitude: 0,
+  maxDisplacementAmplitude: 1.5,
+  minDisplacementLengthScale: 0.5,
+  maxDisplacementLengthScale: 30,
+  minShoreDampingWidth: 0.05,
+  maxShoreDampingWidth: 10,
+  minSurfaceTurbulence: 0,
+  maxSurfaceTurbulence: 2,
+  minCrestIntensity: 0,
+  maxCrestIntensity: 2,
+  minMicroNormalStrength: 0,
+  maxMicroNormalStrength: 2,
+  minDisturbanceRadius: 0.1,
+  maxDisturbanceRadius: 20,
+  minDisturbanceStrength: 0,
+  maxDisturbanceStrength: 2,
+  maxDisturbanceCount: 128
 } as const;
 
 export const RIVER_QUALITY_PRESET = {
@@ -66,5 +85,54 @@ export const RIVER_QUALITY_PRESET = {
     segmentLength: 1,
     maxSegmentCount: 1024,
     maxChordError: 0.1
+  }
+} as const;
+
+/** V1 derives one continuous network surface from material style and material quality. */
+export const RIVER_SURFACE_MOTION_STYLE_PRESET = {
+  [RiverMaterialPreset.ClearStream]: {
+    displacementAmplitude: 0.16,
+    displacementLengthScale: 4.8,
+    shoreDampingWidth: 1.1,
+    turbulence: 0.72,
+    crestIntensity: 0.78,
+    microNormalStrength: 0.34
+  },
+  [RiverMaterialPreset.MuddyRiver]: {
+    displacementAmplitude: 0.11,
+    displacementLengthScale: 6.4,
+    shoreDampingWidth: 1.5,
+    turbulence: 0.48,
+    crestIntensity: 0.5,
+    microNormalStrength: 0.22
+  },
+  [RiverMaterialPreset.MountainCreek]: {
+    displacementAmplitude: 0.23,
+    displacementLengthScale: 3.6,
+    shoreDampingWidth: 0.9,
+    turbulence: 0.96,
+    crestIntensity: 1.08,
+    microNormalStrength: 0.46
+  }
+} as const;
+
+export const RIVER_SURFACE_MOTION_QUALITY_SCALE = {
+  [RiverQualityLevel.Low]: {
+    displacement: 0,
+    turbulence: 0.55,
+    crest: 0.55,
+    microNormal: 0.45
+  },
+  [RiverQualityLevel.Medium]: {
+    displacement: 1,
+    turbulence: 1,
+    crest: 1,
+    microNormal: 1
+  },
+  [RiverQualityLevel.High]: {
+    displacement: 1.18,
+    turbulence: 1.12,
+    crest: 1.16,
+    microNormal: 1.22
   }
 } as const;

@@ -8,6 +8,7 @@
  */
 import {
   RiverDirectionMode,
+  RiverDisturbanceKind,
   RiverMaterialPreset,
   RiverNetworkSchemaVersion,
   RiverNodeKind,
@@ -181,6 +182,35 @@ function validateQualityShape(value: unknown, path: string, diagnostics: RiverDi
   }
 }
 
+function validateSurfaceMotionShape(value: unknown, path: string, diagnostics: RiverDiagnostic[]): void {
+  if (!requireRecord(value, path, diagnostics)) return;
+  for (const key of [
+    "seed",
+    "displacementAmplitude",
+    "displacementLengthScale",
+    "shoreDampingWidth",
+    "turbulence",
+    "crestIntensity",
+    "microNormalStrength"
+  ] as const) {
+    validateNumber(requireField(value, key, path, diagnostics), `${path}.${key}`, diagnostics);
+  }
+}
+
+function validateDisturbanceShape(value: unknown, path: string, diagnostics: RiverDiagnostic[]): void {
+  if (!requireRecord(value, path, diagnostics)) return;
+  validateString(requireField(value, "id", path, diagnostics), `${path}.id`, diagnostics);
+  validateEnum(
+    requireField(value, "kind", path, diagnostics),
+    Object.values(RiverDisturbanceKind),
+    `${path}.kind`,
+    diagnostics
+  );
+  validateTuple(requireField(value, "position", path, diagnostics), `${path}.position`, diagnostics);
+  validateNumber(requireField(value, "radius", path, diagnostics), `${path}.radius`, diagnostics);
+  validateNumber(requireField(value, "strength", path, diagnostics), `${path}.strength`, diagnostics);
+}
+
 function validateRiverConfigShape(input: unknown, path: string, diagnostics: RiverDiagnostic[]): void {
   if (!requireRecord(input, path, diagnostics)) {
     return;
@@ -232,13 +262,13 @@ function validateNetworkShape(input: unknown, diagnostics: RiverDiagnostic[]): v
     return;
   }
   const schemaVersion = requireField(input, "schemaVersion", "$", diagnostics);
-  if (schemaVersion !== RiverNetworkSchemaVersion.V1) {
+  if (schemaVersion !== RiverNetworkSchemaVersion.V1 && schemaVersion !== RiverNetworkSchemaVersion.V2) {
     pushDiagnostic(
       diagnostics,
       RiverDiagnosticCode.UnsupportedSchemaVersion,
       RiverDiagnosticSeverity.Error,
       "$.schemaVersion",
-      `Expected river network schema version ${RiverNetworkSchemaVersion.V1}.`
+      `Expected river network schema version ${RiverNetworkSchemaVersion.V1} or ${RiverNetworkSchemaVersion.V2}.`
     );
   }
   validateString(requireField(input, "id", "$", diagnostics), "$.id", diagnostics);
@@ -347,6 +377,44 @@ function validateNetworkShape(input: unknown, diagnostics: RiverDiagnostic[]): v
       quality: defaults.quality
     };
     validateRiverConfigShape(synthetic, "$.defaults", diagnostics);
+    if (schemaVersion === RiverNetworkSchemaVersion.V2) {
+      validateSurfaceMotionShape(
+        requireField(defaults, "surfaceMotion", "$.defaults", diagnostics),
+        "$.defaults.surfaceMotion",
+        diagnostics
+      );
+    } else if (defaults.surfaceMotion !== undefined) {
+      pushDiagnostic(
+        diagnostics,
+        RiverDiagnosticCode.UnsupportedSchemaVersion,
+        RiverDiagnosticSeverity.Error,
+        "$.defaults.surfaceMotion",
+        "surfaceMotion requires river network schema version 2."
+      );
+    }
+  }
+  if (input.disturbances !== undefined) {
+    if (schemaVersion !== RiverNetworkSchemaVersion.V2) {
+      pushDiagnostic(
+        diagnostics,
+        RiverDiagnosticCode.UnsupportedSchemaVersion,
+        RiverDiagnosticSeverity.Error,
+        "$.disturbances",
+        "disturbances require river network schema version 2."
+      );
+    } else if (Array.isArray(input.disturbances)) {
+      for (let index = 0; index < input.disturbances.length; index++) {
+        validateDisturbanceShape(input.disturbances[index], `$.disturbances[${index}]`, diagnostics);
+      }
+    } else {
+      pushDiagnostic(
+        diagnostics,
+        RiverDiagnosticCode.InvalidType,
+        RiverDiagnosticSeverity.Error,
+        "$.disturbances",
+        "Expected an array."
+      );
+    }
   }
   if (input.budget !== undefined && requireRecord(input.budget, "$.budget", diagnostics)) {
     for (const key of [

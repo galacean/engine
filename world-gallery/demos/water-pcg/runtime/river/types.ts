@@ -27,6 +27,7 @@ export interface RiverNetworkQueryResult {
   insideFootprint: boolean;
   insideVolume: boolean;
   surfaceHeight: number;
+  surfaceVerticalVelocity: number;
   signedSurfaceDistance: number;
   submergedDepth: number;
   waterDepth: number;
@@ -43,6 +44,7 @@ export interface RiverNetworkQueryBatchOutput {
   readonly insideFootprints: Uint8Array;
   readonly insideVolumes: Uint8Array;
   readonly surfaceHeights: Float32Array;
+  readonly surfaceVerticalVelocities: Float32Array;
   readonly signedSurfaceDistances: Float32Array;
   readonly submergedDepths: Float32Array;
   readonly waterDepths: Float32Array;

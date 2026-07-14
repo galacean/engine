@@ -1,6 +1,7 @@
 /** Engine-independent river reach authoring values. */
 import {
   RiverDirectionMode,
+  RiverDisturbanceKind,
   RiverMaterialPreset,
   RiverPathMode,
   RiverQualityLevel,
@@ -46,6 +47,26 @@ export interface RiverMaterialConfig {
   foamColor: string;
   foamIntensity: number;
   clarity: number;
+}
+
+/** Network-wide dynamic surface controls introduced by RiverNetworkDescriptor V2. */
+export interface RiverSurfaceMotionConfig {
+  seed: number;
+  displacementAmplitude: number;
+  displacementLengthScale: number;
+  shoreDampingWidth: number;
+  turbulence: number;
+  crestIntensity: number;
+  microNormalStrength: number;
+}
+
+/** First production disturbance source: a deterministic static obstacle. */
+export interface RiverDisturbanceSource {
+  id: string;
+  kind: RiverDisturbanceKind;
+  position: Vector3Tuple;
+  radius: number;
+  strength: number;
 }
 
 export interface RiverQualityConfig {

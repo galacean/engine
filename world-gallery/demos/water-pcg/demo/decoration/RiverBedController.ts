@@ -19,7 +19,7 @@ import {
   UnlitMaterial
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { RIVER_TERRAIN_CORRIDOR_COMPONENT } from "../../compiler/river/constants";
+import { RIVER_GEOMETRY_Y_OFFSET, RIVER_TERRAIN_CORRIDOR_COMPONENT } from "../../compiler/river/constants";
 import type {
   ReadonlyVector3Tuple,
   RiverCompiledData,
@@ -133,18 +133,24 @@ export function createRiverBedChunkGeometries(data: RiverCompiledData): RiverBed
   const reachGeometries = data.terrainInteraction.reachCorridors.map(createReachBedGeometry);
   const junctionGeometries = data.terrainInteraction.junctionCorridors.map((corridor) => {
     const junction = data.junctions[corridor.junctionIndex];
-    const edgeY = corridor.waterSurfaceElevation - RIVER_BED_STYLE.minimumDepth;
-    const positions: ReadonlyVector3Tuple[] = [
-      [junction.position[0], Math.min(corridor.riverBedElevation, edgeY), junction.position[2]],
-      ...corridor.boundary.map((position): ReadonlyVector3Tuple => [position[0], edgeY, position[2]])
-    ];
-    const indices = new Uint32Array(corridor.boundary.length * 3);
-    for (let boundaryIndex = 0; boundaryIndex < corridor.boundary.length; boundaryIndex++) {
-      const offset = boundaryIndex * 3;
-      indices[offset] = 0;
-      indices[offset + 1] = boundaryIndex + 1;
-      indices[offset + 2] = ((boundaryIndex + 1) % corridor.boundary.length) + 1;
+    const surfaceGeometry = junction.surfaceGeometry;
+    const signedAcrossDistances = surfaceGeometry.uv2s;
+    const halfWidths = surfaceGeometry.uv3s;
+    if (!signedAcrossDistances || !halfWidths) {
+      throw new Error(`Junction "${junction.id}" is missing surface motion coordinates for its demo riverbed.`);
     }
+    const channelDepth = Math.max(
+      RIVER_BED_STYLE.minimumDepth,
+      corridor.waterSurfaceElevation - corridor.riverBedElevation
+    );
+    const positions: ReadonlyVector3Tuple[] = surfaceGeometry.positions.map((position, vertexIndex) => {
+      const halfWidth = Math.max(halfWidths[vertexIndex][0], RIVER_BED_STYLE.minimumDirectionLength);
+      const centerWeight = 1 - Math.min(1, Math.abs(signedAcrossDistances[vertexIndex][0]) / halfWidth);
+      const depth = RIVER_BED_STYLE.minimumDepth + (channelDepth - RIVER_BED_STYLE.minimumDepth) * centerWeight;
+      const baseSurfaceY = position[1] - RIVER_GEOMETRY_Y_OFFSET.surface;
+      return [position[0], baseSurfaceY - depth, position[2]];
+    });
+    const indices = Uint32Array.from(surfaceGeometry.indices);
     return {
       id: `junction-${corridor.id}`,
       positions,

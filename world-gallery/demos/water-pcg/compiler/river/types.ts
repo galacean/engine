@@ -1,7 +1,11 @@
 /** Engine-object-free contracts produced and consumed by river compilation. */
 import type { Vector3 } from "@galacean/engine-math";
 import type { RiverAuthoringConfig } from "../../authoring/river/RiverAuthoringTypes";
-import type { RiverNetworkSchemaVersion, RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
+import type {
+  RiverDisturbanceKind,
+  RiverNetworkSchemaVersion,
+  RiverNodeKind
+} from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverDiagnostic } from "../shared/diagnostics";
 import type {
   RiverChunkSourceKind,
@@ -15,6 +19,12 @@ export interface ReadonlyUint32Buffer extends Iterable<number> {
   readonly length: number;
   at(index: number): number | undefined;
   toTypedArray(): Uint32Array;
+}
+
+export interface ReadonlyUint8Buffer extends Iterable<number> {
+  readonly length: number;
+  at(index: number): number | undefined;
+  toTypedArray(): Uint8Array;
 }
 
 export interface ReadonlyFloat32Buffer extends Iterable<number> {
@@ -95,6 +105,8 @@ export interface RiverCompiledData {
   readonly chunks: readonly RiverCompiledChunk[];
   readonly queryIndex: RiverQueryIndexData;
   readonly terrainInteraction: RiverTerrainInteractionData;
+  readonly surfaceMotion: RiverCompiledSurfaceMotionData;
+  readonly disturbances: readonly RiverCompiledDisturbanceSource[];
   readonly topologicalNodeIndices: ReadonlyUint32Buffer;
   readonly waterSurfaceElevations: ReadonlyFloat32Buffer;
   readonly diagnostics: readonly RiverDiagnostic[];
@@ -126,6 +138,7 @@ export interface RiverSampleResult {
 
 export type Vector2Tuple = readonly [number, number];
 export type ReadonlyVector3Tuple = readonly [number, number, number];
+export type ReadonlyVector4Tuple = readonly [number, number, number, number];
 /** RG stores projected junction flow UV, B the interior blend weight, and A=2 marks junction data. */
 export type RiverVertexColorTuple = readonly [number, number, number, number];
 
@@ -148,11 +161,16 @@ export interface RiverGeometryBounds {
 /** Plain CPU geometry. Runtime owns conversion and GPU upload. */
 export interface RiverGeometryData {
   readonly positions: readonly ReadonlyVector3Tuple[];
+  readonly normals?: readonly ReadonlyVector3Tuple[];
+  readonly tangents?: readonly ReadonlyVector4Tuple[];
   readonly uvs: readonly Vector2Tuple[];
   readonly uv1s: readonly Vector2Tuple[];
+  readonly uv2s?: readonly Vector2Tuple[];
+  readonly uv3s?: readonly Vector2Tuple[];
   readonly colors?: readonly RiverVertexColorTuple[];
   readonly indices: ReadonlyUint32Buffer;
   readonly bounds: RiverGeometryBounds;
+  readonly maxDisplacement: number;
   readonly drawStart: number;
   readonly drawCount: number;
 }
@@ -194,10 +212,38 @@ export interface RiverJunctionArtifact {
   readonly materialSourceReachIndex: number;
   readonly flowDirection: ReadonlyVector3Tuple;
   readonly flowSpeed: number;
+  readonly networkFlowTime: number;
+  readonly phaseHalfWidth: number;
+  readonly flowAnchors: readonly RiverJunctionFlowAnchor[];
   readonly depth: number;
   readonly queryBoundary: readonly ReadonlyVector3Tuple[];
   readonly surfaceGeometry: RiverGeometryData;
   readonly bankFoamGeometry?: RiverGeometryData;
+}
+
+export interface RiverJunctionFlowAnchor {
+  readonly position: ReadonlyVector3Tuple;
+  readonly flowDirection: ReadonlyVector3Tuple;
+  readonly flowSpeed: number;
+  readonly incoming: boolean;
+}
+
+export interface RiverCompiledSurfaceMotionData {
+  readonly seed: number;
+  readonly maxDisplacement: number;
+  readonly displacementLengthScale: number;
+  readonly shoreDampingWidth: number;
+  readonly turbulence: number;
+  readonly crestIntensity: number;
+  readonly microNormalStrength: number;
+}
+
+export interface RiverCompiledDisturbanceSource {
+  readonly id: string;
+  readonly kind: RiverDisturbanceKind;
+  readonly position: ReadonlyVector3Tuple;
+  readonly radius: number;
+  readonly strength: number;
 }
 
 /** Sparse uniform-grid index over reach spans and junction footprints. */
@@ -222,6 +268,7 @@ export interface RiverCompiledChunk {
   readonly tileX: number;
   readonly tileZ: number;
   readonly localOrigin: ReadonlyVector3Tuple;
+  readonly localMapTileIndex?: number;
   readonly surfaceGeometry: RiverGeometryData;
   readonly bankFoamGeometry?: RiverGeometryData;
 }
@@ -251,6 +298,26 @@ export interface RiverLocalMapBakeRegion {
   readonly packedChannels: readonly RiverPackedLocalMapChannel[];
 }
 
+export interface RiverLocalMapTileData {
+  readonly id: string;
+  readonly kind: RiverLocalMapRegionKind;
+  readonly sourceIndex: number;
+  readonly resolution: number;
+  readonly min: Vector2Tuple;
+  readonly max: Vector2Tuple;
+  readonly pixelRect: ReadonlyVector4Tuple;
+  readonly uvRect: ReadonlyVector4Tuple;
+  readonly worldToUv: ReadonlyVector4Tuple;
+}
+
+export interface RiverLocalMapAtlasData {
+  readonly width: number;
+  readonly height: number;
+  readonly padding: number;
+  readonly tiles: readonly RiverLocalMapTileData[];
+  readonly pixels: ReadonlyUint8Buffer;
+}
+
 /** Vector sources consumed by Terrain/editor bakers; no world-sized raster is allocated here. */
 export interface RiverTerrainInteractionData {
   readonly terrainSurfaceOwnership: RiverTerrainSurfaceOwnership;
@@ -258,4 +325,5 @@ export interface RiverTerrainInteractionData {
   readonly reachCorridors: readonly RiverTerrainReachCorridorData[];
   readonly junctionCorridors: readonly RiverTerrainJunctionCorridorData[];
   readonly localMapBakeRegions: readonly RiverLocalMapBakeRegion[];
+  readonly localMapAtlas?: RiverLocalMapAtlasData;
 }

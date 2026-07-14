@@ -19,7 +19,7 @@ import { RiverMaterialPreset, RiverPathMode, RiverQualityLevel } from "../author
 import { RIVER_MATERIAL_PRESET_CONFIG, RIVER_QUALITY_PRESET } from "../authoring/river/RiverAuthoringLimits";
 import { decodeRiverSamplePoints } from "../compiler/river/RiverGeometryCompiler";
 import type { RiverCompiledData, RiverReachArtifact, RiverSampleResult } from "../compiler/river/types";
-import { RiverDirtyFlag } from "./constants";
+import { RiverDirtyFlag, RIVER_PROFILE_SAMPLE_COUNT, RIVER_REBUILD_STRESS } from "./constants";
 import { RiverDebugMode, RiverPreviewStage, RIVER_PREVIEW_STAGE_COLOR } from "./debug/constants";
 import type { RiverDemoConfig as RiverConfig } from "./types";
 import { getRiverConfigWarnings } from "../authoring/river/RiverSchemaDecoder";
@@ -42,6 +42,8 @@ import { RiverDiagnosticSeverity } from "../compiler/shared/diagnostics";
 import { RiverBedController } from "./decoration/RiverBedController";
 import { RiverRockController } from "./decoration/RiverRockController";
 import { RiverCameraFeatureController } from "./RiverCameraFeatureController";
+import { RiverSurfaceDebugMode } from "../runtime/river/RiverRuntimeEnums";
+import { RIVER_SURFACE_TEXTURE_SAMPLE_COUNT } from "../runtime/river/constants";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -73,11 +75,25 @@ const RIVER_MATERIAL_OPTIONS = {
   MountainCreek: RiverMaterialPreset.MountainCreek
 } as const;
 
+const RIVER_SURFACE_DEBUG_OPTIONS = {
+  Off: RiverSurfaceDebugMode.Off,
+  Flow: RiverSurfaceDebugMode.FlowCoordinate,
+  MacroHeight: RiverSurfaceDebugMode.MacroHeight,
+  Crest: RiverSurfaceDebugMode.CrestMask,
+  MicroNormal: RiverSurfaceDebugMode.MicroNormal,
+  ShoreDamping: RiverSurfaceDebugMode.ShoreDamping,
+  LocalFlow: RiverSurfaceDebugMode.LocalFlow,
+  LocalFoam: RiverSurfaceDebugMode.LocalFoam,
+  LocalSdf: RiverSurfaceDebugMode.LocalSignedDistance,
+  AtlasRect: RiverSurfaceDebugMode.AtlasRect
+} as const;
+
 type PreviewModeLabel = keyof typeof PREVIEW_MODE_OPTIONS;
 type RiverPathModeLabel = keyof typeof RIVER_PATH_MODE_OPTIONS;
 type RiverDebugModeLabel = keyof typeof RIVER_DEBUG_MODE_OPTIONS;
 type RiverQualityLabel = keyof typeof RIVER_QUALITY_OPTIONS;
 type RiverMaterialLabel = keyof typeof RIVER_MATERIAL_OPTIONS;
+type RiverSurfaceDebugLabel = keyof typeof RIVER_SURFACE_DEBUG_OPTIONS;
 
 interface GuiState {
   mode: PreviewModeLabel;
@@ -85,6 +101,9 @@ interface GuiState {
   debugMode: RiverDebugModeLabel;
   quality: RiverQualityLabel;
   materialPreset: RiverMaterialLabel;
+  surfaceDebug: RiverSurfaceDebugLabel;
+  macroDisplacement: boolean;
+  microSurface: boolean;
 }
 
 interface RiverSegmentRuntime {
@@ -98,12 +117,31 @@ interface RiverSegmentRuntime {
 
 interface WaterPcgProfileMetrics {
   sampleCount: number;
+  frameP95Ms: number;
   jsUpdateP95Ms: number;
+  estimatedRiverDrawCalls: number;
+  surfaceVertexCount: number;
+  atlasPixelCount: number;
+  surfaceTextureSamples: number;
+  bufferMemory: number;
+  textureMemory: number;
+  totalMemory: number;
+}
+
+interface WaterPcgStressResult {
+  readonly requestedIterations: number;
+  readonly completedIterations: number;
+  readonly resourceByteLength: number;
+  readonly resourceHash: string;
+  readonly initialTotalMemory: number;
+  readonly finalTotalMemory: number;
 }
 
 declare global {
   interface Window {
     waterPcgProfileMetrics?: WaterPcgProfileMetrics;
+    waterPcgSetSurfaceTime?: (elapsedTime?: number) => void;
+    waterPcgStressRebuild?: (iterations?: number) => Promise<WaterPcgStressResult>;
   }
 }
 
@@ -130,11 +168,26 @@ async function bootstrapWaterPcg(): Promise<void> {
     pathMode: "CatmullRom",
     debugMode: "Full",
     quality: "Medium",
-    materialPreset: "ClearStream"
+    materialPreset: "ClearStream",
+    surfaceDebug: "Off",
+    macroDisplacement: true,
+    microSurface: true
   };
 
   let activeMode = waterPcgExamples[activeExampleIndex].initialMode;
-  const startupQuality = new URLSearchParams(window.location.search).get("quality");
+  const startupQualityParameter = new URLSearchParams(window.location.search).get("quality");
+  const startupQuality = Object.values(RiverQualityLevel).find((level) => level === startupQualityParameter);
+  const startupSurfaceDebugParameter = new URLSearchParams(window.location.search).get("surfaceDebug");
+  const startupSurfaceDebug = Object.entries(RIVER_SURFACE_DEBUG_OPTIONS).find(
+    ([label]) => label.toLowerCase() === startupSurfaceDebugParameter?.toLowerCase()
+  );
+  if (startupSurfaceDebug) guiState.surfaceDebug = startupSurfaceDebug[0] as RiverSurfaceDebugLabel;
+  guiState.macroDisplacement = new URLSearchParams(window.location.search).get("macro") !== "0";
+  guiState.microSurface = new URLSearchParams(window.location.search).get("micro") !== "0";
+  const requestedSurfaceTimeParameter = new URLSearchParams(window.location.search).get("surfaceTime");
+  const requestedSurfaceTime =
+    requestedSurfaceTimeParameter === null ? Number.NaN : Number(requestedSurfaceTimeParameter);
+  const startupSurfaceTime = Number.isFinite(requestedSurfaceTime) ? Math.max(0, requestedSurfaceTime) : undefined;
   const profilingEnabled = new URLSearchParams(window.location.search).get("profile") === "1";
   const requestedSubmissionBudgetMs = Number(new URLSearchParams(window.location.search).get("submissionBudgetMs"));
   const startupSubmissionBudgetMs =
@@ -147,6 +200,32 @@ async function bootstrapWaterPcg(): Promise<void> {
     throw new Error("Water PCG example bar is missing.");
   }
   const exampleBarElement: HTMLDivElement = exampleBar;
+
+  function writeSurfaceMetrics(data: RiverCompiledData): void {
+    const atlas = data.terrainInteraction.localMapAtlas;
+    const materialLevel = data.reaches[0]?.config.quality.material.level ?? RiverQualityLevel.Low;
+    const localMapChunkCount = data.chunks.filter((chunk) => chunk.localMapTileIndex !== undefined).length;
+    exampleBarElement.dataset.surfaceVertexCount = String(
+      data.chunks.reduce((count, chunk) => count + chunk.surfaceGeometry.positions.length, 0)
+    );
+    exampleBarElement.dataset.waveVariant =
+      materialLevel === RiverQualityLevel.Low ? "flat-low" : "macro-displacement-ridged-micro";
+    exampleBarElement.dataset.atlasPixelCount = String(data.stats.mapPixelCount);
+    exampleBarElement.dataset.atlasTileCount = String(atlas?.tiles.length ?? 0);
+    exampleBarElement.dataset.atlasByteLength = String(atlas?.pixels.length ?? 0);
+    exampleBarElement.dataset.localMapChunkCount = String(localMapChunkCount);
+    exampleBarElement.dataset.surfaceTextureSamples = String(
+      materialLevel === RiverQualityLevel.Low
+        ? RIVER_SURFACE_TEXTURE_SAMPLE_COUNT.low
+        : localMapChunkCount > 0
+          ? RIVER_SURFACE_TEXTURE_SAMPLE_COUNT.localMap
+          : RIVER_SURFACE_TEXTURE_SAMPLE_COUNT.regular
+    );
+    exampleBarElement.dataset.surfaceMotionSeed = String(data.surfaceMotion.seed);
+    exampleBarElement.dataset.maxSurfaceDisplacement = data.surfaceMotion.maxDisplacement.toFixed(3);
+    exampleBarElement.dataset.dynamicQuery = "height-normal-verticalVelocity";
+    exampleBarElement.dataset.disturbanceCount = String(data.disturbances.length);
+  }
 
   function getPrimaryRiverConfig(): RiverConfig {
     return riverConfigs[0];
@@ -257,18 +336,19 @@ async function bootstrapWaterPcg(): Promise<void> {
     }
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
 
-  if (startupQuality === RiverQualityLevel.Low) {
-    for (const configs of riverConfigSets) applyQualityToConfigs(configs, RiverQualityLevel.Low);
-    guiState.quality = "Low";
-    const lowResources = await Promise.all(
+  if (startupQuality) {
+    for (const configs of riverConfigSets) applyQualityToConfigs(configs, startupQuality);
+    guiState.quality =
+      startupQuality === RiverQualityLevel.Low ? "Low" : startupQuality === RiverQualityLevel.High ? "High" : "Medium";
+    const qualityResources = await Promise.all(
       waterPcgExamples.map((example, exampleIndex) =>
         riverCompileWorker.compile(createRiverDemoDescriptor(example.riverDescriptor, riverConfigSets[exampleIndex]))
       )
     );
-    for (let index = 0; index < lowResources.length; index++) {
+    for (let index = 0; index < qualityResources.length; index++) {
       riverResourceSets[index].dispose();
-      riverResourceSets[index] = lowResources[index];
-      riverCompiledDataSets[index] = lowResources[index].data;
+      riverResourceSets[index] = qualityResources[index];
+      riverCompiledDataSets[index] = qualityResources[index].data;
     }
     activeRiverResource = riverResourceSets[activeExampleIndex];
     activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
@@ -295,6 +375,10 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverGroup = rootEntity.createChild("river-preview");
   const riverSegmentsRoot = riverGroup.createChild("river-segments");
   const riverRuntimeController = new RiverRuntimeController(engine, riverSegmentsRoot);
+  let surfaceTimeOverride = startupSurfaceTime;
+  riverRuntimeController.setSurfaceDebugMode(RIVER_SURFACE_DEBUG_OPTIONS[guiState.surfaceDebug]);
+  riverRuntimeController.setSurfaceFeatureFlags(guiState.macroDisplacement, guiState.microSurface);
+  riverRuntimeController.setSurfaceTimeOverride(surfaceTimeOverride);
   const riverDebugController = new RiverDebugController(engine);
   const riverBedController = new RiverBedController(engine, riverGroup);
   const riverRockController = new RiverRockController(engine, riverGroup);
@@ -468,6 +552,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.terrainCorridorCount = String(nextData.terrainInteraction.reachCorridors.length);
     exampleBarElement.dataset.localMapRegionCount = String(nextData.stats.localMapRegionCount);
     exampleBarElement.dataset.waterSlopeAdjustmentCount = String(nextData.stats.waterSlopeAdjustmentCount);
+    writeSurfaceMetrics(nextData);
     return true;
   };
   const applyRiverChangesAsync = async (requestedFlags: RiverDirtyFlag): Promise<void> => {
@@ -507,8 +592,7 @@ async function bootstrapWaterPcg(): Promise<void> {
         exampleBarElement.dataset.materialQuality = runtime.normalizedConfig.quality.material.level;
         exampleBarElement.dataset.sampleCount = String(runtime.sampleResult.points.length);
         exampleBarElement.dataset.geometryBuildCount = String(runtime.geometryBuildCount);
-        exampleBarElement.dataset.lowDrawCallsPerChunk =
-          runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low ? "1" : "2";
+        exampleBarElement.dataset.waterDrawCallsPerChunk = "1";
       }
 
       warnings.push(
@@ -523,7 +607,8 @@ async function bootstrapWaterPcg(): Promise<void> {
     const queryService = riverRuntimeController.activeQueryService;
     if (primaryRuntime && queryService) {
       const queryPosition = getPointAtRiverT(primaryRuntime.sampleResult.points, primaryRuntime.config.debug.queryT);
-      queryService.sampleSurface(queryPosition, networkQueryResult);
+      if (surfaceTimeOverride === undefined) queryService.sampleSurface(queryPosition, networkQueryResult);
+      else queryService.sampleSurfaceAtTime(queryPosition, surfaceTimeOverride, networkQueryResult);
       exampleBarElement.dataset.querySourceKind = networkQueryResult.sourceKind ?? "none";
       exampleBarElement.dataset.diagnosticCount = String(warnings.length);
     }
@@ -581,6 +666,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     );
     exampleBarElement.dataset.riverBedChunkCount = String(riverBedController.chunkCount);
     exampleBarElement.dataset.rockCount = String(riverRockController.rockCount);
+    writeSurfaceMetrics(activeRiverCompiledData);
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
       const button = document.createElement("button");
@@ -606,7 +692,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
     activeRiverResource = riverResourceSets[activeExampleIndex];
     riverConfigs = riverConfigSets[activeExampleIndex];
-    if (startupQuality === RiverQualityLevel.Low) applyQuality(RiverQualityLevel.Low);
+    if (startupQuality) applyQuality(startupQuality);
     rebuildExampleState();
   }
   function rebuildExampleState(): void {
@@ -723,12 +809,59 @@ async function bootstrapWaterPcg(): Promise<void> {
           });
           applyRiverChanges(RiverDirtyFlag.Debug);
         });
+      gui
+        .add(guiState, "surfaceDebug", Object.keys(RIVER_SURFACE_DEBUG_OPTIONS) as RiverSurfaceDebugLabel[])
+        .name("Surface Debug")
+        .onChange((label: RiverSurfaceDebugLabel) => {
+          riverRuntimeController.setSurfaceDebugMode(RIVER_SURFACE_DEBUG_OPTIONS[label]);
+        });
+      gui
+        .add(guiState, "macroDisplacement")
+        .name("Macro Geometry")
+        .onChange((enabled: boolean) => {
+          riverRuntimeController.setSurfaceFeatureFlags(enabled, guiState.microSurface);
+        });
+      gui
+        .add(guiState, "microSurface")
+        .name("Micro Ripples")
+        .onChange((enabled: boolean) => {
+          riverRuntimeController.setSurfaceFeatureFlags(guiState.macroDisplacement, enabled);
+        });
     }
   }
+
+  window.waterPcgSetSurfaceTime = (elapsedTime?: number): void => {
+    surfaceTimeOverride = elapsedTime === undefined ? undefined : Math.max(0, elapsedTime);
+    riverRuntimeController.setSurfaceTimeOverride(surfaceTimeOverride);
+    exampleBarElement.dataset.surfaceTime = surfaceTimeOverride === undefined ? "live" : surfaceTimeOverride.toFixed(3);
+    applyRiverChanges(RiverDirtyFlag.Query);
+  };
+  window.waterPcgStressRebuild = async (
+    iterations = RIVER_REBUILD_STRESS.defaultIterations
+  ): Promise<WaterPcgStressResult> => {
+    const requestedIterations = Math.min(RIVER_REBUILD_STRESS.maxIterations, Math.max(0, Math.floor(iterations)));
+    const initialTotalMemory = engine.renderingStatistics.totalMemory;
+    let completedIterations = 0;
+    for (let index = 0; index < requestedIterations; index++) {
+      if (!(await recompileActiveNetwork())) break;
+      completedIterations++;
+    }
+    riverRuntimeController.flushDeferredResources();
+    engine.resourceManager.gc();
+    return {
+      requestedIterations,
+      completedIterations,
+      resourceByteLength: activeRiverResource.byteLength,
+      resourceHash: activeRiverResource.metadata.compiledHash,
+      initialTotalMemory,
+      finalTotalMemory: engine.renderingStatistics.totalMemory
+    };
+  };
 
   rebuildExampleState();
   class WaterPcgUpdateScript extends Script {
     private readonly _profileSamples: number[] = [];
+    private readonly _frameSamples: number[] = [];
 
     onUpdate(deltaTime: number): void {
       const updateStart = profilingEnabled ? performance.now() : 0;
@@ -746,13 +879,24 @@ async function bootstrapWaterPcg(): Promise<void> {
         pendingRuntimeStatsRefresh = false;
       }
       if (activeMode === WaterPreviewMode.Ocean) oceanPreview.update(deltaTime);
-      if (profilingEnabled && this._profileSamples.length < 300) {
+      if (profilingEnabled && this._profileSamples.length < RIVER_PROFILE_SAMPLE_COUNT) {
         this._profileSamples.push(performance.now() - updateStart);
-        if (this._profileSamples.length === 300) {
+        this._frameSamples.push(deltaTime * 1000);
+        if (this._profileSamples.length === RIVER_PROFILE_SAMPLE_COUNT) {
           const sorted = [...this._profileSamples].sort((a, b) => a - b);
+          const sortedFrames = [...this._frameSamples].sort((a, b) => a - b);
+          const percentileIndex = Math.floor(sorted.length * 0.95);
           window.waterPcgProfileMetrics = {
             sampleCount: sorted.length,
-            jsUpdateP95Ms: sorted[Math.floor(sorted.length * 0.95)]
+            frameP95Ms: sortedFrames[percentileIndex],
+            jsUpdateP95Ms: sorted[percentileIndex],
+            estimatedRiverDrawCalls: Number(exampleBarElement.dataset.estimatedRiverDrawCalls ?? 0),
+            surfaceVertexCount: Number(exampleBarElement.dataset.surfaceVertexCount ?? 0),
+            atlasPixelCount: Number(exampleBarElement.dataset.atlasPixelCount ?? 0),
+            surfaceTextureSamples: Number(exampleBarElement.dataset.surfaceTextureSamples ?? 0),
+            bufferMemory: engine.renderingStatistics.bufferMemory,
+            textureMemory: engine.renderingStatistics.textureMemory,
+            totalMemory: engine.renderingStatistics.totalMemory
           };
         }
       }

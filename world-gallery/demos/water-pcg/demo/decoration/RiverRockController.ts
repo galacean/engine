@@ -142,6 +142,28 @@ export function createRiverRockPlacements(
   queryService: RiverNetworkQueryService
 ): RiverRockPlacement[] {
   if (data.reaches.length === 0) return [];
+  if (data.disturbances.length > 0) {
+    const queryPosition = new Vector3();
+    const queryResult = createRiverNetworkQueryResult();
+    return data.disturbances.map((disturbance) => {
+      queryPosition.set(disturbance.position[0], disturbance.position[1], disturbance.position[2]);
+      queryService.sampleSurface(queryPosition, queryResult);
+      const random = createRandom(hashString(`${data.sourceId}:${disturbance.id}`));
+      return {
+        position: [
+          disturbance.position[0],
+          queryResult.hit ? queryResult.surfaceHeight : disturbance.position[1],
+          disturbance.position[2]
+        ],
+        rotation: [
+          (random() * 2 - 1) * RIVER_ROCK_SCATTER.maxTiltDegrees,
+          random() * RIVER_ROCK_SCATTER.fullRotationDegrees,
+          (random() * 2 - 1) * RIVER_ROCK_SCATTER.maxTiltDegrees
+        ],
+        scale: [disturbance.radius, disturbance.radius * 0.72, disturbance.radius * 0.9]
+      };
+    });
+  }
   const random = createRandom(hashString(data.sourceId));
   const placements: AcceptedRockPlacement[] = [];
   const queryPosition = new Vector3();

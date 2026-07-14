@@ -72,7 +72,7 @@ describe("River terrain and water-profile compilation", () => {
     );
   });
 
-  it("emits vector terrain corridors and restricts local map regions to confluences", () => {
+  it("emits vector terrain corridors and a real confluence atlas", () => {
     const data = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor).data!;
     const terrain = data.terrainInteraction;
 
@@ -80,9 +80,14 @@ describe("River terrain and water-profile compilation", () => {
     expect(terrain.reachCorridors).toHaveLength(data.reaches.length);
     expect(terrain.junctionCorridors).toHaveLength(data.junctions.length);
     expect(terrain.localMapBakeRegions).toHaveLength(data.junctions.length);
-    expect(terrain.localMapBakeRegions.every((region) => region.kind === RiverLocalMapRegionKind.Confluence)).toBe(true);
+    expect(terrain.localMapBakeRegions.every((region) => region.kind === RiverLocalMapRegionKind.Confluence)).toBe(
+      true
+    );
     expect(data.stats.localMapRegionCount).toBe(data.junctions.length);
-    expect(data.stats.mapPixelCount).toBe(0);
+    expect(terrain.localMapAtlas?.tiles).toHaveLength(data.junctions.length);
+    expect(data.stats.mapPixelCount).toBe((terrain.localMapAtlas?.width ?? 0) * (terrain.localMapAtlas?.height ?? 0));
+    expect(terrain.localMapAtlas?.pixels.length).toBe(data.stats.mapPixelCount * 4);
+    expect(data.stats.mapPixelCount).toBeGreaterThan(0);
 
     for (const corridor of terrain.reachCorridors) {
       const reach = data.reaches[corridor.reachIndex];
@@ -96,14 +101,21 @@ describe("River terrain and water-profile compilation", () => {
         const vegetationRadius = corridor.samples.at(
           offset + RIVER_TERRAIN_CORRIDOR_COMPONENT.vegetationExclusionRadius
         )!;
-        const buildingRadius = corridor.samples.at(
-          offset + RIVER_TERRAIN_CORRIDOR_COMPONENT.buildingExclusionRadius
-        )!;
+        const buildingRadius = corridor.samples.at(offset + RIVER_TERRAIN_CORRIDOR_COMPONENT.buildingExclusionRadius)!;
         expect(waterY).toBeCloseTo(sample.position[1]);
         expect(bedY).toBeCloseTo(sample.position[1] - sample.depth);
         expect(vegetationRadius).toBeCloseTo(sample.width * 0.5 + sample.bankFeather);
         expect(buildingRadius).toBe(vegetationRadius);
       }
     }
+  });
+
+  it("keeps an ordinary single reach without junctions or disturbances atlas-free", () => {
+    const source = curvedMainRiverExample.riverDescriptor;
+    const data = RiverNetworkCompiler.compile({ ...source, disturbances: [] }).data!;
+
+    expect(data.terrainInteraction.localMapBakeRegions).toHaveLength(0);
+    expect(data.terrainInteraction.localMapAtlas).toBeUndefined();
+    expect(data.stats.mapPixelCount).toBe(0);
   });
 });

@@ -21,7 +21,8 @@ export enum RiverTerrainMaskChannel {
 }
 
 export enum RiverLocalMapRegionKind {
-  Confluence = "confluence"
+  Confluence = "confluence",
+  Obstacle = "obstacle"
 }
 
 export enum RiverPackedLocalMapChannel {

@@ -1,6 +1,6 @@
 /** Converts compiler-owned CPU geometry into reusable Galacean ModelMesh resources. */
 import { Engine, MeshTopology, ModelMesh } from "@galacean/engine-core";
-import { Color, Vector2, Vector3 } from "@galacean/engine-math";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { RiverGeometryData, RiverRenderableArtifact } from "../../compiler/river/types";
 import type { RiverMeshBuildResult } from "./types";
 
@@ -19,14 +19,22 @@ function uploadGeometry(
   const positions = geometry.positions.map((value) => new Vector3(value[0], value[1], value[2]));
   const uvs = geometry.uvs.map((value) => new Vector2(value[0], value[1]));
   const uv1s = geometry.uv1s.map((value) => new Vector2(value[0], value[1]));
+  const uv2s = geometry.uv2s?.map((value) => new Vector2(value[0], value[1])) ?? null;
+  const uv3s = geometry.uv3s?.map((value) => new Vector2(value[0], value[1])) ?? null;
   const sourceIndices = geometry.indices.toTypedArray();
   const indices = positions.length > 65535 ? sourceIndices : new Uint16Array(sourceIndices);
 
   mesh.bounds.min.set(geometry.bounds.min[0], geometry.bounds.min[1], geometry.bounds.min[2]);
   mesh.bounds.max.set(geometry.bounds.max[0], geometry.bounds.max[1], geometry.bounds.max[2]);
   mesh.setPositions(positions);
+  mesh.setNormals(geometry.normals ? geometry.normals.map((value) => new Vector3(value[0], value[1], value[2])) : null);
+  mesh.setTangents(
+    geometry.tangents ? geometry.tangents.map((value) => new Vector4(value[0], value[1], value[2], value[3])) : null
+  );
   mesh.setUVs(uvs);
   mesh.setUVs(uv1s, 1);
+  mesh.setUVs(uv2s, 2);
+  mesh.setUVs(uv3s, 3);
   mesh.setColors(
     geometry.colors ? geometry.colors.map((value) => new Color(value[0], value[1], value[2], value[3])) : null
   );

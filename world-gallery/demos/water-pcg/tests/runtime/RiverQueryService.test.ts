@@ -5,6 +5,11 @@ import { RiverChunkSourceKind, RiverQueryPrimitiveKind } from "../../compiler/ri
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import { sampleRiverPath } from "../../compiler/river/RiverPathSampler";
 import {
+  createRiverSurfaceMotionSampleOutput,
+  evaluateRiverSurfaceMotion
+} from "../../compiler/river/RiverSurfaceMotion";
+import { RIVER_GEOMETRY_Y_OFFSET } from "../../compiler/river/constants";
+import {
   createRiverNetworkQueryBatchOutput,
   createRiverNetworkQueryResult,
   queryRiver,
@@ -12,6 +17,7 @@ import {
 } from "../../runtime/river/RiverQueryService";
 import type { RiverDemoConfig as RiverConfig } from "../../demo/types";
 import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
+import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
 import { straightFixture, variableProfileFixture } from "../fixtures/riverFixtures";
 
 describe("WaterQuery flow contract", () => {
@@ -85,10 +91,7 @@ describe("RiverNetworkQueryService", () => {
     const junction = data.junctions[0];
     const result = createRiverNetworkQueryResult();
 
-    service.sampleSurface(
-      new Vector3(junction.position[0], junction.position[1] - 0.1, junction.position[2]),
-      result
-    );
+    service.sampleSurface(new Vector3(junction.position[0], junction.position[1] - 0.1, junction.position[2]), result);
 
     expect(result.hit).toBe(true);
     expect(result.sourceKind).toBe(RiverChunkSourceKind.Junction);
@@ -177,5 +180,78 @@ describe("RiverNetworkQueryService", () => {
     }
     expect(scalar.flowVector).toBe(originalFlowVector);
     expect(scalar.surfaceNormal).toBe(originalSurfaceNormal);
+  });
+
+  it("matches the reference macro evaluator in dynamic scalar and batch queries", () => {
+    const data = RiverNetworkCompiler.compile(curvedMainRiverExample.riverDescriptor).data!;
+    const service = new RiverNetworkQueryService(data);
+    const reach = data.reaches[0];
+    const sample = reach.artifact.samples[Math.floor(reach.artifact.samples.length * 0.42)];
+    const elapsedTime = 3.25;
+    const position = new Vector3(sample.position[0], sample.position[1], sample.position[2]);
+    const staticResult = createRiverNetworkQueryResult();
+    const dynamicResult = createRiverNetworkQueryResult();
+    const reference = createRiverSurfaceMotionSampleOutput();
+
+    expect(service.sampleSurface(position, staticResult)).toBe(true);
+    expect(service.sampleSurfaceAtTime(position, elapsedTime, dynamicResult)).toBe(true);
+    evaluateRiverSurfaceMotion(
+      data.surfaceMotion,
+      {
+        signedAcrossDistance: 0,
+        networkFlowTime: reach.networkFlowTimeOffset + sample.flowTravelTime,
+        halfWidth: sample.width * 0.5,
+        flowSpeed: sample.flowSpeed
+      },
+      elapsedTime,
+      reference
+    );
+
+    expect(staticResult.surfaceHeight).toBeCloseTo(sample.position[1], 5);
+    expect(dynamicResult.surfaceHeight).toBeCloseTo(
+      sample.position[1] + RIVER_GEOMETRY_Y_OFFSET.surface + reference.height,
+      5
+    );
+    expect(dynamicResult.surfaceVerticalVelocity).toBeCloseTo(reference.verticalVelocity, 5);
+    expect(dynamicResult.surfaceNormal.length()).toBeCloseTo(1, 5);
+
+    const batch = createRiverNetworkQueryBatchOutput(1);
+    service.queryBatchAtTime(new Float32Array([position.x, position.y, position.z]), elapsedTime, batch);
+    expect(batch.surfaceHeights[0]).toBeCloseTo(dynamicResult.surfaceHeight, 5);
+    expect(batch.surfaceVerticalVelocities[0]).toBeCloseTo(dynamicResult.surfaceVerticalVelocity, 5);
+    expect(batch.surfaceNormals[0]).toBeCloseTo(dynamicResult.surfaceNormal.x, 5);
+    expect(batch.surfaceNormals[1]).toBeCloseTo(dynamicResult.surfaceNormal.y, 5);
+    expect(batch.surfaceNormals[2]).toBeCloseTo(dynamicResult.surfaceNormal.z, 5);
+  });
+
+  it("samples junction motion from the same subdivided triangle attributes used by the GPU", () => {
+    const data = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor).data!;
+    const service = new RiverNetworkQueryService(data);
+    const junction = data.junctions[0];
+    const geometry = junction.surfaceGeometry;
+    const centerVertexIndex = 0;
+    const position = geometry.positions[centerVertexIndex];
+    const elapsedTime = 2.4;
+    const result = createRiverNetworkQueryResult();
+    const reference = createRiverSurfaceMotionSampleOutput();
+    if (!geometry.uv2s || !geometry.uv3s) throw new Error("Expected junction motion attributes.");
+
+    evaluateRiverSurfaceMotion(
+      data.surfaceMotion,
+      {
+        signedAcrossDistance: geometry.uv2s[centerVertexIndex][0],
+        networkFlowTime: geometry.uv2s[centerVertexIndex][1],
+        halfWidth: geometry.uv3s[centerVertexIndex][0],
+        flowSpeed: geometry.uv1s[centerVertexIndex][0]
+      },
+      elapsedTime,
+      reference
+    );
+    service.sampleSurfaceAtTime(new Vector3(position[0], position[1] - 0.2, position[2]), elapsedTime, result);
+
+    expect(result.sourceKind).toBe(RiverChunkSourceKind.Junction);
+    expect(result.surfaceHeight).toBeCloseTo(position[1] + reference.height, 5);
+    expect(result.surfaceVerticalVelocity).toBeCloseTo(reference.verticalVelocity, 5);
+    expect(result.surfaceNormal.length()).toBeCloseTo(1, 5);
   });
 });

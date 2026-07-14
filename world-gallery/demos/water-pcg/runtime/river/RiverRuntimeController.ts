@@ -1,21 +1,28 @@
 /** Internal river runtime lifecycle: chunk renderer creation, GPU upload, cache, swap, and disposal. */
-import { Engine, Entity, Material, MeshRenderer } from "@galacean/engine-core";
+import { Engine, Entity, Material, MeshRenderer, Texture2D } from "@galacean/engine-core";
+import { Vector4 } from "@galacean/engine-math";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverAuthoringConfig } from "../../authoring/river/RiverAuthoringTypes";
-import { RiverChunkSourceKind } from "../../compiler/river/RiverGeometryEnums";
+import { RiverChunkSourceKind, RiverLocalMapRegionKind } from "../../compiler/river/RiverGeometryEnums";
 import { cloneCompiledRiverConfig } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverCompiledChunk, RiverCompiledData, RiverReachArtifact } from "../../compiler/river/types";
 import {
   createLowRiverMaterial,
   createRiverFoamMaterial,
+  createRiverLocalMapMaterial,
   createRiverMaterial,
+  setRiverSurfaceDebugMode,
+  setRiverSurfaceFeatureFlags,
+  setRiverSurfaceTimeOverride,
   updateRiverFoamMaterial,
   updateRiverMaterial
 } from "./RiverMaterialFactory";
+import { createRiverLocalMapTexture } from "./RiverLocalMapTextureFactory";
+import { RiverSurfaceDebugMode } from "./RiverRuntimeEnums";
 import { uploadRiverMeshes } from "./RiverMeshUploader";
 import { RiverNetworkQueryService } from "./RiverQueryService";
 import { RiverResource } from "./RiverResource";
-import { RIVER_RESOURCE_SUBMISSION_BUDGET_MS } from "./constants";
+import { RIVER_RESOURCE_SUBMISSION_BUDGET_MS, RIVER_SHADER_PROPERTY } from "./constants";
 import type { RiverMeshBuildResult } from "./types";
 
 export interface RiverRuntimeReach {
@@ -38,6 +45,7 @@ export interface RiverRuntimePresentation {
 
 interface RiverRuntimeMaterialSet {
   readonly surface: Material;
+  readonly surfaceLocalMap?: Material;
   readonly low: Material;
   readonly foam: Material;
 }
@@ -62,6 +70,7 @@ interface MutableRiverRuntimeSet {
   readonly reaches: MutableRiverRuntimeReach[];
   readonly chunks: MutableRiverRuntimeChunk[];
   readonly queryService: RiverNetworkQueryService;
+  readonly localMapTexture?: Texture2D;
 }
 
 export interface RiverRuntimeActivation {
@@ -91,6 +100,7 @@ function pinMaterialSet(materials: RiverRuntimeMaterialSet): void {
   materials.surface.isGCIgnored = true;
   materials.low.isGCIgnored = true;
   materials.foam.isGCIgnored = true;
+  if (materials.surfaceLocalMap) materials.surfaceLocalMap.isGCIgnored = true;
 }
 
 export class RiverRuntimeController {
@@ -100,6 +110,10 @@ export class RiverRuntimeController {
   private _activeChunks: MutableRiverRuntimeChunk[] = [];
   private _activeQueryService?: RiverNetworkQueryService;
   private _pendingResourceGc = false;
+  private _surfaceDebugMode = RiverSurfaceDebugMode.Off;
+  private _macroDisplacementEnabled = true;
+  private _microSurfaceEnabled = true;
+  private _surfaceTimeOverride?: number;
 
   constructor(
     private readonly _engine: Engine,
@@ -189,16 +203,20 @@ export class RiverRuntimeController {
     const root = this._root.createChild(`river-runtime-${data.sourceId}`);
     root.isActive = false;
     resource.retain();
+    const localMapTexture = data.terrainInteraction.localMapAtlas
+      ? createRiverLocalMapTexture(this._engine, data.terrainInteraction.localMapAtlas)
+      : undefined;
+    if (localMapTexture) localMapTexture.isGCIgnored = true;
     let reaches: MutableRiverRuntimeReach[] = [];
     const chunks: MutableRiverRuntimeChunk[] = [];
     let yieldCount = 0;
     let maxSliceMs = 0;
     try {
-      reaches = this._createReaches(data, root, sources);
+      reaches = this._createReaches(data, root, sources, localMapTexture);
       let sliceStart = now();
       for (const chunk of data.chunks) {
         if (options.shouldCancel?.()) throw new RiverRuntimeSubmissionCancelledError();
-        chunks.push(this._createChunk(chunk, reaches, root));
+        chunks.push(this._createChunk(chunk, reaches, root, data));
         const sliceDuration = now() - sliceStart;
         maxSliceMs = Math.max(maxSliceMs, sliceDuration);
         if (sliceDuration >= frameBudgetMs && chunks.length < data.chunks.length) {
@@ -213,7 +231,8 @@ export class RiverRuntimeController {
         resource,
         reaches,
         chunks,
-        queryService: new RiverNetworkQueryService(data)
+        queryService: new RiverNetworkQueryService(data),
+        localMapTexture
       };
       if (options.shouldCancel?.()) throw new RiverRuntimeSubmissionCancelledError();
       this._deactivateAll();
@@ -239,6 +258,7 @@ export class RiverRuntimeController {
       for (const chunk of chunks) this._destroyChunk(chunk);
       for (const reach of reaches) this._destroyReach(reach);
       root.destroy();
+      localMapTexture?.destroy(true);
       resource.release();
       throw error;
     }
@@ -256,6 +276,7 @@ export class RiverRuntimeController {
     reach.artifact = artifact;
     if (materialDirty) {
       updateRiverMaterial(reach.materials.surface, config.material, 1);
+      if (reach.materials.surfaceLocalMap) updateRiverMaterial(reach.materials.surfaceLocalMap, config.material, 1);
       updateRiverMaterial(reach.materials.low, config.material, 1);
       updateRiverFoamMaterial(reach.materials.foam, config.material, 1);
     }
@@ -272,12 +293,44 @@ export class RiverRuntimeController {
         chunk.foamRenderer.entity.isActive = presentation.foamVisible;
       }
       chunk.surfaceRenderer.setMaterial(
-        presentation.surfaceMaterial ??
-          (reach.config.quality.material.level === RiverQualityLevel.Low
-            ? reach.materials.low
-            : reach.materials.surface)
+        presentation.surfaceMaterial ?? this._selectSurfaceMaterial(chunk.compiled, reach)
       );
       chunk.foamRenderer?.setMaterial(presentation.foamMaterial ?? reach.materials.foam);
+    }
+  }
+
+  setSurfaceDebugMode(mode: RiverSurfaceDebugMode): void {
+    this._surfaceDebugMode = mode;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      for (const reach of runtimeSet.reaches) {
+        setRiverSurfaceDebugMode(reach.materials.surface, mode);
+        if (reach.materials.surfaceLocalMap) setRiverSurfaceDebugMode(reach.materials.surfaceLocalMap, mode);
+      }
+    }
+  }
+
+  setSurfaceFeatureFlags(macroDisplacementEnabled: boolean, microSurfaceEnabled: boolean): void {
+    this._macroDisplacementEnabled = macroDisplacementEnabled;
+    this._microSurfaceEnabled = microSurfaceEnabled;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      for (const reach of runtimeSet.reaches) {
+        setRiverSurfaceFeatureFlags(reach.materials.surface, macroDisplacementEnabled, microSurfaceEnabled);
+        if (reach.materials.surfaceLocalMap) {
+          setRiverSurfaceFeatureFlags(reach.materials.surfaceLocalMap, macroDisplacementEnabled, microSurfaceEnabled);
+        }
+      }
+    }
+  }
+
+  setSurfaceTimeOverride(elapsedTime?: number): void {
+    this._surfaceTimeOverride = elapsedTime;
+    for (const runtimeSet of this._runtimeSets.values()) {
+      for (const reach of runtimeSet.reaches) {
+        setRiverSurfaceTimeOverride(reach.materials.surface, elapsedTime);
+        if (reach.materials.surfaceLocalMap) {
+          setRiverSurfaceTimeOverride(reach.materials.surfaceLocalMap, elapsedTime);
+        }
+      }
     }
   }
 
@@ -304,22 +357,28 @@ export class RiverRuntimeController {
     const compiledData = resource.data;
     const root = this._root.createChild(`river-runtime-${compiledData.sourceId}`);
     resource.retain();
+    const localMapTexture = compiledData.terrainInteraction.localMapAtlas
+      ? createRiverLocalMapTexture(this._engine, compiledData.terrainInteraction.localMapAtlas)
+      : undefined;
+    if (localMapTexture) localMapTexture.isGCIgnored = true;
     let reaches: MutableRiverRuntimeReach[] = [];
     let chunks: MutableRiverRuntimeChunk[] = [];
     try {
-      reaches = this._createReaches(compiledData, root, sources);
-      chunks = compiledData.chunks.map((chunk) => this._createChunk(chunk, reaches, root));
+      reaches = this._createReaches(compiledData, root, sources, localMapTexture);
+      chunks = compiledData.chunks.map((chunk) => this._createChunk(chunk, reaches, root, compiledData));
       return {
         root,
         resource,
         reaches,
         chunks,
-        queryService: new RiverNetworkQueryService(compiledData)
+        queryService: new RiverNetworkQueryService(compiledData),
+        localMapTexture
       };
     } catch (error) {
       for (const chunk of chunks) this._destroyChunk(chunk);
       for (const reach of reaches) this._destroyReach(reach);
       root.destroy();
+      localMapTexture?.destroy(true);
       resource.release();
       throw error;
     }
@@ -328,17 +387,33 @@ export class RiverRuntimeController {
   private _createReaches(
     compiledData: RiverCompiledData,
     root: Entity,
-    sources?: readonly RiverRuntimeReachSource[]
+    sources?: readonly RiverRuntimeReachSource[],
+    localMapTexture?: Texture2D
   ): MutableRiverRuntimeReach[] {
     return compiledData.reaches.map((reach, reachIndex) => {
       const source = sources?.[reachIndex];
       const config = source?.config ?? cloneCompiledRiverConfig(reach.config);
       const materials = {
-        surface: createRiverMaterial(this._engine, config.material, 1),
+        surface: createRiverMaterial(this._engine, config.material, 1, compiledData.surfaceMotion),
+        surfaceLocalMap: localMapTexture
+          ? createRiverLocalMapMaterial(this._engine, config.material, 1, compiledData.surfaceMotion, localMapTexture)
+          : undefined,
         low: createLowRiverMaterial(this._engine, config.material, 1),
         foam: createRiverFoamMaterial(this._engine, config.material, 1)
       };
       pinMaterialSet(materials);
+      setRiverSurfaceDebugMode(materials.surface, this._surfaceDebugMode);
+      setRiverSurfaceFeatureFlags(materials.surface, this._macroDisplacementEnabled, this._microSurfaceEnabled);
+      setRiverSurfaceTimeOverride(materials.surface, this._surfaceTimeOverride);
+      if (materials.surfaceLocalMap) {
+        setRiverSurfaceDebugMode(materials.surfaceLocalMap, this._surfaceDebugMode);
+        setRiverSurfaceFeatureFlags(
+          materials.surfaceLocalMap,
+          this._macroDisplacementEnabled,
+          this._microSurfaceEnabled
+        );
+        setRiverSurfaceTimeOverride(materials.surfaceLocalMap, this._surfaceTimeOverride);
+      }
       return {
         root: root.createChild(`river-reach-${reach.id}`),
         config,
@@ -351,7 +426,8 @@ export class RiverRuntimeController {
   private _createChunk(
     chunk: RiverCompiledChunk,
     reaches: readonly MutableRiverRuntimeReach[],
-    runtimeRoot: Entity
+    runtimeRoot: Entity,
+    compiledData: RiverCompiledData
   ): MutableRiverRuntimeChunk {
     const parent = chunk.sourceKind === RiverChunkSourceKind.Reach ? reaches[chunk.sourceIndex].root : runtimeRoot;
     const root = parent.createChild(`river-chunk-${chunk.id}`);
@@ -362,11 +438,22 @@ export class RiverRuntimeController {
     meshes.surfaceMesh.isGCIgnored = true;
     if (meshes.bankFoamMesh) meshes.bankFoamMesh.isGCIgnored = true;
     surfaceRenderer.mesh = meshes.surfaceMesh;
-    surfaceRenderer.setMaterial(
-      materialReach.config.quality.material.level === RiverQualityLevel.Low
-        ? materialReach.materials.low
-        : materialReach.materials.surface
-    );
+    surfaceRenderer.setMaterial(this._selectSurfaceMaterial(chunk, materialReach));
+    const localMapTile =
+      chunk.localMapTileIndex === undefined
+        ? undefined
+        : compiledData.terrainInteraction.localMapAtlas?.tiles[chunk.localMapTileIndex];
+    if (localMapTile) {
+      surfaceRenderer.shaderData.setVector4(
+        RIVER_SHADER_PROPERTY.localMapWorldToUv,
+        new Vector4(...localMapTile.worldToUv)
+      );
+      surfaceRenderer.shaderData.setVector4(RIVER_SHADER_PROPERTY.localMapUvRect, new Vector4(...localMapTile.uvRect));
+      surfaceRenderer.shaderData.setFloat(
+        RIVER_SHADER_PROPERTY.localMapConfluence,
+        localMapTile.kind === RiverLocalMapRegionKind.Confluence ? 1 : 0
+      );
+    }
     const foamRenderer = meshes.bankFoamMesh
       ? root.createChild(`${chunk.id}-bank`).addComponent(MeshRenderer)
       : undefined;
@@ -375,6 +462,13 @@ export class RiverRuntimeController {
       foamRenderer.setMaterial(materialReach.materials.foam);
     }
     return { root, surfaceRenderer, foamRenderer, compiled: chunk, meshes };
+  }
+
+  private _selectSurfaceMaterial(chunk: RiverCompiledChunk, reach: MutableRiverRuntimeReach): Material {
+    if (reach.config.quality.material.level === RiverQualityLevel.Low) return reach.materials.low;
+    return chunk.localMapTileIndex !== undefined && reach.materials.surfaceLocalMap
+      ? reach.materials.surfaceLocalMap
+      : reach.materials.surface;
   }
 
   private _deactivateAll(): void {
@@ -392,6 +486,7 @@ export class RiverRuntimeController {
   private _destroyReach(reach: MutableRiverRuntimeReach): void {
     reach.root.destroy();
     reach.materials.surface.destroy(true);
+    reach.materials.surfaceLocalMap?.destroy(true);
     reach.materials.low.destroy(true);
     reach.materials.foam.destroy(true);
   }
@@ -399,6 +494,7 @@ export class RiverRuntimeController {
   private _destroyRuntimeSet(runtimeSet: MutableRiverRuntimeSet): void {
     for (const chunk of runtimeSet.chunks) this._destroyChunk(chunk);
     for (const reach of runtimeSet.reaches) this._destroyReach(reach);
+    runtimeSet.localMapTexture?.destroy(true);
     runtimeSet.root.destroy();
     runtimeSet.resource.release();
   }

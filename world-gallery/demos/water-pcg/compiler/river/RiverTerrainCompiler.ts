@@ -1,24 +1,15 @@
 import { RiverReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
-import {
-  RiverLocalMapRegionKind,
-  RiverPackedLocalMapChannel,
-  RiverTerrainMaskChannel,
-  RiverTerrainSurfaceOwnership
-} from "./RiverGeometryEnums";
+import { RiverTerrainMaskChannel, RiverTerrainSurfaceOwnership } from "./RiverGeometryEnums";
 import { RIVER_TERRAIN_CORRIDOR_COMPONENT, RIVER_TERRAIN_CORRIDOR_STRIDE } from "./constants";
 import type {
   RiverCompiledReach,
+  RiverCompiledDisturbanceSource,
   RiverJunctionArtifact,
-  RiverLocalMapBakeRegion,
   RiverTerrainInteractionData,
   RiverTerrainJunctionCorridorData,
-  RiverTerrainReachCorridorData,
-  Vector2Tuple
+  RiverTerrainReachCorridorData
 } from "./types";
-
-function tuple2(x: number, y: number): Vector2Tuple {
-  return Object.freeze([x, y] as const);
-}
+import { compileRiverLocalMaps } from "./RiverLocalMapCompiler";
 
 function compileReachCorridor(reach: RiverCompiledReach, reachIndex: number): RiverTerrainReachCorridorData {
   const data = new Float32Array(reach.artifact.samples.length * RIVER_TERRAIN_CORRIDOR_STRIDE);
@@ -58,36 +49,12 @@ function compileJunctionCorridor(
   });
 }
 
-function compileLocalMapRegion(junction: RiverJunctionArtifact, junctionIndex: number): RiverLocalMapBakeRegion {
-  let minX = Number.POSITIVE_INFINITY;
-  let minZ = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxZ = Number.NEGATIVE_INFINITY;
-  for (const position of junction.queryBoundary) {
-    minX = Math.min(minX, position[0]);
-    minZ = Math.min(minZ, position[2]);
-    maxX = Math.max(maxX, position[0]);
-    maxZ = Math.max(maxZ, position[2]);
-  }
-  return Object.freeze({
-    id: junction.id,
-    kind: RiverLocalMapRegionKind.Confluence,
-    sourceIndex: junctionIndex,
-    min: tuple2(minX, minZ),
-    max: tuple2(maxX, maxZ),
-    packedChannels: Object.freeze([
-      RiverPackedLocalMapChannel.FlowX,
-      RiverPackedLocalMapChannel.FlowZ,
-      RiverPackedLocalMapChannel.Foam,
-      RiverPackedLocalMapChannel.SignedDistance
-    ])
-  });
-}
-
 export function compileRiverTerrainInteraction(
   reaches: readonly RiverCompiledReach[],
-  junctions: readonly RiverJunctionArtifact[]
+  junctions: readonly RiverJunctionArtifact[],
+  disturbances: readonly RiverCompiledDisturbanceSource[] = []
 ): RiverTerrainInteractionData {
+  const localMaps = compileRiverLocalMaps(reaches, junctions, disturbances);
   return Object.freeze({
     terrainSurfaceOwnership: RiverTerrainSurfaceOwnership.ExternalTerrainSystem,
     maskChannels: Object.freeze([
@@ -98,6 +65,7 @@ export function compileRiverTerrainInteraction(
     ]),
     reachCorridors: Object.freeze(reaches.map(compileReachCorridor)),
     junctionCorridors: Object.freeze(junctions.map(compileJunctionCorridor)),
-    localMapBakeRegions: Object.freeze(junctions.map(compileLocalMapRegion))
+    localMapBakeRegions: localMaps.regions,
+    localMapAtlas: localMaps.atlas
   });
 }

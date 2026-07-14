@@ -1,6 +1,6 @@
 import { Vector3 } from "@galacean/engine-math";
 import { describe, expect, it } from "vitest";
-import { hashRiverGeometryData } from "../../compiler/shared/determinism";
+import { hashRiverGeometryData, hashRiverString } from "../../compiler/shared/determinism";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
 import { RiverNetworkQueryService, createRiverNetworkQueryResult } from "../../runtime/river/RiverQueryService";
@@ -63,6 +63,28 @@ describe("RiverResource", () => {
     envelope.compiledHash = "00000000";
     const tampered = new TextEncoder().encode(JSON.stringify(envelope));
     expect(() => RiverResource.deserialize(tampered)).toThrow(/hash mismatch/);
+  });
+
+  it("rejects atlas transforms that no longer map world bounds to the packed rect", () => {
+    const descriptor = multiTributaryRiverExample.riverDescriptor;
+    const compiled = RiverNetworkCompiler.compile(descriptor).data!;
+    const resource = RiverResource.create(descriptor, compiled);
+    const envelope = JSON.parse(new TextDecoder().decode(resource.serialize())) as {
+      compiledHash: string;
+      compiledData: {
+        terrainInteraction: {
+          localMapAtlas: {
+            tiles: Array<{ worldToUv: number[] }>;
+          };
+        };
+      };
+    };
+    envelope.compiledData.terrainInteraction.localMapAtlas.tiles[0].worldToUv[0] = 0;
+    envelope.compiledHash = hashRiverString(JSON.stringify(envelope.compiledData));
+
+    expect(() => RiverResource.deserialize(new TextEncoder().encode(JSON.stringify(envelope)))).toThrow(
+      /Malformed river resource envelope/
+    );
   });
 
   it("defers disposal until all runtime references are released", () => {

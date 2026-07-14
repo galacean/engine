@@ -82,11 +82,30 @@ export function hashRiverGeometryData(data: RiverGeometryData): string {
     hash = hashNumber(hash, position[1]);
     hash = hashNumber(hash, position[2]);
   }
+  for (const normal of data.normals ?? []) {
+    hash = hashNumber(hash, normal[0]);
+    hash = hashNumber(hash, normal[1]);
+    hash = hashNumber(hash, normal[2]);
+  }
+  for (const tangent of data.tangents ?? []) {
+    hash = hashNumber(hash, tangent[0]);
+    hash = hashNumber(hash, tangent[1]);
+    hash = hashNumber(hash, tangent[2]);
+    hash = hashNumber(hash, tangent[3]);
+  }
   for (const uv of data.uvs) {
     hash = hashNumber(hash, uv[0]);
     hash = hashNumber(hash, uv[1]);
   }
   for (const uv of data.uv1s) {
+    hash = hashNumber(hash, uv[0]);
+    hash = hashNumber(hash, uv[1]);
+  }
+  for (const uv of data.uv2s ?? []) {
+    hash = hashNumber(hash, uv[0]);
+    hash = hashNumber(hash, uv[1]);
+  }
+  for (const uv of data.uv3s ?? []) {
     hash = hashNumber(hash, uv[0]);
     hash = hashNumber(hash, uv[1]);
   }
@@ -97,5 +116,6 @@ export function hashRiverGeometryData(data: RiverGeometryData): string {
     hash = hashNumber(hash, color[3]);
   }
   for (const index of data.indices) hash = hashNumber(hash, index);
+  hash = hashNumber(hash, data.maxDisplacement);
   return toHex(hash);
 }

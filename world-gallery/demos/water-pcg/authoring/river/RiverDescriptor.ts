@@ -2,11 +2,13 @@
 import { RiverNetworkSchemaVersion, RiverNodeKind } from "./RiverAuthoringEnums";
 import type {
   RiverCurveConfig,
+  RiverDisturbanceSource,
   RiverFlowConfig,
   RiverMaterialConfig,
   RiverNetworkBudgetConfig,
   RiverQualityConfig,
   RiverShapeConfig,
+  RiverSurfaceMotionConfig,
   Vector3Tuple
 } from "./RiverAuthoringTypes";
 
@@ -29,8 +31,7 @@ export interface RiverSegmentConfig {
   order?: number;
 }
 
-export interface RiverNetworkDescriptor {
-  schemaVersion: RiverNetworkSchemaVersion;
+interface RiverNetworkDescriptorBase {
   id: string;
   nodes: RiverNodeConfig[];
   segments: RiverSegmentConfig[];
@@ -42,6 +43,20 @@ export interface RiverNetworkDescriptor {
   };
   budget?: Partial<RiverNetworkBudgetConfig>;
 }
+
+export interface RiverNetworkDescriptorV1 extends RiverNetworkDescriptorBase {
+  schemaVersion: RiverNetworkSchemaVersion.V1;
+}
+
+export interface RiverNetworkDescriptorV2 extends RiverNetworkDescriptorBase {
+  schemaVersion: RiverNetworkSchemaVersion.V2;
+  defaults: RiverNetworkDescriptorBase["defaults"] & {
+    surfaceMotion: RiverSurfaceMotionConfig;
+  };
+  disturbances?: RiverDisturbanceSource[];
+}
+
+export type RiverNetworkDescriptor = RiverNetworkDescriptorV1 | RiverNetworkDescriptorV2;
 
 /** @deprecated Use RiverNetworkDescriptor. */
 export type RiverNetworkConfig = RiverNetworkDescriptor;

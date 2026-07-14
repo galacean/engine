@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
-import { RiverValidationMode } from "../../authoring/river/RiverAuthoringEnums";
+import { RiverNetworkSchemaVersion, RiverValidationMode } from "../../authoring/river/RiverAuthoringEnums";
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import {
   decodeRiverConfig,
@@ -28,6 +28,33 @@ describe("RiverConfigValidator", () => {
     expect(result.valid).toBe(false);
     expect(result.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
       RiverDiagnosticCode.UnsupportedSchemaVersion
+    );
+  });
+
+  it("decodes V2 motion and obstacle facts and rejects missing or non-finite values", () => {
+    const source = curvedMainRiverExample.riverDescriptor;
+    if (source.schemaVersion !== RiverNetworkSchemaVersion.V2) throw new Error("Expected a V2 fixture.");
+    const valid = decodeRiverNetworkDescriptor(source);
+    expect(valid.valid).toBe(true);
+    expect(valid.value).toEqual(source);
+
+    const defaultsWithoutMotion: Record<string, unknown> = { ...source.defaults };
+    delete defaultsWithoutMotion.surfaceMotion;
+    const missingMotion = decodeRiverNetworkDescriptor({ ...source, defaults: defaultsWithoutMotion });
+    expect(missingMotion.valid).toBe(false);
+    expect(missingMotion.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: "$.defaults.surfaceMotion" })])
+    );
+
+    const invalidObstacle = decodeRiverNetworkDescriptor({
+      ...source,
+      disturbances: source.disturbances?.map((disturbance, index) =>
+        index === 0 ? { ...disturbance, position: [Number.NaN, 0, 0] } : disturbance
+      )
+    });
+    expect(invalidObstacle.valid).toBe(false);
+    expect(invalidObstacle.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ path: "$.disturbances[0].position[0]" })])
     );
   });
 

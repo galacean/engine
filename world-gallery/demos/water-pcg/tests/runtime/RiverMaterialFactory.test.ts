@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { lowRiverShaderSource, riverSurfaceShaderSource } from "../../runtime/river/RiverMaterialFactory";
+import {
+  lowRiverShaderSource,
+  riverSurfaceLocalMapShaderSource,
+  riverSurfaceShaderSource
+} from "../../runtime/river/RiverMaterialFactory";
+import { RIVER_SURFACE_TEXTURE_SAMPLE_COUNT } from "../../runtime/river/constants";
 
 describe("RiverMaterialFactory shaders", () => {
   it("uses one pass, one texture sample, and no FBM loop", () => {
@@ -23,45 +28,63 @@ describe("RiverMaterialFactory shaders", () => {
     expect(lowRiverShaderSource).not.toContain("camera_OpaqueTexture");
   });
 
-  it("uses one downstream phase for every procedural surface layer", () => {
-    expect(riverSurfaceShaderSource).toContain("float branchDownstream = input.uv.y - flowTime");
-    expect(riverSurfaceShaderSource).toContain("float junctionDownstream = input.color.g - flowTime");
-    expect(riverSurfaceShaderSource).toContain("mix(branchDownstream, junctionDownstream, junctionInterior)");
-    expect(riverSurfaceShaderSource).toContain("vec2 worldUv = input.worldXZ");
-    expect(riverSurfaceShaderSource).toContain("renderer_ModelMat * attr.POSITION");
-    expect(riverSurfaceShaderSource).not.toContain("input.uv.y * 1.35 + time");
-    expect(riverSurfaceShaderSource).not.toContain("dualPhaseFbm");
-    expect(riverSurfaceShaderSource).not.toContain("flowUVW");
-    expect(riverSurfaceShaderSource).toContain("input.color.b");
+  it("displaces vertices from continuous network flow coordinates", () => {
+    expect(riverSurfaceShaderSource).toContain("float riverMacroHeight(");
+    expect(riverSurfaceShaderSource).toContain(
+      "riverWarpedDomain(input.motionData.xy, input.motionData.w, elapsedTime)"
+    );
+    expect(riverSurfaceShaderSource).toContain("localPosition.y += computedMacroHeight");
+    expect(riverSurfaceShaderSource).toContain("output.motionData = vec4(attr.TEXCOORD_2");
+    expect(riverSurfaceShaderSource).toContain("output.surfaceData = vec4(");
+    expect(riverSurfaceShaderSource).toContain("baseNormalWS - acrossWS * acrossDerivative");
+    expect(riverSurfaceShaderSource).not.toContain("float streak = sin(detailPhase");
+    expect(riverSurfaceShaderSource).not.toContain("branchDownstream");
   });
 
-  it("renders soft broken shoreline foam inside the surface pass", () => {
+  it("uses eroded ridged crests and two-scale dual-phase micro normals", () => {
     expect(riverSurfaceShaderSource.match(/Pass \"/g) ?? []).toHaveLength(1);
-    expect(riverSurfaceShaderSource.match(/fbm\(/g) ?? []).toHaveLength(6);
-    expect(riverSurfaceShaderSource.match(/texture2D\(/g) ?? []).toHaveLength(1);
-    expect(riverSurfaceShaderSource).toContain("float streak = sin(detailPhase");
+    expect(riverSurfaceShaderSource).toContain("float ridgeMask = smoothstep(");
+    expect(riverSurfaceShaderSource).toContain("float erosionMask = smoothstep(");
+    expect(riverSurfaceShaderSource).toContain("float crestCurvature");
+    expect(riverSurfaceShaderSource).toContain("vec2 flowUVWNormal(");
+    expect(riverSurfaceShaderSource).toContain("float phaseA = fract(cycle)");
+    expect(riverSurfaceShaderSource).toContain("float phaseB = fract(cycle + 0.5)");
+    expect(riverSurfaceShaderSource).toContain("vec2 microA = flowUVWNormal(");
+    expect(riverSurfaceShaderSource).toContain("vec2 microB = flowUVWNormal(");
     expect(riverSurfaceShaderSource).toContain("float shoreEnvelope");
-    expect(riverSurfaceShaderSource).toContain("float shoreNoiseMask");
-    expect(riverSurfaceShaderSource).toContain("float shoreDetail");
-    expect(riverSurfaceShaderSource).toContain("float shoreSmooth");
-    expect(riverSurfaceShaderSource).toContain("float shoreSharp");
-    expect(riverSurfaceShaderSource).toMatch(/mix\(\s+shoreSharp,\s+shoreSmooth/);
+    expect(riverSurfaceShaderSource).toContain("float crestFoam");
     expect(riverSurfaceShaderSource).toContain("float shoreFoam");
     expect(riverSurfaceShaderSource).toContain("float foamTint");
     expect(riverSurfaceShaderSource).toContain("vec3 softFoamColor");
-    expect(riverSurfaceShaderSource).toContain("1.0 - smoothstep(0.96, 1.0, bankDistance)");
-    expect(riverSurfaceShaderSource).not.toContain("broadWater * 0.66 + foamNoise * 0.34");
-    expect(riverSurfaceShaderSource).not.toContain("0.18 + shorePattern * 0.82");
-    expect(riverSurfaceShaderSource).not.toMatch(/mix\(color, softFoamColor[^;]+, foam\)/);
+    expect(RIVER_SURFACE_TEXTURE_SAMPLE_COUNT).toEqual({ low: 1, regular: 5, localMap: 6 });
+  });
+
+  it("keeps the regular path atlas-free and adds one guarded sample only to complex chunks", () => {
+    expect(riverSurfaceShaderSource).not.toContain("material_LocalMapTexture");
+    expect(riverSurfaceLocalMapShaderSource).toContain("sampler2D material_LocalMapTexture");
+    expect(riverSurfaceLocalMapShaderSource).toContain("vec4 localMapSample = texture2D(material_LocalMapTexture");
+    expect(riverSurfaceLocalMapShaderSource).toContain("float atlasRectMask");
+    expect(riverSurfaceLocalMapShaderSource).toContain("float confluenceInteriorWeight = smoothstep(");
+    expect(riverSurfaceLocalMapShaderSource).toContain("renderer_LocalMapConfluence");
+    expect(riverSurfaceLocalMapShaderSource).toContain("* localEffectWeight");
+    expect(riverSurfaceLocalMapShaderSource).toContain("renderer_LocalMapWorldToUv");
   });
 
   it("uses scene depth for Medium optical thickness without opaque-color sampling", () => {
     expect(riverSurfaceShaderSource).toContain("sampler2D camera_DepthTexture");
     expect(riverSurfaceShaderSource).toContain("remapDepthBufferEyeDepth");
-    expect(riverSurfaceShaderSource).toContain("sceneEyeDepth - input.surfaceEyeDepth");
+    expect(riverSurfaceShaderSource).toContain("sceneEyeDepth - input.surfaceData.z");
     expect(riverSurfaceShaderSource).toContain("float transmittance = exp(-absorption * opticalDepth)");
     expect(riverSurfaceShaderSource).toContain("float waterAlpha = clamp(");
     expect(riverSurfaceShaderSource).not.toContain("camera_OpaqueTexture");
     expect(riverSurfaceShaderSource).not.toContain("material_BaseColor.a *");
+  });
+
+  it("packs Medium varyings within the WebGL1 minimum varying-vector budget", () => {
+    const varyingBlock = riverSurfaceShaderSource.match(/struct Varyings \{([\s\S]*?)\};/)?.[1] ?? "";
+    const declarations = varyingBlock.match(/\b(?:vec[234]|float)\s+\w+;/g) ?? [];
+    expect(declarations).toHaveLength(7);
+    expect(varyingBlock).toContain("vec4 motionData");
+    expect(varyingBlock).toContain("vec4 surfaceData");
   });
 });

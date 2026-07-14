@@ -14,7 +14,7 @@ describe("RiverRockController placement", () => {
       const queryService = new RiverNetworkQueryService(data);
       const placements = createRiverRockPlacements(data, queryService);
 
-      expect(placements).toHaveLength(7);
+      expect(placements).toHaveLength(data.disturbances.length > 0 ? data.disturbances.length : 7);
       expect(createRiverRockPlacements(data, queryService)).toEqual(placements);
 
       const queryResult = createRiverNetworkQueryResult();

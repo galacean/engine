@@ -8,15 +8,19 @@ import {
   RIVER_FLOW_TRAVEL_MIN_SPEED,
   RIVER_GEOMETRY_EPSILON,
   RIVER_GEOMETRY_Y_OFFSET,
+  RIVER_JUNCTION_CORE_RING_SCALE,
   RIVER_JUNCTION_INNER_RING_SCALE,
-  RIVER_JUNCTION_MIN_REACH_LENGTH
+  RIVER_JUNCTION_MIN_REACH_LENGTH,
+  RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY
 } from "./constants";
-import { createRiverGeometryData } from "./RiverGeometryCompiler";
+import { createRiverGeometryData, createRiverSurfaceFrame } from "./RiverGeometryCompiler";
 import { countDegenerateTriangles } from "./RiverGeometryAnalysis";
 import { resolveRiverRibbonJoinFrame } from "./RiverRibbonJoinResolver";
 import type {
   ReadonlyVector3Tuple,
+  ReadonlyVector4Tuple,
   RiverCompiledNode,
+  RiverGeometryData,
   RiverJunctionArtifact,
   RiverSamplePoint,
   RiverSampleResult,
@@ -31,6 +35,8 @@ export interface RiverJunctionReachInput {
   readonly toNodeIndex: number;
   readonly order: number;
   readonly materialLevel: RiverQualityLevel;
+  readonly geometryLevel: RiverQualityLevel;
+  readonly maxDisplacement: number;
   readonly material: Readonly<RiverMaterialConfig>;
   readonly networkDistanceOffset: number;
   readonly networkFlowTimeOffset: number;
@@ -51,6 +57,7 @@ interface JunctionEndpoint {
   readonly sampleIndex: number;
   readonly networkDistance: number;
   readonly networkFlowTime: number;
+  readonly geometryLevel: RiverQualityLevel;
 }
 
 interface JunctionVertex {
@@ -58,8 +65,20 @@ interface JunctionVertex {
   readonly position: ReadonlyVector3Tuple;
   readonly uv: Vector2Tuple;
   readonly uv1: Vector2Tuple;
-  readonly tangent: ReadonlyVector3Tuple;
+  readonly normal: ReadonlyVector3Tuple;
+  readonly tangent: ReadonlyVector4Tuple;
+  readonly signedAcrossDistance: number;
+  readonly halfWidth: number;
+  readonly networkFlowTime: number;
   readonly angle: number;
+}
+
+interface JunctionPatchData {
+  readonly geometry: RiverGeometryData;
+  readonly flowDirection: ReadonlyVector3Tuple;
+  readonly averageFlowSpeed: number;
+  readonly nodeFlowTime: number;
+  readonly phaseHalfWidth: number;
 }
 
 function tuple3(x: number, y: number, z: number): ReadonlyVector3Tuple {
@@ -70,12 +89,24 @@ function tuple2(x: number, y: number): Vector2Tuple {
   return Object.freeze([x, y] as const);
 }
 
+function tuple4(x: number, y: number, z: number, w: number): ReadonlyVector4Tuple {
+  return Object.freeze([x, y, z, w] as const);
+}
+
 function encodeJunctionProjection(
   projectedAcross: number,
   projectedDownstream: number,
   interiorWeight: number
 ): RiverVertexColorTuple {
   return Object.freeze([projectedAcross, projectedDownstream, interiorWeight, 2] as const);
+}
+
+function blendSurfaceNormal(normal: ReadonlyVector3Tuple, interiorWeight: number): ReadonlyVector3Tuple {
+  const x = normal[0] * (1 - interiorWeight);
+  const y = normal[1] + (1 - normal[1]) * interiorWeight;
+  const z = normal[2] * (1 - interiorWeight);
+  const length = Math.hypot(x, y, z) || 1;
+  return tuple3(x / length, y / length, z / length);
 }
 
 function interpolateSample(a: RiverSamplePoint, b: RiverSamplePoint, distance: number): RiverSamplePoint {
@@ -124,28 +155,51 @@ function createBoundaryVertices(
   endpoints: readonly JunctionEndpoint[],
   includeBankFeather: boolean,
   yOffset: number,
-  acrossInset: number
+  acrossInset: number,
+  subdivideSurface = false
 ): JunctionVertex[] {
   const vertices: JunctionVertex[] = [];
   for (let endpointIndex = 0; endpointIndex < endpoints.length; endpointIndex++) {
     const endpoint = endpoints[endpointIndex];
     const join = resolveRiverRibbonJoinFrame(endpoint.samples, endpoint.sampleIndex);
-    const width = endpoint.sample.width * 0.5 + (includeBankFeather ? endpoint.sample.bankFeather : 0);
-    const offset = width * join.widthScale;
+    const frame = createRiverSurfaceFrame(endpoint.samples, endpoint.sampleIndex);
+    const halfWidth = endpoint.sample.width * 0.5;
+    const outerWidth = halfWidth + (includeBankFeather ? endpoint.sample.bankFeather : 0);
     const y = endpoint.sample.position.y + yOffset;
-    const sides = [
-      { sign: 1, across: acrossInset },
-      { sign: -1, across: 1 - acrossInset }
-    ];
-    for (const side of sides) {
-      const x = endpoint.sample.position.x + join.normalX * offset * side.sign;
-      const z = endpoint.sample.position.z + join.normalZ * offset * side.sign;
+    const acrossSamples: Array<{ signedDistance: number; across: number }> = [];
+    if (subdivideSurface && endpoint.geometryLevel === RiverQualityLevel.Low && includeBankFeather) {
+      acrossSamples.push(
+        { signedDistance: outerWidth, across: 0 },
+        { signedDistance: halfWidth, across: 0.25 },
+        { signedDistance: -halfWidth, across: 0.75 },
+        { signedDistance: -outerWidth, across: 1 }
+      );
+    } else if (subdivideSurface) {
+      const crossSegments = RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY[endpoint.geometryLevel];
+      for (let acrossIndex = 0; acrossIndex <= crossSegments; acrossIndex++) {
+        const across = acrossInset + (1 - acrossInset * 2) * (acrossIndex / crossSegments);
+        acrossSamples.push({ signedDistance: halfWidth * (1 - across * 2), across });
+      }
+    } else {
+      acrossSamples.push(
+        { signedDistance: outerWidth, across: acrossInset },
+        { signedDistance: -outerWidth, across: 1 - acrossInset }
+      );
+    }
+    for (const acrossSample of acrossSamples) {
+      const offset = acrossSample.signedDistance * join.widthScale;
+      const x = endpoint.sample.position.x + join.normalX * offset;
+      const z = endpoint.sample.position.z + join.normalZ * offset;
       vertices.push({
         endpointIndex,
         position: tuple3(x, y, z),
-        uv: tuple2(side.across, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
+        uv: tuple2(acrossSample.across, endpoint.networkFlowTime * RIVER_FLOW_UV_SCALE),
         uv1: tuple2(endpoint.sample.flowSpeed, endpoint.networkDistance),
-        tangent: tuple3(endpoint.sample.tangent.x, endpoint.sample.tangent.y, endpoint.sample.tangent.z),
+        normal: frame.normal,
+        tangent: frame.tangent,
+        signedAcrossDistance: acrossSample.signedDistance,
+        halfWidth,
+        networkFlowTime: endpoint.networkFlowTime,
         angle: Math.atan2(z - node.position[2], x - node.position[0])
       });
     }
@@ -158,10 +212,11 @@ function createPatchGeometry(
   endpoints: readonly JunctionEndpoint[],
   includeBankFeather: boolean,
   yOffset: number,
-  acrossInset: number
-) {
+  acrossInset: number,
+  maxDisplacement: number
+): JunctionPatchData {
   const flowDirection = resolveFlowDirection(endpoints);
-  const boundary = createBoundaryVertices(node, endpoints, includeBankFeather, yOffset, acrossInset);
+  const boundary = createBoundaryVertices(node, endpoints, includeBankFeather, yOffset, acrossInset, true);
   const incomingDistances = endpoints
     .filter((endpoint) => endpoint.incoming)
     .map((endpoint) => endpoint.networkDistance);
@@ -191,14 +246,22 @@ function createPatchGeometry(
     return encodeJunctionProjection(projectedAcross, projectedDownstream, interiorWeight);
   };
   const positions: ReadonlyVector3Tuple[] = [tuple3(node.position[0], node.position[1] + yOffset, node.position[2])];
+  const normals: ReadonlyVector3Tuple[] = [tuple3(0, 1, 0)];
+  const tangents: ReadonlyVector4Tuple[] = [tuple4(flowDirection[0], 0, flowDirection[2], 1)];
   const uvs: Vector2Tuple[] = [tuple2(0.5, nodeFlowTime * RIVER_FLOW_UV_SCALE)];
   const uv1s: Vector2Tuple[] = [tuple2(averageFlowSpeed, nodeDistance)];
+  const uv2s: Vector2Tuple[] = [tuple2(0, nodeFlowTime)];
+  const uv3s: Vector2Tuple[] = [tuple2(phaseHalfWidth, 0)];
   const centerColor = encodeJunctionProjection(0.5, nodeFlowTime * RIVER_FLOW_UV_SCALE, 1);
   const colors: RiverVertexColorTuple[] = [centerColor];
   for (const vertex of boundary) {
     positions.push(vertex.position);
+    normals.push(vertex.normal);
+    tangents.push(vertex.tangent);
     uvs.push(vertex.uv);
     uv1s.push(vertex.uv1);
+    uv2s.push(tuple2(vertex.signedAcrossDistance, vertex.networkFlowTime));
+    uv3s.push(tuple2(vertex.halfWidth, 0));
     colors.push(projectFlowUv(vertex.position, 0));
   }
   const transition = 1 - RIVER_JUNCTION_INNER_RING_SCALE;
@@ -217,12 +280,50 @@ function createPatchGeometry(
     const localX = innerX - node.position[0];
     const localZ = innerZ - node.position[2];
     const projectedDistance = localX * flowDirection[0] + localZ * flowDirection[2];
+    const projectedAcrossDistance = localX * flowNormalX + localZ * flowNormalZ;
+    const projectedFlowTime = nodeFlowTime + projectedDistance / phaseSpeed;
+    const tangentX = vertex.tangent[0] + (flowDirection[0] - vertex.tangent[0]) * transition;
+    const tangentY = vertex.tangent[1] * (1 - transition);
+    const tangentZ = vertex.tangent[2] + (flowDirection[2] - vertex.tangent[2]) * transition;
+    const tangentLength = Math.hypot(tangentX, tangentY, tangentZ) || 1;
     positions.push(tuple3(innerX, innerY, innerZ));
+    normals.push(blendSurfaceNormal(vertex.normal, transition));
+    tangents.push(tuple4(tangentX / tangentLength, tangentY / tangentLength, tangentZ / tangentLength, 1));
     uvs.push(tuple2(vertex.uv[0] + (0.5 - vertex.uv[0]) * transition, branchFlowTime));
     uv1s.push(
       tuple2(vertex.uv1[0] + (averageFlowSpeed - vertex.uv1[0]) * transition, nodeDistance + projectedDistance)
     );
+    uv2s.push(tuple2(projectedAcrossDistance, projectedFlowTime));
+    uv3s.push(tuple2(phaseHalfWidth, 0));
     colors.push(projectFlowUv(tuple3(innerX, innerY, innerZ), 1));
+  }
+  const coreTransition = 1 - RIVER_JUNCTION_CORE_RING_SCALE;
+  for (const vertex of boundary) {
+    const coreX = node.position[0] + (vertex.position[0] - node.position[0]) * RIVER_JUNCTION_CORE_RING_SCALE;
+    const coreY =
+      node.position[1] + yOffset + (vertex.position[1] - (node.position[1] + yOffset)) * RIVER_JUNCTION_CORE_RING_SCALE;
+    const coreZ = node.position[2] + (vertex.position[2] - node.position[2]) * RIVER_JUNCTION_CORE_RING_SCALE;
+    const localX = coreX - node.position[0];
+    const localZ = coreZ - node.position[2];
+    const projectedDistance = localX * flowDirection[0] + localZ * flowDirection[2];
+    const projectedAcrossDistance = localX * flowNormalX + localZ * flowNormalZ;
+    const projectedFlowTime = nodeFlowTime + projectedDistance / phaseSpeed;
+    const tangentX = vertex.tangent[0] + (flowDirection[0] - vertex.tangent[0]) * coreTransition;
+    const tangentY = vertex.tangent[1] * (1 - coreTransition);
+    const tangentZ = vertex.tangent[2] + (flowDirection[2] - vertex.tangent[2]) * coreTransition;
+    const tangentLength = Math.hypot(tangentX, tangentY, tangentZ) || 1;
+    const corePosition = tuple3(coreX, coreY, coreZ);
+    const projectedAcross = 0.5 + projectedAcrossDistance / (phaseHalfWidth * 2);
+    positions.push(corePosition);
+    normals.push(blendSurfaceNormal(vertex.normal, coreTransition));
+    tangents.push(tuple4(tangentX / tangentLength, tangentY / tangentLength, tangentZ / tangentLength, 1));
+    uvs.push(tuple2(projectedAcross, projectedFlowTime * RIVER_FLOW_UV_SCALE));
+    uv1s.push(
+      tuple2(vertex.uv1[0] + (averageFlowSpeed - vertex.uv1[0]) * coreTransition, nodeDistance + projectedDistance)
+    );
+    uv2s.push(tuple2(projectedAcrossDistance, projectedFlowTime));
+    uv3s.push(tuple2(phaseHalfWidth, 0));
+    colors.push(projectFlowUv(corePosition, 1));
   }
   const indices: number[] = [];
   for (let index = 0; index < boundary.length; index++) {
@@ -231,9 +332,39 @@ function createPatchGeometry(
     const nextTrim = nextIndex + 1;
     const inner = boundary.length + index + 1;
     const nextInner = boundary.length + nextIndex + 1;
-    indices.push(trim, nextTrim, inner, inner, nextTrim, nextInner, 0, inner, nextInner);
+    const core = boundary.length * 2 + index + 1;
+    const nextCore = boundary.length * 2 + nextIndex + 1;
+    indices.push(
+      trim,
+      nextTrim,
+      inner,
+      inner,
+      nextTrim,
+      nextInner,
+      inner,
+      nextInner,
+      core,
+      core,
+      nextInner,
+      nextCore,
+      0,
+      core,
+      nextCore
+    );
   }
-  return createRiverGeometryData(positions, uvs, uv1s, indices, indices.length, colors);
+  return Object.freeze({
+    geometry: createRiverGeometryData(positions, uvs, uv1s, indices, indices.length, colors, {
+      normals,
+      tangents,
+      uv2s,
+      uv3s,
+      maxDisplacement
+    }),
+    flowDirection,
+    averageFlowSpeed,
+    nodeFlowTime,
+    phaseHalfWidth
+  });
 }
 
 function resolveFlowDirection(endpoints: readonly JunctionEndpoint[]): ReadonlyVector3Tuple {
@@ -326,7 +457,8 @@ export function compileRiverJunctions(
         sampleIndex,
         sample: samples[sampleIndex],
         networkDistance: reaches[reachIndex].networkDistanceOffset + samples[sampleIndex].distance,
-        networkFlowTime: reaches[reachIndex].networkFlowTimeOffset + samples[sampleIndex].flowTravelTime
+        networkFlowTime: reaches[reachIndex].networkFlowTimeOffset + samples[sampleIndex].flowTravelTime,
+        geometryLevel: reaches[reachIndex].geometryLevel
       };
     });
     if (endpoints.length < 3) {
@@ -355,6 +487,7 @@ export function compileRiverJunctions(
         incomingReachIndices[0]
       );
     const materialLevel = reaches[materialSourceReachIndex].materialLevel;
+    const geometryLevel = reaches[materialSourceReachIndex].geometryLevel;
     const materialSource = reaches[materialSourceReachIndex].material;
     const incompatibleReachIndices = connectedReachIndices.filter(
       (reachIndex) => !hasCompatibleMaterial(reaches[reachIndex].material, materialSource)
@@ -372,10 +505,15 @@ export function compileRiverJunctions(
     const queryBoundary = Object.freeze(
       createBoundaryVertices(node, endpoints, false, 0, 0).map((vertex) => vertex.position)
     );
-    const surfaceGeometry =
-      materialLevel === RiverQualityLevel.Low
-        ? createPatchGeometry(node, endpoints, true, RIVER_GEOMETRY_Y_OFFSET.surface, 0)
-        : createPatchGeometry(node, endpoints, false, RIVER_GEOMETRY_Y_OFFSET.surface, 0);
+    const patchData = createPatchGeometry(
+      node,
+      endpoints,
+      geometryLevel === RiverQualityLevel.Low,
+      RIVER_GEOMETRY_Y_OFFSET.surface,
+      0,
+      materialLevel === RiverQualityLevel.Low ? 0 : reaches[materialSourceReachIndex].maxDisplacement
+    );
+    const surfaceGeometry = patchData.geometry;
     // Junction shore foam is derived from the surface UV inside the same pass. A separate
     // transparent annulus still overlaps connected reach banks at oblique camera angles.
     const bankFoamGeometry = undefined;
@@ -399,8 +537,20 @@ export function compileRiverJunctions(
         incomingReachIndices: new RiverReadonlyUint32Buffer(incomingReachIndices),
         outgoingReachIndices: new RiverReadonlyUint32Buffer(outgoingReachIndices),
         materialSourceReachIndex,
-        flowDirection: resolveFlowDirection(endpoints),
-        flowSpeed: averageEndpointValue(endpoints, (endpoint) => endpoint.sample.flowSpeed),
+        flowDirection: patchData.flowDirection,
+        flowSpeed: patchData.averageFlowSpeed,
+        networkFlowTime: patchData.nodeFlowTime,
+        phaseHalfWidth: patchData.phaseHalfWidth,
+        flowAnchors: Object.freeze(
+          endpoints.map((endpoint) =>
+            Object.freeze({
+              position: tuple3(endpoint.sample.position.x, endpoint.sample.position.y, endpoint.sample.position.z),
+              flowDirection: tuple3(endpoint.sample.tangent.x, endpoint.sample.tangent.y, endpoint.sample.tangent.z),
+              flowSpeed: endpoint.sample.flowSpeed,
+              incoming: endpoint.incoming
+            })
+          )
+        ),
         depth: averageEndpointValue(endpoints, (endpoint) => endpoint.sample.depth),
         queryBoundary,
         surfaceGeometry,

@@ -368,7 +368,7 @@ export const multiTributaryRiverExample: RiverPcgExample = {
       quality: {
         geometry: { level: RiverQualityLevel.Medium, maxSegmentCount: 1024, maxChordError: 0.25 },
         material: { level: RiverQualityLevel.Medium },
-        maps: { level: RiverQualityLevel.Low },
+        maps: { level: RiverQualityLevel.Medium },
         query: { level: RiverQualityLevel.Medium }
       }
     }

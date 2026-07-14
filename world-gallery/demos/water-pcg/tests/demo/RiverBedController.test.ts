@@ -32,6 +32,19 @@ describe("RiverBedController geometry", () => {
         }
       }
       expect(meaningfulDepthCount).toBeGreaterThan(0);
+
+      for (let junctionIndex = 0; junctionIndex < data.junctions.length; junctionIndex++) {
+        const surfaceGeometry = data.junctions[junctionIndex].surfaceGeometry;
+        const bedGeometry = geometries.find(
+          (geometry) => geometry.id === `junction-${data.terrainInteraction.junctionCorridors[junctionIndex].id}`
+        );
+        if (!bedGeometry) throw new Error("Expected a junction bed geometry.");
+        expect(bedGeometry.positions).toHaveLength(surfaceGeometry.positions.length);
+        expect(Array.from(bedGeometry.indices)).toEqual(Array.from(surfaceGeometry.indices));
+        for (let vertexIndex = 0; vertexIndex < bedGeometry.positions.length; vertexIndex++) {
+          expect(bedGeometry.positions[vertexIndex][1]).toBeLessThan(surfaceGeometry.positions[vertexIndex][1]);
+        }
+      }
     }
   );
 });

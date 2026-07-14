@@ -10,7 +10,21 @@
  */
 import { Vector3 } from "@galacean/engine-math";
 import { RiverChunkSourceKind, RiverQueryPrimitiveKind } from "../../compiler/river/RiverGeometryEnums";
-import type { RiverCompiledData, RiverQuerySourceData, RiverSamplePoint } from "../../compiler/river/types";
+import type {
+  RiverCompiledData,
+  RiverGeometryData,
+  RiverQuerySourceData,
+  RiverSamplePoint
+} from "../../compiler/river/types";
+import {
+  createRiverSurfaceMotionSampleOutput,
+  evaluateRiverSurfaceMotion
+} from "../../compiler/river/RiverSurfaceMotion";
+import {
+  RIVER_FLOW_TRAVEL_MIN_SPEED,
+  RIVER_GEOMETRY_Y_OFFSET,
+  RIVER_QUERY_SAMPLE_COMPONENT
+} from "../../compiler/river/constants";
 import { RIVER_QUERY_EPSILON, RIVER_QUERY_NO_SOURCE_INDEX, RIVER_QUERY_NO_SOURCE_KIND } from "./constants";
 import type { RiverNetworkQueryBatchOutput, RiverNetworkQueryResult, RiverQueryResult } from "./types";
 
@@ -119,9 +133,7 @@ function distancePointToSegmentXZ(
   const abz = bz - az;
   const lengthSquared = abx * abx + abz * abz;
   const t =
-    lengthSquared > RIVER_QUERY_EPSILON
-      ? clamp01(((pointX - ax) * abx + (pointZ - az) * abz) / lengthSquared)
-      : 0;
+    lengthSquared > RIVER_QUERY_EPSILON ? clamp01(((pointX - ax) * abx + (pointZ - az) * abz) / lengthSquared) : 0;
   return Math.hypot(pointX - (ax + abx * t), pointZ - (az + abz * t));
 }
 
@@ -160,6 +172,55 @@ function distanceToPolygonBankXZ(boundary: Float32Array, pointX: number, pointZ:
   return distance;
 }
 
+interface RiverTriangleSample {
+  firstIndex: number;
+  secondIndex: number;
+  thirdIndex: number;
+  firstWeight: number;
+  secondWeight: number;
+  thirdWeight: number;
+}
+
+function findGeometryTriangleXZ(
+  geometry: RiverGeometryData,
+  pointX: number,
+  pointZ: number,
+  out: RiverTriangleSample
+): boolean {
+  const end = geometry.drawStart + geometry.drawCount;
+  for (let offset = geometry.drawStart; offset + 2 < end; offset += 3) {
+    const firstIndex = geometry.indices.at(offset);
+    const secondIndex = geometry.indices.at(offset + 1);
+    const thirdIndex = geometry.indices.at(offset + 2);
+    if (firstIndex === undefined || secondIndex === undefined || thirdIndex === undefined) continue;
+    const first = geometry.positions[firstIndex];
+    const second = geometry.positions[secondIndex];
+    const third = geometry.positions[thirdIndex];
+    const denominator = (second[2] - third[2]) * (first[0] - third[0]) + (third[0] - second[0]) * (first[2] - third[2]);
+    if (Math.abs(denominator) <= RIVER_QUERY_EPSILON) continue;
+    const firstWeight =
+      ((second[2] - third[2]) * (pointX - third[0]) + (third[0] - second[0]) * (pointZ - third[2])) / denominator;
+    const secondWeight =
+      ((third[2] - first[2]) * (pointX - third[0]) + (first[0] - third[0]) * (pointZ - third[2])) / denominator;
+    const thirdWeight = 1 - firstWeight - secondWeight;
+    if (
+      firstWeight < -RIVER_QUERY_EPSILON ||
+      secondWeight < -RIVER_QUERY_EPSILON ||
+      thirdWeight < -RIVER_QUERY_EPSILON
+    ) {
+      continue;
+    }
+    out.firstIndex = firstIndex;
+    out.secondIndex = secondIndex;
+    out.thirdIndex = thirdIndex;
+    out.firstWeight = firstWeight;
+    out.secondWeight = secondWeight;
+    out.thirdWeight = thirdWeight;
+    return true;
+  }
+  return false;
+}
+
 export function createRiverNetworkQueryResult(): RiverNetworkQueryResult {
   return {
     hit: false,
@@ -170,6 +231,7 @@ export function createRiverNetworkQueryResult(): RiverNetworkQueryResult {
     insideFootprint: false,
     insideVolume: false,
     surfaceHeight: 0,
+    surfaceVerticalVelocity: 0,
     signedSurfaceDistance: 0,
     submergedDepth: 0,
     waterDepth: 0,
@@ -191,6 +253,7 @@ export function createRiverNetworkQueryBatchOutput(capacity: number): RiverNetwo
     insideFootprints: new Uint8Array(capacity),
     insideVolumes: new Uint8Array(capacity),
     surfaceHeights: new Float32Array(capacity),
+    surfaceVerticalVelocities: new Float32Array(capacity),
     signedSurfaceDistances: new Float32Array(capacity),
     submergedDepths: new Float32Array(capacity),
     waterDepths: new Float32Array(capacity),
@@ -209,6 +272,7 @@ function resetNetworkResult(result: RiverNetworkQueryResult, waterBodyId: string
   result.insideFootprint = false;
   result.insideVolume = false;
   result.surfaceHeight = 0;
+  result.surfaceVerticalVelocity = 0;
   result.signedSurfaceDistance = 0;
   result.submergedDepth = 0;
   result.waterDepth = 0;
@@ -231,6 +295,21 @@ export class RiverNetworkQueryService {
   private readonly _junctionBoundaries: readonly Float32Array[];
   private readonly _junctionInradii: Float32Array;
   private readonly _batchScratch = createRiverNetworkQueryResult();
+  private readonly _motionScratch = createRiverSurfaceMotionSampleOutput();
+  private readonly _motionCoordinates = {
+    signedAcrossDistance: 0,
+    networkFlowTime: 0,
+    halfWidth: 0,
+    flowSpeed: 0
+  };
+  private readonly _junctionTriangleScratch: RiverTriangleSample = {
+    firstIndex: 0,
+    secondIndex: 0,
+    thirdIndex: 0,
+    firstWeight: 0,
+    secondWeight: 0,
+    thirdWeight: 0
+  };
 
   constructor(private readonly _data: RiverCompiledData) {
     const index = _data.queryIndex;
@@ -267,6 +346,10 @@ export class RiverNetworkQueryService {
     return this._sample(worldPosition.x, worldPosition.y, worldPosition.z, outResult, true);
   }
 
+  sampleSurfaceAtTime(worldPosition: Vector3, elapsedTime: number, outResult: RiverNetworkQueryResult): boolean {
+    return this._sample(worldPosition.x, worldPosition.y, worldPosition.z, outResult, true, Math.max(0, elapsedTime));
+  }
+
   containsVolume(worldPosition: Vector3, outResult: RiverNetworkQueryResult): boolean {
     this.sampleSurface(worldPosition, outResult);
     return outResult.insideVolume;
@@ -278,6 +361,14 @@ export class RiverNetworkQueryService {
   }
 
   queryBatch(positions: Float32Array, out: RiverNetworkQueryBatchOutput): number {
+    return this._queryBatch(positions, out);
+  }
+
+  queryBatchAtTime(positions: Float32Array, elapsedTime: number, out: RiverNetworkQueryBatchOutput): number {
+    return this._queryBatch(positions, out, Math.max(0, elapsedTime));
+  }
+
+  private _queryBatch(positions: Float32Array, out: RiverNetworkQueryBatchOutput, elapsedTime?: number): number {
     const count = Math.floor(positions.length / 3);
     if (!this._hasBatchCapacity(out, count)) {
       throw new RangeError("River query batch output capacity is smaller than the position count.");
@@ -285,7 +376,7 @@ export class RiverNetworkQueryService {
     for (let index = 0; index < count; index++) {
       const offset = index * 3;
       const result = this._batchScratch;
-      this._sample(positions[offset], positions[offset + 1], positions[offset + 2], result, true);
+      this._sample(positions[offset], positions[offset + 1], positions[offset + 2], result, true, elapsedTime);
       out.hits[index] = result.hit ? 1 : 0;
       out.sourceKinds[index] = result.hit
         ? result.sourceKind === RiverChunkSourceKind.Junction
@@ -296,6 +387,7 @@ export class RiverNetworkQueryService {
       out.insideFootprints[index] = result.insideFootprint ? 1 : 0;
       out.insideVolumes[index] = result.insideVolume ? 1 : 0;
       out.surfaceHeights[index] = result.surfaceHeight;
+      out.surfaceVerticalVelocities[index] = result.surfaceVerticalVelocity;
       out.signedSurfaceDistances[index] = result.signedSurfaceDistance;
       out.submergedDepths[index] = result.submergedDepth;
       out.waterDepths[index] = result.waterDepth;
@@ -318,6 +410,7 @@ export class RiverNetworkQueryService {
       out.insideFootprints.length >= count &&
       out.insideVolumes.length >= count &&
       out.surfaceHeights.length >= count &&
+      out.surfaceVerticalVelocities.length >= count &&
       out.signedSurfaceDistances.length >= count &&
       out.submergedDepths.length >= count &&
       out.waterDepths.length >= count &&
@@ -332,7 +425,8 @@ export class RiverNetworkQueryService {
     y: number,
     z: number,
     outResult: RiverNetworkQueryResult,
-    useIndex: boolean
+    useIndex: boolean,
+    elapsedTime?: number
   ): boolean {
     resetNetworkResult(outResult, this._data.sourceId);
     let bestDistanceToBank = Number.NEGATIVE_INFINITY;
@@ -350,19 +444,13 @@ export class RiverNetworkQueryService {
           y,
           z,
           bestDistanceToBank,
-          outResult
+          outResult,
+          elapsedTime
         );
       }
     } else {
       for (let primitiveIndex = 0; primitiveIndex < this._primitiveKinds.length; primitiveIndex++) {
-        bestDistanceToBank = this._samplePrimitive(
-          primitiveIndex,
-          x,
-          y,
-          z,
-          bestDistanceToBank,
-          outResult
-        );
+        bestDistanceToBank = this._samplePrimitive(primitiveIndex, x, y, z, bestDistanceToBank, outResult, elapsedTime);
       }
     }
     return outResult.hit;
@@ -388,7 +476,8 @@ export class RiverNetworkQueryService {
     y: number,
     z: number,
     bestDistanceToBank: number,
-    outResult: RiverNetworkQueryResult
+    outResult: RiverNetworkQueryResult,
+    elapsedTime?: number
   ): number {
     const boundsOffset = primitiveIndex * 4;
     if (
@@ -400,8 +489,8 @@ export class RiverNetworkQueryService {
       return bestDistanceToBank;
     }
     return this._primitiveKinds[primitiveIndex] === RiverQueryPrimitiveKind.Junction
-      ? this._sampleJunction(primitiveIndex, x, y, z, bestDistanceToBank, outResult)
-      : this._sampleReachSpan(primitiveIndex, x, y, z, bestDistanceToBank, outResult);
+      ? this._sampleJunction(primitiveIndex, x, y, z, bestDistanceToBank, outResult, elapsedTime)
+      : this._sampleReachSpan(primitiveIndex, x, y, z, bestDistanceToBank, outResult, elapsedTime);
   }
 
   private _sampleReachSpan(
@@ -410,7 +499,8 @@ export class RiverNetworkQueryService {
     y: number,
     z: number,
     bestDistanceToBank: number,
-    outResult: RiverNetworkQueryResult
+    outResult: RiverNetworkQueryResult,
+    elapsedTime?: number
   ): number {
     const reachIndex = this._primitiveSourceIndices[primitiveIndex];
     const spanIndex = this._primitiveLocalIndices[primitiveIndex];
@@ -418,12 +508,12 @@ export class RiverNetworkQueryService {
     const stride = this._reachSampleStrides[reachIndex];
     const aOffset = spanIndex * stride;
     const bOffset = aOffset + stride;
-    const ax = samples[aOffset];
-    const ay = samples[aOffset + 1];
-    const az = samples[aOffset + 2];
-    const bx = samples[bOffset];
-    const by = samples[bOffset + 1];
-    const bz = samples[bOffset + 2];
+    const ax = samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.x];
+    const ay = samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.y];
+    const az = samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.z];
+    const bx = samples[bOffset + RIVER_QUERY_SAMPLE_COMPONENT.x];
+    const by = samples[bOffset + RIVER_QUERY_SAMPLE_COMPONENT.y];
+    const bz = samples[bOffset + RIVER_QUERY_SAMPLE_COMPONENT.z];
     const abx = bx - ax;
     const abz = bz - az;
     const horizontalLengthSquared = abx * abx + abz * abz;
@@ -434,22 +524,66 @@ export class RiverNetworkQueryService {
     const dx = x - (ax + abx * t);
     const dz = z - (az + abz * t);
     const centerDistance = Math.hypot(dx, dz);
-    const width = interpolateSampleValue(samples[aOffset + 4], samples[bOffset + 4], t);
+    const width = interpolateSampleValue(
+      samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.width],
+      samples[bOffset + RIVER_QUERY_SAMPLE_COMPONENT.width],
+      t
+    );
     const halfWidth = width * 0.5;
     const distanceToBank = halfWidth - centerDistance;
     if (distanceToBank <= bestDistanceToBank) return bestDistanceToBank;
-    const surfaceHeight = interpolateSampleValue(ay, by, t);
-    const profileDepth = interpolateSampleValue(samples[aOffset + 5], samples[bOffset + 5], t);
-    const waterDepth = Math.max(
-      0,
-      profileDepth * clamp01(distanceToBank / Math.max(halfWidth, RIVER_QUERY_EPSILON))
+    const staticSurfaceHeight = interpolateSampleValue(ay, by, t);
+    const profileDepth = interpolateSampleValue(
+      samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.depth],
+      samples[bOffset + RIVER_QUERY_SAMPLE_COMPONENT.depth],
+      t
     );
-    const flowSpeed = interpolateSampleValue(samples[aOffset + 6], samples[bOffset + 6], t);
+    const waterDepth = Math.max(0, profileDepth * clamp01(distanceToBank / Math.max(halfWidth, RIVER_QUERY_EPSILON)));
+    const flowSpeed = interpolateSampleValue(
+      samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.flowSpeed],
+      samples[bOffset + RIVER_QUERY_SAMPLE_COMPONENT.flowSpeed],
+      t
+    );
     const horizontalLength = Math.sqrt(horizontalLengthSquared);
-    const tangentX = horizontalLength > RIVER_QUERY_EPSILON ? abx / horizontalLength : samples[aOffset + 7];
-    const tangentZ = horizontalLength > RIVER_QUERY_EPSILON ? abz / horizontalLength : samples[aOffset + 8];
+    const tangentX =
+      horizontalLength > RIVER_QUERY_EPSILON
+        ? abx / horizontalLength
+        : samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.tangentX];
+    const tangentZ =
+      horizontalLength > RIVER_QUERY_EPSILON
+        ? abz / horizontalLength
+        : samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.tangentZ];
     const slope = horizontalLength > RIVER_QUERY_EPSILON ? (by - ay) / horizontalLength : 0;
-    const normalLength = Math.hypot(tangentX * slope, 1, tangentZ * slope);
+    const baseNormalLength = Math.hypot(tangentX * slope, 1, tangentZ * slope);
+    let normalX = (-tangentX * slope) / baseNormalLength;
+    let normalY = 1 / baseNormalLength;
+    let normalZ = (-tangentZ * slope) / baseNormalLength;
+    let surfaceHeight = staticSurfaceHeight;
+    let surfaceVerticalVelocity = 0;
+    if (elapsedTime !== undefined) {
+      const lateralX = -tangentZ;
+      const lateralZ = tangentX;
+      const signedAcrossDistance = dx * lateralX + dz * lateralZ;
+      const localFlowTravelTime = interpolateSampleValue(
+        samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.flowTravelTime],
+        samples[bOffset + RIVER_QUERY_SAMPLE_COMPONENT.flowTravelTime],
+        t
+      );
+      this._motionCoordinates.signedAcrossDistance = signedAcrossDistance;
+      this._motionCoordinates.networkFlowTime =
+        this._data.reaches[reachIndex].networkFlowTimeOffset + localFlowTravelTime;
+      this._motionCoordinates.halfWidth = halfWidth;
+      this._motionCoordinates.flowSpeed = flowSpeed;
+      evaluateRiverSurfaceMotion(this._data.surfaceMotion, this._motionCoordinates, elapsedTime, this._motionScratch);
+      surfaceHeight += RIVER_GEOMETRY_Y_OFFSET.surface + this._motionScratch.height;
+      surfaceVerticalVelocity = this._motionScratch.verticalVelocity;
+      normalX -= lateralX * this._motionScratch.acrossDerivative + tangentX * this._motionScratch.downstreamDerivative;
+      normalZ -= lateralZ * this._motionScratch.acrossDerivative + tangentZ * this._motionScratch.downstreamDerivative;
+      const dynamicNormalLength = Math.hypot(normalX, normalY, normalZ) || 1;
+      normalX /= dynamicNormalLength;
+      normalY /= dynamicNormalLength;
+      normalZ /= dynamicNormalLength;
+    }
     this._writeResult(
       outResult,
       RiverChunkSourceKind.Reach,
@@ -457,14 +591,15 @@ export class RiverNetworkQueryService {
       this._data.reaches[reachIndex].id,
       distanceToBank,
       surfaceHeight,
+      surfaceVerticalVelocity,
       waterDepth,
       y,
       tangentX * flowSpeed,
       0,
       tangentZ * flowSpeed,
-      (-tangentX * slope) / normalLength,
-      1 / normalLength,
-      (-tangentZ * slope) / normalLength
+      normalX,
+      normalY,
+      normalZ
     );
     return distanceToBank;
   }
@@ -475,7 +610,8 @@ export class RiverNetworkQueryService {
     y: number,
     z: number,
     bestDistanceToBank: number,
-    outResult: RiverNetworkQueryResult
+    outResult: RiverNetworkQueryResult,
+    elapsedTime?: number
   ): number {
     const junctionIndex = this._primitiveSourceIndices[primitiveIndex];
     const junction = this._data.junctions[junctionIndex];
@@ -484,24 +620,121 @@ export class RiverNetworkQueryService {
     const distanceToBank = isPointInsidePolygonXZ(boundary, x, z) ? bankDistance : -bankDistance;
     if (distanceToBank <= bestDistanceToBank) return bestDistanceToBank;
     const waterDepth =
-      distanceToBank >= 0
-        ? junction.depth * clamp01(distanceToBank / this._junctionInradii[junctionIndex])
-        : 0;
+      distanceToBank >= 0 ? junction.depth * clamp01(distanceToBank / this._junctionInradii[junctionIndex]) : 0;
+    let surfaceHeight = junction.position[1];
+    let surfaceVerticalVelocity = 0;
+    let normalX = 0;
+    let normalY = 1;
+    let normalZ = 0;
+    let flowX = junction.flowDirection[0] * junction.flowSpeed;
+    let flowZ = junction.flowDirection[2] * junction.flowSpeed;
+    if (elapsedTime !== undefined) {
+      const geometry = junction.surfaceGeometry;
+      const uv2s = geometry.uv2s;
+      const uv3s = geometry.uv3s;
+      const tangents = geometry.tangents;
+      const normals = geometry.normals;
+      if (
+        uv2s &&
+        uv3s &&
+        tangents &&
+        normals &&
+        findGeometryTriangleXZ(geometry, x, z, this._junctionTriangleScratch)
+      ) {
+        const triangle = this._junctionTriangleScratch;
+        surfaceHeight = 0;
+        surfaceVerticalVelocity = 0;
+        normalX = 0;
+        normalY = 0;
+        normalZ = 0;
+        flowX = 0;
+        flowZ = 0;
+        for (let vertex = 0; vertex < 3; vertex++) {
+          const vertexIndex =
+            vertex === 0 ? triangle.firstIndex : vertex === 1 ? triangle.secondIndex : triangle.thirdIndex;
+          const weight =
+            vertex === 0 ? triangle.firstWeight : vertex === 1 ? triangle.secondWeight : triangle.thirdWeight;
+          const tangent = tangents[vertexIndex];
+          const tangentLength = Math.hypot(tangent[0], tangent[2]) || 1;
+          const tangentX = tangent[0] / tangentLength;
+          const tangentZ = tangent[2] / tangentLength;
+          const lateralX = -tangentZ;
+          const lateralZ = tangentX;
+          this._motionCoordinates.signedAcrossDistance = uv2s[vertexIndex][0];
+          this._motionCoordinates.networkFlowTime = uv2s[vertexIndex][1];
+          this._motionCoordinates.halfWidth = uv3s[vertexIndex][0];
+          this._motionCoordinates.flowSpeed = geometry.uv1s[vertexIndex][0];
+          evaluateRiverSurfaceMotion(
+            this._data.surfaceMotion,
+            this._motionCoordinates,
+            elapsedTime,
+            this._motionScratch
+          );
+          surfaceHeight += (geometry.positions[vertexIndex][1] + this._motionScratch.height) * weight;
+          surfaceVerticalVelocity += this._motionScratch.verticalVelocity * weight;
+          const vertexNormalX =
+            normals[vertexIndex][0] -
+            lateralX * this._motionScratch.acrossDerivative -
+            tangentX * this._motionScratch.downstreamDerivative;
+          const vertexNormalY = normals[vertexIndex][1];
+          const vertexNormalZ =
+            normals[vertexIndex][2] -
+            lateralZ * this._motionScratch.acrossDerivative -
+            tangentZ * this._motionScratch.downstreamDerivative;
+          const vertexNormalLength = Math.hypot(vertexNormalX, vertexNormalY, vertexNormalZ) || 1;
+          normalX += (vertexNormalX / vertexNormalLength) * weight;
+          normalY += (vertexNormalY / vertexNormalLength) * weight;
+          normalZ += (vertexNormalZ / vertexNormalLength) * weight;
+          flowX += tangentX * this._motionCoordinates.flowSpeed * weight;
+          flowZ += tangentZ * this._motionCoordinates.flowSpeed * weight;
+        }
+        const normalLength = Math.hypot(normalX, normalY, normalZ) || 1;
+        normalX /= normalLength;
+        normalY /= normalLength;
+        normalZ /= normalLength;
+      } else {
+        const localX = x - junction.position[0];
+        const localZ = z - junction.position[2];
+        const lateralX = -junction.flowDirection[2];
+        const lateralZ = junction.flowDirection[0];
+        const signedAcrossDistance = localX * lateralX + localZ * lateralZ;
+        const projectedDistance = localX * junction.flowDirection[0] + localZ * junction.flowDirection[2];
+        this._motionCoordinates.signedAcrossDistance = signedAcrossDistance;
+        this._motionCoordinates.networkFlowTime =
+          junction.networkFlowTime + projectedDistance / Math.max(junction.flowSpeed, RIVER_FLOW_TRAVEL_MIN_SPEED);
+        this._motionCoordinates.halfWidth = junction.phaseHalfWidth;
+        this._motionCoordinates.flowSpeed = junction.flowSpeed;
+        evaluateRiverSurfaceMotion(this._data.surfaceMotion, this._motionCoordinates, elapsedTime, this._motionScratch);
+        surfaceHeight += RIVER_GEOMETRY_Y_OFFSET.surface + this._motionScratch.height;
+        surfaceVerticalVelocity = this._motionScratch.verticalVelocity;
+        normalX =
+          -lateralX * this._motionScratch.acrossDerivative -
+          junction.flowDirection[0] * this._motionScratch.downstreamDerivative;
+        normalZ =
+          -lateralZ * this._motionScratch.acrossDerivative -
+          junction.flowDirection[2] * this._motionScratch.downstreamDerivative;
+        const normalLength = Math.hypot(normalX, normalY, normalZ) || 1;
+        normalX /= normalLength;
+        normalY /= normalLength;
+        normalZ /= normalLength;
+      }
+    }
     this._writeResult(
       outResult,
       RiverChunkSourceKind.Junction,
       junctionIndex,
       junction.id,
       distanceToBank,
-      junction.position[1],
+      surfaceHeight,
+      surfaceVerticalVelocity,
       waterDepth,
       y,
-      junction.flowDirection[0] * junction.flowSpeed,
+      flowX,
       0,
-      junction.flowDirection[2] * junction.flowSpeed,
-      0,
-      1,
-      0
+      flowZ,
+      normalX,
+      normalY,
+      normalZ
     );
     return distanceToBank;
   }
@@ -513,6 +746,7 @@ export class RiverNetworkQueryService {
     segmentId: string,
     distanceToBank: number,
     surfaceHeight: number,
+    surfaceVerticalVelocity: number,
     waterDepth: number,
     queryY: number,
     flowX: number,
@@ -530,6 +764,7 @@ export class RiverNetworkQueryService {
     result.sourceIndex = sourceIndex;
     result.insideFootprint = insideFootprint;
     result.surfaceHeight = surfaceHeight;
+    result.surfaceVerticalVelocity = surfaceVerticalVelocity;
     result.signedSurfaceDistance = signedSurfaceDistance;
     result.waterDepth = waterDepth;
     result.insideVolume =

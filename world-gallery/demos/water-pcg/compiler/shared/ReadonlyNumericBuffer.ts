@@ -1,5 +1,36 @@
 /** Immutable public views over compiler-owned numeric buffers. */
-import type { ReadonlyFloat32Buffer, ReadonlyInt32Buffer, ReadonlyUint32Buffer } from "../river/types";
+import type {
+  ReadonlyFloat32Buffer,
+  ReadonlyInt32Buffer,
+  ReadonlyUint32Buffer,
+  ReadonlyUint8Buffer
+} from "../river/types";
+
+export class RiverReadonlyUint8Buffer implements ReadonlyUint8Buffer {
+  readonly #data: Uint8Array;
+
+  constructor(values: ArrayLike<number>) {
+    this.#data = new Uint8Array(values);
+    Object.freeze(this);
+  }
+
+  get length(): number {
+    return this.#data.length;
+  }
+
+  at(index: number): number | undefined {
+    const resolvedIndex = index < 0 ? this.#data.length + index : index;
+    return resolvedIndex >= 0 && resolvedIndex < this.#data.length ? this.#data[resolvedIndex] : undefined;
+  }
+
+  toTypedArray(): Uint8Array {
+    return this.#data.slice();
+  }
+
+  [Symbol.iterator](): IterableIterator<number> {
+    return this.#data.values();
+  }
+}
 
 export class RiverReadonlyUint32Buffer implements ReadonlyUint32Buffer {
   readonly #data: Uint32Array;

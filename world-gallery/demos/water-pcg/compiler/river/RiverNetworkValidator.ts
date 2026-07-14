@@ -1,5 +1,9 @@
 /** Graph, topology, endpoint, elevation, and whole-network budget validation. */
-import { RiverNetworkSchemaVersion, RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
+import {
+  RiverDisturbanceKind,
+  RiverNetworkSchemaVersion,
+  RiverNodeKind
+} from "../../authoring/river/RiverAuthoringEnums";
 import { RIVER_LIMITS } from "../../authoring/river/RiverAuthoringLimits";
 import type {
   RiverNetworkBudgetConfig,
@@ -8,6 +12,7 @@ import type {
 } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
+import { RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY } from "./constants";
 
 const DEFAULT_NETWORK_BUDGET: RiverNetworkBudgetConfig = {
   maxSegmentCount: RIVER_LIMITS.maxNetworkSegmentCount,
@@ -55,14 +60,163 @@ export function validateRiverNetworkDescriptor(
   network: RiverNetworkDescriptor
 ): RiverValidationResult<RiverNetworkDescriptor> {
   const diagnostics: RiverDiagnostic[] = [];
-  if (network.schemaVersion !== RiverNetworkSchemaVersion.V1) {
+  if (
+    network.schemaVersion !== RiverNetworkSchemaVersion.V1 &&
+    network.schemaVersion !== RiverNetworkSchemaVersion.V2
+  ) {
     pushDiagnostic(
       diagnostics,
       RiverDiagnosticCode.UnsupportedSchemaVersion,
       RiverDiagnosticSeverity.Error,
       "schemaVersion",
-      `Expected river network schema version ${RiverNetworkSchemaVersion.V1}.`
+      `Expected river network schema version ${RiverNetworkSchemaVersion.V1} or ${RiverNetworkSchemaVersion.V2}.`
     );
+  }
+  if (network.schemaVersion === RiverNetworkSchemaVersion.V2) {
+    const motion = network.defaults.surfaceMotion;
+    const ranges: Array<[number, number, number, string]> = [
+      [
+        motion.displacementAmplitude,
+        RIVER_LIMITS.minDisplacementAmplitude,
+        RIVER_LIMITS.maxDisplacementAmplitude,
+        "defaults.surfaceMotion.displacementAmplitude"
+      ],
+      [
+        motion.displacementLengthScale,
+        RIVER_LIMITS.minDisplacementLengthScale,
+        RIVER_LIMITS.maxDisplacementLengthScale,
+        "defaults.surfaceMotion.displacementLengthScale"
+      ],
+      [
+        motion.shoreDampingWidth,
+        RIVER_LIMITS.minShoreDampingWidth,
+        RIVER_LIMITS.maxShoreDampingWidth,
+        "defaults.surfaceMotion.shoreDampingWidth"
+      ],
+      [
+        motion.turbulence,
+        RIVER_LIMITS.minSurfaceTurbulence,
+        RIVER_LIMITS.maxSurfaceTurbulence,
+        "defaults.surfaceMotion.turbulence"
+      ],
+      [
+        motion.crestIntensity,
+        RIVER_LIMITS.minCrestIntensity,
+        RIVER_LIMITS.maxCrestIntensity,
+        "defaults.surfaceMotion.crestIntensity"
+      ],
+      [
+        motion.microNormalStrength,
+        RIVER_LIMITS.minMicroNormalStrength,
+        RIVER_LIMITS.maxMicroNormalStrength,
+        "defaults.surfaceMotion.microNormalStrength"
+      ]
+    ];
+    if (
+      !Number.isInteger(motion.seed) ||
+      motion.seed < RIVER_LIMITS.minSurfaceSeed ||
+      motion.seed > RIVER_LIMITS.maxSurfaceSeed
+    ) {
+      pushDiagnostic(
+        diagnostics,
+        RiverDiagnosticCode.ValueOutOfRange,
+        RiverDiagnosticSeverity.Error,
+        "defaults.surfaceMotion.seed",
+        `Expected an integer seed in [${RIVER_LIMITS.minSurfaceSeed}, ${RIVER_LIMITS.maxSurfaceSeed}].`
+      );
+    }
+    for (const [value, minimum, maximum, path] of ranges) {
+      if (!Number.isFinite(value) || value < minimum || value > maximum) {
+        pushDiagnostic(
+          diagnostics,
+          RiverDiagnosticCode.ValueOutOfRange,
+          RiverDiagnosticSeverity.Error,
+          path,
+          `Expected a finite value in [${minimum}, ${maximum}].`
+        );
+      }
+    }
+    const disturbanceIds = new Set<string>();
+    const disturbances = network.disturbances ?? [];
+    if (disturbances.length > RIVER_LIMITS.maxDisturbanceCount) {
+      pushDiagnostic(
+        diagnostics,
+        RiverDiagnosticCode.ValueOutOfRange,
+        RiverDiagnosticSeverity.Error,
+        "disturbances",
+        `At most ${RIVER_LIMITS.maxDisturbanceCount} disturbances are allowed.`
+      );
+    }
+    for (let index = 0; index < disturbances.length; index++) {
+      const disturbance = disturbances[index];
+      if (typeof disturbance.id !== "string" || disturbance.id.trim().length === 0) {
+        pushDiagnostic(
+          diagnostics,
+          RiverDiagnosticCode.InvalidType,
+          RiverDiagnosticSeverity.Error,
+          `disturbances[${index}].id`,
+          "Disturbance id must be a non-empty string."
+        );
+      }
+      if (disturbanceIds.has(disturbance.id)) {
+        pushDiagnostic(
+          diagnostics,
+          RiverDiagnosticCode.DuplicateId,
+          RiverDiagnosticSeverity.Error,
+          `disturbances[${index}].id`,
+          "Disturbance id is duplicated."
+        );
+      }
+      disturbanceIds.add(disturbance.id);
+      if (disturbance.kind !== RiverDisturbanceKind.Obstacle) {
+        pushDiagnostic(
+          diagnostics,
+          RiverDiagnosticCode.InvalidEnum,
+          RiverDiagnosticSeverity.Error,
+          `disturbances[${index}].kind`,
+          "Only static obstacle disturbances are supported."
+        );
+      }
+      if (
+        !Array.isArray(disturbance.position) ||
+        disturbance.position.length !== 3 ||
+        disturbance.position.some((component) => !Number.isFinite(component))
+      ) {
+        pushDiagnostic(
+          diagnostics,
+          RiverDiagnosticCode.InvalidNumber,
+          RiverDiagnosticSeverity.Error,
+          `disturbances[${index}].position`,
+          "Disturbance position must contain three finite numbers."
+        );
+      }
+      if (
+        !Number.isFinite(disturbance.radius) ||
+        disturbance.radius < RIVER_LIMITS.minDisturbanceRadius ||
+        disturbance.radius > RIVER_LIMITS.maxDisturbanceRadius
+      ) {
+        pushDiagnostic(
+          diagnostics,
+          RiverDiagnosticCode.ValueOutOfRange,
+          RiverDiagnosticSeverity.Error,
+          `disturbances[${index}].radius`,
+          `Expected a radius in [${RIVER_LIMITS.minDisturbanceRadius}, ${RIVER_LIMITS.maxDisturbanceRadius}].`
+        );
+      }
+      if (
+        !Number.isFinite(disturbance.strength) ||
+        disturbance.strength < RIVER_LIMITS.minDisturbanceStrength ||
+        disturbance.strength > RIVER_LIMITS.maxDisturbanceStrength
+      ) {
+        pushDiagnostic(
+          diagnostics,
+          RiverDiagnosticCode.ValueOutOfRange,
+          RiverDiagnosticSeverity.Error,
+          `disturbances[${index}].strength`,
+          `Expected a strength in [${RIVER_LIMITS.minDisturbanceStrength}, ${RIVER_LIMITS.maxDisturbanceStrength}].`
+        );
+      }
+    }
   }
   const nodeIds = new Set<string>();
   const segmentIds = new Set<string>();
@@ -257,7 +411,8 @@ export function validateRiverNetworkDescriptor(
       );
     }
   }
-  const minimumVertices = minimumSamples * 4;
+  const minimumVertices =
+    minimumSamples * (RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY[network.defaults.quality.geometry.level] + 1);
   const minimumChunks = network.segments.length;
   const budgetChecks: Array<[number, number, string]> = [
     [network.segments.length, budget.maxSegmentCount, "budget.maxSegmentCount"],

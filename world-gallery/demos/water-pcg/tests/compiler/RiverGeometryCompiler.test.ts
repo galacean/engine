@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { RIVER_FLOW_UV_SCALE, RIVER_RIBBON_MITER_LIMIT } from "../../compiler/river/constants";
+import {
+  RIVER_FLOW_UV_SCALE,
+  RIVER_GEOMETRY_Y_OFFSET,
+  RIVER_RIBBON_MITER_LIMIT,
+  RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY
+} from "../../compiler/river/constants";
 import { createLowRiverGeometryData, RiverGeometryCompiler } from "../../compiler/river/RiverGeometryCompiler";
 import { sampleRiverPath } from "../../compiler/river/RiverPathSampler";
 import { resolveRiverRibbonJoinFrame } from "../../compiler/river/RiverRibbonJoinResolver";
@@ -35,8 +40,40 @@ describe("RiverGeometryCompiler", () => {
     const meshHash = hashRiverGeometryData(createLowRiverGeometryData(first));
     expect(sampleHash).toBe(hashRiverSamples(second));
     expect(meshHash).toBe(hashRiverGeometryData(createLowRiverGeometryData(second)));
-    expect({ sampleHash, meshHash }).toEqual({ sampleHash: "0e2403b2", meshHash: "4b31507d" });
+    expect({ sampleHash, meshHash }).toEqual({ sampleHash: "0e2403b2", meshHash: "06911b4d" });
   });
+
+  it.each([RiverQualityLevel.Medium, RiverQualityLevel.High])(
+    "builds a cross-river grid with motion attributes and displacement-safe bounds for %s",
+    (level) => {
+      const sampleResult = sampleRiverPath(variableProfileFixture);
+      const maxDisplacement = 0.35;
+      const artifact = RiverGeometryCompiler.compile(sampleResult, level, 0, 0, {
+        materialLevel: level,
+        maxDisplacement
+      });
+      const geometry = artifact.surfaceGeometry;
+      const rowWidth = RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY[level] + 1;
+
+      expect(geometry.positions).toHaveLength(sampleResult.points.length * rowWidth);
+      expect(geometry.normals).toHaveLength(geometry.positions.length);
+      expect(geometry.tangents).toHaveLength(geometry.positions.length);
+      expect(geometry.uv2s).toHaveLength(geometry.positions.length);
+      expect(geometry.uv3s).toHaveLength(geometry.positions.length);
+      expect(geometry.maxDisplacement).toBe(maxDisplacement);
+      expect(geometry.uv2s?.[0][0]).toBeCloseTo(sampleResult.points[0].width * 0.5);
+      expect(geometry.uv2s?.[rowWidth - 1][0]).toBeCloseTo(-sampleResult.points[0].width * 0.5);
+      expect(geometry.uv3s?.[0][0]).toBeCloseTo(sampleResult.points[0].width * 0.5);
+      expect(geometry.bounds.min[1]).toBeLessThanOrEqual(
+        sampleResult.points[0].position.y + RIVER_GEOMETRY_Y_OFFSET.surface - maxDisplacement
+      );
+      expect(geometry.bounds.max[1]).toBeGreaterThanOrEqual(
+        Math.max(...sampleResult.points.map((sample) => sample.position.y)) +
+          RIVER_GEOMETRY_Y_OFFSET.surface +
+          maxDisplacement
+      );
+    }
+  );
 
   it("encodes continuous advective phase in UV0 and preserves network distance in UV1", () => {
     const samples = sampleRiverPath(variableProfileFixture).points;
