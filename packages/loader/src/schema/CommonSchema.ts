@@ -27,11 +27,6 @@ export interface TypeValue {
   [key: string]: unknown;
 }
 
-/** JSON-safe encoding for positive infinity. */
-export interface SpecialNumberValue {
-  $number: "Infinity";
-}
-
 export interface SignalListener {
   target: { $component: ComponentRef };
   methodName: string;

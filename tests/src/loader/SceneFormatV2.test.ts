@@ -425,7 +425,7 @@ describe("ReflectionParser calls resolution", () => {
           args: [
             {
               $type: "Burst",
-              $args: [0.5, { $type: "ParticleCompositeCurve", $args: [8] }, 2, 0.1]
+              $args: [0.5, { $type: "ParticleCompositeCurve", $args: [8] }, "Infinity", 0.1]
             }
           ]
         }
@@ -441,6 +441,23 @@ describe("ReflectionParser calls resolution", () => {
     expect(renderer.generator.emission.bursts).to.have.length(1);
     expect(renderer.generator.emission.bursts[0].time).to.equal(0.5);
     expect(renderer.generator.emission.bursts[0].count.constant).to.equal(8);
+    expect(renderer.generator.emission.bursts[0].cycles).to.equal(Infinity);
+    await expect(
+      parser.parseMutationBlock(renderer, {
+        calls: [
+          {
+            target: ["generator", "emission"],
+            method: "addBurst",
+            args: [
+              {
+                $type: "Burst",
+                $args: [0.5, { $type: "ParticleCompositeCurve", $args: [8] }, "NaN", 0.1]
+              }
+            ]
+          }
+        ]
+      })
+    ).rejects.toThrow('Burst $args[2] must be a positive integer or "Infinity"');
     entity.destroy();
   });
 
@@ -929,25 +946,6 @@ describe("ReflectionParser $type resolution", () => {
     expect(target.value.child).to.be.instanceOf(TestValueType);
     expect(target.value.child).to.deep.include({ x: 3, y: 4 });
     expect(target.value.label).to.equal("ready");
-  });
-
-  it("should resolve JSON-safe positive infinity values", async () => {
-    const scene = new Scene(engine);
-    const context = new ParserContext(engine, ParserType.Scene, scene);
-    const parser = new ReflectionParser(context, []);
-    const target: any = {};
-
-    await parser.parseProps(target, {
-      value: {
-        $type: "ConstructorValueType",
-        $args: [{ $number: "Infinity" }, { $type: "TestValueType" }]
-      }
-    });
-
-    expect(target.value.seed).to.equal(Infinity);
-    await expect(parser.parseProps({}, { value: { $number: "NaN" } })).rejects.toThrow(
-      '$number must be exactly "Infinity"'
-    );
   });
 
   it("should reject $args without an array-valued $type constructor contract", async () => {

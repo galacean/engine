@@ -87,13 +87,12 @@ export class ReflectionParser {
    * 1. null/undefined/primitive → passthrough
    * 2. Array → recurse each element
    * 3. { $ref }       → asset reference
-   * 4. { $number }    → JSON-safe special number
-   * 5. { $type, $args? } → polymorphic type construct
-   * 6. { $class }     → registered class constructor
-   * 7. { $entity }    → entity reference by path (flat index + optional children descent)
-   * 8. { $component } → component reference
-   * 9. { $signal }    → signal binding
-   * 10. plain object  → recurse values (modify originValue in place if exists)
+   * 4. { $type, $args? } → polymorphic type construct
+   * 5. { $class }     → registered class constructor
+   * 6. { $entity }    → entity reference by path (flat index + optional children descent)
+   * 7. { $component } → component reference
+   * 8. { $signal }    → signal binding
+   * 9. plain object   → recurse values (modify originValue in place if exists)
    */
   private _resolveValue(value: unknown, originValue?: any): Promise<any> {
     if (value == null || typeof value !== "object") return Promise.resolve(value);
@@ -120,13 +119,6 @@ export class ReflectionParser {
       });
     }
 
-    if ("$number" in obj) {
-      if (Object.keys(obj).length !== 1 || obj.$number !== "Infinity") {
-        return Promise.reject(new Error('$number must be exactly "Infinity"'));
-      }
-      return Promise.resolve(Infinity);
-    }
-
     // $type — polymorphic type: resolve constructor args, construct instance, then apply remaining props
     if ("$type" in obj) {
       const { $type, $args, ...rest } = obj;
@@ -136,6 +128,14 @@ export class ReflectionParser {
       const constructorArgs = Array.isArray($args) ? $args : [];
       return this._resolveRegisteredClass($type, "$type").then((Class) => {
         return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg))).then((args) => {
+          if ($type === "Burst" && args.length > 2) {
+            const cycles = args[2];
+            if (cycles === "Infinity") {
+              args[2] = Infinity;
+            } else if (cycles != null && (typeof cycles !== "number" || !Number.isInteger(cycles) || cycles < 1)) {
+              throw new Error('Burst $args[2] must be a positive integer or "Infinity"');
+            }
+          }
           const instance = new Class(...args);
           return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
         });
