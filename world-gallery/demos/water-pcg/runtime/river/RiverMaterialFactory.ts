@@ -12,7 +12,11 @@ import { Engine, Material, Shader, Texture2D, TextureFilterMode, TextureWrapMode
 import { Color } from "@galacean/engine-math";
 import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
 import { RIVER_FLOW_UV_SCALE } from "../../compiler/river/constants";
-import { RIVER_SHADER_PROPERTY, RIVER_SHORE_FOAM_SHADER_TUNING } from "./constants";
+import {
+  RIVER_LOW_OPTICAL_SHADER_TUNING,
+  RIVER_SHADER_PROPERTY,
+  RIVER_SHORE_FOAM_SHADER_TUNING
+} from "./constants";
 
 const RIVER_FLOW_UV_SCALE_GLSL = RIVER_FLOW_UV_SCALE.toFixed(8);
 
@@ -75,8 +79,13 @@ Shader "AIWorld/RiverLow" {
         vec3 waterColor = material_BaseColor.rgb * (0.72 + center * (0.18 + material_Clarity * 0.12));
         vec3 softFoamColor = mix(material_BaseColor.rgb * 1.2, material_FoamColor.rgb, 0.58);
         vec3 color = mix(waterColor, softFoamColor, foam);
-        float alpha = (water * material_BaseColor.a + foam * 0.24) * feather;
-        gl_FragColor = vec4(color, clamp(alpha, 0.0, 0.94));
+        float waterAlpha = mix(
+          ${RIVER_LOW_OPTICAL_SHADER_TUNING.opaqueWaterAlpha},
+          ${RIVER_LOW_OPTICAL_SHADER_TUNING.clearWaterAlpha},
+          clamp(material_Clarity, 0.0, 1.0)
+        );
+        float alpha = (water * waterAlpha + foam * ${RIVER_LOW_OPTICAL_SHADER_TUNING.foamAlphaWeight}) * feather;
+        gl_FragColor = vec4(color, clamp(alpha, 0.0, ${RIVER_LOW_OPTICAL_SHADER_TUNING.maxAlpha}));
       }
     }
   }

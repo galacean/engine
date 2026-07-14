@@ -8,6 +8,14 @@ export const RIVER_SHADER_PROPERTY = {
   noiseTexture: "material_NoiseTexture"
 } as const;
 
+/** Low-tier transparency keeps the mobile baseline free of scene-texture dependencies. */
+export const RIVER_LOW_OPTICAL_SHADER_TUNING = {
+  opaqueWaterAlpha: 0.58,
+  clearWaterAlpha: 0.18,
+  foamAlphaWeight: 0.3,
+  maxAlpha: 0.8
+} as const;
+
 /** Medium/high single-pass shoreline foam animation tuning. */
 export const RIVER_SHORE_FOAM_SHADER_TUNING = {
   noiseCutoffStart: 0.38,

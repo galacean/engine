@@ -15,6 +15,14 @@ describe("RiverMaterialFactory shaders", () => {
     expect(lowRiverShaderSource).not.toContain("max(material_FlowSpeed, 0.08)");
   });
 
+  it("keeps Low transparency clarity-driven without scene textures", () => {
+    expect(lowRiverShaderSource).toContain("float waterAlpha = mix(");
+    expect(lowRiverShaderSource).toContain("clamp(material_Clarity, 0.0, 1.0)");
+    expect(lowRiverShaderSource).not.toContain("water * material_BaseColor.a");
+    expect(lowRiverShaderSource).not.toContain("camera_DepthTexture");
+    expect(lowRiverShaderSource).not.toContain("camera_OpaqueTexture");
+  });
+
   it("uses one downstream phase for every procedural surface layer", () => {
     expect(riverSurfaceShaderSource).toContain("float branchDownstream = input.uv.y - flowTime");
     expect(riverSurfaceShaderSource).toContain("float junctionDownstream = input.color.g - flowTime");
