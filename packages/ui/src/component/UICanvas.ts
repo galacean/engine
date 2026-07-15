@@ -656,7 +656,10 @@ export class UICanvas extends Component implements IElement {
             element._setIsRootCanvas(!rootCanvas);
             Utils.setRootCanvas(element, rootCanvas);
           } else {
-            Utils.setRootCanvasDirty(this);
+            // Reset the element's own canvas state (stale _rootCanvas/_indexInRootCanvas and
+            // the dirty flag the new root's walk re-assignment is gated on) — the bulk
+            // clear below only empties this canvas's list.
+            Utils.setRootCanvasDirty(element);
             Utils.setGroupDirty(<IGroupAble>element);
           }
         });

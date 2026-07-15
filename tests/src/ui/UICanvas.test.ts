@@ -1,7 +1,7 @@
 import { Camera } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { CanvasRenderMode, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
+import { CanvasRenderMode, Image, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("UICanvas", async () => {
@@ -294,7 +294,7 @@ describe("UICanvas", async () => {
     // @ts-ignore
     expect(cloneCanvas._isRootCanvas).to.eq(true);
 
-    const cameraNeedClone = canvasEntity.createChild('camera').addComponent(Camera);
+    const cameraNeedClone = canvasEntity.createChild("camera").addComponent(Camera);
     rootCanvas.renderCamera = cameraNeedClone;
     const anoCloneEntity = canvasEntity.clone();
     const anoCloneCanvas = anoCloneEntity.getComponent(UICanvas);
@@ -351,5 +351,41 @@ describe("UICanvas", async () => {
     camera.enabled = true;
     // @ts-ignore
     expect(rootCanvas._canDispatchEvent(camera2)).to.be.false;
+  });
+  it("re-homes elements to the new root canvas when theirs loses root status", () => {
+    const outerEntity = root.createChild("outer");
+    const innerEntity = outerEntity.createChild("inner");
+    const innerCanvas = innerEntity.addComponent(UICanvas);
+    const imageEntity = innerEntity.createChild("image");
+    const image = imageEntity.addComponent(Image);
+
+    // Collected by the inner canvas while it is the root.
+    // @ts-ignore
+    innerCanvas._getRenderers();
+    // @ts-ignore
+    expect(image._getRootCanvas()).to.eq(innerCanvas);
+    // @ts-ignore
+    expect(innerCanvas._disorderedElements.length).to.be.greaterThan(0);
+
+    // Enabling a canvas on an ancestor demotes the inner one.
+    const outerCanvas = outerEntity.addComponent(UICanvas);
+    // @ts-ignore
+    expect(innerCanvas._isRootCanvas).to.be.false;
+    // @ts-ignore
+    expect(outerCanvas._isRootCanvas).to.be.true;
+    // The element's canvas state must be reset (the walk's re-assignment is gated on the
+    // dirty flag), otherwise it keeps rendering into the demoted canvas's dead queue.
+    // @ts-ignore
+    expect(image._isRootCanvasDirty).to.be.true;
+    // @ts-ignore
+    expect(image._rootCanvas).to.be.null;
+
+    // The new root adopts it on its next walk.
+    // @ts-ignore
+    outerCanvas._getRenderers();
+    // @ts-ignore
+    expect(image._getRootCanvas()).to.eq(outerCanvas);
+
+    outerEntity.destroy();
   });
 });
