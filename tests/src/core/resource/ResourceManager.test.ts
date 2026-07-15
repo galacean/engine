@@ -182,6 +182,23 @@ describe("ResourceManager", () => {
       }
     });
 
+    it("rejects a missing sub-asset path from the completed main asset", async () => {
+      const resourceManager = engine.resourceManager;
+      const mainAsset = { instanceId: 987654322, materials: [] };
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValue(AssetPromise.resolve(mainAsset) as any);
+
+      try {
+        await expect(
+          resourceManager.load("https://cdn.ali.com/missing-sub-asset.glb?q=materials[0]")
+        ).rejects.toThrow();
+      } finally {
+        loaderSpy.mockRestore();
+      }
+    });
+
     it("prefers the virtualPath map type over an explicit type", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([

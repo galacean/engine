@@ -12,10 +12,12 @@ Sub-asset queries rely on eager callbacks emitted by loaders. When the glTF main
 
 The eager callback remains the fast path. Every sub-asset promise now also follows the authoritative main-asset promise and resolves the query path from the completed resource. Callback cleanup can no longer strand a request.
 
+A query path absent from the completed resource rejects instead of resolving `undefined`, preserving the `load<T>` success contract.
+
 Resource-package consumers also need a supported way to map stable package paths to generated blob URLs, so `registerVirtualResources` is the public runtime boundary while the old Editor initialization method delegates to it for compatibility.
 
 ## Verification
 
-- Browser `ResourceManager` suite: 16 tests pass, including a loader that completes without emitting an eager sub-asset callback.
+- Browser `ResourceManager` suite: 17 tests pass, including a loader that completes without emitting an eager sub-asset callback and a missing-path rejection.
 - Real package: `/Meshes/FX_MS_ExtraShapes_02.glb?q=meshes[0][1]` resolves during Prefab loading without preloading dependencies.
 - The independent demo mounts 27 virtual resources and renders the blue cosmic-flame Prefab from a single `.package`.

@@ -526,7 +526,10 @@ export class ResourceManager {
     if (paths) {
       for (let i = 0, n = paths.length; i < n; i++) {
         const path = paths[i];
-        subResource = subResource[path];
+        subResource = subResource?.[path];
+        if (subResource === undefined) {
+          throw new Error(`Sub-asset path does not exist: ${paths.join(".")}`);
+        }
       }
     }
     return subResource;

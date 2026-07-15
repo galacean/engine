@@ -20,7 +20,7 @@ A `Burst.$args[2] === "Infinity"` parser branch was removed because it leaked pa
 
 ## Verification
 
-- `pnpm vitest run tests/src/core/resource/ResourceManager.test.ts tests/src/loader/SceneFormatV2.test.ts`: 70 passed.
+- `pnpm vitest run tests/src/core/resource/ResourceManager.test.ts tests/src/loader/SceneFormatV2.test.ts`: 71 passed.
 - `pnpm build`: passed, including every package type declaration build.
 - Engine ESLint: 0 errors; formatting and `git diff --check`: passed.
 - Builder lowering tests: 45 passed; runtime schema-v2 typecheck and resource-package compiler build passed.
