@@ -88,7 +88,7 @@ export class ResourceManager {
    */
   load<T extends EngineObject>(path: string): AssetPromise<T>;
 
-  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | object[]> {
+  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | T[]> {
     // single item
     if (!Array.isArray(assetInfo)) {
       return this._loadSingleItem(assetInfo);

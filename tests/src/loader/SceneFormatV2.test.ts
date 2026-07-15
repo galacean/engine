@@ -425,7 +425,7 @@ describe("ReflectionParser calls resolution", () => {
           args: [
             {
               $type: "Burst",
-              $args: [0.5, { $type: "ParticleCompositeCurve", $args: [8] }, "Infinity", 0.1]
+              $args: [0.5, { $type: "ParticleCompositeCurve", $args: [8] }, { $number: "Infinity" }, 0.1]
             }
           ]
         }
@@ -442,22 +442,6 @@ describe("ReflectionParser calls resolution", () => {
     expect(renderer.generator.emission.bursts[0].time).to.equal(0.5);
     expect(renderer.generator.emission.bursts[0].count.constant).to.equal(8);
     expect(renderer.generator.emission.bursts[0].cycles).to.equal(Infinity);
-    await expect(
-      parser.parseMutationBlock(renderer, {
-        calls: [
-          {
-            target: ["generator", "emission"],
-            method: "addBurst",
-            args: [
-              {
-                $type: "Burst",
-                $args: [0.5, { $type: "ParticleCompositeCurve", $args: [8] }, "NaN", 0.1]
-              }
-            ]
-          }
-        ]
-      })
-    ).rejects.toThrow('Burst $args[2] must be a positive integer or "Infinity"');
     entity.destroy();
   });
 
@@ -937,12 +921,12 @@ describe("ReflectionParser $type resolution", () => {
     await parser.parseProps(target, {
       value: {
         $type: "ConstructorValueType",
-        $args: ["seed", { $type: "TestValueType", x: 3, y: 4 }],
+        $args: [{ $number: "Infinity" }, { $type: "TestValueType", x: 3, y: 4 }],
         label: "ready"
       }
     });
     expect(target.value).to.be.instanceOf(ConstructorValueType);
-    expect(target.value.seed).to.equal("seed");
+    expect(target.value.seed).to.equal(Infinity);
     expect(target.value.child).to.be.instanceOf(TestValueType);
     expect(target.value.child).to.deep.include({ x: 3, y: 4 });
     expect(target.value.label).to.equal("ready");
@@ -960,6 +944,12 @@ describe("ReflectionParser $type resolution", () => {
       })
     ).rejects.toThrow("$args must be an array when used with $type");
     await expect(parser.parseProps(target, { value: { $args: [] } })).rejects.toThrow("$args requires $type");
+    await expect(parser.parseProps(target, { value: { $class: "TestValueType", $args: [] } })).rejects.toThrow(
+      "$args requires $type"
+    );
+    await expect(parser.parseProps(target, { value: { $number: "NaN" } })).rejects.toThrow(
+      '$number must be exactly "Infinity"'
+    );
   });
 
   it("should throw a clear error when $type references an unregistered class", async () => {

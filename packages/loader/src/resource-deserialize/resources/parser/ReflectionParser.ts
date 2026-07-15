@@ -14,7 +14,7 @@ export class ReflectionParser {
 
   /**
    * Apply v2 props to a component/object instance.
-   * Each prop value is resolved recursively (handling $ref, $type, $class, $entity, $component, $signal).
+   * Each prop value is resolved recursively (handling $ref, $number, $type, $class, $entity, $component, $signal).
    */
   parseProps(instance: any, props?: Record<string, unknown>): Promise<any> {
     const promises: Promise<any>[] = [];
@@ -87,18 +87,23 @@ export class ReflectionParser {
    * 1. null/undefined/primitive → passthrough
    * 2. Array → recurse each element
    * 3. { $ref }       → asset reference
-   * 4. { $type, $args? } → polymorphic type construct
-   * 5. { $class }     → registered class constructor
-   * 6. { $entity }    → entity reference by path (flat index + optional children descent)
-   * 7. { $component } → component reference
-   * 8. { $signal }    → signal binding
-   * 9. plain object   → recurse values (modify originValue in place if exists)
+   * 4. { $number }    → JSON-safe special number
+   * 5. { $type, $args? } → polymorphic type construct
+   * 6. { $class }     → registered class constructor
+   * 7. { $entity }    → entity reference by path (flat index + optional children descent)
+   * 8. { $component } → component reference
+   * 9. { $signal }    → signal binding
+   * 10. plain object  → recurse values (modify originValue in place if exists)
    */
   private _resolveValue(value: unknown, originValue?: any): Promise<any> {
     if (value == null || typeof value !== "object") return Promise.resolve(value);
     if (Array.isArray(value)) return Promise.all(value.map((v) => this._resolveValue(v)));
 
     const obj = value as Record<string, unknown>;
+
+    if ("$args" in obj && !("$type" in obj)) {
+      return Promise.reject(new Error("$args requires $type"));
+    }
 
     // $ref — asset reference (index into refs array)
     if ("$ref" in obj) {
@@ -119,6 +124,13 @@ export class ReflectionParser {
       });
     }
 
+    if ("$number" in obj) {
+      if (Object.keys(obj).length !== 1 || obj.$number !== "Infinity") {
+        return Promise.reject(new Error('$number must be exactly "Infinity"'));
+      }
+      return Promise.resolve(Infinity);
+    }
+
     // $type — polymorphic type: resolve constructor args, construct instance, then apply remaining props
     if ("$type" in obj) {
       const { $type, $args, ...rest } = obj;
@@ -128,14 +140,6 @@ export class ReflectionParser {
       const constructorArgs = Array.isArray($args) ? $args : [];
       return this._resolveRegisteredClass($type, "$type").then((Class) => {
         return Promise.all(constructorArgs.map((arg) => this._resolveValue(arg))).then((args) => {
-          if ($type === "Burst" && args.length > 2) {
-            const cycles = args[2];
-            if (cycles === "Infinity") {
-              args[2] = Infinity;
-            } else if (cycles != null && (typeof cycles !== "number" || !Number.isInteger(cycles) || cycles < 1)) {
-              throw new Error('Burst $args[2] must be a positive integer or "Infinity"');
-            }
-          }
           const instance = new Class(...args);
           return Object.keys(rest).length > 0 ? this.parseProps(instance, rest) : instance;
         });
@@ -160,10 +164,6 @@ export class ReflectionParser {
     // $signal — signal binding: register listeners on the existing Signal instance
     if ("$signal" in obj) {
       return this._resolveSignal(originValue, obj.$signal as SignalListener[]);
-    }
-
-    if ("$args" in obj) {
-      return Promise.reject(new Error("$args requires $type"));
     }
 
     // Plain object — recurse each value, modifying originValue in place or building a new object
