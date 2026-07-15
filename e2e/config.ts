@@ -11,6 +11,18 @@ export const E2E_CONFIG = {
       caseFileName: "spine-tint-black",
       threshold: 0,
       diffPercentage: 0.05
+    },
+    uiCanvas: {
+      category: "Spine",
+      caseFileName: "spine-ui-canvas",
+      threshold: 0,
+      diffPercentage: 0.05
+    },
+    uiRectMask: {
+      category: "Spine",
+      caseFileName: "spine-ui-rect-mask",
+      threshold: 0,
+      diffPercentage: 0.05
     }
   },
   Animator: {

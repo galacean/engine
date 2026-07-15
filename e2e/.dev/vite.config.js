@@ -50,7 +50,16 @@ module.exports = {
     strictPort: true
   },
   resolve: {
-    dedupe: ["@galacean/engine"]
+    dedupe: ["@galacean/engine"],
+    alias: {
+      // Serve the spine packages from source: their dist is downleveled to ES5, and an ES5
+      // subclass extending the external @esotericsoftware/spine-core native classes throws
+      // "Class constructor cannot be invoked without 'new'".
+      "@galacean/engine-spine-core-4.2": path.resolve(__dirname, "../../packages/spine-core-4.2/src/index.ts"),
+      "@galacean/engine-spine-core-3.8": path.resolve(__dirname, "../../packages/spine-core-3.8/src/index.ts"),
+      "@galacean/engine-spine-ui": path.resolve(__dirname, "../../packages/spine-ui/src/index.ts"),
+      "@galacean/engine-spine": path.resolve(__dirname, "../../packages/spine/src/index.ts")
+    }
   },
   optimizeDeps: {
     exclude: [

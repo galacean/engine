@@ -15,6 +15,13 @@ varying vec4 v_lightColor;
   varying vec3 v_darkColor;
 #endif
 
+#ifdef RENDERER_UI_RECT_CLIP
+  // Spine vertices are entity-local (unlike UI chunk vertices, which are pre-transformed to
+  // world space), so the rect-clip world position must be derived from the model matrix.
+  uniform mat4 renderer_ModelMat;
+  varying vec2 v_worldPosition;
+#endif
+
 void main()
 {
   gl_Position = renderer_MVPMat * vec4(POSITION, 1.0);
@@ -24,5 +31,9 @@ void main()
 
   #ifdef RENDERER_TINT_BLACK
     v_darkColor = DARK_COLOR;
+  #endif
+
+  #ifdef RENDERER_UI_RECT_CLIP
+    v_worldPosition = (renderer_ModelMat * vec4(POSITION, 1.0)).xy;
   #endif
 }

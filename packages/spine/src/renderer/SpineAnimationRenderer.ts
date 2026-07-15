@@ -7,19 +7,27 @@ import {
   BufferUsage,
   deepClone,
   Entity,
+  EntityModifyFlags,
+  EntityUIModifyFlags,
   ignoreClone,
   IndexBufferBinding,
   IndexFormat,
   Material,
   Primitive,
+  Ray,
   Renderer,
+  ShaderMacro,
+  ShaderProperty,
   SubPrimitive,
   Texture2D,
+  UIElementUtils,
   Vector3,
+  Vector4,
   VertexBufferBinding,
   VertexElement,
   VertexElementFormat
 } from "@galacean/engine";
+import type { IUICanvas, IUIGroup, IUIHitResult, IUIHostedRenderer } from "@galacean/engine";
 import { SpineResource } from "../loader/SpineResource";
 import { SpineMaterial } from "./SpineMaterial";
 import { SpineBlendMode } from "../enums/SpineBlendMode";
@@ -29,12 +37,23 @@ import type { ISpineRenderTarget } from "../runtime/ISpineRenderTarget";
 
 /**
  * Spine animation renderer, capable of rendering spine animations and providing functions for animation and skeleton manipulation.
+ *
+ * @remarks
+ * Renders in world space through the camera pipeline, or — when placed under a root `UICanvas` —
+ * is hosted by the canvas (implements the engine's `IUIHostedRenderer` contract): collected and
+ * ordered with the other UI elements, faded by `UIGroup` alpha and clipped by `RectMask2D`.
+ * The skeleton renders at the entity's transform scale in both spaces.
  */
-export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarget {
+export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarget, IUIHostedRenderer {
   private static _positionVertexElement = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
   private static _lightColorVertexElement = new VertexElement("LIGHT_COLOR", 12, VertexElementFormat.Vector4, 0);
   private static _uvVertexElement = new VertexElement("TEXCOORD_0", 28, VertexElementFormat.Vector2, 0);
   private static _darkColorVertexElement = new VertexElement("DARK_COLOR", 36, VertexElementFormat.Vector3, 0);
+  private static _uiRectClipMacro = ShaderMacro.getByName("RENDERER_UI_RECT_CLIP");
+  private static _rectClipEnabledProperty = ShaderProperty.getByName("renderer_UIRectClipEnabled");
+  private static _rectClipSoftnessProperty = ShaderProperty.getByName("renderer_UIRectClipSoftness");
+  private static _rectClipHardClipProperty = ShaderProperty.getByName("renderer_UIRectClipHardClip");
+  private static _tempHitPoint = new Vector3();
 
   /** @internal */
   static _materialCacheMap = new Map<string, SpineMaterial>();
@@ -53,6 +72,13 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   @assignmentClone
   premultipliedAlpha = false;
+
+  /**
+   * Whether this renderer can be picked up by UI raycasts while hosted inside a `UICanvas`.
+   * The hit area is the skeleton's world bounds.
+   */
+  @assignmentClone
+  raycastEnabled = false;
 
   @assignmentClone
   private _tintBlack = false;
@@ -114,6 +140,51 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     new Vector3(-Infinity, -Infinity, -Infinity)
   );
 
+  /** @internal Marker checked by the `UICanvas` walk (`IUIHostedRenderer`). */
+  @ignoreClone
+  _isUIHostedRenderer = true;
+  /** @internal */
+  @ignoreClone
+  _rootCanvas: IUICanvas = null;
+  /** @internal */
+  @ignoreClone
+  _indexInRootCanvas = -1;
+  /** @internal */
+  @ignoreClone
+  _rootCanvasListeningEntities: Entity[] = [];
+  /** @internal */
+  @ignoreClone
+  _isRootCanvasDirty = false;
+  /** @internal */
+  @ignoreClone
+  _group: IUIGroup = null;
+  /** @internal */
+  @ignoreClone
+  _indexInGroup = -1;
+  /** @internal */
+  @ignoreClone
+  _groupListeningEntities: Entity[] = [];
+  /** @internal */
+  @ignoreClone
+  _isGroupDirty = false;
+  /** @internal */
+  @ignoreClone
+  _rectMasks: any[] = [];
+  /** @internal */
+  @ignoreClone
+  _rectMaskRect = new Vector4();
+  /** @internal */
+  @ignoreClone
+  _rectMaskSoftness = new Vector4();
+  /** @internal */
+  @ignoreClone
+  _rectMaskEnabled = false;
+  /** @internal */
+  @ignoreClone
+  _rectMaskHardClip = false;
+
+  @ignoreClone
+  private _hostedByUICanvas = false;
   @ignoreClone
   private _skeleton: Skeleton;
   @ignoreClone
@@ -138,6 +209,15 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
 
   /**
    * @internal
+   * The host-level alpha (UI group alpha while hosted), folded into vertex colors by the
+   * generator on every rebuild.
+   */
+  get globalAlpha(): number {
+    return this._hostedByUICanvas ? (this._getGroup()?._getGlobalAlpha() ?? 1) : 1;
+  }
+
+  /**
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
@@ -148,6 +228,12 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     primitive.addVertexElement(SpineAnimationRenderer._lightColorVertexElement);
     primitive.addVertexElement(SpineAnimationRenderer._uvVertexElement);
     primitive.addVertexElement(SpineAnimationRenderer._darkColorVertexElement);
+    this._rootCanvasListener = this._rootCanvasListener.bind(this);
+    this._groupListener = this._groupListener.bind(this);
+    const shaderData = this.shaderData;
+    shaderData.setFloat(SpineAnimationRenderer._rectClipEnabledProperty, 0);
+    shaderData.setVector4(SpineAnimationRenderer._rectClipSoftnessProperty, this._rectMaskSoftness);
+    shaderData.setFloat(SpineAnimationRenderer._rectClipHardClipProperty, 0);
   }
 
   /**
@@ -172,6 +258,50 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
 
   /**
    * @internal
+   * Registration switches with the hierarchy: in world space the renderer joins the camera
+   * pipeline's renderer list; under a root canvas the canvas collects it instead.
+   */
+  // @ts-ignore
+  override _onEnableInScene(): void {
+    // @ts-ignore
+    const componentsManager = this.scene._componentsManager;
+    // @ts-ignore
+    this._overrideUpdate && componentsManager.addOnUpdateRenderers(this);
+    const rootCanvas = UIElementUtils.searchRootCanvasInParents(this.entity);
+    this._setHostedByUICanvas(!!rootCanvas, componentsManager, false);
+    if (rootCanvas) {
+      // @ts-ignore
+      this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+      UIElementUtils.setRootCanvasDirty(this);
+      UIElementUtils.setGroupDirty(this);
+    } else {
+      componentsManager.addRenderer(this);
+      // Listen to the whole parent chain so moving under a canvas re-homes the renderer.
+      UIElementUtils.setRootCanvas(this, null, this.entity);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  // @ts-ignore
+  override _onDisableInScene(): void {
+    // @ts-ignore
+    const componentsManager = this.scene._componentsManager;
+    // @ts-ignore
+    this._overrideUpdate && componentsManager.removeOnUpdateRenderers(this);
+    if (this._hostedByUICanvas) {
+      // @ts-ignore
+      this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+    } else {
+      componentsManager.removeRenderer(this);
+    }
+    UIElementUtils.cleanRootCanvas(this);
+    UIElementUtils.cleanGroup(this);
+  }
+
+  /**
+   * @internal
    */
   // @ts-ignore
   override _render(context: any): void {
@@ -179,23 +309,50 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     if (!_subPrimitives) return;
     // Engine 2.0 render-element model: one RenderElement per sub-primitive (no sub-element pool).
     const engine = this.engine as any;
-    const priority = this.priority;
-    const distanceForSort = (this as any)._distanceForSort;
     const renderElementPool = engine._renderElementPool;
-    const renderPipeline = context.camera._renderPipeline;
-    for (let i = 0, n = _subPrimitives.length; i < n; i++) {
-      let material = materials[i];
-      if (!material) {
-        continue;
+    const rootCanvas = this._hostedByUICanvas ? (this._getRootCanvas() as IUICanvas) : null;
+    if (rootCanvas) {
+      if (this.globalAlpha <= 0) {
+        return;
       }
-      if (material.destroyed || material.shader.destroyed) {
-        material = engine._basicResources.meshMagentaMaterial;
+      const priority = rootCanvas.sortOrder;
+      const distanceForSort = rootCanvas._sortDistance;
+      const renderElements = rootCanvas._renderElements;
+      for (let i = 0, n = _subPrimitives.length; i < n; i++) {
+        let material = materials[i];
+        if (!material) {
+          continue;
+        }
+        if (material.destroyed || material.shader.destroyed) {
+          material = engine._basicResources.meshMagentaMaterial;
+        }
+        const renderElement = renderElementPool.get();
+        renderElement.set(this, material, _primitive, _subPrimitives[i]);
+        // The overlay pass renders canvas elements without the pipeline's pushRenderElement
+        // (which assigns subShader elsewhere); camera-mode canvases overwrite this later.
+        renderElement.subShader = material.shader.subShaders[0];
+        renderElement.priority = priority;
+        renderElement.distanceForSort = distanceForSort;
+        renderElements.push(renderElement);
       }
-      const renderElement = renderElementPool.get();
-      renderElement.set(this, material, _primitive, _subPrimitives[i]);
-      renderElement.priority = priority;
-      renderElement.distanceForSort = distanceForSort;
-      renderPipeline.pushRenderElement(context, renderElement);
+    } else {
+      const priority = this.priority;
+      const distanceForSort = (this as any)._distanceForSort;
+      const renderPipeline = context.camera._renderPipeline;
+      for (let i = 0, n = _subPrimitives.length; i < n; i++) {
+        let material = materials[i];
+        if (!material) {
+          continue;
+        }
+        if (material.destroyed || material.shader.destroyed) {
+          material = engine._basicResources.meshMagentaMaterial;
+        }
+        const renderElement = renderElementPool.get();
+        renderElement.set(this, material, _primitive, _subPrimitives[i]);
+        renderElement.priority = priority;
+        renderElement.distanceForSort = distanceForSort;
+        renderPipeline.pushRenderElement(context, renderElement);
+      }
     }
   }
 
@@ -205,6 +362,93 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   // @ts-ignore
   override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this.entity.transform.worldMatrix, worldBounds);
+  }
+
+  /**
+   * @internal
+   */
+  _getRootCanvas(): IUICanvas {
+    if (this._isRootCanvasDirty) {
+      UIElementUtils.setRootCanvas(this, UIElementUtils.searchRootCanvasInParents(this.entity), this.entity);
+    }
+    return this._rootCanvas;
+  }
+
+  /**
+   * @internal
+   */
+  _getGroup(): IUIGroup {
+    if (this._isGroupDirty) {
+      const rootCanvas = this._getRootCanvas();
+      const group = rootCanvas ? UIElementUtils.searchGroupInParents(this.entity, rootCanvas) : null;
+      UIElementUtils.setGroup(this, group, this.entity);
+    }
+    return this._group;
+  }
+
+  /**
+   * @internal
+   * Vertex colors fully rebuild every frame and read the group alpha then, so group
+   * notifications need no bookkeeping here.
+   */
+  _onGroupModify(): void {}
+
+  /**
+   * @internal
+   */
+  @ignoreClone
+  _rootCanvasListener(flag: number, param: any): void {
+    switch (flag) {
+      case EntityModifyFlags.Parent:
+        this._refreshHosting();
+        UIElementUtils.setRootCanvasDirty(this);
+        UIElementUtils.setGroupDirty(this);
+      case EntityModifyFlags.Child:
+        // @ts-ignore
+        (param as Entity)._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  @ignoreClone
+  _groupListener(flag: number): void {
+    if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
+      UIElementUtils.setGroupDirty(this);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _setRectMasks(rectMasks: any[], count: number): void {
+    const targetMasks = this._rectMasks;
+    targetMasks.length = count;
+    for (let i = 0; i < count; i++) {
+      targetMasks[i] = rectMasks[i];
+    }
+  }
+
+  /**
+   * @internal
+   * Hosted hit-testing against the skeleton's world bounds.
+   */
+  _raycast(ray: Ray, out: IUIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
+    const curDistance = ray.intersectBox(this.bounds);
+    if (curDistance >= 0 && curDistance < distance) {
+      const hitPoint = ray.getPoint(curDistance, SpineAnimationRenderer._tempHitPoint);
+      out.component = this;
+      out.distance = curDistance;
+      out.entity = this.entity;
+      out.normal.copyFrom(this.entity.transform.worldForward);
+      out.point.copyFrom(hitPoint);
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -324,6 +568,42 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     cached._setTintBlack(tintBlack);
     cached._setPremultipliedAlpha(premultipliedAlpha);
     return cached;
+  }
+
+  private _setHostedByUICanvas(hosted: boolean, componentsManager: any, switchRegistration: boolean): void {
+    if (this._hostedByUICanvas === hosted && switchRegistration) return;
+    this._hostedByUICanvas = hosted;
+    if (switchRegistration) {
+      if (hosted) {
+        componentsManager.removeRenderer(this);
+      } else {
+        componentsManager.addRenderer(this);
+      }
+    }
+    if (hosted) {
+      this.shaderData.enableMacro(SpineAnimationRenderer._uiRectClipMacro);
+    } else {
+      this.shaderData.disableMacro(SpineAnimationRenderer._uiRectClipMacro);
+    }
+  }
+
+  private _refreshHosting(): void {
+    const rootCanvas = UIElementUtils.searchRootCanvasInParents(this.entity);
+    const hosted = !!rootCanvas;
+    if (hosted !== this._hostedByUICanvas) {
+      // @ts-ignore
+      const componentsManager = this.scene._componentsManager;
+      this._setHostedByUICanvas(hosted, componentsManager, true);
+      if (hosted) {
+        // @ts-ignore
+        this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+      } else {
+        // Re-arm whole-chain listeners (the canvas-scoped range no longer covers the new parents).
+        UIElementUtils.setRootCanvas(this, null, this.entity);
+        UIElementUtils.cleanGroup(this);
+        this._rectMasks.length = 0;
+      }
+    }
   }
 
   private _clearMaterialCache(): void {

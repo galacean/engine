@@ -37,8 +37,17 @@ export class SpineGenerator {
   private _clipper: SkeletonClipping = new SkeletonClipping();
 
   buildPrimitive(skeleton: Skeleton, renderer: ISpineRenderTarget) {
-    const { _indices, _vertices, _localBounds, _vertexCount, _subPrimitives, zSpacing, premultipliedAlpha, tintBlack } =
-      renderer;
+    const {
+      _indices,
+      _vertices,
+      _localBounds,
+      _vertexCount,
+      _subPrimitives,
+      zSpacing,
+      premultipliedAlpha,
+      tintBlack,
+      globalAlpha
+    } = renderer;
 
     _localBounds.min.set(Infinity, Infinity, Infinity);
     _localBounds.max.set(-Infinity, -Infinity, -Infinity);
@@ -155,7 +164,7 @@ export class SpineGenerator {
         const skeletonColor = skeleton.color;
         const slotColor = slot.color;
         const finalColor = SpineGenerator.tempColor;
-        const finalAlpha = skeletonColor.a * slotColor.a * attachmentColor.a;
+        const finalAlpha = skeletonColor.a * slotColor.a * attachmentColor.a * globalAlpha;
 
         finalColor.r = skeletonColor.r * slotColor.r * attachmentColor.r;
         finalColor.g = skeletonColor.g * slotColor.g * attachmentColor.g;

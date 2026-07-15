@@ -1,9 +1,19 @@
-import { Component, DisorderedArray, Entity, EntityModifyFlags, assignmentClone, ignoreClone } from "@galacean/engine";
+import {
+  Component,
+  DisorderedArray,
+  Entity,
+  EntityModifyFlags,
+  GroupModifyFlags,
+  assignmentClone,
+  ignoreClone
+} from "@galacean/engine";
 import { Utils } from "../Utils";
 import { IGroupAble } from "../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 
 export class UIGroup extends Component implements IGroupAble {
+  /** @internal Marker letting core-level code identify a group without a ui-package dependency. */
+  _isUIGroup = true;
   /** @internal */
   @ignoreClone
   _indexInGroup: number = -1;
@@ -218,9 +228,4 @@ export class UIGroup extends Component implements IGroupAble {
   }
 }
 
-export enum GroupModifyFlags {
-  None = 0x0,
-  GlobalAlpha = 0x1,
-  GlobalInteractive = 0x2,
-  All = 0x3
-}
+export { GroupModifyFlags } from "@galacean/engine";

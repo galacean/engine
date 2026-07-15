@@ -3,7 +3,6 @@ import {
   BlendOperation,
   CullMode,
   Engine,
-  Entity,
   Loader,
   Material,
   PipelineStage,
@@ -46,17 +45,6 @@ export class EngineExtension {
   }
 }
 
-export class EntityExtension {
-  _uiHierarchyVersion = 0;
-  _updateUIHierarchyVersion(version: number): void {
-    if (this._uiHierarchyVersion !== version) {
-      this._uiHierarchyVersion = version;
-      // @ts-ignore
-      this.parent?._updateUIHierarchyVersion(version);
-    }
-  }
-}
-
 declare module "@galacean/engine" {
   interface Engine {
     // @internal
@@ -85,7 +73,6 @@ function ApplyMixins(derivedCtor: any, baseCtors: any[]): void {
 }
 
 ApplyMixins(Engine, [EngineExtension]);
-ApplyMixins(Entity, [EntityExtension]);
 
 /**
  * Register GUI components for the editor.

@@ -75,6 +75,7 @@ export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
 export * from "./audio/index";
+export * from "./ui/index";
 import { Polyfill } from "./Polyfill";
 
 export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";

@@ -5,9 +5,10 @@ import type { SpineBlendMode } from "../enums/SpineBlendMode";
  * The write target a spine core package's generator fills while building the renderable primitive.
  *
  * @remarks
- * Implemented by `SpineAnimationRenderer`. This is the narrow, spine-core-free contract that lets the
- * version-specific generator live in a core package while the buffer/material/bounds bookkeeping stays
- * in the shared renderer — the analogue of how engine physics colliders expose a native handle.
+ * Implemented by the render hosts (world-space `SpineAnimationRenderer` and the UI-space renderer).
+ * This is the narrow, spine-core-free contract that lets the version-specific generator live in a
+ * core package while the buffer/material/bounds bookkeeping stays in the shared renderer — the
+ * analogue of how engine physics colliders expose a native handle.
  */
 export interface ISpineRenderTarget {
   readonly _vertices: Float32Array;
@@ -20,6 +21,11 @@ export interface ISpineRenderTarget {
   readonly zSpacing: number;
   readonly premultipliedAlpha: boolean;
   readonly tintBlack: boolean;
+  /**
+   * Host-level alpha modulation (e.g. UI group alpha), multiplied into the final vertex alpha
+   * during generation — before premultiplication, so PMA color/dark-color scaling follows it.
+   */
+  readonly globalAlpha: number;
   _needResizeBuffer: boolean;
 
   _createAndBindBuffer(vertexCount: number): void;

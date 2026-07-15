@@ -111,6 +111,8 @@ export class Entity extends EngineObject {
   /** @internal */
   _isRoot: boolean = false;
   /** @internal */
+  _uiHierarchyVersion: number = 0;
+  /** @internal */
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
@@ -610,6 +612,18 @@ export class Entity extends EngineObject {
    */
   _unRegisterModifyListener(onChange: (flag: EntityModifyFlags) => void): void {
     this._modifyFlagManager?.removeListener(onChange);
+  }
+
+  /**
+   * @internal
+   * Stamp the hierarchy version up the parent chain so root canvases detect that their
+   * subtree changed and rebuild their element list.
+   */
+  _updateUIHierarchyVersion(version: number): void {
+    if (this._uiHierarchyVersion !== version) {
+      this._uiHierarchyVersion = version;
+      this.parent?._updateUIHierarchyVersion(version);
+    }
   }
 
   private _dispatchModify(flag: EntityModifyFlags, param?: any): void {

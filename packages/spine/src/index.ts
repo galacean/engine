@@ -11,6 +11,7 @@ for (let key in LoaderObject) {
 
 export * from "./loader/index";
 export * from "./renderer/index";
+export { SpineAnimationDefaultConfig } from "./renderer/SpineAnimationRenderer";
 export { SpineBlendMode } from "./enums/SpineBlendMode";
 export { SpineVertexStride } from "./SpineConstant";
 export { registerSpineRuntime, getSpineRuntime } from "./runtime/SpineRuntimeRegistry";

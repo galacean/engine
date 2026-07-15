@@ -7,10 +7,14 @@ import {
   DisorderedArray,
   Entity,
   EntityModifyFlags,
+  EntityUIModifyFlags,
   Logger,
   MathUtil,
   Matrix,
   Ray,
+  Renderer,
+  RootCanvasModifyFlags,
+  UIElementUtils,
   Vector2,
   Vector3,
   assignmentClone,
@@ -19,6 +23,7 @@ import {
   ignoreClone,
   CloneUtils
 } from "@galacean/engine";
+import type { IUIGroupAble, IUIHostedRenderer } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
 import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
@@ -37,9 +42,7 @@ import { UIInteractive } from "./interactive/UIInteractive";
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UICanvas extends Component implements IElement {
-  /** @internal */
-  static _hierarchyCounter: number = 1;
-  private static _tempGroupAbleList: IGroupAble[] = [];
+  private static _tempGroupAbleList: IUIGroupAble[] = [];
   private static _tempRectMaskList: RectMask2D[] = [];
   private static _tempVec3: Vector3 = new Vector3();
   private static _tempMat: Matrix = new Matrix();
@@ -70,7 +73,7 @@ export class UICanvas extends Component implements IElement {
   _sortDistance: number = 0;
   /** @internal */
   @ignoreClone
-  _orderedRenderers: UIRenderer[] = [];
+  _orderedRenderers: CanvasRenderable[] = [];
   /** @internal */
   @ignoreClone
   _realRenderMode: number = CanvasRealRenderMode.None;
@@ -340,6 +343,12 @@ export class UICanvas extends Component implements IElement {
             break;
         }
       }
+      if (!(renderer instanceof UIRenderer)) {
+        // Hosted renderers don't run UIRenderer's prepare path, so the canvas applies
+        // their rect-clip state before rendering.
+        Utils.updateRectMaskClipState(renderer);
+      }
+      // @ts-ignore
       renderer._prepareRender(context);
       renderer._renderFrameCount = frameCount;
     }
@@ -415,7 +424,7 @@ export class UICanvas extends Component implements IElement {
     target.renderMode = this._renderMode;
   }
 
-  private _getRenderers(): UIRenderer[] {
+  private _getRenderers(): CanvasRenderable[] {
     const { _orderedRenderers: renderers, entity } = this;
     const uiHierarchyVersion = entity._uiHierarchyVersion;
     if (this._hierarchyVersion !== uiHierarchyVersion) {
@@ -423,7 +432,7 @@ export class UICanvas extends Component implements IElement {
       renderers.length = this._walk(this.entity, renderers, 0, null, 0);
       UICanvas._tempGroupAbleList.length = 0;
       this._hierarchyVersion = uiHierarchyVersion;
-      ++UICanvas._hierarchyCounter;
+      ++UIElementUtils._hierarchyCounter;
     }
     return renderers;
   }
@@ -504,7 +513,7 @@ export class UICanvas extends Component implements IElement {
 
   private _walk(
     entity: Entity,
-    renderers: UIRenderer[],
+    renderers: CanvasRenderable[],
     depth = 0,
     group: UIGroup = null,
     rectMaskCount: number = 0
@@ -518,14 +527,15 @@ export class UICanvas extends Component implements IElement {
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       if (!component.enabled) continue;
-      if (component instanceof UIRenderer) {
-        renderers[depth] = component;
+      if (component instanceof UIRenderer || (component as unknown as IUIHostedRenderer)._isUIHostedRenderer) {
+        const renderable = component as unknown as CanvasRenderable;
+        renderers[depth] = renderable;
         ++depth;
-        component._isRootCanvasDirty && Utils.setRootCanvas(component, this);
-        if (component._isGroupDirty) {
-          tempGroupAbleList[groupAbleCount++] = component;
+        renderable._isRootCanvasDirty && Utils.setRootCanvas(renderable, this);
+        if (renderable._isGroupDirty) {
+          tempGroupAbleList[groupAbleCount++] = renderable;
         }
-        component._setRectMasks(tempRectMaskList, rectMaskCount);
+        renderable._setRectMasks(tempRectMaskList, rectMaskCount);
       } else if (component instanceof UIInteractive) {
         component._isRootCanvasDirty && Utils.setRootCanvas(component, this);
         if (component._isGroupDirty) {
@@ -637,7 +647,7 @@ export class UICanvas extends Component implements IElement {
       this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
       if (isRootCanvas) {
-        this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
+        this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
       } else {
         const { _disorderedElements: disorderedElements } = this;
         disorderedElements.forEach((element: IElement) => {
@@ -731,16 +741,12 @@ enum CanvasRealRenderMode {
   None = 4
 }
 
-/**
- * @remarks Extends `EntityModifyFlags`.
- */
-export enum EntityUIModifyFlags {
-  CanvasEnableInScene = 0x4,
-  GroupEnableInScene = 0x8
-}
+export { EntityUIModifyFlags } from "@galacean/engine";
 
-export enum RootCanvasModifyFlags {
-  None = 0x0,
-  ReferenceResolutionPerUnit = 0x1,
-  All = 0x1
-}
+export { RootCanvasModifyFlags } from "@galacean/engine";
+
+/**
+ * A renderer a root canvas collects and drives: either a ui `UIRenderer` or any engine
+ * `Renderer` implementing the core `IUIHostedRenderer` hosting contract.
+ */
+export type CanvasRenderable = UIRenderer | (Renderer & IUIHostedRenderer);
