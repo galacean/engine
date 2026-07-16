@@ -20,7 +20,6 @@ import {
   ShaderProperty,
   SubPrimitive,
   Texture2D,
-  UIElementUtils,
   Vector3,
   Vector4,
   VertexBufferBinding,
@@ -267,18 +266,18 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     const componentsManager = this.scene._componentsManager;
     // @ts-ignore
     this._overrideUpdate && componentsManager.addOnUpdateRenderers(this);
-    const rootCanvas = UIElementUtils.searchRootCanvasInParents(this.entity);
+    const rootCanvas = this._searchRootCanvasInParents();
     this._setHostedByUICanvas(!!rootCanvas, componentsManager, false);
     if (rootCanvas) {
       // The mixin method exists only when the ui package is loaded — without it there are
-      // no canvases to notify.
-      (this.entity as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
-      UIElementUtils.setRootCanvasDirty(this);
-      UIElementUtils.setGroupDirty(this);
+      // no canvases to notify. It stamps the current hierarchy counter by default.
+      (this.entity as any)._updateUIHierarchyVersion?.();
+      this._setRootCanvasDirty();
+      this._setGroupDirty();
     } else {
       componentsManager.addRenderer(this);
       // Listen to the whole parent chain so moving under a canvas re-homes the renderer.
-      UIElementUtils.setRootCanvas(this, null, this.entity);
+      this._registerListeners(this.entity, null, this._rootCanvasListener, this._rootCanvasListeningEntities);
     }
   }
 
@@ -292,12 +291,12 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     // @ts-ignore
     this._overrideUpdate && componentsManager.removeOnUpdateRenderers(this);
     if (this._hostedByUICanvas) {
-      (this.entity as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
+      (this.entity as any)._updateUIHierarchyVersion?.();
     } else {
       componentsManager.removeRenderer(this);
     }
-    UIElementUtils.cleanRootCanvas(this);
-    UIElementUtils.cleanGroup(this);
+    this._cleanRootCanvas();
+    this._cleanGroup();
   }
 
   /**
@@ -369,7 +368,15 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   _getRootCanvas(): IUICanvas {
     if (this._isRootCanvasDirty) {
-      UIElementUtils.setRootCanvas(this, UIElementUtils.searchRootCanvasInParents(this.entity), this.entity);
+      this._isRootCanvasDirty = false;
+      const rootCanvas = this._searchRootCanvasInParents();
+      this._registerRootCanvas(rootCanvas);
+      this._registerListeners(
+        this.entity,
+        rootCanvas?.entity.parent ?? null,
+        this._rootCanvasListener,
+        this._rootCanvasListeningEntities
+      );
     }
     return this._rootCanvas;
   }
@@ -379,9 +386,20 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   _getGroup(): IUIGroup {
     if (this._isGroupDirty) {
+      this._isGroupDirty = false;
       const rootCanvas = this._getRootCanvas();
-      const group = rootCanvas ? UIElementUtils.searchGroupInParents(this.entity, rootCanvas) : null;
-      UIElementUtils.setGroup(this, group, this.entity);
+      const group = rootCanvas ? this._searchGroupInParents(rootCanvas) : null;
+      this._registerGroup(group);
+      if (rootCanvas) {
+        this._registerListeners(
+          this.entity,
+          group?.entity ?? rootCanvas.entity.parent,
+          this._groupListener,
+          this._groupListeningEntities
+        );
+      } else {
+        this._unRegisterListeners(this._groupListener, this._groupListeningEntities);
+      }
     }
     return this._group;
   }
@@ -401,10 +419,10 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     switch (flag) {
       case EntityModifyFlags.Parent:
         this._refreshHosting();
-        UIElementUtils.setRootCanvasDirty(this);
-        UIElementUtils.setGroupDirty(this);
+        this._setRootCanvasDirty();
+        this._setGroupDirty();
       case EntityModifyFlags.Child:
-        (param as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
+        (param as any)._updateUIHierarchyVersion?.();
         break;
       default:
         break;
@@ -417,7 +435,7 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   @ignoreClone
   _groupListener(flag: number): void {
     if (flag === EntityModifyFlags.Parent || flag === EntityUIModifyFlags.GroupEnableInScene) {
-      UIElementUtils.setGroupDirty(this);
+      this._setGroupDirty();
     }
   }
 
@@ -587,21 +605,142 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   }
 
   private _refreshHosting(): void {
-    const rootCanvas = UIElementUtils.searchRootCanvasInParents(this.entity);
+    const rootCanvas = this._searchRootCanvasInParents();
     const hosted = !!rootCanvas;
     if (hosted !== this._hostedByUICanvas) {
       // @ts-ignore
       const componentsManager = this.scene._componentsManager;
       this._setHostedByUICanvas(hosted, componentsManager, true);
       if (hosted) {
-        (this.entity as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
+        (this.entity as any)._updateUIHierarchyVersion?.();
       } else {
         // Re-arm whole-chain listeners (the canvas-scoped range no longer covers the new parents).
-        UIElementUtils.setRootCanvas(this, null, this.entity);
-        UIElementUtils.cleanGroup(this);
+        this._registerRootCanvas(null);
+        this._isRootCanvasDirty = false;
+        this._registerListeners(this.entity, null, this._rootCanvasListener, this._rootCanvasListeningEntities);
+        this._cleanGroup();
         this._rectMasks.length = 0;
       }
     }
+  }
+
+  private _searchRootCanvasInParents(): IUICanvas {
+    let entity = this.entity;
+    while (entity) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && (component as unknown as IUICanvas)._isRootCanvas === true) {
+          return component as unknown as IUICanvas;
+        }
+      }
+      entity = entity.parent;
+    }
+    return null;
+  }
+
+  private _searchGroupInParents(rootCanvas: IUICanvas): IUIGroup {
+    let entity = this.entity;
+    const rootCanvasParent = rootCanvas.entity.parent;
+    while (entity && entity !== rootCanvasParent) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && (component as unknown as IUIGroup)._isUIGroup === true) {
+          return component as unknown as IUIGroup;
+        }
+      }
+      entity = entity.parent;
+    }
+    return null;
+  }
+
+  private _setRootCanvasDirty(): void {
+    if (this._isRootCanvasDirty) return;
+    this._isRootCanvasDirty = true;
+    this._registerRootCanvas(null);
+  }
+
+  private _setGroupDirty(): void {
+    if (this._isGroupDirty) return;
+    this._isGroupDirty = true;
+    this._registerGroup(null);
+  }
+
+  private _cleanRootCanvas(): void {
+    this._registerRootCanvas(null);
+    this._unRegisterListeners(this._rootCanvasListener, this._rootCanvasListeningEntities);
+  }
+
+  private _cleanGroup(): void {
+    this._registerGroup(null);
+    this._unRegisterListeners(this._groupListener, this._groupListeningEntities);
+  }
+
+  private _registerRootCanvas(canvas: IUICanvas): void {
+    const preCanvas = this._rootCanvas;
+    if (preCanvas !== canvas) {
+      if (preCanvas) {
+        const replaced = preCanvas._disorderedElements.deleteByIndex(this._indexInRootCanvas);
+        replaced && (replaced._indexInRootCanvas = this._indexInRootCanvas);
+        this._indexInRootCanvas = -1;
+      }
+      if (canvas) {
+        const disorderedElements = canvas._disorderedElements;
+        this._indexInRootCanvas = disorderedElements.length;
+        disorderedElements.add(this);
+      }
+      this._rootCanvas = canvas;
+    }
+  }
+
+  private _registerGroup(group: IUIGroup): void {
+    const preGroup = this._group;
+    if (preGroup !== group) {
+      if (preGroup) {
+        const replaced = preGroup._disorderedElements.deleteByIndex(this._indexInGroup);
+        replaced && (replaced._indexInGroup = this._indexInGroup);
+        this._indexInGroup = -1;
+      }
+      if (group) {
+        const disorderedElements = group._disorderedElements;
+        this._indexInGroup = disorderedElements.length;
+        disorderedElements.add(this);
+      }
+      this._group = group;
+    }
+  }
+
+  private _registerListeners(
+    entity: Entity,
+    root: Entity,
+    listener: (flag: number, param?: any) => void,
+    listeningEntities: Entity[]
+  ): void {
+    let count = 0;
+    while (entity && entity !== root) {
+      const preEntity = listeningEntities[count];
+      if (preEntity !== entity) {
+        // @ts-ignore
+        preEntity?._unRegisterModifyListener(listener);
+        listeningEntities[count] = entity;
+        // @ts-ignore
+        entity._registerModifyListener(listener);
+      }
+      entity = entity.parent;
+      count++;
+    }
+    listeningEntities.length = count;
+  }
+
+  private _unRegisterListeners(listener: (flag: number, param?: any) => void, listeningEntities: Entity[]): void {
+    for (let i = 0, n = listeningEntities.length; i < n; i++) {
+      // @ts-ignore
+      listeningEntities[i]._unRegisterModifyListener(listener);
+    }
+    listeningEntities.length = 0;
   }
 
   private _clearMaterialCache(): void {

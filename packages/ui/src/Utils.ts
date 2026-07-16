@@ -1,11 +1,12 @@
 import {
   Entity,
+  GroupModifyFlags,
   Matrix,
   Plane,
   Ray,
+  RootCanvasModifyFlags,
   ShaderData,
   ShaderProperty,
-  UIElementUtils,
   Vector2,
   Vector3,
   Vector4
@@ -97,41 +98,148 @@ export class Utils {
   }
 
   static setRootCanvasDirty(element: IUIElement): void {
-    UIElementUtils.setRootCanvasDirty(element);
+    if (element._isRootCanvasDirty) return;
+    element._isRootCanvasDirty = true;
+    this._registerRootCanvas(element, null);
+    element._onRootCanvasModify?.(RootCanvasModifyFlags.All);
   }
 
   static setRootCanvas(element: IUIElement, rootCanvas: UICanvas): void {
+    element._isRootCanvasDirty = false;
+    this._registerRootCanvas(element, rootCanvas);
     const fromEntity = element instanceof UICanvas ? element.entity.parent : element.entity;
-    UIElementUtils.setRootCanvas(element, rootCanvas, fromEntity);
+    const toEntity = rootCanvas?.entity.parent ?? null;
+    this._registerListener(fromEntity, toEntity, element._rootCanvasListener, element._rootCanvasListeningEntities);
   }
 
   static cleanRootCanvas(element: IUIElement): void {
-    UIElementUtils.cleanRootCanvas(element);
+    this._registerRootCanvas(element, null);
+    this._unRegisterListener(element._rootCanvasListener, element._rootCanvasListeningEntities);
   }
 
   static searchRootCanvasInParents(element: IUIElement): UICanvas {
-    const startEntity = element instanceof UICanvas ? element.entity.parent : element.entity;
-    return <UICanvas>UIElementUtils.searchRootCanvasInParents(startEntity);
+    let entity = element instanceof UICanvas ? element.entity.parent : element.entity;
+    while (entity) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component instanceof UICanvas && component._isRootCanvas) {
+          return component;
+        }
+      }
+      entity = entity.parent;
+    }
+    return null;
   }
 
   static setGroupDirty(element: IUIGroupAble): void {
-    UIElementUtils.setGroupDirty(element);
+    if (element._isGroupDirty) return;
+    element._isGroupDirty = true;
+    this._registerGroup(element, null);
+    element._onGroupModify(GroupModifyFlags.All);
   }
 
   static setGroup(element: IUIGroupAble, group: UIGroup): void {
-    const fromEntity = element instanceof UIGroup ? element.entity.parent : element.entity;
-    UIElementUtils.setGroup(element, group, fromEntity);
+    element._isGroupDirty = false;
+    this._registerGroup(element, group);
+    const rootCanvas = element._getRootCanvas();
+    if (rootCanvas) {
+      const fromEntity = element instanceof UIGroup ? element.entity.parent : element.entity;
+      const toEntity = group?.entity ?? rootCanvas.entity.parent;
+      this._registerListener(fromEntity, toEntity, element._groupListener, element._groupListeningEntities);
+    } else {
+      this._unRegisterListener(element._groupListener, element._groupListeningEntities);
+    }
   }
 
   static cleanGroup(element: IUIGroupAble): void {
-    UIElementUtils.cleanGroup(element);
+    this._registerGroup(element, null);
+    this._unRegisterListener(element._groupListener, element._groupListeningEntities);
   }
 
   static searchGroupInParents(element: IUIGroupAble): UIGroup {
     const rootCanvas = element._getRootCanvas();
     if (!rootCanvas) return null;
-    const startEntity = element instanceof UIGroup ? element.entity.parent : element.entity;
-    return <UIGroup>UIElementUtils.searchGroupInParents(startEntity, rootCanvas);
+    let entity = element instanceof UIGroup ? element.entity.parent : element.entity;
+    const rootCanvasParent = rootCanvas.entity.parent;
+    while (entity && entity !== rootCanvasParent) {
+      // @ts-ignore
+      const components = entity._components;
+      for (let i = 0, n = components.length; i < n; i++) {
+        const component = components[i];
+        if (component.enabled && component instanceof UIGroup) {
+          return component;
+        }
+      }
+      entity = entity.parent;
+    }
+    return null;
+  }
+
+  private static _registerRootCanvas(element: IUIElement, canvas: UICanvas): void {
+    const preCanvas = element._rootCanvas;
+    if (preCanvas !== canvas) {
+      if (preCanvas) {
+        const replaced = preCanvas._disorderedElements.deleteByIndex(element._indexInRootCanvas);
+        replaced && (replaced._indexInRootCanvas = element._indexInRootCanvas);
+        element._indexInRootCanvas = -1;
+      }
+      if (canvas) {
+        const disorderedElements = canvas._disorderedElements;
+        element._indexInRootCanvas = disorderedElements.length;
+        disorderedElements.add(element);
+      }
+      element._rootCanvas = canvas;
+    }
+  }
+
+  private static _registerGroup(element: IUIGroupAble, group: UIGroup): void {
+    const preGroup = element._group;
+    if (preGroup !== group) {
+      if (preGroup) {
+        const replaced = preGroup._disorderedElements.deleteByIndex(element._indexInGroup);
+        replaced && (replaced._indexInGroup = element._indexInGroup);
+        element._indexInGroup = -1;
+      }
+      if (group) {
+        const disorderedElements = group._disorderedElements;
+        element._indexInGroup = disorderedElements.length;
+        disorderedElements.add(element);
+      }
+      element._group = group;
+      element._onGroupModify(GroupModifyFlags.All);
+    }
+  }
+
+  private static _registerListener(
+    entity: Entity,
+    root: Entity,
+    listener: (flag: number, param?: any) => void,
+    listeningEntities: Entity[]
+  ): void {
+    let count = 0;
+    while (entity && entity !== root) {
+      const preEntity = listeningEntities[count];
+      if (preEntity !== entity) {
+        // @ts-ignore
+        preEntity?._unRegisterModifyListener(listener);
+        listeningEntities[count] = entity;
+        // @ts-ignore
+        entity._registerModifyListener(listener);
+      }
+      entity = entity.parent;
+      count++;
+    }
+    listeningEntities.length = count;
+  }
+
+  private static _unRegisterListener(listener: (flag: number, param?: any) => void, listeningEntities: Entity[]): void {
+    for (let i = 0, n = listeningEntities.length; i < n; i++) {
+      // @ts-ignore
+      listeningEntities[i]._unRegisterModifyListener(listener);
+    }
+    listeningEntities.length = 0;
   }
 
   /**

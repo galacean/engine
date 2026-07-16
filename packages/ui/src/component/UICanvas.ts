@@ -14,7 +14,6 @@ import {
   Ray,
   Renderer,
   RootCanvasModifyFlags,
-  UIElementUtils,
   Vector2,
   Vector3,
   assignmentClone,
@@ -40,6 +39,8 @@ import { UIInteractive } from "./interactive/UIInteractive";
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
 export class UICanvas extends Component implements IUIElement {
+  /** @internal */
+  static _hierarchyCounter: number = 1;
   private static _tempGroupAbleList: IUIGroupAble[] = [];
   private static _tempRectMaskList: RectMask2D[] = [];
   private static _tempVec3: Vector3 = new Vector3();
@@ -426,7 +427,7 @@ export class UICanvas extends Component implements IUIElement {
       renderers.length = this._walk(this.entity, renderers, 0, null, 0);
       UICanvas._tempGroupAbleList.length = 0;
       this._hierarchyVersion = uiHierarchyVersion;
-      ++UIElementUtils._hierarchyCounter;
+      ++UICanvas._hierarchyCounter;
     }
     return renderers;
   }
@@ -641,7 +642,7 @@ export class UICanvas extends Component implements IUIElement {
       this._updateCameraObserver();
       this._setRealRenderMode(this._getRealRenderMode());
       if (isRootCanvas) {
-        this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+        this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
       } else {
         const { _disorderedElements: disorderedElements } = this;
         disorderedElements.forEach((element: IUIElement) => {

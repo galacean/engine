@@ -31,7 +31,7 @@ export enum GroupModifyFlags {
 
 /**
  * An element owned by a root UI canvas: tracks its canvas and listens to hierarchy changes.
- * Underscore members are engine-internal plumbing maintained by the canvas and `UIElementUtils`.
+ * Underscore members are engine-internal plumbing maintained by the ui package's `Utils`.
  */
 export interface IUIElement {
   entity: Entity;

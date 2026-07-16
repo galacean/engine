@@ -12,6 +12,7 @@ import {
   ShaderPass
 } from "@galacean/engine";
 import * as GUIComponent from "./component";
+import { UICanvas } from "./component";
 import uiDefaultFs from "./shader/uiDefault.fs.glsl";
 import uiDefaultVs from "./shader/uiDefault.vs.glsl";
 export * from "./component";
@@ -48,7 +49,9 @@ export class EngineExtension {
 
 export class EntityExtension {
   _uiHierarchyVersion = 0;
-  _updateUIHierarchyVersion(version: number): void {
+  // Defaults to the current counter so canvas-hosted renderers (e.g. spine) can stamp
+  // without reaching into ui internals.
+  _updateUIHierarchyVersion(version: number = UICanvas._hierarchyCounter): void {
     if (this._uiHierarchyVersion !== version) {
       this._uiHierarchyVersion = version;
       // @ts-ignore
@@ -68,7 +71,7 @@ declare module "@galacean/engine" {
     // @internal
     _uiHierarchyVersion: number;
     // @internal
-    _updateUIHierarchyVersion(version: number): void;
+    _updateUIHierarchyVersion(version?: number): void;
   }
 }
 

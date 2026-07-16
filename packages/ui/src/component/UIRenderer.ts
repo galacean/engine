@@ -13,7 +13,6 @@ import {
   ShaderProperty,
   SpriteMaskInteraction,
   SpriteMaskLayer,
-  UIElementUtils,
   Vector3,
   Vector4,
   assignmentClone,
@@ -205,7 +204,7 @@ export class UIRenderer extends Renderer implements IUIRenderer {
   override _onEnableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.addOnUpdateRenderers(this);
-    this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+    this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.setRootCanvasDirty(this);
     Utils.setGroupDirty(this);
   }
@@ -214,7 +213,7 @@ export class UIRenderer extends Renderer implements IUIRenderer {
   override _onDisableInScene(): void {
     // @ts-ignore
     this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
-    this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+    this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
   }
@@ -262,7 +261,7 @@ export class UIRenderer extends Renderer implements IUIRenderer {
         Utils.setRootCanvasDirty(this);
         Utils.setGroupDirty(this);
       case EntityModifyFlags.Child:
-        entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+        entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
         break;
       default:
         break;

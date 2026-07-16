@@ -2,7 +2,6 @@ import {
   Component,
   DependentMode,
   Entity,
-  UIElementUtils,
   Vector2,
   Vector3,
   Vector4,
@@ -113,12 +112,12 @@ export class RectMask2D extends Component {
 
   // @ts-ignore
   override _onEnableInScene(): void {
-    this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+    this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
   }
 
   // @ts-ignore
   override _onDisableInScene(): void {
-    this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+    this.entity._updateUIHierarchyVersion(UICanvas._hierarchyCounter);
   }
 
   // @ts-ignore
