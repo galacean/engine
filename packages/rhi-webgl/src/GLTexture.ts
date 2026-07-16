@@ -141,6 +141,15 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           alignment: 2
         };
+      // Only WebGL2 support
+      case TextureFormat.R16:
+        return {
+          internalFormat: gl.R16F,
+          baseFormat: gl.RED,
+          dataType: gl.HALF_FLOAT,
+          isCompressed: false,
+          alignment: 2
+        };
       case TextureFormat.BC1:
         return {
           internalFormat: isSRGBColorSpace
@@ -408,6 +417,7 @@ export class GLTexture implements IPlatformTexture {
 
     switch (format) {
       case TextureFormat.R16G16B16A16:
+      case TextureFormat.R16:
         {
           if (!rhi.canIUse(GLCapabilityType.colorBufferHalfFloat) || !rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
             isSupported = false;
@@ -608,7 +618,7 @@ export class GLTexture implements IPlatformTexture {
   protected _init(isCube: boolean): void {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
-    let { internalFormat, baseFormat, dataType } = this._formatDetail;
+    const { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
     const { mipmapCount, width, height, usage, _isDepthTexture } = this._texture;
 

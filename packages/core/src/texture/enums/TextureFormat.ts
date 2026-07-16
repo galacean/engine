@@ -24,6 +24,8 @@ export enum TextureFormat {
   R8 = 36,
   /** RG float format, 8 bits per channel. */
   R8G8 = 37,
+  /** R half-float format, 16 bits. WebGL2 only. Linear filter requires OES_texture_half_float_linear. */
+  R16 = 38,
   /** RGB compressed format, 4 bits per pixel. */
   BC1 = 10,
   /** RGBA compressed format, 8 bits per pixel. */
