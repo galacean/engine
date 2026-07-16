@@ -400,7 +400,9 @@ export class UICanvas extends Component implements IUIElement {
         this._setIsRootCanvas(!rootCanvas);
         Utils.setRootCanvas(this, rootCanvas);
       } else if (flag === EntityUIModifyFlags.CanvasEnableInScene) {
-        this._setIsRootCanvas(false);
+        // The enabling canvas has not claimed root status at dispatch time, so searches
+        // inside the demote cascade cannot find it — hand it down as the successor.
+        this._setIsRootCanvas(false, <UICanvas>param);
         Utils.setRootCanvas(this, <UICanvas>param);
       }
     } else {
@@ -636,7 +638,7 @@ export class UICanvas extends Component implements IUIElement {
     }
   }
 
-  private _setIsRootCanvas(isRootCanvas: boolean): void {
+  private _setIsRootCanvas(isRootCanvas: boolean, successor: UICanvas = null): void {
     if (this._isRootCanvas !== isRootCanvas) {
       this._isRootCanvas = isRootCanvas;
       this._updateCameraObserver();
@@ -647,8 +649,10 @@ export class UICanvas extends Component implements IUIElement {
         const { _disorderedElements: disorderedElements } = this;
         disorderedElements.forEach((element: IUIElement) => {
           if (element instanceof UICanvas) {
-            const rootCanvas = Utils.searchRootCanvasInParents(element);
-            element._setIsRootCanvas(!rootCanvas);
+            // `successor` covers the enable-driven demote, where the search cannot see the
+            // enabling canvas yet (it claims root status only after its dispatch returns).
+            const rootCanvas = Utils.searchRootCanvasInParents(element) ?? successor;
+            element._setIsRootCanvas(!rootCanvas, successor);
             Utils.setRootCanvas(element, rootCanvas);
           } else {
             // Reset the element's own canvas state (stale _rootCanvas/_indexInRootCanvas and

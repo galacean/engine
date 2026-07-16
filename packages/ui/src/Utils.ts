@@ -231,6 +231,12 @@ export class Utils {
       entity = entity.parent;
       count++;
     }
+    // A shorter chain drops tail entries — they must release the listener, or the bound
+    // element stays reachable from (and invocable by) entities it no longer tracks.
+    for (let i = count, n = listeningEntities.length; i < n; i++) {
+      // @ts-ignore
+      listeningEntities[i]._unRegisterModifyListener(listener);
+    }
     listeningEntities.length = count;
   }
 

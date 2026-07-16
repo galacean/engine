@@ -388,4 +388,31 @@ describe("UICanvas", async () => {
 
     outerEntity.destroy();
   });
+  it("re-roots nested canvases to the enabling ancestor canvas", () => {
+    const outerEntity = root.createChild("outer");
+    const midEntity = outerEntity.createChild("mid");
+    const midCanvas = midEntity.addComponent(UICanvas);
+    const innerEntity = midEntity.createChild("inner");
+    const innerCanvas = innerEntity.addComponent(UICanvas);
+    // @ts-ignore
+    expect(midCanvas._isRootCanvas).to.be.true;
+    // @ts-ignore
+    expect(innerCanvas._isRootCanvas).to.be.false;
+
+    // The enabling canvas claims root status only after its enable dispatch returns, so the
+    // demote cascade must hand it down instead of searching for it.
+    const outerCanvas = outerEntity.addComponent(UICanvas);
+    // @ts-ignore
+    expect(outerCanvas._isRootCanvas).to.be.true;
+    // @ts-ignore
+    expect(midCanvas._isRootCanvas).to.be.false;
+    // @ts-ignore
+    expect(innerCanvas._isRootCanvas).to.be.false;
+    // @ts-ignore
+    expect(midCanvas._getRootCanvas()).to.eq(outerCanvas);
+    // @ts-ignore
+    expect(innerCanvas._getRootCanvas()).to.eq(outerCanvas);
+
+    outerEntity.destroy();
+  });
 });
