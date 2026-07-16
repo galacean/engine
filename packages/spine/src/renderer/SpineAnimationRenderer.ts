@@ -270,8 +270,9 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     const rootCanvas = UIElementUtils.searchRootCanvasInParents(this.entity);
     this._setHostedByUICanvas(!!rootCanvas, componentsManager, false);
     if (rootCanvas) {
-      // @ts-ignore
-      this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+      // The mixin method exists only when the ui package is loaded — without it there are
+      // no canvases to notify.
+      (this.entity as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
       UIElementUtils.setRootCanvasDirty(this);
       UIElementUtils.setGroupDirty(this);
     } else {
@@ -291,8 +292,7 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     // @ts-ignore
     this._overrideUpdate && componentsManager.removeOnUpdateRenderers(this);
     if (this._hostedByUICanvas) {
-      // @ts-ignore
-      this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+      (this.entity as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
     } else {
       componentsManager.removeRenderer(this);
     }
@@ -404,8 +404,7 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
         UIElementUtils.setRootCanvasDirty(this);
         UIElementUtils.setGroupDirty(this);
       case EntityModifyFlags.Child:
-        // @ts-ignore
-        (param as Entity)._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+        (param as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
         break;
       default:
         break;
@@ -595,8 +594,7 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
       const componentsManager = this.scene._componentsManager;
       this._setHostedByUICanvas(hosted, componentsManager, true);
       if (hosted) {
-        // @ts-ignore
-        this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
+        (this.entity as any)._updateUIHierarchyVersion?.(UIElementUtils._hierarchyCounter);
       } else {
         // Re-arm whole-chain listeners (the canvas-scoped range no longer covers the new parents).
         UIElementUtils.setRootCanvas(this, null, this.entity);
