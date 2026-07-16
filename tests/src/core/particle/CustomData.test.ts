@@ -163,6 +163,17 @@ describe("CustomDataModule", function () {
     expect(customData.gradients.size).to.eq(0);
   });
 
+  it("clear removes every stream", function () {
+    const customData = particleRenderer.generator.customData;
+    customData.addCurve("A", new ParticleCompositeCurve(1));
+    customData.addGradient("B", new ParticleCompositeGradient(new Color()));
+
+    customData.clear();
+
+    expect(customData.curves.size).to.eq(0);
+    expect(customData.gradients.size).to.eq(0);
+  });
+
   it("removeCurve / removeGradient zero out shaderData uniforms", function () {
     const customData = particleRenderer.generator.customData;
     const shaderData = particleRenderer.shaderData;

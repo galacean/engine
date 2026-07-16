@@ -95,6 +95,17 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     this._generator._setTransformFeedback();
   }
 
+  /**
+   * Remove all sub-emitter slots.
+   */
+  clear(): void {
+    if (this._subEmitters.length === 0) {
+      return;
+    }
+    this._subEmitters.length = 0;
+    this._generator._setTransformFeedback();
+  }
+
   override get enabled(): boolean {
     return this._enabled && this._generator._renderer.engine._hardwareRenderer.isWebGL2;
   }
