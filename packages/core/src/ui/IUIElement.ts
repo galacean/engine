@@ -85,17 +85,18 @@ export interface IUIHitResult {
 }
 
 /**
- * A renderer that is not a ui-package `UIRenderer` but can be hosted by a `UICanvas`:
- * when placed under a root canvas it is collected, ordered, group-faded, rect-clipped and
- * hit-tested by the canvas instead of rendering through the camera pipeline.
+ * A renderer a root `UICanvas` collects and drives: ordered with the other UI elements,
+ * group-faded, rect-clipped and hit-tested by the canvas. The ui package's `UIRenderer` is
+ * the reference implementation; any other `Renderer` (e.g. spine) can implement it to be
+ * hosted by a canvas instead of rendering through the camera pipeline.
  *
  * @remarks
- * Implementers switch their own `ComponentsManager` renderer registration off while hosted
- * and push their render elements into `IUICanvas._renderElements` from `_render`.
+ * Non-ui implementers switch their own `ComponentsManager` renderer registration off while
+ * hosted and push their render elements into `IUICanvas._renderElements` from `_render`.
  */
-export interface IUIHostedRenderer extends IUIGroupAble {
+export interface IUIRenderer extends IUIGroupAble {
   /** Marker checked by the canvas walk. */
-  _isUIHostedRenderer: boolean;
+  _isUIRenderer: boolean;
 
   raycastEnabled: boolean;
   _raycast(ray: Ray, out: IUIHitResult, distance: number): boolean;

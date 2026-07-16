@@ -24,14 +24,14 @@ import {
 } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { UIHitResult } from "../input/UIHitResult";
-import { IGraphics } from "../interface/IGraphics";
+import type { IUIRenderer } from "@galacean/engine";
 import { RectMask2D } from "./advanced/RectMask2D";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 import { GroupModifyFlags, UIGroup } from "./UIGroup";
 import { UITransform } from "./UITransform";
 
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UIRenderer extends Renderer implements IGraphics {
+export class UIRenderer extends Renderer implements IUIRenderer {
   /** @internal */
   static _tempVec20: Vector2 = new Vector2();
   /** @internal */
@@ -47,6 +47,9 @@ export class UIRenderer extends Renderer implements IGraphics {
   /** @internal */
   static _tempRect: Vector4 = new Vector4();
 
+  /** @internal Marker checked by the `UICanvas` walk (`IUIRenderer`). */
+  @ignoreClone
+  _isUIRenderer = true;
   /**
    * Custom boundary for raycast detection.
    * @remarks this is based on `this.entity.transform`.
@@ -186,7 +189,6 @@ export class UIRenderer extends Renderer implements IGraphics {
       this._update(context);
     }
 
-    Utils.updateRectMaskClipState(this);
     this._render(context);
 
     // union camera global macro and renderer macro.

@@ -7,9 +7,9 @@ import {
   deepClone,
   ignoreClone
 } from "@galacean/engine";
+import type { IUIGroupAble } from "@galacean/engine";
 import { UIGroup } from "../..";
 import { Utils } from "../../Utils";
-import { IGroupAble } from "../../interface/IGroupAble";
 import { EntityUIModifyFlags, UICanvas } from "../UICanvas";
 import { GroupModifyFlags } from "../UIGroup";
 import { Transition } from "./transition/Transition";
@@ -17,7 +17,7 @@ import { Transition } from "./transition/Transition";
 /**
  * Interactive component.
  */
-export class UIInteractive extends Script implements IGroupAble {
+export class UIInteractive extends Script implements IUIGroupAble {
   /** @internal */
   _rootCanvas: UICanvas;
   /** @internal */

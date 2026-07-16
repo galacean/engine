@@ -8,10 +8,10 @@ import {
   ignoreClone
 } from "@galacean/engine";
 import { Utils } from "../Utils";
-import { IGroupAble } from "../interface/IGroupAble";
+import type { IUIGroupAble } from "@galacean/engine";
 import { EntityUIModifyFlags, UICanvas } from "./UICanvas";
 
-export class UIGroup extends Component implements IGroupAble {
+export class UIGroup extends Component implements IUIGroupAble {
   /** @internal Marker letting core-level code identify a group without a ui-package dependency. */
   _isUIGroup = true;
   /** @internal */
@@ -26,7 +26,7 @@ export class UIGroup extends Component implements IGroupAble {
   _rootCanvas: UICanvas;
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IGroupAble> = new DisorderedArray<IGroupAble>();
+  _disorderedElements: DisorderedArray<IUIGroupAble> = new DisorderedArray<IUIGroupAble>();
 
   /** @internal */
   @ignoreClone
@@ -154,7 +154,7 @@ export class UIGroup extends Component implements IGroupAble {
     Utils.cleanRootCanvas(this);
     Utils.cleanGroup(this);
     const disorderedElements = this._disorderedElements;
-    disorderedElements.forEach((element: IGroupAble) => {
+    disorderedElements.forEach((element: IUIGroupAble) => {
       Utils.setGroupDirty(element);
     });
     disorderedElements.length = 0;

@@ -27,7 +27,7 @@ import {
   VertexElement,
   VertexElementFormat
 } from "@galacean/engine";
-import type { IUICanvas, IUIGroup, IUIHitResult, IUIHostedRenderer } from "@galacean/engine";
+import type { IUICanvas, IUIGroup, IUIHitResult, IUIRenderer } from "@galacean/engine";
 import { SpineResource } from "../loader/SpineResource";
 import { SpineMaterial } from "./SpineMaterial";
 import { SpineBlendMode } from "../enums/SpineBlendMode";
@@ -40,11 +40,11 @@ import type { ISpineRenderTarget } from "../runtime/ISpineRenderTarget";
  *
  * @remarks
  * Renders in world space through the camera pipeline, or — when placed under a root `UICanvas` —
- * is hosted by the canvas (implements the engine's `IUIHostedRenderer` contract): collected and
+ * is hosted by the canvas (implements the engine's `IUIRenderer` contract): collected and
  * ordered with the other UI elements, faded by `UIGroup` alpha and clipped by `RectMask2D`.
  * The skeleton renders at the entity's transform scale in both spaces.
  */
-export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarget, IUIHostedRenderer {
+export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarget, IUIRenderer {
   private static _positionVertexElement = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
   private static _lightColorVertexElement = new VertexElement("LIGHT_COLOR", 12, VertexElementFormat.Vector4, 0);
   private static _uvVertexElement = new VertexElement("TEXCOORD_0", 28, VertexElementFormat.Vector2, 0);
@@ -140,9 +140,9 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     new Vector3(-Infinity, -Infinity, -Infinity)
   );
 
-  /** @internal Marker checked by the `UICanvas` walk (`IUIHostedRenderer`). */
+  /** @internal Marker checked by the `UICanvas` walk (`IUIRenderer`). */
   @ignoreClone
-  _isUIHostedRenderer = true;
+  _isUIRenderer = true;
   /** @internal */
   @ignoreClone
   _rootCanvas: IUICanvas = null;

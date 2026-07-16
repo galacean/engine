@@ -23,13 +23,11 @@ import {
   ignoreClone,
   CloneUtils
 } from "@galacean/engine";
-import type { IUIGroupAble, IUIHostedRenderer } from "@galacean/engine";
+import type { IUIElement, IUIGroupAble, IUIRenderer } from "@galacean/engine";
 import { Utils } from "../Utils";
 import { CanvasRenderMode } from "../enums/CanvasRenderMode";
 import { ResolutionAdaptationMode } from "../enums/ResolutionAdaptationMode";
 import { UIHitResult } from "../input/UIHitResult";
-import { IElement } from "../interface/IElement";
-import { IGroupAble } from "../interface/IGroupAble";
 import { RectMask2D } from "./advanced/RectMask2D";
 import { UIGroup } from "./UIGroup";
 import { UIRenderer } from "./UIRenderer";
@@ -41,7 +39,7 @@ import { UIInteractive } from "./interactive/UIInteractive";
  * handling rendering and events based on it.
  */
 @dependentComponents(UITransform, DependentMode.AutoAdd)
-export class UICanvas extends Component implements IElement {
+export class UICanvas extends Component implements IUIElement {
   private static _tempGroupAbleList: IUIGroupAble[] = [];
   private static _tempRectMaskList: RectMask2D[] = [];
   private static _tempVec3: Vector3 = new Vector3();
@@ -79,7 +77,7 @@ export class UICanvas extends Component implements IElement {
   _realRenderMode: number = CanvasRealRenderMode.None;
   /** @internal */
   @ignoreClone
-  _disorderedElements: DisorderedArray<IElement> = new DisorderedArray<IElement>();
+  _disorderedElements: DisorderedArray<IUIElement> = new DisorderedArray<IUIElement>();
 
   @ignoreClone
   private _renderMode = CanvasRenderMode.WorldSpace;
@@ -343,11 +341,7 @@ export class UICanvas extends Component implements IElement {
             break;
         }
       }
-      if (!(renderer instanceof UIRenderer)) {
-        // Hosted renderers don't run UIRenderer's prepare path, so the canvas applies
-        // their rect-clip state before rendering.
-        Utils.updateRectMaskClipState(renderer);
-      }
+      Utils.updateRectMaskClipState(renderer);
       // @ts-ignore
       renderer._prepareRender(context);
       renderer._renderFrameCount = frameCount;
@@ -527,7 +521,7 @@ export class UICanvas extends Component implements IElement {
     for (let i = 0, n = components.length; i < n; i++) {
       const component = components[i];
       if (!component.enabled) continue;
-      if (component instanceof UIRenderer || (component as unknown as IUIHostedRenderer)._isUIHostedRenderer) {
+      if ((component as unknown as IUIRenderer)._isUIRenderer) {
         const renderable = component as unknown as CanvasRenderable;
         renderers[depth] = renderable;
         ++depth;
@@ -650,7 +644,7 @@ export class UICanvas extends Component implements IElement {
         this.entity._updateUIHierarchyVersion(UIElementUtils._hierarchyCounter);
       } else {
         const { _disorderedElements: disorderedElements } = this;
-        disorderedElements.forEach((element: IElement) => {
+        disorderedElements.forEach((element: IUIElement) => {
           if (element instanceof UICanvas) {
             const rootCanvas = Utils.searchRootCanvasInParents(element);
             element._setIsRootCanvas(!rootCanvas);
@@ -660,7 +654,7 @@ export class UICanvas extends Component implements IElement {
             // the dirty flag the new root's walk re-assignment is gated on) — the bulk
             // clear below only empties this canvas's list.
             Utils.setRootCanvasDirty(element);
-            Utils.setGroupDirty(<IGroupAble>element);
+            Utils.setGroupDirty(<IUIGroupAble>element);
           }
         });
         disorderedElements.length = 0;
@@ -750,6 +744,6 @@ export { RootCanvasModifyFlags } from "@galacean/engine";
 
 /**
  * A renderer a root canvas collects and drives: either a ui `UIRenderer` or any engine
- * `Renderer` implementing the core `IUIHostedRenderer` hosting contract.
+ * `Renderer` implementing the core `IUIRenderer` contract.
  */
-export type CanvasRenderable = UIRenderer | (Renderer & IUIHostedRenderer);
+export type CanvasRenderable = Renderer & IUIRenderer;
