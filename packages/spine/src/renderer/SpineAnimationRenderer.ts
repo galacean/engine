@@ -74,7 +74,8 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
 
   /**
    * Whether this renderer can be picked up by UI raycasts while hosted inside a `UICanvas`.
-   * The hit area is the skeleton's world bounds.
+   * The hit area is the skeleton's world bounds, excluding regions clipped away by
+   * ancestor `RectMask2D`s.
    */
   @assignmentClone
   raycastEnabled = false;
@@ -247,6 +248,9 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    * @internal
    */
   override update(delta: number): void {
+    // Deferred hosting changes (a canvas enabled on an ancestor, a demoted root canvas)
+    // must resolve before this frame builds vertices and renders.
+    this._settleHosting();
     const { _state: state, _skeleton: skeleton } = this;
     if (!state || !skeleton) return;
     const runtime = getSpineRuntime();
@@ -262,23 +266,11 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   // @ts-ignore
   override _onEnableInScene(): void {
+    // Start world-registered, then resolve: _refreshHosting hands the registration to the
+    // canvas when an enabled root canvas is found above.
     // @ts-ignore
-    const componentsManager = this.scene._componentsManager;
-    // @ts-ignore
-    this._overrideUpdate && componentsManager.addOnUpdateRenderers(this);
-    const rootCanvas = this._searchRootCanvasInParents();
-    this._setHostedByUICanvas(!!rootCanvas, componentsManager, false);
-    if (rootCanvas) {
-      // The mixin method exists only when the ui package is loaded — without it there are
-      // no canvases to notify. It stamps the current hierarchy counter by default.
-      (this.entity as any)._updateUIHierarchyVersion?.();
-      this._setRootCanvasDirty();
-      this._setGroupDirty();
-    } else {
-      componentsManager.addRenderer(this);
-      // Listen to the whole parent chain so moving under a canvas re-homes the renderer.
-      this._registerListeners(this.entity, null, this._rootCanvasListener, this._rootCanvasListeningEntities);
-    }
+    super._onEnableInScene();
+    this._refreshHosting();
   }
 
   /**
@@ -286,14 +278,18 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   // @ts-ignore
   override _onDisableInScene(): void {
-    // @ts-ignore
-    const componentsManager = this.scene._componentsManager;
-    // @ts-ignore
-    this._overrideUpdate && componentsManager.removeOnUpdateRenderers(this);
     if (this._hostedByUICanvas) {
+      // @ts-ignore
+      this._overrideUpdate && this.scene._componentsManager.removeOnUpdateRenderers(this);
+      // The mixin method exists only when the ui package is loaded — without it there are
+      // no canvases to notify. It stamps the current hierarchy counter by default.
       (this.entity as any)._updateUIHierarchyVersion?.();
+      this._hostedByUICanvas = false;
+      this.shaderData.disableMacro(SpineAnimationRenderer._uiRectClipMacro);
+      this._rectMasks.length = 0;
     } else {
-      componentsManager.removeRenderer(this);
+      // @ts-ignore
+      super._onDisableInScene();
     }
     this._cleanRootCanvas();
     this._cleanGroup();
@@ -310,48 +306,41 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     const engine = this.engine as any;
     const renderElementPool = engine._renderElementPool;
     const rootCanvas = this._hostedByUICanvas ? (this._getRootCanvas() as IUICanvas) : null;
+    let priority: number;
+    let distanceForSort: number;
+    let renderElements: any[] = null;
+    let renderPipeline: any = null;
     if (rootCanvas) {
       if (this.globalAlpha <= 0) {
         return;
       }
-      const priority = rootCanvas.sortOrder;
-      const distanceForSort = rootCanvas._sortDistance;
-      const renderElements = rootCanvas._renderElements;
-      for (let i = 0, n = _subPrimitives.length; i < n; i++) {
-        let material = materials[i];
-        if (!material) {
-          continue;
-        }
-        if (material.destroyed || material.shader.destroyed) {
-          material = engine._basicResources.meshMagentaMaterial;
-        }
-        const renderElement = renderElementPool.get();
-        renderElement.set(this, material, _primitive, _subPrimitives[i]);
-        // The overlay pass renders canvas elements without the pipeline's pushRenderElement
-        // (which assigns subShader elsewhere); camera-mode canvases overwrite this later.
-        renderElement.subShader = material.shader.subShaders[0];
-        renderElement.priority = priority;
-        renderElement.distanceForSort = distanceForSort;
-        renderElements.push(renderElement);
-      }
+      priority = rootCanvas.sortOrder;
+      distanceForSort = rootCanvas._sortDistance;
+      renderElements = rootCanvas._renderElements;
+    } else if (this._hostedByUICanvas) {
+      // Hosting is mid-transition (the canvas demoted after this frame's settle) — skip.
+      return;
     } else {
-      const priority = this.priority;
-      const distanceForSort = (this as any)._distanceForSort;
-      const renderPipeline = context.camera._renderPipeline;
-      for (let i = 0, n = _subPrimitives.length; i < n; i++) {
-        let material = materials[i];
-        if (!material) {
-          continue;
-        }
-        if (material.destroyed || material.shader.destroyed) {
-          material = engine._basicResources.meshMagentaMaterial;
-        }
-        const renderElement = renderElementPool.get();
-        renderElement.set(this, material, _primitive, _subPrimitives[i]);
-        renderElement.priority = priority;
-        renderElement.distanceForSort = distanceForSort;
-        renderPipeline.pushRenderElement(context, renderElement);
+      priority = this.priority;
+      distanceForSort = (this as any)._distanceForSort;
+      renderPipeline = context.camera._renderPipeline;
+    }
+    for (let i = 0, n = _subPrimitives.length; i < n; i++) {
+      let material = materials[i];
+      if (!material) {
+        continue;
       }
+      if (material.destroyed || material.shader.destroyed) {
+        material = engine._basicResources.meshMagentaMaterial;
+      }
+      const renderElement = renderElementPool.get();
+      renderElement.set(this, material, _primitive, _subPrimitives[i]);
+      // The overlay pass renders canvas elements without the pipeline's pushRenderElement
+      // (which assigns subShader elsewhere); the camera passes overwrite this assignment.
+      renderElement.subShader = material.shader.subShaders[0];
+      renderElement.priority = priority;
+      renderElement.distanceForSort = distanceForSort;
+      renderElements ? renderElements.push(renderElement) : renderPipeline.pushRenderElement(context, renderElement);
     }
   }
 
@@ -368,15 +357,7 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    */
   _getRootCanvas(): IUICanvas {
     if (this._isRootCanvasDirty) {
-      this._isRootCanvasDirty = false;
-      const rootCanvas = this._searchRootCanvasInParents();
-      this._registerRootCanvas(rootCanvas);
-      this._registerListeners(
-        this.entity,
-        rootCanvas?.entity.parent ?? null,
-        this._rootCanvasListener,
-        this._rootCanvasListeningEntities
-      );
+      this._refreshHosting();
     }
     return this._rootCanvas;
   }
@@ -419,10 +400,14 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     switch (flag) {
       case EntityModifyFlags.Parent:
         this._refreshHosting();
-        this._setRootCanvasDirty();
-        this._setGroupDirty();
       case EntityModifyFlags.Child:
         (param as any)._updateUIHierarchyVersion?.();
+        break;
+      case EntityUIModifyFlags.CanvasEnableInScene:
+        // The enabling canvas has not claimed root status at dispatch time, so a search now
+        // would miss it — defer resolution to the pre-update settle.
+        this._setRootCanvasDirty();
+        this._setGroupDirty();
         break;
       default:
         break;
@@ -452,12 +437,16 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
 
   /**
    * @internal
-   * Hosted hit-testing against the skeleton's world bounds.
+   * Hosted hit-testing against the skeleton's world bounds; regions clipped away by
+   * ancestor `RectMask2D`s are not hittable.
    */
   _raycast(ray: Ray, out: IUIHitResult, distance: number = Number.MAX_SAFE_INTEGER): boolean {
     const curDistance = ray.intersectBox(this.bounds);
     if (curDistance >= 0 && curDistance < distance) {
       const hitPoint = ray.getPoint(curDistance, SpineAnimationRenderer._tempHitPoint);
+      if (!this._isRaycastVisibleByRectMask(hitPoint)) {
+        return false;
+      }
       out.component = this;
       out.distance = curDistance;
       out.entity = this.entity;
@@ -587,20 +576,11 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     return cached;
   }
 
-  private _setHostedByUICanvas(hosted: boolean, componentsManager: any, switchRegistration: boolean): void {
-    if (this._hostedByUICanvas === hosted && switchRegistration) return;
-    this._hostedByUICanvas = hosted;
-    if (switchRegistration) {
-      if (hosted) {
-        componentsManager.removeRenderer(this);
-      } else {
-        componentsManager.addRenderer(this);
-      }
-    }
-    if (hosted) {
-      this.shaderData.enableMacro(SpineAnimationRenderer._uiRectClipMacro);
-    } else {
-      this.shaderData.disableMacro(SpineAnimationRenderer._uiRectClipMacro);
+  private _settleHosting(): void {
+    // The divergence check catches half-resolved states: a canvas-side walk may assign
+    // _rootCanvas without switching the registration (it only knows the IUIElement contract).
+    if (this._isRootCanvasDirty || !!this._rootCanvas !== this._hostedByUICanvas) {
+      this._refreshHosting();
     }
   }
 
@@ -608,20 +588,52 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
     const rootCanvas = this._searchRootCanvasInParents();
     const hosted = !!rootCanvas;
     if (hosted !== this._hostedByUICanvas) {
+      this._hostedByUICanvas = hosted;
       // @ts-ignore
       const componentsManager = this.scene._componentsManager;
-      this._setHostedByUICanvas(hosted, componentsManager, true);
+      const shaderData = this.shaderData;
       if (hosted) {
-        (this.entity as any)._updateUIHierarchyVersion?.();
+        componentsManager.removeRenderer(this);
+        shaderData.enableMacro(SpineAnimationRenderer._uiRectClipMacro);
       } else {
-        // Re-arm whole-chain listeners (the canvas-scoped range no longer covers the new parents).
-        this._registerRootCanvas(null);
-        this._isRootCanvasDirty = false;
-        this._registerListeners(this.entity, null, this._rootCanvasListener, this._rootCanvasListeningEntities);
-        this._cleanGroup();
+        componentsManager.addRenderer(this);
+        shaderData.disableMacro(SpineAnimationRenderer._uiRectClipMacro);
         this._rectMasks.length = 0;
       }
     }
+    // Settle the canvas registration and listener scope even without a flip: a world→world
+    // reparent introduces ancestors that must be listened to, and the canvas walk and the
+    // camera pipeline both consume this state — nothing may stay half-resolved.
+    this._isRootCanvasDirty = false;
+    this._registerRootCanvas(rootCanvas);
+    this._registerListeners(
+      this.entity,
+      rootCanvas?.entity.parent ?? null,
+      this._rootCanvasListener,
+      this._rootCanvasListeningEntities
+    );
+    if (hosted) {
+      this._setGroupDirty();
+      // The mixin method exists whenever a canvas can exist (it ships with the ui package);
+      // stamping makes the hosting canvas re-walk and order this renderer in.
+      (this.entity as any)._updateUIHierarchyVersion?.();
+    } else {
+      this._cleanGroup();
+    }
+  }
+
+  private _isRaycastVisibleByRectMask(hitPointWorld: Vector3): boolean {
+    const rectMasks = this._rectMasks;
+    for (let i = 0, n = rectMasks.length; i < n; i++) {
+      const rectMask = rectMasks[i];
+      if (!rectMask.enabled || !rectMask.entity.isActiveInHierarchy) {
+        continue;
+      }
+      if (!rectMask._containsWorldPoint(hitPointWorld)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   private _searchRootCanvasInParents(): IUICanvas {
@@ -731,6 +743,12 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
       }
       entity = entity.parent;
       count++;
+    }
+    // A shorter chain drops tail entries — they must release the listener, or the bound
+    // component stays reachable from (and invocable by) entities it no longer tracks.
+    for (let i = count, n = listeningEntities.length; i < n; i++) {
+      // @ts-ignore
+      listeningEntities[i]._unRegisterModifyListener(listener);
     }
     listeningEntities.length = count;
   }

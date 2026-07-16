@@ -1,7 +1,7 @@
 import { Camera, Entity, Ray, Texture2D, Vector3, WebGLEngine } from "@galacean/engine";
 import { getSpineRuntime, SpineAnimationRenderer, SpineResource } from "@galacean/engine-spine";
 import "@galacean/engine-spine-core-4.2";
-import { CanvasRenderMode, RectMask2D, UICanvas, UIGroup } from "@galacean/engine-ui";
+import { CanvasRenderMode, RectMask2D, UICanvas, UIGroup, UITransform } from "@galacean/engine-ui";
 import { beforeAll, describe, expect, it } from "vitest";
 
 // Legacy-format atlas text (also parsed by the 4.2 parser): one 4x4 page with one region.
@@ -292,6 +292,159 @@ describe("SpineAnimationRenderer inside UICanvas", () => {
     expect(cloneRenderer.zSpacing).to.equal(0.01);
     expect(cloneRenderer.defaultConfig.animationName).to.equal("idle");
     expect(cloneRenderer.defaultConfig).to.not.equal(renderer.defaultConfig);
+    canvasEntity.destroy();
+  });
+
+  it("re-homes when a canvas is enabled on an ancestor at runtime", () => {
+    const before = worldRendererCount();
+    const holder = rootEntity.createChild("holder");
+    const spineEntity = holder.createChild("spine");
+    const renderer = spineEntity.addComponent(SpineAnimationRenderer);
+    renderer.resource = createSpineResource(engine);
+    expect(worldRendererCount()).to.equal(before + 1);
+    pump(engine);
+
+    const canvas = holder.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.WorldSpace;
+    pump(engine);
+    expect(worldRendererCount()).to.equal(before);
+    expect((canvas as any)._renderElements.length).to.equal(1);
+    expect((canvas as any)._renderElements[0].component).to.equal(renderer);
+    holder.destroy();
+  });
+
+  it("does not throw when an overlay canvas is enabled above a world-space spine", () => {
+    const before = worldRendererCount();
+    const holder = rootEntity.createChild("holder");
+    const spineEntity = holder.createChild("spine");
+    const renderer = spineEntity.addComponent(SpineAnimationRenderer);
+    renderer.resource = createSpineResource(engine);
+    pump(engine);
+
+    const canvas = holder.addComponent(UICanvas);
+    canvas.renderMode = CanvasRenderMode.ScreenSpaceOverlay;
+    expect(() => pump(engine)).to.not.throw();
+    expect(worldRendererCount()).to.equal(before);
+    expect((canvas as any)._renderElements.length).to.equal(1);
+    holder.destroy();
+  });
+
+  it("falls back to world rendering when its root canvas is disabled and returns on re-enable", () => {
+    const before = worldRendererCount();
+    const { canvasEntity, canvas } = createCanvas(CanvasRenderMode.WorldSpace);
+    const spineEntity = canvasEntity.createChild("spine");
+    const renderer = spineEntity.addComponent(SpineAnimationRenderer);
+    renderer.resource = createSpineResource(engine);
+    expect(worldRendererCount()).to.equal(before);
+    pump(engine);
+
+    canvas.enabled = false;
+    pump(engine);
+    expect(worldRendererCount()).to.equal(before + 1);
+
+    canvas.enabled = true;
+    expect(() => pump(engine)).to.not.throw();
+    expect(worldRendererCount()).to.equal(before);
+    expect((canvas as any)._renderElements.length).to.equal(1);
+    canvasEntity.destroy();
+  });
+
+  it("switches to world rendering when reparented out in the frame it was enabled", () => {
+    const before = worldRendererCount();
+    const { canvasEntity } = createCanvas(CanvasRenderMode.WorldSpace);
+    const spineEntity = canvasEntity.createChild("spine");
+    const renderer = spineEntity.addComponent(SpineAnimationRenderer);
+    renderer.resource = createSpineResource(engine);
+    expect(worldRendererCount()).to.equal(before);
+
+    // Reparent before any engine.update runs.
+    rootEntity.addChild(spineEntity);
+    expect(worldRendererCount()).to.equal(before + 1);
+    pump(engine);
+    expect(worldRendererCount()).to.equal(before + 1);
+
+    spineEntity.destroy();
+    canvasEntity.destroy();
+  });
+
+  it("re-homes when an ancestor subtree is moved under a canvas", () => {
+    const before = worldRendererCount();
+    const { canvasEntity, canvas } = createCanvas(CanvasRenderMode.WorldSpace);
+    const holder = rootEntity.createChild("holder");
+    const spineEntity = rootEntity.createChild("spine");
+    const renderer = spineEntity.addComponent(SpineAnimationRenderer);
+    renderer.resource = createSpineResource(engine);
+    expect(worldRendererCount()).to.equal(before + 1);
+
+    holder.addChild(spineEntity);
+    expect(worldRendererCount()).to.equal(before + 1);
+    canvasEntity.addChild(holder);
+    expect(worldRendererCount()).to.equal(before);
+    pump(engine);
+    expect((canvas as any)._renderElements.length).to.equal(1);
+
+    holder.destroy();
+    canvasEntity.destroy();
+  });
+
+  it("unregisters listeners from ancestors dropped by a shorter listening chain", () => {
+    const modifyListenerCount = (entity: Entity): number =>
+      // @ts-ignore
+      entity._modifyFlagManager?._listeners.length ?? 0;
+    const { canvasEntity } = createCanvas(CanvasRenderMode.WorldSpace);
+    const a = rootEntity.createChild("a");
+    const b = a.createChild("b");
+    const spineEntity = b.createChild("spine");
+    const renderer = spineEntity.addComponent(SpineAnimationRenderer);
+    renderer.resource = createSpineResource(engine);
+    expect(modifyListenerCount(a)).to.equal(1);
+    pump(engine);
+
+    // The listening chain shrinks from [spine, b, a, root] to [spine, canvasEntity].
+    canvasEntity.addChild(spineEntity);
+    pump(engine);
+    expect(modifyListenerCount(a)).to.equal(0);
+    expect(modifyListenerCount(b)).to.equal(0);
+
+    // A leaked listener would fire on the destroyed component when its ex-ancestors move.
+    spineEntity.destroy();
+    const elsewhere = rootEntity.createChild("elsewhere");
+    expect(() => {
+      elsewhere.addChild(a);
+      pump(engine);
+    }).to.not.throw();
+    elsewhere.destroy();
+    canvasEntity.destroy();
+  });
+
+  it("does not hit regions a RectMask2D clips away", () => {
+    const { canvasEntity, canvas } = createCanvas(CanvasRenderMode.WorldSpace);
+    const maskEntity = canvasEntity.createChild("mask");
+    const mask = maskEntity.addComponent(RectMask2D);
+    (maskEntity.transform as UITransform).size.set(2, 8);
+    const spineEntity = maskEntity.createChild("spine");
+    const renderer = spineEntity.addComponent(SpineAnimationRenderer);
+    renderer.resource = createSpineResource(engine);
+    renderer.raycastEnabled = true;
+    pump(engine);
+
+    const out = {
+      entity: null,
+      distance: 0,
+      point: new Vector3(),
+      normal: new Vector3(),
+      component: null
+    };
+    // The 4x4 skeleton spans x in [-2, 2]; the mask rect spans x in [-1, 1].
+    const insideRay = new Ray(new Vector3(0, 0, 10), new Vector3(0, 0, -1));
+    const clippedRay = new Ray(new Vector3(1.5, 0, 10), new Vector3(0, 0, -1));
+    expect((canvas as any)._raycast(insideRay, out)).to.be.true;
+    expect(out.component).to.equal(renderer);
+    expect((canvas as any)._raycast(clippedRay, out)).to.be.false;
+
+    // Disabled masks stop clipping the hit test.
+    mask.enabled = false;
+    expect((canvas as any)._raycast(clippedRay, out)).to.be.true;
     canvasEntity.destroy();
   });
 
