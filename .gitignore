@@ -33,6 +33,9 @@ e2e/screenshots/*
 e2e/downloads/*
 e2e/diff/*
 e2e/.dev/mpa
+# Per-demo visual probe: baselines are checked in, downloads/diff are ephemeral.
+world-gallery/demos/*/e2e/downloads/*
+world-gallery/demos/*/e2e/diff/*
 e2e/test-results/*
 playwright-report/
 
