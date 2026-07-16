@@ -595,14 +595,6 @@ export class ResourceManager {
     const promise = this.load<T>({ url: loadUrl });
     return isClone ? promise.then((item) => <T>(<IClone>(<unknown>item)).clone()) : promise;
   }
-
-  /**
-   * @internal
-   * @deprecated Use {@link registerVirtualResources}.
-   */
-  initVirtualResources(config: VirtualResource[]): void {
-    this.registerVirtualResources(config);
-  }
 }
 
 /**
