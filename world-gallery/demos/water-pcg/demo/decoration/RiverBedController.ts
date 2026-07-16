@@ -1,10 +1,10 @@
 /**
- * Demo-only opaque riverbed used to make water transmission observable.
+ * Demo-only opaque terrain used to make water transmission observable.
  *
- * Production terrain remains externally owned. This controller turns the
- * compiled Terrain corridor contract into a small V-shaped gravel bed. Medium
- * can then sample a real opaque depth instead of the far plane, while Low
- * exposes the same bed through its inexpensive alpha approximation.
+ * Production terrain remains externally owned. River and lake previews build a
+ * broad deterministic height field around compiled corridors, while the pool
+ * keeps its authored flat floor. Medium can sample real opaque depth instead of
+ * the far plane, and Low exposes the same terrain through its alpha approximation.
  */
 import {
   Engine,
@@ -19,180 +19,150 @@ import {
   UnlitMaterial
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3 } from "@galacean/engine-math";
-import { RIVER_GEOMETRY_Y_OFFSET, RIVER_TERRAIN_CORRIDOR_COMPONENT } from "../../compiler/river/constants";
-import type {
-  ReadonlyVector3Tuple,
-  RiverCompiledData,
-  RiverGeometryBounds,
-  RiverTerrainReachCorridorData,
-  Vector2Tuple
-} from "../../compiler/river/types";
+import type { RiverCompiledData } from "../../compiler/river/types";
+import {
+  LAKE_BED_TEXTURE_STYLE,
+  POOL_BED_TEXTURE_STYLE,
+  RIVER_BED_TEXTURE_STYLE,
+  WaterDecorationStyle,
+  WATER_BED_MATERIAL_COLOR,
+  WATER_TERRAIN_HASH_STYLE
+} from "./constants";
+import { createRiverBedChunkGeometries } from "./WaterTerrainBuilder";
 
-const RIVER_BED_STYLE = {
-  minimumDepth: 0.08,
-  minimumDirectionLength: 0.00001,
-  worldUvScale: 0.16,
-  textureSize: 8,
-  checkerSize: 2,
-  darkColor: [24, 18, 13, 255] as const,
-  lightColor: [62, 46, 29, 255] as const,
-  pebbleColor: [105, 82, 53, 255] as const,
-  pebbleModulo: 11
-} as const;
-
-export interface RiverBedChunkGeometry {
-  readonly id: string;
-  readonly positions: readonly ReadonlyVector3Tuple[];
-  readonly uvs: readonly Vector2Tuple[];
-  readonly indices: Uint32Array;
-  readonly bounds: RiverGeometryBounds;
-}
+export {
+  createRiverBedChunkGeometries,
+  createWaterTerrainHeightSampler,
+  type RiverBedChunkGeometry,
+  type WaterTerrainHeightSampler
+} from "./WaterTerrainBuilder";
 
 interface RiverBedChunkRuntime {
   readonly entity: Entity;
   readonly mesh: ModelMesh;
 }
 
-function createBounds(positions: readonly ReadonlyVector3Tuple[]): RiverGeometryBounds {
-  let minX = Number.POSITIVE_INFINITY;
-  let minY = Number.POSITIVE_INFINITY;
-  let minZ = Number.POSITIVE_INFINITY;
-  let maxX = Number.NEGATIVE_INFINITY;
-  let maxY = Number.NEGATIVE_INFINITY;
-  let maxZ = Number.NEGATIVE_INFINITY;
-  for (const position of positions) {
-    minX = Math.min(minX, position[0]);
-    minY = Math.min(minY, position[1]);
-    minZ = Math.min(minZ, position[2]);
-    maxX = Math.max(maxX, position[0]);
-    maxY = Math.max(maxY, position[1]);
-    maxZ = Math.max(maxZ, position[2]);
-  }
-  return {
-    min: [minX, minY, minZ],
-    max: [maxX, maxY, maxZ]
-  };
+function interpolate(from: number, to: number, weight: number): number {
+  return from + (to - from) * weight;
 }
 
-function createWorldUv(position: ReadonlyVector3Tuple): Vector2Tuple {
-  return [position[0] * RIVER_BED_STYLE.worldUvScale, position[2] * RIVER_BED_STYLE.worldUvScale];
+function mixChannel(from: number, to: number, weight: number): number {
+  return Math.round(interpolate(from, to, weight));
 }
 
-function readCorridorSample(corridor: RiverTerrainReachCorridorData, sampleIndex: number, component: number): number {
-  return corridor.samples.at(sampleIndex * corridor.stride + component) ?? 0;
+function smoothStep(value: number): number {
+  return value * value * (3 - 2 * value);
 }
 
-function createReachBedGeometry(corridor: RiverTerrainReachCorridorData): RiverBedChunkGeometry {
-  const positions: ReadonlyVector3Tuple[] = [];
-  const indices: number[] = [];
-  for (let sampleIndex = 0; sampleIndex < corridor.sampleCount; sampleIndex++) {
-    const previousIndex = Math.max(0, sampleIndex - 1);
-    const nextIndex = Math.min(corridor.sampleCount - 1, sampleIndex + 1);
-    const x = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.x);
-    const z = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.z);
-    const previousX = readCorridorSample(corridor, previousIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.x);
-    const previousZ = readCorridorSample(corridor, previousIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.z);
-    const nextX = readCorridorSample(corridor, nextIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.x);
-    const nextZ = readCorridorSample(corridor, nextIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.z);
-    const directionX = nextX - previousX;
-    const directionZ = nextZ - previousZ;
-    const directionLength = Math.max(Math.hypot(directionX, directionZ), RIVER_BED_STYLE.minimumDirectionLength);
-    const normalX = -directionZ / directionLength;
-    const normalZ = directionX / directionLength;
-    const surfaceY = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.waterSurfaceY);
-    const bedY = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.riverBedY);
-    const halfWidth = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.channelHalfWidth);
-    const edgeY = surfaceY - RIVER_BED_STYLE.minimumDepth;
-    positions.push(
-      [x + normalX * halfWidth, edgeY, z + normalZ * halfWidth],
-      [x, Math.min(bedY, edgeY), z],
-      [x - normalX * halfWidth, edgeY, z - normalZ * halfWidth]
-    );
-  }
-  for (let sampleIndex = 0; sampleIndex < corridor.sampleCount - 1; sampleIndex++) {
-    const row = sampleIndex * 3;
-    const nextRow = row + 3;
-    for (let strip = 0; strip < 2; strip++) {
-      const a = row + strip;
-      const b = a + 1;
-      const c = nextRow + strip;
-      const d = c + 1;
-      indices.push(a, c, b, b, c, d);
-    }
-  }
-  return {
-    id: `reach-${corridor.id}`,
-    positions,
-    uvs: positions.map(createWorldUv),
-    indices: Uint32Array.from(indices),
-    bounds: createBounds(positions)
-  };
+function hashPeriodicGrid(x: number, y: number, period: number, seed: number): number {
+  const wrappedX = ((x % period) + period) % period;
+  const wrappedY = ((y % period) + period) % period;
+  let hash =
+    seed ^
+    Math.imul(wrappedX + 1, WATER_TERRAIN_HASH_STYLE.xMultiplier) ^
+    Math.imul(wrappedY + 1, WATER_TERRAIN_HASH_STYLE.zMultiplier);
+  hash = Math.imul(hash ^ (hash >>> 16), WATER_TERRAIN_HASH_STYLE.avalancheMultiplierA);
+  hash = Math.imul(hash ^ (hash >>> 15), WATER_TERRAIN_HASH_STYLE.avalancheMultiplierB);
+  return ((hash ^ (hash >>> 16)) >>> 0) / WATER_TERRAIN_HASH_STYLE.unsignedMaximum;
 }
 
-export function createRiverBedChunkGeometries(data: RiverCompiledData): RiverBedChunkGeometry[] {
-  const reachGeometries = data.terrainInteraction.reachCorridors.map(createReachBedGeometry);
-  const junctionGeometries = data.terrainInteraction.junctionCorridors.map((corridor) => {
-    const junction = data.junctions[corridor.junctionIndex];
-    const surfaceGeometry = junction.surfaceGeometry;
-    const signedAcrossDistances = surfaceGeometry.uv2s;
-    const halfWidths = surfaceGeometry.uv3s;
-    if (!signedAcrossDistances || !halfWidths) {
-      throw new Error(`Junction "${junction.id}" is missing surface motion coordinates for its demo riverbed.`);
-    }
-    const channelDepth = Math.max(
-      RIVER_BED_STYLE.minimumDepth,
-      corridor.waterSurfaceElevation - corridor.riverBedElevation
-    );
-    const positions: ReadonlyVector3Tuple[] = surfaceGeometry.positions.map((position, vertexIndex) => {
-      const halfWidth = Math.max(halfWidths[vertexIndex][0], RIVER_BED_STYLE.minimumDirectionLength);
-      const centerWeight = 1 - Math.min(1, Math.abs(signedAcrossDistances[vertexIndex][0]) / halfWidth);
-      const depth = RIVER_BED_STYLE.minimumDepth + (channelDepth - RIVER_BED_STYLE.minimumDepth) * centerWeight;
-      const baseSurfaceY = position[1] - RIVER_GEOMETRY_Y_OFFSET.surface;
-      return [position[0], baseSurfaceY - depth, position[2]];
-    });
-    const indices = Uint32Array.from(surfaceGeometry.indices);
-    return {
-      id: `junction-${corridor.id}`,
-      positions,
-      uvs: positions.map(createWorldUv),
-      indices,
-      bounds: createBounds(positions)
-    };
-  });
-  return [...reachGeometries, ...junctionGeometries];
+function samplePeriodicValueNoise(x: number, y: number, size: number, cellSize: number, seed: number): number {
+  const gridX = x / cellSize;
+  const gridY = y / cellSize;
+  const x0 = Math.floor(gridX);
+  const y0 = Math.floor(gridY);
+  const period = size / cellSize;
+  const tx = smoothStep(gridX - x0);
+  const ty = smoothStep(gridY - y0);
+  const top = interpolate(hashPeriodicGrid(x0, y0, period, seed), hashPeriodicGrid(x0 + 1, y0, period, seed), tx);
+  const bottom = interpolate(
+    hashPeriodicGrid(x0, y0 + 1, period, seed),
+    hashPeriodicGrid(x0 + 1, y0 + 1, period, seed),
+    tx
+  );
+  return interpolate(top, bottom, ty);
 }
 
-function createRiverBedTexture(engine: Engine): Texture2D {
-  const size = RIVER_BED_STYLE.textureSize;
+function createNaturalBedTexturePixels(
+  style: typeof RIVER_BED_TEXTURE_STYLE | typeof LAKE_BED_TEXTURE_STYLE
+): Uint8Array {
+  const size = style.textureSize;
   const pixels = new Uint8Array(size * size * 4);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
-      const checker = (Math.floor(x / RIVER_BED_STYLE.checkerSize) + Math.floor(y / RIVER_BED_STYLE.checkerSize)) % 2;
-      const isPebble = (x * size + y) % RIVER_BED_STYLE.pebbleModulo === 0;
-      const color = isPebble
-        ? RIVER_BED_STYLE.pebbleColor
-        : checker === 0
-          ? RIVER_BED_STYLE.darkColor
-          : RIVER_BED_STYLE.lightColor;
+      const broad = samplePeriodicValueNoise(x, y, size, style.broadCellSize, style.broadSeed);
+      const medium = samplePeriodicValueNoise(x, y, size, style.mediumCellSize, style.mediumSeed);
+      const fine = samplePeriodicValueNoise(x, y, size, style.fineCellSize, style.fineSeed);
+      const sediment = broad * style.broadWeight + medium * style.mediumWeight + fine * style.fineWeight;
+      const from = sediment < 0.5 ? style.darkColor : style.middleColor;
+      const to = sediment < 0.5 ? style.middleColor : style.lightColor;
+      const blend = sediment < 0.5 ? sediment * 2 : (sediment - 0.5) * 2;
       const offset = (y * size + x) * 4;
-      pixels.set(color, offset);
+      pixels[offset] = mixChannel(from[0], to[0], blend);
+      pixels[offset + 1] = mixChannel(from[1], to[1], blend);
+      pixels[offset + 2] = mixChannel(from[2], to[2], blend);
+      pixels[offset + 3] = 255;
     }
   }
+  return pixels;
+}
+
+export function createRiverBedTexturePixels(): Uint8Array {
+  return createNaturalBedTexturePixels(RIVER_BED_TEXTURE_STYLE);
+}
+
+export function createLakeBedTexturePixels(): Uint8Array {
+  return createNaturalBedTexturePixels(LAKE_BED_TEXTURE_STYLE);
+}
+
+export function createPoolBedTexturePixels(): Uint8Array {
+  const style = POOL_BED_TEXTURE_STYLE;
+  const size = style.textureSize;
+  const tileSize = size / style.tileCount;
+  const pixels = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const tileX = Math.floor(x / tileSize);
+      const tileY = Math.floor(y / tileSize);
+      const localX = x % tileSize;
+      const localY = y % tileSize;
+      const isGrout = localX < style.groutWidth || localY < style.groutWidth;
+      const isHighlight = (tileX + tileY) % style.highlightModulo === 0;
+      const color = isGrout ? style.groutColor : isHighlight ? style.tileHighlightColor : style.tileColor;
+      pixels.set(color, (y * size + x) * 4);
+    }
+  }
+  return pixels;
+}
+
+function createBedTexture(engine: Engine, style: WaterDecorationStyle): Texture2D {
+  const isLake = style === WaterDecorationStyle.Lake;
+  const isPool = style === WaterDecorationStyle.Pool;
+  const size = isLake
+    ? LAKE_BED_TEXTURE_STYLE.textureSize
+    : isPool
+      ? POOL_BED_TEXTURE_STYLE.textureSize
+      : RIVER_BED_TEXTURE_STYLE.textureSize;
+  const pixels = isLake
+    ? createLakeBedTexturePixels()
+    : isPool
+      ? createPoolBedTexturePixels()
+      : createRiverBedTexturePixels();
   const texture = new Texture2D(engine, size, size, undefined, false, false);
-  texture.name = "RiverBedDemoGravel";
+  texture.name = isLake ? "LakeBedDemoSediment" : isPool ? "PoolBedDemoTiles" : "RiverBedDemoGravel";
   texture.filterMode = TextureFilterMode.Bilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
   texture.setPixelBuffer(pixels);
   return texture;
 }
 
-/** Renders a disposable opaque terrain stand-in below the water surface. */
+/** Renders a disposable opaque terrain stand-in around and below the water surface. */
 export class RiverBedController {
   readonly root: Entity;
 
   private readonly _engine: Engine;
-  private readonly _material: UnlitMaterial;
-  private readonly _texture: Texture2D;
+  private readonly _materials: Record<WaterDecorationStyle, UnlitMaterial>;
+  private readonly _textures: Record<WaterDecorationStyle, Texture2D>;
   private _chunks: RiverBedChunkRuntime[] = [];
 
   get chunkCount(): number {
@@ -202,17 +172,39 @@ export class RiverBedController {
   constructor(engine: Engine, parent: Entity) {
     this._engine = engine;
     this.root = parent.createChild("river-bed-decoration");
-    this._texture = createRiverBedTexture(engine);
-    this._material = new UnlitMaterial(engine);
-    this._material.name = "RiverBedDemoMaterial";
-    this._material.baseColor = new Color(0.32, 0.28, 0.22, 1);
-    this._material.baseTexture = this._texture;
-    this._material.renderFace = RenderFace.Double;
+    const riverTexture = createBedTexture(engine, WaterDecorationStyle.River);
+    const lakeTexture = createBedTexture(engine, WaterDecorationStyle.Lake);
+    const poolTexture = createBedTexture(engine, WaterDecorationStyle.Pool);
+    const riverMaterial = new UnlitMaterial(engine);
+    riverMaterial.name = "RiverBedDemoMaterial";
+    riverMaterial.baseColor = new Color(...WATER_BED_MATERIAL_COLOR[WaterDecorationStyle.River]);
+    riverMaterial.baseTexture = riverTexture;
+    riverMaterial.renderFace = RenderFace.Double;
+    const lakeMaterial = new UnlitMaterial(engine);
+    lakeMaterial.name = "LakeBedDemoSedimentMaterial";
+    lakeMaterial.baseColor = new Color(...WATER_BED_MATERIAL_COLOR[WaterDecorationStyle.Lake]);
+    lakeMaterial.baseTexture = lakeTexture;
+    lakeMaterial.renderFace = RenderFace.Double;
+    const poolMaterial = new UnlitMaterial(engine);
+    poolMaterial.name = "PoolBedDemoTileMaterial";
+    poolMaterial.baseColor = new Color(...WATER_BED_MATERIAL_COLOR[WaterDecorationStyle.Pool]);
+    poolMaterial.baseTexture = poolTexture;
+    poolMaterial.renderFace = RenderFace.Double;
+    this._textures = {
+      [WaterDecorationStyle.River]: riverTexture,
+      [WaterDecorationStyle.Lake]: lakeTexture,
+      [WaterDecorationStyle.Pool]: poolTexture
+    };
+    this._materials = {
+      [WaterDecorationStyle.River]: riverMaterial,
+      [WaterDecorationStyle.Lake]: lakeMaterial,
+      [WaterDecorationStyle.Pool]: poolMaterial
+    };
   }
 
-  rebuild(data: RiverCompiledData): void {
+  rebuild(data: RiverCompiledData, style: WaterDecorationStyle = WaterDecorationStyle.River): void {
     this._clearChunks();
-    const geometries = createRiverBedChunkGeometries(data);
+    const geometries = createRiverBedChunkGeometries(data, style);
     this._chunks = geometries.map((geometry) => {
       const entity = this.root.createChild(`river-bed-${geometry.id}`);
       const mesh = new ModelMesh(this._engine);
@@ -226,7 +218,7 @@ export class RiverBedController {
       mesh.uploadData(true);
       const renderer = entity.addComponent(MeshRenderer);
       renderer.mesh = mesh;
-      renderer.setMaterial(this._material);
+      renderer.setMaterial(this._materials[style]);
       return { entity, mesh };
     });
   }
@@ -234,8 +226,8 @@ export class RiverBedController {
   destroy(): void {
     this._clearChunks();
     this.root.destroy();
-    this._material.destroy(true);
-    this._texture.destroy(true);
+    for (const material of Object.values(this._materials)) material.destroy(true);
+    for (const texture of Object.values(this._textures)) texture.destroy(true);
   }
 
   private _clearChunks(): void {

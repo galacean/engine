@@ -159,7 +159,7 @@ function createSurfaceRibbonData(
       uvs.push(vector2Tuple(across, networkFlowTime * RIVER_FLOW_UV_SCALE));
       uv1s.push(vector2Tuple(sample.flowSpeed, networkDistance));
       uv2s.push(vector2Tuple(signedAcrossDistance, networkFlowTime));
-      uv3s.push(vector2Tuple(halfWidth, 0));
+      uv3s.push(vector2Tuple(halfWidth, sample.depth));
     }
   }
   for (let sampleIndex = 0; sampleIndex < samples.length - 1; sampleIndex++) {
@@ -224,7 +224,7 @@ export function createLowRiverGeometryData(
         normals.push(frame.normal);
         tangents.push(frame.tangent);
         uv2s.push(vector2Tuple(widths[index], networkFlowTime));
-        uv3s.push(vector2Tuple(halfWidth, 0));
+        uv3s.push(vector2Tuple(halfWidth, sample.depth));
       }
     }
   }

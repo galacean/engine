@@ -64,6 +64,8 @@ describe("RiverGeometryCompiler", () => {
       expect(geometry.uv2s?.[0][0]).toBeCloseTo(sampleResult.points[0].width * 0.5);
       expect(geometry.uv2s?.[rowWidth - 1][0]).toBeCloseTo(-sampleResult.points[0].width * 0.5);
       expect(geometry.uv3s?.[0][0]).toBeCloseTo(sampleResult.points[0].width * 0.5);
+      expect(geometry.uv3s?.[0][1]).toBeCloseTo(sampleResult.points[0].depth);
+      expect(geometry.uv3s?.at(-1)?.[1]).toBeCloseTo(sampleResult.points.at(-1)!.depth);
       expect(geometry.bounds.min[1]).toBeLessThanOrEqual(
         sampleResult.points[0].position.y + RIVER_GEOMETRY_Y_OFFSET.surface - maxDisplacement
       );
@@ -79,7 +81,7 @@ describe("RiverGeometryCompiler", () => {
     const samples = sampleRiverPath(variableProfileFixture).points;
     const networkDistanceOffset = 10;
     const networkFlowTimeOffset = 3;
-    const mesh = createLowRiverGeometryData(samples, networkDistanceOffset, networkFlowTimeOffset);
+    const mesh = createLowRiverGeometryData(samples, networkDistanceOffset, networkFlowTimeOffset, true);
 
     expect(mesh.uvs[0][1]).toBeCloseTo(networkFlowTimeOffset * RIVER_FLOW_UV_SCALE);
     expect(mesh.uvs.at(-1)?.[1]).toBeCloseTo(
@@ -88,6 +90,8 @@ describe("RiverGeometryCompiler", () => {
     expect(mesh.uv1s[0][0]).toBeCloseTo(samples[0].flowSpeed);
     expect(mesh.uv1s[0][1]).toBeCloseTo(networkDistanceOffset);
     expect(mesh.uv1s.at(-1)?.[1]).toBeCloseTo(networkDistanceOffset + samples.at(-1)!.distance);
+    expect(mesh.uv3s?.[0][1]).toBeCloseTo(samples[0].depth);
+    expect(mesh.uv3s?.at(-1)?.[1]).toBeCloseTo(samples.at(-1)!.depth);
   });
 
   it("keeps variable-speed flow travel time monotonic from source to mouth", () => {

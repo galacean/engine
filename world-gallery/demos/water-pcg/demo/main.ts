@@ -16,7 +16,11 @@ import { WorldAxesView } from "./debug/WorldAxesView";
 import { WaterPreviewMode } from "./examples/constants";
 import { cloneOceanConfig, OceanConfig, waterPcgExamples } from "./examples";
 import { RiverMaterialPreset, RiverPathMode, RiverQualityLevel } from "../authoring/river/RiverAuthoringEnums";
-import { RIVER_MATERIAL_PRESET_CONFIG, RIVER_QUALITY_PRESET } from "../authoring/river/RiverAuthoringLimits";
+import {
+  RIVER_LIMITS,
+  RIVER_MATERIAL_PRESET_CONFIG,
+  RIVER_QUALITY_PRESET
+} from "../authoring/river/RiverAuthoringLimits";
 import { decodeRiverSamplePoints } from "../compiler/river/RiverGeometryCompiler";
 import type { RiverCompiledData, RiverReachArtifact, RiverSampleResult } from "../compiler/river/types";
 import { RiverDirtyFlag, RIVER_PROFILE_SAMPLE_COUNT, RIVER_REBUILD_STRESS } from "./constants";
@@ -26,6 +30,8 @@ import { getRiverConfigWarnings } from "../authoring/river/RiverSchemaDecoder";
 import { RiverDebugController } from "./debug/RiverDebugController";
 import { createRiverDemoDescriptor, normalizeRiverDemoConfig } from "./normalizeRiverDemoConfig";
 import { OceanPreviewController } from "./examples/ocean-preview/OceanPreviewController";
+import { OCEAN_PREVIEW_GUI_LIMITS } from "./examples/ocean-preview/constants";
+import type { OceanPreviewMetrics, OceanPreviewStressResult } from "./examples/ocean-preview/types";
 import { createWaterPreviewMaterial } from "./WaterPreviewMaterial";
 import {
   RiverRuntimeController,
@@ -41,9 +47,13 @@ import type { RiverResource } from "../runtime/river/RiverResource";
 import { RiverDiagnosticSeverity } from "../compiler/shared/diagnostics";
 import { RiverBedController } from "./decoration/RiverBedController";
 import { RiverRockController } from "./decoration/RiverRockController";
+import { LakePillarController } from "./decoration/LakePillarController";
+import { PoolSceneController } from "./decoration/PoolSceneController";
+import { WaterDecorationStyle } from "./decoration/constants";
 import { RiverCameraFeatureController } from "./RiverCameraFeatureController";
 import { RiverSurfaceDebugMode } from "../runtime/river/RiverRuntimeEnums";
 import { RIVER_SURFACE_TEXTURE_SAMPLE_COUNT } from "../runtime/river/constants";
+import { WaterQualityTier } from "../authoring/wave/enums/WaterQualityTier";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -69,6 +79,12 @@ const RIVER_QUALITY_OPTIONS = {
   High: RiverQualityLevel.High
 } as const;
 
+const WATER_WAVE_QUALITY_OPTIONS = {
+  Low: WaterQualityTier.Low,
+  Medium: WaterQualityTier.Medium,
+  High: WaterQualityTier.High
+} as const;
+
 const RIVER_MATERIAL_OPTIONS = {
   ClearStream: RiverMaterialPreset.ClearStream,
   MuddyRiver: RiverMaterialPreset.MuddyRiver,
@@ -92,6 +108,7 @@ type PreviewModeLabel = keyof typeof PREVIEW_MODE_OPTIONS;
 type RiverPathModeLabel = keyof typeof RIVER_PATH_MODE_OPTIONS;
 type RiverDebugModeLabel = keyof typeof RIVER_DEBUG_MODE_OPTIONS;
 type RiverQualityLabel = keyof typeof RIVER_QUALITY_OPTIONS;
+type WaterWaveQualityLabel = keyof typeof WATER_WAVE_QUALITY_OPTIONS;
 type RiverMaterialLabel = keyof typeof RIVER_MATERIAL_OPTIONS;
 type RiverSurfaceDebugLabel = keyof typeof RIVER_SURFACE_DEBUG_OPTIONS;
 
@@ -104,6 +121,10 @@ interface GuiState {
   surfaceDebug: RiverSurfaceDebugLabel;
   macroDisplacement: boolean;
   microSurface: boolean;
+}
+
+function isWaterWaveQualityLabel(value: string): value is WaterWaveQualityLabel {
+  return value in WATER_WAVE_QUALITY_OPTIONS;
 }
 
 interface RiverSegmentRuntime {
@@ -142,6 +163,8 @@ declare global {
     waterPcgProfileMetrics?: WaterPcgProfileMetrics;
     waterPcgSetSurfaceTime?: (elapsedTime?: number) => void;
     waterPcgStressRebuild?: (iterations?: number) => Promise<WaterPcgStressResult>;
+    waterPcgGetOceanMetrics?: () => OceanPreviewMetrics;
+    waterPcgStressOcean?: (iterations?: number) => OceanPreviewStressResult;
   }
 }
 
@@ -177,6 +200,11 @@ async function bootstrapWaterPcg(): Promise<void> {
   let activeMode = waterPcgExamples[activeExampleIndex].initialMode;
   const startupQualityParameter = new URLSearchParams(window.location.search).get("quality");
   const startupQuality = Object.values(RiverQualityLevel).find((level) => level === startupQualityParameter);
+  const startupWaterQuality = Object.values(WaterQualityTier).find((level) => level === startupQualityParameter);
+  const startupModeParameter = new URLSearchParams(window.location.search).get("mode");
+  const startupMode = Object.values(WaterPreviewMode).find((mode) => mode === startupModeParameter);
+  if (startupMode) activeMode = startupMode;
+  if (startupWaterQuality) oceanConfig.quality = startupWaterQuality;
   const startupSurfaceDebugParameter = new URLSearchParams(window.location.search).get("surfaceDebug");
   const startupSurfaceDebug = Object.entries(RIVER_SURFACE_DEBUG_OPTIONS).find(
     ([label]) => label.toLowerCase() === startupSurfaceDebugParameter?.toLowerCase()
@@ -361,7 +389,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   const scene = engine.sceneManager.activeScene;
   scene.background.solidColor = new Color(0.05, 0.08, 0.08, 1);
   const rootEntity = scene.createRootEntity("water-pcg-root");
-  new WorldAxesView(engine, rootEntity);
+  const worldAxesView = new WorldAxesView(engine, rootEntity);
 
   const cameraEntity = rootEntity.createChild("camera");
   const camera = cameraEntity.addComponent(Camera);
@@ -376,12 +404,15 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverSegmentsRoot = riverGroup.createChild("river-segments");
   const riverRuntimeController = new RiverRuntimeController(engine, riverSegmentsRoot);
   let surfaceTimeOverride = startupSurfaceTime;
+  oceanPreview.setSurfaceTimeOverride(surfaceTimeOverride);
   riverRuntimeController.setSurfaceDebugMode(RIVER_SURFACE_DEBUG_OPTIONS[guiState.surfaceDebug]);
   riverRuntimeController.setSurfaceFeatureFlags(guiState.macroDisplacement, guiState.microSurface);
   riverRuntimeController.setSurfaceTimeOverride(surfaceTimeOverride);
   const riverDebugController = new RiverDebugController(engine);
   const riverBedController = new RiverBedController(engine, riverGroup);
   const riverRockController = new RiverRockController(engine, riverGroup);
+  const lakePillarController = new LakePillarController(engine, riverGroup);
+  const poolSceneController = new PoolSceneController(engine, riverGroup);
   const riverMeshPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
   const riverBankPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
   let riverRuntimes: RiverSegmentRuntime[] = [];
@@ -399,8 +430,23 @@ async function bootstrapWaterPcg(): Promise<void> {
       camera.depthTextureMode === DepthTextureMode.PrePass ? "prepass" : "none";
   };
 
-  const rebuildOceanMesh = (): void => oceanPreview.rebuildMesh();
-  const updateOceanMaterial = (): void => oceanPreview.updateMaterial();
+  const writeOceanMetrics = (): void => {
+    const metrics = oceanPreview.metrics;
+    exampleBarElement.dataset.oceanWaveModel = metrics.waveModel;
+    exampleBarElement.dataset.oceanQuality = metrics.quality;
+    exampleBarElement.dataset.oceanActiveWaveCount = String(metrics.activeWaveCount);
+    exampleBarElement.dataset.oceanShaderWaveCount = String(metrics.shaderWaveCount);
+    exampleBarElement.dataset.oceanSourceHash = metrics.sourceHash;
+    exampleBarElement.dataset.oceanMeshUploadCount = String(metrics.meshUploadCount);
+    exampleBarElement.dataset.oceanPerFrameMeshUpload = String(metrics.perFrameMeshUpload);
+    exampleBarElement.dataset.oceanActiveMeshCount = String(metrics.activeMeshCount);
+    exampleBarElement.dataset.oceanActiveMaterialCount = String(metrics.activeMaterialCount);
+    exampleBarElement.dataset.oceanFrameCount = String(metrics.frameCount);
+  };
+  const updateOceanMaterial = (): void => {
+    oceanPreview.updateMaterial();
+    writeOceanMetrics();
+  };
   const createRiverSegmentRuntime = (
     config: RiverConfig,
     reachIndex: number,
@@ -434,15 +480,38 @@ async function bootstrapWaterPcg(): Promise<void> {
         artifact: compiledData.reaches[reachIndex].artifact
       };
     });
+  const writeDecorationMetrics = (): void => {
+    exampleBarElement.dataset.rockCount = String(riverRockController.root.isActive ? riverRockController.rockCount : 0);
+    exampleBarElement.dataset.pillarCount = String(
+      lakePillarController.root.isActive ? lakePillarController.pillarCount : 0
+    );
+    exampleBarElement.dataset.poolFixtureCount = String(
+      poolSceneController.root.isActive ? poolSceneController.fixtureCount : 0
+    );
+  };
+  const rebuildWaterDecorations = (data: RiverCompiledData): void => {
+    const decorationStyle = waterPcgExamples[activeExampleIndex].decorationStyle;
+    const isLake = decorationStyle === WaterDecorationStyle.Lake;
+    const isPool = decorationStyle === WaterDecorationStyle.Pool;
+    riverBedController.rebuild(data, decorationStyle);
+    riverRockController.root.isActive = !isLake && !isPool;
+    lakePillarController.root.isActive = isLake;
+    poolSceneController.root.isActive = isPool;
+    if (isLake) {
+      lakePillarController.rebuild(data);
+    } else if (isPool) {
+      poolSceneController.rebuild(data);
+    } else {
+      const queryService = riverRuntimeController.activeQueryService;
+      if (queryService) riverRockController.rebuild(data, queryService);
+    }
+    writeDecorationMetrics();
+  };
   const rebuildRiverSegmentRuntimes = (): boolean => {
     const exampleId = waterPcgExamples[activeExampleIndex].id;
     const activation = riverRuntimeController.activate(exampleId, activeRiverResource, createRuntimeReachSources());
     riverDebugController.activate(exampleId, activation.reaches);
-    const queryService = riverRuntimeController.activeQueryService;
-    if (queryService) {
-      riverBedController.rebuild(activeRiverCompiledData);
-      riverRockController.rebuild(activeRiverCompiledData, queryService);
-    }
+    rebuildWaterDecorations(activeRiverCompiledData);
     const cached = riverDemoRuntimeSets.get(exampleId);
     if (cached) {
       riverRuntimes = cached;
@@ -528,13 +597,8 @@ async function bootstrapWaterPcg(): Promise<void> {
       createRiverSegmentRuntime(config, index, activation.reaches[index])
     );
     riverDemoRuntimeSets.set(exampleId, riverRuntimes);
-    const queryService = riverRuntimeController.activeQueryService;
-    if (queryService) {
-      riverBedController.rebuild(nextData);
-      riverRockController.rebuild(nextData, queryService);
-    }
+    rebuildWaterDecorations(nextData);
     exampleBarElement.dataset.riverBedChunkCount = String(riverBedController.chunkCount);
-    exampleBarElement.dataset.rockCount = String(riverRockController.rockCount);
     topologyRevision++;
     exampleBarElement.dataset.topologyRevision = String(topologyRevision);
     exampleBarElement.dataset.compiledNodeCount = String(nextData.stats.nodeCount);
@@ -625,16 +689,23 @@ async function bootstrapWaterPcg(): Promise<void> {
     guiState.mode = mode === WaterPreviewMode.Ocean ? "Ocean" : "River";
     oceanGroup.isActive = mode === WaterPreviewMode.Ocean;
     riverGroup.isActive = mode === WaterPreviewMode.River;
+    const view = waterPcgExamples[activeExampleIndex].view;
+    const backgroundColor = view.backgroundColor;
+    worldAxesView.setVisible(
+      mode === WaterPreviewMode.River &&
+        view.showWorldAxes !== false &&
+        waterPcgExamples[activeExampleIndex].decorationStyle !== WaterDecorationStyle.Pool
+    );
     scene.background.solidColor =
-      mode === WaterPreviewMode.Ocean ? new Color(0.06, 0.1, 0.12, 1) : new Color(0.05, 0.08, 0.08, 1);
+      mode === WaterPreviewMode.Ocean ? new Color(0.06, 0.1, 0.12, 1) : new Color(...backgroundColor);
     updateRiverCameraFeatures();
+    writeOceanMetrics();
 
     if (mode === WaterPreviewMode.Ocean) {
       control.target.set(0, 0, 0);
       cameraEntity.transform.setPosition(0, 34, 54);
       cameraEntity.transform.lookAt(new Vector3(0, 0, 0));
     } else {
-      const view = waterPcgExamples[activeExampleIndex].view;
       control.target.set(view.cameraTarget[0], view.cameraTarget[1], view.cameraTarget[2]);
       cameraEntity.transform.setPosition(view.cameraPosition[0], view.cameraPosition[1], view.cameraPosition[2]);
       cameraEntity.transform.lookAt(new Vector3(view.cameraTarget[0], view.cameraTarget[1], view.cameraTarget[2]));
@@ -665,7 +736,7 @@ async function bootstrapWaterPcg(): Promise<void> {
       activeRiverCompiledData.stats.waterSlopeAdjustmentCount
     );
     exampleBarElement.dataset.riverBedChunkCount = String(riverBedController.chunkCount);
-    exampleBarElement.dataset.rockCount = String(riverRockController.rockCount);
+    writeDecorationMetrics();
     writeSurfaceMetrics(activeRiverCompiledData);
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
@@ -688,6 +759,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     compileRequestRevision++;
     activeExampleIndex = index;
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
+    if (startupWaterQuality) oceanConfig.quality = startupWaterQuality;
     oceanPreview.setConfig(oceanConfig);
     activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
     activeRiverResource = riverResourceSets[activeExampleIndex];
@@ -698,7 +770,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   function rebuildExampleState(): void {
     rebuildRiverSegmentRuntimes();
     applyRiverChanges(RiverDirtyFlag.Material | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
-    setPreviewMode(waterPcgExamples[activeExampleIndex].initialMode);
+    setPreviewMode(startupMode ?? waterPcgExamples[activeExampleIndex].initialMode);
     renderExampleTabs();
     rebuildGui();
   }
@@ -717,10 +789,72 @@ async function bootstrapWaterPcg(): Promise<void> {
       });
 
     if (activeMode === WaterPreviewMode.Ocean) {
-      gui.add(oceanConfig, "waterLevel", -2, 3, 0.05).name("Water Level").onChange(rebuildOceanMesh);
-      gui.add(oceanConfig, "waveAmplitude", 0, 2, 0.01).name("Wave Height");
-      gui.add(oceanConfig, "waveSpeed", 0, 3, 0.01).name("Wave Speed");
-      gui.add(oceanConfig, "alpha", 0.15, 1, 0.01).name("Opacity").onChange(updateOceanMaterial);
+      const oceanQualityState = {
+        quality:
+          oceanConfig.quality === WaterQualityTier.Low
+            ? "Low"
+            : oceanConfig.quality === WaterQualityTier.High
+              ? "High"
+              : "Medium"
+      };
+      gui
+        .add(oceanQualityState, "quality", Object.keys(WATER_WAVE_QUALITY_OPTIONS))
+        .name("Quality")
+        .onChange((label: string) => {
+          if (!isWaterWaveQualityLabel(label)) return;
+          oceanConfig.quality = WATER_WAVE_QUALITY_OPTIONS[label];
+          updateOceanMaterial();
+        });
+      gui
+        .add(
+          oceanConfig,
+          "waterLevel",
+          OCEAN_PREVIEW_GUI_LIMITS.waterLevel.min,
+          OCEAN_PREVIEW_GUI_LIMITS.waterLevel.max,
+          OCEAN_PREVIEW_GUI_LIMITS.waterLevel.step
+        )
+        .name("Water Level")
+        .onChange(updateOceanMaterial);
+      gui
+        .add(
+          oceanConfig,
+          "amplitudeScale",
+          OCEAN_PREVIEW_GUI_LIMITS.amplitudeScale.min,
+          OCEAN_PREVIEW_GUI_LIMITS.amplitudeScale.max,
+          OCEAN_PREVIEW_GUI_LIMITS.amplitudeScale.step
+        )
+        .name("Wave Height")
+        .onChange(updateOceanMaterial);
+      gui
+        .add(
+          oceanConfig,
+          "timeScale",
+          OCEAN_PREVIEW_GUI_LIMITS.timeScale.min,
+          OCEAN_PREVIEW_GUI_LIMITS.timeScale.max,
+          OCEAN_PREVIEW_GUI_LIMITS.timeScale.step
+        )
+        .name("Wave Speed")
+        .onChange(updateOceanMaterial);
+      gui
+        .add(
+          oceanConfig,
+          "foamIntensity",
+          OCEAN_PREVIEW_GUI_LIMITS.crestIntensity.min,
+          OCEAN_PREVIEW_GUI_LIMITS.crestIntensity.max,
+          OCEAN_PREVIEW_GUI_LIMITS.crestIntensity.step
+        )
+        .name("Crest")
+        .onChange(updateOceanMaterial);
+      gui
+        .add(
+          oceanConfig,
+          "alpha",
+          OCEAN_PREVIEW_GUI_LIMITS.alpha.min,
+          OCEAN_PREVIEW_GUI_LIMITS.alpha.max,
+          OCEAN_PREVIEW_GUI_LIMITS.alpha.step
+        )
+        .name("Opacity")
+        .onChange(updateOceanMaterial);
       gui.addColor(oceanConfig, "oceanColor").name("Color").onChange(updateOceanMaterial);
     } else {
       const riverConfig = getPrimaryRiverConfig();
@@ -746,7 +880,7 @@ async function bootstrapWaterPcg(): Promise<void> {
           applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       gui
-        .add(riverConfig.shape, "width", 1, 18, 0.1)
+        .add(riverConfig.shape, "width", RIVER_LIMITS.minWidth, RIVER_LIMITS.maxWidth, 0.1)
         .name("Width")
         .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
@@ -755,7 +889,7 @@ async function bootstrapWaterPcg(): Promise<void> {
           applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       gui
-        .add(riverConfig.shape, "depth", 0, 5, 0.1)
+        .add(riverConfig.shape, "depth", RIVER_LIMITS.minDepth, RIVER_LIMITS.maxDepth, 0.1)
         .name("Depth")
         .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
@@ -764,7 +898,7 @@ async function bootstrapWaterPcg(): Promise<void> {
           applyRiverChanges(RiverDirtyFlag.Geometry | RiverDirtyFlag.Query | RiverDirtyFlag.Debug);
         });
       gui
-        .add(riverConfig.flow, "speed", 0, 4, 0.01)
+        .add(riverConfig.flow, "speed", RIVER_LIMITS.minFlowSpeed, RIVER_LIMITS.maxFlowSpeed, 0.01)
         .name("Flow Speed")
         .onFinishChange((value: number) => {
           updateAllRiverConfigs((config) => {
@@ -833,8 +967,15 @@ async function bootstrapWaterPcg(): Promise<void> {
   window.waterPcgSetSurfaceTime = (elapsedTime?: number): void => {
     surfaceTimeOverride = elapsedTime === undefined ? undefined : Math.max(0, elapsedTime);
     riverRuntimeController.setSurfaceTimeOverride(surfaceTimeOverride);
+    oceanPreview.setSurfaceTimeOverride(surfaceTimeOverride);
     exampleBarElement.dataset.surfaceTime = surfaceTimeOverride === undefined ? "live" : surfaceTimeOverride.toFixed(3);
     applyRiverChanges(RiverDirtyFlag.Query);
+  };
+  window.waterPcgGetOceanMetrics = (): OceanPreviewMetrics => oceanPreview.metrics;
+  window.waterPcgStressOcean = (iterations?: number): OceanPreviewStressResult => {
+    const result = oceanPreview.stressReconfigure(iterations);
+    writeOceanMetrics();
+    return result;
   };
   window.waterPcgStressRebuild = async (
     iterations = RIVER_REBUILD_STRESS.defaultIterations
@@ -908,6 +1049,8 @@ async function bootstrapWaterPcg(): Promise<void> {
     riverDebugController.destroy();
     riverBedController.destroy();
     riverRockController.destroy();
+    lakePillarController.destroy();
+    poolSceneController.destroy();
     riverRuntimeController.destroy();
     for (const resource of riverResourceSets) resource.dispose();
     riverCompileWorker.dispose();

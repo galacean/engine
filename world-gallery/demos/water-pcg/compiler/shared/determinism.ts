@@ -16,7 +16,7 @@ function toHex(hash: number): string {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 
-export function hashRiverString(value: string): string {
+export function hashString(value: string): string {
   let low = 0x811c9dc5;
   let high = 0x9e3779b9;
   for (let index = 0; index < value.length; index++) {
@@ -31,6 +31,10 @@ export function hashRiverString(value: string): string {
     high ^= high >>> 15;
   }
   return `${toHex(high)}${toHex(low)}`;
+}
+
+export function hashRiverString(value: string): string {
+  return hashString(value);
 }
 
 function stableStringifyInternal(value: unknown): string {
@@ -50,8 +54,12 @@ function stableStringifyInternal(value: unknown): string {
   return "null";
 }
 
+export function hashStableValue(value: unknown): string {
+  return hashString(stableStringifyInternal(value));
+}
+
 export function hashRiverStableValue(value: unknown): string {
-  return hashRiverString(stableStringifyInternal(value));
+  return hashStableValue(value);
 }
 
 export function hashRiverSamples(samples: RiverSamplePoint[]): string {

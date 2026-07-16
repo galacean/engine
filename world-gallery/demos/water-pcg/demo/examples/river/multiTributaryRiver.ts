@@ -15,6 +15,7 @@ import {
   RiverQualityLevel
 } from "../../../authoring/river/RiverAuthoringEnums";
 import { RIVER_MATERIAL_PRESET_CONFIG } from "../../../authoring/river/RiverAuthoringLimits";
+import { WaterDecorationStyle } from "../../decoration/constants";
 import { RiverDebugMode, RiverPreviewStage } from "../../debug/constants";
 import { WaterPreviewMode } from "../constants";
 import type { RiverPcgExample } from "../types";
@@ -23,9 +24,11 @@ export const multiTributaryRiverExample: RiverPcgExample = {
   id: "multi-tributary-river",
   label: "多支流河网",
   initialMode: WaterPreviewMode.River,
+  decorationStyle: WaterDecorationStyle.River,
   view: {
     cameraPosition: [0, 30, 52],
-    cameraTarget: [4, 0, 4]
+    cameraTarget: [4, 0, 4],
+    backgroundColor: [0.05, 0.08, 0.08, 1]
   },
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V1,

@@ -37,6 +37,7 @@ export const RIVER_MEDIUM_OPTICAL_SHADER_TUNING = {
   opaqueAbsorption: 0.52,
   clearAbsorption: 0.08,
   maxOpticalDepth: 4,
+  authoredDepthEpsilon: 0.0001,
   minimumAlpha: 0.05,
   maximumAlpha: 0.82,
   foamAlphaWeight: 0.16,

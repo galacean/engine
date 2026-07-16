@@ -1,3 +1,4 @@
+/** Compiles confluences into stitched CPU surface patches, motion attributes, and query boundaries. */
 import { Vector3 } from "@galacean/engine-math";
 import { RiverNodeKind, RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverMaterialConfig } from "../../authoring/river/RiverAuthoringTypes";
@@ -69,6 +70,7 @@ interface JunctionVertex {
   readonly tangent: ReadonlyVector4Tuple;
   readonly signedAcrossDistance: number;
   readonly halfWidth: number;
+  readonly depth: number;
   readonly networkFlowTime: number;
   readonly angle: number;
 }
@@ -77,6 +79,7 @@ interface JunctionPatchData {
   readonly geometry: RiverGeometryData;
   readonly flowDirection: ReadonlyVector3Tuple;
   readonly averageFlowSpeed: number;
+  readonly averageDepth: number;
   readonly nodeFlowTime: number;
   readonly phaseHalfWidth: number;
 }
@@ -199,6 +202,7 @@ function createBoundaryVertices(
         tangent: frame.tangent,
         signedAcrossDistance: acrossSample.signedDistance,
         halfWidth,
+        depth: endpoint.sample.depth,
         networkFlowTime: endpoint.networkFlowTime,
         angle: Math.atan2(z - node.position[2], x - node.position[0])
       });
@@ -233,6 +237,7 @@ function createPatchGeometry(
       : Math.min(...endpoints.map((endpoint) => endpoint.networkFlowTime));
   const averageFlowSpeed =
     endpoints.reduce((sum, endpoint) => sum + endpoint.sample.flowSpeed, 0) / Math.max(1, endpoints.length);
+  const averageDepth = averageEndpointValue(endpoints, (endpoint) => endpoint.sample.depth);
   const flowNormalX = -flowDirection[2];
   const flowNormalZ = flowDirection[0];
   const phaseSpeed = Math.max(averageFlowSpeed, RIVER_FLOW_TRAVEL_MIN_SPEED);
@@ -251,7 +256,7 @@ function createPatchGeometry(
   const uvs: Vector2Tuple[] = [tuple2(0.5, nodeFlowTime * RIVER_FLOW_UV_SCALE)];
   const uv1s: Vector2Tuple[] = [tuple2(averageFlowSpeed, nodeDistance)];
   const uv2s: Vector2Tuple[] = [tuple2(0, nodeFlowTime)];
-  const uv3s: Vector2Tuple[] = [tuple2(phaseHalfWidth, 0)];
+  const uv3s: Vector2Tuple[] = [tuple2(phaseHalfWidth, averageDepth)];
   const centerColor = encodeJunctionProjection(0.5, nodeFlowTime * RIVER_FLOW_UV_SCALE, 1);
   const colors: RiverVertexColorTuple[] = [centerColor];
   for (const vertex of boundary) {
@@ -261,7 +266,7 @@ function createPatchGeometry(
     uvs.push(vertex.uv);
     uv1s.push(vertex.uv1);
     uv2s.push(tuple2(vertex.signedAcrossDistance, vertex.networkFlowTime));
-    uv3s.push(tuple2(vertex.halfWidth, 0));
+    uv3s.push(tuple2(vertex.halfWidth, vertex.depth));
     colors.push(projectFlowUv(vertex.position, 0));
   }
   const transition = 1 - RIVER_JUNCTION_INNER_RING_SCALE;
@@ -294,7 +299,7 @@ function createPatchGeometry(
       tuple2(vertex.uv1[0] + (averageFlowSpeed - vertex.uv1[0]) * transition, nodeDistance + projectedDistance)
     );
     uv2s.push(tuple2(projectedAcrossDistance, projectedFlowTime));
-    uv3s.push(tuple2(phaseHalfWidth, 0));
+    uv3s.push(tuple2(phaseHalfWidth, vertex.depth + (averageDepth - vertex.depth) * transition));
     colors.push(projectFlowUv(tuple3(innerX, innerY, innerZ), 1));
   }
   const coreTransition = 1 - RIVER_JUNCTION_CORE_RING_SCALE;
@@ -322,7 +327,7 @@ function createPatchGeometry(
       tuple2(vertex.uv1[0] + (averageFlowSpeed - vertex.uv1[0]) * coreTransition, nodeDistance + projectedDistance)
     );
     uv2s.push(tuple2(projectedAcrossDistance, projectedFlowTime));
-    uv3s.push(tuple2(phaseHalfWidth, 0));
+    uv3s.push(tuple2(phaseHalfWidth, vertex.depth + (averageDepth - vertex.depth) * coreTransition));
     colors.push(projectFlowUv(corePosition, 1));
   }
   const indices: number[] = [];
@@ -362,6 +367,7 @@ function createPatchGeometry(
     }),
     flowDirection,
     averageFlowSpeed,
+    averageDepth,
     nodeFlowTime,
     phaseHalfWidth
   });
@@ -551,7 +557,7 @@ export function compileRiverJunctions(
             })
           )
         ),
-        depth: averageEndpointValue(endpoints, (endpoint) => endpoint.sample.depth),
+        depth: patchData.averageDepth,
         queryBoundary,
         surfaceGeometry,
         bankFoamGeometry

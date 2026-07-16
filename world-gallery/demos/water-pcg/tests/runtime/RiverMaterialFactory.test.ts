@@ -70,10 +70,13 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceLocalMapShaderSource).toContain("renderer_LocalMapWorldToUv");
   });
 
-  it("uses scene depth for Medium optical thickness without opaque-color sampling", () => {
+  it("caps Medium scene-depth thickness with the authored water column", () => {
     expect(riverSurfaceShaderSource).toContain("sampler2D camera_DepthTexture");
     expect(riverSurfaceShaderSource).toContain("remapDepthBufferEyeDepth");
     expect(riverSurfaceShaderSource).toContain("sceneEyeDepth - input.surfaceData.z");
+    expect(riverSurfaceShaderSource).toContain("input.surfaceData.w * input.surfaceData.y");
+    expect(riverSurfaceShaderSource).toContain("float authoredDepthAvailable = step(");
+    expect(riverSurfaceShaderSource).toContain("min(sampledOpticalDepth, authoredOpticalDepth)");
     expect(riverSurfaceShaderSource).toContain("float transmittance = exp(-absorption * opticalDepth)");
     expect(riverSurfaceShaderSource).toContain("float waterAlpha = clamp(");
     expect(riverSurfaceShaderSource).not.toContain("camera_OpaqueTexture");

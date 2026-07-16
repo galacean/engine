@@ -6,6 +6,7 @@ import {
   resolveRiverSurfaceMotion
 } from "../../compiler/river/RiverSurfaceMotion";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
+import { CURVED_MAIN_RIVER_SURFACE_MOTION } from "../../demo/examples/river/constants";
 import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
 
 describe("RiverSurfaceMotion", () => {
@@ -15,10 +16,10 @@ describe("RiverSurfaceMotion", () => {
     const secondDerived = resolveRiverSurfaceMotion(multiTributaryRiverExample.riverDescriptor);
 
     expect(explicit).toMatchObject({
-      seed: 27491,
-      maxDisplacement: 0.23,
-      displacementLengthScale: 3.6,
-      shoreDampingWidth: 0.9
+      seed: CURVED_MAIN_RIVER_SURFACE_MOTION.seed,
+      maxDisplacement: CURVED_MAIN_RIVER_SURFACE_MOTION.displacementAmplitude,
+      displacementLengthScale: CURVED_MAIN_RIVER_SURFACE_MOTION.displacementLengthScale,
+      shoreDampingWidth: CURVED_MAIN_RIVER_SURFACE_MOTION.shoreDampingWidth
     });
     expect(firstDerived).toEqual(secondDerived);
     expect(firstDerived.seed).toBeGreaterThanOrEqual(0);

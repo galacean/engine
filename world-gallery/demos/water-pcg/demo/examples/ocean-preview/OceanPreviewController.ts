@@ -1,16 +1,64 @@
-/** Isolated CPU-wave experiment. This is not the formal Ocean architecture. */
-import { Engine, Entity, MeshRenderer, ModelMesh, UnlitMaterial } from "@galacean/engine-core";
+/** Static-grid Ocean preview displaced by a fixed-count Gerstner vertex shader. */
+import { Engine, Entity, MeshRenderer, ModelMesh } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
-import { createWaterPreviewMaterial, updateWaterPreviewMaterial } from "../../WaterPreviewMaterial";
-import type { OceanPreviewConfig } from "./types";
+import { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveModel";
+import type { WaterWaveAssetV1 } from "../../../authoring/wave/types/WaterWaveTypes";
+import { compileWaterWaveAsset } from "../../../compiler/wave/WaterWaveCompiler";
+import type { CompiledWaterWaveSet } from "../../../compiler/wave/types/CompiledWaterWaveTypes";
+import {
+  createWaterWaveMaterial,
+  setWaterWaveSurfaceTimeOverride,
+  updateWaterWaveMaterial
+} from "../../../runtime/wave/WaterWaveMaterialFactory";
+import type {
+  WaterWaveMaterialConfig,
+  WaterWaveMaterialState
+} from "../../../runtime/wave/types/WaterWaveRuntimeTypes";
+import {
+  OCEAN_PREVIEW_DEFAULT_STRESS_ITERATIONS,
+  OCEAN_PREVIEW_MIN_AMPLITUDE_SCALE,
+  OCEAN_PREVIEW_MIN_SEGMENT_COUNT,
+  OCEAN_PREVIEW_STRESS_QUALITY_SEQUENCE
+} from "./constants";
+import type { OceanPreviewConfig, OceanPreviewMetrics, OceanPreviewStressResult } from "./types";
+
+interface OceanGridTopology {
+  readonly positions: Vector3[];
+  readonly uvs: Vector2[];
+  readonly indices: Uint16Array | Uint32Array;
+}
+
+function createScaledWaveAsset(config: OceanPreviewConfig): WaterWaveAssetV1 {
+  const asset = config.waveAsset;
+  if (asset.model === WaterWaveModel.None) return asset;
+  const amplitudeScale = Math.max(OCEAN_PREVIEW_MIN_AMPLITUDE_SCALE, config.amplitudeScale);
+  return {
+    ...asset,
+    generator: {
+      ...asset.generator,
+      minAmplitude: asset.generator.minAmplitude * amplitudeScale,
+      maxAmplitude: asset.generator.maxAmplitude * amplitudeScale
+    }
+  };
+}
 
 export class OceanPreviewController {
   readonly root: Entity;
   private readonly _renderer: MeshRenderer;
-  private readonly _material: UnlitMaterial;
   private _mesh: ModelMesh;
+  private _materialState: WaterWaveMaterialState;
+  private _waveSet: CompiledWaterWaveSet;
   private _meshResolution: number;
-  private _time = 0;
+  private _meshSize: number;
+  private _surfaceTimeOverride?: number;
+  private _meshUploadCount = 0;
+  private _meshCreateCount = 0;
+  private _meshDestroyCount = 0;
+  private _materialCreateCount = 0;
+  private _materialDestroyCount = 0;
+  private _vertexCount = 0;
+  private _frameCount = 0;
+  private _destroyed = false;
 
   constructor(
     private readonly _engine: Engine,
@@ -19,78 +67,156 @@ export class OceanPreviewController {
   ) {
     this.root = parent.createChild("ocean-preview");
     this._renderer = this.root.createChild("ocean-surface").addComponent(MeshRenderer);
-    this._material = createWaterPreviewMaterial(_engine, _config.oceanColor, _config.alpha);
+    this._waveSet = this._compileWaveSet();
     this._mesh = this._createGridMesh();
     this._meshResolution = _config.resolution;
+    this._meshSize = _config.size;
+    this._materialState = this._createMaterialState();
     this._renderer.mesh = this._mesh;
-    this._renderer.setMaterial(this._material);
+    this._renderer.setMaterial(this._materialState.material);
+  }
+
+  get metrics(): OceanPreviewMetrics {
+    return Object.freeze({
+      waveModel: this._waveSet.model,
+      quality: this._waveSet.quality,
+      shaderWaveCount: Number(this._materialState.variant),
+      activeWaveCount: this._waveSet.activeWaveCount,
+      sourceHash: this._waveSet.sourceHash,
+      meshUploadCount: this._meshUploadCount,
+      meshCreateCount: this._meshCreateCount,
+      meshDestroyCount: this._meshDestroyCount,
+      materialCreateCount: this._materialCreateCount,
+      materialDestroyCount: this._materialDestroyCount,
+      activeMeshCount: this._meshCreateCount - this._meshDestroyCount,
+      activeMaterialCount: this._materialCreateCount - this._materialDestroyCount,
+      vertexCount: this._vertexCount,
+      frameCount: this._frameCount,
+      perFrameMeshUpload: false
+    });
   }
 
   setConfig(config: OceanPreviewConfig): void {
     this._config = config;
-    this._time = 0;
+    this._waveSet = this._compileWaveSet();
     this.rebuildMesh();
-    this.updateMaterial();
+    this._applyMaterialState();
   }
 
   rebuildMesh(): void {
-    if (this._meshResolution === this._config.resolution) {
-      this._updatePositions();
+    const topologyChanged = this._meshResolution !== this._config.resolution || this._meshSize !== this._config.size;
+    if (!topologyChanged) {
+      this._setConservativeBounds(this._mesh);
       return;
     }
-    this._updateTopology();
+    const previousMesh = this._mesh;
+    this._mesh = this._createGridMesh();
     this._meshResolution = this._config.resolution;
+    this._meshSize = this._config.size;
+    this._renderer.mesh = this._mesh;
+    previousMesh.destroy(true);
+    this._meshDestroyCount++;
   }
 
   updateMaterial(): void {
-    updateWaterPreviewMaterial(
-      this._material,
-      this._config.oceanColor,
-      Math.min(1, this._config.alpha + this._config.foamIntensity * 0.02)
-    );
+    this._waveSet = this._compileWaveSet();
+    this._setConservativeBounds(this._mesh);
+    this._applyMaterialState();
   }
 
-  update(deltaTime: number): void {
-    if (!this.root.isActive) return;
-    this._time += deltaTime;
-    this._updatePositions();
+  setSurfaceTimeOverride(elapsedTime?: number): void {
+    this._surfaceTimeOverride = elapsedTime;
+    setWaterWaveSurfaceTimeOverride(this._materialState, elapsedTime);
+  }
+
+  update(_deltaTime: number): void {
+    if (!this.root.isActive || this._destroyed) return;
+    this._frameCount++;
+  }
+
+  stressReconfigure(iterations = OCEAN_PREVIEW_DEFAULT_STRESS_ITERATIONS): OceanPreviewStressResult {
+    const requestedIterations = Math.max(0, Math.floor(iterations));
+    const originalConfig = this._config;
+    const initialMeshUploadCount = this._meshUploadCount;
+    for (let index = 0; index < requestedIterations; index++) {
+      const quality = OCEAN_PREVIEW_STRESS_QUALITY_SEQUENCE[index % OCEAN_PREVIEW_STRESS_QUALITY_SEQUENCE.length];
+      this.setConfig({ ...originalConfig, quality });
+    }
+    this.setConfig(originalConfig);
+    return Object.freeze({
+      requestedIterations,
+      completedIterations: requestedIterations,
+      initialMeshUploadCount,
+      finalMeshUploadCount: this._meshUploadCount,
+      activeMeshCount: this._meshCreateCount - this._meshDestroyCount,
+      activeMaterialCount: this._materialCreateCount - this._materialDestroyCount,
+      materialCreateCount: this._materialCreateCount,
+      materialDestroyCount: this._materialDestroyCount,
+      sourceHash: this._waveSet.sourceHash
+    });
   }
 
   destroy(): void {
+    if (this._destroyed) return;
+    this._destroyed = true;
     this.root.destroy();
     this._mesh.destroy(true);
-    this._material.destroy(true);
+    this._meshDestroyCount++;
+    this._materialState.material.destroy(true);
+    this._materialDestroyCount++;
   }
 
-  private _calculateWaveHeight(x: number, z: number): number {
-    const frequency = (Math.PI * 2) / Math.max(this._config.waveLength, 0.001);
-    const waveTime = this._time * this._config.waveSpeed;
-    const waveA = Math.sin((x + z) * frequency + waveTime);
-    const waveB = Math.sin((x * 0.45 - z * 0.8) * frequency * 1.7 + waveTime * 1.35);
-    return this._config.waterLevel + (waveA * 0.65 + waveB * 0.35) * this._config.waveAmplitude;
+  private _compileWaveSet(): CompiledWaterWaveSet {
+    return compileWaterWaveAsset(createScaledWaveAsset(this._config), this._config.quality);
   }
 
-  private _createPositions(): Vector3[] {
-    const segmentCount = Math.max(1, Math.floor(this._config.resolution));
+  private _createMaterialConfig(): WaterWaveMaterialConfig {
+    return {
+      baseColor: this._config.oceanColor,
+      alpha: this._config.alpha,
+      waterLevel: this._config.waterLevel,
+      timeScale: this._config.timeScale,
+      crestIntensity: this._config.foamIntensity,
+      surfaceTimeOverride: this._surfaceTimeOverride
+    };
+  }
+
+  private _createMaterialState(): WaterWaveMaterialState {
+    const state = createWaterWaveMaterial(this._engine, this._waveSet, this._createMaterialConfig());
+    this._materialCreateCount++;
+    return state;
+  }
+
+  private _applyMaterialState(): void {
+    if (Number(this._materialState.variant) === this._waveSet.activeWaveCount) {
+      this._materialState = updateWaterWaveMaterial(this._materialState, this._waveSet, this._createMaterialConfig());
+      return;
+    }
+    const previousMaterial = this._materialState.material;
+    this._materialState = this._createMaterialState();
+    this._renderer.setMaterial(this._materialState.material);
+    previousMaterial.destroy(true);
+    this._materialDestroyCount++;
+  }
+
+  private _createGridTopology(): OceanGridTopology {
+    const segmentCount = Math.max(OCEAN_PREVIEW_MIN_SEGMENT_COUNT, Math.floor(this._config.resolution));
+    const vertexSide = segmentCount + 1;
     const halfSize = this._config.size * 0.5;
     const positions: Vector3[] = [];
+    const uvs: Vector2[] = [];
+    const indexValues: number[] = [];
     for (let z = 0; z <= segmentCount; z++) {
       for (let x = 0; x <= segmentCount; x++) {
-        const localX = (x / segmentCount) * this._config.size - halfSize;
-        const localZ = (z / segmentCount) * this._config.size - halfSize;
-        positions.push(new Vector3(localX, this._calculateWaveHeight(localX, localZ), localZ));
+        positions.push(
+          new Vector3(
+            (x / segmentCount) * this._config.size - halfSize,
+            0,
+            (z / segmentCount) * this._config.size - halfSize
+          )
+        );
+        uvs.push(new Vector2(x / segmentCount, z / segmentCount));
       }
-    }
-    return positions;
-  }
-
-  private _createTopology(): { uvs: Vector2[]; indices: Uint16Array | Uint32Array } {
-    const segmentCount = Math.max(1, Math.floor(this._config.resolution));
-    const vertexSide = segmentCount + 1;
-    const uvs: Vector2[] = [];
-    const values: number[] = [];
-    for (let z = 0; z <= segmentCount; z++) {
-      for (let x = 0; x <= segmentCount; x++) uvs.push(new Vector2(x / segmentCount, z / segmentCount));
     }
     for (let z = 0; z < segmentCount; z++) {
       for (let x = 0; x < segmentCount; x++) {
@@ -98,56 +224,39 @@ export class OceanPreviewController {
         const b = a + 1;
         const c = a + vertexSide;
         const d = c + 1;
-        values.push(a, c, b, b, c, d);
+        indexValues.push(a, c, b, b, c, d);
       }
     }
-    const vertexCount = vertexSide * vertexSide;
-    return { uvs, indices: vertexCount > 65535 ? new Uint32Array(values) : new Uint16Array(values) };
+    const indices = positions.length > 65535 ? new Uint32Array(indexValues) : new Uint16Array(indexValues);
+    return { positions, uvs, indices };
   }
 
   private _createGridMesh(): ModelMesh {
+    const topology = this._createGridTopology();
     const mesh = new ModelMesh(this._engine);
-    const positions = this._createPositions();
-    const topology = this._createTopology();
-    this._setBounds(mesh, positions);
-    mesh.setPositions(positions);
+    mesh.setPositions(topology.positions);
     mesh.setUVs(topology.uvs);
     mesh.setIndices(topology.indices);
     mesh.addSubMesh(0, topology.indices.length);
-    mesh.uploadData(false);
+    this._setConservativeBounds(mesh);
+    mesh.uploadData(true);
+    this._vertexCount = topology.positions.length;
+    this._meshCreateCount++;
+    this._meshUploadCount++;
     return mesh;
   }
 
-  private _updatePositions(): void {
-    const positions = this._createPositions();
-    this._setBounds(this._mesh, positions);
-    this._mesh.setPositions(positions);
-    this._mesh.uploadData(false);
-  }
-
-  private _updateTopology(): void {
-    const positions = this._createPositions();
-    const topology = this._createTopology();
-    this._setBounds(this._mesh, positions);
-    this._mesh.setPositions(positions);
-    this._mesh.setUVs(topology.uvs);
-    this._mesh.setIndices(topology.indices);
-    this._mesh.clearSubMesh();
-    this._mesh.addSubMesh(0, topology.indices.length);
-    this._mesh.uploadData(false);
-  }
-
-  private _setBounds(mesh: ModelMesh, positions: readonly Vector3[]): void {
-    const { min, max } = mesh.bounds;
-    min.set(Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY, Number.POSITIVE_INFINITY);
-    max.set(Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY, Number.NEGATIVE_INFINITY);
-    for (const position of positions) {
-      min.x = Math.min(min.x, position.x);
-      min.y = Math.min(min.y, position.y - 3);
-      min.z = Math.min(min.z, position.z);
-      max.x = Math.max(max.x, position.x);
-      max.y = Math.max(max.y, position.y + 3);
-      max.z = Math.max(max.z, position.z);
-    }
+  private _setConservativeBounds(mesh: ModelMesh): void {
+    const horizontalExtent = this._config.size * 0.5 + this._waveSet.maxHorizontalDisplacement;
+    mesh.bounds.min.set(
+      -horizontalExtent,
+      this._config.waterLevel - this._waveSet.maxVerticalDisplacement,
+      -horizontalExtent
+    );
+    mesh.bounds.max.set(
+      horizontalExtent,
+      this._config.waterLevel + this._waveSet.maxVerticalDisplacement,
+      horizontalExtent
+    );
   }
 }

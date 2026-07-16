@@ -456,7 +456,7 @@ Shader "${shaderName}" {
           computedMacroHeight,
           riverShoreDamping(attr.TEXCOORD_2.x, attr.TEXCOORD_3.x),
           -(camera_ViewMat * computedWorldPosition).z,
-          0.0
+          attr.TEXCOORD_3.y
         );
         output.worldPosition = computedWorldPosition.xyz;
         output.macroNormalWS = computedMacroNormalWS;
@@ -469,7 +469,21 @@ Shader "${shaderName}" {
         float clarity = saturate(material_Clarity);
         vec2 screenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
         float sceneEyeDepth = remapDepthBufferEyeDepth(texture2D(camera_DepthTexture, screenUv).r);
-        float opticalDepth = clamp(sceneEyeDepth - input.surfaceData.z, 0.0, ${RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL});
+        float sampledOpticalDepth = max(sceneEyeDepth - input.surfaceData.z, 0.0);
+        float authoredOpticalDepth = max(input.surfaceData.w * input.surfaceData.y, 0.0);
+        float authoredDepthAvailable = step(
+          ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.authoredDepthEpsilon)},
+          input.surfaceData.w
+        );
+        float opticalDepth = clamp(
+          mix(
+            sampledOpticalDepth,
+            min(sampledOpticalDepth, authoredOpticalDepth),
+            authoredDepthAvailable
+          ),
+          0.0,
+          ${RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL}
+        );
         float absorption = mix(
           ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption},
           ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption},

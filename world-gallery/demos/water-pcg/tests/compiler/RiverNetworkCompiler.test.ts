@@ -88,6 +88,7 @@ describe("RiverNetworkCompiler", () => {
     expect(junction.surfaceGeometry.uvs).toHaveLength(junction.surfaceGeometry.positions.length);
     expect(junction.surfaceGeometry.uv1s).toHaveLength(junction.surfaceGeometry.positions.length);
     expect(junction.surfaceGeometry.colors).toHaveLength(junction.surfaceGeometry.positions.length);
+    expect(junction.surfaceGeometry.uv3s?.[0][1]).toBeCloseTo(junction.depth);
     for (const reachIndex of incoming) {
       const reach = result.data!.reaches[reachIndex];
       expect(reach.artifact.samples.at(-1)!.distance).toBeCloseTo(reach.length - junction.mergeRadius, 4);

@@ -165,7 +165,9 @@ export interface RiverGeometryData {
   readonly tangents?: readonly ReadonlyVector4Tuple[];
   readonly uvs: readonly Vector2Tuple[];
   readonly uv1s: readonly Vector2Tuple[];
+  /** Signed cross-river distance and continuous network flow time. */
   readonly uv2s?: readonly Vector2Tuple[];
+  /** Local half width and authored water-column depth. */
   readonly uv3s?: readonly Vector2Tuple[];
   readonly colors?: readonly RiverVertexColorTuple[];
   readonly indices: ReadonlyUint32Buffer;

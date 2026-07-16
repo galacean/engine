@@ -16,18 +16,22 @@ import {
   RiverQualityLevel
 } from "../../../authoring/river/RiverAuthoringEnums";
 import { RIVER_MATERIAL_PRESET_CONFIG } from "../../../authoring/river/RiverAuthoringLimits";
+import { WaterDecorationStyle } from "../../decoration/constants";
 import { RiverDebugMode, RiverPreviewStage } from "../../debug/constants";
 import { WaterPreviewMode } from "../constants";
 import type { RiverPcgExample } from "../types";
+import {
+  CURVED_MAIN_RIVER_MATERIAL_TUNING,
+  CURVED_MAIN_RIVER_SURFACE_MOTION,
+  CURVED_MAIN_RIVER_VIEW
+} from "./constants";
 
 export const curvedMainRiverExample: RiverPcgExample = {
   id: "curved-main-river",
   label: "高差主河",
   initialMode: WaterPreviewMode.River,
-  view: {
-    cameraPosition: [-48, 64, 82],
-    cameraTarget: [0, 4.5, 0]
-  },
+  decorationStyle: WaterDecorationStyle.River,
+  view: CURVED_MAIN_RIVER_VIEW,
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V2,
     id: "demo-river-network",
@@ -162,17 +166,10 @@ export const curvedMainRiverExample: RiverPcgExample = {
       },
       material: {
         preset: RiverMaterialPreset.MountainCreek,
-        ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MountainCreek]
+        ...RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MountainCreek],
+        ...CURVED_MAIN_RIVER_MATERIAL_TUNING
       },
-      surfaceMotion: {
-        seed: 27491,
-        displacementAmplitude: 0.23,
-        displacementLengthScale: 3.6,
-        shoreDampingWidth: 0.9,
-        turbulence: 0.96,
-        crestIntensity: 1.08,
-        microNormalStrength: 0.46
-      },
+      surfaceMotion: CURVED_MAIN_RIVER_SURFACE_MOTION,
       quality: {
         geometry: { level: RiverQualityLevel.Medium, maxSegmentCount: 512, maxChordError: 0.25 },
         material: { level: RiverQualityLevel.Medium },
@@ -183,7 +180,7 @@ export const curvedMainRiverExample: RiverPcgExample = {
   },
   riverDebug: {
     previewStage: RiverPreviewStage.Full,
-    mode: RiverDebugMode.Full,
+    mode: RiverDebugMode.Off,
     queryT: 0.52
   }
 };

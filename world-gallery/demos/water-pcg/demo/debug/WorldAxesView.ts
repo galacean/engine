@@ -101,4 +101,8 @@ export class WorldAxesView {
     this._root = parent.createChild("global-xyz-axes");
     this._renderers = WORLD_AXIS_SPECS.map((axis) => createAxisRenderer(engine, this._root, axis));
   }
+
+  setVisible(visible: boolean): void {
+    this._root.isActive = visible;
+  }
 }
