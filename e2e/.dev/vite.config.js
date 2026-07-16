@@ -57,7 +57,6 @@ module.exports = {
       // "Class constructor cannot be invoked without 'new'".
       "@galacean/engine-spine-core-4.2": path.resolve(__dirname, "../../packages/spine-core-4.2/src/index.ts"),
       "@galacean/engine-spine-core-3.8": path.resolve(__dirname, "../../packages/spine-core-3.8/src/index.ts"),
-      "@galacean/engine-spine-ui": path.resolve(__dirname, "../../packages/spine-ui/src/index.ts"),
       "@galacean/engine-spine": path.resolve(__dirname, "../../packages/spine/src/index.ts")
     }
   },

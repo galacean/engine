@@ -5,7 +5,7 @@ import type { SpineBlendMode } from "../enums/SpineBlendMode";
  * The write target a spine core package's generator fills while building the renderable primitive.
  *
  * @remarks
- * Implemented by the render hosts (world-space `SpineAnimationRenderer` and the UI-space renderer).
+ * Implemented by `SpineAnimationRenderer` for both world-space and UI-hosted rendering.
  * This is the narrow, spine-core-free contract that lets the version-specific generator live in a
  * core package while the buffer/material/bounds bookkeeping stays in the shared renderer — the
  * analogue of how engine physics colliders expose a native handle.

@@ -1,5 +1,6 @@
 import { Ray, Vector3, Vector4 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
+import type { DisorderedArray } from "../utils/DisorderedArray";
 import { IUICanvas } from "./IUICanvas";
 
 /**
@@ -52,7 +53,7 @@ export interface IUIGroup {
   entity: Entity;
   /** Marker used to identify a group component without a ui-package dependency. */
   _isUIGroup: boolean;
-  _disorderedElements: { length: number; add(element: any): void; deleteByIndex(index: number): any };
+  _disorderedElements: DisorderedArray<IUIGroupAble>;
   _getGlobalAlpha(): number;
 }
 

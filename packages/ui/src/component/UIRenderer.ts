@@ -43,8 +43,6 @@ export class UIRenderer extends Renderer implements IUIRenderer {
   static _tempPlane: Plane = new Plane();
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_UITexture");
-  /** @internal */
-  static _tempRect: Vector4 = new Vector4();
 
   /** @internal Marker checked by the `UICanvas` walk (`IUIRenderer`). */
   @ignoreClone

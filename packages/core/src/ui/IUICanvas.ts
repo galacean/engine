@@ -2,6 +2,7 @@ import { Camera } from "../Camera";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
+import type { DisorderedArray } from "../utils/DisorderedArray";
 import { IUIElement } from "./IUIElement";
 
 /**
@@ -16,7 +17,7 @@ export interface IUICanvas {
   _sortDistance: number;
   _realRenderMode: number;
   _renderElements: RenderElement[];
-  _disorderedElements: { length: number; add(element: IUIElement): void; deleteByIndex(index: number): IUIElement };
+  _disorderedElements: DisorderedArray<IUIElement>;
   _canRender(camera: Camera): boolean;
   _prepareRender(renderContext: RenderContext): void;
 }
