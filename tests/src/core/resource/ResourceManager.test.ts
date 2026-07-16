@@ -199,6 +199,26 @@ describe("ResourceManager", () => {
       }
     });
 
+    it("retries a sub-asset after its main asset initially fails", async () => {
+      const resourceManager = engine.resourceManager;
+      const material = { name: "material" };
+      const mainAsset = { instanceId: 987654323, materials: [material] };
+      // @ts-ignore
+      const loaderSpy = vi
+        .spyOn(ResourceManager._loaders[AssetType.GLTF], "load")
+        .mockReturnValueOnce(new AssetPromise((_resolve, reject) => reject(new Error())) as any)
+        .mockReturnValueOnce(AssetPromise.resolve(mainAsset) as any);
+      const url = "https://cdn.ali.com/retry-sub-asset.glb?q=materials[0]";
+
+      try {
+        await expect(resourceManager.load(url)).rejects.toThrow();
+        expect(await resourceManager.load(url)).equal(material);
+        expect(loaderSpy).toHaveBeenCalledTimes(2);
+      } finally {
+        loaderSpy.mockRestore();
+      }
+    });
+
     it("prefers the virtualPath map type over an explicit type", () => {
       const resourceManager = engine.resourceManager;
       resourceManager.registerVirtualResources([

@@ -224,21 +224,6 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _onSubAssetFail(assetBaseURL: string, assetSubPath: string, value: Error): void {
-    const subPromiseCallback = this._subAssetPromiseCallbacks[assetBaseURL]?.[assetSubPath];
-    if (subPromiseCallback) {
-      subPromiseCallback.reject(value);
-    } else {
-      // Pending
-      (this._subAssetPromiseCallbacks[assetBaseURL] ||= {})[assetSubPath] = {
-        rejectedValue: value
-      };
-    }
-  }
-
-  /**
-   * @internal
-   */
   _addAsset(path: string, asset: EngineObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
@@ -416,9 +401,6 @@ export class ResourceManager {
       const mainPromise =
         loadingPromises[remoteAssetBaseURL] ||
         this._loadSubpackageAndMainAsset(loader, item, remoteAssetBaseURL, subpackageName);
-      mainPromise.catch((e) => {
-        this._onSubAssetFail(remoteAssetBaseURL, queryPath, e);
-      });
 
       return this._createSubAssetPromiseCallback<T>(remoteAssetBaseURL, remoteAssetURL, queryPath, mainPromise);
     }
@@ -467,17 +449,10 @@ export class ResourceManager {
     const loadingPromises = this._loadingPromises;
     const subPromiseCallback = this._subAssetPromiseCallbacks[remoteAssetBaseURL]?.[assetSubPath];
     const resolvedValue = subPromiseCallback?.resolvedValue;
-    const rejectedValue = subPromiseCallback?.rejectedValue;
 
-    // Already resolved or rejected
-    if (resolvedValue || rejectedValue) {
-      return new AssetPromise<T>((resolve, reject) => {
-        if (resolvedValue) {
-          resolve(resolvedValue);
-        } else if (rejectedValue) {
-          reject(rejectedValue);
-        }
-      });
+    // Already resolved
+    if (resolvedValue) {
+      return AssetPromise.resolve(resolvedValue);
     }
 
     // Pending
@@ -623,7 +598,7 @@ export class ResourceManager {
 
   /**
    * @internal
-   * @beta Just for internal editor, not recommended for developers.
+   * @deprecated Use {@link registerVirtualResources}.
    */
   initVirtualResources(config: VirtualResource[]): void {
     this.registerVirtualResources(config);
@@ -678,9 +653,8 @@ type SubAssetPromiseCallbacks<T> = Record<
     // sub asset url, ie. "textures[0]"
     string,
     {
-      // Already resolved or rejected
+      // Already resolved
       resolvedValue?: T;
-      rejectedValue?: Error;
       // Pending
       resolve?: (value: T) => void;
       reject?: (reason: any) => void;
