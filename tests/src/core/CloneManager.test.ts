@@ -268,6 +268,14 @@ class AssignedHandlerScript extends Script {
   private _noop(): void {}
 }
 
+/** Script with an @ignoreClone function field preset by the constructor */
+class IgnoredHandlerScript extends Script {
+  @ignoreClone
+  handler: () => void = this._noop.bind(this);
+
+  private _noop(): void {}
+}
+
 describe("Clone remap", async () => {
   const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   const scene = engine.sceneManager.activeScene;
@@ -604,6 +612,26 @@ describe("Clone remap", async () => {
       const cs = cloned.getComponent(AssignedHandlerScript);
 
       expect(cs.handler).eq(custom);
+
+      rootEntity.destroy();
+    });
+
+    it("@ignoreClone function field keeps the clone's own constructor-built value (never the source)", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(IgnoredHandlerScript);
+      const custom = () => {};
+      script.handler = custom;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(IgnoredHandlerScript);
+
+      // Ignore means the field is untouched by the gate — the clone's constructor already bound
+      // its own handler to its own `this`, so it must be neither the overridden source value nor
+      // the source instance's original bound handler.
+      expect(cs.handler).not.eq(custom);
+      expect(cs.handler).not.eq(script.handler);
+      expect(typeof cs.handler).eq("function");
 
       rootEntity.destroy();
     });
