@@ -1,11 +1,8 @@
-import { defaultCloneMode } from "../clone/CloneManager";
-import { CloneMode } from "../clone/enums/CloneMode";
 import { Utils } from "../Utils";
 
 /**
  * High-performance unordered array, delete uses exchange method to improve performance, internal capacity only increases.
  */
-@defaultCloneMode(CloneMode.Ignore)
 export class DisorderedArray<T> {
   /** The length of the array. */
   length = 0;

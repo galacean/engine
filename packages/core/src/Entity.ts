@@ -10,9 +10,7 @@ import { Transform } from "./Transform";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { ReferResource } from "./asset/ReferResource";
 import { EngineObject } from "./base";
-import { defaultCloneMode } from "./clone/CloneManager";
 import { ComponentCloner } from "./clone/ComponentCloner";
-import { CloneMode } from "./clone/enums/CloneMode";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { EntityModifyFlags } from "./enums/EntityModifyFlags";
 import { DisorderedArray } from "./utils/DisorderedArray";
@@ -20,7 +18,6 @@ import { DisorderedArray } from "./utils/DisorderedArray";
 /**
  * Entity, be used as components container.
  */
-@defaultCloneMode(CloneMode.Remap)
 export class Entity extends EngineObject {
   /** @internal */
   static _tempComponentConstructors: ComponentConstructor[] = [];
@@ -423,7 +420,7 @@ export class Entity extends EngineObject {
    * @returns Cloned entity
    */
   clone(): Entity {
-    const cloneMap = new Map<Object, Object>();
+    const cloneMap = new Map<object, object>();
     const cloneEntity = this._createCloneEntity(cloneMap);
     this._parseCloneEntity(this, cloneEntity, cloneMap);
     return cloneEntity;
@@ -452,7 +449,7 @@ export class Entity extends EngineObject {
    * completes for the whole subtree before any value is copied, because a component anywhere in
    * the tree may reference an entity anywhere else in it.
    */
-  private _createCloneEntity(cloneMap: Map<Object, Object>): Entity {
+  private _createCloneEntity(cloneMap: Map<object, object>): Entity {
     const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
@@ -480,7 +477,7 @@ export class Entity extends EngineObject {
     return cloneEntity;
   }
 
-  private _parseCloneEntity(src: Entity, target: Entity, cloneMap: Map<Object, Object>): void {
+  private _parseCloneEntity(src: Entity, target: Entity, cloneMap: Map<object, object>): void {
     const srcChildren = src._children;
     const targetChildren = target._children;
     for (let i = 0, n = srcChildren.length; i < n; i++) {

@@ -1,7 +1,6 @@
 import { IReferable } from "./asset/IReferable";
 import { EngineObject } from "./base";
-import { defaultCloneMode, ignoreClone } from "./clone/CloneManager";
-import { CloneMode } from "./clone/enums/CloneMode";
+import { ignoreClone } from "./clone/CloneManager";
 import { Entity } from "./Entity";
 import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
@@ -9,7 +8,6 @@ import { Scene } from "./Scene";
 /**
  * The base class of the components.
  */
-@defaultCloneMode(CloneMode.Remap)
 export class Component extends EngineObject {
   /** @internal */
   _entity: Entity;

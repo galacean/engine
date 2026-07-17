@@ -1,7 +1,3 @@
-import { defaultCloneMode } from "../clone/CloneManager";
-import { CloneMode } from "../clone/enums/CloneMode";
-
-@defaultCloneMode(CloneMode.Ignore)
 export class SafeLoopArray<T> {
   private _array: T[] = [];
   private _loopArray: T[] = [];

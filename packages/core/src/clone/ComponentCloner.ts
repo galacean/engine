@@ -8,9 +8,10 @@ import { CloneMode } from "./enums/CloneMode";
 export interface ICustomClone {
   /**
    * @internal
-   * Type default set via `@defaultCloneMode`; absence means Assignment (share).
+   * Deep marker of the DataObject family and math value types; absence means the
+   * built-in default decision applies.
    */
-  readonly _defaultCloneMode?: CloneMode;
+  readonly _isDeepCloneType?: boolean;
   /**
    * @internal
    * Post-clone hook; `cloneMap` maps every source object in the cloned subtree to its clone.

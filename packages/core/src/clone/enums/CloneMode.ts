@@ -1,5 +1,5 @@
 /**
- * How a value is cloned, decided by its type (see `@defaultCloneMode`).
+ * How a value is cloned, decided by the built-in default decision or a field decorator.
  */
 export enum CloneMode {
   /** Skip — keep the clone's own constructor-built value (for runtime / transient state). */

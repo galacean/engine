@@ -44,20 +44,6 @@ export function ignoreClone(target: object, propertyKey: string): void {
 }
 
 /**
- * Class decorator — the default clone mode for instances of the decorated type
- * (unregistered non-container types fall back to Assignment).
- * A `Deep` type cloned without a same-type preset (e.g. as a container element) must construct
- * bare — the gate creates the instance argument-less and then populates every field; host-bound
- * types lacking a preset fail with a named error.
- * @param mode - The clone mode applied to instances of the decorated type
- */
-export function defaultCloneMode(mode: CloneMode) {
-  return function (target: Function): void {
-    Object.defineProperty(target.prototype, "_defaultCloneMode", { value: mode });
-  };
-}
-
-/**
  * @internal
  * Clone manager. Opt-out model: every enumerable field is cloned unless `@ignoreClone`,
  * with the mode resolved by `_cloneValue`.
@@ -114,7 +100,7 @@ export class CloneManager {
 
   /**
    * @internal
-   * Register a field-level clone mode (highest priority — overrides the value type's `@defaultCloneMode`).
+   * Register a field-level clone mode (highest priority — overrides the built-in default decision).
    */
   static _registerFieldMode(target: object, propertyKey: string, mode: CloneMode): void {
     let fields = CloneManager._subFieldModeMap.get(target.constructor);
@@ -138,22 +124,19 @@ export class CloneManager {
     // `typeof`, not `instanceof` — null-prototype / cross-realm objects lack local Object.prototype.
     if (value === null || typeof value !== "object") return value;
 
-    // Mode priority: field decorator (highest) → container default deep → type's `@defaultCloneMode` → Assignment.
+    // Mode priority: field decorator (highest) → the built-in default decision by type family.
     let cloneMode = fieldMode;
     if (cloneMode === undefined) {
-      cloneMode = CloneManager._isContainer(value)
-        ? CloneMode.Deep
-        : ((<ICustomClone>value)._defaultCloneMode ?? CloneMode.Assignment);
+      cloneMode = CloneManager._isContainer(value) ? CloneMode.Deep : CloneManager._determineDefaultCloneMode(value);
     } else if (cloneMode === CloneMode.Deep) {
       // Error recovery (not a priority rule): engine-bound instances can't be deep cloned —
-      // recover to the type's executable mode (remap / share) and warn.
-      const typeDefault = (<ICustomClone>value)._defaultCloneMode;
-      if (typeDefault === CloneMode.Remap) {
+      // recover to the family's executable mode (remap / share) and warn.
+      if (CloneManager._isRemapType(value)) {
         Logger.warn(
           `CloneManager: "${value.constructor.name}" cannot be deep cloned; @deepClone on this field falls back to remap.`
         );
         cloneMode = CloneMode.Remap;
-      } else if (typeDefault === CloneMode.Assignment) {
+      } else if (CloneManager._isCountedResource(value)) {
         Logger.warn(
           `CloneManager: "${value.constructor.name}" is an engine-bound asset and cannot be deep cloned; ` +
             `@deepClone on this field falls back to sharing (use the asset's own clone() API to copy it).`
@@ -196,24 +179,23 @@ export class CloneManager {
 
   /**
    * @internal
-   * Whether the value is an engine-bound Remap type (Entity / Component).
+   * The built-in default decision by type family; injected from `CloneDefaults` (a module-graph
+   * sink) so the gate never imports the intrinsic classes — a top-level class import here would
+   * reorder module evaluation and break `extends` chains.
    */
-  static _isRemapType(value: any): boolean {
-    return value instanceof Object && (<ICustomClone>value)._defaultCloneMode === CloneMode.Remap;
-  }
+  static _determineDefaultCloneMode: (value: object) => CloneMode;
 
   /**
-   * Counted = registered Assignment (the ReferResource family) AND implementing the counting
-   * API — a user type registered Assignment without `_addReferCount` is a plain share;
-   * duck-typed counters that never registered (Shader) stay excluded.
+   * @internal
+   * Whether the value is an engine-bound Remap type (Entity / Component); injected from `CloneDefaults`.
    */
-  private static _isCountedResource(value: any): boolean {
-    return (
-      value instanceof Object &&
-      (<ICustomClone>value)._defaultCloneMode === CloneMode.Assignment &&
-      typeof (<IReferable>value)._addReferCount === "function"
-    );
-  }
+  static _isRemapType: (value: any) => boolean;
+
+  /**
+   * @internal
+   * Counted = the ReferResource family only; injected from `CloneDefaults`.
+   */
+  static _isCountedResource: (value: any) => boolean;
 
   /**
    * The single container classification point. Invariant: every shape returning true MUST have
@@ -343,7 +325,9 @@ export class CloneManager {
 }
 
 // Math value types are always deep cloned; registered here because math cannot depend on core.
-const _markDeep = defaultCloneMode(CloneMode.Deep);
+const _markDeep = (type: Function): void => {
+  Object.defineProperty(type.prototype, "_isDeepCloneType", { value: true });
+};
 [
   Ray,
   Vector2,

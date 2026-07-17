@@ -1,3 +1,5 @@
+import "./clone/CloneDefaults";
+
 export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";

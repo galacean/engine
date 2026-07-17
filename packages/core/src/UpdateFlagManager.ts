@@ -1,19 +1,16 @@
 import { UpdateFlag } from "./UpdateFlag";
 import { Utils } from "./Utils";
-import { defaultCloneMode } from "./clone/CloneManager";
-import { CloneMode } from "./clone/enums/CloneMode";
 
 /**
  * @internal
  */
-@defaultCloneMode(CloneMode.Ignore)
 export class UpdateFlagManager {
   /** Monotonic counter bumped on every `dispatch`; consumers can snapshot it for lazy pull-style cache invalidation. */
   version = 0;
 
   _updateFlags: UpdateFlag[] = [];
 
-  private _listeners: ((type?: number, param?: Object) => void)[] = [];
+  private _listeners: ((type?: number, param?: object) => void)[] = [];
 
   /**
    * Create a UpdateFlag.
@@ -49,7 +46,7 @@ export class UpdateFlagManager {
    * Add a listener.
    * @param listener - The listener
    */
-  addListener(listener: (type?: number, param?: Object) => void): void {
+  addListener(listener: (type?: number, param?: object) => void): void {
     this._listeners.push(listener);
   }
 
@@ -57,7 +54,7 @@ export class UpdateFlagManager {
    * Remove a listener.
    * @param listener - The listener
    */
-  removeListener(listener: (type?: number, param?: Object) => void): void {
+  removeListener(listener: (type?: number, param?: object) => void): void {
     Utils.removeFromArray(this._listeners, listener);
   }
 
@@ -66,7 +63,7 @@ export class UpdateFlagManager {
    * @param type - Event type, usually in the form of enumeration
    * @param param - Event param
    */
-  dispatch(type?: number, param?: Object): void {
+  dispatch(type?: number, param?: object): void {
     this.version++;
 
     const updateFlags = this._updateFlags;

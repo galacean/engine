@@ -1000,13 +1000,13 @@ describe("Clone remap", async () => {
   });
 
   describe("Math value-type registration completeness", () => {
-    it("every math export with copyFrom is registered @defaultCloneMode(Deep)", async () => {
+    it("every math export with copyFrom carries the internal deep marker", async () => {
       const mathExports = await import("@galacean/engine-math");
       const unregistered: string[] = [];
       for (const [name, exported] of Object.entries(mathExports)) {
         if (typeof exported !== "function" || !(exported as any).prototype) continue;
         if (typeof (exported as any).prototype.copyFrom !== "function") continue;
-        if ((exported as any).prototype._defaultCloneMode === undefined) unregistered.push(name);
+        if ((exported as any).prototype._isDeepCloneType === undefined) unregistered.push(name);
       }
       // A math value type missing from CloneManager's registration list falls back to
       // Assignment sharing — mutable state silently shared between source and clone.
@@ -1338,7 +1338,7 @@ describe("Clone remap", async () => {
           if (typeof exported !== "function" || !exported.prototype) continue;
           // math carries only Deep markers; core/ui Deep types are the DataObject family
           const isDeep =
-            pkg === "math" ? exported.prototype._defaultCloneMode !== undefined : exported.prototype instanceof DataObject;
+            pkg === "math" ? exported.prototype._isDeepCloneType !== undefined : exported.prototype instanceof DataObject;
           if (!isDeep) continue;
           if (exempt.has(name)) continue;
           try {
