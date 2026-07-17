@@ -1239,6 +1239,21 @@ describe("Clone remap", async () => {
     });
   });
 
+  describe("DataObject.clone() called directly", () => {
+    it("produces an independent deep copy without going through a component field", () => {
+      const source = new ParticleCompositeCurve(1, 2);
+      const cloned = source.clone();
+
+      expect(cloned).not.eq(source);
+      expect(cloned).instanceOf(ParticleCompositeCurve);
+      expect(cloned.constantMin).eq(1);
+      expect(cloned.constantMax).eq(2);
+
+      cloned.constantMin = 99;
+      expect(source.constantMin).eq(1);
+    });
+  });
+
   describe("Parameter-constructed Deep values as container elements", () => {
     it("clones gradients and curves held in arrays / maps without a reusable preset", () => {
       const rootEntity = scene.createRootEntity("root");

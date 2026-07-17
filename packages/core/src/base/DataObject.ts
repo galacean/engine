@@ -12,7 +12,10 @@ export abstract class DataObject {
    * @returns The cloned object
    */
   clone(): this {
-    return <this>CloneManager._cloneValue(this, undefined, new Map());
+    // A DataObject instance is Deep by construction (see the marker below) — go straight to the
+    // structural clone, skipping `_cloneValue`'s mode resolution (container check, family lookup)
+    // for a value whose mode is already known.
+    return <this>CloneManager._deepClone(this, undefined, new Map());
   }
 }
 

@@ -213,10 +213,13 @@ export class CloneManager {
   }
 
   /**
+   * @internal
    * Clone one object graph: the structure is fresh, while every member re-enters the gate and
    * follows its own semantics. Cycles / shared sub-graphs dedup through the identity map.
+   * Pure structural logic — no reference to any type-family predicate — so callers that already
+   * know a value is Deep-mode (e.g. `DataObject.clone()`) can skip `_cloneValue`'s mode resolution.
    */
-  private static _deepClone(value: any, reuse: any, cloneMap: Map<object, object>): any {
+  static _deepClone(value: any, reuse: any, cloneMap: Map<object, object>): any {
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
