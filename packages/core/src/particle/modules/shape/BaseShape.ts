@@ -1,14 +1,13 @@
+import { DataObject } from "../../../base/DataObject";
 import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } from "@galacean/engine-math";
-import { CloneMode } from "../../../clone/enums/CloneMode";
 import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { ignoreClone, defaultCloneMode } from "../../../clone/CloneManager";
+import { ignoreClone } from "../../../clone/CloneManager";
 
 /**
  * Base class for all particle shapes.
  */
-@defaultCloneMode(CloneMode.Deep)
-export abstract class BaseShape {
+export abstract class BaseShape extends DataObject {
   /** @internal */
   static _tempVector20 = new Vector2();
   /** @internal */
@@ -103,6 +102,7 @@ export abstract class BaseShape {
   }
 
   constructor() {
+    super();
     // @ts-ignore
     this._position._onValueChanged = this._onTransformChanged;
     // @ts-ignore

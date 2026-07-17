@@ -1,18 +1,17 @@
+import { DataObject } from "../../base/DataObject";
 import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { defaultCloneMode, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
-import { CloneMode } from "../../clone/enums/CloneMode";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 
 /**
  * Abstract class for collider shapes.
  */
-@defaultCloneMode(CloneMode.Deep)
-export abstract class ColliderShape implements ICustomClone {
+export abstract class ColliderShape extends DataObject implements ICustomClone {
   private static _idGenerator: number = 0;
 
   /** @internal */
@@ -127,6 +126,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   protected constructor() {
+    super();
     this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
 

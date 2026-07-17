@@ -1,6 +1,6 @@
+import { DataObject } from "../../base/DataObject";
 import { Vector2 } from "@galacean/engine-math";
-import { CloneMode } from "../../clone/enums/CloneMode";
-import { ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { CurveKey, ParticleCurve } from "./ParticleCurve";
@@ -8,8 +8,7 @@ import { CurveKey, ParticleCurve } from "./ParticleCurve";
 /**
  * Particle composite curve.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class ParticleCompositeCurve {
+export class ParticleCompositeCurve extends DataObject {
   private static _minMaxRange = new Vector2();
 
   private _updateManager = new UpdateFlagManager();
@@ -141,6 +140,7 @@ export class ParticleCompositeCurve {
   constructor(curveMin: ParticleCurve, curveMax: ParticleCurve);
 
   constructor(constantOrCurve: number | ParticleCurve, constantMaxOrCurveMax?: number | ParticleCurve) {
+    super();
     this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
     if (typeof constantOrCurve === "number") {
       if (constantMaxOrCurveMax) {

@@ -1,7 +1,6 @@
+import { DataObject } from "../../base/DataObject";
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
-import { defaultCloneMode } from "../../clone/CloneManager";
-import { CloneMode } from "../../clone/enums/CloneMode";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CullMode } from "../enums/CullMode";
@@ -11,8 +10,7 @@ import { RenderState } from "./RenderState";
 /**
  * Raster state.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class RasterState {
+export class RasterState extends DataObject {
   /** Specifies whether or not front- and/or back-facing polygons can be culled. */
   cullMode: CullMode = CullMode.Back;
   /** The multiplier by which an implementation-specific value is multiplied with to create a constant depth offset. */

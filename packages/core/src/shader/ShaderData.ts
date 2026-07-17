@@ -1,8 +1,8 @@
+import { DataObject } from "../base/DataObject";
 import { IClone } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
-import { CloneManager, defaultCloneMode, ignoreClone } from "../clone/CloneManager";
-import { CloneMode } from "../clone/enums/CloneMode";
+import { CloneManager, ignoreClone } from "../clone/CloneManager";
 import { Texture } from "../texture/Texture";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
@@ -13,8 +13,7 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
 /**
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class ShaderData implements IReferable, IClone {
+export class ShaderData extends DataObject implements IReferable, IClone {
   /** @internal */
   @ignoreClone
   _group: ShaderDataGroup;
@@ -36,6 +35,7 @@ export class ShaderData implements IReferable, IClone {
    * @internal
    */
   constructor(group: ShaderDataGroup) {
+    super();
     this._group = group;
   }
 
@@ -603,10 +603,10 @@ export class ShaderData implements IReferable, IClone {
     }
   }
 
-  clone(): ShaderData {
+  override clone(): this {
     const shaderData = new ShaderData(this._group);
     this.cloneTo(shaderData);
-    return shaderData;
+    return <this>shaderData;
   }
 
   cloneTo(target: ShaderData): void {

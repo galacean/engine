@@ -1,14 +1,13 @@
+import { DataObject } from "./base/DataObject";
 import { Component } from "./Component";
-import { CloneManager, defaultCloneMode } from "./clone/CloneManager";
-import { CloneMode } from "./clone/enums/CloneMode";
+import { CloneManager } from "./clone/CloneManager";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Signal is a typed event mechanism for Galacean Engine.
  * @typeParam T - Tuple type of the signal arguments
  */
-@defaultCloneMode(CloneMode.Deep)
-export class Signal<T extends any[] = []> {
+export class Signal<T extends any[] = []> extends DataObject {
   private _listeners: SafeLoopArray<ISignalListener<T>> = new SafeLoopArray<ISignalListener<T>>();
 
   /**

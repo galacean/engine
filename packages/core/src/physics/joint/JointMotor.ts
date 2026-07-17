@@ -1,12 +1,10 @@
-import { defaultCloneMode } from "../../clone/CloneManager";
-import { CloneMode } from "../../clone/enums/CloneMode";
+import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * The JointMotor is used to motorize a joint.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class JointMotor {
+export class JointMotor extends DataObject {
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 

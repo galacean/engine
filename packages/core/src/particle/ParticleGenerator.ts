@@ -1,7 +1,7 @@
+import { DataObject } from "../base/DataObject";
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
-import { CloneMode } from "../clone/enums/CloneMode";
 import { Transform } from "../Transform";
-import { ignoreClone, defaultCloneMode } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -43,8 +43,7 @@ import { SubEmittersModule } from "./modules/SubEmittersModule";
 /**
  * Particle Generator.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class ParticleGenerator {
+export class ParticleGenerator extends DataObject {
   private static _tempVector20 = new Vector2();
   private static _tempVector21 = new Vector2();
   private static _tempVector22 = new Vector2();
@@ -200,6 +199,7 @@ export class ParticleGenerator {
    * @internal
    */
   constructor(renderer: ParticleRenderer) {
+    super();
     this._renderer = renderer;
     const subPrimitive = new SubPrimitive();
     subPrimitive.start = 0;

@@ -1,6 +1,6 @@
 import {
   Burst,
-  CloneMode,
+  DataObject,
   Entity,
   Logger,
   MeshRenderer,
@@ -12,7 +12,6 @@ import {
   Texture2D,
   assignmentClone,
   deepClone,
-  defaultCloneMode,
   ignoreClone
 } from "@galacean/engine-core";
 import * as EngineCore from "@galacean/engine-core";
@@ -202,8 +201,7 @@ class AliasedBinaryScript extends Script {
   b: Float32Array;
 }
 
-/** User value type registered Assignment without any counting API — must share, never count. */
-@defaultCloneMode(CloneMode.Assignment)
+/** Unregistered user value type without any counting API — must share, never count. */
 class SharedConfig {
   value = 1;
 }
@@ -227,12 +225,12 @@ class UnownedPresetScript extends Script {
   }
 }
 
-/** User type registered Deep whose constructor dereferences a required argument (contract violation). */
-@defaultCloneMode(CloneMode.Deep)
-class ParamDeepConfig {
+/** User DataObject whose constructor dereferences a required argument (contract violation). */
+class ParamDeepConfig extends DataObject {
   target: string;
 
   constructor(source: { id: string }) {
+    super();
     this.target = source.id;
   }
 }
@@ -1008,7 +1006,7 @@ describe("Clone remap", async () => {
       for (const [name, exported] of Object.entries(mathExports)) {
         if (typeof exported !== "function" || !(exported as any).prototype) continue;
         if (typeof (exported as any).prototype.copyFrom !== "function") continue;
-        if ((exported as any).prototype._defaultCloneMode !== CloneMode.Deep) unregistered.push(name);
+        if ((exported as any).prototype._defaultCloneMode === undefined) unregistered.push(name);
       }
       // A math value type missing from CloneManager's registration list falls back to
       // Assignment sharing — mutable state silently shared between source and clone.
@@ -1338,7 +1336,10 @@ describe("Clone remap", async () => {
       for (const [pkg, ns] of packages) {
         for (const [name, exported] of Object.entries(ns)) {
           if (typeof exported !== "function" || !exported.prototype) continue;
-          if (exported.prototype._defaultCloneMode !== CloneMode.Deep) continue;
+          // math carries only Deep markers; core/ui Deep types are the DataObject family
+          const isDeep =
+            pkg === "math" ? exported.prototype._defaultCloneMode !== undefined : exported.prototype instanceof DataObject;
+          if (!isDeep) continue;
           if (exempt.has(name)) continue;
           try {
             new exported();

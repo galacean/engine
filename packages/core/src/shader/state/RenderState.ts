@@ -1,8 +1,7 @@
+import { DataObject } from "../../base/DataObject";
 import { ShaderData, ShaderProperty } from "..";
 import { RenderStateElementMap } from "../../BasicResources";
 import { Engine } from "../../Engine";
-import { defaultCloneMode } from "../../clone/CloneManager";
-import { CloneMode } from "../../clone/enums/CloneMode";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { BlendState } from "./BlendState";
@@ -13,8 +12,7 @@ import { StencilState } from "./StencilState";
 /**
  * Render state.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class RenderState {
+export class RenderState extends DataObject {
   /** Blend state. */
   readonly blendState: BlendState = new BlendState();
   /** Depth state. */

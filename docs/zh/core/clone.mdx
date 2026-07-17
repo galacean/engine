@@ -146,24 +146,23 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
   - `deepClone` 无法深克隆引擎绑定的对象：`Entity` / `Component` 引用会回退为重映射，资产会回退为共享，二者都会打印告警。如果需要真正复制一份资产，请使用资产自身的克隆 API。
   - 如果克隆装饰器不能满足诉求，可以通过实现 [_cloneTo()](/apis/design/#IClone-cloneTo) 方法追加自定义克隆。
 
-### 为自定义类型注册克隆语义
+### 自定义数据类型
 
-上面的装饰器作用于字段。如果你定义了一个可复用的值类型 —— 配置对象、曲线、伤害档案等，可以用 `@defaultCloneMode` 在类型上注册克隆语义，这样持有它的任何字段、数组或 Map 都能正确克隆，无需逐字段标注：
+上面的装饰器作用于字段。如果你定义了一个可复用的数据类型 —— 配置对象、曲线、伤害档案等，让它继承 `DataObject`：无论实例被组件字段、数组还是 Map 持有，克隆都会产生独立的深拷贝，实例同时获得 `clone()` 方法：
 
 ```typescript
-import { CloneMode, defaultCloneMode, Vector3 } from "@galacean/engine";
+import { DataObject, Vector3 } from "@galacean/engine";
 
-@defaultCloneMode(CloneMode.Deep)
-class DamageProfile {
+class DamageProfile extends DataObject {
   base = 10;
   falloff = new Vector3(1, 0.5, 0.25);
 }
 ```
 
-未注册的类实例默认共享引用（`Assignment`）—— 注册正是让它在每次克隆时变成独立拷贝的开关。字段装饰器依然可以在具体字段上覆盖注册的默认值。
+不继承 `DataObject` 的类实例默认共享引用 —— 继承正是让它在每次克隆时变成独立拷贝的开关。字段装饰器依然可以在具体字段上覆盖这一行为。
 
 <Callout type="warning">
-注册为 `Deep` 的类型必须支持无参构造：克隆系统在容器（数组、`Map`、普通对象）里遇到这类值时，会先 `new Type()` 创建实例再逐字段填充。构造函数带必需参数会在克隆时报错，错误信息会指明这条契约。
+`DataObject` 的子类应支持无参构造：克隆系统在容器（数组、`Map`、普通对象）里遇到实例时，会先 `new Type()` 创建拷贝再逐字段填充。构造函数带必需参数会在克隆时报错，错误信息会指明这条契约。
 </Callout>
 
 ## 克隆与资产引用计数

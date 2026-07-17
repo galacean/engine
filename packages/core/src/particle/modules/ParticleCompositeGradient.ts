@@ -1,14 +1,12 @@
+import { DataObject } from "../../base/DataObject";
 import { Color } from "@galacean/engine-math";
-import { CloneMode } from "../../clone/enums/CloneMode";
-import { defaultCloneMode } from "../../clone/CloneManager";
 import { ParticleGradientMode } from "../enums/ParticleGradientMode";
 import { ParticleGradient } from "./ParticleGradient";
 
 /**
  * Particle composite gradient.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class ParticleCompositeGradient {
+export class ParticleCompositeGradient extends DataObject {
   private static _tempColor = new Color();
 
   /** The gradient mode. */
@@ -76,6 +74,7 @@ export class ParticleCompositeGradient {
   constructor(gradientMin: ParticleGradient, gradientMax: ParticleGradient);
 
   constructor(constantOrGradient?: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
+    super();
     // No argument: the field defaults already form a valid constant-mode state (clone gate
     // constructs container elements bare, then populates every field).
     if (!constantOrGradient) return;

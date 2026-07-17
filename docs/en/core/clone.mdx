@@ -145,24 +145,23 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
   - `deepClone` cannot deep clone engine-bound objects: `Entity` / `Component` references fall back to remapping and assets fall back to sharing, both with a warning. If you need a real copy of an asset, use the asset's own clone API.
   - If the clone decorators do not meet the requirements, you can implement the [_cloneTo()](/apis/design/#IClone-cloneTo) method to add custom cloning.
 
-### Registering Clone Semantics for Custom Types
+### Custom Data Types
 
-The decorators above act on fields. If you define a reusable value type — a settings object, a curve, a damage profile — you can register clone semantics on the type itself with `@defaultCloneMode`, so every field, array, or map holding it clones correctly without per-field annotation:
+The decorators above act on fields. If you define a reusable data type — a settings object, a curve, a damage profile — extend `DataObject`: wherever an instance is held (a component field, an array, a map), cloning produces an independent deep copy, and the instance gains a `clone()` method:
 
 ```typescript
-import { CloneMode, defaultCloneMode, Vector3 } from "@galacean/engine";
+import { DataObject, Vector3 } from "@galacean/engine";
 
-@defaultCloneMode(CloneMode.Deep)
-class DamageProfile {
+class DamageProfile extends DataObject {
   base = 10;
   falloff = new Vector3(1, 0.5, 0.25);
 }
 ```
 
-An unregistered class instance is shared by reference (`Assignment`) — registration is what turns it into an independent copy per clone. Field decorators still override the registered default on individual fields.
+A class that does not extend `DataObject` is shared by reference — extending it is what turns instances into independent copies per clone. Field decorators still override this on individual fields.
 
 <Callout type="warning">
-A type registered `Deep` must be constructible without arguments: when the clone system meets such a value in a container (array, `Map`, plain object), it creates the copy with `new Type()` and then fills every field. A constructor that requires arguments fails at clone time with an error naming this contract.
+A `DataObject` subclass should stay constructible without arguments: when the clone system meets an instance in a container (array, `Map`, plain object), it creates the copy with `new Type()` and then fills every field. A constructor that requires arguments fails at clone time with an error naming this contract.
 </Callout>
 
 ## Cloning and Asset Reference Counting

@@ -1,7 +1,6 @@
+import { DataObject } from "../../base/DataObject";
 import { IHardwareRenderer } from "@galacean/engine-design";
 import { RenderStateElementMap } from "../../BasicResources";
-import { defaultCloneMode } from "../../clone/CloneManager";
-import { CloneMode } from "../../clone/enums/CloneMode";
 import { ShaderData } from "../ShaderData";
 import { ShaderProperty } from "../ShaderProperty";
 import { CompareFunction } from "../enums/CompareFunction";
@@ -12,8 +11,7 @@ import { RenderState } from "./RenderState";
 /**
  * Stencil state.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class StencilState {
+export class StencilState extends DataObject {
   private static _getGLCompareFunction(rhi: IHardwareRenderer, compareFunction: CompareFunction): number {
     const gl = rhi.gl;
 

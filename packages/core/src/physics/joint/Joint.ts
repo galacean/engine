@@ -1,11 +1,11 @@
+import { DataObject } from "../../base/DataObject";
 import { IJoint } from "@galacean/engine-design";
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { DependentMode, dependentComponents } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
 import { TransformModifyFlags } from "../../Transform";
-import { defaultCloneMode, ignoreClone } from "../../clone/CloneManager";
-import { CloneMode } from "../../clone/enums/CloneMode";
+import { ignoreClone } from "../../clone/CloneManager";
 import { Collider } from "../Collider";
 import { DynamicCollider } from "../DynamicCollider";
 
@@ -320,8 +320,7 @@ enum AnchorOwner {
 /**
  * @internal
  */
-@defaultCloneMode(CloneMode.Deep)
-class JointColliderInfo {
+class JointColliderInfo extends DataObject {
   collider: Collider = null;
   anchor = new Vector3();
   actualAnchor = new Vector3();

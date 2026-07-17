@@ -1,12 +1,10 @@
-import { defaultCloneMode } from "../../clone/CloneManager";
-import { CloneMode } from "../../clone/enums/CloneMode";
+import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * JointLimits is used to limit the joints angle.
  */
-@defaultCloneMode(CloneMode.Deep)
-export class JointLimits {
+export class JointLimits extends DataObject {
   /** @internal */
   _updateFlagManager = new UpdateFlagManager();
 

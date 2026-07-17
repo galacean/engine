@@ -1,5 +1,5 @@
-import { ignoreClone, defaultCloneMode } from "../../clone/CloneManager";
-import { CloneMode } from "../../clone/enums/CloneMode";
+import { DataObject } from "../../base/DataObject";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ShaderData, ShaderMacro } from "../../shader";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
@@ -7,8 +7,7 @@ import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 /**
  * Particle generator module.
  */
-@defaultCloneMode(CloneMode.Deep)
-export abstract class ParticleGeneratorModule {
+export abstract class ParticleGeneratorModule extends DataObject {
   /** @internal */
   @ignoreClone
   _generator: ParticleGenerator;
@@ -30,6 +29,7 @@ export abstract class ParticleGeneratorModule {
    * @internal
    */
   constructor(generator: ParticleGenerator) {
+    super();
     this._generator = generator;
   }
 
