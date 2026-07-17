@@ -114,40 +114,36 @@ export class CloneManager {
 
   /**
    * @internal
-   * Clone gate — resolves the effective clone mode for one value and executes it.
+   * Clone gate. Field decorator (highest priority) is handled inline; with no field override,
+   * dispatch goes straight to `_cloneByDefault` — one pass from value to action, no intermediate
+   * `CloneMode` to compute and re-switch on.
    */
   static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
+    if (fieldMode === CloneMode.Ignore) return reuse;
     // Explicit decorator shares the function; default keeps the clone's own rebound binding.
     if (typeof value === "function") {
       return fieldMode === undefined && typeof reuse === "function" ? reuse : value;
     }
     // `typeof`, not `instanceof` — null-prototype / cross-realm objects lack local Object.prototype.
     if (value === null || typeof value !== "object") return value;
+    if (fieldMode === undefined) return CloneManager._cloneByDefault(value, reuse, cloneMap);
+    if (fieldMode === CloneMode.Assignment) return value;
 
-    // Mode priority: field decorator (highest) → the built-in default decision by type family.
-    let cloneMode = fieldMode;
-    if (cloneMode === undefined) {
-      cloneMode = CloneManager._isContainer(value) ? CloneMode.Deep : CloneManager._determineDefaultCloneMode(value);
-    } else if (cloneMode === CloneMode.Deep) {
-      // Error recovery (not a priority rule): engine-bound instances can't be deep cloned —
-      // recover to the family's executable mode (remap / share) and warn.
-      if (CloneManager._isRemapType(value)) {
-        Logger.warn(
-          `CloneManager: "${value.constructor.name}" cannot be deep cloned; @deepClone on this field falls back to remap.`
-        );
-        cloneMode = CloneMode.Remap;
-      } else if (CloneManager._isCountedResource(value)) {
-        Logger.warn(
-          `CloneManager: "${value.constructor.name}" is an engine-bound asset and cannot be deep cloned; ` +
-            `@deepClone on this field falls back to sharing (use the asset's own clone() API to copy it).`
-        );
-        cloneMode = CloneMode.Assignment;
-      }
+    // fieldMode === Deep: error recovery, not a priority rule — engine-bound instances can't be
+    // deep cloned; recover to the type's real action (remap / share) and warn.
+    if (CloneManager._isRemapType(value)) {
+      Logger.warn(
+        `CloneManager: "${value.constructor.name}" cannot be deep cloned; @deepClone on this field falls back to remap.`
+      );
+      return cloneMap.get(value) ?? value;
     }
-
-    if (cloneMode === CloneMode.Ignore) return reuse;
-    if (cloneMode === CloneMode.Assignment) return value;
-    if (cloneMode === CloneMode.Remap) return cloneMap.get(value) ?? value;
+    if (CloneManager._isCountedResource(value)) {
+      Logger.warn(
+        `CloneManager: "${value.constructor.name}" is an engine-bound asset and cannot be deep cloned; ` +
+          `@deepClone on this field falls back to sharing (use the asset's own clone() API to copy it).`
+      );
+      return value;
+    }
     return CloneManager._deepClone(value, reuse, cloneMap);
   }
 
@@ -179,11 +175,11 @@ export class CloneManager {
 
   /**
    * @internal
-   * The built-in default decision by type family; injected from `CloneDefaults` (a module-graph
-   * sink) so the gate never imports the intrinsic classes — a top-level class import here would
-   * reorder module evaluation and break `extends` chains.
+   * Decide-and-execute for a value with no explicit field mode, by type family; injected from
+   * `CloneDefaults` (a module-graph sink) so the gate never imports the intrinsic classes — a
+   * top-level class import here would reorder module evaluation and break `extends` chains.
    */
-  static _determineDefaultCloneMode: (value: object) => CloneMode;
+  static _cloneByDefault: (value: object, reuse: any, cloneMap: Map<object, object>) => any;
 
   /**
    * @internal
@@ -198,10 +194,11 @@ export class CloneManager {
   static _isCountedResource: (value: any) => boolean;
 
   /**
+   * @internal
    * The single container classification point. Invariant: every shape returning true MUST have
    * a dedicated `_deepClone` branch. `constructor === undefined` = null-prototype objects.
    */
-  private static _isContainer(value: object): boolean {
+  static _isContainer(value: object): boolean {
     return (
       Array.isArray(value) ||
       value instanceof Map ||
