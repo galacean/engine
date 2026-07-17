@@ -157,20 +157,22 @@ export class EmissionModule extends ParticleGeneratorModule {
     lastPlayTime: number,
     playTime: number,
     state: EmissionRuntimeState,
-    currentPosition?: Vector3
+    currentPosition?: Vector3,
+    sortByTime: boolean = false,
+    tolerateRateBoundary: boolean = false
   ): ReadonlyArray<EmissionSample> {
     state.beginSamples();
     if (!this.enabled || playTime <= lastPlayTime) {
       state._samples.length = 0;
       return state._samples;
     }
-    this._emitByRateOverTime(playTime, state);
+    this._emitByRateOverTime(playTime, state, tolerateRateBoundary);
     this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition);
     this._emitByBurst(lastPlayTime, playTime, state);
     // The backing array is pooled per runtime state. Trim its visible length so callers
     // can iterate it without allocating one array for every parent particle every frame.
     state._samples.length = state._sampleCount;
-    if (state._sampleCount > 1) {
+    if (sortByTime && state._sampleCount > 1) {
       // Rate, distance, and burst evaluators append independently. Keep the final
       // particle ring in birth-time order even when their samples interleave.
       state._samples.sort((left, right) => left.time - right.time);
@@ -206,15 +208,23 @@ export class EmissionModule extends ParticleGeneratorModule {
     this._shape?._unRegisterOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
   }
 
-  private _emitByRateOverTime(playTime: number, state: EmissionRuntimeState): void {
+  private _emitByRateOverTime(playTime: number, state: EmissionRuntimeState, tolerateRateBoundary: boolean): void {
     const { rateOverTime } = this;
 
     let cumulativeTime = playTime - state.frameRateTime;
     let ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     while (ratePerSeconds > 0) {
       const emitInterval = 1.0 / ratePerSeconds;
-      if (cumulativeTime + MathUtil.zeroTolerance < emitInterval) return;
-      cumulativeTime = Math.max(0, cumulativeTime - emitInterval);
+      // Keep the ordinary generator's historical boundary behavior unchanged.
+      // A per-parent runtime state, however, must not lose a sample solely from
+      // accumulated floating-point error at an exact frame boundary.
+      if (tolerateRateBoundary) {
+        if (cumulativeTime + MathUtil.zeroTolerance < emitInterval) return;
+        cumulativeTime = Math.max(0, cumulativeTime - emitInterval);
+      } else {
+        if (cumulativeTime < emitInterval) return;
+        cumulativeTime -= emitInterval;
+      }
       state.frameRateTime += emitInterval;
       state.addSample(state.frameRateTime, 1);
       ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);

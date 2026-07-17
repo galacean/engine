@@ -372,6 +372,31 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("Death timestamps child particles at the parent lifetime boundary", () => {
+    const parent = createParticleRenderer(engine, "Parent_DeathTimestamp");
+    const child = createParticleRenderer(engine, "Child_DeathTimestamp");
+    parent.generator.main.startLifetime.constant = 0.25;
+    parent.generator.main.gravityModifier.constant = 0;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    // The parent expires halfway through the third 0.1s frame. The child must
+    // use the event time (0.25), not the beginning or end of that frame.
+    updateEngine(engine, 3);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    expect(vertices[7]).to.be.closeTo(0.25, 1e-5);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("preserves surviving feedback when current-frame emissions use a partial second pass", () => {
     const parent = createParticleRenderer(engine, "Parent_DeathPartialFeedback");
     const child = createParticleRenderer(engine, "Child_DeathPartialFeedback");

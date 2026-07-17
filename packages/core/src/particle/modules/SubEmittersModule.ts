@@ -322,7 +322,9 @@ export class SubEmittersModule extends ParticleGeneratorModule {
             lastEmissionTime,
             emissionTime,
             state.emission,
-            endPosition
+            endPosition,
+            true,
+            true
           );
           const frameDelta = framePlayTime - frameLastPlayTime;
           const samplePosition = SubEmittersModule._tempSamplePosition;
