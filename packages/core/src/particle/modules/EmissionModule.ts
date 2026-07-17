@@ -5,6 +5,7 @@ import { ParticleCurveMode } from "../enums/ParticleCurveMode";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { Burst } from "./Burst";
+import { EmissionRuntimeState, EmissionSample } from "./EmissionRuntimeState";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { BaseShape } from "./shape/BaseShape";
@@ -33,26 +34,22 @@ export class EmissionModule extends ParticleGeneratorModule {
 
   @ignoreClone
   private _shapeMacro: ShaderMacro;
-  /** @internal */
+  /** Runtime cursors for this generator's ordinary (non-sub-emitter) emission. */
   @ignoreClone
-  _rateRand = new Rand(0, ParticleRandomSubSeeds.EmissionRate);
-  /** @internal */
-  _frameRateTime: number = 0;
-
-  @ignoreClone
-  private _distanceAccumulator = 0;
-  @ignoreClone
-  private _lastEmitPosition = new Vector3();
-  @ignoreClone
-  private _hasLastEmitPosition = false;
+  readonly _runtimeState = new EmissionRuntimeState();
 
   @deepClone
   private _bursts: Burst[] = [];
 
-  private _currentBurstIndex = 0;
+  /** @internal Backward-compatible access to the ordinary emitter's time cursor. */
+  get _frameRateTime(): number {
+    return this._runtimeState.frameRateTime;
+  }
 
-  @ignoreClone
-  private _burstRand: Rand = new Rand(0, ParticleRandomSubSeeds.Burst);
+  /** @internal */
+  set _frameRateTime(value: number) {
+    this._runtimeState.frameRateTime = value;
+  }
 
   /**
    * @inheritdoc
@@ -138,9 +135,47 @@ export class EmissionModule extends ParticleGeneratorModule {
    * @internal
    */
   _emit(lastPlayTime: number, playTime: number): void {
-    this._emitByRateOverTime(playTime);
-    this._emitByRateOverDistance(lastPlayTime, playTime);
-    this._emitByBurst(lastPlayTime, playTime);
+    const generator = this._generator;
+    const samples = this._getEmissionSamples(
+      lastPlayTime,
+      playTime,
+      this._runtimeState,
+      generator._renderer.entity.transform.worldPosition
+    );
+    const isWorld = generator.main.simulationSpace === ParticleSimulationSpace.World;
+    for (let i = 0, n = samples.length; i < n; i++) {
+      const sample = samples[i];
+      generator._emit(sample.time, sample.count, isWorld ? (sample.position ?? undefined) : undefined);
+    }
+  }
+
+  /**
+   * Evaluate this module with caller-owned runtime cursors.
+   * @internal
+   */
+  _getEmissionSamples(
+    lastPlayTime: number,
+    playTime: number,
+    state: EmissionRuntimeState,
+    currentPosition?: Vector3
+  ): ReadonlyArray<EmissionSample> {
+    state.beginSamples();
+    if (!this.enabled || playTime <= lastPlayTime) {
+      state._samples.length = 0;
+      return state._samples;
+    }
+    this._emitByRateOverTime(playTime, state);
+    this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition);
+    this._emitByBurst(lastPlayTime, playTime, state);
+    // The backing array is pooled per runtime state. Trim its visible length so callers
+    // can iterate it without allocating one array for every parent particle every frame.
+    state._samples.length = state._sampleCount;
+    if (state._sampleCount > 1) {
+      // Rate, distance, and burst evaluators append independently. Keep the final
+      // particle ring in birth-time order even when their samples interleave.
+      state._samples.sort((left, right) => left.time - right.time);
+    }
+    return state._samples;
   }
 
   /**
@@ -155,17 +190,13 @@ export class EmissionModule extends ParticleGeneratorModule {
    * @internal
    */
   _resetRandomSeed(seed: number): void {
-    this._burstRand.reset(seed, ParticleRandomSubSeeds.Burst);
     this._shapeRand.reset(seed, ParticleRandomSubSeeds.Shape);
-    this._rateRand.reset(seed, ParticleRandomSubSeeds.EmissionRate);
+    this._runtimeState.reset(seed, this._generator._playTime);
   }
 
   /** @internal */
   _resyncCursors(playTime: number): void {
-    this._frameRateTime = playTime;
-    this._currentBurstIndex = 0;
-    this._hasLastEmitPosition = false;
-    this._distanceAccumulator = 0;
+    this._runtimeState.resyncCursors(playTime);
   }
 
   /**
@@ -175,72 +206,69 @@ export class EmissionModule extends ParticleGeneratorModule {
     this._shape?._unRegisterOnValueChanged(this._generator._renderer._onGeneratorParamsChanged);
   }
 
-  private _emitByRateOverTime(playTime: number): void {
-    const { rateOverTime, _generator: generator } = this;
+  private _emitByRateOverTime(playTime: number, state: EmissionRuntimeState): void {
+    const { rateOverTime } = this;
 
-    let cumulativeTime = playTime - this._frameRateTime;
-    let ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
+    let cumulativeTime = playTime - state.frameRateTime;
+    let ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     while (ratePerSeconds > 0) {
       const emitInterval = 1.0 / ratePerSeconds;
-      if (cumulativeTime < emitInterval) return;
-      cumulativeTime -= emitInterval;
-      this._frameRateTime += emitInterval;
-      generator._emit(this._frameRateTime, 1);
-      ratePerSeconds = this._evaluateRate(rateOverTime, this._frameRateTime);
+      if (cumulativeTime + MathUtil.zeroTolerance < emitInterval) return;
+      cumulativeTime = Math.max(0, cumulativeTime - emitInterval);
+      state.frameRateTime += emitInterval;
+      state.addSample(state.frameRateTime, 1);
+      ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     }
-    this._frameRateTime = playTime;
+    state.frameRateTime = playTime;
   }
 
-  private _emitByRateOverDistance(lastPlayTime: number, playTime: number): void {
-    const { rateOverDistance, _generator: generator } = this;
+  private _emitByRateOverDistance(
+    lastPlayTime: number,
+    playTime: number,
+    state: EmissionRuntimeState,
+    currentPosition?: Vector3
+  ): void {
+    const { rateOverDistance } = this;
     // Distance rate is sampled once per frame at the current cycle position
-    const ratePerUnit = this._evaluateRate(rateOverDistance, playTime);
+    const ratePerUnit = this._evaluateRate(rateOverDistance, playTime, state);
 
-    if (!(ratePerUnit > 0)) {
-      this._hasLastEmitPosition = false;
-      this._distanceAccumulator = 0;
+    if (!(ratePerUnit > 0) || !currentPosition) {
+      state.hasLastEmitPosition = false;
+      state.distanceAccumulator = 0;
       return;
     }
-    if (!this._hasLastEmitPosition) {
-      this._lastEmitPosition.copyFrom(generator._renderer.entity.transform.worldPosition);
-      this._hasLastEmitPosition = true;
+    if (!state.hasLastEmitPosition) {
+      state.setLastEmitPosition(currentPosition);
       return;
     }
 
-    const lastPos = this._lastEmitPosition;
-    const currentPos = generator._renderer.entity.transform.worldPosition;
+    const lastPos = state.lastEmitPosition;
+    const currentPos = currentPosition;
     const { x: cx, y: cy, z: cz } = currentPos;
     const dx = cx - lastPos.x;
     const dy = cy - lastPos.y;
     const dz = cz - lastPos.z;
     const moveLength = Math.sqrt(dx * dx + dy * dy + dz * dz);
-    this._distanceAccumulator += moveLength;
+    state.distanceAccumulator += moveLength;
 
     const emitInterval = 1.0 / ratePerUnit;
     // `+ zeroTolerance` absorbs float divide error so an exact `N*interval` accumulator doesn't drop 1
-    const count = Math.floor(this._distanceAccumulator / emitInterval + MathUtil.zeroTolerance);
+    const count = Math.floor(state.distanceAccumulator / emitInterval + MathUtil.zeroTolerance);
 
     if (count > 0) {
-      this._distanceAccumulator -= count * emitInterval;
+      state.distanceAccumulator -= count * emitInterval;
       // `subFrameAge ∈ [0, 1]`: 0 = newest at currentPos/playTime, 1 = oldest
       // at lastPos/lastPlayTime. Monotonically clamped so a rate hike that
       // pays out more particles than this frame's segment can host stacks the
       // overflow at lastPos instead of extrapolating past it.
-      const isWorld = generator.main.simulationSpace === ParticleSimulationSpace.World;
       const invMoveLength = moveLength > MathUtil.zeroTolerance ? 1.0 / moveLength : 0;
       const ageStep = emitInterval * invMoveLength;
       const dt = playTime - lastPlayTime;
-      let subFrameAge = Math.min(this._distanceAccumulator * invMoveLength, 1.0);
+      let subFrameAge = Math.min(state.distanceAccumulator * invMoveLength, 1.0);
       const emitPos = EmissionModule._tempEmitPosition;
       for (let i = 0; i < count; i++) {
-        if (isWorld) {
-          emitPos.set(cx - dx * subFrameAge, cy - dy * subFrameAge, cz - dz * subFrameAge);
-        }
-        if (generator._emit(playTime - dt * subFrameAge, 1, isWorld ? emitPos : undefined) === 0) {
-          // Buffer full: settle the frame's distance budget instead of carrying it over
-          this._distanceAccumulator = 0;
-          break;
-        }
+        emitPos.set(cx - dx * subFrameAge, cy - dy * subFrameAge, cz - dz * subFrameAge);
+        state.addSample(playTime - dt * subFrameAge, 1, emitPos);
         subFrameAge = Math.min(subFrameAge + ageStep, 1.0);
       }
     }
@@ -248,7 +276,7 @@ export class EmissionModule extends ParticleGeneratorModule {
     lastPos.copyFrom(currentPos);
   }
 
-  private _evaluateRate(rate: ParticleCompositeCurve, cursorTime: number): number {
+  private _evaluateRate(rate: ParticleCompositeCurve, cursorTime: number, state: EmissionRuntimeState): number {
     switch (rate.mode) {
       case ParticleCurveMode.Constant:
         return rate.constant;
@@ -259,12 +287,12 @@ export class EmissionModule extends ParticleGeneratorModule {
       default: {
         // TwoConstants / TwoCurves: lerp between the two values with a per-sample random factor
         const duration = this._generator.main.duration;
-        return rate.evaluate((cursorTime % duration) / duration, this._rateRand.random());
+        return rate.evaluate((cursorTime % duration) / duration, state.rateRand.random());
       }
     }
   }
 
-  private _emitByBurst(lastPlayTime: number, playTime: number): void {
+  private _emitByBurst(lastPlayTime: number, playTime: number, state: EmissionRuntimeState): void {
     const main = this._generator.main;
     const duration = main.duration;
     const cycleCount = Math.floor((playTime - lastPlayTime) / duration);
@@ -272,32 +300,33 @@ export class EmissionModule extends ParticleGeneratorModule {
     // Across one cycle
     if (main.isLoop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
       let middleTime = Math.ceil(lastPlayTime / duration) * duration;
-      this._emitBySubBurst(lastPlayTime, middleTime, duration);
-      this._currentBurstIndex = 0;
+      this._emitBySubBurst(lastPlayTime, middleTime, duration, state);
+      state.currentBurstIndex = 0;
 
       for (let i = 0; i < cycleCount; i++) {
         const lastMiddleTime = middleTime;
         middleTime += duration;
-        this._emitBySubBurst(lastMiddleTime, middleTime, duration);
-        this._currentBurstIndex = 0;
+        this._emitBySubBurst(lastMiddleTime, middleTime, duration, state);
+        state.currentBurstIndex = 0;
       }
 
-      this._emitBySubBurst(middleTime, playTime, duration);
+      this._emitBySubBurst(middleTime, playTime, duration, state);
     } else {
       if (lastPlayTime < duration) {
-        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration);
+        this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration, state);
       }
     }
   }
 
-  private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number): void {
-    const { _generator: generator, _burstRand: rand, bursts } = this;
+  private _emitBySubBurst(lastPlayTime: number, playTime: number, duration: number, state: EmissionRuntimeState): void {
+    const { bursts } = this;
+    const rand = state.burstRand;
     const baseTime = Math.floor(lastPlayTime / duration) * duration;
     const startTime = lastPlayTime % duration;
     const endTime = startTime + (playTime - lastPlayTime);
 
     let pendingIndex = -1;
-    let index = this._currentBurstIndex;
+    let index = state.currentBurstIndex;
     for (let n = bursts.length; index < n; index++) {
       const burst = bursts[index];
       const burstTime = burst.time;
@@ -306,7 +335,7 @@ export class EmissionModule extends ParticleGeneratorModule {
       const { cycles, repeatInterval } = burst;
       if (cycles === 1) {
         if (burstTime >= startTime) {
-          generator._emit(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
+          state.addSample(baseTime + burstTime, burst.count.evaluate(undefined, rand.random()));
         }
       } else {
         const maxCycles = cycles === Infinity ? Math.ceil((duration - burstTime) / repeatInterval) : cycles;
@@ -320,7 +349,7 @@ export class EmissionModule extends ParticleGeneratorModule {
         for (let c = first; c <= last; c++) {
           const effectiveTime = burstTime + c * repeatInterval;
           if (effectiveTime >= duration) break;
-          generator._emit(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
+          state.addSample(baseTime + effectiveTime, burst.count.evaluate(undefined, rand.random()));
         }
 
         // `_currentBurstIndex` caches next frame's scan start, so only the earliest unfinished
@@ -330,6 +359,6 @@ export class EmissionModule extends ParticleGeneratorModule {
         }
       }
     }
-    this._currentBurstIndex = pendingIndex >= 0 ? pendingIndex : index;
+    state.currentBurstIndex = pendingIndex >= 0 ? pendingIndex : index;
   }
 }

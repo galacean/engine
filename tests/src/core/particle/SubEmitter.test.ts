@@ -15,6 +15,7 @@ import {
   ParticleRenderer,
   ParticleSimulationSpace,
   ParticleStopMode,
+  ParticleSubEmitterMode,
   ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
   ConeShape,
@@ -119,6 +120,210 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
+  it("System Birth runs the target Rate Over Time independently for every live parent", () => {
+    const child = createParticleRenderer(engine, "SystemRate_Child");
+    const parent = createParticleRenderer(engine, "SystemRate_Parent");
+    parent.generator.main.startLifetime.constant = 1;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(
+      child,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.None,
+      1,
+      99,
+      ParticleSubEmitterMode.System
+    );
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 5);
+    expect(parent.generator._getAliveParticleCount()).to.equal(2);
+    expect(child.generator._getAliveParticleCount()).to.equal(10); // 2 parents × 10/s × 0.5s
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("System Birth follows the TF position and keeps full parent speed for Inherit Velocity", () => {
+    const child = createParticleRenderer(engine, "SystemVelocity_Child");
+    const parent = createParticleRenderer(engine, "SystemVelocity_Parent");
+    parent.generator.main.startLifetime.constant = 1;
+    parent.generator.main.startSpeed.constant = 4;
+    child.generator.main.startSpeed.constant = 1;
+    child.generator.emission.rateOverTime.constant = 10;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve.constant = 0.5;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(
+      child,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.None,
+      1,
+      1,
+      ParticleSubEmitterMode.System
+    );
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    expect(vertices[2]).to.be.closeTo(-0.4, 1e-4); // current TF parent position
+    expect(vertices[6]).to.be.closeTo(-1, 1e-4);
+    expect(vertices[18]).to.be.closeTo(3, 1e-4); // child 1 + complete parent speed 4 × 0.5
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("System Birth consumes the post-orbital TF position and finite-difference trajectory velocity", () => {
+    const child = createParticleRenderer(engine, "SystemOrbital_Child");
+    const parent = createParticleRenderer(engine, "SystemOrbital_Parent");
+    parent.generator.main.startLifetime.constant = 1;
+    parent.generator.main.startSpeed.constant = 0;
+    parent.generator.velocityOverLifetime.enabled = true;
+    parent.generator.velocityOverLifetime.orbitalY = new ParticleCompositeCurve(Math.PI / 2);
+    parent.generator.velocityOverLifetime.centerOffset.set(-1, 0, 0);
+
+    child.generator.main.startSpeed.constant = 0;
+    child.generator.emission.rateOverTime.constant = 10;
+    child.generator.inheritVelocity.enabled = true;
+    child.generator.inheritVelocity.curve.constant = 1;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(
+      child,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.None,
+      1,
+      1,
+      ParticleSubEmitterMode.System
+    );
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    const parentFeedback = new Float32Array(6);
+    parent.generator._feedbackSimulator.readBinding.buffer.getData(parentFeedback, 0, 0, parentFeedback.length);
+    const childVertices = (child.generator as any)._instanceVertices as Float32Array;
+    expect(childVertices[0]).to.be.closeTo(parentFeedback[0], 1e-5);
+    expect(childVertices[1]).to.be.closeTo(parentFeedback[1], 1e-5);
+    expect(childVertices[2]).to.be.closeTo(parentFeedback[2], 1e-5);
+
+    const childSpeed = childVertices[18];
+    expect(childVertices[4] * childSpeed).to.be.closeTo(parentFeedback[0] / 0.1, 1e-4);
+    expect(childVertices[5] * childSpeed).to.be.closeTo(parentFeedback[1] / 0.1, 1e-4);
+    expect(childVertices[6] * childSpeed).to.be.closeTo(parentFeedback[2] / 0.1, 1e-4);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("System Birth is topologically scheduled and updates while outside every camera", () => {
+    // Create the target first so component registration order is child → parent.
+    const child = createParticleRenderer(engine, "SystemOrder_Child");
+    const parent = createParticleRenderer(engine, "SystemOrder_Parent");
+    parent.entity.transform.setPosition(100000, 0, 0);
+    parent.generator.main.startLifetime.constant = 1;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(
+      child,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.None,
+      1,
+      1,
+      ParticleSubEmitterMode.System
+    );
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 2);
+    expect(parent.generator._getAliveParticleCount()).to.equal(1);
+    expect(child.generator._getAliveParticleCount()).to.equal(2);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("System Birth evaluates target Start Delay, Burst, and Rate Over Distance", () => {
+    const child = createParticleRenderer(engine, "SystemEmission_Child");
+    const parent = createParticleRenderer(engine, "SystemEmission_Parent");
+    parent.generator.main.startLifetime.constant = 1;
+    parent.generator.main.startSpeed.constant = 1;
+    child.generator.main.startDelay.constant = 0.2;
+    child.generator.emission.rateOverDistance.constant = 10;
+    child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(
+      child,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.None,
+      1,
+      1,
+      ParticleSubEmitterMode.System
+    );
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 2);
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
+    updateEngine(engine, 1);
+    // At age 0.3 the target has run for 0.1s: t=0 Burst emits 2 and the
+    // post-delay 0.1 world-space movement emits one distance particle.
+    expect(child.generator._getAliveParticleCount()).to.equal(3);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("System Birth runtime state follows parent slots through ring-buffer growth", () => {
+    const child = createParticleRenderer(engine, "SystemResize_Child");
+    const parent = createParticleRenderer(engine, "SystemResize_Parent");
+    parent.generator.main.startLifetime.constant = 1;
+    parent.generator.main.maxParticles = 256;
+    child.generator.main.maxParticles = 256;
+    child.generator.emission.rateOverTime.constant = 10;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(
+      child,
+      ParticleSubEmitterType.Birth,
+      ParticleSubEmitterInheritProperty.None,
+      1,
+      1,
+      ParticleSubEmitterMode.System
+    );
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(130), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
+
+    updateEngine(engine, 1);
+    expect(parent.generator._getAliveParticleCount()).to.equal(130);
+    expect(child.generator._getAliveParticleCount()).to.equal(130);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
   it("Death fires sub-emitter when parent particles age out", () => {
     const parent = createParticleRenderer(engine, "Parent_Death");
     const child = createParticleRenderer(engine, "Child_Death");
@@ -135,6 +340,61 @@ describe("SubEmitter", () => {
     updateEngine(engine, 10);
     expect(parent.generator._getAliveParticleCount()).to.equal(0);
     expect(child.generator._getAliveParticleCount()).to.equal(12); // 4 deaths × emitCount 3
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("Death consumes the current transform-feedback position at the particle lifetime", () => {
+    const parent = createParticleRenderer(engine, "Parent_DeathCurrentPosition");
+    const child = createParticleRenderer(engine, "Child_DeathCurrentPosition");
+    parent.generator.main.startLifetime.constant = 0.25;
+    parent.generator.main.startSpeed.constant = 2;
+    parent.generator.main.gravityModifier.constant = 0;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 5);
+    expect(child.generator._getAliveParticleCount()).to.equal(1);
+
+    const vertices = (child.generator as any)._instanceVertices as Float32Array;
+    expect(vertices[0]).to.be.closeTo(0, 1e-5);
+    expect(vertices[1]).to.be.closeTo(0, 1e-5);
+    expect(vertices[2]).to.be.closeTo(-0.5, 1e-5);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+  });
+
+  it("preserves surviving feedback when current-frame emissions use a partial second pass", () => {
+    const parent = createParticleRenderer(engine, "Parent_DeathPartialFeedback");
+    const child = createParticleRenderer(engine, "Child_DeathPartialFeedback");
+    parent.generator.main.startLifetime.constant = 10;
+    parent.generator.main.startSpeed.constant = 2;
+    parent.generator.main.gravityModifier.constant = 0;
+
+    parent.generator.subEmitters.enabled = true;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death);
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play();
+
+    updateEngine(engine, 2);
+    expect(parent.generator._getAliveParticleCount()).to.equal(2);
+
+    const feedback = new Float32Array(12);
+    parent.generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
+    expect(feedback[2]).to.be.closeTo(-0.4, 1e-5);
+    expect(feedback[8]).to.be.closeTo(-0.1, 1e-5);
 
     parent.entity.destroy();
     child.entity.destroy();

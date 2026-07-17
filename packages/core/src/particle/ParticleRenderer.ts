@@ -13,6 +13,7 @@ import { ParticleGenerator } from "./ParticleGenerator";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
+import type { ParticleSubEmitterEmissionCommand } from "./ParticleSystemManager";
 
 /**
  * Particle Renderer Component.
@@ -163,6 +164,18 @@ export class ParticleRenderer extends Renderer {
     this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
   }
 
+  /** @internal */
+  override _onEnableInScene(): void {
+    super._onEnableInScene();
+    this.scene._componentsManager._particleSystemManager.add(this);
+  }
+
+  /** @internal */
+  override _onDisableInScene(): void {
+    this.scene._componentsManager._particleSystemManager.remove(this);
+    super._onDisableInScene();
+  }
+
   /**
    * @internal
    */
@@ -205,26 +218,30 @@ export class ParticleRenderer extends Renderer {
   }
 
   protected override _update(context: RenderContext): void {
+    // Particle simulation is scene-scheduled before camera culling. Rendering only consumes
+    // the buffers produced by that stage.
+  }
+
+  /** @internal */
+  _updateParticleShaderData(): void {
     const generator = this.generator;
-    generator._update(this.engine.time.deltaTime);
-
-    // No particles to render
-    if (generator._firstActiveElement === generator._firstFreeElement) {
-      return;
-    }
-
     const shaderData = this.shaderData;
     shaderData.setFloat(ParticleRenderer._lengthScale, this.lengthScale);
     shaderData.setFloat(ParticleRenderer._speedScale, this.velocityScale);
-    shaderData.setFloat(ParticleRenderer._currentTime, this.generator._playTime);
+    shaderData.setFloat(ParticleRenderer._currentTime, generator._playTime);
     shaderData.setVector3(ParticleRenderer._pivotOffsetProperty, this.pivot);
+    generator._updateShaderData(shaderData);
+  }
 
-    this.generator._updateShaderData(shaderData);
-
-    // Run Transform Feedback simulation after shader data is up to date
-    if (generator._useTransformFeedback) {
-      generator._updateFeedback(shaderData, this.engine.time.deltaTime * generator.main.simulationSpeed);
-    }
+  /** @internal */
+  _updateParticles(
+    elapsedTime: number,
+    incomingCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand>,
+    isSystemSubEmitterTarget: boolean
+  ): void {
+    if (!this._supportInstancedArrays) return;
+    this.generator._update(elapsedTime, incomingCommands, isSystemSubEmitterTarget);
+    this._updateParticleShaderData();
   }
 
   protected override _render(context: RenderContext): void {

@@ -110,6 +110,46 @@ describe("VelocityOverLifetimeModule", function () {
     expect((generator as any)._useTransformFeedback).to.eq(false);
   });
 
+  it("integrates linear velocity after orbital displacement", function () {
+    if (!isWebGL2) return;
+
+    const testEntity = engine.sceneManager.activeScene.createRootEntity("orbital-linear-order");
+    const testRenderer = testEntity.addComponent(ParticleRenderer);
+    const generator = testRenderer.generator;
+    const { main, velocityOverLifetime } = generator;
+    const deltaTime = 1;
+
+    generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    main.startLifetime = new ParticleCompositeCurve(10);
+    main.gravityModifier = new ParticleCompositeCurve(0);
+    velocityOverLifetime.orbitalY = new ParticleCompositeCurve(Math.PI / 2);
+    velocityOverLifetime.centerOffset.set(-1, 0, 0);
+    velocityOverLifetime.enabled = true;
+
+    const simulate = (startSpeed: number): Float32Array => {
+      generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      main.startSpeed = new ParticleCompositeCurve(startSpeed);
+
+      const particleIndex = generator._firstFreeElement;
+      generator.emit(1);
+      generator._update(deltaTime);
+      (engine as any)._hardwareRenderer._gl.finish();
+
+      const result = new Float32Array(6);
+      generator._feedbackSimulator.readBinding.buffer.getData(result, particleIndex * 24, 0, result.length);
+      return result;
+    };
+
+    const orbitalOnly = simulate(0);
+    const withLinearVelocity = simulate(1);
+
+    expect(withLinearVelocity[0] - orbitalOnly[0]).to.be.closeTo(withLinearVelocity[3] * deltaTime, 1e-5);
+    expect(withLinearVelocity[1] - orbitalOnly[1]).to.be.closeTo(withLinearVelocity[4] * deltaTime, 1e-5);
+    expect(withLinearVelocity[2] - orbitalOnly[2]).to.be.closeTo(withLinearVelocity[5] * deltaTime, 1e-5);
+
+    testEntity.destroy();
+  });
+
   it("orbital/radial constants upload shader data", function () {
     const generator = particleRenderer.generator;
     const vol = generator.velocityOverLifetime;

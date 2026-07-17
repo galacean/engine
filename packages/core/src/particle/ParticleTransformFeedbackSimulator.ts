@@ -93,6 +93,16 @@ export class ParticleTransformFeedbackSimulator {
   }
 
   /**
+   * Copy the latest simulation output into the next write buffer.
+   * Required before updating only a subset of particles so untouched slots survive the next buffer swap.
+   */
+  syncWriteBuffer(): void {
+    const simulator = this._simulator;
+    const readBuffer = simulator.readBinding.buffer;
+    simulator.writeBinding.buffer.copyFromBuffer(readBuffer, 0, 0, readBuffer.byteLength);
+  }
+
+  /**
    * Destroy pre-resize buffers saved during `resize`.
    */
   destroyOldBuffers(): void {
