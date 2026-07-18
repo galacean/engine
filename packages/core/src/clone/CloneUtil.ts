@@ -20,10 +20,7 @@ import { CloneMode } from "./enums/CloneMode";
  * class pulls in while still being defined.
  */
 export class CloneUtil {
-  /**
-   * @internal
-   * Clone gate for one value.
-   */
+  /** @internal */
   static _cloneValue(source: any, preset: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
     // A function is a value, not a graph: an explicit decorator shares the source function, while
     // the default keeps the clone's own constructor-rebound binding when it has one.
@@ -43,11 +40,7 @@ export class CloneUtil {
     }
   }
 
-  /**
-   * @internal
-   * Clone all enumerable fields of source into target; each field goes back through the gate,
-   * honoring field-level decorators.
-   */
+  /** @internal */
   static deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
     // Resolved once per object (a single prototype-chain walk), not once per field.
     const fieldModes = source._fieldModes;
@@ -60,10 +53,9 @@ export class CloneUtil {
 
   /**
    * @internal
-   * The built-in default: with no field decorator to follow, a value's own type family decides how
-   * it is cloned — identified and executed in one step. `forceDeepClone` (set by a `@deepClone`'d
-   * field) turns the one ambiguous case — a class with no deep-clone default — from "share" into
-   * "field-walk", and makes an engine-bound value throw instead of resolving to its default.
+   * `forceDeepClone` (a `@deepClone`'d field) flips a class with no deep-clone default from
+   * "share" to "field-walk", and makes an engine-bound value throw instead of resolving to its
+   * default.
    */
   static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
     // Engine-bound families come first: none of them produces a new object, so they need no dedup
@@ -149,12 +141,7 @@ export class CloneUtil {
     return source;
   }
 
-  /**
-   * @internal
-   * Settle a slot's counted ownership after the gate wrote it: an unchanged slot keeps its
-   * account, a displaced owned counted preset releases one reference, and a slot sharing the
-   * source's counted value acquires one. Destroy releases the slot (class contract).
-   */
+  /** @internal */
   static _transferSlotOwnership(cloned: any, source: any, preset: any): void {
     // Slot content unchanged (Ignore kept / value type copied in place / function reused).
     if (cloned === preset) return;
@@ -175,10 +162,7 @@ export class CloneUtil {
     }
   }
 
-  /**
-   * @internal
-   * ArrayBuffer view — byte copy into a reused view of matching layout, else a fresh one.
-   */
+  /** @internal */
   static _deepCloneArrayBuffer(source: ArrayBufferView, preset: any, cloneMap: Map<object, object>): ArrayBufferView {
     const existing = cloneMap.get(source);
     if (existing) return <ArrayBufferView>existing;
@@ -211,16 +195,13 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   * Array — every element re-enters the gate. A preset of the same type and length is filled in
-   * place; `preset !== source` guards the case where the clone still shares the source's array
-   * (a class-level default table), where writing into it would corrupt the source.
-   */
+  /** @internal */
   static _deepCloneArray(source: any[], preset: any, cloneMap: Map<object, object>): any[] {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
 
+    // `preset !== source`: the clone may still alias the source's array (a class-level default
+    // table), and filling that in place would write through into the source.
     const dst =
       preset !== source &&
       Array.isArray(preset) &&
@@ -233,17 +214,15 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   * Map — every key and value re-enters the gate. A reused preset is cleared first: it holds the
-   * clone's own constructor-built entries, which would otherwise survive alongside the source's.
-   */
+  /** @internal */
   static _deepCloneMap(source: Map<any, any>, preset: any, cloneMap: Map<object, object>): Map<any, any> {
     const existing = cloneMap.get(source);
     if (existing) return <Map<any, any>>existing;
 
     let dst: Map<any, any>;
     if (preset instanceof Map && preset !== source && preset.constructor === source.constructor) {
+      // Clear before refilling: the preset holds the clone's own constructor-built entries, which
+      // would otherwise survive alongside the source's.
       preset.clear();
       dst = preset;
     } else {
@@ -259,17 +238,14 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   * Set — every member re-enters the gate. A reused preset is cleared first, for the same reason
-   * as `Map`.
-   */
+  /** @internal */
   static _deepCloneSet(source: Set<any>, preset: any, cloneMap: Map<object, object>): Set<any> {
     const existing = cloneMap.get(source);
     if (existing) return <Set<any>>existing;
 
     let dst: Set<any>;
     if (preset instanceof Set && preset !== source && preset.constructor === source.constructor) {
+      // Cleared before refilling, same as `Map`.
       preset.clear();
       dst = preset;
     } else {
@@ -280,11 +256,7 @@ export class CloneUtil {
     return dst;
   }
 
-  /**
-   * @internal
-   * A deep-cloned instance without a compatible preset is constructed bare; name the contract
-   * when that fails instead of surfacing the constructor's raw error.
-   */
+  /** @internal */
   static _bareConstruct(ctor: new () => any): any {
     try {
       return new ctor();

@@ -32,14 +32,11 @@ export function ignoreClone(target: object, propertyKey: string): void {
  * `extends` chains. The cloning itself lives in `CloneUtil`.
  */
 export class CloneManager {
-  /**
-   * @internal
-   * Register a field-level clone mode (highest priority — overrides the built-in default decision).
-   * Stamped on the class's own `_fieldModes`, prototypally chained to the parent class's — native
-   * lookup resolves inheritance for free (a subclass re-decorating the same field name shadows the
-   * ancestor's), no separate registry or cache to keep in sync.
-   */
+  /** @internal */
   static _registerFieldMode(target: any, propertyKey: string, mode: CloneMode): void {
+    // Each class gets its own `_fieldModes`, prototypally chained to its parent's, so native
+    // lookup resolves inheritance (a subclass re-decorating a field shadows the ancestor's) with
+    // no registry or cache to keep in sync.
     if (!Object.prototype.hasOwnProperty.call(target, "_fieldModes")) {
       Object.defineProperty(target, "_fieldModes", {
         value: Object.create(target._fieldModes ?? null),
