@@ -104,10 +104,10 @@ export class CloneUtil {
       return preset;
     }
 
-    // Everything below produces a new object, so shared / cyclic references dedup here.
-    const existing = cloneMap.get(source);
-    if (existing) return existing;
-
+    // No dedup here: whether a value produces a clone at all depends on `forceDeepClone` (a
+    // default-less class is shared by default, cloned when forced), so each branch that actually
+    // produces one dedups for itself. Looking up first would let a `@deepClone`'d field's copy be
+    // handed to a plain field that asked to share — and only when it happened to be walked first.
     if (ArrayBuffer.isView(source)) {
       return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
     } else if (Array.isArray(source)) {
@@ -128,6 +128,8 @@ export class CloneUtil {
       // way. Plain / null-prototype objects never take this branch, even when a `copyFrom` data
       // field rides in the payload.
       if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
+        const existing = cloneMap.get(source);
+        if (existing) return existing;
         const dst = <ICustomClone>(reusable ?? CloneUtil._bareConstruct(ctor));
         cloneMap.set(source, dst);
         dst.copyFrom(<ICustomClone>source);
@@ -138,6 +140,8 @@ export class CloneUtil {
       // Field-walk deep clone: the DataObject family and plain / null-prototype objects always; any
       // other class instance only when `@deepClone` forces it (the default shares it).
       if (source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
+        const existing = cloneMap.get(source);
+        if (existing) return existing;
         const dst = reusable ?? (ctor ? CloneUtil._bareConstruct(ctor) : Object.create(null));
         cloneMap.set(source, dst);
         CloneUtil.deepCloneObject(source, dst, cloneMap);
@@ -181,6 +185,9 @@ export class CloneUtil {
    * ArrayBuffer view — byte copy into a reused view of matching layout, else a fresh one.
    */
   static _deepCloneArrayBuffer(source: ArrayBufferView, preset: any, cloneMap: Map<object, object>): ArrayBufferView {
+    const existing = cloneMap.get(source);
+    if (existing) return <ArrayBufferView>existing;
+
     let dst: ArrayBufferView;
     if (source instanceof DataView) {
       if (preset instanceof DataView && preset !== source && preset.byteLength === source.byteLength) {
@@ -216,6 +223,9 @@ export class CloneUtil {
    * (a class-level default table), where writing into it would corrupt the source.
    */
   static _deepCloneArray(source: any[], preset: any, cloneMap: Map<object, object>): any[] {
+    const existing = cloneMap.get(source);
+    if (existing) return <any[]>existing;
+
     const dst =
       preset !== source &&
       Array.isArray(preset) &&
@@ -234,6 +244,9 @@ export class CloneUtil {
    * clone's own constructor-built entries, which would otherwise survive alongside the source's.
    */
   static _deepCloneMap(source: Map<any, any>, preset: any, cloneMap: Map<object, object>): Map<any, any> {
+    const existing = cloneMap.get(source);
+    if (existing) return <Map<any, any>>existing;
+
     let dst: Map<any, any>;
     if (preset instanceof Map && preset !== source && preset.constructor === source.constructor) {
       preset.clear();
@@ -257,6 +270,9 @@ export class CloneUtil {
    * as `Map`.
    */
   static _deepCloneSet(source: Set<any>, preset: any, cloneMap: Map<object, object>): Set<any> {
+    const existing = cloneMap.get(source);
+    if (existing) return <Set<any>>existing;
+
     let dst: Set<any>;
     if (preset instanceof Set && preset !== source && preset.constructor === source.constructor) {
       preset.clear();

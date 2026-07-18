@@ -291,6 +291,20 @@ class ForcedDeepScript extends Script {
   config: PlainConfig = null;
 }
 
+/** Two fields on one script pointing at the same default-less instance, one @deepClone'd. */
+class MixedIntentScript extends Script {
+  @deepClone
+  deep: PlainConfig = null;
+  shared: PlainConfig = null;
+}
+
+/** Same pair, declared the other way round — field order must not change either outcome. */
+class MixedIntentReversedScript extends Script {
+  shared: PlainConfig = null;
+  @deepClone
+  deep: PlainConfig = null;
+}
+
 /** Script holding the same class without @deepClone — the default path shares it. */
 class SharedPlainScript extends Script {
   config: PlainConfig = null;
@@ -668,6 +682,43 @@ describe("Clone remap", async () => {
 
       // No deep-clone default and no decorator — the clone shares the source instance.
       expect(cs.config).eq(script.config);
+
+      rootEntity.destroy();
+    });
+
+    it("each field keeps its own intent when both point at one instance (@deepClone declared first)", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(MixedIntentScript);
+      const config = new PlainConfig();
+      script.deep = config;
+      script.shared = config;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(MixedIntentScript);
+
+      // The two fields ask for opposite things about the same instance, so each is honored on its
+      // own: the decorated one gets an independent copy, the undecorated one keeps sharing.
+      expect(cs.deep).not.eq(config);
+      expect(cs.shared).eq(config);
+
+      rootEntity.destroy();
+    });
+
+    it("each field keeps its own intent when both point at one instance (@deepClone declared last)", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(MixedIntentReversedScript);
+      const config = new PlainConfig();
+      script.deep = config;
+      script.shared = config;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(MixedIntentReversedScript);
+
+      // Same expectations as above: declaration order must not change the outcome.
+      expect(cs.deep).not.eq(config);
+      expect(cs.shared).eq(config);
 
       rootEntity.destroy();
     });
