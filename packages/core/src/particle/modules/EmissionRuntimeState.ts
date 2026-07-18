@@ -12,8 +12,8 @@ export interface EmissionSample {
  * Mutable cursors used while evaluating an {@link EmissionModule}.
  *
  * Emission configuration belongs to the module, while this object belongs to one
- * running emitter. A normal particle system owns one state; a system-style Birth
- * sub-emitter owns one state for every parent-particle slot and sub-emitter slot.
+ * running emitter. A normal particle system owns one state; every Birth
+ * sub-emitter owns one state for each parent-particle and sub-emitter slot.
  */
 export class EmissionRuntimeState {
   frameRateTime = 0;

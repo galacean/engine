@@ -237,10 +237,10 @@ export class ParticleRenderer extends Renderer {
   _updateParticles(
     elapsedTime: number,
     incomingCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand>,
-    isSystemSubEmitterTarget: boolean
+    isBirthSubEmitterTarget: boolean
   ): void {
     if (!this._supportInstancedArrays) return;
-    this.generator._update(elapsedTime, incomingCommands, isSystemSubEmitterTarget);
+    this.generator._update(elapsedTime, incomingCommands, isBirthSubEmitterTarget);
     this._updateParticleShaderData();
   }
 

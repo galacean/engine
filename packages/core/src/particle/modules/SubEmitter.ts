@@ -1,6 +1,5 @@
 import { ignoreClone } from "../../clone/CloneManager";
 import { ParticleRenderer } from "../ParticleRenderer";
-import { ParticleSubEmitterMode } from "../enums/ParticleSubEmitterMode";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import type { SubEmittersModule } from "./SubEmittersModule";
@@ -13,13 +12,11 @@ export class SubEmitter {
   /** Bitmask of properties inherited from the parent particle. */
   inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None;
 
-  /** Probability (0..1) the sub-emitter fires for any given event. */
+  /** Probability (0..1) that the sub-emitter runs for a parent particle. */
   emitProbability: number = 1;
 
-  /** Number of sub particles emitted per parent event. */
+  /** Number of sub particles emitted when this slot is triggered at Death. */
   emitCount: number = 1;
-
-  private _mode: ParticleSubEmitterMode = ParticleSubEmitterMode.Event;
 
   /** @internal */
   @ignoreClone
@@ -39,17 +36,6 @@ export class SubEmitter {
     if (value === this._emitter) return;
     this._module?._validateEmitter(value);
     this._emitter = value;
-    this._module?._onSlotChanged(this);
-  }
-
-  /** Whether Birth is a one-shot event or a parent-driven particle system. */
-  get mode(): ParticleSubEmitterMode {
-    return this._mode;
-  }
-
-  set mode(value: ParticleSubEmitterMode) {
-    if (value === this._mode) return;
-    this._mode = value;
     this._module?._onSlotChanged(this);
   }
 

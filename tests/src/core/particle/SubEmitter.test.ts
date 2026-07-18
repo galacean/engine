@@ -15,7 +15,6 @@ import {
   ParticleRenderer,
   ParticleSimulationSpace,
   ParticleStopMode,
-  ParticleSubEmitterMode,
   ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
   ConeShape,
@@ -71,12 +70,13 @@ describe("SubEmitter", () => {
     engine.run();
   });
 
-  it("Birth fires emitCount sub particles per parent event", () => {
+  it("Birth runs the target EmissionModule for every live parent", () => {
     const parent = createParticleRenderer(engine, "Parent_Birth");
     const child = createParticleRenderer(engine, "Child_Birth");
+    child.generator.emission.rateOverTime.constant = 10;
 
     parent.generator.subEmitters.enabled = true;
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth, undefined, undefined, 2);
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth, undefined, undefined, 99);
 
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(5), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
@@ -85,21 +85,17 @@ describe("SubEmitter", () => {
 
     updateEngine(engine, 5);
     expect(parent.generator._getAliveParticleCount()).to.equal(5);
-    expect(child.generator._getAliveParticleCount()).to.equal(10); // 5 events × emitCount 2
+    expect(child.generator._getAliveParticleCount()).to.equal(25); // 5 parents × 10/s × 0.5s; emitCount is ignored
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("Sub system's own EmissionModule does not double-fire when sub-emit drives it", () => {
-    // The target renderer has its own t=0 burst AND is auto-playing on enable.
-    // The slot must NOT read that burst and re-fire — sub system's own emission
-    // and the sub-emit path are independent.
+  it("Birth evaluates the target Burst separately for every parent", () => {
     const parent = createParticleRenderer(engine, "Parent_NoDouble");
     const child = createParticleRenderer(engine, "Child_NoDouble");
 
-    // Child has its OWN t=0 burst of 4. With playOnEnabled=true (default),
-    // child auto-plays and fires 4 from its own EmissionModule.
+    // A Birth target is driven by each parent, so this Burst runs once per parent.
     child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(4), 1, 0.01));
 
     parent.generator.subEmitters.enabled = true;
@@ -108,19 +104,16 @@ describe("SubEmitter", () => {
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(3), 1, 0.01));
     parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play();
-    child.generator.play();
 
     updateEngine(engine, 5);
     expect(parent.generator._getAliveParticleCount()).to.equal(3);
-    // Expected: 4 from child's own burst + 3 events × emitCount 1 = 7
-    // If the slot wrongly re-read child's t=0 burst we'd see 3 events × 4 = 12 + 4 = 16
-    expect(child.generator._getAliveParticleCount()).to.equal(7);
+    expect(child.generator._getAliveParticleCount()).to.equal(12); // 3 parents × Burst 4
 
     parent.entity.destroy();
     child.entity.destroy();
   });
 
-  it("System Birth runs the target Rate Over Time independently for every live parent", () => {
+  it("Birth runs the target Rate Over Time independently for every live parent", () => {
     const child = createParticleRenderer(engine, "SystemRate_Child");
     const parent = createParticleRenderer(engine, "SystemRate_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -132,8 +125,7 @@ describe("SubEmitter", () => {
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterInheritProperty.None,
       1,
-      99,
-      ParticleSubEmitterMode.System
+      99
     );
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
@@ -148,7 +140,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("System Birth follows the TF position and keeps full parent speed for Inherit Velocity", () => {
+  it("Birth follows the TF position and keeps full parent speed for Inherit Velocity", () => {
     const child = createParticleRenderer(engine, "SystemVelocity_Child");
     const parent = createParticleRenderer(engine, "SystemVelocity_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -164,8 +156,7 @@ describe("SubEmitter", () => {
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterInheritProperty.None,
       1,
-      1,
-      ParticleSubEmitterMode.System
+      1
     );
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
@@ -183,7 +174,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("System Birth consumes the post-orbital TF position and finite-difference trajectory velocity", () => {
+  it("Birth consumes the post-orbital TF position and finite-difference trajectory velocity", () => {
     const child = createParticleRenderer(engine, "SystemOrbital_Child");
     const parent = createParticleRenderer(engine, "SystemOrbital_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -203,8 +194,7 @@ describe("SubEmitter", () => {
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterInheritProperty.None,
       1,
-      1,
-      ParticleSubEmitterMode.System
+      1
     );
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
@@ -230,7 +220,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("System Birth is topologically scheduled and updates while outside every camera", () => {
+  it("Birth is topologically scheduled and updates while outside every camera", () => {
     // Create the target first so component registration order is child → parent.
     const child = createParticleRenderer(engine, "SystemOrder_Child");
     const parent = createParticleRenderer(engine, "SystemOrder_Parent");
@@ -244,8 +234,7 @@ describe("SubEmitter", () => {
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterInheritProperty.None,
       1,
-      1,
-      ParticleSubEmitterMode.System
+      1
     );
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
@@ -260,7 +249,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("System Birth evaluates target Start Delay, Burst, and Rate Over Distance", () => {
+  it("Birth evaluates target Start Delay, Burst, and Rate Over Distance", () => {
     const child = createParticleRenderer(engine, "SystemEmission_Child");
     const parent = createParticleRenderer(engine, "SystemEmission_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -275,8 +264,7 @@ describe("SubEmitter", () => {
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterInheritProperty.None,
       1,
-      1,
-      ParticleSubEmitterMode.System
+      1
     );
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
@@ -294,7 +282,7 @@ describe("SubEmitter", () => {
     child.entity.destroy();
   });
 
-  it("System Birth runtime state follows parent slots through ring-buffer growth", () => {
+  it("Birth runtime state follows parent slots through ring-buffer growth", () => {
     const child = createParticleRenderer(engine, "SystemResize_Child");
     const parent = createParticleRenderer(engine, "SystemResize_Parent");
     parent.generator.main.startLifetime.constant = 1;
@@ -308,8 +296,7 @@ describe("SubEmitter", () => {
       ParticleSubEmitterType.Birth,
       ParticleSubEmitterInheritProperty.None,
       1,
-      1,
-      ParticleSubEmitterMode.System
+      1
     );
     parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(130), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
@@ -450,6 +437,7 @@ describe("SubEmitter", () => {
   it("emitProbability = 0 skips all events", () => {
     const parent = createParticleRenderer(engine, "Parent_Prob");
     const child = createParticleRenderer(engine, "Child_Prob");
+    child.generator.emission.rateOverTime.constant = 10;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth, undefined, 0);
@@ -470,6 +458,7 @@ describe("SubEmitter", () => {
   it("Disabled module does not dispatch", () => {
     const parent = createParticleRenderer(engine, "Parent_Disabled");
     const child = createParticleRenderer(engine, "Child_Disabled");
+    child.generator.emission.rateOverTime.constant = 10;
 
     parent.generator.subEmitters.enabled = false;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
@@ -492,6 +481,7 @@ describe("SubEmitter", () => {
     const child = createParticleRenderer(engine, "Child_Color");
     parent.generator.main.startColor.constant = new Color(0.5, 0.25, 1.0, 1.0);
     child.generator.main.startColor.constant = new Color(1.0, 1.0, 1.0, 1.0);
+    child.generator.emission.rateOverTime.constant = 10;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(
@@ -505,7 +495,7 @@ describe("SubEmitter", () => {
     child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play();
 
-    updateEngine(engine, 3);
+    updateEngine(engine, 1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
     const verts = (child.generator as any)._instanceVertices as Float32Array;
@@ -547,60 +537,29 @@ describe("SubEmitter", () => {
     b.entity.destroy();
   });
 
-  it("Multi-level Birth chain A→B→C propagates synchronously", () => {
-    const a = createParticleRenderer(engine, "Chain_A");
-    const b = createParticleRenderer(engine, "Chain_B");
+  it("Multi-level Birth chain consumes each target EmissionModule in topological order", () => {
+    // Reverse registration order to prove the dependency graph, rather than renderer order, owns simulation.
     const c = createParticleRenderer(engine, "Chain_C");
+    const b = createParticleRenderer(engine, "Chain_B");
+    const a = createParticleRenderer(engine, "Chain_A");
+    b.generator.emission.rateOverTime.constant = 10;
+    c.generator.emission.rateOverTime.constant = 10;
 
     a.generator.subEmitters.enabled = true;
-    a.generator.subEmitters.addSubEmitter(b, ParticleSubEmitterType.Birth, undefined, undefined, 2);
+    a.generator.subEmitters.addSubEmitter(b, ParticleSubEmitterType.Birth);
     b.generator.subEmitters.enabled = true;
-    b.generator.subEmitters.addSubEmitter(c, ParticleSubEmitterType.Birth, undefined, undefined, 1);
-
-    a.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(2), 1, 0.01));
-    a.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    b.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    c.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    a.generator.play();
-
-    updateEngine(engine, 5);
-    expect(a.generator._getAliveParticleCount()).to.equal(2);
-    expect(b.generator._getAliveParticleCount()).to.equal(4); // 2 A births × 2
-    expect(c.generator._getAliveParticleCount()).to.equal(4); // 4 B births × 1 (broken before this change)
-
-    a.entity.destroy();
-    b.entity.destroy();
-    c.entity.destroy();
-  });
-
-  it("Multi-level Birth chain keeps each sibling's emission position (regression)", () => {
-    const a = createParticleRenderer(engine, "Clobber_A");
-    const b = createParticleRenderer(engine, "Clobber_B");
-    const c = createParticleRenderer(engine, "Clobber_C");
-
-    // B sits 10 units from A, so its sub particles land at local x = -10. A and C emit
-    // at their own origins, so C's local x is 0 — a clear marker of cross-talk.
-    b.entity.transform.setPosition(10, 0, 0);
-
-    a.generator.subEmitters.enabled = true;
-    a.generator.subEmitters.addSubEmitter(b, ParticleSubEmitterType.Birth, undefined, undefined, 2);
-    b.generator.subEmitters.enabled = true;
-    b.generator.subEmitters.addSubEmitter(c, ParticleSubEmitterType.Birth, undefined, undefined, 1);
+    b.generator.subEmitters.addSubEmitter(c, ParticleSubEmitterType.Birth);
 
     a.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-    a.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    b.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    c.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-    a.generator.play();
+    a.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    b.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    c.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    a.generator.play(false);
 
-    updateEngine(engine, 5);
-
-    const stride = 42; // ParticleBufferUtils.instanceVertexFloatStride
-    const verts = (b.generator as any)._instanceVertices as Float32Array;
-    expect(b.generator._getAliveParticleCount()).to.equal(2);
-    expect(verts[0]).to.be.closeTo(-10, 1e-4); // B particle 1
-    // Particle 1's Birth nested into C (origin) mid-loop; particle 2 must still read -10, not 0.
-    expect(verts[stride]).to.be.closeTo(-10, 1e-4);
+    updateEngine(engine, 3);
+    expect(a.generator._getAliveParticleCount()).to.equal(1);
+    expect(b.generator._getAliveParticleCount()).to.equal(3);
+    expect(c.generator._getAliveParticleCount()).to.equal(3);
 
     a.entity.destroy();
     b.entity.destroy();
@@ -710,6 +669,7 @@ describe("SubEmitter", () => {
 
     parent.generator.main.startRotationZ.constant = 0.5;
     child.generator.main.startRotationZ.constant = 0.25;
+    child.generator.emission.rateOverTime.constant = 10;
 
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(
@@ -723,7 +683,7 @@ describe("SubEmitter", () => {
     child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play();
 
-    updateEngine(engine, 3);
+    updateEngine(engine, 1);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
 
     const verts = (child.generator as any)._instanceVertices as Float32Array;
@@ -829,49 +789,48 @@ describe("SubEmitter", () => {
     spun.child.entity.destroy();
   });
 
-  it("Birth Velocity inherit emits along the parent's birth emission direction", () => {
-    // Birth velocity is closed-form (the parent's emission direction at spawn), no transform
-    // feedback needed. A cone aimed down -Z, rotated 90° about X, should make the sub particle
-    // emit along +Y in world space (-Z → +Y under a 90° X rotation).
+  it("Birth Inherit Velocity uses the parent world trajectory", () => {
+    // The target starts at rest. Its initial velocity must therefore be the parent's
+    // sampled world trajectory, including the parent's rotated Shape direction.
     function build(name: string, rotXDeg: number) {
       const parent = createParticleRenderer(engine, name + "_P");
       const child = createParticleRenderer(engine, name + "_C");
       parent.generator.main.startSpeed.constant = 2;
+      child.generator.main.startSpeed.constant = 0;
+      child.generator.emission.rateOverTime.constant = 10;
+      child.generator.inheritVelocity.enabled = true;
+      child.generator.inheritVelocity.curve.constant = 1;
       const shape = new ConeShape();
       shape.angle = 0;
       shape.radius = 0;
       parent.generator.emission.shape = shape;
       parent.entity.transform.rotation = new Vector3(rotXDeg, 0, 0);
       parent.generator.subEmitters.enabled = true;
-      parent.generator.subEmitters.addSubEmitter(
-        child,
-        ParticleSubEmitterType.Birth,
-        ParticleSubEmitterInheritProperty.Velocity,
-        undefined,
-        1
-      );
+      parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
       parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
-      parent.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-      child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
-      parent.generator.play();
+      parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+      parent.generator.play(false);
       return { parent, child };
     }
     const straight = build("BirthVelStraight", 0);
     const spun = build("BirthVelSpun", 90);
-    updateEngine(engine, 5);
+    updateEngine(engine, 1);
 
-    // a_DirectionTime @ float offset 4..6 holds the child's (normalized) emission direction.
+    // a_DirectionTime @ float offset 4..6 and a_StartSpeed @ offset 18 encode the initial velocity.
     const s = (straight.child.generator as any)._instanceVertices as Float32Array;
     expect(straight.child.generator._getAliveParticleCount()).to.equal(1);
     expect(s[4]).to.be.closeTo(0, 1e-4);
     expect(s[5]).to.be.closeTo(0, 1e-4);
     expect(s[6]).to.be.closeTo(-1, 1e-4);
+    expect(s[18]).to.be.closeTo(2, 1e-4);
 
-    // 90° about X maps the cone's -Z emission to +Y; without Birth velocity it stayed -Z.
+    // 90° about X maps the cone's -Z trajectory to +Y.
     const r = (spun.child.generator as any)._instanceVertices as Float32Array;
     expect(r[4]).to.be.closeTo(0, 1e-4);
     expect(r[5]).to.be.closeTo(1, 1e-4);
     expect(r[6]).to.be.closeTo(0, 1e-4);
+    expect(r[18]).to.be.closeTo(2, 1e-4);
 
     straight.parent.entity.destroy();
     straight.child.entity.destroy();
@@ -879,16 +838,11 @@ describe("SubEmitter", () => {
     spun.child.entity.destroy();
   });
 
-  it("Changing a slot's type to Death reconciles transform-feedback", () => {
+  it("Birth enables transform-feedback to sample the parent trajectory", () => {
     const parent = createParticleRenderer(engine, "Encap_TypeParent");
     const child = createParticleRenderer(engine, "Encap_TypeChild");
     parent.generator.subEmitters.enabled = true;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
-    expect((parent.generator as any)._useTransformFeedback).to.equal(false);
-
-    // Flip the slot to Death directly — the reactive setter must set transform-feedback up,
-    // otherwise a parent death would later read a null feedback buffer and crash.
-    parent.generator.subEmitters.subEmitters[0].type = ParticleSubEmitterType.Death;
     expect((parent.generator as any)._useTransformFeedback).to.equal(true);
     expect((parent.generator as any)._feedbackSimulator).to.not.equal(null);
 

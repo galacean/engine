@@ -2,7 +2,6 @@ import { Color, MathUtil, Rand, Vector3 } from "@galacean/engine-math";
 import { deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ParticleRandomSubSeeds } from "../enums/ParticleRandomSubSeeds";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
-import { ParticleSubEmitterMode } from "../enums/ParticleSubEmitterMode";
 import { ParticleSubEmitterType } from "../enums/ParticleSubEmitterType";
 import { ParticleGenerator } from "../ParticleGenerator";
 import { ParticleRenderer } from "../ParticleRenderer";
@@ -10,7 +9,7 @@ import { ParticleGeneratorModule } from "./ParticleGeneratorModule";
 import { EmissionRuntimeState } from "./EmissionRuntimeState";
 import { SubEmitter } from "./SubEmitter";
 
-class SubEmitterSystemRuntimeState {
+class BirthSubEmitterRuntimeState {
   readonly emission = new EmissionRuntimeState();
   readonly previousWorldPosition = new Vector3();
   previousParentAge = 0;
@@ -20,7 +19,7 @@ class SubEmitterSystemRuntimeState {
 }
 
 /** @internal */
-export type SystemSubEmitterSampleHandler = (
+export type BirthSubEmitterSampleHandler = (
   subEmitter: SubEmitter,
   count: number,
   worldPosition: Vector3,
@@ -84,7 +83,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   private _probabilityRand = new Rand(0, ParticleRandomSubSeeds.SubEmitter);
 
   @ignoreClone
-  private _particleRuntimeStates: Array<Array<SubEmitterSystemRuntimeState | null>> = [];
+  private _particleRuntimeStates: Array<Array<BirthSubEmitterRuntimeState | null>> = [];
   @ignoreClone
   private _particleSequence = 0;
 
@@ -100,16 +99,14 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    * @param type - Trigger event (`Birth` / `Death`)
    * @param inheritProperties - Bitmask of properties inherited from the parent particle
    * @param emitProbability - Per-event fire probability [0, 1]
-   * @param emitCount - Number of sub particles emitted per parent event
-   * @param mode - One-shot event or parent-driven system mode
+   * @param emitCount - Number of sub particles emitted when the parent dies
    */
   addSubEmitter(
     emitter: ParticleRenderer,
     type: ParticleSubEmitterType,
     inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None,
     emitProbability: number = 1,
-    emitCount: number = 1,
-    mode: ParticleSubEmitterMode = ParticleSubEmitterMode.Event
+    emitCount: number = 1
   ): void {
     if (SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
       throw new Error("Sub-emitter would create a cycle");
@@ -120,7 +117,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     sub.inheritProperties = inheritProperties;
     sub.emitProbability = emitProbability;
     sub.emitCount = emitCount;
-    sub.mode = mode;
     sub._module = this;
     this._subEmitters.push(sub);
     const runtimeStates = this._particleRuntimeStates;
@@ -169,7 +165,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     const subEmitters = this.subEmitters;
     for (let i = 0, n = subEmitters.length; i < n; i++) {
       const sub = subEmitters[i];
-      if (sub.type !== type || sub.mode !== ParticleSubEmitterMode.Event) continue;
+      if (sub.type !== type || type === ParticleSubEmitterType.Birth) continue;
 
       const target = sub.emitter;
       if (target === null || target.destroyed) continue;
@@ -216,11 +212,11 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     const particleSequence = this._particleSequence++;
     for (let i = 0, n = slots.length; i < n; i++) {
       const sub = slots[i];
-      if (sub.type !== ParticleSubEmitterType.Birth || sub.mode !== ParticleSubEmitterMode.System) continue;
+      if (sub.type !== ParticleSubEmitterType.Birth) continue;
       const target = sub.emitter?.generator;
       if (!target || sub.emitter.destroyed) continue;
 
-      const state = (states[i] = new SubEmitterSystemRuntimeState());
+      const state = (states[i] = new BirthSubEmitterRuntimeState());
       state.target = target;
       state.previousWorldPosition.copyFrom(worldPosition);
       state.shouldEmit = sub.emitProbability >= 1 || this._probabilityRand.random() < sub.emitProbability;
@@ -236,10 +232,10 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   }
 
   /**
-   * Evaluate all system-style Birth slots for one parent particle.
+   * Evaluate all Birth slots for one parent particle.
    * @internal
    */
-  _processSystemBirthParticle(
+  _processBirthParticle(
     ringIndex: number,
     bornTime: number,
     lifetime: number,
@@ -247,7 +243,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     currentWorldPosition: Vector3,
     frameLastPlayTime: number,
     framePlayTime: number,
-    handler: SystemSubEmitterSampleHandler
+    handler: BirthSubEmitterSampleHandler
   ): void {
     const states = this._particleRuntimeStates[ringIndex];
     if (!states) return;
@@ -257,18 +253,13 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       const sub = slots[i];
       let state = states[i];
       const target = sub.emitter?.generator;
-      if (
-        sub.type !== ParticleSubEmitterType.Birth ||
-        sub.mode !== ParticleSubEmitterMode.System ||
-        !target ||
-        sub.emitter.destroyed
-      ) {
+      if (sub.type !== ParticleSubEmitterType.Birth || !target || sub.emitter.destroyed) {
         states[i] = null;
         continue;
       }
 
       if (!state || state.target !== target) {
-        state = states[i] = new SubEmitterSystemRuntimeState();
+        state = states[i] = new BirthSubEmitterRuntimeState();
         state.target = target;
         state.previousParentAge = currentParentAge;
         state.previousWorldPosition.copyFrom(currentWorldPosition);
@@ -374,7 +365,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     mappings: ReadonlyArray<{ source: number; target: number; count: number }>
   ): void {
     const oldStates = this._particleRuntimeStates;
-    const newStates = new Array<Array<SubEmitterSystemRuntimeState | null>>(newParticleCount);
+    const newStates = new Array<Array<BirthSubEmitterRuntimeState | null>>(newParticleCount);
     for (let i = 0, n = mappings.length; i < n; i++) {
       const mapping = mappings[i];
       for (let j = 0; j < mapping.count; j++) {
@@ -405,16 +396,6 @@ export class SubEmittersModule extends ParticleGeneratorModule {
   }
 
   /** @internal */
-  _hasSystemBirth(): boolean {
-    if (!this.enabled) return false;
-    const slots = this._subEmitters;
-    for (let i = 0, n = slots.length; i < n; i++) {
-      const slot = slots[i];
-      if (slot.type === ParticleSubEmitterType.Birth && slot.mode === ParticleSubEmitterMode.System) return true;
-    }
-    return false;
-  }
-
   /**
    * @internal
    */

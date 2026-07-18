@@ -349,7 +349,7 @@ export class ParticleGenerator {
   _update(
     elapsedTime: number,
     incomingCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand> = [],
-    isSystemSubEmitterTarget: boolean = false
+    isBirthSubEmitterTarget: boolean = false
   ): void {
     const lastAlive = this.isAlive;
     const { main, emission } = this;
@@ -357,10 +357,10 @@ export class ParticleGenerator {
     const lastPlayTime = this._playTime;
     let deltaTime = elapsedTime * main.simulationSpeed;
 
-    // A system-style sub-emitter evaluates Start Delay independently for every
+    // Birth evaluates Start Delay independently for every
     // parent particle. The target generator's global delay must not stall queued
     // children or their simulation.
-    if (isSystemSubEmitterTarget) {
+    if (isBirthSubEmitterTarget) {
       this._playStartDelay = 0;
     } else if (this._playStartDelay > 0) {
       if (deltaTime <= this._playStartDelay) {
@@ -389,7 +389,8 @@ export class ParticleGenerator {
     const oldFirstFreeElement = this._firstFreeElement;
     const hasOldParticles = oldFirstActiveElement !== oldFirstFreeElement;
     const needsSubEmitterReadback =
-      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death) || this.subEmitters._hasSystemBirth();
+      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death) ||
+      this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth);
     let ranFullFeedback = false;
 
     // First advance the particles that existed at frame start. Particles crossing
@@ -402,8 +403,8 @@ export class ParticleGenerator {
       if (needsSubEmitterReadback) {
         this._readbackFeedback(oldFirstActiveElement, oldFirstFreeElement);
       }
-      if (this.subEmitters._hasSystemBirth()) {
-        this._processSystemBirthRange(oldFirstActiveElement, oldFirstFreeElement, lastPlayTime, this._playTime);
+      if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
+        this._processBirthRange(oldFirstActiveElement, oldFirstFreeElement, lastPlayTime, this._playTime);
       }
     }
 
@@ -415,7 +416,7 @@ export class ParticleGenerator {
     }
 
     const firstEmittedElement = this._firstFreeElement;
-    if (!isSystemSubEmitterTarget && deltaTime > 0 && emission.enabled && this._isPlaying) {
+    if (!isBirthSubEmitterTarget && deltaTime > 0 && emission.enabled && this._isPlaying) {
       // If maxParticles is changed dynamically, currentParticleCount may be greater than maxParticles
       if (this._currentParticleCount > main._maxParticleBuffer) {
         const notRetireParticleCount = this._getNotRetiredParticleCount();
@@ -484,8 +485,8 @@ export class ParticleGenerator {
       if (needsSubEmitterReadback) {
         this._readbackFeedback(firstEmittedElement, this._firstFreeElement);
       }
-      if (this.subEmitters._hasSystemBirth()) {
-        this._processSystemBirthRange(firstEmittedElement, this._firstFreeElement, lastPlayTime, this._playTime);
+      if (this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth)) {
+        this._processBirthRange(firstEmittedElement, this._firstFreeElement, lastPlayTime, this._playTime);
       }
     }
   }
@@ -785,7 +786,7 @@ export class ParticleGenerator {
         this.noise?.enabled ||
         this.velocityOverLifetime?._needTransformFeedback() ||
         this.subEmitters?._hasSubEmitterOfType(ParticleSubEmitterType.Death) ||
-        this.subEmitters?._hasSystemBirth())
+        this.subEmitters?._hasSubEmitterOfType(ParticleSubEmitterType.Birth))
     );
     if (needed === this._useTransformFeedback) return;
     this._useTransformFeedback = needed;
@@ -1238,38 +1239,12 @@ export class ParticleGenerator {
       const worldBirthPosition = ParticleGenerator._tempVector36;
       Vector3.transformByQuat(position, transform.worldRotationQuaternion, worldBirthPosition);
       worldBirthPosition.add(emitWorldPositionOverride ?? transform.worldPosition);
-      this._onParticleBirth(firstFreeElement, offset, worldBirthPosition, particleDirection, transform, playTime);
+      this._onParticleBirth(firstFreeElement, worldBirthPosition);
     }
   }
 
-  private _onParticleBirth(
-    ringIndex: number,
-    offset: number,
-    worldBirthPosition: Vector3,
-    direction: Vector3,
-    transform: Transform,
-    playTime: number
-  ): void {
+  private _onParticleBirth(ringIndex: number, worldBirthPosition: Vector3): void {
     this.subEmitters._onParticleBirth(ringIndex, worldBirthPosition);
-
-    // Event Birth direction is known directly; Death reads it back from the feedback buffer.
-    const worldDirection = this._eventDir;
-    Vector3.transformByQuat(direction, transform.worldRotationQuaternion, worldDirection);
-
-    const parentColor = this._eventColor;
-    const parentSize = this._eventSize;
-    const parentRotation = this._eventRotation;
-    this._evaluateOverLifetime(offset, 0, parentColor, parentSize, parentRotation);
-
-    this.subEmitters._dispatchEvent(
-      ParticleSubEmitterType.Birth,
-      worldBirthPosition,
-      parentColor,
-      parentSize,
-      parentRotation,
-      worldDirection,
-      this._getFrameTime(playTime)
-    );
   }
 
   /**
@@ -1380,7 +1355,7 @@ export class ParticleGenerator {
     }
   }
 
-  private _processSystemBirthRange(
+  private _processBirthRange(
     firstElement: number,
     endElement: number,
     frameLastPlayTime: number,
@@ -1408,7 +1383,7 @@ export class ParticleGenerator {
         worldPosition.add(transform.worldPosition);
       }
 
-      this.subEmitters._processSystemBirthParticle(
+      this.subEmitters._processBirthParticle(
         ringIndex,
         bornTime,
         lifetime,

@@ -1,5 +1,4 @@
 import { Color, Vector3 } from "@galacean/engine-math";
-import { ParticleSubEmitterMode } from "./enums/ParticleSubEmitterMode";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
 import type { ParticleGenerator } from "./ParticleGenerator";
 import type { ParticleRenderer } from "./ParticleRenderer";
@@ -63,7 +62,7 @@ export class ParticleSystemManager {
     const rendererSet = new Set(renderers);
     const adjacency = new Map<ParticleRenderer, Set<ParticleRenderer>>();
     const indegree = new Map<ParticleRenderer, number>();
-    const systemTargets = new Set<ParticleGenerator>();
+    const birthTargets = new Set<ParticleGenerator>();
     for (let i = 0; i < count; i++) indegree.set(renderers[i], 0);
 
     for (let i = 0; i < count; i++) {
@@ -82,8 +81,8 @@ export class ParticleSystemManager {
           targets.add(target);
           indegree.set(target, indegree.get(target)! + 1);
         }
-        if (slot.type === ParticleSubEmitterType.Birth && slot.mode === ParticleSubEmitterMode.System) {
-          systemTargets.add(target.generator);
+        if (slot.type === ParticleSubEmitterType.Birth) {
+          birthTargets.add(target.generator);
         }
       }
     }
@@ -121,7 +120,7 @@ export class ParticleSystemManager {
       const generator = renderer.generator;
       const incoming = this._commands.get(generator);
       incoming && this._commands.delete(generator);
-      renderer._updateParticles(deltaTime, incoming ?? [], systemTargets.has(generator));
+      renderer._updateParticles(deltaTime, incoming ?? [], birthTargets.has(generator));
     }
     this._commands.clear();
   }
