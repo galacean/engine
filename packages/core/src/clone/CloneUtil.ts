@@ -108,50 +108,45 @@ export class CloneUtil {
     // default-less class is shared by default, cloned when forced), so each branch that actually
     // produces one dedups for itself. Looking up first would let a `@deepClone`'d field's copy be
     // handed to a plain field that asked to share — and only when it happened to be walked first.
-    if (ArrayBuffer.isView(source)) {
-      return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
-    } else if (Array.isArray(source)) {
-      return CloneUtil._deepCloneArray(source, preset, cloneMap);
-    } else if (source instanceof Map) {
-      return CloneUtil._deepCloneMap(source, preset, cloneMap);
-    } else if (source instanceof Set) {
-      return CloneUtil._deepCloneSet(source, preset, cloneMap);
-    } else {
-      // A non-container object. A compatible preset of the exact same type is reused as the clone
-      // target; otherwise a bare instance is constructed (null-prototype objects have no
-      // constructor, so rebuild as such).
-      const ctor = (<any>source).constructor;
-      const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
+    if (ArrayBuffer.isView(source)) return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
+    if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap);
+    if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap);
+    if (source instanceof Set) return CloneUtil._deepCloneSet(source, preset, cloneMap);
 
-      // Math value type (Vector3, Color, ...) — a class instance carrying a callable copyFrom; copy
-      // via it. Math cannot depend on core, so it cannot extend DataObject and is recognized this
-      // way. Plain / null-prototype objects never take this branch, even when a `copyFrom` data
-      // field rides in the payload.
-      if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
-        const existing = cloneMap.get(source);
-        if (existing) return existing;
-        const dst = <ICustomClone>(reusable ?? CloneUtil._bareConstruct(ctor));
-        cloneMap.set(source, dst);
-        dst.copyFrom(<ICustomClone>source);
-        (<ICustomClone>source)._cloneTo?.(dst, cloneMap);
-        return dst;
-      }
+    // A non-container object. A compatible preset of the exact same type is reused as the clone
+    // target; otherwise a bare instance is constructed (null-prototype objects have no
+    // constructor, so rebuild as such).
+    const ctor = (<any>source).constructor;
+    const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
 
-      // Field-walk deep clone: the DataObject family and plain / null-prototype objects always; any
-      // other class instance only when `@deepClone` forces it (the default shares it).
-      if (source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
-        const existing = cloneMap.get(source);
-        if (existing) return existing;
-        const dst = reusable ?? (ctor ? CloneUtil._bareConstruct(ctor) : Object.create(null));
-        cloneMap.set(source, dst);
-        CloneUtil.deepCloneObject(source, dst, cloneMap);
-        (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
-        return dst;
-      }
-
-      // A class instance with no deep-clone default, on the default path — shared.
-      return source;
+    // Math value type (Vector3, Color, ...) — a class instance carrying a callable copyFrom; copy
+    // via it. Math cannot depend on core, so it cannot extend DataObject and is recognized this
+    // way. Plain / null-prototype objects never take this branch, even when a `copyFrom` data
+    // field rides in the payload.
+    if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
+      const existing = cloneMap.get(source);
+      if (existing) return existing;
+      const dst = <ICustomClone>(reusable ?? CloneUtil._bareConstruct(ctor));
+      cloneMap.set(source, dst);
+      dst.copyFrom(<ICustomClone>source);
+      (<ICustomClone>source)._cloneTo?.(dst, cloneMap);
+      return dst;
     }
+
+    // Field-walk deep clone: the DataObject family and plain / null-prototype objects always; any
+    // other class instance only when `@deepClone` forces it (the default shares it).
+    if (source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
+      const existing = cloneMap.get(source);
+      if (existing) return existing;
+      const dst = reusable ?? (ctor ? CloneUtil._bareConstruct(ctor) : Object.create(null));
+      cloneMap.set(source, dst);
+      CloneUtil.deepCloneObject(source, dst, cloneMap);
+      (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
+      return dst;
+    }
+
+    // A class instance with no deep-clone default, on the default path — shared.
+    return source;
   }
 
   /**
