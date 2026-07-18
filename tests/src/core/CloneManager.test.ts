@@ -794,10 +794,7 @@ describe("Clone remap", async () => {
     });
 
     it("does not leak the subclass's re-decoration back onto the base class", () => {
-      // Decorators run once, at class-definition time — by the time any test runs,
-      // SubOverrideScript's @ignoreClone on `reDecorated` has already been registered. If that
-      // registration mutated a store shared with BaseOverrideScript instead of a store of its
-      // own, every BaseOverrideScript instance (this one included) would inherit the corruption.
+      // A subclass re-decorating a field must leave the base class untouched.
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const sibling = parent.createChild("sibling");

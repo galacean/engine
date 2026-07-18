@@ -14,10 +14,9 @@ import { CloneMode } from "./enums/CloneMode";
 
 /**
  * @internal
- * Clone execution. Identifies each value by type and clones it in one step — a field decorator
- * (highest priority) is honored here, and with no decorator the built-in default by type family
- * applies. Engine classes are imported here rather than in `CloneManager`, which every decorated
- * class pulls in while still being defined.
+ * Clone execution: a field decorator takes priority, otherwise the value's own type family
+ * decides. Engine classes are imported here rather than in `CloneManager`, which cannot import
+ * them.
  */
 export class CloneUtil {
   /**
@@ -50,15 +49,12 @@ export class CloneUtil {
    * default.
    */
   static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
-    // A function is a value, not a graph: an explicit decorator shares the source function, while
-    // the default keeps the clone's own constructor-rebound binding when it has one. Checked before
-    // the non-object guard below, which `typeof fn !== "object"` would otherwise swallow.
+    // A function is a value, not a graph: an explicit decorator shares the source function, the
+    // default keeps the clone's own constructor-rebound binding when it has one.
     if (typeof source === "function") return forceDeepClone ? source : typeof preset === "function" ? preset : source;
     if (source === null || typeof source !== "object") return source;
-    // Engine-bound families come first: none of them produces a new object, so they need no dedup
-    // — an Entity's own map lookup *is* the remap, and the others never enter the map. Being ahead
-    // of the dedup is also what lets `@deepClone` on one of them be rejected: behind it, an
-    // in-subtree Entity would resolve to its clone and the misuse would go unnoticed.
+    // Engine-bound families produce no new object: an Entity's own map lookup is the remap, and
+    // the others never enter the map.
     if (source instanceof Entity || source instanceof Component) {
       if (forceDeepClone) {
         throw new Error(
@@ -92,10 +88,8 @@ export class CloneUtil {
       }
       return preset;
     }
-    // No dedup here: whether a value produces a clone at all depends on `forceDeepClone` (a
-    // default-less class is shared by default, cloned when forced), so each branch that actually
-    // produces one dedups for itself. Looking up first would let a `@deepClone`'d field's copy be
-    // handed to a plain field that asked to share — and only when it happened to be walked first.
+    // Each branch that produces a clone dedups for itself: whether a value is cloned at all
+    // depends on `forceDeepClone`, so a shared value must not consult the identity map.
     if (ArrayBuffer.isView(source)) return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
     if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap);
     if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap);
@@ -153,8 +147,8 @@ export class CloneUtil {
         );
       (<IReferable>preset)._addReferCount(-1);
     }
-    // `cloned === sourceValue` ⇔ the slot shared the source value (only the Assignment path
-    // returns a registered resource as-is), so it owns one reference.
+    // `cloned === source` ⇔ the slot shared the source value (only the sharing paths return a
+    // registered resource as-is), so it owns one reference.
     if (cloned === source && cloned instanceof ReferResource) {
       (<IReferable>cloned)._addReferCount(1);
     }
@@ -202,8 +196,8 @@ export class CloneUtil {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
 
-    // `preset !== source`: the clone may still alias the source's array (a class-level default
-    // table), and filling that in place would write through into the source.
+    // `preset !== source`: a clone still aliasing the source's array (a class-level default
+    // table) must not be filled in place.
     const dst =
       preset !== source &&
       Array.isArray(preset) &&

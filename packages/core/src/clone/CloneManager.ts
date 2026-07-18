@@ -26,19 +26,18 @@ export function ignoreClone(target: object, propertyKey: string): void {
 
 /**
  * @internal
- * Field-level clone mode registry. Deliberately free of any engine class import: every class that
- * uses a clone decorator imports this module while it is still being defined, so pulling an
- * engine class in here (directly or through `CloneUtil`) reorders module evaluation and breaks
- * `extends` chains. The cloning itself lives in `CloneUtil`.
+ * Field-level clone mode registry. Must import no engine class, directly or transitively: every
+ * class carrying a clone decorator imports this module while still being defined, and pulling a
+ * class in here would reorder module evaluation and break `extends` chains. Cloning itself lives
+ * in `CloneUtil`.
  */
 export class CloneManager {
   /**
    * @internal
    */
   static _registerFieldMode(target: any, propertyKey: string, mode: CloneMode): void {
-    // Each class gets its own `_fieldModes`, prototypally chained to its parent's, so native
-    // lookup resolves inheritance (a subclass re-decorating a field shadows the ancestor's) with
-    // no registry or cache to keep in sync.
+    // Each class gets its own `_fieldModes`, prototypally chained to its parent's, so property
+    // lookup resolves inheritance: a subclass re-decorating a field shadows the ancestor's.
     if (!Object.prototype.hasOwnProperty.call(target, "_fieldModes")) {
       Object.defineProperty(target, "_fieldModes", {
         value: Object.create(target._fieldModes ?? null),

@@ -332,8 +332,7 @@ describe("CustomDataModule", function () {
     expect(clonedCustomData.gradients.get("Tint")).to.not.eq(sourceCustomData.gradients.get("Tint"));
     expect(clonedCustomData.gradients.get("Tint")!.constantMax.r).to.be.closeTo(1, 1e-6);
 
-    // Internal caches are rebuilt — _updateShaderData would now upload uniforms. The clone is
-    // produced by the gate rather than replayed through addCurve / addGradient, so every stream
+    // Internal caches are rebuilt — _updateShaderData would now upload uniforms. Every stream
     // field is checked against the source's, each with the comparison its role demands.
     const expectStreamsEquivalent = (key: string, entryKey: string, mapKey: string, names: string[]) => {
       const sourceStreams = (sourceCustomData as any)[key];
