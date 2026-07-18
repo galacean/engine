@@ -1,7 +1,10 @@
 import {
+  Burst,
   Camera,
+  EmissionRuntimeState,
   Engine,
   Entity,
+  ParticleCompositeCurve,
   ParticleMaterial,
   ParticleRenderer,
   ParticleStopMode
@@ -139,6 +142,25 @@ describe("EmissionModule rateOverTime replay/resume", () => {
     tick(engine, elapsed);
     const delta = generator._getAliveParticleCount() - baseline;
     expect(delta, "enabled toggle must not unwind the disabled interval").to.be.lessThan(5);
+
+    entity.destroy();
+  });
+
+  it("emits looped bursts only after their cycle time is reached", () => {
+    const { entity, renderer } = buildEmitter(engine, "looped-burst-boundary");
+    const generator = renderer.generator;
+    generator.main.duration = 1;
+    generator.main.isLoop = true;
+    generator.emission.addBurst(new Burst(0.15, new ParticleCompositeCurve(1)));
+
+    const state = new EmissionRuntimeState();
+    state.reset(0);
+
+    const firstSamples = generator.emission._getEmissionSamples(0.1, 1.1, state);
+    expect(firstSamples.map((sample) => sample.time)).to.deep.equal([0.15]);
+
+    const secondSamples = generator.emission._getEmissionSamples(1.1, 1.2, state);
+    expect(secondSamples.map((sample) => sample.time)).to.deep.equal([1.15]);
 
     entity.destroy();
   });

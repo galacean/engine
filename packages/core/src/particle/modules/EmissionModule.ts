@@ -297,26 +297,24 @@ export class EmissionModule extends ParticleGeneratorModule {
   private _emitByBurst(lastPlayTime: number, playTime: number, state: EmissionRuntimeState): void {
     const main = this._generator.main;
     const duration = main.duration;
-    const cycleCount = Math.floor((playTime - lastPlayTime) / duration);
-
-    // Across one cycle
-    if (main.isLoop && (cycleCount > 0 || playTime % duration < lastPlayTime % duration)) {
-      let middleTime = Math.ceil(lastPlayTime / duration) * duration;
-      this._emitBySubBurst(lastPlayTime, middleTime, duration, state);
-      state.currentBurstIndex = 0;
-
-      for (let i = 0; i < cycleCount; i++) {
-        const lastMiddleTime = middleTime;
-        middleTime += duration;
-        this._emitBySubBurst(lastMiddleTime, middleTime, duration, state);
-        state.currentBurstIndex = 0;
-      }
-
-      this._emitBySubBurst(middleTime, playTime, duration, state);
-    } else {
+    if (!main.isLoop) {
       if (lastPlayTime < duration) {
         this._emitBySubBurst(lastPlayTime, Math.min(playTime, duration), duration, state);
       }
+      return;
+    }
+
+    let segmentStart = lastPlayTime;
+    let nextCycleTime = (Math.floor(segmentStart / duration) + 1) * duration;
+    while (segmentStart < playTime) {
+      const segmentEnd = Math.min(nextCycleTime, playTime);
+      this._emitBySubBurst(segmentStart, segmentEnd, duration, state);
+      if (segmentEnd < nextCycleTime) {
+        break;
+      }
+      state.currentBurstIndex = 0;
+      segmentStart = segmentEnd;
+      nextCycleTime += duration;
     }
   }
 
