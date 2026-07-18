@@ -102,7 +102,6 @@ export class CloneManager {
    * `CloneMode` to compute and re-switch on.
    */
   static _cloneValue(value: any, reuse: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
-    if (fieldMode === CloneMode.Ignore) return reuse;
     // Explicit decorator shares the function; default keeps the clone's own rebound binding.
     if (typeof value === "function") {
       return fieldMode === undefined && typeof reuse === "function" ? reuse : value;
@@ -127,7 +126,9 @@ export class CloneManager {
       );
       return value;
     }
-    return CloneManager._deepClone(value, reuse, cloneMap);
+    // Neither family — attempt an actual deep clone via the same dispatch an undecorated field
+    // would use (container / DataObject / math / runtime-state / fallback share).
+    return CloneManager._cloneByDefault(value, reuse, cloneMap);
   }
 
   /**
@@ -175,6 +176,14 @@ export class CloneManager {
    * Counted = the ReferResource family only; injected from `CloneDefaults`.
    */
   static _isCountedResource: (value: any) => boolean;
+
+  /**
+   * @internal
+   * Whether `value.copyFrom` is a self-contained value-type copy (math's Vector3/Color/... style),
+   * as opposed to `DataObject`'s dispatcher method of the same public name; injected from
+   * `CloneDefaults`.
+   */
+  static _hasSpecializedCopy: (value: any) => boolean;
 
   /**
    * @internal
@@ -272,8 +281,13 @@ export class CloneManager {
     const reusable = reuse && reuse !== value && reuse.constructor === ctor ? reuse : null;
 
     // Value type (Vector3, Color, Matrix, ...) — a class instance carrying a callable copyFrom.
-    // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in the data.
-    if (ctor && ctor !== Object && typeof (<ICustomClone>value).copyFrom === "function") {
+    // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in
+    // the data. `DataObject` is excluded even though it also exposes a public `copyFrom`: that
+    // method's own generic fallback calls back into `_deepClone`, so treating it as "specialized"
+    // here would recurse into itself — DataObject family is routed via `_cloneByDefault` instead,
+    // and reaches this point only for its generic-fallback case, which belongs in the field-walk
+    // branch below.
+    if (ctor && ctor !== Object && CloneManager._hasSpecializedCopy(value)) {
       const dst = <ICustomClone>(reusable ?? CloneManager._bareConstruct(ctor));
       cloneMap.set(value, dst);
       dst.copyFrom(<ICustomClone>value);
@@ -291,10 +305,12 @@ export class CloneManager {
   }
 
   /**
+   * @internal
    * A deep-cloned instance without a compatible preset is constructed bare; name the contract
-   * when that fails instead of surfacing the constructor's raw error.
+   * when that fails instead of surfacing the constructor's raw error. Also used directly by
+   * `DataObject.clone()`, which needs the same bare-construction contract for its `_copyFrom` path.
    */
-  private static _bareConstruct(ctor: new () => any): any {
+  static _bareConstruct(ctor: new () => any): any {
     try {
       return new ctor();
     } catch (e) {

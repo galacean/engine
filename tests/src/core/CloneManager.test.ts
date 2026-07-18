@@ -1336,6 +1336,82 @@ describe("Clone remap", async () => {
       cloned.constantMin = 99;
       expect(source.constantMin).eq(1);
     });
+
+    it("copyFrom(source) populates this from source, not the reverse", () => {
+      const source = new ParticleCompositeCurve(1, 2);
+      const target = new ParticleCompositeCurve(99, 99);
+
+      target.copyFrom(source);
+
+      expect(target.constantMin).eq(1);
+      expect(target.constantMax).eq(2);
+      // The source must be untouched — copyFrom is one-directional (into `this`, from `source`).
+      expect(source.constantMin).eq(1);
+      expect(source.constantMax).eq(2);
+    });
+
+    it("an overridden _copyFrom is used by both clone() and copyFrom(), called with (source, map)", () => {
+      const calls: Array<{ target: OverriddenCopyFromConfig; source: OverriddenCopyFromConfig }> = [];
+      class OverriddenCopyFromConfig extends DataObject {
+        value = 0;
+        protected _copyFrom(source: OverriddenCopyFromConfig): void {
+          calls.push({ target: this, source });
+          this.value = source.value * 10;
+        }
+      }
+      const source = new OverriddenCopyFromConfig();
+      source.value = 5;
+
+      const cloned = source.clone();
+      expect(cloned).not.eq(source);
+      expect(cloned.value).eq(50);
+      expect(calls[0].target).eq(cloned);
+      expect(calls[0].source).eq(source);
+
+      const target = new OverriddenCopyFromConfig();
+      target.copyFrom(source);
+      expect(target.value).eq(50);
+      expect(calls[1].target).eq(target);
+      expect(calls[1].source).eq(source);
+    });
+
+    it("an overridden _clone takes full control, bypassing the generic bare-construct + copyFrom path", () => {
+      class OverriddenCloneConfig extends DataObject {
+        value = 0;
+        protected _clone(): this {
+          const dst = <this>new OverriddenCloneConfig();
+          dst.value = this.value + 1000;
+          return dst;
+        }
+      }
+      const source = new OverriddenCloneConfig();
+      source.value = 1;
+
+      const cloned = source.clone();
+
+      expect(cloned).not.eq(source);
+      expect(cloned.value).eq(1001);
+    });
+
+    it("a plain DataObject value nested in a container round-trips through clone() without recursing", () => {
+      // Regression: DataObject exposes a public copyFrom (the dispatcher); _deepClone's own
+      // duck-typed "does this have a specialized copyFrom" check must not mistake it for one,
+      // or the dispatcher recurses into itself and never terminates.
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(CopyFromDataScript);
+      const curve = new ParticleCompositeCurve(3, 4);
+      script.config = { curves: [curve] };
+
+      const cloned = parent.clone();
+      const clonedCurve = cloned.getComponent(CopyFromDataScript).config.curves[0];
+
+      expect(clonedCurve).not.eq(curve);
+      expect(clonedCurve.constantMin).eq(3);
+      expect(clonedCurve.constantMax).eq(4);
+
+      rootEntity.destroy();
+    });
   });
 
   describe("Parameter-constructed Deep values as container elements", () => {
