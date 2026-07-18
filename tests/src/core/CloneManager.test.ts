@@ -1240,7 +1240,7 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("deepCloneObject decorator awareness", () => {
+  describe("_deepCloneObject decorator awareness", () => {
     it("respects @ignoreClone on the source type's fields", async () => {
       const { CloneUtil } = await import("@galacean/engine-core");
 
@@ -1254,7 +1254,7 @@ describe("Clone remap", async () => {
       source.runtime = 42;
       const target = new Bag();
 
-      CloneUtil.deepCloneObject(source, target, new Map());
+      CloneUtil._deepCloneObject(source, target, new Map());
       expect(target.kept).eq(42);
       expect(target.runtime).eq(1);
     });

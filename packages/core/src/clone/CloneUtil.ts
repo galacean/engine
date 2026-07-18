@@ -45,7 +45,7 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
+  static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
     // Resolved once per object (a single prototype-chain walk), not once per field.
     const fieldModes = source._fieldModes;
     for (const k in source) {
@@ -136,7 +136,7 @@ export class CloneUtil {
       if (existing) return existing;
       const dst = reusable ?? (ctor ? CloneUtil._bareConstruct(ctor) : Object.create(null));
       cloneMap.set(source, dst);
-      CloneUtil.deepCloneObject(source, dst, cloneMap);
+      CloneUtil._deepCloneObject(source, dst, cloneMap);
       (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
       return dst;
     }
