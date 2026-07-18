@@ -306,11 +306,9 @@ describe("CustomDataModule", function () {
   });
 
   it("clones deep — entries detached, internal caches rebuilt", function () {
-    // Bug guard: CloneManager can't recurse into Map entries, so the default
-    // field-by-field clone would leave `cloned.curves === source.curves`
-    // (mutation aliasing) and an empty `_curveStreams` (silent no-op
-    // _updateShaderData). The module's `_cloneTo` hook deep-clones each
-    // entry and rebuilds the internal caches via addCurve / addGradient.
+    // The maps and the stream caches are all cloned by the gate: fresh Maps holding deep-cloned
+    // entries, and stream objects whose `curve` / `gradient` resolve through the identity map to
+    // those same clones (asserted below), so `_updateShaderData` uploads what the maps hold.
     const scene = engine.sceneManager.activeScene;
     const sourceEntity = scene.createRootEntity("source-particle");
     const sourceRenderer = sourceEntity.addComponent(ParticleRenderer);
@@ -341,6 +339,12 @@ describe("CustomDataModule", function () {
     const clonedGradientStreams = (clonedCustomData as any)._gradientStreams as { name: string }[];
     expect(clonedCurveStreams.map((s) => s.name)).to.deep.eq(["Intensity"]);
     expect(clonedGradientStreams.map((s) => s.name)).to.deep.eq(["Tint"]);
+
+    // Each stream points at the very object its map holds — the identity map collapses both
+    // references onto one clone. Were they two separate copies, editing the map entry would
+    // silently stop reaching the shader.
+    expect((clonedCurveStreams[0] as any).curve).to.eq(clonedCustomData.curves.get("Intensity"));
+    expect((clonedGradientStreams[0] as any).gradient).to.eq(clonedCustomData.gradients.get("Tint"));
 
     // Mutation isolation: bumping the clone does not bleed back into the source.
     clonedCustomData.curves.get("Intensity")!.constantMax = 0.1;

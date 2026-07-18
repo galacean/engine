@@ -1,6 +1,4 @@
 import { Color, Vector4 } from "@galacean/engine-math";
-import { ignoreClone } from "../../clone/CloneManager";
-import { CloneUtil } from "../../clone/CloneUtil";
 import { Logger } from "../../base/Logger";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -54,14 +52,13 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private static readonly _zeroColor = new Color(0, 0, 0, 0);
   private static readonly _zeroVector4 = new Vector4(0, 0, 0, 0);
 
-  @ignoreClone
   private _curves: Map<string, ParticleCompositeCurve> = new Map();
-  @ignoreClone
   private _gradients: Map<string, ParticleCompositeGradient> = new Map();
 
-  @ignoreClone
+  // Cloned by the gate alongside `_curves` / `_gradients`: the identity map makes each stream's
+  // `curve` / `gradient` land on the same clone the map holds, and a `ShaderProperty` — a plain
+  // class registered globally by name — is shared rather than copied.
   private _curveStreams: CurveStream[] = [];
-  @ignoreClone
   private _gradientStreams: GradientStream[] = [];
 
   /**
@@ -185,22 +182,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
     streams[idx] = streams[streams.length - 1];
     streams.pop();
     this._gradients.delete(name);
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: CustomDataModule, cloneMap: Map<object, object>): void {
-    for (const [name, curve] of this._curves) {
-      const clonedCurve = new ParticleCompositeCurve(0);
-      CloneUtil._deepCloneObject(curve, clonedCurve, cloneMap);
-      target.addCurve(name, clonedCurve);
-    }
-    for (const [name, gradient] of this._gradients) {
-      const clonedGradient = new ParticleCompositeGradient(new Color());
-      CloneUtil._deepCloneObject(gradient, clonedGradient, cloneMap);
-      target.addGradient(name, clonedGradient);
-    }
   }
 
   /**
