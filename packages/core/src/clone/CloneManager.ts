@@ -32,7 +32,9 @@ export function ignoreClone(target: object, propertyKey: string): void {
  * `extends` chains. The cloning itself lives in `CloneUtil`.
  */
 export class CloneManager {
-  /** @internal */
+  /**
+   * @internal
+   */
   static _registerFieldMode(target: any, propertyKey: string, mode: CloneMode): void {
     // Each class gets its own `_fieldModes`, prototypally chained to its parent's, so native
     // lookup resolves inheritance (a subclass re-decorating a field shadows the ancestor's) with

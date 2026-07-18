@@ -20,7 +20,9 @@ import { CloneMode } from "./enums/CloneMode";
  * class pulls in while still being defined.
  */
 export class CloneUtil {
-  /** @internal */
+  /**
+   * @internal
+   */
   static _cloneValue(source: any, preset: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
     // A function is a value, not a graph: an explicit decorator shares the source function, while
     // the default keeps the clone's own constructor-rebound binding when it has one.
@@ -40,7 +42,9 @@ export class CloneUtil {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
     // Resolved once per object (a single prototype-chain walk), not once per field.
     const fieldModes = source._fieldModes;
@@ -141,7 +145,9 @@ export class CloneUtil {
     return source;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _transferSlotOwnership(cloned: any, source: any, preset: any): void {
     // Slot content unchanged (Ignore kept / value type copied in place / function reused).
     if (cloned === preset) return;
@@ -162,7 +168,9 @@ export class CloneUtil {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _deepCloneArrayBuffer(source: ArrayBufferView, preset: any, cloneMap: Map<object, object>): ArrayBufferView {
     const existing = cloneMap.get(source);
     if (existing) return <ArrayBufferView>existing;
@@ -195,7 +203,9 @@ export class CloneUtil {
     return dst;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _deepCloneArray(source: any[], preset: any, cloneMap: Map<object, object>): any[] {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
@@ -214,7 +224,9 @@ export class CloneUtil {
     return dst;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _deepCloneMap(source: Map<any, any>, preset: any, cloneMap: Map<object, object>): Map<any, any> {
     const existing = cloneMap.get(source);
     if (existing) return <Map<any, any>>existing;
@@ -238,7 +250,9 @@ export class CloneUtil {
     return dst;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _deepCloneSet(source: Set<any>, preset: any, cloneMap: Map<object, object>): Set<any> {
     const existing = cloneMap.get(source);
     if (existing) return <Set<any>>existing;
@@ -256,7 +270,9 @@ export class CloneUtil {
     return dst;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   static _bareConstruct(ctor: new () => any): any {
     try {
       return new ctor();
