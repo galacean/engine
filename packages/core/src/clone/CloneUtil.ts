@@ -23,14 +23,20 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _cloneValue(source: any, preset: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
-    // A function is a value, not a graph: an explicit decorator shares the source function, while
-    // the default keeps the clone's own constructor-rebound binding when it has one.
-    if (typeof source === "function") {
-      return fieldMode === undefined && typeof preset === "function" ? preset : source;
+  static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
+    // Resolved once per object (a single prototype-chain walk), not once per field.
+    const fieldModes = source._fieldModes;
+    for (const k in source) {
+      const fieldMode = fieldModes?.[k];
+      if (fieldMode === CloneMode.Ignore) continue;
+      target[k] = CloneUtil._cloneValue(source[k], target[k], cloneMap, fieldMode);
     }
-    if (source === null || typeof source !== "object") return source;
+  }
 
+  /**
+   * @internal
+   */
+  static _cloneValue(source: any, preset: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
     switch (fieldMode) {
       case CloneMode.Assignment:
         return source;
@@ -44,24 +50,16 @@ export class CloneUtil {
 
   /**
    * @internal
-   */
-  static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
-    // Resolved once per object (a single prototype-chain walk), not once per field.
-    const fieldModes = source._fieldModes;
-    for (const k in source) {
-      const fieldMode = fieldModes?.[k];
-      if (fieldMode === CloneMode.Ignore) continue;
-      target[k] = CloneUtil._cloneValue(source[k], target[k], cloneMap, fieldMode);
-    }
-  }
-
-  /**
-   * @internal
    * `forceDeepClone` (a `@deepClone`'d field) flips a class with no deep-clone default from
    * "share" to "field-walk", and makes an engine-bound value throw instead of resolving to its
    * default.
    */
   static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
+    // A function is a value, not a graph: an explicit decorator shares the source function, while
+    // the default keeps the clone's own constructor-rebound binding when it has one. Checked before
+    // the non-object guard below, which `typeof fn !== "object"` would otherwise swallow.
+    if (typeof source === "function") return forceDeepClone ? source : typeof preset === "function" ? preset : source;
+    if (source === null || typeof source !== "object") return source;
     // Engine-bound families come first: none of them produces a new object, so they need no dedup
     // — an Entity's own map lookup *is* the remap, and the others never enter the map. Being ahead
     // of the dedup is also what lets `@deepClone` on one of them be rejected: behind it, an
@@ -99,7 +97,6 @@ export class CloneUtil {
       }
       return preset;
     }
-
     // No dedup here: whether a value produces a clone at all depends on `forceDeepClone` (a
     // default-less class is shared by default, cloned when forced), so each branch that actually
     // produces one dedups for itself. Looking up first would let a `@deepClone`'d field's copy be
