@@ -37,9 +37,9 @@ export class CloneUtil {
         return source;
       case CloneMode.Deep:
         // `@deepClone` is an explicit intent: force a deep copy, and throw if it can't be honored.
-        return CloneUtil._cloneByType(source, preset, cloneMap, true);
+        return CloneUtil._cloneByDefault(source, preset, cloneMap, true);
       default:
-        return CloneUtil._cloneByType(source, preset, cloneMap);
+        return CloneUtil._cloneByDefault(source, preset, cloneMap);
     }
   }
 
@@ -60,11 +60,12 @@ export class CloneUtil {
 
   /**
    * @internal
-   * Identify a value by type family and clone it. `forceDeepClone` (a `@deepClone`'d field) turns
-   * the one ambiguous case — a class with no deep-clone default — from "share" into "field-walk",
-   * and makes an engine-bound value throw instead of silently resolving to its default.
+   * The built-in default: with no field decorator to follow, a value's own type family decides how
+   * it is cloned — identified and executed in one step. `forceDeepClone` (set by a `@deepClone`'d
+   * field) turns the one ambiguous case — a class with no deep-clone default — from "share" into
+   * "field-walk", and makes an engine-bound value throw instead of resolving to its default.
    */
-  static _cloneByType(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
+  static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
     // Engine-bound families come first: none of them produces a new object, so they need no dedup
     // — an Entity's own map lookup *is* the remap, and the others never enter the map. Being ahead
     // of the dedup is also what lets `@deepClone` on one of them be rejected: behind it, an
