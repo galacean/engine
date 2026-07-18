@@ -95,7 +95,6 @@ describe("SubEmitter", () => {
     const parent = createParticleRenderer(engine, "Parent_NoDouble");
     const child = createParticleRenderer(engine, "Child_NoDouble");
 
-    // A Birth target is driven by each parent, so this Burst runs once per parent.
     child.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(4), 1, 0.01));
 
     parent.generator.subEmitters.enabled = true;
@@ -221,7 +220,6 @@ describe("SubEmitter", () => {
   });
 
   it("Birth is topologically scheduled and updates while outside every camera", () => {
-    // Create the target first so component registration order is child → parent.
     const child = createParticleRenderer(engine, "SystemOrder_Child");
     const parent = createParticleRenderer(engine, "SystemOrder_Parent");
     parent.entity.transform.setPosition(100000, 0, 0);
@@ -274,8 +272,6 @@ describe("SubEmitter", () => {
     updateEngine(engine, 2);
     expect(child.generator._getAliveParticleCount()).to.equal(0);
     updateEngine(engine, 1);
-    // At age 0.3 the target has run for 0.1s: t=0 Burst emits 2 and the
-    // post-delay 0.1 world-space movement emits one distance particle.
     expect(child.generator._getAliveParticleCount()).to.equal(3);
 
     parent.entity.destroy();
@@ -373,8 +369,6 @@ describe("SubEmitter", () => {
     child.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
     parent.generator.play();
 
-    // The parent expires halfway through the third 0.1s frame. The child must
-    // use the event time (0.25), not the beginning or end of that frame.
     updateEngine(engine, 3);
     expect(child.generator._getAliveParticleCount()).to.equal(1);
     const vertices = (child.generator as any)._instanceVertices as Float32Array;
@@ -538,7 +532,6 @@ describe("SubEmitter", () => {
   });
 
   it("Multi-level Birth chain consumes each target EmissionModule in topological order", () => {
-    // Reverse registration order to prove the dependency graph, rather than renderer order, owns simulation.
     const c = createParticleRenderer(engine, "Chain_C");
     const b = createParticleRenderer(engine, "Chain_B");
     const a = createParticleRenderer(engine, "Chain_A");
@@ -790,8 +783,6 @@ describe("SubEmitter", () => {
   });
 
   it("Birth Inherit Velocity uses the parent world trajectory", () => {
-    // The target starts at rest. Its initial velocity must therefore be the parent's
-    // sampled world trajectory, including the parent's rotated Shape direction.
     function build(name: string, rotXDeg: number) {
       const parent = createParticleRenderer(engine, name + "_P");
       const child = createParticleRenderer(engine, name + "_C");
@@ -817,7 +808,6 @@ describe("SubEmitter", () => {
     const spun = build("BirthVelSpun", 90);
     updateEngine(engine, 1);
 
-    // a_DirectionTime @ float offset 4..6 and a_StartSpeed @ offset 18 encode the initial velocity.
     const s = (straight.child.generator as any)._instanceVertices as Float32Array;
     expect(straight.child.generator._getAliveParticleCount()).to.equal(1);
     expect(s[4]).to.be.closeTo(0, 1e-4);
@@ -825,7 +815,6 @@ describe("SubEmitter", () => {
     expect(s[6]).to.be.closeTo(-1, 1e-4);
     expect(s[18]).to.be.closeTo(2, 1e-4);
 
-    // 90° about X maps the cone's -Z trajectory to +Y.
     const r = (spun.child.generator as any)._instanceVertices as Float32Array;
     expect(r[4]).to.be.closeTo(0, 1e-4);
     expect(r[5]).to.be.closeTo(1, 1e-4);

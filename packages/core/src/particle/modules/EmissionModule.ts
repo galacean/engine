@@ -34,14 +34,13 @@ export class EmissionModule extends ParticleGeneratorModule {
 
   @ignoreClone
   private _shapeMacro: ShaderMacro;
-  /** Runtime cursors for this generator's ordinary (non-sub-emitter) emission. */
   @ignoreClone
   readonly _runtimeState = new EmissionRuntimeState();
 
   @deepClone
   private _bursts: Burst[] = [];
 
-  /** @internal Backward-compatible access to the ordinary emitter's time cursor. */
+  /** @internal */
   get _frameRateTime(): number {
     return this._runtimeState.frameRateTime;
   }
@@ -171,8 +170,6 @@ export class EmissionModule extends ParticleGeneratorModule {
     this._emitByBurst(lastPlayTime, playTime, state);
     state._samples.length = state._sampleCount;
     if (sortByTime && state._sampleCount > 1) {
-      // Rate, distance, and burst evaluators append independently. Keep the final
-      // particle ring in birth-time order even when their samples interleave.
       state._samples.sort((left, right) => left.time - right.time);
     }
     return state._samples;
@@ -213,9 +210,6 @@ export class EmissionModule extends ParticleGeneratorModule {
     let ratePerSeconds = this._evaluateRate(rateOverTime, state.frameRateTime, state);
     while (ratePerSeconds > 0) {
       const emitInterval = 1.0 / ratePerSeconds;
-      // Keep the ordinary generator's historical boundary behavior unchanged.
-      // A per-parent runtime state, however, must not lose a sample solely from
-      // accumulated floating-point error at an exact frame boundary.
       if (tolerateRateBoundary) {
         if (cumulativeTime + MathUtil.zeroTolerance < emitInterval) return;
         cumulativeTime = Math.max(0, cumulativeTime - emitInterval);

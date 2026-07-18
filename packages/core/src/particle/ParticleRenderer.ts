@@ -217,10 +217,7 @@ export class ParticleRenderer extends Renderer {
     }
   }
 
-  protected override _update(context: RenderContext): void {
-    // Particle simulation is scene-scheduled before camera culling. Rendering only consumes
-    // the buffers produced by that stage.
-  }
+  protected override _update(context: RenderContext): void {}
 
   /** @internal */
   _updateParticleShaderData(): void {

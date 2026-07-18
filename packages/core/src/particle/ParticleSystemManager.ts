@@ -17,14 +17,7 @@ export interface ParticleSubEmitterEmissionCommand {
   frameTime: number;
 }
 
-/**
- * Scene-local particle simulation scheduler.
- *
- * Particle systems are updated once per engine frame, before camera culling. Sub-emitter
- * dependencies are topologically ordered, and all commands from a parent layer are queued
- * before a target system consumes them.
- * @internal
- */
+/** @internal */
 export class ParticleSystemManager {
   private _renderers: ParticleRenderer[] = [];
   private _commands = new Map<ParticleGenerator, ParticleSubEmitterEmissionCommand[]>();
@@ -52,8 +45,6 @@ export class ParticleSystemManager {
   }
 
   update(deltaTime: number): void {
-    // Commands are frame-local. Inactive or detached targets must not accumulate
-    // historical emissions and replay them after they are enabled again.
     this._commands.clear();
     const renderers = this._renderers.filter((renderer) => !renderer.destroyed && renderer.enabled);
     const count = renderers.length;
@@ -106,8 +97,6 @@ export class ParticleSystemManager {
       });
     }
 
-    // Setter validation prevents cycles. Deserialized legacy data can bypass setters;
-    // keep those systems alive without recursing forever, then let configuration repair it.
     if (ordered.length !== count) {
       for (let i = 0; i < count; i++) {
         const renderer = renderers[i];

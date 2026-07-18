@@ -356,9 +356,6 @@ export class ParticleGenerator {
     const lastPlayTime = this._playTime;
     let deltaTime = elapsedTime * main.simulationSpeed;
 
-    // Birth evaluates Start Delay independently for every
-    // parent particle. The target generator's global delay must not stall queued
-    // children or their simulation.
     if (isBirthSubEmitterTarget) {
       this._playStartDelay = 0;
     } else if (this._playStartDelay > 0) {
@@ -391,9 +388,6 @@ export class ParticleGenerator {
       this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Birth);
     let ranFullFeedback = false;
 
-    // First advance the particles that existed at frame start. Particles crossing
-    // their lifetime remain in the range for this pass; the shader clamps them to
-    // the exact lifetime boundary, so Death and continuous Birth share one readback.
     if (this._useTransformFeedback && hasOldParticles && deltaTime > 0) {
       this._renderer._updateParticleShaderData();
       this._updateFeedback(this._renderer.shaderData, deltaTime, oldFirstActiveElement, oldFirstFreeElement);
@@ -428,8 +422,6 @@ export class ParticleGenerator {
       }
     }
 
-    // Commands are consumed only when the target reaches its topological turn.
-    // Their frame-local timestamp is mapped into the target's own simulation clock.
     for (let i = 0, n = incomingCommands.length; i < n; i++) {
       const command = incomingCommands[i];
       const emitPlayTime = lastPlayTime + deltaTime * command.frameTime;
@@ -473,8 +465,6 @@ export class ParticleGenerator {
 
     const hasNewParticles = !isContentLost && firstEmittedElement !== this._firstFreeElement;
     if (this._useTransformFeedback && hasNewParticles) {
-      // A subset pass swaps the TF buffers as well. Copy the current full-pass
-      // result first so untouched survivors remain in the next read buffer.
       if (ranFullFeedback) {
         this._syncFeedbackWriteBuffer();
       }
@@ -1261,8 +1251,6 @@ export class ParticleGenerator {
     const transform = this._renderer.entity.transform;
     const { worldPosition: emitterWorldPosition, worldRotationQuaternion: emitterWorldRotation } = transform;
 
-    // Convert the parent position into target-local space. Target Shape remains
-    // active and is evaluated around this anchor for every emitted child.
     const localPos = this._emitLocalPos;
     Vector3.subtract(command.worldPosition, emitterWorldPosition, localPos);
     const invRot = ParticleGenerator._tempQuat0;

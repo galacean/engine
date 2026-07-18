@@ -98,7 +98,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    * @param emitter - Target particle renderer
    * @param type - Trigger event (`Birth` / `Death`)
    * @param inheritProperties - Bitmask of properties inherited from the parent particle
-   * @param emitProbability - Per-event fire probability [0, 1]
+   * @param emitProbability - Per-parent-particle probability [0, 1]
    * @param emitCount - Number of sub particles emitted when the parent dies
    */
   addSubEmitter(
@@ -231,10 +231,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     }
   }
 
-  /**
-   * Evaluate all Birth slots for one parent particle.
-   * @internal
-   */
+  /** @internal */
   _processBirthParticle(
     ringIndex: number,
     bornTime: number,
