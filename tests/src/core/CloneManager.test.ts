@@ -262,6 +262,23 @@ class SharedDefaultTableScript extends Script {
   view: DataView = SharedDefaultTableScript.DEFAULT_VIEW;
 }
 
+/** Plain class with no deep-clone default (not DataObject / math / container). */
+class PlainConfig {
+  count = 0;
+  nested = { x: 1 };
+}
+
+/** Script @deepClone-ing a class that has no deep-clone default — must force a deep copy. */
+class ForcedDeepScript extends Script {
+  @deepClone
+  config: PlainConfig = null;
+}
+
+/** Script holding the same class without @deepClone — the default path shares it. */
+class SharedPlainScript extends Script {
+  config: PlainConfig = null;
+}
+
 /** Script misusing @deepClone on an Entity ref (must fall back to remap, never construct) */
 class DeepEntityRefScript extends Script {
   @deepClone
@@ -613,6 +630,43 @@ describe("Clone remap", async () => {
 
       rootEntity.destroy();
       texture.destroy(true);
+    });
+
+    it("@deepClone forces a deep copy of a class that has no deep-clone default", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(ForcedDeepScript);
+      script.config = new PlainConfig();
+      script.config.count = 7;
+      script.config.nested.x = 42;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(ForcedDeepScript);
+
+      // @deepClone is an explicit request: the value is field-walked into an independent copy,
+      // even though PlainConfig is not DataObject / math / container (the default would share it).
+      expect(cs.config).not.eq(script.config);
+      expect(cs.config).instanceOf(PlainConfig);
+      expect(cs.config.count).eq(7);
+      expect(cs.config.nested).not.eq(script.config.nested);
+      expect(cs.config.nested.x).eq(42);
+
+      rootEntity.destroy();
+    });
+
+    it("the same class without @deepClone is shared by the default path", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(SharedPlainScript);
+      script.config = new PlainConfig();
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(SharedPlainScript);
+
+      // No deep-clone default and no decorator — the clone shares the source instance.
+      expect(cs.config).eq(script.config);
+
+      rootEntity.destroy();
     });
 
     it("@assignmentClone function field shares the source function (decorator wins over reuse)", () => {

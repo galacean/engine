@@ -1,7 +1,5 @@
 import { IReferable } from "../asset/IReferable";
-import { TypedArray } from "../base/Constant";
 import { Logger } from "../base/Logger";
-import { ICustomClone } from "./ComponentCloner";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -99,9 +97,10 @@ export class CloneManager {
       );
       return value;
     }
-    // Neither family — attempt an actual deep clone via the same dispatch an undecorated field
-    // would use (container / DataObject / math / runtime-state / fallback share).
-    return CloneManager._cloneByDefault(value, reuse, cloneMap);
+    // Neither family — deep clone through the same dispatch the default path uses, but with
+    // `forceDeep`: `@deepClone` is an explicit request, so even a class with no deep-clone default
+    // (which the default path would share) is field-walked here.
+    return CloneManager._cloneByDefault(value, reuse, cloneMap, true);
   }
 
   /**
@@ -136,7 +135,7 @@ export class CloneManager {
    * `CloneDefaults` (a module-graph sink) so the gate never imports the intrinsic classes — a
    * top-level class import here would reorder module evaluation and break `extends` chains.
    */
-  static _cloneByDefault: (value: object, reuse: any, cloneMap: Map<object, object>) => any;
+  static _cloneByDefault: (value: object, reuse: any, cloneMap: Map<object, object>, forceDeep?: boolean) => any;
 
   /**
    * @internal
@@ -152,115 +151,10 @@ export class CloneManager {
 
   /**
    * @internal
-   * ArrayBuffer view — byte copy into a reused view of matching layout, else a fresh one.
-   */
-  static _cloneBufferView(value: ArrayBufferView, reuse: any, cloneMap: Map<object, object>): ArrayBufferView {
-    let dst: ArrayBufferView;
-    if (value instanceof DataView) {
-      const src = <DataView>value;
-      if (reuse instanceof DataView && reuse !== value && reuse.byteLength === src.byteLength) {
-        new Uint8Array(reuse.buffer, reuse.byteOffset, reuse.byteLength).set(
-          new Uint8Array(src.buffer, src.byteOffset, src.byteLength)
-        );
-        dst = reuse;
-      } else {
-        dst = new DataView(src.buffer.slice(src.byteOffset, src.byteOffset + src.byteLength));
-      }
-    } else {
-      const src = <TypedArray>value;
-      if (
-        reuse &&
-        reuse !== value &&
-        reuse.constructor === src.constructor &&
-        (<TypedArray>reuse).length === src.length
-      ) {
-        (<TypedArray>reuse).set(src);
-        dst = reuse;
-      } else {
-        dst = src.slice();
-      }
-    }
-    cloneMap.set(value, dst);
-    return dst;
-  }
-
-  /**
-   * @internal
-   * Array — fresh instance, each element re-entering the gate.
-   */
-  static _cloneArray(value: any[], cloneMap: Map<object, object>): any[] {
-    const dst = new Array(value.length);
-    cloneMap.set(value, dst);
-    for (let i = 0, n = value.length; i < n; i++) {
-      dst[i] = CloneManager._cloneValue(value[i], undefined, cloneMap);
-    }
-    return dst;
-  }
-
-  /**
-   * @internal
-   * Map — fresh instance, each key and value re-entering the gate.
-   */
-  static _cloneMapValue(value: Map<any, any>, cloneMap: Map<object, object>): Map<any, any> {
-    const dst = new Map<any, any>();
-    cloneMap.set(value, dst);
-    for (const entry of value) {
-      dst.set(
-        CloneManager._cloneValue(entry[0], undefined, cloneMap),
-        CloneManager._cloneValue(entry[1], undefined, cloneMap)
-      );
-    }
-    return dst;
-  }
-
-  /**
-   * @internal
-   * Set — fresh instance, each member re-entering the gate.
-   */
-  static _cloneSetValue(value: Set<any>, cloneMap: Map<object, object>): Set<any> {
-    const dst = new Set<any>();
-    cloneMap.set(value, dst);
-    for (const v of value) {
-      dst.add(CloneManager._cloneValue(v, undefined, cloneMap));
-    }
-    return dst;
-  }
-
-  /**
-   * @internal
-   * Class instance or plain / null-prototype object — reuse a compatible preset or construct bare,
-   * then copy via a value type's `copyFrom` (Vector3 / Color / ...) or, failing that, by walking
-   * every field; finally run its `_cloneTo` hook.
-   */
-  static _cloneClassInstance(value: any, reuse: any, cloneMap: Map<object, object>): any {
-    const ctor = <any>value.constructor;
-    // Compatible reuse: a distinct instance of the exact same type (null-prototype matches null-prototype).
-    const reusable = reuse && reuse !== value && reuse.constructor === ctor ? reuse : null;
-
-    // Value type (Vector3, Color, Matrix, ...) — a class instance carrying a callable copyFrom.
-    // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in the data.
-    if (ctor && ctor !== Object && typeof (<ICustomClone>value).copyFrom === "function") {
-      const dst = <ICustomClone>(reusable ?? CloneManager._bareConstruct(ctor));
-      cloneMap.set(value, dst);
-      dst.copyFrom(<ICustomClone>value);
-      (<ICustomClone>value)._cloneTo?.(dst, cloneMap);
-      return dst;
-    }
-
-    // Reuse or construct (null-prototype objects have no ctor: rebuild as such), then populate all
-    // fields (opt-out) and run its `_cloneTo` hook.
-    const dst = reusable ?? (ctor ? CloneManager._bareConstruct(ctor) : Object.create(null));
-    cloneMap.set(value, dst);
-    CloneManager.deepCloneObject(value, dst, cloneMap);
-    (<ICustomClone>value)._cloneTo?.(<ICustomClone>dst, cloneMap);
-    return dst;
-  }
-
-  /**
    * A deep-cloned instance without a compatible preset is constructed bare; name the contract
    * when that fails instead of surfacing the constructor's raw error.
    */
-  private static _bareConstruct(ctor: new () => any): any {
+  static _bareConstruct(ctor: new () => any): any {
     try {
       return new ctor();
     } catch (e) {
