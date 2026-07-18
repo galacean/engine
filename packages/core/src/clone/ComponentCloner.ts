@@ -13,7 +13,7 @@ export interface ICustomClone {
   _cloneTo?(target: ICustomClone, cloneMap?: Map<object, object>): void;
   /**
    * @internal
-   * Value-type marker — `_deepClone` copies via this instead of walking fields.
+   * Value-type marker — `_cloneClassInstance` copies via this instead of walking fields.
    */
   copyFrom?(source: ICustomClone): void;
 }

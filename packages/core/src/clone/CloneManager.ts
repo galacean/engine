@@ -152,43 +152,9 @@ export class CloneManager {
 
   /**
    * @internal
-   * The single container classification point. Invariant: every shape returning true MUST have
-   * a dedicated `_deepClone` branch. `constructor === undefined` = null-prototype objects.
+   * ArrayBuffer view — byte copy into a reused view of matching layout, else a fresh one.
    */
-  static _isContainer(value: object): boolean {
-    return (
-      Array.isArray(value) ||
-      value instanceof Map ||
-      value instanceof Set ||
-      ArrayBuffer.isView(value) ||
-      value.constructor === Object ||
-      value.constructor === undefined
-    );
-  }
-
-  /**
-   * @internal
-   * Clone one object graph: the structure is fresh, while every member re-enters the gate and
-   * follows its own semantics. Cycles / shared sub-graphs dedup through the identity map.
-   * Pure structural logic — no reference to any type-family predicate — so callers that already
-   * know a value is Deep-mode (e.g. `DataObject.clone()`) can skip `_cloneValue`'s mode resolution.
-   */
-  static _deepClone(value: any, reuse: any, cloneMap: Map<object, object>): any {
-    const existing = cloneMap.get(value);
-    if (existing) return existing;
-
-    // Each shape identifies and clones itself in one place — no separate classifier to keep in
-    // sync (the four container shapes must precede the class-instance fallback, which would
-    // otherwise field-walk a Map / Set / view into garbage).
-    if (ArrayBuffer.isView(value)) return CloneManager._cloneBufferView(value, reuse, cloneMap);
-    if (Array.isArray(value)) return CloneManager._cloneArray(value, cloneMap);
-    if (value instanceof Map) return CloneManager._cloneMapValue(value, cloneMap);
-    if (value instanceof Set) return CloneManager._cloneSetValue(value, cloneMap);
-    return CloneManager._cloneClassInstance(value, reuse, cloneMap);
-  }
-
-  /** ArrayBuffer view — byte copy into a reused view of matching layout, else a fresh one. */
-  private static _cloneBufferView(value: ArrayBufferView, reuse: any, cloneMap: Map<object, object>): ArrayBufferView {
+  static _cloneBufferView(value: ArrayBufferView, reuse: any, cloneMap: Map<object, object>): ArrayBufferView {
     let dst: ArrayBufferView;
     if (value instanceof DataView) {
       const src = <DataView>value;
@@ -218,8 +184,11 @@ export class CloneManager {
     return dst;
   }
 
-  /** Array — fresh instance, each element re-entering the gate. */
-  private static _cloneArray(value: any[], cloneMap: Map<object, object>): any[] {
+  /**
+   * @internal
+   * Array — fresh instance, each element re-entering the gate.
+   */
+  static _cloneArray(value: any[], cloneMap: Map<object, object>): any[] {
     const dst = new Array(value.length);
     cloneMap.set(value, dst);
     for (let i = 0, n = value.length; i < n; i++) {
@@ -228,8 +197,11 @@ export class CloneManager {
     return dst;
   }
 
-  /** Map — fresh instance, each key and value re-entering the gate. */
-  private static _cloneMapValue(value: Map<any, any>, cloneMap: Map<object, object>): Map<any, any> {
+  /**
+   * @internal
+   * Map — fresh instance, each key and value re-entering the gate.
+   */
+  static _cloneMapValue(value: Map<any, any>, cloneMap: Map<object, object>): Map<any, any> {
     const dst = new Map<any, any>();
     cloneMap.set(value, dst);
     for (const entry of value) {
@@ -241,8 +213,11 @@ export class CloneManager {
     return dst;
   }
 
-  /** Set — fresh instance, each member re-entering the gate. */
-  private static _cloneSetValue(value: Set<any>, cloneMap: Map<object, object>): Set<any> {
+  /**
+   * @internal
+   * Set — fresh instance, each member re-entering the gate.
+   */
+  static _cloneSetValue(value: Set<any>, cloneMap: Map<object, object>): Set<any> {
     const dst = new Set<any>();
     cloneMap.set(value, dst);
     for (const v of value) {
@@ -252,11 +227,12 @@ export class CloneManager {
   }
 
   /**
+   * @internal
    * Class instance or plain / null-prototype object — reuse a compatible preset or construct bare,
    * then copy via a value type's `copyFrom` (Vector3 / Color / ...) or, failing that, by walking
    * every field; finally run its `_cloneTo` hook.
    */
-  private static _cloneClassInstance(value: any, reuse: any, cloneMap: Map<object, object>): any {
+  static _cloneClassInstance(value: any, reuse: any, cloneMap: Map<object, object>): any {
     const ctor = <any>value.constructor;
     // Compatible reuse: a distinct instance of the exact same type (null-prototype matches null-prototype).
     const reusable = reuse && reuse !== value && reuse.constructor === ctor ? reuse : null;
