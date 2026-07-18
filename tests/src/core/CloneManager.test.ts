@@ -149,6 +149,20 @@ class BoundHandlerScript extends Script {
   }
 }
 
+/** Base script decorating two Entity fields, one to be overridden by a subclass, one left inherited. */
+class BaseOverrideScript extends Script {
+  @assignmentClone
+  reDecorated: Entity;
+  @ignoreClone
+  inherited: Entity = null;
+}
+
+/** Subclass re-decorates `reDecorated` (Assignment → Ignore) but never mentions `inherited`. */
+class SubOverrideScript extends BaseOverrideScript {
+  @ignoreClone
+  reDecorated: Entity;
+}
+
 /** Script holding binary data views */
 class BinaryScript extends Script {
   view: DataView;
@@ -632,6 +646,48 @@ describe("Clone remap", async () => {
       expect(cs.handler).not.eq(custom);
       expect(cs.handler).not.eq(script.handler);
       expect(typeof cs.handler).eq("function");
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Subclass field re-decoration shadows the base class's", () => {
+    it("the subclass's own decorator wins on a re-decorated field; an untouched field still inherits the base's", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const sibling = parent.createChild("sibling");
+      const script = parent.addComponent(SubOverrideScript);
+      script.reDecorated = sibling;
+      script.inherited = sibling;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(SubOverrideScript);
+
+      // Base decorates `reDecorated` @assignmentClone (share); the subclass re-decorates it
+      // @ignoreClone — the subclass's own decoration must win, not the base's.
+      expect(cs.reDecorated).eq(undefined);
+      // `inherited` is never touched by the subclass — the base's @ignoreClone must still apply.
+      expect(cs.inherited).eq(null);
+
+      rootEntity.destroy();
+    });
+
+    it("does not leak the subclass's re-decoration back onto the base class", () => {
+      // Decorators run once, at class-definition time — by the time any test runs,
+      // SubOverrideScript's @ignoreClone on `reDecorated` has already been registered. If that
+      // registration mutated a store shared with BaseOverrideScript instead of a store of its
+      // own, every BaseOverrideScript instance (this one included) would inherit the corruption.
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const sibling = parent.createChild("sibling");
+      const baseScript = parent.addComponent(BaseOverrideScript);
+      baseScript.reDecorated = sibling;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(BaseOverrideScript);
+
+      // The base class's own @assignmentClone on `reDecorated` must still share the source.
+      expect(cs.reDecorated).eq(sibling);
 
       rootEntity.destroy();
     });

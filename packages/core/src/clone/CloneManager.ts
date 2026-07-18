@@ -53,46 +53,15 @@ export function ignoreClone(target: object, propertyKey: string): void {
  * gate — a nested class pairs its own acquisition (`_cloneTo` +1 / destroy -1).
  */
 export class CloneManager {
-  /** @internal Own field-level clone modes per class (excluding inherited), from `@deepClone`/`@assignmentClone`/`@ignoreClone`. */
-  static _subFieldModeMap = new Map<object, Map<string, CloneMode>>();
-  /** @internal Flattened field-level clone modes per class (across the prototype chain), cached. */
-  static _fieldModeMap = new Map<object, Map<string, CloneMode>>();
-
-  private static _objectType = Object.getPrototypeOf(Object);
-
-  /**
-   * Get the field-level clone modes of a type, flattened across its prototype chain.
-   */
-  static getFieldModes(type: Function): Map<string, CloneMode> {
-    let modes = CloneManager._fieldModeMap.get(type);
-    if (!modes) {
-      modes = new Map<string, CloneMode>();
-      CloneManager._fieldModeMap.set(type, modes);
-      const objectType = CloneManager._objectType;
-      const subMap = CloneManager._subFieldModeMap;
-      let current = type;
-      while (current !== objectType) {
-        const own = subMap.get(current);
-        if (own) {
-          own.forEach((mode, key) => {
-            if (!modes.has(key)) modes.set(key, mode);
-          });
-        }
-        current = Object.getPrototypeOf(current);
-      }
-    }
-    return modes;
-  }
-
   /**
    * Clone all enumerable fields of source into target; each field goes through the clone gate,
    * honoring field-level decorators.
    */
-  static deepCloneObject(source: object, target: object, cloneMap: Map<object, object>): void {
-    const ctor = (<{ constructor?: Function }>source).constructor;
-    const fieldModes = ctor ? CloneManager.getFieldModes(ctor) : null;
+  static deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
+    // Resolved once per object (a single prototype-chain walk), not once per field.
+    const fieldModes = source._fieldModes;
     for (const k in source) {
-      const fieldMode = fieldModes?.get(k);
+      const fieldMode = fieldModes?.[k];
       if (fieldMode === CloneMode.Ignore) continue;
       target[k] = CloneManager._cloneValue(source[k], target[k], cloneMap, fieldMode);
     }
@@ -101,15 +70,18 @@ export class CloneManager {
   /**
    * @internal
    * Register a field-level clone mode (highest priority — overrides the built-in default decision).
+   * Stamped on the class's own `_fieldModes`, prototypally chained to the parent class's — native
+   * lookup resolves inheritance for free (a subclass re-decorating the same field name shadows the
+   * ancestor's), no separate registry or cache to keep in sync.
    */
-  static _registerFieldMode(target: object, propertyKey: string, mode: CloneMode): void {
-    let fields = CloneManager._subFieldModeMap.get(target.constructor);
-    if (!fields) {
-      fields = new Map<string, CloneMode>();
-      CloneManager._subFieldModeMap.set(target.constructor, fields);
+  static _registerFieldMode(target: any, propertyKey: string, mode: CloneMode): void {
+    if (!Object.prototype.hasOwnProperty.call(target, "_fieldModes")) {
+      Object.defineProperty(target, "_fieldModes", {
+        value: Object.create(target._fieldModes ?? null),
+        configurable: true
+      });
     }
-    fields.set(propertyKey, mode);
-    CloneManager._fieldModeMap.clear();
+    target._fieldModes[propertyKey] = mode;
   }
 
   /**

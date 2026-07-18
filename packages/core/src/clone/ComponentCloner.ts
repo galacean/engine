@@ -32,9 +32,10 @@ export class ComponentCloner {
    * @param cloneMap - Identity map of the cloned subtree (source object → clone)
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
-    const fieldModes = CloneManager.getFieldModes(source.constructor);
+    // Resolved once per component (a single prototype-chain walk), not once per field.
+    const fieldModes = (<any>source)._fieldModes;
     for (const k in source) {
-      const fieldMode = fieldModes.get(k);
+      const fieldMode = fieldModes?.[k];
       if (fieldMode === CloneMode.Ignore) continue;
       const sourceValue = source[k];
       const preset = target[k];
