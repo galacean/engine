@@ -332,19 +332,43 @@ describe("CustomDataModule", function () {
     expect(clonedCustomData.gradients.get("Tint")).to.not.eq(sourceCustomData.gradients.get("Tint"));
     expect(clonedCustomData.gradients.get("Tint")!.constantMax.r).to.be.closeTo(1, 1e-6);
 
-    // Internal caches are rebuilt — _updateShaderData would now upload uniforms.
-    //@ts-ignore - inspecting private internal cache
-    const clonedCurveStreams = (clonedCustomData as any)._curveStreams as { name: string }[];
-    //@ts-ignore
-    const clonedGradientStreams = (clonedCustomData as any)._gradientStreams as { name: string }[];
-    expect(clonedCurveStreams.map((s) => s.name)).to.deep.eq(["Intensity"]);
-    expect(clonedGradientStreams.map((s) => s.name)).to.deep.eq(["Tint"]);
+    // Internal caches are rebuilt — _updateShaderData would now upload uniforms. The clone is
+    // produced by the gate rather than replayed through addCurve / addGradient, so every stream
+    // field is checked against the source's, each with the comparison its role demands.
+    const expectStreamsEquivalent = (key: string, entryKey: string, mapKey: string, names: string[]) => {
+      const sourceStreams = (sourceCustomData as any)[key];
+      const clonedStreams = (clonedCustomData as any)[key];
+      expect(clonedStreams.map((s: any) => s.name)).to.deep.eq(names);
+      expect(clonedStreams.length).to.eq(sourceStreams.length);
 
-    // Each stream points at the very object its map holds — the identity map collapses both
-    // references onto one clone. Were they two separate copies, editing the map entry would
-    // silently stop reaching the shader.
-    expect((clonedCurveStreams[0] as any).curve).to.eq(clonedCustomData.curves.get("Intensity"));
-    expect((clonedGradientStreams[0] as any).gradient).to.eq(clonedCustomData.gradients.get("Tint"));
+      for (let i = 0; i < sourceStreams.length; i++) {
+        const sourceStream = sourceStreams[i];
+        const clonedStream = clonedStreams[i];
+        expect(clonedStream.name).to.eq(sourceStream.name);
+        expect(clonedStream.lastMode).to.eq(sourceStream.lastMode);
+
+        // A ShaderProperty is registered globally by name, so the clone must hold the very same
+        // instance. Identity, not deep equality — a structurally identical copy would pass the
+        // latter while breaking uniform lookup.
+        for (const propKey of Object.keys(sourceStream).filter((k) => k.startsWith("prop"))) {
+          expect(clonedStream[propKey]).to.eq(sourceStream[propKey]);
+        }
+
+        // The keyframe-count cache is per-instance scratch: same values, own vector.
+        if (sourceStream.keysCountCache) {
+          expect(Array.from(clonedStream.keysCountCache)).to.deep.eq(Array.from(sourceStream.keysCountCache));
+          expect(clonedStream.keysCountCache).to.not.eq(sourceStream.keysCountCache);
+        }
+
+        // The stream points at the very object its own map holds (the identity map collapses both
+        // references onto one clone), and that clone is distinct from the source's entry.
+        expect(clonedStream[entryKey]).to.eq((clonedCustomData as any)[mapKey].get(clonedStream.name));
+        expect(clonedStream[entryKey]).to.not.eq(sourceStream[entryKey]);
+      }
+    };
+
+    expectStreamsEquivalent("_curveStreams", "curve", "_curves", ["Intensity"]);
+    expectStreamsEquivalent("_gradientStreams", "gradient", "_gradients", ["Tint"]);
 
     // Mutation isolation: bumping the clone does not bleed back into the source.
     clonedCustomData.curves.get("Intensity")!.constantMax = 0.1;
