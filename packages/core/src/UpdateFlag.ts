@@ -13,7 +13,7 @@ export abstract class UpdateFlag {
    * @param bit - Bit
    * @param param - Parameter
    */
-  abstract dispatch(bit?: number, param?: object): void;
+  abstract dispatch(bit?: number, param?: unknown): void;
 
   /**
    * Clear.
