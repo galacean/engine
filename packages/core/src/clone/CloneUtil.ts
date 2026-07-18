@@ -37,15 +37,10 @@ export class CloneUtil {
    * @internal
    */
   static _cloneValue(source: any, preset: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
-    switch (fieldMode) {
-      case CloneMode.Assignment:
-        return source;
-      case CloneMode.Deep:
-        // `@deepClone` is an explicit intent: force a deep copy, and throw if it can't be honored.
-        return CloneUtil._cloneByDefault(source, preset, cloneMap, true);
-      default:
-        return CloneUtil._cloneByDefault(source, preset, cloneMap);
-    }
+    if (fieldMode === CloneMode.Assignment) return source;
+    // `@deepClone` is an explicit intent: force a deep copy, and throw if it can't be honored.
+    // `Ignore` never arrives here — the field walk skips those fields before calling in.
+    return CloneUtil._cloneByDefault(source, preset, cloneMap, fieldMode === CloneMode.Deep);
   }
 
   /**
