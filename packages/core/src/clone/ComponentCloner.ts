@@ -1,5 +1,5 @@
 import { Component } from "../Component";
-import { CloneManager } from "./CloneManager";
+import { CloneUtil } from "./CloneUtil";
 import { CloneMode } from "./enums/CloneMode";
 
 /**
@@ -33,8 +33,8 @@ export class ComponentCloner {
       if (fieldMode === CloneMode.Ignore) continue;
       const sourceValue = source[k];
       const preset = target[k];
-      const cloned = (target[k] = CloneManager._cloneValue(sourceValue, preset, cloneMap, fieldMode));
-      CloneManager._transferSlotOwnership(cloned, sourceValue, preset);
+      const cloned = (target[k] = CloneUtil._cloneValue(sourceValue, preset, cloneMap, fieldMode));
+      CloneUtil._transferSlotOwnership(cloned, sourceValue, preset);
     }
     (<ICustomClone>(source as unknown))._cloneTo?.(<ICustomClone>target, cloneMap);
   }

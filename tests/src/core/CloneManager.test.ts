@@ -262,6 +262,23 @@ class SharedDefaultTableScript extends Script {
   view: DataView = SharedDefaultTableScript.DEFAULT_VIEW;
 }
 
+/** Script whose Map / Set / Array fields carry constructor-built entries (the clone's preset). */
+class PresetContainerScript extends Script {
+  map = new Map<string, number>([["preset", 1]]);
+  set = new Set<string>(["preset"]);
+  list: number[] = [1, 2, 3];
+}
+
+/** Script whose Array / Map / Set fields alias class-level shared defaults (preset === source). */
+class SharedDefaultContainerScript extends Script {
+  static DEFAULT_LIST = [1, 2, 3];
+  static DEFAULT_MAP = new Map<string, number>([["a", 1]]);
+  static DEFAULT_SET = new Set<string>(["a"]);
+  list: number[] = SharedDefaultContainerScript.DEFAULT_LIST;
+  map: Map<string, number> = SharedDefaultContainerScript.DEFAULT_MAP;
+  set: Set<string> = SharedDefaultContainerScript.DEFAULT_SET;
+}
+
 /** Plain class with no deep-clone default (not DataObject / math / container). */
 class PlainConfig {
   count = 0;
@@ -1174,7 +1191,7 @@ describe("Clone remap", async () => {
 
   describe("deepCloneObject decorator awareness", () => {
     it("respects @ignoreClone on the source type's fields", async () => {
-      const { CloneManager } = await import("@galacean/engine-core");
+      const { CloneUtil } = await import("@galacean/engine-core");
 
       class Bag {
         kept = 1;
@@ -1186,7 +1203,7 @@ describe("Clone remap", async () => {
       source.runtime = 42;
       const target = new Bag();
 
-      CloneManager.deepCloneObject(source, target, new Map());
+      CloneUtil.deepCloneObject(source, target, new Map());
       expect(target.kept).eq(42);
       expect(target.runtime).eq(1);
     });
@@ -1291,6 +1308,49 @@ describe("Clone remap", async () => {
       expect(SharedDefaultTableScript.DEFAULT_WEIGHTS[0]).eq(1);
       expect(script.weights[0]).eq(1);
       expect(cs.view).not.eq(SharedDefaultTableScript.DEFAULT_VIEW);
+
+      rootEntity.destroy();
+    });
+
+    it("array / map / set presets aliasing the source value are never written into", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      parent.addComponent(SharedDefaultContainerScript);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(SharedDefaultContainerScript);
+
+      // The clone's preset IS the source value (a class-level shared default), so it can't be
+      // filled in place — that would write through into the source.
+      expect(cs.list).not.eq(SharedDefaultContainerScript.DEFAULT_LIST);
+      expect(cs.map).not.eq(SharedDefaultContainerScript.DEFAULT_MAP);
+      expect(cs.set).not.eq(SharedDefaultContainerScript.DEFAULT_SET);
+      expect(cs.list).deep.eq([1, 2, 3]);
+      expect(SharedDefaultContainerScript.DEFAULT_LIST).deep.eq([1, 2, 3]);
+      expect(SharedDefaultContainerScript.DEFAULT_MAP.size).eq(1);
+      expect(SharedDefaultContainerScript.DEFAULT_SET.size).eq(1);
+
+      rootEntity.destroy();
+    });
+
+    it("a reused map / set preset drops its own constructor-built entries", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(PresetContainerScript);
+      // Source diverges from what the clone's constructor will build.
+      script.map = new Map([["source", 9]]);
+      script.set = new Set(["source"]);
+      script.list = [7, 8, 9];
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(PresetContainerScript);
+
+      // The clone's own preset entries ("preset") must not survive next to the source's.
+      expect([...cs.map.keys()]).deep.eq(["source"]);
+      expect([...cs.set]).deep.eq(["source"]);
+      expect(cs.list).deep.eq([7, 8, 9]);
+      // ...and the source is untouched.
+      expect([...script.map.keys()]).deep.eq(["source"]);
 
       rootEntity.destroy();
     });

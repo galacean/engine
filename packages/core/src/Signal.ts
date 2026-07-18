@@ -1,6 +1,6 @@
 import { DataObject } from "./base/DataObject";
 import { Component } from "./Component";
-import { CloneManager } from "./clone/CloneManager";
+import { CloneUtil } from "./clone/CloneUtil";
 import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
@@ -150,7 +150,7 @@ export class Signal<T extends any[] = []> extends DataObject {
       const arg = args[i];
       // Only Entity/Component references (Remap types) are remapped; other objects are shared
       // deterministically (looking them up in the identity map would depend on field-walk order).
-      clonedArgs[i] = CloneManager._isRemapType(arg) ? (cloneMap.get(arg) ?? arg) : arg;
+      clonedArgs[i] = CloneUtil._isRemapType(arg) ? (cloneMap.get(arg) ?? arg) : arg;
     }
     return clonedArgs;
   }

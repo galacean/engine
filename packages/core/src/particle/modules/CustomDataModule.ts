@@ -1,5 +1,6 @@
 import { Color, Vector4 } from "@galacean/engine-math";
-import { CloneManager, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
+import { CloneUtil } from "../../clone/CloneUtil";
 import { Logger } from "../../base/Logger";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -192,12 +193,12 @@ export class CustomDataModule extends ParticleGeneratorModule {
   _cloneTo(target: CustomDataModule, cloneMap: Map<object, object>): void {
     for (const [name, curve] of this._curves) {
       const clonedCurve = new ParticleCompositeCurve(0);
-      CloneManager.deepCloneObject(curve, clonedCurve, cloneMap);
+      CloneUtil.deepCloneObject(curve, clonedCurve, cloneMap);
       target.addCurve(name, clonedCurve);
     }
     for (const [name, gradient] of this._gradients) {
       const clonedGradient = new ParticleCompositeGradient(new Color());
-      CloneManager.deepCloneObject(gradient, clonedGradient, cloneMap);
+      CloneUtil.deepCloneObject(gradient, clonedGradient, cloneMap);
       target.addGradient(name, clonedGradient);
     }
   }
