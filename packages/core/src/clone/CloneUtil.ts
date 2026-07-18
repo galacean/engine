@@ -65,14 +65,45 @@ export class CloneUtil {
    * and makes an engine-bound value throw instead of silently resolving to its default.
    */
   static _cloneByType(value: any, reuse: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
-    // `@deepClone` on an engine-bound value is a mistake in the developer's intent — reject it
-    // before the dedup below, which would otherwise quietly resolve an in-subtree Entity to its
-    // clone and hide the misuse.
-    if (forceDeepClone) CloneUtil._assertDeepCloneable(value);
+    // Engine-bound families come first: none of them produces a new object, so they need no dedup
+    // — an Entity's own map lookup *is* the remap, and the others never enter the map. Being ahead
+    // of the dedup is also what lets `@deepClone` on one of them be rejected: behind it, an
+    // in-subtree Entity would resolve to its clone and the misuse would go unnoticed.
+    if (value instanceof Entity || value instanceof Component) {
+      if (forceDeepClone) {
+        throw new Error(
+          `CloneUtil: @deepClone cannot deep clone "${value.constructor.name}" — Entity / Component ` +
+            `references are engine-bound. Remove @deepClone to remap the reference by default.`
+        );
+      }
+      // In-subtree: the clone registered at tree-build time. Outside: keep the original reference.
+      return cloneMap.get(value) ?? value;
+    }
+    if (value instanceof ReferResource) {
+      if (forceDeepClone) {
+        throw new Error(
+          `CloneUtil: @deepClone cannot deep clone "${value.constructor.name}" — assets are engine-bound ` +
+            `and shared by reference. Remove @deepClone to share it, or copy it via the asset's own clone() API.`
+        );
+      }
+      return value;
+    }
+    if (
+      value instanceof UpdateFlagManager ||
+      value instanceof UpdateFlag ||
+      value instanceof DisorderedArray ||
+      value instanceof SafeLoopArray
+    ) {
+      if (forceDeepClone) {
+        throw new Error(
+          `CloneUtil: @deepClone cannot deep clone "${value.constructor.name}" — engine runtime state is ` +
+            `transient and belongs to the instance holding it. Remove @deepClone to keep the clone's own.`
+        );
+      }
+      return reuse;
+    }
 
-    // Already produced for this source in the graph — a clone made earlier, or, for an Entity /
-    // Component inside the cloned subtree, its clone registered at tree-build time. Reusing it
-    // dedups shared / cyclic references and doubles as the in-subtree remap.
+    // Everything below produces a new object, so shared / cyclic references dedup here.
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
@@ -84,18 +115,6 @@ export class CloneUtil {
       return CloneUtil._deepCloneMap(value, reuse, cloneMap);
     } else if (value instanceof Set) {
       return CloneUtil._deepCloneSet(value, reuse, cloneMap);
-    } else if (value instanceof Entity || value instanceof Component) {
-      // Outside the cloned subtree (inside was returned by the dedup above): keep the original.
-      return value;
-    } else if (value instanceof ReferResource) {
-      return value;
-    } else if (
-      value instanceof UpdateFlagManager ||
-      value instanceof UpdateFlag ||
-      value instanceof DisorderedArray ||
-      value instanceof SafeLoopArray
-    ) {
-      return reuse;
     } else {
       // A non-container object. A compatible preset of the exact same type is reused as the clone
       // target; otherwise a bare instance is constructed (null-prototype objects have no
@@ -247,37 +266,6 @@ export class CloneUtil {
     cloneMap.set(value, dst);
     for (const v of value) dst.add(CloneUtil._cloneValue(v, undefined, cloneMap));
     return dst;
-  }
-
-  /**
-   * @internal
-   * A field decorator is the developer's explicit intent, so `@deepClone` on a value that can't be
-   * deep cloned is surfaced rather than silently resolved to that value's default behavior.
-   */
-  static _assertDeepCloneable(value: any): void {
-    if (value instanceof Entity || value instanceof Component) {
-      throw new Error(
-        `CloneUtil: @deepClone cannot deep clone "${value.constructor.name}" — Entity / Component ` +
-          `references are engine-bound. Remove @deepClone to remap the reference by default.`
-      );
-    }
-    if (value instanceof ReferResource) {
-      throw new Error(
-        `CloneUtil: @deepClone cannot deep clone "${value.constructor.name}" — assets are engine-bound ` +
-          `and shared by reference. Remove @deepClone to share it, or copy it via the asset's own clone() API.`
-      );
-    }
-    if (
-      value instanceof UpdateFlagManager ||
-      value instanceof UpdateFlag ||
-      value instanceof DisorderedArray ||
-      value instanceof SafeLoopArray
-    ) {
-      throw new Error(
-        `CloneUtil: @deepClone cannot deep clone "${value.constructor.name}" — engine runtime state is ` +
-          `transient and belongs to the instance holding it. Remove @deepClone to keep the clone's own.`
-      );
-    }
   }
 
   /**
