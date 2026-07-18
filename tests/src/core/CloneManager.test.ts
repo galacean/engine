@@ -285,6 +285,19 @@ class PlainConfig {
   nested = { x: 1 };
 }
 
+/** Non-component class carrying its own @ignoreClone, to be reached through a field walk. */
+class Bag {
+  kept = 1;
+  @ignoreClone
+  runtime = 1;
+}
+
+/** Script forcing the walk into Bag with @deepClone. */
+class BagHolderScript extends Script {
+  @deepClone
+  bag: Bag = null;
+}
+
 /** Script @deepClone-ing a class that has no deep-clone default — must force a deep copy. */
 class ForcedDeepScript extends Script {
   @deepClone
@@ -310,13 +323,13 @@ class SharedPlainScript extends Script {
   config: PlainConfig = null;
 }
 
-/** Script misusing @deepClone on an Entity ref (must fall back to remap, never construct) */
+/** Script misusing @deepClone on an Entity ref — cloning it must throw. */
 class DeepEntityRefScript extends Script {
   @deepClone
   target: Entity;
 }
 
-/** Script misusing @deepClone on an engine-bound asset (must fall back to sharing, never construct) */
+/** Script misusing @deepClone on an engine-bound asset — cloning it must throw. */
 class DeepAssetRefScript extends Script {
   @deepClone
   texture: Texture2D;
@@ -1240,23 +1253,25 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("_deepCloneObject decorator awareness", () => {
-    it("respects @ignoreClone on the source type's fields", async () => {
-      const { CloneUtil } = await import("@galacean/engine-core");
+  describe("Field-walk decorator awareness", () => {
+    it("respects @ignoreClone on a walked non-component class", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(BagHolderScript);
+      script.bag = new Bag();
+      script.bag.kept = 42;
+      script.bag.runtime = 42;
 
-      class Bag {
-        kept = 1;
-        @ignoreClone
-        runtime = 1;
-      }
-      const source = new Bag();
-      source.kept = 42;
-      source.runtime = 42;
-      const target = new Bag();
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(BagHolderScript);
 
-      CloneUtil._deepCloneObject(source, target, new Map());
-      expect(target.kept).eq(42);
-      expect(target.runtime).eq(1);
+      // @deepClone forces the field walk into Bag, which must still honor Bag's own @ignoreClone:
+      // `kept` is copied, `runtime` keeps the fresh instance's constructor value.
+      expect(cs.bag).not.eq(script.bag);
+      expect(cs.bag.kept).eq(42);
+      expect(cs.bag.runtime).eq(1);
+
+      rootEntity.destroy();
     });
   });
 

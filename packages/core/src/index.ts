@@ -70,7 +70,6 @@ export * from "./env-probe/index";
 export * from "./shader/index";
 export * from "./Layer";
 export { CloneManager, deepClone, assignmentClone, ignoreClone } from "./clone/CloneManager";
-export { CloneUtil } from "./clone/CloneUtil";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
 export * from "./Utils";
