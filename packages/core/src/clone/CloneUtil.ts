@@ -1,8 +1,8 @@
-import { ReferResource } from "../asset/ReferResource";
 import { IReferable } from "../asset/IReferable";
-import { Logger } from "../base/Logger";
+import { ReferResource } from "../asset/ReferResource";
 import { TypedArray } from "../base/Constant";
 import { DataObject } from "../base/DataObject";
+import { Logger } from "../base/Logger";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { UpdateFlag } from "../UpdateFlag";
@@ -158,7 +158,7 @@ export class CloneUtil {
   static _transferSlotOwnership(cloned: any, source: any, preset: any): void {
     // Slot content unchanged (Ignore kept / value type copied in place / function reused).
     if (cloned === preset) return;
-    if (CloneUtil._isReferenceResource(preset)) {
+    if (preset instanceof ReferResource) {
       const presetRefCount = (<{ refCount?: number }>preset).refCount;
       presetRefCount !== undefined &&
         presetRefCount <= 0 &&
@@ -170,7 +170,7 @@ export class CloneUtil {
     }
     // `cloned === sourceValue` ⇔ the slot shared the source value (only the Assignment path
     // returns a registered resource as-is), so it owns one reference.
-    if (cloned === source && CloneUtil._isReferenceResource(cloned)) {
+    if (cloned === source && cloned instanceof ReferResource) {
       (<IReferable>cloned)._addReferCount(1);
     }
   }
@@ -266,24 +266,6 @@ export class CloneUtil {
     cloneMap.set(source, dst);
     for (const v of source) dst.add(CloneUtil._cloneValue(v, undefined, cloneMap));
     return dst;
-  }
-
-  /**
-   * @internal
-   * Remap types are the only values whose clones are registered before the field walk begins (at
-   * tree-build time), so looking one up in the identity map yields the same answer regardless of
-   * the order fields happen to be walked in.
-   */
-  static _isRemapType(value: any): boolean {
-    return value instanceof Entity || value instanceof Component;
-  }
-
-  /**
-   * @internal
-   * Counted = the ReferResource family only.
-   */
-  static _isReferenceResource(value: any): boolean {
-    return value instanceof ReferResource;
   }
 
   /**
