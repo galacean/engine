@@ -1,4 +1,4 @@
-import { CloneManager } from "../clone/CloneManager";
+import { CloneManager, markDeepCloneable } from "../clone/CloneManager";
 
 /**
  * Base class for cloneable data objects: wherever an instance is held — a component field,
@@ -19,6 +19,4 @@ export abstract class DataObject {
   }
 }
 
-// Deep marker read by the clone gate; a string-keyed property survives duplicated engine
-// packages, where `instanceof DataObject` would silently fail.
-Object.defineProperty(DataObject.prototype, "_isDeepCloneType", { value: true });
+markDeepCloneable(DataObject);

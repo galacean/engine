@@ -45,6 +45,17 @@ export function ignoreClone(target: object, propertyKey: string): void {
 
 /**
  * @internal
+ * Stamp the deep-clone marker read by `_cloneByDefault` — a string-keyed property, not
+ * `instanceof`, because it must work uniformly for two type families with no common base
+ * (`DataObject`, and math's value types, which cannot depend on core) and survive duplicated
+ * engine packages, where `instanceof` would silently fail.
+ */
+export function markDeepCloneable(type: Function): void {
+  Object.defineProperty(type.prototype, "_isDeepCloneType", { value: true });
+}
+
+/**
+ * @internal
  * Clone manager. Opt-out model: every enumerable field is cloned unless `@ignoreClone`,
  * with the mode resolved by `_cloneValue`.
  *
@@ -297,9 +308,6 @@ export class CloneManager {
 }
 
 // Math value types are always deep cloned; registered here because math cannot depend on core.
-const _markDeep = (type: Function): void => {
-  Object.defineProperty(type.prototype, "_isDeepCloneType", { value: true });
-};
 [
   Ray,
   Vector2,
@@ -315,4 +323,4 @@ const _markDeep = (type: Function): void => {
   BoundingSphere,
   Plane,
   SphericalHarmonics3
-].forEach((type) => _markDeep(type));
+].forEach(markDeepCloneable);
