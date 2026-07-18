@@ -188,8 +188,8 @@ describe("EmissionModule rateOverDistance", () => {
     // Particles are written sequentially starting at firstActiveElement=0.
     //@ts-ignore - test reaches into instance buffer to verify spatial distribution
     const verts = (generator as any)._instanceVertices as Float32Array;
-    // Per-instance stride = 168 bytes / 4 = 42 floats; world position lives at offset 27.
-    const stride = 42;
+    // Per-instance stride = 172 bytes / 4 = 43 floats; world position lives at offset 27.
+    const stride = 43;
     const xs: number[] = [];
     for (let i = 0; i < 4; i++) {
       xs.push(verts[i * stride + 27]);
@@ -222,7 +222,7 @@ describe("EmissionModule rateOverDistance", () => {
 
     //@ts-ignore - reach into instance buffer to read per-particle emit time
     const verts = (generator as any)._instanceVertices as Float32Array;
-    const stride = 42;
+    const stride = 43;
     // a_DirectionTime is at byte 16 → float 4; the .w slot (emit time) is float 4+3=7.
     const timeFloatOffset = 7;
     const times: number[] = [];
@@ -411,7 +411,7 @@ describe("EmissionModule rateOverDistance", () => {
 
     //@ts-ignore - reach into instance buffer to verify positions stay in [lastPos, currentPos]
     const verts = (generator as any)._instanceVertices as Float32Array;
-    const stride = 42;
+    const stride = 43;
     for (let i = 0; i < 7; i++) {
       const x = verts[i * stride + 27];
       // Without the in-loop clamp this would be e.g. -1.0, -1.2, ... (extrapolated

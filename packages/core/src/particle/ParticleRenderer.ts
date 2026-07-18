@@ -151,6 +151,7 @@ export class ParticleRenderer extends Renderer {
    */
   override _onEnable(): void {
     const generator = this.generator;
+    generator.inheritVelocity._resyncEmitterVelocity();
     generator._setTransformFeedback();
     if (generator.main.playOnEnabled) {
       generator.play(false);
@@ -161,6 +162,7 @@ export class ParticleRenderer extends Renderer {
    * @internal
    */
   override _onDisable(): void {
+    this.generator.inheritVelocity._resyncEmitterVelocity();
     this.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
   }
 

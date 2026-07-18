@@ -1,0 +1,117 @@
+import {
+  Burst,
+  Camera,
+  Color,
+  CurveKey,
+  Engine,
+  ParticleCompositeCurve,
+  ParticleCurve,
+  ParticleInheritVelocityMode,
+  ParticleMaterial,
+  ParticleRenderer,
+  ParticleSimulationSpace,
+  ParticleStopMode,
+  WebGLEngine
+} from "@galacean/engine";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+function tick(engine: Engine, time: { value: number }, deltaMs: number = 100): void {
+  //@ts-ignore
+  engine._vSyncCount = Infinity;
+  //@ts-ignore
+  engine._time._lastSystemTime = time.value / 1000;
+  performance.now = function () {
+    time.value += deltaMs;
+    return time.value;
+  };
+  engine.update();
+}
+
+function createParticleRenderer(engine: Engine, name: string): ParticleRenderer {
+  const entity = engine.sceneManager.activeScene.createRootEntity(name);
+  const renderer = entity.addComponent(ParticleRenderer);
+  const material = new ParticleMaterial(engine);
+  material.baseColor = new Color(1, 1, 1, 1);
+  renderer.setMaterial(material);
+
+  const generator = renderer.generator;
+  generator.useAutoRandomSeed = false;
+  generator.main.duration = 5;
+  generator.main.maxParticles = 10;
+  generator.main.startLifetime.constant = 1;
+  generator.main.startSpeed.constant = 0;
+  generator.main.simulationSpace = ParticleSimulationSpace.World;
+  generator.emission.rateOverTime.constant = 0;
+  generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1)));
+  generator.inheritVelocity.enabled = true;
+  generator.inheritVelocity.mode = ParticleInheritVelocityMode.Current;
+
+  return renderer;
+}
+
+function getFeedbackPositionX(renderer: ParticleRenderer): number {
+  const feedback = new Float32Array(6);
+  renderer.generator._feedbackSimulator.readBinding.buffer.getData(feedback, 0, 0, feedback.length);
+  return feedback[0];
+}
+
+describe("InheritVelocityModule", () => {
+  let engine: Engine;
+  let time: { value: number };
+
+  beforeAll(async function () {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    const camera = engine.sceneManager.activeScene.createRootEntity("Camera");
+    camera.addComponent(Camera);
+    camera.transform.setPosition(0, 0, 10);
+    engine.run();
+    time = { value: 0 };
+  });
+
+  afterAll(function () {
+    engine.destroy();
+  });
+
+  it("Current applies the emitter velocity after particles are born", () => {
+    const renderer = createParticleRenderer(engine, "current-inherit-velocity");
+    renderer.generator.inheritVelocity.curve.constant = 1;
+    expect(renderer.generator._useTransformFeedback).to.equal(true);
+
+    renderer.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    renderer.generator.play();
+    tick(engine, time);
+
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(engine, time);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1, 1e-5);
+
+    tick(engine, time);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(1, 1e-5);
+
+    renderer.entity.destroy();
+  });
+
+  it("Current evaluates TwoCurves against the child particle age", () => {
+    const renderer = createParticleRenderer(engine, "current-inherit-velocity-curve");
+    const curve = new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1));
+    renderer.generator.inheritVelocity.curve = new ParticleCompositeCurve(
+      curve,
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 1))
+    );
+    expect(renderer.generator._useTransformFeedback).to.equal(true);
+
+    renderer.generator.stop(true, ParticleStopMode.StopEmittingAndClear);
+    renderer.generator.play();
+    tick(engine, time);
+
+    renderer.entity.transform.setPosition(1, 0, 0);
+    tick(engine, time);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(0.2, 1e-5);
+
+    renderer.entity.transform.setPosition(2, 0, 0);
+    tick(engine, time);
+    expect(getFeedbackPositionX(renderer)).to.be.closeTo(0.5, 1e-5);
+
+    renderer.entity.destroy();
+  });
+});

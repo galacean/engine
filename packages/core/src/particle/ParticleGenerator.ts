@@ -21,6 +21,7 @@ import { ParticleTransformFeedbackSimulator } from "./ParticleTransformFeedbackS
 import { ParticleCurveMode } from "./enums/ParticleCurveMode";
 import { ParticleGradientMode } from "./enums/ParticleGradientMode";
 import { ParticleRenderMode } from "./enums/ParticleRenderMode";
+import { ParticleInheritVelocityMode } from "./enums/ParticleInheritVelocityMode";
 import { ParticleSimulationSpace } from "./enums/ParticleSimulationSpace";
 import { ParticleStopMode } from "./enums/ParticleStopMode";
 import { ParticleSubEmitterType } from "./enums/ParticleSubEmitterType";
@@ -355,6 +356,7 @@ export class ParticleGenerator {
     const duration = main.duration;
     const lastPlayTime = this._playTime;
     let deltaTime = elapsedTime * main.simulationSpeed;
+    this.inheritVelocity._updateEmitterVelocity(elapsedTime);
 
     if (isBirthSubEmitterTarget) {
       this._playStartDelay = 0;
@@ -743,6 +745,7 @@ export class ParticleGenerator {
     this.rotationOverLifetime._updateShaderData(shaderData);
     this.colorOverLifetime._updateShaderData(shaderData);
     this.noise._updateShaderData(shaderData);
+    this.inheritVelocity._updateShaderData(shaderData);
     this.customData._updateShaderData(shaderData);
   }
 
@@ -772,6 +775,7 @@ export class ParticleGenerator {
       this._renderer.engine._hardwareRenderer.isWebGL2 &&
       (this.limitVelocityOverLifetime?.enabled ||
         this.noise?.enabled ||
+        this.inheritVelocity?._needTransformFeedback() ||
         this.velocityOverLifetime?._needTransformFeedback() ||
         this.subEmitters?._hasSubEmitterOfType(ParticleSubEmitterType.Death) ||
         this.subEmitters?._hasSubEmitterOfType(ParticleSubEmitterType.Birth))
@@ -1028,7 +1032,11 @@ export class ParticleGenerator {
     const normalizedEmitAge = normalizedEmitAgeOverride ?? (duration > 0 ? (playTime % duration) / duration : 0);
     let particleDirection = direction;
 
-    if (parentWorldVelocity && this.inheritVelocity.enabled) {
+    if (
+      parentWorldVelocity &&
+      this.inheritVelocity.enabled &&
+      this.inheritVelocity.mode === ParticleInheritVelocityMode.Initial
+    ) {
       const inheritFactor = this.inheritVelocity.curve.evaluate(
         normalizedEmitAge,
         this.inheritVelocity._curveRand.random()
@@ -1196,6 +1204,11 @@ export class ParticleGenerator {
       (limitVelocityOverLifetime._isSpeedRandomMode() || limitVelocityOverLifetime._isDragRandomMode())
     ) {
       instanceVertices[offset + 41] = limitVelocityOverLifetime._speedRand.random();
+    }
+
+    if (this.inheritVelocity._isCurrentRandom()) {
+      instanceVertices[offset + ParticleBufferUtils.inheritVelocityRandomOffset] =
+        this.inheritVelocity._curveRand.random();
     }
 
     // Apply sub-emit inherit: multiply color/size, add rotation

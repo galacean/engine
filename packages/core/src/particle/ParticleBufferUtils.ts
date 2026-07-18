@@ -32,15 +32,17 @@ export class ParticleBufferUtils {
     new VertexElement(ParticleInstanceVertexAttribute.Random1, 92, VertexElementFormat.Vector4, 0),
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldPosition, 108, VertexElementFormat.Vector3, 0),
     new VertexElement(ParticleInstanceVertexAttribute.SimulationWorldRotation, 120, VertexElementFormat.Vector4, 0),
-    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 0)
+    new VertexElement(ParticleInstanceVertexAttribute.Random2, 152, VertexElementFormat.Vector4, 0),
+    new VertexElement(ParticleInstanceVertexAttribute.InheritVelocityRandom, 168, VertexElementFormat.Float, 0)
   ];
 
-  static readonly instanceVertexStride = 168;
+  static readonly instanceVertexStride = 172;
   static readonly instanceVertexFloatStride = ParticleBufferUtils.instanceVertexStride / 4;
 
   static readonly startLifeTimeOffset = 3;
   static readonly timeOffset = 7;
   static readonly simulationUVOffset = 34;
+  static readonly inheritVelocityRandomOffset = 42;
 
   static readonly billboardIndexCount = 6;
 

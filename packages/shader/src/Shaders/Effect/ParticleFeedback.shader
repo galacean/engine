@@ -17,6 +17,22 @@ Shader "Effect/ParticleFeedback" {
       vec4 renderer_WorldRotation;
       int renderer_SimulationSpace;
 
+      #ifdef RENDERER_INHERIT_VELOCITY_CURRENT
+          vec3 renderer_InheritVelocity;
+          #ifdef RENDERER_INHERIT_VELOCITY_CONSTANT_MODE
+              float renderer_InheritVelocityMaxConst;
+              #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
+                  float renderer_InheritVelocityMinConst;
+              #endif
+          #endif
+          #ifdef RENDERER_INHERIT_VELOCITY_CURVE_MODE
+              vec2 renderer_InheritVelocityMaxCurve[4];
+              #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
+                  vec2 renderer_InheritVelocityMinCurve[4];
+              #endif
+          #endif
+      #endif
+
       struct Attributes {
           vec3 a_FeedbackPosition;
           vec3 a_FeedbackVelocity;
@@ -35,6 +51,10 @@ Shader "Effect/ParticleFeedback" {
 
           #if defined(RENDERER_FOL_CONSTANT_MODE) || defined(RENDERER_FOL_CURVE_MODE) || defined(RENDERER_LVL_MODULE_ENABLED)
               vec4 a_Random2;
+          #endif
+
+          #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
+              float a_InheritVelocityRandom;
           #endif
       };
 
@@ -112,6 +132,27 @@ Shader "Effect/ParticleFeedback" {
           vec4 invWorldRotation = quaternionConjugate(worldRotation);
 
           vec3 localVelocity = attr.a_FeedbackVelocity;
+          vec3 inheritedVelocityWorld = vec3(0.0);
+
+          #ifdef RENDERER_INHERIT_VELOCITY_CURRENT
+              float inheritFactor;
+              #ifdef RENDERER_INHERIT_VELOCITY_CONSTANT_MODE
+                  inheritFactor = renderer_InheritVelocityMaxConst;
+                  #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
+                      inheritFactor = mix(renderer_InheritVelocityMinConst, inheritFactor, attr.a_InheritVelocityRandom);
+                  #endif
+              #endif
+              #ifdef RENDERER_INHERIT_VELOCITY_CURVE_MODE
+                  inheritFactor = evaluateParticleCurve(renderer_InheritVelocityMaxCurve, normalizedAge);
+                  #ifdef RENDERER_INHERIT_VELOCITY_RANDOM
+                      inheritFactor = mix(
+                          evaluateParticleCurve(renderer_InheritVelocityMinCurve, normalizedAge),
+                          inheritFactor,
+                          attr.a_InheritVelocityRandom);
+                  #endif
+              #endif
+              inheritedVelocityWorld = renderer_InheritVelocity * inheritFactor;
+          #endif
 
           // Step 1: VOL + FOL + Gravity
           vec3 gravityDelta = renderer_Gravity * attr.a_Random0.x * dt;
@@ -146,19 +187,20 @@ Shader "Effect/ParticleFeedback" {
           #ifdef RENDERER_LVL_MODULE_ENABLED
               vec3 volAsLocal = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
               vec3 volAsWorld = rotationByQuaternions(volLocal, worldRotation) + volWorld;
+              vec3 inheritedVelocityLocal = rotationByQuaternions(inheritedVelocityWorld, invWorldRotation);
 
               float limitRand = attr.a_Random2.w;
               float dampen = renderer_LVLDampen;
               float effectiveDampen = 1.0 - pow(1.0 - dampen, dt * 30.0);
 
               if (renderer_LVLSpace == 0) {
-                  vec3 totalLocal = localVelocity + volAsLocal;
+                  vec3 totalLocal = localVelocity + volAsLocal + inheritedVelocityLocal;
                   vec3 dampenedTotal = applyLVLSpeedLimitTF(totalLocal, normalizedAge, limitRand, effectiveDampen);
-                  localVelocity = dampenedTotal - volAsLocal;
+                  localVelocity = dampenedTotal - volAsLocal - inheritedVelocityLocal;
               } else {
-                  vec3 totalWorld = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
+                  vec3 totalWorld = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld + inheritedVelocityWorld;
                   vec3 dampenedTotal = applyLVLSpeedLimitTF(totalWorld, normalizedAge, limitRand, effectiveDampen);
-                  localVelocity = rotationByQuaternions(dampenedTotal - volAsWorld, invWorldRotation);
+                  localVelocity = rotationByQuaternions(dampenedTotal - volAsWorld - inheritedVelocityWorld, invWorldRotation);
               }
 
               {
@@ -166,9 +208,9 @@ Shader "Effect/ParticleFeedback" {
                   if (dragCoeff > 0.0) {
                       vec3 totalVel;
                       if (renderer_LVLSpace == 0) {
-                          totalVel = localVelocity + volAsLocal;
+                          totalVel = localVelocity + volAsLocal + inheritedVelocityLocal;
                       } else {
-                          totalVel = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld;
+                          totalVel = rotationByQuaternions(localVelocity, worldRotation) + volAsWorld + inheritedVelocityWorld;
                       }
                       float velMagSqr = dot(totalVel, totalVel);
                       float velMag = sqrt(velMagSqr);
@@ -189,9 +231,11 @@ Shader "Effect/ParticleFeedback" {
                           float newVelMag = max(0.0, velMag - drag * dt);
                           vec3 draggedTotal = totalVel * (newVelMag / velMag);
                           if (renderer_LVLSpace == 0) {
-                              localVelocity = draggedTotal - volAsLocal;
+                              localVelocity = draggedTotal - volAsLocal - inheritedVelocityLocal;
                           } else {
-                              localVelocity = rotationByQuaternions(draggedTotal - volAsWorld, invWorldRotation);
+                              localVelocity = rotationByQuaternions(
+                                  draggedTotal - volAsWorld - inheritedVelocityWorld,
+                                  invWorldRotation);
                           }
                       }
                   }
@@ -223,6 +267,7 @@ Shader "Effect/ParticleFeedback" {
           } else {
               totalLinearVelocity = baseVelocity + rotationByQuaternions(volLocal, worldRotation) + volWorld;
           }
+          totalLinearVelocity += inheritedVelocityWorld;
 
           #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
           vec3 position = attr.a_FeedbackPosition;

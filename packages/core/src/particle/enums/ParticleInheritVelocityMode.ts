@@ -1,7 +1,7 @@
-/** Defines which parent velocity an inherit-velocity module uses. */
+/** Defines how an inherit-velocity module samples its emitter velocity. */
 export enum ParticleInheritVelocityMode {
   /** Capture the parent velocity when the child particle is emitted. */
   Initial = 0,
-  /** Use the parent emitter's current velocity while the child is alive. */
+  /** Continuously apply the current emitter velocity to World-space particles. Requires WebGL2. */
   Current = 1
 }

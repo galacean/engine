@@ -217,6 +217,7 @@ export class MainModule implements ICustomClone {
 
       const generator = this._generator;
       generator._renderer._onTransformChanged(TransformModifyFlags.WorldMatrix);
+      generator._setTransformFeedback();
 
       if (value === ParticleSimulationSpace.Local) {
         generator._freeBoundsArray();
