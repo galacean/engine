@@ -11,7 +11,7 @@ export interface ParticleSubEmitterEmissionCommand {
   inheritColor: Color | null;
   inheritSize: Vector3 | null;
   inheritRotation: Vector3 | null;
-  legacyWorldDirection: Vector3 | null;
+  eventWorldDirection: Vector3 | null;
   parentWorldVelocity: Vector3 | null;
   emissionNormalizedTime: number | null;
   frameTime: number;

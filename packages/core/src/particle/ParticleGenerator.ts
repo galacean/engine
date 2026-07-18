@@ -98,7 +98,6 @@ export class ParticleGenerator {
   /** Noise module. */
   @deepClone
   readonly noise: NoiseModule;
-  /** Inherit velocity module used by sub-emitter commands. */
   @deepClone
   readonly inheritVelocity: InheritVelocityModule;
   /** Sub emitters module. */
@@ -376,7 +375,6 @@ export class ParticleGenerator {
     this._frameLastPlayTime = lastPlayTime;
     this._framePlayTime = this._playTime;
 
-    // Upload everything created after the previous simulation pass before TF reads it.
     if (
       this._firstNewElement !== this._firstFreeElement ||
       this._waitProcessRetiredElementCount > 0 ||
@@ -1288,11 +1286,9 @@ export class ParticleGenerator {
         simulationLocal && direction.multiply(positionScale);
       }
 
-      // Legacy Event-mode velocity inheritance replaces the Shape direction but
-      // intentionally keeps the target system's Start Speed semantics.
-      const legacyWorldDirection = command.legacyWorldDirection;
-      if (legacyWorldDirection) {
-        Vector3.transformByQuat(legacyWorldDirection, invRot, direction);
+      const eventWorldDirection = command.eventWorldDirection;
+      if (eventWorldDirection) {
+        Vector3.transformByQuat(eventWorldDirection, invRot, direction);
         const length = direction.length();
         if (length > MathUtil.zeroTolerance) {
           direction.scale(1 / length);
@@ -1327,7 +1323,7 @@ export class ParticleGenerator {
     inheritColor: Color,
     inheritSize: Vector3,
     inheritRotation: Vector3,
-    legacyWorldDirection: Vector3,
+    eventWorldDirection: Vector3,
     parentWorldVelocity: Vector3,
     emissionNormalizedTime: number | null,
     frameTime: number
@@ -1340,7 +1336,7 @@ export class ParticleGenerator {
       inheritColor: inheritColor ? new Color().copyFrom(inheritColor) : null,
       inheritSize: inheritSize ? new Vector3().copyFrom(inheritSize) : null,
       inheritRotation: inheritRotation ? new Vector3().copyFrom(inheritRotation) : null,
-      legacyWorldDirection: legacyWorldDirection ? new Vector3().copyFrom(legacyWorldDirection) : null,
+      eventWorldDirection: eventWorldDirection ? new Vector3().copyFrom(eventWorldDirection) : null,
       parentWorldVelocity: parentWorldVelocity ? new Vector3().copyFrom(parentWorldVelocity) : null,
       emissionNormalizedTime,
       frameTime

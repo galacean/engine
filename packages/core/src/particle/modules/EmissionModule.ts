@@ -169,8 +169,6 @@ export class EmissionModule extends ParticleGeneratorModule {
     this._emitByRateOverTime(playTime, state, tolerateRateBoundary);
     this._emitByRateOverDistance(lastPlayTime, playTime, state, currentPosition);
     this._emitByBurst(lastPlayTime, playTime, state);
-    // The backing array is pooled per runtime state. Trim its visible length so callers
-    // can iterate it without allocating one array for every parent particle every frame.
     state._samples.length = state._sampleCount;
     if (sortByTime && state._sampleCount > 1) {
       // Rate, distance, and burst evaluators append independently. Keep the final
