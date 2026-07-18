@@ -1,19 +1,3 @@
-import {
-  BoundingBox,
-  BoundingFrustum,
-  BoundingSphere,
-  Color,
-  Matrix,
-  Matrix3x3,
-  Plane,
-  Quaternion,
-  Ray,
-  Rect,
-  SphericalHarmonics3,
-  Vector2,
-  Vector3,
-  Vector4
-} from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
 import { TypedArray } from "../base/Constant";
 import { Logger } from "../base/Logger";
@@ -41,17 +25,6 @@ export function assignmentClone(target: object, propertyKey: string): void {
  */
 export function ignoreClone(target: object, propertyKey: string): void {
   CloneManager._registerFieldMode(target, propertyKey, CloneMode.Ignore);
-}
-
-/**
- * @internal
- * Stamp the deep-clone marker read by `_cloneByDefault` — a string-keyed property, not
- * `instanceof`, because it must work uniformly for two type families with no common base
- * (`DataObject`, and math's value types, which cannot depend on core) and survive duplicated
- * engine packages, where `instanceof` would silently fail.
- */
-export function markDeepCloneable(type: Function): void {
-  Object.defineProperty(type.prototype, "_isDeepCloneType", { value: true });
 }
 
 /**
@@ -179,14 +152,6 @@ export class CloneManager {
 
   /**
    * @internal
-   * Whether `value.copyFrom` is a self-contained value-type copy (math's Vector3/Color/... style),
-   * as opposed to `DataObject`'s dispatcher method of the same public name; injected from
-   * `CloneDefaults`.
-   */
-  static _hasSpecializedCopy: (value: any) => boolean;
-
-  /**
-   * @internal
    * The single container classification point. Invariant: every shape returning true MUST have
    * a dedicated `_deepClone` branch. `constructor === undefined` = null-prototype objects.
    */
@@ -281,13 +246,8 @@ export class CloneManager {
     const reusable = reuse && reuse !== value && reuse.constructor === ctor ? reuse : null;
 
     // Value type (Vector3, Color, Matrix, ...) — a class instance carrying a callable copyFrom.
-    // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in
-    // the data. `DataObject` is excluded even though it also exposes a public `copyFrom`: that
-    // method's own generic fallback calls back into `_deepClone`, so treating it as "specialized"
-    // here would recurse into itself — DataObject family is routed via `_cloneByDefault` instead,
-    // and reaches this point only for its generic-fallback case, which belongs in the field-walk
-    // branch below.
-    if (ctor && ctor !== Object && CloneManager._hasSpecializedCopy(value)) {
+    // Plain / null-prototype objects never take this branch, even when a `copyFrom` field rides in the data.
+    if (ctor && ctor !== Object && typeof (<ICustomClone>value).copyFrom === "function") {
       const dst = <ICustomClone>(reusable ?? CloneManager._bareConstruct(ctor));
       cloneMap.set(value, dst);
       dst.copyFrom(<ICustomClone>value);
@@ -305,12 +265,10 @@ export class CloneManager {
   }
 
   /**
-   * @internal
    * A deep-cloned instance without a compatible preset is constructed bare; name the contract
-   * when that fails instead of surfacing the constructor's raw error. Also used directly by
-   * `DataObject.clone()`, which needs the same bare-construction contract for its `_copyFrom` path.
+   * when that fails instead of surfacing the constructor's raw error.
    */
-  static _bareConstruct(ctor: new () => any): any {
+  private static _bareConstruct(ctor: new () => any): any {
     try {
       return new ctor();
     } catch (e) {
@@ -322,21 +280,3 @@ export class CloneManager {
     }
   }
 }
-
-// Math value types are always deep cloned; registered here because math cannot depend on core.
-[
-  Ray,
-  Vector2,
-  Vector3,
-  Vector4,
-  Quaternion,
-  Matrix,
-  Matrix3x3,
-  Color,
-  Rect,
-  BoundingBox,
-  BoundingFrustum,
-  BoundingSphere,
-  Plane,
-  SphericalHarmonics3
-].forEach(markDeepCloneable);

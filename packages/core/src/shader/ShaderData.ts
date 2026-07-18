@@ -603,10 +603,10 @@ export class ShaderData extends DataObject implements IReferable, IClone {
     }
   }
 
-  override clone(): this {
+  clone(): ShaderData {
     const shaderData = new ShaderData(this._group);
     this.cloneTo(shaderData);
-    return <this>shaderData;
+    return shaderData;
   }
 
   cloneTo(target: ShaderData): void {

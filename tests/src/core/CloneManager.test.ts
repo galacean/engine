@@ -1083,21 +1083,6 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("Math value-type registration completeness", () => {
-    it("every math export with copyFrom carries the internal deep marker", async () => {
-      const mathExports = await import("@galacean/engine-math");
-      const unregistered: string[] = [];
-      for (const [name, exported] of Object.entries(mathExports)) {
-        if (typeof exported !== "function" || !(exported as any).prototype) continue;
-        if (typeof (exported as any).prototype.copyFrom !== "function") continue;
-        if ((exported as any).prototype._isDeepCloneType === undefined) unregistered.push(name);
-      }
-      // A math value type missing from CloneManager's registration list falls back to
-      // Assignment sharing — mutable state silently shared between source and clone.
-      expect(unregistered).deep.eq([]);
-    });
-  });
-
   describe("Runtime-container type defaults (Ignore)", () => {
     it("an undecorated DisorderedArray slot keeps the clone's own instance", async () => {
       const { DisorderedArray } = await import("@galacean/engine-core");
@@ -1323,97 +1308,6 @@ describe("Clone remap", async () => {
     });
   });
 
-  describe("DataObject.clone() called directly", () => {
-    it("produces an independent deep copy without going through a component field", () => {
-      const source = new ParticleCompositeCurve(1, 2);
-      const cloned = source.clone();
-
-      expect(cloned).not.eq(source);
-      expect(cloned).instanceOf(ParticleCompositeCurve);
-      expect(cloned.constantMin).eq(1);
-      expect(cloned.constantMax).eq(2);
-
-      cloned.constantMin = 99;
-      expect(source.constantMin).eq(1);
-    });
-
-    it("copyFrom(source) populates this from source, not the reverse", () => {
-      const source = new ParticleCompositeCurve(1, 2);
-      const target = new ParticleCompositeCurve(99, 99);
-
-      target.copyFrom(source);
-
-      expect(target.constantMin).eq(1);
-      expect(target.constantMax).eq(2);
-      // The source must be untouched — copyFrom is one-directional (into `this`, from `source`).
-      expect(source.constantMin).eq(1);
-      expect(source.constantMax).eq(2);
-    });
-
-    it("an overridden _copyFrom is used by both clone() and copyFrom(), called with (source, map)", () => {
-      const calls: Array<{ target: OverriddenCopyFromConfig; source: OverriddenCopyFromConfig }> = [];
-      class OverriddenCopyFromConfig extends DataObject {
-        value = 0;
-        protected _copyFrom(source: OverriddenCopyFromConfig): void {
-          calls.push({ target: this, source });
-          this.value = source.value * 10;
-        }
-      }
-      const source = new OverriddenCopyFromConfig();
-      source.value = 5;
-
-      const cloned = source.clone();
-      expect(cloned).not.eq(source);
-      expect(cloned.value).eq(50);
-      expect(calls[0].target).eq(cloned);
-      expect(calls[0].source).eq(source);
-
-      const target = new OverriddenCopyFromConfig();
-      target.copyFrom(source);
-      expect(target.value).eq(50);
-      expect(calls[1].target).eq(target);
-      expect(calls[1].source).eq(source);
-    });
-
-    it("an overridden _clone takes full control, bypassing the generic bare-construct + copyFrom path", () => {
-      class OverriddenCloneConfig extends DataObject {
-        value = 0;
-        protected _clone(): this {
-          const dst = <this>new OverriddenCloneConfig();
-          dst.value = this.value + 1000;
-          return dst;
-        }
-      }
-      const source = new OverriddenCloneConfig();
-      source.value = 1;
-
-      const cloned = source.clone();
-
-      expect(cloned).not.eq(source);
-      expect(cloned.value).eq(1001);
-    });
-
-    it("a plain DataObject value nested in a container round-trips through clone() without recursing", () => {
-      // Regression: DataObject exposes a public copyFrom (the dispatcher); _deepClone's own
-      // duck-typed "does this have a specialized copyFrom" check must not mistake it for one,
-      // or the dispatcher recurses into itself and never terminates.
-      const rootEntity = scene.createRootEntity("root");
-      const parent = rootEntity.createChild("parent");
-      const script = parent.addComponent(CopyFromDataScript);
-      const curve = new ParticleCompositeCurve(3, 4);
-      script.config = { curves: [curve] };
-
-      const cloned = parent.clone();
-      const clonedCurve = cloned.getComponent(CopyFromDataScript).config.curves[0];
-
-      expect(clonedCurve).not.eq(curve);
-      expect(clonedCurve.constantMin).eq(3);
-      expect(clonedCurve.constantMax).eq(4);
-
-      rootEntity.destroy();
-    });
-  });
-
   describe("Parameter-constructed Deep values as container elements", () => {
     it("clones gradients and curves held in arrays / maps without a reusable preset", () => {
       const rootEntity = scene.createRootEntity("root");
@@ -1511,9 +1405,12 @@ describe("Clone remap", async () => {
       for (const [pkg, ns] of packages) {
         for (const [name, exported] of Object.entries(ns)) {
           if (typeof exported !== "function" || !exported.prototype) continue;
-          // math carries only Deep markers; core/ui Deep types are the DataObject family
+          // math value types dispatch by their callable copyFrom; core/ui Deep types are the
+          // DataObject family
           const isDeep =
-            pkg === "math" ? exported.prototype._isDeepCloneType !== undefined : exported.prototype instanceof DataObject;
+            pkg === "math"
+              ? typeof exported.prototype.copyFrom === "function"
+              : exported.prototype instanceof DataObject;
           if (!isDeep) continue;
           if (exempt.has(name)) continue;
           try {
