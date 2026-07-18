@@ -591,42 +591,28 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
-    it("@deepClone entity ref falls back to remap instead of constructing a broken entity", () => {
+    it("@deepClone on an Entity ref throws — the explicit intent can't be honored, so it's surfaced", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const child = parent.createChild("child");
-      const external = rootEntity.createChild("external");
       const script = parent.addComponent(DeepEntityRefScript);
-
-      // In-subtree ref remaps to the clone's entity.
       script.target = child;
-      let cloned = parent.clone();
-      expect(cloned.getComponent(DeepEntityRefScript).target).eq(cloned.children[0]);
 
-      // Out-of-subtree ref keeps the original reference (never `new Entity()` without engine).
-      script.target = external;
-      cloned = parent.clone();
-      expect(cloned.getComponent(DeepEntityRefScript).target).eq(external);
-      expect(cloned.getComponent(DeepEntityRefScript).target.engine).eq(engine);
+      // A decorator is the developer's explicit intent; @deepClone on an engine-bound Entity is a
+      // mistake — thrown, never silently remapped (an undecorated Entity ref remaps by default).
+      expect(() => parent.clone()).toThrowError(/@deepClone cannot deep clone/);
 
       rootEntity.destroy();
     });
 
-    it("@deepClone asset ref falls back to sharing instead of constructing a broken asset", () => {
+    it("@deepClone on an asset ref throws — assets are engine-bound and shared by reference", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
       const script = parent.addComponent(DeepAssetRefScript);
       const texture = new Texture2D(engine, 4, 4);
-      const baseline = texture.refCount;
       script.texture = texture;
 
-      const cloned = parent.clone();
-      const cs = cloned.getComponent(DeepAssetRefScript);
-
-      // Shared, never `new Texture2D()` without an engine; the slot behaves like an
-      // undecorated asset slot (owns one reference under the slot contract).
-      expect(cs.texture).eq(texture);
-      expect(texture.refCount).eq(baseline + 1);
+      expect(() => parent.clone()).toThrowError(/@deepClone cannot deep clone/);
 
       rootEntity.destroy();
       texture.destroy(true);

@@ -90,7 +90,7 @@ console.log(cloneScript.texture === script.texture); // output is true，资产�
 | :--- | :--- |
 | [ignoreClone](/apis/core/#ignoreClone) | 克隆时对字段进行忽略，克隆体保留自身构造时的值。 |
 | [assignmentClone](/apis/core/#assignmentClone) | 克隆时对字段进行赋值。如果是基本类型则会拷贝值，如果是引用类型，克隆体将与源共享同一个引用。 |
-| [deepClone](/apis/core/#deepClone) | 克隆时对字段进行深克隆。字段会获得全新且独立的结构，内部每个成员再按各自的语义继续克隆。引擎绑定的对象无法被深克隆：`Entity` / `Component` 引用会回退为重映射并告警，资产会回退为共享并告警。|
+| [deepClone](/apis/core/#deepClone) | 克隆时对字段进行深克隆。字段会获得全新且独立的结构，内部每个成员再按各自的语义继续克隆。引擎绑定的对象无法被深克隆：对 `Entity` / `Component` 引用或资产使用 `@deepClone` 会直接报错 —— 请移除该装饰器以走默认行为（重映射 / 共享），或使用资产自身的克隆 API 复制资产。|
 
 <Callout type="negative">
 `@shallowClone` 已被移除。它旧有的“拷贝容器本身、共享内部成员”语义已不复存在。请按意图迁移：希望字段独立就使用 `@deepClone`，希望共享就使用 `@assignmentClone`。
@@ -143,7 +143,7 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
 
   - 字段装饰器优先级最高，并且对克隆对象图任意深度上嵌套类的字段同样生效。
   - `deepClone` 会对结构进行深度递归克隆，内部每个成员仍按各自的语义克隆：资产保持共享，实体引用被重映射，嵌套字段上的装饰器依然生效。
-  - `deepClone` 无法深克隆引擎绑定的对象：`Entity` / `Component` 引用会回退为重映射，资产会回退为共享，二者都会打印告警。如果需要真正复制一份资产，请使用资产自身的克隆 API。
+  - `deepClone` 无法深克隆引擎绑定的对象：对 `Entity` / `Component` 引用或资产使用 `@deepClone` 会直接报错，因为这个显式意图无法被满足。请移除该装饰器以回退到默认行为（重映射 / 共享），或使用资产自身的克隆 API 得到真正的拷贝。
   - 如果克隆装饰器不能满足诉求，可以通过实现 [_cloneTo()](/apis/design/#IClone-cloneTo) 方法追加自定义克隆。
 
 ## 克隆与资产引用计数

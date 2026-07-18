@@ -82,20 +82,20 @@ export class CloneManager {
     if (fieldMode === undefined) return CloneManager._cloneByDefault(value, reuse, cloneMap);
     if (fieldMode === CloneMode.Assignment) return value;
 
-    // fieldMode === Deep: error recovery, not a priority rule — engine-bound instances can't be
-    // deep cloned; recover to the type's real action (remap / share) and warn.
+    // fieldMode === Deep: @deepClone is the developer's explicit intent. If the value can't be
+    // deep cloned (engine-bound: Entity / Component references, or assets), that intent is a
+    // mistake — throw to surface it, never silently fall back to remap / share.
     if (CloneManager._isRemapType(value)) {
-      Logger.warn(
-        `CloneManager: "${value.constructor.name}" cannot be deep cloned; @deepClone on this field falls back to remap.`
+      throw new Error(
+        `CloneManager: @deepClone cannot deep clone "${value.constructor.name}" — Entity / Component ` +
+          `references are engine-bound. Remove @deepClone to remap the reference by default.`
       );
-      return cloneMap.get(value) ?? value;
     }
     if (CloneManager._isCountedResource(value)) {
-      Logger.warn(
-        `CloneManager: "${value.constructor.name}" is an engine-bound asset and cannot be deep cloned; ` +
-          `@deepClone on this field falls back to sharing (use the asset's own clone() API to copy it).`
+      throw new Error(
+        `CloneManager: @deepClone cannot deep clone "${value.constructor.name}" — assets are engine-bound ` +
+          `and shared by reference. Remove @deepClone to share it, or copy it via the asset's own clone() API.`
       );
-      return value;
     }
     // Neither family — deep clone through the same dispatch the default path uses, but with
     // `forceDeep`: `@deepClone` is an explicit request, so even a class with no deep-clone default

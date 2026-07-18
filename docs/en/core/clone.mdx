@@ -89,7 +89,7 @@ In addition to the default type-driven rules, the engine also provides "clone de
 | :--- | :--- |
 | [ignoreClone](/apis/core/#ignoreClone) | Ignore the field during cloning; the clone keeps its own constructor-built value. |
 | [assignmentClone](/apis/core/#assignmentClone) | Assign the field during cloning. If it is a basic type, the value will be copied; if it is a reference type, the clone will share the reference with the source. |
-| [deepClone](/apis/core/#deepClone) | Deep clone the field during cloning. The field gets a fresh, independent structure, and each inner member is cloned again according to its own semantics. Engine-bound values cannot be deep cloned: `Entity` / `Component` references fall back to remapping with a warning, and assets fall back to sharing with a warning. |
+| [deepClone](/apis/core/#deepClone) | Deep clone the field during cloning. The field gets a fresh, independent structure, and each inner member is cloned again according to its own semantics. Engine-bound values cannot be deep cloned: `@deepClone` on an `Entity` / `Component` reference or an asset throws — remove the decorator to get the default behavior (remapping / sharing), or copy an asset via its own clone API. |
 
 <Callout type="negative">
 `@shallowClone` has been removed. Its old semantics — copy the container itself but share its members — no longer exist. Migrate by intent: use `@deepClone` if the field should be independent, or `@assignmentClone` if it should be shared.
@@ -142,7 +142,7 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
 
   - Field decorators have the highest priority and also take effect on the fields of nested classes at any depth of the cloned object graph.
   - `deepClone` recursively clones the structure, while each inner member is still cloned according to its own semantics: assets stay shared, entity references are remapped, and nested field decorators still apply.
-  - `deepClone` cannot deep clone engine-bound objects: `Entity` / `Component` references fall back to remapping and assets fall back to sharing, both with a warning. If you need a real copy of an asset, use the asset's own clone API.
+  - `deepClone` cannot deep clone engine-bound objects: `@deepClone` on an `Entity` / `Component` reference or an asset throws, because the explicit intent can't be honored. Remove the decorator to fall back to the default (remapping / sharing), or use the asset's own clone API for a real copy.
   - If the clone decorators do not meet the requirements, you can implement the [_cloneTo()](/apis/design/#IClone-cloneTo) method to add custom cloning.
 
 ## Cloning and Asset Reference Counting
