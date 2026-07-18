@@ -17,6 +17,7 @@ import {
   ParticleStopMode,
   ParticleSubEmitterInheritProperty,
   ParticleSubEmitterType,
+  Scene,
   ConeShape,
   Vector3,
   WebGLEngine
@@ -38,9 +39,13 @@ function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   }
 }
 
-function createParticleRenderer(engine: Engine, name: string): ParticleRenderer {
-  const scene = engine.sceneManager.activeScene;
-  const entity = scene.getRootEntity().createChild(name);
+function createParticleRenderer(
+  engine: Engine,
+  name: string,
+  scene = engine.sceneManager.activeScene
+): ParticleRenderer {
+  const root = scene.getRootEntity() ?? scene.createRootEntity();
+  const entity = root.createChild(name);
   const renderer = entity.addComponent(ParticleRenderer);
   const material = new ParticleMaterial(engine);
   material.baseColor = new Color(1, 1, 1, 1);
@@ -511,6 +516,62 @@ describe("SubEmitter", () => {
     );
 
     parent.entity.destroy();
+  });
+
+  it("rejects sub-emitters from another scene at configuration time", () => {
+    const parent = createParticleRenderer(engine, "CrossScene_Parent");
+    const secondScene = new Scene(engine, "CrossScene_Target");
+    engine.sceneManager.addScene(secondScene);
+    const child = createParticleRenderer(engine, "CrossScene_Child", secondScene);
+    expect(parent.entity.scene).not.to.equal(child.entity.scene);
+
+    expect(() => parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth)).to.throw(
+      "Sub-emitter target must belong to the same scene as its parent particle system"
+    );
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    secondScene.destroy();
+  });
+
+  it("rejects assigning an existing sub-emitter to another scene", () => {
+    const parent = createParticleRenderer(engine, "CrossSceneAssignment_Parent");
+    const child = createParticleRenderer(engine, "CrossSceneAssignment_Child");
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+
+    const secondScene = new Scene(engine, "CrossSceneAssignment_Target");
+    engine.sceneManager.addScene(secondScene);
+    const target = createParticleRenderer(engine, "CrossSceneAssignment_Target", secondScene);
+
+    expect(() => (parent.generator.subEmitters.subEmitters[0].emitter = target)).to.throw(
+      "Sub-emitter target must belong to the same scene as its parent particle system"
+    );
+    expect(parent.generator.subEmitters.subEmitters[0].emitter).to.equal(child);
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    target.entity.destroy();
+    secondScene.destroy();
+  });
+
+  it("rejects sub-emitters after their target moves to another scene", () => {
+    const parent = createParticleRenderer(engine, "MovedTarget_Parent");
+    const child = createParticleRenderer(engine, "MovedTarget_Child");
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.subEmitters.enabled = true;
+
+    const secondScene = new Scene(engine, "MovedTarget_Scene");
+    engine.sceneManager.addScene(secondScene);
+    secondScene.addRootEntity(child.entity);
+    expect(parent.entity.scene).not.to.equal(child.entity.scene);
+
+    expect(() => (parent.entity.scene as any)._componentsManager._particleSystemManager.update(0.1)).to.throw(
+      "Sub-emitter target must belong to the same scene as its parent particle system"
+    );
+
+    parent.entity.destroy();
+    child.entity.destroy();
+    secondScene.destroy();
   });
 
   it("Indirect cycle A→B→A throws at configuration time", () => {

@@ -60,6 +60,7 @@ export class ParticleSystemManager {
       const source = renderers[i];
       const module = source.generator.subEmitters;
       if (!module.enabled) continue;
+      module._validateEmitters();
       const slots = module.subEmitters;
       for (let j = 0, slotCount = slots.length; j < slotCount; j++) {
         const slot = slots[j];

@@ -27,6 +27,7 @@ export class SubEmitter {
 
   /**
    * Target particle renderer the sub particles emit into.
+   * Both particle renderers must belong to the same scene.
    */
   get emitter(): ParticleRenderer {
     return this._emitter;

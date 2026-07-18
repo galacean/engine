@@ -108,9 +108,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     emitProbability: number = 1,
     emitCount: number = 1
   ): void {
-    if (SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
-      throw new Error("Sub-emitter would create a cycle");
-    }
+    this._validateEmitter(emitter);
     const sub = new SubEmitter();
     sub.emitter = emitter;
     sub.type = type;
@@ -145,6 +143,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
 
   override set enabled(value: boolean) {
     if (value !== this._enabled) {
+      if (value) this._validateEmitters();
       this._enabled = value;
       this._generator._setTransformFeedback();
     }
@@ -409,8 +408,17 @@ export class SubEmittersModule extends ParticleGeneratorModule {
    * @internal
    */
   _validateEmitter(emitter: ParticleRenderer): void {
+    this._validateEmitterScene(emitter);
     if (emitter && SubEmittersModule._wouldCreateCycle(emitter, this._generator)) {
       throw new Error("Sub-emitter would create a cycle");
+    }
+  }
+
+  /** @internal */
+  _validateEmitters(): void {
+    const subEmitters = this._subEmitters;
+    for (let i = 0, n = subEmitters.length; i < n; i++) {
+      this._validateEmitterScene(subEmitters[i].emitter);
     }
   }
 
@@ -425,6 +433,15 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       }
     }
     this._generator._setTransformFeedback();
+  }
+
+  private _validateEmitterScene(emitter: ParticleRenderer): void {
+    if (!emitter || emitter.destroyed) return;
+    const sourceScene = this._generator._renderer.entity.scene;
+    const targetScene = emitter.entity.scene;
+    if (sourceScene && targetScene && sourceScene !== targetScene) {
+      throw new Error("Sub-emitter target must belong to the same scene as its parent particle system");
+    }
   }
 
   private _systemRuntimeSeed(
