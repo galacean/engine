@@ -177,70 +177,86 @@ export class CloneManager {
     const existing = cloneMap.get(value);
     if (existing) return existing;
 
-    // ArrayBuffer views — byte copy (covers every view `_isContainer` routes here, incl. DataView).
-    if (ArrayBuffer.isView(value)) {
-      let dst: ArrayBufferView;
-      if (value instanceof DataView) {
-        const src = <DataView>value;
-        if (reuse instanceof DataView && reuse !== value && reuse.byteLength === src.byteLength) {
-          new Uint8Array(reuse.buffer, reuse.byteOffset, reuse.byteLength).set(
-            new Uint8Array(src.buffer, src.byteOffset, src.byteLength)
-          );
-          dst = reuse;
-        } else {
-          dst = new DataView(src.buffer.slice(src.byteOffset, src.byteOffset + src.byteLength));
-        }
-      } else {
-        const src = <TypedArray>value;
-        if (
-          reuse &&
-          reuse !== value &&
-          reuse.constructor === src.constructor &&
-          (<TypedArray>reuse).length === src.length
-        ) {
-          (<TypedArray>reuse).set(src);
-          dst = reuse;
-        } else {
-          dst = src.slice();
-        }
-      }
-      cloneMap.set(value, dst);
-      return dst;
-    }
+    // Each shape identifies and clones itself in one place — no separate classifier to keep in
+    // sync (the four container shapes must precede the class-instance fallback, which would
+    // otherwise field-walk a Map / Set / view into garbage).
+    if (ArrayBuffer.isView(value)) return CloneManager._cloneBufferView(value, reuse, cloneMap);
+    if (Array.isArray(value)) return CloneManager._cloneArray(value, cloneMap);
+    if (value instanceof Map) return CloneManager._cloneMapValue(value, cloneMap);
+    if (value instanceof Set) return CloneManager._cloneSetValue(value, cloneMap);
+    return CloneManager._cloneClassInstance(value, reuse, cloneMap);
+  }
 
-    // Array — fresh instance, each member through the gate.
-    if (Array.isArray(value)) {
-      const dst = new Array(value.length);
-      cloneMap.set(value, dst);
-      for (let i = 0, n = value.length; i < n; i++) {
-        dst[i] = CloneManager._cloneValue(value[i], undefined, cloneMap);
-      }
-      return dst;
-    }
-
-    // Map
-    if (value instanceof Map) {
-      const dst = new Map<any, any>();
-      cloneMap.set(value, dst);
-      for (const entry of value) {
-        dst.set(
-          CloneManager._cloneValue(entry[0], undefined, cloneMap),
-          CloneManager._cloneValue(entry[1], undefined, cloneMap)
+  /** ArrayBuffer view — byte copy into a reused view of matching layout, else a fresh one. */
+  private static _cloneBufferView(value: ArrayBufferView, reuse: any, cloneMap: Map<object, object>): ArrayBufferView {
+    let dst: ArrayBufferView;
+    if (value instanceof DataView) {
+      const src = <DataView>value;
+      if (reuse instanceof DataView && reuse !== value && reuse.byteLength === src.byteLength) {
+        new Uint8Array(reuse.buffer, reuse.byteOffset, reuse.byteLength).set(
+          new Uint8Array(src.buffer, src.byteOffset, src.byteLength)
         );
+        dst = reuse;
+      } else {
+        dst = new DataView(src.buffer.slice(src.byteOffset, src.byteOffset + src.byteLength));
       }
-      return dst;
-    }
-
-    // Set
-    if (value instanceof Set) {
-      const dst = new Set<any>();
-      cloneMap.set(value, dst);
-      for (const v of value) {
-        dst.add(CloneManager._cloneValue(v, undefined, cloneMap));
+    } else {
+      const src = <TypedArray>value;
+      if (
+        reuse &&
+        reuse !== value &&
+        reuse.constructor === src.constructor &&
+        (<TypedArray>reuse).length === src.length
+      ) {
+        (<TypedArray>reuse).set(src);
+        dst = reuse;
+      } else {
+        dst = src.slice();
       }
-      return dst;
     }
+    cloneMap.set(value, dst);
+    return dst;
+  }
 
+  /** Array — fresh instance, each element re-entering the gate. */
+  private static _cloneArray(value: any[], cloneMap: Map<object, object>): any[] {
+    const dst = new Array(value.length);
+    cloneMap.set(value, dst);
+    for (let i = 0, n = value.length; i < n; i++) {
+      dst[i] = CloneManager._cloneValue(value[i], undefined, cloneMap);
+    }
+    return dst;
+  }
+
+  /** Map — fresh instance, each key and value re-entering the gate. */
+  private static _cloneMapValue(value: Map<any, any>, cloneMap: Map<object, object>): Map<any, any> {
+    const dst = new Map<any, any>();
+    cloneMap.set(value, dst);
+    for (const entry of value) {
+      dst.set(
+        CloneManager._cloneValue(entry[0], undefined, cloneMap),
+        CloneManager._cloneValue(entry[1], undefined, cloneMap)
+      );
+    }
+    return dst;
+  }
+
+  /** Set — fresh instance, each member re-entering the gate. */
+  private static _cloneSetValue(value: Set<any>, cloneMap: Map<object, object>): Set<any> {
+    const dst = new Set<any>();
+    cloneMap.set(value, dst);
+    for (const v of value) {
+      dst.add(CloneManager._cloneValue(v, undefined, cloneMap));
+    }
+    return dst;
+  }
+
+  /**
+   * Class instance or plain / null-prototype object — reuse a compatible preset or construct bare,
+   * then copy via a value type's `copyFrom` (Vector3 / Color / ...) or, failing that, by walking
+   * every field; finally run its `_cloneTo` hook.
+   */
+  private static _cloneClassInstance(value: any, reuse: any, cloneMap: Map<object, object>): any {
     const ctor = <any>value.constructor;
     // Compatible reuse: a distinct instance of the exact same type (null-prototype matches null-prototype).
     const reusable = reuse && reuse !== value && reuse.constructor === ctor ? reuse : null;
@@ -255,8 +271,8 @@ export class CloneManager {
       return dst;
     }
 
-    // Object — reuse or construct (null-prototype objects have no ctor: rebuild as such),
-    // then populate all fields (opt-out) and run its `_cloneTo` hook.
+    // Reuse or construct (null-prototype objects have no ctor: rebuild as such), then populate all
+    // fields (opt-out) and run its `_cloneTo` hook.
     const dst = reusable ?? (ctor ? CloneManager._bareConstruct(ctor) : Object.create(null));
     cloneMap.set(value, dst);
     CloneManager.deepCloneObject(value, dst, cloneMap);
