@@ -419,9 +419,15 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.02553
     },
-    Probe3ConebaseInstrumented: {
+    Probe4FinalSeparate: {
       category: "Particle",
-      caseFileName: "probe3-conebase-instrumented",
+      caseFileName: "probe4-final-separate",
+      threshold: 0,
+      diffPercentage: 0.005
+    },
+    Probe4FinalNonseparate: {
+      category: "Particle",
+      caseFileName: "probe4-final-nonseparate",
       threshold: 0,
       diffPercentage: 0.005
     },
