@@ -419,27 +419,21 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.02553
     },
-    ProbeMeshSolSingleCurve: {
+    Probe2ConebaseSolSingleCurve: {
       category: "Particle",
-      caseFileName: "probe-mesh-sol-single-curve",
+      caseFileName: "probe2-conebase-sol-single-curve",
       threshold: 0,
       diffPercentage: 0.005
     },
-    ProbeMeshSolSeparateSingleCurve: {
+    Probe2ConebaseSolTwoCurves: {
       category: "Particle",
-      caseFileName: "probe-mesh-sol-separate-single-curve",
+      caseFileName: "probe2-conebase-sol-two-curves",
       threshold: 0,
       diffPercentage: 0.005
     },
-    ProbeBillboardSolTwoCurves: {
+    Probe2MyskeletonSolOff: {
       category: "Particle",
-      caseFileName: "probe-billboard-sol-two-curves",
-      threshold: 0,
-      diffPercentage: 0.005
-    },
-    ProbeBillboardSolSeparateTwoCurves: {
-      category: "Particle",
-      caseFileName: "probe-billboard-sol-separate-two-curves",
+      caseFileName: "probe2-myskeleton-sol-off",
       threshold: 0,
       diffPercentage: 0.005
     },
