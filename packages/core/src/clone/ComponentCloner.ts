@@ -28,7 +28,12 @@ export class ComponentCloner {
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
     // Resolved once per component (a single prototype-chain walk), not once per field.
     const fieldModes = (<any>source)._fieldModes;
-    for (const k in source) {
+    // Own keys only. The release bundle downlevels classes in `loose` mode, which emits prototype
+    // methods as plain assignments and thus enumerable; `for...in` would copy them onto the target
+    // as own properties.
+    const keys = Object.keys(source);
+    for (let i = 0, n = keys.length; i < n; i++) {
+      const k = keys[i];
       const fieldMode = fieldModes?.[k];
       if (fieldMode === CloneMode.Ignore) continue;
       const sourceValue = source[k];

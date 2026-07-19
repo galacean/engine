@@ -25,7 +25,12 @@ export class CloneUtil {
   static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
     // Resolved once per object (a single prototype-chain walk), not once per field.
     const fieldModes = source._fieldModes;
-    for (const k in source) {
+    // Own keys only. The release bundle downlevels classes in `loose` mode, which emits prototype
+    // methods as plain assignments and thus enumerable; `for...in` would copy them onto the target
+    // as own properties.
+    const keys = Object.keys(source);
+    for (let i = 0, n = keys.length; i < n; i++) {
+      const k = keys[i];
       const fieldMode = fieldModes?.[k];
       if (fieldMode === CloneMode.Ignore) continue;
       target[k] = CloneUtil._cloneValue(source[k], target[k], cloneMap, fieldMode);
