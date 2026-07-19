@@ -1,6 +1,7 @@
 import {
   Burst,
   DataObject,
+  DisorderedArray,
   Entity,
   Logger,
   MeshRenderer,
@@ -137,6 +138,18 @@ class HandlerScript extends Script {
   handlers: Array<() => void> = [];
   handlerSet: Set<() => void> = new Set();
   config: { onDone: (() => void) | null; x: number } = { onDone: null, x: 0 };
+}
+
+/** Script opting a plain runtime container into a deep copy */
+class DeepContainerScript extends Script {
+  @deepClone
+  entries: DisorderedArray<{ id: number }> = new DisorderedArray<{ id: number }>();
+}
+
+/** Script asking for a deep copy the paired flag registry cannot honor */
+class DeepFlagManagerScript extends Script {
+  @deepClone
+  flagManager: any = null;
 }
 
 /** Script whose constructor establishes its own bound handler */
@@ -1219,6 +1232,35 @@ describe("Clone remap", async () => {
       expect(cs.runtimeList).not.eq(runtimeList);
       expect(cs.runtimeList).eq(undefined);
       expect(runtimeList.length).eq(1);
+
+      rootEntity.destroy();
+    });
+
+    it("@deepClone overrides the default on a plain container", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepContainerScript);
+      script.entries.add({ id: 1 });
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepContainerScript);
+
+      expect(cs.entries).instanceOf(DisorderedArray);
+      expect(cs.entries).not.eq(script.entries);
+      expect(cs.entries.length).eq(1);
+      expect(cs.entries._elements[0]).not.eq(script.entries._elements[0]);
+      expect(cs.entries._elements[0].id).eq(1);
+
+      rootEntity.destroy();
+    });
+
+    it("@deepClone on a paired flag registry throws", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepFlagManagerScript);
+      script.flagManager = (parent as any)._updateFlagManager;
+
+      expect(() => parent.clone()).toThrowError(/@deepClone cannot deep clone "UpdateFlagManager"/);
 
       rootEntity.destroy();
     });

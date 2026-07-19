@@ -65,20 +65,18 @@ export class CloneUtil {
       }
       return source;
     }
-    if (
-      source instanceof UpdateFlagManager ||
-      source instanceof UpdateFlag ||
-      source instanceof DisorderedArray ||
-      source instanceof SafeLoopArray
-    ) {
+    if (source instanceof UpdateFlagManager || source instanceof UpdateFlag) {
       if (forceDeepClone) {
         throw new Error(
-          `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — engine runtime state is ` +
-            `transient and belongs to the instance holding it. Remove @deepClone to keep the clone's own.`
+          `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — a flag and its manager hold ` +
+            `each other, and a field copy resolves neither side, leaving the pair inconsistent. Remove ` +
+            `@deepClone to keep the clone's own.`
         );
       }
       return preset;
     }
+    // Containers whose contents `@deepClone` can copy; the default still keeps the clone's own.
+    if (!forceDeepClone && (source instanceof DisorderedArray || source instanceof SafeLoopArray)) return preset;
     if (ArrayBuffer.isView(source)) return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
     if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap);
     if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap);
