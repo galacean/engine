@@ -83,7 +83,7 @@ export class CloneUtil {
       if (!forceDeepClone) return preset;
       const existing = cloneMap.get(source);
       if (existing) return existing;
-      const dst = CloneUtil._deepConstructObject(source, preset, cloneMap);
+      const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
       CloneUtil._deepCloneObject(source, dst, cloneMap);
       return dst;
     }
@@ -92,7 +92,7 @@ export class CloneUtil {
     if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
       const existing = cloneMap.get(source);
       if (existing) return existing;
-      const dst = CloneUtil._deepConstructObject(source, preset, cloneMap);
+      const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
       (<ICustomClone>dst).copyFrom(<ICustomClone>source);
       (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
       return dst;
@@ -101,7 +101,7 @@ export class CloneUtil {
     if (source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
       const existing = cloneMap.get(source);
       if (existing) return existing;
-      const dst = CloneUtil._deepConstructObject(source, preset, cloneMap);
+      const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
       CloneUtil._deepCloneObject(source, dst, cloneMap);
       (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
       return dst;
@@ -113,7 +113,7 @@ export class CloneUtil {
    * @internal
    * Registers the new instance before the caller descends, so a cycle resolves to it.
    */
-  static _deepConstructObject(source: any, preset: any, cloneMap: Map<object, object>): any {
+  static _createCloneTarget(source: any, preset: any, cloneMap: Map<object, object>): any {
     const ctor = (<any>source).constructor;
     const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
     let dst: any;
