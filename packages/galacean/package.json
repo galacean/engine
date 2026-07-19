@@ -12,7 +12,6 @@
   "types": "types/index.d.ts",
   "main": "dist/main.js",
   "module": "dist/module.js",
-  "browser": "dist/browser.js",
   "unpkg": "dist/bundled.module.min.js",
   "jsdelivr": "dist/bundled.module.min.js",
   "files": [
