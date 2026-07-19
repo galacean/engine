@@ -140,6 +140,21 @@ class HandlerScript extends Script {
   config: { onDone: (() => void) | null; x: number } = { onDone: null, x: 0 };
 }
 
+/** Data object counting how often the gate runs its post-clone hook */
+class HookCountPayload extends DataObject {
+  static runs = 0;
+  value = 0;
+  _cloneTo(): void {
+    HookCountPayload.runs++;
+  }
+}
+
+/** Script referencing one payload from two slots */
+class SharedPayloadScript extends Script {
+  slotA: HookCountPayload = null;
+  slotB: HookCountPayload = null;
+}
+
 /** Script opting a plain runtime container into a deep copy */
 class DeepContainerScript extends Script {
   @deepClone
@@ -497,6 +512,29 @@ describe("Clone remap", async () => {
   });
 
   describe("Multiple and duplicate refs", () => {
+    it("a shared object clones once, hook included", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(SharedPayloadScript);
+      const shared = new HookCountPayload();
+      shared.value = 42;
+      script.slotA = shared;
+      script.slotB = shared;
+
+      HookCountPayload.runs = 0;
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(SharedPayloadScript);
+
+      expect(cs.slotA).not.eq(shared);
+      expect(cs.slotA).eq(cs.slotB);
+      expect(cs.slotA.value).eq(42);
+      // A second slot resolving to the same clone must not re-run the post-clone hook: hooks
+      // acquire references and register listeners, so a replay silently doubles both.
+      expect(HookCountPayload.runs).eq(1);
+
+      rootEntity.destroy();
+    });
+
     it("multiple entity/component refs on same script all remap independently", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

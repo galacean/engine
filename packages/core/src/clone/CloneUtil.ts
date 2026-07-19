@@ -75,32 +75,67 @@ export class CloneUtil {
       }
       return preset;
     }
-    // Containers whose contents `@deepClone` can copy; the default still keeps the clone's own.
-    if (!forceDeepClone && (source instanceof DisorderedArray || source instanceof SafeLoopArray)) return preset;
     if (ArrayBuffer.isView(source)) return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
     if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap);
     if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap);
     if (source instanceof Set) return CloneUtil._deepCloneSet(source, preset, cloneMap);
-
-    const ctor = (<any>source).constructor;
-    // Math value types can't extend DataObject (math must not depend on core), so they are
-    // duck-typed. `ctor !== Object` keeps a plain payload carrying a `copyFrom` field out.
-    const useCopyFrom = ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function";
-
-    if (useCopyFrom || source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
+    if (source instanceof DisorderedArray || source instanceof SafeLoopArray) {
+      if (!forceDeepClone) return preset;
       const existing = cloneMap.get(source);
       if (existing) return existing;
-      const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
-      const dst = reusable ?? (ctor ? CloneUtil._bareConstruct(ctor) : Object.create(null));
-      cloneMap.set(source, dst);
-      useCopyFrom
-        ? (<ICustomClone>dst).copyFrom(<ICustomClone>source)
-        : CloneUtil._deepCloneObject(source, dst, cloneMap);
+      const dst = CloneUtil._deepConstructObject(source, preset, cloneMap);
+      CloneUtil._deepCloneObject(source, dst, cloneMap);
+      return dst;
+    }
+
+    const ctor = (<any>source).constructor;
+    if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
+      const existing = cloneMap.get(source);
+      if (existing) return existing;
+      const dst = CloneUtil._deepConstructObject(source, preset, cloneMap);
+      (<ICustomClone>dst).copyFrom(<ICustomClone>source);
       (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
       return dst;
     }
 
+    if (source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
+      const existing = cloneMap.get(source);
+      if (existing) return existing;
+      const dst = CloneUtil._deepConstructObject(source, preset, cloneMap);
+      CloneUtil._deepCloneObject(source, dst, cloneMap);
+      (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
+      return dst;
+    }
     return source;
+  }
+
+  /**
+   * @internal
+   * Registers the new instance before the caller descends, so a cycle resolves to it.
+   */
+  static _deepConstructObject(source: any, preset: any, cloneMap: Map<object, object>): any {
+    const ctor = (<any>source).constructor;
+    const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
+    let dst: any;
+    if (reusable) {
+      dst = reusable;
+    } else {
+      if (ctor) {
+        try {
+          dst = new ctor();
+        } catch (e) {
+          throw new Error(
+            `CloneUtil: failed to bare-construct "${ctor.name}" — a type cloned deep must support ` +
+              `argument-less construction (the gate creates preset-less instances bare, then populates fields). ` +
+              `Cause: ${e}`
+          );
+        }
+      } else {
+        dst = Object.create(null);
+      }
+    }
+    cloneMap.set(source, dst);
+    return dst;
   }
 
   /**
@@ -218,20 +253,5 @@ export class CloneUtil {
     cloneMap.set(source, dst);
     for (const v of source) dst.add(CloneUtil._cloneValue(v, undefined, cloneMap));
     return dst;
-  }
-
-  /**
-   * @internal
-   */
-  static _bareConstruct(ctor: new () => any): any {
-    try {
-      return new ctor();
-    } catch (e) {
-      throw new Error(
-        `CloneUtil: failed to bare-construct "${ctor.name}" — a type cloned deep must support ` +
-          `argument-less construction (the gate creates preset-less instances bare, then populates fields). ` +
-          `Cause: ${e}`
-      );
-    }
   }
 }
