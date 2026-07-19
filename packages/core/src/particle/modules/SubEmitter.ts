@@ -19,7 +19,7 @@ export class SubEmitter extends DataObject {
   /** Number of sub particles emitted per parent event. */
   emitCount: number = 1;
 
-  /** @internal Back-link; the clone gate remaps it through the identity map (the owning module is registered before its sub-emitters deep-clone). */
+  /** @internal */
   _module: SubEmittersModule = null;
 
   private _emitter: ParticleRenderer = null;
