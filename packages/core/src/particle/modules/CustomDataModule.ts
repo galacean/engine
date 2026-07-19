@@ -55,9 +55,6 @@ export class CustomDataModule extends ParticleGeneratorModule {
   private _curves: Map<string, ParticleCompositeCurve> = new Map();
   private _gradients: Map<string, ParticleCompositeGradient> = new Map();
 
-  // Cloned by the gate alongside `_curves` / `_gradients`: the identity map makes each stream's
-  // `curve` / `gradient` land on the same clone the map holds, and a `ShaderProperty` — a plain
-  // class registered globally by name — is shared rather than copied.
   private _curveStreams: CurveStream[] = [];
   private _gradientStreams: GradientStream[] = [];
 
