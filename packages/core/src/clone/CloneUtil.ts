@@ -83,24 +83,19 @@ export class CloneUtil {
     if (source instanceof Set) return CloneUtil._deepCloneSet(source, preset, cloneMap);
 
     const ctor = (<any>source).constructor;
-    const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
+    // Math value types can't extend DataObject (math must not depend on core), so they are
+    // duck-typed. `ctor !== Object` keeps a plain payload carrying a `copyFrom` field out.
+    const useCopyFrom = ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function";
 
-    if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
+    if (useCopyFrom || source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
       const existing = cloneMap.get(source);
       if (existing) return existing;
-      const dst = <ICustomClone>(reusable ?? CloneUtil._bareConstruct(ctor));
-      cloneMap.set(source, dst);
-      dst.copyFrom(<ICustomClone>source);
-      (<ICustomClone>source)._cloneTo?.(dst, cloneMap);
-      return dst;
-    }
-
-    if (source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
-      const existing = cloneMap.get(source);
-      if (existing) return existing;
+      const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
       const dst = reusable ?? (ctor ? CloneUtil._bareConstruct(ctor) : Object.create(null));
       cloneMap.set(source, dst);
-      CloneUtil._deepCloneObject(source, dst, cloneMap);
+      useCopyFrom
+        ? (<ICustomClone>dst).copyFrom(<ICustomClone>source)
+        : CloneUtil._deepCloneObject(source, dst, cloneMap);
       (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
       return dst;
     }
