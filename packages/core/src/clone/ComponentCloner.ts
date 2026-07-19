@@ -27,7 +27,6 @@ export class ComponentCloner {
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
     const fieldModes = (<any>source)._fieldModes;
-    // Own keys only: `loose` downleveling makes prototype methods enumerable.
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];

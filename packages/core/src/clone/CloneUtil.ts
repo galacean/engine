@@ -22,7 +22,6 @@ export class CloneUtil {
    */
   static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
     const fieldModes = source._fieldModes;
-    // Own keys only: `loose` downleveling makes prototype methods enumerable.
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
@@ -46,7 +45,6 @@ export class CloneUtil {
    * throws on an engine-bound value instead of falling back to it.
    */
   static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
-    // The clone's own constructor-rebound binding wins over the source's.
     if (typeof source === "function") return forceDeepClone ? source : typeof preset === "function" ? preset : source;
     if (source === null || typeof source !== "object") return source;
     if (source instanceof Entity || source instanceof Component) {
@@ -56,7 +54,6 @@ export class CloneUtil {
             `references are engine-bound. Remove @deepClone to remap the reference by default.`
         );
       }
-      // Outside the cloned subtree: keep the original reference.
       return cloneMap.get(source) ?? source;
     }
     if (source instanceof ReferResource) {
@@ -82,7 +79,6 @@ export class CloneUtil {
       }
       return preset;
     }
-    // Dedup lives in each cloning branch: a shared value must not consult the identity map.
     if (ArrayBuffer.isView(source)) return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
     if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap);
     if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap);
@@ -91,8 +87,6 @@ export class CloneUtil {
     const ctor = (<any>source).constructor;
     const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
 
-    // Math value types can't extend DataObject (math must not depend on core), so they are
-    // duck-typed. `ctor !== Object` keeps a plain payload carrying a `copyFrom` field out.
     if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
       const existing = cloneMap.get(source);
       if (existing) return existing;
@@ -131,7 +125,6 @@ export class CloneUtil {
         );
       (<IReferable>preset)._addReferCount(-1);
     }
-    // `cloned === source` ⇔ the slot shared the source value, so it owns one reference.
     if (cloned === source && cloned instanceof ReferResource) {
       (<IReferable>cloned)._addReferCount(1);
     }
@@ -179,7 +172,6 @@ export class CloneUtil {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
 
-    // `preset !== source`: a clone still aliasing the source's array must not be filled in place.
     const dst =
       preset !== source &&
       Array.isArray(preset) &&
@@ -201,7 +193,6 @@ export class CloneUtil {
 
     let dst: Map<any, any>;
     if (preset instanceof Map && preset !== source && preset.constructor === source.constructor) {
-      // The preset's own constructor-built entries would otherwise survive alongside the source's.
       preset.clear();
       dst = preset;
     } else {
