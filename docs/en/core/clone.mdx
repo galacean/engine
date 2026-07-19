@@ -55,6 +55,8 @@ When a field has no clone decorator, the engine resolves how to clone its value 
 | Runtime containers (internal transient state such as `UpdateFlagManager`) | Ignored — the clone keeps its own constructor-built value. |
 | Other objects | Share the reference (assignment). |
 
+A class opts into the deep-clone default in one of two ways: extend [DataObject](/apis/core/#DataObject) (data classes — the engine clones them field by field), or expose a `copyFrom` method (value types like the math classes — the engine copies through it). Either way the type must support argument-less construction: when a slot has no reusable preset instance, the engine bare-constructs one with `new Type()` before populating it, and a constructor that cannot run bare throws.
+
 So without any decorator, plain data objects and arrays get independent deep copies, assets remain shared, and entity references are automatically remapped:
 ```typescript
 // define a custom script
@@ -146,4 +148,4 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
   - If the clone decorators do not meet the requirements, you can implement the [_cloneTo()](/apis/design/#IClone-cloneTo) method to add custom cloning.
 
 ## Cloning and Asset Reference Counting
-When a component's top-level field shares a ref-counted asset (a `ReferResource` such as `Texture`, `Mesh`, or `Material`) during cloning, the engine automatically adds one reference for the clone. The class holding the field is responsible for releasing that reference when it is destroyed — built-in components already handle this; for custom scripts, release the resources you hold in `onDestroy`.
+When a component's top-level field shares a ref-counted asset (a `ReferResource` such as `Texture`, `Mesh`, or `Material`) during cloning, the engine automatically adds one reference for the clone, so destroying the source never pulls the asset out from under it. Built-in components release their references when destroyed. An asset referenced by custom script fields is kept alive by its clones — destroy the asset itself via its `destroy()` when it is no longer needed.
