@@ -419,6 +419,30 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.02553
     },
+    ProbeMeshSolSingleCurve: {
+      category: "Particle",
+      caseFileName: "probe-mesh-sol-single-curve",
+      threshold: 0,
+      diffPercentage: 0.005
+    },
+    ProbeMeshSolSeparateSingleCurve: {
+      category: "Particle",
+      caseFileName: "probe-mesh-sol-separate-single-curve",
+      threshold: 0,
+      diffPercentage: 0.005
+    },
+    ProbeBillboardSolTwoCurves: {
+      category: "Particle",
+      caseFileName: "probe-billboard-sol-two-curves",
+      threshold: 0,
+      diffPercentage: 0.005
+    },
+    ProbeBillboardSolSeparateTwoCurves: {
+      category: "Particle",
+      caseFileName: "probe-billboard-sol-separate-two-curves",
+      threshold: 0,
+      diffPercentage: 0.005
+    },
     particleEmitMeshSizeOverLifetime: {
       category: "Particle",
       caseFileName: "particleRenderer-emit-mesh-size-over-lifetime",
