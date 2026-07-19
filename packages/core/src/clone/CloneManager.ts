@@ -5,7 +5,7 @@ import { CloneMode } from "./enums/CloneMode";
  * clone mode (field-level decorators have the highest priority). The deep intent carries into the
  * field's members; engine-bound members keep their defaults (assets share, entity refs remap).
  * A decorator is an explicit intent: if the decorated value itself can't be deep cloned (an
- * entity reference or an asset), cloning throws rather than silently falling back.
+ * entity reference, an asset, or a function), cloning throws rather than silently falling back.
  */
 export function deepClone(target: object, propertyKey: string): void {
   CloneManager._registerFieldMode(target, propertyKey, CloneMode.Deep);

@@ -102,6 +102,12 @@ export class CloneUtil {
    * Throws when a `@deepClone`-decorated value cannot be deep cloned.
    */
   static _assertDeepClonable(source: any): void {
+    if (typeof source === "function") {
+      throw new Error(
+        `CloneUtil: @deepClone cannot deep clone a function — code is not a cloneable graph. ` +
+          `Remove @deepClone to keep the clone's own binding.`
+      );
+    }
     if (source instanceof Entity || source instanceof Component) {
       throw new Error(
         `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — Entity / Component ` +

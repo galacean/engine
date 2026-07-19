@@ -320,6 +320,12 @@ class AssignedContainerScript extends Script {
   shared: number[] = [];
 }
 
+/** Script pointing @deepClone at a function value */
+class DeepFnScript extends Script {
+  @deepClone
+  onTick: () => void = () => {};
+}
+
 /** Script whose @deepClone fields hold members with no deep default of their own */
 class DeepSubtreeScript extends Script {
   @deepClone
@@ -1226,6 +1232,31 @@ describe("Clone remap", async () => {
   });
 
   describe("Function fields", () => {
+    it("@deepClone on a function throws", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      parent.addComponent(DeepFnScript);
+
+      expect(() => parent.clone()).toThrowError(/@deepClone cannot deep clone a function/);
+
+      rootEntity.destroy();
+    });
+
+    it("a function inside a @deepClone subtree is shared, not thrown on", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepSubtreeScript);
+      const fn = () => {};
+      script.bag = { onDone: fn };
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepSubtreeScript);
+
+      expect(cs.bag.onDone).eq(fn);
+
+      rootEntity.destroy();
+    });
+
     it("plain function field is shared, not lost", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

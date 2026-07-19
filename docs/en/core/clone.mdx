@@ -102,7 +102,7 @@ In addition to the default type-driven rules, the engine also provides "clone de
 | :-- | :-- |
 | [ignoreClone](/apis/core/#ignoreClone) | Ignore the field during cloning; the clone keeps its own constructor-built value. |
 | [assignmentClone](/apis/core/#assignmentClone) | Assign the field during cloning. If it is a basic type, the value will be copied; if it is a reference type, the clone will share the reference with the source. |
-| [deepClone](/apis/core/#deepClone) | Deep clone the field's whole subtree. The deep intent carries into members, while assets inside stay shared, entity references remap, and runtime state keeps the clone's own. Engine-bound values cannot be deep cloned: `@deepClone` on an `Entity` / `Component` reference, an asset, or engine runtime state (such as `UpdateFlagManager`) throws — remove the decorator to get the default behavior, or copy an asset via its own clone API. |
+| [deepClone](/apis/core/#deepClone) | Deep clone the field's whole subtree. The deep intent carries into members, while assets inside stay shared, entity references remap, and runtime state keeps the clone's own. Engine-bound values cannot be deep cloned: `@deepClone` on an `Entity` / `Component` reference, an asset, engine runtime state (such as `UpdateFlagManager`), or a function throws — remove the decorator to get the default behavior, or copy an asset via its own clone API. |
 
 <Callout type="negative">
   `@shallowClone` has been removed. Its old semantics — copy the container itself but share its members — no longer
@@ -159,7 +159,7 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
 
   - Field decorators have the highest priority and also apply to the fields of nested objects, wherever the clone walks fields.
   - `deepClone` deep-clones the whole subtree: the intent carries into members, so a member class instance with no deep default of its own is copied too (it must support argument-less construction). Assets inside stay shared, entity references are remapped, runtime state keeps the clone's own, and nested field decorators still win.
-  - `deepClone` cannot deep clone engine-bound objects: `@deepClone` on an `Entity` / `Component` reference, an asset, or engine runtime state throws, because the explicit intent can't be honored. Remove the decorator to fall back to the default, or use the asset's own clone API for a real copy.
+  - `deepClone` cannot deep clone engine-bound objects: `@deepClone` on an `Entity` / `Component` reference, an asset, engine runtime state, or a function throws, because the explicit intent can't be honored. Remove the decorator to fall back to the default, or use the asset's own clone API for a real copy.
   - If the clone decorators do not meet the requirements, you can implement the [\_cloneTo()](/apis/design/#IClone-cloneTo) method to add custom cloning.
 
 ## Cloning and Asset Reference Counting
