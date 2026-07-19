@@ -27,7 +27,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
 
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 
@@ -72,13 +71,19 @@ function createSizeOverLifetimeParticle(engine: Engine): Entity {
   shape.radius = 2.5;
   emission.shape = shape;
 
-  // separateAxes + TwoCurves is kept out of e2e on purpose: that macro combo
-  // (RENDERER_SOL_IS_SEPARATE + RENDERER_SOL_IS_RANDOM_TWO) hangs SwiftShader's
-  // shader compiler on GPU-less CI runners; it is covered by unit tests instead.
   sizeOverLifetime.enabled = true;
-  sizeOverLifetime.size = new ParticleCompositeCurve(
+  sizeOverLifetime.separateAxes = true;
+  sizeOverLifetime.sizeX = new ParticleCompositeCurve(
     new ParticleCurve(new CurveKey(0, 0.3), new CurveKey(1, 0.5)),
     new ParticleCurve(new CurveKey(0, 1.2), new CurveKey(1, 2.0))
+  );
+  sizeOverLifetime.sizeY = new ParticleCompositeCurve(
+    new ParticleCurve(new CurveKey(0, 0.35), new CurveKey(1, 0.2)),
+    new ParticleCurve(new CurveKey(0, 1.0), new CurveKey(1, 3.0))
+  );
+  sizeOverLifetime.sizeZ = new ParticleCompositeCurve(
+    new ParticleCurve(new CurveKey(0, 0.4), new CurveKey(1, 0.3)),
+    new ParticleCurve(new CurveKey(0, 0.9), new CurveKey(1, 1.5))
   );
 
   return particleEntity;
