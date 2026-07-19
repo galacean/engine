@@ -157,4 +157,27 @@ describe("ShaderData / Material refCount cascade", () => {
     expect(texA.refCount).eq(0);
     expect(texB.refCount).eq(0);
   });
+
+  it("cloneTo into a referenced, populated target keeps the displaced entry's count", () => {
+    const matA = new BlinnPhongMaterial(engine);
+    const matB = new BlinnPhongMaterial(engine);
+    const host = rootEntity.createChild("cloneToPopulated");
+    host.addComponent(MeshRenderer).setMaterial(matB);
+    const texA = new Texture2D(engine, 1, 1);
+    const texB = new Texture2D(engine, 1, 1);
+    matA.shaderData.setTexture("u_custom", texA);
+    matB.shaderData.setTexture("u_custom", texB);
+    expect(texB.refCount).eq(1);
+
+    matA.shaderData.cloneTo(matB.shaderData);
+
+    // Pins current semantics: the incoming entry gains the target's count, while the displaced
+    // entry keeps the count it held — cloneTo does not release what it overwrites.
+    expect(texA.refCount).eq(1);
+    expect(texB.refCount).eq(1);
+
+    host.destroy();
+    expect(texA.refCount).eq(0);
+    expect(texB.refCount).eq(1);
+  });
 });

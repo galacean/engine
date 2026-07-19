@@ -220,5 +220,47 @@ describe("RefCount slot-ownership contract", () => {
       entity.destroy();
       expect(mesh.refCount).eq(0);
     });
+
+    it("clone acquires via the shape's _cloneTo, destroy releases", () => {
+      const mesh = createShapeMesh();
+      const shape = new MeshShape();
+      shape.mesh = mesh;
+      const entity = rootEntity.createChild("particleShapeClone");
+      entity.addComponent(ParticleRenderer).generator.emission.shape = shape;
+      expect(mesh.refCount).eq(1);
+
+      const clone = entity.clone();
+      rootEntity.addChild(clone);
+      expect(mesh.refCount).eq(2);
+
+      clone.destroy();
+      expect(mesh.refCount).eq(1);
+
+      entity.destroy();
+      expect(mesh.refCount).eq(0);
+    });
+  });
+
+  describe("Template-marked source", () => {
+    it("each clone counts the template resource; the suppressed template itself never does", () => {
+      const template = engine.createEntity("template");
+      const templateResource = new Texture2D(engine, 1, 1);
+      (template as any)._markAsTemplate(templateResource);
+      expect(templateResource.refCount).eq(0);
+
+      const instA = template.clone();
+      rootEntity.addChild(instA);
+      expect(templateResource.refCount).eq(1);
+
+      const instB = template.clone();
+      expect(templateResource.refCount).eq(2);
+
+      instA.destroy();
+      instB.destroy();
+      expect(templateResource.refCount).eq(0);
+
+      template.destroy();
+      expect(templateResource.refCount).eq(0);
+    });
   });
 });

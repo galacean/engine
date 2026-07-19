@@ -1,4 +1,5 @@
 import {
+  BoolUpdateFlag,
   Burst,
   DataObject,
   DisorderedArray,
@@ -18,7 +19,7 @@ import {
 import * as EngineCore from "@galacean/engine-core";
 import * as EngineMath from "@galacean/engine-math";
 import * as EngineUI from "@galacean/engine-ui";
-import { Color, Vector3 } from "@galacean/engine-math";
+import { Color, Ray, Vector3 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
 import { describe, expect, it, vi } from "vitest";
 
@@ -311,6 +312,25 @@ class SharedDefaultContainerScript extends Script {
 class PlainConfig {
   count = 0;
   nested = { x: 1 };
+}
+
+/** Script sharing one container through an @assignmentClone field */
+class AssignedContainerScript extends Script {
+  @assignmentClone
+  shared: number[] = [];
+}
+
+/** Script whose ctor-built binary values stay observable through @ignoreClone aliases */
+class BinaryPresetScript extends Script {
+  weights = new Float32Array(3);
+  view = new DataView(new ArrayBuffer(4));
+  shortWeights = new Float32Array(2);
+  @ignoreClone
+  ownWeights = this.weights;
+  @ignoreClone
+  ownView = this.view;
+  @ignoreClone
+  ownShort = this.shortWeights;
 }
 
 /** Non-component class carrying its own @ignoreClone, to be reached through a field walk. */
@@ -1274,6 +1294,25 @@ describe("Clone remap", async () => {
       rootEntity.destroy();
     });
 
+    it("undecorated SafeLoopArray and UpdateFlag slots keep the clone's own value", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const loopList = (<any>new Signal())._listeners;
+      loopList.push({ once: false });
+      (script as any).loopList = loopList;
+      (script as any).flag = new BoolUpdateFlag();
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      expect(cs.loopList).eq(undefined);
+      expect(cs.flag).eq(undefined);
+      expect(loopList.length).eq(1);
+
+      rootEntity.destroy();
+    });
+
     it("@deepClone overrides the default on a plain container", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");
@@ -1352,6 +1391,96 @@ describe("Clone remap", async () => {
     });
   });
 
+  describe("Container member semantics", () => {
+    it("@assignmentClone on a container shares the instance with the source", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(AssignedContainerScript);
+      script.shared.push(1, 2);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(AssignedContainerScript);
+
+      expect(cs.shared).eq(script.shared);
+      cs.shared.push(3);
+      expect(script.shared.length).eq(3);
+
+      rootEntity.destroy();
+    });
+
+    it("Map keys are cloned along with values", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const key = { id: 7 };
+      (script as any).byObject = new Map([[key, 1]]);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      // The clone's key is a fresh object: lookups by the source key miss by design.
+      expect(cs.byObject.size).eq(1);
+      expect(cs.byObject.has(key)).eq(false);
+      const clonedKey = [...cs.byObject.keys()][0];
+      expect(clonedKey).not.eq(key);
+      expect(clonedKey.id).eq(7);
+      expect(cs.byObject.get(clonedKey)).eq(1);
+
+      rootEntity.destroy();
+    });
+
+    it("entity Map keys remap to the cloned subtree", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const script = parent.addComponent(HandlerScript);
+      (script as any).byEntity = new Map([[child, 5]]);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      expect(cs.byEntity.get(cloned.children[0])).eq(5);
+      expect(cs.byEntity.has(child)).eq(false);
+
+      rootEntity.destroy();
+    });
+
+    it("a function held as a Map value is shared", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const fn = () => 1;
+      (script as any).handlerMap = new Map([["k", fn]]);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      expect(cs.handlerMap.get("k")).eq(fn);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("copyFrom value types via entity.clone", () => {
+    it("a Ray field deep-clones through the gate", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      (script as any).ray = new Ray(new Vector3(1, 2, 3), new Vector3(0, 1, 0));
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      expect(cs.ray).instanceOf(Ray);
+      expect(cs.ray).not.eq((script as any).ray);
+      expect(cs.ray.origin.x).eq(1);
+      cs.ray.origin.x = 9;
+      expect((script as any).ray.origin.x).eq(1);
+
+      rootEntity.destroy();
+    });
+  });
+
   describe("Aliasing topology", () => {
     it("one instance referenced three times clones into one instance referenced three times", () => {
       const rootEntity = scene.createRootEntity("root");
@@ -1376,9 +1505,68 @@ describe("Clone remap", async () => {
 
       rootEntity.destroy();
     });
+
+    it("a self-referencing plain object clones into a self-referencing clone", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(HandlerScript);
+      const node: any = { value: 1 };
+      node.self = node;
+      const ring: any[] = [node];
+      ring.push(ring);
+      (script as any).node = node;
+      (script as any).ring = ring;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(HandlerScript) as any;
+
+      expect(cs.node).not.eq(node);
+      expect(cs.node.self).eq(cs.node);
+      expect(cs.ring).not.eq(ring);
+      expect(cs.ring[1]).eq(cs.ring);
+      expect(cs.ring[0]).eq(cs.node);
+
+      rootEntity.destroy();
+    });
   });
 
   describe("Binary data fields", () => {
+    it("matching binary presets are written into, not replaced", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(BinaryPresetScript);
+      script.weights = new Float32Array([9, 8, 7]);
+      const view = new DataView(new ArrayBuffer(4));
+      view.setUint8(0, 42);
+      script.view = view;
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(BinaryPresetScript);
+
+      // Same length / byteLength: the clone's ctor-built instance is reused as the target.
+      expect(cs.weights).eq(cs.ownWeights);
+      expect(Array.from(cs.weights)).deep.eq([9, 8, 7]);
+      expect(cs.view).eq(cs.ownView);
+      expect(cs.view.getUint8(0)).eq(42);
+
+      rootEntity.destroy();
+    });
+
+    it("a length-mismatched binary preset is replaced by a fresh copy", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(BinaryPresetScript);
+      script.shortWeights = new Float32Array([1, 2, 3]);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(BinaryPresetScript);
+
+      expect(cs.shortWeights).not.eq(cs.ownShort);
+      expect(Array.from(cs.shortWeights)).deep.eq([1, 2, 3]);
+
+      rootEntity.destroy();
+    });
+
     it("DataView field clones by bytes without crashing", () => {
       const rootEntity = scene.createRootEntity("root");
       const parent = rootEntity.createChild("parent");

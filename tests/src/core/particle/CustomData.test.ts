@@ -349,7 +349,9 @@ describe("CustomDataModule", function () {
         // A ShaderProperty is registered globally by name, so the clone must hold the very same
         // instance. Identity, not deep equality — a structurally identical copy would pass the
         // latter while breaking uniform lookup.
-        for (const propKey of Object.keys(sourceStream).filter((k) => k.startsWith("prop"))) {
+        const propKeys = Object.keys(sourceStream).filter((k) => k.startsWith("prop"));
+        expect(propKeys.length).to.be.greaterThan(0);
+        for (const propKey of propKeys) {
           expect(clonedStream[propKey]).to.eq(sourceStream[propKey]);
         }
 
