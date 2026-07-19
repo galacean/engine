@@ -43,9 +43,7 @@ export class CloneUtil {
   ): any {
     if (fieldMode === CloneMode.Assignment) return source;
     if (fieldMode === CloneMode.Deep) {
-      // The explicit decorator must be honorable on the value it decorates; the deep intent it
-      // propagates into the subtree is softer — engine-bound members keep their defaults.
-      CloneUtil._assertDeepClonable(source);
+      CloneUtil._assertDeepCloneable(source);
       forceDeepClone = true;
     }
     return CloneUtil._cloneByDefault(source, preset, cloneMap, forceDeepClone);
@@ -53,9 +51,6 @@ export class CloneUtil {
 
   /**
    * @internal
-   * `forceDeepClone` (a `@deepClone` somewhere up the walk) deep-copies the whole subtree: a
-   * class with no deep default flips from "share" to "field-walk", and containers carry the
-   * force into their members. Engine-bound values keep their defaults (remap / share / own).
    */
   static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
     if (typeof source === "function") return forceDeepClone ? source : typeof preset === "function" ? preset : source;
@@ -99,9 +94,8 @@ export class CloneUtil {
 
   /**
    * @internal
-   * Throws when a `@deepClone`-decorated value cannot be deep cloned.
    */
-  static _assertDeepClonable(source: any): void {
+  static _assertDeepCloneable(source: any): void {
     if (typeof source === "function") {
       throw new Error(
         `CloneUtil: @deepClone cannot deep clone a function — code is not a cloneable graph. ` +
@@ -131,7 +125,6 @@ export class CloneUtil {
 
   /**
    * @internal
-   * Registers the new instance before the caller descends, so a cycle resolves to it.
    */
   static _createCloneTarget(source: any, preset: any, cloneMap: Map<object, object>): any {
     const ctor = (<any>source).constructor;
