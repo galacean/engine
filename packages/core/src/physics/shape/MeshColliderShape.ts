@@ -105,8 +105,6 @@ export class MeshColliderShape extends ColliderShape {
    * @internal
    */
   override _cloneTo(target: MeshColliderShape): void {
-    // Runtime state (@ignoreClone) is rebuilt through the setter: refCount +1, mesh-data
-    // extraction and native shape creation (using the already-copied isConvex/cookingFlags).
     target.mesh = this._mesh;
     super._cloneTo(target);
   }

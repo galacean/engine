@@ -143,13 +143,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   override _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
-
-    // The joint texture is renderer-private; the clone builds its own on first update. Leaving
-    // the copied ShaderData entry would hold a reference the clone never releases.
     if (this._jointTexture) {
       target.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, null);
     }
-
     if (this.skin) {
       target._applySkin(null, target.skin);
     }

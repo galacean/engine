@@ -75,8 +75,6 @@ export class ParticleCompositeGradient extends DataObject {
 
   constructor(constantOrGradient?: Color | ParticleGradient, constantMaxOrGradientMax?: Color | ParticleGradient) {
     super();
-    // No argument: the field defaults already form a valid constant-mode state (clone gate
-    // constructs container elements bare, then populates every field).
     if (!constantOrGradient) return;
     if (constantOrGradient.constructor === Color) {
       if (constantMaxOrGradientMax) {

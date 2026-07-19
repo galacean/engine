@@ -1,8 +1,8 @@
-import { DataObject } from "../../../base/DataObject";
 import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } from "@galacean/engine-math";
-import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
+import { DataObject } from "../../../base/DataObject";
 import { ignoreClone } from "../../../clone/CloneManager";
+import { ParticleShapeType } from "./enums/ParticleShapeType";
 
 /**
  * Base class for all particle shapes.
@@ -127,8 +127,6 @@ export abstract class BaseShape extends DataObject {
 
   /**
    * @internal
-   * Called when the hosting generator is destroyed; shapes holding ref-counted resources
-   * release them here (slot-ownership contract).
    */
   _destroy(): void {}
 

@@ -1,7 +1,6 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
 import { ignoreClone } from "../../../clone/CloneManager";
-import { Entity } from "../../../Entity";
 import { VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";
 import { ModelMesh, VertexAttribute } from "../../../mesh";
@@ -53,7 +52,6 @@ export class MeshShape extends BaseShape {
 
   /**
    * @internal
-   * Release the mesh reference through the setter (pairs its +1; also detaches the listener).
    */
   override _destroy(): void {
     this.mesh = null;

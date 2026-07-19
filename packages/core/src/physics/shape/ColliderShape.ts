@@ -19,7 +19,7 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
   /** @internal */
   @ignoreClone
   _nativeShape: IColliderShape;
-  /** @internal Whether the native shape is currently attached to a collider's native actor. */
+  /** @internal */
   @ignoreClone
   _isShapeAttached: boolean = false;
 
@@ -184,7 +184,6 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
 
   /**
    * @internal
-   * Attach the native shape to the owning collider's native actor.
    */
   _attachToCollider(): void {
     this._collider._nativeCollider.addShape(this._nativeShape);
@@ -193,7 +192,6 @@ export abstract class ColliderShape extends DataObject implements ICustomClone {
 
   /**
    * @internal
-   * Detach the native shape from the owning collider's native actor.
    */
   _detachFromCollider(): void {
     this._collider._nativeCollider.removeShape(this._nativeShape);
