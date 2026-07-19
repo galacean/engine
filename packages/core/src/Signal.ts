@@ -124,8 +124,6 @@ export class Signal<T extends any[] = []> extends DataObject {
 
   /**
    * @internal
-   * Clone listeners to target signal, remapping entity/component references through the
-   * cloned subtree's identity map (references outside the subtree are kept as-is).
    */
   _cloneTo(target: Signal<T>, cloneMap: Map<object, object>): void {
     const listeners = this._listeners.getLoopArray();

@@ -18,8 +18,6 @@ export abstract class Transition<
   protected _hover: T;
   protected _disabled: T;
   protected _duration: number = 0;
-  // Transient run state — rebuilt by `_setState` when the cloned interactive activates; the
-  // slots own no resource reference (destroy only releases the four state values).
   @ignoreClone
   protected _countDown: number = 0;
   @ignoreClone
@@ -126,7 +124,6 @@ export abstract class Transition<
 
   destroy(): void {
     this._interactive?.removeTransition(this);
-    // Release the state values (paired with the setter's +1 and, for clones, `_cloneTo`'s +1).
     this._addStateValuesReferCount(-1);
     this._normal = this._pressed = this._hover = this._disabled = null;
     this._initialValue = this._currentValue = this._finalValue = null;
@@ -135,8 +132,6 @@ export abstract class Transition<
 
   /**
    * @internal
-   * The clone gate shares the state values without counting (nested level); the clone owns
-   * one reference per ref-counted state — released in `destroy`.
    */
   _cloneTo(target: Transition<T, K>): void {
     target._addStateValuesReferCount(1);
