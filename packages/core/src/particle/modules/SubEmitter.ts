@@ -1,3 +1,4 @@
+import { DataObject } from "../../base/DataObject";
 import { ignoreClone } from "../../clone/CloneManager";
 import { ParticleRenderer } from "../ParticleRenderer";
 import { ParticleSubEmitterInheritProperty } from "../enums/ParticleSubEmitterInheritProperty";
@@ -8,7 +9,7 @@ import type { SubEmittersModule } from "./SubEmittersModule";
  * One slot in `SubEmittersModule.subEmitters`. Configures which sub-emitter
  * fires, on which parent event, with what inheritance, probability, and count.
  */
-export class SubEmitter {
+export class SubEmitter extends DataObject {
   /** Bitmask of properties inherited from the parent particle. */
   inheritProperties: ParticleSubEmitterInheritProperty = ParticleSubEmitterInheritProperty.None;
 
@@ -19,7 +20,6 @@ export class SubEmitter {
   emitCount: number = 1;
 
   /** @internal */
-  @ignoreClone
   _module: SubEmittersModule = null;
 
   private _emitter: ParticleRenderer = null;

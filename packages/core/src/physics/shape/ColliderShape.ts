@@ -1,8 +1,9 @@
+import { DataObject } from "../../base/DataObject";
 import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
 import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
@@ -10,14 +11,14 @@ import { ColliderShapeChangeFlag } from "../enums/ColliderShapeChangeFlag";
 /**
  * Abstract class for collider shapes.
  */
-export abstract class ColliderShape implements ICustomClone {
+export abstract class ColliderShape extends DataObject implements ICustomClone {
   private static _idGenerator: number = 0;
 
   /** @internal */
   _collider: Collider;
   /** @internal */
   @ignoreClone
-  _isShapeAttached = false;
+  _isShapeAttached: boolean = false;
   /** @internal */
   @ignoreClone
   _nativeShape: IColliderShape;
@@ -26,9 +27,7 @@ export abstract class ColliderShape implements ICustomClone {
   protected _id: number;
   protected _material: PhysicsMaterial;
   private _isTrigger: boolean = false;
-  @deepClone
   private _rotation: Vector3 = new Vector3();
-  @deepClone
   private _position: Vector3 = new Vector3();
   private _contactOffset: number | undefined;
 
@@ -127,6 +126,7 @@ export abstract class ColliderShape implements ICustomClone {
   }
 
   protected constructor() {
+    super();
     this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
 
@@ -180,6 +180,22 @@ export abstract class ColliderShape implements ICustomClone {
       this._nativeShape = null;
     }
     delete Engine._physicalObjectsMap[this._id];
+  }
+
+  /**
+   * @internal
+   */
+  _attachToCollider(): void {
+    this._collider._nativeCollider.addShape(this._nativeShape);
+    this._isShapeAttached = true;
+  }
+
+  /**
+   * @internal
+   */
+  _detachFromCollider(): void {
+    this._collider._nativeCollider.removeShape(this._nativeShape);
+    this._isShapeAttached = false;
   }
 
   protected _syncNative(): void {

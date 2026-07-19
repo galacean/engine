@@ -5,7 +5,7 @@ import { Entity } from "../Entity";
 import { Renderer } from "../Renderer";
 import { Script } from "../Script";
 import { Logger } from "../base/Logger";
-import { assignmentClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
@@ -37,10 +37,8 @@ export class Animator extends Component {
   /** Culling mode of this Animator. */
   cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
   /** The playback speed of the Animator, 1.0 is normal playback speed. */
-  @assignmentClone
   speed = 1.0;
   /** Whether the Animator sends AnimationEvent callbacks. */
-  @assignmentClone
   fireEvents = true;
 
   /** @internal */
@@ -48,9 +46,7 @@ export class Animator extends Component {
   /** @internal */
   _onUpdateIndex = -1;
 
-  @assignmentClone
   protected _animatorController: AnimatorController;
-  @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
   @ignoreClone
   protected _updateMark = 0;
@@ -353,7 +349,6 @@ export class Animator extends Component {
   _cloneTo(target: Animator): void {
     const animatorController = target._animatorController;
     if (animatorController) {
-      target._addResourceReferCount(animatorController, 1);
       target._controllerUpdateFlag = animatorController._registerChangeFlag();
     }
   }
@@ -442,7 +437,7 @@ export class Animator extends Component {
     layerIndex: number
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
-    let { mask } = this._animatorController.layers[layerIndex];
+    const { mask } = this._animatorController.layers[layerIndex];
     const { curveLayerOwner } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
 

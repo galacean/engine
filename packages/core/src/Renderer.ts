@@ -7,7 +7,7 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { RenderElement } from "./RenderPipeline/RenderElement";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneManager";
 import { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
@@ -47,10 +47,7 @@ export class Renderer extends Component {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   @ignoreClone
   _renderFrameCount: number;
-  /** @internal */
-  @assignmentClone
   _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
-  @assignmentClone
   _maskLayer: SpriteMaskLayer = SpriteMaskLayer.Layer0;
 
   @ignoreClone
@@ -65,7 +62,6 @@ export class Renderer extends Component {
   protected _bounds: BoundingBox = new BoundingBox();
   protected _transformEntity: Entity;
 
-  @deepClone
   private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -75,9 +71,7 @@ export class Renderer extends Component {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
-  @assignmentClone
   private _priority: number = 0;
-  @assignmentClone
   private _receiveShadows: boolean = true;
 
   /**

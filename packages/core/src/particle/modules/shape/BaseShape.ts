@@ -1,12 +1,13 @@
 import { BoundingBox, MathUtil, Matrix, Quaternion, Rand, Vector2, Vector3 } from "@galacean/engine-math";
-import { ParticleShapeType } from "./enums/ParticleShapeType";
 import { UpdateFlagManager } from "../../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../../clone/CloneManager";
+import { DataObject } from "../../../base/DataObject";
+import { ignoreClone } from "../../../clone/CloneManager";
+import { ParticleShapeType } from "./enums/ParticleShapeType";
 
 /**
  * Base class for all particle shapes.
  */
-export abstract class BaseShape {
+export abstract class BaseShape extends DataObject {
   /** @internal */
   static _tempVector20 = new Vector2();
   /** @internal */
@@ -18,18 +19,13 @@ export abstract class BaseShape {
   private static _tempQuaternion = new Quaternion();
   /** The type of shape to emit particles from. */
   abstract readonly shapeType: ParticleShapeType;
-
-  @ignoreClone
   protected _updateManager = new UpdateFlagManager();
 
   private _enabled = true;
   private _randomDirectionAmount = 0;
 
-  @deepClone
   private _position = new Vector3(0, 0, 0);
-  @deepClone
   private _rotation = new Vector3(0, 0, 0);
-  @deepClone
   private _scale = new Vector3(1, 1, 1);
   @ignoreClone
   private _matrix = new Matrix();
@@ -106,6 +102,7 @@ export abstract class BaseShape {
   }
 
   constructor() {
+    super();
     // @ts-ignore
     this._position._onValueChanged = this._onTransformChanged;
     // @ts-ignore
@@ -127,6 +124,11 @@ export abstract class BaseShape {
   _unRegisterOnValueChanged(listener: () => void): void {
     this._updateManager.removeListener(listener);
   }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {}
 
   /**
    * @internal

@@ -1,4 +1,4 @@
-import { Color, ReferResource, Sprite } from "@galacean/engine";
+import { Color, DataObject, ReferResource, Sprite, ignoreClone } from "@galacean/engine";
 import { UIRenderer } from "../../UIRenderer";
 import { InteractiveState, UIInteractive } from "../UIInteractive";
 
@@ -8,7 +8,7 @@ import { InteractiveState, UIInteractive } from "../UIInteractive";
 export abstract class Transition<
   T extends TransitionValueType = TransitionValueType,
   K extends UIRenderer = UIRenderer
-> {
+> extends DataObject {
   /** @internal */
   _interactive: UIInteractive;
 
@@ -18,10 +18,15 @@ export abstract class Transition<
   protected _hover: T;
   protected _disabled: T;
   protected _duration: number = 0;
+  @ignoreClone
   protected _countDown: number = 0;
+  @ignoreClone
   protected _initialValue: T;
+  @ignoreClone
   protected _finalValue: T;
+  @ignoreClone
   protected _currentValue: T;
+  @ignoreClone
   protected _finalState: InteractiveState = InteractiveState.Normal;
 
   /**
@@ -119,7 +124,17 @@ export abstract class Transition<
 
   destroy(): void {
     this._interactive?.removeTransition(this);
+    this._addStateValuesReferCount(-1);
+    this._normal = this._pressed = this._hover = this._disabled = null;
+    this._initialValue = this._currentValue = this._finalValue = null;
     this._target = null;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Transition<T, K>): void {
+    target._addStateValuesReferCount(1);
   }
 
   /**
@@ -168,6 +183,18 @@ export abstract class Transition<
     const weight = this._duration ? 1 - this._countDown / this._duration : 1;
     this._updateCurrentValue(this._initialValue, this._finalValue, weight);
     this._target?.enabled && this._applyValue(this._currentValue);
+  }
+
+  private _addStateValuesReferCount(count: number): void {
+    const { _normal, _pressed, _hover, _disabled } = this;
+    // @ts-ignore
+    _normal instanceof ReferResource && _normal._addReferCount(count);
+    // @ts-ignore
+    _pressed instanceof ReferResource && _pressed._addReferCount(count);
+    // @ts-ignore
+    _hover instanceof ReferResource && _hover._addReferCount(count);
+    // @ts-ignore
+    _disabled instanceof ReferResource && _disabled._addReferCount(count);
   }
 
   private _getValueByState(state: InteractiveState): T {

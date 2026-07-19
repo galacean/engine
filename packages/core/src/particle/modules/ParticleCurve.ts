@@ -1,13 +1,12 @@
+import { DataObject } from "../../base/DataObject";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 
 /**
  * Particle curve.
  */
-export class ParticleCurve {
-  @ignoreClone
+export class ParticleCurve extends DataObject {
   private _updateManager = new UpdateFlagManager();
-  @deepClone
   private _keys = new Array<CurveKey>();
   @ignoreClone
   private _typeArray: Float32Array;
@@ -27,6 +26,7 @@ export class ParticleCurve {
    * @param keys - The keys of the curve
    */
   constructor(...keys: CurveKey[]) {
+    super();
     this._updateDispatch = this._updateManager.dispatch.bind(this._updateManager);
 
     for (let i = 0, n = keys.length; i < n; i++) {
@@ -195,8 +195,7 @@ export class ParticleCurve {
 /**
  * The key of the curve.
  */
-export class CurveKey {
-  @ignoreClone
+export class CurveKey extends DataObject {
   private _updateManager = new UpdateFlagManager();
   private _time: number;
   private _value: number;
@@ -233,6 +232,7 @@ export class CurveKey {
    * Create a new key.
    */
   constructor(time: number, value: number) {
+    super();
     this._time = time;
     this._value = value;
   }

@@ -1,14 +1,4 @@
-import {
-  Component,
-  DependentMode,
-  Entity,
-  Vector2,
-  Vector3,
-  Vector4,
-  assignmentClone,
-  deepClone,
-  dependentComponents
-} from "@galacean/engine";
+import { Component, DependentMode, Entity, Vector2, Vector3, Vector4, dependentComponents } from "@galacean/engine";
 import { UICanvas } from "../UICanvas";
 import { UITransform } from "../UITransform";
 
@@ -23,9 +13,7 @@ export class RectMask2D extends Component {
   private static _tempCorner2: Vector3 = new Vector3();
   private static _tempCorner3: Vector3 = new Vector3();
 
-  @deepClone
   private _softness: Vector2 = new Vector2(0, 0);
-  @assignmentClone
   private _alphaClip: boolean = false;
 
   /**

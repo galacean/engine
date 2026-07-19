@@ -1,11 +1,10 @@
 import type { AnimationState, Skeleton } from "@esotericsoftware/spine-core";
 import {
-  assignmentClone,
   BoundingBox,
   Buffer,
   BufferBindFlag,
   BufferUsage,
-  deepClone,
+  DataObject,
   Entity,
   ignoreClone,
   IndexBufferBinding,
@@ -42,7 +41,6 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
   /**
    * The spacing between z layers in world units.
    */
-  @assignmentClone
   zSpacing = 0.001;
 
   /**
@@ -51,10 +49,8 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    * @remarks
  If this option is enabled, the Spine editor must export textures with "Premultiply Alpha" checked.
    */
-  @assignmentClone
   premultipliedAlpha = false;
 
-  @assignmentClone
   private _tintBlack = false;
 
   /**
@@ -77,7 +73,6 @@ export class SpineAnimationRenderer extends Renderer implements ISpineRenderTarg
    * Default state for spine animation.
    * Contains the default animation name to be played, whether this animation should loop, the default skin name.
    */
-  @deepClone
   readonly defaultConfig: SpineAnimationDefaultConfig = new SpineAnimationDefaultConfig();
 
   /** @internal */
@@ -399,7 +394,7 @@ export enum RendererUpdateFlags {
  * Contains the default animation name to be played, whether this animation should loop,
  * the default skin name, and the default scale of the skeleton.
  */
-export class SpineAnimationDefaultConfig {
+export class SpineAnimationDefaultConfig extends DataObject {
   /**
    * Creates an instance of default config
    */
@@ -418,5 +413,7 @@ export class SpineAnimationDefaultConfig {
      * The name of the default skin @defaultValue `default`
      */
     public skinName: string = "default"
-  ) {}
+  ) {
+    super();
+  }
 }

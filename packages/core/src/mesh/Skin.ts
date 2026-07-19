@@ -2,27 +2,23 @@ import { Matrix } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { Utils } from "../Utils";
-import { EngineObject } from "../base/EngineObject";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { DataObject } from "../base/DataObject";
+import { ignoreClone } from "../clone/CloneManager";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 
 /**
  * Skin used for skinned mesh renderer.
  */
-export class Skin extends EngineObject {
+export class Skin extends DataObject {
   /** Inverse bind matrices. */
-  @deepClone
   inverseBindMatrices = new Array<Matrix>();
 
   /** @internal */
-  @deepClone
   _skinMatrices: Float32Array;
   /** @internal */
-  @ignoreClone
   _updatedManager = new UpdateFlagManager();
 
   private _rootBone: Entity;
-  @deepClone
   private _bones = new Array<Entity>();
   @ignoreClone
   private _updateMark = -1;
@@ -65,7 +61,7 @@ export class Skin extends EngineObject {
   }
 
   constructor(public name: string) {
-    super(null);
+    super();
   }
 
   /**

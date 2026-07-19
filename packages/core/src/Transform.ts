@@ -2,7 +2,7 @@ import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@galacean/engi
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { assignmentClone, ignoreClone } from "./clone/CloneManager";
+import { ignoreClone } from "./clone/CloneManager";
 
 /**
  * Used to implement transformation related functions.
@@ -26,7 +26,6 @@ export class Transform extends Component {
   private _rotationQuaternion: Quaternion = new Quaternion();
   @ignoreClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
-  @assignmentClone
   private _localUniformScaling: boolean = true;
   @ignoreClone
   private _worldPosition: Vector3 = new Vector3();

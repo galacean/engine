@@ -1,7 +1,7 @@
 import { Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { ShadowType } from "../shadow";
 
 /**
@@ -32,7 +32,6 @@ export abstract class Light extends Component {
   _lightIndex = -1;
 
   private _shadowStrength = 1.0;
-  @deepClone
   private _color = new Color(1, 1, 1, 1);
   @ignoreClone
   private _viewMat: Matrix;

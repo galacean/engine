@@ -2,7 +2,7 @@ import { BoundingBox, Vector2, Vector3 } from "@galacean/engine-math";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { VertexMergeBatcher } from "../../RenderPipeline/VertexMergeBatcher";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { SpriteMaskLayer } from "../../enums/SpriteMaskLayer";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import type { ISpriteRenderer } from "../assembler/ISpriteRenderer";
@@ -47,7 +47,6 @@ export function MaskRenderable<T extends RendererConstructor>(
     private static _maskTextureProperty = ShaderProperty.getByName("renderer_MaskTexture");
     private static _alphaCutoffProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
-    @assignmentClone
     private _influenceLayers: SpriteMaskLayer = SpriteMaskLayer.Everything;
     /** @internal */
     @ignoreClone
@@ -57,11 +56,8 @@ export function MaskRenderable<T extends RendererConstructor>(
     _maskIndex: number = -1;
     @ignoreClone
     private _sprite: Sprite = null;
-    @assignmentClone
     private _flipX: boolean = false;
-    @assignmentClone
     private _flipY: boolean = false;
-    @assignmentClone
     private _alphaCutoff: number = 0.5;
 
     /**

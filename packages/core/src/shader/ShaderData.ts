@@ -1,7 +1,9 @@
+import { DataObject } from "../base/DataObject";
 import { IClone } from "@galacean/engine-design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IReferable } from "../asset/IReferable";
-import { CloneManager, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
+import { CloneUtil } from "../clone/CloneUtil";
 import { Texture } from "../texture/Texture";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
@@ -12,7 +14,7 @@ import { ShaderPropertyType } from "./enums/ShaderPropertyType";
 /**
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
-export class ShaderData implements IReferable, IClone {
+export class ShaderData extends DataObject implements IReferable, IClone {
   /** @internal */
   @ignoreClone
   _group: ShaderDataGroup;
@@ -34,6 +36,7 @@ export class ShaderData implements IReferable, IClone {
    * @internal
    */
   constructor(group: ShaderDataGroup) {
+    super();
     this._group = group;
   }
 
@@ -608,7 +611,7 @@ export class ShaderData implements IReferable, IClone {
   }
 
   cloneTo(target: ShaderData): void {
-    CloneManager.deepCloneObject(this._macroCollection, target._macroCollection, new Map<object, object>());
+    CloneUtil._deepCloneObject(this._macroCollection, target._macroCollection, new Map<object, object>());
     const targetMacroMap = target._macroMap;
     for (const key in targetMacroMap) {
       delete targetMacroMap[key];
@@ -628,7 +631,9 @@ export class ShaderData implements IReferable, IClone {
           targetPropertyValueMap[k] = property;
           referCount > 0 && property._addReferCount(referCount);
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
-          targetPropertyValueMap[k] = property.slice();
+          const cloned = property.slice();
+          targetPropertyValueMap[k] = cloned;
+          referCount > 0 && this._addTexturesReferCount(<ShaderPropertyValueType>cloned, referCount);
         } else {
           const targetProperty = targetPropertyValueMap[k];
           if (targetProperty) {
@@ -641,6 +646,13 @@ export class ShaderData implements IReferable, IClone {
         targetPropertyValueMap[k] = property;
       }
     }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: ShaderData): void {
+    this.cloneTo(target);
   }
 
   /**
@@ -713,8 +725,17 @@ export class ShaderData implements IReferable, IClone {
     for (const k in properties) {
       const property = properties[k];
       // @todo: Separate array to speed performance.
-      if (property && property instanceof Texture) {
-        property._addReferCount(value);
+      property && this._addTexturesReferCount(property, value);
+    }
+  }
+
+  private _addTexturesReferCount(property: ShaderPropertyValueType, count: number): void {
+    if (property instanceof Texture) {
+      property._addReferCount(count);
+    } else if (property instanceof Array) {
+      for (let i = 0, n = property.length; i < n; i++) {
+        const element = property[i];
+        element instanceof Texture && element._addReferCount(count);
       }
     }
   }

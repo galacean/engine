@@ -2,6 +2,7 @@ import { IMeshColliderShape } from "@galacean/engine-design";
 import { Engine } from "../../Engine";
 import { ModelMesh } from "../../mesh/ModelMesh";
 import { Vector3 } from "@galacean/engine-math";
+import { ignoreClone } from "../../clone/CloneManager";
 import { DynamicCollider } from "../DynamicCollider";
 import { MeshColliderShapeCookingFlag } from "../enums/MeshColliderShapeCookingFlag";
 import { ColliderShape } from "./ColliderShape";
@@ -10,9 +11,12 @@ import { ColliderShape } from "./ColliderShape";
  * Collider shape based on mesh geometry, supporting both convex hull and triangle mesh modes.
  */
 export class MeshColliderShape extends ColliderShape {
+  @ignoreClone
   private _mesh: ModelMesh = null;
   private _isConvex = false;
+  @ignoreClone
   private _positions: Vector3[] = null;
+  @ignoreClone
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _cookingFlags = MeshColliderShapeCookingFlag.Cleaning | MeshColliderShapeCookingFlag.VertexWelding;
 
@@ -128,6 +132,14 @@ export class MeshColliderShape extends ColliderShape {
   /**
    * @internal
    */
+  override _cloneTo(target: MeshColliderShape): void {
+    target.mesh = this._mesh;
+    super._cloneTo(target);
+  }
+
+  /**
+   * @internal
+   */
   override _destroy() {
     super._destroy();
     if (this._mesh) {
@@ -227,19 +239,5 @@ export class MeshColliderShape extends ColliderShape {
       this._collider._attachNativeShape(this);
     }
     return true;
-  }
-
-  /**
-   * @internal
-   * After CloneManager deep-copies `_positions` / `_indices` / `_mesh` and remaps `_collider`,
-   * the cloned shape still has no native PhysX shape because `_nativeShape` is `@ignoreClone`.
-   * Cook a fresh native shape now using the already-cloned vertex/index buffers.
-   */
-  override _cloneTo(target: MeshColliderShape): void {
-    target._mesh?._addReferCount(1);
-    super._cloneTo(target);
-    if (this._nativeShape) {
-      target._createNativeShape(false);
-    }
   }
 }

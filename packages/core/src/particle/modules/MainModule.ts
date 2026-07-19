@@ -1,6 +1,7 @@
+import { DataObject } from "../../base/DataObject";
 import { Color, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TransformModifyFlags } from "../../Transform";
-import { deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderData } from "../../shader/ShaderData";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -11,7 +12,7 @@ import { ParticleSimulationSpace } from "../enums/ParticleSimulationSpace";
 import { ParticleCompositeCurve } from "./ParticleCompositeCurve";
 import { ParticleCompositeGradient } from "./ParticleCompositeGradient";
 
-export class MainModule implements ICustomClone {
+export class MainModule extends DataObject implements ICustomClone {
   private _tempVector40 = new Vector4();
   private static _vector3One = new Vector3(1, 1, 1);
 
@@ -30,25 +31,20 @@ export class MainModule implements ICustomClone {
   isLoop = true;
 
   /** Start delay in seconds. */
-  @deepClone
   startDelay = new ParticleCompositeCurve(0);
 
   /** A flag to enable 3D particle rotation, when disabled, only `startRotationZ` is used. */
   startRotation3D = false;
   /** The initial rotation of particles around the x-axis when emitted, in degrees. */
-  @deepClone
   startRotationX = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the y-axis when emitted, in degrees. */
-  @deepClone
   startRotationY = new ParticleCompositeCurve(0);
   /** The initial rotation of particles around the z-axis when emitted, in degrees. */
-  @deepClone
   startRotationZ = new ParticleCompositeCurve(0);
   /** Makes some particles spin in the opposite direction. */
   flipRotation = 0;
 
   /** The mode of start color */
-  @deepClone
   startColor = new ParticleCompositeGradient(new Color(1, 1, 1, 1));
   /** A scale that this Particle Generator applies to gravity, defined by Physics.gravity. */
   /** Override the default playback speed of the Particle Generator. */
@@ -59,7 +55,6 @@ export class MainModule implements ICustomClone {
   playOnEnabled = true;
 
   /** @internal */
-  @ignoreClone
   _maxParticleBuffer = 1000;
   /** @internal */
   @ignoreClone
@@ -83,18 +78,12 @@ export class MainModule implements ICustomClone {
   @ignoreClone
   readonly _gravityModifierRand = new Rand(0, ParticleRandomSubSeeds.GravityModifier);
 
-  @deepClone
   private _startLifetime: ParticleCompositeCurve;
-  @deepClone
   private _startSpeed: ParticleCompositeCurve;
   private _startSize3D = false;
-  @deepClone
   private _startSizeX: ParticleCompositeCurve;
-  @deepClone
   private _startSizeY: ParticleCompositeCurve;
-  @deepClone
   private _startSizeZ: ParticleCompositeCurve;
-  @deepClone
   private _gravityModifier: ParticleCompositeCurve;
   private _simulationSpace = ParticleSimulationSpace.Local;
   @ignoreClone
@@ -250,6 +239,7 @@ export class MainModule implements ICustomClone {
    * @internal
    */
   constructor(generator: ParticleGenerator) {
+    super();
     this._generator = generator;
 
     this.startLifetime = new ParticleCompositeCurve(5);
@@ -332,8 +322,6 @@ export class MainModule implements ICustomClone {
    * @internal
    */
   _cloneTo(target: MainModule): void {
-    target.maxParticles = this.maxParticles;
-
     if (target._simulationSpace === ParticleSimulationSpace.World) {
       target._generator._generateTransformedBounds();
     }

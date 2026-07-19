@@ -1,6 +1,7 @@
+import { DataObject } from "../base/DataObject";
 import { BoundingBox, Color, MathUtil, Matrix, Quaternion, Vector2, Vector3 } from "@galacean/engine-math";
 import { Transform } from "../Transform";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { Primitive } from "../graphic/Primitive";
 import { SubMesh } from "../graphic/SubMesh";
 import { SubPrimitive } from "../graphic/SubPrimitive";
@@ -42,7 +43,7 @@ import { SubEmittersModule } from "./modules/SubEmittersModule";
 /**
  * Particle Generator.
  */
-export class ParticleGenerator {
+export class ParticleGenerator extends DataObject {
   private static _tempVector20 = new Vector2();
   private static _tempVector21 = new Vector2();
   private static _tempVector22 = new Vector2();
@@ -63,40 +64,28 @@ export class ParticleGenerator {
   useAutoRandomSeed = true;
 
   /** Main module. */
-  @deepClone
   readonly main: MainModule;
   /** Emission module. */
-  @deepClone
   readonly emission = new EmissionModule(this);
   /** Velocity over lifetime module. */
-  @deepClone
   readonly velocityOverLifetime: VelocityOverLifetimeModule;
   /** Force over lifetime module. */
-  @deepClone
   readonly forceOverLifetime: ForceOverLifetimeModule;
   /** Limit velocity over lifetime module. */
-  @deepClone
   readonly limitVelocityOverLifetime: LimitVelocityOverLifetimeModule;
   /** Size over lifetime module. */
-  @deepClone
   readonly sizeOverLifetime: SizeOverLifetimeModule;
   /** Rotation over lifetime module. */
-  @deepClone
   readonly rotationOverLifetime = new RotationOverLifetimeModule(this);
   /** Color over lifetime module. */
-  @deepClone
   readonly colorOverLifetime = new ColorOverLifetimeModule(this);
   /** Texture sheet animation module. */
-  @deepClone
   readonly textureSheetAnimation = new TextureSheetAnimationModule(this);
   /** Noise module. */
-  @deepClone
   readonly noise: NoiseModule;
   /** Sub emitters module. */
-  @deepClone
   readonly subEmitters: SubEmittersModule;
   /** Custom data module. */
-  @deepClone
   readonly customData: CustomDataModule;
 
   /** @internal */
@@ -210,6 +199,7 @@ export class ParticleGenerator {
    * @internal
    */
   constructor(renderer: ParticleRenderer) {
+    super();
     this._renderer = renderer;
     const subPrimitive = new SubPrimitive();
     subPrimitive.start = 0;

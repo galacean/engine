@@ -1,7 +1,7 @@
+import { DataObject } from "../../base/DataObject";
 import { ShaderData, ShaderProperty } from "..";
 import { RenderStateElementMap } from "../../BasicResources";
 import { Engine } from "../../Engine";
-import { deepClone } from "../../clone/CloneManager";
 import { RenderQueueType } from "../enums/RenderQueueType";
 import { RenderStateElementKey } from "../enums/RenderStateElementKey";
 import { BlendState } from "./BlendState";
@@ -12,18 +12,14 @@ import { StencilState } from "./StencilState";
 /**
  * Render state.
  */
-export class RenderState {
+export class RenderState extends DataObject {
   /** Blend state. */
-  @deepClone
   readonly blendState: BlendState = new BlendState();
   /** Depth state. */
-  @deepClone
   readonly depthState: DepthState = new DepthState();
   /** Stencil state. */
-  @deepClone
   readonly stencilState: StencilState = new StencilState();
   /** Raster state. */
-  @deepClone
   readonly rasterState: RasterState = new RasterState();
 
   /** Render queue type. */

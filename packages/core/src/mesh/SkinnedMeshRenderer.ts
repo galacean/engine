@@ -4,7 +4,7 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderElement } from "../RenderPipeline/RenderElement";
 import { RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { ShaderProperty } from "../shader";
 import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -29,12 +29,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
-  @deepClone
   private _localBounds: BoundingBox = new BoundingBox();
 
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
-  @ignoreClone
   private _blendShapeWeights: Float32Array;
   @ignoreClone
   private _maxVertexUniformVectors: number;
@@ -42,7 +40,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _jointTexture: Texture2D;
 
-  @deepClone
   private _skin: Skin;
 
   /**
@@ -146,12 +143,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   override _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
-
+    if (this._jointTexture) {
+      target.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, null);
+    }
     if (this.skin) {
       target._applySkin(null, target.skin);
     }
-
-    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
   protected override _update(context: RenderContext): void {
@@ -256,7 +253,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   @ignoreClone
-  private _onSkinUpdated(type: SkinUpdateFlag, value: Object): void {
+  private _onSkinUpdated(type: SkinUpdateFlag, value: number | Entity): void {
     switch (type) {
       case SkinUpdateFlag.BoneCountChanged:
         const shaderData = this.shaderData;

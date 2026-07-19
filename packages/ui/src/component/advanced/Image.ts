@@ -15,7 +15,6 @@ import {
   SpriteModifyFlags,
   SpriteTileMode,
   TiledSpriteAssembler,
-  assignmentClone,
   ignoreClone
 } from "@galacean/engine";
 import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
@@ -33,17 +32,11 @@ export class Image extends UIRenderer implements ISpriteRenderer {
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: ISpriteAssembler;
-  @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @assignmentClone
   private _tiledAdaptiveThreshold: number = 0.5;
-  @assignmentClone
   private _filledMode: SpriteFilledMode = SpriteFilledMode.Radial360;
-  @assignmentClone
   private _filledAmount: number = 1;
-  @assignmentClone
   private _filledOrigin: SpriteFilledOrigin = SpriteFilledOrigin.Bottom;
-  @assignmentClone
   private _filledClockWise: boolean = true;
 
   /**

@@ -19,8 +19,6 @@ import {
   Texture2D,
   Vector3,
   VertexMergeBatcher,
-  assignmentClone,
-  deepClone,
   ignoreClone
 } from "@galacean/engine";
 import { RootCanvasModifyFlags } from "../UICanvas";
@@ -42,31 +40,19 @@ export class Text extends UIRenderer implements ITextRenderer {
   private _textChunks = Array<TextChunk>();
   @ignoreClone
   private _subFont: SubFont = null;
-  @assignmentClone
   private _text: string = "";
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
-  @assignmentClone
   private _font: Font = null;
-  @assignmentClone
   private _fontSize: number = 24;
-  @assignmentClone
   private _fontStyle: FontStyle = FontStyle.None;
-  @assignmentClone
   private _lineSpacing: number = 0;
-  @assignmentClone
   private _characterSpacing: number = 0;
-  @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
-  @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
-  @assignmentClone
   private _enableWrapping: boolean = false;
-  @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
-  @deepClone
   private _outlineColor: Color = new Color(0, 0, 0, 1);
-  @ignoreClone
   private _outlineWidth: number = 0;
 
   /**
@@ -249,8 +235,14 @@ export class Text extends UIRenderer implements ITextRenderer {
     if (this._isTextNoVisible()) {
       if (this._isContainDirtyFlag(RendererUpdateFlags.WorldVolume)) {
         const localBounds = this._localBounds;
-        localBounds.min.set(0, 0, 0);
-        localBounds.max.set(0, 0, 0);
+        if (this._getRootCanvas()) {
+          localBounds.min.set(0, 0, 0);
+          localBounds.max.set(0, 0, 0);
+        } else {
+          const { size, pivot } = <UITransform>this.entity.transform;
+          localBounds.min.set(-size.x * pivot.x, -size.y * pivot.y, 0);
+          localBounds.max.set(size.x * (1 - pivot.x), size.y * (1 - pivot.y), 0);
+        }
         this._updateBounds(this._bounds);
         this._setDirtyFlagFalse(RendererUpdateFlags.WorldVolume);
       }
@@ -295,15 +287,6 @@ export class Text extends UIRenderer implements ITextRenderer {
     this._textChunks = null;
 
     this._subFont && (this._subFont = null);
-  }
-
-  // @ts-ignore
-  override _cloneTo(target: Text): void {
-    // @ts-ignore
-    super._cloneTo(target);
-    target.font = this._font;
-    target._subFont = this._subFont;
-    target.outlineWidth = this._outlineWidth;
   }
 
   /**

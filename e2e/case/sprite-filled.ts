@@ -17,7 +17,6 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 // One baseline covering every fill mode (rows) across fill amounts 0/0.25/0.5/0.75/1 (columns).
 // The amount steps hit the topology boundaries (45° quad↔triangle, 90° quadrant edges).
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 

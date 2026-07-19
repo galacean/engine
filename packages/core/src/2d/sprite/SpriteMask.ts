@@ -4,7 +4,7 @@ import { PrimitiveChunkManager } from "../../RenderPipeline/PrimitiveChunkManage
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SubPrimitiveChunk } from "../../RenderPipeline/SubPrimitiveChunk";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { ignoreClone } from "../../clone/CloneManager";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { MaskDirtyFlags, MaskRenderable } from "./MaskRenderable";
@@ -25,9 +25,7 @@ export class SpriteMask extends MaskRenderable(Renderer) {
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
-  @assignmentClone
   private _customWidth: number = undefined;
-  @assignmentClone
   private _customHeight: number = undefined;
 
   /**

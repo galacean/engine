@@ -1,7 +1,7 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Component } from "../Component";
 import { DependentMode, dependentComponents } from "../ComponentsDependencies";
@@ -23,9 +23,7 @@ export class Collider extends Component implements ICustomClone {
   /** @internal */
   @ignoreClone
   _nativeCollider: ICollider;
-  @ignoreClone
   protected _updateFlag: BoolUpdateFlag;
-  @deepClone
   protected _shapes: ColliderShape[] = [];
   protected _collisionLayerIndex: number = 0;
 
@@ -240,16 +238,14 @@ export class Collider extends Component implements ICustomClone {
   _attachNativeShape(shape: ColliderShape): void {
     if (shape._nativeShape && !shape._isShapeAttached) {
       shape._nativeShape.setWorldScale(this.entity.transform.lossyWorldScale);
-      this._nativeCollider.addShape(shape._nativeShape);
-      shape._isShapeAttached = true;
+      shape._attachToCollider();
     }
   }
 
   /** @internal */
   _detachNativeShape(shape: ColliderShape): void {
     if (shape._nativeShape && shape._isShapeAttached) {
-      this._nativeCollider.removeShape(shape._nativeShape);
-      shape._isShapeAttached = false;
+      shape._detachFromCollider();
     }
   }
 

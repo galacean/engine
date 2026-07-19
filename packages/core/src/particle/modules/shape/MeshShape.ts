@@ -1,7 +1,6 @@
 import { Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { TypedArray } from "../../../base";
 import { ignoreClone } from "../../../clone/CloneManager";
-import { Entity } from "../../../Entity";
 import { VertexElement } from "../../../graphic";
 import { MeshModifyFlags } from "../../../graphic/Mesh";
 import { ModelMesh, VertexAttribute } from "../../../mesh";
@@ -49,6 +48,13 @@ export class MeshShape extends BaseShape {
 
       this._updateManager.dispatch();
     }
+  }
+
+  /**
+   * @internal
+   */
+  override _destroy(): void {
+    this.mesh = null;
   }
 
   /**
