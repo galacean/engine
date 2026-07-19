@@ -14,20 +14,15 @@ import { CloneMode } from "./enums/CloneMode";
 
 /**
  * @internal
- * Clone execution: a field decorator takes priority, otherwise the value's own type family
- * decides. Engine classes are imported here rather than in `CloneManager`, which cannot import
- * them.
+ * Split from `CloneManager`, which must stay free of engine imports.
  */
 export class CloneUtil {
   /**
    * @internal
    */
   static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
-    // Resolved once per object (a single prototype-chain walk), not once per field.
     const fieldModes = source._fieldModes;
-    // Own keys only. The release bundle downlevels classes in `loose` mode, which emits prototype
-    // methods as plain assignments and thus enumerable; `for...in` would copy them onto the target
-    // as own properties.
+    // Own keys only: `loose` downleveling makes prototype methods enumerable.
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
@@ -42,24 +37,18 @@ export class CloneUtil {
    */
   static _cloneValue(source: any, preset: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
     if (fieldMode === CloneMode.Assignment) return source;
-    // `@deepClone` is an explicit intent: force a deep copy, and throw if it can't be honored.
-    // `Ignore` never arrives here — the field walk skips those fields before calling in.
     return CloneUtil._cloneByDefault(source, preset, cloneMap, fieldMode === CloneMode.Deep);
   }
 
   /**
    * @internal
-   * `forceDeepClone` (a `@deepClone`'d field) flips a class with no deep-clone default from
-   * "share" to "field-walk", and makes an engine-bound value throw instead of resolving to its
-   * default.
+   * `forceDeepClone` (a `@deepClone`'d field) field-walks a class that has no deep default, and
+   * throws on an engine-bound value instead of falling back to it.
    */
   static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
-    // A function is a value, not a graph: an explicit decorator shares the source function, the
-    // default keeps the clone's own constructor-rebound binding when it has one.
+    // The clone's own constructor-rebound binding wins over the source's.
     if (typeof source === "function") return forceDeepClone ? source : typeof preset === "function" ? preset : source;
     if (source === null || typeof source !== "object") return source;
-    // Engine-bound families produce no new object: an Entity's own map lookup is the remap, and
-    // the others never enter the map.
     if (source instanceof Entity || source instanceof Component) {
       if (forceDeepClone) {
         throw new Error(
@@ -67,7 +56,7 @@ export class CloneUtil {
             `references are engine-bound. Remove @deepClone to remap the reference by default.`
         );
       }
-      // In-subtree: the clone registered at tree-build time. Outside: keep the original reference.
+      // Outside the cloned subtree: keep the original reference.
       return cloneMap.get(source) ?? source;
     }
     if (source instanceof ReferResource) {
@@ -93,23 +82,17 @@ export class CloneUtil {
       }
       return preset;
     }
-    // Each branch that produces a clone dedups for itself: whether a value is cloned at all
-    // depends on `forceDeepClone`, so a shared value must not consult the identity map.
+    // Dedup lives in each cloning branch: a shared value must not consult the identity map.
     if (ArrayBuffer.isView(source)) return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
     if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap);
     if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap);
     if (source instanceof Set) return CloneUtil._deepCloneSet(source, preset, cloneMap);
 
-    // A non-container object. A compatible preset of the exact same type is reused as the clone
-    // target; otherwise a bare instance is constructed (null-prototype objects have no
-    // constructor, so rebuild as such).
     const ctor = (<any>source).constructor;
     const reusable = preset && preset !== source && preset.constructor === ctor ? preset : null;
 
-    // Math value type (Vector3, Color, ...) — a class instance carrying a callable copyFrom; copy
-    // via it. Math cannot depend on core, so it cannot extend DataObject and is recognized this
-    // way. Plain / null-prototype objects never take this branch, even when a `copyFrom` data
-    // field rides in the payload.
+    // Math value types can't extend DataObject (math must not depend on core), so they are
+    // duck-typed. `ctor !== Object` keeps a plain payload carrying a `copyFrom` field out.
     if (ctor && ctor !== Object && typeof (<ICustomClone>source).copyFrom === "function") {
       const existing = cloneMap.get(source);
       if (existing) return existing;
@@ -120,8 +103,6 @@ export class CloneUtil {
       return dst;
     }
 
-    // Field-walk deep clone: the DataObject family and plain / null-prototype objects always; any
-    // other class instance only when `@deepClone` forces it (the default shares it).
     if (source instanceof DataObject || ctor === Object || ctor === undefined || forceDeepClone) {
       const existing = cloneMap.get(source);
       if (existing) return existing;
@@ -132,7 +113,6 @@ export class CloneUtil {
       return dst;
     }
 
-    // A class instance with no deep-clone default, on the default path — shared.
     return source;
   }
 
@@ -140,7 +120,6 @@ export class CloneUtil {
    * @internal
    */
   static _transferSlotOwnership(cloned: any, source: any, preset: any): void {
-    // Slot content unchanged (Ignore kept / value type copied in place / function reused).
     if (cloned === preset) return;
     if (preset instanceof ReferResource) {
       const presetRefCount = (<{ refCount?: number }>preset).refCount;
@@ -152,8 +131,7 @@ export class CloneUtil {
         );
       (<IReferable>preset)._addReferCount(-1);
     }
-    // `cloned === source` ⇔ the slot shared the source value (only the sharing paths return a
-    // registered resource as-is), so it owns one reference.
+    // `cloned === source` ⇔ the slot shared the source value, so it owns one reference.
     if (cloned === source && cloned instanceof ReferResource) {
       (<IReferable>cloned)._addReferCount(1);
     }
@@ -201,8 +179,7 @@ export class CloneUtil {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
 
-    // `preset !== source`: a clone still aliasing the source's array (a class-level default
-    // table) must not be filled in place.
+    // `preset !== source`: a clone still aliasing the source's array must not be filled in place.
     const dst =
       preset !== source &&
       Array.isArray(preset) &&
@@ -224,8 +201,7 @@ export class CloneUtil {
 
     let dst: Map<any, any>;
     if (preset instanceof Map && preset !== source && preset.constructor === source.constructor) {
-      // Clear before refilling: the preset holds the clone's own constructor-built entries, which
-      // would otherwise survive alongside the source's.
+      // The preset's own constructor-built entries would otherwise survive alongside the source's.
       preset.clear();
       dst = preset;
     } else {
@@ -250,7 +226,6 @@ export class CloneUtil {
 
     let dst: Set<any>;
     if (preset instanceof Set && preset !== source && preset.constructor === source.constructor) {
-      // Cleared before refilling, same as `Map`.
       preset.clear();
       dst = preset;
     } else {

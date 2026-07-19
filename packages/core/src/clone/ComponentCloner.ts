@@ -13,7 +13,7 @@ export interface ICustomClone {
   _cloneTo?(target: ICustomClone, cloneMap?: Map<object, object>): void;
   /**
    * @internal
-   * Value-type marker — `_cloneClassInstance` copies via this instead of walking fields.
+   * Value-type marker — the gate copies via this instead of walking fields.
    */
   copyFrom?(source: ICustomClone): void;
 }
@@ -26,11 +26,8 @@ export class ComponentCloner {
    * @param cloneMap - Identity map of the cloned subtree (source object → clone)
    */
   static cloneComponent(source: Component, target: Component, cloneMap: Map<object, object>): void {
-    // Resolved once per component (a single prototype-chain walk), not once per field.
     const fieldModes = (<any>source)._fieldModes;
-    // Own keys only. The release bundle downlevels classes in `loose` mode, which emits prototype
-    // methods as plain assignments and thus enumerable; `for...in` would copy them onto the target
-    // as own properties.
+    // Own keys only: `loose` downleveling makes prototype methods enumerable.
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
