@@ -20,71 +20,59 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>): void {
+  static _deepCloneObject(source: any, target: object, cloneMap: Map<object, object>, forceDeepClone = false): void {
     const fieldModes = source._fieldModes;
     const keys = Object.keys(source);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
       const fieldMode = fieldModes?.[k];
       if (fieldMode === CloneMode.Ignore) continue;
-      target[k] = CloneUtil._cloneValue(source[k], target[k], cloneMap, fieldMode);
+      target[k] = CloneUtil._cloneValue(source[k], target[k], cloneMap, fieldMode, forceDeepClone);
     }
   }
 
   /**
    * @internal
    */
-  static _cloneValue(source: any, preset: any, cloneMap: Map<object, object>, fieldMode?: CloneMode): any {
+  static _cloneValue(
+    source: any,
+    preset: any,
+    cloneMap: Map<object, object>,
+    fieldMode?: CloneMode,
+    forceDeepClone = false
+  ): any {
     if (fieldMode === CloneMode.Assignment) return source;
-    return CloneUtil._cloneByDefault(source, preset, cloneMap, fieldMode === CloneMode.Deep);
+    if (fieldMode === CloneMode.Deep) {
+      // The explicit decorator must be honorable on the value it decorates; the deep intent it
+      // propagates into the subtree is softer — engine-bound members keep their defaults.
+      CloneUtil._assertDeepClonable(source);
+      forceDeepClone = true;
+    }
+    return CloneUtil._cloneByDefault(source, preset, cloneMap, forceDeepClone);
   }
 
   /**
    * @internal
-   * `forceDeepClone` (a `@deepClone`'d field) field-walks a class that has no deep default, and
-   * throws on an engine-bound value instead of falling back to it.
+   * `forceDeepClone` (a `@deepClone` somewhere up the walk) deep-copies the whole subtree: a
+   * class with no deep default flips from "share" to "field-walk", and containers carry the
+   * force into their members. Engine-bound values keep their defaults (remap / share / own).
    */
   static _cloneByDefault(source: any, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any {
     if (typeof source === "function") return forceDeepClone ? source : typeof preset === "function" ? preset : source;
     if (source === null || typeof source !== "object") return source;
-    if (source instanceof Entity || source instanceof Component) {
-      if (forceDeepClone) {
-        throw new Error(
-          `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — Entity / Component ` +
-            `references are engine-bound. Remove @deepClone to remap the reference by default.`
-        );
-      }
-      return cloneMap.get(source) ?? source;
-    }
-    if (source instanceof ReferResource) {
-      if (forceDeepClone) {
-        throw new Error(
-          `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — assets are engine-bound ` +
-            `and shared by reference. Remove @deepClone to share it, or copy it via the asset's own clone() API.`
-        );
-      }
-      return source;
-    }
-    if (source instanceof UpdateFlagManager || source instanceof UpdateFlag) {
-      if (forceDeepClone) {
-        throw new Error(
-          `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — a flag and its manager hold ` +
-            `each other, and a field copy resolves neither side, leaving the pair inconsistent. Remove ` +
-            `@deepClone to keep the clone's own.`
-        );
-      }
-      return preset;
-    }
+    if (source instanceof Entity || source instanceof Component) return cloneMap.get(source) ?? source;
+    if (source instanceof ReferResource) return source;
+    if (source instanceof UpdateFlagManager || source instanceof UpdateFlag) return preset;
     if (ArrayBuffer.isView(source)) return CloneUtil._deepCloneArrayBuffer(<ArrayBufferView>source, preset, cloneMap);
-    if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap);
-    if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap);
-    if (source instanceof Set) return CloneUtil._deepCloneSet(source, preset, cloneMap);
+    if (Array.isArray(source)) return CloneUtil._deepCloneArray(source, preset, cloneMap, forceDeepClone);
+    if (source instanceof Map) return CloneUtil._deepCloneMap(source, preset, cloneMap, forceDeepClone);
+    if (source instanceof Set) return CloneUtil._deepCloneSet(source, preset, cloneMap, forceDeepClone);
     if (source instanceof DisorderedArray || source instanceof SafeLoopArray) {
       if (!forceDeepClone) return preset;
       const existing = cloneMap.get(source);
       if (existing) return existing;
       const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
-      CloneUtil._deepCloneObject(source, dst, cloneMap);
+      CloneUtil._deepCloneObject(source, dst, cloneMap, true);
       return dst;
     }
 
@@ -102,11 +90,37 @@ export class CloneUtil {
       const existing = cloneMap.get(source);
       if (existing) return existing;
       const dst = CloneUtil._createCloneTarget(source, preset, cloneMap);
-      CloneUtil._deepCloneObject(source, dst, cloneMap);
+      CloneUtil._deepCloneObject(source, dst, cloneMap, forceDeepClone);
       (<ICustomClone>source)._cloneTo?.(<ICustomClone>dst, cloneMap);
       return dst;
     }
     return source;
+  }
+
+  /**
+   * @internal
+   * Throws when a `@deepClone`-decorated value cannot be deep cloned.
+   */
+  static _assertDeepClonable(source: any): void {
+    if (source instanceof Entity || source instanceof Component) {
+      throw new Error(
+        `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — Entity / Component ` +
+          `references are engine-bound. Remove @deepClone to remap the reference by default.`
+      );
+    }
+    if (source instanceof ReferResource) {
+      throw new Error(
+        `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — assets are engine-bound ` +
+          `and shared by reference. Remove @deepClone to share it, or copy it via the asset's own clone() API.`
+      );
+    }
+    if (source instanceof UpdateFlagManager || source instanceof UpdateFlag) {
+      throw new Error(
+        `CloneUtil: @deepClone cannot deep clone "${source.constructor.name}" — a flag and its manager hold ` +
+          `each other, and a field copy resolves neither side, leaving the pair inconsistent. Remove ` +
+          `@deepClone to keep the clone's own.`
+      );
+    }
   }
 
   /**
@@ -196,7 +210,7 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _deepCloneArray(source: any[], preset: any, cloneMap: Map<object, object>): any[] {
+  static _deepCloneArray(source: any[], preset: any, cloneMap: Map<object, object>, forceDeepClone = false): any[] {
     const existing = cloneMap.get(source);
     if (existing) return <any[]>existing;
 
@@ -208,14 +222,21 @@ export class CloneUtil {
         ? preset
         : new Array(source.length);
     cloneMap.set(source, dst);
-    for (let i = 0, n = source.length; i < n; i++) dst[i] = CloneUtil._cloneValue(source[i], undefined, cloneMap);
+    for (let i = 0, n = source.length; i < n; i++) {
+      dst[i] = CloneUtil._cloneByDefault(source[i], undefined, cloneMap, forceDeepClone);
+    }
     return dst;
   }
 
   /**
    * @internal
    */
-  static _deepCloneMap(source: Map<any, any>, preset: any, cloneMap: Map<object, object>): Map<any, any> {
+  static _deepCloneMap(
+    source: Map<any, any>,
+    preset: any,
+    cloneMap: Map<object, object>,
+    forceDeepClone = false
+  ): Map<any, any> {
     const existing = cloneMap.get(source);
     if (existing) return <Map<any, any>>existing;
 
@@ -229,8 +250,8 @@ export class CloneUtil {
     cloneMap.set(source, dst);
     for (const entry of source) {
       dst.set(
-        CloneUtil._cloneValue(entry[0], undefined, cloneMap),
-        CloneUtil._cloneValue(entry[1], undefined, cloneMap)
+        CloneUtil._cloneByDefault(entry[0], undefined, cloneMap, forceDeepClone),
+        CloneUtil._cloneByDefault(entry[1], undefined, cloneMap, forceDeepClone)
       );
     }
     return dst;
@@ -239,7 +260,7 @@ export class CloneUtil {
   /**
    * @internal
    */
-  static _deepCloneSet(source: Set<any>, preset: any, cloneMap: Map<object, object>): Set<any> {
+  static _deepCloneSet(source: Set<any>, preset: any, cloneMap: Map<object, object>, forceDeepClone = false): Set<any> {
     const existing = cloneMap.get(source);
     if (existing) return <Set<any>>existing;
 
@@ -251,7 +272,7 @@ export class CloneUtil {
       dst = new Set<any>();
     }
     cloneMap.set(source, dst);
-    for (const v of source) dst.add(CloneUtil._cloneValue(v, undefined, cloneMap));
+    for (const v of source) dst.add(CloneUtil._cloneByDefault(v, undefined, cloneMap, forceDeepClone));
     return dst;
   }
 }

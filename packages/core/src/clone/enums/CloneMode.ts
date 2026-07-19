@@ -7,8 +7,9 @@ export enum CloneMode {
   /** Share the reference; a counted resource shared at a component's top-level slot is kept alive by the clone. */
   Assignment,
   /**
-   * Recursively clone the graph structure (fresh containers/instances); each member follows its
-   * own clone semantics — assets stay shared, entity refs remap, runtime state is ignored.
+   * Deep clone the whole subtree (fresh containers/instances, the intent carries into members);
+   * engine-bound members keep their defaults — assets stay shared, entity refs remap, runtime
+   * state keeps the clone's own.
    */
   Deep
 }

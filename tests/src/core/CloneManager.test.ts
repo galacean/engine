@@ -320,6 +320,16 @@ class AssignedContainerScript extends Script {
   shared: number[] = [];
 }
 
+/** Script whose @deepClone fields hold members with no deep default of their own */
+class DeepSubtreeScript extends Script {
+  @deepClone
+  configs: PlainConfig[] = [];
+  @deepClone
+  bag: any = null;
+  @deepClone
+  mixed: any[] = null;
+}
+
 /** Script whose ctor-built binary values stay observable through @ignoreClone aliases */
 class BinaryPresetScript extends Script {
   weights = new Float32Array(3);
@@ -1456,6 +1466,61 @@ describe("Clone remap", async () => {
       const cs = cloned.getComponent(HandlerScript) as any;
 
       expect(cs.handlerMap.get("k")).eq(fn);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("@deepClone subtree propagation", () => {
+    it("plain-class members of a @deepClone container are copied, not shared", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepSubtreeScript);
+      const config = new PlainConfig();
+      config.count = 5;
+      script.configs.push(config);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepSubtreeScript);
+
+      expect(cs.configs[0]).not.eq(config);
+      expect(cs.configs[0].count).eq(5);
+      expect(cs.configs[0].nested).not.eq(config.nested);
+      cs.configs[0].count = 1;
+      expect(config.count).eq(5);
+
+      rootEntity.destroy();
+    });
+
+    it("the force carries through nested plain objects", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(DeepSubtreeScript);
+      const config = new PlainConfig();
+      script.bag = { cfg: config };
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepSubtreeScript);
+
+      expect(cs.bag.cfg).not.eq(config);
+      expect(cs.bag.cfg.nested).not.eq(config.nested);
+
+      rootEntity.destroy();
+    });
+
+    it("engine-bound members inside a @deepClone subtree keep their defaults", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const script = parent.addComponent(DeepSubtreeScript);
+      const texture = new Texture2D(engine, 1, 1);
+      script.mixed = [child, texture];
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(DeepSubtreeScript);
+
+      expect(cs.mixed[0]).eq(cloned.children[0]);
+      expect(cs.mixed[1]).eq(texture);
 
       rootEntity.destroy();
     });
