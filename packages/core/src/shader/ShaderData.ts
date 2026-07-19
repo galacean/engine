@@ -629,7 +629,7 @@ export class ShaderData extends DataObject implements IReferable, IClone {
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
           const cloned = property.slice();
           targetPropertyValueMap[k] = cloned;
-          referCount > 0 && ShaderData._addTexturesReferCount(<ShaderPropertyValueType>cloned, referCount);
+          referCount > 0 && this._addTexturesReferCount(<ShaderPropertyValueType>cloned, referCount);
         } else {
           const targetProperty = targetPropertyValueMap[k];
           if (targetProperty) {
@@ -646,7 +646,6 @@ export class ShaderData extends DataObject implements IReferable, IClone {
 
   /**
    * @internal
-   * Deep-clone hook invoked by the clone gate; delegates to `cloneTo`.
    */
   _cloneTo(target: ShaderData): void {
     this.cloneTo(target);
@@ -722,14 +721,11 @@ export class ShaderData extends DataObject implements IReferable, IClone {
     for (const k in properties) {
       const property = properties[k];
       // @todo: Separate array to speed performance.
-      property && ShaderData._addTexturesReferCount(property, value);
+      property && this._addTexturesReferCount(property, value);
     }
   }
 
-  /**
-   * Counted texture content may be a single texture or a texture array; both cascade alike.
-   */
-  private static _addTexturesReferCount(property: ShaderPropertyValueType, count: number): void {
+  private _addTexturesReferCount(property: ShaderPropertyValueType, count: number): void {
     if (property instanceof Texture) {
       property._addReferCount(count);
     } else if (property instanceof Array) {
