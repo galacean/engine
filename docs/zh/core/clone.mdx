@@ -52,8 +52,9 @@ console.log(cloneScript.c); // output is (1,1,1)，且是一份独立拷贝 —�
 | 资产（`Texture`、`Mesh`、`Material`、`Sprite`、`Font` 等 `ReferResource` 类型） | 共享引用 —— 克隆体与源使用同一份资产。 |
 | `Entity` / `Component` 引用 | 自动重映射到克隆子树内对应的克隆对象；指向子树外的引用保持原引用不变。 |
 | 数学值类型（`Vector2`、`Vector3`、`Vector4`、`Quaternion`、`Matrix`、`Color` 等）及其他值语义数据 | 深克隆 —— 克隆体获得完全独立的拷贝。 |
-| 容器（`Array`、`Map`、`Set`、TypedArray、`DataView`、普通对象） | 深克隆 —— 创建全新的容器，每个成员再按各自的类型语义继续克隆。 |
+| 容器（`Array`、`Map`、`Set`、TypedArray、`DataView`、普通对象） | 深克隆 —— 创建全新的容器，每个成员（`Map` 连键一起）再按各自的类型语义继续克隆。 |
 | 运行时容器（`UpdateFlagManager` 等内部瞬态状态） | 忽略 —— 克隆体保留自身构造时的值。 |
+| 函数值 | 克隆体保留自身构造时的函数；没有则共享源的函数。 |
 | 其他对象 | 共享引用（赋值）。 |
 
 一个类可以通过两种方式获得"默认深克隆"能力：继承 [DataObject](/apis/core/#DataObject)（数据类 —— 引擎逐字段克隆），或提供 `copyFrom` 方法（数学类这样的值类型 —— 引擎经由它拷贝）。两种方式都要求类型支持无参构造：当槽位上没有可复用的预置实例时，引擎会先 `new Type()` 裸构造一个再填充，无法无参构造的类型会直接报错。
@@ -77,6 +78,7 @@ const entity = engine.createEntity();
 const child = entity.createChild("child");
 const script = entity.addComponent(CustomScript);
 script.target = child;
+script.texture = new Texture2D(engine, 128, 128);
 
 // Clone logic
 const cloneEntity = entity.clone();
@@ -86,13 +88,13 @@ console.log(cloneScript.config === script.config); // output is false，普通�
 console.log(cloneScript.texture === script.texture); // output is true，资产在源与克隆体之间共享。
 ```
 ### 克隆装饰器
-除了默认的类型驱动规则外，引擎还提供了“克隆装饰器“对脚本字段的克隆方式进行定制。字段装饰器优先级最高 —— 会覆盖值类型的默认克隆行为，且在克隆对象图的任意深度都生效。引擎内置三种克隆装饰：
+除了默认的类型驱动规则外，引擎还提供了“克隆装饰器“对脚本字段的克隆方式进行定制。字段装饰器优先级最高 —— 会覆盖值类型的默认克隆行为，并在克隆走字段遍历的任何地方生效：组件顶层，以及任何本身被深克隆的对象内部（默认共享的值不会被逐字段遍历，其内部的装饰器也就不会被查询）。引擎内置三种克隆装饰：
 
 | 装饰器名称 | 装饰器释义 |
 | :--- | :--- |
 | [ignoreClone](/apis/core/#ignoreClone) | 克隆时对字段进行忽略，克隆体保留自身构造时的值。 |
 | [assignmentClone](/apis/core/#assignmentClone) | 克隆时对字段进行赋值。如果是基本类型则会拷贝值，如果是引用类型，克隆体将与源共享同一个引用。 |
-| [deepClone](/apis/core/#deepClone) | 克隆时对字段进行深克隆。字段会获得全新且独立的结构，内部每个成员再按各自的语义继续克隆。引擎绑定的对象无法被深克隆：对 `Entity` / `Component` 引用或资产使用 `@deepClone` 会直接报错 —— 请移除该装饰器以走默认行为（重映射 / 共享），或使用资产自身的克隆 API 复制资产。|
+| [deepClone](/apis/core/#deepClone) | 克隆时对字段进行深克隆。字段会获得全新且独立的结构，内部每个成员再按各自的语义继续克隆。引擎绑定的对象无法被深克隆：对 `Entity` / `Component` 引用、资产或引擎运行时状态（如 `UpdateFlagManager`）使用 `@deepClone` 会直接报错 —— 请移除该装饰器以走默认行为，或使用资产自身的克隆 API 复制资产。|
 
 <Callout type="negative">
 `@shallowClone` 已被移除。它旧有的“拷贝容器本身、共享内部成员”语义已不复存在。请按意图迁移：希望字段独立就使用 `@deepClone`，希望共享就使用 `@assignmentClone`。
@@ -143,9 +145,9 @@ console.log(script.d[0]); // output is (1,1,1). bacause deepClone let d[0] use t
 ```
 - 注意: 
 
-  - 字段装饰器优先级最高，并且对克隆对象图任意深度上嵌套类的字段同样生效。
-  - `deepClone` 会对结构进行深度递归克隆，内部每个成员仍按各自的语义克隆：资产保持共享，实体引用被重映射，嵌套字段上的装饰器依然生效。
-  - `deepClone` 无法深克隆引擎绑定的对象：对 `Entity` / `Component` 引用或资产使用 `@deepClone` 会直接报错，因为这个显式意图无法被满足。请移除该装饰器以回退到默认行为（重映射 / 共享），或使用资产自身的克隆 API 得到真正的拷贝。
+  - 字段装饰器优先级最高，并且在克隆走字段遍历的任何地方对嵌套对象的字段同样生效。
+  - `deepClone` 会对结构进行深度递归克隆，内部每个成员仍按各自的语义克隆：资产保持共享，实体引用被重映射，嵌套字段上的装饰器依然生效。没有深克隆默认的成员类实例（既不是 `DataObject` 也没有 `copyFrom`）会保持共享 —— 装饰器不会把自己传播进成员，请让成员的类型自己获得深克隆能力。
+  - `deepClone` 无法深克隆引擎绑定的对象：对 `Entity` / `Component` 引用、资产或引擎运行时状态使用 `@deepClone` 会直接报错，因为这个显式意图无法被满足。请移除该装饰器以回退到默认行为，或使用资产自身的克隆 API 得到真正的拷贝。
   - 如果克隆装饰器不能满足诉求，可以通过实现 [_cloneTo()](/apis/design/#IClone-cloneTo) 方法追加自定义克隆。
 
 ## 克隆与资产引用计数
