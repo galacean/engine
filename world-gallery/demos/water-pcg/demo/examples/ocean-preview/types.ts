@@ -1,7 +1,7 @@
 /** Parameters for the deterministic GPU Gerstner Ocean preview. */
 import type { WaterQualityTier } from "../../../authoring/wave/enums/WaterQualityTier";
 import type { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveModel";
-import type { WaterWaveAssetV1 } from "../../../authoring/wave/types/WaterWaveTypes";
+import type { WaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
 
 export interface OceanPreviewConfig {
   size: number;

@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { WaterQueryAccuracy } from "../../authoring/wave/enums/WaterQueryAccuracy";
+import { WATER_WAVE_TWO_PI } from "../../authoring/wave/constants/WaterWaveLimits";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
 import { WaterWaveSchemaVersion } from "../../authoring/wave/enums/WaterWaveSchemaVersion";
 import { compileWaterWaveAsset } from "../../compiler/wave/WaterWaveCompiler";
-import type { CompiledWaterWaveSet } from "../../compiler/wave/types/CompiledWaterWaveTypes";
+import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import { createWaterWaveSampleOutput, evaluateGerstnerWaveSet } from "../../runtime/wave/GerstnerWaveEvaluator";
-import type { WaterWaveSampleOutput } from "../../runtime/wave/types/WaterWaveRuntimeTypes";
+import type { WaterWaveSampleOutput } from "../../runtime/wave/WaterWaveRuntimeTypes";
 import { directionalWaterWaveFixture } from "../fixtures/waterWaveFixtures";
 
 const REFERENCE_STEP = 0.0001;
@@ -62,6 +63,39 @@ describe("GerstnerWaveEvaluator rest-space evaluation", () => {
       expect(Object.values(first).every(Number.isFinite)).toBe(true);
       expect(Math.hypot(first.normalX, first.normalY, first.normalZ)).toBeCloseTo(1, 10);
     }
+  });
+
+  it("keeps a single-wave result stable after many complete long-session periods", () => {
+    const compiled = compileWaterWaveAsset(
+      {
+        ...directionalWaterWaveFixture,
+        generator: { ...directionalWaterWaveFixture.generator, waveCount: 1 }
+      },
+      WaterQualityTier.High
+    );
+    const timeScale = 0.82;
+    const period = WATER_WAVE_TWO_PI / (compiled.waves[0].angularFrequency * timeScale);
+    const baseline = createWaterWaveSampleOutput();
+    const longSession = createWaterWaveSampleOutput();
+
+    evaluateGerstnerWaveSet(compiled, 4.25, 1.5, -8.75, 1.25, timeScale, WaterQueryAccuracy.Precise, baseline);
+    evaluateGerstnerWaveSet(
+      compiled,
+      4.25,
+      1.5,
+      -8.75,
+      1.25 + period * 100000,
+      timeScale,
+      WaterQueryAccuracy.Precise,
+      longSession
+    );
+
+    expect(longSession.displacedX).toBeCloseTo(baseline.displacedX, 8);
+    expect(longSession.displacedY).toBeCloseTo(baseline.displacedY, 8);
+    expect(longSession.displacedZ).toBeCloseTo(baseline.displacedZ, 8);
+    expect(longSession.normalX).toBeCloseTo(baseline.normalX, 8);
+    expect(longSession.normalY).toBeCloseTo(baseline.normalY, 8);
+    expect(longSession.normalZ).toBeCloseTo(baseline.normalZ, 8);
   });
 
   it("matches a finite-difference normal within 0.5 degrees", () => {

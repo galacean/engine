@@ -27,7 +27,8 @@ describe("WaterWaveMaterialFactory fixed shaders", () => {
     expect(source).toContain(`vec4 ${WATER_WAVE_SHADER_PROPERTY.waveAPrefix}0;`);
     expect(source).toContain(`vec4 ${WATER_WAVE_SHADER_PROPERTY.waveBPrefix}5;`);
     expect(source).toContain("waveA.w * dot(waveA.xy, restXZ)");
-    expect(source).toContain("waveB.x * elapsedTime * material_TimeScale");
+    expect(source).toContain("float wrappedTime = mod(elapsedTime, wavePeriod)");
+    expect(source).toContain("angularRate * wrappedTime");
     expect(source).toContain("waveA.xy * waveB.y * cosine");
   });
 

@@ -3,12 +3,12 @@ import { Entity } from "@galacean/engine-core";
 import { describe, expect, it, vi } from "vitest";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
-import type { CompiledWaterWaveSet } from "../../compiler/wave/types/CompiledWaterWaveTypes";
+import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import { OceanPreviewController } from "../../demo/examples/ocean-preview/OceanPreviewController";
 import { curvedMainRiverOceanPreview } from "../../demo/examples/ocean-preview/presets";
 import type { OceanPreviewConfig } from "../../demo/examples/ocean-preview/types";
 import type { WaterWaveShaderVariant } from "../../runtime/wave/enums/WaterWaveShaderVariant";
-import type { WaterWaveMaterialState } from "../../runtime/wave/types/WaterWaveRuntimeTypes";
+import type { WaterWaveMaterialState } from "../../runtime/wave/WaterWaveRuntimeTypes";
 
 vi.mock("@galacean/engine-core", () => {
   class FakeBoundsVector {
@@ -61,7 +61,7 @@ vi.mock("../../runtime/wave/WaterWaveMaterialFactory", () => {
   return {
     createWaterWaveMaterial: (_engine: Engine, waveSet: CompiledWaterWaveSet): WaterWaveMaterialState => ({
       material: createMaterial(),
-      variant: waveSet.activeWaveCount as WaterWaveShaderVariant,
+      variant: waveSet.shaderWaveCount as WaterWaveShaderVariant,
       waveSet
     }),
     updateWaterWaveMaterial: (

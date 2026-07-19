@@ -6,8 +6,8 @@ import {
   WATER_WAVE_TWO_PI,
   WATER_WAVE_UINT32_RANGE
 } from "../../authoring/wave/constants/WaterWaveLimits";
-import type { GerstnerWaveGeneratorConfig } from "../../authoring/wave/types/WaterWaveTypes";
-import type { GerstnerWaveCandidate } from "./types/CompiledWaterWaveTypes";
+import type { GerstnerWaveGeneratorConfig } from "../../authoring/wave/WaterWaveTypes";
+import type { GerstnerWaveCandidate } from "./CompiledWaterWaveTypes";
 
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));

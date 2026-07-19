@@ -12,6 +12,7 @@ import {
   RIVER_SURFACE_HASH_MULTIPLIER,
   RIVER_SURFACE_HASH_SEED_SCALE,
   RIVER_SURFACE_MACRO_NOISE,
+  RIVER_SURFACE_NOISE_PERIOD,
   RIVER_SURFACE_REFERENCE_FLOW_SPEED
 } from "../../compiler/river/constants";
 import type { RiverCompiledSurfaceMotionData } from "../../compiler/river/types";
@@ -32,6 +33,7 @@ function glsl(value: number, digits = 8): string {
 
 const RIVER_FLOW_UV_SCALE_GLSL = glsl(RIVER_FLOW_UV_SCALE);
 const RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL = glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maxOpticalDepth, 1);
+const RIVER_SURFACE_NOISE_PERIOD_GLSL = glsl(RIVER_SURFACE_NOISE_PERIOD, 1);
 
 export const lowRiverShaderSource = `
 Shader "AIWorld/RiverLow" {
@@ -123,6 +125,9 @@ function getLowNoiseTexture(engine: Engine): Texture2D {
   }
   const texture = new Texture2D(engine, size, size, undefined, false, false);
   texture.name = "RiverLowSharedNoise";
+  // The WeakMap cache outlives individual material sets. Keep the shared texture
+  // alive across deferred ResourceManager.gc() calls until the engine is destroyed.
+  texture.isGCIgnored = true;
   texture.filterMode = TextureFilterMode.Bilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
   texture.setPixelBuffer(pixels);
@@ -213,6 +218,9 @@ function getSurfaceNormalTexture(engine: Engine): Texture2D {
   }
   const texture = new Texture2D(engine, size, size, undefined, false, false);
   texture.name = "RiverSharedSurfaceNormal";
+  // Inactive quality variants do not retain their shader textures. The cache must
+  // therefore own this shared texture independently of renderer reference counts.
+  texture.isGCIgnored = true;
   texture.filterMode = TextureFilterMode.Bilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
   texture.setPixelBuffer(pixels);
@@ -331,13 +339,23 @@ Shader "${shaderName}" {
       };
 
       float saturate(float value) { return clamp(value, 0.0, 1.0); }
+      vec2 safeNormalize2(vec2 value, vec2 fallback) {
+        float lengthSquared = dot(value, value);
+        return lengthSquared > 0.00000001 ? value * inversesqrt(lengthSquared) : fallback;
+      }
+      vec3 safeNormalize3(vec3 value, vec3 fallback) {
+        float lengthSquared = dot(value, value);
+        return lengthSquared > 0.00000001 ? value * inversesqrt(lengthSquared) : fallback;
+      }
       float surfaceTime() {
         return material_SurfaceTimeOverride >= 0.0 ? material_SurfaceTimeOverride : scene_ElapsedTime.x;
       }
       float riverHash21(vec2 point) {
+        point = mod(point, ${RIVER_SURFACE_NOISE_PERIOD_GLSL});
         return fract(sin(dot(point, vec2(${glsl(RIVER_SURFACE_MACRO_NOISE.hashDirection[0])}, ${glsl(RIVER_SURFACE_MACRO_NOISE.hashDirection[1])})) + material_SurfaceSeed * ${glsl(RIVER_SURFACE_HASH_SEED_SCALE)}) * ${glsl(RIVER_SURFACE_HASH_MULTIPLIER)});
       }
       float riverValueNoise(vec2 point) {
+        point = mod(point, ${RIVER_SURFACE_NOISE_PERIOD_GLSL});
         vec2 cell = floor(point);
         vec2 local = fract(point);
         vec2 curve = local * local * (3.0 - 2.0 * local);
@@ -363,10 +381,11 @@ Shader "${shaderName}" {
       }
       vec2 riverWarpedDomain(vec2 motionCoord, float localFlowSpeed, float elapsedTime) {
         float activeTime = elapsedTime * step(${glsl(RIVER_SURFACE_FLOW_EPSILON)}, localFlowSpeed);
+        float lengthScale = max(material_SurfaceLengthScale, 0.001);
         vec2 baseDomain = vec2(
           motionCoord.x,
           (motionCoord.y - activeTime) * ${glsl(RIVER_SURFACE_REFERENCE_FLOW_SPEED)}
-        ) / max(material_SurfaceLengthScale, 0.001);
+        ) / lengthScale;
         vec2 warp = vec2(
           riverValueNoise(baseDomain * ${glsl(RIVER_SURFACE_DOMAIN_WARP_SCALE)} + vec2(${glsl(RIVER_SURFACE_MACRO_NOISE.warpOffsetX[0])}, ${glsl(RIVER_SURFACE_MACRO_NOISE.warpOffsetX[1])})),
           riverValueNoise(baseDomain * ${glsl(RIVER_SURFACE_DOMAIN_WARP_SCALE)} + vec2(${glsl(RIVER_SURFACE_MACRO_NOISE.warpOffsetY[0])}, ${glsl(RIVER_SURFACE_MACRO_NOISE.warpOffsetY[1])}))
@@ -439,8 +458,8 @@ Shader "${shaderName}" {
         vec4 localPosition = attr.POSITION;
         localPosition.y += computedMacroHeight;
         vec4 computedWorldPosition = renderer_ModelMat * localPosition;
-        vec3 worldTangent = normalize(mat3(renderer_ModelMat) * attr.TANGENT.xyz);
-        vec2 computedWorldFlow = normalize(worldTangent.xz);
+        vec3 worldTangent = safeNormalize3(mat3(renderer_ModelMat) * attr.TANGENT.xyz, vec3(0.0, 0.0, 1.0));
+        vec2 computedWorldFlow = safeNormalize2(worldTangent.xz, vec2(0.0, 1.0));
         vec3 acrossWS = vec3(-computedWorldFlow.y, 0.0, computedWorldFlow.x);
         vec3 flowWS = vec3(computedWorldFlow.x, 0.0, computedWorldFlow.y);
         vec3 baseNormalWS = normalize(mat3(renderer_NormalMat) * attr.NORMAL);
@@ -535,9 +554,9 @@ Shader "${shaderName}" {
         );
         float crestMask = ridgeMask * erosionMask * material_CrestIntensity * input.surfaceData.y;
         ${localSampling}
-        vec2 baseFlow = normalize(input.worldFlow);
-        vec2 localFlowDirection = localFlow / max(length(localFlow), 0.001);
-        vec2 flowDirection = normalize(mix(baseFlow, localFlowDirection, localFlowWeight));
+        vec2 baseFlow = safeNormalize2(input.worldFlow, vec2(0.0, 1.0));
+        vec2 localFlowDirection = safeNormalize2(localFlow, baseFlow);
+        vec2 flowDirection = safeNormalize2(mix(baseFlow, localFlowDirection, localFlowWeight), baseFlow);
         vec2 microA = flowUVWNormal(
           input.worldXZ,
           flowDirection,

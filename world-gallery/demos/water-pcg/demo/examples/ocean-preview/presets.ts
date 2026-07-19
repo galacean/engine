@@ -2,7 +2,7 @@
 import { WaterQualityTier } from "../../../authoring/wave/enums/WaterQualityTier";
 import { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveModel";
 import { WaterWaveSchemaVersion } from "../../../authoring/wave/enums/WaterWaveSchemaVersion";
-import type { DirectionalGerstnerWaterWaveAssetV1 } from "../../../authoring/wave/types/WaterWaveTypes";
+import type { DirectionalGerstnerWaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
 import type { OceanPreviewConfig } from "./types";
 
 function createOceanWaveAsset(

@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { RiverNetworkSchemaVersion, RiverNodeKind } from "../../authoring/river/RiverAuthoringEnums";
-import { validateRiverNetworkDescriptor } from "../../compiler/river/RiverNetworkValidator";
+import { validateRiverNetwork, validateRiverNetworkDescriptor } from "../../compiler/river/RiverNetworkValidator";
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
 import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
-import { invalidNetworkFixture, straightFixture } from "../fixtures/riverFixtures";
+import { bifurcationNetworkFixture, invalidNetworkFixture, straightFixture } from "../fixtures/riverFixtures";
 
 describe("RiverNetworkValidator", () => {
   it.each([curvedMainRiverExample.riverDescriptor, multiTributaryRiverExample.riverDescriptor])(
@@ -19,6 +19,75 @@ describe("RiverNetworkValidator", () => {
     expect(first.diagnostics).toEqual(second.diagnostics);
     expect(first.diagnostics.map((diagnostic) => diagnostic.code)).toEqual(
       expect.arrayContaining([RiverDiagnosticCode.DuplicateId, RiverDiagnosticCode.MissingNodeReference])
+    );
+  });
+
+  it("offers one lightweight entry for shape and semantic validation", () => {
+    const malformed = validateRiverNetwork({ id: "missing-network-fields" });
+    const semantic = validateRiverNetwork(bifurcationNetworkFixture);
+
+    expect(malformed.valid).toBe(false);
+    expect(malformed.diagnostics.map((diagnostic) => diagnostic.code)).toContain(RiverDiagnosticCode.MissingField);
+    expect(semantic.valid).toBe(false);
+    expect(semantic.diagnostics.map((diagnostic) => diagnostic.code)).toContain(
+      RiverDiagnosticCode.UnsupportedJunctionKind
+    );
+  });
+
+  it("rejects empty networks instead of returning valid empty compiled data", () => {
+    const source = curvedMainRiverExample.riverDescriptor;
+    const result = validateRiverNetworkDescriptor({ ...source, nodes: [], segments: [] });
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: RiverDiagnosticCode.ValueOutOfRange, path: "nodes" }),
+        expect.objectContaining({ code: RiverDiagnosticCode.ValueOutOfRange, path: "segments" })
+      ])
+    );
+  });
+
+  it("reports the actual final control-point index for endpoint repairs", () => {
+    const source = curvedMainRiverExample.riverDescriptor;
+    const points = source.segments[0].curve.points;
+    const result = validateRiverNetworkDescriptor({
+      ...source,
+      segments: source.segments.map((segment, segmentIndex) =>
+        segmentIndex === 0
+          ? {
+              ...segment,
+              curve: {
+                ...segment.curve,
+                points: segment.curve.points.map((point, pointIndex) =>
+                  pointIndex === segment.curve.points.length - 1 ? { ...point, position: [999, 0, 999] } : point
+                )
+              }
+            }
+          : segment
+      )
+    });
+
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: RiverDiagnosticCode.SegmentEndpointMismatch,
+          path: `segments[0].curve.points[${points.length - 1}]`
+        })
+      ])
+    );
+  });
+
+  it("rejects reserved bifurcation nodes before geometry compilation", () => {
+    const result = validateRiverNetworkDescriptor(bifurcationNetworkFixture);
+
+    expect(result.valid).toBe(false);
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: RiverDiagnosticCode.UnsupportedJunctionKind,
+          path: "nodes[1].kind"
+        })
+      ])
     );
   });
 

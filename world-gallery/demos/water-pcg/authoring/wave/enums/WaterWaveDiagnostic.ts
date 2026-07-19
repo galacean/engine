@@ -13,5 +13,6 @@ export enum WaterWaveDiagnosticCode {
   InvalidNumber = "WATER_WAVE_INVALID_NUMBER",
   ValueOutOfRange = "WATER_WAVE_VALUE_OUT_OF_RANGE",
   InvalidRange = "WATER_WAVE_INVALID_RANGE",
-  SelfIntersectionRisk = "WATER_WAVE_SELF_INTERSECTION_RISK"
+  SelfIntersectionRisk = "WATER_WAVE_SELF_INTERSECTION_RISK",
+  ShaderVariantPadded = "WATER_WAVE_SHADER_VARIANT_PADDED"
 }

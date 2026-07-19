@@ -52,6 +52,8 @@ export const RIVER_SURFACE_TIME_DERIVATIVE_STEP = 0.016;
 export const RIVER_SURFACE_FLOW_EPSILON = 0.0001;
 export const RIVER_SURFACE_HASH_MULTIPLIER = 43758.5453123;
 export const RIVER_SURFACE_HASH_SEED_SCALE = 0.12345;
+/** Integer noise lattice period used to keep long-running shader domains numerically bounded. */
+export const RIVER_SURFACE_NOISE_PERIOD = 4096;
 export const RIVER_SURFACE_DOMAIN_WARP_SCALE = 0.55;
 export const RIVER_SURFACE_DOMAIN_WARP_STRENGTH = 0.58;
 export const RIVER_SURFACE_MACRO_NOISE = {

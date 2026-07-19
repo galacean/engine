@@ -2,18 +2,15 @@
 import { Engine, Entity, MeshRenderer, ModelMesh } from "@galacean/engine-core";
 import { Vector2, Vector3 } from "@galacean/engine-math";
 import { WaterWaveModel } from "../../../authoring/wave/enums/WaterWaveModel";
-import type { WaterWaveAssetV1 } from "../../../authoring/wave/types/WaterWaveTypes";
+import type { WaterWaveAssetV1 } from "../../../authoring/wave/WaterWaveTypes";
 import { compileWaterWaveAsset } from "../../../compiler/wave/WaterWaveCompiler";
-import type { CompiledWaterWaveSet } from "../../../compiler/wave/types/CompiledWaterWaveTypes";
+import type { CompiledWaterWaveSet } from "../../../compiler/wave/CompiledWaterWaveTypes";
 import {
   createWaterWaveMaterial,
   setWaterWaveSurfaceTimeOverride,
   updateWaterWaveMaterial
 } from "../../../runtime/wave/WaterWaveMaterialFactory";
-import type {
-  WaterWaveMaterialConfig,
-  WaterWaveMaterialState
-} from "../../../runtime/wave/types/WaterWaveRuntimeTypes";
+import type { WaterWaveMaterialConfig, WaterWaveMaterialState } from "../../../runtime/wave/WaterWaveRuntimeTypes";
 import {
   OCEAN_PREVIEW_DEFAULT_STRESS_ITERATIONS,
   OCEAN_PREVIEW_MIN_AMPLITUDE_SCALE,
@@ -188,7 +185,7 @@ export class OceanPreviewController {
   }
 
   private _applyMaterialState(): void {
-    if (Number(this._materialState.variant) === this._waveSet.activeWaveCount) {
+    if (Number(this._materialState.variant) === this._waveSet.shaderWaveCount) {
       this._materialState = updateWaterWaveMaterial(this._materialState, this._waveSet, this._createMaterialConfig());
       return;
     }

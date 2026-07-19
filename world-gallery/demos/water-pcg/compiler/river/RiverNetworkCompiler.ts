@@ -17,7 +17,7 @@ import type {
   Vector3Tuple
 } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkDescriptor, RiverSegmentConfig } from "../../authoring/river/RiverDescriptor";
-import { decodeRiverNetworkDescriptor, validateRiverConfig } from "../../authoring/river/RiverSchemaDecoder";
+import { validateRiverConfig } from "../../authoring/river/RiverSchemaDecoder";
 import { RiverReadonlyFloat32Buffer, RiverReadonlyUint32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RiverGeometryCompiler } from "./RiverGeometryCompiler";
@@ -31,7 +31,7 @@ import {
   RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY
 } from "./constants";
 import { resolveRiverSurfaceMotion } from "./RiverSurfaceMotion";
-import { resolveRiverNetworkBudget, validateRiverNetworkDescriptor } from "./RiverNetworkValidator";
+import { resolveRiverNetworkBudget, validateRiverNetwork } from "./RiverNetworkValidator";
 import { calculateRiverFlowTravelDuration, sampleRiverPath } from "./RiverPathSampler";
 import {
   DeepReadonly,
@@ -636,9 +636,7 @@ function createStats(
     reachCount: descriptor.segments.length,
     sourceCount: descriptor.nodes.filter((node) => node.kind === RiverNodeKind.Source).length,
     mouthCount: descriptor.nodes.filter((node) => node.kind === RiverNodeKind.Mouth).length,
-    junctionCount: descriptor.nodes.filter(
-      (node) => node.kind === RiverNodeKind.Confluence || node.kind === RiverNodeKind.Bifurcation
-    ).length,
+    junctionCount: budgeted.junctions.length,
     maxReachOrder: descriptor.segments.reduce((maximum, segment) => Math.max(maximum, segment.order ?? 0), 0),
     endpointSnapCount: diagnostics.filter(
       (diagnostic) => diagnostic.code === RiverDiagnosticCode.SegmentEndpointMismatch
@@ -684,22 +682,11 @@ export class RiverNetworkCompiler {
   private constructor() {}
 
   static compile(source: unknown): RiverCompileResult {
-    const decoding = decodeRiverNetworkDescriptor(source);
-    const diagnostics = decoding.diagnostics.map((diagnostic) => ({
+    const validation = validateRiverNetwork(source);
+    const diagnostics = validation.diagnostics.map((diagnostic) => ({
       ...diagnostic,
       repair: diagnostic.repair ? { ...diagnostic.repair } : undefined
     }));
-    if (!decoding.value) {
-      const frozenDiagnostics = deepFreezePlainData(diagnostics);
-      return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });
-    }
-    const validation = validateRiverNetworkDescriptor(decoding.value);
-    diagnostics.push(
-      ...validation.diagnostics.map((diagnostic) => ({
-        ...diagnostic,
-        repair: diagnostic.repair ? { ...diagnostic.repair } : undefined
-      }))
-    );
     if (!validation.value) {
       const frozenDiagnostics = deepFreezePlainData(diagnostics);
       return deepFreezePlainData({ diagnostics: frozenDiagnostics, valid: false });

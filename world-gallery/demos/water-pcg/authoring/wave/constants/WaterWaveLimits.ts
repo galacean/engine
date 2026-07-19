@@ -31,6 +31,9 @@ export const WATER_WAVE_ACTIVE_COUNT_BY_QUALITY: Readonly<Record<WaterQualityTie
   [WaterQualityTier.High]: 12
 };
 
+/** Fixed unrolled shader capacities, ordered from the cheapest to the most expensive. */
+export const WATER_WAVE_SHADER_SLOT_COUNTS = [2, 6, 12] as const;
+
 export const WATER_WAVE_LIMITS = {
   minWaveCount: 1,
   maxWaveCount: 16,

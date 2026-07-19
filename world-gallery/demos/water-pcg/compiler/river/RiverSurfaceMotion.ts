@@ -13,6 +13,7 @@ import {
   RIVER_SURFACE_HASH_MULTIPLIER,
   RIVER_SURFACE_HASH_SEED_SCALE,
   RIVER_SURFACE_MACRO_NOISE,
+  RIVER_SURFACE_NOISE_PERIOD,
   RIVER_SURFACE_REFERENCE_FLOW_SPEED,
   RIVER_SURFACE_TIME_DERIVATIVE_STEP
 } from "./constants";
@@ -37,6 +38,10 @@ function fract(value: number): number {
   return value - Math.floor(value);
 }
 
+function positiveModulo(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor;
+}
+
 function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
@@ -48,6 +53,8 @@ function smoothstep(edge0: number, edge1: number, value: number): number {
 }
 
 function hash21(x: number, y: number, seed: number): number {
+  x = positiveModulo(x, RIVER_SURFACE_NOISE_PERIOD);
+  y = positiveModulo(y, RIVER_SURFACE_NOISE_PERIOD);
   return fract(
     Math.sin(
       x * RIVER_SURFACE_MACRO_NOISE.hashDirection[0] +
@@ -58,6 +65,8 @@ function hash21(x: number, y: number, seed: number): number {
 }
 
 function valueNoise(x: number, y: number, seed: number): number {
+  x = positiveModulo(x, RIVER_SURFACE_NOISE_PERIOD);
+  y = positiveModulo(y, RIVER_SURFACE_NOISE_PERIOD);
   const cellX = Math.floor(x);
   const cellY = Math.floor(y);
   const localX = fract(x);

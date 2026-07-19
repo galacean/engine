@@ -5,7 +5,7 @@ import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
 import { RiverNetworkSchemaVersion, RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
-import { invalidNetworkFixture } from "../fixtures/riverFixtures";
+import { bifurcationNetworkFixture, invalidNetworkFixture } from "../fixtures/riverFixtures";
 
 function containsTrianglePoint(
   point: readonly [number, number],
@@ -22,6 +22,16 @@ function containsTrianglePoint(
 }
 
 describe("RiverNetworkCompiler", () => {
+  it("fails fast for bifurcations until a stitched split patch is implemented", () => {
+    const result = RiverNetworkCompiler.compile(bifurcationNetworkFixture);
+
+    expect(result.valid).toBe(false);
+    expect(result.data).toBeUndefined();
+    expect(result.diagnostics).toEqual(
+      expect.arrayContaining([expect.objectContaining({ code: RiverDiagnosticCode.UnsupportedJunctionKind })])
+    );
+  });
+
   it("keeps the single-river example visibly downhill from source to mouth", () => {
     const result = RiverNetworkCompiler.compile(curvedMainRiverExample.riverDescriptor);
     const reach = result.data?.reaches[0];
@@ -193,6 +203,22 @@ describe("RiverNetworkCompiler", () => {
           coveringTriangleIndices,
           `${junction.id} triangle ${triangleIndex / 3} covered by ${coveringTriangleIndices.join(",")}`
         ).toEqual([triangleIndex / 3]);
+      }
+    }
+  });
+
+  it("keeps junction triangle winding consistent with upward-facing reach ribbons", () => {
+    const data = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor).data!;
+
+    for (const junction of data.junctions) {
+      const geometry = junction.surfaceGeometry;
+      const indices = Array.from(geometry.indices);
+      for (let triangleIndex = 0; triangleIndex < indices.length; triangleIndex += 3) {
+        const a = geometry.positions[indices[triangleIndex]];
+        const b = geometry.positions[indices[triangleIndex + 1]];
+        const c = geometry.positions[indices[triangleIndex + 2]];
+        const normalY = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]);
+        expect(normalY, `${junction.id} triangle ${triangleIndex / 3}`).toBeGreaterThan(0);
       }
     }
   });

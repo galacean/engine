@@ -5,6 +5,7 @@ import {
   WATER_WAVE_PACKED_OFFSET
 } from "../../authoring/wave/constants/WaterWaveLimits";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
+import { WaterWaveDiagnosticCode } from "../../authoring/wave/enums/WaterWaveDiagnostic";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
 import { WaterWaveSchemaVersion } from "../../authoring/wave/enums/WaterWaveSchemaVersion";
 import { compileWaterWaveAsset, WaterWaveCompilationError } from "../../compiler/wave/WaterWaveCompiler";
@@ -33,12 +34,44 @@ describe("WaterWaveCompiler", () => {
     for (const quality of Object.values(WaterQualityTier)) {
       const compiled = compileWaterWaveAsset(directionalWaterWaveFixture, quality);
       expect(compiled.activeWaveCount).toBe(expectedCounts[quality]);
+      expect(compiled.shaderWaveCount).toBe(expectedCounts[quality]);
       expect(compiled.packedShaderData.length).toBe(compiled.activeWaveCount * WATER_WAVE_PACKED_FLOATS_PER_WAVE);
       const packed = compiled.packedShaderData.toTypedArray();
       expect(packed[WATER_WAVE_PACKED_OFFSET.directionX]).toBeCloseTo(compiled.waves[0].directionX, 6);
       expect(packed[WATER_WAVE_PACKED_OFFSET.angularFrequency]).toBeCloseTo(compiled.waves[0].angularFrequency, 6);
     }
   });
+
+  it.each([
+    [1, 1, 2],
+    [3, 3, 6],
+    [5, 5, 6],
+    [7, 7, 12]
+  ])(
+    "zero-pads %i authored waves into the fixed %i-active/%i-slot contract",
+    (waveCount, activeCount, shaderWaveCount) => {
+      const compiled = compileWaterWaveAsset(
+        {
+          ...directionalWaterWaveFixture,
+          generator: { ...directionalWaterWaveFixture.generator, waveCount }
+        },
+        WaterQualityTier.High
+      );
+
+      expect(compiled.activeWaveCount).toBe(activeCount);
+      expect(compiled.shaderWaveCount).toBe(shaderWaveCount);
+      expect(compiled.waves).toHaveLength(activeCount);
+      expect(compiled.packedShaderData.length).toBe(activeCount * WATER_WAVE_PACKED_FLOATS_PER_WAVE);
+      expect(compiled.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            code: WaterWaveDiagnosticCode.ShaderVariantPadded,
+            path: "$.generator.waveCount"
+          })
+        ])
+      );
+    }
+  );
 
   it("sorts by energy with a stable source-index tie-breaker and computes conservative bounds", () => {
     const compiled = compileWaterWaveAsset(

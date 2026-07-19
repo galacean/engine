@@ -1,4 +1,4 @@
-import { decodeRiverNetworkDescriptor } from "../../authoring/river/RiverSchemaDecoder";
+import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
 import { RiverNetworkCompiler } from "./RiverNetworkCompiler";
 import { serializeRiverResource } from "./RiverResourceSerializer";
 import {
@@ -18,9 +18,8 @@ const workerScope = self as unknown as RiverWorkerScope;
 workerScope.onmessage = (event): void => {
   const request = event.data;
   if (request.kind !== RiverCompileWorkerMessageKind.Compile) return;
-  const decoding = decodeRiverNetworkDescriptor(request.source);
   const result = RiverNetworkCompiler.compile(request.source);
-  if (!decoding.value || !result.data) {
+  if (!result.data) {
     workerScope.postMessage({
       kind: RiverCompileWorkerMessageKind.Failure,
       requestId: request.requestId,
@@ -28,7 +27,8 @@ workerScope.onmessage = (event): void => {
     });
     return;
   }
-  const serialized = serializeRiverResource(decoding.value, result.data);
+  // A successful compile proves that the unknown input decoded and passed semantic validation.
+  const serialized = serializeRiverResource(request.source as RiverNetworkDescriptor, result.data);
   const resourceBytes = serialized.bytes.buffer.slice(
     serialized.bytes.byteOffset,
     serialized.bytes.byteOffset + serialized.bytes.byteLength

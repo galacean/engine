@@ -12,7 +12,7 @@ import type {
   WaterWaveAssetV1,
   WaterWaveDiagnostic,
   WaterWaveValidationResult
-} from "../../authoring/wave/types/WaterWaveTypes";
+} from "../../authoring/wave/WaterWaveTypes";
 
 type UnknownRecord = Record<string, unknown>;
 

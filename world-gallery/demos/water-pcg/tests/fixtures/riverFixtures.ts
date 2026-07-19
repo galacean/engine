@@ -122,3 +122,61 @@ export const invalidNetworkFixture: RiverNetworkDescriptor = {
     quality: straightFixture.quality
   }
 };
+
+export const bifurcationNetworkFixture: RiverNetworkDescriptor = {
+  schemaVersion: RiverNetworkSchemaVersion.V1,
+  id: "bifurcation-network",
+  nodes: [
+    { id: "source", kind: RiverNodeKind.Source, position: [0, 2, 0], elevation: 2 },
+    { id: "split", kind: RiverNodeKind.Bifurcation, position: [10, 1, 0], elevation: 1, mergeRadius: 3 },
+    { id: "left-mouth", kind: RiverNodeKind.Mouth, position: [20, 0, 5], elevation: 0 },
+    { id: "right-mouth", kind: RiverNodeKind.Mouth, position: [20, 0, -5], elevation: 0 }
+  ],
+  segments: [
+    {
+      id: "trunk",
+      from: "source",
+      to: "split",
+      curve: {
+        mode: RiverPathMode.Polyline,
+        segmentLength: 1,
+        points: [
+          { id: "source-point", position: [0, 2, 0] },
+          { id: "split-in-point", position: [10, 1, 0] }
+        ]
+      }
+    },
+    {
+      id: "left-branch",
+      from: "split",
+      to: "left-mouth",
+      curve: {
+        mode: RiverPathMode.Polyline,
+        segmentLength: 1,
+        points: [
+          { id: "split-left-point", position: [10, 1, 0] },
+          { id: "left-mouth-point", position: [20, 0, 5] }
+        ]
+      }
+    },
+    {
+      id: "right-branch",
+      from: "split",
+      to: "right-mouth",
+      curve: {
+        mode: RiverPathMode.Polyline,
+        segmentLength: 1,
+        points: [
+          { id: "split-right-point", position: [10, 1, 0] },
+          { id: "right-mouth-point", position: [20, 0, -5] }
+        ]
+      }
+    }
+  ],
+  defaults: {
+    shape: straightFixture.shape,
+    flow: straightFixture.flow,
+    material: straightFixture.material,
+    quality: straightFixture.quality
+  }
+};

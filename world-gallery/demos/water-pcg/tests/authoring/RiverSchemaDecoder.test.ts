@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
-import { RiverNetworkSchemaVersion, RiverValidationMode } from "../../authoring/river/RiverAuthoringEnums";
+import {
+  RiverMaterialPreset,
+  RiverNetworkSchemaVersion,
+  RiverValidationMode
+} from "../../authoring/river/RiverAuthoringEnums";
+import { RIVER_MATERIAL_PRESET_CONFIG } from "../../authoring/river/RiverAuthoringLimits";
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import {
   decodeRiverConfig,
@@ -73,6 +78,26 @@ describe("RiverConfigValidator", () => {
     expect(invalid.path.points[0].position[0]).toBeNaN();
     expect(preview.value?.path.points[0].position[0]).toBe(0);
     expect(preview.diagnostics[0].repair).toEqual({ originalValue: Number.NaN, repairedValue: 0 });
+  });
+
+  it("repairs invalid colors from the selected material preset", () => {
+    const config: RiverConfig = {
+      ...straightFixture,
+      material: {
+        ...straightFixture.material,
+        preset: RiverMaterialPreset.MuddyRiver,
+        baseColor: "invalid",
+        foamColor: "also-invalid"
+      }
+    };
+    const result = validateRiverConfig(config, { mode: RiverValidationMode.PreviewRepair });
+
+    expect(result.value?.material.baseColor).toBe(
+      RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MuddyRiver].baseColor
+    );
+    expect(result.value?.material.foamColor).toBe(
+      RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.MuddyRiver].foamColor
+    );
   });
 
   it("preserves topology endpoints when PreviewRepair reduces control points", () => {

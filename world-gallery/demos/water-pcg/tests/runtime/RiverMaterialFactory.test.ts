@@ -39,6 +39,9 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceShaderSource).toContain("baseNormalWS - acrossWS * acrossDerivative");
     expect(riverSurfaceShaderSource).not.toContain("float streak = sin(detailPhase");
     expect(riverSurfaceShaderSource).not.toContain("branchDownstream");
+    expect(riverSurfaceShaderSource).toContain("point = mod(point,");
+    expect(riverSurfaceShaderSource).not.toContain("mod(motionCoord.y, timePeriod)");
+    expect(riverSurfaceShaderSource).toContain("safeNormalize2(mix(baseFlow, localFlowDirection, localFlowWeight)");
   });
 
   it("uses eroded ridged crests and two-scale dual-phase micro normals", () => {

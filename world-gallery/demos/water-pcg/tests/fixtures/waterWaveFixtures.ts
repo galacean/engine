@@ -1,6 +1,6 @@
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
 import { WaterWaveSchemaVersion } from "../../authoring/wave/enums/WaterWaveSchemaVersion";
-import type { DirectionalGerstnerWaterWaveAssetV1 } from "../../authoring/wave/types/WaterWaveTypes";
+import type { DirectionalGerstnerWaterWaveAssetV1 } from "../../authoring/wave/WaterWaveTypes";
 
 export const directionalWaterWaveFixture: DirectionalGerstnerWaterWaveAssetV1 = {
   schemaVersion: WaterWaveSchemaVersion.V1,

@@ -1,9 +1,13 @@
 /** Allocation-free rest-space Gerstner evaluator for gameplay probes and parity checks. */
-import { WATER_WAVE_EPSILON, WATER_WAVE_FAST_ACTIVE_COUNT } from "../../authoring/wave/constants/WaterWaveLimits";
+import {
+  WATER_WAVE_EPSILON,
+  WATER_WAVE_FAST_ACTIVE_COUNT,
+  WATER_WAVE_TWO_PI
+} from "../../authoring/wave/constants/WaterWaveLimits";
 import { WaterQueryAccuracy } from "../../authoring/wave/enums/WaterQueryAccuracy";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
-import type { CompiledWaterWaveSet } from "../../compiler/wave/types/CompiledWaterWaveTypes";
-import type { WaterWaveSampleOutput } from "./types/WaterWaveRuntimeTypes";
+import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
+import type { WaterWaveSampleOutput } from "./WaterWaveRuntimeTypes";
 
 export function createWaterWaveSampleOutput(): WaterWaveSampleOutput {
   return {
@@ -15,6 +19,10 @@ export function createWaterWaveSampleOutput(): WaterWaveSampleOutput {
     normalZ: 0,
     verticalVelocity: 0
   };
+}
+
+function positiveModulo(value: number, divisor: number): number {
+  return ((value % divisor) + divisor) % divisor;
 }
 
 /**
@@ -57,9 +65,12 @@ export function evaluateGerstnerWaveSet(
   let derivativeZZ = 1;
   for (let index = 0; index < waveCount; index++) {
     const wave = waveSet.waves[index];
+    const angularRate = wave.angularFrequency * safeTimeScale;
+    const wavePeriod = WATER_WAVE_TWO_PI / Math.max(Math.abs(angularRate), WATER_WAVE_EPSILON);
+    const wrappedTime = positiveModulo(safeTime, wavePeriod);
     const theta =
       wave.waveNumber * (wave.directionX * safeRestX + wave.directionZ * safeRestZ) -
-      wave.angularFrequency * safeTime * safeTimeScale +
+      angularRate * wrappedTime +
       wave.phase;
     const sine = Math.sin(theta);
     const cosine = Math.cos(theta);

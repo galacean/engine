@@ -644,12 +644,11 @@ function normalizeTypedRiverConfig(
     });
   }
   const geometry = config.quality.geometry;
-  const baseColor = isHexColor(config.material.baseColor)
-    ? config.material.baseColor
-    : RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream].baseColor;
-  const foamColor = isHexColor(config.material.foamColor)
-    ? config.material.foamColor
-    : RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream].foamColor;
+  const materialPreset =
+    RIVER_MATERIAL_PRESET_CONFIG[config.material.preset] ??
+    RIVER_MATERIAL_PRESET_CONFIG[RiverMaterialPreset.ClearStream];
+  const baseColor = isHexColor(config.material.baseColor) ? config.material.baseColor : materialPreset.baseColor;
+  const foamColor = isHexColor(config.material.foamColor) ? config.material.foamColor : materialPreset.foamColor;
   if (!isHexColor(config.material.baseColor)) {
     pushDiagnostic(
       diagnostics,

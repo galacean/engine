@@ -341,20 +341,20 @@ function createPatchGeometry(
     const nextCore = boundary.length * 2 + nextIndex + 1;
     indices.push(
       trim,
-      nextTrim,
-      inner,
       inner,
       nextTrim,
-      nextInner,
       inner,
       nextInner,
-      core,
+      nextTrim,
+      inner,
       core,
       nextInner,
+      core,
       nextCore,
+      nextInner,
       0,
-      core,
-      nextCore
+      nextCore,
+      core
     );
   }
   return Object.freeze({

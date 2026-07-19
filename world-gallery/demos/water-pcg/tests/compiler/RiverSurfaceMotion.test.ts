@@ -76,4 +76,23 @@ describe("RiverSurfaceMotion", () => {
 
     expect(motion.maxDisplacement).toBe(0);
   });
+
+  it("keeps the bounded noise sampling continuous during a long session", () => {
+    const motion = resolveRiverSurfaceMotion(curvedMainRiverExample.riverDescriptor);
+    const coordinates = {
+      signedAcrossDistance: 0.37,
+      networkFlowTime: 8.4,
+      halfWidth: 3.5,
+      flowSpeed: 1.7
+    };
+    const longSession = createRiverSurfaceMotionSampleOutput();
+    const nearbyTime = createRiverSurfaceMotionSampleOutput();
+
+    evaluateRiverSurfaceMotion(motion, coordinates, 86400, longSession);
+    evaluateRiverSurfaceMotion(motion, coordinates, 86400.001, nearbyTime);
+
+    expect(Object.values(longSession).every(Number.isFinite)).toBe(true);
+    expect(Object.values(nearbyTime).every(Number.isFinite)).toBe(true);
+    expect(Math.abs(nearbyTime.height - longSession.height)).toBeLessThan(0.01);
+  });
 });

@@ -5,16 +5,17 @@ import {
   WATER_WAVE_EPSILON,
   WATER_WAVE_MAX_HORIZONTAL_AMPLITUDE_RATIO,
   WATER_WAVE_PACKED_FLOATS_PER_WAVE,
-  WATER_WAVE_PACKED_OFFSET
+  WATER_WAVE_PACKED_OFFSET,
+  WATER_WAVE_SHADER_SLOT_COUNTS
 } from "../../authoring/wave/constants/WaterWaveLimits";
 import { WaterWaveDiagnosticCode, WaterWaveDiagnosticSeverity } from "../../authoring/wave/enums/WaterWaveDiagnostic";
 import { WaterQualityTier } from "../../authoring/wave/enums/WaterQualityTier";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
-import type { WaterWaveAssetV1, WaterWaveDiagnostic } from "../../authoring/wave/types/WaterWaveTypes";
+import type { WaterWaveAssetV1, WaterWaveDiagnostic } from "../../authoring/wave/WaterWaveTypes";
 import { RiverReadonlyFloat32Buffer } from "../shared/ReadonlyNumericBuffer";
 import { hashStableValue } from "../shared/determinism";
 import { generateGerstnerWaveCandidates } from "./GerstnerWaveGenerator";
-import type { CompiledGerstnerWave, CompiledWaterWaveSet, GerstnerWaveCandidate } from "./types/CompiledWaterWaveTypes";
+import type { CompiledGerstnerWave, CompiledWaterWaveSet, GerstnerWaveCandidate } from "./CompiledWaterWaveTypes";
 import { validateWaterWaveAsset } from "./WaterWaveValidator";
 
 export class WaterWaveCompilationError extends Error {
@@ -68,6 +69,14 @@ function packWaves(waves: readonly CompiledGerstnerWave[]): Float32Array {
   return packed;
 }
 
+function resolveShaderWaveCount(activeWaveCount: number): number {
+  if (activeWaveCount === 0) return 0;
+  return (
+    WATER_WAVE_SHADER_SLOT_COUNTS.find((slotCount) => slotCount >= activeWaveCount) ??
+    WATER_WAVE_SHADER_SLOT_COUNTS.at(-1)!
+  );
+}
+
 function compileNone(
   asset: WaterWaveAssetV1,
   quality: WaterQualityTier,
@@ -78,6 +87,7 @@ function compileNone(
     model: WaterWaveModel.None,
     quality,
     activeWaveCount: 0,
+    shaderWaveCount: 0,
     waves,
     packedShaderData: new RiverReadonlyFloat32Buffer([]),
     maxVerticalDisplacement: 0,
@@ -102,11 +112,20 @@ export function compileWaterWaveAsset(value: unknown, quality: WaterQualityTier)
     throw new WaterWaveCompilationError(Object.freeze(diagnostics));
   }
   const asset = validation.value;
-  const frozenDiagnostics = Object.freeze(diagnostics);
-  if (asset.model === WaterWaveModel.None) return compileNone(asset, quality, frozenDiagnostics);
+  if (asset.model === WaterWaveModel.None) return compileNone(asset, quality, Object.freeze(diagnostics));
   const candidates = generateGerstnerWaveCandidates(asset.generator);
   const activeCount = Math.min(WATER_WAVE_ACTIVE_COUNT_BY_QUALITY[quality], candidates.length);
   const waves = compileWaves(candidates, activeCount);
+  const shaderWaveCount = resolveShaderWaveCount(waves.length);
+  if (shaderWaveCount !== waves.length) {
+    diagnostics.push({
+      code: WaterWaveDiagnosticCode.ShaderVariantPadded,
+      severity: WaterWaveDiagnosticSeverity.Warning,
+      path: "$.generator.waveCount",
+      message: `The ${waves.length}-wave result uses the fixed ${shaderWaveCount}-slot shader variant; unused slots are zero-filled.`
+    });
+  }
+  const frozenDiagnostics = Object.freeze(diagnostics);
   const packed = packWaves(waves);
   let maxVerticalDisplacement = 0;
   let maxHorizontalDisplacement = 0;
@@ -118,6 +137,7 @@ export function compileWaterWaveAsset(value: unknown, quality: WaterQualityTier)
     model: WaterWaveModel.DirectionalGerstner,
     quality,
     activeWaveCount: waves.length,
+    shaderWaveCount,
     waves,
     packedShaderData: new RiverReadonlyFloat32Buffer(packed),
     maxVerticalDisplacement,
@@ -126,6 +146,7 @@ export function compileWaterWaveAsset(value: unknown, quality: WaterQualityTier)
       compilerVersion: WATER_WAVE_COMPILER_VERSION,
       asset,
       quality,
+      shaderWaveCount,
       waves
     }),
     diagnostics: frozenDiagnostics

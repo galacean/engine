@@ -25,6 +25,7 @@ export enum RiverDiagnosticCode {
   NetworkCycle = "RIVER_NETWORK_CYCLE",
   DisconnectedNetwork = "RIVER_DISCONNECTED_NETWORK",
   InvalidNodeDegree = "RIVER_INVALID_NODE_DEGREE",
+  UnsupportedJunctionKind = "RIVER_UNSUPPORTED_JUNCTION_KIND",
   ReversedElevation = "RIVER_REVERSED_ELEVATION",
   WaterProfileAdjusted = "RIVER_WATER_PROFILE_ADJUSTED",
   WaterProfileSlopeAdjusted = "RIVER_WATER_PROFILE_SLOPE_ADJUSTED",

@@ -1,11 +1,15 @@
 /** Fixed-variant Gerstner material creation and binding for the Ocean preview. */
 import { Engine, Material, Shader } from "@galacean/engine-core";
 import { Color, Vector4 } from "@galacean/engine-math";
-import { WATER_WAVE_PACKED_FLOATS_PER_WAVE } from "../../authoring/wave/constants/WaterWaveLimits";
-import type { CompiledWaterWaveSet } from "../../compiler/wave/types/CompiledWaterWaveTypes";
+import {
+  WATER_WAVE_EPSILON,
+  WATER_WAVE_PACKED_FLOATS_PER_WAVE,
+  WATER_WAVE_TWO_PI
+} from "../../authoring/wave/constants/WaterWaveLimits";
+import type { CompiledWaterWaveSet } from "../../compiler/wave/CompiledWaterWaveTypes";
 import { WATER_WAVE_SHADER_PROPERTY, WATER_WAVE_SHADER_TUNING } from "./constants/WaterWaveShaderConstants";
 import { WaterWaveShaderVariant } from "./enums/WaterWaveShaderVariant";
-import type { WaterWaveMaterialConfig, WaterWaveMaterialState } from "./types/WaterWaveRuntimeTypes";
+import type { WaterWaveMaterialConfig, WaterWaveMaterialState } from "./WaterWaveRuntimeTypes";
 
 const WATER_WAVE_SHADER_NAME: Readonly<Record<WaterWaveShaderVariant, string>> = {
   [WaterWaveShaderVariant.None]: "AIWorld/WaterGerstnerNone",
@@ -13,6 +17,8 @@ const WATER_WAVE_SHADER_NAME: Readonly<Record<WaterWaveShaderVariant, string>> =
   [WaterWaveShaderVariant.Medium]: "AIWorld/WaterGerstner6",
   [WaterWaveShaderVariant.High]: "AIWorld/WaterGerstner12"
 };
+
+const ZERO_WAVE_UNIFORM = new Vector4(0, 0, 0, 0);
 
 function glsl(value: number, digits = 8): string {
   return value.toFixed(digits);
@@ -96,7 +102,10 @@ ${waveUniformDeclarations(waveCount)}
         inout vec3 derivativeZ,
         inout float crest
       ) {
-        float theta = waveA.w * dot(waveA.xy, restXZ) - waveB.x * elapsedTime * material_TimeScale + waveB.z;
+        float angularRate = waveB.x * material_TimeScale;
+        float wavePeriod = ${glsl(WATER_WAVE_TWO_PI)} / max(abs(angularRate), ${glsl(WATER_WAVE_EPSILON)});
+        float wrappedTime = mod(elapsedTime, wavePeriod);
+        float theta = waveA.w * dot(waveA.xy, restXZ) - angularRate * wrappedTime + waveB.z;
         float sine = sin(theta);
         float cosine = cos(theta);
         float horizontalDerivative = waveB.y * waveA.w * sine;
@@ -205,8 +214,13 @@ function bindWaterWaveMaterial(
   );
   material.shaderData.setFloat(WATER_WAVE_SHADER_PROPERTY.maxVerticalDisplacement, waveSet.maxVerticalDisplacement);
   const packed = waveSet.packedShaderData.toTypedArray();
-  for (let index = 0; index < waveSet.activeWaveCount; index++) {
+  for (let index = 0; index < waveSet.shaderWaveCount; index++) {
     const offset = index * WATER_WAVE_PACKED_FLOATS_PER_WAVE;
+    if (index >= waveSet.activeWaveCount) {
+      material.shaderData.setVector4(`${WATER_WAVE_SHADER_PROPERTY.waveAPrefix}${index}`, ZERO_WAVE_UNIFORM);
+      material.shaderData.setVector4(`${WATER_WAVE_SHADER_PROPERTY.waveBPrefix}${index}`, ZERO_WAVE_UNIFORM);
+      continue;
+    }
     material.shaderData.setVector4(
       `${WATER_WAVE_SHADER_PROPERTY.waveAPrefix}${index}`,
       new Vector4(packed[offset], packed[offset + 1], packed[offset + 2], packed[offset + 3])
@@ -223,7 +237,7 @@ export function createWaterWaveMaterial(
   waveSet: CompiledWaterWaveSet,
   config: WaterWaveMaterialConfig
 ): WaterWaveMaterialState {
-  const variant = resolveVariant(waveSet.activeWaveCount);
+  const variant = resolveVariant(waveSet.shaderWaveCount);
   const shaderName = WATER_WAVE_SHADER_NAME[variant];
   const shader = Shader.find(shaderName) ?? Shader.create(createWaterWaveShaderSource(variant));
   const material = new Material(engine, shader);
@@ -236,7 +250,7 @@ export function updateWaterWaveMaterial(
   waveSet: CompiledWaterWaveSet,
   config: WaterWaveMaterialConfig
 ): WaterWaveMaterialState {
-  const nextVariant = resolveVariant(waveSet.activeWaveCount);
+  const nextVariant = resolveVariant(waveSet.shaderWaveCount);
   if (nextVariant !== state.variant) {
     throw new Error("Water-wave shader variants require material replacement.");
   }

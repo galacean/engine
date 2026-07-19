@@ -11,6 +11,7 @@ import type {
   Vector3Tuple
 } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
+import { decodeRiverNetworkDescriptor } from "../../authoring/river/RiverSchemaDecoder";
 import { RiverDiagnosticCode, RiverDiagnosticSeverity, type RiverDiagnostic } from "../shared/diagnostics";
 import { RIVER_SURFACE_CROSS_SEGMENTS_BY_QUALITY } from "./constants";
 
@@ -56,10 +57,41 @@ export function resolveRiverNetworkBudget(network: RiverNetworkDescriptor): Rive
   return { ...DEFAULT_NETWORK_BUDGET, ...network.budget };
 }
 
+/** Lightweight external-input validation that performs decoding and semantic checks without compiling geometry. */
+export function validateRiverNetwork(source: unknown): RiverValidationResult<RiverNetworkDescriptor> {
+  const decoding = decodeRiverNetworkDescriptor(source);
+  if (!decoding.value) return decoding;
+  const validation = validateRiverNetworkDescriptor(decoding.value);
+  const diagnostics = [...decoding.diagnostics, ...validation.diagnostics];
+  return {
+    value: validation.value,
+    diagnostics,
+    valid: validation.valid
+  };
+}
+
 export function validateRiverNetworkDescriptor(
   network: RiverNetworkDescriptor
 ): RiverValidationResult<RiverNetworkDescriptor> {
   const diagnostics: RiverDiagnostic[] = [];
+  if (network.nodes.length === 0) {
+    pushDiagnostic(
+      diagnostics,
+      RiverDiagnosticCode.ValueOutOfRange,
+      RiverDiagnosticSeverity.Error,
+      "nodes",
+      "River networks require at least one node."
+    );
+  }
+  if (network.segments.length === 0) {
+    pushDiagnostic(
+      diagnostics,
+      RiverDiagnosticCode.ValueOutOfRange,
+      RiverDiagnosticSeverity.Error,
+      "segments",
+      "River networks require at least one segment."
+    );
+  }
   if (
     network.schemaVersion !== RiverNetworkSchemaVersion.V1 &&
     network.schemaVersion !== RiverNetworkSchemaVersion.V2
@@ -305,11 +337,12 @@ export function validateRiverNetworkDescriptor(
         );
       }
       if (!last || !positionsMatch(last.position, to.position)) {
+        const lastPointIndex = segment.curve.points.length - 1;
         pushDiagnostic(
           diagnostics,
           RiverDiagnosticCode.SegmentEndpointMismatch,
           RiverDiagnosticSeverity.Warning,
-          `segments[${i}].curve.points[-1]`,
+          `segments[${i}].curve.points[${lastPointIndex}]`,
           "Curve end does not match its to node and will be snapped by the compiler.",
           last?.position,
           to.position
@@ -344,6 +377,15 @@ export function validateRiverNetworkDescriptor(
         RiverDiagnosticSeverity.Error,
         `nodes[${i}].kind`,
         `Node kind ${node.kind} does not match in/out degree ${inDegree}/${outDegree}.`
+      );
+    }
+    if (node.kind === RiverNodeKind.Bifurcation) {
+      pushDiagnostic(
+        diagnostics,
+        RiverDiagnosticCode.UnsupportedJunctionKind,
+        RiverDiagnosticSeverity.Error,
+        `nodes[${i}].kind`,
+        "Bifurcation nodes are reserved by the schema but are not yet supported by the junction compiler."
       );
     }
   }
