@@ -442,13 +442,6 @@ export class Entity extends EngineObject {
     this._templateResource = templateResource;
   }
 
-  /**
-   * Build the clone's entity/component tree and register every source entity/component to its
-   * clone in the identity map, so the value-copy pass (`_parseCloneEntity`) can remap references —
-   * including ones nested in arrays / maps / objects — through the clone gate. Registration
-   * completes for the whole subtree before any value is copied, because a component anywhere in
-   * the tree may reference an entity anywhere else in it.
-   */
   private _createCloneEntity(cloneMap: Map<object, object>): Entity {
     const componentConstructors = Entity._tempComponentConstructors;
     const components = this._components;
