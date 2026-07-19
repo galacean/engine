@@ -419,21 +419,9 @@ export const E2E_CONFIG = {
       threshold: 0,
       diffPercentage: 0.02553
     },
-    Probe2ConebaseSolSingleCurve: {
+    Probe3ConebaseInstrumented: {
       category: "Particle",
-      caseFileName: "probe2-conebase-sol-single-curve",
-      threshold: 0,
-      diffPercentage: 0.005
-    },
-    Probe2ConebaseSolTwoCurves: {
-      category: "Particle",
-      caseFileName: "probe2-conebase-sol-two-curves",
-      threshold: 0,
-      diffPercentage: 0.005
-    },
-    Probe2MyskeletonSolOff: {
-      category: "Particle",
-      caseFileName: "probe2-myskeleton-sol-off",
+      caseFileName: "probe3-conebase-instrumented",
       threshold: 0,
       diffPercentage: 0.005
     },

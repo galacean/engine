@@ -36,10 +36,16 @@ import {
 } from "@galacean/engine";
 import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
+console.log("P0 module evaluated");
+window.addEventListener("error", (e) => console.log("P-ERR", e.message));
+window.addEventListener("unhandledrejection", (e: any) => console.log("P-REJ", String(e.reason)));
+
 // Create engine
+console.log("P1 before create");
 WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
+  console.log("P2 created");
   Logger.enable();
   engine.canvas.resizeByClientSize();
 
@@ -53,6 +59,7 @@ WebGLEngine.create({
   camera.nearClipPlane = 0.3;
   camera.farClipPlane = 1000;
 
+  console.log("P3 before load");
   engine.resourceManager
     .load([
       {
@@ -65,6 +72,7 @@ WebGLEngine.create({
       }
     ])
     .then((resoueces) => {
+      console.log("P4 loaded");
       const particleEntity = createFireParticle(
         rootEntity,
         engine,
@@ -73,7 +81,9 @@ WebGLEngine.create({
       );
       rootEntity.addChild(particleEntity);
 
+      console.log("P5 before update");
       updateForE2E(engine, 500);
+      console.log("P6 updated");
       initScreenshot(engine, camera);
     });
 });
@@ -122,10 +132,7 @@ function createFireParticle(rootEntity: Entity, engine: Engine, texture: Texture
   // startSize.mode = ParticleCurveMode.TwoConstants;
 
   sizeOverLifetime.enabled = true;
-  sizeOverLifetime.size = new ParticleCompositeCurve(
-    new ParticleCurve(new CurveKey(0, 0.3), new CurveKey(1, 0.5)),
-    new ParticleCurve(new CurveKey(0, 1.2), new CurveKey(1, 2.0))
-  );
+  sizeOverLifetime.size = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 1.2), new CurveKey(1, 2.0)));
 
   const coneShape = new ConeShape();
   emission.shape = coneShape;
