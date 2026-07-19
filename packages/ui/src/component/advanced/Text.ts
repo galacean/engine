@@ -1,6 +1,7 @@
 import {
   BoundingBox,
   CharRenderInfo,
+  Color,
   Engine,
   Entity,
   Font,
@@ -17,10 +18,11 @@ import {
   TextVerticalAlignment,
   Texture2D,
   Vector3,
+  VertexMergeBatcher,
   assignmentClone,
+  deepClone,
   ignoreClone
 } from "@galacean/engine";
-import { CanvasRenderMode } from "../../enums/CanvasRenderMode";
 import { RootCanvasModifyFlags } from "../UICanvas";
 import { UIRenderer, UIRendererUpdateFlags } from "../UIRenderer";
 import { UITransform, UITransformModifyFlags } from "../UITransform";
@@ -30,6 +32,9 @@ import { UITransform, UITransformModifyFlags } from "../UITransform";
  */
 export class Text extends UIRenderer implements ITextRenderer {
   private static _textTextureProperty = ShaderProperty.getByName("renderElement_TextTexture");
+  private static _textTextureSizeProperty = ShaderProperty.getByName("renderElement_TextTextureSize");
+  private static _outlineColorProperty = ShaderProperty.getByName("renderer_OutlineColor");
+  private static _outlineWidthProperty = ShaderProperty.getByName("renderer_OutlineWidth");
   private static _worldPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   private static _charRenderInfos: CharRenderInfo[] = [];
 
@@ -59,6 +64,10 @@ export class Text extends UIRenderer implements ITextRenderer {
   private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
+  @deepClone
+  private _outlineColor: Color = new Color(0, 0, 0, 1);
+  @ignoreClone
+  private _outlineWidth: number = 0;
 
   /**
    * Rendering string for the Text.
@@ -205,14 +214,32 @@ export class Text extends UIRenderer implements ITextRenderer {
   }
 
   /**
-   * The mask layer the sprite renderer belongs to.
+   * The outline width in pixels. 0 means outline is disabled. Clamped to [0, 8].
    */
-  get maskLayer(): number {
-    return this._maskLayer;
+  get outlineWidth(): number {
+    return this._outlineWidth;
   }
 
-  set maskLayer(value: number) {
-    this._maskLayer = value;
+  set outlineWidth(value: number) {
+    value = Math.max(0, Math.min(value, 3));
+    if (this._outlineWidth !== value) {
+      this._outlineWidth = value;
+      this.shaderData.setFloat(Text._outlineWidthProperty, value);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
+    }
+  }
+
+  /**
+   * The outline color. Only effective when outlineWidth > 0.
+   */
+  get outlineColor(): Color {
+    return this._outlineColor;
+  }
+
+  set outlineColor(value: Color) {
+    if (this._outlineColor !== value) {
+      this._outlineColor.copyFrom(value);
+    }
   }
 
   /**
@@ -246,6 +273,11 @@ export class Text extends UIRenderer implements ITextRenderer {
     this.raycastEnabled = false;
     // @ts-ignore
     this.setMaterial(engine._basicResources.textDefaultMaterial);
+    const shaderData = this.shaderData;
+    shaderData.setFloat(Text._outlineWidthProperty, this._outlineWidth);
+    shaderData.setColor(Text._outlineColorProperty, this._outlineColor);
+    // @ts-ignore
+    this._outlineColor._onValueChanged = this._onOutlineColorChanged.bind(this);
   }
 
   /**
@@ -271,6 +303,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     super._cloneTo(target);
     target.font = this._font;
     target._subFont = this._subFont;
+    target.outlineWidth = this._outlineWidth;
   }
 
   /**
@@ -313,13 +346,15 @@ export class Text extends UIRenderer implements ITextRenderer {
     }
   }
 
+  /**
+   * @internal
+   */
+  override _canBatch(preElement, curElement): boolean {
+    return VertexMergeBatcher.canBatchText(preElement, curElement);
+  }
+
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    const transform = <UITransform>this._transformEntity.transform;
-    const { x: width, y: height } = transform.size;
-    const { x: pivotX, y: pivotY } = transform.pivot;
-    worldBounds.min.set(-width * pivotX, -height * pivotY, 0);
-    worldBounds.max.set(width * (1 - pivotX), height * (1 - pivotY), 0);
-    BoundingBox.transform(worldBounds, this._transformEntity.transform.worldMatrix, worldBounds);
+    BoundingBox.transform(this._localBounds, this._transformEntity.transform.worldMatrix, worldBounds);
   }
 
   protected override _render(context): void {
@@ -356,6 +391,7 @@ export class Text extends UIRenderer implements ITextRenderer {
     const distanceForSort = canvas._sortDistance;
     const textChunks = this._textChunks;
     const subShader = material.shader.subShaders[0];
+    const textTextureSize = Text._tempVec20;
     for (let i = 0, n = textChunks.length; i < n; ++i) {
       const { subChunk, texture } = textChunks[i];
       const renderElement = textRenderElementPool.get();
@@ -363,6 +399,10 @@ export class Text extends UIRenderer implements ITextRenderer {
       // @ts-ignore
       renderElement.shaderData ||= new ShaderData(ShaderDataGroup.RenderElement);
       renderElement.shaderData.setTexture(Text._textTextureProperty, texture);
+      renderElement.shaderData.setVector2(
+        Text._textTextureSizeProperty,
+        textTextureSize.set(texture.width, texture.height)
+      );
       renderElement.subShader = subShader;
       renderElement.priority = priority;
       renderElement.distanceForSort = distanceForSort;
@@ -375,6 +415,17 @@ export class Text extends UIRenderer implements ITextRenderer {
     // @ts-ignore
     this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
     this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
+  }
+
+  /**
+   * Switch the sub font to a specific font size, used by the SHRINK overflow measurement.
+   */
+  private _applyFontSizeForShrink(fontSize: number): void {
+    const font = this._font;
+    // @ts-ignore
+    const subFont = font._getSubFont(fontSize, this._fontStyle);
+    subFont.nativeFontString = TextUtils.getNativeFontString(font.name, fontSize, this._fontStyle);
+    this._subFont = subFont;
   }
 
   private _updatePosition(): void {
@@ -447,27 +498,45 @@ export class Text extends UIRenderer implements ITextRenderer {
     const pixelsPerResolution = Engine._pixelsPerUnit / this._getRootCanvas().referenceResolutionPerUnit;
     const { min, max } = this._localBounds;
     const charRenderInfos = Text._charRenderInfos;
-    const charFont = this._getSubFont();
     const { size, pivot } = <UITransform>this._transformEntity.transform;
     let rendererWidth = size.x;
     let rendererHeight = size.y;
     const offsetWidth = rendererWidth * (0.5 - pivot.x);
     const offsetHeight = rendererHeight * (0.5 - pivot.y);
-    const characterSpacing = this._characterSpacing * this._fontSize;
-    const textMetrics = this.enableWrapping
-      ? TextUtils.measureTextWithWrap(
-          this,
-          rendererWidth * pixelsPerResolution,
-          rendererHeight * pixelsPerResolution,
-          this._lineSpacing * this._fontSize,
-          characterSpacing
-        )
-      : TextUtils.measureTextWithoutWrap(
-          this,
-          rendererHeight * pixelsPerResolution,
-          this._lineSpacing * this._fontSize,
-          characterSpacing
-        );
+    let fontSize = this._fontSize;
+    let textMetrics: ReturnType<typeof TextUtils.measureTextWithWrap>;
+    if (this._overflowMode === OverflowMode.Shrink) {
+      const result = TextUtils.measureTextWithShrink(
+        this,
+        rendererWidth * pixelsPerResolution,
+        rendererHeight * pixelsPerResolution,
+        this._fontSize,
+        this._lineSpacing,
+        this._characterSpacing,
+        this.enableWrapping,
+        (sizeValue) => this._applyFontSizeForShrink(sizeValue)
+      );
+      fontSize = result.fontSize;
+      textMetrics = result.metrics;
+    } else {
+      const characterSpacing = this._characterSpacing * fontSize;
+      textMetrics = this.enableWrapping
+        ? TextUtils.measureTextWithWrap(
+            this,
+            rendererWidth * pixelsPerResolution,
+            rendererHeight * pixelsPerResolution,
+            this._lineSpacing * fontSize,
+            characterSpacing
+          )
+        : TextUtils.measureTextWithoutWrap(
+            this,
+            rendererHeight * pixelsPerResolution,
+            this._lineSpacing * fontSize,
+            characterSpacing
+          );
+    }
+    const charFont = this._getSubFont();
+    const characterSpacing = this._characterSpacing * fontSize;
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     // @ts-ignore
     const charRenderInfoPool = this.engine._charRenderInfoPool;
@@ -490,7 +559,10 @@ export class Text extends UIRenderer implements ITextRenderer {
           startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
           break;
         case TextVerticalAlignment.Center:
-          startY = height * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
+          // Center the text block (lineHeight * lineCount) within the renderer, independent of
+          // `height` — which equals the renderer height for Truncate/Shrink and would otherwise
+          // push the text upward by (rendererHeight - blockHeight) / 2 when the box is taller.
+          startY = lineHeight * linesLen * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
           break;
         case TextVerticalAlignment.Bottom:
           startY = height - rendererHeight * 0.5 - halfLineHeight - bottomDiff;
@@ -532,10 +604,11 @@ export class Text extends UIRenderer implements ITextRenderer {
               charRenderInfo.texture = charFont._getTextureByIndex(charInfo.index);
               charRenderInfo.uvs = charInfo.uvs;
               const { w, ascent, descent } = charInfo;
-              const left = (startX + offsetWidth) * pixelsPerUnitReciprocal;
-              const right = (startX + w + offsetWidth) * pixelsPerUnitReciprocal;
-              const top = (startY + ascent + offsetHeight) * pixelsPerUnitReciprocal;
-              const bottom = (startY - descent + offsetHeight) * pixelsPerUnitReciprocal;
+              const ow = this._outlineWidth * pixelsPerUnitReciprocal;
+              const left = (startX + offsetWidth) * pixelsPerUnitReciprocal - ow;
+              const right = (startX + w + offsetWidth) * pixelsPerUnitReciprocal + ow;
+              const top = (startY + ascent + offsetHeight) * pixelsPerUnitReciprocal + ow;
+              const bottom = (startY - descent + offsetHeight) * pixelsPerUnitReciprocal - ow;
               localPositions.set(left, top, right, bottom);
               i === firstLine && (maxY = Math.max(maxY, top));
               minY = Math.min(minY, bottom);
@@ -618,7 +691,7 @@ export class Text extends UIRenderer implements ITextRenderer {
       this._text === "" ||
       this._fontSize === 0 ||
       (this.enableWrapping && size.x <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && size.y <= 0) ||
+      ((this.overflowMode === OverflowMode.Truncate || this.overflowMode === OverflowMode.Shrink) && size.y <= 0) ||
       !this._getRootCanvas()
     );
   }
@@ -632,6 +705,10 @@ export class Text extends UIRenderer implements ITextRenderer {
     const vertices = subChunk.chunk.vertices;
     const indices = (subChunk.indices = []);
     const charRenderInfos = textChunk.charRenderInfos;
+    const ow = this._outlineWidth;
+    const texture = textChunk.texture;
+    const owU = ow > 0 ? ow / texture.width : 0;
+    const owV = ow > 0 ? ow / texture.height : 0;
     for (let i = 0, ii = 0, io = 0, vo = subChunk.vertexArea.start + 3; i < count; ++i, io += 4) {
       const charRenderInfo = charRenderInfos[i];
       charRenderInfo.indexInChunk = i;
@@ -641,10 +718,13 @@ export class Text extends UIRenderer implements ITextRenderer {
         indices[ii++] = tempIndices[j] + io;
       }
 
-      // Set uv and color for vertices
+      // Set uv and color for vertices, expand uv outward by outline width
       for (let j = 0; j < 4; ++j, vo += 9) {
         const uv = charRenderInfo.uvs[j];
-        uv.copyToArray(vertices, vo);
+        const su = j === 1 || j === 2 ? 1 : -1;
+        const sv = j >= 2 ? 1 : -1;
+        vertices[vo] = uv.x + owU * su;
+        vertices[vo + 1] = uv.y + owV * sv;
         vertices[vo + 2] = r;
         vertices[vo + 3] = g;
         vertices[vo + 4] = b;
@@ -672,6 +752,11 @@ export class Text extends UIRenderer implements ITextRenderer {
       textChunk.texture = null;
     }
     textChunks.length = 0;
+  }
+
+  @ignoreClone
+  private _onOutlineColorChanged(): void {
+    this.shaderData.setColor(Text._outlineColorProperty, this._outlineColor);
   }
 }
 

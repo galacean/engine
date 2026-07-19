@@ -55,6 +55,7 @@ export class ShaderPass extends ShaderPart {
 
   private static _shaderMacroList: ShaderMacro[] = [];
   private static _macroMap: Map<string, string> = new Map();
+  private static _activeMacroSet: Set<string> = new Set();
 
   /**
    * Create a shader pass from precompiled instructions.
@@ -147,17 +148,20 @@ export class ShaderPass extends ShaderPart {
     }
 
     const macroMap = ShaderPass._macroMap;
+    const activeMacroSet = ShaderPass._activeMacroSet;
     macroMap.clear();
+    activeMacroSet.clear();
     for (let i = 0, n = shaderMacroList.length; i < n; i++) {
       const macro = shaderMacroList[i];
       macroMap.set(macro.name, macro.value ?? "");
+      activeMacroSet.add(macro.name);
     }
     let vertexSource = ShaderMacroProcessor.evaluate(this._vertexShaderInstructions, macroMap);
     let fragmentSource = ShaderMacroProcessor.evaluate(this._fragmentShaderInstructions, macroMap);
 
     let instanceLayout: InstanceBufferLayout | null = null;
     if (isGPUInstance) {
-      const injected = ShaderFactory.injectInstanceUBO(engine, vertexSource, fragmentSource);
+      const injected = ShaderFactory.injectInstanceUBO(engine, vertexSource, fragmentSource, activeMacroSet);
       vertexSource = injected.vertexSource;
       fragmentSource = injected.fragmentSource;
       instanceLayout = injected.instanceLayout;

@@ -12,10 +12,10 @@ export class FontAtlas extends ReferResource {
   texture: Texture2D;
 
   _charInfoMap: Record<number, CharInfo> = {};
-  private _space: number = 1;
-  private _curX: number = 1;
-  private _curY: number = 1;
-  private _nextY: number = 1;
+  private _space: number = 4;
+  private _curX: number = 4;
+  private _curY: number = 4;
+  private _nextY: number = 4;
 
   constructor(engine: Engine) {
     super(engine);

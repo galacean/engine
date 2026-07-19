@@ -23,6 +23,15 @@ export class ShaderCompiler {
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
 
+  /**
+   * Release token and AST pools retained at their compilation-time peak.
+   * Call this after shader warm-up when no further compilation is expected soon.
+   * Later compilation remains supported and will allocate pool entries on demand.
+   */
+  static releaseCompilationCache(): void {
+    ShaderCompilerUtils.releaseAllShaderCompilerObjectPool();
+  }
+
   /** Replace the `#include` lookup table and clear the derived chunk cache. */
   _setIncludeMap(includeMap: IncludeMap): void {
     this._includeMap = includeMap;

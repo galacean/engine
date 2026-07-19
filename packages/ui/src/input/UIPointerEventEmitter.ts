@@ -91,11 +91,11 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
           }
         }
         if (camera.clearFlags & CameraClearFlags.Color) {
-          this._updateRaycast(null);
+          this._updateRaycast(null, pointer);
           return;
         }
       }
-      this._updateRaycast(null);
+      this._updateRaycast(null, pointer);
     }
   }
 
@@ -128,10 +128,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
       if (pressedPath.length > 0) {
         const common = UIPointerEventEmitter._tempArray0;
         if (this._findCommonInPath(enteredPath, pressedPath, common)) {
-          const eventData = this._createEventData(pointer);
-          for (let i = 0, n = common.length; i < n; i++) {
-            this._fireClick(common[i], eventData);
-          }
+          this._bubble(common, pointer, this._fireClick);
           common.length = 0;
         }
       }
@@ -170,18 +167,17 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     this._enteredPath.length = this._pressedPath.length = this._draggedPath.length = 0;
   }
 
-  private _updateRaycast(element: UIRenderer, pointer: Pointer = null): void {
+  private _updateRaycast(element: UIRenderer | null, pointer: Pointer): void {
     const enteredPath = this._enteredPath;
     const curPath = this._composedPath(element, UIPointerEventEmitter._path);
     const add = UIPointerEventEmitter._tempArray0;
     const del = UIPointerEventEmitter._tempArray1;
     if (this._findDiffInPath(enteredPath, curPath, add, del)) {
-      const eventData = this._createEventData(pointer);
       for (let i = 0, n = add.length; i < n; i++) {
-        this._fireEnter(add[i], eventData);
+        this._fireEnter(add[i], this._createEventData(pointer, add[i]));
       }
       for (let i = 0, n = del.length; i < n; i++) {
-        this._fireExit(del[i], eventData);
+        this._fireExit(del[i], this._createEventData(pointer, del[i]));
       }
 
       const length = (enteredPath.length = curPath.length);
@@ -193,7 +189,7 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
     curPath.length = 0;
   }
 
-  private _composedPath(element: UIRenderer, path: Entity[]): Entity[] {
+  private _composedPath(element: UIRenderer | null, path: Entity[]): Entity[] {
     if (!element) {
       path.length = 0;
       return path;
@@ -256,8 +252,9 @@ export class UIPointerEventEmitter extends PointerEventEmitter {
   private _bubble(path: Entity[], pointer: Pointer, fireEvent: FireEvent): void {
     const length = path.length;
     if (length <= 0) return;
-    const eventData = this._createEventData(pointer);
+    const eventData = this._createEventData(pointer, path[0]);
     for (let i = 0; i < length; i++) {
+      eventData.currentTarget = path[i];
       fireEvent(path[i], eventData);
     }
   }

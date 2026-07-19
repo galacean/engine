@@ -561,7 +561,7 @@ export class ShaderData implements IReferable, IClone {
     if (out) {
       const macroMap = this._macroMap;
       out.length = 0;
-      for (var key in macroMap) {
+      for (const key in macroMap) {
         out.push(macroMap[key]);
       }
     } else {
@@ -592,7 +592,7 @@ export class ShaderData implements IReferable, IClone {
 
     const propertyValueMap = this._propertyValueMap;
     const propertyIdMap = ShaderProperty._propertyIdMap;
-    for (let key in propertyValueMap) {
+    for (const key in propertyValueMap) {
       properties.push(propertyIdMap[key]);
     }
 
@@ -608,8 +608,12 @@ export class ShaderData implements IReferable, IClone {
   }
 
   cloneTo(target: ShaderData): void {
-    CloneManager.deepCloneObject(this._macroCollection, target._macroCollection, new Map<Object, Object>());
-    Object.assign(target._macroMap, this._macroMap);
+    CloneManager.deepCloneObject(this._macroCollection, target._macroCollection, new Map<object, object>());
+    const targetMacroMap = target._macroMap;
+    for (const key in targetMacroMap) {
+      delete targetMacroMap[key];
+    }
+    Object.assign(targetMacroMap, this._macroMap);
     const referCount = target._getReferCount();
     const propertyValueMap = this._propertyValueMap;
     const targetPropertyValueMap = target._propertyValueMap;

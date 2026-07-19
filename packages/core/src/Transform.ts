@@ -48,6 +48,8 @@ export class Transform extends Component {
   private _worldRight: Vector3 = null;
   @ignoreClone
   private _worldUp: Vector3 = null;
+  @ignoreClone
+  private _frontFaceInvert: boolean = false;
 
   @ignoreClone
   protected _isParentDirty: boolean = true;
@@ -571,11 +573,16 @@ export class Transform extends Component {
    * @internal
    */
   _isFrontFaceInvert(): boolean {
-    const scale = this.lossyWorldScale;
-    let isInvert = scale.x < 0;
-    scale.y < 0 && (isInvert = !isInvert);
-    scale.z < 0 && (isInvert = !isInvert);
-    return isInvert;
+    if (this._isContainDirtyFlag(TransformModifyFlags.WorldFrontFaceInvert)) {
+      const s = this._scale;
+      let invert = s.x < 0;
+      s.y < 0 && (invert = !invert);
+      s.z < 0 && (invert = !invert);
+      const parent = this._getParentTransform();
+      this._frontFaceInvert = parent ? invert !== parent._isFrontFaceInvert() : invert;
+      this._setDirtyFlagFalse(TransformModifyFlags.WorldFrontFaceInvert);
+    }
+    return this._frontFaceInvert;
   }
 
   /**
@@ -910,24 +917,27 @@ export enum TransformModifyFlags {
    */
   IsWorldUniformScaling = 0x100,
 
+  // Note: 0x200 (UITransformModifyFlags.Size) and 0x400 (Pivot) are reserved by UITransform — do not reuse.
+  WorldFrontFaceInvert = 0x800,
+
   /** WorldMatrix | WorldPosition */
   WmWp = 0x84,
   /** WorldMatrix | WorldEuler | WorldQuat */
   WmWeWq = 0x98,
-  /** WorldMatrix | WorldEuler | WorldQuat | WorldScale*/
-  WmWeWqWs = 0xb8,
+  /** WorldMatrix | WorldEuler | WorldQuat | WorldScale | WorldFrontFaceInvert */
+  WmWeWqWs = 0x8b8,
   /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat */
   WmWpWeWq = 0x9c,
-  /** WorldMatrix | WorldScale */
-  WmWs = 0xa0,
-  /** WorldMatrix | WorldScale | WorldUniformScaling */
-  WmWsWus = 0x1a0,
-  /** WorldMatrix | WorldPosition | WorldScale */
-  WmWpWs = 0xa4,
-  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale */
-  WmWpWeWqWs = 0xbc,
-  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
-  WmWpWeWqWsWus = 0x1bc,
-  /** LocalQuat | LocalMatrix | WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling */
-  LqLmWmWpWeWqWsWus = 0x1fe
+  /** WorldMatrix | WorldScale | WorldFrontFaceInvert */
+  WmWs = 0x8a0,
+  /** WorldMatrix | WorldScale | WorldUniformScaling | WorldFrontFaceInvert */
+  WmWsWus = 0x9a0,
+  /** WorldMatrix | WorldPosition | WorldScale | WorldFrontFaceInvert */
+  WmWpWs = 0x8a4,
+  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldFrontFaceInvert */
+  WmWpWeWqWs = 0x8bc,
+  /** WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling | WorldFrontFaceInvert */
+  WmWpWeWqWsWus = 0x9bc,
+  /** LocalQuat | LocalMatrix | WorldMatrix | WorldPosition | WorldEuler | WorldQuat | WorldScale | WorldUniformScaling | WorldFrontFaceInvert */
+  LqLmWmWpWeWqWsWus = 0x9fe
 }

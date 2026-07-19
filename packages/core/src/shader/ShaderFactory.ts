@@ -210,11 +210,17 @@ mat3 _normalMatFromModel(mat3 m) {
   static injectInstanceUBO(
     engine: Engine,
     vertexSource: string,
-    fragmentSource: string
+    fragmentSource: string,
+    activeMacros?: ReadonlySet<string>
   ): { vertexSource: string; fragmentSource: string; instanceLayout: InstanceBufferLayout | null } {
     const fieldMap: Record<number, string> = Object.create(null);
-    vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
-    fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
+    if (activeMacros) {
+      vertexSource = ShaderFactory._scanInstanceUniformsWithMacros(vertexSource, fieldMap, activeMacros);
+      fragmentSource = ShaderFactory._scanInstanceUniformsWithMacros(fragmentSource, fieldMap, activeMacros);
+    } else {
+      vertexSource = ShaderFactory._scanInstanceUniforms(vertexSource, fieldMap);
+      fragmentSource = ShaderFactory._scanInstanceUniforms(fragmentSource, fieldMap);
+    }
 
     // Even when fieldMap is empty, derived built-ins (e.g. `renderer_MVPMat`) may have
     // had their declarations stripped by scan and still need a `#define` to compile
@@ -263,6 +269,62 @@ mat3 _normalMatFromModel(mat3 m) {
       fieldMap[ShaderProperty.getByName(name)._uniqueId] = storageType;
       return "";
     });
+  }
+
+  private static readonly _ifdefRegex = /^[ \t]*#ifdef\s+(\w+)/;
+  private static readonly _ifndefRegex = /^[ \t]*#ifndef\s+(\w+)/;
+  private static readonly _elseRegex = /^[ \t]*#else\b/;
+  private static readonly _endifRegex = /^[ \t]*#endif\b/;
+
+  /**
+   * Scan raw GLSL while respecting simple conditional-compilation branches so renderer uniforms
+   * in inactive branches are not moved into the instance UBO.
+   */
+  private static _scanInstanceUniformsWithMacros(
+    source: string,
+    fieldMap: Record<number, string>,
+    activeMacros: ReadonlySet<string>
+  ): string {
+    const branchStack: boolean[] = [true];
+    const lines = source.split("\n");
+
+    for (let i = 0, n = lines.length; i < n; i++) {
+      const line = lines[i];
+      let match = line.match(ShaderFactory._ifdefRegex);
+      if (match) {
+        const parentActive = branchStack[branchStack.length - 1];
+        branchStack.push(parentActive && activeMacros.has(match[1]));
+        continue;
+      }
+
+      match = line.match(ShaderFactory._ifndefRegex);
+      if (match) {
+        const parentActive = branchStack[branchStack.length - 1];
+        branchStack.push(parentActive && !activeMacros.has(match[1]));
+        continue;
+      }
+
+      if (ShaderFactory._elseRegex.test(line)) {
+        if (branchStack.length > 1) {
+          const parentActive = branchStack[branchStack.length - 2];
+          branchStack[branchStack.length - 1] = parentActive && !branchStack[branchStack.length - 1];
+        }
+        continue;
+      }
+
+      if (ShaderFactory._endifRegex.test(line)) {
+        if (branchStack.length > 1) {
+          branchStack.pop();
+        }
+        continue;
+      }
+
+      if (branchStack[branchStack.length - 1]) {
+        lines[i] = ShaderFactory._scanInstanceUniforms(line, fieldMap);
+      }
+    }
+
+    return lines.join("\n");
   }
 
   private static _buildLayout(engine: Engine, fieldMap: Record<number, string>): InstanceBufferLayout {

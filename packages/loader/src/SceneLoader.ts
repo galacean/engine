@@ -143,6 +143,15 @@ export function applySceneData(
     if (fog.fogColor) scene.fogColor.set(fog.fogColor[0], fog.fogColor[1], fog.fogColor[2], fog.fogColor[3]);
   }
 
+  // Parse physics only when the engine has a native physics backend. Render-only
+  // engines should remain able to load scene files that carry physics settings.
+  const physics = sceneData.physics;
+  if (physics && (scene.engine as any)._physicsInitialized) {
+    const gravity = physics.gravity;
+    if (gravity) scene.physics.gravity.set(gravity[0], gravity[1], gravity[2]);
+    if (physics.fixedTimeStep != undefined) scene.physics.fixedTimeStep = physics.fixedTimeStep;
+  }
+
   // Post Process
   if (sceneData.postProcess) {
     Logger.warn("Post Process is not supported in scene yet, please add PostProcess component in entity instead.");
@@ -167,7 +176,7 @@ export function applySceneData(
   return Promise.all(promises).then(() => {});
 }
 
-@resourceLoader(AssetType.Scene, ["scene"], true)
+@resourceLoader(AssetType.Scene, ["scene"], false)
 class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;

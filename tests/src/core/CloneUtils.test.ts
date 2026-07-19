@@ -79,6 +79,26 @@ class NestedObjectScript extends Script {
   config: { target: Entity; label: string } = { target: null, label: "" };
 }
 
+/** Script with UNDECORATED array of entities (no @deepClone) */
+class UndecoratedArrayScript extends Script {
+  entities: Entity[] = [];
+}
+
+/** Script with UNDECORATED nested object containing entity refs */
+class UndecoratedObjectScript extends Script {
+  config: { target: Entity; label: string } = { target: null, label: "" };
+}
+
+/** Script with UNDECORATED nested array of arrays containing entities */
+class NestedArrayScript extends Script {
+  groups: Entity[][] = [];
+}
+
+/** Script with UNDECORATED Map containing entity values */
+class MapRefScript extends Script {
+  entityMap: Map<string, Entity> = new Map();
+}
+
 /** Script for testing multiple same-type components on one entity */
 class CounterScript extends Script {
   value: number = 0;
@@ -236,7 +256,9 @@ describe("Clone remap", async () => {
       expect(clonedScript.speed).eq(42);
       expect(clonedScript.name2).eq("test");
       expect(clonedScript.flag).eq(true);
-      expect(clonedScript.data).eq(obj);
+      // Plain objects are now deep cloned (independent copy) for undecorated properties
+      expect(clonedScript.data).not.eq(obj);
+      expect((<any>clonedScript.data).x).eq(1);
 
       rootEntity.destroy();
     });
@@ -863,6 +885,144 @@ describe("Clone remap", async () => {
       expect(clonedRefs[0].counter.value).eq(1);
       expect(clonedRefs[1].counter).eq(clonedCounters[2]);
       expect(clonedRefs[1].counter.value).eq(3);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Undecorated array auto clone + remap (type inference)", () => {
+    it("undecorated entity array should create new array and remap elements", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const childA = parent.createChild("childA");
+      const childB = parent.createChild("childB");
+      const script = parent.addComponent(UndecoratedArrayScript);
+      script.entities = [childA, childB];
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(UndecoratedArrayScript);
+
+      expect(cs.entities).not.eq(script.entities);
+      expect(cs.entities.length).eq(2);
+      expect(cs.entities[0]).not.eq(childA);
+      expect(cs.entities[1]).not.eq(childB);
+      expect(cs.entities[0]).eq(cloned.children[0]);
+      expect(cs.entities[1]).eq(cloned.children[1]);
+
+      rootEntity.destroy();
+    });
+
+    it("undecorated entity array with external ref keeps original", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const external = rootEntity.createChild("external");
+      const script = parent.addComponent(UndecoratedArrayScript);
+      script.entities = [child, external];
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(UndecoratedArrayScript);
+
+      expect(cs.entities[0]).eq(cloned.children[0]);
+      expect(cs.entities[1]).eq(external);
+
+      rootEntity.destroy();
+    });
+
+    it("undecorated empty array stays empty with independent reference", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const script = parent.addComponent(UndecoratedArrayScript);
+      script.entities = [];
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(UndecoratedArrayScript);
+
+      expect(cs.entities).not.eq(script.entities);
+      expect(cs.entities.length).eq(0);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Undecorated nested object auto clone + remap (type inference)", () => {
+    it("undecorated object with entity ref should deep clone and remap", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const script = parent.addComponent(UndecoratedObjectScript);
+      script.config = { target: child, label: "hello" };
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(UndecoratedObjectScript);
+
+      expect(cs.config).not.eq(script.config);
+      expect(cs.config.label).eq("hello");
+      expect(cs.config.target).not.eq(child);
+      expect(cs.config.target).eq(cloned.children[0]);
+
+      rootEntity.destroy();
+    });
+
+    it("undecorated object with external entity ref keeps original", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const external = rootEntity.createChild("external");
+      const script = parent.addComponent(UndecoratedObjectScript);
+      script.config = { target: external, label: "ext" };
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(UndecoratedObjectScript);
+
+      expect(cs.config.target).eq(external);
+      expect(cs.config.label).eq("ext");
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Nested array of arrays with entity refs (type inference)", () => {
+    it("undecorated nested entity arrays should recursively clone and remap", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const childA = parent.createChild("childA");
+      const childB = parent.createChild("childB");
+      const childC = parent.createChild("childC");
+      const script = parent.addComponent(NestedArrayScript);
+      script.groups = [[childA, childB], [childC]];
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(NestedArrayScript);
+
+      expect(cs.groups).not.eq(script.groups);
+      expect(cs.groups.length).eq(2);
+      expect(cs.groups[0]).not.eq(script.groups[0]);
+      expect(cs.groups[1]).not.eq(script.groups[1]);
+      expect(cs.groups[0][0]).eq(cloned.children[0]);
+      expect(cs.groups[0][1]).eq(cloned.children[1]);
+      expect(cs.groups[1][0]).eq(cloned.children[2]);
+
+      rootEntity.destroy();
+    });
+  });
+
+  describe("Map with entity values (type inference)", () => {
+    it("undecorated Map should create new Map and remap entity values", () => {
+      const rootEntity = scene.createRootEntity("root");
+      const parent = rootEntity.createChild("parent");
+      const child = parent.createChild("child");
+      const external = rootEntity.createChild("external");
+      const script = parent.addComponent(MapRefScript);
+      script.entityMap.set("internal", child);
+      script.entityMap.set("external", external);
+
+      const cloned = parent.clone();
+      const cs = cloned.getComponent(MapRefScript);
+
+      expect(cs.entityMap).not.eq(script.entityMap);
+      expect(cs.entityMap.size).eq(2);
+      expect(cs.entityMap.get("internal")).eq(cloned.children[0]);
+      expect(cs.entityMap.get("external")).eq(external);
 
       rootEntity.destroy();
     });

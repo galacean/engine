@@ -192,7 +192,12 @@ export class ReflectionParser {
     const buffer = ReflectionParser._componentBuffer;
     buffer.length = 0;
     entity.getComponents(type, buffer);
-    const result = buffer[comp.index] ?? null;
+    let result = buffer[comp.index] ?? null;
+    if (!result) {
+      buffer.length = 0;
+      entity.getComponentsIncludeChildren(type, buffer);
+      result = buffer[comp.index] ?? null;
+    }
     buffer.length = 0;
     return result;
   }

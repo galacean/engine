@@ -52,6 +52,10 @@ export interface SceneFile extends HierarchyFile {
       fogDensity?: number;
       fogColor?: Vec4Tuple;
     };
+    physics?: {
+      gravity?: Vec3Tuple;
+      fixedTimeStep?: number;
+    };
     ambientOcclusion?: {
       enabledAmbientOcclusion?: boolean;
       quality?: number;

@@ -564,6 +564,90 @@ describe("TextUtils", () => {
     );
   });
 
+  it("measureTextWithShrink", () => {
+    // @ts-ignore
+    const { _pixelsPerUnit } = Engine;
+    const r = textRendererTruncate;
+    r.overflowMode = OverflowMode.Shrink;
+    r.enableWrapping = false;
+    r.lineSpacing = 0;
+    r.characterSpacing = 0;
+    r.text = "15";
+    // applyFontSize: switch the sub font for each measurement during the shrink search.
+    const apply = (fs: number) => {
+      // @ts-ignore
+      r._applyFontSizeForShrink(fs);
+    };
+    const measure = (w: number, h: number, fontSize: number) => {
+      r.width = w;
+      r.height = h;
+      r.fontSize = fontSize;
+      r.bounds;
+      return TextUtils.measureTextWithShrink(
+        r,
+        w * _pixelsPerUnit,
+        h * _pixelsPerUnit,
+        fontSize,
+        r.lineSpacing,
+        r.characterSpacing,
+        r.enableWrapping,
+        apply
+      );
+    };
+
+    // Fits at original size → keep it (never shrinks unnecessarily).
+    let res = measure(3, 1, 24);
+    expect(res.fontSize).to.be.equal(24);
+    expect(res.metrics.width).to.be.at.most(300);
+    expect(res.metrics.lineHeight * res.metrics.lines.length).to.be.at.most(100);
+
+    // Box too short → shrink the font size until the content height fits.
+    res = measure(3, 0.3, 80);
+    expect(res.fontSize).to.be.below(80);
+    expect(res.metrics.lineHeight * res.metrics.lines.length).to.be.at.most(30);
+
+    // Box too narrow (no wrap) → shrink the font size until the width fits.
+    res = measure(0.3, 3, 80);
+    expect(res.fontSize).to.be.below(80);
+    expect(res.metrics.width).to.be.at.most(30);
+
+    // Only shrinks, never enlarges: even a huge box keeps the original font size.
+    res = measure(10, 10, 24);
+    expect(res.fontSize).to.be.equal(24);
+
+    // Wrapping path: a long text that wraps to multiple lines and overflows the height
+    // must shrink until the real content height (lineHeight * lineCount) fits the box.
+    r.enableWrapping = true;
+    r.text = "这是一段会换行的较长文本";
+    res = measure(2, 0.5, 60); // 200x50px box
+    expect(res.fontSize).to.be.below(60);
+    expect(res.metrics.width).to.be.at.most(200);
+    expect(res.metrics.lineHeight * res.metrics.lines.length).to.be.at.most(50);
+  });
+
+  it("_getCharInfo writes the atlas only when uploadTexture is true (used by SHRINK search)", () => {
+    const r = wrap2TextRenderer;
+    // @ts-ignore
+    const subFont = r._getSubFont();
+    const fontString = subFont.nativeFontString;
+    const char = "Q"; // a glyph not measured by the other cases above
+
+    // Sanity: the glyph is not in the atlas yet.
+    // @ts-ignore
+    expect(subFont._getCharInfo(char)).to.be.null;
+
+    // measure-only path: returns valid metrics but must NOT upload to the atlas.
+    const info = TextUtils._getCharInfo(char, fontString, subFont, false);
+    expect(info.w).to.be.greaterThan(0);
+    // @ts-ignore
+    expect(subFont._getCharInfo(char)).to.be.null;
+
+    // full path: uploads the glyph to the atlas.
+    TextUtils._getCharInfo(char, fontString, subFont, true);
+    // @ts-ignore
+    expect(subFont._getCharInfo(char)).to.not.be.null;
+  });
+
   afterAll(() => {
     engine.destroy();
   });

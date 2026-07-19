@@ -44,7 +44,7 @@ export class ResourceManager {
   /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
   /** Asset url pool, key is the asset path and the value is the asset. */
-  private _assetUrlPool: Record<string, Object> = Object.create(null);
+  private _assetUrlPool: Record<string, object> = Object.create(null);
 
   /** Referable resource pool, key is the `instanceID` of resource. */
   private _referResourcePool: Record<number, ReferResource> = Object.create(null);
@@ -88,14 +88,14 @@ export class ResourceManager {
    */
   load<T extends EngineObject>(path: string): AssetPromise<T>;
 
-  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | Object[]> {
+  load<T>(assetInfo: string | LoadItem | (LoadItem | string)[]): AssetPromise<T | object[]> {
     // single item
     if (!Array.isArray(assetInfo)) {
       return this._loadSingleItem(assetInfo);
     }
     // multi items
     const promises = assetInfo.map((item) => this._loadSingleItem<T>(item));
-    return AssetPromise.all(promises);
+    return AssetPromise.all(promises) as AssetPromise<T | object[]>;
   }
 
   /**

@@ -22,6 +22,7 @@ class ClickHandler extends Script {
   }
 
   handleClickWithPrefix(event: PointerEventData, prefix: string) {
+    void event;
     this.callCount++;
     this.lastPrefix = prefix;
   }

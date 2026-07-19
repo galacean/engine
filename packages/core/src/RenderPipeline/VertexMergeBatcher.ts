@@ -13,6 +13,36 @@ export class VertexMergeBatcher {
     const renderer = <SpriteRenderer>curElement.component;
     const maskInteraction = preRenderer.maskInteraction;
 
+    const preRendererAny = preRenderer as any;
+    const curRendererAny = renderer as any;
+    const rectMaskEnabledA = preRendererAny._rectMaskEnabled;
+    if (rectMaskEnabledA !== curRendererAny._rectMaskEnabled) {
+      return false;
+    }
+    if (rectMaskEnabledA) {
+      const rectMaskRectA = preRendererAny._rectMaskRect;
+      const rectMaskRectB = curRendererAny._rectMaskRect;
+      const rectMaskSoftnessA = preRendererAny._rectMaskSoftness;
+      const rectMaskSoftnessB = curRendererAny._rectMaskSoftness;
+      if (
+        !rectMaskRectA ||
+        !rectMaskRectB ||
+        !rectMaskSoftnessA ||
+        !rectMaskSoftnessB ||
+        rectMaskRectA.x !== rectMaskRectB.x ||
+        rectMaskRectA.y !== rectMaskRectB.y ||
+        rectMaskRectA.z !== rectMaskRectB.z ||
+        rectMaskRectA.w !== rectMaskRectB.w ||
+        rectMaskSoftnessA.x !== rectMaskSoftnessB.x ||
+        rectMaskSoftnessA.y !== rectMaskSoftnessB.y ||
+        rectMaskSoftnessA.z !== rectMaskSoftnessB.z ||
+        rectMaskSoftnessA.w !== rectMaskSoftnessB.w ||
+        preRendererAny._rectMaskHardClip !== curRendererAny._rectMaskHardClip
+      ) {
+        return false;
+      }
+    }
+
     // Order: cheap reference checks → mask state → tag lookup (rare opt-out)
     return (
       preElement.subChunk.chunk === curElement.subChunk.chunk &&
@@ -22,6 +52,30 @@ export class VertexMergeBatcher {
       (maskInteraction === SpriteMaskInteraction.None || preRenderer.maskLayer === renderer.maskLayer) &&
       curElement.subShader.passes[0].getTagValue(VertexMergeBatcher._disableBatchTag) !== true
     );
+  }
+
+  /**
+   * Text-specific batch check: extends sprite check with outline parity.
+   * Different outlineWidth or outlineColor must split into separate draw calls,
+   * because outline uniforms are shared per draw call.
+   */
+  static canBatchText(preElement: RenderElement, curElement: RenderElement): boolean {
+    if (!VertexMergeBatcher.canBatchSprite(preElement, curElement)) {
+      return false;
+    }
+    const preRendererAny = preElement.component as any;
+    const curRendererAny = curElement.component as any;
+    if (preRendererAny._outlineWidth !== curRendererAny._outlineWidth) {
+      return false;
+    }
+    if (preRendererAny._outlineWidth > 0) {
+      const a = preRendererAny._outlineColor;
+      const b = curRendererAny._outlineColor;
+      if (a.r !== b.r || a.g !== b.g || a.b !== b.b || a.a !== b.a) {
+        return false;
+      }
+    }
+    return true;
   }
 
   static canBatchSpriteMask(preElement: RenderElement, curElement: RenderElement): boolean {

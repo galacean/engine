@@ -7,6 +7,12 @@ export default class State {
   static pool: Map<number, State> = new Map();
   static _id = 0;
 
+  /** Release the state graph after the action/goto tables have been generated. */
+  static clearPool(): void {
+    this.closureMap.clear();
+    this.pool.clear();
+  }
+
   readonly id: number;
   readonly cores: Set<StateItem>;
   private _items: Set<StateItem>;

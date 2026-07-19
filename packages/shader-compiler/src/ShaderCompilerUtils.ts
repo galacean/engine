@@ -21,6 +21,13 @@ export class ShaderCompilerUtils {
     }
   }
 
+  /** Release all objects retained by the compiler pools. */
+  static releaseAllShaderCompilerObjectPool(): void {
+    for (let i = 0, n = ShaderCompilerUtils._shaderCompilerObjectPoolSet.length; i < n; i++) {
+      ShaderCompilerUtils._shaderCompilerObjectPoolSet[i].garbageCollection();
+    }
+  }
+
   static createGSError(
     message: string,
     errorName: GSErrorName,

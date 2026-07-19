@@ -30,6 +30,9 @@ export class LALR1 {
   generate() {
     this.computeFirstSet();
     this.buildStateTable();
+    // Runtime parsing only needs the numeric action/goto tables. The state closure graph is
+    // construction-only data and otherwise keeps thousands of StateItem/Set objects alive.
+    State.clearPool();
   }
 
   private buildStateTable() {
@@ -63,12 +66,12 @@ export class LALR1 {
     const productionList = this.grammar.getProductionList(<NoneTerminal>item.curSymbol);
 
     if (item.nextSymbol) {
-      let newLookaheadSet = new Set<Terminal>();
+      const newLookaheadSet = new Set<Terminal>();
       let lastFirstSet: Set<Terminal> | undefined;
       let terminalExist = false;
       // when A :=> a.BC, a;  ==》 B :=> .xy, First(Ca)
       // newLookAhead = First(Ca)
-      for (let i = 1, nextSymbol = item.symbolByOffset(1); !!nextSymbol; nextSymbol = item.symbolByOffset(++i)) {
+      for (let i = 1, nextSymbol = item.symbolByOffset(1); nextSymbol; nextSymbol = item.symbolByOffset(++i)) {
         if (GrammarUtils.isTerminal(nextSymbol)) {
           newLookaheadSet.add(<Terminal>nextSymbol);
           terminalExist = true;
