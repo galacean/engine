@@ -22,7 +22,7 @@ import {
   Vector3,
   WebGLEngine
 } from "@galacean/engine";
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 
 function updateEngine(engine: Engine, frames: number, deltaTime = 100) {
   //@ts-ignore
@@ -560,9 +560,11 @@ describe("SubEmitter", () => {
     parent.generator.main.startLifetime.constant = 0.1;
     parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death, undefined, undefined, 3);
     parent.generator.subEmitters.enabled = true;
-    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
     child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    updateEngine(engine, 1);
+
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
     parent.generator.play(false);
 
     const secondScene = new Scene(engine, "MovedTarget_Scene");
@@ -577,6 +579,44 @@ describe("SubEmitter", () => {
     parent.entity.destroy();
     child.entity.destroy();
     secondScene.destroy();
+  });
+
+  it("caches dependency topology until the graph changes", () => {
+    const child = createParticleRenderer(engine, "TopologyCache_Child");
+    const parent = createParticleRenderer(engine, "TopologyCache_Parent");
+    const manager = (parent.entity.scene as any)._componentsManager._particleSystemManager;
+    const rebuild = vi.spyOn(manager, "_rebuildTopology");
+
+    updateEngine(engine, 3);
+    expect(rebuild).toHaveBeenCalledTimes(1);
+
+    parent.generator.subEmitters.enabled = true;
+    updateEngine(engine, 2);
+    expect(rebuild).toHaveBeenCalledTimes(2);
+
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    updateEngine(engine, 2);
+    expect(rebuild).toHaveBeenCalledTimes(3);
+
+    parent.generator.subEmitters.subEmitters[0].type = ParticleSubEmitterType.Death;
+    updateEngine(engine, 2);
+    expect(rebuild).toHaveBeenCalledTimes(4);
+
+    parent.generator.subEmitters.removeSubEmitterByIndex(0);
+    updateEngine(engine, 2);
+    expect(rebuild).toHaveBeenCalledTimes(5);
+
+    const extra = createParticleRenderer(engine, "TopologyCache_Extra");
+    updateEngine(engine, 2);
+    expect(rebuild).toHaveBeenCalledTimes(6);
+
+    extra.entity.destroy();
+    updateEngine(engine, 2);
+    expect(rebuild).toHaveBeenCalledTimes(7);
+
+    rebuild.mockRestore();
+    parent.entity.destroy();
+    child.entity.destroy();
   });
 
   it("Indirect cycle A→B→A throws at configuration time", () => {

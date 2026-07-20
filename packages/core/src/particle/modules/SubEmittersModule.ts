@@ -121,6 +121,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     for (let i = 0, n = runtimeStates.length; i < n; i++) {
       runtimeStates[i]?.push(null);
     }
+    this._markTopologyDirty();
     this._generator._setTransformFeedback();
   }
 
@@ -134,6 +135,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     for (let i = 0, n = runtimeStates.length; i < n; i++) {
       runtimeStates[i]?.splice(index, 1);
     }
+    this._markTopologyDirty();
     this._generator._setTransformFeedback();
   }
 
@@ -145,6 +147,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
     if (value !== this._enabled) {
       if (value) this._validateEmitters();
       this._enabled = value;
+      this._markTopologyDirty();
       this._generator._setTransformFeedback();
     }
   }
@@ -402,6 +405,7 @@ export class SubEmittersModule extends ParticleGeneratorModule {
       subEmitters[i]._module = target;
     }
     target._particleRuntimeStates = new Array(target._generator._currentParticleCount);
+    target._markTopologyDirty();
   }
 
   /**
@@ -432,7 +436,13 @@ export class SubEmittersModule extends ParticleGeneratorModule {
         states && (states[slotIndex] = null);
       }
     }
+    this._markTopologyDirty();
     this._generator._setTransformFeedback();
+  }
+
+  private _markTopologyDirty(): void {
+    const scene = this._generator._renderer.entity.scene;
+    scene?._componentsManager._particleSystemManager._markTopologyDirty();
   }
 
   private _validateEmitterScene(emitter: ParticleRenderer): void {

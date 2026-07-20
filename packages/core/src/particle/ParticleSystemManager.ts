@@ -19,19 +19,42 @@ export interface ParticleSubEmitterEmissionCommand {
 
 /** @internal */
 export class ParticleSystemManager {
+  private static readonly _emptyCommands: ReadonlyArray<ParticleSubEmitterEmissionCommand> = [];
+
   private _renderers: ParticleRenderer[] = [];
   private _commands = new Map<ParticleGenerator, ParticleSubEmitterEmissionCommand[]>();
+  private _orderedRenderers: ParticleRenderer[] = [];
+  private _birthTargets = new Set<ParticleGenerator>();
+  private _rendererSet = new Set<ParticleRenderer>();
+  private _adjacency = new Map<ParticleRenderer, ParticleRenderer[]>();
+  private _indegree = new Map<ParticleRenderer, number>();
+  private _queue: ParticleRenderer[] = [];
+  private _adjacencyListPool: ParticleRenderer[][] = [];
+  private _topologyDirty = true;
 
   add(renderer: ParticleRenderer): void {
     if (this._renderers.indexOf(renderer) < 0) {
       this._renderers.push(renderer);
+      this._markTopologyDirty();
     }
   }
 
   remove(renderer: ParticleRenderer): void {
     const index = this._renderers.indexOf(renderer);
-    if (index >= 0) this._renderers.splice(index, 1);
+    if (index >= 0) {
+      this._renderers.splice(index, 1);
+      this._markTopologyDirty();
+    }
     this._commands.delete(renderer.generator);
+  }
+
+  /** @internal */
+  _markTopologyDirty(): void {
+    if (!this._topologyDirty) {
+      this._topologyDirty = true;
+      this._orderedRenderers.length = 0;
+      this._birthTargets.clear();
+    }
   }
 
   enqueue(command: ParticleSubEmitterEmissionCommand): void {
@@ -46,18 +69,48 @@ export class ParticleSystemManager {
 
   update(deltaTime: number): void {
     this._commands.clear();
-    const renderers = this._renderers.filter((renderer) => !renderer.destroyed && renderer.enabled);
-    const count = renderers.length;
-    if (count === 0) return;
+    if (this._topologyDirty) this._rebuildTopology();
 
-    const rendererSet = new Set(renderers);
-    const adjacency = new Map<ParticleRenderer, Set<ParticleRenderer>>();
-    const indegree = new Map<ParticleRenderer, number>();
-    const birthTargets = new Set<ParticleGenerator>();
-    for (let i = 0; i < count; i++) indegree.set(renderers[i], 0);
+    const ordered = this._orderedRenderers;
+    const birthTargets = this._birthTargets;
+    for (let i = 0; i < ordered.length; i++) {
+      const renderer = ordered[i];
+      const generator = renderer.generator;
+      const incoming = this._commands.get(generator);
+      incoming && this._commands.delete(generator);
+      renderer._updateParticles(
+        deltaTime,
+        incoming ?? ParticleSystemManager._emptyCommands,
+        birthTargets.has(generator)
+      );
+    }
+    this._commands.clear();
+  }
 
-    for (let i = 0; i < count; i++) {
+  private _rebuildTopology(): void {
+    const renderers = this._renderers;
+    const ordered = this._orderedRenderers;
+    const birthTargets = this._birthTargets;
+    const rendererSet = this._rendererSet;
+    const adjacency = this._adjacency;
+    const indegree = this._indegree;
+    const queue = this._queue;
+    const adjacencyListPool = this._adjacencyListPool;
+
+    ordered.length = 0;
+    birthTargets.clear();
+    let count = 0;
+    for (let i = 0, n = renderers.length; i < n; i++) {
+      const renderer = renderers[i];
+      if (renderer.destroyed || !renderer.enabled) continue;
+      rendererSet.add(renderer);
+      indegree.set(renderer, 0);
+      count++;
+    }
+
+    for (let i = 0, n = renderers.length; i < n; i++) {
       const source = renderers[i];
+      if (!rendererSet.has(source)) continue;
       const module = source.generator.subEmitters;
       if (!module.enabled) continue;
       const slots = module.subEmitters;
@@ -67,9 +120,12 @@ export class ParticleSystemManager {
         if (!target || target.destroyed || !rendererSet.has(target)) continue;
 
         let targets = adjacency.get(source);
-        if (!targets) adjacency.set(source, (targets = new Set()));
-        if (!targets.has(target)) {
-          targets.add(target);
+        if (!targets) {
+          targets = adjacencyListPool.pop() ?? [];
+          adjacency.set(source, targets);
+        }
+        if (targets.indexOf(target) < 0) {
+          targets.push(target);
           indegree.set(target, indegree.get(target)! + 1);
         }
         if (slot.type === ParticleSubEmitterType.Birth) {
@@ -78,39 +134,40 @@ export class ParticleSystemManager {
       }
     }
 
-    const queue: ParticleRenderer[] = [];
-    for (let i = 0; i < count; i++) {
+    for (let i = 0, n = renderers.length; i < n; i++) {
       const renderer = renderers[i];
-      if (indegree.get(renderer) === 0) queue.push(renderer);
+      if (rendererSet.has(renderer) && indegree.get(renderer) === 0) queue.push(renderer);
     }
 
-    const ordered: ParticleRenderer[] = [];
     for (let head = 0; head < queue.length; head++) {
       const source = queue[head];
       ordered.push(source);
+      rendererSet.delete(source);
       const targets = adjacency.get(source);
       if (!targets) continue;
-      targets.forEach((target) => {
+      for (let i = 0, n = targets.length; i < n; i++) {
+        const target = targets[i];
         const nextDegree = indegree.get(target)! - 1;
         indegree.set(target, nextDegree);
         if (nextDegree === 0) queue.push(target);
-      });
-    }
-
-    if (ordered.length !== count) {
-      for (let i = 0; i < count; i++) {
-        const renderer = renderers[i];
-        if (ordered.indexOf(renderer) < 0) ordered.push(renderer);
       }
     }
 
-    for (let i = 0; i < ordered.length; i++) {
-      const renderer = ordered[i];
-      const generator = renderer.generator;
-      const incoming = this._commands.get(generator);
-      incoming && this._commands.delete(generator);
-      renderer._updateParticles(deltaTime, incoming ?? [], birthTargets.has(generator));
+    if (ordered.length !== count) {
+      for (let i = 0, n = renderers.length; i < n; i++) {
+        const renderer = renderers[i];
+        if (rendererSet.has(renderer)) ordered.push(renderer);
+      }
     }
-    this._commands.clear();
+
+    for (const targets of adjacency.values()) {
+      targets.length = 0;
+      adjacencyListPool.push(targets);
+    }
+    rendererSet.clear();
+    adjacency.clear();
+    indegree.clear();
+    queue.length = 0;
+    this._topologyDirty = false;
   }
 }
