@@ -1,16 +1,11 @@
 /** Debug vocabulary and colors kept outside the formal authoring/runtime contracts. */
 export enum RiverDebugMode {
   Off = "off",
+  ControlPoints = "controlPoints",
+  AuthoringPath = "authoringPath",
   Path = "path",
+  Shoreline = "shoreline",
   Banks = "banks",
-  Full = "full"
-}
-
-export enum RiverPreviewStage {
-  Path = "path",
-  Banks = "banks",
-  Mesh = "mesh",
-  Material = "material",
   Full = "full"
 }
 

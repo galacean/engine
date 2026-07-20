@@ -16,7 +16,6 @@ import {
 } from "../../../authoring/river/RiverAuthoringEnums";
 import { RIVER_MATERIAL_PRESET_CONFIG } from "../../../authoring/river/RiverAuthoringLimits";
 import { WaterDecorationStyle } from "../../decoration/constants";
-import { RiverDebugMode, RiverPreviewStage } from "../../debug/constants";
 import { WaterPreviewMode } from "../constants";
 import type { RiverPcgExample } from "../types";
 
@@ -377,8 +376,6 @@ export const multiTributaryRiverExample: RiverPcgExample = {
     }
   },
   riverDebug: {
-    previewStage: RiverPreviewStage.Full,
-    mode: RiverDebugMode.Full,
     queryT: 0.52
   }
 };

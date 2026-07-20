@@ -40,7 +40,13 @@ export interface RiverRuntimePresentation {
   surfaceVisible: boolean;
   foamVisible: boolean;
   surfaceMaterial?: Material;
+  junctionSurfaceMaterial?: Material;
   foamMaterial?: Material;
+}
+
+export interface RiverRuntimeDebugTarget {
+  readonly kind: "network" | "reach" | "junction" | "junctions" | "chunk";
+  readonly id?: string;
 }
 
 interface RiverRuntimeMaterialSet {
@@ -61,6 +67,7 @@ interface MutableRiverRuntimeChunk {
   readonly surfaceRenderer: MeshRenderer;
   readonly foamRenderer?: MeshRenderer;
   readonly compiled: RiverCompiledChunk;
+  readonly sourceId: string;
   readonly meshes: RiverMeshBuildResult;
 }
 
@@ -114,6 +121,7 @@ export class RiverRuntimeController {
   private _macroDisplacementEnabled = true;
   private _microSurfaceEnabled = true;
   private _surfaceTimeOverride?: number;
+  private _debugTarget: RiverRuntimeDebugTarget = { kind: "network" };
 
   constructor(
     private readonly _engine: Engine,
@@ -144,6 +152,7 @@ export class RiverRuntimeController {
       this._activeChunks = cached.chunks;
       this._activeQueryService = cached.queryService;
       cached.root.isActive = true;
+      this._applyDebugTarget(cached.chunks);
       return {
         created: false,
         reaches: cached.reaches,
@@ -293,10 +302,17 @@ export class RiverRuntimeController {
         chunk.foamRenderer.entity.isActive = presentation.foamVisible;
       }
       chunk.surfaceRenderer.setMaterial(
-        presentation.surfaceMaterial ?? this._selectSurfaceMaterial(chunk.compiled, reach)
+        (chunk.compiled.sourceKind === RiverChunkSourceKind.Junction
+          ? (presentation.junctionSurfaceMaterial ?? presentation.surfaceMaterial)
+          : presentation.surfaceMaterial) ?? this._selectSurfaceMaterial(chunk.compiled, reach)
       );
       chunk.foamRenderer?.setMaterial(presentation.foamMaterial ?? reach.materials.foam);
     }
+  }
+
+  setDebugTarget(target: RiverRuntimeDebugTarget): void {
+    this._debugTarget = target;
+    this._applyDebugTarget(this._activeChunks);
   }
 
   setSurfaceDebugMode(mode: RiverSurfaceDebugMode): void {
@@ -431,6 +447,10 @@ export class RiverRuntimeController {
   ): MutableRiverRuntimeChunk {
     const parent = chunk.sourceKind === RiverChunkSourceKind.Reach ? reaches[chunk.sourceIndex].root : runtimeRoot;
     const root = parent.createChild(`river-chunk-${chunk.id}`);
+    const sourceId =
+      chunk.sourceKind === RiverChunkSourceKind.Reach
+        ? (compiledData.reaches[chunk.sourceIndex]?.id ?? chunk.id)
+        : (compiledData.junctions[chunk.sourceIndex]?.id ?? chunk.id);
     root.transform.setPosition(chunk.localOrigin[0], chunk.localOrigin[1], chunk.localOrigin[2]);
     const surfaceRenderer = root.createChild(`${chunk.id}-water`).addComponent(MeshRenderer);
     const meshes = uploadRiverMeshes(this._engine, chunk);
@@ -461,7 +481,28 @@ export class RiverRuntimeController {
       foamRenderer.mesh = meshes.bankFoamMesh;
       foamRenderer.setMaterial(materialReach.materials.foam);
     }
-    return { root, surfaceRenderer, foamRenderer, compiled: chunk, meshes };
+    const runtimeChunk = { root, surfaceRenderer, foamRenderer, compiled: chunk, sourceId, meshes };
+    root.isActive = this._matchesDebugTarget(runtimeChunk);
+    return runtimeChunk;
+  }
+
+  private _applyDebugTarget(chunks: readonly MutableRiverRuntimeChunk[]): void {
+    for (const chunk of chunks) chunk.root.isActive = this._matchesDebugTarget(chunk);
+  }
+
+  private _matchesDebugTarget(chunk: MutableRiverRuntimeChunk): boolean {
+    switch (this._debugTarget.kind) {
+      case "reach":
+        return chunk.compiled.sourceKind === RiverChunkSourceKind.Reach && chunk.sourceId === this._debugTarget.id;
+      case "junction":
+        return chunk.compiled.sourceKind === RiverChunkSourceKind.Junction && chunk.sourceId === this._debugTarget.id;
+      case "junctions":
+        return chunk.compiled.sourceKind === RiverChunkSourceKind.Junction;
+      case "chunk":
+        return chunk.compiled.id === this._debugTarget.id;
+      default:
+        return true;
+    }
   }
 
   private _selectSurfaceMaterial(chunk: RiverCompiledChunk, reach: MutableRiverRuntimeReach): Material {

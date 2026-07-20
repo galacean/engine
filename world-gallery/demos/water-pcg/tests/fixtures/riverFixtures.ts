@@ -9,7 +9,6 @@ import {
 import { RIVER_MATERIAL_PRESET_CONFIG } from "../../authoring/river/RiverAuthoringLimits";
 import type { RiverPathControlPoint } from "../../authoring/river/RiverAuthoringTypes";
 import type { RiverNetworkDescriptor } from "../../authoring/river/RiverDescriptor";
-import { RiverDebugMode, RiverPreviewStage } from "../../demo/debug/constants";
 import type { RiverDemoConfig as RiverConfig } from "../../demo/types";
 
 function makeConfig(id: string, points: RiverPathControlPoint[], mode: RiverPathMode): RiverConfig {
@@ -28,7 +27,7 @@ function makeConfig(id: string, points: RiverPathControlPoint[], mode: RiverPath
       maps: { level: RiverQualityLevel.Low },
       query: { level: RiverQualityLevel.Medium }
     },
-    debug: { previewStage: RiverPreviewStage.Full, mode: RiverDebugMode.Off, queryT: 0.5 }
+    debug: { queryT: 0.5 }
   };
 }
 

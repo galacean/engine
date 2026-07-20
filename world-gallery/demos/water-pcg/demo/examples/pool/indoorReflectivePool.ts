@@ -13,7 +13,6 @@ import {
   RiverQualityLevel
 } from "../../../authoring/river/RiverAuthoringEnums";
 import { WaterDecorationStyle } from "../../decoration/constants";
-import { RiverDebugMode, RiverPreviewStage } from "../../debug/constants";
 import { WaterPreviewMode } from "../constants";
 import type { RiverPcgExample } from "../types";
 
@@ -117,8 +116,6 @@ export const indoorReflectivePoolExample: RiverPcgExample = {
     }
   },
   riverDebug: {
-    previewStage: RiverPreviewStage.Full,
-    mode: RiverDebugMode.Off,
     queryT: 0.5
   }
 };

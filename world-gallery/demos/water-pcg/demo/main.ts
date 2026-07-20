@@ -24,7 +24,7 @@ import {
 import { decodeRiverSamplePoints } from "../compiler/river/RiverGeometryCompiler";
 import type { RiverCompiledData, RiverReachArtifact, RiverSampleResult } from "../compiler/river/types";
 import { RiverDirtyFlag, RIVER_PROFILE_SAMPLE_COUNT, RIVER_REBUILD_STRESS } from "./constants";
-import { RiverDebugMode, RiverPreviewStage, RIVER_PREVIEW_STAGE_COLOR } from "./debug/constants";
+import { RiverDebugMode, RIVER_PREVIEW_STAGE_COLOR } from "./debug/constants";
 import type { RiverDemoConfig as RiverConfig } from "./types";
 import { getRiverConfigWarnings } from "../authoring/river/RiverSchemaDecoder";
 import { RiverDebugController } from "./debug/RiverDebugController";
@@ -51,9 +51,22 @@ import { LakePillarController } from "./decoration/LakePillarController";
 import { PoolSceneController } from "./decoration/PoolSceneController";
 import { WaterDecorationStyle } from "./decoration/constants";
 import { RiverCameraFeatureController } from "./RiverCameraFeatureController";
-import { RiverSurfaceDebugMode } from "../runtime/river/RiverRuntimeEnums";
 import { RIVER_SURFACE_TEXTURE_SAMPLE_COUNT } from "../runtime/river/constants";
 import { WaterQualityTier } from "../authoring/wave/enums/WaterQualityTier";
+import {
+  RiverDebugChannel,
+  RiverDebugSession,
+  RiverDebugStage,
+  parseRiverDebugTarget,
+  resolveRiverDebugSceneState,
+  serializeRiverDebugTarget,
+  type RiverDebugRuntimeMetrics,
+  type RiverDebugSelection,
+  type RiverDebugSessionContext,
+  type RiverDebugSnapshot
+} from "./debug/RiverDebugSession";
+import { mountWaterDebugPanel } from "./debug/WaterDebugPanel";
+import { RiverNetworkDebugController } from "./debug/RiverNetworkDebugController";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -64,13 +77,6 @@ const RIVER_PATH_MODE_OPTIONS = {
   Polyline: RiverPathMode.Polyline,
   CatmullRom: RiverPathMode.CatmullRom,
   Bezier: RiverPathMode.Bezier
-} as const;
-
-const RIVER_DEBUG_MODE_OPTIONS = {
-  Off: RiverDebugMode.Off,
-  Path: RiverDebugMode.Path,
-  Banks: RiverDebugMode.Banks,
-  Full: RiverDebugMode.Full
 } as const;
 
 const RIVER_QUALITY_OPTIONS = {
@@ -91,34 +97,17 @@ const RIVER_MATERIAL_OPTIONS = {
   MountainCreek: RiverMaterialPreset.MountainCreek
 } as const;
 
-const RIVER_SURFACE_DEBUG_OPTIONS = {
-  Off: RiverSurfaceDebugMode.Off,
-  Flow: RiverSurfaceDebugMode.FlowCoordinate,
-  MacroHeight: RiverSurfaceDebugMode.MacroHeight,
-  Crest: RiverSurfaceDebugMode.CrestMask,
-  MicroNormal: RiverSurfaceDebugMode.MicroNormal,
-  ShoreDamping: RiverSurfaceDebugMode.ShoreDamping,
-  LocalFlow: RiverSurfaceDebugMode.LocalFlow,
-  LocalFoam: RiverSurfaceDebugMode.LocalFoam,
-  LocalSdf: RiverSurfaceDebugMode.LocalSignedDistance,
-  AtlasRect: RiverSurfaceDebugMode.AtlasRect
-} as const;
-
 type PreviewModeLabel = keyof typeof PREVIEW_MODE_OPTIONS;
 type RiverPathModeLabel = keyof typeof RIVER_PATH_MODE_OPTIONS;
-type RiverDebugModeLabel = keyof typeof RIVER_DEBUG_MODE_OPTIONS;
 type RiverQualityLabel = keyof typeof RIVER_QUALITY_OPTIONS;
 type WaterWaveQualityLabel = keyof typeof WATER_WAVE_QUALITY_OPTIONS;
 type RiverMaterialLabel = keyof typeof RIVER_MATERIAL_OPTIONS;
-type RiverSurfaceDebugLabel = keyof typeof RIVER_SURFACE_DEBUG_OPTIONS;
 
 interface GuiState {
   mode: PreviewModeLabel;
   pathMode: RiverPathModeLabel;
-  debugMode: RiverDebugModeLabel;
   quality: RiverQualityLabel;
   materialPreset: RiverMaterialLabel;
-  surfaceDebug: RiverSurfaceDebugLabel;
   macroDisplacement: boolean;
   microSurface: boolean;
 }
@@ -158,6 +147,11 @@ interface WaterPcgStressResult {
   readonly finalTotalMemory: number;
 }
 
+export interface WaterPcgDebugApi {
+  readonly snapshot: RiverDebugSnapshot;
+  select(selection: Partial<RiverDebugSelection>): void;
+}
+
 declare global {
   interface Window {
     waterPcgProfileMetrics?: WaterPcgProfileMetrics;
@@ -165,6 +159,7 @@ declare global {
     waterPcgStressRebuild?: (iterations?: number) => Promise<WaterPcgStressResult>;
     waterPcgGetOceanMetrics?: () => OceanPreviewMetrics;
     waterPcgStressOcean?: (iterations?: number) => OceanPreviewStressResult;
+    waterPcgDebug?: WaterPcgDebugApi;
   }
 }
 
@@ -189,10 +184,8 @@ async function bootstrapWaterPcg(): Promise<void> {
   const guiState: GuiState = {
     mode: "River",
     pathMode: "CatmullRom",
-    debugMode: "Full",
     quality: "Medium",
     materialPreset: "ClearStream",
-    surfaceDebug: "Off",
     macroDisplacement: true,
     microSurface: true
   };
@@ -205,11 +198,6 @@ async function bootstrapWaterPcg(): Promise<void> {
   const startupMode = Object.values(WaterPreviewMode).find((mode) => mode === startupModeParameter);
   if (startupMode) activeMode = startupMode;
   if (startupWaterQuality) oceanConfig.quality = startupWaterQuality;
-  const startupSurfaceDebugParameter = new URLSearchParams(window.location.search).get("surfaceDebug");
-  const startupSurfaceDebug = Object.entries(RIVER_SURFACE_DEBUG_OPTIONS).find(
-    ([label]) => label.toLowerCase() === startupSurfaceDebugParameter?.toLowerCase()
-  );
-  if (startupSurfaceDebug) guiState.surfaceDebug = startupSurfaceDebug[0] as RiverSurfaceDebugLabel;
   guiState.macroDisplacement = new URLSearchParams(window.location.search).get("macro") !== "0";
   guiState.microSurface = new URLSearchParams(window.location.search).get("micro") !== "0";
   const requestedSurfaceTimeParameter = new URLSearchParams(window.location.search).get("surfaceTime");
@@ -292,7 +280,6 @@ async function bootstrapWaterPcg(): Promise<void> {
       config.quality.material.level = level;
       config.quality.maps.level = level === RiverQualityLevel.Low ? RiverQualityLevel.Low : level;
       config.quality.query.level = level;
-      if (level === RiverQualityLevel.Low) config.debug.mode = RiverDebugMode.Off;
     }
   }
 
@@ -308,14 +295,6 @@ async function bootstrapWaterPcg(): Promise<void> {
         : riverConfig.path.mode === RiverPathMode.Bezier
           ? "Bezier"
           : "Polyline";
-    guiState.debugMode =
-      riverConfig.debug.mode === RiverDebugMode.Full
-        ? "Full"
-        : riverConfig.debug.mode === RiverDebugMode.Banks
-          ? "Banks"
-          : riverConfig.debug.mode === RiverDebugMode.Path
-            ? "Path"
-            : "Off";
     guiState.quality =
       riverConfig.quality.material.level === RiverQualityLevel.High
         ? "High"
@@ -328,32 +307,6 @@ async function bootstrapWaterPcg(): Promise<void> {
         : riverConfig.material.preset === RiverMaterialPreset.MuddyRiver
           ? "MuddyRiver"
           : "ClearStream";
-  }
-
-  function getEffectiveDebugMode(stage: RiverPreviewStage, debugMode: RiverDebugMode): RiverDebugMode {
-    if (stage === RiverPreviewStage.Path) {
-      return RiverDebugMode.Path;
-    }
-
-    if (stage === RiverPreviewStage.Banks) {
-      return RiverDebugMode.Banks;
-    }
-
-    if (stage === RiverPreviewStage.Full) {
-      return debugMode;
-    }
-
-    return RiverDebugMode.Off;
-  }
-
-  function createDebugRiverConfig(config: RiverConfig): RiverConfig {
-    return {
-      ...config,
-      debug: {
-        ...config.debug,
-        mode: getEffectiveDebugMode(config.debug.previewStage, config.debug.mode)
-      }
-    };
   }
 
   const engineConfiguration = {
@@ -405,7 +358,6 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverRuntimeController = new RiverRuntimeController(engine, riverSegmentsRoot);
   let surfaceTimeOverride = startupSurfaceTime;
   oceanPreview.setSurfaceTimeOverride(surfaceTimeOverride);
-  riverRuntimeController.setSurfaceDebugMode(RIVER_SURFACE_DEBUG_OPTIONS[guiState.surfaceDebug]);
   riverRuntimeController.setSurfaceFeatureFlags(guiState.macroDisplacement, guiState.microSurface);
   riverRuntimeController.setSurfaceTimeOverride(surfaceTimeOverride);
   const riverDebugController = new RiverDebugController(engine);
@@ -414,11 +366,53 @@ async function bootstrapWaterPcg(): Promise<void> {
   const lakePillarController = new LakePillarController(engine, riverGroup);
   const poolSceneController = new PoolSceneController(engine, riverGroup);
   const riverMeshPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
+  const riverJunctionPreviewMaterial = createWaterPreviewMaterial(engine, "#ff70d2", 0.5);
   const riverBankPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshBankFoam, 0.24);
+  const riverNetworkDebugController = new RiverNetworkDebugController(engine, riverGroup);
   let riverRuntimes: RiverSegmentRuntime[] = [];
   const riverDemoRuntimeSets = new Map<string, RiverSegmentRuntime[]>();
   let pendingRuntimeStatsRefresh = false;
   let topologyRevision = 0;
+  let riverMeshUploadCount = 0;
+
+  const readDebugRuntimeMetrics = (): RiverDebugRuntimeMetrics => ({
+    resourceByteLength: activeRiverResource.byteLength,
+    drawCalls: Number(exampleBarElement.dataset.estimatedRiverDrawCalls ?? 0),
+    bufferMemory: Number(exampleBarElement.dataset.bufferMemory ?? 0),
+    textureMemory: Number(exampleBarElement.dataset.textureMemory ?? 0),
+    totalMemory: Number(exampleBarElement.dataset.totalMemory ?? 0),
+    submissionYieldCount: Number(exampleBarElement.dataset.submissionYieldCount ?? 0),
+    submissionMaxSliceMs: Number(exampleBarElement.dataset.submissionMaxSliceMs ?? 0),
+    workerDeserializeMs: Number(exampleBarElement.dataset.workerDeserializeMs ?? riverCompileWorker.lastDeserializeMs)
+  });
+  const createDebugContext = (): RiverDebugSessionContext => ({
+    exampleLabel: waterPcgExamples[activeExampleIndex].label,
+    resourceHash: activeRiverResource.metadata.compiledHash,
+    data: activeRiverCompiledData,
+    quality: getPrimaryRiverConfig().quality.material.level,
+    metrics: readDebugRuntimeMetrics()
+  });
+  const debugParameters = new URLSearchParams(window.location.search);
+  const debugStageParameter = debugParameters.get("debugStage");
+  const debugChannelParameter = debugParameters.get("debugChannel");
+  const debugTargetParameter = debugParameters.get("debugTarget");
+  const debugQueryParameterValue = debugParameters.get("debugQueryT");
+  const debugQueryParameter = debugQueryParameterValue === null ? Number.NaN : Number(debugQueryParameterValue);
+  const initialDebugStage = Object.values(RiverDebugStage).find((stage) => stage === debugStageParameter);
+  const initialDebugChannel = Object.values(RiverDebugChannel).find((channel) => channel === debugChannelParameter);
+  const debugSession = new RiverDebugSession(createDebugContext(), {
+    stage: initialDebugStage,
+    channel: initialDebugChannel,
+    target: parseRiverDebugTarget(debugTargetParameter),
+    queryT: Number.isFinite(debugQueryParameter)
+      ? debugQueryParameter
+      : waterPcgExamples[activeExampleIndex].riverDebug.queryT
+  });
+  const waterDebugPanel = mountWaterDebugPanel(document.body, debugSession);
+  let latestDebugSnapshot = debugSession.snapshot;
+  const stopDebugSnapshotTracking = debugSession.subscribe((snapshot) => {
+    latestDebugSnapshot = snapshot;
+  });
 
   const updateRiverCameraFeatures = (): void => {
     riverCameraFeatureController.apply(
@@ -507,9 +501,19 @@ async function bootstrapWaterPcg(): Promise<void> {
     }
     writeDecorationMetrics();
   };
+  const applyDecorationVisibility = (bedVisible: boolean, decorationsVisible: boolean): void => {
+    const decorationStyle = waterPcgExamples[activeExampleIndex].decorationStyle;
+    riverBedController.root.isActive = bedVisible;
+    riverRockController.root.isActive = decorationsVisible && decorationStyle === WaterDecorationStyle.River;
+    lakePillarController.root.isActive = decorationsVisible && decorationStyle === WaterDecorationStyle.Lake;
+    poolSceneController.root.isActive = decorationsVisible && decorationStyle === WaterDecorationStyle.Pool;
+    writeDecorationMetrics();
+  };
   const rebuildRiverSegmentRuntimes = (): boolean => {
     const exampleId = waterPcgExamples[activeExampleIndex].id;
     const activation = riverRuntimeController.activate(exampleId, activeRiverResource, createRuntimeReachSources());
+    if (activation.created) riverMeshUploadCount += activation.submittedChunkCount;
+    exampleBarElement.dataset.riverMeshUploadCount = String(riverMeshUploadCount);
     riverDebugController.activate(exampleId, activation.reaches);
     rebuildWaterDecorations(activeRiverCompiledData);
     const cached = riverDemoRuntimeSets.get(exampleId);
@@ -524,15 +528,18 @@ async function bootstrapWaterPcg(): Promise<void> {
     return true;
   };
   const applyRiverPreviewStage = (runtime: RiverSegmentRuntime, reachIndex: number): void => {
-    const stage = runtime.normalizedConfig.debug.previewStage;
-    const showRiverMesh =
-      stage === RiverPreviewStage.Mesh || stage === RiverPreviewStage.Material || stage === RiverPreviewStage.Full;
+    const sceneState = resolveRiverDebugSceneState(
+      latestDebugSnapshot.selection,
+      runtime.normalizedConfig.quality.material.level,
+      Boolean(activeRiverCompiledData.terrainInteraction.localMapAtlas)
+    );
     const isLow = runtime.normalizedConfig.quality.material.level === RiverQualityLevel.Low;
     riverRuntimeController.applyPresentation(reachIndex, {
-      surfaceVisible: showRiverMesh,
-      foamVisible: showRiverMesh && !isLow && Boolean(runtime.artifact.bankFoamGeometry),
-      surfaceMaterial: stage === RiverPreviewStage.Mesh ? riverMeshPreviewMaterial : undefined,
-      foamMaterial: stage === RiverPreviewStage.Mesh && !isLow ? riverBankPreviewMaterial : undefined
+      surfaceVisible: sceneState.surfaceVisible,
+      foamVisible: sceneState.foamVisible && !isLow && Boolean(runtime.artifact.bankFoamGeometry),
+      surfaceMaterial: sceneState.rawGeometryMaterial ? riverMeshPreviewMaterial : undefined,
+      junctionSurfaceMaterial: sceneState.rawGeometryMaterial ? riverJunctionPreviewMaterial : undefined,
+      foamMaterial: sceneState.rawGeometryMaterial && !isLow ? riverBankPreviewMaterial : undefined
     });
   };
   const hasDirty = (flags: RiverDirtyFlag, flag: RiverDirtyFlag): boolean => (flags & flag) !== 0;
@@ -542,12 +549,14 @@ async function bootstrapWaterPcg(): Promise<void> {
     const requestRevision = ++compileRequestRevision;
     const requestExampleIndex = activeExampleIndex;
     const descriptor = createRiverDemoDescriptor(waterPcgExamples[activeExampleIndex].riverDescriptor, riverConfigs);
+    debugSession.setStatus("compiling", `compiling ${descriptor.id}`);
     let nextResource: RiverResource;
     try {
       nextResource = await riverCompileWorker.compile(descriptor);
     } catch (error) {
       exampleBarElement.dataset.runtimeError =
         error instanceof RiverCompileWorkerError ? error.message : "River Worker compilation failed.";
+      debugSession.setStatus("error", exampleBarElement.dataset.runtimeError);
       return false;
     }
     if (requestRevision !== compileRequestRevision || requestExampleIndex !== activeExampleIndex) {
@@ -581,6 +590,7 @@ async function bootstrapWaterPcg(): Promise<void> {
       if (error instanceof RiverRuntimeSubmissionCancelledError) return false;
       exampleBarElement.dataset.runtimeError =
         error instanceof Error ? error.message : "River Runtime submission failed.";
+      debugSession.setStatus("error", exampleBarElement.dataset.runtimeError);
       return false;
     }
     riverDebugController.remove(exampleId);
@@ -612,11 +622,15 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.resourceByteLength = String(nextResource.byteLength);
     exampleBarElement.dataset.submissionYieldCount = String(activation.yieldCount);
     exampleBarElement.dataset.submissionMaxSliceMs = activation.maxSliceMs.toFixed(3);
+    riverMeshUploadCount += activation.submittedChunkCount;
+    exampleBarElement.dataset.riverMeshUploadCount = String(riverMeshUploadCount);
     exampleBarElement.dataset.workerDeserializeMs = riverCompileWorker.lastDeserializeMs.toFixed(3);
     exampleBarElement.dataset.terrainCorridorCount = String(nextData.terrainInteraction.reachCorridors.length);
     exampleBarElement.dataset.localMapRegionCount = String(nextData.stats.localMapRegionCount);
     exampleBarElement.dataset.waterSlopeAdjustmentCount = String(nextData.stats.waterSlopeAdjustmentCount);
     writeSurfaceMetrics(nextData);
+    debugSession.updateContext(createDebugContext());
+    debugSession.setStatus("ready", "runtime ready");
     return true;
   };
   const applyRiverChangesAsync = async (requestedFlags: RiverDirtyFlag): Promise<void> => {
@@ -641,9 +655,18 @@ async function bootstrapWaterPcg(): Promise<void> {
       const runtime = riverRuntimes[i];
       riverRuntimeController.updateReach(i, runtime.normalizedConfig, runtime.artifact, materialDirty);
       applyRiverPreviewStage(runtime, i);
+      const target = latestDebugSnapshot.selection.target;
+      const overlayVisible = target.kind === "network" || (target.kind === "reach" && target.id === runtime.config.id);
+      const sceneState = resolveRiverDebugSceneState(
+        latestDebugSnapshot.selection,
+        runtime.normalizedConfig.quality.material.level,
+        Boolean(activeRiverCompiledData.terrainInteraction.localMapAtlas)
+      );
       riverDebugController.update(
         i,
-        createDebugRiverConfig(runtime.normalizedConfig),
+        runtime.normalizedConfig,
+        overlayVisible ? sceneState.overlayMode : RiverDebugMode.Off,
+        latestDebugSnapshot.selection.queryT,
         runtime.sampleResult.points,
         runtime.artifact.querySource,
         {
@@ -667,10 +690,38 @@ async function bootstrapWaterPcg(): Promise<void> {
       );
     }
 
-    const primaryRuntime = riverRuntimes[0];
+    const sceneState = resolveRiverDebugSceneState(
+      latestDebugSnapshot.selection,
+      getPrimaryRiverConfig().quality.material.level,
+      Boolean(activeRiverCompiledData.terrainInteraction.localMapAtlas)
+    );
+    const runtimeDebugTarget =
+      latestDebugSnapshot.selection.stage === RiverDebugStage.Final
+        ? ({ kind: "network" } as const)
+        : latestDebugSnapshot.selection.stage === RiverDebugStage.Geometry &&
+            latestDebugSnapshot.selection.channel === RiverDebugChannel.Junctions &&
+            latestDebugSnapshot.selection.target.kind === "network"
+          ? ({ kind: "junctions" } as const)
+          : latestDebugSnapshot.selection.target;
+    riverRuntimeController.setDebugTarget(runtimeDebugTarget);
+    riverRuntimeController.setSurfaceDebugMode(sceneState.surfaceDebugMode);
+    riverNetworkDebugController.update(
+      engine,
+      activeRiverCompiledData,
+      activeRiverResource.metadata.compiledHash,
+      sceneState.networkOverlay,
+      latestDebugSnapshot.selection.target
+    );
+    applyDecorationVisibility(sceneState.bedVisible, sceneState.decorationsVisible);
+
+    const selectedReachIndex =
+      latestDebugSnapshot.selection.target.kind === "reach"
+        ? riverRuntimes.findIndex((runtime) => runtime.config.id === latestDebugSnapshot.selection.target.id)
+        : 0;
+    const primaryRuntime = riverRuntimes[Math.max(0, selectedReachIndex)];
     const queryService = riverRuntimeController.activeQueryService;
     if (primaryRuntime && queryService) {
-      const queryPosition = getPointAtRiverT(primaryRuntime.sampleResult.points, primaryRuntime.config.debug.queryT);
+      const queryPosition = getPointAtRiverT(primaryRuntime.sampleResult.points, latestDebugSnapshot.selection.queryT);
       if (surfaceTimeOverride === undefined) queryService.sampleSurface(queryPosition, networkQueryResult);
       else queryService.sampleSurfaceAtTime(queryPosition, surfaceTimeOverride, networkQueryResult);
       exampleBarElement.dataset.querySourceKind = networkQueryResult.sourceKind ?? "none";
@@ -682,8 +733,22 @@ async function bootstrapWaterPcg(): Promise<void> {
   const applyRiverChanges = (requestedFlags: RiverDirtyFlag): void => {
     void applyRiverChangesAsync(requestedFlags).catch((error: unknown) => {
       exampleBarElement.dataset.runtimeError = error instanceof Error ? error.message : "River update failed.";
+      debugSession.setStatus("error", exampleBarElement.dataset.runtimeError);
     });
   };
+  let lastDebugSelectionToken = "";
+  const stopDebugSceneSubscription = debugSession.subscribe((snapshot) => {
+    const selectionToken = `${snapshot.selection.stage}:${snapshot.selection.channel}:${serializeRiverDebugTarget(snapshot.selection.target)}:${snapshot.selection.queryT.toFixed(3)}`;
+    if (selectionToken === lastDebugSelectionToken) return;
+    lastDebugSelectionToken = selectionToken;
+    const url = new URL(window.location.href);
+    url.searchParams.set("debugStage", snapshot.selection.stage);
+    url.searchParams.set("debugChannel", snapshot.selection.channel);
+    url.searchParams.set("debugTarget", serializeRiverDebugTarget(snapshot.selection.target));
+    url.searchParams.set("debugQueryT", snapshot.selection.queryT.toFixed(2));
+    window.history.replaceState(null, "", url);
+    applyRiverChanges(RiverDirtyFlag.Debug | RiverDirtyFlag.Query);
+  });
   const setPreviewMode = (mode: WaterPreviewMode): void => {
     activeMode = mode;
     guiState.mode = mode === WaterPreviewMode.Ocean ? "Ocean" : "River";
@@ -700,6 +765,10 @@ async function bootstrapWaterPcg(): Promise<void> {
       mode === WaterPreviewMode.Ocean ? new Color(0.06, 0.1, 0.12, 1) : new Color(...backgroundColor);
     updateRiverCameraFeatures();
     writeOceanMetrics();
+    debugSession.setStatus(
+      mode === WaterPreviewMode.Ocean ? "ocean" : "ready",
+      mode === WaterPreviewMode.Ocean ? "River debug paused in Ocean preview" : "runtime ready"
+    );
 
     if (mode === WaterPreviewMode.Ocean) {
       control.target.set(0, 0, 0);
@@ -725,6 +794,8 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.resourceAssetVersion = String(activeRiverResource.metadata.assetVersion);
     exampleBarElement.dataset.resourceHash = activeRiverResource.metadata.compiledHash;
     exampleBarElement.dataset.resourceByteLength = String(activeRiverResource.byteLength);
+    exampleBarElement.dataset.topologyRevision = String(topologyRevision);
+    exampleBarElement.dataset.riverMeshUploadCount = String(riverMeshUploadCount);
     exampleBarElement.dataset.workerCompile = "true";
     exampleBarElement.dataset.workerDeserializeMs = riverCompileWorker.lastDeserializeMs.toFixed(3);
     exampleBarElement.dataset.submissionBudgetMs = String(startupSubmissionBudgetMs ?? 4);
@@ -738,6 +809,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.riverBedChunkCount = String(riverBedController.chunkCount);
     writeDecorationMetrics();
     writeSurfaceMetrics(activeRiverCompiledData);
+    debugSession.updateContext(createDebugContext());
     for (let i = 0; i < waterPcgExamples.length; i++) {
       const example = waterPcgExamples[i];
       const button = document.createElement("button");
@@ -765,6 +837,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     activeRiverResource = riverResourceSets[activeExampleIndex];
     riverConfigs = riverConfigSets[activeExampleIndex];
     if (startupQuality) applyQuality(startupQuality);
+    debugSession.updateContext(createDebugContext());
     rebuildExampleState();
   }
   function rebuildExampleState(): void {
@@ -935,21 +1008,6 @@ async function bootstrapWaterPcg(): Promise<void> {
           applyRiverChanges(RiverDirtyFlag.Material);
         });
       gui
-        .add(guiState, "debugMode", Object.keys(RIVER_DEBUG_MODE_OPTIONS) as RiverDebugModeLabel[])
-        .name("Debug")
-        .onChange((label: RiverDebugModeLabel) => {
-          updateAllRiverConfigs((config) => {
-            config.debug.mode = RIVER_DEBUG_MODE_OPTIONS[label];
-          });
-          applyRiverChanges(RiverDirtyFlag.Debug);
-        });
-      gui
-        .add(guiState, "surfaceDebug", Object.keys(RIVER_SURFACE_DEBUG_OPTIONS) as RiverSurfaceDebugLabel[])
-        .name("Surface Debug")
-        .onChange((label: RiverSurfaceDebugLabel) => {
-          riverRuntimeController.setSurfaceDebugMode(RIVER_SURFACE_DEBUG_OPTIONS[label]);
-        });
-      gui
         .add(guiState, "macroDisplacement")
         .name("Macro Geometry")
         .onChange((enabled: boolean) => {
@@ -998,6 +1056,14 @@ async function bootstrapWaterPcg(): Promise<void> {
       finalTotalMemory: engine.renderingStatistics.totalMemory
     };
   };
+  window.waterPcgDebug = {
+    get snapshot() {
+      return debugSession.snapshot;
+    },
+    select(selection: Partial<RiverDebugSelection>): void {
+      debugSession.select(selection);
+    }
+  };
 
   rebuildExampleState();
   class WaterPcgUpdateScript extends Script {
@@ -1018,6 +1084,7 @@ async function bootstrapWaterPcg(): Promise<void> {
         exampleBarElement.dataset.totalMemory = String(engine.renderingStatistics.totalMemory);
         exampleBarElement.dataset.estimatedRiverDrawCalls = String(drawCalls);
         pendingRuntimeStatsRefresh = false;
+        debugSession.updateContext(createDebugContext());
       }
       if (activeMode === WaterPreviewMode.Ocean) oceanPreview.update(deltaTime);
       if (profilingEnabled && this._profileSamples.length < RIVER_PROFILE_SAMPLE_COUNT) {
@@ -1046,15 +1113,23 @@ async function bootstrapWaterPcg(): Promise<void> {
   rootEntity.addComponent(WaterPcgUpdateScript);
   window.addEventListener("beforeunload", () => {
     riverCameraFeatureController.destroy();
+    stopDebugSceneSubscription();
+    stopDebugSnapshotTracking();
+    waterDebugPanel.destroy();
+    riverNetworkDebugController.destroy();
     riverDebugController.destroy();
     riverBedController.destroy();
     riverRockController.destroy();
     lakePillarController.destroy();
     poolSceneController.destroy();
     riverRuntimeController.destroy();
+    riverMeshPreviewMaterial.destroy(true);
+    riverJunctionPreviewMaterial.destroy(true);
+    riverBankPreviewMaterial.destroy(true);
     for (const resource of riverResourceSets) resource.dispose();
     riverCompileWorker.dispose();
     oceanPreview.destroy();
+    window.waterPcgDebug = undefined;
   });
   engine.run();
 }

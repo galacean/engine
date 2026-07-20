@@ -4,6 +4,7 @@ import type { RiverQuerySourceData, RiverSamplePoint } from "../../compiler/rive
 import type { RiverRuntimeReach } from "../../runtime/river/RiverRuntimeController";
 import type { RiverQueryResult } from "../../runtime/river/types";
 import type { RiverDemoConfig } from "../types";
+import type { RiverDebugMode } from "./constants";
 import { RiverDebugView } from "./RiverDebugView";
 
 export class RiverDebugController {
@@ -31,11 +32,13 @@ export class RiverDebugController {
   update(
     reachIndex: number,
     config: RiverDemoConfig,
+    mode: RiverDebugMode,
+    queryT: number,
     samples: RiverSamplePoint[],
     querySource: RiverQuerySourceData,
     dirty: { geometry: boolean; query: boolean }
   ): RiverQueryResult | undefined {
-    return this._activeViews[reachIndex]?.update(this._engine, config, samples, querySource, dirty);
+    return this._activeViews[reachIndex]?.update(this._engine, config, mode, queryT, samples, querySource, dirty);
   }
 
   remove(networkId: string): void {

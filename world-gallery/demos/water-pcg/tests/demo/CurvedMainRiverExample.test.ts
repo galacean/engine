@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { RIVER_SURFACE_MOTION_STYLE_PRESET } from "../../authoring/river/RiverAuthoringLimits";
 import { RiverMaterialPreset } from "../../authoring/river/RiverAuthoringEnums";
-import { RiverDebugMode } from "../../demo/debug/constants";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
 
 describe("curvedMainRiverExample", () => {
@@ -18,7 +17,7 @@ describe("curvedMainRiverExample", () => {
     );
 
     expect(view.showWorldAxes).toBe(false);
-    expect(curvedMainRiverExample.riverDebug.mode).toBe(RiverDebugMode.Off);
+    expect(curvedMainRiverExample.riverDebug.queryT).toBeCloseTo(0.52);
     expect(cameraDistance).toBeLessThan(80);
     expect(motion.displacementAmplitude).toBeGreaterThan(baseline.displacementAmplitude);
     expect(motion.crestIntensity).toBeGreaterThan(baseline.crestIntensity);

@@ -72,26 +72,33 @@ export class RiverDebugView {
   update(
     engine: Engine,
     config: RiverDemoConfig,
+    mode: RiverDebugMode,
+    queryT: number,
     samples: RiverSamplePoint[],
     querySource: RiverQuerySourceData,
     dirty: { geometry: boolean; query: boolean } = { geometry: true, query: true }
   ): RiverQueryResult {
-    this._root.isActive = config.debug.mode !== RiverDebugMode.Off;
+    this._root.isActive = mode !== RiverDebugMode.Off;
 
-    const queryPosition = getPointAtRiverT(samples, config.debug.queryT);
+    const queryPosition = getPointAtRiverT(samples, queryT);
     const queryResult = queryRiver(querySource, queryPosition);
-    if (config.debug.mode === RiverDebugMode.Off) {
-      this._lastMode = config.debug.mode;
+    if (mode === RiverDebugMode.Off) {
+      this._lastMode = mode;
       return queryResult;
     }
 
-    const modeChanged = this._lastMode !== config.debug.mode;
-    this._lastMode = config.debug.mode;
+    const modeChanged = this._lastMode !== mode;
+    this._lastMode = mode;
 
     if (dirty.geometry || modeChanged || !this._centerLineMesh) {
-      const centerLine = samples.map(
-        (sample) => new Vector3(sample.position.x, sample.position.y + RIVER_DEBUG_OFFSET, sample.position.z)
-      );
+      const centerLine =
+        mode === RiverDebugMode.AuthoringPath
+          ? config.path.points.map(
+              (point) => new Vector3(point.position[0], point.position[1] + RIVER_DEBUG_OFFSET, point.position[2])
+            )
+          : samples.map(
+              (sample) => new Vector3(sample.position.x, sample.position.y + RIVER_DEBUG_OFFSET, sample.position.z)
+            );
       this._centerLineMesh = buildLineMesh(engine, centerLine, new Color(1, 0.92, 0.36, 1), this._centerLineMesh);
       this._centerLineRenderer.mesh = this._centerLineMesh;
       this._controlPointMesh = buildLineSegmentsMesh(
@@ -103,9 +110,13 @@ export class RiverDebugView {
       this._controlPointRenderer.mesh = this._controlPointMesh;
     }
 
+    this._controlPointRenderer.entity.isActive = mode === RiverDebugMode.ControlPoints;
+    this._centerLineRenderer.entity.isActive =
+      mode !== RiverDebugMode.ControlPoints && mode !== RiverDebugMode.Shoreline;
+
     if (
       (dirty.geometry || modeChanged || !this._bankLineMesh) &&
-      (config.debug.mode === RiverDebugMode.Banks || config.debug.mode === RiverDebugMode.Full)
+      (mode === RiverDebugMode.Shoreline || mode === RiverDebugMode.Banks || mode === RiverDebugMode.Full)
     ) {
       this._bankLineMesh = buildLineSegmentsMesh(
         engine,
@@ -116,14 +127,18 @@ export class RiverDebugView {
       this._bankLineRenderer.mesh = this._bankLineMesh;
     }
 
-    if ((dirty.geometry || modeChanged || !this._arrowMesh) && config.debug.mode === RiverDebugMode.Full) {
+    if ((dirty.geometry || modeChanged || !this._arrowMesh) && mode === RiverDebugMode.Full) {
       this._arrowMesh = buildFlowArrowMesh(engine, samples, 8, 2.2, new Color(1, 1, 1, 1), this._arrowMesh);
       this._arrowRenderer.mesh = this._arrowMesh;
     }
 
     this._bankLineRenderer.entity.isActive =
-      config.debug.mode === RiverDebugMode.Banks || config.debug.mode === RiverDebugMode.Full;
-    this._arrowRenderer.entity.isActive = config.debug.mode === RiverDebugMode.Full;
+      mode === RiverDebugMode.Shoreline || mode === RiverDebugMode.Banks || mode === RiverDebugMode.Full;
+    this._arrowRenderer.entity.isActive = mode === RiverDebugMode.Full;
+    this._queryRenderer.entity.isActive =
+      mode !== RiverDebugMode.ControlPoints &&
+      mode !== RiverDebugMode.AuthoringPath &&
+      mode !== RiverDebugMode.Shoreline;
     if (dirty.query || dirty.geometry || modeChanged || !this._queryMesh) {
       this._queryMesh = buildLineSegmentsMesh(
         engine,
