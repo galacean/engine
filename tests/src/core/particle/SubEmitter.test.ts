@@ -554,20 +554,25 @@ describe("SubEmitter", () => {
     secondScene.destroy();
   });
 
-  it("rejects sub-emitters after their target moves to another scene", () => {
+  it("skips sub-emitters after their target moves to another scene", () => {
     const parent = createParticleRenderer(engine, "MovedTarget_Parent");
     const child = createParticleRenderer(engine, "MovedTarget_Child");
-    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Birth);
+    parent.generator.main.startLifetime.constant = 0.1;
+    parent.generator.subEmitters.addSubEmitter(child, ParticleSubEmitterType.Death, undefined, undefined, 3);
     parent.generator.subEmitters.enabled = true;
+    parent.generator.emission.addBurst(new Burst(0, new ParticleCompositeCurve(1), 1, 0.01));
+    parent.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    child.generator.stop(false, ParticleStopMode.StopEmittingAndClear);
+    parent.generator.play(false);
 
     const secondScene = new Scene(engine, "MovedTarget_Scene");
     engine.sceneManager.addScene(secondScene);
     secondScene.addRootEntity(child.entity);
     expect(parent.entity.scene).not.to.equal(child.entity.scene);
 
-    expect(() => (parent.entity.scene as any)._componentsManager._particleSystemManager.update(0.1)).to.throw(
-      "Sub-emitter target must belong to the same scene as its parent particle system"
-    );
+    expect(() => updateEngine(engine, 3)).not.to.throw();
+    expect(parent.generator._getAliveParticleCount()).to.equal(0);
+    expect(child.generator._getAliveParticleCount()).to.equal(0);
 
     parent.entity.destroy();
     child.entity.destroy();
