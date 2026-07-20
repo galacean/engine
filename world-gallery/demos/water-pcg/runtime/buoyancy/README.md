@@ -196,7 +196,7 @@ pnpm -C world-gallery test:water-pcg
 Start the gallery and open the standalone page:
 
 ```text
-/demos/water-pcg/buoyancy/
+/demos/water-pcg/#water-buoyancy
 ```
 
 The page provides a bounded static one-Pontoon control and a continuous River stream that drops a small four-Pontoon cube from a different deterministic-random height every three seconds. The stream derives its upstream spawn band and downstream progress from compiled River data, uses only Galacean lifecycle and public physics APIs, and keeps at most ten active bodies. The former large four-Pontoon River body is now created only inside the isolated recovery Gate, so it remains a P0 control without obscuring the interactive stream. The six-case load matrix runs with the stream paused and includes a same-machine horizontal-drag off/on comparison.

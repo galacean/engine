@@ -1975,7 +1975,6 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     bodyMaterial.destroy(true);
     root.destroy();
     sharedPhysicsMaterial.destroy();
-    engine.destroy();
   });
 }
 

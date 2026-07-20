@@ -11,6 +11,17 @@ interface Demo extends DemoMeta {
   path: string;
 }
 
+interface GalleryRoute {
+  demo: Demo;
+  childHash: string;
+}
+
+interface GalleryFrameNavigationMessage {
+  type: "world-gallery:navigate";
+  path: string;
+  hash: string;
+}
+
 const modules = import.meta.glob<{ meta: DemoMeta }>("./demos/**/meta.ts", { eager: true });
 const demos: Demo[] = Object.entries(modules)
   .map(([file, mod]) => ({ path: file.replace("./demos/", "").replace("/meta.ts", ""), ...mod.meta }))
@@ -77,22 +88,74 @@ searchBarDOM.oninput = () => {
 };
 
 fullScreenDOM.onclick = () => {
-  if (iframe.src) window.open(iframe.src, "_blank");
+  if (!iframe.src) return;
+  let target = iframe.src;
+  try {
+    target = iframe.contentWindow?.location.href ?? target;
+  } catch {
+    // Fall back to the iframe src if a future demo is hosted on another origin.
+  }
+  window.open(target, "_blank");
 };
+
+function resolveGalleryRoute(routePath: string): GalleryRoute | undefined {
+  const exactDemo = items.find(({ demo }) => demo.path === routePath)?.demo;
+  if (exactDemo) return { demo: exactDemo, childHash: "" };
+
+  const nestedDemo = items
+    .map(({ demo }) => demo)
+    .filter((demo) => routePath.startsWith(`${demo.path}/`))
+    .sort((left, right) => right.path.length - left.path.length)[0];
+  if (!nestedDemo) return undefined;
+  return { demo: nestedDemo, childHash: routePath.slice(nestedDemo.path.length + 1) };
+}
+
+function setIframeRoute(route: GalleryRoute): void {
+  const childHash = route.childHash ? `#${encodeURIComponent(route.childHash)}` : "";
+  if (iframe.dataset.demoPath === route.demo.path && iframe.contentWindow) {
+    if (iframe.contentWindow.location.hash !== childHash) iframe.contentWindow.location.hash = childHash;
+    return;
+  }
+
+  iframe.dataset.demoPath = route.demo.path;
+  iframe.src = `./demos/${route.demo.path}/index.html${childHash}`;
+}
 
 function onHashChange(): void {
   if (!items.length) return;
-  const path = decodeURIComponent(window.location.hash.slice(1));
-  if (!path) {
+  const routePath = decodeURIComponent(window.location.hash.slice(1));
+  if (!routePath) {
     const defaultDemo = items.find(({ demo }) => demo.path === DEFAULT_DEMO_PATH)?.demo ?? items[0].demo;
     window.location.hash = `#${defaultDemo.path}`;
     return;
   }
-  iframe.src = `./demos/${path}/index.html`;
+  const route = resolveGalleryRoute(routePath);
+  if (!route) return;
+  setIframeRoute(route);
   for (const { el, demo } of items) {
-    el.classList.toggle("active", demo.path === path);
+    el.classList.toggle("active", demo.path === route.demo.path);
   }
 }
+
+function isGalleryFrameNavigationMessage(value: unknown): value is GalleryFrameNavigationMessage {
+  if (typeof value !== "object" || value === null) return false;
+  const candidate = value as Partial<GalleryFrameNavigationMessage>;
+  return (
+    candidate.type === "world-gallery:navigate" &&
+    typeof candidate.path === "string" &&
+    typeof candidate.hash === "string"
+  );
+}
+
+window.addEventListener("message", (event: MessageEvent<unknown>) => {
+  if (event.source !== iframe.contentWindow || event.origin !== window.location.origin) return;
+  if (!isGalleryFrameNavigationMessage(event.data)) return;
+  const message = event.data;
+  if (!items.some(({ demo }) => demo.path === message.path)) return;
+  const routeHash = message.hash ? `/${encodeURIComponent(message.hash)}` : "";
+  const nextHash = `#${message.path}${routeHash}`;
+  if (window.location.hash !== nextHash) window.location.hash = nextHash;
+});
 
 window.onhashchange = onHashChange;
 onHashChange();

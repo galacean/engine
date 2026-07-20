@@ -1,22 +1,41 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Water PCG</title>
     <link rel="icon" href="data:," />
     <style>
+      :root {
+        --deep-water: #041116;
+        --instrument-panel: rgb(5 21 27 / 88%);
+        --instrument-line: rgb(122 207 215 / 22%);
+        --foam-ink: #e2f4f3;
+        --water-muted: #83a8aa;
+        --current-cyan: #5bd3d5;
+        --ready-green: #8ee29a;
+        --warning-amber: #f0bd68;
+        --fault-coral: #ff8576;
+      }
+
       html,
       body {
-        margin: 0;
+        width: 100%;
         height: 100%;
+        margin: 0;
         overflow: hidden;
-        background: #091014;
+        color: var(--foam-ink);
+        background: var(--deep-water);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      #water-pcg-view,
+      #canvas {
+        width: 100%;
+        height: 100%;
       }
 
       #canvas {
-        width: 100vw;
-        height: 100vh;
         display: block;
       }
 
@@ -24,15 +43,27 @@
         position: fixed;
         top: 12px;
         left: 12px;
-        z-index: 3;
+        z-index: 5;
         display: flex;
+        max-width: calc(100vw - 24px);
         gap: 4px;
+        box-sizing: border-box;
         padding: 4px;
+        overflow-x: auto;
+        border: 1px solid rgb(122 207 215 / 14%);
         border-radius: 3px;
         background: rgb(0 0 0 / 72%);
+        scrollbar-width: none;
+      }
+
+      #example-bar::-webkit-scrollbar {
+        display: none;
       }
 
       .example-tab {
+        display: inline-flex;
+        flex: 0 0 auto;
+        align-items: center;
         height: 28px;
         padding: 0 10px;
         border: 0;
@@ -42,6 +73,8 @@
         font:
           12px/28px Arial,
           sans-serif;
+        text-decoration: none;
+        white-space: nowrap;
         cursor: pointer;
       }
 
@@ -55,14 +88,309 @@
         background: #2f6f9f;
       }
 
+      #heightfield-hud,
+      #buoyancy-hud {
+        position: fixed;
+        top: 56px;
+        left: 14px;
+        z-index: 3;
+        box-sizing: border-box;
+        padding: 12px 14px 11px;
+        border: 1px solid var(--instrument-line);
+        border-radius: 5px;
+        background: var(--instrument-panel);
+        box-shadow: 0 14px 45px rgb(0 0 0 / 28%);
+        backdrop-filter: blur(10px);
+      }
+
+      #heightfield-hud {
+        width: min(350px, calc(100vw - 28px));
+        pointer-events: none;
+      }
+
+      #buoyancy-hud {
+        width: min(430px, calc(100vw - 28px));
+      }
+
+      .hud-heading,
+      .hud-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .hud-heading {
+        padding-bottom: 9px;
+        border-bottom: 1px solid var(--instrument-line);
+      }
+
+      .hud-heading strong {
+        color: var(--foam-ink);
+        font-size: 12px;
+        font-weight: 650;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #heightfield-status,
+      #buoyancy-status {
+        color: var(--current-cyan);
+        font-size: 10px;
+        letter-spacing: 0.04em;
+      }
+
+      #buoyancy-status {
+        color: var(--warning-amber);
+      }
+
+      #buoyancy-status[data-state="ready"] {
+        color: var(--ready-green);
+      }
+
+      #heightfield-status[data-state="error"],
+      #buoyancy-status[data-state="error"] {
+        color: var(--fault-coral);
+      }
+
+      .hud-controls {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 9px 0;
+      }
+
+      .hud-controls button {
+        padding: 5px 8px;
+        border: 1px solid var(--instrument-line);
+        border-radius: 3px;
+        color: var(--water-muted);
+        background: rgb(8 35 42 / 72%);
+        font: inherit;
+        font-size: 9px;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+      }
+
+      .hud-controls button:hover,
+      .hud-controls button[data-active="true"] {
+        border-color: var(--current-cyan);
+        color: var(--foam-ink);
+      }
+
+      .hud-controls button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+      }
+
+      #heightfield-metrics,
+      #buoyancy-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 7px 12px;
+        margin: 9px 0 0;
+      }
+
+      #buoyancy-metrics {
+        margin-top: 0;
+      }
+
+      #heightfield-metrics div,
+      #buoyancy-metrics div {
+        min-width: 0;
+      }
+
+      #heightfield-metrics dt,
+      #buoyancy-metrics dt {
+        overflow: hidden;
+        margin: 0 0 2px;
+        color: var(--water-muted);
+        font-size: 8px;
+        letter-spacing: 0.06em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      #heightfield-metrics dd,
+      #buoyancy-metrics dd {
+        overflow: hidden;
+        margin: 0;
+        color: var(--foam-ink);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #fixture-mark,
+      #buoyancy-legend {
+        position: fixed;
+        bottom: 14px;
+        z-index: 2;
+        color: rgb(190 229 228 / 64%);
+        font-size: 9px;
+        letter-spacing: 0.05em;
+        pointer-events: none;
+      }
+
+      #fixture-mark {
+        left: 16px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #buoyancy-legend {
+        right: 15px;
+      }
+
       .dg.ac {
-        z-index: 2 !important;
+        z-index: 4 !important;
       }
     </style>
   </head>
   <body>
-    <div id="example-bar" role="tablist" aria-label="Water PCG examples"></div>
-    <canvas id="canvas"></canvas>
-    <script type="module" src="./demo/main.ts"></script>
+    <nav id="example-bar" role="tablist" aria-label="Water PCG 案例"></nav>
+    <main id="water-pcg-view"></main>
+
+    <template id="water-pcg-river-template">
+      <canvas id="canvas"></canvas>
+    </template>
+
+    <template id="water-pcg-heightfield-template">
+      <aside id="heightfield-hud" aria-live="polite">
+        <div class="hud-heading">
+          <strong>Flow water field / 192 × 128</strong>
+          <span id="heightfield-status" data-state="loading">compiling</span>
+        </div>
+        <dl id="heightfield-metrics">
+          <div>
+            <dt>bodies</dt>
+            <dd data-metric="components">—</dd>
+          </div>
+          <div>
+            <dt>chunks</dt>
+            <dd data-metric="chunks">—</dd>
+          </div>
+          <div>
+            <dt>vertices</dt>
+            <dd data-metric="vertices">—</dd>
+          </div>
+          <div>
+            <dt>triangles</dt>
+            <dd data-metric="triangles">—</dd>
+          </div>
+          <div>
+            <dt>atlas</dt>
+            <dd data-metric="atlas">—</dd>
+          </div>
+          <div>
+            <dt>waves</dt>
+            <dd data-metric="waves">—</dd>
+          </div>
+          <div>
+            <dt>uploads</dt>
+            <dd data-metric="uploads">—</dd>
+          </div>
+          <div>
+            <dt>quality</dt>
+            <dd data-metric="quality">high</dd>
+          </div>
+        </dl>
+      </aside>
+      <div id="fixture-mark">flow-advected ripples · depth optics · bank foam</div>
+      <canvas id="canvas"></canvas>
+    </template>
+
+    <template id="water-pcg-buoyancy-template">
+      <aside id="buoyancy-hud" aria-live="polite">
+        <div class="hud-heading">
+          <strong>Water buoyancy / River current</strong>
+          <span id="buoyancy-status" data-state="loading">initializing PhysX</span>
+        </div>
+        <div class="hud-controls" aria-label="Buoyancy scenarios">
+          <button type="button" data-scenario="static-single">Static · 1 pontoon</button>
+          <button type="button" data-scenario="river-four">River · cube stream</button>
+          <button type="button" id="buoyancy-perturb">Perturb</button>
+          <button type="button" id="buoyancy-reset">Reset</button>
+          <button type="button" id="buoyancy-profile">Profile 1/20/100</button>
+        </div>
+        <dl id="buoyancy-metrics">
+          <div>
+            <dt>scenario</dt>
+            <dd data-metric="scenario">—</dd>
+          </div>
+          <div>
+            <dt>bodies</dt>
+            <dd data-metric="bodies">—</dd>
+          </div>
+          <div>
+            <dt>pontoons</dt>
+            <dd data-metric="pontoons">—</dd>
+          </div>
+          <div>
+            <dt>submerged</dt>
+            <dd data-metric="submerged">—</dd>
+          </div>
+          <div>
+            <dt>stream spawned / active</dt>
+            <dd data-metric="drift-count">—</dd>
+          </div>
+          <div>
+            <dt>stream in water</dt>
+            <dd data-metric="drift-water">—</dd>
+          </div>
+          <div>
+            <dt>max downstream</dt>
+            <dd data-metric="drift-distance">—</dd>
+          </div>
+          <div>
+            <dt>last drop height</dt>
+            <dd data-metric="drift-height">—</dd>
+          </div>
+          <div>
+            <dt>height</dt>
+            <dd data-metric="height">—</dd>
+          </div>
+          <div>
+            <dt>roll / pitch</dt>
+            <dd data-metric="attitude">—</dd>
+          </div>
+          <div>
+            <dt>queries / step</dt>
+            <dd data-metric="queries">—</dd>
+          </div>
+          <div>
+            <dt>render error</dt>
+            <dd data-metric="surface-error">—</dd>
+          </div>
+          <div>
+            <dt>surface time</dt>
+            <dd data-metric="surface-time">—</dd>
+          </div>
+          <div>
+            <dt>query p95</dt>
+            <dd data-metric="query-p95">—</dd>
+          </div>
+          <div>
+            <dt>solver p95</dt>
+            <dd data-metric="solver-p95">—</dd>
+          </div>
+          <div>
+            <dt>force p95</dt>
+            <dd data-metric="force-p95">—</dd>
+          </div>
+          <div>
+            <dt>runtime error</dt>
+            <dd data-metric="error">none</dd>
+          </div>
+        </dl>
+      </aside>
+      <div id="buoyancy-legend">
+        cyan sphere · pontoon / white point · sampled surface / amber line · total point force / cubes · 3s upstream
+        stream
+      </div>
+      <canvas id="canvas"></canvas>
+    </template>
+
+    <script type="module" src="./demo/router.ts"></script>
   </body>
 </html>

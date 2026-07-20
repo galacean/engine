@@ -1,6 +1,6 @@
 import { chromium } from "@playwright/test";
 
-const DEFAULT_URL = "http://127.0.0.1:4179/demos/water-pcg/buoyancy/";
+const DEFAULT_URL = "http://127.0.0.1:4179/demos/water-pcg/#water-buoyancy";
 const STATIC_EQUILIBRIUM_HEIGHT = 0.48;
 const STATIC_HEIGHT_TOLERANCE = 0.08;
 const ATTITUDE_RECOVERY_TOLERANCE_DEGREES = 12;
@@ -502,10 +502,12 @@ try {
 
   const riverDriftResult = await verifyRiverDriftStream(browser, targetUrl);
 
-  const existingWaterUrl = new URL("../", targetUrl);
+  const existingWaterUrl = new URL(targetUrl);
   existingWaterUrl.search = "?webgl=1&quality=medium&surfaceTime=12.5";
-  const heightfieldUrl = new URL("../heightfield/", targetUrl);
+  existingWaterUrl.hash = "curved-main-river";
+  const heightfieldUrl = new URL(targetUrl);
   heightfieldUrl.search = "?webgl=1&quality=medium&surfaceTime=12.5";
+  heightfieldUrl.hash = "heightfield-water";
   const existingWaterPages = [
     await verifyExistingWaterPageWithoutPhysX(browser, existingWaterUrl, () => window.waterPcgDebug != null),
     await verifyExistingWaterPageWithoutPhysX(

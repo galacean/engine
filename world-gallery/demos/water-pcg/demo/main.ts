@@ -67,6 +67,7 @@ import {
 } from "./debug/RiverDebugSession";
 import { mountWaterDebugPanel } from "./debug/WaterDebugPanel";
 import { RiverNetworkDebugController } from "./debug/RiverNetworkDebugController";
+import { getWaterPcgCaseHref, resolveWaterPcgCase, syncWaterPcgNavigation } from "./navigation";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -165,7 +166,11 @@ declare global {
 
 async function bootstrapWaterPcg(): Promise<void> {
   const riverCompileWorker = new RiverCompileWorkerClient();
-  let activeExampleIndex = 0;
+  const startupExampleId = resolveWaterPcgCase(window.location).id;
+  let activeExampleIndex = Math.max(
+    0,
+    waterPcgExamples.findIndex((example) => example.id === startupExampleId)
+  );
   let oceanConfig: OceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
   const riverResourceSets = await Promise.all(
     waterPcgExamples.map((example) => riverCompileWorker.compile(example.riverDescriptor))
@@ -212,10 +217,10 @@ async function bootstrapWaterPcg(): Promise<void> {
       : undefined;
   const exampleBar = document.getElementById("example-bar");
 
-  if (!(exampleBar instanceof HTMLDivElement)) {
+  if (!(exampleBar instanceof HTMLElement)) {
     throw new Error("Water PCG example bar is missing.");
   }
-  const exampleBarElement: HTMLDivElement = exampleBar;
+  const exampleBarElement: HTMLElement = exampleBar;
 
   function writeSurfaceMetrics(data: RiverCompiledData): void {
     const atlas = data.terrainInteraction.localMapAtlas;
@@ -781,7 +786,6 @@ async function bootstrapWaterPcg(): Promise<void> {
     }
   };
   function renderExampleTabs(): void {
-    exampleBarElement.innerHTML = "";
     exampleBarElement.dataset.activeExample = waterPcgExamples[activeExampleIndex].id;
     exampleBarElement.dataset.segmentCount = String(riverConfigs.length);
     exampleBarElement.dataset.compiledNetworkId = activeRiverCompiledData.sourceId;
@@ -810,26 +814,12 @@ async function bootstrapWaterPcg(): Promise<void> {
     writeDecorationMetrics();
     writeSurfaceMetrics(activeRiverCompiledData);
     debugSession.updateContext(createDebugContext());
-    for (let i = 0; i < waterPcgExamples.length; i++) {
-      const example = waterPcgExamples[i];
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = i === activeExampleIndex ? "example-tab is-active" : "example-tab";
-      button.textContent = example.label;
-      button.setAttribute("role", "tab");
-      button.setAttribute("aria-selected", i === activeExampleIndex ? "true" : "false");
-      button.addEventListener("click", () => {
-        if (i === activeExampleIndex) {
-          return;
-        }
-        loadExample(i);
-      });
-      exampleBarElement.appendChild(button);
-    }
+    syncWaterPcgNavigation(exampleBarElement, waterPcgExamples[activeExampleIndex].id);
   }
   function loadExample(index: number): void {
     compileRequestRevision++;
     activeExampleIndex = index;
+    document.title = `Water PCG · ${waterPcgExamples[activeExampleIndex].label}`;
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
     if (startupWaterQuality) oceanConfig.quality = startupWaterQuality;
     oceanPreview.setConfig(oceanConfig);
@@ -847,6 +837,30 @@ async function bootstrapWaterPcg(): Promise<void> {
     renderExampleTabs();
     rebuildGui();
   }
+
+  function handleExampleBarClick(event: MouseEvent): void {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = event.target instanceof Element ? event.target.closest<HTMLAnchorElement>("a[data-case-id]") : null;
+    if (!target || target.dataset.caseKind !== "river") return;
+
+    const nextIndex = waterPcgExamples.findIndex((example) => example.id === target.dataset.caseId);
+    if (nextIndex < 0) return;
+    event.preventDefault();
+    if (nextIndex === activeExampleIndex) return;
+
+    window.location.assign(getWaterPcgCaseHref(window.location.href, waterPcgExamples[nextIndex].id));
+  }
+
+  function handleLocationChange(): void {
+    const selectedCase = resolveWaterPcgCase(window.location);
+    if (selectedCase.kind !== "river") return;
+    const nextIndex = waterPcgExamples.findIndex((example) => example.id === selectedCase.id);
+    if (nextIndex >= 0 && nextIndex !== activeExampleIndex) loadExample(nextIndex);
+  }
+
+  exampleBarElement.addEventListener("click", handleExampleBarClick);
+  window.addEventListener("popstate", handleLocationChange);
+  window.addEventListener("hashchange", handleLocationChange);
 
   let gui: dat.GUI | null = null;
   function rebuildGui(): void {
@@ -1112,6 +1126,9 @@ async function bootstrapWaterPcg(): Promise<void> {
   }
   rootEntity.addComponent(WaterPcgUpdateScript);
   window.addEventListener("beforeunload", () => {
+    exampleBarElement.removeEventListener("click", handleExampleBarClick);
+    window.removeEventListener("popstate", handleLocationChange);
+    window.removeEventListener("hashchange", handleLocationChange);
     riverCameraFeatureController.destroy();
     stopDebugSceneSubscription();
     stopDebugSnapshotTracking();
