@@ -9,18 +9,20 @@ export const CURVED_MAIN_RIVER_VIEW = {
   showWorldAxes: false
 } satisfies RiverExampleView;
 
-/** Stronger but still bounded mountain-water motion, tuned for a mobile-friendly Medium shader path. */
+/** Heightfield-inspired mountain water: restrained macro shape with flow-readable micro detail. */
 export const CURVED_MAIN_RIVER_SURFACE_MOTION = {
   seed: 27491,
-  displacementAmplitude: 0.42,
-  displacementLengthScale: 2.8,
-  shoreDampingWidth: 0.8,
-  turbulence: 1.25,
-  crestIntensity: 1.55,
-  microNormalStrength: 0.85
+  displacementAmplitude: 0.18,
+  displacementLengthScale: 4.2,
+  shoreDampingWidth: 1.15,
+  turbulence: 0.82,
+  crestIntensity: 0.9,
+  microNormalStrength: 1.08
 } satisfies RiverSurfaceMotionConfig;
 
 export const CURVED_MAIN_RIVER_MATERIAL_TUNING = {
-  foamIntensity: 1,
+  baseColor: "#0a5b69",
+  foamColor: "#d8eef0",
+  foamIntensity: 0.72,
   clarity: 0.68
-} satisfies Pick<RiverMaterialConfig, "foamIntensity" | "clarity">;
+} satisfies Pick<RiverMaterialConfig, "baseColor" | "foamColor" | "foamIntensity" | "clarity">;
