@@ -19,9 +19,14 @@ function sanitizeVector(value: Vector3): void {
 
 function resetOutput(out: BuoyancyPointForceOutput): void {
   out.force.set(0, 0, 0);
+  out.horizontalForce.set(0, 0, 0);
   out.submergedRatio = 0;
   out.radiusCubedWeight = 0;
   out.verticalSpeed = 0;
+  out.horizontalRelativeSpeed = 0;
+  out.submergedProjectedArea = 0;
+  out.submergedAreaRatio = 0;
+  out.horizontalForceClamped = false;
 }
 
 /** Pure, backend-independent math used by the water-pcg buoyancy component. */
@@ -71,6 +76,40 @@ export class BuoyancySolver {
   }
 
   /**
+   * Computes the submerged fraction of a spherical Pontoon's projected circular area.
+   * `up` may be non-normalized; a zero or invalid direction safely produces zero.
+   */
+  static computeSubmergedProjectedAreaRatio(
+    pontoonCenter: Vector3,
+    surfacePosition: Vector3,
+    up: Vector3,
+    radius: number
+  ): number {
+    if (
+      BuoyancySolver.computeRadiusCubed(radius) === 0 ||
+      !isFiniteVector(pontoonCenter) ||
+      !isFiniteVector(surfacePosition) ||
+      !isFiniteVector(up)
+    ) {
+      return 0;
+    }
+
+    const upLength = Math.hypot(up.x, up.y, up.z);
+    if (!Number.isFinite(upLength) || upLength <= MathUtil.zeroTolerance) return 0;
+    const centerDepth =
+      ((surfacePosition.x - pontoonCenter.x) * up.x +
+        (surfacePosition.y - pontoonCenter.y) * up.y +
+        (surfacePosition.z - pontoonCenter.z) * up.z) /
+      upLength;
+    if (!Number.isFinite(centerDepth)) return 0;
+
+    const normalizedDepth = MathUtil.clamp(centerDepth / radius, -1, 1);
+    const chordTerm = normalizedDepth * Math.sqrt(Math.max(0, 1 - normalizedDepth * normalizedDepth));
+    const ratio = (Math.asin(normalizedDepth) + Math.PI * 0.5 + chordTerm) / Math.PI;
+    return Number.isFinite(ratio) ? MathUtil.clamp(ratio, 0, 1) : 0;
+  }
+
+  /**
    * Computes `linearVelocity + omegaRadians x (point - centerOfMass)` without allocations.
    * Source vectors are never mutated. Invalid input produces a zero vector.
    */
@@ -102,7 +141,7 @@ export class BuoyancySolver {
   }
 
   /**
-   * Writes the mass-normalized, vertically damped and capped force for one Pontoon.
+   * Writes the bounded vertical force and optional relative-water horizontal drag for one Pontoon.
    * Returns the caller-owned output and allocates no objects on the hot path.
    */
   static computePointForce(
@@ -139,6 +178,19 @@ export class BuoyancySolver {
       input.verticalDamping < 0 ||
       !Number.isFinite(input.maxForceMultiplier) ||
       input.maxForceMultiplier < 0 ||
+      (input.applyHorizontalDrag &&
+        (!Number.isFinite(input.horizontalLinearDrag) ||
+          input.horizontalLinearDrag < 0 ||
+          !Number.isFinite(input.waterDensity) ||
+          input.waterDensity < 0 ||
+          !Number.isFinite(input.horizontalDragCoefficient) ||
+          input.horizontalDragCoefficient < 0 ||
+          !Number.isFinite(input.horizontalDragAreaScale) ||
+          input.horizontalDragAreaScale < 0 ||
+          !Number.isFinite(input.maxHorizontalDragSpeed) ||
+          input.maxHorizontalDragSpeed < 0 ||
+          !Number.isFinite(input.maxHorizontalForceMultiplier) ||
+          input.maxHorizontalForceMultiplier < 0)) ||
       !isFiniteVector(input.waterVelocity) ||
       !isFiniteVector(input.linearVelocity) ||
       !isFiniteVector(input.angularVelocityDegrees) ||
@@ -173,10 +225,90 @@ export class BuoyancySolver {
     );
     const forceMagnitude = MathUtil.clamp(buoyancyMagnitude + dampingMagnitude, -maxPointForce, maxPointForce);
     Vector3.scale(scratch.up, forceMagnitude, out.force);
+
+    if (input.applyHorizontalDrag) {
+      const submergedAreaRatio = BuoyancySolver.computeSubmergedProjectedAreaRatio(
+        input.pontoonCenter,
+        input.surfacePosition,
+        scratch.up,
+        input.radius
+      );
+      out.submergedAreaRatio = submergedAreaRatio;
+      out.submergedProjectedArea = Math.max(
+        0,
+        finiteOrSaturated(Math.PI * input.radius * input.radius * submergedAreaRatio * input.horizontalDragAreaScale)
+      );
+
+      const horizontalProjection = finiteOrSaturated(Vector3.dot(scratch.relativeVelocity, scratch.up));
+      scratch.horizontalRelativeVelocity.set(
+        finiteOrSaturated(scratch.relativeVelocity.x - scratch.up.x * horizontalProjection),
+        finiteOrSaturated(scratch.relativeVelocity.y - scratch.up.y * horizontalProjection),
+        finiteOrSaturated(scratch.relativeVelocity.z - scratch.up.z * horizontalProjection)
+      );
+      const horizontalRelative = scratch.horizontalRelativeVelocity;
+      const horizontalSpeed = finiteOrSaturated(
+        Math.hypot(horizontalRelative.x, horizontalRelative.y, horizontalRelative.z)
+      );
+      out.horizontalRelativeSpeed = Math.max(0, horizontalSpeed);
+
+      if (
+        out.submergedProjectedArea > 0 &&
+        horizontalSpeed > MathUtil.zeroTolerance &&
+        input.maxHorizontalDragSpeed > 0
+      ) {
+        const evaluationSpeed = Math.min(horizontalSpeed, input.maxHorizontalDragSpeed);
+        const linearMagnitude = finiteOrSaturated(input.horizontalLinearDrag * evaluationSpeed);
+        const quadraticMagnitude = finiteOrSaturated(
+          0.5 *
+            input.waterDensity *
+            input.horizontalDragCoefficient *
+            finiteOrSaturated(evaluationSpeed * evaluationSpeed)
+        );
+        const rawMagnitude = Math.max(
+          0,
+          finiteOrSaturated(out.submergedProjectedArea * finiteOrSaturated(linearMagnitude + quadraticMagnitude))
+        );
+        const maxHorizontalForce = Math.max(
+          0,
+          finiteOrSaturated(input.mass * gravityMagnitude * radiusCubedWeight * input.maxHorizontalForceMultiplier)
+        );
+        const horizontalForceMagnitude = Math.min(rawMagnitude, maxHorizontalForce);
+        out.horizontalForceClamped = rawMagnitude > maxHorizontalForce;
+
+        const largestComponent = Math.max(
+          Math.abs(horizontalRelative.x),
+          Math.abs(horizontalRelative.y),
+          Math.abs(horizontalRelative.z)
+        );
+        if (largestComponent > 0 && horizontalForceMagnitude > 0) {
+          const normalizedX = horizontalRelative.x / largestComponent;
+          const normalizedY = horizontalRelative.y / largestComponent;
+          const normalizedZ = horizontalRelative.z / largestComponent;
+          const normalizedLength = Math.hypot(normalizedX, normalizedY, normalizedZ);
+          const forceScale = -horizontalForceMagnitude / normalizedLength;
+          out.horizontalForce.set(
+            finiteOrSaturated(normalizedX * forceScale),
+            finiteOrSaturated(normalizedY * forceScale),
+            finiteOrSaturated(normalizedZ * forceScale)
+          );
+          out.force.set(
+            finiteOrSaturated(out.force.x + out.horizontalForce.x),
+            finiteOrSaturated(out.force.y + out.horizontalForce.y),
+            finiteOrSaturated(out.force.z + out.horizontalForce.z)
+          );
+        }
+      }
+    }
+
     if (!isFiniteVector(out.force)) {
       out.force.set(0, 0, 0);
     } else {
       sanitizeVector(out.force);
+    }
+    if (!isFiniteVector(out.horizontalForce)) {
+      out.horizontalForce.set(0, 0, 0);
+    } else {
+      sanitizeVector(out.horizontalForce);
     }
     return out;
   }

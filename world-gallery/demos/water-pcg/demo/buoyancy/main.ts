@@ -11,6 +11,7 @@ import {
   MeshRenderer,
   ModelMesh,
   PlaneColliderShape,
+  PhysicsMaterial,
   PrimitiveMesh,
   Script,
   StaticCollider,
@@ -35,6 +36,12 @@ import { RiverRuntimeController } from "../../runtime/river/RiverRuntimeControll
 import { RiverWaterSurfaceProvider } from "../../runtime/river/RiverWaterSurfaceProvider";
 import { createWaterPreviewMaterial } from "../WaterPreviewMaterial";
 import { BuoyancyDebugView } from "./BuoyancyDebugView";
+import {
+  RiverDriftSpawner,
+  type RiverDriftDestroyReason,
+  type RiverDriftInstanceSnapshot,
+  type RiverDriftVectorSnapshot
+} from "./RiverDriftSpawner";
 import { measureRiverRenderParity, type BuoyancyRenderParityResult } from "./RiverRenderParity";
 import {
   BUOYANCY_PERFORMANCE_BODY_COUNTS,
@@ -51,6 +58,7 @@ import {
   type BuoyancyProfileSurfaceKind,
   type BuoyancyScenarioId
 } from "./buoyancyFixture";
+import { parseRiverDriftSeed } from "./riverDriftFixture";
 
 const PROFILE_WARMUP_STEPS = 20;
 const ALLOCATION_PROBE_WARMUP_STEPS = 120;
@@ -65,6 +73,23 @@ const STATIC_WATER_CENTER_X = -7;
 const CATCH_PLANE_Y = -8;
 const FRAME_RATE_TARGETS = [30, 60, 120] as const;
 const RIVER_PERTURBATION_TORQUE_PER_MASS = 150;
+const RIVER_DRIFT_GATE_TIMEOUT_MS = 45000;
+const RIVER_DRIFT_MIN_DOWNSTREAM_DISTANCE = 4;
+const CURRENT_CONTROL_WATER_SPEED = 1.5;
+const CURRENT_CONTROL_OBSERVATION_MS = 1800;
+// Keep the profiling hot path aligned with RiverDriftSpawner's production demo tuning.
+const PROFILE_HORIZONTAL_LINEAR_DRAG = 0;
+const PROFILE_WATER_DENSITY = 1000;
+const PROFILE_HORIZONTAL_DRAG_COEFFICIENT = 0.5;
+const PROFILE_HORIZONTAL_DRAG_AREA_SCALE = 1;
+const PROFILE_MAX_HORIZONTAL_DRAG_SPEED = 5;
+const PROFILE_MAX_HORIZONTAL_FORCE_MULTIPLIER = 2;
+const RIVER_DRIFT_AUTOMATIC_DESTROY_REASONS: readonly RiverDriftDestroyReason[] = [
+  "capacity",
+  "downstream",
+  "expired",
+  "off-water"
+];
 
 export interface BuoyancyStabilityResult {
   readonly scenario: BuoyancyScenarioId;
@@ -99,6 +124,7 @@ export interface BuoyancyAllocationProbeSnapshot {
   readonly surfaceKind: BuoyancyProfileSurfaceKind;
   readonly bodyCount: number;
   readonly pontoonCount: number;
+  readonly horizontalDragEnabled: boolean;
   readonly queriesPerStep: number;
   readonly appliedForcesPerStep: number;
   readonly expectedQueriesPerStep: number;
@@ -180,6 +206,46 @@ export interface BuoyancyRecoveryGateResult extends BuoyancyStabilityResult {
   readonly disturbedSubmergedRatioSpread: number;
 }
 
+export interface BuoyancyCurrentForceCheckResult {
+  readonly waterSpeed: number;
+  readonly initialRelativeSpeed: number;
+  readonly finalRelativeSpeed: number;
+  readonly initialPositionX: number;
+  readonly finalPositionX: number;
+  readonly downstreamDistance: number;
+  readonly maxDownstreamSpeed: number;
+  readonly firstHorizontalForceX: number;
+  readonly appliedForceCount: number;
+  readonly fixedTimeStep: number;
+  readonly finite: boolean;
+}
+
+export interface BuoyancyRiverDriftGateResult {
+  readonly seed: number;
+  readonly observedSpawnCount: number;
+  readonly spawnedTotal: number;
+  readonly destroyedTotal: number;
+  readonly capacityDestroyedCount: number;
+  readonly automaticLifecycleDestroyedCount: number;
+  readonly destroyReasons: readonly RiverDriftDestroyReason[];
+  readonly maxObservedActiveCount: number;
+  readonly scheduledTimes: readonly number[];
+  readonly actualTimes: readonly number[];
+  readonly actualIntervals: readonly number[];
+  readonly heightOffsets: readonly number[];
+  readonly distinctHeightCount: number;
+  readonly freeFallCount: number;
+  readonly enteredWaterCount: number;
+  readonly alignedMovingCount: number;
+  readonly maxVelocityWaterDot: number;
+  readonly maxDownstreamDistance: number;
+  readonly activeCountBeforeCleanup: number;
+  readonly activeCountAfterCleanup: number;
+  readonly finite: boolean;
+  readonly runtimeError: string;
+  readonly snapshots: readonly RiverDriftInstanceSnapshot[];
+}
+
 export type { BuoyancyRenderParityResult } from "./RiverRenderParity";
 
 export interface WaterBuoyancyDemoMetrics {
@@ -202,6 +268,20 @@ export interface WaterBuoyancyDemoMetrics {
   readonly settled: boolean;
   readonly recovered: boolean;
   readonly lastDiagnostic: string;
+  readonly driftEnabled: boolean;
+  readonly driftSeed: number;
+  readonly driftSpawnedTotal: number;
+  readonly driftActiveCount: number;
+  readonly driftInWaterCount: number;
+  readonly driftEnteredWaterTotal: number;
+  readonly driftCompletedDownstream: number;
+  readonly driftDestroyedTotal: number;
+  readonly driftRejectedCount: number;
+  readonly driftLastSpawnHeight: number;
+  readonly driftMaxDownstreamDistance: number;
+  readonly driftFinite: boolean;
+  readonly driftRuntimeError: string;
+  readonly driftSnapshots: readonly RiverDriftInstanceSnapshot[];
   readonly performanceResults: readonly BuoyancyPerformanceCaseResult[];
   readonly frameRateResults: readonly BuoyancyFrameRateResult[];
 }
@@ -218,6 +298,8 @@ export interface WaterBuoyancyDemoApi {
   runRenderParityCheck(): BuoyancyRenderParityResult;
   runSinglePontoonGate(): Promise<BuoyancyStabilityResult>;
   runRecoveryGate(): Promise<BuoyancyRecoveryGateResult>;
+  runCurrentForceCheck(): Promise<BuoyancyCurrentForceCheckResult>;
+  runRiverDriftGate(): Promise<BuoyancyRiverDriftGateResult>;
   runPerformanceMatrix(): Promise<readonly BuoyancyPerformanceCaseResult[]>;
   runFrameRateConsistency(): Promise<readonly BuoyancyFrameRateResult[]>;
   prepareAllocationProbe(): Promise<BuoyancyAllocationProbeSnapshot>;
@@ -259,6 +341,7 @@ interface CreatedProfileCase {
   readonly root: Entity;
   readonly components: readonly WaterBuoyancy[];
   readonly preflight: ProfilePreflight;
+  readonly horizontalDragEnabled: boolean;
 }
 
 interface AllocationProbeState extends CreatedProfileCase {
@@ -326,6 +409,16 @@ class PhysicsStepCounter extends Script {
   }
 }
 
+class FlowingFlatWaterSurfaceProvider extends FlatWaterSurfaceProvider {
+  private readonly _waterVelocity = new Vector3(CURRENT_CONTROL_WATER_SPEED, 0, 0);
+
+  override sampleSurface(worldPosition: Vector3, outSample: ReturnType<typeof createWaterSurfaceSample>): boolean {
+    if (!super.sampleSurface(worldPosition, outSample)) return false;
+    outSample.waterVelocity.copyFrom(this._waterVelocity);
+    return true;
+  }
+}
+
 const statusCandidate = document.getElementById("buoyancy-status");
 const metricsCandidate = document.getElementById("buoyancy-metrics");
 const resetCandidate = document.getElementById("buoyancy-reset");
@@ -369,6 +462,20 @@ const demoMetrics: Mutable<WaterBuoyancyDemoMetrics> = {
   settled: false,
   recovered: false,
   lastDiagnostic: "",
+  driftEnabled: false,
+  driftSeed: 0,
+  driftSpawnedTotal: 0,
+  driftActiveCount: 0,
+  driftInWaterCount: 0,
+  driftEnteredWaterTotal: 0,
+  driftCompletedDownstream: 0,
+  driftDestroyedTotal: 0,
+  driftRejectedCount: 0,
+  driftLastSpawnHeight: 0,
+  driftMaxDownstreamDistance: 0,
+  driftFinite: true,
+  driftRuntimeError: "",
+  driftSnapshots: [],
   performanceResults: [],
   frameRateResults: []
 };
@@ -394,8 +501,23 @@ function freezeStabilityResult<T extends BuoyancyStabilityResult>(result: T): Re
 function createMetricsSnapshot(): WaterBuoyancyDemoMetrics {
   return Object.freeze({
     ...demoMetrics,
+    driftSnapshots: Object.freeze(demoMetrics.driftSnapshots.map(cloneDriftSnapshot)),
     performanceResults: Object.freeze([...demoMetrics.performanceResults]),
     frameRateResults: Object.freeze([...demoMetrics.frameRateResults])
+  });
+}
+
+function cloneDriftVector(value: RiverDriftVectorSnapshot): RiverDriftVectorSnapshot {
+  return Object.freeze({ x: value.x, y: value.y, z: value.z });
+}
+
+function cloneDriftSnapshot(value: RiverDriftInstanceSnapshot): RiverDriftInstanceSnapshot {
+  return Object.freeze({
+    ...value,
+    spawnPosition: cloneDriftVector(value.spawnPosition),
+    position: cloneDriftVector(value.position),
+    velocity: cloneDriftVector(value.velocity),
+    waterVelocity: cloneDriftVector(value.waterVelocity)
   });
 }
 
@@ -440,11 +562,21 @@ function createBodyMaterial(engine: Engine): BlinnPhongMaterial {
   return material;
 }
 
-function createCatchPlane(root: Entity): void {
+function useSharedPhysicsMaterial<T extends BoxColliderShape | PlaneColliderShape>(
+  shape: T,
+  material: PhysicsMaterial
+): T {
+  const defaultMaterial = shape.material;
+  shape.material = material;
+  defaultMaterial.destroy();
+  return shape;
+}
+
+function createCatchPlane(root: Entity, physicsMaterial: PhysicsMaterial): void {
   const entity = root.createChild("buoyancy-catch-plane");
   entity.transform.setPosition(0, CATCH_PLANE_Y, 0);
   const collider = entity.addComponent(StaticCollider);
-  collider.addShape(new PlaneColliderShape());
+  collider.addShape(useSharedPhysicsMaterial(new PlaneColliderShape(), physicsMaterial));
 }
 
 function createStaticWaterVisual(engine: Engine, root: Entity): void {
@@ -482,8 +614,12 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
   scene.background.solidColor = new Color(0.018, 0.055, 0.068, 1);
   scene.ambientLight.diffuseSolidColor.set(0.42, 0.5, 0.52, 1);
   scene.ambientLight.diffuseIntensity = 0.72;
+  const sharedPhysicsMaterial = new PhysicsMaterial();
+  sharedPhysicsMaterial.staticFriction = 0.18;
+  sharedPhysicsMaterial.dynamicFriction = 0.12;
+  sharedPhysicsMaterial.bounciness = 0;
   const root = scene.createRootEntity("water-buoyancy-demo");
-  createCatchPlane(root);
+  createCatchPlane(root, sharedPhysicsMaterial);
 
   const lightEntity = root.createChild("sun");
   lightEntity.transform.setRotation(-48, -32, 0);
@@ -515,6 +651,17 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
   const riverProvider = new RiverWaterSurfaceProvider(riverRuntime);
   const riverBed = new RiverBedController(engine, riverSceneRoot);
   riverBed.rebuild(riverResource.data, WaterDecorationStyle.River);
+  const riverDriftSeed = parseRiverDriftSeed(search.get("driftSeed"));
+  const riverDriftAutoEnabled = search.get("drift") !== "0";
+  const riverDriftRoot = riverSceneRoot.createChild("river-drift-stream");
+  const riverDriftSpawner = riverDriftRoot.addComponent(RiverDriftSpawner);
+  riverDriftSpawner.configure({
+    compiledData: riverResource.data,
+    surfaceProvider: riverProvider,
+    seed: riverDriftSeed,
+    catchPlaneY: CATCH_PLANE_Y,
+    startPaused: true
+  });
 
   const profileRiverResource = await compileWorker.compile(multiTributaryRiverExample.riverDescriptor);
   const profileRiverRuntimeRoot = root.createChild("buoyancy-profile-river-runtime");
@@ -661,6 +808,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     pontoonCount: 4 | 8,
     surfaceKind: BuoyancyProfileSurfaceKind,
     profilingEnabled: boolean,
+    horizontalDragEnabled: boolean,
     name: string
   ): CreatedProfileCase => {
     const placements = createProfilePlacements(bodyCount, pontoonCount, surfaceKind);
@@ -675,7 +823,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
       const entity = caseRoot.createChild(`${name}-body-${index}`);
       entity.transform.setPosition(placement.x, placement.y, placement.z);
       const collider = entity.addComponent(DynamicCollider);
-      const shape = new BoxColliderShape();
+      const shape = useSharedPhysicsMaterial(new BoxColliderShape(), sharedPhysicsMaterial);
       shape.size = new Vector3(0.2, 0.2, 0.2);
       collider.addShape(shape);
       collider.mass = 0.5;
@@ -684,9 +832,18 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
       buoyancy.surfaceProvider = profileRiverProvider;
       buoyancy.pontoons = createBuoyancyProfilePontoons(pontoonCount);
       buoyancy.profilingEnabled = profilingEnabled;
+      buoyancy.applyHorizontalDrag = horizontalDragEnabled;
+      if (horizontalDragEnabled) {
+        buoyancy.horizontalLinearDrag = PROFILE_HORIZONTAL_LINEAR_DRAG;
+        buoyancy.waterDensity = PROFILE_WATER_DENSITY;
+        buoyancy.horizontalDragCoefficient = PROFILE_HORIZONTAL_DRAG_COEFFICIENT;
+        buoyancy.horizontalDragAreaScale = PROFILE_HORIZONTAL_DRAG_AREA_SCALE;
+        buoyancy.maxHorizontalDragSpeed = PROFILE_MAX_HORIZONTAL_DRAG_SPEED;
+        buoyancy.maxHorizontalForceMultiplier = PROFILE_MAX_HORIZONTAL_FORCE_MULTIPLIER;
+      }
       components[index] = buoyancy;
     }
-    return { root: caseRoot, components, preflight };
+    return { root: caseRoot, components, preflight, horizontalDragEnabled };
   };
 
   const runRenderParityCheck = (): BuoyancyRenderParityResult => {
@@ -709,8 +866,8 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
       cameraEntity.transform.setPosition(-15, 8.5, 13);
       orbit.target.set(-7, 0.35, 0);
     } else {
-      cameraEntity.transform.setPosition(-19, 15.5, 23);
-      orbit.target.set(-4, 5.2, 6);
+      cameraEntity.transform.setPosition(-43, 21, 14);
+      orbit.target.set(-24, 8, -7);
     }
   };
 
@@ -730,11 +887,8 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     renderer.setMaterial(bodyMaterial);
 
     const collider = entity.addComponent(DynamicCollider);
-    const shape = new BoxColliderShape();
+    const shape = useSharedPhysicsMaterial(new BoxColliderShape(), sharedPhysicsMaterial);
     shape.size = new Vector3(...fixture.bodySize);
-    shape.material.staticFriction = 0.18;
-    shape.material.dynamicFriction = 0.12;
-    shape.material.bounciness = 0;
     collider.addShape(shape);
     collider.mass = fixture.bodyMass;
     collider.linearDamping = 0.025;
@@ -751,18 +905,23 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
   };
 
   const selectScenario = (scenario: BuoyancyScenarioId): void => {
+    riverDriftSpawner.pause();
+    riverDriftSpawner.reset(riverDriftSeed);
     destroyActiveBody();
     demoMetrics.scenario = scenario;
     demoMetrics.runtimeError = "";
     demoMetrics.ready = false;
     const isStatic = scenario === "static-single";
-    perturbButton.disabled = isStatic;
+    perturbButton.disabled = true;
     staticSceneRoot.isActive = isStatic;
     riverSceneRoot.isActive = !isStatic;
     configureCamera(scenario);
-    const fixture = getBuoyancyFixture(scenario);
-    activeBody = createActiveBody(fixture, isStatic ? staticProvider : riverProvider);
-    if (!isStatic) runRenderParityCheck();
+    if (isStatic) {
+      activeBody = createActiveBody(getBuoyancyFixture(scenario), staticProvider);
+    } else {
+      runRenderParityCheck();
+      if (riverDriftAutoEnabled) riverDriftSpawner.start();
+    }
     for (const button of scenarioButtons) button.dataset.active = String(button.dataset.scenario === scenario);
     demoMetrics.ready = true;
     setStatus("physics running", "ready");
@@ -856,7 +1015,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
       entity = profileRoot.createChild("dynamic-surface-reimmersion-check");
       entity.transform.setPosition(bestCandidate.x, pontoonCenterHeight, bestCandidate.z);
       const collider = entity.addComponent(DynamicCollider);
-      const shape = new BoxColliderShape();
+      const shape = useSharedPhysicsMaterial(new BoxColliderShape(), sharedPhysicsMaterial);
       const shapeExtent = Math.max(0.04, pontoonRadius * 1.5);
       shape.size = new Vector3(shapeExtent, shapeExtent, shapeExtent);
       collider.addShape(shape);
@@ -922,7 +1081,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     const entity = profileRoot.createChild("offshore-pontoon-check");
     entity.transform.setPosition(offshorePosition.x, offshorePosition.y, offshorePosition.z);
     const collider = entity.addComponent(DynamicCollider);
-    const shape = new BoxColliderShape();
+    const shape = useSharedPhysicsMaterial(new BoxColliderShape(), sharedPhysicsMaterial);
     shape.size = new Vector3(0.3, 0.3, 0.3);
     collider.addShape(shape);
     collider.mass = 1;
@@ -950,7 +1109,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     try {
       entity.transform.setPosition(STATIC_WATER_CENTER_X, 0, 0);
       const collider = entity.addComponent(DynamicCollider);
-      const shape = new BoxColliderShape();
+      const shape = useSharedPhysicsMaterial(new BoxColliderShape(), sharedPhysicsMaterial);
       shape.size = new Vector3(0.4, 0.4, 0.4);
       collider.addShape(shape);
       collider.isKinematic = true;
@@ -985,7 +1144,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
       entity.transform.setRotation(-13, 22, 7);
       entity.transform.setScale(0.8, 1.2, 0.65);
       const collider = entity.addComponent(DynamicCollider);
-      const shape = new BoxColliderShape();
+      const shape = useSharedPhysicsMaterial(new BoxColliderShape(), sharedPhysicsMaterial);
       shape.size = new Vector3(0.4, 0.4, 0.4);
       collider.addShape(shape);
       collider.mass = 1;
@@ -1041,51 +1200,91 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     return maxError;
   };
 
+  const syncRiverDriftMetrics = (): RiverDriftInstanceSnapshot | null => {
+    const source = riverDriftSpawner.metrics;
+    demoMetrics.driftEnabled = source.enabled;
+    demoMetrics.driftSeed = source.seed;
+    demoMetrics.driftSpawnedTotal = source.spawnedTotal;
+    demoMetrics.driftActiveCount = source.activeCount;
+    demoMetrics.driftInWaterCount = source.inWaterCount;
+    demoMetrics.driftEnteredWaterTotal = source.enteredWaterTotal;
+    demoMetrics.driftCompletedDownstream = source.completedDownstream;
+    demoMetrics.driftDestroyedTotal = source.destroyedTotal;
+    demoMetrics.driftRejectedCount = source.rejectedCount;
+    demoMetrics.driftLastSpawnHeight = source.lastSpawnHeight;
+    demoMetrics.driftMaxDownstreamDistance = source.maxDownstreamDistance;
+    demoMetrics.driftFinite = source.finite;
+    demoMetrics.driftRuntimeError = source.runtimeError;
+    demoMetrics.driftSnapshots = riverDriftSpawner.snapshots;
+    let latest: RiverDriftInstanceSnapshot | null = null;
+    for (const snapshot of riverDriftSpawner.snapshots) {
+      if (snapshot.valid && snapshot.active && (!latest || snapshot.spawnIndex > latest.spawnIndex)) latest = snapshot;
+    }
+    return latest;
+  };
+
   const updateMetrics = (): void => {
-    if (!activeBody || allocationProbe) return;
-    activeBody.debugView.update();
-    const position = activeBody.entity.transform.worldPosition;
-    const rotation = activeBody.entity.transform.worldRotation;
-    const velocity = activeBody.collider.linearVelocity;
-    const roll = normalizeAngle(rotation.z);
-    const pitch = normalizeAngle(rotation.x);
-    const linearSpeed = velocity.length();
-    const ageSeconds = (performance.now() - activeBody.createdAtMs) / 1000;
-    const finite =
-      Number.isFinite(position.x) &&
-      Number.isFinite(position.y) &&
-      Number.isFinite(position.z) &&
-      Number.isFinite(roll) &&
-      Number.isFinite(pitch) &&
-      Number.isFinite(linearSpeed);
-    const fellThrough = position.y < CATCH_PLANE_Y + 0.5;
-    demoMetrics.runtimeError = finite ? (fellThrough ? "body-fell-through-water" : "") : "non-finite-body-state";
-    demoMetrics.bodyCount = 1;
-    demoMetrics.pontoonCount = activeBody.buoyancy.pontoons.length;
-    demoMetrics.submergedPontoonCount = activeBody.buoyancy.submergedPontoonCount;
-    demoMetrics.bodyHeight = position.y;
-    demoMetrics.rollDegrees = roll;
-    demoMetrics.pitchDegrees = pitch;
-    demoMetrics.linearSpeed = linearSpeed;
-    demoMetrics.queryCountPerStep = activeBody.buoyancy.lastStepQueryCount;
-    demoMetrics.appliedForceCountPerStep = activeBody.buoyancy.lastStepAppliedForceCount;
-    if (demoMetrics.scenario === "static-single") {
-      demoMetrics.surfaceParityError = measureStaticSurfaceParity();
+    const latestDriftSnapshot = syncRiverDriftMetrics();
+    if (allocationProbe) return;
+    if (activeBody) {
+      activeBody.debugView.update();
+      const position = activeBody.entity.transform.worldPosition;
+      const rotation = activeBody.entity.transform.worldRotation;
+      const velocity = activeBody.collider.linearVelocity;
+      const roll = normalizeAngle(rotation.z);
+      const pitch = normalizeAngle(rotation.x);
+      const linearSpeed = velocity.length();
+      const ageSeconds = (performance.now() - activeBody.createdAtMs) / 1000;
+      const finite =
+        Number.isFinite(position.x) &&
+        Number.isFinite(position.y) &&
+        Number.isFinite(position.z) &&
+        Number.isFinite(roll) &&
+        Number.isFinite(pitch) &&
+        Number.isFinite(linearSpeed);
+      const fellThrough = position.y < CATCH_PLANE_Y + 0.5;
+      demoMetrics.runtimeError = finite ? (fellThrough ? "body-fell-through-water" : "") : "non-finite-body-state";
+      demoMetrics.bodyCount = 1;
+      demoMetrics.pontoonCount = activeBody.buoyancy.pontoons.length;
+      demoMetrics.submergedPontoonCount = activeBody.buoyancy.submergedPontoonCount;
+      demoMetrics.bodyHeight = position.y;
+      demoMetrics.rollDegrees = roll;
+      demoMetrics.pitchDegrees = pitch;
+      demoMetrics.linearSpeed = linearSpeed;
+      demoMetrics.queryCountPerStep = activeBody.buoyancy.lastStepQueryCount;
+      demoMetrics.appliedForceCountPerStep = activeBody.buoyancy.lastStepAppliedForceCount;
+      if (demoMetrics.scenario === "static-single") demoMetrics.surfaceParityError = measureStaticSurfaceParity();
+      demoMetrics.finite = finite;
+      demoMetrics.settled =
+        ageSeconds >= 4 &&
+        activeBody.buoyancy.isInWater &&
+        Math.abs(demoMetrics.bodyHeight - STATIC_SINGLE_EXPECTED_BODY_HEIGHT) <= STATIC_HEIGHT_TOLERANCE &&
+        linearSpeed <= STATIC_MAX_LINEAR_SPEED;
+      demoMetrics.recovered =
+        ageSeconds >= 4 &&
+        activeBody.buoyancy.isInWater &&
+        Math.abs(roll) <= RECOVERY_MAX_ATTITUDE_DEGREES &&
+        Math.abs(pitch) <= RECOVERY_MAX_ATTITUDE_DEGREES &&
+        linearSpeed <= RECOVERY_MAX_LINEAR_SPEED;
+      demoMetrics.lastDiagnostic = activeBody.buoyancy.lastDiagnostic ?? "";
+    } else {
+      const velocity = latestDriftSnapshot?.velocity;
+      demoMetrics.runtimeError = demoMetrics.driftRuntimeError;
+      demoMetrics.bodyCount = demoMetrics.driftActiveCount;
+      demoMetrics.pontoonCount = demoMetrics.driftActiveCount * 4;
+      demoMetrics.submergedPontoonCount = riverDriftSpawner.metrics.submergedPontoonCount;
+      demoMetrics.bodyHeight = latestDriftSnapshot?.position.y ?? 0;
+      demoMetrics.rollDegrees = 0;
+      demoMetrics.pitchDegrees = 0;
+      demoMetrics.linearSpeed = velocity ? Math.hypot(velocity.x, velocity.y, velocity.z) : 0;
+      demoMetrics.queryCountPerStep = riverDriftSpawner.metrics.queryCountPerStep;
+      demoMetrics.appliedForceCountPerStep = riverDriftSpawner.metrics.appliedForceCountPerStep;
+      demoMetrics.finite = demoMetrics.driftFinite;
+      demoMetrics.settled = false;
+      demoMetrics.recovered = false;
+      demoMetrics.lastDiagnostic = "";
     }
     demoMetrics.fixedTimeStep = scene.physics.fixedTimeStep;
-    demoMetrics.finite = finite;
-    demoMetrics.settled =
-      ageSeconds >= 4 &&
-      activeBody.buoyancy.isInWater &&
-      Math.abs(demoMetrics.bodyHeight - STATIC_SINGLE_EXPECTED_BODY_HEIGHT) <= STATIC_HEIGHT_TOLERANCE &&
-      linearSpeed <= STATIC_MAX_LINEAR_SPEED;
-    demoMetrics.recovered =
-      ageSeconds >= 4 &&
-      activeBody.buoyancy.isInWater &&
-      Math.abs(roll) <= RECOVERY_MAX_ATTITUDE_DEGREES &&
-      Math.abs(pitch) <= RECOVERY_MAX_ATTITUDE_DEGREES &&
-      linearSpeed <= RECOVERY_MAX_LINEAR_SPEED;
-    demoMetrics.lastDiagnostic = activeBody.buoyancy.lastDiagnostic ?? "";
 
     hudElapsed += engine.time.deltaTime;
     if (hudElapsed < 0.08) return;
@@ -1094,6 +1293,13 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     writeMetric("bodies", String(demoMetrics.bodyCount));
     writeMetric("pontoons", String(demoMetrics.pontoonCount));
     writeMetric("submerged", String(demoMetrics.submergedPontoonCount));
+    writeMetric("drift-count", `${demoMetrics.driftSpawnedTotal} / ${demoMetrics.driftActiveCount}`);
+    writeMetric("drift-water", String(demoMetrics.driftInWaterCount));
+    writeMetric("drift-distance", `${demoMetrics.driftMaxDownstreamDistance.toFixed(2)} m`);
+    writeMetric(
+      "drift-height",
+      demoMetrics.driftSpawnedTotal > 0 ? `${demoMetrics.driftLastSpawnHeight.toFixed(2)} m` : "—"
+    );
     writeMetric("height", demoMetrics.bodyHeight.toFixed(3));
     writeMetric("attitude", `${demoMetrics.rollDegrees.toFixed(1)}° / ${demoMetrics.pitchDegrees.toFixed(1)}°`);
     writeMetric("queries", String(demoMetrics.queryCountPerStep));
@@ -1101,7 +1307,9 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     writeMetric("surface-time", demoMetrics.surfaceTime === null ? "live" : demoMetrics.surfaceTime.toFixed(3));
     writeMetric("error", demoMetrics.runtimeError || "none");
     if (demoMetrics.runtimeError) setStatus("physics validation failed", "error");
-    else if (demoMetrics.settled) setStatus("stable buoyancy", "ready");
+    else if (demoMetrics.scenario === "river-four" && demoMetrics.driftEnabled) {
+      setStatus("3s upstream cube stream", "ready");
+    } else if (demoMetrics.settled) setStatus("stable buoyancy", "ready");
   };
 
   const runDwellGate = async (
@@ -1217,101 +1425,310 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     return runDwellGate("static-single", STATIC_SINGLE_EXPECTED_BODY_HEIGHT, isStaticBodyAcceptable);
   };
 
+  const runCurrentForceCheck = async (): Promise<BuoyancyCurrentForceCheckResult> => {
+    if (allocationProbe || profileRun || frameRateRun) {
+      throw new Error("Current-force validation cannot overlap another validation run.");
+    }
+    const restoreStream = riverDriftSpawner.metrics.enabled && demoMetrics.scenario === "river-four";
+    riverDriftSpawner.pause();
+    riverDriftSpawner.clear();
+    const entity = profileRoot.createChild("flat-current-force-check");
+    try {
+      entity.transform.setPosition(-5, 0, 3);
+      const collider = entity.addComponent(DynamicCollider);
+      const shape = useSharedPhysicsMaterial(new BoxColliderShape(), sharedPhysicsMaterial);
+      shape.size = new Vector3(0.6, 0.6, 0.6);
+      collider.addShape(shape);
+      collider.mass = 50;
+      collider.linearDamping = 0.025;
+      collider.constraints =
+        DynamicColliderConstraints.FreezePositionY |
+        DynamicColliderConstraints.FreezePositionZ |
+        DynamicColliderConstraints.FreezeRotationX |
+        DynamicColliderConstraints.FreezeRotationY |
+        DynamicColliderConstraints.FreezeRotationZ;
+      const buoyancy = entity.addComponent(WaterBuoyancy);
+      buoyancy.surfaceProvider = new FlowingFlatWaterSurfaceProvider();
+      buoyancy.pontoons = [{ localPosition: new Vector3(), radius: 0.35, enabled: true }];
+      buoyancy.buoyancyCoefficient = 0;
+      buoyancy.verticalDamping = 0;
+      buoyancy.maxForceMultiplier = 0;
+      buoyancy.applyHorizontalDrag = true;
+      buoyancy.waterDensity = 1000;
+      buoyancy.horizontalDragCoefficient = 0.5;
+      buoyancy.maxHorizontalDragSpeed = 5;
+      buoyancy.maxHorizontalForceMultiplier = 2;
+
+      const initialPositionX = entity.transform.worldPosition.x;
+      await waitUntil(
+        () =>
+          buoyancy.pontoonStates[0].horizontalForce.x > 0 &&
+          buoyancy.lastStepAppliedForceCount === 1 &&
+          collider.linearVelocity.x >= 0,
+        3000
+      );
+      const firstHorizontalForceX = buoyancy.pontoonStates[0].horizontalForce.x;
+      let maxDownstreamSpeed = collider.linearVelocity.x;
+      const deadline = performance.now() + CURRENT_CONTROL_OBSERVATION_MS;
+      while (performance.now() < deadline) {
+        await waitMilliseconds(16);
+        maxDownstreamSpeed = Math.max(maxDownstreamSpeed, collider.linearVelocity.x);
+      }
+      const finalPositionX = entity.transform.worldPosition.x;
+      const finalSpeed = collider.linearVelocity.x;
+      const finalRelativeSpeed = Math.abs(CURRENT_CONTROL_WATER_SPEED - finalSpeed);
+      const finite =
+        Number.isFinite(firstHorizontalForceX) &&
+        Number.isFinite(finalPositionX) &&
+        Number.isFinite(finalSpeed) &&
+        Number.isFinite(maxDownstreamSpeed);
+      return Object.freeze({
+        waterSpeed: CURRENT_CONTROL_WATER_SPEED,
+        initialRelativeSpeed: CURRENT_CONTROL_WATER_SPEED,
+        finalRelativeSpeed,
+        initialPositionX,
+        finalPositionX,
+        downstreamDistance: finalPositionX - initialPositionX,
+        maxDownstreamSpeed,
+        firstHorizontalForceX,
+        appliedForceCount: buoyancy.lastStepAppliedForceCount,
+        fixedTimeStep: scene.physics.fixedTimeStep,
+        finite
+      });
+    } finally {
+      entity.destroy();
+      await waitMilliseconds(20);
+      if (restoreStream) {
+        riverDriftSpawner.reset(riverDriftSeed);
+        riverDriftSpawner.start();
+      }
+    }
+  };
+
   const runRecoveryGate = async (): Promise<BuoyancyRecoveryGateResult> => {
+    const originalScenario = demoMetrics.scenario;
     selectScenario("river-four");
-    await waitUntil(() => activeBody !== null && isRecoveredBodyAcceptable(activeBody), STATIC_SETTLE_TIMEOUT_MS);
-    perturb();
-    let disturbedRollDegrees = 0;
-    let disturbedPitchDegrees = 0;
-    let disturbedAttitudeDegrees = 0;
-    let disturbedSampledPontoonCount = 0;
-    let disturbedSubmergedPontoonCount = 0;
-    let disturbedAppliedForceCount = 0;
-    let disturbedMinPontoonForce = 0;
-    let disturbedMaxPontoonForce = 0;
-    let disturbedPontoonForceSpread = 0;
-    let disturbedMinSubmergedRatio = 0;
-    let disturbedMaxSubmergedRatio = 0;
-    let disturbedSubmergedRatioSpread = 0;
-    await waitUntil(() => {
-      if (!activeBody) return false;
-      const rotation = activeBody.entity.transform.worldRotation;
-      const rollDegrees = normalizeAngle(rotation.z);
-      const pitchDegrees = normalizeAngle(rotation.x);
-      const attitudeDegrees = Math.max(Math.abs(rollDegrees), Math.abs(pitchDegrees));
-      if (attitudeDegrees <= RECOVERY_MAX_ATTITUDE_DEGREES) return false;
+    riverDriftSpawner.pause();
+    riverDriftSpawner.clear();
+    activeBody = createActiveBody(getBuoyancyFixture("river-four"), riverProvider);
+    try {
+      await waitUntil(() => activeBody !== null && isRecoveredBodyAcceptable(activeBody), STATIC_SETTLE_TIMEOUT_MS);
+      perturb();
+      let disturbedRollDegrees = 0;
+      let disturbedPitchDegrees = 0;
+      let disturbedAttitudeDegrees = 0;
+      let disturbedSampledPontoonCount = 0;
+      let disturbedSubmergedPontoonCount = 0;
+      let disturbedAppliedForceCount = 0;
+      let disturbedMinPontoonForce = 0;
+      let disturbedMaxPontoonForce = 0;
+      let disturbedPontoonForceSpread = 0;
+      let disturbedMinSubmergedRatio = 0;
+      let disturbedMaxSubmergedRatio = 0;
+      let disturbedSubmergedRatioSpread = 0;
+      await waitUntil(() => {
+        if (!activeBody) return false;
+        const rotation = activeBody.entity.transform.worldRotation;
+        const rollDegrees = normalizeAngle(rotation.z);
+        const pitchDegrees = normalizeAngle(rotation.x);
+        const attitudeDegrees = Math.max(Math.abs(rollDegrees), Math.abs(pitchDegrees));
+        if (attitudeDegrees <= RECOVERY_MAX_ATTITUDE_DEGREES) return false;
 
-      let sampledPontoonCount = 0;
-      let minPontoonForce = Number.POSITIVE_INFINITY;
-      let maxPontoonForce = Number.NEGATIVE_INFINITY;
-      let minSubmergedRatio = Number.POSITIVE_INFINITY;
-      let maxSubmergedRatio = Number.NEGATIVE_INFINITY;
-      for (const state of activeBody.buoyancy.pontoonStates) {
-        if (!state.enabled || !state.surfaceHit) continue;
-        const forceMagnitude = state.force.length();
-        sampledPontoonCount++;
-        minPontoonForce = Math.min(minPontoonForce, forceMagnitude);
-        maxPontoonForce = Math.max(maxPontoonForce, forceMagnitude);
-        minSubmergedRatio = Math.min(minSubmergedRatio, state.submergedRatio);
-        maxSubmergedRatio = Math.max(maxSubmergedRatio, state.submergedRatio);
-      }
-      const appliedForceCount = activeBody.buoyancy.lastStepAppliedForceCount;
-      const forceSpread = maxPontoonForce - minPontoonForce;
-      const submergedRatioSpread = maxSubmergedRatio - minSubmergedRatio;
-      if (
-        sampledPontoonCount < 2 ||
-        appliedForceCount < 2 ||
-        !Number.isFinite(forceSpread) ||
-        forceSpread <= 1e-5 ||
-        !Number.isFinite(submergedRatioSpread) ||
-        submergedRatioSpread <= 1e-5
-      ) {
-        return false;
-      }
+        let sampledPontoonCount = 0;
+        let minPontoonForce = Number.POSITIVE_INFINITY;
+        let maxPontoonForce = Number.NEGATIVE_INFINITY;
+        let minSubmergedRatio = Number.POSITIVE_INFINITY;
+        let maxSubmergedRatio = Number.NEGATIVE_INFINITY;
+        for (const state of activeBody.buoyancy.pontoonStates) {
+          if (!state.enabled || !state.surfaceHit) continue;
+          const forceMagnitude = state.force.length();
+          sampledPontoonCount++;
+          minPontoonForce = Math.min(minPontoonForce, forceMagnitude);
+          maxPontoonForce = Math.max(maxPontoonForce, forceMagnitude);
+          minSubmergedRatio = Math.min(minSubmergedRatio, state.submergedRatio);
+          maxSubmergedRatio = Math.max(maxSubmergedRatio, state.submergedRatio);
+        }
+        const appliedForceCount = activeBody.buoyancy.lastStepAppliedForceCount;
+        const forceSpread = maxPontoonForce - minPontoonForce;
+        const submergedRatioSpread = maxSubmergedRatio - minSubmergedRatio;
+        if (
+          sampledPontoonCount < 2 ||
+          appliedForceCount < 2 ||
+          !Number.isFinite(forceSpread) ||
+          forceSpread <= 1e-5 ||
+          !Number.isFinite(submergedRatioSpread) ||
+          submergedRatioSpread <= 1e-5
+        ) {
+          return false;
+        }
 
-      disturbedRollDegrees = rollDegrees;
-      disturbedPitchDegrees = pitchDegrees;
-      disturbedAttitudeDegrees = attitudeDegrees;
-      disturbedSampledPontoonCount = sampledPontoonCount;
-      disturbedSubmergedPontoonCount = activeBody.buoyancy.submergedPontoonCount;
-      disturbedAppliedForceCount = appliedForceCount;
-      disturbedMinPontoonForce = minPontoonForce;
-      disturbedMaxPontoonForce = maxPontoonForce;
-      disturbedPontoonForceSpread = forceSpread;
-      disturbedMinSubmergedRatio = minSubmergedRatio;
-      disturbedMaxSubmergedRatio = maxSubmergedRatio;
-      disturbedSubmergedRatioSpread = submergedRatioSpread;
-      return true;
-    }, 4000);
-    const stability = await runDwellGate("river-four", null, isRecoveredBodyAcceptable);
-    return freezeStabilityResult({
-      ...stability,
-      disturbedRollDegrees,
-      disturbedPitchDegrees,
-      disturbedAttitudeDegrees,
-      disturbedSampledPontoonCount,
-      disturbedSubmergedPontoonCount,
-      disturbedAppliedForceCount,
-      disturbedMinPontoonForce,
-      disturbedMaxPontoonForce,
-      disturbedPontoonForceSpread,
-      disturbedMinSubmergedRatio,
-      disturbedMaxSubmergedRatio,
-      disturbedSubmergedRatioSpread
-    });
+        disturbedRollDegrees = rollDegrees;
+        disturbedPitchDegrees = pitchDegrees;
+        disturbedAttitudeDegrees = attitudeDegrees;
+        disturbedSampledPontoonCount = sampledPontoonCount;
+        disturbedSubmergedPontoonCount = activeBody.buoyancy.submergedPontoonCount;
+        disturbedAppliedForceCount = appliedForceCount;
+        disturbedMinPontoonForce = minPontoonForce;
+        disturbedMaxPontoonForce = maxPontoonForce;
+        disturbedPontoonForceSpread = forceSpread;
+        disturbedMinSubmergedRatio = minSubmergedRatio;
+        disturbedMaxSubmergedRatio = maxSubmergedRatio;
+        disturbedSubmergedRatioSpread = submergedRatioSpread;
+        return true;
+      }, 4000);
+      const stability = await runDwellGate("river-four", null, isRecoveredBodyAcceptable);
+      return freezeStabilityResult({
+        ...stability,
+        disturbedRollDegrees,
+        disturbedPitchDegrees,
+        disturbedAttitudeDegrees,
+        disturbedSampledPontoonCount,
+        disturbedSubmergedPontoonCount,
+        disturbedAppliedForceCount,
+        disturbedMinPontoonForce,
+        disturbedMaxPontoonForce,
+        disturbedPontoonForceSpread,
+        disturbedMinSubmergedRatio,
+        disturbedMaxSubmergedRatio,
+        disturbedSubmergedRatioSpread
+      });
+    } finally {
+      destroyActiveBody();
+      selectScenario(originalScenario);
+    }
+  };
+
+  const runRiverDriftGate = async (): Promise<BuoyancyRiverDriftGateResult> => {
+    if (allocationProbe || profileRun || frameRateRun) {
+      throw new Error("River drift validation cannot overlap another validation run.");
+    }
+    const originalScenario = demoMetrics.scenario;
+    selectScenario("river-four");
+    riverDriftSpawner.pause();
+    riverDriftSpawner.reset(riverDriftSeed);
+    riverDriftSpawner.start();
+    let maxObservedActiveCount = 0;
+    try {
+      await waitUntil(() => {
+        const metrics = riverDriftSpawner.metrics;
+        maxObservedActiveCount = Math.max(maxObservedActiveCount, metrics.activeCount);
+        const snapshots = riverDriftSpawner.snapshots
+          .filter((snapshot) => snapshot.valid)
+          .sort((left, right) => left.spawnIndex - right.spawnIndex)
+          .slice(0, 11);
+        const firstThree = snapshots.slice(0, 3);
+        if (
+          metrics.spawnedTotal < 11 ||
+          snapshots.length < 11 ||
+          firstThree.length < 3 ||
+          !firstThree.every((snapshot) => snapshot.hadFreeFall && snapshot.enteredWater)
+        ) {
+          return false;
+        }
+        const distinctHeightCount = new Set(firstThree.map((snapshot) => snapshot.heightOffset.toFixed(5))).size;
+        let alignedMoving = false;
+        for (const snapshot of snapshots) {
+          const velocityWaterDot =
+            snapshot.velocity.x * snapshot.waterVelocity.x + snapshot.velocity.z * snapshot.waterVelocity.z;
+          alignedMoving ||= velocityWaterDot > 0.05 && snapshot.downstreamDistance > 0.25;
+        }
+        const capacityDestroyedCount = snapshots.filter((snapshot) => snapshot.destroyReason === "capacity").length;
+        const automaticLifecycleDestroyedCount = snapshots.filter((snapshot) =>
+          RIVER_DRIFT_AUTOMATIC_DESTROY_REASONS.includes(snapshot.destroyReason)
+        ).length;
+        return (
+          distinctHeightCount >= 2 &&
+          alignedMoving &&
+          metrics.maxDownstreamDistance >= RIVER_DRIFT_MIN_DOWNSTREAM_DISTANCE &&
+          metrics.activeCount <= 10 &&
+          maxObservedActiveCount <= 10 &&
+          automaticLifecycleDestroyedCount >= 1 &&
+          (metrics.activeCount < 10 || capacityDestroyedCount >= 1) &&
+          metrics.finite &&
+          metrics.runtimeError === ""
+        );
+      }, RIVER_DRIFT_GATE_TIMEOUT_MS);
+
+      riverDriftSpawner.pause();
+      const snapshots = riverDriftSpawner.snapshots
+        .filter((snapshot) => snapshot.valid)
+        .sort((left, right) => left.spawnIndex - right.spawnIndex)
+        .map(cloneDriftSnapshot);
+      const firstThree = snapshots.slice(0, 3);
+      const scheduledTimes = firstThree.map((snapshot) => snapshot.scheduledTime);
+      const actualTimes = firstThree.map((snapshot) => snapshot.actualTime);
+      const actualIntervals = actualTimes.slice(1).map((time, index) => time - actualTimes[index]);
+      const heightOffsets = firstThree.map((snapshot) => snapshot.heightOffset);
+      const distinctHeightCount = new Set(heightOffsets.map((height) => height.toFixed(5))).size;
+      let alignedMovingCount = 0;
+      let maxVelocityWaterDot = Number.NEGATIVE_INFINITY;
+      for (const snapshot of snapshots) {
+        const velocityWaterDot =
+          snapshot.velocity.x * snapshot.waterVelocity.x + snapshot.velocity.z * snapshot.waterVelocity.z;
+        maxVelocityWaterDot = Math.max(maxVelocityWaterDot, velocityWaterDot);
+        if (snapshot.enteredWater && velocityWaterDot > 0.05 && snapshot.downstreamDistance > 0.25)
+          alignedMovingCount++;
+      }
+      const metrics = riverDriftSpawner.metrics;
+      maxObservedActiveCount = Math.max(maxObservedActiveCount, metrics.activeCount);
+      const activeCountBeforeCleanup = metrics.activeCount;
+      const spawnedTotal = metrics.spawnedTotal;
+      const destroyedTotal = metrics.destroyedTotal;
+      const capacityDestroyedCount = snapshots.filter((snapshot) => snapshot.destroyReason === "capacity").length;
+      const destroyReasons = snapshots.map((snapshot) => snapshot.destroyReason).filter((reason) => reason !== "");
+      const automaticLifecycleDestroyedCount = destroyReasons.filter((reason) =>
+        RIVER_DRIFT_AUTOMATIC_DESTROY_REASONS.includes(reason)
+      ).length;
+      const maxDownstreamDistance = metrics.maxDownstreamDistance;
+      const finite = metrics.finite && snapshots.every((snapshot) => snapshot.finite);
+      const runtimeError = metrics.runtimeError;
+      riverDriftSpawner.clear();
+      const activeCountAfterCleanup = riverDriftSpawner.metrics.activeCount;
+      return Object.freeze({
+        seed: metrics.seed,
+        observedSpawnCount: snapshots.length,
+        spawnedTotal,
+        destroyedTotal,
+        capacityDestroyedCount,
+        automaticLifecycleDestroyedCount,
+        destroyReasons: Object.freeze(destroyReasons),
+        maxObservedActiveCount,
+        scheduledTimes: Object.freeze(scheduledTimes),
+        actualTimes: Object.freeze(actualTimes),
+        actualIntervals: Object.freeze(actualIntervals),
+        heightOffsets: Object.freeze(heightOffsets),
+        distinctHeightCount,
+        freeFallCount: firstThree.filter((snapshot) => snapshot.hadFreeFall).length,
+        enteredWaterCount: firstThree.filter((snapshot) => snapshot.enteredWater).length,
+        alignedMovingCount,
+        maxVelocityWaterDot: Number.isFinite(maxVelocityWaterDot) ? maxVelocityWaterDot : 0,
+        maxDownstreamDistance,
+        activeCountBeforeCleanup,
+        activeCountAfterCleanup,
+        finite,
+        runtimeError,
+        snapshots: Object.freeze(snapshots)
+      });
+    } finally {
+      riverDriftSpawner.pause();
+      riverDriftSpawner.clear();
+      selectScenario(originalScenario);
+    }
   };
 
   const runPerformanceCase = async (
     bodyCount: number,
     pontoonCount: 4 | 8,
-    surfaceKind: BuoyancyProfileSurfaceKind
+    surfaceKind: BuoyancyProfileSurfaceKind,
+    horizontalDragEnabled: boolean
   ): Promise<BuoyancyPerformanceCaseResult> => {
     const createdCase = createProfileCase(
       bodyCount,
       pontoonCount,
       surfaceKind,
       true,
-      `profile-${surfaceKind}-${bodyCount}x${pontoonCount}`
+      horizontalDragEnabled,
+      `profile-${surfaceKind}-${bodyCount}x${pontoonCount}-horizontal-${horizontalDragEnabled ? "on" : "off"}`
     );
     try {
       const collector = createdCase.root.addComponent(BuoyancyProfileCollector);
@@ -1325,6 +1742,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
         surfaceKind,
         bodyCount,
         pontoonCount,
+        horizontalDragEnabled,
         queriesPerStep: collector.queryCountSamples[finalSampleIndex],
         appliedForcesPerStep: collector.appliedForceCountSamples[finalSampleIndex],
         expectedQueriesPerStep: bodyCount * pontoonCount,
@@ -1346,15 +1764,19 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
 
   const runPerformanceMatrix = (): Promise<readonly BuoyancyPerformanceCaseResult[]> => {
     if (profileRun) return profileRun;
+    const restoreStream = riverDriftSpawner.metrics.enabled && demoMetrics.scenario === "river-four";
+    riverDriftSpawner.pause();
+    riverDriftSpawner.clear();
     profileRun = (async () => {
       setStatus("profiling 1 / 20 / 100 bodies", "loading");
       profileButton.disabled = true;
       const results: BuoyancyPerformanceCaseResult[] = [];
       for (const bodyCount of BUOYANCY_PERFORMANCE_BODY_COUNTS) {
-        results.push(await runPerformanceCase(bodyCount, 4, "reach"));
+        results.push(await runPerformanceCase(bodyCount, 4, "reach", false));
       }
-      results.push(await runPerformanceCase(20, 8, "reach"));
-      results.push(await runPerformanceCase(100, 4, "junction"));
+      results.push(await runPerformanceCase(100, 4, "reach", true));
+      results.push(await runPerformanceCase(20, 8, "reach", false));
+      results.push(await runPerformanceCase(100, 4, "junction", false));
       const frozenResults = Object.freeze(results);
       demoMetrics.performanceResults = frozenResults;
       const stress =
@@ -1369,6 +1791,10 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     })().finally(() => {
       profileRun = null;
       profileButton.disabled = false;
+      if (restoreStream) {
+        riverDriftSpawner.reset(riverDriftSeed);
+        riverDriftSpawner.start();
+      }
     });
     return profileRun;
   };
@@ -1440,12 +1866,14 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     return Object.freeze({
       ready:
         state.stepCounter.stepCount >= ALLOCATION_PROBE_WARMUP_STEPS &&
+        state.horizontalDragEnabled &&
         queriesPerStep === expectedQueriesPerStep &&
         state.preflight.allInsideFootprint &&
         state.preflight.allExpectedSource,
       surfaceKind: "reach",
       bodyCount: state.components.length,
       pontoonCount: 4,
+      horizontalDragEnabled: state.horizontalDragEnabled,
       queriesPerStep,
       appliedForcesPerStep,
       expectedQueriesPerStep,
@@ -1457,11 +1885,15 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     });
   };
 
-  const disposeAllocationProbe = (): void => {
+  const disposeAllocationProbe = (restoreStream = true): void => {
     const currentProbe = allocationProbe;
     allocationProbe = null;
     currentProbe?.root.destroy();
     bodyRoot.isActive = true;
+    if (restoreStream && riverDriftAutoEnabled && demoMetrics.scenario === "river-four") {
+      riverDriftSpawner.reset(riverDriftSeed);
+      riverDriftSpawner.start();
+    }
   };
 
   const getAllocationProbeSnapshot = (): BuoyancyAllocationProbeSnapshot | null =>
@@ -1469,10 +1901,12 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
 
   const prepareAllocationProbe = async (): Promise<BuoyancyAllocationProbeSnapshot> => {
     if (profileRun || frameRateRun) throw new Error("Allocation probe cannot overlap another validation run.");
-    disposeAllocationProbe();
+    disposeAllocationProbe(false);
+    riverDriftSpawner.pause();
+    riverDriftSpawner.clear();
     bodyRoot.isActive = false;
     try {
-      const createdCase = createProfileCase(100, 4, "reach", false, "allocation-probe-reach-100x4");
+      const createdCase = createProfileCase(100, 4, "reach", false, true, "allocation-probe-reach-100x4-horizontal-on");
       const stepCounter = createdCase.root.addComponent(PhysicsStepCounter);
       allocationProbe = { ...createdCase, stepCounter };
       await waitUntil(() => {
@@ -1502,6 +1936,8 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     runRenderParityCheck,
     runSinglePontoonGate,
     runRecoveryGate,
+    runCurrentForceCheck,
+    runRiverDriftGate,
     runPerformanceMatrix,
     runFrameRateConsistency,
     prepareAllocationProbe,
@@ -1527,7 +1963,8 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
 
   window.addEventListener("beforeunload", () => {
     window.removeEventListener("resize", resizeCanvas);
-    disposeAllocationProbe();
+    disposeAllocationProbe(false);
+    riverDriftSpawner.destroyStream();
     destroyActiveBody();
     riverBed.destroy();
     riverRuntime.destroy();
@@ -1536,6 +1973,8 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     profileRiverResource.dispose();
     compileWorker.dispose();
     bodyMaterial.destroy(true);
+    root.destroy();
+    sharedPhysicsMaterial.destroy();
     engine.destroy();
   });
 }

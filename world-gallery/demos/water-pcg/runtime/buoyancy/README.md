@@ -1,10 +1,10 @@
 # Water buoyancy runtime
 
-This directory contains the P0 buoyancy capability incubated inside `@galacean/world-gallery/demos/water-pcg`. It is an internal water-pcg runtime, not a published Galacean API and not a provisional `@galacean/engine-water` package. River, Heightfield, Ocean, authoring, runtime, debugging, and performance behavior will be completed and validated here before package extraction is evaluated separately.
+This directory contains the P0 buoyancy and opt-in P1-Flow horizontal-water-drag capabilities incubated inside `@galacean/world-gallery/demos/water-pcg`. It is an internal water-pcg runtime, not a published Galacean API and not a provisional `@galacean/engine-water` package. River, Heightfield, Ocean, authoring, runtime, debugging, and performance behavior will be completed and validated here before package extraction is evaluated separately.
 
 “Engine-level” in this directory means that lifecycle, transforms, math, physics state, and point-force application reuse Galacean's existing public capabilities. It does not mean that water-pcg may reach into a native physics backend or that the current TypeScript contracts are already stable public API.
 
-## P0 capability
+## P0 buoyancy and P1-Flow capability
 
 P0 uses one to eight caller-authored spherical Pontoons to approximate displaced volume. During each normal Galacean fixed physics step, `WaterBuoyancy` (except the one guarded callback after `notifyTeleported()`):
 
@@ -12,9 +12,10 @@ P0 uses one to eight caller-authored spherical Pontoons to approximate displaced
 2. queries the current macro surface through a `WaterSurfaceProvider`;
 3. computes sphere-cap immersion and a radius-cubed share of body weight;
 4. computes vertical damping from the Pontoon's linear and angular point velocity;
-5. applies the bounded force with `DynamicCollider.applyForceAtPosition()`.
+5. when `applyHorizontalDrag` is enabled, computes horizontal drag from the Pontoon's velocity relative to the sampled local water velocity;
+6. combines the independently bounded vertical and horizontal forces and applies them once with `DynamicCollider.applyForceAtPosition()`.
 
-Multiple point forces naturally produce roll and pitch correction. P0 does not add a separate upright torque. Force is parallel to anti-gravity, not to the sampled surface normal, and horizontal current/drag is not applied yet.
+Multiple point forces naturally produce roll and pitch correction. P0 does not add a separate upright torque. The vertical force is parallel to anti-gravity, not to the sampled surface normal. P1-Flow horizontal drag is disabled by default for P0 compatibility; when enabled, point forces also produce natural angular damping and turning moments without a separate downstream-alignment torque.
 
 The current files are:
 
@@ -47,6 +48,13 @@ buoyancy.surfaceProvider = new RiverWaterSurfaceProvider(riverRuntime);
 buoyancy.buoyancyCoefficient = 2;
 buoyancy.verticalDamping = 1.5;
 buoyancy.maxForceMultiplier = 4;
+buoyancy.applyHorizontalDrag = true;
+buoyancy.horizontalLinearDrag = 0;
+buoyancy.waterDensity = 1000;
+buoyancy.horizontalDragCoefficient = 0.5;
+buoyancy.horizontalDragAreaScale = 1;
+buoyancy.maxHorizontalDragSpeed = 5;
+buoyancy.maxHorizontalForceMultiplier = 2;
 buoyancy.pontoons = [
   { localPosition: new Vector3(-1.1, -0.3, -1.6), radius: 0.7, enabled: true },
   { localPosition: new Vector3(1.1, -0.3, -1.6), radius: 0.7, enabled: true },
@@ -55,7 +63,9 @@ buoyancy.pontoons = [
 ];
 ```
 
-`surfaceProvider` is explicit. P0 has no scene-wide registry and does not search for or blend overlapping water bodies automatically. The River adapter reads the controller's active query service on every call so a runtime replacement does not leave the component with a stale query service.
+`surfaceProvider` is explicit. The runtime has no scene-wide registry and does not search for or blend overlapping water bodies automatically. The River adapter reads the controller's active query service on every call so a runtime replacement does not leave the component with a stale query service.
+
+Horizontal force is based on the actual relative velocity at each Pontoon. The solver projects `pointVelocity - waterVelocity` onto the plane perpendicular to gravity, evaluates linear plus quadratic drag against the submerged circular projection of the spherical Pontoon, and applies the opposite force. A stationary body is therefore accelerated downstream, drag naturally tends to zero as it matches the water, and a body moving faster than the current is slowed rather than receiving an unconditional downstream push.
 
 ## Galacean capability boundary
 
@@ -83,6 +93,7 @@ The backend may currently be PhysX, but that fact is confined to engine/demo boo
 
 - Pontoon `localPosition` is entity-local. Provider positions, sampled surface data, center of mass after transformation, forces, and force application points are world-space.
 - Distances use Galacean world units. Linear and water velocities use world units per second; this module does not assume that one world unit is one meter.
+- `waterDensity` uses caller units of mass per cubic world unit. The River cube stream intentionally uses an MKS-style scale (`1 world unit ≈ 1m`, mass in kilograms), so `1000` is meaningful there; projects with another unit scale must convert density and mass together.
 - `DynamicCollider.angularVelocity` is degrees per second. `BuoyancySolver` converts it to radians per second exactly once before evaluating `omega x (point - centerOfMass)`.
 - `onPhysicsUpdate()` is called by Galacean before each fixed simulation step. `applyForceAtPosition()` submits a continuous force, so the component must not multiply the force by `fixedTimeStep` or render-frame `deltaTime`.
 - `WaterSurfaceSample.surfacePosition`, `surfaceNormal`, and `waterVelocity` are caller-owned world-space values. Providers mutate the supplied storage and do not replace its vector instances.
@@ -108,6 +119,13 @@ The component defaults are:
 | `buoyancyCoefficient` | `2` | Equal-weight Pontoons produce roughly one body weight in total near half immersion. |
 | `verticalDamping` | `1.5` | Damps Pontoon velocity relative to the moving surface along anti-gravity. |
 | `maxForceMultiplier` | `4` | Caps each point force relative to that Pontoon's radius-cubed share of body weight. |
+| `applyHorizontalDrag` | `false` | Opts into P1-Flow horizontal drag while preserving P0 by default. |
+| `horizontalLinearDrag` | `0` | Linear low-speed drag coefficient. |
+| `waterDensity` | `1000` | Fluid density used by the quadratic term. |
+| `horizontalDragCoefficient` | `0.5` | Quadratic drag coefficient for the spherical-Pontoon approximation. |
+| `horizontalDragAreaScale` | `1` | Calibration scale for the submerged projected area. |
+| `maxHorizontalDragSpeed` | `5` | Caps drag evaluation speed without changing the real collider velocity. |
+| `maxHorizontalForceMultiplier` | `2` | Independently caps horizontal force against the Pontoon's body-weight share. |
 
 These are stable starting values, not universal material constants. Tune Pontoon placement and radius first, then buoyancy, damping, and the safety cap. Mass-normalized force makes the same preset usable over a useful mass range, but very different hull proportions still require authoring.
 
@@ -127,7 +145,7 @@ Heightfield currently exposes only its static base-surface query. It does not pr
 
 ## Allocation and performance contract
 
-After construction and caller configuration, the normal fixed-step path reuses its input, output, scratch vectors, surface sample, Pontoon states, and metrics. Providers must follow the same caller-owned-output rule. Do not allocate arrays, objects, or vectors per query or per physics step.
+After construction and caller configuration, the normal fixed-step path reuses its input, output, scratch vectors, surface sample, Pontoon states, horizontal-force vectors, and metrics. Providers must follow the same caller-owned-output rule. Do not allocate arrays, objects, or vectors per query or per physics step.
 
 Cost is approximately:
 
@@ -135,7 +153,7 @@ Cost is approximately:
 active floating bodies x enabled valid Pontoons x provider query cost
 ```
 
-Each enabled valid Pontoon can issue one scalar surface query per fixed step, including while it is horizontally outside the water. The component exposes `lastStepQueryCount`, `lastStepAppliedForceCount`, stable `pontoonStates`, and `isInWater` for verification. Set `profilingEnabled = true` only while measuring; `profilingMetrics` then reports query, solver, force-application, and total time for the latest step. The validation page profiles multi-tributary reach `1/20/100 × 4`, reach `20 × 8`, and junction `100 × 4` cases and records P50/P95 instead of assuming a device-independent millisecond budget.
+Each enabled valid Pontoon can issue one scalar surface query per fixed step, including while it is horizontally outside the water. The component exposes `lastStepQueryCount`, `lastStepAppliedForceCount`, stable `pontoonStates`, and `isInWater` for verification. Set `profilingEnabled = true` only while measuring; `profilingMetrics` then reports query, solver, force-application, and total time for the latest step. The validation page profiles six multi-tributary cases: reach `1/20/100 × 4` with horizontal drag off, reach `100 × 4` with horizontal drag on, reach `20 × 8`, and junction `100 × 4`. It records P50/P95 instead of assuming a device-independent millisecond budget.
 
 The 2026-07-20 local headed-Chromium baseline was:
 
@@ -147,7 +165,7 @@ The 2026-07-20 local headed-Chromium baseline was:
 | Reach `20 × 8`     |          160 | `3.8 / 4.3 ms` | `4.2 / 4.5 ms` |              `27.0%` |
 | Junction `100 × 4` |          400 | `6.7 / 7.1 ms` | `7.4 / 7.5 ms` |              `45.0%` |
 
-The steady-state allocation probe prewarms 100 bodies × 4 Pontoons, disables component profiling, then observes an undisturbed three-second window. CDP heap sampling attributed `0 B` to `water-pcg/runtime`, while the public PhysX bridge accounted for `16,464 B` of `33,580 B` sampled page allocations. Forced-GC heap usage ended `238,508 B` below the pre-window baseline; tracing observed 360 minor and one major GC across the whole instrumented page. This supports the feature-owned “no per-step object/array/Vector allocation” contract together with source review and identity-reuse tests. It does not claim that Galacean rendering, DevTools instrumentation, or the required PhysX public bridge allocates zero bytes.
+The steady-state allocation probe prewarms 100 bodies × 4 Pontoons with horizontal drag enabled, disables component profiling, then observes an undisturbed three-second window. The final headed Gate held `400` queries and `400` combined point forces per fixed step and attributed `0 B` to `water-pcg/runtime` in CDP heap sampling. This supports the feature-owned “no per-step object/array/Vector allocation” contract together with source review and identity-reuse tests. It does not claim that Galacean rendering, DevTools instrumentation, or the required PhysX public bridge allocates zero bytes. Repeated demo fixtures and the stream also replace each shape's constructor-owned default material with a bounded shared public `PhysicsMaterial`, explicitly destroy the replaced default, and release the shared material after the owning entities are destroyed.
 
 ## Teleport and callback-order limitation
 
@@ -181,10 +199,12 @@ Start the gallery and open the standalone page:
 /demos/water-pcg/buoyancy/
 ```
 
-The page provides a bounded static one-Pontoon control and a four-Pontoon dynamic River scenario, perturb/reset controls, Pontoon/surface/force debug geometry, and the five-case load matrix. Its browser smoke also creates short-lived integration fixtures for kinematic skipping, transformed-parent coordinates/radius, offshore rejection, and dynamic River re-immersion. The wake fixture remains dry and sleeping for at least five Galacean fixed steps at a measured low surface time, then switches the same Reach point to a measured high surface time and requires the public Pontoon point force to wake PhysX. Inspect:
+The page provides a bounded static one-Pontoon control and a continuous River stream that drops a small four-Pontoon cube from a different deterministic-random height every three seconds. The stream derives its upstream spawn band and downstream progress from compiled River data, uses only Galacean lifecycle and public physics APIs, and keeps at most ten active bodies. The former large four-Pontoon River body is now created only inside the isolated recovery Gate, so it remains a P0 control without obscuring the interactive stream. The six-case load matrix runs with the stream paused and includes a same-machine horizontal-drag off/on comparison.
+
+The browser smoke also creates short-lived integration fixtures for horizontal current response, kinematic skipping, transformed-parent coordinates/radius, offshore rejection, and dynamic River re-immersion. Its River drift Gate executes at least eleven scheduled drops (about thirty seconds), validates the first three `3s` intervals/heights/free-fall/immersion samples, tracks the maximum active count, proves positive velocity/current alignment and compiled-reach progress, requires automatic lifecycle cleanup, then removes every remaining body. The wake fixture remains dry and sleeping for at least five Galacean fixed steps at a measured low surface time, then switches the same Reach point to a measured high surface time and requires the public Pontoon point force to wake PhysX. Inspect:
 
 - `isInWater`, `lastStepQueryCount`, and `lastStepAppliedForceCount`;
-- `pontoonStates[i]` for hit, immersion, world radius, vertical speed, and force;
+- `pontoonStates[i]` for hit, immersion, world radius, vertical speed, horizontal relative speed, projected area, horizontal force/cap state, and final combined force;
 - `lastDiagnostic` for deduplicated configuration diagnostics;
 - fixed-time River surface/probe agreement and the absence of force outside the actual River footprint;
 - recovery from roll/pitch disturbance without an explicit upright torque;
@@ -196,10 +216,10 @@ The render-parity gate compares Provider height against the CPU mirror of the ac
 
 ## P1 and extraction policy
 
-P1 remains inside `world-gallery/demos/water-pcg`. Candidate work includes:
+P1 remains inside `world-gallery/demos/water-pcg`. P1-Flow now supplies opt-in isotropic Pontoon horizontal drag and the upstream cube-stream demonstration. Remaining candidate work includes:
 
 - render-matched dynamic Heightfield and Ocean providers;
-- relative horizontal-flow drag, angular drag, River push/alignment, and optional downstream behavior;
+- more advanced anisotropic hull drag, explicit angular drag, optional River alignment, lift, planing, and impact/slamming behavior;
 - water enter/exit state, Pontoon-level FX hooks, wake/splash integration;
 - multiple-water overlap, priority/exclusion, broad phase, and batch queries;
 - profiling-driven manager/activation policy for larger body counts;

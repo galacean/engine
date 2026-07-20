@@ -28,20 +28,33 @@ function createSolverFixture(): SolverFixture {
       mass: 10,
       buoyancyCoefficient: 2,
       verticalDamping: 0,
-      maxForceMultiplier: 100
+      maxForceMultiplier: 100,
+      applyHorizontalDrag: false,
+      horizontalLinearDrag: 0,
+      waterDensity: 1000,
+      horizontalDragCoefficient: 0.5,
+      horizontalDragAreaScale: 1,
+      maxHorizontalDragSpeed: 5,
+      maxHorizontalForceMultiplier: 100
     },
     output: {
       force: new Vector3(),
+      horizontalForce: new Vector3(),
       submergedRatio: 0,
       radiusCubedWeight: 0,
-      verticalSpeed: 0
+      verticalSpeed: 0,
+      horizontalRelativeSpeed: 0,
+      submergedProjectedArea: 0,
+      submergedAreaRatio: 0,
+      horizontalForceClamped: false
     },
     scratch: {
       up: new Vector3(),
       angularVelocityRadians: new Vector3(),
       offsetFromCenterOfMass: new Vector3(),
       pointVelocity: new Vector3(),
-      relativeVelocity: new Vector3()
+      relativeVelocity: new Vector3(),
+      horizontalRelativeVelocity: new Vector3()
     }
   };
 }
@@ -50,9 +63,15 @@ function expectFiniteOutput(output: BuoyancyPointForceOutput): void {
   expect(Number.isFinite(output.force.x)).toBe(true);
   expect(Number.isFinite(output.force.y)).toBe(true);
   expect(Number.isFinite(output.force.z)).toBe(true);
+  expect(Number.isFinite(output.horizontalForce.x)).toBe(true);
+  expect(Number.isFinite(output.horizontalForce.y)).toBe(true);
+  expect(Number.isFinite(output.horizontalForce.z)).toBe(true);
   expect(Number.isFinite(output.submergedRatio)).toBe(true);
   expect(Number.isFinite(output.radiusCubedWeight)).toBe(true);
   expect(Number.isFinite(output.verticalSpeed)).toBe(true);
+  expect(Number.isFinite(output.horizontalRelativeSpeed)).toBe(true);
+  expect(Number.isFinite(output.submergedProjectedArea)).toBe(true);
+  expect(Number.isFinite(output.submergedAreaRatio)).toBe(true);
 }
 
 describe("BuoyancySolver sphere-cap immersion", () => {
@@ -91,6 +110,41 @@ describe("BuoyancySolver sphere-cap immersion", () => {
     expect(
       BuoyancySolver.computeSubmergedRatio(new Vector3(), new Vector3(0, Number.POSITIVE_INFINITY, 0), up, 1)
     ).toBe(0);
+  });
+});
+
+describe("BuoyancySolver submerged projected area", () => {
+  const surface = new Vector3(0, 0, 0);
+  const up = new Vector3(0, 1, 0);
+
+  it("returns exact dry, half-submerged, and fully submerged circular-area ratios", () => {
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(0, 1, 0), surface, up, 1)).toBe(0);
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(0, 0, 0), surface, up, 1)).toBe(0.5);
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(0, -1, 0), surface, up, 1)).toBe(1);
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(0, 100, 0), surface, up, 1)).toBe(0);
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(0, -100, 0), surface, up, 1)).toBe(1);
+  });
+
+  it("is finite, bounded, and monotonic throughout immersion", () => {
+    let previous = 0;
+    for (let index = 0; index <= 400; index++) {
+      const centerY = 1.2 - index * 0.006;
+      const ratio = BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(0, centerY, 0), surface, up, 1);
+      expect(Number.isFinite(ratio)).toBe(true);
+      expect(ratio).toBeGreaterThanOrEqual(0);
+      expect(ratio).toBeLessThanOrEqual(1);
+      expect(ratio + 1e-12).toBeGreaterThanOrEqual(previous);
+      previous = ratio;
+    }
+  });
+
+  it("normalizes up and rejects invalid geometry", () => {
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(), surface, new Vector3(0, 20, 0), 1)).toBe(
+      0.5
+    );
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(), surface, new Vector3(), 1)).toBe(0);
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(), surface, up, 0)).toBe(0);
+    expect(BuoyancySolver.computeSubmergedProjectedAreaRatio(new Vector3(Number.NaN, 0, 0), surface, up, 1)).toBe(0);
   });
 });
 
@@ -162,6 +216,185 @@ describe("BuoyancySolver point velocity", () => {
 
     expect(returned).toBe(out);
     expect(out).toMatchObject({ x: 0, y: 0, z: 0 });
+  });
+});
+
+describe("BuoyancySolver horizontal water drag", () => {
+  function enableHorizontalDrag(fixture: SolverFixture): void {
+    fixture.input.applyHorizontalDrag = true;
+    fixture.input.buoyancyCoefficient = 0;
+    fixture.input.verticalDamping = 0;
+    fixture.input.horizontalLinearDrag = 2;
+    fixture.input.waterDensity = 0;
+    fixture.input.horizontalDragCoefficient = 0;
+    fixture.input.horizontalDragAreaScale = 1;
+    fixture.input.maxHorizontalDragSpeed = 10;
+    fixture.input.maxHorizontalForceMultiplier = 100;
+  }
+
+  it("pushes a stationary Pontoon with the current and vanishes when point and water velocities match", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.waterVelocity.set(3, 0, 0);
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+
+    expect(fixture.output.horizontalRelativeSpeed).toBe(3);
+    expect(fixture.output.submergedAreaRatio).toBe(0.5);
+    expect(fixture.output.submergedProjectedArea).toBeCloseTo(Math.PI * 0.5, 12);
+    expect(fixture.output.horizontalForce.x).toBeCloseTo(3 * Math.PI, 12);
+    expect(fixture.output.horizontalForce.y).toBeCloseTo(0, 12);
+    expect(fixture.output.force).toEqual(fixture.output.horizontalForce);
+    expect(fixture.output.horizontalForceClamped).toBe(false);
+
+    fixture.input.linearVelocity.set(3, 0, 0);
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.horizontalRelativeSpeed).toBe(0);
+    expect(fixture.output.horizontalForce).toMatchObject({ x: 0, y: 0, z: 0 });
+    expect(fixture.output.force).toMatchObject({ x: 0, y: 0, z: 0 });
+  });
+
+  it("reverses force after a Pontoon overtakes the current and for the opposite current", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.waterVelocity.set(3, 0, 0);
+    fixture.input.linearVelocity.set(4, 0, 0);
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    const upstreamMagnitude = fixture.output.horizontalForce.x;
+    expect(upstreamMagnitude).toBeCloseTo(-Math.PI, 12);
+
+    fixture.input.linearVelocity.set(0, 0, 0);
+    fixture.input.waterVelocity.set(-1, 0, 0);
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.horizontalForce.x).toBeCloseTo(upstreamMagnitude, 12);
+  });
+
+  it("keeps vertical water motion out of horizontal drag while retaining P0 vertical damping", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.verticalDamping = 2;
+    fixture.input.waterVelocity.set(0, 3, 0);
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+
+    expect(fixture.output.verticalSpeed).toBe(-3);
+    expect(fixture.output.horizontalRelativeSpeed).toBe(0);
+    expect(fixture.output.horizontalForce).toMatchObject({ x: 0, y: 0, z: 0 });
+    expect(fixture.output.force).toMatchObject({ x: 0, y: 30, z: 0 });
+  });
+
+  it("scales linearly and quadratically with the capped evaluation speed", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.waterVelocity.set(1, 0, 0);
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    const linearAtOne = fixture.output.horizontalForce.x;
+    fixture.input.waterVelocity.set(2, 0, 0);
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.horizontalForce.x / linearAtOne).toBeCloseTo(2, 12);
+
+    fixture.input.horizontalLinearDrag = 0;
+    fixture.input.waterDensity = 2;
+    fixture.input.horizontalDragCoefficient = 3;
+    fixture.input.waterVelocity.set(1, 0, 0);
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    const quadraticAtOne = fixture.output.horizontalForce.x;
+    fixture.input.waterVelocity.set(2, 0, 0);
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.horizontalForce.x / quadraticAtOne).toBeCloseTo(4, 12);
+
+    fixture.input.maxHorizontalDragSpeed = 1;
+    fixture.input.waterVelocity.set(8, 0, 0);
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.horizontalRelativeSpeed).toBe(8);
+    expect(fixture.output.horizontalForce.x).toBeCloseTo(quadraticAtOne, 12);
+  });
+
+  it("scales projected area and uncapped drag with radius squared", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.waterVelocity.set(1, 0, 0);
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    const radiusOneArea = fixture.output.submergedProjectedArea;
+    const radiusOneForce = fixture.output.horizontalForce.x;
+
+    fixture.input.radius = 2;
+    fixture.input.totalRadiusCubed = 8;
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.submergedAreaRatio).toBe(0.5);
+    expect(fixture.output.submergedProjectedArea / radiusOneArea).toBeCloseTo(4, 12);
+    expect(fixture.output.horizontalForce.x / radiusOneForce).toBeCloseTo(4, 12);
+  });
+
+  it("is mass-independent before the separate weight-share cap and reports clamping", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.waterVelocity.set(2, 0, 0);
+    fixture.input.mass = 1;
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    const lightForce = fixture.output.horizontalForce.x;
+
+    fixture.input.mass = 100;
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.horizontalForce.x).toBeCloseTo(lightForce, 12);
+    expect(fixture.output.horizontalForceClamped).toBe(false);
+
+    fixture.input.mass = 2;
+    fixture.input.horizontalLinearDrag = 100;
+    fixture.input.waterVelocity.set(10, 0, 0);
+    fixture.input.maxHorizontalForceMultiplier = 0.5;
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+    expect(fixture.output.horizontalForce.x).toBeCloseTo(10, 12);
+    expect(fixture.output.horizontalForceClamped).toBe(true);
+  });
+
+  it("projects drag onto the anti-gravity plane and combines it with vertical force", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.gravity.set(6, -8, 0);
+    fixture.input.buoyancyCoefficient = 1;
+    fixture.input.waterVelocity.set(1.6, 1.2, 0);
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+
+    const up = new Vector3(-0.6, 0.8, 0);
+    expect(Vector3.dot(fixture.output.horizontalForce, up)).toBeCloseTo(0, 12);
+    expect(fixture.output.horizontalForce.x).toBeGreaterThan(0);
+    expect(fixture.output.horizontalForce.y).toBeGreaterThan(0);
+    expect(fixture.output.force.x).toBeCloseTo(-30 + fixture.output.horizontalForce.x, 12);
+    expect(fixture.output.force.y).toBeCloseTo(40 + fixture.output.horizontalForce.y, 12);
+  });
+
+  it("uses angular point velocity to generate natural horizontal angular damping", () => {
+    const fixture = createSolverFixture();
+    enableHorizontalDrag(fixture);
+    fixture.input.pontoonCenter.set(1, 0, 0);
+    fixture.input.angularVelocityDegrees.set(0, 90, 0);
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+
+    expect(fixture.output.horizontalRelativeSpeed).toBeCloseTo(Math.PI / 2, 12);
+    expect(fixture.output.horizontalForce.x).toBeCloseTo(0, 12);
+    expect(fixture.output.horizontalForce.z).toBeGreaterThan(0);
+  });
+
+  it("preserves P0 output exactly while horizontal drag is disabled", () => {
+    const fixture = createSolverFixture();
+    fixture.input.waterVelocity.set(4, 0, -3);
+    fixture.input.horizontalLinearDrag = Number.NaN;
+    fixture.input.waterDensity = Number.NaN;
+
+    BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
+
+    expect(fixture.output.force).toMatchObject({ x: 0, y: 100, z: 0 });
+    expect(fixture.output.horizontalForce).toMatchObject({ x: 0, y: 0, z: 0 });
+    expect(fixture.output.horizontalRelativeSpeed).toBe(0);
+    expect(fixture.output.submergedProjectedArea).toBe(0);
+    expect(fixture.output.submergedAreaRatio).toBe(0);
+    expect(fixture.output.horizontalForceClamped).toBe(false);
   });
 });
 
@@ -319,6 +552,7 @@ describe("BuoyancySolver point force", () => {
   it("returns and reuses caller-owned output and scratch objects", () => {
     const fixture = createSolverFixture();
     const force = fixture.output.force;
+    const horizontalForce = fixture.output.horizontalForce;
     const scratchVectors = Object.values(fixture.scratch);
 
     for (let index = 0; index < 1000; index++) {
@@ -326,6 +560,7 @@ describe("BuoyancySolver point force", () => {
       const returned = BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
       expect(returned).toBe(fixture.output);
       expect(returned.force).toBe(force);
+      expect(returned.horizontalForce).toBe(horizontalForce);
     }
     expect(Object.values(fixture.scratch)).toEqual(scratchVectors);
   });
@@ -371,6 +606,30 @@ describe("BuoyancySolver point force", () => {
       (input) => (input.buoyancyCoefficient = -1),
       (input) => (input.verticalDamping = Number.NaN),
       (input) => (input.maxForceMultiplier = -1),
+      (input) => {
+        input.applyHorizontalDrag = true;
+        input.horizontalLinearDrag = -1;
+      },
+      (input) => {
+        input.applyHorizontalDrag = true;
+        input.waterDensity = Number.NaN;
+      },
+      (input) => {
+        input.applyHorizontalDrag = true;
+        input.horizontalDragCoefficient = Number.POSITIVE_INFINITY;
+      },
+      (input) => {
+        input.applyHorizontalDrag = true;
+        input.horizontalDragAreaScale = -1;
+      },
+      (input) => {
+        input.applyHorizontalDrag = true;
+        input.maxHorizontalDragSpeed = Number.NaN;
+      },
+      (input) => {
+        input.applyHorizontalDrag = true;
+        input.maxHorizontalForceMultiplier = -1;
+      },
       (input) => input.waterVelocity.set(Number.NaN, 0, 0),
       (input) => input.linearVelocity.set(0, Number.POSITIVE_INFINITY, 0),
       (input) => input.angularVelocityDegrees.set(0, 0, Number.NaN),
@@ -381,15 +640,21 @@ describe("BuoyancySolver point force", () => {
     for (const mutate of cases) {
       const fixture = createSolverFixture();
       fixture.output.force.set(1, 2, 3);
+      fixture.output.horizontalForce.set(7, 8, 9);
       fixture.output.submergedRatio = 4;
       fixture.output.radiusCubedWeight = 5;
       fixture.output.verticalSpeed = 6;
+      fixture.output.horizontalRelativeSpeed = 7;
+      fixture.output.submergedProjectedArea = 8;
+      fixture.output.submergedAreaRatio = 9;
+      fixture.output.horizontalForceClamped = true;
       mutate(fixture.input);
 
       const returned = BuoyancySolver.computePointForce(fixture.input, fixture.output, fixture.scratch);
 
       expect(returned).toBe(fixture.output);
       expect(fixture.output.force).toMatchObject({ x: 0, y: 0, z: 0 });
+      expect(fixture.output.horizontalForce).toMatchObject({ x: 0, y: 0, z: 0 });
       expectFiniteOutput(fixture.output);
     }
   });

@@ -156,12 +156,12 @@
   <body>
     <aside id="buoyancy-hud" aria-live="polite">
       <div class="hud-heading">
-        <strong>Water buoyancy / fixed physics step</strong>
+        <strong>Water buoyancy / River current</strong>
         <span id="buoyancy-status" data-state="loading">initializing PhysX</span>
       </div>
       <div class="hud-controls" aria-label="Buoyancy scenarios">
         <button type="button" data-scenario="static-single">Static · 1 pontoon</button>
-        <button type="button" data-scenario="river-four">River · 4 pontoons</button>
+        <button type="button" data-scenario="river-four">River · cube stream</button>
         <button type="button" id="buoyancy-perturb">Perturb</button>
         <button type="button" id="buoyancy-reset">Reset</button>
         <button type="button" id="buoyancy-profile">Profile 1/20/100</button>
@@ -182,6 +182,22 @@
         <div>
           <dt>submerged</dt>
           <dd data-metric="submerged">—</dd>
+        </div>
+        <div>
+          <dt>stream spawned / active</dt>
+          <dd data-metric="drift-count">—</dd>
+        </div>
+        <div>
+          <dt>stream in water</dt>
+          <dd data-metric="drift-water">—</dd>
+        </div>
+        <div>
+          <dt>max downstream</dt>
+          <dd data-metric="drift-distance">—</dd>
+        </div>
+        <div>
+          <dt>last drop height</dt>
+          <dd data-metric="drift-height">—</dd>
         </div>
         <div>
           <dt>height</dt>
@@ -221,7 +237,10 @@
         </div>
       </dl>
     </aside>
-    <div id="buoyancy-legend">cyan sphere · pontoon / white point · sampled surface / amber line · point force</div>
+    <div id="buoyancy-legend">
+      cyan sphere · pontoon / white point · sampled surface / amber line · total point force / cubes · 3s upstream
+      stream
+    </div>
     <canvas id="canvas"></canvas>
     <script type="module" src="../demo/buoyancy/main.ts"></script>
   </body>

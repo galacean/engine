@@ -27,14 +27,26 @@ export interface BuoyancyPointForceInput {
   buoyancyCoefficient: number;
   verticalDamping: number;
   maxForceMultiplier: number;
+  applyHorizontalDrag: boolean;
+  horizontalLinearDrag: number;
+  waterDensity: number;
+  horizontalDragCoefficient: number;
+  horizontalDragAreaScale: number;
+  maxHorizontalDragSpeed: number;
+  maxHorizontalForceMultiplier: number;
 }
 
 /** Caller-owned result for one Pontoon force evaluation. */
 export interface BuoyancyPointForceOutput {
   readonly force: Vector3;
+  readonly horizontalForce: Vector3;
   submergedRatio: number;
   radiusCubedWeight: number;
   verticalSpeed: number;
+  horizontalRelativeSpeed: number;
+  submergedProjectedArea: number;
+  submergedAreaRatio: number;
+  horizontalForceClamped: boolean;
 }
 
 /**
@@ -48,4 +60,5 @@ export interface BuoyancySolverScratch {
   readonly offsetFromCenterOfMass: Vector3;
   readonly pointVelocity: Vector3;
   readonly relativeVelocity: Vector3;
+  readonly horizontalRelativeVelocity: Vector3;
 }

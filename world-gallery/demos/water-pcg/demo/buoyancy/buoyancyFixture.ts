@@ -34,6 +34,7 @@ export interface BuoyancyPerformanceCaseResult {
   readonly surfaceKind: BuoyancyProfileSurfaceKind;
   readonly bodyCount: number;
   readonly pontoonCount: number;
+  readonly horizontalDragEnabled: boolean;
   readonly queriesPerStep: number;
   readonly appliedForcesPerStep: number;
   readonly expectedQueriesPerStep: number;

@@ -7,6 +7,12 @@ const ATTITUDE_RECOVERY_TOLERANCE_DEGREES = 12;
 const FRAME_RATE_HEIGHT_SPREAD_TOLERANCE = 0.02;
 const RIVER_RENDER_PARITY_TOLERANCE = 0.05;
 const ALLOCATION_SAMPLE_WINDOW_MS = 3000;
+const RIVER_DRIFT_SEED = 1831565813;
+const RIVER_DRIFT_SPAWN_INTERVAL_SECONDS = 3;
+const RIVER_DRIFT_INTERVAL_TOLERANCE_SECONDS = 0.12;
+const RIVER_DRIFT_MIN_HEIGHT = 2.5;
+const RIVER_DRIFT_MAX_HEIGHT = 5.5;
+const RIVER_DRIFT_MIN_DOWNSTREAM_DISTANCE = 4;
 const PHYSX_REQUEST_PATTERN = /engine-physics-physx|physics-physx|physx\.release/i;
 const headed = process.env.BUOYANCY_HEADED === "1";
 const requireActualFrameRateTargets = headed || process.env.BUOYANCY_REQUIRE_ACTUAL_FPS === "1";
@@ -89,6 +95,7 @@ async function readTraceStream(cdp, stream) {
 async function measureSteadyStateAllocation(context, page) {
   const allocationProbeBefore = await page.evaluate(() => window.waterBuoyancyDemo.prepareAllocationProbe());
   assert(allocationProbeBefore.ready, "The 100x4 allocation probe did not reach steady state.");
+  assert(allocationProbeBefore.horizontalDragEnabled, "The allocation probe did not enable horizontal drag.");
   assert(
     allocationProbeBefore.queriesPerStep === allocationProbeBefore.expectedQueriesPerStep,
     "The allocation probe did not issue exactly one query per enabled Pontoon."
@@ -114,6 +121,7 @@ async function measureSteadyStateAllocation(context, page) {
 
     const allocationProbeAfter = await page.evaluate(() => window.waterBuoyancyDemo.getAllocationProbeSnapshot());
     assert(allocationProbeAfter?.ready, "The allocation probe became invalid during steady-state sampling.");
+    assert(allocationProbeAfter.horizontalDragEnabled, "The sampled allocation hot path disabled horizontal drag.");
     assert(
       allocationProbeAfter.queriesPerStep === allocationProbeAfter.expectedQueriesPerStep,
       "The allocation probe query count changed during steady-state sampling."
@@ -195,9 +203,81 @@ async function verifyExistingWaterPageWithoutPhysX(browser, url, ready) {
   }
 }
 
+async function verifyRiverDriftStream(browser, baseUrl) {
+  const riverDriftUrl = new URL(baseUrl.href);
+  riverDriftUrl.searchParams.set("scenario", "river-four");
+  riverDriftUrl.searchParams.set("surfaceTime", "12.5");
+  riverDriftUrl.searchParams.set("drift", "1");
+  riverDriftUrl.searchParams.set("driftSeed", String(RIVER_DRIFT_SEED));
+  const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
+  const page = await context.newPage();
+  const browserErrors = [];
+  collectBrowserErrors(page, browserErrors);
+  try {
+    await page.goto(riverDriftUrl.href, { waitUntil: "domcontentloaded", timeout: 30_000 });
+    await page.waitForFunction(
+      () =>
+        window.waterBuoyancyDemo?.metrics.ready === true && window.waterBuoyancyDemo.metrics.scenario === "river-four",
+      null,
+      { timeout: 30_000 }
+    );
+    const result = await page.evaluate(() => window.waterBuoyancyDemo.runRiverDriftGate());
+    assert(result.seed === RIVER_DRIFT_SEED, `River drift used seed ${result.seed}, expected ${RIVER_DRIFT_SEED}.`);
+    assert(result.observedSpawnCount >= 11, "River drift did not retain evidence for eleven spawned cubes.");
+    assert(result.spawnedTotal >= 11, "River drift did not execute the eleventh three-second spawn.");
+    assert(result.scheduledTimes.length === 3, "River drift did not report the first three scheduled spawn times.");
+    for (let index = 0; index < result.scheduledTimes.length; index++) {
+      const expectedTime = index * RIVER_DRIFT_SPAWN_INTERVAL_SECONDS;
+      assert(
+        Math.abs(result.scheduledTimes[index] - expectedTime) <= Number.EPSILON,
+        `River drift spawn ${index} was scheduled at ${result.scheduledTimes[index]}, expected ${expectedTime}.`
+      );
+    }
+    assert(result.actualIntervals.length === 2, "River drift did not report two observed spawn intervals.");
+    for (const interval of result.actualIntervals) {
+      assert(
+        Math.abs(interval - RIVER_DRIFT_SPAWN_INTERVAL_SECONDS) <= RIVER_DRIFT_INTERVAL_TOLERANCE_SECONDS,
+        `River drift spawn interval ${interval} left the 3 +/- 0.12 second window.`
+      );
+    }
+    assert(result.heightOffsets.length === 3, "River drift did not report three spawn-height offsets.");
+    assert(
+      result.heightOffsets.every((height) => height >= RIVER_DRIFT_MIN_HEIGHT && height <= RIVER_DRIFT_MAX_HEIGHT),
+      `River drift spawn heights left [${RIVER_DRIFT_MIN_HEIGHT}, ${RIVER_DRIFT_MAX_HEIGHT}].`
+    );
+    assert(result.distinctHeightCount >= 2, "River drift did not use at least two distinct spawn heights.");
+    assert(result.freeFallCount === 3, "The first three River cubes did not all exhibit free fall.");
+    assert(result.enteredWaterCount === 3, "The first three River cubes did not all enter the water.");
+    assert(result.alignedMovingCount > 0, "No River cube moved in alignment with the sampled water velocity.");
+    assert(
+      result.maxDownstreamDistance >= RIVER_DRIFT_MIN_DOWNSTREAM_DISTANCE,
+      `River cubes moved ${result.maxDownstreamDistance} downstream, expected at least ${RIVER_DRIFT_MIN_DOWNSTREAM_DISTANCE}.`
+    );
+    assert(result.maxObservedActiveCount <= 10, "River drift exceeded the ten-body active limit.");
+    assert(result.activeCountBeforeCleanup <= 10, "River drift ended above the ten-body active limit.");
+    assert(result.destroyedTotal >= 1, "River drift did not exercise automatic lifecycle cleanup.");
+    assert(
+      result.automaticLifecycleDestroyedCount >= 1,
+      "River drift did not record capacity/downstream/expired/off-water cleanup."
+    );
+    assert(result.destroyReasons.length >= 1, "River drift did not expose its automatic destroy reasons.");
+    if (result.capacityDestroyedCount > 0) {
+      assert(result.destroyReasons.includes("capacity"), "Capacity eviction was not exposed in destroyReasons.");
+    }
+    assert(result.activeCountAfterCleanup === 0, "River drift cleanup left active cubes behind.");
+    assert(result.finite, "River drift produced a non-finite body state.");
+    assert(result.runtimeError === "", `River drift reported a runtime error: ${result.runtimeError}`);
+    assert(browserErrors.length === 0, `River drift browser errors:\n${browserErrors.join("\n")}`);
+    return { url: riverDriftUrl.href, result, browserErrors: [...browserErrors] };
+  } finally {
+    await context.close();
+  }
+}
+
 const targetUrl = new URL(process.env.BUOYANCY_URL ?? DEFAULT_URL);
 targetUrl.searchParams.set("scenario", "static-single");
 targetUrl.searchParams.set("surfaceTime", "12.5");
+targetUrl.searchParams.set("drift", "0");
 
 const browser = await chromium.launch({ headless: !headed });
 const context = await browser.newContext({ viewport: { width: 1280, height: 720 }, deviceScaleFactor: 1 });
@@ -238,26 +318,36 @@ try {
   assert(parentTransformResult.diagnostic === "", "The transformed-parent fixture reported a diagnostic.");
   assert(parentTransformResult.worldPositionError <= 1e-6, "Parent/world Pontoon position conversion diverged.");
   assert(parentTransformResult.worldRadiusError <= 1e-6, "Parent/world Pontoon radius scaling diverged.");
+  const currentForceResult = await page.evaluate(() => window.waterBuoyancyDemo.runCurrentForceCheck());
+  assert(currentForceResult.firstHorizontalForceX > 0, "The current-control fixture did not receive +X water force.");
+  assert(currentForceResult.downstreamDistance > 0, "The current-control fixture did not move downstream.");
+  assert(currentForceResult.maxDownstreamSpeed > 0, "The current-control fixture gained no downstream velocity.");
+  assert(
+    currentForceResult.finalRelativeSpeed < currentForceResult.initialRelativeSpeed,
+    "The current-control fixture did not reduce its speed relative to the water."
+  );
+  assert(currentForceResult.finite, "The current-control fixture produced a non-finite body state.");
+  assert(
+    currentForceResult.maxDownstreamSpeed <= currentForceResult.waterSpeed * 1.05,
+    "The current-control fixture persistently exceeded the water speed."
+  );
   await page.evaluate(() => window.waterBuoyancyDemo.selectScenario("river-four"));
   await page.waitForFunction(
-    ({ parityTolerance }) => {
+    () => {
       const metrics = window.waterBuoyancyDemo?.metrics;
       return (
         metrics?.scenario === "river-four" &&
+        metrics.ready &&
         metrics.runtimeError === "" &&
         metrics.finite &&
-        metrics.recovered &&
-        metrics.submergedPontoonCount > 0 &&
-        metrics.surfaceParityError <= parityTolerance
+        !metrics.driftEnabled
       );
     },
-    { parityTolerance: RIVER_RENDER_PARITY_TOLERANCE },
+    null,
     { timeout: 20_000 }
   );
-  const riverBeforePerturbation = await readMetrics(page);
-  assert(riverBeforePerturbation.pontoonCount === 4, "The River fixture must use four Pontoons.");
-  assert(riverBeforePerturbation.queryCountPerStep === 4, "The River fixture must issue four queries per step.");
-  assert(riverBeforePerturbation.appliedForceCountPerStep > 0, "The River fixture did not apply point forces.");
+  const riverScenarioMetrics = await readMetrics(page);
+  assert(riverScenarioMetrics.bodyCount === 0, "The drift-disabled River scenario retained a permanent control body.");
   const sleepWakeResult = await page.evaluate(() => window.waterBuoyancyDemo.runSleepWakeCheck());
   assert(sleepWakeResult.surfaceKind === "reach", "Sleep/wake did not use a dynamic River reach.");
   assert(sleepWakeResult.surfaceHeightDelta >= 0.01, "Sleep/wake River height range was too small.");
@@ -353,9 +443,11 @@ try {
   }
 
   const performanceResults = await page.evaluate(() => window.waterBuoyancyDemo.runPerformanceMatrix());
-  assert(performanceResults.length === 5, "The performance matrix did not return all five planned cases.");
+  assert(performanceResults.length === 6, "The performance matrix did not return all six planned cases.");
   for (const result of performanceResults) {
-    assertFiniteProfile(result, `${result.surfaceKind}:${result.bodyCount}x${result.pontoonCount}`);
+    const horizontalLabel = result.horizontalDragEnabled ? "horizontal-on" : "horizontal-off";
+    assertFiniteProfile(result, `${result.surfaceKind}:${result.bodyCount}x${result.pontoonCount}:${horizontalLabel}`);
+    assert(typeof result.horizontalDragEnabled === "boolean", "Performance result omitted horizontal-drag state.");
     const expectedQueries = result.bodyCount * result.pontoonCount;
     assert(
       result.queriesPerStep === expectedQueries,
@@ -376,8 +468,24 @@ try {
     );
   }
   assert(
-    performanceResults.some((result) => result.bodyCount === 100 && result.pontoonCount === 4),
-    "The 100 bodies x 4 Pontoons stress case is missing."
+    performanceResults.some(
+      (result) =>
+        result.surfaceKind === "reach" &&
+        result.bodyCount === 100 &&
+        result.pontoonCount === 4 &&
+        !result.horizontalDragEnabled
+    ),
+    "The horizontal-off reach 100 bodies x 4 Pontoons control case is missing."
+  );
+  assert(
+    performanceResults.some(
+      (result) =>
+        result.surfaceKind === "reach" &&
+        result.bodyCount === 100 &&
+        result.pontoonCount === 4 &&
+        result.horizontalDragEnabled
+    ),
+    "The horizontal-on reach 100 bodies x 4 Pontoons comparison case is missing."
   );
   assert(
     performanceResults.some((result) => result.bodyCount === 20 && result.pontoonCount === 8),
@@ -391,6 +499,8 @@ try {
   );
 
   const allocationEvidence = await measureSteadyStateAllocation(context, page);
+
+  const riverDriftResult = await verifyRiverDriftStream(browser, targetUrl);
 
   const existingWaterUrl = new URL("../", targetUrl);
   existingWaterUrl.search = "?webgl=1&quality=medium&surfaceTime=12.5";
@@ -418,18 +528,16 @@ try {
           kinematic: kinematicResult,
           parentTransform: parentTransformResult
         },
+        currentForce: currentForceResult,
         river: {
-          beforePerturbation: {
-            rollDegrees: riverBeforePerturbation.rollDegrees,
-            pitchDegrees: riverBeforePerturbation.pitchDegrees,
-            surfaceParityError: riverBeforePerturbation.surfaceParityError
-          },
+          scenarioMetrics: riverScenarioMetrics,
           renderParityResult,
           offshoreResult,
           sleepWakeResult,
           recovery: recoveryGateResult,
           dwellMaxAttitudeDegrees: maxRecoveryAttitude
         },
+        riverDrift: riverDriftResult,
         performanceResults,
         allocationEvidence,
         frameRateResults,

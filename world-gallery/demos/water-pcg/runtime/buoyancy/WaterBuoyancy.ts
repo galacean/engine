@@ -31,10 +31,15 @@ export interface WaterBuoyancyPontoonState {
   readonly submergedRatio: number;
   readonly radiusCubedWeight: number;
   readonly verticalSpeed: number;
+  readonly horizontalRelativeSpeed: number;
+  readonly submergedProjectedArea: number;
+  readonly submergedAreaRatio: number;
+  readonly horizontalForceClamped: boolean;
   readonly worldRadius: number;
   readonly worldPosition: Vector3;
   readonly surfacePosition: Vector3;
   readonly force: Vector3;
+  readonly horizontalForce: Vector3;
 }
 
 /** Optional timing for the most recent fixed physics step. All values are milliseconds. */
@@ -67,10 +72,15 @@ function createPontoonState(): MutableWaterBuoyancyPontoonState {
     submergedRatio: 0,
     radiusCubedWeight: 0,
     verticalSpeed: 0,
+    horizontalRelativeSpeed: 0,
+    submergedProjectedArea: 0,
+    submergedAreaRatio: 0,
+    horizontalForceClamped: false,
     worldRadius: 0,
     worldPosition: new Vector3(),
     surfacePosition: new Vector3(),
-    force: new Vector3()
+    force: new Vector3(),
+    horizontalForce: new Vector3()
   };
 }
 
@@ -80,10 +90,15 @@ function resetPontoonState(state: MutableWaterBuoyancyPontoonState): void {
   state.submergedRatio = 0;
   state.radiusCubedWeight = 0;
   state.verticalSpeed = 0;
+  state.horizontalRelativeSpeed = 0;
+  state.submergedProjectedArea = 0;
+  state.submergedAreaRatio = 0;
+  state.horizontalForceClamped = false;
   state.worldRadius = 0;
   state.worldPosition.set(0, 0, 0);
   state.surfacePosition.set(0, 0, 0);
   state.force.set(0, 0, 0);
+  state.horizontalForce.set(0, 0, 0);
 }
 
 function readPerformanceNow(): number {
@@ -120,6 +135,27 @@ export class WaterBuoyancy extends Script {
   /** Caps each Pontoon force relative to its share of body weight. */
   maxForceMultiplier = 4;
 
+  /** Enables horizontal force from Pontoon velocity relative to the sampled local water velocity. */
+  applyHorizontalDrag = false;
+
+  /** Low-speed linear horizontal drag coefficient. */
+  horizontalLinearDrag = 0;
+
+  /** Fluid density used by the quadratic drag term. */
+  waterDensity = 1000;
+
+  /** Dimensionless coefficient used by the quadratic horizontal drag term. */
+  horizontalDragCoefficient = 0.5;
+
+  /** Scales the submerged projected area of every spherical Pontoon. */
+  horizontalDragAreaScale = 1;
+
+  /** Caps the relative speed used to evaluate drag without modifying the body's actual velocity. */
+  maxHorizontalDragSpeed = 5;
+
+  /** Independently caps horizontal force relative to each Pontoon's share of body weight. */
+  maxHorizontalForceMultiplier = 2;
+
   /** Enables opt-in fixed-step timings without changing the normal hot path's allocation behavior. */
   profilingEnabled = false;
 
@@ -147,7 +183,8 @@ export class WaterBuoyancy extends Script {
     angularVelocityRadians: new Vector3(),
     offsetFromCenterOfMass: new Vector3(),
     pointVelocity: new Vector3(),
-    relativeVelocity: new Vector3()
+    relativeVelocity: new Vector3(),
+    horizontalRelativeVelocity: new Vector3()
   };
   private readonly _solverInput: BuoyancyPointForceInput = {
     pontoonCenter: new Vector3(),
@@ -162,7 +199,14 @@ export class WaterBuoyancy extends Script {
     mass: 0,
     buoyancyCoefficient: 0,
     verticalDamping: 0,
-    maxForceMultiplier: 0
+    maxForceMultiplier: 0,
+    applyHorizontalDrag: false,
+    horizontalLinearDrag: 0,
+    waterDensity: 0,
+    horizontalDragCoefficient: 0,
+    horizontalDragAreaScale: 0,
+    maxHorizontalDragSpeed: 0,
+    maxHorizontalForceMultiplier: 0
   };
 
   private _dynamicCollider: DynamicCollider | null = null;
@@ -293,7 +337,27 @@ export class WaterBuoyancy extends Script {
       !Number.isFinite(this.verticalDamping) ||
       this.verticalDamping < 0 ||
       !Number.isFinite(this.maxForceMultiplier) ||
-      this.maxForceMultiplier < 0
+      this.maxForceMultiplier < 0 ||
+      typeof this.applyHorizontalDrag !== "boolean"
+    ) {
+      this._reportDiagnostic("invalid-parameters");
+      this._finishProfiling(profilingEnabled, totalStart);
+      return;
+    }
+    if (
+      this.applyHorizontalDrag &&
+      (!Number.isFinite(this.horizontalLinearDrag) ||
+        this.horizontalLinearDrag < 0 ||
+        !Number.isFinite(this.waterDensity) ||
+        this.waterDensity < 0 ||
+        !Number.isFinite(this.horizontalDragCoefficient) ||
+        this.horizontalDragCoefficient < 0 ||
+        !Number.isFinite(this.horizontalDragAreaScale) ||
+        this.horizontalDragAreaScale < 0 ||
+        !Number.isFinite(this.maxHorizontalDragSpeed) ||
+        this.maxHorizontalDragSpeed < 0 ||
+        !Number.isFinite(this.maxHorizontalForceMultiplier) ||
+        this.maxHorizontalForceMultiplier < 0)
     ) {
       this._reportDiagnostic("invalid-parameters");
       this._finishProfiling(profilingEnabled, totalStart);
@@ -357,6 +421,13 @@ export class WaterBuoyancy extends Script {
     input.buoyancyCoefficient = this.buoyancyCoefficient;
     input.verticalDamping = this.verticalDamping;
     input.maxForceMultiplier = this.maxForceMultiplier;
+    input.applyHorizontalDrag = this.applyHorizontalDrag;
+    input.horizontalLinearDrag = this.horizontalLinearDrag;
+    input.waterDensity = this.waterDensity;
+    input.horizontalDragCoefficient = this.horizontalDragCoefficient;
+    input.horizontalDragAreaScale = this.horizontalDragAreaScale;
+    input.maxHorizontalDragSpeed = this.maxHorizontalDragSpeed;
+    input.maxHorizontalForceMultiplier = this.maxHorizontalForceMultiplier;
 
     for (let i = 0; i < pontoonCount; i++) {
       const state = this._mutablePontoonStates[i];

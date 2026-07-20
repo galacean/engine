@@ -124,6 +124,7 @@ describe("WaterBuoyancy", () => {
     const worldPositionIdentity = state.worldPosition;
     const surfacePositionIdentity = state.surfacePosition;
     const forceIdentity = state.force;
+    const horizontalForceIdentity = state.horizontalForce;
 
     component.onAwake();
     component.onPhysicsUpdate();
@@ -143,6 +144,11 @@ describe("WaterBuoyancy", () => {
     expect(state.worldRadius).toBe(2);
     expect(state.submergedRatio).toBeCloseTo(0.5);
     expect(state.verticalSpeed).toBeCloseTo(Math.PI / 2);
+    expect(state.horizontalRelativeSpeed).toBe(0);
+    expect(state.submergedProjectedArea).toBe(0);
+    expect(state.submergedAreaRatio).toBe(0);
+    expect(state.horizontalForceClamped).toBe(false);
+    expect(state.horizontalForce).toMatchObject({ x: 0, y: 0, z: 0 });
     expect(state.worldPosition).toMatchObject({ x: 12, y: 10, z: 29.5 });
     expect(state.surfacePosition).toMatchObject({ x: 12, y: 10, z: 29.5 });
     expect(state.force.y).toBeCloseTo(86.319, 3);
@@ -158,13 +164,73 @@ describe("WaterBuoyancy", () => {
     expect(state.worldPosition).toBe(worldPositionIdentity);
     expect(state.surfacePosition).toBe(surfacePositionIdentity);
     expect(state.force).toBe(forceIdentity);
+    expect(state.horizontalForce).toBe(horizontalForceIdentity);
     expect(state.surfaceHit).toBe(false);
     expect(state.submergedRatio).toBe(0);
     expect(state.force).toMatchObject({ x: 0, y: 0, z: 0 });
+    expect(state.horizontalForce).toMatchObject({ x: 0, y: 0, z: 0 });
     expect(component.isInWater).toBe(false);
     expect(component.submergedPontoonCount).toBe(0);
     expect(component.lastStepQueryCount).toBe(1);
     expect(component.lastStepAppliedForceCount).toBe(0);
+  });
+
+  it("opts into local-current drag and submits the combined vertical and horizontal force once", () => {
+    const fixture = createFixture();
+    const { component, collider, surface } = fixture;
+    expect(component.applyHorizontalDrag).toBe(false);
+    expect(component.horizontalLinearDrag).toBe(0);
+    expect(component.waterDensity).toBe(1000);
+    expect(component.horizontalDragCoefficient).toBe(0.5);
+    expect(component.horizontalDragAreaScale).toBe(1);
+    expect(component.maxHorizontalDragSpeed).toBe(5);
+    expect(component.maxHorizontalForceMultiplier).toBe(2);
+    component.applyHorizontalDrag = true;
+    component.horizontalLinearDrag = 2;
+    component.waterDensity = 0;
+    component.horizontalDragCoefficient = 0;
+    component.maxHorizontalDragSpeed = 10;
+    component.maxHorizontalForceMultiplier = 100;
+    surface.velocity.set(3, 0, 0);
+    const linearVelocityIdentity = collider.linearVelocity;
+    const angularVelocityIdentity = collider.angularVelocity;
+    const state = component.pontoonStates[0];
+    const forceIdentity = state.force;
+    const horizontalForceIdentity = state.horizontalForce;
+
+    component.onAwake();
+    component.onPhysicsUpdate();
+
+    expect(collider.applyForceAtPosition).toHaveBeenCalledOnce();
+    expect(collider.appliedForces).toHaveLength(1);
+    expect(collider.appliedForces[0].force.x).toBeCloseTo(3 * Math.PI, 12);
+    expect(collider.appliedForces[0].force.y).toBeCloseTo(98.1, 12);
+    expect(state.force).toBe(forceIdentity);
+    expect(state.horizontalForce).toBe(horizontalForceIdentity);
+    expect(state.horizontalForce.x).toBeCloseTo(3 * Math.PI, 12);
+    expect(state.horizontalForce.y).toBeCloseTo(0, 12);
+    expect(state.horizontalRelativeSpeed).toBe(3);
+    expect(state.submergedAreaRatio).toBe(0.5);
+    expect(state.submergedProjectedArea).toBeCloseTo(Math.PI * 0.5, 12);
+    expect(state.horizontalForceClamped).toBe(false);
+    expect(collider.linearVelocity).toBe(linearVelocityIdentity);
+    expect(collider.linearVelocity).toMatchObject({ x: 0, y: 0, z: 0 });
+    expect(collider.angularVelocity).toBe(angularVelocityIdentity);
+    expect(collider.angularVelocity).toMatchObject({ x: 0, y: 0, z: 0 });
+
+    collider.linearVelocity.set(3, 0, 0);
+    collider.appliedForces.length = 0;
+    component.onPhysicsUpdate();
+    expect(collider.applyForceAtPosition).toHaveBeenCalledTimes(2);
+    expect(collider.appliedForces).toHaveLength(1);
+    expect(collider.appliedForces[0].force.x).toBe(0);
+    expect(collider.appliedForces[0].force.y).toBeCloseTo(98.1, 12);
+    expect(collider.appliedForces[0].force.z).toBe(0);
+    expect(state.horizontalRelativeSpeed).toBe(0);
+    expect(state.horizontalForce).toMatchObject({ x: 0, y: 0, z: 0 });
+    expect(state.force).toBe(forceIdentity);
+    expect(state.horizontalForce).toBe(horizontalForceIdentity);
+    expect(collider.linearVelocity).toMatchObject({ x: 3, y: 0, z: 0 });
   });
 
   it("uses the full rotated parent/world matrix and conservative sphere scale", () => {
@@ -296,6 +362,21 @@ describe("WaterBuoyancy", () => {
     expect(component.lastStepAppliedForceCount).toBe(0);
 
     component.buoyancyCoefficient = 2;
+    component.applyHorizontalDrag = true;
+    component.waterDensity = Number.NaN;
+    component.onPhysicsUpdate();
+    expect(component.lastDiagnostic).toBe("invalid-parameters");
+    expect(component.lastStepQueryCount).toBe(0);
+    expect(component.lastStepAppliedForceCount).toBe(0);
+
+    component.waterDensity = 1000;
+    (component as unknown as { applyHorizontalDrag: unknown }).applyHorizontalDrag = 1;
+    component.onPhysicsUpdate();
+    expect(component.lastDiagnostic).toBe("invalid-parameters");
+    expect(component.lastStepQueryCount).toBe(0);
+    expect(component.lastStepAppliedForceCount).toBe(0);
+
+    component.applyHorizontalDrag = false;
     component.pontoons[0].radius = -1;
     component.onPhysicsUpdate();
     expect(component.lastDiagnostic).toBe("invalid-pontoon");
@@ -311,6 +392,38 @@ describe("WaterBuoyancy", () => {
     expect(sampleSurface).not.toHaveBeenCalled();
     expect(collider.appliedForces).toHaveLength(0);
     expect(warn).toHaveBeenCalledTimes(2);
+  });
+
+  it("ignores horizontal parameters while current drag is disabled and validates them when enabled", () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const fixture = createFixture();
+    const { component, collider, sampleSurface } = fixture;
+    component.horizontalLinearDrag = Number.NaN;
+    component.waterDensity = Number.NaN;
+    component.horizontalDragCoefficient = Number.NaN;
+    component.horizontalDragAreaScale = Number.NaN;
+    component.maxHorizontalDragSpeed = Number.NaN;
+    component.maxHorizontalForceMultiplier = Number.NaN;
+    component.onAwake();
+
+    component.onPhysicsUpdate();
+
+    expect(component.applyHorizontalDrag).toBe(false);
+    expect(component.lastDiagnostic).toBeNull();
+    expect(component.lastStepQueryCount).toBe(1);
+    expect(component.lastStepAppliedForceCount).toBe(1);
+    expect(sampleSurface).toHaveBeenCalledOnce();
+    expect(collider.appliedForces).toHaveLength(1);
+
+    component.applyHorizontalDrag = true;
+    component.onPhysicsUpdate();
+
+    expect(component.lastDiagnostic).toBe("invalid-parameters");
+    expect(component.lastStepQueryCount).toBe(0);
+    expect(component.lastStepAppliedForceCount).toBe(0);
+    expect(sampleSurface).toHaveBeenCalledOnce();
+    expect(collider.appliedForces).toHaveLength(1);
+    expect(warn).toHaveBeenCalledOnce();
   });
 
   it("reports fixed diagnostics once per code and stays silent for disabled or out-of-water Pontoons", () => {
