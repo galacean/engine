@@ -1,9 +1,10 @@
 /** Internal river runtime lifecycle: chunk renderer creation, GPU upload, cache, swap, and disposal. */
 import { Engine, Entity, Material, MeshRenderer, Texture2D } from "@galacean/engine-core";
-import { Vector4 } from "@galacean/engine-math";
+import { Vector4, type Vector3 } from "@galacean/engine-math";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
 import type { RiverAuthoringConfig } from "../../authoring/river/RiverAuthoringTypes";
 import { RiverChunkSourceKind, RiverLocalMapRegionKind } from "../../compiler/river/RiverGeometryEnums";
+import { RIVER_GEOMETRY_Y_OFFSET } from "../../compiler/river/constants";
 import { cloneCompiledRiverConfig } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverCompiledChunk, RiverCompiledData, RiverReachArtifact } from "../../compiler/river/types";
 import {
@@ -22,8 +23,8 @@ import { RiverSurfaceDebugMode } from "./RiverRuntimeEnums";
 import { uploadRiverMeshes } from "./RiverMeshUploader";
 import { RiverNetworkQueryService } from "./RiverQueryService";
 import { RiverResource } from "./RiverResource";
-import { RIVER_RESOURCE_SUBMISSION_BUDGET_MS, RIVER_SHADER_PROPERTY } from "./constants";
-import type { RiverMeshBuildResult } from "./types";
+import { RIVER_QUERY_EPSILON, RIVER_RESOURCE_SUBMISSION_BUDGET_MS, RIVER_SHADER_PROPERTY } from "./constants";
+import type { RiverMeshBuildResult, RiverNetworkQueryResult } from "./types";
 
 export interface RiverRuntimeReach {
   readonly root: Entity;
@@ -134,6 +135,61 @@ export class RiverRuntimeController {
 
   get activeQueryService(): RiverNetworkQueryService | undefined {
     return this._activeQueryService;
+  }
+
+  /**
+   * Samples the active river at the same macro-surface state used for rendering.
+   * The caller owns `outResult`; this method never retains or replaces it.
+   */
+  sampleActiveSurface(worldPosition: Vector3, outResult: RiverNetworkQueryResult): boolean {
+    const queryService = this._activeQueryService;
+    if (!queryService) return false;
+
+    if (this._macroDisplacementEnabled) {
+      const surfaceTimeOverride = this._surfaceTimeOverride;
+      const elapsedTime =
+        surfaceTimeOverride !== undefined && surfaceTimeOverride >= 0
+          ? surfaceTimeOverride
+          : this._engine.time.elapsedTime;
+      const hit = queryService.sampleSurfaceAtTime(worldPosition, elapsedTime, outResult);
+      if (!hit || this._usesDynamicSurfaceMaterial(outResult)) return hit;
+    }
+
+    return this._sampleStaticSurface(queryService, worldPosition, outResult);
+  }
+
+  private _sampleStaticSurface(
+    queryService: RiverNetworkQueryService,
+    worldPosition: Vector3,
+    outResult: RiverNetworkQueryResult
+  ): boolean {
+    const hit = queryService.sampleSurface(worldPosition, outResult);
+    if (hit) {
+      // Static River queries describe the authored centerline while rendered
+      // geometry includes the surface separation offset used to avoid z-fighting.
+      outResult.surfaceHeight += RIVER_GEOMETRY_Y_OFFSET.surface;
+      outResult.signedSurfaceDistance = worldPosition.y - outResult.surfaceHeight;
+      outResult.insideVolume =
+        outResult.insideFootprint &&
+        outResult.signedSurfaceDistance <= RIVER_QUERY_EPSILON &&
+        outResult.signedSurfaceDistance >= -outResult.waterDepth - RIVER_QUERY_EPSILON;
+      outResult.submergedDepth = outResult.insideFootprint
+        ? Math.min(outResult.waterDepth, Math.max(0, -outResult.signedSurfaceDistance))
+        : 0;
+    }
+    return hit;
+  }
+
+  private _usesDynamicSurfaceMaterial(result: RiverNetworkQueryResult): boolean {
+    const activeId = this._activeId;
+    const runtimeSet = activeId === undefined ? undefined : this._runtimeSets.get(activeId);
+    if (!runtimeSet) return true;
+    const materialSourceReachIndex =
+      result.sourceKind === RiverChunkSourceKind.Junction
+        ? runtimeSet.resource.data.junctions[result.sourceIndex]?.materialSourceReachIndex
+        : result.sourceIndex;
+    const reach = materialSourceReachIndex === undefined ? undefined : runtimeSet.reaches[materialSourceReachIndex];
+    return reach?.config.quality.material.level !== RiverQualityLevel.Low;
   }
 
   activate(

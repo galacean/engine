@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Water PCG · Buoyancy</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        --abyss: #041116;
+        --panel: rgb(5 21 27 / 88%);
+        --line: rgb(122 207 215 / 22%);
+        --text: #e2f4f3;
+        --muted: #83a8aa;
+        --cyan: #5bd3d5;
+        --green: #8ee29a;
+        --amber: #f0bd68;
+        --fault: #ff8576;
+      }
+
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        color: var(--text);
+        background: var(--abyss);
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      }
+
+      #canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #buoyancy-hud {
+        position: fixed;
+        top: 14px;
+        left: 14px;
+        z-index: 3;
+        width: min(430px, calc(100vw - 104px));
+        padding: 13px 14px 12px;
+        border: 1px solid var(--line);
+        border-radius: 5px;
+        background: var(--panel);
+        box-shadow: 0 14px 45px rgb(0 0 0 / 28%);
+        backdrop-filter: blur(10px);
+      }
+
+      .hud-heading,
+      .hud-controls {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .hud-heading {
+        padding-bottom: 9px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .hud-heading strong {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+      }
+
+      #buoyancy-status {
+        color: var(--amber);
+        font-size: 10px;
+      }
+
+      #buoyancy-status[data-state="ready"] {
+        color: var(--green);
+      }
+
+      #buoyancy-status[data-state="error"] {
+        color: var(--fault);
+      }
+
+      .hud-controls {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+        padding: 9px 0;
+      }
+
+      button {
+        padding: 5px 8px;
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        color: var(--muted);
+        background: rgb(8 35 42 / 72%);
+        font: inherit;
+        font-size: 9px;
+        letter-spacing: 0.04em;
+        cursor: pointer;
+      }
+
+      button:hover,
+      button[data-active="true"] {
+        border-color: var(--cyan);
+        color: var(--text);
+      }
+
+      button:disabled {
+        cursor: not-allowed;
+        opacity: 0.42;
+      }
+
+      #buoyancy-metrics {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 7px 12px;
+        margin: 0;
+      }
+
+      #buoyancy-metrics div {
+        min-width: 0;
+      }
+
+      #buoyancy-metrics dt {
+        overflow: hidden;
+        margin: 0 0 2px;
+        color: var(--muted);
+        font-size: 8px;
+        letter-spacing: 0.06em;
+        text-overflow: ellipsis;
+        text-transform: uppercase;
+        white-space: nowrap;
+      }
+
+      #buoyancy-metrics dd {
+        overflow: hidden;
+        margin: 0;
+        color: var(--text);
+        font-size: 11px;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      #buoyancy-legend {
+        position: fixed;
+        right: 15px;
+        bottom: 14px;
+        z-index: 2;
+        color: rgb(190 229 228 / 64%);
+        font-size: 9px;
+        letter-spacing: 0.05em;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <aside id="buoyancy-hud" aria-live="polite">
+      <div class="hud-heading">
+        <strong>Water buoyancy / fixed physics step</strong>
+        <span id="buoyancy-status" data-state="loading">initializing PhysX</span>
+      </div>
+      <div class="hud-controls" aria-label="Buoyancy scenarios">
+        <button type="button" data-scenario="static-single">Static · 1 pontoon</button>
+        <button type="button" data-scenario="river-four">River · 4 pontoons</button>
+        <button type="button" id="buoyancy-perturb">Perturb</button>
+        <button type="button" id="buoyancy-reset">Reset</button>
+        <button type="button" id="buoyancy-profile">Profile 1/20/100</button>
+      </div>
+      <dl id="buoyancy-metrics">
+        <div>
+          <dt>scenario</dt>
+          <dd data-metric="scenario">—</dd>
+        </div>
+        <div>
+          <dt>bodies</dt>
+          <dd data-metric="bodies">—</dd>
+        </div>
+        <div>
+          <dt>pontoons</dt>
+          <dd data-metric="pontoons">—</dd>
+        </div>
+        <div>
+          <dt>submerged</dt>
+          <dd data-metric="submerged">—</dd>
+        </div>
+        <div>
+          <dt>height</dt>
+          <dd data-metric="height">—</dd>
+        </div>
+        <div>
+          <dt>roll / pitch</dt>
+          <dd data-metric="attitude">—</dd>
+        </div>
+        <div>
+          <dt>queries / step</dt>
+          <dd data-metric="queries">—</dd>
+        </div>
+        <div>
+          <dt>render error</dt>
+          <dd data-metric="surface-error">—</dd>
+        </div>
+        <div>
+          <dt>surface time</dt>
+          <dd data-metric="surface-time">—</dd>
+        </div>
+        <div>
+          <dt>query p95</dt>
+          <dd data-metric="query-p95">—</dd>
+        </div>
+        <div>
+          <dt>solver p95</dt>
+          <dd data-metric="solver-p95">—</dd>
+        </div>
+        <div>
+          <dt>force p95</dt>
+          <dd data-metric="force-p95">—</dd>
+        </div>
+        <div>
+          <dt>runtime error</dt>
+          <dd data-metric="error">none</dd>
+        </div>
+      </dl>
+    </aside>
+    <div id="buoyancy-legend">cyan sphere · pontoon / white point · sampled surface / amber line · point force</div>
+    <canvas id="canvas"></canvas>
+    <script type="module" src="../demo/buoyancy/main.ts"></script>
+  </body>
+</html>

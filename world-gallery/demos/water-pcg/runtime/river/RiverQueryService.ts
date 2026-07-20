@@ -185,10 +185,11 @@ function findGeometryTriangleXZ(
   geometry: RiverGeometryData,
   pointX: number,
   pointZ: number,
-  out: RiverTriangleSample
+  out: RiverTriangleSample,
+  start = geometry.drawStart,
+  end = geometry.drawStart + geometry.drawCount
 ): boolean {
-  const end = geometry.drawStart + geometry.drawCount;
-  for (let offset = geometry.drawStart; offset + 2 < end; offset += 3) {
+  for (let offset = start; offset + 2 < end; offset += 3) {
     const firstIndex = geometry.indices.at(offset);
     const secondIndex = geometry.indices.at(offset + 1);
     const thirdIndex = geometry.indices.at(offset + 2);
@@ -219,6 +220,22 @@ function findGeometryTriangleXZ(
     return true;
   }
   return false;
+}
+
+function findReachSpanGeometryTriangleXZ(
+  geometry: RiverGeometryData,
+  sampleCount: number,
+  spanIndex: number,
+  pointX: number,
+  pointZ: number,
+  out: RiverTriangleSample
+): boolean {
+  if (sampleCount < 2 || geometry.positions.length % sampleCount !== 0) return false;
+  const rowWidth = geometry.positions.length / sampleCount;
+  const spanIndexCount = Math.max(0, rowWidth - 1) * 6;
+  const start = geometry.drawStart + spanIndex * spanIndexCount;
+  const end = Math.min(start + spanIndexCount, geometry.drawStart + geometry.drawCount);
+  return spanIndexCount > 0 && findGeometryTriangleXZ(geometry, pointX, pointZ, out, start, end);
 }
 
 export function createRiverNetworkQueryResult(): RiverNetworkQueryResult {
@@ -302,7 +319,7 @@ export class RiverNetworkQueryService {
     halfWidth: 0,
     flowSpeed: 0
   };
-  private readonly _junctionTriangleScratch: RiverTriangleSample = {
+  private readonly _geometryTriangleScratch: RiverTriangleSample = {
     firstIndex: 0,
     secondIndex: 0,
     thirdIndex: 0,
@@ -310,6 +327,7 @@ export class RiverNetworkQueryService {
     secondWeight: 0,
     thirdWeight: 0
   };
+  private _selectedGeometryTriangle = false;
 
   constructor(private readonly _data: RiverCompiledData) {
     const index = _data.queryIndex;
@@ -429,6 +447,7 @@ export class RiverNetworkQueryService {
     elapsedTime?: number
   ): boolean {
     resetNetworkResult(outResult, this._data.sourceId);
+    this._selectedGeometryTriangle = false;
     let bestDistanceToBank = Number.NEGATIVE_INFINITY;
     if (useIndex) {
       const cellX = Math.floor(x / this._data.queryIndex.cellSize);
@@ -481,10 +500,10 @@ export class RiverNetworkQueryService {
   ): number {
     const boundsOffset = primitiveIndex * 4;
     if (
-      x < this._primitiveBounds[boundsOffset] ||
-      z < this._primitiveBounds[boundsOffset + 1] ||
-      x > this._primitiveBounds[boundsOffset + 2] ||
-      z > this._primitiveBounds[boundsOffset + 3]
+      x < this._primitiveBounds[boundsOffset] - RIVER_QUERY_EPSILON ||
+      z < this._primitiveBounds[boundsOffset + 1] - RIVER_QUERY_EPSILON ||
+      x > this._primitiveBounds[boundsOffset + 2] + RIVER_QUERY_EPSILON ||
+      z > this._primitiveBounds[boundsOffset + 3] + RIVER_QUERY_EPSILON
     ) {
       return bestDistanceToBank;
     }
@@ -531,7 +550,29 @@ export class RiverNetworkQueryService {
     );
     const halfWidth = width * 0.5;
     const distanceToBank = halfWidth - centerDistance;
-    if (distanceToBank <= bestDistanceToBank) return bestDistanceToBank;
+    const reach = this._data.reaches[reachIndex];
+    const geometry = reach.artifact.surfaceGeometry;
+    const uv2s = geometry.uv2s;
+    const uv3s = geometry.uv3s;
+    const tangents = geometry.tangents;
+    const normals = geometry.normals;
+    const geometryTriangleHit =
+      elapsedTime !== undefined &&
+      uv2s !== undefined &&
+      uv3s !== undefined &&
+      tangents !== undefined &&
+      normals !== undefined &&
+      findReachSpanGeometryTriangleXZ(
+        geometry,
+        reach.artifact.querySource.sampleCount,
+        spanIndex,
+        x,
+        z,
+        this._geometryTriangleScratch
+      );
+    if (!geometryTriangleHit && (this._selectedGeometryTriangle || distanceToBank <= bestDistanceToBank)) {
+      return bestDistanceToBank;
+    }
     const staticSurfaceHeight = interpolateSampleValue(ay, by, t);
     const profileDepth = interpolateSampleValue(
       samples[aOffset + RIVER_QUERY_SAMPLE_COMPONENT.depth],
@@ -561,6 +602,87 @@ export class RiverNetworkQueryService {
     let surfaceHeight = staticSurfaceHeight;
     let surfaceVerticalVelocity = 0;
     if (elapsedTime !== undefined) {
+      if (uv2s && uv3s && tangents && normals && geometryTriangleHit) {
+        const triangle = this._geometryTriangleScratch;
+        surfaceHeight = 0;
+        surfaceVerticalVelocity = 0;
+        normalX = 0;
+        normalY = 0;
+        normalZ = 0;
+        let triangleFlowX = 0;
+        let triangleFlowZ = 0;
+        for (let vertex = 0; vertex < 3; vertex++) {
+          const vertexIndex =
+            vertex === 0 ? triangle.firstIndex : vertex === 1 ? triangle.secondIndex : triangle.thirdIndex;
+          const weight =
+            vertex === 0 ? triangle.firstWeight : vertex === 1 ? triangle.secondWeight : triangle.thirdWeight;
+          const vertexTangent = tangents[vertexIndex];
+          const vertexTangentLength = Math.hypot(vertexTangent[0], vertexTangent[2]) || 1;
+          const vertexTangentX = vertexTangent[0] / vertexTangentLength;
+          const vertexTangentZ = vertexTangent[2] / vertexTangentLength;
+          const lateralX = -vertexTangentZ;
+          const lateralZ = vertexTangentX;
+          this._motionCoordinates.signedAcrossDistance = uv2s[vertexIndex][0];
+          this._motionCoordinates.networkFlowTime = uv2s[vertexIndex][1];
+          this._motionCoordinates.halfWidth = uv3s[vertexIndex][0];
+          this._motionCoordinates.flowSpeed = geometry.uv1s[vertexIndex][0];
+          evaluateRiverSurfaceMotion(
+            this._data.surfaceMotion,
+            this._motionCoordinates,
+            elapsedTime,
+            this._motionScratch
+          );
+          surfaceHeight += (geometry.positions[vertexIndex][1] + this._motionScratch.height) * weight;
+          surfaceVerticalVelocity += this._motionScratch.verticalVelocity * weight;
+          const vertexNormalX =
+            normals[vertexIndex][0] -
+            lateralX * this._motionScratch.acrossDerivative -
+            vertexTangentX * this._motionScratch.downstreamDerivative;
+          const vertexNormalY = normals[vertexIndex][1];
+          const vertexNormalZ =
+            normals[vertexIndex][2] -
+            lateralZ * this._motionScratch.acrossDerivative -
+            vertexTangentZ * this._motionScratch.downstreamDerivative;
+          const vertexNormalLength = Math.hypot(vertexNormalX, vertexNormalY, vertexNormalZ) || 1;
+          normalX += (vertexNormalX / vertexNormalLength) * weight;
+          normalY += (vertexNormalY / vertexNormalLength) * weight;
+          normalZ += (vertexNormalZ / vertexNormalLength) * weight;
+          triangleFlowX += vertexTangentX * this._motionCoordinates.flowSpeed * weight;
+          triangleFlowZ += vertexTangentZ * this._motionCoordinates.flowSpeed * weight;
+        }
+        const normalLength = Math.hypot(normalX, normalY, normalZ) || 1;
+        normalX /= normalLength;
+        normalY /= normalLength;
+        normalZ /= normalLength;
+        if (
+          this._selectedGeometryTriangle &&
+          (surfaceHeight < outResult.surfaceHeight - RIVER_QUERY_EPSILON ||
+            (Math.abs(surfaceHeight - outResult.surfaceHeight) <= RIVER_QUERY_EPSILON &&
+              distanceToBank <= bestDistanceToBank))
+        ) {
+          return bestDistanceToBank;
+        }
+        this._selectedGeometryTriangle = true;
+        this._writeResult(
+          outResult,
+          RiverChunkSourceKind.Reach,
+          reachIndex,
+          reach.id,
+          distanceToBank,
+          surfaceHeight,
+          surfaceVerticalVelocity,
+          waterDepth,
+          y,
+          triangleFlowX,
+          0,
+          triangleFlowZ,
+          normalX,
+          normalY,
+          normalZ
+        );
+        return distanceToBank;
+      }
+
       const lateralX = -tangentZ;
       const lateralZ = tangentX;
       const signedAcrossDistance = dx * lateralX + dz * lateralZ;
@@ -570,8 +692,7 @@ export class RiverNetworkQueryService {
         t
       );
       this._motionCoordinates.signedAcrossDistance = signedAcrossDistance;
-      this._motionCoordinates.networkFlowTime =
-        this._data.reaches[reachIndex].networkFlowTimeOffset + localFlowTravelTime;
+      this._motionCoordinates.networkFlowTime = reach.networkFlowTimeOffset + localFlowTravelTime;
       this._motionCoordinates.halfWidth = halfWidth;
       this._motionCoordinates.flowSpeed = flowSpeed;
       evaluateRiverSurfaceMotion(this._data.surfaceMotion, this._motionCoordinates, elapsedTime, this._motionScratch);
@@ -618,7 +739,21 @@ export class RiverNetworkQueryService {
     const boundary = this._junctionBoundaries[junctionIndex];
     const bankDistance = distanceToPolygonBankXZ(boundary, x, z);
     const distanceToBank = isPointInsidePolygonXZ(boundary, x, z) ? bankDistance : -bankDistance;
-    if (distanceToBank <= bestDistanceToBank) return bestDistanceToBank;
+    const geometry = junction.surfaceGeometry;
+    const uv2s = geometry.uv2s;
+    const uv3s = geometry.uv3s;
+    const tangents = geometry.tangents;
+    const normals = geometry.normals;
+    const geometryTriangleHit =
+      elapsedTime !== undefined &&
+      uv2s !== undefined &&
+      uv3s !== undefined &&
+      tangents !== undefined &&
+      normals !== undefined &&
+      findGeometryTriangleXZ(geometry, x, z, this._geometryTriangleScratch);
+    if (!geometryTriangleHit && (this._selectedGeometryTriangle || distanceToBank <= bestDistanceToBank)) {
+      return bestDistanceToBank;
+    }
     const waterDepth =
       distanceToBank >= 0 ? junction.depth * clamp01(distanceToBank / this._junctionInradii[junctionIndex]) : 0;
     let surfaceHeight = junction.position[1];
@@ -629,19 +764,8 @@ export class RiverNetworkQueryService {
     let flowX = junction.flowDirection[0] * junction.flowSpeed;
     let flowZ = junction.flowDirection[2] * junction.flowSpeed;
     if (elapsedTime !== undefined) {
-      const geometry = junction.surfaceGeometry;
-      const uv2s = geometry.uv2s;
-      const uv3s = geometry.uv3s;
-      const tangents = geometry.tangents;
-      const normals = geometry.normals;
-      if (
-        uv2s &&
-        uv3s &&
-        tangents &&
-        normals &&
-        findGeometryTriangleXZ(geometry, x, z, this._junctionTriangleScratch)
-      ) {
-        const triangle = this._junctionTriangleScratch;
+      if (uv2s && uv3s && tangents && normals && geometryTriangleHit) {
+        const triangle = this._geometryTriangleScratch;
         surfaceHeight = 0;
         surfaceVerticalVelocity = 0;
         normalX = 0;
@@ -692,6 +816,15 @@ export class RiverNetworkQueryService {
         normalX /= normalLength;
         normalY /= normalLength;
         normalZ /= normalLength;
+        if (
+          this._selectedGeometryTriangle &&
+          (surfaceHeight < outResult.surfaceHeight - RIVER_QUERY_EPSILON ||
+            (Math.abs(surfaceHeight - outResult.surfaceHeight) <= RIVER_QUERY_EPSILON &&
+              distanceToBank <= bestDistanceToBank))
+        ) {
+          return bestDistanceToBank;
+        }
+        this._selectedGeometryTriangle = true;
       } else {
         const localX = x - junction.position[0];
         const localZ = z - junction.position[2];

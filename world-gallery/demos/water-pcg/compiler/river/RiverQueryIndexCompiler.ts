@@ -5,11 +5,7 @@ import {
   RiverReadonlyUint32Buffer
 } from "../shared/ReadonlyNumericBuffer";
 import { RiverQueryPrimitiveKind } from "./RiverGeometryEnums";
-import {
-  RIVER_QUERY_BOUNDS_STRIDE,
-  RIVER_QUERY_CELL_SIZE_BY_QUALITY,
-  RIVER_QUERY_SAMPLE_STRIDE
-} from "./constants";
+import { RIVER_QUERY_BOUNDS_STRIDE, RIVER_QUERY_CELL_SIZE_BY_QUALITY, RIVER_QUERY_SAMPLE_STRIDE } from "./constants";
 import type { RiverCompiledReach, RiverJunctionArtifact, RiverQueryIndexData } from "./types";
 
 interface QueryPrimitive {
@@ -36,20 +32,38 @@ function createReachPrimitives(reaches: readonly RiverCompiledReach[]): QueryPri
   const primitives: QueryPrimitive[] = [];
   for (let reachIndex = 0; reachIndex < reaches.length; reachIndex++) {
     const reach = reaches[reachIndex];
+    const sampleCount = reach.artifact.querySource.sampleCount;
+    const surfacePositions = reach.artifact.surfaceGeometry.positions;
+    const rowWidth = sampleCount > 0 ? surfacePositions.length / sampleCount : 0;
     for (let spanIndex = 0; spanIndex + 1 < reach.artifact.querySource.sampleCount; spanIndex++) {
       const ax = readSample(reach, spanIndex, 0);
       const az = readSample(reach, spanIndex, 2);
       const bx = readSample(reach, spanIndex + 1, 0);
       const bz = readSample(reach, spanIndex + 1, 2);
       const halfWidth = Math.max(readSample(reach, spanIndex, 4), readSample(reach, spanIndex + 1, 4)) * 0.5;
+      let minX = Math.min(ax, bx) - halfWidth;
+      let minZ = Math.min(az, bz) - halfWidth;
+      let maxX = Math.max(ax, bx) + halfWidth;
+      let maxZ = Math.max(az, bz) + halfWidth;
+      if (Number.isInteger(rowWidth) && rowWidth > 0) {
+        const firstVertex = spanIndex * rowWidth;
+        const endVertex = Math.min(surfacePositions.length, firstVertex + rowWidth * 2);
+        for (let vertexIndex = firstVertex; vertexIndex < endVertex; vertexIndex++) {
+          const position = surfacePositions[vertexIndex];
+          minX = Math.min(minX, position[0]);
+          minZ = Math.min(minZ, position[2]);
+          maxX = Math.max(maxX, position[0]);
+          maxZ = Math.max(maxZ, position[2]);
+        }
+      }
       primitives.push({
         kind: RiverQueryPrimitiveKind.ReachSpan,
         sourceIndex: reachIndex,
         localIndex: spanIndex,
-        minX: Math.min(ax, bx) - halfWidth,
-        minZ: Math.min(az, bz) - halfWidth,
-        maxX: Math.max(ax, bx) + halfWidth,
-        maxZ: Math.max(az, bz) + halfWidth
+        minX,
+        minZ,
+        maxX,
+        maxZ
       });
     }
   }

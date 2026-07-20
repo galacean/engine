@@ -12,6 +12,7 @@
     "@galacean/engine": "workspace:*",
     "@galacean/engine-core": "workspace:*",
     "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-physics-physx": "workspace:*",
     "@galacean/engine-shader": "workspace:*",
     "@galacean/engine-shader-compiler": "workspace:*",
     "@galacean/engine-toolkit-controls": "latest"

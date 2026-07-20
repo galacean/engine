@@ -37,6 +37,7 @@ module.exports = {
   optimizeDeps: {
     exclude: [
       "@galacean/engine",
+      "@galacean/engine-physics-physx",
       "@galacean/engine-shader",
       "@galacean/engine-shader-compiler",
       "@galacean/engine-toolkit-controls"
