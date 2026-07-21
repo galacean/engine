@@ -7,7 +7,6 @@ import { cloneCompiledRiverConfig, RiverNetworkCompiler } from "../../compiler/r
 import { RIVER_GEOMETRY_Y_OFFSET } from "../../compiler/river/constants";
 import type { RiverCompiledData } from "../../compiler/river/types";
 import { measureRiverRenderParity } from "../../demo/buoyancy/RiverRenderParity";
-import { riverExpandedLakeExample } from "../../demo/examples/lake/riverExpandedLake";
 import { indoorReflectivePoolExample } from "../../demo/examples/pool/indoorReflectivePool";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
 import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
@@ -228,7 +227,6 @@ describe("RiverRuntimeController active surface query", () => {
   it.each([
     [curvedMainRiverExample.id, curvedMainRiverExample.riverDescriptor],
     [multiTributaryRiverExample.id, multiTributaryRiverExample.riverDescriptor],
-    [riverExpandedLakeExample.id, riverExpandedLakeExample.riverDescriptor],
     [indoorReflectivePoolExample.id, indoorReflectivePoolExample.riverDescriptor]
   ])("keeps every interior %s surface vertex within the P0 render-parity budget", (exampleId, descriptor) => {
     const data = RiverNetworkCompiler.compile(descriptor).data!;
@@ -242,7 +240,7 @@ describe("RiverRuntimeController active surface query", () => {
     expect(result.maxHeightError, `${exampleId} max error at ${result.maxErrorSource}`).toBeLessThanOrEqual(0.05);
     if (exampleId === multiTributaryRiverExample.id) {
       expect(result.overlappingVertexCount).toBeGreaterThan(0);
-      expect(result.occludedVertexCount).toBeGreaterThan(0);
+      expect(result.occludedVertexCount).toBe(0);
       expect(result.sampledJunctionVertexCount).toBeGreaterThan(0);
     }
   });

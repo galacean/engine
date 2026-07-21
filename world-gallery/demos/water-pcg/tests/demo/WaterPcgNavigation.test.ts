@@ -3,12 +3,17 @@ import { waterPcgExamples } from "../../demo/examples";
 import { getWaterPcgCaseHref, resolveWaterPcgCase, WATER_PCG_CASES } from "../../demo/navigation";
 
 describe("Water PCG navigation", () => {
-  it("keeps the four authored examples and exposes two Chinese standalone case labels", () => {
-    expect(WATER_PCG_CASES.slice(0, 4).map(({ id, label }) => ({ id, label }))).toEqual(
+  it("keeps the three authored examples and exposes two Chinese standalone case labels", () => {
+    expect(WATER_PCG_CASES.slice(0, 3).map(({ id, label }) => ({ id, label }))).toEqual(
       waterPcgExamples.map(({ id, label }) => ({ id, label }))
     );
-    expect(WATER_PCG_CASES.slice(4)).toEqual([
-      { id: "heightfield-water", label: "高度场水体", kind: "heightfield" },
+    expect(WATER_PCG_CASES[2]).toEqual({
+      id: "indoor-reflective-pool",
+      label: "交互式泳池",
+      kind: "interactive-pool"
+    });
+    expect(WATER_PCG_CASES.slice(3)).toEqual([
+      { id: "heightfield-water", label: "高度场水面", kind: "heightfield" },
       { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" }
     ]);
   });

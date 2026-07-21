@@ -7,13 +7,11 @@
  */
 import { curvedMainRiverExample } from "./river/curvedMainRiver";
 import { multiTributaryRiverExample } from "./river/multiTributaryRiver";
-import { riverExpandedLakeExample } from "./lake/riverExpandedLake";
 import { indoorReflectivePoolExample } from "./pool/indoorReflectivePool";
 import {
   curvedMainRiverOceanPreview,
   indoorReflectivePoolOceanPreview,
-  multiTributaryOceanPreview,
-  riverExpandedLakeOceanPreview
+  multiTributaryOceanPreview
 } from "./ocean-preview/presets";
 import { WaterWaveModel } from "../../authoring/wave/enums/WaterWaveModel";
 import { OceanConfig, WaterPcgExample } from "./types";
@@ -21,7 +19,6 @@ import { OceanConfig, WaterPcgExample } from "./types";
 export const waterPcgExamples: readonly WaterPcgExample[] = [
   { ...curvedMainRiverExample, ocean: curvedMainRiverOceanPreview },
   { ...multiTributaryRiverExample, ocean: multiTributaryOceanPreview },
-  { ...riverExpandedLakeExample, ocean: riverExpandedLakeOceanPreview },
   { ...indoorReflectivePoolExample, ocean: indoorReflectivePoolOceanPreview }
 ];
 

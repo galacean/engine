@@ -47,7 +47,6 @@ import type { RiverResource } from "../runtime/river/RiverResource";
 import { RiverDiagnosticSeverity } from "../compiler/shared/diagnostics";
 import { RiverBedController } from "./decoration/RiverBedController";
 import { RiverRockController } from "./decoration/RiverRockController";
-import { LakePillarController } from "./decoration/LakePillarController";
 import { PoolSceneController } from "./decoration/PoolSceneController";
 import { WaterDecorationStyle } from "./decoration/constants";
 import { RiverCameraFeatureController } from "./RiverCameraFeatureController";
@@ -368,7 +367,6 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverDebugController = new RiverDebugController(engine);
   const riverBedController = new RiverBedController(engine, riverGroup);
   const riverRockController = new RiverRockController(engine, riverGroup);
-  const lakePillarController = new LakePillarController(engine, riverGroup);
   const poolSceneController = new PoolSceneController(engine, riverGroup);
   const riverMeshPreviewMaterial = createWaterPreviewMaterial(engine, RIVER_PREVIEW_STAGE_COLOR.meshSurface, 0.42);
   const riverJunctionPreviewMaterial = createWaterPreviewMaterial(engine, "#ff70d2", 0.5);
@@ -425,6 +423,7 @@ async function bootstrapWaterPcg(): Promise<void> {
       getPrimaryRiverConfig().quality.material.level
     );
     exampleBarElement.dataset.riverDepthTextureRequested = String(riverCameraFeatureController.depthTextureRequested);
+    exampleBarElement.dataset.riverOpaqueTextureRequested = String(riverCameraFeatureController.opaqueTextureRequested);
     exampleBarElement.dataset.cameraDepthTextureMode =
       camera.depthTextureMode === DepthTextureMode.PrePass ? "prepass" : "none";
   };
@@ -481,24 +480,17 @@ async function bootstrapWaterPcg(): Promise<void> {
     });
   const writeDecorationMetrics = (): void => {
     exampleBarElement.dataset.rockCount = String(riverRockController.root.isActive ? riverRockController.rockCount : 0);
-    exampleBarElement.dataset.pillarCount = String(
-      lakePillarController.root.isActive ? lakePillarController.pillarCount : 0
-    );
     exampleBarElement.dataset.poolFixtureCount = String(
       poolSceneController.root.isActive ? poolSceneController.fixtureCount : 0
     );
   };
   const rebuildWaterDecorations = (data: RiverCompiledData): void => {
     const decorationStyle = waterPcgExamples[activeExampleIndex].decorationStyle;
-    const isLake = decorationStyle === WaterDecorationStyle.Lake;
     const isPool = decorationStyle === WaterDecorationStyle.Pool;
     riverBedController.rebuild(data, decorationStyle);
-    riverRockController.root.isActive = !isLake && !isPool;
-    lakePillarController.root.isActive = isLake;
+    riverRockController.root.isActive = !isPool;
     poolSceneController.root.isActive = isPool;
-    if (isLake) {
-      lakePillarController.rebuild(data);
-    } else if (isPool) {
+    if (isPool) {
       poolSceneController.rebuild(data);
     } else {
       const queryService = riverRuntimeController.activeQueryService;
@@ -509,8 +501,9 @@ async function bootstrapWaterPcg(): Promise<void> {
   const applyDecorationVisibility = (bedVisible: boolean, decorationsVisible: boolean): void => {
     const decorationStyle = waterPcgExamples[activeExampleIndex].decorationStyle;
     riverBedController.root.isActive = bedVisible;
-    riverRockController.root.isActive = decorationsVisible && decorationStyle === WaterDecorationStyle.River;
-    lakePillarController.root.isActive = decorationsVisible && decorationStyle === WaterDecorationStyle.Lake;
+    riverRockController.root.isActive =
+      decorationsVisible &&
+      (decorationStyle === WaterDecorationStyle.River || decorationStyle === WaterDecorationStyle.HeightfieldRiver);
     poolSceneController.root.isActive = decorationsVisible && decorationStyle === WaterDecorationStyle.Pool;
     writeDecorationMetrics();
   };
@@ -1137,7 +1130,6 @@ async function bootstrapWaterPcg(): Promise<void> {
     riverDebugController.destroy();
     riverBedController.destroy();
     riverRockController.destroy();
-    lakePillarController.destroy();
     poolSceneController.destroy();
     riverRuntimeController.destroy();
     riverMeshPreviewMaterial.destroy(true);

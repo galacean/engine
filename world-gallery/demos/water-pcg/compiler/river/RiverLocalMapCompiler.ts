@@ -258,16 +258,22 @@ function createObstacleSampler(
           clamp01(1 - Math.abs(across) / (radius * RIVER_LOCAL_MAP_TUNING.obstacleFrontWidthScale))
         : 0;
     const wakeWidth = radius * 0.55 + downstream * RIVER_LOCAL_MAP_TUNING.obstacleWakeHalfAngle;
-    const wake =
+    const wakeLongitudinal =
       downstream > 0 && downstream < radius * RIVER_LOCAL_MAP_TUNING.obstacleWakeLength
-        ? clamp01(1 - downstream / (radius * RIVER_LOCAL_MAP_TUNING.obstacleWakeLength)) *
-          clamp01(1 - Math.abs(across) / Math.max(wakeWidth, 0.1))
+        ? Math.sqrt(clamp01(1 - downstream / (radius * RIVER_LOCAL_MAP_TUNING.obstacleWakeLength)))
         : 0;
-    const side = across < 0 ? -1 : 1;
+    const wake = wakeLongitudinal * clamp01(1 - Math.abs(across) / Math.max(wakeWidth, 0.1));
+    const normalizedWakeAcross = Math.abs(across) / Math.max(wakeWidth, 0.1);
+    const side = across < -0.0001 ? -1 : across > 0.0001 ? 1 : 0;
+    const wakeConvergence = -side * wake * RIVER_LOCAL_MAP_TUNING.obstacleWakeConvergence;
+    const wakeVortex =
+      Math.sin((downstream / Math.max(radius, 0.0001)) * RIVER_LOCAL_MAP_TUNING.obstacleWakeVortexFrequency) *
+      wake *
+      (1 - smoothstep(0.12, 0.92, normalizedWakeAcross)) *
+      RIVER_LOCAL_MAP_TUNING.obstacleWakeVortexDeflection;
     const deflection =
-      side *
       disturbance.strength *
-      (front * RIVER_LOCAL_MAP_TUNING.obstacleFrontDeflection + wake * RIVER_LOCAL_MAP_TUNING.obstacleWakeDeflection);
+      (side * front * RIVER_LOCAL_MAP_TUNING.obstacleFrontDeflection + wakeConvergence + wakeVortex);
     const downstreamScale =
       1 +
       front * disturbance.strength * RIVER_LOCAL_MAP_TUNING.obstacleCompressionGain -
@@ -277,8 +283,27 @@ function createObstacleSampler(
     const flowLength = Math.hypot(rawX, rawZ) || 1;
     const signedDistance = Math.hypot(deltaX, deltaZ) - radius;
     const outsideObstacle = smoothObstacleMask(signedDistance, radius * RIVER_LOCAL_MAP_TUNING.obstacleSdfFeatherScale);
+    const wakeShearBand =
+      smoothstep(
+        RIVER_LOCAL_MAP_TUNING.obstacleWakeShearStart,
+        RIVER_LOCAL_MAP_TUNING.obstacleWakeShearPeak,
+        normalizedWakeAcross
+      ) *
+      (1 -
+        smoothstep(
+          RIVER_LOCAL_MAP_TUNING.obstacleWakeShearPeak,
+          RIVER_LOCAL_MAP_TUNING.obstacleWakeShearEnd,
+          normalizedWakeAcross
+        ));
+    const wakeCore = 1 - smoothstep(0, RIVER_LOCAL_MAP_TUNING.obstacleWakeCoreWidth, normalizedWakeAcross);
+    const wakePulse = 0.72 + Math.abs(Math.sin((downstream / Math.max(radius, 0.0001)) * 2.1)) * 0.28;
+    const wakeFoam =
+      wakeLongitudinal *
+      (wakeShearBand * RIVER_LOCAL_MAP_TUNING.obstacleWakeShearFoamGain +
+        wakeCore * RIVER_LOCAL_MAP_TUNING.obstacleWakeCoreFoamWeight * wakePulse);
     const foam =
-      clamp01(disturbance.strength * (wake + front * RIVER_LOCAL_MAP_TUNING.obstacleFrontFoamWeight)) * outsideObstacle;
+      clamp01(disturbance.strength * (wakeFoam + front * RIVER_LOCAL_MAP_TUNING.obstacleFrontFoamWeight)) *
+      outsideObstacle;
     return { flowX: rawX / flowLength, flowZ: rawZ / flowLength, foam, signedDistance };
   };
 }

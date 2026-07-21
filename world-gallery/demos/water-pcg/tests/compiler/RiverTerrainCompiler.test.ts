@@ -59,7 +59,7 @@ describe("River terrain and water-profile compilation", () => {
       nodes: source.nodes.map((node) =>
         node.id === "main-source"
           ? { ...node, elevation: 20 }
-          : node.id === "north-tributary-source"
+          : node.id === "tributary-source"
             ? { ...node, elevation: 0 }
             : node
       )

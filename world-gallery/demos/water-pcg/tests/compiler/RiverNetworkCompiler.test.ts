@@ -53,11 +53,11 @@ describe("RiverNetworkCompiler", () => {
 
     expect(first.valid).toBe(true);
     expect(first.data?.stats).toMatchObject({
-      nodeCount: 7,
-      reachCount: 6,
-      sourceCount: 4,
+      nodeCount: 4,
+      reachCount: 3,
+      sourceCount: 2,
       mouthCount: 1,
-      junctionCount: 2
+      junctionCount: 1
     });
     expect(Array.from(first.data?.topologicalNodeIndices ?? [])).toEqual(
       Array.from(second.data?.topologicalNodeIndices ?? [])
@@ -65,15 +65,15 @@ describe("RiverNetworkCompiler", () => {
     expect(Array.from(first.data?.waterSurfaceElevations ?? [])).toEqual(
       Array.from(second.data?.waterSurfaceElevations ?? [])
     );
-    expect(Array.from(first.data?.nodes[4].incomingReachIndices ?? [])).toEqual([0, 1]);
-    expect(Array.from(first.data?.nodes[4].outgoingReachIndices ?? [])).toEqual([2]);
+    expect(Array.from(first.data?.nodes[2].incomingReachIndices ?? [])).toEqual([0, 1]);
+    expect(Array.from(first.data?.nodes[2].outgoingReachIndices ?? [])).toEqual([2]);
     expect(first.data?.reaches[2]).toMatchObject({
-      id: "main-middle",
-      fromNodeIndex: 4,
-      toNodeIndex: 5,
+      id: "main-lower",
+      fromNodeIndex: 2,
+      toNodeIndex: 3,
       order: 4
     });
-    expect(first.data?.junctions).toHaveLength(2);
+    expect(first.data?.junctions).toHaveLength(1);
     expect(first.data?.stats.chunkCount).toBe(first.data?.chunks.length);
     expect(first.data?.chunks.length).toBeGreaterThanOrEqual(first.data!.reaches.length + first.data!.junctions.length);
     expect(first.data?.stats.queryPrimitiveCount).toBe(first.data?.queryIndex.primitiveCount);
@@ -86,7 +86,7 @@ describe("RiverNetworkCompiler", () => {
 
   it("trims connected reaches and stitches confluence patch boundaries to reach ribbons", () => {
     const result = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
-    const junction = result.data!.junctions.find((candidate) => candidate.id === "upper-confluence")!;
+    const junction = result.data!.junctions.find((candidate) => candidate.id === "main-confluence")!;
     const incoming = Array.from(junction.incomingReachIndices);
     const outgoing = Array.from(junction.outgoingReachIndices);
 
@@ -166,7 +166,7 @@ describe("RiverNetworkCompiler", () => {
     const source = multiTributaryRiverExample.riverDescriptor;
     const descriptor: RiverNetworkDescriptor = {
       ...source,
-      nodes: source.nodes.map((node) => (node.id === "upper-confluence" ? { ...node, mergeRadius: 1 } : node))
+      nodes: source.nodes.map((node) => (node.id === "main-confluence" ? { ...node, mergeRadius: 1 } : node))
     };
     const result = RiverNetworkCompiler.compile(descriptor);
 
@@ -232,22 +232,26 @@ describe("RiverNetworkCompiler", () => {
   });
 
   it("reports incompatible material styles at confluence boundaries", () => {
-    const mixedResult = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
+    const source = multiTributaryRiverExample.riverDescriptor;
+    const mixedDescriptor: RiverNetworkDescriptor = {
+      ...source,
+      segments: source.segments.map((segment) =>
+        segment.id === "tributary"
+          ? { ...segment, material: { ...source.defaults.material, baseColor: "#ffffff" } }
+          : segment
+      )
+    };
+    const mixedResult = RiverNetworkCompiler.compile(mixedDescriptor);
     expect(mixedResult.diagnostics).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           code: RiverDiagnosticCode.IncompatibleJunctionMaterial,
-          path: "nodes[5].material"
+          path: "nodes[2].material"
         })
       ])
     );
 
-    const source = multiTributaryRiverExample.riverDescriptor;
-    const unifiedDescriptor: RiverNetworkDescriptor = {
-      ...source,
-      segments: source.segments.map((segment) => ({ ...segment, material: undefined }))
-    };
-    const unifiedResult = RiverNetworkCompiler.compile(unifiedDescriptor);
+    const unifiedResult = RiverNetworkCompiler.compile(source);
     expect(unifiedResult.valid).toBe(true);
     expect(unifiedResult.diagnostics.map((diagnostic) => diagnostic.code)).not.toContain(
       RiverDiagnosticCode.IncompatibleJunctionMaterial
@@ -388,26 +392,25 @@ describe("RiverNetworkCompiler", () => {
 
   it("assigns deterministic network-distance offsets to downstream reaches", () => {
     const result = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
-    const middle = result.data?.reaches.find((reach) => reach.id === "main-middle");
-    const lowerConfluence = result.data?.nodes.find((node) => node.id === "lower-confluence");
+    const confluence = result.data?.nodes.find((node) => node.id === "main-confluence");
     const downstream = result.data?.reaches.find((reach) => reach.id === "main-lower");
     const expectedOffset = Math.max(
-      ...Array.from(lowerConfluence?.incomingReachIndices ?? []).map((reachIndex) => {
+      ...Array.from(confluence?.incomingReachIndices ?? []).map((reachIndex) => {
         const reach = result.data!.reaches[reachIndex];
         return reach.networkDistanceOffset + reach.length;
       })
     );
 
-    expect(middle?.networkDistanceOffset).toBeGreaterThan(0);
+    expect(downstream?.networkDistanceOffset).toBeGreaterThan(0);
     expect(downstream?.networkDistanceOffset).toBeCloseTo(expectedOffset, 4);
   });
 
   it("assigns continuous network flow-time offsets without reversing local phase", () => {
     const result = RiverNetworkCompiler.compile(multiTributaryRiverExample.riverDescriptor);
-    const lowerConfluence = result.data?.nodes.find((node) => node.id === "lower-confluence");
+    const confluence = result.data?.nodes.find((node) => node.id === "main-confluence");
     const downstream = result.data?.reaches.find((reach) => reach.id === "main-lower");
     const expectedOffset = Math.max(
-      ...Array.from(lowerConfluence?.incomingReachIndices ?? []).map((reachIndex) => {
+      ...Array.from(confluence?.incomingReachIndices ?? []).map((reachIndex) => {
         const reach = result.data!.reaches[reachIndex];
         return reach.networkFlowTimeOffset + reach.flowTravelDuration;
       })

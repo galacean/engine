@@ -7,11 +7,10 @@ export interface WaterPcgCaseNavigationItem {
 }
 
 export const WATER_PCG_CASES: readonly WaterPcgCaseNavigationItem[] = [
-  { id: "curved-main-river", label: "高差主河", kind: "river" },
-  { id: "multi-tributary-river", label: "多支流河网", kind: "river" },
-  { id: "river-expanded-lake", label: "河流扩宽湖泊", kind: "river" },
+  { id: "curved-main-river", label: "高差河流", kind: "river" },
+  { id: "multi-tributary-river", label: "双支流汇流", kind: "river" },
   { id: "indoor-reflective-pool", label: "交互式泳池", kind: "interactive-pool" },
-  { id: "heightfield-water", label: "高度场水体", kind: "heightfield" },
+  { id: "heightfield-water", label: "高度场水面", kind: "heightfield" },
   { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" }
 ];
 

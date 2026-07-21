@@ -128,7 +128,7 @@ function getLowNoiseTexture(engine: Engine): Texture2D {
     pixels[offset] = pixels[offset + 1] = pixels[offset + 2] = value;
     pixels[offset + 3] = 255;
   }
-  const texture = new Texture2D(engine, size, size, undefined, false, false);
+  const texture = new Texture2D(engine, size, size, undefined, true, false);
   texture.name = "RiverLowSharedNoise";
   // The WeakMap cache outlives individual material sets. Keep the shared texture
   // alive across deferred ResourceManager.gc() calls until the engine is destroyed.
@@ -136,6 +136,7 @@ function getLowNoiseTexture(engine: Engine): Texture2D {
   texture.filterMode = TextureFilterMode.Bilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
   texture.setPixelBuffer(pixels);
+  texture.generateMipmaps();
   lowNoiseTextures.set(engine, texture);
   return texture;
 }
@@ -221,7 +222,7 @@ function getSurfaceNormalTexture(engine: Engine): Texture2D {
       );
     }
   }
-  const texture = new Texture2D(engine, size, size, undefined, false, false);
+  const texture = new Texture2D(engine, size, size, undefined, true, false);
   texture.name = "RiverSharedSurfaceNormal";
   // Inactive quality variants do not retain their shader textures. The cache must
   // therefore own this shared texture independently of renderer reference counts.
@@ -229,6 +230,7 @@ function getSurfaceNormalTexture(engine: Engine): Texture2D {
   texture.filterMode = TextureFilterMode.Bilinear;
   texture.wrapModeU = texture.wrapModeV = TextureWrapMode.Repeat;
   texture.setPixelBuffer(pixels);
+  texture.generateMipmaps();
   surfaceNormalTextures.set(engine, texture);
   return texture;
 }
@@ -265,14 +267,16 @@ function createSurfaceShaderSource(shaderName: string, useLocalMap: boolean): st
           renderer_LocalMapConfluence
         );
         float localFlowWeight = step(0.05, dot(localFlow, localFlow)) * localEffectWeight * confluenceFlowWeight;
-        float localFoamSource = localMapSample.b * localEffectWeight * confluenceFoamWeight;`
+        float localFoamSource = localMapSample.b * localEffectWeight * confluenceFoamWeight;
+        float obstacleRegionWeight = (1.0 - renderer_LocalMapConfluence) * localEffectWeight;`
     : `
         vec2 localFlow = input.worldFlow;
         float localFlowWeight = 0.0;
         float localFoamSource = 0.0;
         float localSignedDistance = 1.0;
         float localEffectWeight = 0.0;
-        float atlasRectMask = 0.0;`;
+        float atlasRectMask = 0.0;
+        float obstacleRegionWeight = 0.0;`;
   return `
 Shader "${shaderName}" {
   SubShader "Default" {
@@ -303,6 +307,7 @@ Shader "${shaderName}" {
       vec4 camera_DepthBufferParams;
       vec4 camera_ProjectionParams;
       sampler2D camera_DepthTexture;
+      sampler2D camera_OpaqueTexture;
       sampler2D material_SurfaceNormalTexture;
       ${localUniforms}
 
@@ -355,7 +360,8 @@ Shader "${shaderName}" {
         return lengthSquared > 0.00000001 ? value * inversesqrt(lengthSquared) : fallback;
       }
       float surfaceTime() {
-        return material_SurfaceTimeOverride >= 0.0 ? material_SurfaceTimeOverride : scene_ElapsedTime.x;
+        float selectedTime = material_SurfaceTimeOverride >= 0.0 ? material_SurfaceTimeOverride : scene_ElapsedTime.x;
+        return mod(max(selectedTime, 0.0), ${glsl(RIVER_SURFACE_SHADER_TUNING.timePeriodSeconds, 1)});
       }
       float riverHash21(vec2 point) {
         point = mod(point, ${RIVER_SURFACE_NOISE_PERIOD_GLSL});
@@ -419,22 +425,46 @@ Shader "${shaderName}" {
           return 1.0 / (camera_DepthBufferParams.z * depth + camera_DepthBufferParams.w);
         #endif
       }
-      vec2 flowUVWNormal(vec2 worldXZ, vec2 flowDirection, float elapsedTime, float scale, float offset) {
-        float cycle = elapsedTime * ${glsl(RIVER_SURFACE_SHADER_TUNING.phaseRate)} + offset;
-        float phaseA = fract(cycle);
-        float phaseB = fract(cycle + 0.5);
-        float weightA = 1.0 - abs(phaseA * 2.0 - 1.0);
-        float weightB = 1.0 - abs(phaseB * 2.0 - 1.0);
-        vec2 normalA = texture2D(
+      vec4 sampleFlowSurface(
+        vec2 worldXZ,
+        vec2 flowDirection,
+        float flowSpeed,
+        float elapsedTime,
+        float scale,
+        float rate,
+        vec2 layerOffset,
+        vec2 cycleJump,
+        vec2 spatialPhaseDirection
+      ) {
+        float normalizedSpeed = saturate(flowSpeed / ${glsl(RIVER_SURFACE_SHADER_TUNING.maximumFlowSpeed)});
+        float cycleRate = ${glsl(RIVER_SURFACE_SHADER_TUNING.phaseRate)} * rate * (
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.flowingCycleRateBase)}
+            + normalizedSpeed * ${glsl(RIVER_SURFACE_SHADER_TUNING.flowingCycleRateSpeedScale)}
+        );
+        float spatialPhase = dot(worldXZ, spatialPhaseDirection);
+        float cycle = elapsedTime * cycleRate + spatialPhase;
+        float progressA = fract(cycle);
+        float progressB = fract(cycle + 0.5);
+        float weightA = 1.0 - abs(progressA * 2.0 - 1.0);
+        float weightB = 1.0 - abs(progressB * 2.0 - 1.0);
+        float travel = ${glsl(RIVER_SURFACE_SHADER_TUNING.phaseTravel)} * (
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.flowingPhaseTravelBase)}
+            + normalizedSpeed * ${glsl(RIVER_SURFACE_SHADER_TUNING.flowingPhaseTravelSpeedScale)}
+        );
+        vec2 baseUv = worldXZ * scale + layerOffset;
+        vec4 sampleA = texture2D(
           material_SurfaceNormalTexture,
-          worldXZ * scale - flowDirection * phaseA * ${glsl(RIVER_SURFACE_SHADER_TUNING.phaseTravel)}
-        ).rg * 2.0 - 1.0;
-        vec2 normalB = texture2D(
+          baseUv - flowDirection * ((progressA - 0.5) * travel) + (cycle - progressA) * cycleJump
+        );
+        vec4 sampleB = texture2D(
           material_SurfaceNormalTexture,
-          worldXZ * scale - flowDirection * phaseB * ${glsl(RIVER_SURFACE_SHADER_TUNING.phaseTravel)}
-            + vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.phaseUvOffset[0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.phaseUvOffset[1])})
-        ).rg * 2.0 - 1.0;
-        return (normalA * weightA + normalB * weightB) / max(weightA + weightB, 0.001);
+          baseUv - flowDirection * ((progressB - 0.5) * travel)
+            + vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.phaseBOffset[0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.phaseBOffset[1])})
+            + (cycle - progressB) * cycleJump
+        );
+        vec4 decodedA = vec4(sampleA.rg * 2.0 - 1.0, sampleA.ba);
+        vec4 decodedB = vec4(sampleB.rg * 2.0 - 1.0, sampleB.ba);
+        return (decodedA * weightA + decodedB * weightB) / max(weightA + weightB, 0.001);
       }
 
       VertexShader = vert;
@@ -510,14 +540,31 @@ Shader "${shaderName}" {
           0.0,
           ${RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL}
         );
-        float absorption = mix(
-          ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption},
-          ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption},
+        vec3 absorption = mix(
+          vec3(
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption[0])},
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption[1])},
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAbsorption[2])}
+          ),
+          vec3(
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption[0])},
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption[1])},
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAbsorption[2])}
+          ),
           clarity
         );
-        float transmittance = exp(-absorption * opticalDepth);
+        vec3 transmittance = exp(-absorption * opticalDepth);
+        float absorptionAlpha = 1.0 - exp(-mix(
+          ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.opaqueAlphaAbsorption)},
+          ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.clearAlphaAbsorption)},
+          clarity
+        ) * opticalDepth);
         float waterAlpha = clamp(
-          1.0 - transmittance,
+          mix(
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.shallowAlpha)},
+            ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.deepAlpha)},
+            absorptionAlpha
+          ),
           ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.minimumAlpha},
           ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maximumAlpha}
         );
@@ -564,41 +611,128 @@ Shader "${shaderName}" {
         vec2 baseFlow = safeNormalize2(input.worldFlow, vec2(0.0, 1.0));
         vec2 localFlowDirection = safeNormalize2(localFlow, baseFlow);
         vec2 flowDirection = safeNormalize2(mix(baseFlow, localFlowDirection, localFlowWeight), baseFlow);
-        vec2 microA = flowUVWNormal(
+        float flowSpeed = max(input.motionData.w * material_FlowSpeed, 0.0);
+        float microDetailScale = clamp(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.microDetailLengthReference)}
+            / max(material_SurfaceLengthScale, 0.001),
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.microDetailScaleMinimum)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.microDetailScaleMaximum)}
+        );
+        vec4 flowSurfaceA = sampleFlowSurface(
           input.worldXZ,
           flowDirection,
-          elapsedTime * max(input.motionData.w, 0.0),
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.microScaleA)},
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.microOffsetA)}
+          flowSpeed,
+          elapsedTime,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.layerScales[0])} * microDetailScale,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.layerRates[0])},
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerOffsets[0][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerOffsets[0][1])}),
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerCycleJumps[0][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerCycleJumps[0][1])}),
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerSpatialPhaseVectors[0][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerSpatialPhaseVectors[0][1])})
         );
-        vec2 microB = flowUVWNormal(
-          input.worldXZ + vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.microWorldOffset[0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.microWorldOffset[1])}),
+        vec4 flowSurfaceB = sampleFlowSurface(
+          input.worldXZ,
           flowDirection,
-          elapsedTime * max(input.motionData.w, 0.0),
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.microScaleB)},
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.microOffsetB)}
+          flowSpeed,
+          elapsedTime,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.layerScales[1])} * microDetailScale,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.layerRates[1])},
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerOffsets[1][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerOffsets[1][1])}),
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerCycleJumps[1][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerCycleJumps[1][1])}),
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerSpatialPhaseVectors[1][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerSpatialPhaseVectors[1][1])})
         );
-        vec2 microSlope = (
-          microA * ${glsl(RIVER_SURFACE_SHADER_TUNING.microBlendWeights[0])}
-          + microB * ${glsl(RIVER_SURFACE_SHADER_TUNING.microBlendWeights[1])}
-        )
-          * material_MicroNormalStrength * material_MicroSurfaceEnabled;
-        vec3 acrossWS = vec3(-flowDirection.y, 0.0, flowDirection.x);
-        vec3 flowWS = vec3(flowDirection.x, 0.0, flowDirection.y);
-        vec3 surfaceNormalWS = normalize(
-          input.macroNormalWS + acrossWS * microSlope.x + flowWS * microSlope.y
+        vec4 flowSurfaceC = sampleFlowSurface(
+          input.worldXZ,
+          flowDirection,
+          flowSpeed,
+          elapsedTime,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.layerScales[2])} * microDetailScale,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.layerRates[2])},
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerOffsets[2][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerOffsets[2][1])}),
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerCycleJumps[2][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerCycleJumps[2][1])}),
+          vec2(${glsl(RIVER_SURFACE_SHADER_TUNING.layerSpatialPhaseVectors[2][0])}, ${glsl(RIVER_SURFACE_SHADER_TUNING.layerSpatialPhaseVectors[2][1])})
         );
-        vec3 viewDirection = normalize(camera_Position - input.worldPosition);
-        float fresnel = pow(1.0 - saturate(dot(surfaceNormalWS, viewDirection)), ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelPower)});
+        vec4 flowSurface = (
+          flowSurfaceA * ${glsl(RIVER_SURFACE_SHADER_TUNING.layerWeights[0])}
+          + flowSurfaceB * ${glsl(RIVER_SURFACE_SHADER_TUNING.layerWeights[1])}
+          + flowSurfaceC * ${glsl(RIVER_SURFACE_SHADER_TUNING.layerWeights[2])}
+        );
+        float localWakeSignal = localFoamSource * obstacleRegionWeight;
+        vec2 wakeLateralDirection = vec2(-baseFlow.y, baseFlow.x);
+        float wakeFlowTurn = dot(localFlowDirection - baseFlow, wakeLateralDirection);
+        float wakeTravelPhase = dot(input.worldXZ, baseFlow)
+          * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeTravelSpatialRate)}
+          - elapsedTime * (
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeTravelTimeRate)}
+            + flowSpeed * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFlowSpeedTimeWeight)}
+          );
+        float wakeSheddingNoise = riverValueNoise(
+          input.worldXZ * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeNoiseScale)}
+            - baseFlow * elapsedTime * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeNoiseTimeRate)}
+        );
+        float wakeAlternation = 0.5 + 0.5 * sin(
+          wakeTravelPhase
+            + wakeFlowTurn * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeAlternatingSidePhase)}
+        );
+        float wakeShedding = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeSheddingStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeSheddingEnd)},
+          wakeAlternation
+            + (wakeSheddingNoise - 0.5) * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeSheddingNoiseWeight)}
+        );
+        float dynamicWakeSignal = localWakeSignal * wakeShedding;
+        float detailStrength = max(
+          material_MicroNormalStrength,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.minimumNormalStrength)}
+        ) * material_MicroSurfaceEnabled * (
+          1.0 + dynamicWakeSignal * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeNormalStrength)}
+        );
+        vec2 localFlowBend = (localFlowDirection - baseFlow)
+          * obstacleRegionWeight
+          * mix(
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFlowBendMinimum)},
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFlowBendMaximum)},
+            wakeShedding
+          )
+          * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFlowBendStrength)};
+        float wakeRippleSignal =
+          (flowSurface.w * 2.0 - 1.0) * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeRippleNoiseWeight)}
+          + (wakeAlternation * 2.0 - 1.0)
+            * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeRippleOscillationWeight)};
+        vec2 localWakeRipple = wakeLateralDirection
+          * wakeRippleSignal
+          * dynamicWakeSignal
+          * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeLateralRippleStrength)};
+        vec2 detailedSurfaceSlope = flowSurface.xy + localFlowBend + localWakeRipple;
+        vec3 worldDetailSlope = vec3(detailedSurfaceSlope.x, 0.0, detailedSurfaceSlope.y);
+        vec3 tangentDetailSlope = worldDetailSlope
+          - input.macroNormalWS * dot(worldDetailSlope, input.macroNormalWS);
+        vec3 surfaceNormalWS = safeNormalize3(
+          input.macroNormalWS + tangentDetailSlope * detailStrength,
+          input.macroNormalWS
+        );
+        vec3 viewDirection = safeNormalize3(camera_Position - input.worldPosition, input.macroNormalWS);
+        float normalFacing = step(0.0, dot(surfaceNormalWS, viewDirection)) * 2.0 - 1.0;
+        surfaceNormalWS *= normalFacing;
+        float normalDotView = saturate(dot(surfaceNormalWS, viewDirection));
+        float fresnel = ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelF0)}
+          + (1.0 - ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelF0)})
+            * pow(1.0 - normalDotView, ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelPower)});
         vec3 lightDirection = normalize(vec3(
           ${glsl(RIVER_SURFACE_SHADER_TUNING.lightDirection[0])},
           ${glsl(RIVER_SURFACE_SHADER_TUNING.lightDirection[1])},
           ${glsl(RIVER_SURFACE_SHADER_TUNING.lightDirection[2])}
         ));
-        float glint = pow(
-          saturate(dot(surfaceNormalWS, lightDirection)),
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.glintPower)}
-        );
+        vec3 halfDirection = safeNormalize3(viewDirection + lightDirection, lightDirection);
+        float normalDotLight = saturate(dot(surfaceNormalWS, lightDirection));
+        float normalDotHalf = saturate(dot(surfaceNormalWS, halfDirection));
+        float broadSpecular = pow(
+          normalDotHalf,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.broadSpecularPower)}
+        ) * normalDotLight;
+        float tightSpecular = pow(
+          normalDotHalf,
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.tightSpecularPower)}
+        ) * normalDotLight;
         float distanceToBank = max(0.0, input.motionData.z - abs(input.motionData.x));
         float shoreEnvelope = 1.0 - smoothstep(
           0.0,
@@ -610,47 +744,202 @@ Shader "${shaderName}" {
           + crestCurvature * ${glsl(RIVER_SURFACE_SHADER_TUNING.foamCurvatureWeight)}
         )
           * ${glsl(RIVER_SURFACE_SHADER_TUNING.crestFoamWeight)};
-        float shoreFoam = shoreEnvelope * (
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.foamBaseWeight)}
-          + erosionMask * ${glsl(RIVER_SURFACE_SHADER_TUNING.foamCurvatureWeight)}
-        )
+        float foamNoise = saturate(flowSurface.z * 0.62 + flowSurface.w * 0.38);
+        float foamBreakup = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.foamNoiseStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.foamNoiseEnd)},
+          foamNoise + (1.0 - abs(flowSurface.z - flowSurface.w)) * 0.08
+        );
+        float shorePatchNoise = riverFbm(
+          input.worldXZ * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamPatchScale)}
+            - baseFlow * elapsedTime * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamDriftRate)}
+        );
+        float shorePulse = 0.5 + 0.5 * sin(
+          elapsedTime * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamPulseRate)}
+            + dot(
+              input.worldXZ,
+              vec2(
+                ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamPulseWorldDirection[0])},
+                ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamPulseWorldDirection[1])}
+              )
+            )
+            + sign(input.motionData.x) * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamOppositeBankPhase)}
+            + shorePatchNoise * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamNoisePhase)}
+        );
+        float shorePatchGate = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamPatchStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamPatchEnd)},
+          shorePulse
+        );
+        float shoreLifePulse = 0.5 + 0.5 * sin(
+          elapsedTime * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamLifeRate)}
+            + shorePatchNoise * 6.28318531
+            + foamNoise * 2.1
+        );
+        float shoreLifeGate = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamLifeStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamLifeEnd)},
+          shoreLifePulse
+        );
+        float shoreBreakup = shorePatchGate
+          * mix(
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamLifeMinimum)},
+            1.0,
+            shoreLifeGate
+          )
+          * mix(
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamDetailMinimum)},
+            1.0,
+            foamBreakup
+          );
+        float shoreFoam = shoreEnvelope
+          * shoreBreakup
+          * mix(0.42, 1.0, erosionMask)
           * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamWeight)};
-        float localFoam = localFoamSource * ${glsl(RIVER_SURFACE_SHADER_TUNING.localFoamWeight)};
+        float currentFoam = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.currentFoamSpeedStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.currentFoamSpeedEnd)},
+          flowSpeed
+        ) * smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.currentFoamNoiseStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.currentFoamNoiseEnd)},
+          flowSurface.w
+        ) * input.surfaceData.y * 0.32;
+        float wakeBreakup = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFoamNoiseStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFoamNoiseEnd)},
+          foamNoise * 0.72 + wakeSheddingNoise * 0.28 + abs(flowSurface.x) * 0.08
+        );
+        float localConfluenceFoam = localFoamSource
+          * (1.0 - obstacleRegionWeight)
+          * ${glsl(RIVER_SURFACE_SHADER_TUNING.localFoamWeight)};
+        float wakeLiftedSignal = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeSignalStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeSignalEnd)},
+          dynamicWakeSignal
+        );
+        float localWakeFoam = wakeLiftedSignal
+          * mix(${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFoamBase)}, 1.0, wakeBreakup)
+          * ${glsl(RIVER_SURFACE_SHADER_TUNING.localFoamWeight)};
         float obstacleEdge = 1.0 - smoothstep(
           0.0,
           ${glsl(RIVER_SURFACE_SHADER_TUNING.obstacleEdgeWidth)},
           abs(localSignedDistance)
         );
+        float obstacleEdgeFoam = obstacleEdge
+          * obstacleRegionWeight
+          * mix(0.58, 1.0, foamBreakup)
+          * mix(0.7, 1.0, wakeShedding)
+          * ${glsl(RIVER_SURFACE_SHADER_TUNING.obstacleEdgeFoamWeight)};
         float foam = saturate(max(
-          max(crestFoam, shoreFoam),
-          localFoam + obstacleEdge * localFoamSource * ${glsl(RIVER_SURFACE_SHADER_TUNING.obstacleEdgeFoamWeight)}
+          max(max(crestFoam, shoreFoam), currentFoam),
+          max(max(localConfluenceFoam, localWakeFoam), obstacleEdgeFoam)
         ))
           * material_FoamIntensity;
-        vec3 color = material_BaseColor.rgb * (
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.waterBrightness)}
-          + clarity * ${glsl(RIVER_SURFACE_SHADER_TUNING.clarityBrightness)}
-          + input.surfaceData.x * ${glsl(RIVER_SURFACE_SHADER_TUNING.macroHeightBrightness)}
+        float depthColorMix = 1.0 - exp(
+          -opticalDepth * ${glsl(RIVER_SURFACE_SHADER_TUNING.depthColorRate)}
         );
-        color += vec3(
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.clearWaterTint[0])},
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.clearWaterTint[1])},
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.clearWaterTint[2])}
-        ) * clarity;
-        color += vec3(
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelTint[0])},
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelTint[1])},
-          ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelTint[2])}
-        ) * fresnel * ${glsl(RIVER_SURFACE_SHADER_TUNING.fresnelWeight)};
-        color += material_FoamColor.rgb * glint * ${glsl(RIVER_SURFACE_SHADER_TUNING.glintWeight)};
+        vec3 deepWaterColor = mix(
+          material_BaseColor.rgb * ${glsl(RIVER_SURFACE_SHADER_TUNING.deepColorScale)},
+          vec3(
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.deepColorTint[0])},
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.deepColorTint[1])},
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.deepColorTint[2])}
+          ),
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.deepColorTintWeight)}
+        );
+        vec3 volumeColor = mix(material_BaseColor.rgb, deepWaterColor, depthColorMix);
+        vec3 color = volumeColor * mix(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.transmittedBrightnessDark)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.transmittedBrightnessLight)},
+          transmittance.g
+        );
+        color += material_BaseColor.rgb
+          * input.surfaceData.x
+          * ${glsl(RIVER_SURFACE_SHADER_TUNING.macroHeightBrightness)};
         vec3 softFoamColor = mix(
-          material_BaseColor.rgb * ${RIVER_SHORE_FOAM_SHADER_TUNING.waterColorBrightness},
+          volumeColor * ${RIVER_SHORE_FOAM_SHADER_TUNING.waterColorBrightness},
           material_FoamColor.rgb,
           ${RIVER_SHORE_FOAM_SHADER_TUNING.foamColorMix}
         );
-        float foamTint = foam * (
-          ${RIVER_SHORE_FOAM_SHADER_TUNING.tintBase}
-          + clarity * ${RIVER_SHORE_FOAM_SHADER_TUNING.tintClarityWeight}
+        float foamTint = saturate(
+          foam * (
+            ${RIVER_SHORE_FOAM_SHADER_TUNING.tintBase}
+            + clarity * ${RIVER_SHORE_FOAM_SHADER_TUNING.tintClarityWeight}
+          )
+          + shoreFoam * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamTintBoost)}
+          + localWakeFoam * ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFoamTintBoost)}
+          + obstacleEdgeFoam * ${glsl(RIVER_SURFACE_SHADER_TUNING.obstacleEdgeTintBoost)}
         );
+        vec3 macroNormalVS = normalize(mat3(camera_ViewMat) * input.macroNormalWS);
+        vec3 surfaceNormalVS = normalize(mat3(camera_ViewMat) * surfaceNormalWS);
+        vec2 refractionNormalDelta = surfaceNormalVS.xy - macroNormalVS.xy;
+        float refractionDepthWeight = smoothstep(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionDepthStart)},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionDepthEnd)},
+          opticalDepth
+        );
+        vec2 displacedScreenUv = screenUv
+          + refractionNormalDelta * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionUvScale)} * refractionDepthWeight;
+        float refractionScreenInterior = step(0.002, displacedScreenUv.x)
+          * step(displacedScreenUv.x, 0.998)
+          * step(0.002, displacedScreenUv.y)
+          * step(displacedScreenUv.y, 0.998);
+        vec2 refractedScreenUv = clamp(displacedScreenUv, vec2(0.002), vec2(0.998));
+        float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
+          texture2D(camera_DepthTexture, refractedScreenUv).r
+        );
+        float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceData.z, 0.0);
+        float refractionDepthTolerance = max(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionDepthToleranceMinimum)},
+          opticalDepth * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionDepthToleranceScale)}
+        );
+        float refractionDepthContinuity = 1.0 - smoothstep(
+          refractionDepthTolerance,
+          refractionDepthTolerance * 3.0 + 0.2,
+          abs(refractedSceneEyeDepth - sceneEyeDepth)
+        );
+        float refractedGeometryBehindSurface = smoothstep(0.03, 0.22, refractedOpticalDepth);
+        float refractionSampleValidity = refractionScreenInterior
+          * refractionDepthContinuity
+          * refractedGeometryBehindSurface;
+        vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb;
+        vec3 displacedSceneColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb;
+        vec3 refractedSceneColor = mix(centeredSceneColor, displacedSceneColor, refractionSampleValidity);
+        float depthRatio = saturate(opticalDepth / ${RIVER_MEDIUM_MAX_OPTICAL_DEPTH_GLSL});
+        vec3 refractionTint = mix(vec3(0.82, 0.95, 0.97), vec3(0.63, 0.84, 0.88), depthRatio);
+        float refractionAmount = ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionMix)}
+          * clarity
+          * transmittance.g
+          * refractionDepthWeight
+          * input.surfaceData.y
+          * (1.0 - foamTint * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionFoamSuppression)});
+        color = mix(color, refractedSceneColor * refractionTint, refractionAmount);
+        vec3 skyReflection = mix(
+          vec3(
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.skyReflectionDark[0])},
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.skyReflectionDark[1])},
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.skyReflectionDark[2])}
+          ),
+          vec3(
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.skyReflectionLight[0])},
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.skyReflectionLight[1])},
+            ${glsl(RIVER_SURFACE_SHADER_TUNING.skyReflectionLight[2])}
+          ),
+          saturate(surfaceNormalWS.y * 0.5 + 0.5)
+        );
+        color = mix(color, skyReflection, fresnel * ${glsl(RIVER_SURFACE_SHADER_TUNING.reflectionWeight)});
+        float sparkleMask = mix(0.72, 1.28, flowSurface.w);
+        color += vec3(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.broadSpecularColor[0])},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.broadSpecularColor[1])},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.broadSpecularColor[2])}
+        ) * broadSpecular * ${glsl(RIVER_SURFACE_SHADER_TUNING.broadSpecularWeight)};
+        color += vec3(
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.tightSpecularColor[0])},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.tightSpecularColor[1])},
+          ${glsl(RIVER_SURFACE_SHADER_TUNING.tightSpecularColor[2])}
+        ) * tightSpecular * sparkleMask * ${glsl(RIVER_SURFACE_SHADER_TUNING.tightSpecularWeight)};
         color = mix(color, softFoamColor, foamTint);
         color = mix(color, material_BaseColor.rgb, saturate(material_TintWeight));
         if (material_SurfaceDebugMode > ${RiverSurfaceDebugMode.Off + 0.5}) {
@@ -661,7 +950,7 @@ Shader "${shaderName}" {
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.MicroNormal - 0.5}) {
             color = vec3(crestMask);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.ShoreDamping - 0.5}) {
-            color = vec3(microSlope * 0.5 + 0.5, 1.0);
+            color = vec3(flowSurface.xy * 0.5 + 0.5, 1.0);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.LocalFlow - 0.5}) {
             color = vec3(input.surfaceData.y);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.LocalFoam - 0.5}) {
@@ -678,7 +967,7 @@ Shader "${shaderName}" {
         }
         float alpha = waterAlpha
           + foamTint * ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.foamAlphaWeight}
-          + (fresnel + glint) * ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.scatterAlphaWeight};
+          + (fresnel + broadSpecular + tightSpecular) * ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.scatterAlphaWeight};
         gl_FragColor = vec4(
           color,
           clamp(alpha * material_OpacityScale, 0.0, ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maximumAlpha})

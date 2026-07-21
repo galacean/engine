@@ -63,19 +63,6 @@ export const multiTributaryOceanPreview: OceanPreviewConfig = {
   oceanColor: "#207f9b"
 };
 
-export const riverExpandedLakeOceanPreview: OceanPreviewConfig = {
-  size: 96,
-  resolution: 72,
-  waterLevel: 0.2,
-  amplitudeScale: 1,
-  timeScale: 0.38,
-  quality: WaterQualityTier.Medium,
-  waveAsset: createOceanWaveAsset(23813, 4.5, 36, 0.01, 0.2, 0.18, 0.72, 0.42),
-  alpha: 0.64,
-  foamIntensity: 0.45,
-  oceanColor: "#176f83"
-};
-
 export const indoorReflectivePoolOceanPreview: OceanPreviewConfig = {
   size: 72,
   resolution: 64,

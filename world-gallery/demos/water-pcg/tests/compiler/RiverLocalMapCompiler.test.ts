@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import { RiverLocalMapRegionKind } from "../../compiler/river/RiverGeometryEnums";
+import { RIVER_LOCAL_MAP_TUNING } from "../../compiler/river/constants";
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import { RiverNetworkSchemaVersion } from "../../authoring/river/RiverAuthoringEnums";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
@@ -10,6 +11,27 @@ import { RiverResource } from "../../runtime/river/RiverResource";
 function readPixel(pixels: { at(index: number): number | undefined }, width: number, x: number, y: number): number[] {
   const offset = (y * width + x) * 4;
   return [0, 1, 2, 3].map((channel) => pixels.at(offset + channel) ?? -1);
+}
+
+function readWorldPixel(
+  atlas: NonNullable<ReturnType<typeof RiverNetworkCompiler.compile>["data"]>["terrainInteraction"]["localMapAtlas"],
+  tileIndex: number,
+  worldX: number,
+  worldZ: number
+): number[] {
+  if (!atlas) throw new Error("Expected a local-map atlas.");
+  const tile = atlas.tiles[tileIndex];
+  const uvX = worldX * tile.worldToUv[0] + tile.worldToUv[2];
+  const uvY = worldZ * tile.worldToUv[1] + tile.worldToUv[3];
+  const pixelX = Math.min(
+    tile.pixelRect[0] + tile.pixelRect[2] - 1,
+    Math.max(tile.pixelRect[0], Math.round(uvX * atlas.width - 0.5))
+  );
+  const pixelY = Math.min(
+    tile.pixelRect[1] + tile.pixelRect[3] - 1,
+    Math.max(tile.pixelRect[1], Math.round(uvY * atlas.height - 0.5))
+  );
+  return readPixel(atlas.pixels, atlas.width, pixelX, pixelY);
 }
 
 describe("RiverLocalMapCompiler", () => {
@@ -58,6 +80,62 @@ describe("RiverLocalMapCompiler", () => {
     expect(data.terrainInteraction.localMapAtlas).toBeUndefined();
     expect(data.stats.mapPixelCount).toBe(0);
     expect(data.chunks.every((chunk) => chunk.localMapTileIndex === undefined)).toBe(true);
+  });
+
+  it("bakes converging side flows and broken foam ribbons behind obstacles", () => {
+    const data = RiverNetworkCompiler.compile(curvedMainRiverExample.riverDescriptor).data!;
+    const atlas = data.terrainInteraction.localMapAtlas;
+    if (!atlas) throw new Error("Expected an obstacle atlas.");
+    const disturbanceIndex = data.disturbances.findIndex((disturbance) => disturbance.id === "lower-bend-boulder");
+    const disturbance = data.disturbances[disturbanceIndex];
+    const tileIndex = atlas.tiles.findIndex(
+      (tile) => tile.kind === RiverLocalMapRegionKind.Obstacle && tile.sourceIndex === disturbanceIndex
+    );
+    let nearestDistanceSquared = Number.POSITIVE_INFINITY;
+    let flowX = 1;
+    let flowZ = 0;
+    for (const reach of data.reaches) {
+      for (const sample of reach.artifact.samples) {
+        const deltaX = disturbance.position[0] - sample.position[0];
+        const deltaZ = disturbance.position[2] - sample.position[2];
+        const distanceSquared = deltaX * deltaX + deltaZ * deltaZ;
+        if (distanceSquared >= nearestDistanceSquared) continue;
+        nearestDistanceSquared = distanceSquared;
+        const flowLength = Math.hypot(sample.tangent[0], sample.tangent[2]);
+        flowX = sample.tangent[0] / flowLength;
+        flowZ = sample.tangent[2] / flowLength;
+      }
+    }
+    const lateralX = -flowZ;
+    const lateralZ = flowX;
+    const downstreamDistance = disturbance.radius * 1.2;
+    const wakeWidth = disturbance.radius * 0.55 + downstreamDistance * RIVER_LOCAL_MAP_TUNING.obstacleWakeHalfAngle;
+    const acrossDistance = wakeWidth * 0.55;
+    const sampleWake = (across: number): number[] =>
+      readWorldPixel(
+        atlas,
+        tileIndex,
+        disturbance.position[0] + flowX * downstreamDistance + lateralX * across,
+        disturbance.position[2] + flowZ * downstreamDistance + lateralZ * across
+      );
+    const leftWake = sampleWake(-acrossDistance);
+    const rightWake = sampleWake(acrossDistance);
+    const farSide = sampleWake(disturbance.radius * 3);
+    const decodeFlow = (pixel: number[]): readonly [number, number] => [
+      (pixel[0] / 255) * 2 - 1,
+      (pixel[1] / 255) * 2 - 1
+    ];
+    const leftFlow = decodeFlow(leftWake);
+    const rightFlow = decodeFlow(rightWake);
+
+    expect(atlas.tiles[tileIndex].resolution).toBe(48);
+    expect(leftWake[2]).toBeGreaterThan(64);
+    expect(rightWake[2]).toBeGreaterThan(64);
+    expect(farSide[2]).toBeLessThan(32);
+    expect(leftFlow[0] * lateralX + leftFlow[1] * lateralZ).toBeGreaterThan(0.15);
+    expect(rightFlow[0] * lateralX + rightFlow[1] * lateralZ).toBeLessThan(-0.15);
+    expect(leftFlow[0] * flowX + leftFlow[1] * flowZ).toBeGreaterThan(0.3);
+    expect(rightFlow[0] * flowX + rightFlow[1] * flowZ).toBeGreaterThan(0.3);
   });
 
   it("localizes confluence foam instead of filling the entire junction patch", () => {

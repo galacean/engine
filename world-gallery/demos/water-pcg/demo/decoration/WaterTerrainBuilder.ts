@@ -1,8 +1,8 @@
 /**
  * Deterministic demo terrain generation around compiled river corridors.
  *
- * River and lake examples receive one continuous height field that extends
- * beyond the water footprint. The field carves authored channels, adds smooth
+ * River examples receive one continuous height field that extends beyond the
+ * water footprint. The field carves authored channels, adds smooth
  * seeded bed-depth variation, and raises noisy banks outside the shoreline.
  * The formal Terrain system remains externally owned; this is presentation data.
  */
@@ -15,6 +15,7 @@ import type {
   Vector2Tuple
 } from "../../compiler/river/types";
 import {
+  HEIGHTFIELD_RIVER_TERRAIN_DETAIL_STYLE,
   WaterDecorationStyle,
   WATER_BED_PROFILE,
   WATER_TERRAIN_GRID_STYLE,
@@ -55,6 +56,7 @@ interface TerrainInfluence {
 }
 
 interface WaterTerrainField {
+  readonly style: WaterDecorationStyle;
   readonly profile: WaterTerrainProfile;
   readonly segments: readonly TerrainCenterlineSegment[];
   readonly junctions: readonly TerrainJunctionInfluence[];
@@ -125,7 +127,7 @@ function createTerrainField(data: RiverCompiledData, style: WaterDecorationStyle
     depth: junction.depth,
     radius: junction.mergeRadius
   }));
-  return { profile: WATER_BED_PROFILE[style], segments, junctions };
+  return { style, profile: WATER_BED_PROFILE[style], segments, junctions };
 }
 
 function hashGrid(x: number, z: number, seed: number): number {
@@ -148,7 +150,7 @@ function sampleValueNoise(x: number, z: number, scale: number, seed: number): nu
   return interpolate(near, far, tz);
 }
 
-function sampleTerrainNoise(x: number, z: number, profile: WaterTerrainProfile): number {
+function sampleTerrainNoise(x: number, z: number, profile: WaterTerrainProfile, style: WaterDecorationStyle): number {
   const broad = sampleValueNoise(x, z, profile.geometryNoiseScale, profile.geometryNoiseSeed);
   const detail = sampleValueNoise(
     x,
@@ -156,7 +158,26 @@ function sampleTerrainNoise(x: number, z: number, profile: WaterTerrainProfile):
     profile.geometryNoiseScale * WATER_TERRAIN_NOISE_STYLE.detailScaleMultiplier,
     profile.geometryNoiseSeed ^ WATER_TERRAIN_NOISE_STYLE.detailSeedOffset
   );
-  return broad * WATER_TERRAIN_NOISE_STYLE.broadWeight + detail * WATER_TERRAIN_NOISE_STYLE.detailWeight;
+  const base = broad * WATER_TERRAIN_NOISE_STYLE.broadWeight + detail * WATER_TERRAIN_NOISE_STYLE.detailWeight;
+  if (style !== WaterDecorationStyle.HeightfieldRiver) return base;
+
+  const tuning = HEIGHTFIELD_RIVER_TERRAIN_DETAIL_STYLE;
+  const fine = sampleValueNoise(
+    x,
+    z,
+    profile.geometryNoiseScale * tuning.fineScaleMultiplier,
+    profile.geometryNoiseSeed ^ tuning.fineSeedOffset
+  );
+  const ridgeNoise = sampleValueNoise(
+    x,
+    z,
+    profile.geometryNoiseScale * tuning.ridgeScaleMultiplier,
+    profile.geometryNoiseSeed ^ tuning.ridgeSeedOffset
+  );
+  const ridge = Math.pow(1 - Math.abs(ridgeNoise * 2 - 1), tuning.ridgeExponent);
+  const centered =
+    (base * 2 - 1) * tuning.baseWeight + (fine * 2 - 1) * tuning.fineWeight + (ridge * 2 - 1) * tuning.ridgeWeight;
+  return clamp01(centered * 0.5 + 0.5);
 }
 
 function resolveSegmentInfluence(segment: TerrainCenterlineSegment, x: number, z: number): TerrainInfluence {
@@ -234,7 +255,7 @@ function sampleTerrainHeight(field: WaterTerrainField, x: number, z: number): nu
   if (!influence) return 0;
 
   const profile = field.profile;
-  const terrainNoise = sampleTerrainNoise(x, z, profile);
+  const terrainNoise = sampleTerrainNoise(x, z, profile, field.style);
   const centeredNoise = terrainNoise * 2 - 1;
   const channelDistance = influence.normalizedDistance / profile.channelCarveScale;
   if (channelDistance <= 1) {

@@ -8,12 +8,14 @@ import {
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
 import { CURVED_MAIN_RIVER_SURFACE_MOTION } from "../../demo/examples/river/constants";
 import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
+import { bifurcationNetworkFixture } from "../fixtures/riverFixtures";
 
 describe("RiverSurfaceMotion", () => {
   it("resolves explicit V2 controls and deterministic V1 presets", () => {
     const explicit = resolveRiverSurfaceMotion(curvedMainRiverExample.riverDescriptor);
-    const firstDerived = resolveRiverSurfaceMotion(multiTributaryRiverExample.riverDescriptor);
-    const secondDerived = resolveRiverSurfaceMotion(multiTributaryRiverExample.riverDescriptor);
+    const networkExplicit = resolveRiverSurfaceMotion(multiTributaryRiverExample.riverDescriptor);
+    const firstDerived = resolveRiverSurfaceMotion(bifurcationNetworkFixture);
+    const secondDerived = resolveRiverSurfaceMotion(bifurcationNetworkFixture);
 
     expect(explicit).toMatchObject({
       seed: CURVED_MAIN_RIVER_SURFACE_MOTION.seed,
@@ -21,6 +23,7 @@ describe("RiverSurfaceMotion", () => {
       displacementLengthScale: CURVED_MAIN_RIVER_SURFACE_MOTION.displacementLengthScale,
       shoreDampingWidth: CURVED_MAIN_RIVER_SURFACE_MOTION.shoreDampingWidth
     });
+    expect(networkExplicit).toEqual(explicit);
     expect(firstDerived).toEqual(secondDerived);
     expect(firstDerived.seed).toBeGreaterThanOrEqual(0);
     expect(firstDerived.seed).toBeLessThanOrEqual(65535);
@@ -61,7 +64,7 @@ describe("RiverSurfaceMotion", () => {
   });
 
   it("disables macro displacement for the V1 Low preset", () => {
-    const source = multiTributaryRiverExample.riverDescriptor;
+    const source = bifurcationNetworkFixture;
     if (source.schemaVersion !== RiverNetworkSchemaVersion.V1) throw new Error("Expected a V1 fixture.");
     const motion = resolveRiverSurfaceMotion({
       ...source,

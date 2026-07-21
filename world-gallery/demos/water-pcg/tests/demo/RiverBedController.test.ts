@@ -4,14 +4,18 @@ import { RIVER_TERRAIN_CORRIDOR_COMPONENT } from "../../compiler/river/constants
 import { RiverNetworkCompiler } from "../../compiler/river/RiverNetworkCompiler";
 import type { RiverTerrainReachCorridorData } from "../../compiler/river/types";
 import {
-  createLakeBedTexturePixels,
+  createHeightfieldRiverBedTexturePixels,
   createPoolBedTexturePixels,
   createRiverBedChunkGeometries,
   createRiverBedTexturePixels,
   createWaterTerrainHeightSampler
 } from "../../demo/decoration/RiverBedController";
-import { WaterDecorationStyle, WATER_BED_PROFILE, WATER_TERRAIN_GRID_STYLE } from "../../demo/decoration/constants";
-import { riverExpandedLakeExample } from "../../demo/examples/lake/riverExpandedLake";
+import {
+  HEIGHTFIELD_RIVER_TERRAIN_DETAIL_STYLE,
+  WaterDecorationStyle,
+  WATER_BED_PROFILE,
+  WATER_TERRAIN_GRID_STYLE
+} from "../../demo/decoration/constants";
 import { indoorReflectivePoolExample } from "../../demo/examples/pool/indoorReflectivePool";
 import { curvedMainRiverExample } from "../../demo/examples/river/curvedMainRiver";
 import { multiTributaryRiverExample } from "../../demo/examples/river/multiTributaryRiver";
@@ -89,36 +93,55 @@ describe("RiverBedController terrain", () => {
     }
   );
 
-  it("creates a broad, irregular lake basin and natural sediment texture", () => {
-    const data = RiverNetworkCompiler.compile(riverExpandedLakeExample.riverDescriptor).data!;
-    const geometry = createRiverBedChunkGeometries(data, WaterDecorationStyle.Lake)[0];
-    const corridor = data.terrainInteraction.reachCorridors[0];
-    const profile = WATER_BED_PROFILE[WaterDecorationStyle.Lake];
-    const sampleTerrainHeight = createWaterTerrainHeightSampler(data, WaterDecorationStyle.Lake);
-    const texturePixels = createLakeBedTexturePixels();
-    const centerDepths = new Set<number>();
-
-    expect(geometry.positions.length).toBeGreaterThan(1000);
-    expect(Math.max(...geometry.indices)).toBeLessThan(geometry.positions.length);
-    expect(geometry.bounds.min[0]).toBeLessThanOrEqual(
-      readCorridorSample(corridor, 0, RIVER_TERRAIN_CORRIDOR_COMPONENT.x) - profile.minimumTerrainMargin
-    );
-    expect(geometry.bounds.max[0]).toBeGreaterThanOrEqual(
-      readCorridorSample(corridor, corridor.sampleCount - 1, RIVER_TERRAIN_CORRIDOR_COMPONENT.x) +
-        profile.minimumTerrainMargin
-    );
-    for (let sampleIndex = 0; sampleIndex < corridor.sampleCount; sampleIndex += 8) {
-      const x = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.x);
-      const z = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.z);
-      const surfaceY = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.waterSurfaceY);
-      centerDepths.add(Math.round((surfaceY - sampleTerrainHeight(x, z)) * 100) / 100);
-    }
-    expect(centerDepths.size).toBeGreaterThan(5);
-    expect(countTextureColors(texturePixels)).toBeGreaterThan(64);
-  });
-
   it("uses a non-checker natural texture for the expanded river terrain", () => {
     expect(countTextureColors(createRiverBedTexturePixels())).toBeGreaterThan(64);
+  });
+
+  it("gives the high-difference river a higher-contrast detailed sediment texture", () => {
+    const pixels = createHeightfieldRiverBedTexturePixels();
+    const redValues: number[] = [];
+    for (let offset = 0; offset < pixels.length; offset += 4) redValues.push(pixels[offset]);
+
+    expect(countTextureColors(pixels)).toBeGreaterThan(128);
+    expect(Math.max(...redValues) - Math.min(...redValues)).toBeGreaterThan(60);
+  });
+
+  it("gives the high-difference main river smooth heightfield-style banks close to its shoreline", () => {
+    const data = RiverNetworkCompiler.compile(curvedMainRiverExample.riverDescriptor).data!;
+    const corridor = data.terrainInteraction.reachCorridors[0];
+    const sampleIndex = Math.floor(corridor.sampleCount * 0.5);
+    const previousIndex = Math.max(0, sampleIndex - 1);
+    const nextIndex = Math.min(corridor.sampleCount - 1, sampleIndex + 1);
+    const x = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.x);
+    const z = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.z);
+    const surfaceY = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.waterSurfaceY);
+    const halfWidth = readCorridorSample(corridor, sampleIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.channelHalfWidth);
+    const directionX =
+      readCorridorSample(corridor, nextIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.x) -
+      readCorridorSample(corridor, previousIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.x);
+    const directionZ =
+      readCorridorSample(corridor, nextIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.z) -
+      readCorridorSample(corridor, previousIndex, RIVER_TERRAIN_CORRIDOR_COMPONENT.z);
+    const directionLength = Math.hypot(directionX, directionZ);
+    const bankX = x - (directionZ / directionLength) * halfWidth * 1.2;
+    const bankZ = z + (directionX / directionLength) * halfWidth * 1.2;
+    const heightfieldSampler = createWaterTerrainHeightSampler(data, WaterDecorationStyle.HeightfieldRiver);
+    const genericRiverSampler = createWaterTerrainHeightSampler(data, WaterDecorationStyle.River);
+    const heightfieldGeometry = createRiverBedChunkGeometries(data, WaterDecorationStyle.HeightfieldRiver)[0];
+
+    expect(WATER_BED_PROFILE[WaterDecorationStyle.HeightfieldRiver].terrainRelief).toBeGreaterThan(
+      WATER_BED_PROFILE[WaterDecorationStyle.River].terrainRelief
+    );
+    expect(WATER_BED_PROFILE[WaterDecorationStyle.HeightfieldRiver].worldUvScale).toBeCloseTo(1 / 28, 6);
+    expect(HEIGHTFIELD_RIVER_TERRAIN_DETAIL_STYLE.fineScaleMultiplier).toBeGreaterThan(6);
+    expect(
+      HEIGHTFIELD_RIVER_TERRAIN_DETAIL_STYLE.baseWeight +
+        HEIGHTFIELD_RIVER_TERRAIN_DETAIL_STYLE.fineWeight +
+        HEIGHTFIELD_RIVER_TERRAIN_DETAIL_STYLE.ridgeWeight
+    ).toBeCloseTo(1);
+    expect(heightfieldGeometry.positions.length).toBeGreaterThan(20_000);
+    expect(heightfieldSampler(x, z)).toBeLessThan(surfaceY);
+    expect(heightfieldSampler(bankX, bankZ)).toBeGreaterThan(genericRiverSampler(bankX, bankZ));
   });
 
   it("keeps the indoor pool floor flat and tiled", () => {

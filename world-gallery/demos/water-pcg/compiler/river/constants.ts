@@ -73,7 +73,7 @@ export const RIVER_SURFACE_MACRO_NOISE = {
 
 export const RIVER_LOCAL_MAP_TILE_RESOLUTION_BY_QUALITY = {
   [RiverQualityLevel.Low]: 0,
-  [RiverQualityLevel.Medium]: 32,
+  [RiverQualityLevel.Medium]: 48,
   [RiverQualityLevel.High]: 64
 } as const;
 export const RIVER_LOCAL_MAP_PADDING = 2;
@@ -96,12 +96,20 @@ export const RIVER_LOCAL_MAP_TUNING = {
   obstacleWakeLength: 4,
   obstacleWakeHalfAngle: 0.42,
   obstacleFrontDeflection: 0.72,
-  obstacleWakeDeflection: 0.48,
   obstacleWakeSlowdown: 0.56,
   obstacleFrontFoamWeight: 0.46,
   obstacleFrontWidthScale: 1.4,
   obstacleCompressionGain: 0.28,
-  obstacleSdfFeatherScale: 0.2
+  obstacleSdfFeatherScale: 0.2,
+  obstacleWakeConvergence: 0.52,
+  obstacleWakeVortexDeflection: 0.22,
+  obstacleWakeVortexFrequency: 2.4,
+  obstacleWakeShearStart: 0.18,
+  obstacleWakeShearPeak: 0.48,
+  obstacleWakeShearEnd: 0.94,
+  obstacleWakeShearFoamGain: 1.1,
+  obstacleWakeCoreWidth: 0.36,
+  obstacleWakeCoreFoamWeight: 0.34
 } as const;
 
 export const RIVER_TERRAIN_CORRIDOR_COMPONENT = {

@@ -27,9 +27,9 @@ import {
 
 export const curvedMainRiverExample: RiverPcgExample = {
   id: "curved-main-river",
-  label: "高差主河",
+  label: "高差河流",
   initialMode: WaterPreviewMode.River,
-  decorationStyle: WaterDecorationStyle.River,
+  decorationStyle: WaterDecorationStyle.HeightfieldRiver,
   view: CURVED_MAIN_RIVER_VIEW,
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V2,
@@ -149,8 +149,8 @@ export const curvedMainRiverExample: RiverPcgExample = {
         id: "lower-bend-boulder",
         kind: RiverDisturbanceKind.Obstacle,
         position: [20, 3.0, 7.5],
-        radius: 1.15,
-        strength: 1.05
+        radius: 1.55,
+        strength: 1.25
       }
     ],
     defaults: {
