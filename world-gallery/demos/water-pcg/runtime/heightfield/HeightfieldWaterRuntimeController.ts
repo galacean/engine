@@ -17,6 +17,7 @@ import { HeightfieldWaterDebugMode } from "./HeightfieldWaterRuntimeEnums";
 import { createHeightfieldWaterLocalMapTexture } from "./HeightfieldWaterLocalMapTextureFactory";
 import { uploadHeightfieldWaterMesh } from "./HeightfieldWaterMeshUploader";
 import { HeightfieldWaterBaseQueryService } from "./HeightfieldWaterQueryService";
+import { HeightfieldWaterSurfaceProvider } from "./HeightfieldWaterSurfaceProvider";
 import { HeightfieldWaterResource } from "./HeightfieldWaterResource";
 import { HEIGHTFIELD_WATER_RESOURCE_SUBMISSION_BUDGET_MS, HEIGHTFIELD_WATER_SHADER_PROPERTY } from "./constants";
 import type {
@@ -39,12 +40,14 @@ interface MutableHeightfieldWaterRuntimeSet {
   readonly material: HeightfieldWaterMaterialState;
   readonly localMapTexture: Texture2D;
   readonly queryService: HeightfieldWaterBaseQueryService;
+  readonly surfaceProvider: HeightfieldWaterSurfaceProvider;
 }
 
 export interface HeightfieldWaterRuntimeActivation {
   readonly created: true;
   readonly sourceId: string;
   readonly queryService: HeightfieldWaterBaseQueryService;
+  readonly surfaceProvider: HeightfieldWaterSurfaceProvider;
   readonly submittedChunkCount: number;
   readonly meshUploadCount: number;
   readonly yieldCount: number;
@@ -97,6 +100,10 @@ export class HeightfieldWaterRuntimeController {
 
   get activeQueryService(): HeightfieldWaterBaseQueryService | undefined {
     return this._activeSet?.queryService;
+  }
+
+  get activeSurfaceProvider(): HeightfieldWaterSurfaceProvider | undefined {
+    return this._activeSet?.surfaceProvider;
   }
 
   get activeChunkCount(): number {
@@ -176,13 +183,23 @@ export class HeightfieldWaterRuntimeController {
         }
       }
 
+      const queryService = new HeightfieldWaterBaseQueryService(data);
+      const surfaceProvider = new HeightfieldWaterSurfaceProvider({
+        waterBodyId,
+        data,
+        queryService,
+        getElapsedTime: () => this._engine.time.elapsedTime,
+        wavesEnabled: this._featureFlags.waves
+      });
+      surfaceProvider.setSurfaceTimeOverride(this._surfaceTimeOverride);
       const runtimeSet: MutableHeightfieldWaterRuntimeSet = {
         root,
         resource,
         chunks,
         material,
         localMapTexture,
-        queryService: new HeightfieldWaterBaseQueryService(data)
+        queryService,
+        surfaceProvider
       };
       if (isCancelled()) throw new HeightfieldWaterRuntimeSubmissionCancelledError();
       this._deactivateAll();
@@ -198,6 +215,7 @@ export class HeightfieldWaterRuntimeController {
         created: true,
         sourceId: data.sourceId,
         queryService: runtimeSet.queryService,
+        surfaceProvider: runtimeSet.surfaceProvider,
         submittedChunkCount: chunks.length,
         meshUploadCount: chunks.length,
         yieldCount,
@@ -216,6 +234,7 @@ export class HeightfieldWaterRuntimeController {
   updateMaterial(config: HeightfieldWaterMaterialConfig): void {
     if (!this._activeSet) return;
     updateHeightfieldWaterMaterial(this._activeSet.material, config, this._activeSet.resource.data.localMapAtlas);
+    this._activeSet.surfaceProvider.setMaterial(config);
   }
 
   setDebugMode(mode: HeightfieldWaterDebugMode): void {
@@ -229,6 +248,7 @@ export class HeightfieldWaterRuntimeController {
     this._featureFlags = Object.freeze({ ...flags });
     for (const runtimeSet of this._runtimeSets.values()) {
       setHeightfieldWaterFeatureFlags(runtimeSet.material, flags);
+      runtimeSet.surfaceProvider.setWavesEnabled(flags.waves);
     }
   }
 
@@ -236,6 +256,7 @@ export class HeightfieldWaterRuntimeController {
     this._surfaceTimeOverride = elapsedTime;
     for (const runtimeSet of this._runtimeSets.values()) {
       setHeightfieldWaterSurfaceTimeOverride(runtimeSet.material, elapsedTime);
+      runtimeSet.surfaceProvider.setSurfaceTimeOverride(elapsedTime);
     }
   }
 

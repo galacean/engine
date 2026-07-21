@@ -17,7 +17,13 @@ export function createWaterWaveSampleOutput(): WaterWaveSampleOutput {
     normalX: 0,
     normalY: 1,
     normalZ: 0,
-    verticalVelocity: 0
+    horizontalVelocityX: 0,
+    verticalVelocity: 0,
+    horizontalVelocityZ: 0,
+    derivativeXX: 1,
+    derivativeXZ: 0,
+    derivativeZX: 0,
+    derivativeZZ: 1
   };
 }
 
@@ -50,7 +56,13 @@ export function evaluateGerstnerWaveSet(
   out.normalX = 0;
   out.normalY = 1;
   out.normalZ = 0;
+  out.horizontalVelocityX = 0;
   out.verticalVelocity = 0;
+  out.horizontalVelocityZ = 0;
+  out.derivativeXX = 1;
+  out.derivativeXZ = 0;
+  out.derivativeZX = 0;
+  out.derivativeZZ = 1;
   if (waveSet.model === WaterWaveModel.None || waveSet.activeWaveCount === 0) return out;
 
   const waveCount =
@@ -80,7 +92,10 @@ export function evaluateGerstnerWaveSet(
     out.displacedX += wave.directionX * horizontalCosine;
     out.displacedY += wave.amplitude * sine;
     out.displacedZ += wave.directionZ * horizontalCosine;
+    const horizontalVelocity = wave.horizontalAmplitude * angularRate * sine;
+    out.horizontalVelocityX += wave.directionX * horizontalVelocity;
     out.verticalVelocity -= wave.amplitude * wave.angularFrequency * safeTimeScale * cosine;
+    out.horizontalVelocityZ += wave.directionZ * horizontalVelocity;
     derivativeXX -= horizontalDerivative * wave.directionX * wave.directionX;
     derivativeXY += verticalDerivative * wave.directionX;
     derivativeXZ -= horizontalDerivative * wave.directionX * wave.directionZ;
@@ -88,6 +103,11 @@ export function evaluateGerstnerWaveSet(
     derivativeZY += verticalDerivative * wave.directionZ;
     derivativeZZ -= horizontalDerivative * wave.directionZ * wave.directionZ;
   }
+
+  out.derivativeXX = derivativeXX;
+  out.derivativeXZ = derivativeXZ;
+  out.derivativeZX = derivativeZX;
+  out.derivativeZZ = derivativeZZ;
 
   const normalX = derivativeZY * derivativeXZ - derivativeZZ * derivativeXY;
   const normalY = derivativeZZ * derivativeXX - derivativeZX * derivativeXZ;

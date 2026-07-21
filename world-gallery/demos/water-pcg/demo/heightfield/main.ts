@@ -1,5 +1,5 @@
 /** Standalone raster-defined curved-water visual preview. No Terrain dependency. */
-import { Camera, Color, DepthTextureMode, DirectLight, Downsampling, WebGLMode, WebGLEngine } from "@galacean/engine";
+import { Camera, Color, DirectLight, Downsampling, WebGLMode, WebGLEngine } from "@galacean/engine";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { OrbitControl } from "@galacean/engine-toolkit-controls";
 import * as dat from "dat.gui";
@@ -10,6 +10,11 @@ import type { HeightfieldWaterResource } from "../../runtime/heightfield/Heightf
 import { HeightfieldWaterRuntimeController } from "../../runtime/heightfield/HeightfieldWaterRuntimeController";
 import type { HeightfieldWaterRuntimeActivation } from "../../runtime/heightfield/HeightfieldWaterRuntimeController";
 import { HeightfieldWaterDebugMode } from "../../runtime/heightfield/HeightfieldWaterRuntimeEnums";
+import { CameraWaterFeatureBroker } from "../../runtime/optics/CameraWaterFeatureBroker";
+import { getWaterBodyCapabilities } from "../../runtime/body/WaterBodyCapabilities";
+import { WaterBodyRuntimeAdapter } from "../../runtime/body/WaterBodyRuntime";
+import { WaterP0DebugController } from "../../runtime/body/WaterP0DebugApi";
+import { WaterWorld } from "../../runtime/body/WaterWorld";
 import { HeightfieldBedController } from "./HeightfieldBedController";
 import { createHeightfieldWaterFixture } from "./heightfieldFixture";
 
@@ -187,7 +192,11 @@ async function bootstrapHeightfieldWater(): Promise<void> {
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
   const engine = await WebGLEngine.create(engineConfiguration);
   engine.canvas.resizeByClientSize();
-  const resizeCanvas = (): void => engine.canvas.resizeByClientSize();
+  let cameraFeatureBroker: CameraWaterFeatureBroker | undefined;
+  const resizeCanvas = (): void => {
+    engine.canvas.resizeByClientSize();
+    cameraFeatureBroker?.setViewportSize(engine.canvas.width, engine.canvas.height);
+  };
   window.addEventListener("resize", resizeCanvas);
 
   const scene = engine.sceneManager.activeScene;
@@ -205,9 +214,8 @@ async function bootstrapHeightfieldWater(): Promise<void> {
   orbit.target.set(-3, 5.8, -3);
   orbit.minDistance = 24;
   orbit.maxDistance = 320;
-  const originalDepthTextureMode = camera.depthTextureMode;
-  const originalOpaqueTextureEnabled = camera.opaqueTextureEnabled;
-  const originalOpaqueTextureDownsampling = camera.opaqueTextureDownsampling;
+  cameraFeatureBroker = new CameraWaterFeatureBroker(camera);
+  cameraFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
 
   const sunEntity = root.createChild("heightfield-water-sun");
   sunEntity.transform.setRotation(-42, -28, 0);
@@ -219,6 +227,9 @@ async function bootstrapHeightfieldWater(): Promise<void> {
   bedController.root.isActive = search.get("bed") !== "0";
   const runtimeRoot = root.createChild("heightfield-water-runtime");
   const runtimeController = new HeightfieldWaterRuntimeController(engine, runtimeRoot);
+  const waterWorld = new WaterWorld();
+  const waterP0Debug = new WaterP0DebugController(waterWorld);
+  window.waterPcgP0 = waterP0Debug;
   const compileWorker = new HeightfieldWaterCompileWorkerClient();
   let activeResource: HeightfieldWaterResource | undefined;
   let rebuildRevision = 0;
@@ -226,15 +237,27 @@ async function bootstrapHeightfieldWater(): Promise<void> {
 
   const applyCameraFeaturePolicy = (quality: WaterQualityTier): void => {
     const screenTexturesRequested = quality !== WaterQualityTier.Low;
-    camera.depthTextureMode = screenTexturesRequested ? DepthTextureMode.PrePass : originalDepthTextureMode;
-    camera.opaqueTextureEnabled = screenTexturesRequested || originalOpaqueTextureEnabled;
-    camera.opaqueTextureDownsampling = screenTexturesRequested
-      ? quality === WaterQualityTier.High
-        ? Downsampling.None
-        : Downsampling.TwoX
-      : originalOpaqueTextureDownsampling;
+    cameraFeatureBroker?.setRequest(
+      "heightfield-water",
+      screenTexturesRequested
+        ? {
+            depthTexture: true,
+            opaqueTexture: true,
+            reflection: "none",
+            caustics: false,
+            underwater: false,
+            quality: quality === WaterQualityTier.High ? "high" : "medium",
+            opaqueDownsampling: quality === WaterQualityTier.High ? Downsampling.None : Downsampling.TwoX
+          }
+        : undefined
+    );
+    const cameraMetrics = cameraFeatureBroker?.metrics;
     metricsElement.dataset.depthTextureRequested = String(screenTexturesRequested);
     metricsElement.dataset.opaqueTextureRequested = String(screenTexturesRequested);
+    metricsElement.dataset.cameraFeatureConsumerCount = String(cameraMetrics?.activeConsumerCount ?? 0);
+    metricsElement.dataset.cameraCopyDepthPassCount = String(cameraMetrics?.depthCopyPassCount ?? 0);
+    metricsElement.dataset.cameraCopyColorPassCount = String(cameraMetrics?.colorCopyPassCount ?? 0);
+    metricsElement.dataset.cameraFeatureRenderTargetBytes = String(cameraMetrics?.estimatedRenderTargetBytes ?? 0);
     metricsElement.dataset.opaqueTextureDownsampling = screenTexturesRequested
       ? quality === WaterQualityTier.High
         ? "none"
@@ -281,6 +304,33 @@ async function bootstrapHeightfieldWater(): Promise<void> {
         nextResource.dispose();
         return;
       }
+      const grid = nextResource.data.grid;
+      const halfCellX = grid.cellSizeXZ[0] * 0.5;
+      const halfCellZ = grid.cellSizeXZ[1] * 0.5;
+      waterWorld.unregister(fixture.descriptor.id);
+      waterWorld.register(
+        new WaterBodyRuntimeAdapter({
+          id: fixture.descriptor.id,
+          type: "heightfield",
+          capabilities: getWaterBodyCapabilities("heightfield"),
+          surface: activation.surfaceProvider,
+          bounds: {
+            minX: grid.originXZ[0] - halfCellX,
+            minZ: grid.originXZ[1] - halfCellZ,
+            maxX: grid.originXZ[0] + (grid.width - 1) * grid.cellSizeXZ[0] + halfCellX,
+            maxZ: grid.originXZ[1] + (grid.height - 1) * grid.cellSizeXZ[1] + halfCellZ
+          },
+          priority: 0,
+          metrics: {
+            meshUploadCount: activation.meshUploadCount,
+            drawCount: nextResource.data.chunks.length,
+            triangleCount: nextResource.data.stats.triangleCount,
+            resourceBytes: nextResource.byteLength
+          }
+        })
+      );
+      metricsElement.dataset.waterCapabilityMatrix = JSON.stringify(waterP0Debug.capabilityMatrix);
+      metricsElement.dataset.waterWorldBodyCount = String(waterWorld.metrics.registeredBodyCount);
       const previousResource = activeResource;
       activeResource = nextResource;
       nextResource = undefined;
@@ -343,12 +393,12 @@ async function bootstrapHeightfieldWater(): Promise<void> {
   window.addEventListener("beforeunload", () => {
     rebuildRevision++;
     window.removeEventListener("resize", resizeCanvas);
-    camera.depthTextureMode = originalDepthTextureMode;
-    camera.opaqueTextureEnabled = originalOpaqueTextureEnabled;
-    camera.opaqueTextureDownsampling = originalOpaqueTextureDownsampling;
+    cameraFeatureBroker?.destroy();
     gui.destroy();
     window.heightfieldWaterDemo = undefined;
     runtimeController.destroy();
+    waterWorld.destroy();
+    window.waterPcgP0 = undefined;
     activeResource?.dispose();
     compileWorker.dispose();
     bedController.destroy();

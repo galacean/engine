@@ -32,6 +32,9 @@ export interface RiverNetworkQueryResult {
   submergedDepth: number;
   waterDepth: number;
   distanceToBank: number;
+  baseFlowVector: Vector3;
+  localFlowVector: Vector3;
+  localFlowWeight: number;
   flowVector: Vector3;
   surfaceNormal: Vector3;
 }

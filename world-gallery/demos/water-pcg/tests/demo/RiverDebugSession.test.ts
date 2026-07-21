@@ -23,7 +23,14 @@ const EMPTY_METRICS: RiverDebugRuntimeMetrics = {
   totalMemory: 0,
   submissionYieldCount: 0,
   submissionMaxSliceMs: 0,
-  workerDeserializeMs: 0
+  workerDeserializeMs: 0,
+  queryBaseFlowX: 0,
+  queryBaseFlowZ: 0,
+  queryLocalFlowX: 0,
+  queryLocalFlowZ: 0,
+  queryFinalFlowX: 0,
+  queryFinalFlowZ: 0,
+  queryLocalFlowWeight: 0
 };
 
 function createContext(
@@ -87,6 +94,13 @@ describe("RiverDebugSession", () => {
       surfaceVisible: true,
       foamVisible: false
     });
+    expect(
+      resolveRiverDebugSceneState(
+        { ...base, stage: RiverDebugStage.Fields, channel: RiverDebugChannel.FinalFlow },
+        RiverQualityLevel.Medium,
+        true
+      )
+    ).toMatchObject({ surfaceDebugMode: RiverSurfaceDebugMode.FinalFlow, surfaceVisible: true });
     expect(
       resolveRiverDebugSceneState(
         { ...base, stage: RiverDebugStage.Surface, channel: RiverDebugChannel.MacroHeight },
@@ -189,7 +203,10 @@ describe("RiverDebugSession", () => {
     expect(session.snapshot.cards.find((card) => card.channel === RiverDebugChannel.LocalFlow)?.disabledReason).toBe(
       "Low 质量不启用该调试通道"
     );
-    expect(session.snapshot.selection.channel).toBe(RiverDebugChannel.TerrainCorridor);
+    expect(session.snapshot.selection.channel).toBe(RiverDebugChannel.QueryFlow);
+    expect(
+      session.snapshot.cards.find((card) => card.channel === RiverDebugChannel.QueryFlow)?.disabledReason
+    ).toBeUndefined();
 
     const state = resolveRiverDebugSceneState(
       { ...session.snapshot.selection, stage: RiverDebugStage.Surface, channel: RiverDebugChannel.MacroHeight },

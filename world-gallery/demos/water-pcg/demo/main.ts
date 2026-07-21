@@ -50,6 +50,7 @@ import { RiverRockController } from "./decoration/RiverRockController";
 import { PoolSceneController } from "./decoration/PoolSceneController";
 import { WaterDecorationStyle } from "./decoration/constants";
 import { RiverCameraFeatureController } from "./RiverCameraFeatureController";
+import { CameraWaterFeatureBroker } from "../runtime/optics/CameraWaterFeatureBroker";
 import { RIVER_SURFACE_TEXTURE_SAMPLE_COUNT } from "../runtime/river/constants";
 import { WaterQualityTier } from "../authoring/wave/enums/WaterQualityTier";
 import {
@@ -67,6 +68,11 @@ import {
 import { mountWaterDebugPanel } from "./debug/WaterDebugPanel";
 import { RiverNetworkDebugController } from "./debug/RiverNetworkDebugController";
 import { getWaterPcgCaseHref, resolveWaterPcgCase, syncWaterPcgNavigation } from "./navigation";
+import { getWaterBodyCapabilities } from "../runtime/body/WaterBodyCapabilities";
+import { WaterBodyRuntimeAdapter, type WaterBoundsXZ } from "../runtime/body/WaterBodyRuntime";
+import { WaterP0DebugController } from "../runtime/body/WaterP0DebugApi";
+import { WaterWorld } from "../runtime/body/WaterWorld";
+import { RiverWaterSurfaceProvider } from "../runtime/river/RiverWaterSurfaceProvider";
 
 const PREVIEW_MODE_OPTIONS = {
   Ocean: WaterPreviewMode.Ocean,
@@ -145,6 +151,21 @@ interface WaterPcgStressResult {
   readonly resourceHash: string;
   readonly initialTotalMemory: number;
   readonly finalTotalMemory: number;
+}
+
+function getRiverWaterBounds(data: RiverCompiledData): WaterBoundsXZ {
+  const bounds = data.queryIndex.primitiveBounds.toTypedArray();
+  let minX = Number.POSITIVE_INFINITY;
+  let minZ = Number.POSITIVE_INFINITY;
+  let maxX = Number.NEGATIVE_INFINITY;
+  let maxZ = Number.NEGATIVE_INFINITY;
+  for (let offset = 0; offset < bounds.length; offset += 4) {
+    minX = Math.min(minX, bounds[offset]);
+    minZ = Math.min(minZ, bounds[offset + 1]);
+    maxX = Math.max(maxX, bounds[offset + 2]);
+    maxZ = Math.max(maxZ, bounds[offset + 3]);
+  }
+  return Number.isFinite(minX) ? { minX, minZ, maxX, maxZ } : { minX: 0, minZ: 0, maxX: 0, maxZ: 0 };
 }
 
 export interface WaterPcgDebugApi {
@@ -352,7 +373,9 @@ async function bootstrapWaterPcg(): Promise<void> {
   const camera = cameraEntity.addComponent(Camera);
   camera.farClipPlane = 300;
   const control = cameraEntity.addComponent(OrbitControl);
-  const riverCameraFeatureController = new RiverCameraFeatureController(camera);
+  const cameraWaterFeatureBroker = new CameraWaterFeatureBroker(camera);
+  cameraWaterFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
+  const riverCameraFeatureController = new RiverCameraFeatureController(camera, cameraWaterFeatureBroker);
 
   const oceanPreview = new OceanPreviewController(engine, rootEntity, oceanConfig);
   const oceanGroup = oceanPreview.root;
@@ -360,6 +383,10 @@ async function bootstrapWaterPcg(): Promise<void> {
   const riverGroup = rootEntity.createChild("river-preview");
   const riverSegmentsRoot = riverGroup.createChild("river-segments");
   const riverRuntimeController = new RiverRuntimeController(engine, riverSegmentsRoot);
+  const riverSurfaceProvider = new RiverWaterSurfaceProvider(riverRuntimeController);
+  const waterWorld = new WaterWorld();
+  const waterP0Debug = new WaterP0DebugController(waterWorld);
+  window.waterPcgP0 = waterP0Debug;
   let surfaceTimeOverride = startupSurfaceTime;
   oceanPreview.setSurfaceTimeOverride(surfaceTimeOverride);
   riverRuntimeController.setSurfaceFeatureFlags(guiState.macroDisplacement, guiState.microSurface);
@@ -377,6 +404,53 @@ async function bootstrapWaterPcg(): Promise<void> {
   let pendingRuntimeStatsRefresh = false;
   let topologyRevision = 0;
   let riverMeshUploadCount = 0;
+  let riverWorldBody: WaterBodyRuntimeAdapter | undefined;
+  let oceanWorldBody: WaterBodyRuntimeAdapter | undefined;
+
+  const refreshWaterWorld = (): void => {
+    waterWorld.unregister("river-network");
+    waterWorld.unregister("ocean-preview");
+    const riverTriangleCount = activeRiverCompiledData.chunks.reduce(
+      (count, chunk) => count + chunk.surfaceGeometry.indices.length / 3,
+      0
+    );
+    riverWorldBody = new WaterBodyRuntimeAdapter({
+      id: "river-network",
+      type: "river",
+      capabilities: getWaterBodyCapabilities("river"),
+      surface: riverSurfaceProvider,
+      bounds: getRiverWaterBounds(activeRiverCompiledData),
+      priority: 10,
+      enabled: activeMode === WaterPreviewMode.River,
+      metrics: {
+        meshUploadCount: riverMeshUploadCount,
+        drawCount: activeRiverCompiledData.chunks.length,
+        triangleCount: riverTriangleCount,
+        resourceBytes: activeRiverResource.byteLength
+      }
+    });
+    const oceanMetrics = oceanPreview.metrics;
+    const oceanExtent = oceanPreview.surfaceProvider.horizontalExtent;
+    oceanWorldBody = new WaterBodyRuntimeAdapter({
+      id: "ocean-preview",
+      type: "ocean",
+      capabilities: getWaterBodyCapabilities("ocean"),
+      surface: oceanPreview.surfaceProvider,
+      bounds: { minX: -oceanExtent, minZ: -oceanExtent, maxX: oceanExtent, maxZ: oceanExtent },
+      priority: 0,
+      enabled: activeMode === WaterPreviewMode.Ocean,
+      metrics: {
+        meshUploadCount: oceanMetrics.meshUploadCount,
+        drawCount: 1,
+        triangleCount: Math.max(0, oceanConfig.resolution * oceanConfig.resolution * 2),
+        resourceBytes: 0
+      }
+    });
+    waterWorld.register(riverWorldBody);
+    waterWorld.register(oceanWorldBody);
+    exampleBarElement.dataset.waterCapabilityMatrix = JSON.stringify(waterP0Debug.capabilityMatrix);
+    exampleBarElement.dataset.waterWorldBodyCount = String(waterWorld.metrics.registeredBodyCount);
+  };
 
   const readDebugRuntimeMetrics = (): RiverDebugRuntimeMetrics => ({
     resourceByteLength: activeRiverResource.byteLength,
@@ -386,7 +460,14 @@ async function bootstrapWaterPcg(): Promise<void> {
     totalMemory: Number(exampleBarElement.dataset.totalMemory ?? 0),
     submissionYieldCount: Number(exampleBarElement.dataset.submissionYieldCount ?? 0),
     submissionMaxSliceMs: Number(exampleBarElement.dataset.submissionMaxSliceMs ?? 0),
-    workerDeserializeMs: Number(exampleBarElement.dataset.workerDeserializeMs ?? riverCompileWorker.lastDeserializeMs)
+    workerDeserializeMs: Number(exampleBarElement.dataset.workerDeserializeMs ?? riverCompileWorker.lastDeserializeMs),
+    queryBaseFlowX: Number(exampleBarElement.dataset.queryBaseFlowX ?? 0),
+    queryBaseFlowZ: Number(exampleBarElement.dataset.queryBaseFlowZ ?? 0),
+    queryLocalFlowX: Number(exampleBarElement.dataset.queryLocalFlowX ?? 0),
+    queryLocalFlowZ: Number(exampleBarElement.dataset.queryLocalFlowZ ?? 0),
+    queryFinalFlowX: Number(exampleBarElement.dataset.queryFinalFlowX ?? 0),
+    queryFinalFlowZ: Number(exampleBarElement.dataset.queryFinalFlowZ ?? 0),
+    queryLocalFlowWeight: Number(exampleBarElement.dataset.queryLocalFlowWeight ?? 0)
   });
   const createDebugContext = (): RiverDebugSessionContext => ({
     exampleLabel: waterPcgExamples[activeExampleIndex].label,
@@ -418,6 +499,7 @@ async function bootstrapWaterPcg(): Promise<void> {
   });
 
   const updateRiverCameraFeatures = (): void => {
+    cameraWaterFeatureBroker.setViewportSize(engine.canvas.width, engine.canvas.height);
     riverCameraFeatureController.apply(
       activeMode === WaterPreviewMode.River,
       getPrimaryRiverConfig().quality.material.level
@@ -426,6 +508,11 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.riverOpaqueTextureRequested = String(riverCameraFeatureController.opaqueTextureRequested);
     exampleBarElement.dataset.cameraDepthTextureMode =
       camera.depthTextureMode === DepthTextureMode.PrePass ? "prepass" : "none";
+    const metrics = cameraWaterFeatureBroker.metrics;
+    exampleBarElement.dataset.cameraFeatureConsumerCount = String(metrics.activeConsumerCount);
+    exampleBarElement.dataset.cameraCopyDepthPassCount = String(metrics.depthCopyPassCount);
+    exampleBarElement.dataset.cameraCopyColorPassCount = String(metrics.colorCopyPassCount);
+    exampleBarElement.dataset.cameraFeatureRenderTargetBytes = String(metrics.estimatedRenderTargetBytes);
   };
 
   const writeOceanMetrics = (): void => {
@@ -514,6 +601,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.riverMeshUploadCount = String(riverMeshUploadCount);
     riverDebugController.activate(exampleId, activation.reaches);
     rebuildWaterDecorations(activeRiverCompiledData);
+    refreshWaterWorld();
     const cached = riverDemoRuntimeSets.get(exampleId);
     if (cached) {
       riverRuntimes = cached;
@@ -627,6 +715,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     exampleBarElement.dataset.localMapRegionCount = String(nextData.stats.localMapRegionCount);
     exampleBarElement.dataset.waterSlopeAdjustmentCount = String(nextData.stats.waterSlopeAdjustmentCount);
     writeSurfaceMetrics(nextData);
+    refreshWaterWorld();
     debugSession.updateContext(createDebugContext());
     debugSession.setStatus("ready", "runtime ready");
     return true;
@@ -723,6 +812,13 @@ async function bootstrapWaterPcg(): Promise<void> {
       if (surfaceTimeOverride === undefined) queryService.sampleSurface(queryPosition, networkQueryResult);
       else queryService.sampleSurfaceAtTime(queryPosition, surfaceTimeOverride, networkQueryResult);
       exampleBarElement.dataset.querySourceKind = networkQueryResult.sourceKind ?? "none";
+      exampleBarElement.dataset.queryBaseFlowX = String(networkQueryResult.baseFlowVector.x);
+      exampleBarElement.dataset.queryBaseFlowZ = String(networkQueryResult.baseFlowVector.z);
+      exampleBarElement.dataset.queryLocalFlowX = String(networkQueryResult.localFlowVector.x);
+      exampleBarElement.dataset.queryLocalFlowZ = String(networkQueryResult.localFlowVector.z);
+      exampleBarElement.dataset.queryFinalFlowX = String(networkQueryResult.flowVector.x);
+      exampleBarElement.dataset.queryFinalFlowZ = String(networkQueryResult.flowVector.z);
+      exampleBarElement.dataset.queryLocalFlowWeight = String(networkQueryResult.localFlowWeight);
       exampleBarElement.dataset.diagnosticCount = String(warnings.length);
     }
     pendingRuntimeStatsRefresh = true;
@@ -752,6 +848,8 @@ async function bootstrapWaterPcg(): Promise<void> {
     guiState.mode = mode === WaterPreviewMode.Ocean ? "Ocean" : "River";
     oceanGroup.isActive = mode === WaterPreviewMode.Ocean;
     riverGroup.isActive = mode === WaterPreviewMode.River;
+    if (riverWorldBody) riverWorldBody.enabled = mode === WaterPreviewMode.River;
+    if (oceanWorldBody) oceanWorldBody.enabled = mode === WaterPreviewMode.Ocean;
     const view = waterPcgExamples[activeExampleIndex].view;
     const backgroundColor = view.backgroundColor;
     worldAxesView.setVisible(
@@ -816,6 +914,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     oceanConfig = cloneOceanConfig(waterPcgExamples[activeExampleIndex].ocean);
     if (startupWaterQuality) oceanConfig.quality = startupWaterQuality;
     oceanPreview.setConfig(oceanConfig);
+    refreshWaterWorld();
     activeRiverCompiledData = riverCompiledDataSets[activeExampleIndex];
     activeRiverResource = riverResourceSets[activeExampleIndex];
     riverConfigs = riverConfigSets[activeExampleIndex];
@@ -1123,6 +1222,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     window.removeEventListener("popstate", handleLocationChange);
     window.removeEventListener("hashchange", handleLocationChange);
     riverCameraFeatureController.destroy();
+    cameraWaterFeatureBroker.destroy();
     stopDebugSceneSubscription();
     stopDebugSnapshotTracking();
     waterDebugPanel.destroy();
@@ -1138,6 +1238,8 @@ async function bootstrapWaterPcg(): Promise<void> {
     for (const resource of riverResourceSets) resource.dispose();
     riverCompileWorker.dispose();
     oceanPreview.destroy();
+    waterWorld.destroy();
+    window.waterPcgP0 = undefined;
     window.waterPcgDebug = undefined;
   });
   engine.run();

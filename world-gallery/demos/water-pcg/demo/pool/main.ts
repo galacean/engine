@@ -18,6 +18,10 @@ import { InteractivePoolSurfaceController } from "./InteractivePoolSurfaceContro
 import { PoolBallSpawner } from "./PoolBallSpawner";
 import { PoolPhysicsSceneController } from "./PoolPhysicsSceneController";
 import type { InteractivePoolGridQuality, InteractivePoolMetrics } from "./types";
+import { getWaterBodyCapabilities } from "../../runtime/body/WaterBodyCapabilities";
+import { WaterBodyRuntimeAdapter } from "../../runtime/body/WaterBodyRuntime";
+import { WaterP0DebugController } from "../../runtime/body/WaterP0DebugApi";
+import { WaterWorld } from "../../runtime/body/WaterWorld";
 
 type Mutable<T> = { -readonly [Key in keyof T]: T[Key] };
 
@@ -186,6 +190,36 @@ async function bootstrapInteractivePool(): Promise<void> {
     interactionQueueCapacity: 8
   });
   const provider = new InteractivePoolSurfaceProvider(baseProvider, heightField);
+  const waterWorld = new WaterWorld();
+  const halfLength = layout.length * 0.5;
+  const halfWidth = layout.width * 0.5;
+  const extentX = Math.abs(axisX / axisLength) * halfLength + Math.abs(axisZ / axisLength) * halfWidth;
+  const extentZ = Math.abs(axisZ / axisLength) * halfLength + Math.abs(axisX / axisLength) * halfWidth;
+  waterWorld.register(
+    new WaterBodyRuntimeAdapter({
+      id: "interactive-pool",
+      type: "pool",
+      capabilities: getWaterBodyCapabilities("pool"),
+      surface: provider,
+      bounds: {
+        minX: layout.position[0] - extentX,
+        minZ: layout.position[2] - extentZ,
+        maxX: layout.position[0] + extentX,
+        maxZ: layout.position[2] + extentZ
+      },
+      priority: 20,
+      metrics: {
+        meshUploadCount: 0,
+        drawCount: 1,
+        triangleCount: (resolutionX - 1) * (resolutionZ - 1) * 2,
+        resourceBytes: riverResource.byteLength
+      }
+    })
+  );
+  const waterP0Debug = new WaterP0DebugController(waterWorld);
+  window.waterPcgP0 = waterP0Debug;
+  metricsElement.dataset.waterCapabilityMatrix = JSON.stringify(waterP0Debug.capabilityMatrix);
+  metricsElement.dataset.waterWorldBodyCount = String(waterWorld.metrics.registeredBodyCount);
 
   const surfaceDriverEntity = root.createChild("interactive-pool-surface-driver");
   const surfaceController = surfaceDriverEntity.addComponent(InteractivePoolSurfaceController);
@@ -362,6 +396,8 @@ async function bootstrapInteractivePool(): Promise<void> {
     riverResource.dispose();
     compileWorker.dispose();
     cameraFeatures.destroy();
+    waterWorld.destroy();
+    window.waterPcgP0 = undefined;
     root.destroy();
     delete window.waterPcgResetInteractivePool;
     delete window.waterPcgSetInteractivePoolTargetFrameRate;

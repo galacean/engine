@@ -11,6 +11,7 @@ import {
   updateWaterWaveMaterial
 } from "../../../runtime/wave/WaterWaveMaterialFactory";
 import type { WaterWaveMaterialConfig, WaterWaveMaterialState } from "../../../runtime/wave/WaterWaveRuntimeTypes";
+import { OceanWaterSurfaceProvider } from "../../../runtime/ocean/OceanWaterSurfaceProvider";
 import {
   OCEAN_PREVIEW_DEFAULT_STRESS_ITERATIONS,
   OCEAN_PREVIEW_MIN_AMPLITUDE_SCALE,
@@ -41,6 +42,7 @@ function createScaledWaveAsset(config: OceanPreviewConfig): WaterWaveAssetV1 {
 
 export class OceanPreviewController {
   readonly root: Entity;
+  readonly surfaceProvider: OceanWaterSurfaceProvider;
   private readonly _renderer: MeshRenderer;
   private _mesh: ModelMesh;
   private _materialState: WaterWaveMaterialState;
@@ -65,6 +67,14 @@ export class OceanPreviewController {
     this.root = parent.createChild("ocean-preview");
     this._renderer = this.root.createChild("ocean-surface").addComponent(MeshRenderer);
     this._waveSet = this._compileWaveSet();
+    this.surfaceProvider = new OceanWaterSurfaceProvider({
+      waterBodyId: "ocean-preview",
+      waveSet: this._waveSet,
+      size: _config.size,
+      waterLevel: _config.waterLevel,
+      timeScale: _config.timeScale,
+      getElapsedTime: () => this._surfaceTimeOverride ?? this._engine.time.elapsedTime
+    });
     this._mesh = this._createGridMesh();
     this._meshResolution = _config.resolution;
     this._meshSize = _config.size;
@@ -96,6 +106,7 @@ export class OceanPreviewController {
   setConfig(config: OceanPreviewConfig): void {
     this._config = config;
     this._waveSet = this._compileWaveSet();
+    this._updateSurfaceProvider();
     this.rebuildMesh();
     this._applyMaterialState();
   }
@@ -117,6 +128,7 @@ export class OceanPreviewController {
 
   updateMaterial(): void {
     this._waveSet = this._compileWaveSet();
+    this._updateSurfaceProvider();
     this._setConservativeBounds(this._mesh);
     this._applyMaterialState();
   }
@@ -165,6 +177,16 @@ export class OceanPreviewController {
 
   private _compileWaveSet(): CompiledWaterWaveSet {
     return compileWaterWaveAsset(createScaledWaveAsset(this._config), this._config.quality);
+  }
+
+  private _updateSurfaceProvider(): void {
+    this.surfaceProvider.setConfig({
+      waterBodyId: "ocean-preview",
+      waveSet: this._waveSet,
+      size: this._config.size,
+      waterLevel: this._config.waterLevel,
+      timeScale: this._config.timeScale
+    });
   }
 
   private _createMaterialConfig(): WaterWaveMaterialConfig {

@@ -5,26 +5,25 @@
  * must not enable them implicitly. The demo owns the request and restores the
  * camera's original state when River is hidden, Low is selected, or destroyed.
  */
-import { DepthTextureMode, Downsampling } from "@galacean/engine-core";
+import { Downsampling } from "@galacean/engine-core";
 import { RiverQualityLevel } from "../authoring/river/RiverAuthoringEnums";
+import { CameraWaterFeatureBroker, type WaterCameraFeatureTarget } from "../runtime/optics/CameraWaterFeatureBroker";
 
-export interface RiverCameraFeatureTarget {
-  depthTextureMode: DepthTextureMode;
-  opaqueTextureEnabled: boolean;
-  opaqueTextureDownsampling: Downsampling;
-}
+export type RiverCameraFeatureTarget = WaterCameraFeatureTarget;
+
+let nextRiverCameraConsumerId = 0;
 
 export class RiverCameraFeatureController {
-  private readonly _originalDepthTextureMode: DepthTextureMode;
-  private readonly _originalOpaqueTextureEnabled: boolean;
-  private readonly _originalOpaqueTextureDownsampling: Downsampling;
+  private readonly _broker: CameraWaterFeatureBroker;
+  private readonly _ownsBroker: boolean;
+  private readonly _consumerId: string;
   private _depthTextureRequested = false;
   private _opaqueTextureRequested = false;
 
-  constructor(private readonly _camera: RiverCameraFeatureTarget) {
-    this._originalDepthTextureMode = _camera.depthTextureMode;
-    this._originalOpaqueTextureEnabled = _camera.opaqueTextureEnabled;
-    this._originalOpaqueTextureDownsampling = _camera.opaqueTextureDownsampling;
+  constructor(camera: RiverCameraFeatureTarget, broker?: CameraWaterFeatureBroker) {
+    this._broker = broker ?? new CameraWaterFeatureBroker(camera);
+    this._ownsBroker = broker === undefined;
+    this._consumerId = `river-camera-${nextRiverCameraConsumerId++}`;
   }
 
   get depthTextureRequested(): boolean {
@@ -38,20 +37,26 @@ export class RiverCameraFeatureController {
   apply(riverVisible: boolean, materialQuality: RiverQualityLevel): void {
     this._depthTextureRequested = riverVisible && materialQuality !== RiverQualityLevel.Low;
     this._opaqueTextureRequested = this._depthTextureRequested;
-    this._camera.depthTextureMode = this._depthTextureRequested
-      ? DepthTextureMode.PrePass
-      : this._originalDepthTextureMode;
-    this._camera.opaqueTextureEnabled = this._opaqueTextureRequested || this._originalOpaqueTextureEnabled;
-    this._camera.opaqueTextureDownsampling = this._opaqueTextureRequested
-      ? Downsampling.None
-      : this._originalOpaqueTextureDownsampling;
+    this._broker.setRequest(
+      this._consumerId,
+      this._depthTextureRequested
+        ? {
+            depthTexture: true,
+            opaqueTexture: true,
+            reflection: "none",
+            caustics: false,
+            underwater: false,
+            quality: materialQuality === RiverQualityLevel.High ? "high" : "medium",
+            opaqueDownsampling: Downsampling.None
+          }
+        : undefined
+    );
   }
 
   destroy(): void {
     this._depthTextureRequested = false;
     this._opaqueTextureRequested = false;
-    this._camera.depthTextureMode = this._originalDepthTextureMode;
-    this._camera.opaqueTextureEnabled = this._originalOpaqueTextureEnabled;
-    this._camera.opaqueTextureDownsampling = this._originalOpaqueTextureDownsampling;
+    this._broker.removeRequest(this._consumerId);
+    if (this._ownsBroker) this._broker.destroy();
   }
 }

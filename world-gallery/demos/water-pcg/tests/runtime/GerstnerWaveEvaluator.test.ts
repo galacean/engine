@@ -48,7 +48,13 @@ describe("GerstnerWaveEvaluator rest-space evaluation", () => {
       normalX: 0,
       normalY: 1,
       normalZ: 0,
-      verticalVelocity: 0
+      horizontalVelocityX: 0,
+      verticalVelocity: 0,
+      horizontalVelocityZ: 0,
+      derivativeXX: 1,
+      derivativeXZ: 0,
+      derivativeZX: 0,
+      derivativeZZ: 1
     });
   });
 

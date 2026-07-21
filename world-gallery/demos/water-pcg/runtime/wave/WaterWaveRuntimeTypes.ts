@@ -10,7 +10,13 @@ export interface WaterWaveSampleOutput {
   normalX: number;
   normalY: number;
   normalZ: number;
+  horizontalVelocityX: number;
   verticalVelocity: number;
+  horizontalVelocityZ: number;
+  derivativeXX: number;
+  derivativeXZ: number;
+  derivativeZX: number;
+  derivativeZZ: number;
 }
 
 export interface WaterWaveMaterialConfig {

@@ -26,6 +26,7 @@ import {
   RIVER_QUERY_SAMPLE_COMPONENT
 } from "../../compiler/river/constants";
 import { RIVER_QUERY_EPSILON, RIVER_QUERY_NO_SOURCE_INDEX, RIVER_QUERY_NO_SOURCE_KIND } from "./constants";
+import { createRiverLocalCurrentSample, RiverLocalCurrentSampler } from "./RiverLocalCurrentSampler";
 import type { RiverNetworkQueryBatchOutput, RiverNetworkQueryResult, RiverQueryResult } from "./types";
 
 function clamp01(value: number): number {
@@ -253,6 +254,9 @@ export function createRiverNetworkQueryResult(): RiverNetworkQueryResult {
     submergedDepth: 0,
     waterDepth: 0,
     distanceToBank: Number.NEGATIVE_INFINITY,
+    baseFlowVector: new Vector3(),
+    localFlowVector: new Vector3(),
+    localFlowWeight: 0,
     flowVector: new Vector3(),
     surfaceNormal: new Vector3(0, 1, 0)
   };
@@ -294,6 +298,9 @@ function resetNetworkResult(result: RiverNetworkQueryResult, waterBodyId: string
   result.submergedDepth = 0;
   result.waterDepth = 0;
   result.distanceToBank = Number.NEGATIVE_INFINITY;
+  result.baseFlowVector.set(0, 0, 0);
+  result.localFlowVector.set(0, 0, 0);
+  result.localFlowWeight = 0;
   result.flowVector.set(0, 0, 0);
   result.surfaceNormal.set(0, 1, 0);
 }
@@ -311,6 +318,9 @@ export class RiverNetworkQueryService {
   private readonly _reachSampleStrides: Uint32Array;
   private readonly _junctionBoundaries: readonly Float32Array[];
   private readonly _junctionInradii: Float32Array;
+  private readonly _localCurrentSampler?: RiverLocalCurrentSampler;
+  private readonly _localCurrentScratch = createRiverLocalCurrentSample();
+  private _localCurrentEnabled = true;
   private readonly _batchScratch = createRiverNetworkQueryResult();
   private readonly _motionScratch = createRiverSurfaceMotionSampleOutput();
   private readonly _motionCoordinates = {
@@ -338,6 +348,8 @@ export class RiverNetworkQueryService {
     this._cellCoordinates = index.cellCoordinates.toTypedArray();
     this._cellOffsets = index.cellOffsets.toTypedArray();
     this._cellPrimitiveIndices = index.cellPrimitiveIndices.toTypedArray();
+    const localMapAtlas = _data.terrainInteraction.localMapAtlas;
+    this._localCurrentSampler = localMapAtlas ? new RiverLocalCurrentSampler(localMapAtlas) : undefined;
     this._reachSamples = _data.reaches.map((reach) => reach.artifact.querySource.samples.toTypedArray());
     this._reachSampleStrides = new Uint32Array(_data.reaches.map((reach) => reach.artifact.querySource.stride));
     this._junctionBoundaries = _data.junctions.map((junction) => {
@@ -358,6 +370,22 @@ export class RiverNetworkQueryService {
         distanceToPolygonBankXZ(this._junctionBoundaries[index], junction.position[0], junction.position[2])
       );
     }
+  }
+
+  get localCurrentSampleCount(): number {
+    return this._localCurrentSampler?.sampleCount ?? 0;
+  }
+
+  get localCurrentAppliedCount(): number {
+    return this._localCurrentSampler?.appliedCount ?? 0;
+  }
+
+  get localCurrentEnabled(): boolean {
+    return this._localCurrentEnabled;
+  }
+
+  setLocalCurrentEnabled(enabled: boolean): void {
+    this._localCurrentEnabled = enabled;
   }
 
   sampleSurface(worldPosition: Vector3, outResult: RiverNetworkQueryResult): boolean {
@@ -672,7 +700,9 @@ export class RiverNetworkQueryService {
           surfaceHeight,
           surfaceVerticalVelocity,
           waterDepth,
+          x,
           y,
+          z,
           triangleFlowX,
           0,
           triangleFlowZ,
@@ -714,7 +744,9 @@ export class RiverNetworkQueryService {
       surfaceHeight,
       surfaceVerticalVelocity,
       waterDepth,
+      x,
       y,
+      z,
       tangentX * flowSpeed,
       0,
       tangentZ * flowSpeed,
@@ -861,7 +893,9 @@ export class RiverNetworkQueryService {
       surfaceHeight,
       surfaceVerticalVelocity,
       waterDepth,
+      x,
       y,
+      z,
       flowX,
       0,
       flowZ,
@@ -881,7 +915,9 @@ export class RiverNetworkQueryService {
     surfaceHeight: number,
     surfaceVerticalVelocity: number,
     waterDepth: number,
+    queryX: number,
     queryY: number,
+    queryZ: number,
     flowX: number,
     flowY: number,
     flowZ: number,
@@ -906,7 +942,22 @@ export class RiverNetworkQueryService {
       signedSurfaceDistance >= -waterDepth - RIVER_QUERY_EPSILON;
     result.submergedDepth = insideFootprint ? Math.min(waterDepth, Math.max(0, -signedSurfaceDistance)) : 0;
     result.distanceToBank = distanceToBank;
-    result.flowVector.set(flowX, flowY, flowZ);
+    result.baseFlowVector.set(flowX, flowY, flowZ);
+    const localCurrent = this._localCurrentScratch;
+    if (
+      this._localCurrentEnabled &&
+      insideFootprint &&
+      this._localCurrentSampler?.sample(sourceKind, sourceIndex, queryX, queryZ, flowX, flowZ, localCurrent)
+    ) {
+      const baseSpeed = Math.hypot(flowX, flowZ);
+      result.localFlowVector.set(localCurrent.localFlowX * baseSpeed, flowY, localCurrent.localFlowZ * baseSpeed);
+      result.localFlowWeight = localCurrent.localFlowWeight;
+      result.flowVector.set(localCurrent.finalFlowX, flowY, localCurrent.finalFlowZ);
+    } else {
+      result.localFlowVector.set(0, 0, 0);
+      result.localFlowWeight = 0;
+      result.flowVector.set(flowX, flowY, flowZ);
+    }
     result.surfaceNormal.set(normalX, normalY, normalZ);
   }
 }

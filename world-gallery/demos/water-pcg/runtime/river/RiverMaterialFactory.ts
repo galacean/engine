@@ -968,8 +968,12 @@ Shader "${shaderName}" {
             color = vec3(localFoamSource);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.AtlasRect - 0.5}) {
             color = vec3(localSignedDistance * 0.5 + 0.5);
-          } else {
+          } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.BaseFlow - 0.5}) {
             color = vec3(atlasRectMask, 1.0 - atlasRectMask, 0.0);
+          } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.FinalFlow - 0.5}) {
+            color = vec3(baseFlow * 0.5 + 0.5, 0.5);
+          } else {
+            color = vec3(flowDirection * 0.5 + 0.5, 0.5);
           }
           foamTint = 0.0;
           waterAlpha = 0.9;

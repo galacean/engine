@@ -9,6 +9,7 @@ import {
   parseRiverDebugTarget,
   serializeRiverDebugTarget,
   type RiverDebugCard,
+  type RiverDebugRuntimeMetrics,
   type RiverDebugSnapshot
 } from "./RiverDebugSession";
 import { decodeRiverLocalMapThumbnail } from "./RiverDebugThumbnail";
@@ -247,9 +248,56 @@ function drawSurfaceSwatch(canvas: HTMLCanvasElement, channel: RiverDebugChannel
   }
 }
 
+function drawFlowArrow(
+  context: CanvasRenderingContext2D,
+  originX: number,
+  originY: number,
+  flowX: number,
+  flowZ: number,
+  color: string,
+  label: string
+): void {
+  const length = Math.hypot(flowX, flowZ);
+  const scale = length > 1e-6 ? 32 / Math.max(1, length) : 0;
+  const endX = originX + flowX * scale;
+  const endY = originY - flowZ * scale;
+  const angle = Math.atan2(endY - originY, endX - originX);
+  context.strokeStyle = color;
+  context.fillStyle = color;
+  context.lineWidth = 3;
+  context.beginPath();
+  context.moveTo(originX, originY);
+  context.lineTo(endX, endY);
+  context.stroke();
+  context.beginPath();
+  context.moveTo(endX, endY);
+  context.lineTo(endX - Math.cos(angle - 0.55) * 8, endY - Math.sin(angle - 0.55) * 8);
+  context.lineTo(endX - Math.cos(angle + 0.55) * 8, endY - Math.sin(angle + 0.55) * 8);
+  context.closePath();
+  context.fill();
+  context.font = "9px ui-monospace, monospace";
+  context.fillText(label, 8, originY + 3);
+}
+
+function drawQueryFlowPreview(canvas: HTMLCanvasElement, metrics: RiverDebugRuntimeMetrics): void {
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  context.fillStyle = "#071217";
+  context.fillRect(0, 0, canvas.width, canvas.height);
+  drawFlowArrow(context, 48, 32, metrics.queryBaseFlowX, metrics.queryBaseFlowZ, "#d6b45c", "base");
+  drawFlowArrow(context, 48, 64, metrics.queryLocalFlowX, metrics.queryLocalFlowZ, "#ef77c8", "local");
+  drawFlowArrow(context, 48, 96, metrics.queryFinalFlowX, metrics.queryFinalFlowZ, "#61e7f0", "final");
+  context.fillStyle = "rgba(215,237,239,.7)";
+  context.fillText(`blend ${metrics.queryLocalFlowWeight.toFixed(2)}`, 8, 116);
+}
+
 function drawCardPreview(canvas: HTMLCanvasElement, snapshot: RiverDebugSnapshot, card: RiverDebugCard): void {
   canvas.width = THUMBNAIL_SIZE;
   canvas.height = THUMBNAIL_SIZE;
+  if (card.channel === RiverDebugChannel.QueryFlow) {
+    drawQueryFlowPreview(canvas, snapshot.context.metrics);
+    return;
+  }
   const atlas = snapshot.context.data.terrainInteraction.localMapAtlas;
   if (
     atlas &&

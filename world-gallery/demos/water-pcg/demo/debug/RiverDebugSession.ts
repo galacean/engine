@@ -22,7 +22,10 @@ export enum RiverDebugChannel {
   RawMesh = "raw-mesh",
   Chunks = "chunks",
   Junctions = "junctions",
+  BaseFlow = "base-flow",
   LocalFlow = "local-flow",
+  FinalFlow = "final-flow",
+  QueryFlow = "query-flow",
   LocalFoam = "local-foam",
   LocalSignedDistance = "local-sdf",
   AtlasRect = "atlas-rect",
@@ -73,6 +76,13 @@ export interface RiverDebugRuntimeMetrics {
   readonly submissionYieldCount: number;
   readonly submissionMaxSliceMs: number;
   readonly workerDeserializeMs: number;
+  readonly queryBaseFlowX: number;
+  readonly queryBaseFlowZ: number;
+  readonly queryLocalFlowX: number;
+  readonly queryLocalFlowZ: number;
+  readonly queryFinalFlowX: number;
+  readonly queryFinalFlowZ: number;
+  readonly queryLocalFlowWeight: number;
 }
 
 export type RiverDebugSessionStatus = "ready" | "compiling" | "error" | "ocean";
@@ -192,10 +202,28 @@ const CARD_DEFINITIONS: Readonly<Record<RiverDebugStage, readonly Omit<RiverDebu
     ]),
     [RiverDebugStage.Fields]: Object.freeze([
       {
+        channel: RiverDebugChannel.BaseFlow,
+        label: "Base Flow",
+        technicalLabel: "query primitive · flow XZ",
+        description: "中心线和拓扑提供的基础流向。"
+      },
+      {
         channel: RiverDebugChannel.LocalFlow,
         label: "Local Flow",
         technicalLabel: "Atlas R/G · signed flow XZ",
         description: "局部流向场；颜色编码 X/Z 分量。"
+      },
+      {
+        channel: RiverDebugChannel.FinalFlow,
+        label: "Final Flow",
+        technicalLabel: "normalize(mix(base, local))",
+        description: "与 Shader、CPU Query 共用规则后的最终流向。"
+      },
+      {
+        channel: RiverDebugChannel.QueryFlow,
+        label: "Query Arrow",
+        technicalLabel: "WaterSurfaceSample.waterVelocity.xz",
+        description: "当前 Query 点的 Base、Local 与 Final 流向箭头。"
       },
       {
         channel: RiverDebugChannel.LocalFoam,
@@ -271,7 +299,9 @@ const CARD_DEFINITIONS: Readonly<Record<RiverDebugStage, readonly Omit<RiverDebu
   });
 
 const SURFACE_MODE_BY_CHANNEL: Partial<Record<RiverDebugChannel, RiverSurfaceDebugMode>> = {
+  [RiverDebugChannel.BaseFlow]: RiverSurfaceDebugMode.BaseFlow,
   [RiverDebugChannel.LocalFlow]: RiverSurfaceDebugMode.LocalFlow,
+  [RiverDebugChannel.FinalFlow]: RiverSurfaceDebugMode.FinalFlow,
   [RiverDebugChannel.LocalFoam]: RiverSurfaceDebugMode.LocalFoam,
   [RiverDebugChannel.LocalSignedDistance]: RiverSurfaceDebugMode.LocalSignedDistance,
   [RiverDebugChannel.AtlasRect]: RiverSurfaceDebugMode.AtlasRect,
@@ -307,7 +337,11 @@ export function resolveRiverDebugSceneState(
   const mediumSurfaceAvailable = quality !== RiverQualityLevel.Low;
   const surfaceDebugMode =
     mediumSurfaceAvailable &&
-    (selection.stage === RiverDebugStage.Surface || (selection.stage === RiverDebugStage.Fields && hasLocalAtlas))
+    (selection.stage === RiverDebugStage.Surface ||
+      (selection.stage === RiverDebugStage.Fields &&
+        (hasLocalAtlas ||
+          selection.channel === RiverDebugChannel.BaseFlow ||
+          selection.channel === RiverDebugChannel.FinalFlow)))
       ? (SURFACE_MODE_BY_CHANNEL[selection.channel] ?? RiverSurfaceDebugMode.Off)
       : RiverSurfaceDebugMode.Off;
 
@@ -360,7 +394,9 @@ export function resolveRiverDebugSceneState(
       };
     case RiverDebugStage.Fields: {
       const shaderFieldSelected =
+        selection.channel === RiverDebugChannel.BaseFlow ||
         selection.channel === RiverDebugChannel.LocalFlow ||
+        selection.channel === RiverDebugChannel.FinalFlow ||
         selection.channel === RiverDebugChannel.LocalFoam ||
         selection.channel === RiverDebugChannel.LocalSignedDistance ||
         selection.channel === RiverDebugChannel.AtlasRect;
@@ -373,7 +409,7 @@ export function resolveRiverDebugSceneState(
               ? "query-grid"
               : "off",
         surfaceDebugMode,
-        surfaceVisible: shaderFieldSelected,
+        surfaceVisible: shaderFieldSelected || selection.channel === RiverDebugChannel.QueryFlow,
         foamVisible: false,
         rawGeometryMaterial: false,
         bedVisible: false,
@@ -448,7 +484,11 @@ function buildCards(context: RiverDebugSessionContext, stage: RiverDebugStage): 
         card.channel === RiverDebugChannel.LocalFoam ||
         card.channel === RiverDebugChannel.LocalSignedDistance ||
         card.channel === RiverDebugChannel.AtlasRect;
-      const needsMediumSurface = stage === RiverDebugStage.Surface || needsAtlas;
+      const needsMediumSurface =
+        stage === RiverDebugStage.Surface ||
+        needsAtlas ||
+        card.channel === RiverDebugChannel.BaseFlow ||
+        card.channel === RiverDebugChannel.FinalFlow;
       const disabledReason =
         needsAtlas && !hasAtlas
           ? "当前资源没有 Local Atlas"

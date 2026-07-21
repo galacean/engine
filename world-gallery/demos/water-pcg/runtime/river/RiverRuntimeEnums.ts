@@ -8,5 +8,7 @@ export enum RiverSurfaceDebugMode {
   LocalFlow = 6,
   LocalFoam = 7,
   LocalSignedDistance = 8,
-  AtlasRect = 9
+  AtlasRect = 9,
+  BaseFlow = 10,
+  FinalFlow = 11
 }

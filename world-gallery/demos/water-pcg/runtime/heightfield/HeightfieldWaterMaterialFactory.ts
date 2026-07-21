@@ -10,7 +10,8 @@ import { HeightfieldWaterDebugMode } from "./HeightfieldWaterRuntimeEnums";
 import {
   HEIGHTFIELD_WATER_SHADER_PROPERTY,
   HEIGHTFIELD_WATER_SURFACE_TUNING,
-  HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS
+  HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS,
+  HEIGHTFIELD_WATER_WAVE_TIME_SCALE
 } from "./constants";
 import { getHeightfieldWaterSurfaceTexture } from "./HeightfieldWaterSurfaceTextureFactory";
 import type { HeightfieldWaterFeatureFlags, HeightfieldWaterMaterialState } from "./types";
@@ -752,7 +753,7 @@ export function updateHeightfieldWaterMaterial(
   shaderData.setColor(HEIGHTFIELD_WATER_SHADER_PROPERTY.foamColor, new Color(0.91, 0.98, 1, 1));
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.alpha, config.opacity);
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.clarity, 0.7);
-  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.timeScale, 0.9);
+  shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.timeScale, HEIGHTFIELD_WATER_WAVE_TIME_SCALE);
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.waveStrength, config.waveStrength);
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.microNormalStrength, config.microNormalStrength);
   shaderData.setFloat(HEIGHTFIELD_WATER_SHADER_PROPERTY.foamIntensity, 0.82);

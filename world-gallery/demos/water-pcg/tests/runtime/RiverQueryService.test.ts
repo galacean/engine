@@ -98,7 +98,20 @@ describe("RiverNetworkQueryService", () => {
     expect(result.segmentId).toBe(junction.id);
     expect(result.insideFootprint).toBe(true);
     expect(result.flowVector.length()).toBeCloseTo(junction.flowSpeed);
+    expect(result.baseFlowVector.length()).toBeCloseTo(junction.flowSpeed);
+    expect(result.localFlowWeight).toBeGreaterThan(0);
+    expect(result.localFlowVector.length()).toBeCloseTo(junction.flowSpeed);
     expect(result.surfaceNormal).toMatchObject({ x: 0, y: 1, z: 0 });
+
+    const localFlowX = result.flowVector.x;
+    const localFlowZ = result.flowVector.z;
+    service.setLocalCurrentEnabled(false);
+    service.sampleSurface(new Vector3(junction.position[0], junction.position[1] - 0.1, junction.position[2]), result);
+    expect(service.localCurrentEnabled).toBe(false);
+    expect(result.localFlowWeight).toBe(0);
+    expect(result.flowVector.x).toBeCloseTo(result.baseFlowVector.x, 6);
+    expect(result.flowVector.z).toBeCloseTo(result.baseFlowVector.z, 6);
+    expect(Math.hypot(localFlowX - result.flowVector.x, localFlowZ - result.flowVector.z)).toBeGreaterThan(0.01);
   });
 
   it("matches the brute-force reference across deterministic randomized positions", () => {
