@@ -1,7 +1,7 @@
 import { Camera } from "@galacean/engine-core";
 import { Vector2 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine";
-import { CanvasRenderMode, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
+import { CanvasRenderMode, Image, ResolutionAdaptationMode, UICanvas, UITransform } from "@galacean/engine-ui";
 import { describe, expect, it } from "vitest";
 
 describe("UICanvas", async () => {
@@ -96,6 +96,21 @@ describe("UICanvas", async () => {
     childCanvas.destroy();
     // @ts-ignore
     expect(rootCanvas._isRootCanvas).to.eq(true);
+  });
+
+  it("clearChildren invalidates the root canvas renderer cache", () => {
+    const container = canvasEntity.createChild("clear-container");
+    const image = container.createChild("image").addComponent(Image);
+
+    // Populate the ordered renderer cache before removing the subtree.
+    // @ts-ignore
+    expect(rootCanvas._getRenderers()).toContain(image);
+
+    container.clearChildren();
+
+    // @ts-ignore
+    expect(rootCanvas._getRenderers()).not.toContain(image);
+    container.destroy();
   });
 
   // Pose

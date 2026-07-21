@@ -1,5 +1,5 @@
 import { Quaternion } from "@galacean/engine";
-import { DynamicCollider, Entity, EntityModifyFlags, Scene, Script } from "@galacean/engine-core";
+import { DynamicCollider, Entity, EntityModifyFlags, Logger, Scene, Script } from "@galacean/engine-core";
 import { PhysXPhysics } from "@galacean/engine-physics-physx";
 import { WebGLEngine } from "@galacean/engine";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -332,8 +332,18 @@ describe("Entity", async () => {
       const parentModifyCount = [0, 0, 0];
       const childModifyCount = [0, 0, 0];
       const child2ModifyCount = [0, 0, 0];
+      const childCountsDuringChildModify: number[] = [];
+      const remainingChildrenConsistent: boolean[] = [];
+      const detachedChildCounts: number[] = [];
       // @ts-ignore
-      parent._registerModifyListener((flag: EntityModifyFlags) => ++parentModifyCount[flag]);
+      parent._registerModifyListener((flag: EntityModifyFlags) => {
+        ++parentModifyCount[flag];
+        if (flag === EntityModifyFlags.Child) {
+          childCountsDuringChildModify.push(parent.children.length);
+          remainingChildrenConsistent.push(parent.children.every((child) => child.parent === parent));
+          detachedChildCounts.push(Number(child.parent === null) + Number(child2.parent === null));
+        }
+      });
       // @ts-ignore
       child._registerModifyListener((flag: EntityModifyFlags) => ++childModifyCount[flag]);
       // @ts-ignore
@@ -342,15 +352,22 @@ describe("Entity", async () => {
       parent.clearChildren();
       expect(parent.children.length).eq(0);
 
-      // Parent should receive a single `Child` modify event for the whole clear so
-      // listeners (e.g. UICanvas) can invalidate their cached state.
-      expect(parentModifyCount[EntityModifyFlags.Child]).eq(1);
+      // Clearing children is equivalent to removing them from back to front. Each removal
+      // dispatches after the hierarchy is updated but before inactive listeners are cleaned up.
+      expect(parentModifyCount[EntityModifyFlags.Child]).eq(2);
+      expect(childCountsDuringChildModify).deep.eq([1, 0]);
+      expect(remainingChildrenConsistent).deep.eq([true, true]);
+      expect(detachedChildCounts).deep.eq([1, 2]);
       // Each detached child should receive a `Parent` modify event.
       expect(childModifyCount[EntityModifyFlags.Parent]).eq(1);
       expect(child2ModifyCount[EntityModifyFlags.Parent]).eq(1);
       // Sibling index must be reset so the entity is treated as lonely afterwards.
       expect(child.siblingIndex).eq(-1);
       expect(child2.siblingIndex).eq(-1);
+
+      // Clearing an empty hierarchy should not dispatch another modify event.
+      parent.clearChildren();
+      expect(parentModifyCount[EntityModifyFlags.Child]).eq(2);
     });
     it("sibling index", () => {
       const root = scene.createRootEntity();
@@ -418,11 +435,14 @@ describe("Entity", async () => {
 
       // setting sibling index on a lonely entity (no parent, not in scene root) warns instead of throwing
       const entityX = new Entity(engine, "entityX");
+      const warnSpy = vi.spyOn(Logger, "warn").mockImplementation(() => {});
       var lonelyFn = function () {
         entityX.siblingIndex = 1;
       };
       expect(lonelyFn).not.to.throw();
       expect(entityX.siblingIndex).eq(-1);
+      expect(warnSpy).toHaveBeenCalledOnce();
+      warnSpy.mockRestore();
     });
 
     it("isRoot", () => {

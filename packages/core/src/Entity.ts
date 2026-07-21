@@ -399,24 +399,9 @@ export class Entity extends EngineObject {
    */
   clearChildren(): void {
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      child._parent = null;
-      child._siblingIndex = -1;
-
-      let activeChangeFlag = ActiveChangeFlag.None;
-      child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      child._isActiveInScene && (activeChangeFlag |= ActiveChangeFlag.Scene);
-      activeChangeFlag && child._processInActive(activeChangeFlag);
-
-      Entity._traverseSetOwnerScene(child, null); // Must after child._processInActive().
-
-      child._setParentChange();
+    while (children.length > 0) {
+      children[children.length - 1]._setParent(null);
     }
-    children.length = 0;
-    // Dispatch a single `Child` modify event for the whole clear so subscribers
-    // (e.g. UICanvas) can invalidate their cached hierarchy state once.
-    this._dispatchModify(EntityModifyFlags.Child, this);
   }
 
   /**
