@@ -212,7 +212,7 @@ function opticalDepthCalculation(useSceneDepth: boolean): string {
   }
   return `        vec2 screenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
         float sceneEyeDepth = remapDepthBufferEyeDepth(texture2D(camera_DepthTexture, screenUv).r);
-        float sampledOpticalDepth = max(sceneEyeDepth - input.surfaceData.z, 0.0);
+        float sampledOpticalDepth = max(sceneEyeDepth - input.surfaceEyeDepth, 0.0);
         float opticalDepth = min(sampledOpticalDepth, authoredDepth);`;
 }
 
@@ -250,7 +250,7 @@ function sceneColorRefraction(quality: WaterQualityTier): string {
         float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
           texture2D(camera_DepthTexture, refractedScreenUv).r
         );
-        float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceData.z, 0.0);
+        float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceEyeDepth, 0.0);
         float refractionDepthTolerance = max(
           ${glsl(tuning.refractionDepthToleranceMinimum)},
           opticalDepth * ${glsl(tuning.refractionDepthToleranceScale)}
@@ -276,7 +276,7 @@ function sceneColorRefraction(quality: WaterQualityTier): string {
           * clarity
           * transmittance.g
           * refractionDepthWeight
-          * smoothstep(0.12, 0.72, input.surfaceData.w)
+          * smoothstep(0.12, 0.72, input.shoreDamping)
           * (1.0 - foamTint * ${glsl(tuning.refractionFoamSuppression)});
         waterColor = mix(waterColor, refractedSceneColor * refractionTint, refractionAmount);
 `;
@@ -345,7 +345,10 @@ ${waveUniformDeclarations(waveCount)}
         vec3 macroNormalWS;
         vec3 tangentWS;
         vec2 atlasUv;
-        vec4 surfaceData;
+        float baseSurfaceHeight;
+        float waveOffset;
+        float surfaceEyeDepth;
+        float shoreDamping;
         vec4 clipPosition;
       };
 
@@ -526,12 +529,10 @@ ${waveApplyStatements(waveCount)}
         output.macroNormalWS = computedMacroNormalWS;
         output.tangentWS = computedBaseTangentWS;
         output.atlasUv = computedAtlasUv;
-        output.surfaceData = vec4(
-          baseWorldPosition.y,
-          waveOffset,
-          -(camera_ViewMat * vec4(displacedWorldPosition, 1.0)).z,
-          shoreDamping
-        );
+        output.baseSurfaceHeight = baseWorldPosition.y;
+        output.waveOffset = waveOffset;
+        output.surfaceEyeDepth = -(camera_ViewMat * vec4(displacedWorldPosition, 1.0)).z;
+        output.shoreDamping = shoreDamping;
         output.clipPosition = computedClipPosition;
         return output;
       }
@@ -556,7 +557,7 @@ ${opticalDepthCalculation(useSceneDepth)}
           mix(stillWaterDirection, safeNormalize2(flowXZ, stillWaterDirection), flowWeight * ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.flowingDirectionWeight)}),
           stillWaterDirection
         );
-        vec3 baseWorldPosition = input.worldPosition - input.baseNormalWS * input.surfaceData.y;
+        vec3 baseWorldPosition = input.worldPosition - input.baseNormalWS * input.waveOffset;
 ${flowSurfaceLayerStatements(quality)}
         float detailStrength = max(
           material_MicroNormalStrength,
@@ -611,7 +612,7 @@ ${flowSurfaceLayerStatements(quality)}
         float crestFoam = smoothstep(
           ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.crestFoamStart)},
           ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.crestFoamEnd)},
-          macroSlope + max(input.surfaceData.y, 0.0) * 0.22
+          macroSlope + max(input.waveOffset, 0.0) * 0.22
         ) * smoothstep(0.49, 0.78, foamNoise);
         float currentFoam = smoothstep(
           ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.currentFoamSpeedStart)},
@@ -621,7 +622,7 @@ ${flowSurfaceLayerStatements(quality)}
           ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.currentFoamNoiseStart)},
           ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.currentFoamNoiseEnd)},
           flowSurface.w
-        ) * input.surfaceData.w;
+        ) * input.shoreDamping;
 ${wakeFoamStatements(quality)}
         float foamMotionScale = mix(
           ${glsl(HEIGHTFIELD_WATER_SURFACE_TUNING.stillFoamScale)},
@@ -664,7 +665,7 @@ ${sceneColorRefraction(quality)}
 
         if (material_DebugMode > ${HeightfieldWaterDebugMode.Final + 0.5}) {
           if (material_DebugMode < ${HeightfieldWaterDebugMode.BaseNormal - 0.5}) {
-            waterColor = vec3(fract(abs(input.surfaceData.x) * 0.1));
+            waterColor = vec3(fract(abs(input.baseSurfaceHeight) * 0.1));
           } else if (material_DebugMode < ${HeightfieldWaterDebugMode.SignedDistance - 0.5}) {
             waterColor = normalize(input.baseNormalWS) * 0.5 + 0.5;
           } else if (material_DebugMode < ${HeightfieldWaterDebugMode.Depth - 0.5}) {
@@ -676,7 +677,7 @@ ${sceneColorRefraction(quality)}
           } else if (material_DebugMode < ${HeightfieldWaterDebugMode.WaveDisplacement - 0.5}) {
             waterColor = vec3(flowDirection * 0.5 + 0.5, clamp(length(flowXZ), 0.0, 1.0));
           } else {
-            float normalizedWave = input.surfaceData.y / max(material_MaxVerticalDisplacement, 0.0001) * 0.5 + 0.5;
+            float normalizedWave = input.waveOffset / max(material_MaxVerticalDisplacement, 0.0001) * 0.5 + 0.5;
             waterColor = vec3(normalizedWave, 0.2, 1.0 - normalizedWave);
           }
           alpha = 0.92;

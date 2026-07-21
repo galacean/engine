@@ -22,8 +22,7 @@ import type { InteractivePoolGridQuality, InteractivePoolMetrics } from "./types
 type Mutable<T> = { -readonly [Key in keyof T]: T[Key] };
 
 const search = new URLSearchParams(window.location.search);
-const quality: InteractivePoolGridQuality =
-  search.get("quality") === "low" || search.get("webgl") === "1" ? "low" : "medium";
+const quality: InteractivePoolGridQuality = search.get("quality") === "low" ? "low" : "medium";
 const resolutionX = quality === "low" ? 65 : 129;
 const resolutionZ = quality === "low" ? 27 : 53;
 const centerQueryPosition = new Vector3();
@@ -127,7 +126,7 @@ async function bootstrapInteractivePool(): Promise<void> {
     shaderCompiler: new ShaderCompiler(),
     physics: new PhysXPhysics(),
     graphicDeviceOptions: {
-      webGLMode: search.get("webgl") === "1" ? WebGLMode.WebGL1 : WebGLMode.Auto
+      webGLMode: WebGLMode.WebGL2
     }
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
   const engine = await WebGLEngine.create(engineConfiguration);

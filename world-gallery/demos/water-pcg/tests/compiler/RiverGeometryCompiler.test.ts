@@ -11,10 +11,10 @@ import { resolveRiverRibbonJoinFrame } from "../../compiler/river/RiverRibbonJoi
 import { hashRiverGeometryData, hashRiverSamples } from "../../compiler/shared/determinism";
 import { RiverDiagnosticCode } from "../../compiler/shared/diagnostics";
 import { RiverQualityLevel } from "../../authoring/river/RiverAuthoringEnums";
-import { sharpBendFixture, straightFixture, variableProfileFixture, webGL1LowFixture } from "../fixtures/riverFixtures";
+import { sharpBendFixture, straightFixture, variableProfileFixture } from "../fixtures/riverFixtures";
 
 describe("RiverGeometryCompiler", () => {
-  it.each([straightFixture, sharpBendFixture, webGL1LowFixture])(
+  it.each([straightFixture, sharpBendFixture])(
     "generates finite, indexed, non-degenerate Low mesh for $id",
     (fixture) => {
       const samples = sampleRiverPath(fixture).points;

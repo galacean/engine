@@ -30,10 +30,7 @@ export const HEIGHTFIELD_WATER_RESOURCE_SUBMISSION_BUDGET_MS = 4;
 /** Keeps elapsed time bounded before it reaches the shader's trigonometric functions. */
 export const HEIGHTFIELD_WATER_TIME_PERIOD_SECONDS = 4096;
 
-/**
- * Deterministic, tileable RG slope / BA foam-noise texture shared by all heightfield-water materials.
- * A power-of-two size keeps Repeat wrapping and generated mipmaps legal on WebGL1.
- */
+/** Deterministic, tileable RG slope / BA foam-noise texture shared by all heightfield-water materials. */
 export const HEIGHTFIELD_WATER_SURFACE_TEXTURE = {
   size: 128,
   gradientStrength: 6.8,

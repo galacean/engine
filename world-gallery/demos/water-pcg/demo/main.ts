@@ -317,7 +317,7 @@ async function bootstrapWaterPcg(): Promise<void> {
     canvas: "canvas",
     shaderCompiler: new ShaderCompiler(),
     graphicDeviceOptions: {
-      webGLMode: new URLSearchParams(window.location.search).get("webgl") === "1" ? WebGLMode.WebGL1 : WebGLMode.Auto
+      webGLMode: WebGLMode.WebGL2
     }
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
 

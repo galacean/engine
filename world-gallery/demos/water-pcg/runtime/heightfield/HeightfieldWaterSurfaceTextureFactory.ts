@@ -52,8 +52,7 @@ function encodeSigned(value: number): number {
 
 /**
  * RG stores a periodic height-field gradient. B and A store two decorrelated scalar fields used
- * to break up shoreline and current foam. Keeping generation on the CPU makes the shader both
- * deterministic and WebGL1-safe.
+ * to break up shoreline and current foam. CPU generation keeps the shader input deterministic.
  */
 export function buildHeightfieldWaterSurfaceTexturePixels(): Uint8Array {
   const { size, gradientStrength } = HEIGHTFIELD_WATER_SURFACE_TEXTURE;

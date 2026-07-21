@@ -602,7 +602,7 @@ async function bootstrapBuoyancyDemo(): Promise<void> {
     shaderCompiler: new ShaderCompiler(),
     physics: new PhysXPhysics(),
     graphicDeviceOptions: {
-      webGLMode: search.get("webgl") === "1" ? WebGLMode.WebGL1 : WebGLMode.Auto
+      webGLMode: WebGLMode.WebGL2
     }
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
   const engine = await WebGLEngine.create(engineConfiguration);

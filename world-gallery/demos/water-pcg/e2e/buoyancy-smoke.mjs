@@ -503,10 +503,10 @@ try {
   const riverDriftResult = await verifyRiverDriftStream(browser, targetUrl);
 
   const existingWaterUrl = new URL(targetUrl);
-  existingWaterUrl.search = "?webgl=1&quality=medium&surfaceTime=12.5";
+  existingWaterUrl.search = "?quality=medium&surfaceTime=12.5";
   existingWaterUrl.hash = "curved-main-river";
   const heightfieldUrl = new URL(targetUrl);
-  heightfieldUrl.search = "?webgl=1&quality=medium&surfaceTime=12.5";
+  heightfieldUrl.search = "?quality=medium&surfaceTime=12.5";
   heightfieldUrl.hash = "heightfield-water";
   const existingWaterPages = [
     await verifyExistingWaterPageWithoutPhysX(browser, existingWaterUrl, () => window.waterPcgDebug != null),

@@ -60,7 +60,7 @@ describe("HeightfieldWaterMaterialFactory", () => {
       expect(source).toContain("sampler2D camera_DepthTexture");
       expect(source).toContain("sampler2D camera_OpaqueTexture");
       expect(source).toContain("float remapDepthBufferEyeDepth(float depth)");
-      expect(source).toContain("float sampledOpticalDepth = max(sceneEyeDepth - input.surfaceData.z, 0.0)");
+      expect(source).toContain("float sampledOpticalDepth = max(sceneEyeDepth - input.surfaceEyeDepth, 0.0)");
       expect(source).toContain("float opticalDepth = min(sampledOpticalDepth, authoredDepth)");
     }
   });
@@ -74,7 +74,7 @@ describe("HeightfieldWaterMaterialFactory", () => {
       expect(source).toContain("float refractedGeometryBehindSurface = smoothstep(");
       expect(source).toContain("vec3 centeredSceneColor = texture2D(camera_OpaqueTexture, screenUv).rgb");
       expect(source).toContain("vec3 displacedSceneColor = texture2D(camera_OpaqueTexture, refractedScreenUv).rgb");
-      expect(source).toContain("smoothstep(0.12, 0.72, input.surfaceData.w)");
+      expect(source).toContain("smoothstep(0.12, 0.72, input.shoreDamping)");
       expect(source).toContain("(1.0 - foamTint * 0.94)");
     }
     expect(heightfieldWaterHighShaderSource).toContain("refractionNormalDelta * 0.012");
@@ -186,23 +186,25 @@ describe("HeightfieldWaterMaterialFactory", () => {
     expect(heightfieldWaterMediumShaderSource).toContain("float currentFoam = smoothstep(");
   });
 
-  it("keeps the upgraded shader within the WebGL1 minimum varying-vector budget", () => {
+  it("uses semantic varyings without compatibility packing", () => {
     for (const source of [
       heightfieldWaterLowShaderSource,
       heightfieldWaterMediumShaderSource,
       heightfieldWaterHighShaderSource
     ]) {
       const varyingBlock = source.match(/struct Varyings \{([\s\S]*?)\};/)?.[1] ?? "";
-      const declarations = varyingBlock.match(/\b(?:vec[234]|float)\s+\w+;/g) ?? [];
-      expect(declarations).toHaveLength(7);
+      expect(varyingBlock).toContain("float baseSurfaceHeight");
+      expect(varyingBlock).toContain("float waveOffset");
+      expect(varyingBlock).toContain("float surfaceEyeDepth");
+      expect(varyingBlock).toContain("float shoreDamping");
+      expect(varyingBlock).not.toContain("surfaceData");
     }
   });
 
-  it("builds deterministic non-flat POT texture data for WebGL1 repeat wrapping", () => {
+  it("builds deterministic non-flat repeatable texture data", () => {
     const first = buildHeightfieldWaterSurfaceTexturePixels();
     const second = buildHeightfieldWaterSurfaceTexturePixels();
     const size = HEIGHTFIELD_WATER_SURFACE_TEXTURE.size;
-    expect(size & (size - 1)).toBe(0);
     expect(first).toEqual(second);
     expect(first).toHaveLength(size * size * 4);
     const redValues = new Set<number>();

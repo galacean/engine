@@ -75,7 +75,6 @@ async function verifyInteractivePool(browser, baseUrl, options) {
   page.on("request", (request) => requests.push(request.url()));
   const url = new URL(baseUrl);
   url.searchParams.set("quality", options.quality);
-  if (options.webgl1) url.searchParams.set("webgl", "1");
   let screenshotCaptured = false;
   try {
     await page.goto(url.href, { waitUntil: "domcontentloaded", timeout: 30_000 });
@@ -174,7 +173,6 @@ async function verifyInteractivePool(browser, baseUrl, options) {
     return {
       url: url.href,
       quality: options.quality,
-      webgl1: options.webgl1,
       initial,
       final: last,
       minimumObservedRadius,
@@ -217,14 +215,12 @@ const browser = await chromium.launch({ headless: !headed });
 try {
   const medium = await verifyInteractivePool(browser, targetUrl, {
     quality: "medium",
-    webgl1: false,
     expectedVertexCount: 26985,
     measureFrameRates: true,
     screenshotPath: process.env.POOL_SCREENSHOT_PATH
   });
   const low = await verifyInteractivePool(browser, targetUrl, {
     quality: "low",
-    webgl1: true,
     expectedVertexCount: 6837,
     measureFrameRates: false
   });
@@ -237,7 +233,7 @@ try {
   const isolation = [];
   for (const [caseId, readyExpression] of nonPhysicsCases) {
     const url = new URL(targetUrl);
-    url.search = "?webgl=1&quality=low&surfaceTime=12.5";
+    url.search = "?quality=low&surfaceTime=12.5";
     url.hash = caseId;
     isolation.push(await verifyPageWithoutPhysX(browser, url, readyExpression));
   }

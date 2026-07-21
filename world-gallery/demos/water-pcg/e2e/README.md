@@ -9,7 +9,7 @@ node demos/water-pcg/e2e/indoor-pool-buoyancy-smoke.mjs
 POOL_HEADED=1 node demos/water-pcg/e2e/indoor-pool-buoyancy-smoke.mjs
 ```
 
-`POOL_URL` can target another gallery server. `POOL_SCREENSHOT_PATH` writes one impact-stage screenshot after the dynamic geometry exceeds `0.01m` and the ripple front exceeds `3m`. The gate covers Medium `129 × 53` simulation / `257 × 105` render grids, WebGL1 Low `65 × 27` simulation / `129 × 53` render grids, real PhysX free fall and rebound, entry plus continuous coupling, expanding/reflected waves, final settling, one mesh upload per render frame, reset-by-recreation, 30/60/120 render-rate sampling, and zero PhysX requests from the other three non-physics tabs. Actual render-rate closeness is a hard assertion in headed mode or with `POOL_REQUIRE_ACTUAL_FPS=1`; headless mode still proves the fixed physics step and finite state remain unchanged.
+`POOL_URL` can target another gallery server. `POOL_SCREENSHOT_PATH` writes one impact-stage screenshot after the dynamic geometry exceeds `0.01m` and the ripple front exceeds `3m`. The WebGL2 gate covers Medium `129 × 53` simulation / `257 × 105` render grids, Low `65 × 27` simulation / `129 × 53` render grids, real PhysX free fall and rebound, entry plus continuous coupling, expanding/reflected waves, final settling, one mesh upload per render frame, reset-by-recreation, 30/60/120 render-rate sampling, and zero PhysX requests from the other three non-physics tabs. Actual render-rate closeness is a hard assertion in headed mode or with `POOL_REQUIRE_ACTUAL_FPS=1`; headless mode still proves the fixed physics step and finite state remain unchanged.
 
 ## Buoyancy PhysX smoke
 
@@ -35,7 +35,7 @@ The allocation result is deliberately split by source. `featureOwnedSampledBytes
 
 ## Debug visual baselines
 
-These images capture the `multi-tributary-river` example at `1200 × 765`, Medium quality, WebGL 1, and a fixed `surfaceTime=12.5`.
+These images are the visual baselines for the `multi-tributary-river` example at `1200 × 765`, Medium quality, and a fixed `surfaceTime=12.5`.
 
 - `authoring-control-points.png`
 - `geometry-raw-mesh.png`
@@ -43,4 +43,4 @@ These images capture the `multi-tributary-river` example at `1200 × 765`, Mediu
 - `surface-macro-height.png`
 - `final.png`
 
-The captures intentionally include both the Water PCG Debug panel and dat.GUI. Before replacing a baseline, open `/demos/water-pcg/?webgl=1&quality=medium&surfaceTime=12.5`, select the multi-tributary example, switch with `window.waterPcgDebug.select(...)`, and verify that the browser console has no warnings or errors.
+The captures intentionally include both the Water PCG Debug panel and dat.GUI. Before replacing a baseline, open `/demos/water-pcg/?quality=medium&surfaceTime=12.5`, select the multi-tributary example, switch with `window.waterPcgDebug.select(...)`, and verify that the browser console has no warnings or errors.

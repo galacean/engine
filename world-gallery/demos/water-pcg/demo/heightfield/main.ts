@@ -182,7 +182,7 @@ async function bootstrapHeightfieldWater(): Promise<void> {
     canvas: "canvas",
     shaderCompiler: new ShaderCompiler(),
     graphicDeviceOptions: {
-      webGLMode: search.get("webgl") === "1" ? WebGLMode.WebGL1 : WebGLMode.Auto
+      webGLMode: WebGLMode.WebGL2
     }
   } as unknown as Parameters<typeof WebGLEngine.create>[0];
   const engine = await WebGLEngine.create(engineConfiguration);

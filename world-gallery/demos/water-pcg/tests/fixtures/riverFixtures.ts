@@ -88,17 +88,6 @@ export const longOverBudgetFixture: RiverConfig = {
   }
 };
 
-export const webGL1LowFixture: RiverConfig = {
-  ...straightFixture,
-  id: "webgl1-low",
-  quality: {
-    geometry: { level: RiverQualityLevel.Low, maxSegmentCount: 32, maxChordError: 0.6 },
-    material: { level: RiverQualityLevel.Low },
-    maps: { level: RiverQualityLevel.Low },
-    query: { level: RiverQualityLevel.Low }
-  }
-};
-
 export const invalidNetworkFixture: RiverNetworkDescriptor = {
   schemaVersion: RiverNetworkSchemaVersion.V1,
   id: "invalid-network",

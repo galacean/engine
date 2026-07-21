@@ -343,8 +343,13 @@ Shader "${shaderName}" {
       struct Varyings {
         vec2 worldXZ;
         vec2 worldFlow;
-        vec4 motionData;
-        vec4 surfaceData;
+        vec2 motionCoordinates;
+        float riverHalfWidth;
+        float localFlowSpeed;
+        float macroHeight;
+        float shoreDamping;
+        float surfaceEyeDepth;
+        float authoredDepth;
         vec3 worldPosition;
         vec3 macroNormalWS;
         vec4 clipPosition;
@@ -507,13 +512,13 @@ Shader "${shaderName}" {
         gl_Position = computedClipPosition;
         output.worldXZ = computedWorldPosition.xz;
         output.worldFlow = computedWorldFlow;
-        output.motionData = vec4(attr.TEXCOORD_2, attr.TEXCOORD_3.x, attr.TEXCOORD_1.x);
-        output.surfaceData = vec4(
-          computedMacroHeight,
-          riverShoreDamping(attr.TEXCOORD_2.x, attr.TEXCOORD_3.x),
-          -(camera_ViewMat * computedWorldPosition).z,
-          attr.TEXCOORD_3.y
-        );
+        output.motionCoordinates = attr.TEXCOORD_2;
+        output.riverHalfWidth = attr.TEXCOORD_3.x;
+        output.localFlowSpeed = attr.TEXCOORD_1.x;
+        output.macroHeight = computedMacroHeight;
+        output.shoreDamping = riverShoreDamping(attr.TEXCOORD_2.x, attr.TEXCOORD_3.x);
+        output.surfaceEyeDepth = -(camera_ViewMat * computedWorldPosition).z;
+        output.authoredDepth = attr.TEXCOORD_3.y;
         output.worldPosition = computedWorldPosition.xyz;
         output.macroNormalWS = computedMacroNormalWS;
         output.clipPosition = computedClipPosition;
@@ -525,11 +530,11 @@ Shader "${shaderName}" {
         float clarity = saturate(material_Clarity);
         vec2 screenUv = (input.clipPosition.xy / input.clipPosition.w) * 0.5 + 0.5;
         float sceneEyeDepth = remapDepthBufferEyeDepth(texture2D(camera_DepthTexture, screenUv).r);
-        float sampledOpticalDepth = max(sceneEyeDepth - input.surfaceData.z, 0.0);
-        float authoredOpticalDepth = max(input.surfaceData.w * input.surfaceData.y, 0.0);
+        float sampledOpticalDepth = max(sceneEyeDepth - input.surfaceEyeDepth, 0.0);
+        float authoredOpticalDepth = max(input.authoredDepth * input.shoreDamping, 0.0);
         float authoredDepthAvailable = step(
           ${glsl(RIVER_MEDIUM_OPTICAL_SHADER_TUNING.authoredDepthEpsilon)},
-          input.surfaceData.w
+          input.authoredDepth
         );
         float opticalDepth = clamp(
           mix(
@@ -568,7 +573,7 @@ Shader "${shaderName}" {
           ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.minimumAlpha},
           ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maximumAlpha}
         );
-        vec2 warped = riverWarpedDomain(input.motionData.xy, input.motionData.w, elapsedTime);
+        vec2 warped = riverWarpedDomain(input.motionCoordinates, input.localFlowSpeed, elapsedTime);
         float ridgeCenter = 1.0 - abs(
           riverValueNoise(
             warped * ${glsl(RIVER_SURFACE_SHADER_TUNING.crestRidgeScale)}
@@ -606,12 +611,12 @@ Shader "${shaderName}" {
         float crestCurvature = saturate(
           (ridgeCenter - (ridgeAhead + ridgeBehind) * 0.5) * ${glsl(RIVER_SURFACE_SHADER_TUNING.crestCurvatureGain)}
         );
-        float crestMask = ridgeMask * erosionMask * material_CrestIntensity * input.surfaceData.y;
+        float crestMask = ridgeMask * erosionMask * material_CrestIntensity * input.shoreDamping;
         ${localSampling}
         vec2 baseFlow = safeNormalize2(input.worldFlow, vec2(0.0, 1.0));
         vec2 localFlowDirection = safeNormalize2(localFlow, baseFlow);
         vec2 flowDirection = safeNormalize2(mix(baseFlow, localFlowDirection, localFlowWeight), baseFlow);
-        float flowSpeed = max(input.motionData.w * material_FlowSpeed, 0.0);
+        float flowSpeed = max(input.localFlowSpeed * material_FlowSpeed, 0.0);
         float microDetailScale = clamp(
           ${glsl(RIVER_SURFACE_SHADER_TUNING.microDetailLengthReference)}
             / max(material_SurfaceLengthScale, 0.001),
@@ -733,7 +738,7 @@ Shader "${shaderName}" {
           normalDotHalf,
           ${glsl(RIVER_SURFACE_SHADER_TUNING.tightSpecularPower)}
         ) * normalDotLight;
-        float distanceToBank = max(0.0, input.motionData.z - abs(input.motionData.x));
+        float distanceToBank = max(0.0, input.riverHalfWidth - abs(input.motionCoordinates.x));
         float shoreEnvelope = 1.0 - smoothstep(
           0.0,
           material_ShoreDampingWidth * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamWidthScale)},
@@ -763,7 +768,7 @@ Shader "${shaderName}" {
                 ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamPulseWorldDirection[1])}
               )
             )
-            + sign(input.motionData.x) * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamOppositeBankPhase)}
+            + sign(input.motionCoordinates.x) * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamOppositeBankPhase)}
             + shorePatchNoise * ${glsl(RIVER_SURFACE_SHADER_TUNING.shoreFoamNoisePhase)}
         );
         float shorePatchGate = smoothstep(
@@ -804,7 +809,7 @@ Shader "${shaderName}" {
           ${glsl(RIVER_SURFACE_SHADER_TUNING.currentFoamNoiseStart)},
           ${glsl(RIVER_SURFACE_SHADER_TUNING.currentFoamNoiseEnd)},
           flowSurface.w
-        ) * input.surfaceData.y * 0.32;
+        ) * input.shoreDamping * 0.32;
         float wakeBreakup = smoothstep(
           ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFoamNoiseStart)},
           ${glsl(RIVER_SURFACE_SHADER_TUNING.wakeFoamNoiseEnd)},
@@ -855,7 +860,7 @@ Shader "${shaderName}" {
           transmittance.g
         );
         color += material_BaseColor.rgb
-          * input.surfaceData.x
+          * input.macroHeight
           * ${glsl(RIVER_SURFACE_SHADER_TUNING.macroHeightBrightness)};
         vec3 softFoamColor = mix(
           volumeColor * ${RIVER_SHORE_FOAM_SHADER_TUNING.waterColorBrightness},
@@ -889,7 +894,7 @@ Shader "${shaderName}" {
         float refractedSceneEyeDepth = remapDepthBufferEyeDepth(
           texture2D(camera_DepthTexture, refractedScreenUv).r
         );
-        float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceData.z, 0.0);
+        float refractedOpticalDepth = max(refractedSceneEyeDepth - input.surfaceEyeDepth, 0.0);
         float refractionDepthTolerance = max(
           ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionDepthToleranceMinimum)},
           opticalDepth * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionDepthToleranceScale)}
@@ -912,7 +917,7 @@ Shader "${shaderName}" {
           * clarity
           * transmittance.g
           * refractionDepthWeight
-          * input.surfaceData.y
+          * input.shoreDamping
           * (1.0 - foamTint * ${glsl(RIVER_SURFACE_SHADER_TUNING.refractionFoamSuppression)});
         color = mix(color, refractedSceneColor * refractionTint, refractionAmount);
         vec3 skyReflection = mix(
@@ -944,15 +949,19 @@ Shader "${shaderName}" {
         color = mix(color, material_BaseColor.rgb, saturate(material_TintWeight));
         if (material_SurfaceDebugMode > ${RiverSurfaceDebugMode.Off + 0.5}) {
           if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.MacroHeight - 0.5}) {
-            color = vec3(fract(input.motionData.x * 0.1), fract((input.motionData.y - elapsedTime) * 0.1), 0.2);
+            color = vec3(
+              fract(input.motionCoordinates.x * 0.1),
+              fract((input.motionCoordinates.y - elapsedTime) * 0.1),
+              0.2
+            );
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.CrestMask - 0.5}) {
-            color = vec3(saturate(input.surfaceData.x / max(material_SurfaceMaxDisplacement, 0.001) * 0.5 + 0.5));
+            color = vec3(saturate(input.macroHeight / max(material_SurfaceMaxDisplacement, 0.001) * 0.5 + 0.5));
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.MicroNormal - 0.5}) {
             color = vec3(crestMask);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.ShoreDamping - 0.5}) {
             color = vec3(flowSurface.xy * 0.5 + 0.5, 1.0);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.LocalFlow - 0.5}) {
-            color = vec3(input.surfaceData.y);
+            color = vec3(input.shoreDamping);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.LocalFoam - 0.5}) {
             color = vec3(localFlow * 0.5 + 0.5, 0.5);
           } else if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.LocalSignedDistance - 0.5}) {

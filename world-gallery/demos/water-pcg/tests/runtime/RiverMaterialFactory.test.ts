@@ -31,11 +31,11 @@ describe("RiverMaterialFactory shaders", () => {
   it("displaces vertices from continuous network flow coordinates", () => {
     expect(riverSurfaceShaderSource).toContain("float riverMacroHeight(");
     expect(riverSurfaceShaderSource).toContain(
-      "riverWarpedDomain(input.motionData.xy, input.motionData.w, elapsedTime)"
+      "riverWarpedDomain(input.motionCoordinates, input.localFlowSpeed, elapsedTime)"
     );
     expect(riverSurfaceShaderSource).toContain("localPosition.y += computedMacroHeight");
-    expect(riverSurfaceShaderSource).toContain("output.motionData = vec4(attr.TEXCOORD_2");
-    expect(riverSurfaceShaderSource).toContain("output.surfaceData = vec4(");
+    expect(riverSurfaceShaderSource).toContain("output.motionCoordinates = attr.TEXCOORD_2");
+    expect(riverSurfaceShaderSource).toContain("output.authoredDepth = attr.TEXCOORD_3.y");
     expect(riverSurfaceShaderSource).toContain("baseNormalWS - acrossWS * acrossDerivative");
     expect(riverSurfaceShaderSource).not.toContain("float streak = sin(detailPhase");
     expect(riverSurfaceShaderSource).not.toContain("branchDownstream");
@@ -115,8 +115,8 @@ describe("RiverMaterialFactory shaders", () => {
   it("caps Medium scene-depth thickness with the authored water column", () => {
     expect(riverSurfaceShaderSource).toContain("sampler2D camera_DepthTexture");
     expect(riverSurfaceShaderSource).toContain("remapDepthBufferEyeDepth");
-    expect(riverSurfaceShaderSource).toContain("sceneEyeDepth - input.surfaceData.z");
-    expect(riverSurfaceShaderSource).toContain("input.surfaceData.w * input.surfaceData.y");
+    expect(riverSurfaceShaderSource).toContain("sceneEyeDepth - input.surfaceEyeDepth");
+    expect(riverSurfaceShaderSource).toContain("input.authoredDepth * input.shoreDamping");
     expect(riverSurfaceShaderSource).toContain("float authoredDepthAvailable = step(");
     expect(riverSurfaceShaderSource).toContain("min(sampledOpticalDepth, authoredOpticalDepth)");
     expect(riverSurfaceShaderSource).toContain("vec3 transmittance = exp(-absorption * opticalDepth)");
@@ -132,11 +132,16 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceShaderSource).not.toContain("material_BaseColor.a *");
   });
 
-  it("packs Medium varyings within the WebGL1 minimum varying-vector budget", () => {
+  it("uses semantic varyings without compatibility packing", () => {
     const varyingBlock = riverSurfaceShaderSource.match(/struct Varyings \{([\s\S]*?)\};/)?.[1] ?? "";
-    const declarations = varyingBlock.match(/\b(?:vec[234]|float)\s+\w+;/g) ?? [];
-    expect(declarations).toHaveLength(7);
-    expect(varyingBlock).toContain("vec4 motionData");
-    expect(varyingBlock).toContain("vec4 surfaceData");
+    expect(varyingBlock).toContain("vec2 motionCoordinates");
+    expect(varyingBlock).toContain("float riverHalfWidth");
+    expect(varyingBlock).toContain("float localFlowSpeed");
+    expect(varyingBlock).toContain("float macroHeight");
+    expect(varyingBlock).toContain("float shoreDamping");
+    expect(varyingBlock).toContain("float surfaceEyeDepth");
+    expect(varyingBlock).toContain("float authoredDepth");
+    expect(varyingBlock).not.toContain("motionData");
+    expect(varyingBlock).not.toContain("surfaceData");
   });
 });
