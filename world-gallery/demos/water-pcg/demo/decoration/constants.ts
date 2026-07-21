@@ -112,16 +112,16 @@ export const LAKE_BED_TEXTURE_STYLE = {
 export const WATER_BED_MATERIAL_COLOR = {
   [WaterDecorationStyle.River]: [0.8, 0.79, 0.74, 1] as const,
   [WaterDecorationStyle.Lake]: [0.78, 0.81, 0.75, 1] as const,
-  [WaterDecorationStyle.Pool]: [0.46, 0.76, 0.83, 1] as const
+  [WaterDecorationStyle.Pool]: [0.82, 0.9, 0.9, 1] as const
 } as const;
 
 export const POOL_BED_TEXTURE_STYLE = {
   textureSize: 64,
   tileCount: 4,
   groutWidth: 2,
-  groutColor: [184, 226, 232, 255] as const,
-  tileColor: [105, 206, 226, 255] as const,
-  tileHighlightColor: [132, 220, 237, 255] as const,
+  groutColor: [143, 181, 188, 255] as const,
+  tileColor: [202, 220, 220, 255] as const,
+  tileHighlightColor: [221, 235, 235, 255] as const,
   highlightModulo: 3
 } as const;
 

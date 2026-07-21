@@ -63,6 +63,8 @@ Shader "AIWorld/RiverLow" {
       float material_FlowSpeed;
       float material_FoamIntensity;
       float material_Clarity;
+      float material_OpacityScale;
+      float material_TintWeight;
       sampler2D material_NoiseTexture;
 
       struct Attributes { vec4 POSITION; vec4 COLOR_0; vec2 TEXCOORD_0; vec2 TEXCOORD_1; };
@@ -94,12 +96,15 @@ Shader "AIWorld/RiverLow" {
         vec3 waterColor = material_BaseColor.rgb * (0.72 + center * (0.18 + material_Clarity * 0.12));
         vec3 softFoamColor = mix(material_BaseColor.rgb * 1.2, material_FoamColor.rgb, 0.58);
         vec3 color = mix(waterColor, softFoamColor, foam);
+        color = mix(color, material_BaseColor.rgb, clamp(material_TintWeight, 0.0, 1.0));
         float waterAlpha = mix(
           ${RIVER_LOW_OPTICAL_SHADER_TUNING.opaqueWaterAlpha},
           ${RIVER_LOW_OPTICAL_SHADER_TUNING.clearWaterAlpha},
           clamp(material_Clarity, 0.0, 1.0)
         );
-        float alpha = (water * waterAlpha + foam * ${RIVER_LOW_OPTICAL_SHADER_TUNING.foamAlphaWeight}) * feather;
+        float alpha = (water * waterAlpha + foam * ${RIVER_LOW_OPTICAL_SHADER_TUNING.foamAlphaWeight})
+          * feather
+          * material_OpacityScale;
         gl_FragColor = vec4(color, clamp(alpha, 0.0, ${RIVER_LOW_OPTICAL_SHADER_TUNING.maxAlpha}));
       }
     }
@@ -306,6 +311,8 @@ Shader "${shaderName}" {
       float material_FlowSpeed;
       float material_FoamIntensity;
       float material_Clarity;
+      float material_OpacityScale;
+      float material_TintWeight;
       float material_SurfaceSeed;
       float material_SurfaceMaxDisplacement;
       float material_SurfaceLengthScale;
@@ -645,6 +652,7 @@ Shader "${shaderName}" {
           + clarity * ${RIVER_SHORE_FOAM_SHADER_TUNING.tintClarityWeight}
         );
         color = mix(color, softFoamColor, foamTint);
+        color = mix(color, material_BaseColor.rgb, saturate(material_TintWeight));
         if (material_SurfaceDebugMode > ${RiverSurfaceDebugMode.Off + 0.5}) {
           if (material_SurfaceDebugMode < ${RiverSurfaceDebugMode.MacroHeight - 0.5}) {
             color = vec3(fract(input.motionData.x * 0.1), fract((input.motionData.y - elapsedTime) * 0.1), 0.2);
@@ -671,7 +679,10 @@ Shader "${shaderName}" {
         float alpha = waterAlpha
           + foamTint * ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.foamAlphaWeight}
           + (fresnel + glint) * ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.scatterAlphaWeight};
-        gl_FragColor = vec4(color, clamp(alpha, 0.0, ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maximumAlpha}));
+        gl_FragColor = vec4(
+          color,
+          clamp(alpha * material_OpacityScale, 0.0, ${RIVER_MEDIUM_OPTICAL_SHADER_TUNING.maximumAlpha})
+        );
       }
     }
   }
@@ -729,6 +740,8 @@ function configureSurfaceMaterial(
 ): Material {
   material.shaderData.setTexture(RIVER_SHADER_PROPERTY.surfaceNormalTexture, getSurfaceNormalTexture(engine));
   updateRiverMaterial(material, config, flowSpeedMultiplier);
+  setRiverSurfaceOpacityScale(material, 1);
+  setRiverSurfaceTintWeight(material, 0);
   updateRiverSurfaceMotion(material, motion);
   setRiverSurfaceDebugMode(material, RiverSurfaceDebugMode.Off);
   setRiverSurfaceFeatureFlags(material, true, true);
@@ -779,6 +792,8 @@ export function createLowRiverMaterial(
   const material = new Material(engine, shader);
   material.shaderData.setTexture(RIVER_SHADER_PROPERTY.noiseTexture, getLowNoiseTexture(engine));
   updateRiverMaterial(material, config, flowSpeedMultiplier);
+  setRiverSurfaceOpacityScale(material, 1);
+  setRiverSurfaceTintWeight(material, 0);
   return material;
 }
 
@@ -805,6 +820,14 @@ export function updateRiverSurfaceMotion(material: Material, motion: RiverCompil
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.surfaceTurbulence, motion.turbulence);
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.crestIntensity, motion.crestIntensity);
   material.shaderData.setFloat(RIVER_SHADER_PROPERTY.microNormalStrength, motion.microNormalStrength);
+}
+
+export function setRiverSurfaceOpacityScale(material: Material, opacityScale: number): void {
+  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.opacityScale, Math.max(0, opacityScale));
+}
+
+export function setRiverSurfaceTintWeight(material: Material, tintWeight: number): void {
+  material.shaderData.setFloat(RIVER_SHADER_PROPERTY.tintWeight, Math.min(1, Math.max(0, tintWeight)));
 }
 
 export function setRiverSurfaceDebugMode(material: Material, mode: RiverSurfaceDebugMode): void {

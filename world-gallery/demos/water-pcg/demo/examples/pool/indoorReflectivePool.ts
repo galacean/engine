@@ -18,13 +18,13 @@ import type { RiverPcgExample } from "../types";
 
 export const indoorReflectivePoolExample: RiverPcgExample = {
   id: "indoor-reflective-pool",
-  label: "室内泳池",
+  label: "交互式泳池",
   initialMode: WaterPreviewMode.River,
   decorationStyle: WaterDecorationStyle.Pool,
   view: {
-    cameraPosition: [40, 22, 40],
-    cameraTarget: [0, -0.7, 0],
-    backgroundColor: [0.76, 0.82, 0.83, 1]
+    cameraPosition: [18, 6.5, 19],
+    cameraTarget: [0, -0.05, 0],
+    backgroundColor: [0.2, 0.27, 0.3, 1]
   },
   riverDescriptor: {
     schemaVersion: RiverNetworkSchemaVersion.V2,
@@ -93,10 +93,10 @@ export const indoorReflectivePoolExample: RiverPcgExample = {
       },
       material: {
         preset: RiverMaterialPreset.ClearStream,
-        baseColor: "#0783a8",
+        baseColor: "#007fa3",
         foamColor: "#f5ffff",
         foamIntensity: 0.02,
-        clarity: 0.9
+        clarity: 0.38
       },
       surfaceMotion: {
         seed: 27541,

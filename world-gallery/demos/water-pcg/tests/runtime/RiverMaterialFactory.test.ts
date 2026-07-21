@@ -82,6 +82,8 @@ describe("RiverMaterialFactory shaders", () => {
     expect(riverSurfaceShaderSource).toContain("min(sampledOpticalDepth, authoredOpticalDepth)");
     expect(riverSurfaceShaderSource).toContain("float transmittance = exp(-absorption * opticalDepth)");
     expect(riverSurfaceShaderSource).toContain("float waterAlpha = clamp(");
+    expect(riverSurfaceShaderSource).toContain("alpha * material_OpacityScale");
+    expect(riverSurfaceShaderSource).toContain("saturate(material_TintWeight)");
     expect(riverSurfaceShaderSource).not.toContain("camera_OpaqueTexture");
     expect(riverSurfaceShaderSource).not.toContain("material_BaseColor.a *");
   });

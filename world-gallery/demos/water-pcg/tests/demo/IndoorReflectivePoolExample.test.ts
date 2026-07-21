@@ -20,11 +20,13 @@ describe("indoor reflective pool example", () => {
     expect(Math.max(...elevations) - Math.min(...elevations)).toBeLessThanOrEqual(0.021);
   });
 
-  it("uses pool decoration and reference-matched optical tuning", () => {
+  it("uses pool decoration and readable optical tuning", () => {
     const defaults = indoorReflectivePoolExample.riverDescriptor.defaults;
 
     expect(indoorReflectivePoolExample.decorationStyle).toBe(WaterDecorationStyle.Pool);
-    expect(defaults.material.clarity).toBeGreaterThanOrEqual(0.9);
+    expect(defaults.material.baseColor).toBe("#007fa3");
+    expect(defaults.material.clarity).toBeGreaterThanOrEqual(0.3);
+    expect(defaults.material.clarity).toBeLessThanOrEqual(0.45);
     expect(defaults.material.foamIntensity).toBeLessThanOrEqual(0.05);
     if (!("surfaceMotion" in defaults)) throw new Error("Expected pool surface motion tuning.");
     expect(defaults.surfaceMotion.displacementAmplitude).toBeLessThanOrEqual(0.05);

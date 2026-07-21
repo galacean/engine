@@ -89,7 +89,8 @@
       }
 
       #heightfield-hud,
-      #buoyancy-hud {
+      #buoyancy-hud,
+      #interactive-pool-hud {
         position: fixed;
         top: 56px;
         left: 14px;
@@ -110,6 +111,10 @@
 
       #buoyancy-hud {
         width: min(430px, calc(100vw - 28px));
+      }
+
+      #interactive-pool-hud {
+        width: min(390px, calc(100vw - 28px));
       }
 
       .hud-heading,
@@ -134,7 +139,8 @@
       }
 
       #heightfield-status,
-      #buoyancy-status {
+      #buoyancy-status,
+      #interactive-pool-status {
         color: var(--current-cyan);
         font-size: 10px;
         letter-spacing: 0.04em;
@@ -144,12 +150,14 @@
         color: var(--warning-amber);
       }
 
-      #buoyancy-status[data-state="ready"] {
+      #buoyancy-status[data-state="ready"],
+      #interactive-pool-status[data-state="ready"] {
         color: var(--ready-green);
       }
 
       #heightfield-status[data-state="error"],
-      #buoyancy-status[data-state="error"] {
+      #buoyancy-status[data-state="error"],
+      #interactive-pool-status[data-state="error"] {
         color: var(--fault-coral);
       }
 
@@ -183,7 +191,8 @@
       }
 
       #heightfield-metrics,
-      #buoyancy-metrics {
+      #buoyancy-metrics,
+      #interactive-pool-metrics {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
         gap: 7px 12px;
@@ -194,13 +203,19 @@
         margin-top: 0;
       }
 
+      #interactive-pool-metrics {
+        margin-top: 9px;
+      }
+
       #heightfield-metrics div,
-      #buoyancy-metrics div {
+      #buoyancy-metrics div,
+      #interactive-pool-metrics div {
         min-width: 0;
       }
 
       #heightfield-metrics dt,
-      #buoyancy-metrics dt {
+      #buoyancy-metrics dt,
+      #interactive-pool-metrics dt {
         overflow: hidden;
         margin: 0 0 2px;
         color: var(--water-muted);
@@ -212,7 +227,8 @@
       }
 
       #heightfield-metrics dd,
-      #buoyancy-metrics dd {
+      #buoyancy-metrics dd,
+      #interactive-pool-metrics dd {
         overflow: hidden;
         margin: 0;
         color: var(--foam-ink);
@@ -297,6 +313,62 @@
         </dl>
       </aside>
       <div id="fixture-mark">flow-advected ripples · depth optics · bank foam</div>
+      <canvas id="canvas"></canvas>
+    </template>
+
+    <template id="water-pcg-interactive-pool-template">
+      <aside id="interactive-pool-hud" aria-live="polite">
+        <div class="hud-heading">
+          <strong>交互式泳池 / 双向浮力波纹</strong>
+          <span id="interactive-pool-status" data-state="loading">initializing PhysX</span>
+        </div>
+        <div class="hud-controls">
+          <button type="button" id="interactive-pool-reset">重新投放小球</button>
+        </div>
+        <dl id="interactive-pool-metrics">
+          <div>
+            <dt>ball height</dt>
+            <dd data-metric="ball">waiting</dd>
+          </div>
+          <div>
+            <dt>vertical speed</dt>
+            <dd data-metric="velocity">—</dd>
+          </div>
+          <div>
+            <dt>entry / motion / pressure</dt>
+            <dd data-metric="interactions">0 / 0 / 0</dd>
+          </div>
+          <div>
+            <dt>max deformation</dt>
+            <dd data-metric="height">0.000 m</dd>
+          </div>
+          <div>
+            <dt>depression / rim</dt>
+            <dd data-metric="contact">0.000 / 0.000 m</dd>
+          </div>
+          <div>
+            <dt>ripple radius</dt>
+            <dd data-metric="radius">0.0 m</dd>
+          </div>
+          <div>
+            <dt>highlight / vertices</dt>
+            <dd data-metric="visibility">0.00 / 0</dd>
+          </div>
+          <div>
+            <dt>surface vertices</dt>
+            <dd data-metric="vertices">—</dd>
+          </div>
+          <div>
+            <dt>uploads / frame</dt>
+            <dd data-metric="uploads">0</dd>
+          </div>
+          <div>
+            <dt>runtime error</dt>
+            <dd data-metric="error">none</dd>
+          </div>
+        </dl>
+      </aside>
+      <div id="fixture-mark">真实刚体 · Pontoon 浮力 · CPU 高度场 · 池壁反射</div>
       <canvas id="canvas"></canvas>
     </template>
 

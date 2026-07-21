@@ -58,6 +58,9 @@ switch (activeCase.kind) {
   case "buoyancy":
     void import("./buoyancy/main");
     break;
+  case "interactive-pool":
+    void import("./pool/main");
+    break;
   default:
     void import("./main");
 }

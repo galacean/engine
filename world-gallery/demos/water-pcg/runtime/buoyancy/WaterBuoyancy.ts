@@ -1,6 +1,7 @@
 import { DynamicCollider, Script } from "@galacean/engine-core";
 import type { Entity } from "@galacean/engine-core";
 import { MathUtil, Vector3 } from "@galacean/engine-math";
+import type { WaterSurfaceInteractionSink } from "../interaction/WaterSurfaceInteractionSink";
 import type { WaterSurfaceProvider } from "../query/WaterSurfaceProvider";
 import { createWaterSurfaceSample } from "../query/WaterSurfaceProvider";
 import { BuoyancySolver } from "./BuoyancySolver";
@@ -123,6 +124,9 @@ export class WaterBuoyancy extends Script {
   /** The water surface queried by every enabled Pontoon. */
   surfaceProvider: WaterSurfaceProvider | null = null;
 
+  /** Optional water-side receiver for entry impacts and continuous submerged motion. */
+  interactionSink: WaterSurfaceInteractionSink | null = null;
+
   /** One to eight caller-authored spherical probes in entity-local space. */
   pontoons: BuoyancyPontoon[] = [];
 
@@ -166,6 +170,7 @@ export class WaterBuoyancy extends Script {
   readonly profilingMetrics: WaterBuoyancyProfilingMetrics;
 
   private readonly _mutablePontoonStates: MutableWaterBuoyancyPontoonState[] = [];
+  private readonly _previouslySubmerged = new Uint8Array(MAX_PONTOON_COUNT);
   private readonly _mutableProfilingMetrics: MutableWaterBuoyancyProfilingMetrics = {
     queryMs: 0,
     solverMs: 0,
@@ -261,6 +266,7 @@ export class WaterBuoyancy extends Script {
    */
   notifyTeleported(): void {
     this._skipNextPhysicsUpdate = true;
+    this._previouslySubmerged.fill(0);
   }
 
   onAwake(): void {
@@ -280,7 +286,7 @@ export class WaterBuoyancy extends Script {
     this._resetStepState();
 
     if (!this.enabled) {
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
 
@@ -290,47 +296,48 @@ export class WaterBuoyancy extends Script {
       this._dynamicCollider = collider;
       if (!collider) {
         this._reportDiagnostic("missing-collider");
-        this._finishProfiling(profilingEnabled, totalStart);
+        this._finishDryStep(profilingEnabled, totalStart);
         return;
       }
     }
     if (!collider.enabled) {
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
 
     const provider = this.surfaceProvider;
     if (!provider) {
       this._reportDiagnostic("missing-provider");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
     if (collider.isKinematic) {
       this._reportDiagnostic("kinematic");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
 
     const mass = collider.mass;
     if (!Number.isFinite(mass) || mass <= 0) {
       this._reportDiagnostic("invalid-mass");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
 
     this._gravity.copyFrom(this.scene.physics.gravity);
     if (!isFiniteVector(this._gravity) || this._gravity.lengthSquared() <= FORCE_EPSILON_SQUARED) {
       this._reportDiagnostic("invalid-gravity");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
 
     const configuredPontoonCount = this.pontoons.length;
     if (configuredPontoonCount < 1 || configuredPontoonCount > MAX_PONTOON_COUNT) {
       this._reportDiagnostic("invalid-pontoon-count");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
+    this._previouslySubmerged.fill(0, configuredPontoonCount);
     if (
       !Number.isFinite(this.buoyancyCoefficient) ||
       this.buoyancyCoefficient < 0 ||
@@ -341,7 +348,7 @@ export class WaterBuoyancy extends Script {
       typeof this.applyHorizontalDrag !== "boolean"
     ) {
       this._reportDiagnostic("invalid-parameters");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
     if (
@@ -360,7 +367,7 @@ export class WaterBuoyancy extends Script {
         this.maxHorizontalForceMultiplier < 0)
     ) {
       this._reportDiagnostic("invalid-parameters");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
 
@@ -374,11 +381,14 @@ export class WaterBuoyancy extends Script {
     for (let i = 0; i < pontoonCount; i++) {
       const pontoon = this.pontoons[i];
       const state = this._mutablePontoonStates[i];
-      if (!pontoon || !pontoon.enabled) continue;
+      if (!pontoon || !pontoon.enabled) {
+        this._previouslySubmerged[i] = 0;
+        continue;
+      }
 
       if (!pontoon.localPosition || !isFiniteVector(pontoon.localPosition)) {
         this._reportDiagnostic("invalid-pontoon");
-        this._finishProfiling(profilingEnabled, totalStart);
+        this._finishDryStep(profilingEnabled, totalStart);
         return;
       }
 
@@ -389,7 +399,7 @@ export class WaterBuoyancy extends Script {
       const radiusCubed = BuoyancySolver.computeRadiusCubed(worldRadius);
       if (!isFiniteVector(state.worldPosition) || radiusCubed === 0) {
         this._reportDiagnostic("invalid-pontoon");
-        this._finishProfiling(profilingEnabled, totalStart);
+        this._finishDryStep(profilingEnabled, totalStart);
         return;
       }
       totalRadiusCubed += radiusCubed;
@@ -397,11 +407,11 @@ export class WaterBuoyancy extends Script {
 
     if (!Number.isFinite(totalRadiusCubed)) {
       this._reportDiagnostic("invalid-pontoon");
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
     if (totalRadiusCubed <= 0) {
-      this._finishProfiling(profilingEnabled, totalStart);
+      this._finishDryStep(profilingEnabled, totalStart);
       return;
     }
 
@@ -440,7 +450,10 @@ export class WaterBuoyancy extends Script {
       }
       this._lastStepQueryCount++;
       state.surfaceHit = surfaceHit;
-      if (!surfaceHit) continue;
+      if (!surfaceHit) {
+        this._previouslySubmerged[i] = 0;
+        continue;
+      }
 
       state.surfacePosition.copyFrom(this._surfaceSample.surfacePosition);
       input.pontoonCenter = state.worldPosition;
@@ -452,10 +465,27 @@ export class WaterBuoyancy extends Script {
       if (profilingEnabled) {
         this._mutableProfilingMetrics.solverMs += elapsedMilliseconds(solverStart, readPerformanceNow());
       }
-      if (state.submergedRatio <= 0) continue;
+      if (state.submergedRatio <= 0) {
+        this._previouslySubmerged[i] = 0;
+        continue;
+      }
 
       this._isInWater = true;
       this._submergedPontoonCount++;
+      const enteredWater = this._previouslySubmerged[i] === 0;
+      this._previouslySubmerged[i] = 1;
+      const interactionSink = this.interactionSink;
+      if (interactionSink) {
+        const relativeVelocity = this._solverScratch.relativeVelocity;
+        interactionSink.registerInteraction(
+          state.surfacePosition,
+          this._surfaceSample.surfaceNormal,
+          relativeVelocity,
+          state.worldRadius,
+          state.submergedRatio,
+          enteredWater
+        );
+      }
       if (state.force.lengthSquared() <= FORCE_EPSILON_SQUARED) continue;
 
       const applyForceStart = profilingEnabled ? readPerformanceNow() : 0;
@@ -486,6 +516,11 @@ export class WaterBuoyancy extends Script {
     if (enabled) {
       this._mutableProfilingMetrics.totalMs = elapsedMilliseconds(totalStart, readPerformanceNow());
     }
+  }
+
+  private _finishDryStep(profilingEnabled: boolean, totalStart: number): void {
+    this._previouslySubmerged.fill(0);
+    this._finishProfiling(profilingEnabled, totalStart);
   }
 
   private _reportDiagnostic(code: WaterBuoyancyDiagnosticCode): void {

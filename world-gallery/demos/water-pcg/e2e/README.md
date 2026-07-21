@@ -1,5 +1,16 @@
 # Water PCG browser validation
 
+## Interactive indoor pool smoke
+
+Run the two-way buoyancy and surface-interaction gate against the same local gallery server:
+
+```sh
+node demos/water-pcg/e2e/indoor-pool-buoyancy-smoke.mjs
+POOL_HEADED=1 node demos/water-pcg/e2e/indoor-pool-buoyancy-smoke.mjs
+```
+
+`POOL_URL` can target another gallery server. `POOL_SCREENSHOT_PATH` writes one impact-stage screenshot after the dynamic geometry exceeds `0.01m` and the ripple front exceeds `3m`. The gate covers Medium `129 × 53` simulation / `257 × 105` render grids, WebGL1 Low `65 × 27` simulation / `129 × 53` render grids, real PhysX free fall and rebound, entry plus continuous coupling, expanding/reflected waves, final settling, one mesh upload per render frame, reset-by-recreation, 30/60/120 render-rate sampling, and zero PhysX requests from the other three non-physics tabs. Actual render-rate closeness is a hard assertion in headed mode or with `POOL_REQUIRE_ACTUAL_FPS=1`; headless mode still proves the fixed physics step and finite state remain unchanged.
+
 ## Buoyancy PhysX smoke
 
 Start the isolated gallery page, then run the deterministic browser gate:
