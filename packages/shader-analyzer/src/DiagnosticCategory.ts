@@ -29,6 +29,7 @@ export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.RecursiveFunction]: DiagnosticCategory.Symbol,
   [DiagnosticType.LocalFunctionPrototype]: DiagnosticCategory.Symbol,
   [DiagnosticType.AmbiguousMacroBranchType]: DiagnosticCategory.Symbol,
+  [DiagnosticType.AmbiguousMacroBranchResolution]: DiagnosticCategory.Symbol,
 
   [DiagnosticType.InvalidSwizzle]: DiagnosticCategory.Type,
   [DiagnosticType.UndeclaredStructMember]: DiagnosticCategory.Type,

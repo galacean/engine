@@ -14,10 +14,9 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
    * Live branch signature of the position currently being parsed. Set by the parser to the current
    * AST node's branch during `semanticAnalyze`. `insert` stamps this on new symbols so declarations
    * carry their branch. `lookup` / `lookupAll` NEVER read it — callers pass `callsiteBranch`
-   * explicitly, opting in per site. This keeps redefinition checks (`FunctionDefinition`, global
-   * `variable_declaration`) on the pre-branch legacy semantics — critical for the `#ifndef X_INCLUDED
-   * / #define X_INCLUDED` include-guard pattern, where two textual copies of a chunk sit in the
-   * same syntactic branch but only one runs at runtime.
+   * explicitly, opting in per site. Redefinition checks use the stamped declaration branches to
+   * distinguish mutually exclusive arms and canonical include guards from declarations that can
+   * coexist.
    */
   _currentBranch: BranchSignature = EMPTY_BRANCH;
 
@@ -45,8 +44,17 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
     return this.stack.pop();
   }
 
+  /**
+   * Insert a symbol into the current lexical scope.
+   * @param symbol - Symbol to insert.
+   * @returns Whether the declaration conflicts with an existing declaration in this scope.
+   */
   insert(symbol: S): boolean {
-    return this.scope.insert(symbol, this.isInMacroBranch, this._currentBranch);
+    // Local shader code can rely on caller-owned macro exclusivity that is absent from the source.
+    // Apply possible-coexistence diagnostics only to global declarations; unconditional collisions
+    // keep their legacy error behavior in every scope.
+    const diagnoseBranchConflict = this.stack.length === 1;
+    return this.scope.insert(symbol, this.isInMacroBranch, this._currentBranch, diagnoseBranchConflict);
   }
 
   lookup(symbol: S, includeMacro = false, callsiteBranch?: BranchSignature): S | undefined {
@@ -58,11 +66,22 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
     return undefined;
   }
 
+  /**
+   * Collect every visible matching symbol from the nearest lexical scope.
+   * @param symbol - Symbol shape used for name and kind matching.
+   * @param includeMacro - Whether legacy lookups include declarations from macro branches.
+   * @param out - Reusable output array.
+   * @param callsiteBranch - Branch signature used for branch-aware visibility filtering.
+   * @returns The supplied output array containing visible matches.
+   */
   lookupAll(symbol: S, includeMacro = false, out: S[], callsiteBranch?: BranchSignature): S[] {
     out.length = 0;
     for (let i = this.stack.length - 1; i >= 0; i--) {
       const symbolTable = this.stack[i];
       symbolTable._getSymbols(symbol, includeMacro, out, callsiteBranch);
+      // Match `lookup`: lexical shadowing stops at the nearest scope, while branch/overload
+      // alternatives inside that scope remain available for ambiguity checks.
+      if (out.length > 0) break;
     }
     return out;
   }

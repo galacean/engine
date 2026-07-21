@@ -39,13 +39,7 @@ export default class SemanticAnalyzer {
 
   readonly errors: Error[] = [];
 
-  /**
-   * Names for which an `AmbiguousMacroBranchType` warning has already been emitted this pass.
-   * A single symbol declared with divergent types (e.g. `renderer_BlendShapeWeights` with 4 array
-   * sizes) has dozens of reference sites in shipping code; without dedupe the editor UI would
-   * flood with identical warnings. Report-once-per-pass keeps the signal at one row per divergent
-   * symbol. Reset in `reset()`.
-   */
+  /** Ambiguity diagnostic keys already emitted in this pass. Reset in `reset()`. */
   readonly _ambiguousReported = new Set<string>();
 
   get shaderData() {
@@ -96,5 +90,19 @@ export default class SemanticAnalyzer {
     this.errors.push(
       new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
     );
+  }
+
+  /**
+   * Emit one macro-branch ambiguity warning per semantic projection and pass.
+   * @param loc - Source range of the ambiguous reference.
+   * @param key - Stable projection key, such as a variable name or `Struct.member`.
+   * @param message - User-facing diagnostic message.
+   * @param code - Diagnostic classification for this ambiguity.
+   */
+  reportBranchAmbiguity(loc: ShaderRange, key: string, message: string, code: DiagnosticType): void {
+    const dedupKey = `${code}:${key}`;
+    if (this._ambiguousReported.has(dedupKey)) return;
+    this._ambiguousReported.add(dedupKey);
+    this.reportWarning(loc, message, code);
   }
 }

@@ -24,7 +24,7 @@ export class SymbolInfo implements IBaseSymbol {
    * Snapshot of the `#ifdef` stack at the declaration site. Empty means the declaration is
    * unconditional (top-level). Non-empty means the declaration is only active when every
    * constraint holds. `SymbolTable.getSymbol` filters candidates by
-   * `Lexer.isVisibleFrom(this.branchSignature, callsiteBranch)` — a reference inside a mutually
+   * `isBranchVisibleFrom(this.branchSignature, callsiteBranch)` — a reference inside a mutually
    * exclusive branch never sees this symbol; a reference inside the same or a nested branch
    * does. Mirrors `codegen`'s per-branch symbol visibility.
    */

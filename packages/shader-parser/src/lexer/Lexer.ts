@@ -1,6 +1,6 @@
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
-import { BaseToken, BranchConstraint, BranchSignature, EMPTY_BRANCH, EOF } from "../common/BaseToken";
+import { BaseToken, BranchConstraint, EMPTY_BRANCH, EOF, isBranchVisibleFrom, sameBranch } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
@@ -85,44 +85,6 @@ export class Lexer extends BaseLexer {
     "#undef": Keyword.MACRO_UNDEF
   };
 
-  // Synthetic `__if_<n>` per `#if` — polarity flip makes `#else` mutually exclusive in `isVisibleFrom`.
-  private static _ifCounter = 0;
-
-  /** Two branch signatures are equal iff they have the same constraints in the
-   *  same order with the same polarity. Used by `#define` dedup and AST upgrade
-   *  matching. */
-  static sameBranch(a: BranchSignature, b: BranchSignature): boolean {
-    if (a.length !== b.length) return false;
-    for (let i = 0, n = a.length; i < n; i++) {
-      if (a[i].name !== b[i].name || a[i].defined !== b[i].defined) return false;
-    }
-    return true;
-  }
-
-  /**
-   * Returns true if a `#define` registered under `defBranch` is reachable from
-   * a call site under `callSiteBranch`. Two signatures are mutually exclusive
-   * iff some flag appears in both with opposite `defined` polarity. Anything
-   * else is compatible — the same flag with the same polarity, or flags that
-   * simply don't intersect.
-   *
-   * Conservative for `#if expr` (not modeled — `tokenize` pushes a sentinel
-   * with `name === ""` to keep the `#endif` stack depth correct; that
-   * sentinel never matches a real flag in the polarity check below, so it
-   * stays visible from everywhere). Exact for the common `#ifdef` /
-   * `#ifndef` / `#else` cases that drive real shader code.
-   */
-  static isVisibleFrom(defBranch: BranchSignature, callSiteBranch: BranchSignature): boolean {
-    for (let i = 0, n = defBranch.length; i < n; i++) {
-      const d = defBranch[i];
-      for (let j = 0, m = callSiteBranch.length; j < m; j++) {
-        const c = callSiteBranch[j];
-        if (d.name === c.name && d.defined !== c.defined) return false;
-      }
-    }
-    return true;
-  }
-
   private _needScanMacroConditionExpression = false;
 
   // --- `#define` scanning state machine ---
@@ -154,9 +116,12 @@ export class Lexer extends BaseLexer {
   // legacy entry mid-scan) and stamped onto every emitted token's `branch`
   // field so AST nodes know which branch they're inside.
   private _branchStack: BranchConstraint[] = [];
+  private _conditionalGroup = 0;
+  private _guardGeneration: Record<string, number> = Object.create(null);
   // True when the previous token was `#ifdef`/`#ifndef` and we're waiting on
   // the next ID token (the flag name) to actually push onto the stack.
   private _pendingBranchPushDefined: boolean | null = null;
+  private _pendingGuardUndef = false;
 
   *tokenize() {
     while (!this.isEnd()) {
@@ -165,9 +130,21 @@ export class Lexer extends BaseLexer {
       // Resolve a pending #ifdef/#ifndef push using the flag-name token that
       // immediately follows the keyword. Grammar allows the name to be either
       // a plain `id` or a `MACRO_CALL` (for `#ifdef <previously-defined-macro>`).
-      if (this._pendingBranchPushDefined !== null && (tok.type === ETokenType.ID || tok.type === Keyword.MACRO_CALL)) {
-        this._branchStack.push({ name: tok.lexeme, defined: this._pendingBranchPushDefined });
+      const isMacroName = tok.type === ETokenType.ID || tok.type === Keyword.MACRO_CALL;
+      if (this._pendingBranchPushDefined !== null && isMacroName) {
+        const conditionalGroup = ++this._conditionalGroup;
+        this._branchStack.push({
+          name: tok.lexeme,
+          defined: this._pendingBranchPushDefined,
+          conditionalGroup,
+          conditionalArm: 0,
+          guardGeneration: this._pendingBranchPushDefined ? undefined : (this._guardGeneration[tok.lexeme] ?? 0)
+        });
         this._pendingBranchPushDefined = null;
+      }
+      if (this._pendingGuardUndef && isMacroName) {
+        this._invalidateGuard(tok.lexeme);
+        this._pendingGuardUndef = false;
       }
 
       // Stamp the branch onto the token only when inside an `#ifdef`. The
@@ -188,23 +165,27 @@ export class Lexer extends BaseLexer {
           this._pendingBranchPushDefined = false;
           break;
         case Keyword.MACRO_IF:
-          this._branchStack.push({ name: `__if_${++Lexer._ifCounter}`, defined: true });
+          this._pushOpaqueConditional();
           break;
         case Keyword.MACRO_ELIF:
-          // Each `#elif` link gets a fresh tag so it's exclusive with earlier arms.
-          if (this._branchStack.length > 0) {
+          this._advanceOpaqueConditionalArm();
+          break;
+        case Keyword.MACRO_ELSE: {
+          // Preserve the chain identity so this arm is exclusive with every earlier `#if/#elif` arm.
+          const top = this._branchStack[this._branchStack.length - 1];
+          if (top) {
             this._branchStack[this._branchStack.length - 1] = {
-              name: `__if_${++Lexer._ifCounter}`,
-              defined: true
+              name: top.name,
+              defined: !top.defined,
+              conditionalGroup: top.conditionalGroup,
+              conditionalArm: (top.conditionalArm ?? 0) + 1
             };
           }
           break;
-        case Keyword.MACRO_ELSE: {
-          // Flip polarity: `#ifdef X` → `[X=true]` becomes `[X=false]`; `__if_n` likewise.
-          const top = this._branchStack[this._branchStack.length - 1];
-          if (top) this._branchStack[this._branchStack.length - 1] = { name: top.name, defined: !top.defined };
-          break;
         }
+        case Keyword.MACRO_UNDEF:
+          this._pendingGuardUndef = true;
+          break;
         case Keyword.MACRO_ENDIF:
           this._branchStack.pop();
           break;
@@ -220,6 +201,40 @@ export class Lexer extends BaseLexer {
     public macroDefineList: MacroDefineList
   ) {
     super(source);
+  }
+
+  private _pushOpaqueConditional(): void {
+    const conditionalGroup = ++this._conditionalGroup;
+    this._branchStack.push({
+      name: `__if_${conditionalGroup}_0`,
+      defined: true,
+      conditionalGroup,
+      conditionalArm: 0
+    });
+  }
+
+  private _advanceOpaqueConditionalArm(): void {
+    const index = this._branchStack.length - 1;
+    const top = this._branchStack[index];
+    if (!top) return;
+    const conditionalArm = (top.conditionalArm ?? 0) + 1;
+    this._branchStack[index] = {
+      name: `__if_${top.conditionalGroup}_${conditionalArm}`,
+      defined: true,
+      conditionalGroup: top.conditionalGroup,
+      conditionalArm
+    };
+  }
+
+  private _invalidateGuard(name: string): void {
+    const guardGeneration = (this._guardGeneration[name] ?? 0) + 1;
+    this._guardGeneration[name] = guardGeneration;
+    for (let i = 0, n = this._branchStack.length; i < n; i++) {
+      const constraint = this._branchStack[i];
+      if (constraint.name === name && constraint.guardGeneration !== undefined) {
+        this._branchStack[i] = { ...constraint, guardGeneration, selfGuarding: undefined };
+      }
+    }
   }
 
   override scanToken(): BaseToken {
@@ -911,6 +926,15 @@ export class Lexer extends BaseLexer {
     valueStart: number,
     valueEnd: number
   ): void {
+    const branchIndex = this._branchStack.length - 1;
+    const branch = this._branchStack[branchIndex];
+    if (branch?.guardGeneration !== undefined && branch.name === name && !branch.defined) {
+      this._branchStack[branchIndex] = {
+        ...branch,
+        selfGuarding: true
+      };
+    }
+
     const params = paramsLexeme
       ? paramsLexeme
           .slice(1, -1) // strip enclosing `(` `)`
@@ -938,7 +962,7 @@ export class Lexer extends BaseLexer {
     // separate so the visibility filter picks the right entry at each call site.
     for (let i = 0, n = arr.length; i < n; i++) {
       const e = arr[i];
-      if (e.dedupKey === dedupKey && Lexer.sameBranch(e.branch, info.branch)) return;
+      if (e.dedupKey === dedupKey && sameBranch(e.branch, info.branch)) return;
     }
     arr.push(info);
   }
@@ -1028,7 +1052,7 @@ export class Lexer extends BaseLexer {
     if (!defs || defs.length === 0) return false;
     const callSiteBranch = this._branchStack;
     for (let i = 0, n = defs.length; i < n; i++) {
-      if (Lexer.isVisibleFrom(defs[i].branch, callSiteBranch)) return true;
+      if (isBranchVisibleFrom(defs[i].branch, callSiteBranch)) return true;
     }
     return false;
   }

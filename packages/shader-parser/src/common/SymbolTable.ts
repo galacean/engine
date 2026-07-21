@@ -1,31 +1,50 @@
-import { BranchSignature, EMPTY_BRANCH, isBranchVisibleFrom } from "./BaseToken";
+import { BranchSignature, canDeclarationsCoexist, EMPTY_BRANCH, isBranchVisibleFrom } from "./BaseToken";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
   private _table: Map<string, T[]> = new Map();
 
-  // Returns true when an equal non-macro symbol already existed in this scope and was replaced (a redefinition).
-  insert(symbol: T, isInMacroBranch = false, branchSignature: BranchSignature = EMPTY_BRANCH): boolean {
+  /**
+   * Insert a symbol and report whether it conflicts with an existing declaration.
+   * Branch declarations are retained even on conflict because codegen needs every arm.
+   * @param symbol - Symbol to insert.
+   * @param isInMacroBranch - Whether the declaration is inside a macro branch.
+   * @param branchSignature - Macro conditions at the declaration site.
+   * @param diagnoseBranchConflict - Whether possible coexistence across macro branches is an error.
+   * @returns Whether an equal declaration conflicts in this scope.
+   */
+  insert(
+    symbol: T,
+    isInMacroBranch = false,
+    branchSignature: BranchSignature = EMPTY_BRANCH,
+    diagnoseBranchConflict = true
+  ): boolean {
     symbol.isInMacroBranch = isInMacroBranch;
     symbol.branchSignature = branchSignature;
 
     const entry = this._table.get(symbol.ident) ?? [];
+    let redefined = false;
     for (let i = 0, n = entry.length; i < n; i++) {
-      if (entry[i].isInMacroBranch) continue;
-      if (entry[i].equal(symbol)) {
+      const existing = entry[i];
+      if (!existing.equal(symbol)) continue;
+
+      const existingBranch = existing.branchSignature ?? EMPTY_BRANCH;
+      if (existingBranch.length === 0 && branchSignature.length === 0) {
         entry[i] = symbol;
         return true;
       }
+
+      if (diagnoseBranchConflict && canDeclarationsCoexist(existingBranch, branchSignature)) redefined = true;
     }
 
     entry.push(symbol);
     this._table.set(symbol.ident, entry);
-    return false;
+    return redefined;
   }
 
   /**
    * Look up a symbol visible from `callsiteBranch`. A candidate `item` is visible when
-   * `Lexer.isVisibleFrom(item.branchSignature, callsiteBranch)` — same or nested branch, or item is
+   * `isBranchVisibleFrom(item.branchSignature, callsiteBranch)` — same or nested branch, or item is
    * unconditional. When `callsiteBranch` is undefined, fall back to the legacy behaviour
    * (`!includeMacro` filters out macro-branch entries) — used by codegen and by paths that predate
    * branch propagation. Iterates from latest inserted → returns first visible match.

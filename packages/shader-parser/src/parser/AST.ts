@@ -1,12 +1,11 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
-import { BaseToken, BranchSignature, EMPTY_BRANCH } from "../common/BaseToken";
+import { BaseToken, BranchSignature, EMPTY_BRANCH, isBranchVisibleFrom, sameBranch } from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { TypeSystem } from "./TypeSystem";
 import { DiagnosticType } from "../DiagnosticType";
-import { Lexer } from "../lexer/Lexer";
 import { MacroDefineInfo } from "../Preprocessor";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 import { BuiltinFunction, BuiltinVariable, NonGenericGalaceanType } from "./builtin";
@@ -293,9 +292,8 @@ export namespace ASTNode {
 
         sm = new VarSymbol(id.lexeme, symbolType, false, initializer, isConst);
       }
-      // First-wins + error severity: aligns with GLSL ES §4.2.7. SymbolTable.insert now
-      // keeps the original binding on collision (drops the overwrite) and returns true — so this fires
-      // an error AND the retained binding is the first declaration, matching the spec semantic.
+      // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
+      // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
       if (sa.symbolTableStack.insert(sm)) {
         sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
       }
@@ -413,6 +411,7 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.array_specifier)
   export class ArraySpecifier extends TreeNode {
+    private static _symbolScratch: SymbolInfo[] = [];
     size: number | undefined;
     override semanticAnalyze(sa: SemanticAnalyzer): void {
       const integerConstantExpr = this.children[1];
@@ -437,9 +436,18 @@ export namespace ASTNode {
         if (bare instanceof BaseToken && !sa.macroDefineList[bare.lexeme]) {
           const lookup = SemanticAnalyzer._lookupSymbol;
           lookup.set(bare.lexeme, ESymbolType.VAR);
-          // Branch-aware: same-branch decls resolve to their concrete const-ness.
-          const symbol = sa.symbolTableStack.lookup(lookup, true, this._branch);
-          if (symbol instanceof VarSymbol && !symbol.isConst) {
+          const symbols = sa.symbolTableStack.lookupAll(lookup, true, ArraySpecifier._symbolScratch, this._branch);
+          if (!symbols.length) return;
+          const firstIsConst = (symbols[0] as VarSymbol).isConst;
+          const divergent = symbols.some((symbol) => (symbol as VarSymbol).isConst !== firstIsConst);
+          if (divergent) {
+            sa.reportBranchAmbiguity(
+              exprChildren[0].location,
+              bare.lexeme,
+              `Symbol '${bare.lexeme}' has conflicting const qualification across macro branches; constant-expression validation disabled at this reference.`,
+              DiagnosticType.AmbiguousMacroBranchResolution
+            );
+          } else if (!firstIsConst) {
             sa.reportError(
               exprChildren[0].location,
               "Array size must be a constant expression.",
@@ -792,19 +800,17 @@ export namespace ASTNode {
 
       sa.popScope();
       const sm = new FnSymbol(this.protoType.ident.lexeme, this);
-      // Same identifier + same paramSig (via `SymbolInfo.equal`) is a redefinition — illegal per
-      // GLSL ES 3.00 §6.1. Different paramSig is a legal overload (SymbolInfo.equal returns false
-      // → lookup returns undefined). Keep-first: don't `insert()`, so codegen resolves to the
-      // original body and analyzer / codegen / driver all reject the duplicate consistently.
-      const duplicate = sa.symbolTableStack.lookup(sm);
-      if (duplicate) {
+      // Preserve the legacy keep-first behavior for unconditional duplicates. Branch declarations
+      // must all be inserted even when they conflict: codegen needs every macro arm to reproduce
+      // the source, while `insert` independently reports whether two declarations can coexist.
+      const unconditionalDuplicate = this._branch.length === 0 && sa.symbolTableStack.lookup(sm);
+      const redefined = unconditionalDuplicate ? true : sa.symbolTableStack.insert(sm);
+      if (redefined) {
         sa.reportError(
           this.protoType.ident.location,
           `Redefinition of '${this.protoType.ident.lexeme}' with the same signature.`,
           DiagnosticType.Redefinition
         );
-      } else {
-        sa.symbolTableStack.insert(sm);
       }
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
 
@@ -1170,9 +1176,39 @@ export namespace ASTNode {
       const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch, callsiteBranch);
       // Unresolved struct (e.g. a built-in or out-of-scope type) — skip rather than risk a false positive.
       if (!structs.length) return;
-      for (let i = 0; i < structs.length; i++) {
-        if ((structs[i] as StructSymbol).astNode.propList.some((prop) => prop.ident.lexeme === field.lexeme)) return;
+      const firstProp = (structs[0] as StructSymbol).astNode.propList.find(
+        (prop) => prop.ident.lexeme === field.lexeme
+      );
+      let divergent = false;
+      for (let i = 1; i < structs.length; i++) {
+        const prop = (structs[i] as StructSymbol).astNode.propList.find((item) => item.ident.lexeme === field.lexeme);
+        if (!!prop !== !!firstProp) {
+          divergent = true;
+          break;
+        }
+        if (prop && firstProp) {
+          const firstArray = firstProp.typeInfo.arraySpecifier;
+          const array = prop.typeInfo.arraySpecifier;
+          if (
+            prop.typeInfo.type !== firstProp.typeInfo.type ||
+            !!array !== !!firstArray ||
+            array?.size !== firstArray?.size
+          ) {
+            divergent = true;
+            break;
+          }
+        }
       }
+      if (divergent) {
+        sa.reportBranchAmbiguity(
+          field.location,
+          `${structName}.${field.lexeme}`,
+          `Struct '${structName}' resolves to incompatible declarations of member '${field.lexeme}' across macro branches; member validation disabled at this reference.`,
+          DiagnosticType.AmbiguousMacroBranchResolution
+        );
+        return;
+      }
+      if (firstProp) return;
       sa.reportError(
         field.location,
         `'${field.lexeme}' : no such field in '${structName}'`,
@@ -1346,7 +1382,9 @@ export namespace ASTNode {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
-        sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this));
+        if (sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this))) {
+          sa.reportError(this.ident.location, `Redefinition of '${this.ident.lexeme}'.`, DiagnosticType.Redefinition);
+        }
 
         this.propList = (children[3] as StructDeclarationList).propList;
         this.macroExpressions = (children[3] as StructDeclarationList).macroExpressions;
@@ -1761,14 +1799,12 @@ export namespace ASTNode {
             // Report once per (pass, symbol name) — a single divergent symbol may be referenced
             // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
             // with identical warnings buries the signal.
-            if (!sa._ambiguousReported.has(name)) {
-              sa._ambiguousReported.add(name);
-              sa.reportWarning(
-                this.location,
-                `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
-                DiagnosticType.AmbiguousMacroBranchType
-              );
-            }
+            sa.reportBranchAmbiguity(
+              this.location,
+              name,
+              `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
+              DiagnosticType.AmbiguousMacroBranchType
+            );
           } else {
             this.typeInfo = firstType;
             this.isArray = firstIsArray;
@@ -2091,7 +2127,7 @@ export namespace ASTNode {
       if (defList) {
         for (let i = 0, n = defList.length; i < n; i++) {
           const info = defList[i];
-          if (!Lexer.isVisibleFrom(info.branch, callSiteBranch)) continue;
+          if (!isBranchVisibleFrom(info.branch, callSiteBranch)) continue;
           visibleCount++;
           if (info.valueAst == null) allAst = false;
           if (info.isFunction) isFn = true;
@@ -2240,7 +2276,7 @@ export namespace ASTNode {
         info.params.length === params.length &&
         info.params.every((p, i) => p === params[i]);
       const upgradable = entries?.find(
-        (info) => !info.valueAst && sameArity(info) && Lexer.sameBranch(info.branch, definingBranch)
+        (info) => !info.valueAst && sameArity(info) && sameBranch(info.branch, definingBranch)
       );
       if (upgradable) {
         upgradable.valueAst = this.valueExpression;

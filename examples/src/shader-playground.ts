@@ -17,11 +17,142 @@ function pass(body: string): string {
   return `Shader "playground" {\n  SubShader "Default" {\n    Pass "p" {\n${body}\n    }\n  }\n}`;
 }
 
-// One triggering shader per DiagnosticType, lifted verbatim from the three tested
-// suites (DiagnosticCoverage / ShaderAnalyzer / ShaderIOAnalyzer) so each is guaranteed
-// to fire its intended code. Keys are the DiagnosticType codes; dropdown labels are
-// derived at render time as `<category> / <code>` from DIAGNOSTIC_CATEGORY.
+// Macro block scenarios cover the branch structures that affect declaration lookup.
+// DiagnosticType samples below are lifted from tested analyzer suites so each is guaranteed
+// to fire its intended code. Diagnostic dropdown labels are derived at render time as
+// `<category> / <code>` from DIAGNOSTIC_CATEGORY.
 const MULTI_KEY = "Multiple errors";
+
+const MACRO_SAMPLES: Record<string, string> = {
+  "宏定义 / 对象式 #define": pass(`      #define BRANCH_SCALE 0.5
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(BRANCH_SCALE); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏定义 / 函数式 #define": pass(`      #define APPLY_SCALE(value) ((value) * 0.5)
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(APPLY_SCALE(1.0)); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / #ifdef / #else 互斥": pass(`      #ifdef USE_BRANCH_VALUE
+        float u_branchValue;
+      #else
+        float u_branchValue;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_branchValue); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / #ifndef / #else 互斥": pass(`      #ifndef DISABLE_BRANCH_VALUE
+        float u_branchValue;
+      #else
+        float u_branchValue;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_branchValue); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / #if / #elif / #else 互斥": pass(`      #if MODE == 1
+        float u_mode;
+      #elif MODE == 2
+        float u_mode;
+      #else
+        float u_mode;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_mode); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 嵌套互斥分支": pass(`      #ifdef OUTER
+        #ifdef INNER
+          float u_nested;
+        #else
+          float u_nested;
+        #endif
+      #else
+        float u_nested;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_nested); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 独立宏的全局重定义": pass(`      #ifdef FIRST_SOURCE
+        float u_conflict;
+      #endif
+      #ifdef SECOND_SOURCE
+        float u_conflict;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_conflict); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / canonical include guard 重复": pass(`      #ifndef BRANCH_SAMPLE_INCLUDED
+        #define BRANCH_SAMPLE_INCLUDED
+        float u_guarded;
+      #endif
+      #ifndef BRANCH_SAMPLE_INCLUDED
+        #define BRANCH_SAMPLE_INCLUDED
+        float u_guarded;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_guarded); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / #undef 重新打开 guard": pass(`      #ifndef RESETTABLE_INCLUDED
+        #define RESETTABLE_INCLUDED
+        float u_resettable;
+      #endif
+      #undef RESETTABLE_INCLUDED
+      #ifndef RESETTABLE_INCLUDED
+        #define RESETTABLE_INCLUDED
+        float u_resettable;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_resettable); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 局部声明由调用方宏约束": pass(`      void vert() { gl_Position = vec4(0.0); }
+      void frag() {
+        #ifdef CALLER_A
+          float localValue = 0.0;
+        #endif
+        #ifdef CALLER_B
+          float localValue = 1.0;
+        #endif
+        gl_FragColor = vec4(0.0);
+      }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 同一 arm 重复": pass(`      #ifdef BROKEN_ARM
+        float u_duplicate;
+        float u_duplicate;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / struct 成员分歧": pass(`      #ifdef HAS_VALUE
+        struct BranchData { float value; };
+      #else
+        struct BranchData { float other; };
+      #endif
+      BranchData data;
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(data.value); }
+      VertexShader = vert;
+      FragmentShader = frag;`)
+};
 
 const SAMPLES: Record<string, string> = {
   // A couple of errors at once (default) — preset, not a DiagnosticType.
@@ -39,6 +170,8 @@ const SAMPLES: Record<string, string> = {
       }
       VertexShader = vert;
       FragmentShader = frag;`),
+
+  ...MACRO_SAMPLES,
 
   [DiagnosticType.SyntaxError]: pass(`      void frag() { vec3 = ; }
       FragmentShader = frag;`),
@@ -62,6 +195,31 @@ const SAMPLES: Record<string, string> = {
       struct Attributes { vec3 POSITION; };
       void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
       void frag() { gl_FragColor = vec4(u_a + f(1.0) + f(vec2(0.0))); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  [DiagnosticType.AmbiguousMacroBranchResolution]: pass(`      void frag() {
+        #ifdef USE_CONST_SIZE
+          const int N = 2;
+        #else
+          int N = 2;
+        #endif
+        float values[N];                                  // branch-dependent const qualification
+        gl_FragColor = vec4(values[0]);
+      }
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  [DiagnosticType.AmbiguousMacroBranchType]: pass(`      void frag() {
+        #ifdef USE_VEC3
+          vec3 branchColor;
+        #else
+          vec4 branchColor;
+        #endif
+        gl_FragColor = vec4(branchColor.x);
+      }
+      void vert() { gl_Position = vec4(0.0); }
       VertexShader = vert;
       FragmentShader = frag;`),
 
@@ -322,12 +480,14 @@ const CATEGORY_LABEL: Record<DiagnosticCategory, string> = {
   [DiagnosticCategory.RenderState]: "RenderState"
 };
 
-// Dropdown labels: `<category-label> / <code>` for DiagnosticTypes, plain `Multiple errors` for the preset.
-// Order: Multiple errors first, then grouped by DiagnosticCategory declaration order, alphabetical
-// within each group. label→code map so onChange can look the SAMPLES entry up by raw code.
+// Dropdown labels: `Multiple errors`, macro scenarios, then `<category-label> / <code>` for DiagnosticTypes.
+// DiagnosticType entries are grouped by declaration order and alphabetical within each group. The label→key
+// map lets onChange look the source up without turning localized scenario labels into enum values.
 const CATEGORY_ORDER = Object.values(DiagnosticCategory);
 const LABEL_TO_KEY: Record<string, string> = { [MULTI_KEY]: MULTI_KEY };
-const codeKeys = Object.keys(SAMPLES).filter((k) => k !== MULTI_KEY) as DiagnosticType[];
+for (const label of Object.keys(MACRO_SAMPLES)) LABEL_TO_KEY[label] = label;
+
+const codeKeys = Object.keys(SAMPLES).filter((key) => key !== MULTI_KEY && !(key in MACRO_SAMPLES)) as DiagnosticType[];
 codeKeys.sort((a, b) => {
   const ca = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[a]);
   const cb = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[b]);
