@@ -3,7 +3,7 @@ import { waterPcgExamples } from "../../demo/examples";
 import { getWaterPcgCaseHref, resolveWaterPcgCase, WATER_PCG_CASES } from "../../demo/navigation";
 
 describe("Water PCG navigation", () => {
-  it("keeps the three authored examples and exposes two Chinese standalone case labels", () => {
+  it("keeps the three authored examples and exposes standalone runtime and Wiki labels", () => {
     expect(WATER_PCG_CASES.slice(0, 3).map(({ id, label }) => ({ id, label }))).toEqual(
       waterPcgExamples.map(({ id, label }) => ({ id, label }))
     );
@@ -14,7 +14,8 @@ describe("Water PCG navigation", () => {
     });
     expect(WATER_PCG_CASES.slice(3)).toEqual([
       { id: "heightfield-water", label: "高度场水面", kind: "heightfield" },
-      { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" }
+      { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" },
+      { id: "water-wiki", label: "开发文档", kind: "wiki" }
     ]);
   });
 
@@ -35,5 +36,11 @@ describe("Water PCG navigation", () => {
         "heightfield-water"
       )
     ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=high#heightfield-water");
+    expect(
+      getWaterPcgCaseHref(
+        "http://127.0.0.1:4179/demos/water-pcg/?quality=high&doc=water-world#water-wiki",
+        "curved-main-river"
+      )
+    ).toBe("http://127.0.0.1:4179/demos/water-pcg/?quality=high#curved-main-river");
   });
 });

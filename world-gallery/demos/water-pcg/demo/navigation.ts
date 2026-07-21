@@ -1,4 +1,4 @@
-export type WaterPcgCaseKind = "river" | "heightfield" | "buoyancy" | "interactive-pool";
+export type WaterPcgCaseKind = "river" | "heightfield" | "buoyancy" | "interactive-pool" | "wiki";
 
 export interface WaterPcgCaseNavigationItem {
   readonly id: string;
@@ -11,7 +11,8 @@ export const WATER_PCG_CASES: readonly WaterPcgCaseNavigationItem[] = [
   { id: "multi-tributary-river", label: "双支流汇流", kind: "river" },
   { id: "indoor-reflective-pool", label: "交互式泳池", kind: "interactive-pool" },
   { id: "heightfield-water", label: "高度场水面", kind: "heightfield" },
-  { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" }
+  { id: "water-buoyancy", label: "水浮力与水流", kind: "buoyancy" },
+  { id: "water-wiki", label: "开发文档", kind: "wiki" }
 ];
 
 const DEFAULT_WATER_PCG_CASE = WATER_PCG_CASES[0];
@@ -37,6 +38,7 @@ export function getWaterPcgCaseHref(currentHref: string, caseId: string): string
     url.pathname = url.pathname.slice(0, rootIndex + WATER_PCG_ROOT_MARKER.length);
   }
   url.searchParams.delete("example");
+  if (selectedCase.kind !== "wiki") url.searchParams.delete("doc");
   url.hash = selectedCase.id;
   return url.href;
 }

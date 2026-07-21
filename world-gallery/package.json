@@ -20,6 +20,8 @@
   "devDependencies": {
     "@types/dat.gui": "^0.7.13",
     "dat.gui": "^0.7.9",
+    "dompurify": "^3.4.12",
+    "marked": "^18.0.7",
     "vite": "^4.4.4"
   }
 }

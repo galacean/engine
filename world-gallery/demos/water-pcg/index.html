@@ -463,6 +463,67 @@
       <canvas id="canvas"></canvas>
     </template>
 
+    <template id="water-pcg-wiki-template">
+      <section id="water-wiki" aria-label="Water PCG 开发文档">
+        <header class="wiki-command-bar">
+          <button id="wiki-menu-toggle" class="wiki-icon-button" type="button" aria-label="打开文档目录">
+            <span aria-hidden="true">☰</span>
+          </button>
+          <div class="wiki-location">
+            <span>WATER PCG</span>
+            <span aria-hidden="true">/</span>
+            <strong>开发文档</strong>
+          </div>
+          <label class="wiki-search">
+            <span aria-hidden="true">⌕</span>
+            <span class="sr-only">搜索开发文档</span>
+            <input id="wiki-search-input" type="search" placeholder="搜索 API、能力或错误码" autocomplete="off" />
+            <kbd>/</kbd>
+          </label>
+          <span class="wiki-release-status"><i></i>P0 · EXPERIMENTAL</span>
+        </header>
+
+        <div class="wiki-workspace">
+          <button id="wiki-sidebar-backdrop" type="button" aria-label="关闭文档目录"></button>
+          <aside id="wiki-sidebar" aria-label="文档目录">
+            <div class="wiki-sidebar-heading">
+              <span>FIELD MANUAL</span>
+              <small id="wiki-result-count">—</small>
+            </div>
+            <nav id="wiki-page-navigation"></nav>
+            <footer>
+              <span class="wiki-pulse" aria-hidden="true"></span>
+              与当前 P0 运行时同步
+            </footer>
+          </aside>
+
+          <section id="wiki-reader" tabindex="-1">
+            <header class="wiki-article-header">
+              <div class="wiki-eyebrow">
+                <span id="wiki-category">—</span>
+                <span aria-hidden="true">·</span>
+                <span id="wiki-reading-time">—</span>
+              </div>
+              <h1 id="wiki-title">正在加载文档</h1>
+              <p id="wiki-summary"></p>
+              <div id="wiki-waterline" aria-label="相关能力"></div>
+              <a id="wiki-related-demo" class="wiki-demo-link" href="#" hidden>
+                <span>在相关 Demo 中查看</span>
+                <span aria-hidden="true">↗</span>
+              </a>
+            </header>
+            <article id="wiki-article" class="wiki-prose" aria-live="polite"></article>
+            <nav id="wiki-page-sequence" class="wiki-page-sequence" aria-label="前后文档"></nav>
+          </section>
+
+          <aside id="wiki-toc" aria-label="本页目录">
+            <span>ON THIS PAGE</span>
+            <nav id="wiki-toc-navigation"></nav>
+          </aside>
+        </div>
+      </section>
+    </template>
+
     <script type="module" src="./demo/router.ts"></script>
   </body>
 </html>

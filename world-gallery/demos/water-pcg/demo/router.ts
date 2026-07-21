@@ -52,6 +52,9 @@ window.addEventListener("hashchange", () => {
 });
 
 switch (activeCase.kind) {
+  case "wiki":
+    void import("./wiki/main");
+    break;
   case "heightfield":
     void import("./heightfield/main");
     break;
