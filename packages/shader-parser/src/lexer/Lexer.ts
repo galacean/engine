@@ -1,5 +1,6 @@
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
+import { parsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
 import {
   areConditionsComplementary,
   BaseToken,
@@ -525,76 +526,46 @@ export class Lexer extends BaseLexer {
   }
 
   private _parseSimpleCondition(expression: string): BranchCondition | undefined {
-    const source = Lexer._stripOuterParentheses(expression.trim());
-    if (source.startsWith("!")) {
-      const condition = this._parseSimpleCondition(Lexer._stripOuterParentheses(source.slice(1).trim()));
-      if (condition) return Lexer._negateSimpleCondition(condition);
+    try {
+      return this._toBranchCondition(parsePreprocessorCondition(expression));
+    } catch {
+      return undefined;
     }
-
-    const logical = this._parseLogicalCondition(source);
-    if (logical) return logical;
-
-    const constant = Lexer._parseNumericLiteral(source);
-    if (constant !== undefined) return { kind: "constant", value: constant !== 0 };
-
-    const comparison =
-      /^([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|>=|<=|>|<)\s*([-+]?(?:0[xX][0-9a-fA-F]+|\d+(?:\.\d+)?))$/.exec(source);
-    if (comparison) {
-      return {
-        kind: "comparison",
-        name: comparison[1],
-        operator: comparison[2] as Extract<BranchCondition, { kind: "comparison" }>["operator"],
-        value: Lexer._parseNumericLiteral(comparison[3])!,
-        version: 0
-      };
-    }
-
-    const defined = /^defined\s*(?:\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)|\s+([A-Za-z_][A-Za-z0-9_]*))$/.exec(source);
-    if (defined) return { kind: "defined", name: defined[1] ?? defined[2], defined: true, version: 0 };
-
-    const bare = /^([A-Za-z_][A-Za-z0-9_]*)$/.exec(source);
-    return bare ? { kind: "comparison", name: bare[1], operator: "!=", value: 0, version: 0 } : undefined;
   }
 
-  /** Canonicalize a conjunction or disjunction of individually recognized macro conditions. */
-  private _parseLogicalCondition(source: string): BranchCondition | undefined {
-    const split = Lexer._splitTopLevelLogical(source, "||") ?? Lexer._splitTopLevelLogical(source, "&&");
-    if (!split) return undefined;
-
-    const operands = split.parts.map((part) => this._parseSimpleCondition(part));
-    if (operands.some((operand) => !operand)) return undefined;
-    const conditionOperands = operands as BranchCondition[];
-    const names = Array.from(new Set(conditionOperands.flatMap((operand) => Lexer._conditionNames(operand)))).sort();
-    return {
-      kind: "expression",
-      expression: `${split.operator}(${conditionOperands.map(Lexer._conditionKey).sort().join(",")})`,
-      operator: split.operator,
-      operands: conditionOperands,
-      names,
-      versions: names.map(() => 0),
-      negated: false
-    };
-  }
-
-  private static _splitTopLevelLogical(
-    source: string,
-    operator: "&&" | "||"
-  ): { operator: "&&" | "||"; parts: string[] } | undefined {
-    const parts: string[] = [];
-    let depth = 0;
-    let start = 0;
-    for (let i = 0; i < source.length - 1; i++) {
-      const char = source.charCodeAt(i);
-      if (char === 40 /* ( */) depth++;
-      else if (char === 41 /* ) */) depth--;
-      if (depth !== 0 || source.slice(i, i + 2) !== operator) continue;
-      parts.push(source.slice(start, i));
-      start = i + 2;
-      i++;
+  private _toBranchCondition(condition: PreprocessorCondition): BranchCondition {
+    switch (condition.t) {
+      case "bool":
+        return { kind: "constant", value: condition.v };
+      case "def":
+        return { kind: "defined", name: condition.m, defined: true, version: 0 };
+      case "ndef":
+        return { kind: "defined", name: condition.m, defined: false, version: 0 };
+      case "cmp":
+        return {
+          kind: "comparison",
+          name: condition.m,
+          operator: condition.op as Extract<BranchCondition, { kind: "comparison" }>["operator"],
+          value: condition.v,
+          version: 0
+        };
+      case "not":
+        return Lexer._negateSimpleCondition(this._toBranchCondition(condition.c))!;
+      case "and":
+      case "or": {
+        const operands = [this._toBranchCondition(condition.l), this._toBranchCondition(condition.r)];
+        const names = Array.from(new Set(operands.flatMap((operand) => Lexer._conditionNames(operand)))).sort();
+        return {
+          kind: "expression",
+          expression: `${condition.t === "and" ? "&&" : "||"}(${operands.map(Lexer._conditionKey).sort().join(",")})`,
+          operator: condition.t === "and" ? "&&" : "||",
+          operands,
+          names,
+          versions: names.map(() => 0),
+          negated: false
+        };
+      }
     }
-    if (!parts.length) return undefined;
-    parts.push(source.slice(start));
-    return parts.some((part) => !part.trim()) ? undefined : { operator, parts };
   }
 
   private static _conditionNames(condition: BranchCondition): readonly string[] {
@@ -665,17 +636,6 @@ export class Lexer extends BaseLexer {
 
   private static _sameMacroState(left: MacroState, right: MacroState): boolean {
     return left.defined === right.defined && left.value === right.value && left.version === right.version;
-  }
-
-  private static _stripOuterParentheses(source: string): string {
-    if (source.charCodeAt(0) !== 40 || source.charCodeAt(source.length - 1) !== 41) return source;
-    let depth = 0;
-    for (let i = 0; i < source.length; i++) {
-      const charCode = source.charCodeAt(i);
-      if (charCode === 40) depth++;
-      else if (charCode === 41 && --depth === 0 && i !== source.length - 1) return source;
-    }
-    return depth === 0 ? Lexer._stripOuterParentheses(source.slice(1, -1).trim()) : source;
   }
 
   override scanToken(): BaseToken {

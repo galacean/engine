@@ -4,6 +4,7 @@
 export * from "./common";
 export * from "./common/BaseToken";
 export * from "./common/BaseLexer";
+export * from "./common/PreprocessorCondition";
 export * from "./common/SymbolTable";
 export * from "./common/SymbolTableStack";
 export * from "./common/IBaseSymbol";

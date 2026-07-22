@@ -1,12 +1,8 @@
 import type { Condition, ShaderInstruction } from "@galacean/engine-design";
 import { ShaderPreprocessorDirective } from "@galacean/engine-core";
+import { parsePreprocessorCondition } from "@galacean/engine-shader-parser";
 
 export type { ShaderInstruction } from "@galacean/engine-design";
-
-interface ExprCtx {
-  s: string;
-  i: number;
-}
 
 /**
  * @internal
@@ -67,7 +63,7 @@ export class ShaderInstructionEncoder {
           break;
         }
         case "if": {
-          const cond = ShaderInstructionEncoder._parseCondition(rest);
+          const cond = parsePreprocessorCondition(rest);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           backfillStack.push([idx]);
@@ -81,7 +77,7 @@ export class ShaderInstructionEncoder {
           stack.push(elseIdx);
           ShaderInstructionEncoder._backfillJump(instructions[prevIdx], instructions.length);
 
-          const cond = ShaderInstructionEncoder._parseCondition(rest);
+          const cond = parsePreprocessorCondition(rest);
           const idx = instructions.length;
           ShaderInstructionEncoder._pushConditionInstruction(instructions, cond);
           stack.push(idx);
@@ -211,208 +207,5 @@ export class ShaderInstructionEncoder {
   private static _stripLineComment(s: string): string {
     const idx = s.indexOf("//");
     return idx >= 0 ? s.substring(0, idx).trimEnd() : s;
-  }
-
-  private static _parseCondition(expr: string): Condition {
-    const ctx: ExprCtx = { s: expr.trim(), i: 0 };
-    const condition = ShaderInstructionEncoder._parseOr(ctx);
-    ShaderInstructionEncoder._skipWs(ctx);
-    if (ctx.i !== ctx.s.length) throw new Error(`Unsupported or malformed preprocessor condition '${expr}'.`);
-    return condition;
-  }
-
-  private static _skipWs(ctx: ExprCtx): void {
-    while (
-      ctx.i < ctx.s.length &&
-      (ctx.s.charCodeAt(ctx.i) === 32 /* space */ || ctx.s.charCodeAt(ctx.i) === 9) /* tab */
-    )
-      ctx.i++;
-  }
-
-  private static _parseOr(ctx: ExprCtx): Condition {
-    let left = ShaderInstructionEncoder._parseAnd(ctx);
-    ShaderInstructionEncoder._skipWs(ctx);
-    while (
-      ctx.i < ctx.s.length - 1 &&
-      ctx.s.charCodeAt(ctx.i) === 124 /* '|' */ &&
-      ctx.s.charCodeAt(ctx.i + 1) === 124 /* '|' */
-    ) {
-      ctx.i += 2;
-      ShaderInstructionEncoder._skipWs(ctx);
-      left = { t: "or", l: left, r: ShaderInstructionEncoder._parseAnd(ctx) };
-      ShaderInstructionEncoder._skipWs(ctx);
-    }
-    return left;
-  }
-
-  private static _parseAnd(ctx: ExprCtx): Condition {
-    let left = ShaderInstructionEncoder._parseUnary(ctx);
-    ShaderInstructionEncoder._skipWs(ctx);
-    while (
-      ctx.i < ctx.s.length - 1 &&
-      ctx.s.charCodeAt(ctx.i) === 38 /* '&' */ &&
-      ctx.s.charCodeAt(ctx.i + 1) === 38 /* '&' */
-    ) {
-      ctx.i += 2;
-      ShaderInstructionEncoder._skipWs(ctx);
-      left = { t: "and", l: left, r: ShaderInstructionEncoder._parseUnary(ctx) };
-      ShaderInstructionEncoder._skipWs(ctx);
-    }
-    return left;
-  }
-
-  private static _parseUnary(ctx: ExprCtx): Condition {
-    ShaderInstructionEncoder._skipWs(ctx);
-    if (ctx.s.charCodeAt(ctx.i) === 33 /* '!' */) {
-      ctx.i++;
-      ShaderInstructionEncoder._skipWs(ctx);
-      return { t: "not", c: ShaderInstructionEncoder._parsePrimary(ctx) };
-    }
-    return ShaderInstructionEncoder._parsePrimary(ctx);
-  }
-
-  private static _parsePrimary(ctx: ExprCtx): Condition {
-    ShaderInstructionEncoder._skipWs(ctx);
-    const { s } = ctx;
-
-    // Parenthesized expression
-    if (s.charCodeAt(ctx.i) === 40 /* '(' */) {
-      ctx.i++;
-      ShaderInstructionEncoder._skipWs(ctx);
-      const inner = ShaderInstructionEncoder._parseOr(ctx);
-      ShaderInstructionEncoder._skipWs(ctx);
-      if (s.charCodeAt(ctx.i) !== 41 /* ')' */)
-        throw new Error(`Unsupported or malformed preprocessor condition '${s}'.`);
-      ctx.i++;
-      return inner;
-    }
-
-    // defined(MACRO) or defined MACRO
-    if (s.substring(ctx.i, ctx.i + 7) === "defined") {
-      ctx.i += 7;
-      ShaderInstructionEncoder._skipWs(ctx);
-      const hasParen = s.charCodeAt(ctx.i) === 40; /* '(' */
-      if (hasParen) ctx.i++;
-      ShaderInstructionEncoder._skipWs(ctx);
-      const name = ShaderInstructionEncoder._scanIdentifier(ctx);
-      if (!name) throw new Error(`Unsupported or malformed preprocessor condition '${s}'.`);
-      ShaderInstructionEncoder._skipWs(ctx);
-      if (hasParen) {
-        if (s.charCodeAt(ctx.i) !== 41 /* ')' */)
-          throw new Error(`Unsupported or malformed preprocessor condition '${s}'.`);
-        ctx.i++;
-      }
-      return { t: "def", m: name };
-    }
-
-    // Numeric literal
-    if (
-      ctx.i < s.length &&
-      (ShaderInstructionEncoder._isDigit(s.charCodeAt(ctx.i)) ||
-        ((s.charCodeAt(ctx.i) === 43 /* '+' */ || s.charCodeAt(ctx.i) === 45) /* '-' */ &&
-          ShaderInstructionEncoder._isDigit(s.charCodeAt(ctx.i + 1))))
-    ) {
-      const lhsNum = ShaderInstructionEncoder._scanNumber(ctx);
-      ShaderInstructionEncoder._skipWs(ctx);
-      const op = ShaderInstructionEncoder._scanOp(ctx);
-      if (op) {
-        ShaderInstructionEncoder._skipWs(ctx);
-        return {
-          t: "bool",
-          v: ShaderInstructionEncoder._evalNumOp(lhsNum, op, ShaderInstructionEncoder._scanNumber(ctx))
-        };
-      }
-      return { t: "bool", v: lhsNum !== 0 };
-    }
-
-    // Identifier — numeric comparison against zero when no explicit operator is present.
-    const name = ShaderInstructionEncoder._scanIdentifier(ctx);
-    if (!name) return { t: "bool", v: false };
-    ShaderInstructionEncoder._skipWs(ctx);
-    const op = ShaderInstructionEncoder._scanOp(ctx);
-    if (op) {
-      ShaderInstructionEncoder._skipWs(ctx);
-      return { t: "cmp", m: name, op, v: ShaderInstructionEncoder._scanNumber(ctx) };
-    }
-    return { t: "cmp", m: name, op: "!=", v: 0 };
-  }
-
-  private static _isDigit(charCode: number): boolean {
-    return charCode >= 48 /* '0' */ && charCode <= 57 /* '9' */;
-  }
-
-  private static _isAlnum(charCode: number): boolean {
-    return (
-      (charCode >= 65 /* 'A' */ && charCode <= 90) /* 'Z' */ ||
-      (charCode >= 97 /* 'a' */ && charCode <= 122) /* 'z' */ ||
-      (charCode >= 48 /* '0' */ && charCode <= 57) /* '9' */ ||
-      charCode === 95 /* '_' */
-    );
-  }
-
-  private static _scanIdentifier(ctx: ExprCtx): string {
-    const start = ctx.i;
-    while (ctx.i < ctx.s.length && ShaderInstructionEncoder._isAlnum(ctx.s.charCodeAt(ctx.i))) ctx.i++;
-    return ctx.s.substring(start, ctx.i);
-  }
-
-  private static _scanNumber(ctx: ExprCtx): number {
-    const start = ctx.i;
-    if (ctx.s.charCodeAt(ctx.i) === 45 /* '-' */) ctx.i++;
-    while (
-      ctx.i < ctx.s.length &&
-      (ShaderInstructionEncoder._isDigit(ctx.s.charCodeAt(ctx.i)) || ctx.s.charCodeAt(ctx.i) === 46) /* '.' */
-    )
-      ctx.i++;
-    return Number(ctx.s.substring(start, ctx.i)) || 0;
-  }
-
-  private static _scanOp(ctx: ExprCtx): string {
-    const c = ctx.s.charCodeAt(ctx.i);
-    const c2 = ctx.i + 1 < ctx.s.length ? ctx.s.charCodeAt(ctx.i + 1) : 0;
-    if (c === 61 /* '=' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return "==";
-    }
-    if (c === 33 /* '!' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return "!=";
-    }
-    if (c === 62 /* '>' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return ">=";
-    }
-    if (c === 60 /* '<' */ && c2 === 61 /* '=' */) {
-      ctx.i += 2;
-      return "<=";
-    }
-    if (c === 62 /* '>' */) {
-      ctx.i++;
-      return ">";
-    }
-    if (c === 60 /* '<' */) {
-      ctx.i++;
-      return "<";
-    }
-    return "";
-  }
-
-  private static _evalNumOp(lhs: number, op: string, rhs: number): boolean {
-    switch (op) {
-      case "==":
-        return lhs === rhs;
-      case "!=":
-        return lhs !== rhs;
-      case ">":
-        return lhs > rhs;
-      case "<":
-        return lhs < rhs;
-      case ">=":
-        return lhs >= rhs;
-      case "<=":
-        return lhs <= rhs;
-      default:
-        return false;
-    }
   }
 }
