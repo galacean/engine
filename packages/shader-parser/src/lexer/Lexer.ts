@@ -1,6 +1,15 @@
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
-import { BaseToken, BranchConstraint, EMPTY_BRANCH, EOF, isBranchVisibleFrom, sameBranch } from "../common/BaseToken";
+import {
+  BaseToken,
+  BranchCondition,
+  BranchConstraint,
+  BranchSignature,
+  EMPTY_BRANCH,
+  EOF,
+  isBranchVisibleFrom,
+  sameBranch
+} from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { MacroDefineInfo, MacroDefineList } from "../Preprocessor";
 import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
@@ -117,11 +126,12 @@ export class Lexer extends BaseLexer {
   // field so AST nodes know which branch they're inside.
   private _branchStack: BranchConstraint[] = [];
   private _conditionalGroup = 0;
-  private _guardGeneration: Record<string, number> = Object.create(null);
+  private _guardUndefBranches: Record<string, BranchSignature[]> = Object.create(null);
   // True when the previous token was `#ifdef`/`#ifndef` and we're waiting on
   // the next ID token (the flag name) to actually push onto the stack.
   private _pendingBranchPushDefined: boolean | null = null;
   private _pendingGuardUndef = false;
+  private _pendingOpaqueConditional: "push" | "advance" | null = null;
 
   *tokenize() {
     while (!this.isEnd()) {
@@ -133,18 +143,27 @@ export class Lexer extends BaseLexer {
       const isMacroName = tok.type === ETokenType.ID || tok.type === Keyword.MACRO_CALL;
       if (this._pendingBranchPushDefined !== null && isMacroName) {
         const conditionalGroup = ++this._conditionalGroup;
+        const guardUndefBranches = this._guardUndefBranches[tok.lexeme] ?? (this._guardUndefBranches[tok.lexeme] = []);
         this._branchStack.push({
           name: tok.lexeme,
           defined: this._pendingBranchPushDefined,
           conditionalGroup,
           conditionalArm: 0,
-          guardGeneration: this._pendingBranchPushDefined ? undefined : (this._guardGeneration[tok.lexeme] ?? 0)
+          condition: { kind: "defined", name: tok.lexeme, defined: this._pendingBranchPushDefined },
+          guardUndefBranches: this._pendingBranchPushDefined ? undefined : guardUndefBranches,
+          guardUndefStart: this._pendingBranchPushDefined ? undefined : guardUndefBranches.length
         });
         this._pendingBranchPushDefined = null;
       }
       if (this._pendingGuardUndef && isMacroName) {
-        this._invalidateGuard(tok.lexeme);
+        this._recordGuardUndef(tok.lexeme);
         this._pendingGuardUndef = false;
+      }
+      if (this._pendingOpaqueConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
+        const condition = this._parseSimpleCondition(tok.lexeme);
+        if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition);
+        else this._advanceOpaqueConditionalArm(condition);
+        this._pendingOpaqueConditional = null;
       }
 
       // Stamp the branch onto the token only when inside an `#ifdef`. The
@@ -153,10 +172,9 @@ export class Lexer extends BaseLexer {
       if (this._branchStack.length > 0) tok.branch = this._branchStack.slice();
 
       // Update stack state based on the just-emitted token, so the *next*
-      // token sees the correct snapshot. `#if expr` opens a level we can't
-      // address (we don't model expressions), but must consume a stack slot
-      // so the matching `#endif` pops the right depth — without it, an
-      // outer `#ifdef A`'s constraint would be wrongly popped.
+      // token sees the correct snapshot. `#if expr` opens a level after its
+      // expression is scanned so recognized atoms can annotate that arm; every
+      // expression still consumes exactly one stack slot for its matching `#endif`.
       switch (tok.type as Keyword) {
         case Keyword.MACRO_IFDEF:
           this._pendingBranchPushDefined = true;
@@ -165,10 +183,10 @@ export class Lexer extends BaseLexer {
           this._pendingBranchPushDefined = false;
           break;
         case Keyword.MACRO_IF:
-          this._pushOpaqueConditional();
+          this._pendingOpaqueConditional = "push";
           break;
         case Keyword.MACRO_ELIF:
-          this._advanceOpaqueConditionalArm();
+          this._pendingOpaqueConditional = "advance";
           break;
         case Keyword.MACRO_ELSE: {
           // Preserve the chain identity so this arm is exclusive with every earlier `#if/#elif` arm.
@@ -178,7 +196,8 @@ export class Lexer extends BaseLexer {
               name: top.name,
               defined: !top.defined,
               conditionalGroup: top.conditionalGroup,
-              conditionalArm: (top.conditionalArm ?? 0) + 1
+              conditionalArm: (top.conditionalArm ?? 0) + 1,
+              condition: top.conditionalArm === 0 ? Lexer._negateSimpleCondition(top.condition) : undefined
             };
           }
           break;
@@ -203,17 +222,18 @@ export class Lexer extends BaseLexer {
     super(source);
   }
 
-  private _pushOpaqueConditional(): void {
+  private _pushOpaqueConditional(condition?: BranchCondition): void {
     const conditionalGroup = ++this._conditionalGroup;
     this._branchStack.push({
       name: `__if_${conditionalGroup}_0`,
       defined: true,
       conditionalGroup,
-      conditionalArm: 0
+      conditionalArm: 0,
+      condition
     });
   }
 
-  private _advanceOpaqueConditionalArm(): void {
+  private _advanceOpaqueConditionalArm(condition?: BranchCondition): void {
     const index = this._branchStack.length - 1;
     const top = this._branchStack[index];
     if (!top) return;
@@ -222,19 +242,77 @@ export class Lexer extends BaseLexer {
       name: `__if_${top.conditionalGroup}_${conditionalArm}`,
       defined: true,
       conditionalGroup: top.conditionalGroup,
-      conditionalArm
+      conditionalArm,
+      condition
     };
   }
 
-  private _invalidateGuard(name: string): void {
-    const guardGeneration = (this._guardGeneration[name] ?? 0) + 1;
-    this._guardGeneration[name] = guardGeneration;
-    for (let i = 0, n = this._branchStack.length; i < n; i++) {
-      const constraint = this._branchStack[i];
-      if (constraint.name === name && constraint.guardGeneration !== undefined) {
-        this._branchStack[i] = { ...constraint, guardGeneration, selfGuarding: undefined };
-      }
+  private _recordGuardUndef(name: string): void {
+    const events = this._guardUndefBranches[name] ?? (this._guardUndefBranches[name] = []);
+    events.push(
+      this._branchStack.map(({ name, defined, conditionalGroup, conditionalArm, condition }) => ({
+        name,
+        defined,
+        conditionalGroup,
+        conditionalArm,
+        condition
+      }))
+    );
+  }
+
+  private _parseSimpleCondition(expression: string): BranchCondition | undefined {
+    const source = Lexer._stripOuterParentheses(expression.trim());
+    const comparison = /^([A-Za-z_][A-Za-z0-9_]*)\s*(==|!=|>=|<=|>|<)\s*(\d+(?:\.\d+)?)$/.exec(source);
+    if (comparison) {
+      return {
+        kind: "comparison",
+        name: comparison[1],
+        operator: comparison[2] as Extract<BranchCondition, { kind: "comparison" }>["operator"],
+        value: Number(comparison[3])
+      };
     }
+
+    const defined = /^defined\s*(?:\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)|\s+([A-Za-z_][A-Za-z0-9_]*))$/.exec(source);
+    if (defined) return { kind: "defined", name: defined[1] ?? defined[2], defined: true };
+
+    const notDefined =
+      /^!\s*(?:defined\s*(?:\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)|\s+([A-Za-z_][A-Za-z0-9_]*))|([A-Za-z_][A-Za-z0-9_]*))$/.exec(
+        source
+      );
+    if (notDefined) return { kind: "defined", name: notDefined[1] ?? notDefined[2] ?? notDefined[3], defined: false };
+
+    const bare = /^([A-Za-z_][A-Za-z0-9_]*)$/.exec(source);
+    return bare ? { kind: "defined", name: bare[1], defined: true } : undefined;
+  }
+
+  private static _negateSimpleCondition(condition?: BranchCondition): BranchCondition | undefined {
+    if (!condition) return undefined;
+    if (condition.kind === "defined") return { ...condition, defined: !condition.defined };
+
+    const operator =
+      condition.operator === "=="
+        ? "!="
+        : condition.operator === "!="
+          ? "=="
+          : condition.operator === ">"
+            ? "<="
+            : condition.operator === ">="
+              ? "<"
+              : condition.operator === "<"
+                ? ">="
+                : ">";
+    return { ...condition, operator };
+  }
+
+  private static _stripOuterParentheses(source: string): string {
+    if (source.charCodeAt(0) !== 40 || source.charCodeAt(source.length - 1) !== 41) return source;
+    let depth = 0;
+    for (let i = 0; i < source.length; i++) {
+      const charCode = source.charCodeAt(i);
+      if (charCode === 40) depth++;
+      else if (charCode === 41 && --depth === 0 && i !== source.length - 1) return source;
+    }
+    return depth === 0 ? Lexer._stripOuterParentheses(source.slice(1, -1).trim()) : source;
   }
 
   override scanToken(): BaseToken {
@@ -928,10 +1006,11 @@ export class Lexer extends BaseLexer {
   ): void {
     const branchIndex = this._branchStack.length - 1;
     const branch = this._branchStack[branchIndex];
-    if (branch?.guardGeneration !== undefined && branch.name === name && !branch.defined) {
+    if (branch?.guardUndefBranches && branch.name === name && !branch.defined) {
       this._branchStack[branchIndex] = {
         ...branch,
-        selfGuarding: true
+        selfGuarding: true,
+        guardUndefStart: branch.guardUndefBranches.length
       };
     }
 

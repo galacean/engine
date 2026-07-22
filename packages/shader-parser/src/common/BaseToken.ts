@@ -15,14 +15,25 @@ export interface BranchConstraint {
   conditionalGroup?: number;
   /** Lexical arm within `conditionalGroup`; different arms cannot execute together. */
   conditionalArm?: number;
+  /** A simple `#if` condition recognized by the lexer. Complex expressions stay undefined. */
+  condition?: BranchCondition;
   /**
-   * `#undef` generation at the current source position in a canonical `#ifndef` arm.
+   * Shared `#undef` events for this guard macro. Each guard records the event index at its entry
+   * (and again when it defines itself) so conflict checks only consider invalidations between two
+   * guard occurrences.
    * @internal
    */
-  guardGeneration?: number;
+  guardUndefBranches?: readonly BranchSignature[];
+  /** @internal */
+  guardUndefStart?: number;
   /** Whether this arm has directly defined its own guard macro before the current source position. */
   selfGuarding?: boolean;
 }
+
+/** A single-macro condition that can be compared without evaluating a macro configuration. */
+export type BranchCondition =
+  | { kind: "defined"; name: string; defined: boolean }
+  | { kind: "comparison"; name: string; operator: "==" | "!=" | ">" | ">=" | "<" | "<="; value: number };
 
 /**
  * Snapshot of the `#ifdef`/`#ifndef`/`#else` stack at a source position. An
@@ -76,6 +87,7 @@ export function isBranchVisibleFrom(defBranch: BranchSignature, callSiteBranch: 
         return false;
       }
       if (d.name === c.name && d.defined !== c.defined) return false;
+      if (areConditionsMutuallyExclusive(d.condition, c.condition)) return false;
     }
   }
   return true;
@@ -84,8 +96,8 @@ export function isBranchVisibleFrom(defBranch: BranchSignature, callSiteBranch: 
 /**
  * Whether a later declaration can coexist with an earlier declaration in one preprocessed shader.
  * Besides ordinary mutually-exclusive conditional arms, an earlier self-defining `#ifndef` arm
- * suppresses every later same-generation `#ifndef` arm for that macro. Argument order therefore
- * follows source/insertion order.
+ * suppresses later `#ifndef` arms for that macro unless a compatible intervening `#undef` reopened
+ * the guard. Argument order therefore follows source/insertion order.
  * @param earlier - Branch signature of an existing declaration.
  * @param later - Branch signature of the declaration currently being inserted.
  * @returns Whether both declarations can be emitted by one macro configuration.
@@ -101,17 +113,106 @@ export function canDeclarationsCoexist(earlier: BranchSignature, later: BranchSi
       if (
         !right.defined &&
         right.name === left.name &&
-        right.guardGeneration === left.guardGeneration &&
         left.conditionalGroup !== undefined &&
         right.conditionalGroup !== undefined &&
         right.conditionalGroup > left.conditionalGroup
       ) {
-        return false;
+        if (!hasCompatibleGuardUndef(earlier, left, later, right)) return false;
       }
     }
   }
 
   return true;
+}
+
+function hasCompatibleGuardUndef(
+  earlier: BranchSignature,
+  earlierGuard: BranchConstraint,
+  later: BranchSignature,
+  laterGuard: BranchConstraint
+): boolean {
+  const events = laterGuard.guardUndefBranches;
+  if (!events) return false;
+
+  const start = earlierGuard.guardUndefStart ?? 0;
+  const end = laterGuard.guardUndefStart ?? 0;
+  for (let i = start; i < end; i++) {
+    const event = events[i];
+    if (isBranchVisibleFrom(earlier, event) && isBranchVisibleFrom(event, later)) return true;
+  }
+  return false;
+}
+
+function areConditionsMutuallyExclusive(left?: BranchCondition, right?: BranchCondition): boolean {
+  if (!left || !right || left.name !== right.name) return false;
+
+  if (left.kind === "defined") {
+    if (right.kind === "defined") return left.defined !== right.defined;
+    return !left.defined;
+  }
+  if (right.kind === "defined") return !right.defined;
+
+  if (left.operator === "==") return !matchesComparison(left.value, right);
+  if (right.operator === "==") return !matchesComparison(right.value, left);
+
+  const leftLower = lowerBound(left);
+  const rightLower = lowerBound(right);
+  const leftUpper = upperBound(left);
+  const rightUpper = upperBound(right);
+  return (
+    (leftLower !== undefined && rightUpper !== undefined && isEmptyInterval(leftLower, rightUpper)) ||
+    (rightLower !== undefined && leftUpper !== undefined && isEmptyInterval(rightLower, leftUpper))
+  );
+}
+
+function matchesComparison(value: number, comparison: Extract<BranchCondition, { kind: "comparison" }>): boolean {
+  switch (comparison.operator) {
+    case "==":
+      return value === comparison.value;
+    case "!=":
+      return value !== comparison.value;
+    case ">":
+      return value > comparison.value;
+    case ">=":
+      return value >= comparison.value;
+    case "<":
+      return value < comparison.value;
+    case "<=":
+      return value <= comparison.value;
+  }
+}
+
+function lowerBound(
+  comparison: Extract<BranchCondition, { kind: "comparison" }>
+): { value: number; inclusive: boolean } | undefined {
+  switch (comparison.operator) {
+    case ">":
+      return { value: comparison.value, inclusive: false };
+    case ">=":
+      return { value: comparison.value, inclusive: true };
+    default:
+      return undefined;
+  }
+}
+
+function upperBound(
+  comparison: Extract<BranchCondition, { kind: "comparison" }>
+): { value: number; inclusive: boolean } | undefined {
+  switch (comparison.operator) {
+    case "<":
+      return { value: comparison.value, inclusive: false };
+    case "<=":
+      return { value: comparison.value, inclusive: true };
+    default:
+      return undefined;
+  }
+}
+
+function isEmptyInterval(
+  lower: { value: number; inclusive: boolean },
+  upper: { value: number; inclusive: boolean }
+): boolean {
+  return lower.value > upper.value || (lower.value === upper.value && (!lower.inclusive || !upper.inclusive));
 }
 
 export class BaseToken<T extends number = number> implements IPoolElement {

@@ -293,7 +293,7 @@ export class ShaderValidator {
       if (child instanceof BaseToken) {
         const lookup = ShaderValidator._varLookup;
         lookup.set(child.lexeme, ESymbolType.VAR);
-        const symbol = this._shaderData.symbolTable.getSymbol(lookup);
+        const symbol = this._shaderData.symbolTable.getSymbol(lookup, true, node._branch);
         if (symbol instanceof VarSymbol) {
           if (symbol.isConst) return "a const-qualified variable";
           // GLSL ES §5.9: uniforms, inputs, and samplers are not l-values. Check sampler before

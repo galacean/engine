@@ -143,16 +143,40 @@ float u_value;
     expect(diagnostics).to.have.lengthOf(1);
   });
 
-  it("reports declarations in independent opaque conditional chains", () => {
-    const diagnostics = redefinitions(
-      shader(`#if MODE == 1
+  it.each([
+    ["different equality values", "MODE == 1", "MODE == 2"],
+    ["equality and its inequality complement", "MODE == 1", "MODE != 1"],
+    ["complementary numeric bounds", "MODE < 3", "MODE >= 3"],
+    ["defined and not-defined", "defined(MODE)", "!defined(MODE)"],
+    ["bare defined and negated bare defined", "MODE", "!MODE"]
+  ])("does not report independent #if branches with %s", (_name, first, second) => {
+    expect(
+      redefinitions(
+        shader(`#if ${first}
 float u_value;
 #endif
-#if MODE == 2
+#if ${second}
 float u_value;
 #endif`)
-    );
-    expect(diagnostics).to.have.lengthOf(1);
+      )
+    ).to.be.empty;
+  });
+
+  it.each([
+    ["overlapping numeric ranges", "MODE >= 1", "MODE > 1"],
+    ["different macro names", "FIRST == 1", "SECOND == 2"],
+    ["compound conditions outside the lightweight subset", "MODE == 1 || MODE == 2", "MODE == 2"]
+  ])("keeps conservative diagnostics for %s", (_name, first, second) => {
+    expect(
+      redefinitions(
+        shader(`#if ${first}
+float u_value;
+#endif
+#if ${second}
+float u_value;
+#endif`)
+      )
+    ).to.have.lengthOf(1);
   });
 
   it("silences repeated canonical include guards", () => {
@@ -219,7 +243,7 @@ float u_value;
     expect(diagnostics).to.have.lengthOf(1);
   });
 
-  it("keeps one guard generation after an earlier #undef", () => {
+  it("keeps one guard state after an earlier #undef", () => {
     const includeMap: IncludeMap = {
       "guarded.glsl": `#ifndef GUARDED_INCLUDED
 #define GUARDED_INCLUDED
@@ -236,6 +260,25 @@ float u_value;
       includeMap
     );
     expect(diagnostics).to.be.empty;
+  });
+
+  it("does not let a mutually exclusive #undef reopen a canonical guard", () => {
+    expect(
+      redefinitions(
+        shader(`#ifdef FIRST_PATH
+  #ifndef CONDITIONAL_GUARD
+    #define CONDITIONAL_GUARD
+    float u_value;
+  #endif
+#else
+  #undef CONDITIONAL_GUARD
+#endif
+#ifndef CONDITIONAL_GUARD
+  #define CONDITIONAL_GUARD
+  float u_value;
+#endif`)
+      )
+    ).to.be.empty;
   });
 
   it("silences direct and transitive includes of one guarded chunk", () => {
