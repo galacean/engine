@@ -10,7 +10,6 @@ import {
   DirectLight,
   Logger,
   SkinnedMeshRenderer,
-  SystemInfo,
   Vector3,
   WebGLEngine,
   GLTFResource
@@ -19,8 +18,6 @@ import { initScreenshot, updateForE2E } from "./.mockForE2E";
 
 Logger.enable();
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.width = window.innerWidth * SystemInfo.devicePixelRatio;
-  engine.canvas.height = window.innerHeight * SystemInfo.devicePixelRatio;
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 

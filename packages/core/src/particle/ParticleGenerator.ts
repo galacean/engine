@@ -49,6 +49,7 @@ export class ParticleGenerator {
   private static _tempVector30 = new Vector3();
   private static _tempVector31 = new Vector3();
   private static _tempVector32 = new Vector3();
+  private static _tempVector33 = new Vector3();
   private static _tempMat = new Matrix();
   private static _tempColor = new Color();
   private static _tempQuat0 = new Quaternion();
@@ -680,17 +681,16 @@ export class ParticleGenerator {
    * @internal
    */
   _setTransformFeedback(): void {
-    const needed =
+    const needed = !!(
       this._renderer.engine._hardwareRenderer.isWebGL2 &&
-      (this.limitVelocityOverLifetime.enabled ||
-        this.noise.enabled ||
-        this.subEmitters._hasSubEmitterOfType(ParticleSubEmitterType.Death));
+      (this.limitVelocityOverLifetime?.enabled ||
+        this.noise?.enabled ||
+        this.velocityOverLifetime?._needTransformFeedback() ||
+        this.subEmitters?._hasSubEmitterOfType(ParticleSubEmitterType.Death))
+    );
     if (needed === this._useTransformFeedback) return;
     this._useTransformFeedback = needed;
 
-    // Switching TF mode invalidates all active particle state: feedback buffers and instance
-    // buffer layout are incompatible between the two paths. Clear rather than show a one-frame
-    // jump; new particles will fill in naturally from the next emit cycle.
     this._clearActiveParticles();
 
     if (needed) {
@@ -785,7 +785,12 @@ export class ParticleGenerator {
       renderer._setDirtyFlagFalse(ParticleUpdateFlags.TransformVolume);
     }
 
-    this._addGravityToBounds(maxLifetime, transformedBounds, bounds);
+    if (this._useOrbitalBounds()) {
+      bounds.min.copyFrom(transformedBounds.min);
+      bounds.max.copyFrom(transformedBounds.max);
+    } else {
+      this._addGravityToBounds(maxLifetime, transformedBounds, bounds);
+    }
   }
 
   /**
@@ -816,7 +821,9 @@ export class ParticleGenerator {
     }
 
     const maxLifetime = this.main.startLifetime._getMax();
-    this._addGravityToBounds(maxLifetime, bounds, bounds);
+    if (!this._useOrbitalBounds()) {
+      this._addGravityToBounds(maxLifetime, bounds, bounds);
+    }
   }
 
   /**
@@ -1018,12 +1025,7 @@ export class ParticleGenerator {
 
     // Velocity random
     const velocityOverLifetime = this.velocityOverLifetime;
-    if (
-      velocityOverLifetime.enabled &&
-      velocityOverLifetime.velocityX.mode === ParticleCurveMode.TwoConstants &&
-      velocityOverLifetime.velocityY.mode === ParticleCurveMode.TwoConstants &&
-      velocityOverLifetime.velocityZ.mode === ParticleCurveMode.TwoConstants
-    ) {
+    if (velocityOverLifetime.enabled && velocityOverLifetime._isRandomMode()) {
       const rand = velocityOverLifetime._velocityRand;
       instanceVertices[offset + 24] = rand.random();
       instanceVertices[offset + 25] = rand.random();
@@ -1628,6 +1630,7 @@ export class ParticleGenerator {
       _tempVector22: velMinMaxZ,
       _tempVector30: worldOffsetMin,
       _tempVector31: worldOffsetMax,
+      _tempVector32: noiseBoundsExtents,
       _tempMat: rotateMat
     } = ParticleGenerator;
     worldOffsetMin.set(0, 0, 0);
@@ -1701,28 +1704,113 @@ export class ParticleGenerator {
       }
     }
 
-    out.transform(rotateMat);
-    min.add(worldOffsetMin);
-    max.add(worldOffsetMax);
-
-    // Noise module impact: noise output is normalized to [-1, 1],
-    // max displacement = |strength_max|
     const { noise } = this;
-    if (noise.enabled) {
-      let noiseMaxX: number, noiseMaxY: number, noiseMaxZ: number;
-      if (noise.separateAxes) {
-        noiseMaxX = Math.abs(noise.strengthX._getMax());
-        noiseMaxY = Math.abs(noise.strengthY._getMax());
-        noiseMaxZ = Math.abs(noise.strengthZ._getMax());
-      } else {
-        noiseMaxX = noiseMaxY = noiseMaxZ = Math.abs(noise.strengthX._getMax());
+    this._getNoiseBoundsExtents(maxLifetime, noiseBoundsExtents);
+
+    const needTransformFeedback = velocityOverLifetime._needTransformFeedback();
+    const orbitalActive = needTransformFeedback && velocityOverLifetime._isOrbitalActive();
+    if (needTransformFeedback) {
+      const centerOffset = velocityOverLifetime.centerOffset;
+      let radialReach = 0;
+      if (velocityOverLifetime._isRadialActive()) {
+        this._getExtremeValueFromZero(velocityOverLifetime.radial, velMinMaxX);
+        radialReach = Math.max(Math.abs(velMinMaxX.x), Math.abs(velMinMaxX.y)) * maxLifetime;
       }
-      min.set(min.x - noiseMaxX, min.y - noiseMaxY, min.z - noiseMaxZ);
-      max.set(max.x + noiseMaxX, max.y + noiseMaxY, max.z + noiseMaxZ);
+      if (orbitalActive) {
+        const dx = Math.max(Math.abs(min.x - centerOffset.x), Math.abs(max.x - centerOffset.x));
+        const dy = Math.max(Math.abs(min.y - centerOffset.y), Math.abs(max.y - centerOffset.y));
+        const dz = Math.max(Math.abs(min.z - centerOffset.z), Math.abs(max.z - centerOffset.z));
+        const worldReach = this._getRangeReach(worldOffsetMin, worldOffsetMax);
+        const noiseReach = this._getVectorReach(noiseBoundsExtents);
+        const gravityReach = this._getGravityBoundsReach(maxLifetime);
+        const reach = Math.sqrt(dx * dx + dy * dy + dz * dz) + worldReach + noiseReach + gravityReach + radialReach;
+        min.set(
+          Math.min(min.x, centerOffset.x - reach),
+          Math.min(min.y, centerOffset.y - reach),
+          Math.min(min.z, centerOffset.z - reach)
+        );
+        max.set(
+          Math.max(max.x, centerOffset.x + reach),
+          Math.max(max.y, centerOffset.y + reach),
+          Math.max(max.z, centerOffset.z + reach)
+        );
+      } else if (radialReach > 0) {
+        min.set(min.x - radialReach, min.y - radialReach, min.z - radialReach);
+        max.set(max.x + radialReach, max.y + radialReach, max.z + radialReach);
+      }
+    }
+
+    out.transform(rotateMat);
+    if (!orbitalActive) {
+      min.add(worldOffsetMin);
+      max.add(worldOffsetMax);
+
+      if (noise.enabled) {
+        min.set(min.x - noiseBoundsExtents.x, min.y - noiseBoundsExtents.y, min.z - noiseBoundsExtents.z);
+        max.set(max.x + noiseBoundsExtents.x, max.y + noiseBoundsExtents.y, max.z + noiseBoundsExtents.z);
+      }
     }
 
     min.add(worldPosition);
     max.add(worldPosition);
+  }
+
+  private _useOrbitalBounds(): boolean {
+    const { velocityOverLifetime } = this;
+    return velocityOverLifetime._needTransformFeedback() && velocityOverLifetime._isOrbitalActive();
+  }
+
+  private _getNoiseBoundsExtents(maxLifetime: number, out: Vector3): void {
+    const { noise } = this;
+    if (!noise.enabled) {
+      out.set(0, 0, 0);
+      return;
+    }
+
+    let noiseMaxX: number, noiseMaxY: number, noiseMaxZ: number;
+    if (noise.separateAxes) {
+      noiseMaxX = this._getCurveMagnitudeFromZero(noise.strengthX);
+      noiseMaxY = this._getCurveMagnitudeFromZero(noise.strengthY);
+      noiseMaxZ = this._getCurveMagnitudeFromZero(noise.strengthZ);
+    } else {
+      noiseMaxX = noiseMaxY = noiseMaxZ = this._getCurveMagnitudeFromZero(noise.strengthX);
+    }
+    out.set(noiseMaxX * maxLifetime, noiseMaxY * maxLifetime, noiseMaxZ * maxLifetime);
+  }
+
+  private _getGravityBoundsReach(maxLifetime: number): number {
+    const modifierMinMax = ParticleGenerator._tempVector20;
+    this._getExtremeValueFromZero(this.main.gravityModifier, modifierMinMax);
+
+    const coefficient = 0.5 * maxLifetime * maxLifetime;
+    const minGravityEffect = modifierMinMax.x * coefficient;
+    const maxGravityEffect = modifierMinMax.y * coefficient;
+    const { x, y, z } = this._renderer.scene.physics.gravity;
+
+    const gravityBoundsExtents = ParticleGenerator._tempVector33;
+    gravityBoundsExtents.set(
+      Math.max(Math.abs(x * minGravityEffect), Math.abs(x * maxGravityEffect)),
+      Math.max(Math.abs(y * minGravityEffect), Math.abs(y * maxGravityEffect)),
+      Math.max(Math.abs(z * minGravityEffect), Math.abs(z * maxGravityEffect))
+    );
+    return this._getVectorReach(gravityBoundsExtents);
+  }
+
+  private _getRangeReach(min: Vector3, max: Vector3): number {
+    const x = Math.max(Math.abs(min.x), Math.abs(max.x));
+    const y = Math.max(Math.abs(min.y), Math.abs(max.y));
+    const z = Math.max(Math.abs(min.z), Math.abs(max.z));
+    return Math.sqrt(x * x + y * y + z * z);
+  }
+
+  private _getVectorReach(value: Vector3): number {
+    return Math.sqrt(value.x * value.x + value.y * value.y + value.z * value.z);
+  }
+
+  private _getCurveMagnitudeFromZero(curve: ParticleCompositeCurve): number {
+    const minMax = ParticleGenerator._tempVector20;
+    this._getExtremeValueFromZero(curve, minMax);
+    return Math.max(Math.abs(minMax.x), Math.abs(minMax.y));
   }
 
   private _addGravityToBounds(maxLifetime: number, origin: BoundingBox, out: BoundingBox): void {

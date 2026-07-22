@@ -19,6 +19,7 @@ export default defineProject({
       provider: "playwright",
       enabled: true,
       headless: process.env.HEADLESS === "true",
+      screenshotFailures: false,
       instances: [
         {
           browser: "chromium",

@@ -23,8 +23,6 @@ import {
 
 // Create engine and get root entity
 WebGLEngine.create({ canvas: "canvas" }).then((engine) => {
-  engine.canvas.resizeByClientSize();
-
   const rootEntity = engine.sceneManager.activeScene.createRootEntity("Root");
 
   // Create light.

@@ -50,21 +50,50 @@ describe("ParticleCurve tests", () => {
     expect(compositeCurve.evaluate(0.6, 0.5)).to.equal(0.6499999999999999);
   });
 
+  it("internal composite curve mode helpers", () => {
+    const zeroConstant = new ParticleCompositeCurve(0);
+    expect((zeroConstant as any)._isZero()).to.equal(true);
+    expect((zeroConstant as any)._isCurveMode()).to.equal(false);
+    expect((zeroConstant as any)._isRandomMode()).to.equal(false);
+
+    const twoConstants = new ParticleCompositeCurve(-1, 1);
+    expect((twoConstants as any)._isZero()).to.equal(false);
+    expect((twoConstants as any)._isCurveMode()).to.equal(false);
+    expect((twoConstants as any)._isRandomMode()).to.equal(true);
+
+    const zeroCurve = new ParticleCompositeCurve(new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 0)));
+    expect((zeroCurve as any)._isZero()).to.equal(true);
+    expect((zeroCurve as any)._isCurveMode()).to.equal(true);
+    expect((zeroCurve as any)._isRandomMode()).to.equal(false);
+
+    const twoCurves = new ParticleCompositeCurve(
+      new ParticleCurve(new CurveKey(0, 0), new CurveKey(1, 0)),
+      new ParticleCurve(new CurveKey(0, 2), new CurveKey(1, 2))
+    );
+    expect((twoCurves as any)._isZero()).to.equal(false);
+    expect((twoCurves as any)._isCurveMode()).to.equal(true);
+    expect((twoCurves as any)._isRandomMode()).to.equal(true);
+  });
+
   it("Add and remove", () => {
     const curve = new ParticleCurve(new CurveKey(0, 0.3), new CurveKey(0.6, 0.7));
-    +expect(curve.keys.length).to.equal(2);
-    +curve.addKey(new CurveKey(0, 0.4));
-    +expect(curve.keys.length).to.equal(3);
-    +expect(curve.keys[0].value).to.equal(0.3);
-    +curve.removeKey(2);
-    +expect(curve.keys.length).to.equal(2);
-    +curve.removeKey(0);
+    expect(curve.keys.length).to.equal(2);
 
-    +expect(curve.keys.length).to.equal(1);
-    +expect(curve.keys[0].time).to.equal(0.0);
-    +expect(curve.keys[0].value).to.equal(0.4);
-    +curve.removeKey(0);
-    +expect(curve.keys.length).to.equal(0);
+    curve.addKey(new CurveKey(0, 0.4));
+    expect(curve.keys.length).to.equal(3);
+    expect(curve.keys[0].value).to.equal(0.3);
+
+    curve.removeKey(2);
+    expect(curve.keys.length).to.equal(2);
+
+    curve.removeKey(0);
+
+    expect(curve.keys.length).to.equal(1);
+    expect(curve.keys[0].time).to.equal(0.0);
+    expect(curve.keys[0].value).to.equal(0.4);
+
+    curve.removeKey(0);
+    expect(curve.keys.length).to.equal(0);
   });
 
   it("_evaluateCumulative", () => {

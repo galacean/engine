@@ -82,33 +82,33 @@ export class Engine extends EventDispatcher {
   _physicsInitialized: boolean = false;
   /** @internal */
   _nativePhysicsManager: IPhysicsManager;
-  /* @internal */
+  /** @internal */
   _hardwareRenderer: IHardwareRenderer;
-  /* @internal */
+  /** @internal */
   _renderTargetPool: RenderTargetPool;
-  /* @internal */
+  /** @internal */
   _lastRenderState: RenderState = new RenderState();
 
-  /* @internal */
+  /** @internal */
   _renderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
+  /** @internal */
   _textRenderElementPool = new ClearableObjectPool(RenderElement);
-  /* @internal */
+  /** @internal */
   _charRenderInfoPool = new ReturnableObjectPool(CharRenderInfo, 50);
 
-  /* @internal */
+  /** @internal */
   _basicResources: BasicResources;
-  /* @internal */
+  /** @internal */
   _textDefaultFont: Font;
-  /* @internal */
+  /** @internal */
   _renderContext: RenderContext = new RenderContext();
 
-  /* @internal */
+  /** @internal */
   _depthTexture2D: Texture2D;
 
-  /* @internal */
+  /** @internal */
   _renderCount: number = 0;
-  /* @internal */
+  /** @internal */
   _shaderProgramMaps: ShaderProgramMap[] = [];
   /** @internal */
   _fontMap: Record<string, Font> = {};
@@ -137,6 +137,8 @@ export class Engine extends EventDispatcher {
   private _waitingGC: boolean = false;
   private _postProcessPasses = new Array<PostProcessPass>();
   private _activePostProcessPasses = new Array<PostProcessPass>();
+
+  private _onCanvasResize = (): void => this._renderTargetPool.gc();
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -255,6 +257,7 @@ export class Engine extends EventDispatcher {
 
     this._batcherManager = new BatcherManager(this);
     this._renderTargetPool = new RenderTargetPool(this);
+    canvas._sizeUpdateFlagManager.addListener(this._onCanvasResize);
     this.inputManager = new InputManager(this, configuration.input);
 
     const { xrDevice } = configuration;
@@ -320,6 +323,8 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
+    this._canvas._pumpPendingResolution();
+
     const time = this._time;
     time._update();
 
@@ -500,6 +505,9 @@ export class Engine extends EventDispatcher {
     this._destroyed = true;
     this._waitingDestroy = false;
 
+    this._canvas._sizeUpdateFlagManager.removeListener(this._onCanvasResize);
+    this._canvas._destroy();
+
     this._sceneManager._destroyAllScene();
     this._resourceManager._destroy();
 
@@ -658,7 +666,7 @@ export class Engine extends EventDispatcher {
     }
 
     const loaders = ResourceManager._loaders;
-    for (let key in loaders) {
+    for (const key in loaders) {
       const loader = loaders[key];
       if (loader.initialize) initializePromises.push(loader.initialize(this, configuration));
     }

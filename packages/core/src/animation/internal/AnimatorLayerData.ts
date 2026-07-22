@@ -1,3 +1,4 @@
+import { Component } from "../../Component";
 import { AnimatorControllerLayer } from "../AnimatorControllerLayer";
 import { AnimatorState } from "../AnimatorState";
 import { AnimatorStateInstance } from "../AnimatorStateInstance";
@@ -13,8 +14,8 @@ import type { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 export class AnimatorLayerData {
   layerIndex: number;
   layer: AnimatorControllerLayer;
-  curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
-  animatorStateDataMap: WeakMap<AnimatorState, AnimatorStateData> = new WeakMap();
+  curveOwnerPool: WeakMap<Component, Record<string, AnimationCurveLayerOwner>> = new WeakMap();
+  animatorStateDataMap: Map<AnimatorState, AnimatorStateData> = new Map();
   instanceMap: WeakMap<AnimatorState, AnimatorStateInstance> = new WeakMap();
   srcPlayData: AnimatorStatePlayData | null = null;
   destPlayData: AnimatorStatePlayData | null = null;
@@ -32,17 +33,6 @@ export class AnimatorLayerData {
       map.set(state, instance);
     }
     return instance;
-  }
-
-  completeCrossFade(): void {
-    this.srcPlayData = this.destPlayData;
-    this.destPlayData = null;
-    this.crossFadeTransition = null;
-  }
-
-  clearCrossFadeSlot(): void {
-    this.destPlayData = null;
-    this.crossFadeTransition = null;
   }
 
   resetCurrentCheckIndex(): void {

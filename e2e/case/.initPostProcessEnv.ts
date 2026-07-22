@@ -18,8 +18,6 @@ export async function initPostProcessEnv(
   shaderCompiler?: ShaderCompiler
 ) {
   WebGLEngine.create({ canvas: "canvas", shaderCompiler }).then((engine) => {
-    engine.canvas.resizeByClientSize();
-
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
 

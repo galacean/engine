@@ -1,4 +1,5 @@
 import { AnimatorStateInstance } from "../AnimatorStateInstance";
+import { AnimatorState } from "../AnimatorState";
 import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
 import { WrapMode } from "../enums/WrapMode";
 import { AnimatorStateData } from "./AnimatorStateData";
@@ -19,6 +20,18 @@ export class AnimatorStatePlayData {
   private _changedOrientation: boolean = false;
 
   constructor(public readonly instance: AnimatorStateInstance) {}
+
+  get state(): AnimatorState {
+    return this.instance._state;
+  }
+
+  get speed(): number {
+    return this.instance.speed;
+  }
+
+  get wrapMode(): WrapMode {
+    return this.instance.wrapMode;
+  }
 
   reset(stateData: AnimatorStateData, offsetFrameTime: number): void {
     const state = this.instance._state;
@@ -48,20 +61,22 @@ export class AnimatorStatePlayData {
     this.playedTime += deltaTime;
     const instance = this.instance;
     const state = instance._state;
+    const clipLength = state.clip.length;
+    const clipStartTime = state.clipStartTime;
     let time = this.playedTime + this.offsetFrameTime;
-    const duration = state._getDuration();
+    const duration = (state.clipEndTime - clipStartTime) * clipLength;
     this.playState = AnimatorStatePlayState.Playing;
     if (instance.wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;
-    } else {
-      if (Math.abs(time) >= duration) {
-        time = time < 0 ? -duration : duration;
-        this.playState = AnimatorStatePlayState.Finished;
-      }
+    } else if (time >= duration || time <= -duration) {
+      time = time < 0 ? -duration : duration;
+      this.playState = AnimatorStatePlayState.Finished;
     }
 
-    time < 0 && (time += duration);
-    this.clipTime = time + state.clipStartTime * state.clip.length;
+    if (time < 0) {
+      time += duration;
+    }
+    this.clipTime = time + clipStartTime * clipLength;
 
     if (this._changedOrientation) {
       !this.isForward && this._correctTime();

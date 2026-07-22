@@ -21,7 +21,7 @@ class ClickHandler extends Script {
     this.callCount++;
   }
 
-  handleClickWithPrefix(prefix: string) {
+  handleClickWithPrefix(event: PointerEventData, prefix: string) {
     this.callCount++;
     this.lastPrefix = prefix;
   }
@@ -31,8 +31,7 @@ describe("Button", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const webCanvas = engine.canvas;
-  webCanvas.width = 750;
-  webCanvas.height = 1334;
+  webCanvas.setResolution(750, 1334);
   const scene = engine.sceneManager.scenes[0];
   const root = scene.createRootEntity("root");
 

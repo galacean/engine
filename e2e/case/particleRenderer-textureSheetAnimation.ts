@@ -24,7 +24,6 @@ WebGLEngine.create({
   canvas: "canvas"
 }).then((engine) => {
   Logger.enable();
-  engine.canvas.resizeByClientSize();
   const scene = engine.sceneManager.activeScene;
 
   const ambientLight = scene.ambientLight;

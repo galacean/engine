@@ -126,7 +126,6 @@ WebGLEngine.create({
   shaderCompiler
 }).then(async (engine) => {
   Shader.create(customInstanceShaderSource);
-  engine.canvas.resizeByClientSize();
 
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity("Root");

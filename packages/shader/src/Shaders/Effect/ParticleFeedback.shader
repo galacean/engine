@@ -26,7 +26,7 @@ Shader "Effect/ParticleFeedback" {
           float a_StartSpeed;
           vec4 a_Random0;
 
-          #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO)
+          #if defined(RENDERER_TSA_FRAME_RANDOM_CURVES) || defined(RENDERER_VOL_IS_RANDOM_TWO) || defined(RENDERER_VOL_ORBITAL_IS_RANDOM_TWO) || defined(RENDERER_VOL_RADIAL_IS_RANDOM_TWO)
               vec4 a_Random1;
           #endif
 
@@ -49,35 +49,6 @@ Shader "Effect/ParticleFeedback" {
       #include "ShaderLibrary/Particle/Module/ForceOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/LimitVelocityOverLifetime.glsl"
       #include "ShaderLibrary/Particle/Module/NoiseModule.glsl"
-
-      // Get VOL instantaneous velocity at normalizedAge
-      vec3 getVOLVelocity(Attributes attributes, float normalizedAge) {
-          vec3 vel = vec3(0.0);
-          #ifdef _VOL_MODULE_ENABLED
-              #ifdef RENDERER_VOL_CONSTANT_MODE
-                  vel = renderer_VOLMaxConst;
-                  #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                      vel = mix(renderer_VOLMinConst, vel, attributes.a_Random1.yzw);
-                  #endif
-              #endif
-              #ifdef RENDERER_VOL_CURVE_MODE
-                  vel = vec3(
-                      evaluateParticleCurve(renderer_VOLMaxGradientX, normalizedAge),
-                      evaluateParticleCurve(renderer_VOLMaxGradientY, normalizedAge),
-                      evaluateParticleCurve(renderer_VOLMaxGradientZ, normalizedAge)
-                  );
-                  #ifdef RENDERER_VOL_IS_RANDOM_TWO
-                      vec3 minVel = vec3(
-                          evaluateParticleCurve(renderer_VOLMinGradientX, normalizedAge),
-                          evaluateParticleCurve(renderer_VOLMinGradientY, normalizedAge),
-                          evaluateParticleCurve(renderer_VOLMinGradientZ, normalizedAge)
-                      );
-                      vel = mix(minVel, vel, attributes.a_Random1.yzw);
-                  #endif
-              #endif
-          #endif
-          return vel;
-      }
 
       // Get FOL instantaneous acceleration at normalizedAge
       vec3 getFOLAcceleration(Attributes attributes, float normalizedAge) {
@@ -138,8 +109,8 @@ Shader "Effect/ParticleFeedback" {
 
           vec3 volLocal = vec3(0.0);
           vec3 volWorld = vec3(0.0);
-          #ifdef _VOL_MODULE_ENABLED
-              vec3 vol = getVOLVelocity(attr, normalizedAge);
+          #ifdef _VOL_LINEAR_MODULE_ENABLED
+              vec3 vol = evaluateVOLVelocity(attr, normalizedAge);
               if (renderer_VOLSpace == 0) {
                   volLocal = vol;
               } else {
@@ -161,7 +132,8 @@ Shader "Effect/ParticleFeedback" {
           vec3 gravityLocal = rotationByQuaternions(gravityDelta, invWorldRotation);
           localVelocity += folDeltaLocal + gravityLocal;
 
-          // Step 2 & 3: Dampen + Drag
+          // Step 2 & 3: Dampen + Drag. LimitVelocityOverLifetime applies to base and linear VOL velocity;
+          // orbital/radial motion is applied below as positional orbit integration.
           #ifdef RENDERER_LVL_MODULE_ENABLED
               vec3 volAsLocal = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
               vec3 volAsWorld = rotationByQuaternions(volLocal, worldRotation) + volWorld;
@@ -218,11 +190,11 @@ Shader "Effect/ParticleFeedback" {
           #endif
 
           // Step 4: Integrate position
-          vec3 totalVelocity;
+          vec3 baseVelocity;
           if (renderer_SimulationSpace == 0) {
-            totalVelocity = localVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+            baseVelocity = localVelocity;
           } else {
-            totalVelocity = rotationByQuaternions(localVelocity + volLocal, worldRotation) + volWorld;
+            baseVelocity = rotationByQuaternions(localVelocity, worldRotation);
           }
           #ifdef RENDERER_NOISE_MODULE_ENABLED
               vec3 noiseBasePos;
@@ -233,9 +205,65 @@ Shader "Effect/ParticleFeedback" {
                       attr.a_ShapePositionStartLifeTime.xyz + attr.a_DirectionTime.xyz * attr.a_StartSpeed * age,
                       worldRotation) + attr.a_SimulationWorldPosition;
               }
-              totalVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
+              baseVelocity += computeNoiseVelocity(attr, noiseBasePos, normalizedAge);
           #endif
+
+          #ifdef _VOL_ORBITAL_RADIAL_MODULE_ENABLED
+          vec3 linearVelocity = vec3(0.0);
+          #ifdef _VOL_LINEAR_MODULE_ENABLED
+              if (renderer_SimulationSpace == 0) {
+                  linearVelocity = volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+              } else {
+                  linearVelocity = rotationByQuaternions(volLocal, worldRotation) + volWorld;
+              }
+          #endif
+
+          vec3 startVelocity = attr.a_DirectionTime.xyz * attr.a_StartSpeed;
+          vec3 startVelocityInSimulationSpace;
+          if (renderer_SimulationSpace == 0) {
+              startVelocityInSimulationSpace = startVelocity;
+          } else {
+              startVelocityInSimulationSpace = rotationByQuaternions(startVelocity, worldRotation);
+          }
+          vec3 orbitVelocity = startVelocityInSimulationSpace + linearVelocity;
+          vec3 externalVelocity = baseVelocity - startVelocityInSimulationSpace;
+          vec3 position = attr.a_FeedbackPosition + orbitVelocity * dt;
+
+          {
+              vec3 rel;
+              if (renderer_SimulationSpace == 0) {
+                  rel = position - renderer_VOLOffset;
+              } else {
+                  rel = rotationByQuaternions(position - attr.a_SimulationWorldPosition, invWorldRotation) - renderer_VOLOffset;
+              }
+
+              #if defined(RENDERER_VOL_RADIAL_CONSTANT_MODE) || defined(RENDERER_VOL_RADIAL_CURVE_MODE)
+                  float relLen = length(rel);
+                  if (relLen > 1e-5) {
+                      rel += (rel / relLen) * evaluateVOLRadial(attr, normalizedAge) * dt;
+                  }
+              #endif
+
+              #if defined(RENDERER_VOL_ORBITAL_CONSTANT_MODE) || defined(RENDERER_VOL_ORBITAL_CURVE_MODE)
+                  rel = rotationByEuler(rel, evaluateVOLOrbital(attr, normalizedAge) * dt);
+              #endif
+
+              if (renderer_SimulationSpace == 0) {
+                  position = renderer_VOLOffset + rel;
+              } else {
+                  position = attr.a_SimulationWorldPosition + rotationByQuaternions(renderer_VOLOffset + rel, worldRotation);
+              }
+          }
+          position += externalVelocity * dt;
+          #else
+          vec3 totalVelocity;
+          if (renderer_SimulationSpace == 0) {
+            totalVelocity = baseVelocity + volLocal + rotationByQuaternions(volWorld, invWorldRotation);
+          } else {
+            totalVelocity = baseVelocity + rotationByQuaternions(volLocal, worldRotation) + volWorld;
+          }
           vec3 position = attr.a_FeedbackPosition + totalVelocity * dt;
+          #endif
 
           v.v_FeedbackPosition = position;
           v.v_FeedbackVelocity = localVelocity;
