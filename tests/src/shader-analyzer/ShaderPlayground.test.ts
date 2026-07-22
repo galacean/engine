@@ -35,6 +35,18 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
   { label: "宏定义 / 对象式 #define", snippet: "#define BRANCH_SCALE", diagnosticCount: 0 },
   { label: "宏定义 / 函数式 #define", snippet: "#define APPLY_SCALE", diagnosticCount: 0 },
   { label: "宏分支 / #ifdef / #else 互斥", snippet: "#ifdef USE_BRANCH_VALUE", diagnosticCount: 0 },
+  {
+    label: "宏分支 / #ifdef / #elif 完整互补",
+    snippet: "#elif !defined(USE_BRANCH_VALUE)",
+    diagnosticCount: 0
+  },
+  {
+    label: "宏分支 / #ifdef / #elif 同条件不可达",
+    snippet: "#elif defined(USE_BRANCH_VALUE)",
+    diagnosticCount: 1,
+    diagnostic: "UseBeforeDeclaration",
+    severity: "error"
+  },
   { label: "宏分支 / #ifndef / #else 互斥", snippet: "#ifndef DISABLE_BRANCH_VALUE", diagnosticCount: 0 },
   {
     label: "宏分支 / #ifndef / #elif 存在遗漏",

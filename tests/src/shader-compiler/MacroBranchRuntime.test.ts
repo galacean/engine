@@ -134,6 +134,26 @@ float u_value;
     }
   });
 
+  it("selects exactly one declaration for complementary #ifdef/#elif !defined arms", () => {
+    const source = shader(
+      `#ifdef USE_VALUE
+float u_value;
+#elif !defined(USE_VALUE)
+float u_value;
+#endif`,
+      "gl_FragColor = vec4(u_value);"
+    );
+
+    for (const macros of [[], [["USE_VALUE", "1"]]]) {
+      const evaluated = evaluate(source, macros);
+      expect(evaluated.fragment.match(/uniform\s+float\s+u_value\s*;/g)).to.have.lengthOf(1);
+      const compiled = compileInWebGL(evaluated.vertex, evaluated.fragment);
+      if (compiled !== "no-webgl") {
+        expect(compiled.ok, `vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`).to.be.true;
+      }
+    }
+  });
+
   it("selects the first true #elif arm", () => {
     const source = shader(
       `#if 0
@@ -163,6 +183,26 @@ float u_value;
       `#ifndef DISABLE_VALUE
 float u_value;
 #elif A
+float u_value;
+#endif`,
+      "gl_FragColor = vec4(u_value);"
+    );
+
+    const analyzer = new ShaderAnalyzer();
+    const result = analyzer.analyze(source);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["UseBeforeDeclaration"]);
+    expect(result.passes).to.be.empty;
+
+    const compiler = new ShaderCompiler();
+    compiler._setAnalyzer(analyzer);
+    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+  });
+
+  it("blocks codegen for a repeated #ifdef/#elif condition", () => {
+    const source = shader(
+      `#ifdef USE_VALUE
+float u_value;
+#elif defined(USE_VALUE)
 float u_value;
 #endif`,
       "gl_FragColor = vec4(u_value);"

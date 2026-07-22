@@ -46,6 +46,26 @@ const MACRO_SAMPLES: Record<string, string> = {
       VertexShader = vert;
       FragmentShader = frag;`),
 
+  "宏分支 / #ifdef / #elif 完整互补": pass(`      #ifdef USE_BRANCH_VALUE
+        float u_branchValue;
+      #elif !defined(USE_BRANCH_VALUE)
+        float u_branchValue;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_branchValue); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / #ifdef / #elif 同条件不可达": pass(`      #ifdef USE_BRANCH_VALUE
+        float u_branchValue;
+      #elif defined(USE_BRANCH_VALUE)
+        float u_branchValue;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_branchValue); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
   "宏分支 / #ifndef / #else 互斥": pass(`      #ifndef DISABLE_BRANCH_VALUE
         float u_branchValue;
       #else

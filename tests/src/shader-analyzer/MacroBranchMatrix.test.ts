@@ -104,6 +104,32 @@ float u_value;
     fragments: ["#ifndef DISABLE_VALUE", "#elif defined(DISABLE_VALUE)", "#endif", "uniform float u_value;"]
   },
   {
+    name: "#ifdef/#elif !defined siblings",
+    source: shader(
+      `#ifdef USE_VALUE
+float u_value;
+#elif !defined(USE_VALUE)
+float u_value;
+#endif`,
+      "      gl_FragColor = vec4(u_value);"
+    ),
+    codes: [],
+    fragments: ["#ifdef USE_VALUE", "#elif !defined(USE_VALUE)", "#endif", "uniform float u_value;"]
+  },
+  {
+    name: "#ifdef/#elif repeated condition has a declaration gap",
+    source: shader(
+      `#ifdef USE_VALUE
+float u_value;
+#elif defined(USE_VALUE)
+float u_value;
+#endif`,
+      "      gl_FragColor = vec4(u_value);"
+    ),
+    codes: ["UseBeforeDeclaration"],
+    fragments: []
+  },
+  {
     name: "#ifndef/#elif non-complementary gap",
     source: shader(
       `#ifndef DISABLE_VALUE
@@ -448,6 +474,26 @@ float u_value;
       [true, true]
     ]);
   });
+
+  it("marks complementary #ifdef/#elif !defined arms as complete", () => {
+    const tokens = Array.from(
+      new Lexer(
+        `#ifdef USE_VALUE
+float u_value;
+#elif !defined(USE_VALUE)
+float u_value;
+#endif`,
+        {}
+      ).tokenize()
+    );
+    const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);
+    expect(branches.map((branch) => branch.conditionalComplete)).to.deep.equal([true, true]);
+    expect(branches.map((branch) => branch.conditionalReachableArms)).to.deep.equal([
+      [true, true],
+      [true, true]
+    ]);
+  });
+
   for (const testCase of cases) {
     it(`analyzes and generates ${testCase.name}`, () => {
       const { codes, fragment } = compile(testCase.source, testCase.includeMap);
