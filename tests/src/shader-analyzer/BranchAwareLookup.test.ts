@@ -8,7 +8,8 @@
  * `AssignTypeMismatch` on the shipping shaders.
  *
  * After: SymbolInfo carries `branchSignature`; lookup filters by `isBranchVisibleFrom` against the
- * calling AST node's branch. Same or nested branch = visible; mutually-exclusive = invisible.
+ * calling AST node's branch. The reference branch must imply the declaration branch; merely
+ * non-conflicting branches are not sufficient.
  */
 
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
@@ -78,5 +79,62 @@ describe("branch-aware SymbolTable lookup", () => {
       VertexShader = vert; FragmentShader = frag;`
     );
     expect(errorsOf(src, "AssignTypeMismatch").length, "no implicit int→float even inside #ifdef").to.be.greaterThan(0);
+  });
+
+  it("accepts a declaration guarded by a macro defined earlier in the same arm", () => {
+    const src = pass(
+      `#ifndef G
+        #define G
+        #ifdef G
+          float u_value;
+        #endif
+        void frag() { gl_FragColor = vec4(u_value); }
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`
+    );
+    expect(errorsOf(src, "UseBeforeDeclaration")).to.be.empty;
+  });
+
+  it("rejects a reference that is not guaranteed by its declaration branch", () => {
+    const src = pass(
+      `#ifdef A
+        #ifdef B
+          float u_value;
+        #endif
+        void frag() { gl_FragColor = vec4(u_value); }
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`
+    );
+    const errors = errorsOf(src, "UseBeforeDeclaration");
+    expect(errors).to.have.lengthOf(1);
+    expect(errors[0].message).to.contain("not guaranteed");
+  });
+
+  it("accepts a helper implemented in every complete branch", () => {
+    const src = pass(
+      `#ifdef A
+        float branchValue() { return 0.0; }
+      #else
+        float branchValue() { return 1.0; }
+      #endif
+      void frag() { gl_FragColor = vec4(branchValue()); }
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`
+    );
+    expect(errorsOf(src, "UseBeforeDeclaration")).to.be.empty;
+  });
+
+  it("rejects an unconditional helper call missing a macro branch", () => {
+    const src = pass(
+      `#ifdef A
+        float branchValue() { return 0.0; }
+      #endif
+      void frag() { gl_FragColor = vec4(branchValue()); }
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert; FragmentShader = frag;`
+    );
+    expect(errorsOf(src, "UseBeforeDeclaration")).to.have.lengthOf(1);
   });
 });

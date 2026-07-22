@@ -1,7 +1,16 @@
 import { ClearableObjectPool, type IPoolElement } from "@galacean/engine-core";
 import type { ICodeGenVisitor } from "./ICodeGenVisitor";
 import { ETokenType, GalaceanDataType, ShaderRange, TokenType, TypeAny } from "../common";
-import { BaseToken, BranchSignature, EMPTY_BRANCH, isBranchVisibleFrom, sameBranch } from "../common/BaseToken";
+import {
+  BaseToken,
+  BranchSignature,
+  canBranchesCoverCallsite,
+  canBranchesOverlap,
+  canDeclarationsCoexist,
+  EMPTY_BRANCH,
+  isSelfGuardingBranch,
+  sameBranch
+} from "../common/BaseToken";
 import { Keyword } from "../common/enums/Keyword";
 import { ParserUtils } from "../ParserUtils";
 import { TypeSystem } from "./TypeSystem";
@@ -903,9 +912,20 @@ export namespace ASTNode {
         const lookupSymbol = SemanticAnalyzer._lookupSymbol;
         lookupSymbol.set(fnIdent, ESymbolType.FN, undefined, undefined, paramSig);
 
-        // Branch-aware function call resolution: a helper defined in `#ifdef X` is visible from
-        // callers in the same branch or a nested one, invisible from `#else`.
-        const fnSymbol = sa.symbolTableStack.lookup(lookupSymbol, true, this._branch) as FnSymbol;
+        // Keep every macro-compatible overload, then require one declaration to be guaranteed or
+        // matching declarations in every arm of a complete conditional chain. This is the same
+        // contract as variable lookup: a helper hidden behind only `#ifdef X` cannot satisfy an
+        // unconditional call.
+        const allMatches = FunctionCallGeneric._overloadScratch;
+        sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch);
+        const branchCovered =
+          canBranchesCoverCallsite(
+            allMatches.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+            this._branch
+          ) ||
+          allMatches.some((symbol) => isSelfGuardingBranch(symbol.branchSignature ?? EMPTY_BRANCH)) ||
+          FunctionCallGeneric._hasConflictingBranches(allMatches);
+        const fnSymbol = branchCovered ? (allMatches[0] as FnSymbol | undefined) : undefined;
 
         // Ambiguity guard: when the call has TypeAny args, `SymbolInfo.equal` treats them as
         // wildcards, so the first overload in reverse-insertion order wins and fixes a specific
@@ -916,8 +936,6 @@ export namespace ASTNode {
         // to TypeAny — the caller's downstream inference stays open instead of committing.
         let overloadTypeAmbiguous = false;
         if (fnSymbol && paramSig?.some((t) => t === TypeAny)) {
-          const allMatches = FunctionCallGeneric._overloadScratch;
-          sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch);
           if (allMatches.length > 1) {
             const firstType = (allMatches[0] as FnSymbol).dataType?.type;
             overloadTypeAmbiguous = allMatches.some((s) => (s as FnSymbol).dataType?.type !== firstType);
@@ -925,12 +943,21 @@ export namespace ASTNode {
         }
 
         if (!fnSymbol) {
+          if (allMatches.length) {
+            sa.reportError(
+              this.location,
+              `Function '${fnIdent}' is declared only in macro branches that are not guaranteed at this reference.`,
+              DiagnosticType.UseBeforeDeclaration
+            );
+            return;
+          }
           // The lookup above is keyed by argument signature, so a miss conflates an unknown
           // name with a known function called with the wrong arguments; re-probe by name
           // alone (and the builtin registry) to report whichever it actually is.
           lookupSymbol.set(fnIdent, ESymbolType.FN);
           const nameDeclared =
-            !!sa.symbolTableStack.lookup(lookupSymbol, true, this._branch) || BuiltinFunction.isExist(fnIdent);
+            sa.symbolTableStack.lookupAll(lookupSymbol, true, allMatches, this._branch).length > 0 ||
+            BuiltinFunction.isExist(fnIdent);
           // NoMatchingOverload = name is known, arg types are wrong → real type error.
           // UndefinedFunction = name is unknown at precompile. `#include` is already expanded by
           // the time the AST is built, so the only remaining "provided later" path is a runtime
@@ -954,6 +981,31 @@ export namespace ASTNode {
         this.type = overloadTypeAmbiguous ? TypeAny : fnSymbol?.dataType?.type;
         this.fnSymbol = fnSymbol;
       }
+    }
+
+    private static _hasConflictingBranches(symbols: readonly SymbolInfo[]): boolean {
+      for (let i = 0, n = symbols.length; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+          const left = symbols[i] as FnSymbol;
+          const right = symbols[j] as FnSymbol;
+          if (
+            FunctionCallGeneric._hasSameParameterSignature(left, right) &&
+            canDeclarationsCoexist(left.branchSignature ?? EMPTY_BRANCH, right.branchSignature ?? EMPTY_BRANCH)
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    private static _hasSameParameterSignature(left: FnSymbol, right: FnSymbol): boolean {
+      const leftSignature = left.astNode.protoType.paramSig ?? [];
+      const rightSignature = right.astNode.protoType.paramSig ?? [];
+      return (
+        leftSignature.length === rightSignature.length &&
+        leftSignature.every((type, index) => type === rightSignature[index])
+      );
     }
   }
 
@@ -1176,6 +1228,20 @@ export namespace ASTNode {
       const structs = sa.symbolTableStack.lookupAll(lookup, true, PostfixExpression._structScratch, callsiteBranch);
       // Unresolved struct (e.g. a built-in or out-of-scope type) — skip rather than risk a false positive.
       if (!structs.length) return;
+      if (
+        !canBranchesCoverCallsite(
+          structs.map((struct) => struct.branchSignature ?? EMPTY_BRANCH),
+          callsiteBranch
+        ) &&
+        !structs.some((struct) => isSelfGuardingBranch(struct.branchSignature ?? EMPTY_BRANCH))
+      ) {
+        sa.reportError(
+          field.location,
+          `Struct '${structName}' is declared only in macro branches that are not guaranteed at this reference.`,
+          DiagnosticType.UseBeforeDeclaration
+        );
+        return;
+      }
       const firstProp = (structs[0] as StructSymbol).astNode.propList.find(
         (prop) => prop.ident.lexeme === field.lexeme
       );
@@ -1838,8 +1904,8 @@ export namespace ASTNode {
       if (!macroName) return;
       if (needFindNames.indexOf(macroName) !== -1) return; // already looked up as a real reference
       if (BuiltinFunction.isExist(macroName) || BuiltinVariable.getVar(macroName)) return; // builtins can't be shadowed
-      // Cross-arm probe intentionally sees every branch; EMPTY_BRANCH as callsite makes
-      // `isBranchVisibleFrom` return true for any candidate.
+      // Cross-arm probes intentionally collect candidates from every compatible branch. They are
+      // only used to retain declarations for codegen, never for author-facing type resolution.
       VariableIdentifier._lookupAndMarkGlobalReference(
         sa,
         macroName,
@@ -1876,6 +1942,14 @@ export namespace ASTNode {
 
       if (!symbols.length) {
         if (missErrorLoc) {
+          if (sa.symbolTableStack.hasSymbol(lookupSymbol)) {
+            sa.reportError(
+              missErrorLoc,
+              `Identifier '${name}' is declared only in macro branches that are not guaranteed at this reference.`,
+              DiagnosticType.UseBeforeDeclaration
+            );
+            return false;
+          }
           // `#include` is already expanded by the time the AST is built, so the only remaining
           // "provided later" path is a runtime macro that the material system supplies at bind
           // time (`RENDERER_JOINTS_NUM` etc.). Report as a warning — the author is responsible for
@@ -1883,6 +1957,23 @@ export namespace ASTNode {
           sa.reportWarning(
             missErrorLoc,
             `Undeclared identifier '${name}' — ensure it is provided at runtime as a macro.`,
+            DiagnosticType.UseBeforeDeclaration
+          );
+        }
+        return false;
+      }
+      if (
+        !canBranchesCoverCallsite(
+          symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
+          callsiteBranch
+        ) &&
+        !symbols.some((symbol) => isSelfGuardingBranch(symbol.branchSignature ?? EMPTY_BRANCH)) &&
+        !VariableIdentifier._hasConflictingGlobalBranches(symbols)
+      ) {
+        if (missErrorLoc) {
+          sa.reportError(
+            missErrorLoc,
+            `Identifier '${name}' is declared only in macro branches that are not guaranteed at this reference.`,
             DiagnosticType.UseBeforeDeclaration
           );
         }
@@ -1898,6 +1989,20 @@ export namespace ASTNode {
         referenceGlobalSymbolNames.push(name);
       }
       return true;
+    }
+
+    private static _hasConflictingGlobalBranches(symbols: readonly (VarSymbol | FnSymbol)[]): boolean {
+      for (let i = 0, n = symbols.length; i < n; i++) {
+        const left = symbols[i];
+        if (!(left instanceof FnSymbol) && !left.isGlobalVariable) continue;
+        for (let j = i + 1; j < n; j++) {
+          const right = symbols[j];
+          if (!(right instanceof FnSymbol) && !right.isGlobalVariable) continue;
+          if (canDeclarationsCoexist(left.branchSignature ?? EMPTY_BRANCH, right.branchSignature ?? EMPTY_BRANCH))
+            return true;
+        }
+      }
+      return false;
     }
 
     override codeGen(visitor: ICodeGenVisitor): string {
@@ -2127,7 +2232,7 @@ export namespace ASTNode {
       if (defList) {
         for (let i = 0, n = defList.length; i < n; i++) {
           const info = defList[i];
-          if (!isBranchVisibleFrom(info.branch, callSiteBranch)) continue;
+          if (!canBranchesOverlap(info.branch, callSiteBranch)) continue;
           visibleCount++;
           if (info.valueAst == null) allAst = false;
           if (info.isFunction) isFn = true;

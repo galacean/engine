@@ -93,7 +93,7 @@ export default class SemanticAnalyzer {
   }
 
   /**
-   * Emit one macro-branch ambiguity warning per semantic projection and pass.
+   * Emit one macro-branch resolution error per semantic projection and pass.
    * @param loc - Source range of the ambiguous reference.
    * @param key - Stable projection key, such as a variable name or `Struct.member`.
    * @param message - User-facing diagnostic message.
@@ -103,6 +103,6 @@ export default class SemanticAnalyzer {
     const dedupKey = `${code}:${key}`;
     if (this._ambiguousReported.has(dedupKey)) return;
     this._ambiguousReported.add(dedupKey);
-    this.reportWarning(loc, message, code);
+    this.reportError(loc, message, code);
   }
 }

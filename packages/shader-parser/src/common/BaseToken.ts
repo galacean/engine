@@ -15,8 +15,14 @@ export interface BranchConstraint {
   conditionalGroup?: number;
   /** Lexical arm within `conditionalGroup`; different arms cannot execute together. */
   conditionalArm?: number;
+  /** Whether this conditional chain has an `#else` arm and therefore covers every configuration. */
+  conditionalComplete?: boolean;
+  /** Number of arms in this complete conditional chain. */
+  conditionalArmCount?: number;
   /** A simple `#if` condition recognized by the lexer. Complex expressions stay undefined. */
   condition?: BranchCondition;
+  /** Conditions of earlier arms that must be false for this `#elif`/`#else` arm to run. */
+  precedingConditions?: readonly BranchCondition[];
   /**
    * Shared `#undef` events for this guard macro. Each guard records the event index at its entry
    * (and again when it defines itself) so conflict checks only consider invalidations between two
@@ -32,8 +38,15 @@ export interface BranchConstraint {
 
 /** A single-macro condition that can be compared without evaluating a macro configuration. */
 export type BranchCondition =
-  | { kind: "defined"; name: string; defined: boolean }
-  | { kind: "comparison"; name: string; operator: "==" | "!=" | ">" | ">=" | "<" | "<="; value: number };
+  | { kind: "constant"; value: boolean }
+  | { kind: "defined"; name: string; defined: boolean; version: number }
+  | {
+      kind: "comparison";
+      name: string;
+      operator: "==" | "!=" | ">" | ">=" | "<" | "<=";
+      value: number;
+      version: number;
+    };
 
 /**
  * Snapshot of the `#ifdef`/`#ifndef`/`#else` stack at a source position. An
@@ -60,34 +73,54 @@ export const EMPTY_BRANCH: BranchSignature = [];
 export function sameBranch(a: BranchSignature, b: BranchSignature): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0, n = a.length; i < n; i++) {
-    if (a[i].name !== b[i].name || a[i].defined !== b[i].defined) return false;
+    const left = a[i];
+    const right = b[i];
+    if (left.name !== right.name || left.defined !== right.defined) return false;
+    if (!sameCondition(left.condition, right.condition)) return false;
+    const leftPreceding = left.precedingConditions;
+    const rightPreceding = right.precedingConditions;
+    if ((leftPreceding?.length ?? 0) !== (rightPreceding?.length ?? 0)) return false;
+    for (let j = 0, m = leftPreceding?.length ?? 0; j < m; j++) {
+      if (!sameCondition(leftPreceding![j], rightPreceding![j])) return false;
+    }
   }
   return true;
 }
 
 /**
- * `defBranch` is visible from `callSiteBranch` when there is no mutually-exclusive constraint
- * between them — i.e. no shared name whose `defined` flags differ. Same or nested branch is
- * always visible; unconditional (empty) `defBranch` is visible everywhere. Extracted from Lexer
- * so common/SymbolTable can consume it without pulling the whole lexer in as a dependency.
+ * `defBranch` is visible from `callSiteBranch` when every macro configuration that reaches the
+ * reference also reaches the declaration. Compatibility alone is not enough: a declaration in
+ * `#ifdef A` is not visible from an unconditional reference, because `A` can be absent there.
+ * Extracted from Lexer so common/SymbolTable can consume it without pulling the whole lexer in as
+ * a dependency.
  * @param defBranch - Declaration-side branch signature.
  * @param callSiteBranch - Reference-side branch signature.
  * @returns Whether the declaration is visible from the reference branch.
  */
 export function isBranchVisibleFrom(defBranch: BranchSignature, callSiteBranch: BranchSignature): boolean {
+  if (!isBranchReachable(callSiteBranch) || !canBranchesOverlap(defBranch, callSiteBranch)) return false;
+
+  const callConditions = getConditions(callSiteBranch);
   for (let i = 0, n = defBranch.length; i < n; i++) {
-    const d = defBranch[i];
-    for (let j = 0, m = callSiteBranch.length; j < m; j++) {
-      const c = callSiteBranch[j];
-      if (
-        d.conditionalGroup !== undefined &&
-        d.conditionalGroup === c.conditionalGroup &&
-        d.conditionalArm !== c.conditionalArm
-      ) {
-        return false;
-      }
-      if (d.name === c.name && d.defined !== c.defined) return false;
-      if (areConditionsMutuallyExclusive(d.condition, c.condition)) return false;
+    const constraint = defBranch[i];
+    if (constraint.conditionalGroup !== undefined) {
+      const matchingArm = callSiteBranch.find(
+        (candidate) =>
+          candidate.conditionalGroup === constraint.conditionalGroup &&
+          candidate.conditionalArm === constraint.conditionalArm
+      );
+      const otherArm = callSiteBranch.find(
+        (candidate) =>
+          candidate.conditionalGroup === constraint.conditionalGroup &&
+          candidate.conditionalArm !== constraint.conditionalArm
+      );
+      if (otherArm) return false;
+      if (matchingArm) continue;
+    }
+
+    const required = getConstraintConditions(constraint);
+    for (let j = 0, m = required.length; j < m; j++) {
+      if (!isConditionImplied(required[j], callConditions)) return false;
     }
   }
   return true;
@@ -103,7 +136,7 @@ export function isBranchVisibleFrom(defBranch: BranchSignature, callSiteBranch: 
  * @returns Whether both declarations can be emitted by one macro configuration.
  */
 export function canDeclarationsCoexist(earlier: BranchSignature, later: BranchSignature): boolean {
-  if (!isBranchVisibleFrom(earlier, later)) return false;
+  if (!canBranchesOverlap(earlier, later)) return false;
 
   for (let i = 0, n = earlier.length; i < n; i++) {
     const left = earlier[i];
@@ -125,6 +158,129 @@ export function canDeclarationsCoexist(earlier: BranchSignature, later: BranchSi
   return true;
 }
 
+/** Whether this lexical branch can be emitted by at least one macro configuration. */
+export function isBranchReachable(branch: BranchSignature): boolean {
+  const conditions = getConditions(branch);
+  for (let i = 0, n = conditions.length; i < n; i++) {
+    const condition = conditions[i];
+    if (condition.kind === "constant" && !condition.value) return false;
+    for (let j = i + 1; j < n; j++) {
+      if (areConditionsMutuallyExclusive(conditions[i], conditions[j])) return false;
+    }
+  }
+  return true;
+}
+
+/** Whether two lexical branches can both be emitted by at least one macro configuration. */
+export function canBranchesOverlap(left: BranchSignature, right: BranchSignature): boolean {
+  for (let i = 0, n = left.length; i < n; i++) {
+    const leftConstraint = left[i];
+    for (let j = 0, m = right.length; j < m; j++) {
+      const rightConstraint = right[j];
+      if (
+        leftConstraint.conditionalGroup !== undefined &&
+        leftConstraint.conditionalGroup === rightConstraint.conditionalGroup &&
+        leftConstraint.conditionalArm !== rightConstraint.conditionalArm
+      ) {
+        return false;
+      }
+    }
+  }
+
+  return isBranchReachable([...left, ...right]);
+}
+
+/**
+ * Whether declarations from a complete set of conditional arms cover every configuration that can
+ * reach `callSiteBranch`. A single declaration must be guaranteed by the call site; alternatively,
+ * one declaration in every arm of an exhaustive `#if/#elif/#else` chain is sufficient.
+ * @param candidates - Branch signatures of matching declarations in one lexical scope.
+ * @param callSiteBranch - Branch signature at the reference.
+ * @returns Whether the reference is backed by a declaration on every reachable macro path.
+ */
+export function canBranchesCoverCallsite(
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+): boolean {
+  return canCandidateSetCoverCallsite(candidates, callSiteBranch);
+}
+
+/** Whether this declaration is protected by a canonical `#ifndef` guard that defines itself. */
+export function isSelfGuardingBranch(branch: BranchSignature): boolean {
+  return branch.some((constraint) => constraint.selfGuarding);
+}
+
+function canCandidateSetCoverCallsite(
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+): boolean {
+  if (!isBranchReachable(callSiteBranch)) return true;
+  const compatible = candidates.filter((candidate) => canBranchesOverlap(candidate, callSiteBranch));
+  for (let i = 0, n = compatible.length; i < n; i++) {
+    if (isBranchVisibleFrom(compatible[i], callSiteBranch)) return true;
+  }
+
+  const groups = new Set<number>();
+  for (let i = 0, n = compatible.length; i < n; i++) {
+    const candidate = compatible[i];
+    for (let j = 0, m = candidate.length; j < m; j++) {
+      const constraint = candidate[j];
+      if (
+        constraint.conditionalComplete &&
+        constraint.conditionalGroup !== undefined &&
+        constraint.conditionalArmCount !== undefined
+      ) {
+        groups.add(constraint.conditionalGroup);
+      }
+    }
+  }
+
+  for (const group of groups) {
+    const callSiteConstraint = callSiteBranch.find((constraint) => constraint.conditionalGroup === group);
+    if (callSiteConstraint?.conditionalArm !== undefined) {
+      const inCurrentArm = compatible
+        .filter(
+          (candidate) =>
+            candidate.find((constraint) => constraint.conditionalGroup === group)?.conditionalArm ===
+            callSiteConstraint.conditionalArm
+        )
+        .map((candidate) => removeConditionalGroup(candidate, group));
+      if (
+        inCurrentArm.length &&
+        canCandidateSetCoverCallsite(inCurrentArm, removeConditionalGroup(callSiteBranch, group))
+      ) {
+        return true;
+      }
+      continue;
+    }
+
+    const representative = compatible
+      .map((candidate) => candidate.find((constraint) => constraint.conditionalGroup === group))
+      .find((constraint) => constraint?.conditionalArmCount !== undefined);
+    const armCount = representative?.conditionalArmCount;
+    if (armCount === undefined) continue;
+
+    let everyArmCovered = true;
+    for (let arm = 0; arm < armCount; arm++) {
+      const armCandidates = compatible
+        .filter(
+          (candidate) => candidate.find((constraint) => constraint.conditionalGroup === group)?.conditionalArm === arm
+        )
+        .map((candidate) => removeConditionalGroup(candidate, group));
+      if (!armCandidates.length || !canCandidateSetCoverCallsite(armCandidates, callSiteBranch)) {
+        everyArmCovered = false;
+        break;
+      }
+    }
+    if (everyArmCovered) return true;
+  }
+  return false;
+}
+
+function removeConditionalGroup(branch: BranchSignature, group: number): BranchSignature {
+  return branch.filter((constraint) => constraint.conditionalGroup !== group);
+}
+
 function hasCompatibleGuardUndef(
   earlier: BranchSignature,
   earlierGuard: BranchConstraint,
@@ -138,19 +294,85 @@ function hasCompatibleGuardUndef(
   const end = laterGuard.guardUndefStart ?? 0;
   for (let i = start; i < end; i++) {
     const event = events[i];
-    if (isBranchVisibleFrom(earlier, event) && isBranchVisibleFrom(event, later)) return true;
+    if (canBranchesOverlap(earlier, event) && canBranchesOverlap(event, later)) return true;
   }
   return false;
 }
 
+function getConditions(branch: BranchSignature): BranchCondition[] {
+  const conditions: BranchCondition[] = [];
+  for (let i = 0, n = branch.length; i < n; i++) conditions.push(...getConstraintConditions(branch[i]));
+  return conditions;
+}
+
+function getConstraintConditions(constraint: BranchConstraint): readonly BranchCondition[] {
+  const conditions = constraint.precedingConditions ? [...constraint.precedingConditions] : [];
+  if (constraint.condition) conditions.push(constraint.condition);
+  return conditions;
+}
+
+function sameCondition(left?: BranchCondition, right?: BranchCondition): boolean {
+  if (!left || !right) return left === right;
+  if (left.kind !== right.kind) return false;
+  if (left.kind === "constant") return right.kind === "constant" && left.value === right.value;
+  if (right.kind === "constant") return false;
+  if (left.name !== right.name || left.version !== right.version) return false;
+  if (left.kind === "defined" && right.kind === "defined") return left.defined === right.defined;
+  return (
+    left.kind === "comparison" &&
+    right.kind === "comparison" &&
+    left.operator === right.operator &&
+    left.value === right.value
+  );
+}
+
+function isConditionImplied(required: BranchCondition, facts: readonly BranchCondition[]): boolean {
+  if (required.kind === "constant") return required.value;
+  for (let i = 0, n = facts.length; i < n; i++) {
+    const fact = facts[i];
+    if (fact.kind === "constant") continue;
+    if (fact.name !== required.name || fact.version !== required.version) continue;
+    if (conditionImplies(fact, required)) return true;
+  }
+  return false;
+}
+
+function conditionImplies(
+  fact: Exclude<BranchCondition, { kind: "constant" }>,
+  required: Exclude<BranchCondition, { kind: "constant" }>
+): boolean {
+  if (fact.kind === "defined") {
+    if (required.kind === "defined") return fact.defined === required.defined;
+    return !fact.defined && matchesComparison(0, required);
+  }
+  if (required.kind === "defined") {
+    return required.defined && !matchesComparison(0, fact);
+  }
+
+  if (fact.operator === "==") return matchesComparison(fact.value, required);
+  if (required.operator === "!=") return !matchesComparison(required.value, fact);
+
+  const factLower = lowerBound(fact);
+  const factUpper = upperBound(fact);
+  const requiredLower = lowerBound(required);
+  const requiredUpper = upperBound(required);
+  if (requiredLower && (!factLower || !isLowerBoundAtLeast(factLower, requiredLower))) return false;
+  if (requiredUpper && (!factUpper || !isUpperBoundAtMost(factUpper, requiredUpper))) return false;
+  return !!(requiredLower || requiredUpper);
+}
+
 function areConditionsMutuallyExclusive(left?: BranchCondition, right?: BranchCondition): boolean {
-  if (!left || !right || left.name !== right.name) return false;
+  if (!left || !right) return false;
+  if (left.kind === "constant" || right.kind === "constant") {
+    return (left.kind === "constant" && !left.value) || (right.kind === "constant" && !right.value);
+  }
+  if (left.name !== right.name || left.version !== right.version) return false;
 
   if (left.kind === "defined") {
     if (right.kind === "defined") return left.defined !== right.defined;
-    return !left.defined;
+    return !left.defined && !matchesComparison(0, right);
   }
-  if (right.kind === "defined") return !right.defined;
+  if (right.kind === "defined") return !right.defined && !matchesComparison(0, left);
 
   if (left.operator === "==") return !matchesComparison(left.value, right);
   if (right.operator === "==") return !matchesComparison(right.value, left);
@@ -162,6 +384,24 @@ function areConditionsMutuallyExclusive(left?: BranchCondition, right?: BranchCo
   return (
     (leftLower !== undefined && rightUpper !== undefined && isEmptyInterval(leftLower, rightUpper)) ||
     (rightLower !== undefined && leftUpper !== undefined && isEmptyInterval(rightLower, leftUpper))
+  );
+}
+
+function isLowerBoundAtLeast(
+  actual: { value: number; inclusive: boolean },
+  required: { value: number; inclusive: boolean }
+): boolean {
+  return (
+    actual.value > required.value || (actual.value === required.value && (actual.inclusive || !required.inclusive))
+  );
+}
+
+function isUpperBoundAtMost(
+  actual: { value: number; inclusive: boolean },
+  required: { value: number; inclusive: boolean }
+): boolean {
+  return (
+    actual.value < required.value || (actual.value === required.value && (actual.inclusive || !required.inclusive))
   );
 }
 

@@ -46,7 +46,9 @@ describe("branch resolution ambiguity", () => {
       gl_FragColor = vec4(0.0);
     }
     ${ENTRIES}`);
-    expect(result.filter((diagnostic) => diagnostic.code === "AmbiguousMacroBranchResolution")).to.have.lengthOf(1);
+    const ambiguity = result.filter((diagnostic) => diagnostic.code === "AmbiguousMacroBranchResolution");
+    expect(ambiguity).to.have.lengthOf(1);
+    expect(ambiguity[0].severity).to.equal("error");
     expect(result.some((diagnostic) => diagnostic.code === "NonConstArraySize")).to.equal(false);
   });
 
@@ -110,7 +112,7 @@ describe("branch resolution ambiguity", () => {
     expect(result).to.not.include("AmbiguousMacroBranchType");
   });
 
-  it("warns when a struct member exists in only one visible branch", () => {
+  it("errors when a struct member exists in only one visible branch", () => {
     const result = diagnostics(`#ifdef A
       struct S { float value; };
     #else
@@ -119,7 +121,9 @@ describe("branch resolution ambiguity", () => {
     S s;
     void frag() { gl_FragColor = vec4(s.value); }
     ${ENTRIES}`);
-    expect(result.filter((diagnostic) => diagnostic.code === "AmbiguousMacroBranchResolution")).to.have.lengthOf(1);
+    const ambiguity = result.filter((diagnostic) => diagnostic.code === "AmbiguousMacroBranchResolution");
+    expect(ambiguity).to.have.lengthOf(1);
+    expect(ambiguity[0].severity).to.equal("error");
     expect(result.some((diagnostic) => diagnostic.code === "UndeclaredStructMember")).to.equal(false);
   });
 
@@ -127,7 +131,7 @@ describe("branch resolution ambiguity", () => {
     ["base type", "float value;", "int value;"],
     ["array shape", "float value;", "float value[2];"],
     ["array size", "float value[2];", "float value[3];"]
-  ])("warns when a struct member has divergent %s", (_name, first, second) => {
+  ])("errors when a struct member has divergent %s", (_name, first, second) => {
     const result = codes(`#ifdef A
       struct S { ${first} };
     #else

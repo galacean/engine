@@ -162,6 +162,65 @@ float u_value;
     ).to.be.empty;
   });
 
+  it("reports #ifndef and numeric-zero declarations as coexisting", () => {
+    expect(
+      redefinitions(
+        shader(`#if !defined(MODE)
+float u_value;
+#endif
+#if MODE == 0
+float u_value;
+#endif`)
+      )
+    ).to.have.lengthOf(1);
+  });
+
+  it("does not reopen a guard through an unreachable conditional #undef", () => {
+    expect(
+      redefinitions(
+        shader(`#ifndef CONDITIONAL_GUARD
+#define CONDITIONAL_GUARD
+float u_value;
+#endif
+#if !defined(CONDITIONAL_GUARD)
+#undef CONDITIONAL_GUARD
+#endif
+#ifndef CONDITIONAL_GUARD
+#define CONDITIONAL_GUARD
+float u_value;
+#endif`)
+      )
+    ).to.be.empty;
+  });
+
+  it("does not report declarations in constant-false branches", () => {
+    expect(
+      redefinitions(
+        shader(`#if 0
+float u_value;
+#endif
+#if 0
+float u_value;
+#endif`)
+      )
+    ).to.be.empty;
+  });
+
+  it("includes preceding #if negations in #elif branch constraints", () => {
+    expect(
+      redefinitions(
+        shader(`#if A
+float u_first;
+#elif B
+float u_value;
+#endif
+#if A
+float u_value;
+#endif`)
+      )
+    ).to.be.empty;
+  });
+
   it.each([
     ["overlapping numeric ranges", "MODE >= 1", "MODE > 1"],
     ["different macro names", "FIRST == 1", "SECOND == 2"],

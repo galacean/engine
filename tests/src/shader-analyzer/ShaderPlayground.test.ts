@@ -66,22 +66,40 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
     snippet: "#ifdef HAS_VALUE",
     diagnosticCount: 1,
     diagnostic: "AmbiguousMacroBranchResolution",
-    severity: "warning"
+    severity: "error"
   },
   {
     label: "符号 / AmbiguousMacroBranchType",
     snippet: "#ifdef USE_VEC3",
     diagnosticCount: 1,
     diagnostic: "AmbiguousMacroBranchType",
-    severity: "warning"
+    severity: "error"
   },
   {
     label: "符号 / AmbiguousMacroBranchResolution",
     snippet: "#ifdef USE_CONST_SIZE",
     diagnosticCount: 1,
     diagnostic: "AmbiguousMacroBranchResolution",
-    severity: "warning"
-  }
+    severity: "error"
+  },
+  {
+    label: "宏分支 / 未定义宏按零参与比较",
+    snippet: "#if !defined(MODE)",
+    diagnosticCount: 1,
+    diagnostic: "Redefinition",
+    severity: "error"
+  },
+  { label: "宏分支 / 条件 #undef 未执行", snippet: "#undef CONDITIONAL_GUARD", diagnosticCount: 0 },
+  { label: "宏分支 / 定义后的嵌套检查", snippet: "#define G", diagnosticCount: 0 },
+  {
+    label: "宏分支 / 声明未覆盖引用",
+    snippet: "#ifdef B",
+    diagnosticCount: 1,
+    diagnostic: "UseBeforeDeclaration",
+    severity: "error"
+  },
+  { label: "宏分支 / #if 0 死分支", snippet: "#if 0", diagnosticCount: 0 },
+  { label: "宏分支 / #elif 继承前置否定", snippet: "#elif B", diagnosticCount: 0 }
 ] as const;
 
 describe("shader playground", () => {

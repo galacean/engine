@@ -1,4 +1,10 @@
-import { BranchSignature, canDeclarationsCoexist, EMPTY_BRANCH, isBranchVisibleFrom } from "./BaseToken";
+import {
+  BranchSignature,
+  canBranchesOverlap,
+  canDeclarationsCoexist,
+  EMPTY_BRANCH,
+  isBranchVisibleFrom
+} from "./BaseToken";
 import { IBaseSymbol } from "./IBaseSymbol";
 
 export class SymbolTable<T extends IBaseSymbol> {
@@ -71,9 +77,20 @@ export class SymbolTable<T extends IBaseSymbol> {
     return out;
   }
 
+  /** Whether this scope contains an equal symbol without applying macro-branch visibility rules. */
+  hasSymbol(symbol: T): boolean {
+    const entry = this._table.get(symbol.ident);
+    if (!entry) return false;
+    for (let i = 0, n = entry.length; i < n; i++) {
+      if (entry[i].equal(symbol)) return true;
+    }
+    return false;
+  }
+
   /**
    * @internal
-   * Same visibility semantics as `getSymbol`, but collects every visible matching candidate.
+   * Collect every matching declaration that can coexist with the callsite. Consumers combine this
+   * candidate set with `canBranchesCoverCallsite` before accepting an unconditional reference.
    */
   _getSymbols(symbol: T, includeMacro = false, out: T[], callsiteBranch?: BranchSignature): T[] {
     const entry = this._table.get(symbol.ident);
@@ -82,7 +99,7 @@ export class SymbolTable<T extends IBaseSymbol> {
       for (let i = entry.length - 1; i >= 0; i--) {
         const item = entry[i];
         if (callsiteBranch !== undefined) {
-          if (!isBranchVisibleFrom(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch)) continue;
+          if (!canBranchesOverlap(item.branchSignature ?? EMPTY_BRANCH, callsiteBranch)) continue;
         } else if (!includeMacro && item.isInMacroBranch) {
           continue;
         }

@@ -151,6 +151,78 @@ const MACRO_SAMPLES: Record<string, string> = {
       void vert() { gl_Position = vec4(0.0); }
       void frag() { gl_FragColor = vec4(data.value); }
       VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 未定义宏按零参与比较": pass(`      #if !defined(MODE)
+        float u_value;
+      #endif
+      #if MODE == 0
+        float u_value;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 条件 #undef 未执行": pass(`      #ifndef CONDITIONAL_GUARD
+        #define CONDITIONAL_GUARD
+        float u_value;
+      #endif
+      #if !defined(CONDITIONAL_GUARD)
+        #undef CONDITIONAL_GUARD
+      #endif
+      #ifndef CONDITIONAL_GUARD
+        #define CONDITIONAL_GUARD
+        float u_value;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(u_value); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 定义后的嵌套检查": pass(`      #ifndef G
+        #define G
+        #ifdef G
+          float u_value;
+        #endif
+        void frag() { gl_FragColor = vec4(u_value); }
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / 声明未覆盖引用": pass(`      #ifdef A
+        #ifdef B
+          float u_value;
+        #endif
+        void frag() { gl_FragColor = vec4(u_value); }
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / #if 0 死分支": pass(`      #if 0
+        float u_value;
+      #endif
+      #if 0
+        float u_value;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
+      FragmentShader = frag;`),
+
+  "宏分支 / #elif 继承前置否定": pass(`      #if A
+        float u_first;
+      #elif B
+        float u_value;
+      #endif
+      #if A
+        float u_value;
+      #endif
+      void vert() { gl_Position = vec4(0.0); }
+      void frag() { gl_FragColor = vec4(0.0); }
+      VertexShader = vert;
       FragmentShader = frag;`)
 };
 

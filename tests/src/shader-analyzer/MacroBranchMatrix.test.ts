@@ -22,11 +22,17 @@ ${fragmentBody}
 
 function compile(source: string, includeMap?: IncludeMap) {
   const result = new ShaderAnalyzer().analyze(source, includeMap ? { includeMap } : undefined);
+  const codes = result.diagnostics.map((diagnostic) => diagnostic.code);
+  const hasError = result.diagnostics.some((diagnostic) => diagnostic.severity === "error");
+  if (hasError) {
+    expect(result.passes, "a blocking diagnostic must not expose codegen input").to.be.empty;
+    return { codes, fragment: undefined };
+  }
   const pass = result.passes[0];
-  expect(pass, "a recoverable diagnostic must still leave codegen input").to.not.be.undefined;
+  expect(pass, "a warning-only result must leave codegen input").to.not.be.undefined;
 
   return {
-    codes: result.diagnostics.map((diagnostic) => diagnostic.code),
+    codes,
     fragment: new ShaderCompiler().generate(
       pass.program,
       pass.vertexEntry,
@@ -284,9 +290,15 @@ describe("macro branch matrix", () => {
     it(`analyzes and generates ${testCase.name}`, () => {
       const { codes, fragment } = compile(testCase.source, testCase.includeMap);
       expect(codes).to.deep.equal(testCase.codes);
-      for (const fragmentPart of testCase.fragments) expect(fragment).to.include(fragmentPart);
+      if (codes.length > 0) {
+        expect(fragment).to.be.undefined;
+        return;
+      }
+      expect(fragment).to.not.be.undefined;
+      const generatedFragment = fragment!;
+      for (const fragmentPart of testCase.fragments) expect(generatedFragment).to.include(fragmentPart);
       for (const [fragmentPart, expectedCount] of testCase.occurrences ?? []) {
-        expect(fragment.split(fragmentPart).length - 1, fragmentPart).to.equal(expectedCount);
+        expect(generatedFragment.split(fragmentPart).length - 1, fragmentPart).to.equal(expectedCount);
       }
     });
   }

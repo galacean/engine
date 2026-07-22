@@ -11,6 +11,7 @@ export interface IShaderAnalyzer {
    * @internal
    * Diagnose an already-parsed pass program plus its parse-stage errors. Runs no parse and no code
    * generation; surfaces the diagnostics through the analyzer's own reporting.
+   * @returns Whether no blocking diagnostics were reported and code generation may proceed.
    */
-  _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): void;
+  _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): boolean;
 }

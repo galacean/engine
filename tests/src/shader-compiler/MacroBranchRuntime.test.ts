@@ -18,6 +18,7 @@ FragmentShader = frag;
 
 function evaluate(source: string, macros: Array<[string, string]>) {
   const result = new ShaderAnalyzer().analyze(source);
+  expect(result.diagnostics, "only clean analysis results may enter code generation").to.be.empty;
   const pass = result.passes[0];
   expect(pass).to.not.be.undefined;
 
@@ -132,11 +133,13 @@ ${assignment}
 gl_FragColor = vec4(branchValue);`
       );
 
-      expect(evaluate(source, []).diagnostics).to.include("InvalidAssignmentTarget");
+      const result = new ShaderAnalyzer().analyze(source);
+      expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("InvalidAssignmentTarget");
+      expect(result.passes).to.be.empty;
     }
   );
 
-  it("matches the driver for a branch-local const assignment", () => {
+  it("blocks compiler codegen when branch-local analysis fails", () => {
     const source = shader(
       `#ifdef WRITE_PROHIBITED
 const float branchValue = 0.0;
@@ -149,17 +152,31 @@ branchValue = 1.0;
 gl_FragColor = vec4(branchValue);`
     );
 
-    const accepted = evaluate(source, []);
-    const rejected = evaluate(source, [["WRITE_PROHIBITED", ""]]);
-    expect(accepted.diagnostics).to.include("InvalidAssignmentTarget");
-    expect(rejected.diagnostics).to.include("InvalidAssignmentTarget");
+    const analyzer = new ShaderAnalyzer();
+    const result = analyzer.analyze(source);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("InvalidAssignmentTarget");
+    expect(result.passes).to.be.empty;
 
-    const acceptedByDriver = compileInWebGL(accepted.vertex, accepted.fragment);
-    const rejectedByDriver = compileInWebGL(rejected.vertex, rejected.fragment);
-    if (acceptedByDriver !== "no-webgl" && rejectedByDriver !== "no-webgl") {
-      expect(acceptedByDriver.ok, `vertex=${acceptedByDriver.vertexLog} fragment=${acceptedByDriver.fragmentLog}`).to.be
-        .true;
-      expect(rejectedByDriver.ok).to.be.false;
-    }
+    const compiler = new ShaderCompiler();
+    compiler._setAnalyzer(analyzer);
+    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+  });
+
+  it("blocks compiler codegen when a macro declaration does not cover its reference", () => {
+    const source = shader(
+      `#ifdef DECLARED_ONLY_WITH_A
+float branchValue;
+#endif`,
+      "gl_FragColor = vec4(branchValue);"
+    );
+
+    const analyzer = new ShaderAnalyzer();
+    const result = analyzer.analyze(source);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.include("UseBeforeDeclaration");
+    expect(result.passes).to.be.empty;
+
+    const compiler = new ShaderCompiler();
+    compiler._setAnalyzer(analyzer);
+    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
   });
 });

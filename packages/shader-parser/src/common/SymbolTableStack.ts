@@ -66,8 +66,17 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
     return undefined;
   }
 
+  /** Whether any lexical scope contains an equal symbol, regardless of macro-branch visibility. */
+  hasSymbol(symbol: S): boolean {
+    for (let i = this.stack.length - 1; i >= 0; i--) {
+      if (this.stack[i].hasSymbol(symbol)) return true;
+    }
+    return false;
+  }
+
   /**
-   * Collect every visible matching symbol from the nearest lexical scope.
+   * Collect every macro-compatible matching symbol from the nearest lexical scope. Callers must
+   * verify branch coverage before treating this candidate set as a guaranteed declaration.
    * @param symbol - Symbol shape used for name and kind matching.
    * @param includeMacro - Whether legacy lookups include declarations from macro branches.
    * @param out - Reusable output array.

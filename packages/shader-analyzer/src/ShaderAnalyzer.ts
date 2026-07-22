@@ -33,7 +33,10 @@ export interface AnalyzedPass {
 export interface AnalysisResult {
   /** Structured diagnostics from shader-source structure parsing and per-pass GLSL analysis. */
   diagnostics: Diagnostic[];
-  /** Per-pass parsed ASTs in source order — reuse for codegen so the editor parses only once. */
+  /**
+   * Per-pass parsed ASTs in source order. Empty when any blocking diagnostic exists, so callers
+   * cannot feed an invalid shader into code generation.
+   */
   passes: AnalyzedPass[];
 }
 
@@ -70,6 +73,7 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
 
+    if (diagnostics.some((diagnostic) => diagnostic.severity === DiagnosticSeverity.Error)) passes.length = 0;
     this._logDiagnostics(diagnostics);
     return { diagnostics, passes };
   }
@@ -79,7 +83,7 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
    * Diagnose an already-parsed program (no re-parse) plus its parse-stage errors, surfacing the
    * result via Logger. Called by the compiler when this analyzer is injected.
    */
-  _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): void {
+  _diagnose(program: IShaderProgram, parseErrors: Error[], vertexEntry: string, fragmentEntry: string): boolean {
     const glProgram = program as unknown as ASTNode.GLShaderProgram;
     const shaderData = glProgram.shaderData;
     const passText = ShaderCompilerUtils.processingPassText;
@@ -90,6 +94,7 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
     const { errors: ioErrors } = ShaderIOAnalyzer.analyze(shaderData, vertexEntry, fragmentEntry, passText);
     for (const e of ioErrors) diagnostics.push(gseErrorToDiagnostic(e));
     this._logDiagnostics(diagnostics);
+    return !diagnostics.some((diagnostic) => diagnostic.severity === DiagnosticSeverity.Error);
   }
 
   /** Print collected diagnostics through the engine Logger (off by default; `Logger.enable()` to see them). */

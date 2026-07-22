@@ -64,7 +64,9 @@ export class ShaderCompiler {
       const program = parser.parse(tokens, macroDefineList);
       if (!program) return undefined;
       // When an analyzer is injected, diagnose the parsed program before codegen — same parse, no extra pass.
-      this._analyzer?._diagnose(program, parser.errors, vertexEntry, fragmentEntry);
+      // Blocking diagnostics make this pass unavailable to both runtime compilation and editor reuse.
+      if (this._analyzer && !this._analyzer._diagnose(program, parser.errors, vertexEntry, fragmentEntry))
+        return undefined;
       return this.generate(program, vertexEntry, fragmentEntry, backend);
     } finally {
       ShaderCompilerUtils.processingPassText = undefined;
