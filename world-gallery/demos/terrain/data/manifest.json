@@ -1,62 +1,118 @@
 {
-  "version": "0.1",
-  "world": {
-    "originXZ": [0, 0]
-  },
-  "regions": [
-    {
-      "id": "0_0",
-      "positionXZ": [0, 0],
-      "sizeMeter": 1024,
-      "heightmap": {
-        "url": "./regions/heightmap_0_0.r16",
-        "format": "r16-unorm-le",
-        "width": 1024,
-        "height": 1024,
-        "minMetres": -18,
-        "maxMetres": 220
+  "version": "1",
+  "terrain": {
+    "regionSize": 1024,
+    "regionMapSize": 32,
+    "vertexSpacing": 1,
+    "heightAtlas": {
+      "url": "./regions/height_atlas.r16",
+      "format": "r16-unorm-le",
+      "width": 1024,
+      "height": 3072,
+      "minMetres": -54,
+      "maxMetres": 365
+    },
+    "regions": [
+      {
+        "location": [0, -2],
+        "heightOffsetY": 0,
+        "controlMap": "./regions/control_0_-2.bin",
+        "colorMap": "./regions/color_0_-2.png"
       },
-      "controlmap": {
-        "url": "./regions/controlmap_0_0.bin",
-        "format": "uint32-bitfield-le",
-        "width": 1024,
-        "height": 1024,
-        "bits": "31-27 base | 26-22 overlay | 21-14 blend | 13-11 uvRot | 10-8 uvScale | 2 hole | 1 nav | 0 autoshader"
+      {
+        "location": [0, -1],
+        "heightOffsetY": 1024,
+        "controlMap": "./regions/control_0_-1.bin",
+        "colorMap": "./regions/color_0_-1.png"
+      },
+      {
+        "location": [0, 0],
+        "heightOffsetY": 2048,
+        "controlMap": "./regions/control_0_0.bin",
+        "colorMap": "./regions/color_0_0.png"
       }
+    ]
+  },
+  "clipmap": {
+    "meshSize": 48,
+    "meshLods": 7
+  },
+  "world": {
+    "background": "noise",
+    "noise": {
+      "fragmentNormals": false,
+      "regionBlend": 0.33,
+      "maxOctaves": 4,
+      "minOctaves": 2,
+      "lodDistance": 7500,
+      "scale": 9.85,
+      "height": 34,
+      "offset": [2.17, -1.225, 1.9]
     }
-  ],
+  },
   "layers": [
     {
       "id": 0,
-      "name": "grass",
-      "kind": "Terrain",
-      "textures": {
-        "albedo": "./textures/ground037_alb_ht.png",
-        "normal": "./textures/ground037_nrm_rgh.png"
-      },
-      "params": {
-        "uvScale": 40.0,
-        "normalIntensity": 1.0
-      }
+      "name": "Rock",
+      "albedoHeight": "./textures/rock_albedo_height.png",
+      "normalRoughness": "./textures/rock_normal_roughness.png",
+      "albedoColor": [1, 1, 1],
+      "uvScale": 0.1,
+      "detilingRotation": 0,
+      "detilingShift": 0,
+      "normalDepth": 1,
+      "aoStrength": 2,
+      "roughnessMod": -0.05
     },
     {
       "id": 1,
-      "name": "rock",
-      "kind": "Terrain",
-      "textures": {
-        "albedo": "./textures/rock023_alb_ht.png",
-        "normal": "./textures/rock023_nrm_rgh.png"
-      },
-      "params": {
-        "uvScale": 25.0,
-        "normalIntensity": 1.2
-      }
-    },
-    {
-      "id": 2,
-      "name": "water",
-      "kind": "Water",
-      "_comment": "A texel with base_id == 2 is sea. TerrainSystem.findRegionsByLayerKind(Water) scans base(31-27)/overlay(26-22) for this id — no controlmap bit is stolen. Kind !== Terrain so LayerTextureLoader skips it (zero Texture2DArray slot)."
+      "name": "Grass",
+      "albedoHeight": "./textures/grass_albedo_height.png",
+      "normalRoughness": "./textures/grass_normal_roughness.png",
+      "albedoColor": [0.67451, 0.74902, 0.686275],
+      "uvScale": 0.2,
+      "detilingRotation": 0.161,
+      "detilingShift": 0,
+      "normalDepth": 1,
+      "aoStrength": 2,
+      "roughnessMod": 0
     }
-  ]
+  ],
+  "material": {
+    "autoShader": {
+      "enabled": true,
+      "baseTexture": 0,
+      "overlayTexture": 1,
+      "slope": 0.45,
+      "heightReduction": 0.05
+    },
+    "projection": {
+      "enabled": true,
+      "threshold": 0.87
+    },
+    "sampling": {
+      "blendSharpness": 0.5,
+      "mipmapBias": 1,
+      "biasDistance": 512,
+      "depthBlur": 0
+    },
+    "dualScaling": {
+      "enabled": true,
+      "texture": 0,
+      "near": 100,
+      "far": 170,
+      "reduction": 0.3
+    },
+    "macroVariation": {
+      "enabled": true,
+      "noiseTexture": "./textures/macro_variation_noise.png",
+      "color1": [0.855, 0.8625, 0.9],
+      "color2": [0.9, 0.885, 0.81],
+      "slope": 0.333,
+      "noise1Scale": 0.04,
+      "noise1Angle": 0.1,
+      "noise1Offset": [0.5, 0.5],
+      "noise2Scale": 0.076
+    }
+  }
 }
