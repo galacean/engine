@@ -8,6 +8,7 @@ import {
   BranchSignature,
   canBranchesOverlap,
   EMPTY_BRANCH,
+  isConditionImpliedBy,
   EOF,
   isBranchReachable,
   sameBranch
@@ -194,6 +195,10 @@ export class Lexer extends BaseLexer {
       }
       if (this._pendingOpaqueConditional && tok.type === Keyword.MACRO_CONDITIONAL_EXPRESSION) {
         const condition = this._parseSimpleCondition(tok.lexeme);
+        if (!condition) {
+          const directive = this._pendingOpaqueConditional === "push" ? "#if" : "#elif";
+          this.throwError(tok.location, `${directive}: unsupported or malformed condition '${tok.lexeme.trim()}'.`);
+        }
         if (this._pendingOpaqueConditional === "push") this._pushOpaqueConditional(condition);
         else this._advanceOpaqueConditionalArm(condition);
         this._pendingOpaqueConditional = null;
@@ -361,6 +366,7 @@ export class Lexer extends BaseLexer {
     for (let i = 0, n = constraints.length; i < n; i++) {
       const condition = constraints[i].condition;
       if (condition?.kind === "constant" && condition.value) return true;
+      if (isConditionImpliedBy(condition, constraints[i].precedingConditions ?? [])) return true;
       for (let j = 0; j < i; j++) {
         if (areConditionsComplementary(constraints[j].condition, condition)) return true;
       }

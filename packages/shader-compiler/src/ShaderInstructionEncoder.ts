@@ -215,7 +215,10 @@ export class ShaderInstructionEncoder {
 
   private static _parseCondition(expr: string): Condition {
     const ctx: ExprCtx = { s: expr.trim(), i: 0 };
-    return ShaderInstructionEncoder._parseOr(ctx);
+    const condition = ShaderInstructionEncoder._parseOr(ctx);
+    ShaderInstructionEncoder._skipWs(ctx);
+    if (ctx.i !== ctx.s.length) throw new Error(`Unsupported or malformed preprocessor condition '${expr}'.`);
+    return condition;
   }
 
   private static _skipWs(ctx: ExprCtx): void {
@@ -278,7 +281,9 @@ export class ShaderInstructionEncoder {
       ShaderInstructionEncoder._skipWs(ctx);
       const inner = ShaderInstructionEncoder._parseOr(ctx);
       ShaderInstructionEncoder._skipWs(ctx);
-      if (s.charCodeAt(ctx.i) === 41 /* ')' */) ctx.i++;
+      if (s.charCodeAt(ctx.i) !== 41 /* ')' */)
+        throw new Error(`Unsupported or malformed preprocessor condition '${s}'.`);
+      ctx.i++;
       return inner;
     }
 
@@ -290,13 +295,23 @@ export class ShaderInstructionEncoder {
       if (hasParen) ctx.i++;
       ShaderInstructionEncoder._skipWs(ctx);
       const name = ShaderInstructionEncoder._scanIdentifier(ctx);
+      if (!name) throw new Error(`Unsupported or malformed preprocessor condition '${s}'.`);
       ShaderInstructionEncoder._skipWs(ctx);
-      if (hasParen && s.charCodeAt(ctx.i) === 41 /* ')' */) ctx.i++;
+      if (hasParen) {
+        if (s.charCodeAt(ctx.i) !== 41 /* ')' */)
+          throw new Error(`Unsupported or malformed preprocessor condition '${s}'.`);
+        ctx.i++;
+      }
       return { t: "def", m: name };
     }
 
     // Numeric literal
-    if (ctx.i < s.length && ShaderInstructionEncoder._isDigit(s.charCodeAt(ctx.i))) {
+    if (
+      ctx.i < s.length &&
+      (ShaderInstructionEncoder._isDigit(s.charCodeAt(ctx.i)) ||
+        ((s.charCodeAt(ctx.i) === 43 /* '+' */ || s.charCodeAt(ctx.i) === 45) /* '-' */ &&
+          ShaderInstructionEncoder._isDigit(s.charCodeAt(ctx.i + 1))))
+    ) {
       const lhsNum = ShaderInstructionEncoder._scanNumber(ctx);
       ShaderInstructionEncoder._skipWs(ctx);
       const op = ShaderInstructionEncoder._scanOp(ctx);
@@ -310,7 +325,7 @@ export class ShaderInstructionEncoder {
       return { t: "bool", v: lhsNum !== 0 };
     }
 
-    // Identifier — comparison or defined check
+    // Identifier — numeric comparison against zero when no explicit operator is present.
     const name = ShaderInstructionEncoder._scanIdentifier(ctx);
     if (!name) return { t: "bool", v: false };
     ShaderInstructionEncoder._skipWs(ctx);
@@ -319,7 +334,7 @@ export class ShaderInstructionEncoder {
       ShaderInstructionEncoder._skipWs(ctx);
       return { t: "cmp", m: name, op, v: ShaderInstructionEncoder._scanNumber(ctx) };
     }
-    return { t: "def", m: name };
+    return { t: "cmp", m: name, op: "!=", v: 0 };
   }
 
   private static _isDigit(charCode: number): boolean {

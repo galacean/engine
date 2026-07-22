@@ -117,6 +117,19 @@ float u_value;
     fragments: ["#ifdef USE_VALUE", "#elif !defined(USE_VALUE)", "#endif", "uniform float u_value;"]
   },
   {
+    name: "#ifdef/#elif negated macro value siblings",
+    source: shader(
+      `#ifdef USE_VALUE
+float u_value;
+#elif !USE_VALUE
+float u_value;
+#endif`,
+      "      gl_FragColor = vec4(u_value);"
+    ),
+    codes: [],
+    fragments: ["#ifdef USE_VALUE", "#elif !USE_VALUE", "#endif", "uniform float u_value;"]
+  },
+  {
     name: "#ifdef/#elif repeated condition has a declaration gap",
     source: shader(
       `#ifdef USE_VALUE
@@ -140,6 +153,19 @@ float u_value;
       "      gl_FragColor = vec4(u_value);"
     ),
     codes: ["UseBeforeDeclaration"],
+    fragments: []
+  },
+  {
+    name: "malformed #elif condition",
+    source: shader(
+      `#ifdef USE_VALUE
+float u_value;
+#elif 123 defined(USE_VALUE)
+float u_value;
+#endif`,
+      "      gl_FragColor = vec4(u_value);"
+    ),
+    codes: ["SyntaxError"],
     fragments: []
   },
   {
@@ -481,6 +507,25 @@ float u_value;
         `#ifdef USE_VALUE
 float u_value;
 #elif !defined(USE_VALUE)
+float u_value;
+#endif`,
+        {}
+      ).tokenize()
+    );
+    const branches = tokens.filter((token) => token.lexeme === "u_value").map((token) => token.branch[0]);
+    expect(branches.map((branch) => branch.conditionalComplete)).to.deep.equal([true, true]);
+    expect(branches.map((branch) => branch.conditionalReachableArms)).to.deep.equal([
+      [true, true],
+      [true, true]
+    ]);
+  });
+
+  it("marks #ifdef/#elif !macro-value arms as complete", () => {
+    const tokens = Array.from(
+      new Lexer(
+        `#ifdef USE_VALUE
+float u_value;
+#elif !USE_VALUE
 float u_value;
 #endif`,
         {}

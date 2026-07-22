@@ -505,6 +505,19 @@ describe("ShaderCompiler Precompile", async () => {
       expect(eval_(inst, [["FOO", ""]])).not.toContain("BODY");
     });
 
+    it("#if MACRO uses the numeric macro value", () => {
+      const inst = ShaderInstructionEncoder.parse("#if FOO\nBODY\n#endif\n");
+      expect(eval_(inst, [])).not.toContain("BODY");
+      expect(eval_(inst, [["FOO", "0"]])).not.toContain("BODY");
+      expect(eval_(inst, [["FOO", "1"]])).toContain("BODY");
+    });
+
+    it("rejects trailing tokens in a preprocessor condition", () => {
+      expect(() => ShaderInstructionEncoder.parse("#if 123 defined(FOO)\nBODY\n#endif\n")).toThrow(
+        "Unsupported or malformed preprocessor condition"
+      );
+    });
+
     it("#if MACRO == value: correct branch selected", () => {
       const inst = ShaderInstructionEncoder.parse("#if FOO == 1\nONE\n#elif FOO == 2\nTWO\n#else\nOTHER\n#endif\n");
       expect(eval_(inst, [["FOO", "1"]])).toContain("ONE");

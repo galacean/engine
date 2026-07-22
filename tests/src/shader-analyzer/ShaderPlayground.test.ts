@@ -41,10 +41,22 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
     diagnosticCount: 0
   },
   {
+    label: "宏分支 / #ifdef / #elif !宏值 互补",
+    snippet: "#elif !USE_BRANCH_VALUE",
+    diagnosticCount: 0
+  },
+  {
     label: "宏分支 / #ifdef / #elif 同条件不可达",
     snippet: "#elif defined(USE_BRANCH_VALUE)",
     diagnosticCount: 1,
     diagnostic: "UseBeforeDeclaration",
+    severity: "error"
+  },
+  {
+    label: "宏分支 / 非法 #elif 表达式",
+    snippet: "#elif 123 defined(USE_BRANCH_VALUE)",
+    diagnosticCount: 1,
+    diagnostic: "SyntaxError",
     severity: "error"
   },
   { label: "宏分支 / #ifndef / #else 互斥", snippet: "#ifndef DISABLE_BRANCH_VALUE", diagnosticCount: 0 },

@@ -94,6 +94,19 @@ export function areConditionsComplementary(left?: BranchCondition, right?: Branc
 }
 
 /**
+ * Determine whether every macro configuration satisfying `facts` also satisfies `required`.
+ * @param required condition that must hold
+ * @param facts known conditions that hold together
+ * @returns Whether the facts imply the required condition
+ */
+export function isConditionImpliedBy(
+  required: BranchCondition | undefined,
+  facts: readonly BranchCondition[]
+): boolean {
+  return !!required && isConditionImplied(required, facts);
+}
+
+/**
  * Snapshot of the `#ifdef`/`#ifndef`/`#else` stack at a source position. An
  * empty signature means unconditional (top-level). Constraints are conjunctive:
  * the position is active iff every constraint holds. Produced by the Lexer
