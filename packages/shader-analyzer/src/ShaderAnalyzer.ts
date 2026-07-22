@@ -14,40 +14,46 @@ import { DiagnosticSeverity, formatDiagnostic } from "./Diagnostic";
 import { gseErrorToDiagnostic } from "./convert";
 import { ShaderValidator } from "./ShaderValidator";
 
+/** Options used when analyzing shader source. */
 export interface AnalyzerOptions {
   /** `#include` lookup table; keys are include paths, values are chunk sources. */
   includeMap?: IncludeMap;
 }
 
+/** Parsed pass available for subsequent code generation. */
 export interface AnalyzedPass {
   /**
-   * The parsed AST for this pass. Feed it to the compiler's `visitShaderProgram` to generate GLSL
-   * without re-parsing. Valid only until the next `analyze()` — AST nodes are pooled and recycled,
-   * so consume it before analyzing another source.
+   * Parsed AST for this pass. Valid until the next call to {@link ShaderAnalyzer.analyze} because
+   * AST nodes are pooled.
    */
   program: ASTNode.GLShaderProgram;
+  /** Vertex entry-point name. */
   vertexEntry: string;
+  /** Fragment entry-point name. */
   fragmentEntry: string;
 }
 
+/** Result of analyzing shader source. */
 export interface AnalysisResult {
   /** Structured diagnostics from shader-source structure parsing and per-pass GLSL analysis. */
   diagnostics: Diagnostic[];
-  /**
-   * Per-pass parsed ASTs in source order. Empty when any blocking diagnostic exists, so callers
-   * cannot feed an invalid shader into code generation.
-   */
+  /** Parsed passes in source order, empty when an error prevents code generation. */
   passes: AnalyzedPass[];
 }
 
 /**
- * Static analyzer for shader source / GLSL. Drives parse + the parser's IO analysis and surfaces
- * structured diagnostics the runtime compiler discards. It does not run code generation.
+ * Analyzes ShaderLab source and GLSL semantics without generating backend source.
  */
 export class ShaderAnalyzer implements IShaderAnalyzer {
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
 
+  /**
+   * Analyzes shader source.
+   * @param source - ShaderLab source to analyze.
+   * @param options - Analysis options.
+   * @returns Diagnostics and reusable parsed passes.
+   */
   analyze(source: string, options?: AnalyzerOptions): AnalysisResult {
     if (options?.includeMap) {
       this._includeMap = options.includeMap;
@@ -88,7 +94,6 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
     const shaderData = glProgram.shaderData;
     const passText = ShaderCompilerUtils.processingPassText;
     const diagnostics: Diagnostic[] = parseErrors.map((e) => gseErrorToDiagnostic(e));
-    // Validation moved out of the parser: walk the typed AST and fold its diagnostics in.
     for (const e of ShaderValidator.validate(glProgram, passText, vertexEntry, fragmentEntry))
       diagnostics.push(gseErrorToDiagnostic(e));
     const { errors: ioErrors } = ShaderIOAnalyzer.analyze(shaderData, vertexEntry, fragmentEntry, passText);
@@ -117,12 +122,10 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       const { program, errors, passText } = parseShaderPass(pass.contents, this._includeMap, this._chunkOutputCache);
       diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
       if (program) {
-        // Validation moved out of the parser: walk the typed AST and fold its diagnostics in.
         diagnostics.push(
           ...ShaderValidator.validate(program, passText, vertexEntry, fragmentEntry).map((e) => gseErrorToDiagnostic(e))
         );
-        // IShaderPassSource types the entry location structurally (design stays class-free); the parser
-        // stored a ShaderRange there — restore the concrete type ShaderIOAnalyzer/createGSError consume.
+        // ShaderIOAnalyzer consumes the concrete parser range stored by the source parser.
         const { errors: ioErrors } = ShaderIOAnalyzer.analyze(
           program.shaderData,
           vertexEntry,

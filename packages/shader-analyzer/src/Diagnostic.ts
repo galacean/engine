@@ -1,31 +1,39 @@
 import { DiagnosticType, formatDiagnosticSource } from "@galacean/engine-shader-parser";
 
+/** Severity assigned to a shader diagnostic. */
 export enum DiagnosticSeverity {
   Error = "error",
   Warning = "warning"
 }
 
-/** Structured diagnostic produced by the shader analyzer. */
+/** Structured diagnostic produced while analyzing a shader. */
 export interface Diagnostic {
+  /** Severity of the diagnostic. */
   severity: DiagnosticSeverity;
-  /** Semantic classification — the rule this diagnostic reports (see the §3 diagnostic catalogue). */
+  /** Semantic rule reported by the diagnostic. */
   code: DiagnosticType;
+  /** Human-readable explanation of the reported rule violation. */
   message: string;
+  /** Source range containing the reported issue. */
   range: {
     start: { line: number; column: number; offset: number };
     end: { line: number; column: number; offset: number };
   };
-  /** Source text of the pass where the error occurred (for context display). */
+  /** Source text containing the reported issue. */
   relatedSource?: string;
 }
 
-// Classification enum lives with the producers (parser/codegen); re-exported here for analyzer consumers.
 export { DiagnosticType };
 
 /**
- * Render a diagnostic as a `code: message` header plus a gutter-numbered source block with carets —
- * the shared formatter the runtime logger and the playground example both use, identical everywhere.
+ * Formats a diagnostic with a source excerpt and caret markers.
+ * @param diagnostic - Diagnostic to format.
+ * @returns Formatted diagnostic text.
  */
-export function formatDiagnostic(d: Diagnostic): string {
-  return formatDiagnosticSource(d.relatedSource, d.range, `${d.code}: ${d.message}`);
+export function formatDiagnostic(diagnostic: Diagnostic): string {
+  return formatDiagnosticSource(
+    diagnostic.relatedSource,
+    diagnostic.range,
+    `${diagnostic.code}: ${diagnostic.message}`
+  );
 }

@@ -718,7 +718,7 @@ const cases: Case[] = [
     driverExpects: "reject",
     reason: "§5.8 assignment operands must have the same type — no implicit conversion"
   },
-  // ─────────── Gaps found by glslang-corpus scan (2026-07-08 diagnostic-gap round) ───────────
+  // ───────────────────────── Additional type diagnostics ─────────────────────────
   {
     name: "InvalidBinaryOperands — `%` on floats",
     code: "InvalidBinaryOperands",

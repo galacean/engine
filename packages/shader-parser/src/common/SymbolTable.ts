@@ -51,9 +51,8 @@ export class SymbolTable<T extends IBaseSymbol> {
   /**
    * Look up a symbol visible from `callsiteBranch`. A candidate `item` is visible when
    * `isBranchVisibleFrom(item.branchSignature, callsiteBranch)` — same or nested branch, or item is
-   * unconditional. When `callsiteBranch` is undefined, fall back to the legacy behaviour
-   * (`!includeMacro` filters out macro-branch entries) — used by codegen and by paths that predate
-   * branch propagation. Iterates from latest inserted → returns first visible match.
+   * unconditional. Without a callsite branch, `includeMacro` controls whether macro-branch entries
+   * are eligible. Iterates from latest inserted to first visible match.
    */
   getSymbol(symbol: T, includeMacro = false, callsiteBranch?: BranchSignature): T | undefined {
     const entry = this._table.get(symbol.ident);

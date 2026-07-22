@@ -9,8 +9,8 @@ import { IShaderSource } from "./shaderSource/IShaderSource";
 export interface IShaderCompiler {
   /**
    * @internal
-   * Attach an analyzer so each `_parseShaderPass` also diagnoses the parsed program (no re-parse).
-   * Without one, compilation runs no diagnostics.
+   * Attaches an analyzer used to diagnose parsed shader passes.
+   * @param analyzer - Analyzer to invoke after parsing a pass.
    */
   _setAnalyzer(analyzer: IShaderAnalyzer): void;
 

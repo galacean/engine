@@ -3,19 +3,13 @@ import { Keyword } from "../common/enums/Keyword";
 
 export type { GalaceanDataType } from "../common/types";
 
+/** Utility functions for GLSL type classification and compatibility. */
 export class TypeSystem {
   /**
-   * GLSL ES §4 states the language is type-safe with **no implicit conversions between types**;
-   * §5.8 (assignment) and §5.9 (binary expressions) both require the operand types to match, and
-   * §5.4.1 lists explicit scalar constructors (`float(int)`, `int(float)`, …) as the only conversion
-   * mechanism. Constructor argument coercion (e.g. `vec2(1, 2)` accepting ints) is a separate
-   * constructor-argument rule handled by `ShaderValidator._checkConstructorArgs`, not here.
-   *
-   * Real WebGL 1 and WebGL 2 drivers enforce this strictly — `float b = 1;` is rejected. Naga's
-   * `implicit_conversion` (int→float scalar promotion) violates the spec; do not mirror it.
-   *
-   * Returns `true` when `source` may be assigned to `target`. Struct types (string) compare by
-   * name — same name means the same struct; different names are a hard conflict.
+   * Tests whether a value type can be assigned without an implicit conversion.
+   * @param target - Type of the assignment target.
+   * @param source - Type of the assigned value.
+   * @returns Whether the assignment is valid or cannot yet be resolved.
    */
   static isAssignable(target: GalaceanDataType | undefined, source: GalaceanDataType | undefined): boolean {
     if (target == undefined || source == undefined || target === TypeAny || source === TypeAny) return true;

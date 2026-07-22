@@ -11,12 +11,8 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
   _macroLevel = 0;
 
   /**
-   * Live branch signature of the position currently being parsed. Set by the parser to the current
-   * AST node's branch during `semanticAnalyze`. `insert` stamps this on new symbols so declarations
-   * carry their branch. `lookup` / `lookupAll` NEVER read it — callers pass `callsiteBranch`
-   * explicitly, opting in per site. Redefinition checks use the stamped declaration branches to
-   * distinguish mutually exclusive arms and canonical include guards from declarations that can
-   * coexist.
+   * Branch signature stamped on declarations at the current parser position. Lookups receive their
+   * callsite branch explicitly.
    */
   _currentBranch: BranchSignature = EMPTY_BRANCH;
 
@@ -51,9 +47,7 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
    * @returns Whether the declaration conflicts with an existing declaration in this scope.
    */
   insert(symbol: S, branchSignature: BranchSignature = this._currentBranch): boolean {
-    // Local shader code can rely on caller-owned macro exclusivity that is absent from the source.
-    // Apply possible-coexistence diagnostics only to global declarations; unconditional collisions
-    // keep their legacy error behavior in every scope.
+    // Local macro choices can be constrained by the caller, unlike global declarations.
     const diagnoseBranchConflict = this.stack.length === 1;
     return this.scope.insert(symbol, this.isInMacroBranch, branchSignature, diagnoseBranchConflict);
   }
@@ -79,7 +73,7 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
    * Collect every macro-compatible matching symbol from the nearest lexical scope. Callers must
    * verify branch coverage before treating this candidate set as a guaranteed declaration.
    * @param symbol - Symbol shape used for name and kind matching.
-   * @param includeMacro - Whether legacy lookups include declarations from macro branches.
+   * @param includeMacro - Whether lookups include declarations from macro branches without a callsite branch.
    * @param out - Reusable output array.
    * @param callsiteBranch - Branch signature used for branch-aware visibility filtering.
    * @returns The supplied output array containing visible matches.

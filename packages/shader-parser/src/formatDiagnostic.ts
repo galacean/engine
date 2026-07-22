@@ -1,12 +1,10 @@
 /**
- * Render a diagnostic against its source as a `header` + gutter-numbered code block with carets.
- *
- * The window covers the full error span plus `contextLines` lines of padding on each side
- * (`start.line - contextLines` … `end.line + contextLines`), so a multi-line range is shown in
- * full and never clipped — `contextLines` is extra context, not a fixed line budget.
- *
- * Positions are 0-based (line indexes `lines[]`, column indexes within a line); the gutter prints
- * `i + 1` for human-readable 1-based line numbers.
+ * Formats a diagnostic with a source excerpt and caret markers.
+ * @param source - Source text containing the diagnostic.
+ * @param range - Zero-based source range containing the diagnostic.
+ * @param header - Text displayed before the source excerpt.
+ * @param contextLines - Number of context lines shown on either side of the range.
+ * @returns Formatted diagnostic text.
  */
 export function formatDiagnosticSource(
   source: string | undefined,

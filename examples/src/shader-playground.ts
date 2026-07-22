@@ -11,17 +11,11 @@ import {
 } from "@galacean/engine-shader-analyzer";
 import * as dat from "dat.gui";
 
-// Wrap a Pass body in the minimal Shader/SubShader/Pass envelope, mirroring the
-// `pass(...)` / `wrap(...)` helpers in the analyzer's triggering test suites.
 function pass(body: string): string {
   return `Shader "playground" {\n  SubShader "Default" {\n    Pass "p" {\n${body}\n    }\n  }\n}`;
 }
 
-// Macro block scenarios cover the branch structures that affect declaration lookup.
-// DiagnosticType samples below are lifted from tested analyzer suites so each is guaranteed
-// to fire its intended code. Diagnostic dropdown labels are derived at render time as
-// `<category> / <code>` from DIAGNOSTIC_CATEGORY.
-const MULTI_KEY = "Multiple errors";
+const MULTIPLE_ERRORS_LABEL = "Multiple errors";
 
 const MACRO_SAMPLES: Record<string, string> = {
   "宏定义 / 对象式 #define": pass(`      #define BRANCH_SCALE 0.5
@@ -287,8 +281,7 @@ const MACRO_SAMPLES: Record<string, string> = {
 };
 
 const SAMPLES: Record<string, string> = {
-  // A couple of errors at once (default) — preset, not a DiagnosticType.
-  [MULTI_KEY]: pass(`      mat4 renderer_MVPMat;
+  [MULTIPLE_ERRORS_LABEL]: pass(`      mat4 renderer_MVPMat;
       vec2 u_uv;
       float u_a;
       float u_a;                                          // Redefinition
@@ -600,8 +593,6 @@ const SAMPLES: Record<string, string> = {
       VertexShader = vert; FragmentShader = frag;`)
 };
 
-// Localized display label for each category — UI concern, kept out of the enum values (which stay
-// programmatic English for serialization / cross-tool consumption).
 const CATEGORY_LABEL: Record<DiagnosticCategory, string> = {
   [DiagnosticCategory.Syntax]: "语法",
   [DiagnosticCategory.Symbol]: "符号",
@@ -612,14 +603,13 @@ const CATEGORY_LABEL: Record<DiagnosticCategory, string> = {
   [DiagnosticCategory.RenderState]: "RenderState"
 };
 
-// Dropdown labels: `Multiple errors`, macro scenarios, then `<category-label> / <code>` for DiagnosticTypes.
-// DiagnosticType entries are grouped by declaration order and alphabetical within each group. The label→key
-// map lets onChange look the source up without turning localized scenario labels into enum values.
 const CATEGORY_ORDER = Object.values(DiagnosticCategory);
-const LABEL_TO_KEY: Record<string, string> = { [MULTI_KEY]: MULTI_KEY };
+const LABEL_TO_KEY: Record<string, string> = { [MULTIPLE_ERRORS_LABEL]: MULTIPLE_ERRORS_LABEL };
 for (const label of Object.keys(MACRO_SAMPLES)) LABEL_TO_KEY[label] = label;
 
-const codeKeys = Object.keys(SAMPLES).filter((key) => key !== MULTI_KEY && !(key in MACRO_SAMPLES)) as DiagnosticType[];
+const codeKeys = Object.keys(SAMPLES).filter(
+  (key) => key !== MULTIPLE_ERRORS_LABEL && !(key in MACRO_SAMPLES)
+) as DiagnosticType[];
 codeKeys.sort((a, b) => {
   const ca = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[a]);
   const cb = CATEGORY_ORDER.indexOf(DIAGNOSTIC_CATEGORY[b]);
@@ -627,7 +617,7 @@ codeKeys.sort((a, b) => {
 });
 for (const code of codeKeys) LABEL_TO_KEY[`${CATEGORY_LABEL[DIAGNOSTIC_CATEGORY[code]]} / ${code}`] = code;
 
-const DEFAULT_KEY = MULTI_KEY;
+const DEFAULT_KEY = MULTIPLE_ERRORS_LABEL;
 
 const ERROR_COLOR = "#f14c4c";
 const WARNING_COLOR = "#cca700";
@@ -638,7 +628,6 @@ style.textContent = `
   #pg { display: flex; height: 100vh; color: #d4d4d4;
     font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-  /* left editor pane: [ gutter | textarea ] */
   #pane { display: flex; flex: 1; min-width: 0; }
   #gutter { flex: 0 0 52px; box-sizing: border-box; overflow: hidden;
     padding: 16px 8px 16px 0; text-align: right; color: #6a6a6a; user-select: none;
@@ -649,21 +638,19 @@ style.textContent = `
     color: #d4d4d4; background: transparent; caret-color: #d4d4d4;
     resize: none; outline: none; overflow: auto; }
 
-  /* right diagnostics panel = simulated console */
   #out { width: 42%; min-width: 360px; overflow: auto; border-left: 1px solid #333; padding: 12px 16px; }
   #pg h3 { margin: 0 0 12px; font-size: 11px; letter-spacing: 1px; text-transform: uppercase; color: #888; }
   #pg .ok { color: #4ec9b0; }
 
-  /* one diagnostic block: the built-in formatter's text in a <pre>, only colors are CSS */
   #pg .diag { margin: 0 0 14px; border-left: 3px solid #888; padding: 8px 12px; background: #252526;
     border-radius: 3px; }
   #pg .diag.error { border-color: ${ERROR_COLOR}; }
   #pg .diag.warning { border-color: ${WARNING_COLOR}; }
   #pg .diag pre { margin: 0; white-space: pre; overflow-x: auto;
     font: inherit; line-height: 1.5; }
-  #pg .diag .gut { color: #6a6a6a; }   /* gutter line numbers + '|' */
-  #pg .diag .src { color: #d4d4d4; }   /* source line text */
-  #pg .diag.error .hl { color: ${ERROR_COLOR}; }   /* header + caret rows */
+  #pg .diag .gut { color: #6a6a6a; }
+  #pg .diag .src { color: #d4d4d4; }
+  #pg .diag.error .hl { color: ${ERROR_COLOR}; }
   #pg .diag.warning .hl { color: ${WARNING_COLOR}; }
 `;
 document.head.appendChild(style);
@@ -686,23 +673,19 @@ function escapeHtml(text: string): string {
   return text.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string);
 }
 
-// Render the built-in formatter's text as colored HTML — layout/line-numbers/carets all come
-// from `formatDiagnostic`; only the colors are CSS. Line 0 is the header; a row whose content
-// after the `|` is just `^`/spaces is a caret row; both get the severity color. The gutter
-// (`n | ` or ` | `) is dim, the source text is default.
 function renderConsoleBlock(d: Diag): string {
   const text = formatDiagnostic(d);
   const lines = text.split("\n");
 
   const rows = lines.map((line, i) => {
-    if (i === 0) return `<span class="hl">${escapeHtml(line)}</span>`; // header
+    if (i === 0) return `<span class="hl">${escapeHtml(line)}</span>`;
 
-    const m = line.match(/^(\s*\d* \| )(.*)$/); // gutter prefix + remainder
-    if (!m) return escapeHtml(line);
-    const gutter = `<span class="gut">${escapeHtml(m[1])}</span>`;
-    const rest = m[2];
-    const cls = /^[\^ ]*$/.test(rest) ? "hl" : "src"; // caret row vs source row
-    return `${gutter}<span class="${cls}">${escapeHtml(rest)}</span>`;
+    const gutterMatch = line.match(/^(\s*\d* \| )(.*)$/);
+    if (!gutterMatch) return escapeHtml(line);
+    const gutter = `<span class="gut">${escapeHtml(gutterMatch[1])}</span>`;
+    const content = gutterMatch[2];
+    const contentClass = /^[\^ ]*$/.test(content) ? "hl" : "src";
+    return `${gutter}<span class="${contentClass}">${escapeHtml(content)}</span>`;
   });
 
   return `<div class="diag ${d.severity}"><pre>${rows.join("\n")}</pre></div>`;
@@ -711,9 +694,9 @@ function renderConsoleBlock(d: Diag): string {
 const config = { diagnostic: DEFAULT_KEY };
 
 function renderGutter(lineCount: number): void {
-  let s = "";
-  for (let i = 1; i <= lineCount; i++) s += i + "\n";
-  gutter.textContent = s;
+  let lineNumbers = "";
+  for (let i = 1; i <= lineCount; i++) lineNumbers += i + "\n";
+  gutter.textContent = lineNumbers;
 }
 
 function renderConsole(diagnostics: Diag[]): void {
@@ -740,10 +723,10 @@ function syncScroll(): void {
 
 editor.addEventListener("scroll", syncScroll);
 
-let timer = 0;
+let renderTimer = 0;
 editor.addEventListener("input", () => {
-  clearTimeout(timer);
-  timer = window.setTimeout(render, 150);
+  clearTimeout(renderTimer);
+  renderTimer = window.setTimeout(render, 150);
 });
 
 const gui = new dat.GUI();

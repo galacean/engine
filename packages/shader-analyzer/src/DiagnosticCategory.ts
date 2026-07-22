@@ -1,10 +1,6 @@
 import { DiagnosticType } from "@galacean/engine-shader-parser";
 
-/**
- * Coarse-grained category a `DiagnosticType` belongs to — the top-level bucket the diagnostic reports
- * against. Mirrors a tiered error taxonomy (outer category = bucket, inner detail = specific rule), but
- * flattened to one enum because our checks are per-node rather than per-IR-item.
- */
+/** High-level category assigned to a diagnostic type. */
 export enum DiagnosticCategory {
   Syntax = "syntax",
   Symbol = "symbol",
@@ -15,10 +11,7 @@ export enum DiagnosticCategory {
   RenderState = "renderState"
 }
 
-/**
- * Category of each DiagnosticType. Consumers (playground, IDE integrations, docs) read categorization
- * from here — do not maintain category info elsewhere.
- */
+/** Maps every diagnostic type to its high-level category. */
 export const DIAGNOSTIC_CATEGORY: Record<DiagnosticType, DiagnosticCategory> = {
   [DiagnosticType.SyntaxError]: DiagnosticCategory.Syntax,
 

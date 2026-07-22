@@ -24,7 +24,10 @@ export class ShaderCompiler {
     this._chunkOutputCache.clear();
   }
 
-  /** Attach an analyzer; each `_parseShaderPass` then diagnoses the parsed program (no re-parse). */
+  /**
+   * Attaches an analyzer used to diagnose parsed shader passes.
+   * @param analyzer - Analyzer to invoke after parsing a pass.
+   */
   _setAnalyzer(analyzer: IShaderAnalyzer): void {
     this._analyzer = analyzer;
   }
@@ -63,8 +66,6 @@ export class ShaderCompiler {
     try {
       const program = parser.parse(tokens, macroDefineList);
       if (!program) return undefined;
-      // When an analyzer is injected, diagnose the parsed program before codegen — same parse, no extra pass.
-      // Blocking diagnostics make this pass unavailable to both runtime compilation and editor reuse.
       if (this._analyzer && !this._analyzer._diagnose(program, parser.errors, vertexEntry, fragmentEntry))
         return undefined;
       return this.generate(program, vertexEntry, fragmentEntry, backend);
@@ -74,10 +75,12 @@ export class ShaderCompiler {
   }
 
   /**
-   * Generate GLSL (and encoded instructions) from an already-parsed program — e.g. one returned by
-   * `ShaderAnalyzer.analyze().passes[i].program`, so an editor can reuse the analysis parse instead
-   * of re-parsing. This is the exact codegen `_parseShaderPass` runs, so the output is identical and
-   * both the engine and the editor go through one entry rather than reaching into a visitor.
+   * Generates GLSL source and shader instructions from a parsed program.
+   * @param program - Parsed shader program.
+   * @param vertexEntry - Vertex entry-point name.
+   * @param fragmentEntry - Fragment entry-point name.
+   * @param backend - Target shader language.
+   * @returns Generated shader program source.
    */
   generate(
     program: ASTNode.GLShaderProgram,

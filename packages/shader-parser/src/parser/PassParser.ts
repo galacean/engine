@@ -8,11 +8,11 @@ import { ShaderCompilerUtils } from "../ShaderCompilerUtils";
 let _parser: ShaderTargetParser;
 
 /**
- * Drive preprocess → lex → parse for one pass's GLSL source, returning the AST program
- * and parse-stage diagnostics. Lets consumers obtain an AST without touching the
- * preprocessor / lexer / LALR parser directly. `processingPassText` is set for the parse
- * (so parse-time diagnostics carry source context) and reset on exit; the returned
- * `passText` lets a later pass supply that context itself.
+ * Parses one shader pass into an AST and parse-stage diagnostics.
+ * @param source - GLSL source for the shader pass.
+ * @param includeMap - Include-path lookup table.
+ * @param cache - Cache for expanded include chunks.
+ * @returns Parsed program, diagnostics, and preprocessed pass text.
  */
 export function parseShaderPass(
   source: string,

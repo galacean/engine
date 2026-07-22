@@ -1,7 +1,7 @@
 /**
- * Semantic classification of a shader diagnostic, exposed to consumers (IDE/LSP)
- * in place of a numeric code — glslang-style. Flat, self-describing, never reused;
- * severity (error/warning) is a separate field. Producers (parser/codegen) stamp it.
+ * Semantic classification of a shader diagnostic.
+ *
+ * Severity is reported separately.
  */
 export enum DiagnosticType {
   // Syntax

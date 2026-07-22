@@ -636,7 +636,6 @@ export class Engine extends EventDispatcher {
       // @ts-ignore — `_setIncludeMap` is shader-compiler @internal; `includeMap`
       // is `ShaderFactory` @internal. Both intentionally cross-package wired.
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
-      // Injecting an analyzer turns on diagnostics during compilation (shared parse).
       if (shaderAnalyzer) shaderCompiler._setAnalyzer(shaderAnalyzer);
       Shader._shaderCompiler = shaderCompiler;
     }
@@ -731,7 +730,7 @@ export interface EngineConfiguration {
   xrDevice?: IXRDevice;
   /** Shader compiler. */
   shaderCompiler?: IShaderCompiler;
-  /** Shader analyzer. When provided, shader compilation also runs diagnostics (parsed once). */
+  /** Shader analyzer used while compiling shader passes. */
   shaderAnalyzer?: IShaderAnalyzer;
   /** Input options. */
   input?: IInputOptions;

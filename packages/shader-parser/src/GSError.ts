@@ -3,7 +3,17 @@ import { ShaderPosition } from "./common/ShaderPosition";
 import { ShaderRange } from "./common/ShaderRange";
 import { formatDiagnosticSource } from "./formatDiagnostic";
 
+/** Error reported while parsing or analyzing shader source. */
 export class GSError extends Error {
+  /**
+   * Creates a shader error.
+   * @param name - Error category.
+   * @param message - Error message.
+   * @param location - Source location of the error.
+   * @param source - Source text containing the error.
+   * @param file - Optional source file name.
+   * @param code - Optional diagnostic code.
+   */
   constructor(
     name: GSErrorName,
     message: string,
@@ -26,6 +36,7 @@ export class GSError extends Error {
   }
 }
 
+/** Category assigned to a {@link GSError}. */
 export enum GSErrorName {
   PreprocessorError = "PreprocessorError",
   CompilationError = "CompilationError",

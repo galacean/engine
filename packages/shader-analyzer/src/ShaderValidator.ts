@@ -209,8 +209,7 @@ export class ShaderValidator {
    * to — macros, function returns, constant literals, `const`-qualified variables, and compound
    * expressions (r-values by construction). Descend through wrapper nodes (single-child expression
    * chains, parenthesised primaries, postfix `.field` / `[i]` peeling) and report the first shape
-   * that isn't assignable. `naga`'s GLSL frontend follows the same "single error kind, message
-   * describes the cause" convention.
+   * that isn't assignable.
    */
   private _checkAssignmentTarget(node: ASTNode.AssignmentExpression): void {
     // Only the ternary `lhs op rhs` shape has an LHS to inspect; the single-child form is a pure
@@ -285,10 +284,7 @@ export class ShaderValidator {
     }
     if (node instanceof ASTNode.VariableIdentifier) {
       const child = node.children[0];
-      // A macro's l-value-ness depends on its EXPANSION, not on the fact that it's a macro.
-      // FXAA3_11.glsl:698-700 `#define lumaN luma4B.z` etc. expand to a legal swizzle l-value,
-      // and driver accepts `lumaN = lumaW`. Rejecting every macro-as-LHS produced false positives
-      // on the shipping FXAA post-processing shader. Runtime driver catches genuine `#define K 3; K = 5;`.
+      // A macro may expand to a legal l-value; its expansion is validated by the runtime compiler.
       if (child instanceof ASTNode.MacroCallSymbol || child instanceof ASTNode.MacroCallFunction) return undefined;
       if (child instanceof BaseToken) {
         const lookup = ShaderValidator._varLookup;

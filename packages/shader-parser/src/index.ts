@@ -1,6 +1,3 @@
-// shader-parser: lexing, preprocessing, parsing, AST — the single source of truth shared by
-// shader-compiler (code generation) and shader-analyzer (diagnostics).
-
 export * from "./common";
 export * from "./common/BaseToken";
 export * from "./common/BaseLexer";

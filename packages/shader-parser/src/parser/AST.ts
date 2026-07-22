@@ -1774,7 +1774,6 @@ export namespace ASTNode {
 
   @ASTNodeDecorator(NoneTerminal.variable_identifier)
   export class VariableIdentifier extends TreeNode {
-    // @todo: typeInfo may be multiple types
     typeInfo: GalaceanDataType;
     /** Whether the resolved symbol is an array — `typeInfo` alone drops array-ness, but indexing rules need it. */
     isArray: boolean;

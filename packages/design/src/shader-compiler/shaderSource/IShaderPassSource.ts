@@ -12,7 +12,8 @@ export interface IShaderPassSource {
   contents: string;
   vertexEntry: string;
   fragmentEntry: string;
-  /** Source range of the bound entry name token — lets the analyzer point EntryNotFound at the typo. */
+  /** Source range of the vertex entry-point name. */
   vertexEntryLocation?: { start: IShaderPosition; end: IShaderPosition };
+  /** Source range of the fragment entry-point name. */
   fragmentEntryLocation?: { start: IShaderPosition; end: IShaderPosition };
 }

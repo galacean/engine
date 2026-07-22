@@ -10,7 +10,7 @@ import { TypeSystem } from "./TypeSystem";
 import { Keyword } from "../common/enums/Keyword";
 import type { ShaderPosition, ShaderRange } from "../common";
 
-/** Role of a struct type in the shader IO flattening — a parser-derived clue codegen consumes to emit `in`/`out`. */
+/** Role a struct type plays in shader input/output. */
 export enum StructRole {
   Varying = "varying",
   Attribute = "attribute",
@@ -18,9 +18,7 @@ export enum StructRole {
 }
 
 /**
- * IO structs and per-variable roles derived by the parser from the entry signatures,
- * consumed by both codegen (to emit `in`/`out`, rewrite `#define`) and the analyzer (to
- * diagnose) — neither re-derives them.
+ * Shader input/output structs and variable roles derived from entry signatures.
  */
 export interface ShaderIOInfo {
   attributeStructs: ASTNode.StructSpecifier[];
@@ -39,13 +37,21 @@ export interface ShaderIOInfo {
 }
 
 /**
- * Derives the IO roles from a pass's vertex/fragment entry signatures and checks the
- * pipeline constraints: struct existence, entry return shape, role conflicts, and
- * gl_FragColor-with-MRT (from a parse-time clue). Pure analysis — no code emission.
+ * Derives and validates shader input/output roles from entry signatures.
  */
 export class ShaderIOAnalyzer {
   private static _lookup = new SymbolInfo("", null);
 
+  /**
+   * Analyzes input/output roles for a shader pass.
+   * @param shaderData - Parsed shader data.
+   * @param vertexEntry - Vertex entry-point name.
+   * @param fragmentEntry - Fragment entry-point name.
+   * @param source - Source text for diagnostics.
+   * @param vertexEntryLocation - Source range of the vertex entry-point name.
+   * @param fragmentEntryLocation - Source range of the fragment entry-point name.
+   * @returns Input/output metadata and diagnostics.
+   */
   static analyze(
     shaderData: ShaderData,
     vertexEntry: string,

@@ -40,7 +40,6 @@ export default class State {
     return newState;
   }
 
-  // TODO: any optimization?
   static getMapKey(cores: StateItem[]) {
     return cores.map((item) => `${item.production.id},${item.position}`).join(";");
   }
@@ -56,7 +55,6 @@ export default class State {
     State.pool.set(this.id, this);
   }
 
-  // TODO: any optimization?
   getStateItemMapKey(production: Production, position: number) {
     return `${production.id},${position}`;
   }
