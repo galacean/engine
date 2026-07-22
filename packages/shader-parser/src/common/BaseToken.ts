@@ -94,16 +94,21 @@ export function areConditionsComplementary(left?: BranchCondition, right?: Branc
 }
 
 /**
- * Determine whether every macro configuration satisfying `facts` also satisfies `required`.
- * @param required condition that must hold
- * @param facts known conditions that hold together
- * @returns Whether the facts imply the required condition
+ * Whether a `#if`/`#elif` chain contains an arm that covers every remaining macro configuration.
+ * @param constraints - Conditions in source order within one lexical conditional chain.
+ * @returns Whether no implicit fall-through configuration remains.
+ * @internal
  */
-export function isConditionImpliedBy(
-  required: BranchCondition | undefined,
-  facts: readonly BranchCondition[]
-): boolean {
-  return !!required && isConditionImplied(required, facts);
+export function isConditionalChainExhaustive(constraints: readonly BranchConstraint[]): boolean {
+  for (let i = 0, n = constraints.length; i < n; i++) {
+    const condition = constraints[i].condition;
+    if (condition?.kind === "constant" && condition.value) return true;
+    if (condition && isConditionImplied(condition, constraints[i].precedingConditions ?? [])) return true;
+    for (let j = 0; j < i; j++) {
+      if (areConditionsComplementary(constraints[j].condition, condition)) return true;
+    }
+  }
+  return false;
 }
 
 /**

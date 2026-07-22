@@ -1,7 +1,19 @@
-import type { Condition } from "@galacean/engine-design";
+import type { BoolCondition, CompareCondition, DefinedCondition } from "@galacean/engine-design";
 
-/** A parsed expression used by `#if` and `#elif` preprocessor directives. */
-export type PreprocessorCondition = Condition;
+/**
+ * Parsed condition accepted by `#if` and `#elif` directives.
+ *
+ * `#ifndef` is represented by its own directive and is therefore outside this expression grammar.
+ */
+export type PreprocessorCondition =
+  | BoolCondition
+  | CompareCondition
+  | DefinedCondition
+  | { t: "and"; l: PreprocessorCondition; r: PreprocessorCondition }
+  | { t: "or"; l: PreprocessorCondition; r: PreprocessorCondition }
+  | { t: "not"; c: PreprocessorCondition };
+
+const NUMBER_RE = /[-+]?(?:0[xX][0-9a-fA-F]+|\d+(?:\.\d+)?)/y;
 
 interface ParserContext {
   source: string;
@@ -107,9 +119,8 @@ function scanRequiredNumber(context: ParserContext): number {
 
 function scanNumber(context: ParserContext): number | undefined {
   const source = context.source;
-  const match = /[-+]?(?:0[xX][0-9a-fA-F]+|\d+(?:\.\d+)?)/y;
-  match.lastIndex = context.index;
-  const value = match.exec(source)?.[0];
+  NUMBER_RE.lastIndex = context.index;
+  const value = NUMBER_RE.exec(source)?.[0];
   if (!value) return undefined;
 
   const parsed = Number(value);

@@ -3,17 +3,18 @@ import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMac
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import { ShaderInstructionEncoder } from "@galacean/engine-shader-compiler/src/ShaderInstructionEncoder";
-import { parsePreprocessorCondition } from "@galacean/engine-shader-parser";
+import { parsePreprocessorCondition, type PreprocessorCondition } from "@galacean/engine-shader-parser";
 import { describe, expect, it } from "vitest";
 
 interface MacroConfiguration {
   macros: Array<[string, string]>;
-  trueArm: boolean;
+  firstArm: boolean;
 }
 
 interface ConditionCase {
   name: string;
   expression: string;
+  root: PreprocessorCondition["t"];
   configurations: MacroConfiguration[];
 }
 
@@ -21,113 +22,121 @@ const conditionCases: readonly ConditionCase[] = [
   {
     name: "defined macro",
     expression: "defined(USE)",
+    root: "def",
     configurations: [
-      { macros: [], trueArm: false },
-      { macros: [["USE", "0"]], trueArm: true },
-      { macros: [["USE", "1"]], trueArm: true }
+      { macros: [], firstArm: false },
+      { macros: [["USE", "0"]], firstArm: true },
+      { macros: [["USE", "1"]], firstArm: true }
     ]
   },
   {
     name: "bare macro numeric value",
     expression: "USE",
+    root: "cmp",
     configurations: [
-      { macros: [], trueArm: false },
-      { macros: [["USE", "0"]], trueArm: false },
-      { macros: [["USE", "1"]], trueArm: true },
-      { macros: [["USE", "-2"]], trueArm: true }
+      { macros: [], firstArm: false },
+      { macros: [["USE", "0"]], firstArm: false },
+      { macros: [["USE", "1"]], firstArm: true },
+      { macros: [["USE", "-2"]], firstArm: true }
     ]
   },
   {
     name: "numeric equality",
     expression: "MODE == 1",
+    root: "cmp",
     configurations: [
-      { macros: [], trueArm: false },
-      { macros: [["MODE", "0"]], trueArm: false },
-      { macros: [["MODE", "1"]], trueArm: true },
-      { macros: [["MODE", "2"]], trueArm: false }
+      { macros: [], firstArm: false },
+      { macros: [["MODE", "0"]], firstArm: false },
+      { macros: [["MODE", "1"]], firstArm: true },
+      { macros: [["MODE", "2"]], firstArm: false }
     ]
   },
   {
     name: "numeric inequality",
     expression: "MODE != 0",
+    root: "cmp",
     configurations: [
-      { macros: [], trueArm: false },
-      { macros: [["MODE", "0"]], trueArm: false },
-      { macros: [["MODE", "1"]], trueArm: true },
-      { macros: [["MODE", "-1"]], trueArm: true }
+      { macros: [], firstArm: false },
+      { macros: [["MODE", "0"]], firstArm: false },
+      { macros: [["MODE", "1"]], firstArm: true },
+      { macros: [["MODE", "-1"]], firstArm: true }
     ]
   },
   {
     name: "defined and numeric conjunction",
     expression: "defined(A) && B",
+    root: "and",
     configurations: [
-      { macros: [], trueArm: false },
+      { macros: [], firstArm: false },
       {
         macros: [
           ["A", "1"],
           ["B", "0"]
         ],
-        trueArm: false
+        firstArm: false
       },
       {
         macros: [
           ["A", "1"],
           ["B", "2"]
         ],
-        trueArm: true
+        firstArm: true
       }
     ]
   },
   {
     name: "mixed precedence",
     expression: "defined(A) || defined(B) && MODE > 1",
+    root: "or",
     configurations: [
-      { macros: [], trueArm: false },
+      { macros: [], firstArm: false },
       {
         macros: [
           ["B", "1"],
           ["MODE", "1"]
         ],
-        trueArm: false
+        firstArm: false
       },
       {
         macros: [
           ["B", "1"],
           ["MODE", "2"]
         ],
-        trueArm: true
+        firstArm: true
       },
-      { macros: [["A", "0"]], trueArm: true }
+      { macros: [["A", "0"]], firstArm: true }
     ]
   },
   {
     name: "nested negation",
     expression: "!(defined(A) && MODE == 0)",
+    root: "not",
     configurations: [
-      { macros: [], trueArm: true },
+      { macros: [], firstArm: true },
       {
         macros: [
           ["A", "1"],
           ["MODE", "0"]
         ],
-        trueArm: false
+        firstArm: false
       },
       {
         macros: [
           ["A", "1"],
           ["MODE", "1"]
         ],
-        trueArm: true
+        firstArm: true
       }
     ]
   },
   {
     name: "hexadecimal literal",
     expression: "MODE == 0x10",
+    root: "cmp",
     configurations: [
-      { macros: [], trueArm: false },
-      { macros: [["MODE", "15"]], trueArm: false },
-      { macros: [["MODE", "16"]], trueArm: true }
+      { macros: [], firstArm: false },
+      { macros: [["MODE", "15"]], firstArm: false },
+      { macros: [["MODE", "16"]], firstArm: true }
     ]
   }
 ];
@@ -182,8 +191,7 @@ function compileInWebGL(vertex: string, fragment: string): { ok: boolean; log: s
 describe("preprocessor condition conformance", () => {
   for (const conditionCase of conditionCases) {
     it(`${conditionCase.name}: parser, analyzer, encoder, and WebGL agree`, () => {
-      const parsed = parsePreprocessorCondition(conditionCase.expression);
-      expect(parsed).to.not.be.undefined;
+      expect(parsePreprocessorCondition(conditionCase.expression)).to.have.property("t", conditionCase.root);
 
       const result = new ShaderAnalyzer().analyze(shader(conditionCase.expression));
       expect(result.diagnostics).to.be.empty;
@@ -206,8 +214,8 @@ describe("preprocessor condition conformance", () => {
           generated.fragmentShaderInstructions!,
           new Map(configuration.macros)
         );
-        const selectedArm = configuration.trueArm ? "1.0" : "2.0";
-        const otherArm = configuration.trueArm ? "2.0" : "1.0";
+        const selectedArm = configuration.firstArm ? "1.0" : "2.0";
+        const otherArm = configuration.firstArm ? "2.0" : "1.0";
         expect(fragment.match(/uniform\s+float\s+u_value\s*;/g)).to.have.lengthOf(1);
         expect(fragment).to.contain(`const float u_selectedArm = ${selectedArm};`);
         expect(fragment).not.to.contain(`const float u_selectedArm = ${otherArm};`);

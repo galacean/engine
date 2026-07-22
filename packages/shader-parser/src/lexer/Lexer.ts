@@ -2,14 +2,13 @@ import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import { parsePreprocessorCondition, type PreprocessorCondition } from "../common/PreprocessorCondition";
 import {
-  areConditionsComplementary,
   BaseToken,
   BranchCondition,
   BranchConstraint,
   BranchSignature,
   canBranchesOverlap,
   EMPTY_BRANCH,
-  isConditionImpliedBy,
+  isConditionalChainExhaustive,
   EOF,
   isBranchReachable,
   sameBranch
@@ -343,7 +342,7 @@ export class Lexer extends BaseLexer {
     const branch = this._branchStack.pop();
     if (!frame || !branch) return;
     this._finishCurrentArm(frame);
-    const conditionalComplete = frame.hasElse || Lexer._isConditionalChainExhaustive(frame.constraints);
+    const conditionalComplete = frame.hasElse || isConditionalChainExhaustive(frame.constraints);
     if (conditionalComplete) {
       const conditionalReachableArms = frame.constraints.map((constraint) => isBranchReachable([constraint]));
       for (let i = 0, n = frame.constraints.length; i < n; i++) {
@@ -361,18 +360,6 @@ export class Lexer extends BaseLexer {
 
   private _finishCurrentArm(frame: ConditionalFrame): void {
     if (isBranchReachable(this._branchStack)) frame.armStates.push(Lexer._cloneMacroStates(this._macroStates));
-  }
-
-  private static _isConditionalChainExhaustive(constraints: readonly BranchConstraint[]): boolean {
-    for (let i = 0, n = constraints.length; i < n; i++) {
-      const condition = constraints[i].condition;
-      if (condition?.kind === "constant" && condition.value) return true;
-      if (isConditionImpliedBy(condition, constraints[i].precedingConditions ?? [])) return true;
-      for (let j = 0; j < i; j++) {
-        if (areConditionsComplementary(constraints[j].condition, condition)) return true;
-      }
-    }
-    return false;
   }
 
   private _mergeMacroStates(frame: ConditionalFrame): MacroStateMap {
@@ -539,8 +526,6 @@ export class Lexer extends BaseLexer {
         return { kind: "constant", value: condition.v };
       case "def":
         return { kind: "defined", name: condition.m, defined: true, version: 0 };
-      case "ndef":
-        return { kind: "defined", name: condition.m, defined: false, version: 0 };
       case "cmp":
         return {
           kind: "comparison",
