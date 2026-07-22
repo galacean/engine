@@ -1,6 +1,4 @@
-import { ShaderLanguage } from "@galacean/engine-core";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
-import { ShaderCompiler } from "@galacean/engine-shader-compiler";
 import type { IncludeMap } from "@galacean/engine-shader-parser";
 import { describe, expect, it } from "vitest";
 
@@ -437,19 +435,10 @@ BranchData branchData;`,
       "vec4(branchData.value)",
       /struct\s+BranchData\b/g
     ]
-  ])("retains both conflicting declarations for codegen: %s", (_name, declarations, expression, pattern) => {
+  ])("blocks codegen for conflicting declarations: %s", (_name, declarations, expression) => {
     const source = shader(declarations, expression);
     const { diagnostics, passes } = analyze(source);
     expect(diagnostics.filter((diagnostic) => diagnostic.code === "Redefinition")).to.have.lengthOf(1);
-
-    const pass = passes[0];
-    const output = new ShaderCompiler().generate(
-      pass.program,
-      pass.vertexEntry,
-      pass.fragmentEntry,
-      ShaderLanguage.GLSLES100
-    ).fragment;
-    expect(output.match(pattern) ?? []).to.have.lengthOf(2);
-    expect(output).to.include("#ifdef A");
+    expect(passes, "an analyzer error must make the pass unavailable to codegen").to.have.lengthOf(0);
   });
 });

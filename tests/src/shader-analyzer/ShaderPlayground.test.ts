@@ -36,6 +36,14 @@ const MACRO_SCENARIOS: readonly MacroScenario[] = [
   { label: "宏定义 / 函数式 #define", snippet: "#define APPLY_SCALE", diagnosticCount: 0 },
   { label: "宏分支 / #ifdef / #else 互斥", snippet: "#ifdef USE_BRANCH_VALUE", diagnosticCount: 0 },
   { label: "宏分支 / #ifndef / #else 互斥", snippet: "#ifndef DISABLE_BRANCH_VALUE", diagnosticCount: 0 },
+  {
+    label: "宏分支 / #ifndef / #elif 存在遗漏",
+    snippet: "#elif A",
+    diagnosticCount: 1,
+    diagnostic: "UseBeforeDeclaration",
+    severity: "error"
+  },
+  { label: "宏分支 / #ifndef / #elif 完整互补", snippet: "#elif defined(DISABLE_BRANCH_VALUE)", diagnosticCount: 0 },
   { label: "宏分支 / #if / #elif / #else 互斥", snippet: "#if MODE == 1", diagnosticCount: 0 },
   { label: "宏分支 / 嵌套互斥分支", snippet: "#ifdef OUTER", diagnosticCount: 0 },
   {
@@ -125,9 +133,7 @@ describe("shader playground", () => {
       } else {
         expect(output!.textContent).to.contain("No diagnostics");
       }
+      expect(output!.textContent).not.to.contain("NonConstArraySize");
     }
-
-    expect(output!.textContent).to.contain("AmbiguousMacroBranchResolution");
-    expect(output!.textContent).not.to.contain("NonConstArraySize");
   });
 });

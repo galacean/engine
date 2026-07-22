@@ -47,14 +47,15 @@ export class SymbolTableStack<S extends IBaseSymbol, T extends SymbolTable<S>> {
   /**
    * Insert a symbol into the current lexical scope.
    * @param symbol - Symbol to insert.
+   * @param branchSignature - Macro branch at the declaration token.
    * @returns Whether the declaration conflicts with an existing declaration in this scope.
    */
-  insert(symbol: S): boolean {
+  insert(symbol: S, branchSignature: BranchSignature = this._currentBranch): boolean {
     // Local shader code can rely on caller-owned macro exclusivity that is absent from the source.
     // Apply possible-coexistence diagnostics only to global declarations; unconditional collisions
     // keep their legacy error behavior in every scope.
     const diagnoseBranchConflict = this.stack.length === 1;
-    return this.scope.insert(symbol, this.isInMacroBranch, this._currentBranch, diagnoseBranchConflict);
+    return this.scope.insert(symbol, this.isInMacroBranch, branchSignature, diagnoseBranchConflict);
   }
 
   lookup(symbol: S, includeMacro = false, callsiteBranch?: BranchSignature): S | undefined {

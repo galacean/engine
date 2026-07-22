@@ -15,11 +15,13 @@ export interface BranchConstraint {
   conditionalGroup?: number;
   /** Lexical arm within `conditionalGroup`; different arms cannot execute together. */
   conditionalArm?: number;
-  /** Whether this conditional chain has an `#else` arm and therefore covers every configuration. */
+  /** Whether this conditional chain covers every configuration. */
   conditionalComplete?: boolean;
   /** Number of arms in this complete conditional chain. */
   conditionalArmCount?: number;
-  /** A simple `#if` condition recognized by the lexer. Complex expressions stay undefined. */
+  /** Reachability of each arm in this complete conditional chain. */
+  conditionalReachableArms?: readonly boolean[];
+  /** A recognized `#if` condition; unsupported expressions stay undefined. */
   condition?: BranchCondition;
   /** Conditions of earlier arms that must be false for this `#elif`/`#else` arm to run. */
   precedingConditions?: readonly BranchCondition[];
@@ -46,7 +48,50 @@ export type BranchCondition =
       operator: "==" | "!=" | ">" | ">=" | "<" | "<=";
       value: number;
       version: number;
+    }
+  | {
+      /** Canonicalized conjunction/disjunction of simple macro conditions. */
+      kind: "expression";
+      expression: string;
+      operator: "&&" | "||";
+      operands: readonly BranchCondition[];
+      names: readonly string[];
+      versions: readonly number[];
+      negated: boolean;
     };
+
+/**
+ * Whether two simple macro conditions are exact logical negations.
+ * @param left - First simple condition.
+ * @param right - Second simple condition.
+ * @returns Whether exactly one condition holds for every macro value.
+ */
+export function areConditionsComplementary(left?: BranchCondition, right?: BranchCondition): boolean {
+  if (!left || !right) return false;
+  if (left.kind === "constant" || right.kind === "constant") {
+    return left.kind === "constant" && right.kind === "constant" && left.value !== right.value;
+  }
+  if (left.kind === "expression" || right.kind === "expression") {
+    return (
+      left.kind === "expression" &&
+      right.kind === "expression" &&
+      sameExpression(left, right) &&
+      left.negated !== right.negated
+    );
+  }
+  if (left.kind !== right.kind || left.name !== right.name || left.version !== right.version) return false;
+  if (left.kind === "defined" && right.kind === "defined") return left.defined !== right.defined;
+  if (left.kind !== "comparison" || right.kind !== "comparison" || left.value !== right.value) return false;
+
+  return (
+    (left.operator === "==" && right.operator === "!=") ||
+    (left.operator === "!=" && right.operator === "==") ||
+    (left.operator === ">" && right.operator === "<=") ||
+    (left.operator === ">=" && right.operator === "<") ||
+    (left.operator === "<" && right.operator === ">=") ||
+    (left.operator === "<=" && right.operator === ">")
+  );
+}
 
 /**
  * Snapshot of the `#ifdef`/`#ifndef`/`#else` stack at a source position. An
@@ -193,7 +238,7 @@ export function canBranchesOverlap(left: BranchSignature, right: BranchSignature
 /**
  * Whether declarations from a complete set of conditional arms cover every configuration that can
  * reach `callSiteBranch`. A single declaration must be guaranteed by the call site; alternatively,
- * one declaration in every arm of an exhaustive `#if/#elif/#else` chain is sufficient.
+ * one declaration in every arm of an exhaustive conditional chain is sufficient.
  * @param candidates - Branch signatures of matching declarations in one lexical scope.
  * @param callSiteBranch - Branch signature at the reference.
  * @returns Whether the reference is backed by a declaration on every reachable macro path.
@@ -262,6 +307,8 @@ function canCandidateSetCoverCallsite(
 
     let everyArmCovered = true;
     for (let arm = 0; arm < armCount; arm++) {
+      const armReachable = representative?.conditionalReachableArms?.[arm] ?? true;
+      if (!armReachable) continue;
       const armCandidates = compatible
         .filter(
           (candidate) => candidate.find((constraint) => constraint.conditionalGroup === group)?.conditionalArm === arm
@@ -274,11 +321,154 @@ function canCandidateSetCoverCallsite(
     }
     if (everyArmCovered) return true;
   }
+
+  if (canComplementarySimpleCandidatesCoverCallsite(compatible, callSiteBranch)) return true;
+  if (canDefinedBooleanCandidatesCoverCallsite(compatible, callSiteBranch)) return true;
+  return false;
+}
+
+/**
+ * Cover a reference with branch declarations when each involved condition is a bounded boolean
+ * expression over `defined(MACRO)`. This resolves repeated lexical conditionals such as
+ * `#if A` / `#elif B` being referenced from a later `#if A || B`, without evaluating arbitrary
+ * numeric preprocessor expressions or expanding the analysis cost beyond 64 configurations.
+ */
+function canDefinedBooleanCandidatesCoverCallsite(
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+): boolean {
+  const atomKeys: string[] = [];
+  const branches = [...candidates, callSiteBranch];
+  for (let i = 0, n = branches.length; i < n; i++) {
+    const branch = branches[i];
+    for (let j = 0, m = branch.length; j < m; j++) {
+      const constraint = branch[j];
+      if (constraint.name.startsWith("__if_") && !constraint.condition && !constraint.precedingConditions?.length) {
+        return false;
+      }
+      const conditions = getConstraintConditions(constraint);
+      for (let k = 0, o = conditions.length; k < o; k++) {
+        if (!collectDefinedBooleanAtoms(conditions[k], atomKeys)) return false;
+      }
+    }
+  }
+  if (!atomKeys.length || atomKeys.length > 6) return false;
+
+  const values = new Map<string, boolean>();
+  const configurations = 1 << atomKeys.length;
+  for (let mask = 0; mask < configurations; mask++) {
+    for (let i = 0, n = atomKeys.length; i < n; i++) values.set(atomKeys[i], !!(mask & (1 << i)));
+    if (!matchesDefinedBooleanBranch(callSiteBranch, values)) continue;
+    if (!candidates.some((candidate) => matchesDefinedBooleanBranch(candidate, values))) return false;
+  }
+  return true;
+}
+
+function collectDefinedBooleanAtoms(condition: BranchCondition, out: string[]): boolean {
+  if (condition.kind === "constant") return true;
+  if (condition.kind === "comparison") return false;
+  if (condition.kind === "defined") {
+    const key = `${condition.name}:${condition.version}`;
+    if (out.indexOf(key) === -1) out.push(key);
+    return true;
+  }
+  for (let i = 0, n = condition.operands.length; i < n; i++) {
+    if (!collectDefinedBooleanAtoms(condition.operands[i], out)) return false;
+  }
+  return true;
+}
+
+function matchesDefinedBooleanBranch(branch: BranchSignature, values: ReadonlyMap<string, boolean>): boolean {
+  for (let i = 0, n = branch.length; i < n; i++) {
+    const conditions = getConstraintConditions(branch[i]);
+    for (let j = 0, m = conditions.length; j < m; j++) {
+      if (!evaluateDefinedBooleanCondition(conditions[j], values)) return false;
+    }
+  }
+  return true;
+}
+
+function evaluateDefinedBooleanCondition(condition: BranchCondition, values: ReadonlyMap<string, boolean>): boolean {
+  if (condition.kind === "constant") return condition.value;
+  if (condition.kind === "comparison") return false;
+  if (condition.kind === "defined") {
+    return values.get(`${condition.name}:${condition.version}`) === condition.defined;
+  }
+  const valuesForOperands = condition.operands.map((operand) => evaluateDefinedBooleanCondition(operand, values));
+  const value = condition.operator === "&&" ? valuesForOperands.every(Boolean) : valuesForOperands.some(Boolean);
+  return condition.negated ? !value : value;
+}
+
+function canComplementarySimpleCandidatesCoverCallsite(
+  candidates: readonly BranchSignature[],
+  callSiteBranch: BranchSignature
+): boolean {
+  const seen = new Set<string>();
+  for (let i = 0, n = candidates.length; i < n; i++) {
+    const candidate = candidates[i];
+    for (let j = 0, m = candidate.length; j < m; j++) {
+      const constraint = candidate[j];
+      const condition = constraint.condition;
+      if (!condition || constraint.precedingConditions?.length) continue;
+
+      const remaining = [...candidate.slice(0, j), ...candidate.slice(j + 1)];
+      if (!isBranchVisibleFrom(remaining, callSiteBranch)) continue;
+
+      const remainderKey = branchKey(remaining);
+      const conditionKey = simpleConditionKey(condition);
+      const complementKey = complementaryConditionKey(condition);
+      if (complementKey && seen.has(`${remainderKey}|${complementKey}`)) return true;
+      seen.add(`${remainderKey}|${conditionKey}`);
+    }
+  }
   return false;
 }
 
 function removeConditionalGroup(branch: BranchSignature, group: number): BranchSignature {
   return branch.filter((constraint) => constraint.conditionalGroup !== group);
+}
+
+function branchKey(branch: BranchSignature): string {
+  return branch
+    .map((constraint) => [
+      constraint.name,
+      constraint.defined,
+      simpleConditionKey(constraint.condition),
+      constraint.precedingConditions?.map(simpleConditionKey).join(",")
+    ])
+    .join("|");
+}
+
+function simpleConditionKey(condition?: BranchCondition): string {
+  if (!condition) return "";
+  if (condition.kind === "constant") return `constant:${condition.value}`;
+  if (condition.kind === "defined") return `defined:${condition.name}:${condition.version}:${condition.defined}`;
+  if (condition.kind === "expression") {
+    return `expression:${condition.expression}:${condition.names.map((name, i) => `${name}:${condition.versions[i]}`).join(",")}:${condition.negated}`;
+  }
+  return `comparison:${condition.name}:${condition.version}:${condition.operator}:${condition.value}`;
+}
+
+function complementaryConditionKey(condition: BranchCondition): string | undefined {
+  if (condition.kind === "constant") return `constant:${!condition.value}`;
+  if (condition.kind === "defined") return `defined:${condition.name}:${condition.version}:${!condition.defined}`;
+  if (condition.kind === "expression") {
+    return `expression:${condition.expression}:${condition.names.map((name, i) => `${name}:${condition.versions[i]}`).join(",")}:${!condition.negated}`;
+  }
+
+  const operator =
+    condition.operator === "=="
+      ? "!="
+      : condition.operator === "!="
+        ? "=="
+        : condition.operator === ">"
+          ? "<="
+          : condition.operator === ">="
+            ? "<"
+            : condition.operator === "<"
+              ? ">="
+              : ">";
+  return `comparison:${condition.name}:${condition.version}:${operator}:${condition.value}`;
 }
 
 function hasCompatibleGuardUndef(
@@ -316,6 +506,9 @@ function sameCondition(left?: BranchCondition, right?: BranchCondition): boolean
   if (left.kind !== right.kind) return false;
   if (left.kind === "constant") return right.kind === "constant" && left.value === right.value;
   if (right.kind === "constant") return false;
+  if (left.kind === "expression")
+    return right.kind === "expression" && sameExpression(left, right) && left.negated === right.negated;
+  if (right.kind === "expression") return false;
   if (left.name !== right.name || left.version !== right.version) return false;
   if (left.kind === "defined" && right.kind === "defined") return left.defined === right.defined;
   return (
@@ -326,11 +519,23 @@ function sameCondition(left?: BranchCondition, right?: BranchCondition): boolean
   );
 }
 
+function sameExpression(
+  left: Extract<BranchCondition, { kind: "expression" }>,
+  right: Extract<BranchCondition, { kind: "expression" }>
+): boolean {
+  if (left.expression !== right.expression || left.names.length !== right.names.length) return false;
+  for (let i = 0, n = left.names.length; i < n; i++) {
+    if (left.names[i] !== right.names[i] || left.versions[i] !== right.versions[i]) return false;
+  }
+  return true;
+}
+
 function isConditionImplied(required: BranchCondition, facts: readonly BranchCondition[]): boolean {
   if (required.kind === "constant") return required.value;
+  if (required.kind === "expression") return facts.some((fact) => sameCondition(fact, required));
   for (let i = 0, n = facts.length; i < n; i++) {
     const fact = facts[i];
-    if (fact.kind === "constant") continue;
+    if (fact.kind === "constant" || fact.kind === "expression") continue;
     if (fact.name !== required.name || fact.version !== required.version) continue;
     if (conditionImplies(fact, required)) return true;
   }
@@ -341,6 +546,7 @@ function conditionImplies(
   fact: Exclude<BranchCondition, { kind: "constant" }>,
   required: Exclude<BranchCondition, { kind: "constant" }>
 ): boolean {
+  if (fact.kind === "expression" || required.kind === "expression") return sameCondition(fact, required);
   if (fact.kind === "defined") {
     if (required.kind === "defined") return fact.defined === required.defined;
     return !fact.defined && matchesComparison(0, required);
@@ -365,6 +571,14 @@ function areConditionsMutuallyExclusive(left?: BranchCondition, right?: BranchCo
   if (!left || !right) return false;
   if (left.kind === "constant" || right.kind === "constant") {
     return (left.kind === "constant" && !left.value) || (right.kind === "constant" && !right.value);
+  }
+  if (left.kind === "expression" || right.kind === "expression") {
+    return (
+      left.kind === "expression" &&
+      right.kind === "expression" &&
+      sameExpression(left, right) &&
+      left.negated !== right.negated
+    );
   }
   if (left.name !== right.name || left.version !== right.version) return false;
 

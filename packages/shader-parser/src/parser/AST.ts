@@ -8,6 +8,7 @@ import {
   canBranchesOverlap,
   canDeclarationsCoexist,
   EMPTY_BRANCH,
+  isBranchVisibleFrom,
   isSelfGuardingBranch,
   sameBranch
 } from "../common/BaseToken";
@@ -303,7 +304,7 @@ export namespace ASTNode {
       }
       // Equal declarations that can coexist are errors. Macro-branch alternatives remain registered
       // so codegen can preserve every arm; unconditional collisions retain the legacy replacement behavior.
-      if (sa.symbolTableStack.insert(sm)) {
+      if (sa.symbolTableStack.insert(sm, id.branch)) {
         sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
       }
       // A `const`-qualified variable's initializer must be a compile-time constant.
@@ -567,7 +568,7 @@ export namespace ASTNode {
       if (childrenLength === 3 || childrenLength === 5) {
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, this.typeInfo, false, this);
-        if (sa.symbolTableStack.insert(sm)) {
+        if (sa.symbolTableStack.insert(sm, id.branch)) {
           sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
         }
       } else if (childrenLength === 4 || childrenLength === 6) {
@@ -577,7 +578,7 @@ export namespace ASTNode {
         typeInfo.arraySpecifier = arraySpecifier;
         const id = children[2] as BaseToken;
         sm = new VarSymbol(id.lexeme, typeInfo, false, this);
-        if (sa.symbolTableStack.insert(sm)) {
+        if (sa.symbolTableStack.insert(sm, id.branch)) {
           sa.reportError(id.location, `Redefinition of '${id.lexeme}'.`, DiagnosticType.Redefinition);
         }
       }
@@ -753,7 +754,7 @@ export namespace ASTNode {
           false,
           parameterDeclarator
         );
-        sa.symbolTableStack.insert(varSymbol);
+        sa.symbolTableStack.insert(varSymbol, parameterDeclarator.ident.branch);
       }
     }
   }
@@ -812,8 +813,8 @@ export namespace ASTNode {
       // Preserve the legacy keep-first behavior for unconditional duplicates. Branch declarations
       // must all be inserted even when they conflict: codegen needs every macro arm to reproduce
       // the source, while `insert` independently reports whether two declarations can coexist.
-      const unconditionalDuplicate = this._branch.length === 0 && sa.symbolTableStack.lookup(sm);
-      const redefined = unconditionalDuplicate ? true : sa.symbolTableStack.insert(sm);
+      const unconditionalDuplicate = this.protoType.ident.branch.length === 0 && sa.symbolTableStack.lookup(sm);
+      const redefined = unconditionalDuplicate ? true : sa.symbolTableStack.insert(sm, this.protoType.ident.branch);
       if (redefined) {
         sa.reportError(
           this.protoType.ident.location,
@@ -1448,7 +1449,7 @@ export namespace ASTNode {
       this.isInMacroBranch = sa.symbolTableStack.isInMacroBranch;
       if (children.length === 6) {
         this.ident = children[1] as BaseToken;
-        if (sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this))) {
+        if (sa.symbolTableStack.insert(new StructSymbol(this.ident.lexeme, this), this.ident.branch)) {
           sa.reportError(this.ident.location, `Redefinition of '${this.ident.lexeme}'.`, DiagnosticType.Redefinition);
         }
 
@@ -1703,7 +1704,7 @@ export namespace ASTNode {
         !hasInitializer && !type.isConst
       );
 
-      if (sa.symbolTableStack.insert(sm)) {
+      if (sa.symbolTableStack.insert(sm, ident.branch)) {
         sa.reportError(ident.location, `Redefinition of '${ident.lexeme}'.`, DiagnosticType.Redefinition);
       }
 
@@ -1845,36 +1846,36 @@ export namespace ASTNode {
           const firstIsArray = !!first.dataType?.arraySpecifier;
           const firstArraySize = first.dataType?.arraySpecifier?.size;
           let divergent = false;
+          let arraySizeDivergent = false;
           if (symbols.length > 1) {
             for (let s = 1; s < symbols.length; s++) {
               const d = symbols[s].dataType;
-              if (
-                d?.type !== firstType ||
-                !!d?.arraySpecifier !== firstIsArray ||
-                d?.arraySpecifier?.size !== firstArraySize
-              ) {
+              if (d?.type !== firstType || !!d?.arraySpecifier !== firstIsArray) {
                 divergent = true;
                 break;
               }
+              if (d?.arraySpecifier?.size !== firstArraySize) arraySizeDivergent = true;
             }
           }
           if (divergent) {
             this.typeInfo = TypeAny;
             this.isArray = false;
             this.arraySize = undefined;
-            // Report once per (pass, symbol name) — a single divergent symbol may be referenced
-            // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
-            // with identical warnings buries the signal.
-            sa.reportBranchAmbiguity(
-              this.location,
-              name,
-              `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
-              DiagnosticType.AmbiguousMacroBranchType
-            );
+            if (!symbols.every((symbol) => TypeSystem.isSamplerType(symbol.dataType?.type))) {
+              // Report once per (pass, symbol name) — a single divergent symbol may be referenced
+              // dozens of times (e.g. `renderer_BlendShapeWeights[0..7]`); flooding the editor UI
+              // with identical warnings buries the signal.
+              sa.reportBranchAmbiguity(
+                this.location,
+                name,
+                `Symbol '${name}' resolves to multiple declarations with divergent types across macro branches; type inference disabled at this reference.`,
+                DiagnosticType.AmbiguousMacroBranchType
+              );
+            }
           } else {
             this.typeInfo = firstType;
             this.isArray = firstIsArray;
-            this.arraySize = firstArraySize;
+            this.arraySize = arraySizeDivergent ? undefined : firstArraySize;
           }
         }
       }
@@ -1912,7 +1913,8 @@ export namespace ASTNode {
         symbols,
         referenceGlobalSymbolNames,
         null,
-        EMPTY_BRANCH
+        EMPTY_BRANCH,
+        true
       );
     }
 
@@ -1921,6 +1923,8 @@ export namespace ASTNode {
      *  the lookup hit (caller can then derive type info). When `missErrorLoc`
      *  is non-null, a miss reports an "undeclared identifier" error; pass
      *  `null` for silent probes (e.g. FXAA-style cross-arm shadowing).
+     * `retainPartialBranchCandidates` is reserved for codegen-only probes: they retain every
+     * branch-local declaration even though none is guaranteed at the probe's synthetic call site.
      *
      *  Mutation contract: `symbols` is used as scratch storage — `lookupAll`
      *  clears and refills it. On hit, the caller may read `symbols[0]` for
@@ -1931,7 +1935,8 @@ export namespace ASTNode {
       symbols: (VarSymbol | FnSymbol)[],
       referenceGlobalSymbolNames: string[],
       missErrorLoc: ShaderRange | null,
-      callsiteBranch: BranchSignature
+      callsiteBranch: BranchSignature,
+      retainPartialBranchCandidates = false
     ): boolean {
       const lookupSymbol = SemanticAnalyzer._lookupSymbol;
       lookupSymbol.set(name, ESymbolType.Any);
@@ -1939,6 +1944,14 @@ export namespace ASTNode {
       // A `float u_a` inside `#ifdef X` is invisible to a reference in `#else` (as it should be)
       // and visible to a reference in the same branch (so type inference recovers).
       sa.symbolTableStack.lookupAll(lookupSymbol, true, symbols, callsiteBranch);
+      let directlyVisibleCount = 0;
+      for (let i = 0, n = symbols.length; i < n; i++) {
+        const symbol = symbols[i];
+        if (isBranchVisibleFrom(symbol.branchSignature ?? EMPTY_BRANCH, callsiteBranch)) {
+          symbols[directlyVisibleCount++] = symbol;
+        }
+      }
+      if (directlyVisibleCount) symbols.length = directlyVisibleCount;
 
       if (!symbols.length) {
         if (missErrorLoc) {
@@ -1963,6 +1976,7 @@ export namespace ASTNode {
         return false;
       }
       if (
+        !retainPartialBranchCandidates &&
         !canBranchesCoverCallsite(
           symbols.map((symbol) => symbol.branchSignature ?? EMPTY_BRANCH),
           callsiteBranch

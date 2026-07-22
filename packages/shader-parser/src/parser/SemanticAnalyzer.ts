@@ -1,4 +1,5 @@
 import { ShaderRange } from "../common";
+import { isBranchReachable } from "../common/BaseToken";
 import { SymbolTable } from "../common/SymbolTable";
 import { SymbolTableStack } from "../common/SymbolTableStack";
 import { GSError, GSErrorName } from "../GSError";
@@ -81,12 +82,14 @@ export default class SemanticAnalyzer {
   }
 
   reportError(loc: ShaderRange, message: string, code?: DiagnosticType): void {
+    if (!this._isCurrentBranchReachable()) return;
     this.errors.push(
       new GSError(GSErrorName.CompilationError, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
     );
   }
 
   reportWarning(loc: ShaderRange, message: string, code?: DiagnosticType): void {
+    if (!this._isCurrentBranchReachable()) return;
     this.errors.push(
       new GSError(GSErrorName.CompilationWarn, message, loc, ShaderCompilerUtils.processingPassText, undefined, code)
     );
@@ -100,9 +103,15 @@ export default class SemanticAnalyzer {
    * @param code - Diagnostic classification for this ambiguity.
    */
   reportBranchAmbiguity(loc: ShaderRange, key: string, message: string, code: DiagnosticType): void {
+    if (!this._isCurrentBranchReachable()) return;
     const dedupKey = `${code}:${key}`;
     if (this._ambiguousReported.has(dedupKey)) return;
     this._ambiguousReported.add(dedupKey);
     this.reportError(loc, message, code);
+  }
+
+  /** Suppress diagnostics from paths the lexer has proven cannot reach the generated shader. */
+  private _isCurrentBranchReachable(): boolean {
+    return isBranchReachable(this.symbolTableStack._currentBranch);
   }
 }

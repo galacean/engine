@@ -18,14 +18,12 @@ export default defineProject({
     browser: {
       provider: "playwright",
       enabled: true,
+      headless: process.env.HEADLESS === "true",
       instances: [
         {
           browser: "chromium",
           launch: {
-            args:
-              process.env.HEADLESS === "true"
-                ? ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle", "--headless"]
-                : ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
+            args: ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
           }
         }
       ]

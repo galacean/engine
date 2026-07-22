@@ -1,6 +1,7 @@
 import { ETokenType } from "../common";
 import { BaseLexer } from "../common/BaseLexer";
 import {
+  areConditionsComplementary,
   BaseToken,
   BranchCondition,
   BranchConstraint,
@@ -336,13 +337,16 @@ export class Lexer extends BaseLexer {
     const branch = this._branchStack.pop();
     if (!frame || !branch) return;
     this._finishCurrentArm(frame);
-    if (frame.hasElse) {
+    const conditionalComplete = frame.hasElse || Lexer._isConditionalChainExhaustive(frame.constraints);
+    if (conditionalComplete) {
+      const conditionalReachableArms = frame.constraints.map((constraint) => isBranchReachable([constraint]));
       for (let i = 0, n = frame.constraints.length; i < n; i++) {
         frame.constraints[i].conditionalComplete = true;
         frame.constraints[i].conditionalArmCount = n;
+        frame.constraints[i].conditionalReachableArms = conditionalReachableArms;
       }
     }
-    if (!frame.hasElse) frame.armStates.push(Lexer._cloneMacroStates(frame.entryState));
+    if (!conditionalComplete) frame.armStates.push(Lexer._cloneMacroStates(frame.entryState));
     this._macroStates = this._mergeMacroStates(frame);
     if (frame.guardName && frame.guardDefined === false && frame.selfGuarding) {
       this._setMacroState(frame.guardName, true, undefined);
@@ -351,6 +355,17 @@ export class Lexer extends BaseLexer {
 
   private _finishCurrentArm(frame: ConditionalFrame): void {
     if (isBranchReachable(this._branchStack)) frame.armStates.push(Lexer._cloneMacroStates(this._macroStates));
+  }
+
+  private static _isConditionalChainExhaustive(constraints: readonly BranchConstraint[]): boolean {
+    for (let i = 0, n = constraints.length; i < n; i++) {
+      const condition = constraints[i].condition;
+      if (condition?.kind === "constant" && condition.value) return true;
+      for (let j = 0; j < i; j++) {
+        if (areConditionsComplementary(constraints[j].condition, condition)) return true;
+      }
+    }
+    return false;
   }
 
   private _mergeMacroStates(frame: ConditionalFrame): MacroStateMap {
@@ -376,13 +391,44 @@ export class Lexer extends BaseLexer {
 
   private _resolveCondition(condition?: BranchCondition): BranchCondition | undefined {
     if (!condition || condition.kind === "constant") return condition;
-    const bound = { ...condition, version: this._macroVersion(condition.name) } as BranchCondition;
+    const bound = this._bindCondition(condition);
     const value = this._evaluateCondition(bound);
     return value === undefined ? bound : { kind: "constant", value };
   }
 
+  private _bindCondition(condition: Exclude<BranchCondition, { kind: "constant" }>): BranchCondition {
+    if (condition.kind === "expression") {
+      return {
+        ...condition,
+        operands: condition.operands.map((operand) =>
+          operand.kind === "constant" ? operand : this._bindCondition(operand)
+        ),
+        versions: condition.names.map((name) => this._macroVersion(name))
+      };
+    }
+    return { ...condition, version: this._macroVersion(condition.name) };
+  }
+
   private _evaluateCondition(condition: BranchCondition): boolean | undefined {
     if (condition.kind === "constant") return condition.value;
+    if (condition.kind === "expression") {
+      const values = condition.operands.map((operand) => this._evaluateCondition(operand));
+      let value: boolean | undefined;
+      if (condition.operator === "&&") {
+        value = values.some((candidate) => candidate === false)
+          ? false
+          : values.every((candidate) => candidate === true)
+            ? true
+            : undefined;
+      } else {
+        value = values.some((candidate) => candidate === true)
+          ? true
+          : values.every((candidate) => candidate === false)
+            ? false
+            : undefined;
+      }
+      return value === undefined ? undefined : condition.negated ? !value : value;
+    }
     const state = this._macroState(condition.name);
     if (condition.kind === "defined") {
       return state.defined === undefined ? undefined : state.defined === condition.defined;
@@ -394,6 +440,7 @@ export class Lexer extends BaseLexer {
 
   private _assumeCondition(condition?: BranchCondition): void {
     if (!condition || condition.kind === "constant") return;
+    if (condition.kind === "expression") return;
     const current = this._macroState(condition.name);
     if (condition.kind === "defined") {
       this._macroStates[condition.name] = {
@@ -473,6 +520,14 @@ export class Lexer extends BaseLexer {
 
   private _parseSimpleCondition(expression: string): BranchCondition | undefined {
     const source = Lexer._stripOuterParentheses(expression.trim());
+    if (source.startsWith("!")) {
+      const condition = this._parseSimpleCondition(Lexer._stripOuterParentheses(source.slice(1).trim()));
+      if (condition) return Lexer._negateSimpleCondition(condition);
+    }
+
+    const logical = this._parseLogicalCondition(source);
+    if (logical) return logical;
+
     const constant = Lexer._parseNumericLiteral(source);
     if (constant !== undefined) return { kind: "constant", value: constant !== 0 };
 
@@ -491,22 +546,69 @@ export class Lexer extends BaseLexer {
     const defined = /^defined\s*(?:\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)|\s+([A-Za-z_][A-Za-z0-9_]*))$/.exec(source);
     if (defined) return { kind: "defined", name: defined[1] ?? defined[2], defined: true, version: 0 };
 
-    const notDefined = /^!\s*defined\s*(?:\(\s*([A-Za-z_][A-Za-z0-9_]*)\s*\)|\s+([A-Za-z_][A-Za-z0-9_]*))$/.exec(
-      source
-    );
-    if (notDefined) return { kind: "defined", name: notDefined[1] ?? notDefined[2], defined: false, version: 0 };
-
-    const notBare = /^!\s*([A-Za-z_][A-Za-z0-9_]*)$/.exec(source);
-    if (notBare) return { kind: "comparison", name: notBare[1], operator: "==", value: 0, version: 0 };
-
     const bare = /^([A-Za-z_][A-Za-z0-9_]*)$/.exec(source);
     return bare ? { kind: "comparison", name: bare[1], operator: "!=", value: 0, version: 0 } : undefined;
+  }
+
+  /** Canonicalize a conjunction or disjunction of individually recognized macro conditions. */
+  private _parseLogicalCondition(source: string): BranchCondition | undefined {
+    const split = Lexer._splitTopLevelLogical(source, "||") ?? Lexer._splitTopLevelLogical(source, "&&");
+    if (!split) return undefined;
+
+    const operands = split.parts.map((part) => this._parseSimpleCondition(part));
+    if (operands.some((operand) => !operand)) return undefined;
+    const conditionOperands = operands as BranchCondition[];
+    const names = Array.from(new Set(conditionOperands.flatMap((operand) => Lexer._conditionNames(operand)))).sort();
+    return {
+      kind: "expression",
+      expression: `${split.operator}(${conditionOperands.map(Lexer._conditionKey).sort().join(",")})`,
+      operator: split.operator,
+      operands: conditionOperands,
+      names,
+      versions: names.map(() => 0),
+      negated: false
+    };
+  }
+
+  private static _splitTopLevelLogical(
+    source: string,
+    operator: "&&" | "||"
+  ): { operator: "&&" | "||"; parts: string[] } | undefined {
+    const parts: string[] = [];
+    let depth = 0;
+    let start = 0;
+    for (let i = 0; i < source.length - 1; i++) {
+      const char = source.charCodeAt(i);
+      if (char === 40 /* ( */) depth++;
+      else if (char === 41 /* ) */) depth--;
+      if (depth !== 0 || source.slice(i, i + 2) !== operator) continue;
+      parts.push(source.slice(start, i));
+      start = i + 2;
+      i++;
+    }
+    if (!parts.length) return undefined;
+    parts.push(source.slice(start));
+    return parts.some((part) => !part.trim()) ? undefined : { operator, parts };
+  }
+
+  private static _conditionNames(condition: BranchCondition): readonly string[] {
+    if (condition.kind === "constant") return [];
+    if (condition.kind === "expression") return condition.names;
+    return [condition.name];
+  }
+
+  private static _conditionKey(condition: BranchCondition): string {
+    if (condition.kind === "constant") return `constant:${condition.value}`;
+    if (condition.kind === "defined") return `defined:${condition.name}:${condition.defined}`;
+    if (condition.kind === "expression") return `${condition.negated ? "!" : ""}${condition.expression}`;
+    return `comparison:${condition.name}:${condition.operator}:${condition.value}`;
   }
 
   private static _negateSimpleCondition(condition?: BranchCondition): BranchCondition | undefined {
     if (!condition) return undefined;
     if (condition.kind === "constant") return { kind: "constant", value: !condition.value };
     if (condition.kind === "defined") return { ...condition, defined: !condition.defined };
+    if (condition.kind === "expression") return { ...condition, negated: !condition.negated };
 
     const operator =
       condition.operator === "=="
@@ -915,6 +1017,13 @@ export class Lexer extends BaseLexer {
     const word = buffer.join("");
 
     if (word === "#define") {
+      if (!isBranchReachable(this._branchStack)) {
+        // GLSL preprocessors ignore replacement-list syntax in a statically inactive arm.
+        // Keep the original directive for downstream preprocessing without registering or parsing it.
+        this._scanUtilBreakLine(buffer);
+        token.set(Keyword.MACRO_DEFINE_EXPRESSION, "\n" + buffer.join("") + "\n", start);
+        return token;
+      }
       const peek = this._peekMacroDefine();
       if (peek && peek.isExpression) {
         // AST path: the value will be tokenized by the lexer's `_inMacroDefineValue`

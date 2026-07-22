@@ -105,9 +105,7 @@ describe("ShaderAnalyzer", () => {
     expect(redef!.message).to.include("u_a");
   });
 
-  it("keeps the first binding on redefinition (first-wins)", () => {
-    // First `float u_a;` is retained; second is rejected. The symbol table must expose only ONE
-    // entry for `u_a`; its astNode must precede the redefinition token in source order.
+  it("blocks codegen on redefinition", () => {
     const source = `Shader "first-wins" {
   SubShader "Default" {
     Pass "test" {
@@ -123,18 +121,9 @@ describe("ShaderAnalyzer", () => {
   }
 }`;
     const { diagnostics, passes } = analyzer.analyze(source);
-    expect(passes.length).to.equal(1);
+    expect(passes.length).to.equal(0);
     const redef = diagnostics.find((d: Diagnostic) => d.code === "Redefinition");
     expect(redef).to.be.ok;
-    const symbolTable = passes[0].program.shaderData.symbolTable;
-    const symbols: any[] = [];
-    symbolTable.forEach((s: any) => {
-      if (s.ident === "u_a") symbols.push(s);
-    });
-    expect(symbols.length, "duplicate must not create two entries").to.equal(1);
-    const retainedStart = symbols[0].astNode.location.start.index;
-    const rejectedOffset = redef!.range.start.offset;
-    expect(retainedStart).to.be.lessThan(rejectedOffset);
   });
 
   it("does not flag the same name across exclusive macro branches", () => {

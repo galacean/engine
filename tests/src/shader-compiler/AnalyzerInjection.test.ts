@@ -27,7 +27,7 @@ describe("analyzer injection: diagnostics ride along with compilation", () => {
       const out = compiler._parseShaderPass(passWithIssue, "vert", "frag", ShaderLanguage.GLSLES300, "");
       const logged = spy.mock.calls.map((c) => String(c[0])).join("\n");
       expect(logged).to.include("UndeclaredStructMember");
-      expect(out, "compilation still produces GLSL (best-effort)").to.not.be.undefined;
+      expect(out, "an analyzer error blocks codegen").to.be.undefined;
     } finally {
       spy.mockRestore();
     }
@@ -46,10 +46,7 @@ describe("analyzer injection: diagnostics ride along with compilation", () => {
     }
   });
 
-  // Regression: wrong-entry-name binding (`VertexShader = notReal;`) must (i) surface
-  // `EntryNotFound` via the injected analyzer and (ii) NOT throw at codegen — codegen
-  // degrades to an empty stage source; the analyzer owns the user-facing error.
-  it("EntryNotFound: analyzer diagnoses AND codegen does not throw for a mistyped entry", () => {
+  it("EntryNotFound: analyzer diagnoses and blocks a mistyped entry", () => {
     const compiler = new ShaderCompiler();
     const analyzer = new ShaderAnalyzer();
     compiler._setAnalyzer(analyzer);
@@ -60,9 +57,6 @@ void vert(Attributes attr) { gl_Position = vec4(attr.POSITION, 1.0); }
 void frag() { gl_FragColor = vec4(0.0); }`;
 
     const errSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
-    // Codegen soft-return also emits a `console.warn` (deduped per compile) — silence it here so it
-    // doesn't fail unrelated `no unexpected warns` assertions in other tests running in the same process.
-    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
     try {
       let threw: unknown = null;
       let out: any;
@@ -71,15 +65,13 @@ void frag() { gl_FragColor = vec4(0.0); }`;
       } catch (e) {
         threw = e;
       }
-      expect(threw, "codegen must not throw for a mistyped entry").to.be.null;
-      expect(out, "codegen still returns pipeline shape").to.not.be.undefined;
-      expect(out.vertex, "missing vertex entry → empty vertex source").to.equal("");
+      expect(threw, "the analyzer gate must not throw").to.be.null;
+      expect(out, "an analyzer error blocks codegen").to.be.undefined;
 
       const logged = errSpy.mock.calls.map((c) => String(c[0])).join("\n");
       expect(logged, "analyzer surfaces `EntryNotFound` via Logger").to.include("EntryNotFound");
     } finally {
       errSpy.mockRestore();
-      warnSpy.mockRestore();
     }
   });
 });

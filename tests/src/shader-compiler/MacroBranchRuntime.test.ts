@@ -114,6 +114,70 @@ float u_value;
     }
   });
 
+  it("selects exactly one declaration for complementary #ifndef/#elif defined arms", () => {
+    const source = shader(
+      `#ifndef DISABLE_VALUE
+float u_value;
+#elif defined(DISABLE_VALUE)
+float u_value;
+#endif`,
+      "gl_FragColor = vec4(u_value);"
+    );
+
+    for (const macros of [[], [["DISABLE_VALUE", "1"]]]) {
+      const evaluated = evaluate(source, macros);
+      expect(evaluated.fragment.match(/uniform\s+float\s+u_value\s*;/g)).to.have.lengthOf(1);
+      const compiled = compileInWebGL(evaluated.vertex, evaluated.fragment);
+      if (compiled !== "no-webgl") {
+        expect(compiled.ok, `vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`).to.be.true;
+      }
+    }
+  });
+
+  it("selects the first true #elif arm", () => {
+    const source = shader(
+      `#if 0
+float u_value;
+#elif 0
+float u_value;
+#elif 1
+float u_value;
+#elif 1
+float u_value;
+#else
+float u_value;
+#endif`,
+      "gl_FragColor = vec4(u_value);"
+    );
+
+    const evaluated = evaluate(source, []);
+    expect(evaluated.fragment.match(/uniform\s+float\s+u_value\s*;/g)).to.have.lengthOf(1);
+    const compiled = compileInWebGL(evaluated.vertex, evaluated.fragment);
+    if (compiled !== "no-webgl") {
+      expect(compiled.ok, `vertex=${compiled.vertexLog} fragment=${compiled.fragmentLog}`).to.be.true;
+    }
+  });
+
+  it("blocks codegen for a non-complementary #ifndef/#elif declaration gap", () => {
+    const source = shader(
+      `#ifndef DISABLE_VALUE
+float u_value;
+#elif A
+float u_value;
+#endif`,
+      "gl_FragColor = vec4(u_value);"
+    );
+
+    const analyzer = new ShaderAnalyzer();
+    const result = analyzer.analyze(source);
+    expect(result.diagnostics.map((diagnostic) => diagnostic.code)).to.deep.equal(["UseBeforeDeclaration"]);
+    expect(result.passes).to.be.empty;
+
+    const compiler = new ShaderCompiler();
+    compiler._setAnalyzer(analyzer);
+    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+  });
+
   it.each([
     ["const", "const float branchValue = 0.0;", "float branchValue = 0.0;", "branchValue = 1.0;"],
     ["implicit uniform", "float branchValue;", "float branchValue = 0.0;", "branchValue = 1.0;"],
