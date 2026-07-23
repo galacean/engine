@@ -89,7 +89,7 @@ export class GLES300Visitor extends GLESVisitor {
     if (context.stage === EShaderStage.FRAGMENT && node.getLexeme(this) === "gl_FragColor") {
       // gl_FragColor with MRT is invalid (flagged by ShaderIOAnalyzer); emit nothing for the error case.
       if (context.mrtStructs.length) {
-        return;
+        return "";
       }
       this._registerFragColorVariable();
       return V3_GL_FragColor;

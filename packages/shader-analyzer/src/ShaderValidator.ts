@@ -17,7 +17,8 @@ import {
   TreeNode,
   TypeAny,
   TypeSystem,
-  VarSymbol
+  VarSymbol,
+  FnSymbol
 } from "@galacean/engine-shader-parser";
 
 /**
@@ -81,13 +82,13 @@ export class ShaderValidator {
    * `shaderData.glFragDataReferences` list; the residue is bare use.
    */
   private _indexedGlFragDataStarts = new Set<number>();
-  /** name → set of names it directly calls. Populated during walk, used by mutual-recursion pass. */
-  private _callGraph = new Map<string, Set<string>>();
-  /** name → declaration ident location (for reporting on the outermost cycle participant). */
-  private _fnLocations = new Map<string, ShaderRange>();
-  /** fn name → list of derivative call sites inside its body. Post-walk pass reports the ones
+  /** Function-definition identity → resolved functions it directly calls. */
+  private _callGraph = new Map<ASTNode.FunctionDefinition, Set<ASTNode.FunctionDefinition>>();
+  /** Entry name → every function definition with that name. */
+  private _functionDefinitions = new Map<string, ASTNode.FunctionDefinition[]>();
+  /** Function definition → derivative call sites inside its body. Post-walk pass reports the ones
    *  reachable from the vertex entry via the call graph. */
-  private _derivativeSites = new Map<string, { name: string; location: ShaderRange }[]>();
+  private _derivativeSites = new Map<ASTNode.FunctionDefinition, { name: string; location: ShaderRange }[]>();
 
   private constructor(
     private _source: string,
@@ -112,6 +113,9 @@ export class ShaderValidator {
           : name === this._fragmentEntry && this._fragmentEntry
             ? "fragment"
             : null;
+      const definitions = this._functionDefinitions.get(name) ?? [];
+      definitions.push(node);
+      this._functionDefinitions.set(name, definitions);
       childCtx = { currentFunction: node, loopDepth: ctx.loopDepth, currentStage: stage };
     } else if (node instanceof ASTNode.IterationStatement) {
       this._checkIterationCondition(node);
@@ -422,6 +426,11 @@ export class ShaderValidator {
     if (matrixNeed > 0 && list.paramSig.length === 1 && TypeSystem.matrixComponentCount(list.paramSig[0]) > 0) {
       return;
     }
+    // GLSL ES §5.4.2: constructing a shorter vector from one longer vector drops trailing
+    // components, e.g. `vec3(vec4Value)`. The reverse direction still lacks components.
+    if (matrixNeed === 0 && list.paramSig.length === 1 && TypeSystem.vectorComponentCount(list.paramSig[0]) >= need) {
+      return;
+    }
     let total = 0;
     let countable = list.paramSig.length > 0;
     for (const t of list.paramSig) {
@@ -596,13 +605,7 @@ export class ShaderValidator {
     }
   }
 
-  /**
-   * GLSL ES §4: no implicit conversions between types. §5.9 arithmetic operators require the two
-   * operands to share a primitive family — `float + vec3` is OK (float scalar-broadcasts into
-   * float vector), `int + float` is not; `ivec3 + uvec3` is not. Fires only when both operands
-   * have a concrete numeric family — TypeAny / struct / bool / sampler stay to the earlier
-   * `_checkArithmeticOperands` pass.
-   */
+  /** GLSL ES arithmetic requires matching numeric families and compatible vector/matrix shapes. */
   private _checkArithmeticFamilyMatch(node: ASTNode.MultiplicativeExpression | ASTNode.AdditiveExpression): void {
     if (node.children.length !== 3) return;
     const left = node.children[0];
@@ -610,11 +613,12 @@ export class ShaderValidator {
     if (!(left instanceof ASTNode.ExpressionAstNode) || !(right instanceof ASTNode.ExpressionAstNode)) return;
     const lf = ShaderValidator._arithmeticFamily(left.type);
     const rf = ShaderValidator._arithmeticFamily(right.type);
-    if (lf === undefined || rf === undefined || lf === rf) return;
+    if (lf === undefined || rf === undefined) return;
     const op = node.children[1];
     const opLexeme = op instanceof BaseToken ? op.lexeme : "op";
+    if (lf === rf && ShaderValidator._areArithmeticShapesCompatible(left.type, right.type, opLexeme)) return;
     this._push(
-      `Operator '${opLexeme}' cannot mix '${TypeSystem.typeName(left.type)}' and '${TypeSystem.typeName(right.type)}' — GLSL ES has no implicit conversion.`,
+      `Operator '${opLexeme}' cannot combine '${TypeSystem.typeName(left.type)}' and '${TypeSystem.typeName(right.type)}'.`,
       node.location,
       DiagnosticType.InvalidBinaryOperands
     );
@@ -644,6 +648,29 @@ export class ShaderValidator {
       default:
         return undefined;
     }
+  }
+
+  private static _areArithmeticShapesCompatible(
+    left: GalaceanDataType,
+    right: GalaceanDataType,
+    operator: string
+  ): boolean {
+    if (left === right || TypeSystem.isScalarType(left) || TypeSystem.isScalarType(right)) return true;
+    const leftVectorSize = TypeSystem.vectorComponentCount(left);
+    const rightVectorSize = TypeSystem.vectorComponentCount(right);
+    if (leftVectorSize || rightVectorSize) {
+      if (leftVectorSize && rightVectorSize) return leftVectorSize === rightVectorSize;
+      const matrix = leftVectorSize ? TypeSystem.matrixDimensions(right) : TypeSystem.matrixDimensions(left);
+      const vectorSize = leftVectorSize || rightVectorSize;
+      if (!matrix || operator !== "*") return false;
+      return leftVectorSize ? vectorSize === matrix.rows : vectorSize === matrix.columns;
+    }
+    const leftMatrix = TypeSystem.matrixDimensions(left);
+    const rightMatrix = TypeSystem.matrixDimensions(right);
+    if (!leftMatrix || !rightMatrix) return false;
+    return operator === "*"
+      ? leftMatrix.columns === rightMatrix.rows
+      : leftMatrix.columns === rightMatrix.columns && leftMatrix.rows === rightMatrix.rows;
   }
 
   /** First operand whose direct type is neither integer nor `TypeAny`. */
@@ -1003,7 +1030,13 @@ export class ShaderValidator {
         if (children.length === 3) {
           this._push("Return in void function.", children[1].location, DiagnosticType.InvalidReturnType);
         }
-      } else if (children.length === 3) {
+      } else if (children.length !== 3) {
+        this._push(
+          "Return in a non-void function must provide a value.",
+          node.location,
+          DiagnosticType.InvalidReturnType
+        );
+      } else {
         const returned = (children[1] as ASTNode.ExpressionAstNode).type;
         if (declared != undefined && !TypeSystem.isAssignable(declared, returned)) {
           this._push(
@@ -1035,15 +1068,24 @@ export class ShaderValidator {
     if (functionIdentifier.isBuiltin) return;
     const fnIdent = functionIdentifier.ident as string;
     const proto = currentFunction.protoType;
-    // Record the call edge for the mutual-recursion post-pass (regardless of whether it's self-recursion).
-    const caller = proto.ident.lexeme;
-    let out = this._callGraph.get(caller);
-    if (!out) {
-      out = new Set();
-      this._callGraph.set(caller, out);
+    const callee = node.fnSymbol;
+    if (callee instanceof FnSymbol) {
+      if (callee.astNode !== currentFunction) {
+        let out = this._callGraph.get(currentFunction);
+        if (!out) {
+          out = new Set();
+          this._callGraph.set(currentFunction, out);
+        }
+        out.add(callee.astNode);
+        return;
+      }
+      this._push(
+        `Recursive call to '${fnIdent}' is not allowed (GLSL forbids recursion).`,
+        functionIdentifier.location,
+        DiagnosticType.RecursiveFunction
+      );
+      return;
     }
-    out.add(fnIdent);
-    if (!this._fnLocations.has(caller)) this._fnLocations.set(caller, proto.ident.location);
     if (proto.ident.lexeme !== fnIdent) return;
 
     let callSig: ASTNode.FunctionCallParameterList["paramSig"] | undefined;
@@ -1069,13 +1111,13 @@ export class ShaderValidator {
   private _reportMutualRecursion(): void {
     // Iterative DFS with a recursion stack — for each starting fn, look for a back-edge to something
     // already on the stack that isn't the immediate self edge.
-    const seen = new Set<string>();
-    const reported = new Set<string>();
+    const seen = new Set<ASTNode.FunctionDefinition>();
+    const reported = new Set<ASTNode.FunctionDefinition>();
     for (const start of this._callGraph.keys()) {
       if (seen.has(start)) continue;
-      const stack: string[] = [start];
-      const onStack = new Set<string>([start]);
-      const iters: Array<Iterator<string>> = [(this._callGraph.get(start) ?? new Set()).values()];
+      const stack: ASTNode.FunctionDefinition[] = [start];
+      const onStack = new Set<ASTNode.FunctionDefinition>([start]);
+      const iters: Array<Iterator<ASTNode.FunctionDefinition>> = [(this._callGraph.get(start) ?? new Set()).values()];
       while (stack.length) {
         const it = iters[iters.length - 1];
         const step = it.next();
@@ -1092,17 +1134,18 @@ export class ShaderValidator {
           const cycleStart = stack.indexOf(next);
           const cycle = stack.slice(cycleStart);
           if (cycle.length >= 2) {
-            const marker = [...cycle].sort()[0];
+            const marker = cycle.reduce((first, candidate) =>
+              candidate.protoType.ident.lexeme < first.protoType.ident.lexeme ? candidate : first
+            );
             if (!reported.has(marker)) {
               reported.add(marker);
-              const loc = this._fnLocations.get(marker);
-              if (loc) {
-                this._push(
-                  `Mutual recursion detected in call chain: ${cycle.join(" → ")} → ${next} (GLSL forbids recursion).`,
-                  loc,
-                  DiagnosticType.RecursiveFunction
-                );
-              }
+              this._push(
+                `Mutual recursion detected in call chain: ${cycle
+                  .map((fn) => fn.protoType.ident.lexeme)
+                  .join(" → ")} → ${next.protoType.ident.lexeme} (GLSL forbids recursion).`,
+                marker.protoType.ident.location,
+                DiagnosticType.RecursiveFunction
+              );
             }
           }
           continue;
@@ -1122,8 +1165,8 @@ export class ShaderValidator {
    */
   private _reportDerivativeReachableFromVertex(): void {
     if (!this._vertexEntry) return;
-    const reachable = new Set<string>();
-    const stack: string[] = [this._vertexEntry];
+    const reachable = new Set<ASTNode.FunctionDefinition>();
+    const stack = [...(this._functionDefinitions.get(this._vertexEntry) ?? [])];
     while (stack.length) {
       const cur = stack.pop()!;
       if (reachable.has(cur)) continue;
@@ -1132,13 +1175,13 @@ export class ShaderValidator {
       if (callees) for (const c of callees) stack.push(c);
     }
     // Vertex entry itself is handled inline in `_checkDerivativeCall`; skip it here.
-    reachable.delete(this._vertexEntry);
+    for (const entry of this._functionDefinitions.get(this._vertexEntry) ?? []) reachable.delete(entry);
     for (const fn of reachable) {
       const sites = this._derivativeSites.get(fn);
       if (!sites) continue;
       for (const s of sites) {
         this._push(
-          `Derivative function '${s.name}' is reached from the vertex entry via '${fn}' — derivatives are fragment-only.`,
+          `Derivative function '${s.name}' is reached from the vertex entry via '${fn.protoType.ident.lexeme}' — derivatives are fragment-only.`,
           s.location,
           DiagnosticType.DerivativeInVertexShader
         );
@@ -1167,7 +1210,7 @@ export class ShaderValidator {
     } else if (ctx.currentFunction) {
       // Record for the post-walk reachability pass: a helper that calls dFdx is illegal when the
       // vertex entry transitively reaches it, even if the helper itself is `currentStage === null`.
-      const enclosing = ctx.currentFunction.protoType.ident.lexeme;
+      const enclosing = ctx.currentFunction;
       let sites = this._derivativeSites.get(enclosing);
       if (!sites) {
         sites = [];

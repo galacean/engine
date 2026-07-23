@@ -1,8 +1,9 @@
-import { ShaderLanguage } from "@galacean/engine-core";
+import { Logger, ShaderLanguage } from "@galacean/engine-core";
 import { ShaderMacroProcessor } from "@galacean/engine-core/src/shader/ShaderMacroProcessor";
 import { ShaderAnalyzer } from "@galacean/engine-shader-analyzer";
 import { ShaderCompiler } from "@galacean/engine-shader-compiler";
-import { describe, expect, it } from "vitest";
+import { ShaderSourceParser } from "@galacean/engine-shader-parser";
+import { describe, expect, it, vi } from "vitest";
 
 function shader(declarations: string, fragmentBody: string): string {
   return `Shader "macro-branch-runtime" { SubShader "s" { Pass "p" {
@@ -36,6 +37,17 @@ function evaluate(source: string, macros: Array<[string, string]>) {
     vertex: ShaderMacroProcessor.evaluate(generated.vertexShaderInstructions!, new Map(macros)),
     fragment: ShaderMacroProcessor.evaluate(generated.fragmentShaderInstructions!, new Map(macros))
   };
+}
+
+function compileWithAnalyzer(compiler: ShaderCompiler, source: string) {
+  const pass = ShaderSourceParser.parse(source).subShaders[0].passes[0];
+  return compiler._parseShaderPass(
+    pass.contents,
+    pass.vertexEntry,
+    pass.fragmentEntry,
+    ShaderLanguage.GLSLES100,
+    ""
+  );
 }
 
 interface DriverResult {
@@ -215,7 +227,7 @@ float u_value;
 
     const compiler = new ShaderCompiler();
     compiler._setAnalyzer(analyzer);
-    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
   });
 
   it("blocks codegen for a repeated #ifdef/#elif condition", () => {
@@ -235,7 +247,7 @@ float u_value;
 
     const compiler = new ShaderCompiler();
     compiler._setAnalyzer(analyzer);
-    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
   });
 
   it("rejects malformed #elif conditions before codegen", () => {
@@ -255,7 +267,12 @@ float u_value;
 
     const compiler = new ShaderCompiler();
     compiler._setAnalyzer(analyzer);
-    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+    const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
+    try {
+      expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
+    } finally {
+      errorSpy.mockRestore();
+    }
   });
 
   it.each([
@@ -303,7 +320,7 @@ gl_FragColor = vec4(branchValue);`
 
     const compiler = new ShaderCompiler();
     compiler._setAnalyzer(analyzer);
-    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
   });
 
   it("blocks compiler codegen when a macro declaration does not cover its reference", () => {
@@ -321,6 +338,6 @@ float branchValue;
 
     const compiler = new ShaderCompiler();
     compiler._setAnalyzer(analyzer);
-    expect(compiler._parseShaderPass(source, "vert", "frag", ShaderLanguage.GLSLES100, "")).to.be.undefined;
+    expect(compileWithAnalyzer(compiler, source)).to.be.undefined;
   });
 });

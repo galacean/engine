@@ -140,24 +140,33 @@ export class TypeSystem {
    * Returns 0 for non-matrix types so callers can chain with `vectorComponentCount` fallthrough.
    */
   static matrixComponentCount(type: GalaceanDataType | undefined): number {
+    const dimensions = this.matrixDimensions(type);
+    return dimensions ? dimensions.columns * dimensions.rows : 0;
+  }
+
+  /** Column and row counts of a matrix type, or `undefined` for non-matrix types. */
+  static matrixDimensions(type: GalaceanDataType | undefined): { columns: number; rows: number } | undefined {
     switch (type) {
       case Keyword.MAT2:
-        return 4;
+        return { columns: 2, rows: 2 };
       case Keyword.MAT3:
-        return 9;
+        return { columns: 3, rows: 3 };
       case Keyword.MAT4:
-        return 16;
+        return { columns: 4, rows: 4 };
       case Keyword.MAT2X3:
+        return { columns: 2, rows: 3 };
       case Keyword.MAT3X2:
-        return 6;
+        return { columns: 3, rows: 2 };
       case Keyword.MAT2X4:
+        return { columns: 2, rows: 4 };
       case Keyword.MAT4X2:
-        return 8;
+        return { columns: 4, rows: 2 };
       case Keyword.MAT3X4:
+        return { columns: 3, rows: 4 };
       case Keyword.MAT4X3:
-        return 12;
+        return { columns: 4, rows: 3 };
       default:
-        return 0;
+        return undefined;
     }
   }
 }

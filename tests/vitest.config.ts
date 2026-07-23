@@ -24,7 +24,7 @@ export default defineProject({
         {
           browser: "chromium",
           launch: {
-            args: ["--use-gl=egl", "--ignore-gpu-blocklist", "--use-gl=angle"]
+            args: ["--ignore-gpu-blocklist", "--use-gl=angle"]
           }
         }
       ]

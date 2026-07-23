@@ -74,4 +74,43 @@ void frag() { gl_FragColor = vec4(0.0); }`;
       errSpy.mockRestore();
     }
   });
+
+  it("source-structure failures block every pass before code generation", () => {
+    const compiler = new ShaderCompiler();
+    const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
+    try {
+      const source = `Shader "bad-entries" { SubShader "s" { Pass "p" {
+void vert() { gl_Position = vec4(0.0); }
+void otherVert() { gl_Position = vec4(0.0); }
+void frag() { gl_FragColor = vec4(1.0); }
+VertexShader = vert;
+VertexShader = otherVert;
+FragmentShader = frag;
+} } }`;
+      const pass = compiler._parseShaderSource(source).subShaders[0].passes[0];
+      expect(
+        compiler._parseShaderPass(pass.contents, pass.vertexEntry, pass.fragmentEntry, ShaderLanguage.GLSLES300, "")
+      ).to.be.undefined;
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
+  it("missing includes block code generation without requiring an analyzer", () => {
+    const compiler = new ShaderCompiler();
+    const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
+    try {
+      expect(
+        compiler._parseShaderPass(
+          '#include "missing.glsl"\nvoid vert() { gl_Position = vec4(0.0); }\nvoid frag() { gl_FragColor = vec4(1.0); }',
+          "vert",
+          "frag",
+          ShaderLanguage.GLSLES300,
+          ""
+        )
+      ).to.be.undefined;
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
 });

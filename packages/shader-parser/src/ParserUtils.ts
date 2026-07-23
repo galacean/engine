@@ -168,6 +168,8 @@ export class ParserUtils {
    */
   static isConstExpr(node: TreeNode, sa: SemanticAnalyzer): boolean {
     if (ParserUtils.constNumericValue(node) !== undefined) return true;
+    const leaf = ParserUtils.unwrapBareIdentifier(node, { allowParens: true })?.children[0];
+    if (leaf instanceof Token && (leaf.type === Keyword.True || leaf.type === Keyword.False)) return true;
     const ident = ParserUtils.unwrapBareIdentifier(node, { allowParens: true });
     if (ident) {
       const child = ident.children[0];

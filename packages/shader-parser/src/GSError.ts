@@ -18,7 +18,7 @@ export class GSError extends Error {
     name: GSErrorName,
     message: string,
     public readonly location: ShaderRange | ShaderPosition,
-    public readonly source: string,
+    public readonly source: string | undefined,
     public readonly file?: string,
     public readonly code?: DiagnosticType
   ) {
@@ -28,10 +28,7 @@ export class GSError extends Error {
 
   override toString(): string {
     const { location } = this;
-    const range =
-      location instanceof ShaderPosition
-        ? { start: location, end: location }
-        : { start: location.start, end: location.end };
+    const range = "start" in location ? location : { start: location, end: location };
     return formatDiagnosticSource(this.source || undefined, range, `${this.name}: ${this.message}`);
   }
 }

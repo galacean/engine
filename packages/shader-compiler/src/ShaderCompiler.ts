@@ -1,5 +1,6 @@
 import { Color } from "@galacean/engine-math";
 import { ShaderLanguage } from "@galacean/engine-core";
+import { Logger } from "@galacean/engine-core";
 import type { IPrecompiledShader, IRenderStates, IShaderAnalyzer, IShaderSource } from "@galacean/engine-design";
 import type { IShaderProgramSource } from "@galacean/engine-design/types/shader-compiler/IShaderProgramSource";
 import { GLES100Visitor, GLES300Visitor } from "./codeGen";
@@ -17,6 +18,7 @@ export class ShaderCompiler {
   private _includeMap: IncludeMap = {};
   private readonly _chunkOutputCache: ChunkOutputCache = new Map();
   private _analyzer?: IShaderAnalyzer;
+  private _sourceErrors: Error[] = [];
 
   /** Replace the `#include` lookup table and clear the derived chunk cache. */
   _setIncludeMap(includeMap: IncludeMap): void {
@@ -35,6 +37,8 @@ export class ShaderCompiler {
   _parseShaderSource(sourceCode: string): IShaderSource {
     ShaderCompilerUtils.clearAllShaderCompilerObjectPool();
     const shaderSource = ShaderSourceParser.parse(sourceCode);
+    this._sourceErrors = [...ShaderSourceParser.errors];
+    for (const error of this._sourceErrors) Logger.error(error.toString());
 
     return shaderSource;
   }
@@ -46,13 +50,18 @@ export class ShaderCompiler {
     backend: ShaderLanguage,
     basePathForIncludeKey: string
   ): IShaderProgramSource | undefined {
+    if (this._sourceErrors.length) return undefined;
     const macroDefineList = {};
-    const noIncludeContent = Preprocessor.parse(
+    const { content: noIncludeContent, errors: preprocessErrors } = Preprocessor.parseWithErrors(
       source,
       basePathForIncludeKey,
       this._includeMap,
       this._chunkOutputCache
     );
+    if (preprocessErrors.length) {
+      for (const error of preprocessErrors) Logger.error(error.toString());
+      return undefined;
+    }
 
     const lexer = new Lexer(noIncludeContent, macroDefineList);
 
@@ -69,6 +78,9 @@ export class ShaderCompiler {
       if (this._analyzer && !this._analyzer._diagnose(program, parser.errors, vertexEntry, fragmentEntry))
         return undefined;
       return this.generate(program, vertexEntry, fragmentEntry, backend);
+    } catch (error) {
+      Logger.error(error instanceof Error ? error.toString() : String(error));
+      return undefined;
     } finally {
       ShaderCompilerUtils.processingPassText = undefined;
     }

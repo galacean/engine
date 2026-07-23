@@ -59,4 +59,21 @@ describe("analyze exposes reusable AST (editor parses once)", () => {
     expect(reusedVertexInstructions).to.deep.equal(fresh!.vertexShaderInstructions);
     expect(reusedVertexInstructions).to.not.be.undefined;
   });
+
+  it("keeps an exposed program stable after another parser user clears its pools", () => {
+    const compiler = new ShaderCompiler();
+    const analyzed = new ShaderAnalyzer().analyze(source);
+    const pass = analyzed.passes[0];
+
+    compiler._parseShaderSource(`Shader "other" { SubShader "s" { Pass "p" {
+      void anotherVert() { gl_Position = vec4(0.0); }
+      void anotherFrag() { gl_FragColor = vec4(1.0); }
+      VertexShader = anotherVert;
+      FragmentShader = anotherFrag;
+    } } }`);
+
+    const generated = compiler.generate(pass.program, pass.vertexEntry, pass.fragmentEntry, ShaderLanguage.GLSLES300);
+    expect(generated.vertex).to.include("void main");
+    expect(generated.fragment).to.include("void main");
+  });
 });

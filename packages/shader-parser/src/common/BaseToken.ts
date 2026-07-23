@@ -624,7 +624,7 @@ function isLowerBoundAtLeast(
   required: { value: number; inclusive: boolean }
 ): boolean {
   return (
-    actual.value > required.value || (actual.value === required.value && (actual.inclusive || !required.inclusive))
+    actual.value > required.value || (actual.value === required.value && (required.inclusive || !actual.inclusive))
   );
 }
 
@@ -633,7 +633,7 @@ function isUpperBoundAtMost(
   required: { value: number; inclusive: boolean }
 ): boolean {
   return (
-    actual.value < required.value || (actual.value === required.value && (actual.inclusive || !required.inclusive))
+    actual.value < required.value || (actual.value === required.value && (required.inclusive || !actual.inclusive))
   );
 }
 

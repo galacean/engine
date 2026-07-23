@@ -1,13 +1,22 @@
 import type { ASTNode } from "./parser/AST";
 import type { BranchSignature } from "./common/BaseToken";
 import { Logger } from "@galacean/engine-core";
+import { GSError, GSErrorName } from "./GSError";
+import { ShaderPosition } from "./common/ShaderPosition";
 
 // Mirrors `ShaderPass._shaderRootPath` (from core's ShaderPass).
 const SHADER_ROOT_PATH = "shaders://root/";
 
 export type IncludeMap = { readonly [includeName: string]: string | undefined };
 
-export type ChunkOutputCache = Map<string, string>;
+export interface PreprocessResult {
+  /** Expanded shader source. */
+  content: string;
+  /** Include-resolution failures collected while expanding the source. */
+  errors: GSError[];
+}
+
+export type ChunkOutputCache = Map<string, PreprocessResult>;
 
 export interface MacroDefineInfo {
   isFunction: boolean;
@@ -40,35 +49,83 @@ export class Preprocessor {
     includeMap: IncludeMap,
     chunkOutputCache: ChunkOutputCache
   ): string {
-    return source.replace(this._includeReg, (match, includeName) =>
-      includeName ? this._replace(includeName, basePathForIncludeKey, includeMap, chunkOutputCache) : match
+    const result = this.parseWithErrors(source, basePathForIncludeKey, includeMap, chunkOutputCache);
+    for (const error of result.errors) Logger.error(error.toString());
+    return result.content;
+  }
+
+  /**
+   * Expands includes and returns any include-resolution failures with source locations.
+   *
+   * @param source - Source to preprocess.
+   * @param basePathForIncludeKey - Base URL for relative include paths.
+   * @param includeMap - Include-path lookup table.
+   * @param chunkOutputCache - Cache for expanded include chunks.
+   * @returns The expanded source and collected errors.
+   */
+  static parseWithErrors(
+    source: string,
+    basePathForIncludeKey: string,
+    includeMap: IncludeMap,
+    chunkOutputCache: ChunkOutputCache
+  ): PreprocessResult {
+    const errors: GSError[] = [];
+    const content = source.replace(this._includeReg, (match, includeName: string | undefined, offset: number) =>
+      includeName
+        ? this._replace(includeName, basePathForIncludeKey, includeMap, chunkOutputCache, source, offset, errors)
+        : match
     );
+    return { content, errors };
   }
 
   private static _replace(
     includeName: string,
     basePathForIncludeKey: string,
     includeMap: IncludeMap,
-    chunkOutputCache: ChunkOutputCache
+    chunkOutputCache: ChunkOutputCache,
+    source: string,
+    offset: number,
+    errors: GSError[]
   ): string {
     let path: string;
     if (includeName[0] === ".") {
-      path = new URL(includeName, basePathForIncludeKey).href.substring(SHADER_ROOT_PATH.length);
+      try {
+        path = new URL(includeName, basePathForIncludeKey).href.substring(SHADER_ROOT_PATH.length);
+      } catch {
+        errors.push(
+          this._createIncludeError(
+            source,
+            offset,
+            `Cannot resolve relative shader include "${includeName}" without a shader base path.`
+          )
+        );
+        return "";
+      }
     } else {
       path = includeName;
     }
 
     const chunk = includeMap[path];
     if (!chunk) {
-      Logger.error(`Shader slice "${path}" not founded.`);
+      errors.push(this._createIncludeError(source, offset, `Shader include "${path}" was not found.`));
       return "";
     }
 
     let cached = chunkOutputCache.get(path);
-    if (cached === undefined) {
-      cached = this.parse(chunk, basePathForIncludeKey, includeMap, chunkOutputCache);
+    if (!cached) {
+      cached = this.parseWithErrors(chunk, basePathForIncludeKey, includeMap, chunkOutputCache);
       chunkOutputCache.set(path, cached);
     }
-    return cached;
+    errors.push(...cached.errors);
+    return cached.content;
+  }
+
+  private static _createIncludeError(source: string, offset: number, message: string): GSError {
+    const before = source.slice(0, offset);
+    const line = before.split("\n").length - 1;
+    const lastBreak = Math.max(before.lastIndexOf("\n"), before.lastIndexOf("\r"));
+    const position = new ShaderPosition();
+    position.set(offset, line, offset - lastBreak - 1);
+    return new GSError(GSErrorName.PreprocessorError, message, position, source);
   }
 }

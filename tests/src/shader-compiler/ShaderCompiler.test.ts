@@ -12,7 +12,7 @@ import { ShaderCompiler as ShaderCompilerRelease } from "@galacean/engine-shader
 import { glslValidate } from "./ShaderValidate";
 
 import { Logger, WebGLEngine } from "@galacean/engine";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { server } from "@vitest/browser/context";
 const { readFile } = server.commands;
 
@@ -308,8 +308,8 @@ describe("ShaderCompiler", async () => {
 
     const expectedVert = await readFile("src/shader-compiler/expected/define-struct-access-global.vert.glsl");
     const expectedFrag = await readFile("src/shader-compiler/expected/define-struct-access-global.frag.glsl");
-    expect(vertex).to.equal(expectedVert);
-    expect(fragment).to.equal(expectedFrag);
+    expect(vertex).to.equal(expectedVert.trimEnd());
+    expect(fragment).to.equal(expectedFrag.trimEnd());
   });
 
   it("define-struct-access (function-body #define with struct member access)", async () => {
@@ -425,21 +425,21 @@ describe("ShaderCompiler", async () => {
     const parsed = shaderCompilerRelease._parseShaderSource(source);
     const pass = parsed.subShaders[0].passes.find((p) => !p.isUsePass);
     if (!pass) throw new Error("test fixture missing a non-usepass");
-    let captured: unknown = null;
+    const errorSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
     try {
-      shaderCompilerRelease._parseShaderPass(
+      const result = shaderCompilerRelease._parseShaderPass(
         pass.contents,
         pass.vertexEntry,
         pass.fragmentEntry,
         ShaderLanguage.GLSLES100
       );
-    } catch (e) {
-      captured = e;
+      expect(result, "invalid macro input must not reach codegen").to.be.undefined;
+      const message = errorSpy.mock.calls.map((call) => String(call[0])).join("\n");
+      expect(message).to.match(/#define BAD: invalid replacement list/);
+      expect(message).to.include(expectedValueFragment);
+    } finally {
+      errorSpy.mockRestore();
     }
-    expect(captured, "expected a lexer error").to.be.instanceOf(Error);
-    const msg = (captured as Error).message;
-    expect(msg).to.match(/#define BAD: invalid replacement list/);
-    expect(msg).to.include(expectedValueFragment);
   };
 
   it("macro-author-error: trailing comma surfaces a uniform diagnostic", async () => {

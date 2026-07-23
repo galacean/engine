@@ -18,7 +18,7 @@ export class ShaderCompilerUtils {
     return pool;
   }
 
-  static createPosition(index: number, line?: number, column?: number): ShaderPosition {
+  static createPosition(index: number, line = 0, column = 0): ShaderPosition {
     const position = ShaderCompilerUtils._shaderPositionPool.get();
     position.set(index, line, column);
     return position;
@@ -39,7 +39,7 @@ export class ShaderCompilerUtils {
   static createGSError(
     message: string,
     errorName: GSErrorName,
-    source: string,
+    source: string | undefined,
     location: ShaderRange | ShaderPosition,
     code?: DiagnosticType,
     file?: string

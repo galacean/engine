@@ -12,21 +12,28 @@ let _parser: ShaderTargetParser;
  * @param source - GLSL source for the shader pass.
  * @param includeMap - Include-path lookup table.
  * @param cache - Cache for expanded include chunks.
+ * @param basePathForIncludeKey - Base URL for relative include paths.
  * @returns Parsed program, diagnostics, and preprocessed pass text.
  */
 export function parseShaderPass(
   source: string,
   includeMap: IncludeMap,
-  cache: ChunkOutputCache
+  cache: ChunkOutputCache,
+  basePathForIncludeKey = ""
 ): { program: ASTNode.GLShaderProgram | null; errors: Error[]; passText: string } {
   _parser ??= ShaderTargetParser.create();
   const macroDefineList = {};
-  const passText = Preprocessor.parse(source, "", includeMap, cache);
+  const { content: passText, errors: preprocessErrors } = Preprocessor.parseWithErrors(
+    source,
+    basePathForIncludeKey,
+    includeMap,
+    cache
+  );
   const tokens = new Lexer(passText, macroDefineList).tokenize();
   ShaderCompilerUtils.processingPassText = passText;
   try {
     const program = _parser.parse(tokens, macroDefineList);
-    return { program, errors: [..._parser.errors], passText };
+    return { program, errors: [...preprocessErrors, ..._parser.errors], passText };
   } finally {
     ShaderCompilerUtils.processingPassText = undefined;
   }

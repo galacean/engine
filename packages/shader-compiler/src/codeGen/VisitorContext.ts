@@ -93,19 +93,9 @@ export class VisitorContext {
     map[varName] = role;
   }
 
-  /**
-   * Look up the role of a struct-typed variable, preferring the current stage's binding.
-   * Falls back to the other stage so global `#define` values referencing the opposite stage's
-   * struct-typed variables (e.g. `#define FRAG_UV v.v_uv` where `v` is a fragment param) still
-   * flatten correctly when emitted in either stage's output. Stage priority disambiguates
-   * same-named params (e.g. `input` in both entries) — see `_vertexStructVarMap` doc.
-   */
+  /** Look up the role of a struct-typed variable in the stage currently being generated. */
   getStructVarRole(varName: string): StructRole | undefined {
-    const [primary, secondary] =
-      this.stage === EShaderStage.VERTEX
-        ? [this._vertexStructVarMap, this._fragmentStructVarMap]
-        : [this._fragmentStructVarMap, this._vertexStructVarMap];
-    return primary[varName] ?? secondary[varName];
+    return (this.stage === EShaderStage.VERTEX ? this._vertexStructVarMap : this._fragmentStructVarMap)[varName];
   }
 
   referenceAttribute(ident: BaseToken): void {

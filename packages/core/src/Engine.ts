@@ -644,9 +644,9 @@ export class Engine extends EventDispatcher {
       // @ts-ignore — `_setIncludeMap` is shader-compiler @internal; `includeMap`
       // is `ShaderFactory` @internal. Both intentionally cross-package wired.
       shaderCompiler._setIncludeMap(ShaderFactory.includeMap);
-      if (shaderAnalyzer) shaderCompiler._setAnalyzer(shaderAnalyzer);
       Shader._shaderCompiler = shaderCompiler;
     }
+    if (shaderAnalyzer && Shader._shaderCompiler) Shader._shaderCompiler._setAnalyzer(shaderAnalyzer);
 
     const initializePromises = new Array<Promise<any>>();
     if (physics) {

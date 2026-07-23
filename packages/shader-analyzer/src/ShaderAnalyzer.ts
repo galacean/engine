@@ -18,6 +18,8 @@ import { ShaderValidator } from "./ShaderValidator";
 export interface AnalyzerOptions {
   /** `#include` lookup table; keys are include paths, values are chunk sources. */
   includeMap?: IncludeMap;
+  /** Base URL used to resolve relative `#include` paths. */
+  basePathForIncludeKey?: string;
 }
 
 /** Parsed pass available for subsequent code generation. */
@@ -71,7 +73,7 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
       for (const subShader of shaderSource.subShaders) {
         for (const pass of subShader.passes) {
           if (pass.isUsePass) continue;
-          const analyzed = this._analyzePass(pass, diagnostics);
+          const analyzed = this._analyzePass(pass, diagnostics, options?.basePathForIncludeKey);
           if (analyzed) passes.push(analyzed);
         }
       }
@@ -116,10 +118,19 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
     }
   }
 
-  private _analyzePass(pass: IShaderPassSource, diagnostics: Diagnostic[]): AnalyzedPass | null {
+  private _analyzePass(
+    pass: IShaderPassSource,
+    diagnostics: Diagnostic[],
+    basePathForIncludeKey: string | undefined
+  ): AnalyzedPass | null {
     const { vertexEntry, fragmentEntry } = pass;
     try {
-      const { program, errors, passText } = parseShaderPass(pass.contents, this._includeMap, this._chunkOutputCache);
+      const { program, errors, passText } = parseShaderPass(
+        pass.contents,
+        this._includeMap,
+        this._chunkOutputCache,
+        basePathForIncludeKey
+      );
       diagnostics.push(...errors.map((e) => gseErrorToDiagnostic(e)));
       if (program) {
         diagnostics.push(
@@ -135,11 +146,48 @@ export class ShaderAnalyzer implements IShaderAnalyzer {
           pass.fragmentEntryLocation as ShaderRange | undefined
         );
         diagnostics.push(...ioErrors.map((e) => gseErrorToDiagnostic(e)));
-        return { program, vertexEntry, fragmentEntry };
+        return { program: this._cloneProgram(program), vertexEntry, fragmentEntry };
       }
     } catch (e) {
       diagnostics.push(gseErrorToDiagnostic(e instanceof Error ? e : new Error(String(e))));
     }
     return null;
+  }
+
+  private _cloneProgram(program: ASTNode.GLShaderProgram): ASTNode.GLShaderProgram {
+    return ShaderAnalyzer._cloneValue(program, new WeakMap()) as ASTNode.GLShaderProgram;
+  }
+
+  private static _cloneValue(value: unknown, seen: WeakMap<object, unknown>): unknown {
+    if (value === null || typeof value !== "object") return value;
+    const existing = seen.get(value);
+    if (existing) return existing;
+    if (Array.isArray(value)) {
+      const clone: unknown[] = [];
+      seen.set(value, clone);
+      for (const item of value) clone.push(this._cloneValue(item, seen));
+      return clone;
+    }
+    if (value instanceof Map) {
+      const clone = new Map();
+      seen.set(value, clone);
+      for (const [key, item] of value) clone.set(this._cloneValue(key, seen), this._cloneValue(item, seen));
+      return clone;
+    }
+    if (value instanceof Set) {
+      const clone = new Set();
+      seen.set(value, clone);
+      for (const item of value) clone.add(this._cloneValue(item, seen));
+      return clone;
+    }
+    const clone = Object.create(Object.getPrototypeOf(value));
+    seen.set(value, clone);
+    for (const key of Reflect.ownKeys(value)) {
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (!descriptor) continue;
+      if ("value" in descriptor) descriptor.value = this._cloneValue(descriptor.value, seen);
+      Object.defineProperty(clone, key, descriptor);
+    }
+    return clone;
   }
 }

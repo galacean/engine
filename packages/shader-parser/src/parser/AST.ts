@@ -8,6 +8,7 @@ import {
   canBranchesOverlap,
   canDeclarationsCoexist,
   EMPTY_BRANCH,
+  isBranchReachable,
   isBranchVisibleFrom,
   isSelfGuardingBranch,
   sameBranch
@@ -830,7 +831,9 @@ export namespace ASTNode {
       // children[1] — a bare `return;` in a void function has no expression there and would emit
       // malformed GLSL if recorded.
       this.returnStatement =
-        this.protoType.returnType.type === Keyword.VOID ? undefined : (curFunctionInfo.returnStatement ?? undefined);
+        this.protoType.returnType.type === Keyword.VOID || curFunctionInfo.returnStatement?.children.length !== 3
+          ? undefined
+          : curFunctionInfo.returnStatement;
       curFunctionInfo.header = undefined;
       curFunctionInfo.returnStatement = undefined;
     }
@@ -1112,7 +1115,7 @@ export namespace ASTNode {
         // gl_Position?" clue — only assignment targets count. `gl_Position = ...` and
         // `gl_Position.xyz = ...` (write to a component) both qualify; `vec4 x = gl_Position;`
         // (a read) does not. Match on the leftmost identifier in the LHS chain.
-        if (AssignmentExpression._leftmostIdentLexeme(lhs) === "gl_Position") {
+        if (isBranchReachable(this._branch) && AssignmentExpression._leftmostIdentLexeme(lhs) === "gl_Position") {
           sa.shaderData.glPositionReferences.push(lhs.location);
         }
       }
@@ -1812,11 +1815,15 @@ export namespace ASTNode {
         const builtinVar = BuiltinVariable.getVar(name);
         if (builtinVar) {
           this.typeInfo = builtinVar.type;
-          if (name === "gl_FragColor") sa.shaderData.glFragColorReferences.push(this.location);
+          if (isBranchReachable(this._branch) && name === "gl_FragColor") {
+            sa.shaderData.glFragColorReferences.push(this.location);
+          }
           // Every `gl_FragData` reference is captured here; ShaderValidator later strikes the ones
           // that were actually indexed (`gl_FragData[i]`) — the residue is bare use, which the
           // driver rejects.
-          if (name === "gl_FragData") sa.shaderData.glFragDataReferences.push(this.location);
+          if (isBranchReachable(this._branch) && name === "gl_FragData") {
+            sa.shaderData.glFragDataReferences.push(this.location);
+          }
           // `gl_Position` writes are collected in `AssignmentExpression.semanticAnalyze` — reads
           // (`vec4 x = gl_Position;`) don't count toward MissingVertexPosition.
           continue;

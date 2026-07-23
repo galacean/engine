@@ -1,4 +1,5 @@
-// For cft conflict test, used by bison
+// Conflict-free Bison mirror for the ShaderLab source parser.
+%expect 0
 
 %token shader
 %token subshader
@@ -19,7 +20,7 @@
 %token render_state_prop_type
 %token UsePass
 %token Color_init
-%token VertextShader
+%token VertexShader
 %token FragmentShader
 
 %token plain_statements
@@ -53,14 +54,19 @@ subshader_statement:
   ;
 
 pass_statements:
+  /** empty */
+  | pass_statements pass_statement
+  ;
+
+pass_statement:
   global_declaration
   | plain_statements
   | main_shader_assignment
   ;
 
 main_shader_assignment:
-    VertextShader '=' id ';'
-    FragmentShader '=' id ';'
+    VertexShader '=' id ';'
+  | FragmentShader '=' id ';'
     ;
 
 global_declaration_in_shader:
@@ -137,12 +143,12 @@ render_state_prop_list:
 
 render_state_prop_assignment:
     render_state_prop '=' id ';'
-    render_state_prop '=' true ';'
-    render_state_prop '=' false ';'
-    render_state_prop '=' INT_CONSTANT ';'
-    render_state_prop '=' FLOAT_CONSTANT ';'
-    render_state_prop '=' id '.' id ';'
-    render_state_prop '=' Color_init;
+  | render_state_prop '=' true ';'
+  | render_state_prop '=' false ';'
+  | render_state_prop '=' INT_CONSTANT ';'
+  | render_state_prop '=' FLOAT_CONSTANT ';'
+  | render_state_prop '=' id '.' id ';'
+  | render_state_prop '=' Color_init;
     ;
 
 render_state_prop:

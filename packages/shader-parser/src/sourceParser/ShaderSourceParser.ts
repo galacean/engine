@@ -392,14 +392,10 @@ export class ShaderSourceParser {
     const value = this._renderStateConstMap.RenderQueueType[word.lexeme];
     const key = RenderStateElementKey.RenderQueueType;
     if (value == undefined) {
-      renderStates.variableMap[key] = word.lexeme;
       const lookupSymbol = this._lookupSymbol;
       lookupSymbol.set(word.lexeme, Keyword.GSRenderQueueType);
       const sm = this._symbolTableStack.lookup(lookupSymbol);
       if (!sm) {
-        // Partial-application: the variable binding to RenderQueueType is missing, so the runtime
-        // won't resolve this write — an early return also leaves variableMap holding the token text.
-        // Callers must treat this as "state left unspecified" rather than assume the value took effect.
         this._createCompileError(
           `Invalid RenderQueueType variable: ${word.lexeme} — property will not be applied at runtime.`,
           word.location,
@@ -407,6 +403,7 @@ export class ShaderSourceParser {
         );
         return;
       }
+      renderStates.variableMap[key] = word.lexeme;
     } else {
       renderStates.constantMap[key] = value;
     }
@@ -519,7 +516,6 @@ export class ShaderSourceParser {
           const entry = lexer.scanToken();
           const isVertex = token.type === Keyword.GSVertexShader;
           const key = isVertex ? "vertexEntry" : "fragmentEntry";
-          passSource[isVertex ? "vertexEntryLocation" : "fragmentEntryLocation"] = entry.location;
           if (passSource[key]) {
             // Collect + continue (sibling MissingEntry uses the same collect flow). Keeps the first
             // binding — codegen sees the same entry the driver would if this diagnostic were
@@ -535,6 +531,7 @@ export class ShaderSourceParser {
             break;
           }
           passSource[key] = entry.lexeme;
+          passSource[isVertex ? "vertexEntryLocation" : "fragmentEntryLocation"] = entry.location;
           lexer.scanLexeme(";");
           start = lexer.getShaderPosition(0);
           break;
